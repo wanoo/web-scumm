@@ -56,14 +56,14 @@ export class Editor {
 
   private post(msg: Record<string, unknown>) {
     if (window.parent === window) return;
-    window.parent.postMessage({ source: 'pocket-scumm-editor', room: this.room.id, ...msg }, location.origin);
+    window.parent.postMessage({ source: 'web-scumm-editor', room: this.room.id, ...msg }, location.origin);
   }
 
   private bridge() {
     if (window.parent === window) return;
     window.addEventListener('message', (e: MessageEvent) => {
       const m = e.data as { source?: string; type?: string; kind?: 'prop' | 'hotspot' | 'actor'; id?: string; at?: Point };
-      if (e.origin !== location.origin || m?.source !== 'pocket-scumm-studio') return;
+      if (e.origin !== location.origin || m?.source !== 'web-scumm-studio') return;
       if (m.type === 'save') void this.save();
       else if ((m.type === 'select' || m.type === 'create') && m.kind && m.id) {
         if (m.type === 'create' && this.missing().some((x) => x.kind === m.kind && x.id === m.id)) this.addMissing({ kind: m.kind, id: m.id }, m.at);

@@ -1,4 +1,4 @@
-# pocket-scumm
+# web-scumm
 
 Un moteur de point & click façon SCUMM pour téléphone, avec ses outils d'écriture et la méthode de travail avec une IA
 qui a permis de livrer un jeu familial complet de 9 lieux en trois semaines. L'histoire s'écrit en données, les choses

@@ -36,7 +36,7 @@ export const game = defineGame({
     sounds: {},
   },
   titleScreen: { decor: 'decor/backyard', footer: '__TITLE__' },
-  credits: ['__TITLE__', '', 'Made with pocket-scumm'],
+  credits: ['__TITLE__', '', 'Made with web-scumm'],
   ui: {
     walkTo: 'Walk to', newGame: 'New game', continue: 'Continue', confirmErase: 'Erase the saved game?', yes: 'Yes', no: 'No',
     pause: 'Pause', resume: 'Resume', music: 'Music', sfx: 'Sounds', autosave: 'Autosave', credits: 'Credits', restart: 'Restart',

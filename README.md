@@ -1,4 +1,4 @@
-# pocket-scumm
+# web-scumm
 
 A SCUMM-style point-and-click adventure engine for phones, with the authoring tools and the AI-assisted workflow that
 shipped a complete 9-room family game in three weeks. Write your story as data, place things by dragging, prove the

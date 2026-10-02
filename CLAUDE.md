@@ -1,4 +1,4 @@
-# pocket-scumm — notes for an AI assistant working in this repo
+# web-scumm — notes for an AI assistant working in this repo
 
 A mobile-first, SCUMM-style point-and-click engine. A game is **data**, never code: the engine in `src/engine/` reads a
 game folder `games/<id>/` (TypeScript objects + JSON layouts + art). The sample game is `games/demo` ("The Pantry Key").

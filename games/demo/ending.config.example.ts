@@ -26,5 +26,5 @@ export const config: EndingConfig = {
   },
   message: 'Thanks for playing The Pantry Key.\nNow go and give your cat a cuddle.',
   photos: [],
-  lines: ['Made with pocket-scumm.'],
+  lines: ['Made with web-scumm.'],
 };

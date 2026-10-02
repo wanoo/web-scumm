@@ -1,7 +1,7 @@
 # Credits
 
 ## Code
-pocket-scumm engine and tools: MIT License, (c) 2026 Wano. Built with Vite, Vitest, Howler, earcut, navmesh, Tweakpane, Playwright.
+web-scumm engine and tools: MIT License, (c) 2026 Wano. Built with Vite, Vitest, Howler, earcut, navmesh, Tweakpane, Playwright.
 
 ## Sample game artwork (games/demo/art)
 Backgrounds, characters, objects and interface icons: generated for the project with an image model from written prompts

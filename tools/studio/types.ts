@@ -114,13 +114,13 @@ export type StudioEvent = { type: 'changed'; file: string } | { type: 'hello'; g
 export type EditorKey = string;
 
 export type EditorToStudio =
-  | { source: 'pocket-scumm-editor'; type: 'ready'; room: Id; missing: { kind: EntityKind; id: Id }[] }
-  | { source: 'pocket-scumm-editor'; type: 'select'; room: Id; key: EditorKey; kind?: EntityKind; id?: Id }
-  | { source: 'pocket-scumm-editor'; type: 'dirty'; room: Id; dirty: boolean }
-  | { source: 'pocket-scumm-editor'; type: 'saved'; room: Id; ok: boolean; error?: string };
+  | { source: 'web-scumm-editor'; type: 'ready'; room: Id; missing: { kind: EntityKind; id: Id }[] }
+  | { source: 'web-scumm-editor'; type: 'select'; room: Id; key: EditorKey; kind?: EntityKind; id?: Id }
+  | { source: 'web-scumm-editor'; type: 'dirty'; room: Id; dirty: boolean }
+  | { source: 'web-scumm-editor'; type: 'saved'; room: Id; ok: boolean; error?: string };
 
 export type StudioToEditor =
-  | { source: 'pocket-scumm-studio'; type: 'select'; kind: EntityKind; id: Id }
+  | { source: 'web-scumm-studio'; type: 'select'; kind: EntityKind; id: Id }
   /** Give geometry to an entity the room declares but the layout lacks (no-op if it has some). */
-  | { source: 'pocket-scumm-studio'; type: 'create'; kind: EntityKind; id: Id; at?: Point }
-  | { source: 'pocket-scumm-studio'; type: 'save' };
+  | { source: 'web-scumm-studio'; type: 'create'; kind: EntityKind; id: Id; at?: Point }
+  | { source: 'web-scumm-studio'; type: 'save' };

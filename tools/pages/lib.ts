@@ -298,7 +298,7 @@ export const PERSIST_JS = String.raw`
     return text;
   }
   async function start(opts) {
-    S.key = 'pocket-scumm:' + opts.page; S.cols = opts.collections; S.onDoc = opts.onDoc;
+    S.key = 'web-scumm:' + opts.page; S.cols = opts.collections; S.onDoc = opts.onDoc;
     loadLocal();
     S.cols.forEach(function (c) { var m = S.data[c] || {}; Object.keys(m).forEach(function (id) { S.onDoc(c, id, m[id], 'local'); }); });
     status('Saving on this device. Use Export JSON to send your changes.');

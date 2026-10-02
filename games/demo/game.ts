@@ -118,7 +118,7 @@ export const game = defineGame({
   },
   titleScreen: { decor: 'decor/dining', footer: 'A tiny point-and-click. Turn your phone sideways.' },
   credits: [
-    'THE PANTRY KEY', '', 'A pocket-scumm sample game', '',
+    'THE PANTRY KEY', '', 'A web-scumm sample game', '',
     'Pixel ........ the grey cat', 'Biscuit ...... the sleepy cat', 'Grandma ...... the key loser', 'Grandpa ...... the pipe expert',
     'Lou .......... the borrower', 'The seller ... the forgetful husband', '',
     'Sound effects: Kenney (CC0)', 'Art: CC BY 4.0, see CREDITS.md', '', 'Thanks for playing!',

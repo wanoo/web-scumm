@@ -1,4 +1,4 @@
-// Generic Playwright harness for a pocket-scumm game, shared by scripts/e2e.mjs and any games/<id>/e2e.mjs.
+// Generic Playwright harness for a web-scumm game, shared by scripts/e2e.mjs and any games/<id>/e2e.mjs.
 // A phone-sized, touch-enabled Chromium drives the real browser build through window.__game (see src/main.ts):
 // every helper below ends up as a real tap, the same way a finger would act on a phone, never a synthetic
 // state write. Screenshots land in E2E_OUT (default /tmp/e2e, cleared at the start of each run).

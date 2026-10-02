@@ -59,7 +59,7 @@ function routes(s: Studio): [string, RegExp, Handler][] {
 
 export function studioPlugin(): Plugin {
   return {
-    name: 'pocket-scumm-studio',
+    name: 'web-scumm-studio',
     apply: 'serve',
     configureServer(server) {
       if (process.env.VITEST) return;

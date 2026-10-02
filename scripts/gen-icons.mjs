@@ -67,7 +67,7 @@ writeFileSync('public/icons/icon-512.png', makeIcon(512));
   const lines = (site.ogLines ?? ['A POINT AND CLICK', 'ADVENTURE']).slice(0, 2);
   const colors = [[240, 192, 64], [184, 58, 44]];
   lines.forEach((t, i) => { const txt = clean(t); textPx(txt, Math.max(40, (W - txt.length * 6 * 9) / 2), 150 + i * 110, 9, W, H, (x, y) => set(x, y, colors[i])); });
-  const title = clean(site.title ?? 'POCKET SCUMM');
+  const title = clean(site.title ?? 'WEB SCUMM');
   textPx(title, Math.max(40, (W - title.length * 6 * 7) / 2), 420, 7, W, H, (x, y) => set(x, y, [242, 239, 230]));
   writeFileSync('public/og.png', png(W, H, (x, y) => buf.get(y * W + x) ?? [10, 10, 18]));
 }

@@ -93,7 +93,7 @@ export class RoomsTab {
     const bar = h('div', { class: 'bar' },
       h('label', null, 'Room ', select(info.rooms.map((r) => [r.id, `${r.name} (${r.id})`]), this.roomId, (v) => this.openRoom(v), { 'aria-label': 'Room' })),
       h('label', null, 'State ', select([['', 'auto'], ...cps.map(([k, c]) => [k, `${k} (${c.room})`] as [string, string])], this.checkpoint, (v) => { this.checkpoint = v; this.reloadFrame(); }, { 'aria-label': 'Checkpoint' })),
-      h('button', { onclick: () => this.post({ source: 'pocket-scumm-studio', type: 'save' }), title: 'Save the layout edited in the view' }, 'Save layout'),
+      h('button', { onclick: () => this.post({ source: 'web-scumm-studio', type: 'save' }), title: 'Save the layout edited in the view' }, 'Save layout'),
       h('button', { onclick: () => this.reloadFrame(), title: 'Reload the view (drops unsaved placement)' }, 'Reload view'),
       this.frameStatus,
     );
@@ -156,14 +156,14 @@ export class RoomsTab {
 
   private onMessage(e: MessageEvent) {
     const m = e.data as EditorToStudio;
-    if (e.origin !== location.origin || m?.source !== 'pocket-scumm-editor' || e.source !== this.frame.contentWindow) return;
+    if (e.origin !== location.origin || m?.source !== 'web-scumm-editor' || e.source !== this.frame.contentWindow) return;
     if (m.type === 'ready') {
       this.lastReady = Date.now();
       this.editorDirty = false;
       this.frameStatus.textContent = m.missing.length ? `${m.missing.length} without a place: ${m.missing.map((x) => x.id).join(', ')}` : '';
       const s = this.pendingSelect ?? this.sel;
       this.pendingSelect = null;
-      if (s) this.post({ source: 'pocket-scumm-studio', type: m.missing.some((x) => x.id === s.id) ? 'create' : 'select', kind: s.kind, id: s.id });
+      if (s) this.post({ source: 'web-scumm-studio', type: m.missing.some((x) => x.id === s.id) ? 'create' : 'select', kind: s.kind, id: s.id });
     } else if (m.type === 'select' && m.kind && m.id) {
       if (this.sel?.kind !== m.kind || this.sel?.id !== m.id) { this.sel = { kind: m.kind, id: m.id }; this.renderList(); this.renderSheet(); }
     } else if (m.type === 'dirty') {
@@ -181,7 +181,7 @@ export class RoomsTab {
   private async flushEditor() {
     if (!this.editorDirty) return;
     const done = new Promise<boolean>((res) => { this.savedWaiters.push(res); setTimeout(() => res(false), 4000); });
-    this.post({ source: 'pocket-scumm-studio', type: 'save' });
+    this.post({ source: 'web-scumm-studio', type: 'save' });
     await done;
   }
 
@@ -238,7 +238,7 @@ export class RoomsTab {
     this.sel = s;
     this.renderList();
     this.renderSheet();
-    this.post({ source: 'pocket-scumm-studio', type: 'select', kind: s.kind, id: s.id });
+    this.post({ source: 'web-scumm-studio', type: 'select', kind: s.kind, id: s.id });
   }
 
   // -------------------------------------------------------------- text editing
@@ -507,7 +507,7 @@ export class RoomsTab {
         this.sel = { kind, id: nid };
         this.pendingSelect = this.sel;
         await this.load();
-        this.post({ source: 'pocket-scumm-studio', type: 'select', kind, id: nid });
+        this.post({ source: 'web-scumm-studio', type: 'select', kind, id: nid });
         // The view reloads by itself (the room module changed); force it if it doesn't.
         const since = Date.now();
         setTimeout(() => { if (this.lastReady < since) this.reloadFrame(); }, 1500);
