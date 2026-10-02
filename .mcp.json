@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "web-scumm": {
+      "type": "stdio",
+      "command": "npm",
+      "args": ["run", "-s", "mcp"],
+      "env": {}
+    }
+  }
+}

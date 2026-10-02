@@ -13,6 +13,7 @@
     "e2e": "node scripts/e2e.mjs",
     "validate": "tsx tools/validate.ts",
     "solve": "tsx tools/solve.ts",
+    "mcp": "tsx tools/mcp/server.ts",
     "assets": "mkdir -p .cache && tsx --tsconfig tsconfig.json tools/refs.ts > .cache/refs.json && python3 tools/assets.py",
     "game": "tsx tools/select-game.ts",
     "seal": "tsx scripts/seal.ts",
@@ -30,6 +31,7 @@
     "game": "demo"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0",
     "@tweakpane/core": "^2.0.5",
     "@types/howler": "^2.2.13",
     "@types/node": "^22.10.0",

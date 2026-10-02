@@ -48,3 +48,7 @@ GAME=<id> npm run …   # another game than package.json "config".game
 ## How the human sees your work
 `npm run studio` shows the rooms rendered by the real engine and reloads when you change a file. The human answers in the
 Studio's Notes tab (`notes.json`) or by editing the storyboard. Commit small, explain in the message what changed in the game.
+
+**Through MCP.** `npm run -s mcp` serves the same operations as tools (`get_room`, `set_text`, `add_note`, `validate`,
+`solve`, `screenshot`, `read_doc`…) to any MCP client; `.mcp.json` (Claude Code) and `.cursor/mcp.json` are in the repo,
+other clients in `docs/en/MCP.md`. The human sees your edits live in the Studio and answers through `get_notes`.
