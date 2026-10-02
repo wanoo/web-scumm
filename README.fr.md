@@ -7,6 +7,24 @@ téléphone, hors ligne après la première visite.
 
 *[English version](README.md)* · Jeu d'exemple : **The Pantry Key** (`games/demo`).
 
+## En images
+
+![Trois lieux du jeu d'exemple](docs/img/banner.jpg)
+
+| | |
+|---|---|
+| ![Écran titre](docs/img/title.jpg) *Écran titre, téléphone en paysage* | ![Dialogue](docs/img/dialogue.jpg) *Sujets de conversation, transcription, couleur par personnage* |
+| ![Appel à deux voix](docs/img/phone-call.jpg) *Un appel à deux voix* | ![Carte](docs/img/map.jpg) *La carte, véhicules et marqueurs « du nouveau »* |
+| ![Mini-jeu des tuyaux](docs/img/minigame-pipes.jpg) *Mini-jeu des tuyaux, voix d'indice en haut* | ![Mini-jeu de choix](docs/img/minigame-pick.jpg) *Choisir la bonne fleur* |
+| ![Ticket à gratter](docs/img/ending-scratch.jpg) *La fin scellée : un ticket à gratter* | ![Carte finale](docs/img/ending-card.jpg) *La carte finale juge le pronostic du joueur* |
+| ![Éditeur de placement](docs/img/editor.jpg) *L'éditeur de placement dans le navigateur (`?edit=house`)* | ![Page de placement](docs/img/placement-page.jpg) *La page de placement pour téléphone* |
+
+## État d'avancement
+- Moteur, outils et jeu d'exemple : complets et jouables de bout en bout (validateur, solveur, 35 tests, parcours Playwright).
+- Pages de validation (storyboard, contrôle des sprites, placement) : fonctionnelles, en HTML local ou en artefact claude.ai.
+- **En cours** : un Studio local WYSIWYG (`npm run studio`) pour construire lieux, textes et storyboard sans aucun cloud, et un
+  serveur MCP pour que n'importe quelle IA se branche. Voir `docs/en/STUDIO.md`.
+
 ## Ce qu'il y a dedans
 - **Un moteur** (`src/engine`, TypeScript, sans framework) : les 9 verbes classiques, le sac, des dialogues avec
   transcription, des indices, une carte du monde avec véhicules, des cinématiques, des appels à deux voix, des
