@@ -1,0 +1,87 @@
+import type { GameState, Id, Point, RoomDef, VerbId } from './types';
+
+/**
+ * What the core asks the display for. The DOM renderer implements it for the browser,
+ * FakePresenter implements it for node (tests, solver). All async methods
+ * receive `fast`: true when skipping a cutscene, in which case it must finish right away.
+ */
+export interface Presenter {
+  enterRoom(room: RoomDef, state: GameState): Promise<void>;
+  say(who: Id, text: string, o: { shout?: boolean; fast?: boolean }): Promise<void>;
+  /** Moves a character. Returns the arrival point, or null if the move was interrupted. */
+  walk(who: Id, to: Point, fast: boolean): Promise<Point | null>;
+  face(who: Id, dir: 'left' | 'right'): void;
+  pose(who: Id, pose: string): void;
+  anim(who: Id, pose: string, ms: number, fast: boolean): Promise<void>;
+  place(who: Id, at: Point, face?: 'left' | 'right'): void;
+  wait(ms: number, fast: boolean): Promise<void>;
+  prop(id: Id, state: string): void;
+  show(id: Id, visible: boolean, fade: number, fast: boolean): Promise<void>;
+  /** Inventory contents; `used` = greyed-out items (already used). */
+  inventory(items: Id[], used?: Id[]): void;
+  sfx(id: Id): void;
+  music(cmd: { play?: Id; push?: Id; pop?: true; stop?: true; once?: Id }): void;
+  toast(text: string): void;
+  shake(ms: number): void;
+  /** Opens the map. Returns the chosen room (after the travel animation), or null if closed. */
+  openMap(state: GameState): Promise<Id | null>;
+  minigame(id: Id, params: Record<string, unknown>): Promise<void>;
+  /** Choice of responses (dialogue tree or topic menu). Returns the chosen index. */
+  choose(options: { text: string; seen?: boolean; global?: boolean }[], who?: Id): Promise<number>;
+  /** Call: `who` is a caller or a list (shown side by side). ringing=true: rings then Pick up; false: end of call. */
+  phone(who: Id | Id[], ringing: boolean): Promise<void>;
+  guide(g: { verb: VerbId; target: Id } | null): void;
+  cutscene(on: boolean): void;
+  /** Sealed ending. 'open': decryption, scratch ticket, confetti rain. 'card': the final card. */
+  ending(phase: 'open' | 'card'): Promise<void>;
+  end(): void;
+}
+
+export interface SaveStore {
+  load(): GameState | null;
+  save(s: GameState): void;
+  clear(): void;
+}
+
+export class MemoryStore implements SaveStore {
+  data: GameState | null = null;
+  load() { return this.data ? structuredClone(this.data) : null; }
+  save(s: GameState) { this.data = structuredClone(s); }
+  clear() { this.data = null; }
+}
+
+/** Silent presenter for node: everything finishes immediately, and everything is logged to `log`. */
+export class FakePresenter implements Presenter {
+  log: string[] = [];
+  /** Answers to give to choices, in order (otherwise 0, then "Bye"). */
+  picks: number[] = [];
+  mapPicks: (Id | null)[] = [];
+  heroAt: Point = [320, 360];
+  async enterRoom(room: RoomDef) { this.log.push(`enter ${room.id}`); }
+  async say(who: Id, text: string) { this.log.push(`${who}: ${text}`); }
+  async walk(who: Id, to: Point) { this.log.push(`walk ${who} ${to.join(',')}`); return to; }
+  face() {}
+  pose(who: Id, pose: string) { this.log.push(`pose ${who} ${pose}`); }
+  async anim() {}
+  place() {}
+  async wait() {}
+  prop(id: Id, state: string) { this.log.push(`prop ${id} ${state}`); }
+  async show(id: Id, v: boolean) { this.log.push(`${v ? 'show' : 'hide'} ${id}`); }
+  inventory(items: Id[]) { this.log.push(`inv ${items.join(',')}`); }
+  sfx(id: Id) { this.log.push(`sfx ${id}`); }
+  music() {}
+  toast(t: string) { this.log.push(`toast ${t}`); }
+  shake() {}
+  async openMap() { return this.mapPicks.length ? this.mapPicks.shift()! : null; }
+  async minigame(id: Id) { this.log.push(`minigame ${id}`); }
+  async choose(options: { text: string }[]) {
+    const i = this.picks.length ? this.picks.shift()! : options.length - 1;
+    this.log.push(`choose ${options[i]?.text}`);
+    return i;
+  }
+  async phone(who: Id | Id[]) { this.log.push(`phone ${Array.isArray(who) ? who.join("+") : who}`); }
+  guide() {}
+  cutscene() {}
+  async ending(phase: 'open' | 'card') { if (phase === 'open') this.log.push('ENDING'); }
+  end() { this.log.push('END'); }
+}

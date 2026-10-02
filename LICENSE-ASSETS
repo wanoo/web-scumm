@@ -1,0 +1,10 @@
+Sample game assets (everything under games/demo/art and the music under games/demo/audio/music)
+are licensed under Creative Commons Attribution 4.0 International (CC BY 4.0).
+https://creativecommons.org/licenses/by/4.0/
+
+Attribution: "Artwork by Wano, from the pocket-scumm project (https://github.com/wano)".
+
+The sound effects under games/demo/audio/sfx come from Kenney (https://kenney.nl) and are CC0 (public domain).
+The fonts under public/fonts are under the SIL Open Font License 1.1 (see CREDITS.md).
+
+The engine source code is covered by the MIT License in LICENSE.

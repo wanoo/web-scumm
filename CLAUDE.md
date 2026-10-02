@@ -1,0 +1,43 @@
+# pocket-scumm — notes for an AI assistant working in this repo
+
+A mobile-first, SCUMM-style point-and-click engine. A game is **data**, never code: the engine in `src/engine/` reads a
+game folder `games/<id>/` (TypeScript objects + JSON layouts + art). The sample game is `games/demo` ("The Pantry Key").
+
+## Where things are
+- `src/engine/core/types.ts` — the content format (DSL). The reference: read it before writing any content.
+- `src/engine/core/engine.ts` — rule resolution and the command interpreter. `dom/` renders it, `minigames/` are plugins,
+  `ending/` is the optional sealed ending, `tools/` holds the validator and solver, `dev/` the in-browser editor.
+- `games/<id>/` — `game.ts` (verbs, characters, items, map, rules, start, ui texts, skin), `rooms/*.ts` (one per room),
+  `layout/*.json` (geometry, written by the editor), `art/` (cut sprites, `<sheet>/r<row>c<col>.png`), `audio/`,
+  `storyboard.json` (the script), `site.json` (title, description), `index.ts` (what the engine loads).
+- `docs/en/` — CONTENT_GUIDE (how to write a room), ENGINE, TOOLS, WORKFLOW (the method), PROMPTS (art generation),
+  PAGES (phone-friendly review pages), PRODUCTION.template (plan for sub-agents). `docs/fr/` mirrors it in French.
+- `tools/` — validate, solve, refs, assets.py, cut-sheet.py, talk-kit/apply/normalize, pages/, audit-assets.
+
+## Commands
+```
+npm run dev                 # dev server; ?dev&at=<checkpoint> jumps to a state; ?edit=<room> opens the placement editor
+npm run validate            # broken ids, missing look lines, flags never set/read, minigame params
+npm run solve               # proves the game can be finished from New Game, prints the path
+npm test                    # engine tests + the game's walkthrough
+npm run e2e -- <url>        # full playthrough by touch in a phone-sized Chromium, screenshots in E2E_OUT
+npm run assets              # games/<id>/art + audio → public/assets (webp, mp3) + assets.gen.json
+npm run build               # tsc + tests + vite build + spoiler check + leak audit
+GAME=<id> npm run …         # pick another game (default: package.json "config".game)
+npm run new-game <id>       # scaffold games/<id> from games/_template
+```
+
+## Rules that keep a game healthy
+1. Content is data. No functions in `games/`. If you need logic, it is a condition (`if`) or a command (`do`).
+2. Logic in `rooms/*.ts`, geometry in `layout/*.json`. Never type coordinates by hand: use `?edit=<room>` or the
+   placement page, then `npm run import-layout`.
+3. Every visible thing has a `look` line. Every action gets an answer (fallbacks live in `rules.ts`).
+4. The storyboard is the source of truth for text. Change the storyboard, then the room, never only the room.
+5. After any content change: `npm run validate && npm run solve && npm test`. After any visual change: a screenshot
+   of the room (`?dev&at=<checkpoint>` + Playwright) and look at it.
+6. Never delete an asset; rename to `_v1`. Never recut a sheet that was validated. `games/<id>/private/` is gitignored:
+   raw sheets, photos, the real ending config live there.
+7. Keep the hero's lines short, funny and kind. Rhythm for repeated looks: normal, normal, normal, absurd.
+
+## Skills
+`/new-game`, `/new-room`, `/new-character`, `/storyboard`, `/placement`, `/review`, `/production-plan` in `.claude/skills/`.

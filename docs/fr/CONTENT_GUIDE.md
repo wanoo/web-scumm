@@ -1,0 +1,407 @@
+# Écrire le contenu du jeu
+
+Ce guide s'adresse à qui écrit le scénario : les lieux, les répliques, les énigmes. Il décrit le format que le moteur lit.
+Tu n'as jamais besoin de toucher au moteur (`src/engine/`). Tout le jeu vit dans `games/<jeu>/` (ici `games/demo/`).
+
+Les types complets, avec leurs commentaires, sont dans `src/engine/core/types.ts`. Ton éditeur les propose en autocomplétion.
+
+## Les principes
+
+1. **Du contenu, pas du code.** Le contenu est fait de données : des objets, des listes, des textes. Aucune fonction.
+   C'est ce qui permet au moteur de vérifier le jeu tout seul (`npm run validate`) et de prouver qu'il se finit (`npm run solve`).
+2. **La logique d'un côté, la géométrie de l'autre.** Tu écris *ce qui se passe* dans `rooms/<lieu>.ts`.
+   *Où sont les choses* (rectangles cliquables, position des personnages, zone où l'on marche) vit dans
+   `layout/<lieu>.json`, placé à la souris dans l'éditeur (`npm run dev`, puis `?edit=<lieu>`). Tu n'écris jamais de coordonnées à la main,
+   sauf pour un déplacement scripté ponctuel.
+3. **Rien n'est bloquant.** Toute action a une réponse. Sans réaction écrite, le moteur répond avec les réponses de repli du jeu.
+4. **Coordonnées logiques.** Un décor mesure 640 × 400, origine en haut à gauche. Un personnage est placé par ses pieds.
+
+## Les fichiers
+
+```
+games/<jeu>/
+  index.ts         point d'entrée : export { game, layouts, manifest, minigames?, extraImages? }
+  game.ts          le jeu : verbes, personnages, objets, carte, règles globales, début de partie, habillage (skin), fin (ending), textes d'interface
+  rules.ts         réponses de repli, réactions par sorte (« on ne tire pas un chat »)
+  rooms/maison.ts  un fichier par lieu (logique)
+  layout/maison.json un fichier par lieu (géométrie, écrit par l'éditeur)
+  assets.gen.json  manifeste des images et sons (écrit par npm run assets)
+  sources.json     d'où viennent les sources d'assets (facultatif, voir TOOLS.md)
+```
+
+## Un lieu, pas à pas
+
+```ts
+import { defineRoom } from '@engine/core/define';
+
+export default defineRoom({
+  id: 'maison',
+  name: 'La maison de grand-mère',
+  decor: 'decor/maison',          // image de fond (voir « Les images »)
+  music: 'maison',
+
+  // Accessoires : des images posées sur le décor, qui peuvent changer d'état.
+  props: {
+    lampe:    { name: 'lampe', states: { off: 'maison/r1c1', on: 'maison/r1c2' } },
+    fauteuil: { name: 'fauteuil', states: { plein: 'maison/fauteuil_plein', vide: 'maison/fauteuil' } },
+    table:    { img: 'maison/table_appoint', name: 'table d’appoint' },
+    tabouret: { name: 'tabouret', states: { etagere: 'maison/r1c5', tire: 'maison/r1c6' } },
+    talkie:   { name: 'talkie-walkie', img: 'items/r1c1', visible: { not: { has: 'talkie' } } },
+  },
+
+  // Personnages présents.
+  actors: {
+    grandmere: { char: 'grandmere', facing: 'left' },
+    chat: { char: 'chat', pose: 'sleep', visible: '!chat_reveille' },
+  },
+
+  // Zones cliquables du décor lui-même (rien n'est dessiné, seul le rectangle compte).
+  hotspots: {
+    etagere: { name: 'étagère' },
+    placard: { name: 'placard' },
+    porte:   { name: 'porte du jardin' },
+  },
+
+  // Regarder. Une liste = une phrase différente à chaque fois, en boucle.
+  look: {
+    etagere: 'L’étagère. Trop haute sans marchepied.',
+    placard: ['Un vieux placard.', 'Toujours un vieux placard.', 'Un jour, je regarderai ce qu’il y a dedans.'],
+  },
+
+  // Réactions écrites. Voir « Les réactions ».
+  on: [
+    { verb: 'pull', a: 'tabouret', if: { prop: ['tabouret', 'etagere'] }, do: [
+      { prop: ['tabouret', 'tire'] }, 'Et voilà. Un marchepied.',
+    ] },
+    { verb: 'use', a: 'corde', b: ['crochet', 'seau'], do: [
+      { lose: 'corde' }, { set: 'attache' },
+      'Attachée. Un bout au crochet, l’autre au seau.',
+      { say: ['grandmere', 'Fais attention avec ce seau, ma chérie.'] },
+    ] },
+  ],
+
+  // Sujets de conversation (2 ou 3). « Un câlin ? » et « Au revoir » sont ajoutés tout seuls.
+  talk: {
+    grandmere: [
+      { topic: 'Grand-mère, c’est quoi dans le panier ?', do: [{ say: ['grandmere', 'Une surprise pour tout le monde.'] }] },
+      { topic: 'Je peux aller au marché toute seule ?', do: [
+        { say: ['grandmere', 'Toute seule ?! Avec ton écharpe, ton bonnet, ta gourde…'] },
+        { say: ['grandmere', '… Bon. De retour à dix heures.'] },
+      ] },
+    ],
+  },
+
+  // Indices du talkie-walkie : le premier dont la condition `until` est encore fausse est donné.
+  hints: [
+    { until: { has: 'corde' }, lines: ['Khhh… le fauteuil… il avale tout.', 'Khhh… regarde… sur le côté du fauteuil.'] },
+    { until: 'attache', lines: ['Khhh… une corde… ça s’attache.'] },
+  ],
+
+  // À chaque entrée dans le lieu.
+  onEnter: [
+    { once: [ 'Le salon. La base de toute aventure.' ] },
+  ],
+});
+```
+
+## Les réactions
+
+Une réaction dit : « quand on fait VERBE sur A (avec ou à B), si CONDITION, alors ces commandes ».
+
+| Champ | Sens |
+|---|---|
+| `verb` | `give` Donner, `open` Ouvrir, `close` Fermer, `take` Prendre, `look` Regarder, `talk` Parler, `use` Utiliser, `push` Pousser, `pull` Tirer. Une liste accepte plusieurs verbes. |
+| `a` | L'objet visé. Pour Utiliser/Donner avec deux termes, c'est l'objet du sac. Une liste = n'importe lequel. |
+| `b` | La cible de « Utiliser A avec B » ou « Donner A à B ». Absent = action à un seul terme. |
+| `if` | Condition facultative. La première règle dont la condition est vraie gagne : mets les cas particuliers d'abord. |
+| `do` | Les commandes à jouer. |
+
+Deux objets du sac se combinent dans les deux sens : une règle `a: 'moitie1', b: 'moitie2'` marche aussi pour « Utiliser moitié 2 avec moitié 1 ».
+Les règles valables partout (combiner deux objets, par exemple) vont dans `rules.on` du jeu, pas dans un lieu.
+
+### Quand rien n'est écrit
+
+Le moteur cherche la réponse dans cet ordre, et s'arrête à la première trouvée :
+
+1. une règle du lieu (`on`), puis une règle globale du jeu (`rules.on`) ;
+2. Regarder : le texte de `look` du lieu, ou le `look` de l'objet si c'est un objet du sac ;
+3. Parler : à l'objet d'indices (le talkie-walkie), ce sont les indices ; à un acteur qui a des sujets, c'est le menu de conversation ;
+4. une réaction par sorte (`rules.kinds`), d'abord celles qui visent une cible précise (`target`), puis celles par sorte (`kind`) ;
+5. Donner à un personnage : sa phrase de refus (`refuse` dans sa fiche) ;
+6. une réponse de repli du verbe (`rules.fallbacks`), tirée au sort, jamais deux fois de suite la même.
+
+Dans les textes de repli et de sorte, `{objet}` est remplacé par le nom de l'objet, `{cible}` par la cible, `{nom}` par le nom de ce qu'on vise.
+
+```ts
+// rules.ts
+export const rules = {
+  fallbacks: {
+    look: ['Hmm. {objet}. Rien de suspect. Pour l’instant.'],
+    take: ['C’est pas à moi.', 'Trop lourd. Même pour moi.'],
+    use2: ['{objet} avec {cible} ? Ça ne marche pas. Mais c’était bien essayé.'],
+    // … un tableau par verbe : give, open, close, take, look, talk, use, push, pull, use2
+  },
+  kinds: [
+    { verb: 'pull', kind: 'chat', say: 'Non ! On ne tire jamais la queue d’un chat.' },
+    { verb: 'take', target: 'grandmere', say: 'Grand-mère a déjà bien assez à porter.' },   // cible précise : prioritaire
+    { verb: 'take', kind: 'person', say: 'Je ne peux pas porter {nom}. Par contre, {nom} peut me porter, moi.' },
+    { verb: 'use', item: 'fromage_qui_pue', kind: 'person', say: 'Non. Même moi, je ne suis pas aussi méchante.' },
+  ],
+  on: [
+    { verb: 'use', a: 'moitie_gauche', b: 'moitie_droite', do: [{ lose: 'moitie_gauche' }, { lose: 'moitie_droite' }, { gain: 'carte_postale' }] },
+  ],
+};
+```
+
+## Les commandes
+
+Une commande seule, sous forme de texte, fait parler le héros : `'Et voilà. Un marchepied.'`.
+
+### Parole
+
+| Commande | Effet |
+|---|---|
+| `'texte'` | Le héros dit la phrase. |
+| `{ say: ['grandmere', 'texte'] }` | Un personnage parle. `'hero'` désigne toujours le héros. Un personnage `offscreen` (narrateur, talkie-walkie) parle dans un cadre en haut de l'écran. |
+| `{ say: ['grandmere', 'ATTENTION !'], shout: true }` | Un cri : plus gros, et le texte tremble. |
+
+Une réplique reste à l'écran le temps de la lire, ou jusqu'à un tap.
+
+### Déplacements et poses
+
+| Commande | Effet |
+|---|---|
+| `{ walk: 'etagere' }` | Le héros marche jusqu'au point d'approche de l'étagère (défini dans le layout). |
+| `{ walk: [300, 350], who: 'grandpere' }` | Grand-père marche jusqu'à ce point (n'importe quel acteur du lieu ; sans pose `walk`, il glisse dans sa pose actuelle). |
+| `{ face: 'left' }`, `{ face: 'grandmere' }` | Se tourner vers la gauche, ou vers quelqu'un ou quelque chose. |
+| `{ pose: ['chat', 'sleep'] }` | Pose durable (jusqu'à la prochaine). Poses du personnage : voir sa fiche `sprites`. |
+| `{ anim: ['hero', 'use'], ms: 600 }` | Pose le temps indiqué, puis retour à la normale. Marche pour tout acteur du lieu, y compris un acteur en `pose: 'front'` : `{ anim: ['grandpere', 'surprise'], ms: 900 }` joue la pose `surprise` de sa fiche (`sprites: { …, surprise: ['grandpere_assis/r2c3'] }`), puis il revient en `front`. |
+| `{ place: ['grandpere', [420, 360]], face: 'left' }` | Téléporte un personnage. |
+| `{ wait: 500 }` | Pause, en millisecondes. |
+| `{ parallel: [[…], […]] }` | Joue plusieurs listes en même temps (ex. deux personnes qui marchent). |
+
+### Le monde
+
+| Commande | Effet |
+|---|---|
+| `{ prop: ['lampe', 'on'] }` | Change l'état d'un accessoire. `'lieu.accessoire'` vise un autre lieu. |
+| `{ show: 'ghost', fade: 1200 }`, `{ hide: 'ghost', fade: 1500 }` | Fait apparaître ou disparaître un acteur ou un accessoire, avec fondu facultatif. |
+| `{ gain: 'corde' }`, `{ lose: 'corde' }` | Ajoute ou retire un objet du sac. `gain` d'un objet marqué `used` le réactive. |
+| `{ used: 'corde' }`, `{ used: ['corde', 'badge'] }` | L'objet a servi : il reste dans le sac, **grisé**, et ne peut plus être choisi pour Utiliser / Donner (Regarder marche toujours). Il redevient actif là où une règle du lieu ou du jeu le vise en `a` ou `b` et que sa condition `if` est vraie. Donc : garder la règle qui l'a consommé derrière un `if` (ex. `if: '!attache'`), sinon il reste actif dans ce lieu. Sauvegardé ; les anciennes sauvegardes se chargent sans. |
+| `{ set: 'attache' }`, `{ set: ['essais', 3] }`, `{ unset: 'x' }`, `{ inc: 'essais' }` | Les flags : des cases à cocher et des compteurs, nommés comme tu veux. |
+| `{ unlock: 'marche' }` | Débloque un lieu sur la carte. Un lieu verrouillé n'apparaît pas. |
+| `{ goto: 'marche', at: 'porte' }` | Change de lieu (point d'entrée facultatif, défini dans le layout). |
+| `{ map: true }` | Ouvre la carte. |
+
+### Audio et effets
+
+| Commande | Effet |
+|---|---|
+| `{ sfx: 'piece' }` | Bruitage. |
+| `{ music: 'marche' }` | Change de musique (fondu enchaîné). |
+| `{ music: { push: 'minigame' } }` puis `{ music: { pop: true } }` | Musique temporaire, puis retour à la précédente. |
+| `{ music: { once: 'jingle' } }` | Joue un morceau une fois par-dessus, puis la musique reprend. |
+| `{ toast: 'Nouveau lieu : Marché' }` | Petit message en haut de l'écran. |
+| `{ shake: 400 }` | L'écran tremble. |
+
+### Logique
+
+| Commande | Effet |
+|---|---|
+| `{ if: COND, then: […], else: […] }` | Branchement. |
+| `{ once: […] }` | Une seule fois dans toute la partie. |
+| `{ nth: [[…1re fois], […2e fois], […ensuite]] }` | Selon le nombre de fois ; la dernière branche se répète. |
+| `{ cycle: [[…], […]] }` | En boucle : 1, 2, 1, 2… (ex. un tourne-disque qui alterne deux morceaux). |
+| `{ random: [[…], […]] }` | Au hasard, jamais deux fois de suite la même. |
+
+### Séquences et écrans
+
+| Commande | Effet |
+|---|---|
+| `{ cutscene: […] }` | Cinématique : bandes noires, bouton « Passer ». Passer joue la suite instantanément : les effets (objets, flags, états) sont bien appliqués. |
+| `{ choice: [{ text, do, if?, once? }, …] }` | Le joueur choisit une réplique ; le héros la dit, puis `do` est joué. |
+| `{ talk: 'grandmere' }` | Ouvre le menu de conversation d'un acteur depuis un script. |
+| `{ minigame: 'pipes', params: { tiles: …, cols: 4 }, then: […] }` | Lance un mini-jeu. Un mini-jeu ne s'échoue jamais : `then` est toujours joué, même si on passe. Ses images viennent toutes des `params` (voir « Mini-jeux disponibles »). |
+| `{ phone: 'grandmere', do: […] }` | Appel entrant : sonnerie (`skin.sounds.phone`), bouton Décrocher, puis les répliques de `do`. Pendant l'appel, le correspondant est affiché dans un cadre de téléphone (en bas à gauche), bouche animée quand il parle ; ses répliques s'affichent en haut. |
+| `{ phone: ['lou', 'vendeuse'], do: […] }` | Appel à plusieurs : tous côte à côte dans le même cadre (le premier devant), chacun à sa taille (`height`). Chaque `{ say: ['lou', …] }` anime la bouche de la bonne personne. Pose affichée : la première de `skin.callPoses` qui existe (défaut `phone`, `front`, `face`, `idle`) ; bouches de `mouths.phone` (sinon la pose `phone_talk` alterne, sinon un petit rebond). Les ids sont des personnages de `characters` (pas besoin d'acteur dans le lieu). |
+| `{ guide: { verb: 'look', target: 'etagere', say: 'Choisis Regarder, puis touche l’étagère.' } }` | Tutoriel : le héros donne la consigne, le verbe clignote, la cible scintille. Le script attend que le joueur fasse exactement cette action ; toute autre action fait répéter la consigne. |
+| `{ hint: true }` | Donne l'indice courant (comme Parler au talkie-walkie). |
+| `{ ending: true, after?: […] }` | La fin scellée (`GameDef.ending`) : ticket à gratter, confetti, puis `after`, puis la carte finale. `{ reveal: true }` est l'ancien nom, toujours accepté. |
+| `{ end: true }` | Fin de partie. |
+
+## Les conditions
+
+| Condition | Vraie quand… |
+|---|---|
+| `'attache'` / `'!attache'` | le flag est vrai / faux ou absent. |
+| `{ has: 'corde' }` | l'objet est dans le sac. |
+| `{ flag: 'essais', eq: 3 }`, `{ flag: 'essais', gte: 2 }`, `{ flag: 'x', lt: 5 }` | comparaison d'un flag. |
+| `{ not: … }`, `{ all: [ … ] }`, `{ any: [ … ] }` | non, et, ou. |
+| `{ visited: 'marche' }`, `{ room: 'marche' }` | on est déjà allé au marché / on y est. |
+| `{ prop: ['lampe', 'on'] }`, `{ prop: ['maison.lampe', 'on'] }` | l'accessoire est dans cet état (dans le lieu courant, ou `'lieu.accessoire'`). |
+| `{ unlocked: 'marche' }` | le lieu est débloqué sur la carte. |
+| `{ seen: 'maison.grandmere.0' }` | le sujet n° 0 de Grand-mère à la maison a déjà été entendu. |
+
+## Personnages, objets, carte
+
+```ts
+characters: {
+  grandmere: {
+    name: 'Grand-mère', color: '#f0c040', height: 124, kind: ['person'],
+    portrait: 'grandmere/r1c2',
+    sprites: { idle: ['grandmere/r3c3'], talk: ['grandmere/r3c4', 'grandmere/r3c3'], walk: ['grandmere/r2c1', 'grandmere/r2c2', …] },
+    refuse: 'C’est gentil, ma chérie. Mais garde-le, tu en auras besoin pour ta course.',
+    hug: 'Toujours. Même avec un panier dans les bras.',
+  },
+  talkie: { name: 'le talkie-walkie', color: '#ff6fb5', offscreen: true },      // parle dans un cadre, sans corps
+},
+items: {
+  corde: { name: 'corde', icon: 'items/r1c2', look: 'Une longueur de corde. Un bout pour le crochet, un bout pour le seau.' },
+},
+map: {
+  start: 'monde',
+  regions: { monde: { name: 'Monde', image: 'decor/carte' }, ville: { name: 'Ville', image: 'decor/carte_ville', parent: 'monde' } },
+  places: {
+    marche: { name: 'Marché', room: 'marche', region: 'ville', pos: [61, 41], portrait: 'vendeuse/r1c2', vehicle: 'car', news: '!marche_fini' },
+  },
+},
+```
+
+### Parole : seule la bouche bouge
+
+Un personnage qui a une planche de parole déclare ses bouches par pose. Pendant une réplique, le corps ne change pas :
+les images de bouche ouverte défilent au hasard (160 à 220 ms), un clignement passe de temps en temps au repos.
+L'image « bouche fermée » remplace l'image de repos de la pose, donc repos et parole viennent du même dessin.
+
+```ts
+import { human, mouths } from './cast';
+grandpere: { …, mouths: mouths('talk_grandpere', { idle: 'profil', front: 'face', assis: 'assis' }) },
+```
+
+`mouths(dossier, { pose: ligne })` lit `talk_<perso>/<ligne>/t1…t6` (t1 fermée, t2 à t4 ouvertes, t5 clignement, t6 sourire).
+Sans bouches pour une pose, le personnage garde la même image et rebondit d'un pixel en parlant ; une longue réplique commence par un geste (`talk`) joué une fois.
+
+### Variantes selon l'état
+
+```ts
+import { cat } from './cast';
+hero: { …, sprites: cat('hero'), variants: [{ if: { has: 'seau' }, sprites: cat('hero_seau'), mouths: … }] },
+```
+
+La première variante dont la condition est vraie remplace `sprites`, `mouths` et `portrait`. Le changement se voit tout de suite (ex. dès qu'on prend le seau).
+
+### Choses à plusieurs états (une mouette qui regarde / gobe, un vieux chien qui dort / boude / bâille, l'œil d'un chat qui brille sur un écran)
+
+Un hotspot n'a qu'un nom et qu'une zone. Pour une chose dessinée qui change, utiliser un **accessoire à états** :
+`props: { mouette: { name: 'mouette', states: { regarde: 'obj_jardin/r2c4', gobe: 'obj_jardin/r2c5' }, initial: 'regarde' } }`,
+positions par état dans le layout (`props.mouette.states.gobe`), la zone touchable suit l'image. On change d'état par `{ prop: ['mouette', 'gobe'] }`
+et on réagit selon l'état avec `if: { prop: ['mouette', 'gobe'] }`. Pour une zone du décor qui change de nom ou de forme,
+deux hotspots aux `visible` opposés (`visible: 'x'` / `visible: '!x'`), chacun sa zone ; une règle peut viser les deux (`a: ['h1', 'h2']`).
+
+### Présence sans interaction
+
+`actors: { ghost: { char: 'ghost', interactive: false, visible: 'ghost_seen' } }` : visible, mais ni cliquable ni nommée.
+À combiner avec `{ show: 'ghost', fade: 1500 }` / `{ hide: 'ghost', fade: 1500 }` et `glow` dans la fiche du personnage.
+
+Poses d'un personnage, par convention : `idle`, `talk`, `walk` (profil, vers la droite ; le moteur retourne l'image pour la gauche),
+`walk_front`, `walk_back`, `point`, `use`, plus toutes les poses spéciales que tu veux (`sleep`, `sit`, `celebrate`…).
+Une pose est une liste d'images jouée en boucle. Une pose absente retombe sur `idle`.
+
+## L'habillage (`skin`)
+
+Tout ce que le moteur affiche ou joue sans que le contenu le cite. Ids d'images du manifeste ; les sons sont des ids de `audio.sfx`
+(`phone`, `plane`, `confetti`) ou de `audio.music` (`jingle`, `end`). Un son absent = silence. `npm run validate` vérifie chaque id.
+
+```ts
+skin: {
+  icons: {
+    map: 'ui/r1c5', pause: 'ui/r3c5', music: 'ui/r3c6',   // obligatoires : les trois boutons de la colonne
+    spark: 'ui/r3c4',                                        // étincelle du tutoriel guidé
+    pin: 'ui/r1c6', news: 'ui/r2c4', plane: 'ui/r2c1', car: 'ui/r2c2',   // carte (map.vehicles les remplace s'ils y sont)
+    confetti: ['ui/r4c1', 'ui/r4c2'], cardFallback: 'items/r3c6',      // fin scellée
+  },
+  sounds: { phone: 'phone', plane: 'plane', confetti: 'confetti', jingle: 'jingle', end: 'end' },
+  fonts: { ui: 'DotGothic16', pixel: 'Press Start 2P' },   // familles CSS → variables --font-ui et --font-pixel
+  heights: { actor: 110, hero: 84 },                       // hauteur d'un personnage sans `height`
+  callPoses: ['phone', 'telephone', 'front', 'face', 'idle'],   // poses essayées pour le cadre d'un appel
+},
+```
+
+Les textes d'interface sont dans `ui` (dont `tapToContinue`, « ▼ toucher pour continuer », et `ok`, le bouton du mot de passe).
+
+## Le layout (écrit par l'éditeur, à ne pas taper à la main)
+
+Champs lus par le moteur, en plus des positions : sur un accessoire (et dans chacun de ses `states`) `rot` (degrés, sens horaire, pivot aux pieds),
+`flip` (miroir horizontal), `flipV` (miroir vertical, l'image passe sous la ligne des pieds, comme dans la page de placement), `z` (couche forcée) ;
+un champ absent d'un état reprend celui de l'accessoire. Sur un acteur : `z` force sa couche (sinon, celle de ses pieds).
+Sur le lieu : `floor` (défaut 395) est le bas du sol ; un point d'approche calculé ne descend pas plus bas.
+
+## Écran titre et générique
+
+`titleScreen: { decor, video, logo, music, footer }` : la vidéo (fichier `games/<jeu>/art/decor/decor_<nom>.mp4`, réencodé par `npm run assets`) tourne en boucle, muette, derrière le logo ; le décor sert d'affiche.
+`creditsScreen: { video, decor }` : fond du générique (par défaut, la vidéo du titre). `credits: [lignes…]` : le texte.
+
+## Les images
+
+Une image se désigne par `dossier/nom`, le chemin du fichier découpé dans `games/<jeu>/art/` sans l'extension :
+`grandmere/r3c3` (planche de Grand-mère, ligne 3, colonne 3), `items/r1c2`, `maison/fauteuil`. Les décors s'appellent `decor/<lieu>`.
+`npm run assets` prépare uniquement les images citées par le contenu, et `npm run validate` signale toute image introuvable.
+
+## Mini-jeux disponibles
+
+Tous les mini-jeux acceptent `intro` (consigne de la voix des indices au début) et `win` (phrase de fin). Aucun ne s'échoue, et tous ont un bouton « Passer » (sauf `scratch`, qui est la fin scellée elle-même).
+Le moteur ne nomme aucune image : chaque mini-jeu reçoit les siennes par `params`. Les paramètres **en gras** sont obligatoires ; `npm run validate` signale ceux qui manquent.
+
+| Id | Geste | Paramètres |
+|---|---|---|
+| `pipes` | Toucher un tuyau pour le faire tourner d'un quart de tour | **`tiles`** `{ ground, straight: [sec, mouillé], elbow: [sec, mouillé], tee: [sec, mouillé] }` (images de base : droit gauche-droite, coude gauche-bas, té gauche-droite-bas), **`source`**, **`nozzle`** `[sec, qui arrose]`, **`tank`**, `mushrooms` `[assoiffé, content]`, `cols` (4), `rows` (3), `helpAfter` (15 taps avant que le bon tuyau scintille), `background` |
+| `stroke` | Caresser lentement : une jauge monte | **`target`** (image de l'animal), **`hand`** (image de la main fantôme), `goal` (100), `sfx` (bruit de la réussite), `tooFast` (phrase si trop vite) |
+| `pick` | Toucher la bonne image | **`rounds`** `[{ prompt, options: [image…], answer }]`, `decoy` (image piège), `decoyLine`, `wrongLine`, `background` |
+| `hide` | Trouver la bonne cachette | **`spots`** `[{ img, x, y, h, reply, found }]`, `bg` (image de fond), `answer` (index de la bonne) |
+| `runner` | Haut de l'écran : sauter, bas : se baisser | **`hero`** `{ run: [images], jump, slide, stumble, h, slideH }`, `buddy` (même forme, second coureur derrière), **`chaser`** `{ frames: [images], fps, x, speed, h }`, **`obstacles`** `{ jump, duck }` (à sauter au sol, à éviter en se baissant), **`bg`** (décor qui défile), `seconds` (20), `stumble` (phrase quand on trébuche) |
+| `cables` | Tirer une fiche : son câble gigote dans le nœud ; la glisser sur la bonne prise | **`board`** (panneau de 4 prises), **`knot`**, **`plugs`** `{ couleur: image }` (ids de couleur libres, 4 au plus), `sockets` (ordre des couleurs sur le panneau, de haut en bas), `tints` `{ couleur: css }`, `gags` (`lamp`, `phone`, `toaster`, `windows` ; un gag sans ses images ou son texte est retiré), `lampOn`, `lampOff`, `phone`, `toaster`, `windowsText`, `sfx: { ring, stamp }`, `helpAfter` (4) |
+| `scratch` | Gratter un ticket | **`ticket`** (image), `text`, `color`, `sfx` (bruit pendant qu'on gratte), `threshold` ; utilisé par la fin scellée via `ending.scratch` |
+
+Un jeu peut ajouter ses propres mini-jeux : `export const minigames = { monjeu: { required: ['…'], run(ctx) { … } } }` dans `index.ts`.
+
+Exemple :
+
+```ts
+{ music: { push: 'minigame' } },
+{ minigame: 'pipes', params: {
+  tiles: { ground: 'pipes/r3c1', straight: ['pipes/r3c2', 'pipes/r3c5'], elbow: ['pipes/r3c3', 'pipes/r3c6'], tee: ['pipes/r3c4', 'pipes/r4c1'] },
+  source: 'pipes/r4c2', nozzle: ['pipes/r4c3', 'pipes/r4c4'], tank: 'maison/r3c6', mushrooms: ['maison/r4c5', 'maison/r4c6'],
+  intro: 'Khhh… tourne les tuyaux… jusqu’aux plantes.', win: 'Khhh… elles ont bu.',
+}, then: [
+  { music: { pop: true } },
+  { say: ['grandpere', 'Merci. Maintenant, je me souviens : j’ai laissé ta clé au marché.'] },
+  { unlock: 'marche' },
+] },
+```
+
+## La fin scellée (`ending`)
+
+Module facultatif. `GameDef.ending` le décrit :
+
+```ts
+ending: {
+  file: 'data/dossier.bin',                         // produit par npm run seal
+  password: { given: '…' },                         // ou { typed: true, prompt: 'Mot de passe ?' }
+  guess: { flag: 'pronostic', labels: { a: '…', b: '…' }, right: '… {guess} …', wrong: '…', none: '…' },   // pronostic jugé sur la carte
+  scratch: { ticket: 'items/r4c1', sfx: 'grattage' },   // paramètres du mini-jeu scratch
+  card: { accent: '#d4145a' },                       // couleur du cadre de la carte et du texte gratté
+},
+```
+
+`{ ending: true, after: […] }` joue, dans l'ordre : le ticket à gratter (le texte vient du fichier chiffré), les confetti (`skin.icons.confetti`,
+`skin.sounds.confetti`) et le jingle (`skin.sounds.jingle`), puis `after`, puis la carte finale (musique `skin.sounds.end`). `{ reveal: true }` est l'ancien nom.
+Les textes de la fin ne sont **jamais** dans le contenu du jeu : ils sont dans `games/<jeu>/private/ending.config.ts` (voir `TOOLS.md`, « La fin scellée »).
+Juste avant, le scénario joue ce qu'il veut (la famille autour du canapé, le cadenas qui fond…).
+
+## Vérifier son travail
+
+```bash
+npm run validate   # tout ce qui est cité existe, chaque chose visible a un Regarder, textes non vides
+npm run solve      # le jeu se finit depuis « Nouvelle partie » ; liste les objets jamais utilisés
+npm run dev        # puis ?dev pour sauter à un checkpoint, ?edit=maison pour placer les choses
+```

@@ -1,0 +1,419 @@
+# Writing the game content
+
+This guide is for whoever writes the story: the rooms, the lines, the puzzles. It describes the format the engine reads.
+You never need to touch the engine (`src/engine/`). The whole game lives in `games/<id>/` (here, `games/demo/`).
+
+The full types, with their comments, are in `src/engine/core/types.ts`. Your editor offers them as autocomplete.
+
+## The principles
+
+1. **Content, not code.** The content is made of data: objects, lists, texts. No functions.
+   That's what lets the engine check the game on its own (`npm run validate`) and prove it can be finished (`npm run solve`).
+2. **Logic on one side, geometry on the other.** You write *what happens* in `rooms/<room>.ts`.
+   *Where things are* (clickable rectangles, character positions, the walkable area) lives in
+   `layout/<room>.json`, placed with the mouse in the editor (`npm run dev`, then `?edit=<room>`). You never type
+   coordinates by hand, except for a one-off scripted move.
+3. **Nothing is a dead end.** Every action gets a response. With no written reaction, the engine answers with the
+   game's fallback responses.
+4. **Logical coordinates.** A background measures 640 × 400, origin top-left. A character is placed by its feet.
+
+## The files
+
+```
+games/<id>/
+  index.ts         entry point: export { game, layouts, manifest, minigames?, extraImages? }
+  game.ts          the game: verbs, characters, items, map, global rules, game start, skin (the look), ending, interface texts
+  rules.ts         fallback answers, reactions by kind ("never pull a cat")
+  rooms/house.ts   one file per room (logic)
+  layout/house.json one file per room (geometry, written by the editor)
+  assets.gen.json  manifest of images and sounds (written by npm run assets)
+  sources.json     where the asset sources come from (optional, see TOOLS.md)
+```
+
+## A room, step by step
+
+```ts
+import { defineRoom } from '@engine/core/define';
+
+export default defineRoom({
+  id: 'house',
+  name: "Grandma's house",
+  decor: 'decor/house',          // background image (see "The images")
+  music: 'house',
+
+  // Props: images placed on the background, which can change state.
+  props: {
+    lamp:     { name: 'lamp', states: { off: 'house/r1c1', on: 'house/r1c2' } },
+    armchair: { name: 'armchair', states: { full: 'house/armchair_full', empty: 'house/armchair' } },
+    table:    { img: 'house/side_table', name: 'side table' },
+    stool:    { name: 'stool', states: { shelf: 'house/r1c5', pulled: 'house/r1c6' } },
+    talkie:   { name: 'walkie-talkie', img: 'items/r1c1', visible: { not: { has: 'talkie' } } },
+  },
+
+  // Characters present.
+  actors: {
+    grandma: { char: 'grandma', facing: 'left' },
+    cat: { char: 'cat', pose: 'sleep', visible: '!cat_awake' },
+  },
+
+  // Clickable zones of the background itself (nothing is drawn, only the rectangle counts).
+  hotspots: {
+    shelf:    { name: 'shelf' },
+    cupboard: { name: 'cupboard' },
+    door:     { name: 'garden door' },
+  },
+
+  // Look. A list = a different line each time, cycling.
+  look: {
+    shelf: 'The shelf. Too high without a step up.',
+    cupboard: ['An old cupboard.', 'Still an old cupboard.', 'Someday I will check what is behind it.'],
+  },
+
+  // Written reactions. See "The reactions".
+  on: [
+    { verb: 'pull', a: 'stool', if: { prop: ['stool', 'shelf'] }, do: [
+      { prop: ['stool', 'pulled'] }, 'There. A step up.',
+    ] },
+    { verb: 'use', a: 'rope', b: ['hook', 'bucket'], do: [
+      { lose: 'rope' }, { set: 'tied' },
+      'Tied. One end on the hook, the other on the bucket.',
+      { say: ['grandma', 'Careful with that bucket, dear.'] },
+    ] },
+  ],
+
+  // Talk topics (2 or 3). "Hug?" and "Bye" are added automatically.
+  talk: {
+    grandma: [
+      { topic: "Grandma, what's in the basket?", do: [{ say: ['grandma', 'A surprise for everyone.'] }] },
+      { topic: 'Can I go to the market alone?', do: [
+        { say: ['grandma', 'Alone?! With your scarf, your hat, your water bottle…'] },
+        { say: ['grandma', '… Fine. Back by ten.'] },
+      ] },
+    ],
+  },
+
+  // Hints from the walkie-talkie: the first one whose `until` condition is still false is given.
+  hints: [
+    { until: { has: 'rope' }, lines: ['Khhh… the armchair… eats everything.', 'Khhh… check the side of the armchair.'] },
+    { until: 'tied', lines: ['Khhh… a rope… it ties to things.'] },
+  ],
+
+  // On every entry into the room.
+  onEnter: [
+    { once: [ 'The living room. Home base.' ] },
+  ],
+});
+```
+
+## The reactions
+
+A reaction says: "when VERB happens on A (with or to B), if CONDITION, then these commands".
+
+| Field | Meaning |
+|---|---|
+| `verb` | `give` Give, `open` Open, `close` Close, `take` Take, `look` Look, `talk` Talk, `use` Use, `push` Push, `pull` Pull. A list accepts several verbs. |
+| `a` | The targeted thing. For Use/Give with two terms, it's the inventory item. A list = any of them. |
+| `b` | The target of "Use A with B" or "Give A to B". Absent = a single-term action. |
+| `if` | Optional condition. The first rule whose condition is true wins: put special cases first. |
+| `do` | The commands to run. |
+
+Two inventory items combine both ways: a rule `a: 'piece1', b: 'piece2'` also works for "Use piece 2 with piece 1".
+Rules valid everywhere (combining two items, for instance) go in the game's `rules.on`, not in a room.
+
+### When nothing is written
+
+The engine looks for an answer in this order, and stops at the first one found:
+
+1. a room rule (`on`), then a global game rule (`rules.on`);
+2. Look: the room's `look` text, or the item's `look` if it's an inventory item;
+3. Talk: to the hint object (the walkie-talkie), these are the hints; to an actor with topics, it's the conversation menu;
+4. a reaction by kind (`rules.kinds`), first the ones targeting a precise id (`target`), then the ones by kind (`kind`);
+5. Giving to a character: their refusal line (`refuse` on their sheet);
+6. a verb's fallback response (`rules.fallbacks`), drawn at random, never the same one twice in a row.
+
+In fallback and kind texts, `{objet}` is replaced by the item's name, `{cible}` by the target, `{nom}` by the name of
+whatever is targeted.
+
+```ts
+// rules.ts
+export const rules = {
+  fallbacks: {
+    look: ['Hmm. {objet}. Nothing suspicious. For now.'],
+    take: ['Not mine to take.', 'Too heavy. Even for me.'],
+    use2: ['{objet} with {cible}? Does not work. But it was worth a try.'],
+    // … one array per verb: give, open, close, take, look, talk, use, push, pull, use2
+  },
+  kinds: [
+    { verb: 'pull', kind: 'cat', say: 'No! Never pull a cat’s tail.' },
+    { verb: 'take', target: 'grandma', say: 'Grandma already has enough to carry.' },   // precise target: wins first
+    { verb: 'take', kind: 'person', say: 'I cannot carry {nom}. But {nom} could carry me.' },
+    { verb: 'use', item: 'stinky_cheese', kind: 'person', say: 'No. Even I am not that mean.' },
+  ],
+  on: [
+    { verb: 'use', a: 'left_half', b: 'right_half', do: [{ lose: 'left_half' }, { lose: 'right_half' }, { gain: 'postcard' }] },
+  ],
+};
+```
+
+## The commands
+
+A single command, as plain text, makes the hero speak: `'There. A step up.'`.
+
+### Speech
+
+| Command | Effect |
+|---|---|
+| `'text'` | The hero says the line. |
+| `{ say: ['grandma', 'text'] }` | A character speaks. `'hero'` always designates the hero. An `offscreen` character (narrator, radio) speaks in a frame at the top of the screen. |
+| `{ say: ['grandma', 'LOOK OUT!'], shout: true }` | A shout: bigger text, and it shakes. |
+
+A line stays on screen for as long as it takes to read, or until a tap.
+
+### Movement and poses
+
+| Command | Effect |
+|---|---|
+| `{ walk: 'shelf' }` | The hero walks to the shelf's approach point (set in the layout). |
+| `{ walk: [300, 350], who: 'grandpa' }` | Grandpa walks to that point (any actor in the room; with no `walk` pose, they slide in their current pose). |
+| `{ face: 'left' }`, `{ face: 'grandma' }` | Turn left, or turn to face someone or something. |
+| `{ pose: ['cat', 'sleep'] }` | A lasting pose (until the next one). Character poses: see their `sprites` sheet. |
+| `{ anim: ['hero', 'use'], ms: 600 }` | Hold the pose for the given time, then return to normal. Works for any actor in the room, even one in `pose: 'front'`: `{ anim: ['grandpa', 'surprise'], ms: 900 }` plays the `surprise` pose from their sheet (`sprites: { …, surprise: ['grandpa_seated/r2c3'] }`), then they go back to `front`. |
+| `{ place: ['grandpa', [420, 360]], face: 'left' }` | Teleport a character. |
+| `{ wait: 500 }` | Pause, in milliseconds. |
+| `{ parallel: [[…], […]] }` | Play several lists at the same time (e.g. two characters walking). |
+
+### The world
+
+| Command | Effect |
+|---|---|
+| `{ prop: ['lamp', 'on'] }` | Change a prop's state. `'room.prop'` targets another room. |
+| `{ show: 'ghost', fade: 1200 }`, `{ hide: 'ghost', fade: 1500 }` | Make an actor or prop appear or disappear, with an optional fade. |
+| `{ gain: 'rope' }`, `{ lose: 'rope' }` | Add or remove an inventory item. `gain` on an item marked `used` reactivates it. |
+| `{ used: 'rope' }`, `{ used: ['rope', 'badge'] }` | The item has served its purpose: it stays in the bag, **greyed out**, and can no longer be picked for Use/Give (Look still works). It becomes active again wherever a room or game rule targets it in `a` or `b` and its `if` condition is true. So: keep the rule that consumed it behind an `if` (e.g. `if: '!tied'`), otherwise it stays active in that room. Saved; old saves load without it. |
+| `{ set: 'tied' }`, `{ set: ['tries', 3] }`, `{ unset: 'x' }`, `{ inc: 'tries' }` | Flags: checkboxes and counters, named however you like. |
+| `{ unlock: 'market' }` | Unlock a place on the map. A locked place does not appear. |
+| `{ goto: 'market', at: 'gate' }` | Change rooms (optional entry point, defined in the layout). |
+| `{ map: true }` | Open the map. |
+
+### Audio and effects
+
+| Command | Effect |
+|---|---|
+| `{ sfx: 'coin' }` | Sound effect. |
+| `{ music: 'market' }` | Change the music (crossfade). |
+| `{ music: { push: 'minigame' } }` then `{ music: { pop: true } }` | Temporary music, then back to the previous track. |
+| `{ music: { once: 'jingle' } }` | Play a track once on top, then the music resumes. |
+| `{ toast: 'New place: Market' }` | A small message at the top of the screen. |
+| `{ shake: 400 }` | The screen shakes. |
+
+### Logic
+
+| Command | Effect |
+|---|---|
+| `{ if: COND, then: […], else: […] }` | Branch. |
+| `{ once: […] }` | Only once in the whole game. |
+| `{ nth: [[…1st time], […2nd time], […after]] }` | By number of times; the last branch repeats. |
+| `{ cycle: [[…], […]] }` | In a loop: 1, 2, 1, 2… (e.g. a record player alternating two tracks). |
+| `{ random: [[…], […]] }` | At random, never the same one twice in a row. |
+
+### Sequences and screens
+
+| Command | Effect |
+|---|---|
+| `{ cutscene: […] }` | Cutscene: black bars, a "Skip" button. Skipping plays the rest instantly: effects (items, flags, states) still apply. |
+| `{ choice: [{ text, do, if?, once? }, …] }` | The player picks a line; the hero says it, then `do` plays. |
+| `{ talk: 'grandma' }` | Open an actor's conversation menu from a script. |
+| `{ minigame: 'pipes', params: { tiles: …, cols: 4 }, then: […] }` | Launch a minigame. A minigame is never failed: `then` always plays, even if you skip. All its images come from `params` (see "Available minigames"). |
+| `{ phone: 'grandma', do: […] }` | Incoming call: ringtone (`skin.sounds.phone`), a Pick-up button, then the lines in `do`. During the call, the caller shows in a phone frame (bottom left), mouth animated while they talk; their lines appear at the top. |
+| `{ phone: ['lou', 'seller'], do: […] }` | A call with several people: all shown side by side in the same frame (the first one in front), each at its own size (`height`). Each `{ say: ['lou', …] }` animates the right person's mouth. Pose shown: the first of `skin.callPoses` that exists (default `phone`, `front`, `face`, `idle`); mouths from `mouths.phone` (otherwise the `phone_talk` pose alternates, otherwise a small bounce). Ids are characters from `characters` (no actor needed in the room). |
+| `{ guide: { verb: 'look', target: 'shelf', say: 'Pick Look, then tap the shelf.' } }` | Tutorial: the hero gives the instruction, the verb blinks, the target glows. The script waits until the player does exactly that action; any other action repeats the instruction. |
+| `{ hint: true }` | Give the current hint (same as talking to the walkie-talkie). |
+| `{ ending: true, after?: […] }` | The sealed ending (`GameDef.ending`): scratch ticket, confetti, then `after`, then the final card. `{ reveal: true }` is the old name, still accepted. |
+| `{ end: true }` | End of game. |
+
+## The conditions
+
+| Condition | True when… |
+|---|---|
+| `'tied'` / `'!tied'` | the flag is true / false or absent. |
+| `{ has: 'rope' }` | the item is in the inventory. |
+| `{ flag: 'tries', eq: 3 }`, `{ flag: 'tries', gte: 2 }`, `{ flag: 'x', lt: 5 }` | comparing a flag. |
+| `{ not: … }`, `{ all: [ … ] }`, `{ any: [ … ] }` | not, and, or. |
+| `{ visited: 'market' }`, `{ room: 'market' }` | we have already visited the market / we are there now. |
+| `{ prop: ['lamp', 'on'] }`, `{ prop: ['house.lamp', 'on'] }` | the prop is in that state (in the current room, or `'room.prop'`). |
+| `{ unlocked: 'market' }` | the place is unlocked on the map. |
+| `{ seen: 'house.grandma.0' }` | topic #0 of grandma's conversation at the house has already been heard. |
+
+## Characters, items, map
+
+```ts
+characters: {
+  grandma: {
+    name: 'Grandma', color: '#f0c040', height: 124, kind: ['person'],
+    portrait: 'grandma/r1c2',
+    sprites: { idle: ['grandma/r3c3'], talk: ['grandma/r3c4', 'grandma/r3c3'], walk: ['grandma/r2c1', 'grandma/r2c2', …] },
+    refuse: 'That is sweet, dear. But keep it, you will need it for your errand.',
+    hug: 'Always. Even with a basket in my arms.',
+  },
+  talkie: { name: 'the walkie-talkie', color: '#ff6fb5', offscreen: true },   // speaks in a frame, no body
+},
+items: {
+  rope: { name: 'rope', icon: 'items/r1c2', look: 'A length of rope. One end for the hook, one for the bucket.' },
+},
+map: {
+  start: 'world',
+  regions: { world: { name: 'World', image: 'decor/map' }, town: { name: 'Town', image: 'decor/map_town', parent: 'world' } },
+  places: {
+    market: { name: 'Market', room: 'market', region: 'town', pos: [61, 41], portrait: 'seller/r1c2', vehicle: 'car', news: '!market_done' },
+  },
+},
+```
+
+### Speech: only the mouth moves
+
+A character with a talking sheet declares their mouths per pose. During a line, the body never changes:
+the open-mouth images cycle at random (160 to 220 ms), a blink passes by now and then at rest.
+The "mouth closed" image replaces the pose's rest image, so rest and speech come from the same drawing.
+
+```ts
+import { human, mouths } from './cast';
+grandpa: { …, mouths: mouths('talk_grandpa', { idle: 'profile', front: 'face', seated: 'seated' }) },
+```
+
+`mouths(folder, { pose: line })` reads `talk_<char>/<line>/t1…t6` (t1 closed, t2 to t4 open, t5 blink, t6 smile).
+With no mouths for a pose, the character keeps the same image and bounces a pixel while talking; a long line starts
+with a gesture (`talk` pose) played once.
+
+### Variants depending on state
+
+```ts
+import { cat } from './cast';
+hero: { …, sprites: cat('hero'), variants: [{ if: { has: 'bucket' }, sprites: cat('hero_bucket'), mouths: … }] },
+```
+
+The first variant whose condition is true replaces `sprites`, `mouths` and `portrait`. The change shows right away
+(e.g. as soon as the bucket is picked up).
+
+### Things with multiple states (a seagull that watches / snaps, an old dog that sleeps / sulks / yawns, a cat's eye glowing on a screen)
+
+A hotspot has only a name and a zone. For a drawn thing that changes, use a **stateful prop**:
+`props: { seagull: { name: 'seagull', states: { watch: 'obj_yard/r2c4', snap: 'obj_yard/r2c5' }, initial: 'watch' } }`,
+with positions per state in the layout (`props.seagull.states.snap`); the clickable zone follows the image. Change state
+with `{ prop: ['seagull', 'snap'] }` and react to the state with `if: { prop: ['seagull', 'snap'] }`. For a zone of the
+background that changes name or shape, use two hotspots with opposite `visible` conditions (`visible: 'x'` /
+`visible: '!x'`), each with its own zone; a rule can target both (`a: ['h1', 'h2']`).
+
+### Presence without interaction
+
+`actors: { ghost: { char: 'ghost', interactive: false, visible: 'ghost_seen' } }`: visible, but neither clickable nor
+named. Combine with `{ show: 'ghost', fade: 1500 }` / `{ hide: 'ghost', fade: 1500 }` and `glow` on the character sheet.
+
+Character poses, by convention: `idle`, `talk`, `walk` (profile, facing right; the engine flips the image for left),
+`walk_front`, `walk_back`, `point`, `use`, plus any special pose you want (`sleep`, `sit`, `celebrate`…).
+A pose is a list of images played in a loop. A missing pose falls back to `idle`.
+
+## The skin (`skin`)
+
+Everything the engine shows or plays without the content naming it. Manifest image ids; sounds are ids from `audio.sfx`
+(`phone`, `plane`, `confetti`) or `audio.music` (`jingle`, `end`). A missing sound = silence. `npm run validate`
+checks every id.
+
+```ts
+skin: {
+  icons: {
+    map: 'ui/r1c5', pause: 'ui/r3c5', music: 'ui/r3c6',   // required: the three column buttons
+    spark: 'ui/r3c4',                                        // spark for the guided tutorial
+    pin: 'ui/r1c6', news: 'ui/r2c4', plane: 'ui/r2c1', car: 'ui/r2c2',   // map (map.vehicles overrides these if set)
+    confetti: ['ui/r4c1', 'ui/r4c2'], cardFallback: 'items/r3c6',      // sealed ending
+  },
+  sounds: { phone: 'phone', plane: 'plane', confetti: 'confetti', jingle: 'jingle', end: 'end' },
+  fonts: { ui: 'DotGothic16', pixel: 'Press Start 2P' },   // CSS families → the --font-ui and --font-pixel variables
+  heights: { actor: 110, hero: 84 },                       // default height for a character with no `height`
+  callPoses: ['phone', 'telephone', 'front', 'face', 'idle'],   // poses tried for a call's frame
+},
+```
+
+Interface texts are in `ui` (including `tapToContinue`, "▼ tap to continue", and `ok`, the password button).
+
+## The layout (written by the editor, never typed by hand)
+
+Fields read by the engine, in addition to positions: on a prop (and in each of its `states`) `rot` (degrees, clockwise,
+pivot at the feet), `flip` (horizontal mirror), `flipV` (vertical mirror, the image sits below the feet line, as on the
+placement page), `z` (forced layer); a field missing from a state falls back to the prop's own. On an actor: `z` forces
+their layer (otherwise, it follows their feet). On the room: `floor` (default 395) is the bottom of the floor; a computed
+approach point never goes lower.
+
+## Title screen and credits
+
+`titleScreen: { decor, video, logo, music, footer }`: the video (file `games/<id>/art/decor/decor_<name>.mp4`,
+re-encoded by `npm run assets`) loops silently behind the logo; the background image serves as a poster.
+`creditsScreen: { video, decor }`: the credits background (the title's video by default). `credits: [lines…]`: the text.
+
+## The images
+
+An image is designated by `folder/name`, the path of the cut file in `games/<id>/art/` without the extension:
+`grandma/r3c3` (grandma's sheet, row 3, column 3), `items/r1c2`, `house/armchair`. Backgrounds are named `decor/<room>`.
+`npm run assets` prepares only the images referenced by the content, and `npm run validate` flags any missing image.
+
+## Available minigames
+
+Every minigame accepts `intro` (a line from the hints voice at the start) and `win` (the closing line). None of them can
+be failed, and all have a "Skip" button (except `scratch`, which is the sealed ending itself).
+The engine never names an image: each minigame gets its own from `params`. **Bold** parameters are required;
+`npm run validate` flags the ones that are missing.
+
+| Id | Gesture | Parameters |
+|---|---|---|
+| `pipes` | Tap a pipe to rotate it a quarter turn | **`tiles`** `{ ground, straight: [dry, wet], elbow: [dry, wet], tee: [dry, wet] }` (base images: straight left-right, elbow left-down, tee left-right-down), **`source`**, **`nozzle`** `[dry, spraying]`, **`tank`**, `mushrooms` `[thirsty, happy]`, `cols` (4), `rows` (3), `helpAfter` (15 taps before the right pipe glows), `background` |
+| `stroke` | Pet slowly: a gauge rises | **`target`** (the animal's image), **`hand`** (the ghost hand's image), `goal` (100), `sfx` (the success sound), `tooFast` (line shown if too fast) |
+| `pick` | Tap the right image | **`rounds`** `[{ prompt, options: [image…], answer }]`, `decoy` (a trick image), `decoyLine`, `wrongLine`, `background` |
+| `hide` | Find the right hiding spot | **`spots`** `[{ img, x, y, h, reply, found }]`, `bg` (background image), `answer` (index of the right one) |
+| `runner` | Top of the screen: jump, bottom: duck | **`hero`** `{ run: [images], jump, slide, stumble, h, slideH }`, `buddy` (same shape, a second runner behind), **`chaser`** `{ frames: [images], fps, x, speed, h }`, **`obstacles`** `{ jump, duck }` (jumped over on the ground, ducked under when suspended), **`bg`** (scrolling background), `seconds` (20), `stumble` (line shown on a stumble) |
+| `cables` | Pull a plug: its cable wiggles through the knot; drag it onto the right socket | **`board`** (a 4-socket panel), **`knot`**, **`plugs`** `{ color: image }` (free color ids, 4 at most), `sockets` (order of the colors on the panel, top to bottom), `tints` `{ color: css }`, `gags` (`lamp`, `phone`, `toaster`, `windows`; a gag missing its images or text is dropped), `lampOn`, `lampOff`, `phone`, `toaster`, `windowsText`, `sfx: { ring, stamp }`, `helpAfter` (4) |
+| `scratch` | Scratch a ticket | **`ticket`** (image), `text`, `color`, `sfx` (sound while scratching), `threshold`; used by the sealed ending via `ending.scratch` |
+
+A game can add its own minigames: `export const minigames = { mygame: { required: ['…'], run(ctx) { … } } }` in
+`index.ts`.
+
+Example:
+
+```ts
+{ music: { push: 'minigame' } },
+{ minigame: 'pipes', params: {
+  tiles: { ground: 'pipes/r3c1', straight: ['pipes/r3c2', 'pipes/r3c5'], elbow: ['pipes/r3c3', 'pipes/r3c6'], tee: ['pipes/r3c4', 'pipes/r4c1'] },
+  source: 'pipes/r4c2', nozzle: ['pipes/r4c3', 'pipes/r4c4'], tank: 'house/r3c6', mushrooms: ['house/r4c5', 'house/r4c6'],
+  intro: 'Khhh… turn the pipes… until the plants get water.', win: 'Khhh… they drank.',
+}, then: [
+  { music: { pop: true } },
+  { say: ['grandpa', 'Thanks. Now I remember: I left your key at the market.'] },
+  { unlock: 'market' },
+] },
+```
+
+## The sealed ending (`ending`)
+
+An optional module. `GameDef.ending` describes it:
+
+```ts
+ending: {
+  file: 'data/ending.bin',                          // produced by npm run seal
+  password: { given: '…' },                         // or { typed: true, prompt: 'Password?' }
+  guess: { flag: 'guess', labels: { a: '…', b: '…' }, right: '… {guess} …', wrong: '…', none: '…' },   // a prediction, judged on the map
+  scratch: { ticket: 'items/r4c1', sfx: 'scratch' },   // parameters of the scratch minigame
+  card: { accent: '#d4145a' },                       // the final card's frame and scratched-text color
+},
+```
+
+`{ ending: true, after: […] }` plays, in order: the scratch ticket (the text comes from the encrypted file), the
+confetti (`skin.icons.confetti`, `skin.sounds.confetti`) and the jingle (`skin.sounds.jingle`), then `after`, then the
+final card (music `skin.sounds.end`). `{ reveal: true }` is the old name.
+Ending texts are **never** in the game content: they live in `games/<id>/private/ending.config.ts` (see `TOOLS.md`, "The sealed
+ending"). Right before it, the script plays whatever it wants (the family gathered on the sofa, the lock melting away…).
+
+## Checking your work
+
+```bash
+npm run validate   # everything referenced exists, every visible thing has a Look, texts are not empty
+npm run solve      # the game can be finished from "New game"; lists items that are never used
+npm run dev        # then ?dev to jump to a checkpoint, ?edit=house to place things
+```
