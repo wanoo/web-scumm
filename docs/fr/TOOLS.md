@@ -157,21 +157,27 @@ Les clés de `outcomes` sont libres (`scripts/seal-types.ts`, type `EndingConfig
 Sans `games/<GAME>/private/ending.config.ts`, `npm run seal` utilise l’exemple commité. Le mot de passe de la configuration doit être identique à `ending.password` dans `games/<GAME>/game.ts`.
 Le format du dossier (`ticket`, `headline`, `message`, `photos`, `lines`, `outcome`) ne change pas : un `dossier.bin` déjà scellé reste valide.
 
-## Déployer (Clever Cloud)
+## Déployer
 
-L'application `demo` (organisation « Erwan Testing ») est liée au dossier : voir `.clever.json`.
-Adresse : https://demo.cleverapps.io
+`npm run build` produit un `dist/` statique (le jeu, ses assets, le service worker). N'importe quel hébergeur statique convient.
+
+**GitHub Pages (intégré).** Le workflow CI (`.github/workflows/ci.yml`) lance les vérifications à chaque push et, sur `main`,
+publie `dist/` sur Pages. À activer une fois dans les réglages du dépôt : Pages → Source → « GitHub Actions ». Le site vit
+sous `https://<utilisateur>.github.io/<dépôt>/`, donc le workflow construit avec `BASE_PATH=/<dépôt>/` : tous les chemins
+(assets, polices, manifeste, service worker, fichier de la fin scellée) respectent cette base. Un domaine à la racine n'a pas besoin de `BASE_PATH`.
+
+```bash
+BASE_PATH=/mon-depot/ npm run build      # la même chose en local
+```
+
+**Clever Cloud (ou tout hôte Node).** `npm start` sert `dist/` avec sirv. Sur Clever Cloud : une application Node avec
+`CC_NODE_DEV_DEPENDENCIES=install` (Vite est une dépendance de dev) et `CC_POST_BUILD_HOOK=npm run build:web`, puis `clever deploy`.
 
 ```bash
 npm run assets                           # si des images ou des sons ont changé (les fichiers générés sont commités)
-npm run build                            # vérifications locales : types, tests, build, aucune fuite de la révélation
-git add -A && git commit -m "…"
-clever deploy                            # Clever installe, lance `npm run build:web` puis `npm start` (sirv sur dist/)
-node scripts/e2e.mjs https://demo.cleverapps.io/   # vérifie la version en ligne
+npm run build                            # vérifications locales : types, tests, build, spoilers, audit
+node scripts/e2e.mjs https://<votre-site>/   # joue la version en ligne de bout en bout
 ```
 
-Variables d'environnement de l'application : `CC_NODE_DEV_DEPENDENCIES=install` (Vite est une dépendance de dev) et `CC_POST_BUILD_HOOK=npm run build:web`.
-`private/` n'est jamais envoyé : il est exclu par `.gitignore`.
-
-**Avant d'envoyer le lien à la famille** : scelle la vraie réponse (`npm run seal -- --outcome=…` avec `games/<GAME>/private/ending.config.ts`),
-puis `npm run build`, commit et `clever deploy`. Le `dossier.bin` actuellement en ligne est une fin de TEST neutre.
+`games/<id>/private/` n'est jamais envoyé : il est exclu par `.gitignore`. **Avant de partager un jeu à fin scellée** : sceller
+la vraie issue (`npm run seal -- --outcome=…` avec `games/<id>/private/ending.config.ts`), puis `npm run build`, commit, déploiement.

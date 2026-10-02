@@ -54,19 +54,19 @@ function sitePlugin(): Plugin {
     const s = site();
     return JSON.stringify({
       name: s.title ?? GAME, short_name: s.shortName ?? s.title ?? GAME, description: s.description ?? '',
-      start_url: '/', display: 'standalone', orientation: 'landscape',
+      start_url: BASE, display: 'standalone', orientation: 'landscape',
       background_color: s.themeColor ?? '#0a0a12', theme_color: s.themeColor ?? '#0a0a12',
-      icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' }],
+      icons: [{ src: `${BASE}icons/icon-192.png`, sizes: '192x192', type: 'image/png' }, { src: `${BASE}icons/icon-512.png`, sizes: '512x512', type: 'image/png' }],
     }, null, 2);
   };
   return {
     name: 'site',
-    transformIndexHtml(html) {
+    transformIndexHtml: { order: 'pre', handler(html) {
       const s = site();
       const esc = (v: unknown) => String(v ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
       return html.replace(/%LANG%/g, esc(s.lang ?? 'en')).replace(/%TITLE%/g, esc(s.title ?? GAME))
-        .replace(/%DESCRIPTION%/g, esc(s.description)).replace(/%THEME%/g, esc(s.themeColor ?? '#0a0a12'));
-    },
+        .replace(/%DESCRIPTION%/g, esc(s.description)).replace(/%THEME%/g, esc(s.themeColor ?? '#0a0a12')).replace(/%BASE%/g, BASE);
+    } },
     configureServer(server) {
       server.middlewares.use('/manifest.webmanifest', (_req, res) => { res.setHeader('content-type', 'application/manifest+json'); res.end(manifest()); });
     },
@@ -74,7 +74,11 @@ function sitePlugin(): Plugin {
   };
 }
 
+/** Deploy under a sub-path (GitHub Pages: /<repo>/) with BASE_PATH=/<repo>/ ; default '/'. */
+const BASE = process.env.BASE_PATH ?? '/';
+
 export default defineConfig({
+  base: BASE,
   define: { __ASSETS_VERSION__: JSON.stringify(assetsVersion()) },
   plugins: [
     sitePlugin(),

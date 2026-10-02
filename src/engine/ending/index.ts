@@ -36,7 +36,7 @@ export class Ending {
     if (!E) return;
     let payload: EndingPayload | null = null;
     try {
-      const buf = await (await fetch(`/${E.file}`)).arrayBuffer();
+      const buf = await (await fetch(`${import.meta.env?.BASE_URL ?? '/'}${E.file}`)).arrayBuffer();
       let pwd = 'given' in E.password ? E.password.given : '';
       if ('typed' in E.password) pwd = await this.askPassword(E.password.prompt);
       payload = await unseal(crypto.subtle, buf, pwd);

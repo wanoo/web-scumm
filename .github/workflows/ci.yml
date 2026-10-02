@@ -19,6 +19,8 @@ jobs:
       - run: npm run solve
       - run: npm test
       - run: npm run build
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'
         with:

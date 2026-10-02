@@ -9,7 +9,7 @@ export class AssetBank {
   private loaded = new Map<string, Promise<void>>();
   private warmed = new Set<string>();
   /** `version` is appended to every URL: a new assets build bypasses the browser's old cache. */
-  constructor(readonly manifest: AssetManifest, readonly base = '/assets', readonly version = '') {}
+  constructor(readonly manifest: AssetManifest, readonly base = 'assets', readonly version = '') {}
 
   private v(url: string) { return this.version ? `${url}?v=${this.version}` : url; }
   img(id: string): string { return this.v(`${this.base}/img/${id}.webp`); }

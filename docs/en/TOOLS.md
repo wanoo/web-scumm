@@ -157,21 +157,27 @@ npm run build && npm run check:spoilers   # checks that no outcome's text is in 
 Without `games/<GAME>/private/ending.config.ts`, `npm run seal` uses the committed example. The config's password must match `ending.password` in `games/<GAME>/game.ts`.
 The dossier's format (`ticket`, `headline`, `message`, `photos`, `lines`, `outcome`) never changes: a dossier.bin already sealed stays valid.
 
-## Deploying (Clever Cloud)
+## Deploying
 
-The `demo` application (organization "Erwan Testing") is linked to this folder: see `.clever.json`.
-Address: https://demo.cleverapps.io
+`npm run build` produces a static `dist/` (the game, its assets, the service worker). Any static host works.
+
+**GitHub Pages (built in).** The CI workflow (`.github/workflows/ci.yml`) runs the checks on every push and, on `main`,
+deploys `dist/` to Pages. Enable it once in the repository settings: Pages → Source → "GitHub Actions". The site lives
+under `https://<user>.github.io/<repo>/`, so the workflow builds with `BASE_PATH=/<repo>/`: every path (assets, fonts,
+manifest, service worker, sealed ending file) honours that base. A custom domain at the root needs no `BASE_PATH`.
 
 ```bash
-npm run assets                           # if any images or sounds changed (the generated files are committed)
-npm run build                            # local checks: types, tests, build, no reveal leak
-git add -A && git commit -m "…"
-clever deploy                            # Clever installs, runs `npm run build:web` then `npm start` (sirv on dist/)
-node scripts/e2e.mjs https://demo.cleverapps.io/   # checks the live version
+BASE_PATH=/my-repo/ npm run build        # same thing locally
 ```
 
-The application's environment variables: `CC_NODE_DEV_DEPENDENCIES=install` (Vite is a dev dependency) and `CC_POST_BUILD_HOOK=npm run build:web`.
-`private/` is never sent: it is excluded by `.gitignore`.
+**Clever Cloud (or any Node host).** `npm start` serves `dist/` with sirv. On Clever Cloud: a Node application with
+`CC_NODE_DEV_DEPENDENCIES=install` (Vite is a dev dependency) and `CC_POST_BUILD_HOOK=npm run build:web`, then `clever deploy`.
 
-**Before sending the link to the family**: seal the real answer (`npm run seal -- --outcome=…` with `games/<GAME>/private/ending.config.ts`),
-then `npm run build`, commit and `clever deploy`. The dossier.bin currently live is a neutral TEST ending.
+```bash
+npm run assets                           # if images or sounds changed (the generated files are committed)
+npm run build                            # local checks: types, tests, build, spoiler check, leak audit
+node scripts/e2e.mjs https://<your-site>/   # plays the live version end to end
+```
+
+`games/<id>/private/` is never sent: it is excluded by `.gitignore`. **Before sharing a game with a sealed ending**: seal
+the real outcome (`npm run seal -- --outcome=…` with `games/<id>/private/ending.config.ts`), then `npm run build`, commit, deploy.

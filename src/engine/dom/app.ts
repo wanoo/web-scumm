@@ -86,7 +86,7 @@ export class App implements Presenter {
   constructor(private o: AppOptions) {
     this.game = o.game;
     this.root = o.root;
-    this.bank = new AssetBank(o.manifest, o.base ?? '/assets', o.version ?? '');
+    this.bank = new AssetBank(o.manifest, o.base ?? `${import.meta.env?.BASE_URL ?? '/'}assets`, o.version ?? '');
     this.audio = new Audio(this.bank, { music: o.game.audio?.music, sfx: o.game.audio?.sfx });
     this.mg = { ...builtin, ...(o.minigames ?? {}) };
     this.engine = new Engine(o.game, o.layouts, this, o.store ?? new LocalStore(`${o.game.id}.save`));
