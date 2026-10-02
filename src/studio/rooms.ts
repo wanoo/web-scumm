@@ -2,7 +2,7 @@
 // props / actors / hotspots with the selected one's sheet: name, states, visibility, look lines, reactions, talk
 // topics. Every text is edited in place in rooms/<id>.ts through PUT room/:id/text.
 import type { Cmd, Cond, Id, RoomDef, Rule } from '@engine/core/types';
-import { api, imgUrl, type EditorToStudio, type EntityKind, type GameInfo, type RoomData, type StudioToEditor, type TextRef } from './api';
+import { api, BASE, imgUrl, type EditorToStudio, type EntityKind, type GameInfo, type RoomData, type StudioToEditor, type TextRef } from './api';
 import { autoGrow, h, modal, select, toast } from './ui';
 
 export interface RoomsCtx {
@@ -113,7 +113,7 @@ export class RoomsTab {
   private frameUrl() {
     const q = new URLSearchParams({ edit: this.roomId });
     if (this.checkpoint) q.set('at', this.checkpoint);
-    return `/?${q}`;
+    return `${BASE}?${q}`;
   }
 
   reloadFrame() {
@@ -174,11 +174,21 @@ export class RoomsTab {
       this.editorDirty = m.dirty;
       this.frameStatus.textContent = m.dirty ? 'placement not saved' : '';
     } else if (m.type === 'saved') {
-      this.editorDirty = !m.ok;
-      this.frameStatus.textContent = m.ok ? '' : m.error ?? 'save failed';
-      if (m.ok) { this.ctx.ownWrite(); toast('Layout saved'); this.ctx.saved(); } else toast(m.error ?? 'Layout not saved', 'error');
-      this.savedWaiters.splice(0).forEach((f) => f(m.ok));
+      void this.onSaved(m);
     }
+  }
+
+  private async onSaved(m: Extract<EditorToStudio, { type: 'saved' }>) {
+    let { ok, error } = m;
+    // The editor could not write the file (demo mode): the layout is stored through the Studio's backend.
+    if (ok && m.layout) {
+      try { await api.setLayout(m.room, m.layout); } catch (e) { ok = false; error = (e as Error).message; }
+    }
+    this.editorDirty = !ok;
+    this.frameStatus.textContent = ok ? '' : error ?? 'save failed';
+    if (ok) { this.ctx.ownWrite(); toast(api.mode === 'demo' ? 'Layout saved in this browser' : 'Layout saved'); this.ctx.saved(); } else toast(error ?? 'Layout not saved', 'error');
+    if (ok && m.layout && this.data && m.room === this.roomId) this.data.layout = m.layout;
+    this.savedWaiters.splice(0).forEach((f) => f(ok));
   }
 
   /** Before touching the room file (the view reloads when it changes): save the placement in progress. */

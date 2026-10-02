@@ -1,4 +1,6 @@
-// The Studio's client for /__studio/api/* (tools/studio/plugin.ts). Types are shared with the server.
+// The Studio's backend, behind one interface: the dev server's /__studio/api/* (tools/studio/plugin.ts, the default)
+// or, in demo mode, the browser backend (src/studio/api-browser.ts: a build-time snapshot plus edits in localStorage).
+// Types are shared with the server.
 import type { Layout } from '@engine/core/types';
 import type {
   AddEntity, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, ScreenshotResult, SolveData, ValidateResult,
@@ -21,15 +23,38 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   return data as T;
 }
 
-export const api = {
+type Storyboard = Record<string, unknown> & { boards: unknown[] };
+
+export interface Api {
+  /** 'server': files on disk through the dev server; 'demo': in this browser only. */
+  readonly mode: 'server' | 'demo';
+  game(): Promise<GameInfo>;
+  room(id: string): Promise<RoomData>;
+  setLayout(id: string, layout: Layout): Promise<{ ok: true }>;
+  setText(id: string, path: string, value: string | null): Promise<EditResult>;
+  add(id: string, e: AddEntity): Promise<EditResult>;
+  /** The raw storyboard.json (unknown fields kept). */
+  storyboardRaw(): Promise<Storyboard>;
+  setStoryboard(sb: unknown): Promise<{ ok: true; changed: boolean }>;
+  /** Server: writes storyboard.md. Demo: generates it and hands it to the browser as a download. */
+  storyboardMarkdown(): Promise<MarkdownResult>;
+  notes(): Promise<NotesFile>;
+  addNote(n: NewNote): Promise<Note>;
+  editNote(id: string, e: NoteEdit): Promise<Note>;
+  deleteNote(id: string): Promise<{ ok: true }>;
+  validate(): Promise<ValidateResult>;
+  solve(from?: string): Promise<SolveData>;
+  screenshot(room: string, checkpoint?: string): Promise<Exclude<ScreenshotResult, { unavailable: true }>>;
+}
+
+export const serverApi: Api = {
+  mode: 'server',
   game: () => call<GameInfo>('GET', 'game'),
   room: (id: string) => call<RoomData>('GET', `room/${id}`),
   setLayout: (id: string, layout: Layout) => call<{ ok: true }>('PUT', `room/${id}/layout`, layout),
   setText: (id: string, path: string, value: string | null) => call<EditResult>('PUT', `room/${id}/text`, { path, value }),
   add: (id: string, e: AddEntity) => call<EditResult>('POST', `room/${id}/add`, e),
-  storyboard: () => call<{ title?: string; boards: { id: string; title: string; room?: string; panels?: unknown[] }[] }>('GET', 'storyboard'),
-  /** The raw storyboard.json (unknown fields kept). */
-  storyboardRaw: () => call<Record<string, unknown> & { boards: unknown[] }>('GET', 'storyboard'),
+  storyboardRaw: () => call<Storyboard>('GET', 'storyboard'),
   setStoryboard: (sb: unknown) => call<{ ok: true; changed: boolean }>('PUT', 'storyboard', sb),
   storyboardMarkdown: () => call<MarkdownResult>('POST', 'storyboard/markdown'),
   notes: () => call<NotesFile>('GET', 'notes'),
@@ -41,5 +66,12 @@ export const api = {
   screenshot: (room: string, checkpoint?: string) => call<Exclude<ScreenshotResult, { unavailable: true }>>('POST', 'screenshot', { room, checkpoint: checkpoint || undefined }),
 };
 
+/** The backend in use (a live binding: the tabs read it at call time). Set once at start by main.ts. */
+export let api: Api = serverApi;
+export function useApi(a: Api) { api = a; }
+
+/** The game's root URL (the Vite base: `/` in dev, `/<repo>/` on GitHub Pages). */
+export const BASE = import.meta.env.BASE_URL ?? '/';
+
 /** Image URL of a manifest id (public/assets, prepared by npm run assets). */
-export const imgUrl = (id: string) => `/assets/img/${id}.webp`;
+export const imgUrl = (id: string) => `${BASE}assets/img/${id}.webp`;

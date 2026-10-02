@@ -84,10 +84,45 @@ its separator. Paths of the following items shift after an append or a deletion:
 
 ### Serving
 The Studio page is `studio.html` at the repository root (entry `src/studio/main.ts`). Any dev server serves it at
-`/__studio/` (`npm run dev` too); `npm run studio` also opens it. A production build leaves it out unless `STUDIO=1`.
+`/__studio/` (`npm run dev` too); `npm run studio` also opens it. A production build leaves it out unless `STUDIO=1` (see "Demo mode").
 The Rooms tab shows `/?edit=<room>&at=<checkpoint>` in an iframe and talks to the editor through `postMessage`
 (see TOOLS.md, "The placement editor"). The Studio page ignores Vite's full reloads caused by game files (the engine
 view reloads, the Studio keeps what you are typing and follows the change through `events`).
+
+## Demo mode
+The Studio also runs without any server, on a static host: https://wanoo.github.io/web-scumm/studio.html is the demo
+game's Studio, built by the CI. Same UI, same engine view and placement editor; the edits stay in the browser.
+
+- **Build**: `npm run build:studio-demo` (= `STUDIO=1 VITE_STUDIO_DEMO=1 vite build`); the CI sets both variables on its
+  `npm run build`. With `STUDIO=1`, the build first writes `public/studio-demo/snapshot.json` (`tools/studio/snapshot.ts`,
+  also `npm run studio-snapshot`; gitignored): `{ game, rooms: { <id>: { def, layout, texts, file } }, storyboard, notes,
+  docs: { CONTENT_GUIDE } }`, everything the Studio reads from the API. Without `STUDIO=1`, neither `studio.html` nor
+  the snapshot reach `dist/`. The Studio's and the dev tools' code goes to `dist/assets/tools/`, outside the service
+  worker's precache.
+- **Backend**: `src/studio/api.ts` defines the `Api` interface; the dev server's one is the default. The browser one
+  (`src/studio/api-browser.ts`) is used when the build says so (`VITE_STUDIO_DEMO=1`) or when `GET /__studio/api/game`
+  answers 404 (or a page instead of JSON). It loads the snapshot and replays the edits kept in `localStorage` under
+  `web-scumm.studio-demo.<game>`: a list of patches `{ kind: 'text', room, path, value }` (replace, `[+]` append, `null`
+  delete, with the same path shifts as the room file), `{ kind: 'layout', room, layout }`, `{ kind: 'entity', room,
+  entity }` (Add prop / hotspot / actor), `{ kind: 'storyboard', storyboard }`, `{ kind: 'note', note }`, `{ kind:
+  'note-edit', id, text, about?, edited }`, `{ kind: 'note-delete', id }`. A later layout or storyboard replaces the
+  earlier one; editing or deleting a note added in the demo rewrites its `note` patch.
+- **Checks**: Validate and Solve run in the page (`src/engine/tools/validate.ts`, `solve.ts`) on the real game module
+  with the edits applied: layouts, added entities, and every text whose path reaches a string of the compiled room
+  (look lines, names, hints, topics, lines of `on`/`talk`/`onEnter`…). A text the room builds with code (a shared
+  constant, a helper) is only validated on the server version. Screenshots need the dev server: the panel is hidden.
+  Export Markdown downloads `storyboard.md`. No events (nothing on disk to watch).
+- **Engine view**: in a demo build the dev tools also load with `?edit` / `?dev` (and only then: the player's game is
+  the same). They apply the same patches to the game and the layouts at start. Save layout in the editor posts the
+  layout to the Studio around it (`postMessage`, message `saved` with `layout`), which keeps it as a `layout` patch;
+  the editor opened alone writes the patch to `localStorage` itself. On the dev server, the editor still writes
+  `layout/<room>.json`; it falls back to the same path only when `/__layout` does not exist.
+- **Banner**: "Demo: your edits stay in this browser", **Download patch** (`studio-patch-<game>.json`: `{ format:
+  'web-scumm-studio-patch', version, game, created, patches }`) and **Reset demo** (drops every edit).
+- **Apply**: `npm run studio-apply patch.json` replays a downloaded patch on your copy through the core (`setText`,
+  `setLayout`, `addEntity`, `setStoryboard`, `addNote`, `editNote`, `deleteNote`, in order) and prints one line per
+  patch and a summary; a patch that fails is reported, the others still apply (exit code 1 if any failed).
+  `GAME=<id>` or `GAME_DIR=<folder>` pick the game, as for every tool.
 
 ## Any AI, not one AI
 - `AGENTS.md` at the repo root is the vendor-neutral operating manual (`CLAUDE.md` points to it).

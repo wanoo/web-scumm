@@ -26,7 +26,8 @@ export class CheckTab {
         h('label', null, 'Solve from ', select([['', 'New game'], ...cps], this.from, (x) => { this.from = x; void this.run(); }, { 'aria-label': 'Solve from' })),
         this.stamp),
       h('div', { class: 'checkgrid' }, this.out,
-        h('div', { class: 'panel' }, h('h3', null, 'Screenshot'),
+        // Screenshots render the room with Playwright on the dev server: not in the demo.
+        api.mode === 'demo' ? null : h('div', { class: 'panel' }, h('h3', null, 'Screenshot'),
           h('div', { class: 'bar' },
             select(info.rooms.map((r) => [r.id, r.name]), this.shotRoom, (x) => { this.shotRoom = x; }, { 'aria-label': 'Room to screenshot' }),
             select([['', 'auto state'], ...cps], this.shotCp, (x) => { this.shotCp = x; }, { 'aria-label': 'Checkpoint' }),

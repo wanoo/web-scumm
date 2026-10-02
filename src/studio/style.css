@@ -319,3 +319,9 @@ select.addsfx { font-size: 12px; padding: 2px 6px; color: var(--muted); }
   .path { columns: 1; }
   main { overflow: auto; }
 }
+
+/* Demo mode (no server): the banner above the header */
+.demo-banner { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 7px 14px; background: #2a2208; border-bottom: 1px solid #a37a2a; color: #ffe7b0; flex: none; font-size: 13px; }
+.demo-banner > span:first-child { flex: 1; min-width: 260px; }
+.demo-banner b { font: 10px var(--pixel); color: var(--yellow); }
+.demo-banner code { color: #ffd27a; }

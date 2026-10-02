@@ -102,6 +102,15 @@ iframe et parle à l'éditeur via `postMessage` (voir TOOLS.md, « L'éditeur de
 les rechargements complets de Vite causés par les fichiers du jeu (la vue du moteur se recharge, le Studio garde ce
 qu'on est en train de taper et suit le changement via `events`).
 
+## Mode démo
+Le Studio tourne aussi sans serveur, sur un hébergement statique : https://wanoo.github.io/web-scumm/studio.html est le
+Studio du jeu d'exemple, construit par la CI. Même interface, même vue du moteur et même éditeur de placement ; les
+modifications restent dans le navigateur (`localStorage`, une liste de patchs rejouée sur un instantané du jeu écrit
+au build, `public/studio-demo/snapshot.json`). Validate et Solve tournent dans la page sur le vrai jeu modifié ; les
+captures d'écran demandent le serveur de dev. Le bandeau propose **Download patch** (un fichier JSON) et **Reset
+demo** ; `npm run studio-apply patch.json` applique ce fichier à ta copie via le cœur du Studio. Build :
+`npm run build:studio-demo` (`STUDIO=1 VITE_STUDIO_DEMO=1`). Détails dans `docs/en/STUDIO.md`, « Demo mode ».
+
 ## N'importe quelle IA, pas une seule IA
 - `AGENTS.md` à la racine du dépôt est le manuel d'exploitation neutre vis-à-vis du fournisseur (`CLAUDE.md` y
   renvoie).

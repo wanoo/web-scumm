@@ -18,9 +18,12 @@ jobs:
       - run: npm run validate
       - run: npm run solve
       - run: npm test
+      # The game, plus the Studio in demo mode at studio.html (docs/en/STUDIO.md, "Demo mode").
       - run: npm run build
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
+          STUDIO: '1'
+          VITE_STUDIO_DEMO: '1'
       - uses: actions/upload-pages-artifact@v3
         if: github.ref == 'refs/heads/main'
         with:

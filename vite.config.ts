@@ -1,12 +1,13 @@
 import { defineConfig, type Plugin } from 'vite';
 import { fileURLToPath } from 'node:url';
 import { writeFile } from 'node:fs/promises';
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, rmSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { VitePWA } from 'vite-plugin-pwa';
 import { GAME, GAME_DIR } from './tools/game';
 import { studioPlugin } from './tools/studio/plugin';
+import { writeSnapshot } from './tools/studio/snapshot';
 
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
@@ -29,6 +30,28 @@ function layoutWriter(): Plugin {
           } catch (e) { res.statusCode = 500; res.end(String(e)); }
         });
       });
+    },
+  };
+}
+
+/**
+ * Builds with STUDIO=1: the Studio page enters the build (see `build.rollupOptions.input`) with its demo snapshot,
+ * public/studio-demo/snapshot.json, regenerated from the game first (copied to dist/ with the public files).
+ * Without STUDIO=1: neither the page nor a snapshot left in public/ by an earlier build reach dist/.
+ */
+function studioDemo(): Plugin {
+  let outDir = 'dist';
+  return {
+    name: 'studio-demo',
+    apply: 'build',
+    configResolved(c) { outDir = resolve(c.root, c.build.outDir); },
+    async buildStart() {
+      if (process.env.STUDIO !== '1') return;
+      const s = await writeSnapshot();
+      this.info(`Studio snapshot: ${Object.keys(s.rooms).length} rooms of "${s.game.id}"`);
+    },
+    closeBundle() {
+      if (process.env.STUDIO !== '1') rmSync(join(outDir, 'studio-demo'), { recursive: true, force: true });
     },
   };
 }
@@ -75,16 +98,20 @@ function sitePlugin(): Plugin {
   };
 }
 
+/** A module only the Studio (src/studio, tools/) or the dev tools (src/engine/dev, tweakpane) load. */
+const isToolModule = (id: string) => /[\\/](src[\\/]studio|src[\\/]engine[\\/]dev|tools|node_modules[\\/](@tweakpane|tweakpane))[\\/]/.test(id);
+
 /** Deploy under a sub-path (GitHub Pages: /<repo>/) with BASE_PATH=/<repo>/ ; default '/'. */
 const BASE = process.env.BASE_PATH ?? '/';
 
 export default defineConfig({
   base: BASE,
-  define: { __ASSETS_VERSION__: JSON.stringify(assetsVersion()) },
+  define: { __ASSETS_VERSION__: JSON.stringify(assetsVersion()), __GAME__: JSON.stringify(GAME) },
   plugins: [
     sitePlugin(),
     layoutWriter(),
     studioPlugin(),
+    studioDemo(),
     // Service worker: the app is cached on install, images and sounds on first use (then served without network).
     VitePWA({
       registerType: 'autoUpdate',
@@ -92,7 +119,8 @@ export default defineConfig({
       manifest: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,ttf,webmanifest}', 'icons/*.png'],
-        globIgnores: ['assets/img/**', 'assets/audio/**', 'assets/video/**', 'data/**'],
+        // assets/tools/: the Studio and the dev tools (STUDIO=1 builds), never needed by a player offline.
+        globIgnores: ['assets/img/**', 'assets/audio/**', 'assets/video/**', 'data/**', 'assets/tools/**', 'studio-demo/**'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         clientsClaim: true,
@@ -118,6 +146,13 @@ export default defineConfig({
   ] },
   // The Studio page (studio.html, dev server: /__studio/) only enters a build with STUDIO=1.
   build: { target: 'es2020', assetsInlineLimit: 0,
-    rollupOptions: { input: { index: r('./index.html'), ...(process.env.STUDIO === '1' ? { studio: r('./studio.html') } : {}) } } },
+    rollupOptions: {
+      input: { index: r('./index.html'), ...(process.env.STUDIO === '1' ? { studio: r('./studio.html') } : {}) },
+      // Code only the Studio or the dev tools use goes to assets/tools/ (left out of the service worker's precache).
+      output: {
+        entryFileNames: (c: { name: string }) => (c.name === 'studio' ? 'assets/tools/[name]-[hash].js' : 'assets/[name]-[hash].js'),
+        chunkFileNames: (c: { moduleIds: string[] }) => (c.moduleIds.length && c.moduleIds.every(isToolModule) ? 'assets/tools/[name]-[hash].js' : 'assets/[name]-[hash].js'),
+      },
+    } },
   test: { environment: 'node', include: ['tests/**/*.test.ts'] },
 } as any);

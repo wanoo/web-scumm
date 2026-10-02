@@ -1,4 +1,5 @@
 import { App } from '@engine/dom/app';
+import type { SaveStore } from '@engine/core/ports';
 import { FONT_PIXEL, FONT_UI } from '@engine/dom/fonts';
 import { game, layouts, manifest, minigames } from '@game';
 
@@ -8,10 +9,24 @@ const families = [game.skin.fonts?.ui ?? FONT_UI, game.skin.fonts?.pixel ?? FONT
 const ready = fonts?.load ? Promise.all(families.map((f) => fonts.load(`12px "${f}"`))).catch(() => undefined) : Promise.resolve();
 
 ready.then(async () => {
-  const app = new App({ root: document.getElementById('app')!, game, layouts, manifest, minigames, version: __ASSETS_VERSION__ });
-  (window as any).__game = app; // debugging from the console, and driving e2e tests
   const q = new URLSearchParams(location.search);
-  if (import.meta.env.DEV && (q.has('dev') || q.has('edit'))) {
+  // The dev tools (?dev, ?edit=<room>): on the dev server, and in a Studio demo build (docs/en/STUDIO.md, "Demo
+  // mode"). Without these query params, the player's game is the same in every build.
+  const dev = (import.meta.env.DEV || import.meta.env.VITE_STUDIO_DEMO === '1') && (q.has('dev') || q.has('edit'));
+  let g = game, L = layouts;
+  let store: SaveStore | undefined;
+  if (dev && import.meta.env.VITE_STUDIO_DEMO === '1') {
+    // The edited game never touches the player's saved game (same origin as the game on a static host).
+    store = new (await import('@engine/core/ports')).MemoryStore();
+    // The Studio demo's edits (kept in this browser) on top of the compiled game: texts, added entities, layouts.
+    const { patchGame, readPatches } = await import('./studio/demo-patch');
+    let ls: Storage | undefined;
+    try { ls = localStorage; } catch { /* storage blocked */ }
+    ({ game: g, layouts: L } = patchGame(game, layouts, readPatches(ls, __GAME__)));
+  }
+  const app = new App({ root: document.getElementById('app')!, game: g, layouts: L, manifest, minigames, store, version: __ASSETS_VERSION__ });
+  (window as any).__game = app; // debugging from the console, and driving e2e tests
+  if (dev) {
     const { startDev } = await import('@engine/dev');
     await startDev(app, { edit: q.get('edit'), checkpoint: q.get('at') });
     return;

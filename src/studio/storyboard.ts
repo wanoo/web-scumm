@@ -75,7 +75,7 @@ export class StoryboardTab {
     this.el.append(
       h('div', { class: 'bar sbbar' }, this.saveBtn, this.stateEl,
         h('button', { onclick: () => void this.exportMd(), title: 'Write games/<id>/storyboard.md from the saved storyboard.json' }, 'Export Markdown'),
-        h('button', { onclick: () => void this.reload(), title: 'Read storyboard.json again (drops unsaved edits)' }, 'Reload from disk')),
+        h('button', { onclick: () => void this.reload(), title: 'Read storyboard.json again (drops unsaved edits)' }, api.mode === 'demo' ? 'Reload saved' : 'Reload from disk')),
       this.banner,
       h('div', { class: 'sbgrid' }, this.listEl, this.editEl, this.previewEl));
     addEventListener('beforeunload', (e) => { if (this.dirty) { e.preventDefault(); e.returnValue = ''; } });
@@ -156,7 +156,7 @@ export class StoryboardTab {
     try {
       this.ctx.ownWrite();
       const r = await api.storyboardMarkdown();
-      toast(`Wrote ${r.file} · ${r.boards} boards, ${r.panels} panels`);
+      toast(`${api.mode === 'demo' ? 'Downloaded storyboard.md' : `Wrote ${r.file}`} · ${r.boards} boards, ${r.panels} panels`);
     } catch (e) { toast((e as Error).message, 'error'); }
   }
 

@@ -113,6 +113,43 @@ export interface SolveData {
 export type ScreenshotResult = { file: string; url: string } | { unavailable: true; reason: string };
 
 /** Server-sent event of GET /__studio/api/events. `file` is relative to the game folder (`rooms/house.ts`). */
+// ---------------------------------------------------------------------------
+// Demo mode (no server: GitHub Pages): a snapshot of the game, the user's edits as a patch list.
+// ---------------------------------------------------------------------------
+
+/** public/studio-demo/snapshot.json, written by tools/studio/snapshot.ts at build time. */
+export interface StudioSnapshot {
+  format: 'web-scumm-studio-snapshot';
+  version: 1;
+  /** ISO date of the build. */
+  created: string;
+  game: GameInfo;
+  rooms: Record<Id, RoomData>;
+  storyboard: Record<string, unknown>;
+  notes: NotesFile;
+  /** Markdown documents by name (CONTENT_GUIDE). */
+  docs: Record<string, string>;
+}
+
+/** One edit made in the demo Studio, replayed on top of the snapshot (and by `npm run studio-apply`). */
+export type StudioPatch =
+  | { kind: 'text'; room: Id; path: string; value: string | null }
+  | { kind: 'layout'; room: Id; layout: Layout }
+  | { kind: 'entity'; room: Id; entity: AddEntity }
+  | { kind: 'storyboard'; storyboard: Record<string, unknown> }
+  | { kind: 'note'; note: Note }
+  | { kind: 'note-edit'; id: string; text: string; about?: string; edited: string }
+  | { kind: 'note-delete'; id: string };
+
+/** The file "Download patch" produces. */
+export interface StudioPatchFile {
+  format: 'web-scumm-studio-patch';
+  version: 1;
+  game: string;
+  created: string;
+  patches: StudioPatch[];
+}
+
 export type StudioEvent = { type: 'changed'; file: string } | { type: 'hello'; game: string };
 
 // ---------------------------------------------------------------------------
@@ -126,7 +163,8 @@ export type EditorToStudio =
   | { source: 'web-scumm-editor'; type: 'ready'; room: Id; missing: { kind: EntityKind; id: Id }[] }
   | { source: 'web-scumm-editor'; type: 'select'; room: Id; key: EditorKey; kind?: EntityKind; id?: Id }
   | { source: 'web-scumm-editor'; type: 'dirty'; room: Id; dirty: boolean }
-  | { source: 'web-scumm-editor'; type: 'saved'; room: Id; ok: boolean; error?: string };
+  /** `layout`: set when the editor could not write the file (Studio demo, no dev server): the Studio stores it. */
+  | { source: 'web-scumm-editor'; type: 'saved'; room: Id; ok: boolean; error?: string; layout?: Layout };
 
 export type StudioToEditor =
   | { source: 'web-scumm-studio'; type: 'select'; kind: EntityKind; id: Id }

@@ -24,6 +24,7 @@ game can be finished, play it in landscape on any phone, offline after the first
 - Engine, tools and the sample game: complete and playable end to end (validator, solver, 35 tests, Playwright playthrough).
 - Review pages (storyboard, sprite review, placement): working, as local HTML or as claude.ai artifacts.
 - **Studio** (`npm run studio`): local WYSIWYG authoring of rooms, texts, storyboard and notes, no cloud, 20 tests. See `docs/en/STUDIO.md`.
+- Try the Studio in your browser: https://wanoo.github.io/web-scumm/studio.html (demo mode, edits stay in your browser).
 - **MCP server** (`npm run -s mcp`): the same operations as tools for Claude Code, Cursor, Codex, Gemini CLI or any MCP client. See `docs/en/MCP.md`.
 - Next: adding and removing talk topics and reactions from the Studio, playing sound effects in the storyboard preview.
 
@@ -74,6 +75,8 @@ docs/en docs/fr  ENGINE, CONTENT_GUIDE, TOOLS, WORKFLOW, PROMPTS, PAGES, PRODUCT
 ## Deploy
 `npm run build` produces a static `dist/`. The CI workflow deploys it to GitHub Pages on every push to `main`.
 Any static host works (Clever Cloud, Netlify, a plain nginx). `GAME=<id> npm run build` builds another game.
+With `STUDIO=1 VITE_STUDIO_DEMO=1` (what the CI does, or `npm run build:studio-demo`), `dist/` also holds the Studio in
+demo mode at `studio.html` (see `docs/en/STUDIO.md`, "Demo mode"); the game itself is unchanged.
 
 ## Licences
 Code: MIT. Sample artwork: CC BY 4.0 (attribution "Wano"). Sound effects: Kenney, CC0. Fonts: SIL OFL. See `CREDITS.md`.

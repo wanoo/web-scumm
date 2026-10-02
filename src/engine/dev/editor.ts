@@ -262,12 +262,36 @@ export class Editor {
 
   // -------------------------------------------------------------- saving
 
+  /**
+   * Writes layout/<room>.json through the dev server. Without one (a Studio demo build, or no /__layout endpoint),
+   * the layout goes to the Studio around this view (postMessage; it keeps it with the demo's edits) or, standalone,
+   * straight into the demo's edits in localStorage: the engine applies them on the next load.
+   */
   async save() {
     const L = roundLayout(this.L);
     this.app.engine.layouts[this.room.id] = L;
-    const r = await fetch(`/__layout/${this.room.id}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(L) });
-    if (r.ok) { this.dirty = false; this.status.state = `saved (${new Date().toLocaleTimeString()})`; this.post({ type: 'saved', ok: true }); }
-    else { this.status.state = `error: ${await r.text()}`; this.post({ type: 'saved', ok: false, error: this.status.state }); }
+    let error = '';
+    let offline = import.meta.env.VITE_STUDIO_DEMO === '1';
+    if (!offline) {
+      try {
+        const r = await fetch(`/__layout/${this.room.id}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(L) });
+        if (r.status === 404 || r.status === 405) offline = true;
+        else if (!r.ok) error = await r.text();
+      } catch { offline = true; }
+    }
+    const done = () => { this.dirty = false; this.status.state = `saved (${new Date().toLocaleTimeString()})`; };
+    if (error) { this.status.state = `error: ${error}`; this.post({ type: 'saved', ok: false, error: this.status.state }); }
+    else if (!offline) { done(); this.post({ type: 'saved', ok: true }); }
+    else if (window.parent !== window) { done(); this.post({ type: 'saved', ok: true, layout: L }); }
+    else {
+      const { readPatches, writePatches } = await import('../../studio/demo-patch');
+      let store: Storage | undefined;
+      try { store = localStorage; } catch { /* blocked */ }
+      const patches = readPatches(store, __GAME__).filter((p) => !(p.kind === 'layout' && p.room === this.room.id));
+      writePatches(store, __GAME__, [...patches, { kind: 'layout', room: this.room.id, layout: L }]);
+      done();
+      this.status.state += ' in this browser';
+    }
     this.pane.refresh();
   }
 

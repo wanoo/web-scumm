@@ -6,3 +6,4 @@ dist
 private/
 games/*/private/
 dist-pages
+public/studio-demo/

@@ -25,6 +25,7 @@ téléphone, hors ligne après la première visite.
 - Moteur, outils et jeu d'exemple : complets et jouables de bout en bout (validateur, solveur, 35 tests, parcours Playwright).
 - Pages de validation (storyboard, contrôle des sprites, placement) : fonctionnelles, en HTML local ou en artefact claude.ai.
 - **Studio** (`npm run studio`) : construction locale WYSIWYG des lieux, textes, storyboard et notes, sans cloud, 20 tests. Voir `docs/fr/STUDIO.md`.
+- Essayer le Studio dans le navigateur : https://wanoo.github.io/web-scumm/studio.html (mode démo, les modifications restent dans ton navigateur).
 - **Serveur MCP** (`npm run -s mcp`) : les mêmes opérations comme outils pour Claude Code, Cursor, Codex, Gemini CLI ou tout client MCP. Voir `docs/fr/MCP.md`.
 - À venir : ajout et suppression de sujets de conversation et de réactions depuis le Studio, écoute des bruitages dans l'aperçu du storyboard.
 
