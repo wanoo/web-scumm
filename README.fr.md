@@ -24,7 +24,7 @@ téléphone, hors ligne après la première visite.
 ## État d'avancement
 - Moteur, outils et jeu d'exemple : complets et jouables de bout en bout (validateur, solveur, 35 tests, parcours Playwright).
 - Pages de validation (storyboard, contrôle des sprites, placement) : fonctionnelles, en HTML local ou en artefact claude.ai.
-- **Studio** (`npm run studio`) : construction locale WYSIWYG des lieux, textes, storyboard et notes, sans cloud, 20 tests. Voir `docs/en/STUDIO.md`.
+- **Studio** (`npm run studio`) : construction locale WYSIWYG des lieux, textes, storyboard et notes, sans cloud, 20 tests. Voir `docs/fr/STUDIO.md`.
 - **Serveur MCP** (`npm run -s mcp`) : les mêmes opérations comme outils pour Claude Code, Cursor, Codex, Gemini CLI ou tout client MCP. Voir `docs/fr/MCP.md`.
 - À venir : ajout et suppression de sujets de conversation et de réactions depuis le Studio, écoute des bruitages dans l'aperçu du storyboard.
 
