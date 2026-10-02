@@ -10,6 +10,7 @@ un téléphone avant que la suivante ne commence.
 (qui dit quoi), l'action du joueur qui déclenche chaque moment, les sons, et les indices donnés par la voix d'aide
 quand le joueur est bloqué. Fichier : `games/<id>/storyboard.json`. Compétence : `/storyboard`. Le storyboard est
 la source de vérité pour chaque texte du jeu ; le code en découle, jamais l'inverse.
+Avant d'écrire, lire [DESIGN.md](DESIGN.md) : ce qui fait un bon lieu, une bonne énigme, une bonne chaîne d'indices et de bonnes réponses de repli avec ce moteur.
 
 ## 2. Valider le storyboard sur une page
 `npm run page:storyboard` affiche le storyboard comme une page HTML illustrée, chaque case composée à partir des

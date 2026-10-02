@@ -75,7 +75,7 @@ games/demo/      the sample game: game.ts, rooms/, layout/, art/, audio/, storyb
 games/_template/ copied by npm run new-game
 tools/           validate, solve, refs, assets.py, cut-sheet.py, talk-*.py, pages/, audit-assets
 scripts/         e2e harness, seal (sealed ending), gen-icons, new-game
-docs/en docs/fr  ENGINE, CONTENT_GUIDE, TOOLS, WORKFLOW, PROMPTS, PAGES, PRODUCTION.template
+docs/en docs/fr  ENGINE, CONTENT_GUIDE, DESIGN (design guide), TOOLS, WORKFLOW, PROMPTS, PAGES, PRODUCTION.template
 ```
 
 ## Deploy

@@ -9,6 +9,7 @@ Write the story as a **storyboard**: boards (one per room), panels (one per beat
 action that triggers each beat, the sounds, and the hints the helper voice gives when the player is stuck.
 File: `games/<id>/storyboard.json`. Skill: `/storyboard`. The storyboard is the source of truth for every text in the game;
 the code is derived from it, never the other way round.
+Before writing, read [DESIGN.md](DESIGN.md): what makes a good room, puzzle, hint chain and fallback in this engine.
 
 ## 2. Validate the storyboard on a page
 `npm run page:storyboard` renders the storyboard as an illustrated HTML page, with every panel composed from the real
