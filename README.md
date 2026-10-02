@@ -10,7 +10,7 @@ game can be finished, play it in landscape on any phone, offline after the first
 |---|---|
 | 🎮 **Play the sample game** | https://wanoo.github.io/web-scumm/ (phone in landscape, or desktop) |
 | 🛠 **Try the Studio** | https://wanoo.github.io/web-scumm/studio.html (demo mode: edits stay in your browser) |
-| 📦 **Source** | https://github.com/wanoo/web-scumm · release v1.0.0 |
+| 📦 **Source** | https://github.com/wanoo/web-scumm · release v1.1.0 |
 
 ## In pictures
 
@@ -25,11 +25,15 @@ game can be finished, play it in landscape on any phone, offline after the first
 | ![Placement editor](docs/img/editor.jpg) *The in-browser placement editor (`?edit=house`)* | ![Placement page](docs/img/placement-page.jpg) *The phone-friendly placement page* |
 | ![Studio, Rooms tab](docs/img/studio-rooms.jpg) *The Studio, Rooms tab: the real engine, the element's sheet, texts edited in place* | ![Studio, Storyboard tab](docs/img/studio-storyboard.jpg) *The Studio, Storyboard tab: panels, lines, preview, notes* |
 | ![Studio, Check tab](docs/img/studio-check.jpg) *The Studio, Check tab: validator, solver path, screenshots* | ![Studio, Notes tab](docs/img/studio-notes.jpg) *The Studio, Notes tab: the shared log between you and the AI* |
+| ![Studio, Assets tab](docs/img/studio-assets.jpg) *The Studio, Assets tab: every sheet and cell, where it is used, the generation prompt, uploads* | ![Studio, a background with its spots](docs/img/studio-assets-decor.jpg) *A background with its hotspots, props and floor band overlaid* |
+| ![Studio, Assistant](docs/img/studio-assistant.jpg) *The Assistant: any AI model, the same tools as the MCP server, about the selected element* | ![Studio, Assistant settings](docs/img/studio-assistant-settings.jpg) *Assistant settings: OpenAI, Anthropic, Mistral, Ollama or a custom endpoint, key kept in your browser* |
 
 ## Status
 - Engine, tools and the sample game: complete and playable end to end (validator, solver, 35 tests, Playwright playthrough).
 - Review pages (storyboard, sprite review, placement): working, as local HTML or as claude.ai artifacts.
-- **Studio** (`npm run studio`): local WYSIWYG authoring of rooms, texts, storyboard and notes, no cloud, 20 tests. See `docs/en/STUDIO.md`.
+- **Studio** (`npm run studio`): a complete local creation environment: rooms (WYSIWYG on the real engine), texts, storyboard, notes, **assets** (every image and sound, prompts per sheet, uploads cut automatically) and an **Assistant** that connects any AI model (OpenAI, Anthropic, Mistral, Ollama…) with the same tools as the MCP server. See `docs/en/STUDIO.md`.
+- **Art prompts generator** (`npm run prompts`): ready-to-paste prompts for every character sheet (walk, talk, seated, the special poses your rooms use), object sheet with states, background and furniture, all sharing one style block. See `docs/en/PROMPTS.md`.
+- **Design guide** (`docs/en/DESIGN.md`): how to build a good SCUMM-style game with this engine, with a checklist before you share the link.
 - Try the Studio in your browser: https://wanoo.github.io/web-scumm/studio.html (demo mode, edits stay in your browser).
 - **MCP server** (`npm run -s mcp`): the same operations as tools for Claude Code, Cursor, Codex, Gemini CLI or any MCP client. See `docs/en/MCP.md`.
 - Next: adding and removing talk topics and reactions from the Studio, playing sound effects in the storyboard preview.

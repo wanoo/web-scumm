@@ -11,7 +11,7 @@ téléphone, hors ligne après la première visite.
 |---|---|
 | 🎮 **Jouer au jeu d'exemple** | https://wanoo.github.io/web-scumm/ (téléphone en paysage, ou ordinateur) |
 | 🛠 **Essayer le Studio** | https://wanoo.github.io/web-scumm/studio.html (mode démo : les modifications restent dans le navigateur) |
-| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v1.0.0 |
+| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v1.1.0 |
 
 ## En images
 
@@ -26,11 +26,15 @@ téléphone, hors ligne après la première visite.
 | ![Éditeur de placement](docs/img/editor.jpg) *L'éditeur de placement dans le navigateur (`?edit=house`)* | ![Page de placement](docs/img/placement-page.jpg) *La page de placement pour téléphone* |
 | ![Studio, onglet Lieux](docs/img/studio-rooms.jpg) *Le Studio, onglet Lieux : le vrai moteur, la fiche de l'élément, textes édités en place* | ![Studio, onglet Storyboard](docs/img/studio-storyboard.jpg) *Le Studio, onglet Storyboard : cases, répliques, aperçu, notes* |
 | ![Studio, onglet Check](docs/img/studio-check.jpg) *Le Studio, onglet Check : validateur, chemin du solveur, captures* | ![Studio, onglet Notes](docs/img/studio-notes.jpg) *Le Studio, onglet Notes : le journal partagé entre toi et l'IA* |
+| ![Studio, onglet Assets](docs/img/studio-assets.jpg) *Le Studio, onglet Assets : chaque planche et chaque case, où elle sert, le prompt de génération, les dépôts* | ![Studio, un décor avec ses zones](docs/img/studio-assets-decor.jpg) *Un décor avec ses zones, accessoires et bande de sol superposés* |
+| ![Studio, Assistant](docs/img/studio-assistant.jpg) *L'Assistant : n'importe quel modèle, les mêmes outils que le serveur MCP, à propos de l'élément sélectionné* | ![Studio, réglages de l'Assistant](docs/img/studio-assistant-settings.jpg) *Réglages : OpenAI, Anthropic, Mistral, Ollama ou un point d'accès maison, clé gardée dans ton navigateur* |
 
 ## État d'avancement
 - Moteur, outils et jeu d'exemple : complets et jouables de bout en bout (validateur, solveur, 35 tests, parcours Playwright).
 - Pages de validation (storyboard, contrôle des sprites, placement) : fonctionnelles, en HTML local ou en artefact claude.ai.
-- **Studio** (`npm run studio`) : construction locale WYSIWYG des lieux, textes, storyboard et notes, sans cloud, 20 tests. Voir `docs/fr/STUDIO.md`.
+- **Studio** (`npm run studio`) : un environnement de création complet en local : lieux (WYSIWYG sur le vrai moteur), textes, storyboard, notes, **assets** (chaque image et son, prompts par planche, dépôts découpés automatiquement) et un **Assistant** qui branche n'importe quel modèle (OpenAI, Anthropic, Mistral, Ollama…) avec les mêmes outils que le serveur MCP. Voir `docs/fr/STUDIO.md`.
+- **Générateur de prompts** (`npm run prompts`) : prompts prêts à coller pour chaque planche de personnage (marche, parole, assis, poses spéciales utilisées par les lieux), planche d'objets avec états, décors et meubles, tous avec le même bloc de style. Voir `docs/fr/PROMPTS.md`.
+- **Guide de conception** (`docs/fr/DESIGN.md`) : comment construire un bon jeu SCUMM avec ce moteur, avec la liste de contrôle avant de partager le lien.
 - Essayer le Studio dans le navigateur : https://wanoo.github.io/web-scumm/studio.html (mode démo, les modifications restent dans ton navigateur).
 - **Serveur MCP** (`npm run -s mcp`) : les mêmes opérations comme outils pour Claude Code, Cursor, Codex, Gemini CLI ou tout client MCP. Voir `docs/fr/MCP.md`.
 - À venir : ajout et suppression de sujets de conversation et de réactions depuis le Studio, écoute des bruitages dans l'aperçu du storyboard.
