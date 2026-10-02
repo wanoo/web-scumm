@@ -161,6 +161,50 @@ game's Studio, built by the CI. Same UI, same engine view and placement editor; 
   patch and a summary; a patch that fails is reported, the others still apply (exit code 1 if any failed).
   `GAME=<id>` or `GAME_DIR=<folder>` pick the game, as for every tool.
 
+## Assistant
+The **Assistant** button in the top bar (or the `a` key when no field has focus) opens a drawer on the right where you
+ask a chat model to help complete the game. It works with any provider, and it has the same tools as the MCP server
+(`list_rooms`, `get_room`, `set_text`, `add_entity`, `set_layout`, `get_storyboard`, `set_storyboard`, `get_notes`,
+`add_note`, `validate`, `solve`, `screenshot`, `read_doc`, `run_tests`, `asset_prompts`). One registry,
+`tools/studio/tools.ts`, defines them (name, description, zod schema, handler over a backend), and both the MCP server
+and the Assistant use it.
+
+- **How it works.** The page posts the conversation to `POST /__studio/api/assistant/chat` with `{ provider: { kind,
+  baseUrl, model, apiKey? }, messages: [{ role, content }], context }`. The relay (`tools/studio/assistant.ts`, loop in
+  `tools/studio/assistant-loop.ts`) builds a system prompt from `AGENTS.md`, the game (rooms, characters, items,
+  checkpoints) and the current selection with its texts. It calls the model, runs the tool calls on the game files
+  (at most 12 rounds), and streams server-sent events back: `{ type: 'text', delta }`, `{ type: 'tool_call', id, name,
+  args }`, `{ type: 'tool_result', id, name, result, isError? }` (result cut at 4 KB), `{ type: 'error', message }`,
+  then `{ type: 'done', usage?, wrote?, stopped? }`. The model is told to ask before destructive changes and to keep the
+  game's voice. **Stop** aborts the request, and the server aborts the provider call too.
+- **Context.** The composer shows what the request is about: `house › pantry (prop)` (the room and the entity selected
+  in Rooms), `storyboard › <board> › <panel> (panel)` (the selected panel, as edited, even unsaved), or the whole game.
+  The quick actions use it: *Write 3 look lines*, *Suggest a puzzle for this room*, *Write the talk topics for this
+  character*, *Find what's missing (validate + solve)*, *Draft the hint chain*, *Generate the art prompts for this sheet*.
+- **The conversation.** Answers are rendered as light markdown (paragraphs, lists, code). Each tool call is a chip you
+  can unfold to see its arguments and result. **New chat** starts over. Earlier turns are sent back as text only.
+  After a turn that wrote something, the Studio reloads the room, the storyboard (a banner when it has unsaved edits)
+  or the notes, and runs Check. The file watcher shows the same changes.
+- **Providers** (gear icon). *OpenAI* (`https://api.openai.com`), *Anthropic* (`https://api.anthropic.com`, default
+  model `claude-sonnet-5`), *Ollama* (`http://localhost:11434`, `llama3.1`, no key; pick a model that supports tools),
+  *Mistral* (`https://api.mistral.ai`), or *Custom*: any OpenAI-compatible base URL. Two wire formats, no SDK:
+  OpenAI-compatible `POST <base>/v1/chat/completions` with `tools` and `stream: true` (OpenAI, Mistral, Ollama, most
+  others), and Anthropic's `POST <base>/v1/messages` with `tools`, `x-api-key` and `anthropic-version: 2023-06-01`.
+  Streaming responses are read as server-sent events. A provider that answers with plain JSON works too.
+- **Key safety.** The key is stored in this browser's `localStorage` only (the settings show a warning) and sent with
+  each request. The relay keeps it in memory for that request: it is never written to disk, never logged, and removed
+  from error messages. Use a key with a spending limit; "Forget the key" removes it.
+- **No key: tasks for an MCP agent.** Without a key (and not on Ollama), the composer offers **Send as a task to the AI
+  agent**. `POST /__studio/api/assistant/task` `{ about, text }` appends a note with `author: "you"` and `task: true`
+  to `notes.json`, about the current selection. An agent connected through MCP (`docs/en/MCP.md`) reads it with
+  `get_notes` and does the work, and the Studio shows its edits live. The Notes tab tags these notes "task".
+- **Demo mode.** There is no relay on a static host: the page runs the same loop itself, with the tools on the browser
+  backend (edits kept as demo patches; `screenshot`, `run_tests` and `asset_prompts` are not available, and `read_doc`
+  only has CONTENT_GUIDE). The browser calls the provider directly. Anthropic gets its
+  `anthropic-dangerous-direct-browser-access` header. OpenAI refuses browser calls from unknown origins for some keys,
+  and the error says so. Use Ollama on your machine (`OLLAMA_ORIGINS=<the page's origin> ollama serve`) or the local
+  Studio (`npm run studio`), whose server relays the call. Tasks go into the demo's notes (and its patch).
+
 ## Any AI, not one AI
 - `AGENTS.md` at the repo root is the vendor-neutral operating manual (`CLAUDE.md` points to it).
 - `npm run mcp` starts a Model Context Protocol server (stdio) exposing the API above as tools: `list_rooms`, `get_room`,

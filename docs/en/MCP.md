@@ -5,7 +5,8 @@ Studio operations (`tools/studio/core.ts`, see STUDIO.md) as tools. Any MCP clie
 Cursor, Codex CLI, Gemini CLI, a hand-written agent) can then read and edit a game exactly like the Studio does, and
 the human sees the result live in `npm run studio` (it watches the files).
 
-- Server: `tools/mcp/server.ts`, SDK `@modelcontextprotocol/sdk` 1.x. Name `web-scumm`.
+- Server: `tools/mcp/server.ts`, SDK `@modelcontextprotocol/sdk` 1.x. Name `web-scumm`. The tools are defined once in `tools/studio/tools.ts`,
+  shared with the Studio's Assistant (STUDIO.md, "Assistant").
 - Game: `GAME=<id>` (or `GAME_DIR=<folder>`) as for every tool; default `package.json` `config.game`.
 - stdout carries the protocol only; logs go to stderr. Use `npm run -s mcp` (silent) in client configs: without `-s`,
   npm prints its `> web-scumm mcp` banner on stdout, which strict clients reject.
@@ -22,7 +23,7 @@ the human sees the result live in `npm run studio` (it watches the files).
 | `set_text` | `id, path, value \| null` | replaces a text literal in `rooms/<id>.ts`; `null` deletes a line; a path ending in `[+]` appends (`look.piano[+]`, `on[3].do[+]`) |
 | `add_entity` | `id, kind, entityId, name?, img?, char?, at?, look?` | adds a prop / hotspot / actor to the room file and the layout (`at` defaults to `[320, 300]`) |
 | `get_storyboard` / `set_storyboard` | `storyboard` | reads / writes `storyboard.json` (`{ boards: [...] }`) |
-| `get_notes` / `add_note` | `about?, author?, text` | the shared log `notes.json`; `author` defaults to the MCP client's name, else `ai` |
+| `get_notes` / `add_note` | `about?, author?, text` | the shared log `notes.json`; `author` defaults to the MCP client's name, else `ai`; notes with `task: true` are requests the human sent from the Studio's Assistant |
 | `validate` | | `{ ok, errors, warnings, ms }` |
 | `solve` | `from?` | proves the game can be finished (from New Game or a checkpoint) |
 | `screenshot` | `room, checkpoint?` | PNG of the room under `.cache/studio/`; needs the dev server (`npm run studio`) at `WEB_SCUMM_DEV_URL` (default `http://localhost:5173/`) and Playwright, else says why it is unavailable |

@@ -124,6 +124,17 @@ captures d'écran demandent le serveur de dev. Le bandeau propose **Download pat
 demo** ; `npm run studio-apply patch.json` applique ce fichier à ta copie via le cœur du Studio. Build :
 `npm run build:studio-demo` (`STUDIO=1 VITE_STUDIO_DEMO=1`). Détails dans `docs/en/STUDIO.md`, « Demo mode ».
 
+## Assistant
+Le bouton **Assistant** de la barre du haut (ou la touche `a` hors d'un champ) ouvre un tiroir à droite. On y demande
+à n'importe quel modèle de conversation (OpenAI, Anthropic, Ollama, Mistral, tout point d'accès compatible OpenAI)
+d'aider à compléter le jeu. Il a les mêmes outils que le serveur MCP (registre commun `tools/studio/tools.ts`) et part
+de l'élément sélectionné (pièce et entité, panneau du storyboard, ou le jeu entier). Le serveur du Studio relaie la
+conversation (`POST /__studio/api/assistant/chat`, événements SSE, 12 tours d'outils au plus). La clé d'API reste dans
+le `localStorage` du navigateur et n'est jamais écrite sur disque ni journalisée. Sans clé, **Send as a task**
+écrit une note `task: true` dans `notes.json`, qu'un agent connecté en MCP reprend avec `get_notes`. En mode démo, la
+page appelle le fournisseur elle-même (Ollama local conseillé ; OpenAI refuse parfois les appels depuis un navigateur).
+Détails : docs/en/STUDIO.md, section « Assistant ».
+
 ## N'importe quelle IA, pas une seule IA
 - `AGENTS.md` à la racine du dépôt est le manuel d'exploitation neutre vis-à-vis du fournisseur (`CLAUDE.md` y
   renvoie).

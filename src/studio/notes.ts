@@ -78,6 +78,7 @@ export function noteItem(n: Note, store: NotesStore, opts: { onReply?: (about: s
   const li = h('li', { class: 'note', dataset: { id: n.id } });
   const meta = h('div', { class: 'nmeta' },
     h('b', { class: n.author === 'you' ? 'you' : '' }, n.author),
+    n.task ? h('span', { class: 'tasktag', title: 'A request for an AI agent (it reads the notes with get_notes)' }, 'task') : null,
     h('time', { datetime: n.at, title: new Date(n.at).toLocaleString() }, when(n.at)),
     n.edited ? h('span', { class: 'muted', title: `edited ${new Date(n.edited).toLocaleString()}` }, '(edited)') : null,
     opts.showAbout && n.about ? h('code', null, n.about) : null);

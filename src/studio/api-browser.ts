@@ -55,6 +55,9 @@ export class BrowserApi implements Api {
   }
 
   get gameId() { return this.o.snapshot.game.id; }
+  /** A documentation page of the snapshot (the Assistant's read_doc), by name. */
+  doc(name: string): string | undefined { return this.o.snapshot.docs?.[name]; }
+  docNames(): string[] { return Object.keys(this.o.snapshot.docs ?? {}); }
   /** Number of edits kept in this browser. */
   get edits() { return this.patches.length; }
 
@@ -225,6 +228,7 @@ export class BrowserApi implements Api {
       author: typeof n.author === 'string' && n.author.trim() ? n.author.trim() : 'you',
       text: n.text.trim(),
       at: now.toISOString(),
+      ...(n.task === true ? { task: true as const } : {}),
     };
     this.commit({ kind: 'note', note });
     return cloneData(note);

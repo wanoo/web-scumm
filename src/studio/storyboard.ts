@@ -118,6 +118,12 @@ export class StoryboardTab {
       h('button', { class: 'icon', title: 'Dismiss', onclick: () => { this.banner.hidden = true; } }, '✕'));
   }
 
+  /** The selected panel as edited (the Assistant's context). */
+  currentPanel(): { id: string; title?: string; board?: string; data: unknown } | undefined {
+    const p = this.panel;
+    return p ? { id: p.id, title: p.title, board: this.board?.title, data: p } : undefined;
+  }
+
   /** Selects a panel by id (from the Notes tab). */
   showPanel(id: string) {
     const bi = this.doc?.boards.findIndex((b) => b.panels.some((p) => p.id === id)) ?? -1;

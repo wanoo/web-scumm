@@ -4,6 +4,7 @@ import { createReadStream, watch, type FSWatcher } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Plugin } from 'vite';
 import { assetsMiddleware } from './assets';
+import { registerAssistant } from './assistant';
 import { createStudio, StudioError, type Studio } from './core';
 import type { StudioEvent } from './types';
 
@@ -99,6 +100,8 @@ export function studioPlugin(): Plugin {
         if (path === '/__studio/' || path === '/__studio/index.html') req.url = `/studio.html${query ? `?${query}` : ''}`;
         next();
       });
+
+      registerAssistant(server, studio); // POST assistant/chat (SSE) and assistant/task, before the JSON routes
 
       server.middlewares.use('/__studio/api/assets', assetsMiddleware(studio, server.config.logger)); // the Assets tab (tools/studio/assets.ts)
 

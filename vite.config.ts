@@ -98,8 +98,8 @@ function sitePlugin(): Plugin {
   };
 }
 
-/** A module only the Studio (src/studio, tools/) or the dev tools (src/engine/dev, tweakpane) load. */
-const isToolModule = (id: string) => /[\\/](src[\\/]studio|src[\\/]engine[\\/]dev|tools|node_modules[\\/](@tweakpane|tweakpane))[\\/]/.test(id);
+/** A module only the Studio (src/studio, tools/) or the dev tools (src/engine/dev, tweakpane; zod: the Assistant's tools) load. */
+const isToolModule = (id: string) => /[\\/](src[\\/]studio|src[\\/]engine[\\/]dev|tools|node_modules[\\/](@tweakpane|tweakpane|zod))[\\/]/.test(id);
 
 /** Deploy under a sub-path (GitHub Pages: /<repo>/) with BASE_PATH=/<repo>/ ; default '/'. */
 const BASE = process.env.BASE_PATH ?? '/';

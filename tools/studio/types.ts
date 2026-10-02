@@ -83,8 +83,10 @@ export interface Note {
   at: string;
   /** ISO date of the last edit (PUT notes/:id), absent if never edited. */
   edited?: string;
+  /** A request from the human for an AI agent to pick up (the Studio's Assistant, "Send as a task"). */
+  task?: true;
 }
-export interface NewNote { about?: string; author?: string; text: string }
+export interface NewNote { about?: string; author?: string; text: string; task?: boolean }
 export interface NotesFile { entries: Note[] }
 /** PUT notes/:id: the new text (and optionally a new `about`). */
 export interface NoteEdit { text: string; about?: string }

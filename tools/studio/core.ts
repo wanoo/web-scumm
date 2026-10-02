@@ -277,6 +277,7 @@ export function createStudio(opts: StudioOptions = {}) {
         author: typeof n.author === 'string' && n.author.trim() ? n.author.trim() : 'you',
         text: n.text.trim(),
         at: new Date().toISOString(),
+        ...(n.task === true ? { task: true as const } : {}),
       };
       all.entries.push(note);
       writeFileSync(notesFile(), JSON.stringify(all, null, 2) + '\n');

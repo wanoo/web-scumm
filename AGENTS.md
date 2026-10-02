@@ -55,3 +55,5 @@ Studio's Notes tab (`notes.json`) or by editing the storyboard. Commit small, ex
 **Through MCP.** `npm run -s mcp` serves the same operations as tools (`get_room`, `set_text`, `add_note`, `validate`,
 `solve`, `screenshot`, `read_doc`…) to any MCP client; `.mcp.json` (Claude Code) and `.cursor/mcp.json` are in the repo,
 other clients in `docs/en/MCP.md`. The human sees your edits live in the Studio and answers through `get_notes`.
+Notes tagged `task: true` in `notes.json` are requests from the human (written from the Studio's Assistant): do them,
+then answer with `add_note` on the same `about`.

@@ -85,6 +85,8 @@ export class RoomsTab {
   }
 
   get room() { return this.roomId; }
+  /** The selected entity, if any (the Assistant's context). */
+  get selection(): Sel { return this.sel; }
 
   // -------------------------------------------------------------- layout
 

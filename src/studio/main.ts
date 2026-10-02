@@ -5,6 +5,7 @@ import './style.css';
 import { BASE, serverApi, useApi, type GameInfo, type StudioEvent, type StudioSnapshot } from './api';
 import type { BrowserApi } from './api-browser';
 import { AssetsTab } from './assets';
+import { AssistantPanel } from './assistant';
 import { CheckTab } from './check';
 import { NotesStore, NotesTab, roomNotesBlock } from './notes';
 import { RoomsTab } from './rooms';
@@ -139,11 +140,25 @@ async function start() {
     nav.append(h('button', { role: 'tab', dataset: { tab: id }, onclick: () => show(id) }, label, id === 'check' ? badge : null));
   }
   const live = demo ? null : h('span', { class: 'live', title: 'Watching the game folder' }, '●');
+  const assistant = new AssistantPanel({
+    info, demo,
+    selection: () => {
+      const sel = rooms.selection;
+      return { tab: current, room: rooms.room, entity: sel ? { kind: sel.kind, id: sel.id } : undefined, panel: current === 'storyboard' ? storyboard.currentPanel() : undefined };
+    },
+    refresh: (wrote) => {
+      // On the dev server the file watcher reloads too; the demo has only this.
+      if (wrote.some((t) => t !== 'add_note' && t !== 'set_storyboard')) { void rooms.load(); if (demo) rooms.reloadFrame(); check.schedule(300); }
+      if (wrote.includes('set_storyboard')) { if (demo) void storyboard.reload(); else storyboard.onDiskChange(); check.schedule(300); }
+      if (wrote.includes('add_note')) void store.load();
+    },
+  });
+  const assistantBtn = h('button', { class: 'abtn', title: 'Ask an AI to help complete the game (a)', 'aria-label': 'Assistant', onclick: () => assistant.toggle() }, 'Assistant');
   root.replaceChildren(
     ...(demo ? [demoBanner(demo)] : []),
     h('header', { class: 'top' }, h('h1', null, 'Studio'), h('span', { class: 'game' }, info.title, h('span', { class: 'muted' }, ` · games/${info.id}`)), nav,
-      h('a', { class: 'play', href: `${BASE}?dev`, target: '_blank', rel: 'noopener', title: demo ? 'Play with your edits (dev tools on)' : undefined }, 'Play ↗'), live),
-    h('main', null, ...Object.values(panes)));
+      h('a', { class: 'play', href: `${BASE}?dev`, target: '_blank', rel: 'noopener', title: demo ? 'Play with your edits (dev tools on)' : undefined }, 'Play ↗'), assistantBtn, live),
+    h('main', null, ...Object.values(panes)), assistant.el);
   show(current);
   void check.run();
   // The storyboard (panel ids for the notes) and the notes (shown in every tab) are read at start.
@@ -153,6 +168,9 @@ async function start() {
   // Ctrl/Cmd+S saves the storyboard while its tab is shown.
   document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 's' && current === 'storyboard') { e.preventDefault(); void storyboard.save(); }
+    // `a` toggles the Assistant when nothing is being typed.
+    const t = e.target as HTMLElement | null;
+    if (e.key === 'a' && !e.metaKey && !e.ctrlKey && !e.altKey && !(t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable))) { e.preventDefault(); assistant.toggle(); }
   });
 
   // Changes on disk (an AI, an editor, git): reload what they touch. The demo has no disk to watch.
