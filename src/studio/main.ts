@@ -2,8 +2,9 @@
 import './style.css';
 import { api, type StudioEvent } from './api';
 import { CheckTab } from './check';
-import { NotesTab, StoryboardTab } from './other';
+import { NotesStore, NotesTab, roomNotesBlock } from './notes';
 import { RoomsTab } from './rooms';
+import { StoryboardTab } from './storyboard';
 import { h, toast } from './ui';
 
 type TabId = 'rooms' | 'storyboard' | 'check' | 'notes';
@@ -31,14 +32,24 @@ async function start() {
   const badge = h('span', { class: 'badge' });
   const check = new CheckTab(info, (state, text) => { badge.className = `badge ${state}`; badge.textContent = text; });
   const [hashTab, hashRoom] = location.hash.slice(1).split('/');
-  const rooms = new RoomsTab({ info, saved: () => check.schedule(), ownWrite }, hashRoom);
-  const storyboard = new StoryboardTab();
-  const notes = new NotesTab(ownWrite);
+  const store = new NotesStore(ownWrite);
+  let show: (t: TabId) => void = () => undefined;
+  const openRoom = (id: string) => { rooms.openRoom(id); show('rooms'); };
+  const rooms = new RoomsTab({ info, saved: () => check.schedule(), ownWrite,
+    notesBlock: (room) => roomNotesBlock(store, room, (about) => { notes.focusAbout(about); show('notes'); }) }, hashRoom);
+  const storyboard = new StoryboardTab({ info, notes: store, ownWrite, openRoom });
+  const notes = new NotesTab({
+    info, store, panels: () => storyboard.panels(),
+    open: (about) => {
+      if (storyboard.panels().some(([id]) => id === about)) { show('storyboard'); storyboard.showPanel(about); return; }
+      openRoom(about.split('.')[0]);
+    },
+  });
   const panes: Record<TabId, HTMLElement> = { rooms: rooms.el, storyboard: storyboard.el, check: check.el, notes: notes.el };
 
   const nav = h('nav', { class: 'tabs', role: 'tablist' });
   let current: TabId = (TABS.some(([t]) => t === hashTab) ? hashTab : 'rooms') as TabId;
-  const show = (t: TabId) => {
+  show = (t: TabId) => {
     current = t;
     for (const [id, el] of Object.entries(panes)) el.hidden = id !== t;
     nav.querySelectorAll('button').forEach((b) => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
@@ -56,9 +67,14 @@ async function start() {
     h('main', null, ...Object.values(panes)));
   show(current);
   void check.run();
-  // Proves the wiring of the other tabs even before they are opened.
+  // The storyboard (panel ids for the notes) and the notes (shown in every tab) are read at start.
   void storyboard.load();
-  void notes.load();
+  void store.load();
+
+  // Ctrl/Cmd+S saves the storyboard while its tab is shown.
+  document.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 's' && current === 'storyboard') { e.preventDefault(); void storyboard.save(); }
+  });
 
   // Changes on disk (an AI, an editor, git): reload what they touch.
   const es = new EventSource('/__studio/api/events');
@@ -70,9 +86,9 @@ async function start() {
     const outside = Date.now() > ownUntil;
     if (outside && /\.(ts|json)$/.test(ev.file)) toast(`${ev.file} changed on disk`, 'info');
     rooms.onFileChanged(ev.file);
-    if (ev.file === 'storyboard.json' && current === 'storyboard') void storyboard.load();
-    if (ev.file === 'notes.json' && current === 'notes') void notes.load();
-    if (outside && /\.(ts|json)$/.test(ev.file) && ev.file !== 'notes.json') check.schedule(1000);
+    if (ev.file === 'storyboard.json' && outside) storyboard.onDiskChange();
+    if (ev.file === 'notes.json' && outside) void store.load();
+    if (outside && /\.(ts|json)$/.test(ev.file) && ev.file !== 'notes.json' && ev.file !== 'storyboard.json') check.schedule(1000);
   };
 }
 

@@ -39,6 +39,8 @@ export interface GameInfo {
   hero: Id;
   /** Image ids of the asset manifest with their size (thumbnails: `/assets/img/<id>.webp`). */
   images: Record<Id, [number, number]>;
+  /** Sound effect ids of `audio.sfx` (sounds at `/assets/audio/<file>`). */
+  sfx?: Id[];
 }
 
 export interface RoomData {
@@ -79,9 +81,16 @@ export interface Note {
   text: string;
   /** ISO date. */
   at: string;
+  /** ISO date of the last edit (PUT notes/:id), absent if never edited. */
+  edited?: string;
 }
 export interface NewNote { about?: string; author?: string; text: string }
 export interface NotesFile { entries: Note[] }
+/** PUT notes/:id: the new text (and optionally a new `about`). */
+export interface NoteEdit { text: string; about?: string }
+
+/** POST storyboard/markdown: the file written (relative to the repository root) and its size. */
+export interface MarkdownResult { ok: true; file: string; bytes: number; boards: number; panels: number }
 
 export interface ValidateResult { ok: boolean; errors: string[]; warnings: string[]; ms: number }
 

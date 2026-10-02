@@ -11,6 +11,8 @@ export interface RoomsCtx {
   saved(): void;
   /** Marks a write as ours, so the file watcher's echo is not announced as an outside change. */
   ownWrite(): void;
+  /** Optional: the "Notes (n)" block of a room, appended at the bottom of the room section (src/studio/notes.ts). */
+  notesBlock?(room: Id): HTMLElement;
 }
 
 type Sel = { kind: EntityKind; id: Id } | null;
@@ -124,6 +126,8 @@ export class RoomsTab {
     if (id === this.roomId) return;
     this.roomId = id;
     this.sel = null;
+    const pick = this.el.querySelector<HTMLSelectElement>('select[aria-label="Room"]');
+    if (pick) pick.value = id; // when opened from elsewhere (Storyboard, Notes)
     history.replaceState(null, '', `#rooms/${id}`);
     this.reloadFrame();
     void this.load();
@@ -442,6 +446,8 @@ export class RoomsTab {
         : h('p', { class: 'muted' }, 'No hints in this room.')),
       h('section', null, h('h3', null, 'On enter'), d.onEnter?.length ? this.cmds(d.onEnter, 'onEnter') : h('p', { class: 'muted' }, 'Nothing happens on entering.')),
     );
+    const notes = this.ctx.notesBlock?.(this.roomId);
+    if (notes) this.roomSheetEl.append(notes);
   }
 
   // -------------------------------------------------------------- add a prop / hotspot / actor

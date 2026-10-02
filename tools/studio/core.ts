@@ -11,9 +11,10 @@ import { validate as validateGame } from '../../src/engine/tools/validate';
 import { solve as solveGame } from '../../src/engine/tools/solve';
 import { loadAssets, loadLayouts } from '../../src/engine/tools/load';
 import { GAME_DIR, ROOT, type GameModule } from '../game';
+import { normalizeStoryboard, storyboardMarkdown } from '../pages/storyboard-data';
 import { addToSection, extractTexts, objectText, parseRoom, SourceError, setTextInSource } from './source';
 import type {
-  AddEntity, EditResult, GameInfo, NewNote, Note, NotesFile, RoomData, ScreenshotResult, SolveData, TextRef, ValidateResult,
+  AddEntity, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, ScreenshotResult, SolveData, TextRef, ValidateResult,
 } from './types';
 
 export class StudioError extends Error {
@@ -154,6 +155,7 @@ export function createStudio(opts: StudioOptions = {}) {
       verbs: g.verbs,
       checkpoints: g.checkpoints ?? {},
       images: manifest.images ?? {},
+      sfx: Object.keys(g.audio?.sfx ?? {}),
     };
   }
 
@@ -282,6 +284,47 @@ export function createStudio(opts: StudioOptions = {}) {
     });
   }
 
+  /** Replaces the text (and optionally the `about`) of a note. */
+  function editNote(id: string, e: NoteEdit): Promise<Note> {
+    return serial(() => {
+      if (!e || typeof e.text !== 'string' || !e.text.trim()) throw new StudioError('`text` is required');
+      if (e.about !== undefined && typeof e.about !== 'string') throw new StudioError('`about` must be a string');
+      const all = getNotes();
+      const note = all.entries.find((n) => n.id === id);
+      if (!note) throw new StudioError(`no such note: "${id}"`, 404);
+      note.text = e.text.trim();
+      if (e.about !== undefined) note.about = e.about.trim();
+      note.edited = new Date().toISOString();
+      writeFileSync(notesFile(), JSON.stringify(all, null, 2) + '\n');
+      return note;
+    });
+  }
+
+  function deleteNote(id: string): Promise<{ ok: true }> {
+    return serial(() => {
+      const all = getNotes();
+      const i = all.entries.findIndex((n) => n.id === id);
+      if (i < 0) throw new StudioError(`no such note: "${id}"`, 404);
+      all.entries.splice(i, 1);
+      writeFileSync(notesFile(), JSON.stringify(all, null, 2) + '\n');
+      return { ok: true as const };
+    });
+  }
+
+  /** Writes games/<id>/storyboard.md from storyboard.json (same text as `npm run page:storyboard -- --md`). */
+  async function exportStoryboardMarkdown(): Promise<MarkdownResult> {
+    const mod = await loadModule();
+    return serial(() => {
+      const file = join(dir, 'storyboard.json');
+      if (!existsSync(file)) throw new StudioError('no storyboard.json in this game', 404);
+      const sb = normalizeStoryboard(readJson<unknown>(file, { boards: [] }));
+      const md = storyboardMarkdown({ game: mod.game }, sb);
+      const out = join(dir, 'storyboard.md');
+      writeFileSync(out, md);
+      return { ok: true as const, file: rel(out), bytes: Buffer.byteLength(md), boards: sb.boards.length, panels: sb.boards.reduce((n, b) => n + b.panels.length, 0) };
+    });
+  }
+
   // ------------------------------------------------------------------ checks
 
   async function validate(): Promise<ValidateResult> {
@@ -363,7 +406,7 @@ export function createStudio(opts: StudioOptions = {}) {
   return {
     gameDir: dir, gameId, root,
     gameInfo, getRoom, texts, getLayout, setLayout, setText, addEntity,
-    getStoryboard, setStoryboard, getNotes, addNote, validate, solve, screenshot, screenshotPath,
+    getStoryboard, setStoryboard, getNotes, addNote, editNote, deleteNote, exportStoryboardMarkdown, validate, solve, screenshot, screenshotPath,
   };
 }
 
@@ -381,6 +424,9 @@ export const getStoryboard = () => cur().getStoryboard();
 export const setStoryboard = (sb: unknown) => cur().setStoryboard(sb);
 export const getNotes = () => cur().getNotes();
 export const addNote = (n: NewNote) => cur().addNote(n);
+export const editNote = (id: string, e: NoteEdit) => cur().editNote(id, e);
+export const deleteNote = (id: string) => cur().deleteNote(id);
+export const exportStoryboardMarkdown = () => cur().exportStoryboardMarkdown();
 export const validate = () => cur().validate();
 export const solve = (from?: string | null) => cur().solve(from);
 export const screenshot = (room: string, checkpoint: string | null | undefined, baseUrl: string) => cur().screenshot(room, checkpoint, baseUrl);

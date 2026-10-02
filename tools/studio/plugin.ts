@@ -44,8 +44,11 @@ function routes(s: Studio): [string, RegExp, Handler][] {
     ['POST', /^\/room\/([\w-]+)\/add$/, (m, b) => s.addEntity(m[1], b)],
     ['GET', /^\/storyboard$/, () => s.getStoryboard()],
     ['PUT', /^\/storyboard$/, (_m, b) => s.setStoryboard(b)],
+    ['POST', /^\/storyboard\/markdown$/, () => s.exportStoryboardMarkdown()],
     ['GET', /^\/notes$/, () => s.getNotes()],
     ['POST', /^\/notes$/, (_m, b) => s.addNote(b)],
+    ['PUT', /^\/notes\/([\w-]+)$/, (m, b) => s.editNote(m[1], b)],
+    ['DELETE', /^\/notes\/([\w-]+)$/, (m) => s.deleteNote(m[1])],
     ['POST', /^\/validate$/, () => s.validate()],
     ['POST', /^\/solve$/, (_m, b) => s.solve(typeof b.from === 'string' && b.from ? b.from : null)],
     ['POST', /^\/screenshot$/, async (_m, b, ctx) => {

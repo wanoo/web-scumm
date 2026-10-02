@@ -14,12 +14,30 @@ real engine (the room rendered by `src/engine/dom`), so what you see is what pla
   progress in the view is saved first (the view reloads when the room file changes). Text edits are written into `rooms/<room>.ts`
   in place (string literals replaced through the TypeScript parser; the file stays readable code). "Add prop / hotspot /
   actor" creates the entry in the room file and places it in the layout.
-- **Storyboard**: boards and panels of `storyboard.json`, preview composed from the room decor and the speakers' portraits,
-  a notes box per panel. (For now: the list of boards.)
+- **Storyboard**: an editor for `storyboard.json` (schema: `tools/pages/storyboard-schema.md`). Left, the boards
+  (title, room, goal) with move up / down, add, delete. Middle, the selected board: title, id, room ("Open in Rooms"
+  switches to that room), goal, exit, its **arrival** lines, its **panels** as cards in play order (title, id, the
+  player **action** that triggers it, **lines** with a speaker chooser: the game's characters, `hero`, `action`,
+  `stage`; **sfx** chips from the game's `audio.sfx`; per line: move, delete, "+ line"; per card: move, duplicate,
+  delete), then the **hints** (ordered), the **talk topics** per character (topic + lines) and the optional
+  **reactions** (action + lines). Right, the selected panel composed like a storyboard frame: the room's decor, the
+  portraits of the panel's speakers (the one speaking highlighted), the current line in the game's speech style
+  (speaker colour; step through the lines, or click one in the script below), the action as the game's sentence bar,
+  the sfx; under it, the notes about this panel (`about` = panel id) and a box to add one.
+  Every edit stays in memory until **Save** (or Ctrl/Cmd+S) writes the whole document; "● Unsaved changes" shows
+  until then, and leaving the page asks first. Save refuses duplicate or empty panel ids (notes hang on them). When
+  `storyboard.json` changes on disk (an AI, an editor, git), a banner offers to reload; with unsaved edits it warns
+  that saving would overwrite that change. **Export Markdown** writes `games/<id>/storyboard.md` from the saved file
+  (the same text as `npm run page:storyboard -- --md`; it offers to save first).
 - **Check**: the validator and the solver run after every save; their output and the solver path are shown here.
   "Screenshot" renders a room at a checkpoint (needs Playwright).
-- **Notes**: a shared log (`games/<id>/notes.json`), one entry per author ("you", or the AI's name), per panel / room / id.
-  (For now: the list and a form to add a note.)
+- **Notes**: the shared log (`games/<id>/notes.json`), one entry per author ("you", or the AI's name), about a panel
+  id, a room id, `room.entity`, or anything (empty: general). The whole log, newest first, grouped by `about` (tagged
+  room / panel / entity, with "Open in Rooms" / "Open in Storyboard"); filters: free text, about (rooms with their
+  entities, panels, others), author. A composer (about, author defaulting to `you` and remembered, text;
+  Ctrl/Cmd+Enter adds). Each note shows its author and time, and **Reply** (pre-fills `about`), **Edit** (in place)
+  and **Delete**. Notes about a room or one of its entities also appear at the bottom of that room's section in the
+  Rooms tab ("Notes (n)", with a box to add one). The log follows changes on disk (an AI writing a note shows up).
 
 ## The API (`/__studio/api/*`, JSON, dev server only)
 All paths are relative to the current game (`GAME`). Errors return `{ error }` with a 4xx/5xx status (400 bad input,
@@ -28,13 +46,16 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 
 | Method, path | Body → Result |
 |---|---|
-| GET `game` | `{ id, title, hero, rooms: [{ id, name, decor }], characters: { id: { name, color, portrait } }, items: { id: { name, icon } }, verbs, checkpoints, images }` (from the game module; `images` is the asset manifest, id → `[w, h]`, thumbnails at `/assets/img/<id>.webp`) |
+| GET `game` | `{ id, title, hero, rooms: [{ id, name, decor }], characters: { id: { name, color, portrait } }, items: { id: { name, icon } }, verbs, checkpoints, images, sfx }` (from the game module; `images` is the asset manifest, id → `[w, h]`, thumbnails at `/assets/img/<id>.webp`; `sfx` the ids of `audio.sfx`) |
 | GET `room/:id` | `{ def: RoomDef, layout: Layout, texts: TextRef[], file }` — `TextRef = { path, value, file, line, kind, who? }` for every text literal of the room file (see "Texts" below) |
 | PUT `room/:id/layout` | `Layout` → writes `layout/<id>.json`; `{ ok }` |
 | PUT `room/:id/text` | `{ path, value }` → replaces that string literal in `rooms/<id>.ts`; `value: null` deletes a list line (or a whole `look.<id>`); a path ending in `[+]` appends a line (`look.piano[+]`, `hints[2].lines[+]`, `on[3].do[+]`); result `{ ok, line, changed }` (`changed: false` when the value was already there: nothing is written) |
 | POST `room/:id/add` | `{ kind: 'prop' \| 'hotspot' \| 'actor', id, name?, img?, char?, at: [x, y], look? }` → inserts the entry in the room file (the section is created if absent), the optional first look line, and a place in the layout (prop: foot at `at`, height 60; hotspot: 60 × 60 box centred on `at`; actor: feet at `at`); `{ ok, line, changed }`. `name` is required for props and hotspots |
 | GET/PUT `storyboard` | `storyboard.json` (`{ boards: [] }` if absent). PUT needs `{ boards: [...] }`, returns `{ ok, changed }`: an unchanged storyboard is not rewritten, a changed one is written compactly (what fits on 120 columns stays on one line) |
-| GET `notes`, POST `notes` | GET → `{ entries: Note[] }`; POST `{ about?, author?, text }` → the new `Note = { id, about, author, text, at }` (author defaults to `you`, `at` is an ISO date), appended to `notes.json` (created on first write) |
+| POST `storyboard/markdown` | → writes `games/<id>/storyboard.md` from the saved `storyboard.json` (same text as `npm run page:storyboard -- --md`); `{ ok, file, bytes, boards, panels }`; 404 without a `storyboard.json` |
+| GET `notes`, POST `notes` | GET → `{ entries: Note[] }`; POST `{ about?, author?, text }` → the new `Note = { id, about, author, text, at, edited? }` (author defaults to `you`, `at` is an ISO date), appended to `notes.json` (created on first write) |
+| PUT `notes/:id` | `{ text, about? }` → the updated `Note` (text trimmed, `edited` set to now; `at`, `author` and the order unchanged); 400 empty text, 404 unknown id |
+| DELETE `notes/:id` | → `{ ok }`, the note removed from `notes.json`; 404 unknown id |
 | POST `validate` | → `{ ok, errors: string[], warnings: string[], ms }` |
 | POST `solve` | `{ from?: checkpoint }` → `{ finished, states, truncated, path, roomsReached, unlockedReached, flagsReached, itemsNeverUsed, unusedItems, deadEnds: [{ room, inventory, path }], errors, from, ms }` (400 for an unknown checkpoint) |
 | POST `screenshot` | `{ room, checkpoint? }` → `{ file, url }`: a PNG of the room (editor overlays hidden) under `.cache/studio/<game>-<room>[-<checkpoint>].png`, served at `url` (`GET screenshots/<name>.png`). 501 `{ unavailable: true, reason, error }` if Playwright or its Chromium is missing |
@@ -42,12 +63,14 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 
 The same operations exist as plain functions in `tools/studio/core.ts`, used by the Vite plugin, by the tests and by
 the MCP server: `gameInfo()`, `getRoom(id)`, `setLayout(id, layout)`, `setText(id, path, value)`, `addEntity(id, e)`,
-`getStoryboard()`, `setStoryboard(sb)`, `getNotes()`, `addNote(n)`, `validate()`, `solve(from?)`,
+`getStoryboard()`, `setStoryboard(sb)`, `exportStoryboardMarkdown()`, `getNotes()`, `addNote(n)`, `editNote(id, { text, about? })`,
+`deleteNote(id)`, `validate()`, `solve(from?)`,
 `screenshot(room, checkpoint, devServerUrl)` for the current game, and `createStudio({ gameDir, root, importFresh })`
 for any other game folder. They never exit the process: errors are thrown as `StudioError` (with `status`). The game is
 re-imported on every call so that edits on disk are seen: by default with tsx's scoped loader (fast, in process);
 `importInChild` (a child node + tsx process) is the fallback where in-process imports are cached, e.g. inside Vitest.
-Writes are serialized. Shared types are in `tools/studio/types.ts`.
+Writes are serialized. Shared types are in `tools/studio/types.ts`; the storyboard schema, its normalisation and the
+Markdown export are in `tools/pages/storyboard-data.ts` (pure, shared by the page generator, the core and the UI).
 
 ### Texts
 A string literal under `defineRoom({...})` is a text, addressed by its JSON path, when the path ends in `name`, `topic`,
