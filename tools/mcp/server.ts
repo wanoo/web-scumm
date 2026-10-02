@@ -10,6 +10,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import { GAME, GAME_DIR, ROOT } from '../game';
 import { createStudio, StudioError } from '../studio/core';
+import { buildPrompts } from '../prompts';
 
 // Nothing but JSON-RPC may reach stdout.
 console.log = console.error;
@@ -209,6 +210,27 @@ server.registerTool('run_tests', {
       done(err ? { content: [{ type: 'text', text: summary || err.message }], isError: true } : text(summary));
     });
 }));
+
+server.registerTool('asset_prompts', {
+  title: 'Art prompts',
+  description: 'The image-model prompts for the game\'s art (same as `npm run prompts`): one STYLE block, then one ' +
+    'ready-to-paste prompt per sheet (characters with the engine\'s pose rows and special poses, mouth kits, object ' +
+    'sheets cell by cell, backgrounds with LOCATION and EMPTY SPOTS, furniture) and a checklist to cut and import them. ' +
+    'Hand the sections to the human as-is; never write a sprite prompt by hand. `missing: true` keeps only the sheets ' +
+    'with images not cut yet. Returns the markdown, and { missing, sheets } as structured content. Read-only.',
+  inputSchema: { missing: z.boolean().optional().describe('Only the sheets with at least one missing image, and only their missing cells.') },
+  outputSchema: {
+    missing: z.array(z.string()).describe('Image ids the game references that are not in the art folder.'),
+    sheets: z.array(z.object({ id: z.string(), kind: z.string(), missing: z.array(z.string()) })),
+  },
+  annotations: { readOnlyHint: true },
+}, async ({ missing }) => {
+  try {
+    const mod = await studio.loadGame();
+    const r = buildPrompts(mod, { gameId: studio.gameId, gameDir: studio.gameDir, root: ROOT, missing });
+    return { content: [{ type: 'text' as const, text: r.markdown }], structuredContent: { missing: r.missing, sheets: r.sheets } };
+  } catch (e) { return fail(e); }
+});
 
 // ------------------------------------------------------------------ resources
 

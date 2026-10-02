@@ -5,6 +5,43 @@ assets validés d'un vrai jeu construit sur ce moteur. On les réutilise tels qu
 parties entre chevrons (`<...>`). Chaque prompt produit une planche sur un fond de couleur unie que
 `tools/cut-sheet.py` retire au découpage : on pense donc la planche finale comme une grille dès le départ.
 
+## Les générer pour son jeu : `npm run prompts`
+
+Inutile de remplir les modèles ci-dessous à la main : `npm run prompts` écrit `games/<id>/prompts.md`, avec tous les
+prompts du jeu prêts à coller, une section par planche à générer, qui partagent toutes un même bloc STYLE et une même
+planche de référence (`games/<id>/art/_reference.png`, ou la planche validée du héros tant qu'elle n'existe pas).
+
+```bash
+npm run prompts                      # games/<id>/prompts.md : toutes les planches, cases déjà découpées marquées "(exists — keep)"
+npm run prompts -- --missing         # seulement les planches où une image manque, et seulement leurs cases manquantes
+npm run prompts -- --out notes.md    # un autre fichier de sortie
+```
+
+Il lit le module du jeu et le dossier d'art :
+- **personnages** (`cast.ts`) : la planche de base 6 × 4 avec les rangées de poses du moteur (`human()` ou `cat()`),
+  les poses spéciales que le contenu utilise (clés `sprites` en plus, `{ pose: [qui, p] }` et `{ anim: [qui, p] }`
+  dans les lieux, poses des acteurs, `variants`) sur leurs cases, une nouvelle planche `<planche>_poses` pour les
+  poses qu'aucun sprite ne fournit encore (avec les lignes à ajouter à `cast.ts`), la règle du siège pour les poses
+  assises, et le kit de bouches pour les poses listées dans `mouths` ;
+- **objets** : chaque image utilisée par un objet de décor, un objet d'inventaire, un mini-jeu ou l'interface,
+  groupée par dossier de planche, case par case ; les états d'un même objet sont « the SAME object, state … » pour
+  garder la taille et l'angle ;
+- **décors** (`decor/<nom>` de chaque lieu) : LOCATION, les zones cliquables à montrer, et EMPTY SPOTS pour les
+  objets, meubles et personnages (gauche / centre / droite d'après `layout/<lieu>.json`) ;
+- **meubles** : les objets dont l'image est dans un dossier `furniture_*`, et la liste `furniture` du lieu ;
+- une **checklist** : référence → héros → autres personnages → objets → décors → meubles, chacun avec sa commande
+  `python3 tools/cut-sheet.py` (`--cells` pour les seules cases manquantes), puis `npm run assets`.
+
+Trois champs optionnels l'alimentent (ils ne changent rien au jeu) :
+- `description` sur un personnage (`CharacterDef`) : la ligne CHARACTER — âge, cheveux, lunettes, carrure, tenue,
+  accessoire fétiche, caractère. Absente, le prompt garde un emplacement `<describe: …>`.
+- `description` sur un lieu (`RoomDef`) : la ligne LOCATION — le lieu de gauche à droite, sa lumière, son ambiance.
+- `furniture` sur un lieu (`RoomDef`) : les ids d'images des meubles dessinés sur leur propre planche (par exemple
+  `furniture_dining/table`), pour ceux qu'aucun objet n'utilise encore.
+
+Le même texte est disponible pour un assistant IA via l'outil MCP `asset_prompts` (`{ missing?: boolean }`), qui
+renvoie aussi les ids d'images manquantes en JSON structuré. Les modèles ci-dessous sont ce que le générateur remplit.
+
 ## Règles communes
 
 - **Style** : joindre une planche de référence. `hero_sheet.png` (ou toute planche de personnage déjà validée)

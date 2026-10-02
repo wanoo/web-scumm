@@ -41,7 +41,7 @@ describe('MCP server on games/demo', () => {
     const { tools } = await demo.listTools();
     const names = tools.map((t) => t.name);
     for (const n of ['list_rooms', 'get_room', 'set_layout', 'set_text', 'add_entity', 'get_storyboard', 'set_storyboard',
-      'get_notes', 'add_note', 'validate', 'solve', 'screenshot', 'read_doc', 'run_tests']) expect(names).toContain(n);
+      'get_notes', 'add_note', 'validate', 'solve', 'screenshot', 'read_doc', 'run_tests', 'asset_prompts']) expect(names).toContain(n);
     const { resources } = await demo.listResources();
     expect(resources.map((r) => r.uri)).toEqual(expect.arrayContaining(['webscumm://game', 'webscumm://room/house']));
   }, 30000);
@@ -64,6 +64,15 @@ describe('MCP server on games/demo', () => {
 
     const res = await demo.readResource({ uri: 'webscumm://room/house' });
     expect(JSON.parse((res.contents[0] as { text: string }).text).def.id).toBe('house');
+  }, 60000);
+
+  it('asset_prompts returns the markdown and the missing ids', async () => {
+    const r = await demo.callTool({ name: 'asset_prompts', arguments: { missing: true } }) as TextResult & { structuredContent?: { missing: string[]; sheets: unknown[] } };
+    expect(r.isError).toBeFalsy();
+    expect(r.content[0].text).toContain('## Style block');
+    expect(r.structuredContent?.missing).toEqual([]);
+    const full = await call(demo, 'asset_prompts');
+    expect(full.content[0].text).toContain('#### Base sheet `neighbor`');
   }, 60000);
 
   it('turns core errors into tool errors', async () => {

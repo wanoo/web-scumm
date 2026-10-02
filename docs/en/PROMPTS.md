@@ -5,6 +5,41 @@ real game built on this engine. Reuse them as-is, only changing the parts betwee
 prompt produces a sheet on a flat background color that `tools/cut-sheet.py` keys out, so plan the final asset as
 a grid from the start.
 
+## Generate them for your game: `npm run prompts`
+
+Don't fill the templates below by hand: `npm run prompts` writes `games/<id>/prompts.md`, with every prompt of the
+game ready to paste, one section per sheet to generate, all sharing one STYLE block and one reference sheet
+(`games/<id>/art/_reference.png`, or the hero's validated sheet while it doesn't exist).
+
+```bash
+npm run prompts                      # games/<id>/prompts.md: every sheet, cells already cut marked "(exists — keep)"
+npm run prompts -- --missing         # only the sheets with an image not cut yet, and only their missing cells
+npm run prompts -- --out notes.md    # another output file
+```
+
+It reads the game module and the art folder:
+- **characters** (`cast.ts`): the base 6 × 4 sheet with the engine's pose rows (`human()` or `cat()`), the special
+  poses the content uses (extra `sprites` keys, `{ pose: [who, p] }` and `{ anim: [who, p] }` in the rooms, actor
+  poses, `variants`) on their cells, a new `<sheet>_poses` sheet for poses no sprite provides yet (with the lines to
+  add to `cast.ts`), the seat rule for seated poses, and the mouth kit for the poses listed in `mouths`;
+- **objects**: every image a prop, an item, a minigame or the interface uses, grouped by sheet folder, cell by cell;
+  the states of one prop are "the SAME object, state …" so they keep size and angle;
+- **backgrounds** (`decor/<name>` of each room): LOCATION, the hotspots to show, and EMPTY SPOTS for the props,
+  furniture and characters (left / center / right from `layout/<room>.json`);
+- **furniture**: props whose image lives in a `furniture_*` folder, and the room's `furniture` list;
+- a **checklist**: reference → hero → other characters → objects → backgrounds → furniture, each with its
+  `python3 tools/cut-sheet.py` command (`--cells` for the missing ones only), then `npm run assets`.
+
+Three optional fields feed it (they change nothing in the game):
+- `description` on a character (`CharacterDef`): the CHARACTER line — age, hair, glasses, build, outfit, signature
+  accessory, personality. Missing, the prompt keeps a `<describe: …>` placeholder.
+- `description` on a room (`RoomDef`): the LOCATION line — the room left to right, its light and mood.
+- `furniture` on a room (`RoomDef`): image ids of furniture drawn on its own sheet (e.g. `furniture_dining/table`),
+  for pieces no prop uses yet.
+
+The same text is available to an AI assistant through the MCP tool `asset_prompts` (`{ missing?: boolean }`), which
+also returns the missing image ids as structured JSON. The templates below are what the generator fills in.
+
 ## Common rules
 
 - **Style**: attach a reference sheet. `hero_sheet.png` (or any already-validated character sheet) for characters,

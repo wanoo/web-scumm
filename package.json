@@ -20,6 +20,7 @@
     "check:spoilers": "tsx scripts/check-spoilers.ts",
     "icons": "node scripts/gen-icons.mjs",
     "audit": "tsx tools/audit-assets.ts",
+    "prompts": "tsx --tsconfig tsconfig.json tools/prompts.ts",
     "build:web": "vite build",
     "build:studio-demo": "tsx tools/select-game.ts && STUDIO=1 VITE_STUDIO_DEMO=1 vite build",
     "studio-snapshot": "tsx tools/studio/snapshot.ts",

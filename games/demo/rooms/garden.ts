@@ -5,6 +5,7 @@ export default defineRoom({
   id: 'garden',
   name: 'The garden',
   decor: 'decor/backyard',
+  description: 'A sunny cottage garden behind the house, in the afternoon. Left: the stone house with green shutters, climbing roses and a back door up three stone steps, terracotta pots. Center: a wrought-iron bench, a green watering can, flower beds of lavender and daisies along a low stone wall. Right: a green wooden garden gate, a cherry tree full of red cherries with a birdhouse, a garden gnome in the flowers. A sandy gravel path as floor. Warm, bright, cheerful',
 
   props: {
     tank: { name: 'water tank', states: { full: 'house/r3c5', draining: 'house/r3c6' }, initial: 'full' },

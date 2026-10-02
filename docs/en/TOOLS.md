@@ -94,9 +94,11 @@ room declares but the layout lacks, optionally at `at`) and `save`. In an iframe
 
 Before `npm run assets`, a generated sheet is cut into keyed sprites with `tools/cut-sheet.py <sheet.png> <sheet-id>`
 (and the tools `tools/talk-kit.py`, `tools/talk-apply.py`, `tools/talk-normalize.py` for talking mouths):
-see `docs/en/PROMPTS.md`.
+see `docs/en/PROMPTS.md`. The prompts themselves come from `npm run prompts` (`--missing` for the sheets not cut yet),
+which writes `games/<id>/prompts.md`.
 
 ```bash
+npm run prompts    # one ready-to-paste prompt per sheet + the cut commands → games/<id>/prompts.md
 npm run assets     # prepares in public/assets/ the images and sounds cited by the content
 ```
 

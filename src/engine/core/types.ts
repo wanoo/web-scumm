@@ -174,6 +174,12 @@ export interface MouthSet { closed: Id; open: Id[]; blink?: Id; smile?: Id }
 
 export interface CharacterDef {
   name: string;
+  /**
+   * What the character looks like, in words, for the art prompts (`npm run prompts`, docs/en/PROMPTS.md): age, hair,
+   * glasses, build, outfit, signature accessory, personality. Not shown in the game. The more specific, the more
+   * consistent the character stays across sheets generated in different conversations.
+   */
+  description?: string;
   /** Color of their dialogue text. */
   color: string;
   /** On-screen height, in logical units (640 × 400), in the foreground. */
@@ -255,6 +261,17 @@ export interface RoomDef {
   name: string;
   /** Background image. */
   decor: Id;
+  /**
+   * What the background shows, left to right, with its light and mood: the LOCATION line of the background prompt
+   * (`npm run prompts`, docs/en/PROMPTS.md). Not shown in the game.
+   */
+  description?: string;
+  /**
+   * Furniture drawn on its own sheet rather than painted into the decor (image ids, e.g. `furniture_dining/table`), so
+   * the engine can depth-sort it with the characters. Props whose image lives in a `furniture_*` folder are counted
+   * anyway; list here the pieces no prop uses yet. Only read by `npm run prompts`.
+   */
+  furniture?: Id[];
   music?: Id;
   props?: Record<Id, PropDef>;
   actors?: Record<Id, ActorDef>;

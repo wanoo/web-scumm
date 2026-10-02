@@ -87,9 +87,11 @@ Pour un accessoire qui a une position par état (`states` dans le layout, par ex
 
 Avant `npm run assets`, une planche générée se découpe en sprites détourés avec `tools/cut-sheet.py <planche.png> <id-planche>`
 (et les outils `tools/talk-kit.py`, `tools/talk-apply.py`, `tools/talk-normalize.py` pour les bouches qui parlent) :
-voir `docs/fr/PROMPTS.md`.
+voir `docs/fr/PROMPTS.md`. Les prompts eux-mêmes viennent de `npm run prompts` (`--missing` pour les planches pas
+encore découpées), qui écrit `games/<id>/prompts.md`.
 
 ```bash
+npm run prompts    # un prompt prêt à coller par planche + les commandes de découpe → games/<id>/prompts.md
 npm run assets     # prépare dans public/assets/ les images et sons cités par le contenu
 ```
 

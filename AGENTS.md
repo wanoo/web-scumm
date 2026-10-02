@@ -27,6 +27,7 @@ npm run solve         # proves the game can be finished from New Game; --json fo
 npm test              # engine tests + the game's walkthrough
 npm run e2e -- <url>  # full playthrough by touch in a phone-sized Chromium, screenshots in E2E_OUT
 npm run assets        # art + audio → public/assets + assets.gen.json
+npm run prompts       # image-model prompts for every sheet → games/<id>/prompts.md (--missing: only what is not cut)
 npm run build         # type-check, tests, bundle, spoiler check, leak audit
 npm run studio        # the local WYSIWYG Studio (docs/en/STUDIO.md); it watches the files you edit
 npm run mcp           # Model Context Protocol server exposing the Studio operations as tools (docs/en/MCP.md)
@@ -44,6 +45,8 @@ GAME=<id> npm run …   # another game than package.json "config".game
 7. Never delete an asset; rename to `_v1`. Never recut a validated sheet. `games/<id>/private/` is gitignored and stays so.
 8. Write short, kind, funny lines for the hero. Repeated looks: normal, normal, normal, absurd.
 9. When unsure what the human wants, write a note in `notes.json` (`about` = the room, panel or id) instead of guessing.
+10. Art prompts: never write a sprite prompt by hand; run `npm run prompts` (or the `asset_prompts` MCP tool) and paste
+    its sections, so every sheet shares the style block and the engine's pose rows.
 
 ## How the human sees your work
 `npm run studio` shows the rooms rendered by the real engine and reloads when you change a file. The human answers in the

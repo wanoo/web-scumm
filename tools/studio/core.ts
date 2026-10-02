@@ -405,6 +405,8 @@ export function createStudio(opts: StudioOptions = {}) {
 
   return {
     gameDir: dir, gameId, root,
+    /** The game module, imported fresh (for tools that read the whole game, e.g. asset prompts). */
+    loadGame: loadModule,
     gameInfo, getRoom, texts, getLayout, setLayout, setText, addEntity,
     getStoryboard, setStoryboard, getNotes, addNote, editNote, deleteNote, exportStoryboardMarkdown, validate, solve, screenshot, screenshotPath,
   };

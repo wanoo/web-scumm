@@ -35,33 +35,42 @@ export function mouths(folder: string, poses: Record<string, string>): Record<st
 
 export const characters: Record<string, CharacterDef> = {
   hero: {
-    name: 'Pixel', color: '#ffd27a', height: 36, kind: ['cat'], portrait: 'hero/r1c1', sprites: cat('hero'),
+    name: 'Pixel', color: '#ffd27a', height: 36, kind: ['cat'],
+    description: 'a small fluffy ragdoll kitten: cream fur, chocolate-brown ears, mask, paws and tail, big round sky-blue eyes, long white whiskers, a fluffy chest; curious, greedy for sardines, cheeky but sweet', portrait: 'hero/r1c1', sprites: cat('hero'),
   },
   biscuit: {
-    name: 'Biscuit', color: '#e8b07a', height: 36, kind: ['cat'], portrait: 'cat/r1c2', sprites: cat('cat'),
+    name: 'Biscuit', color: '#e8b07a', height: 36, kind: ['cat'],
+    description: 'a big lazy tortoiseshell cat: dark brown fur with orange and caramel patches, a cream chest and cream paws, green eyes, a thick tail; sleepy, round, content, always half asleep', portrait: 'cat/r1c2', sprites: cat('cat'),
     refuse: 'Mrrp. (Biscuit only accepts food.)', hug: 'Mrrrrp. Purr. Zzz.',
   },
   grandma: {
-    name: 'Grandma', color: '#ff9ec4', height: 120, kind: ['person'], portrait: 'grandma/r1c2',
+    name: 'Grandma', color: '#ff9ec4', height: 120, kind: ['person'],
+    description: 'a short, round, cheerful grandmother in her seventies: curly ginger-orange hair, round thin-rimmed glasses, small earrings, a pink and peach flowered scarf, a teal cardigan over a cream top, blue jeans, brown loafers; warm, a little scatterbrained, hands often clasped in front of her', portrait: 'grandma/r1c2',
     sprites: human('grandma'), mouths: mouths('talk_grandma', { idle: 'profil', front: 'face' }),
     refuse: 'Keep it, fluffball. You will need it.', hug: 'Come here, fluffball. Purr purr.',
   },
   // Grandma's voice in the shell phone: the hint voice, shown in a frame at the top of the screen.
-  grandma_voice: { name: 'Grandma (shell phone)', color: '#ff9ec4', offscreen: true, portrait: 'grandma/r1c2' },
+  grandma_voice: {
+    name: 'Grandma (shell phone)', color: '#ff9ec4', offscreen: true, portrait: 'grandma/r1c2',
+    description: 'Grandma\'s voice through the shell phone: no sheet of its own, it reuses Grandma\'s portrait',
+  },
   grandpa: {
-    name: 'Grandpa', color: '#8fd3ff', height: 100, kind: ['person'], portrait: 'grandpa/r1c2',
+    name: 'Grandpa', color: '#8fd3ff', height: 100, kind: ['person'],
+    description: 'a relaxed grandfather in his seventies: short grey hair, short white beard, red sunglasses, a navy track jacket with white and red stripes, a grey t-shirt, blue jeans, white sneakers; always sitting in his green armchair with a flowered cushion, a TV remote at hand; laid-back, dozes a lot, laughs easily', portrait: 'grandpa/r1c2',
     sprites: { idle: ['grandpa_seated/r2c1'], surprised: ['grandpa_seated/r2c3'], laugh: ['grandpa_seated/r2c4'], slumped: ['grandpa_seated/r2c6'] },
     mouths: mouths('talk_grandpa', { idle: 'assis' }),
     refuse: 'Not now, Pixel. I am busy. Resting.', hug: 'Careful, the armchair is ticklish.',
   },
   neighbor: {
-    name: 'Lou', color: '#b8ff8f', height: 120, kind: ['person'], portrait: 'neighbor/r1c2',
+    name: 'Lou', color: '#b8ff8f', height: 120, kind: ['person'],
+    description: 'Lou, the handyman neighbour, in his forties: short brown hair, short beard, dark sunglasses, navy blue work overalls with oil stains and a wrench in the chest pocket, a red rag hanging from a back pocket, brown work boots; friendly, confident, borrows everything', portrait: 'neighbor/r1c2',
     sprites: human('neighbor', { pinch: ['neighbor/r4c1'], celebrate: ['neighbor/r4c2'], wrench: ['neighbor/r4c3'], thumbs: ['neighbor/r4c6'] }, false),
     mouths: mouths('talk_neighbor', { idle: 'profil', front: 'face' }),
     refuse: 'Thanks, but my pockets are full. Of other people\'s things.', hug: 'Ha! Mind the wrench.',
   },
   seller: {
-    name: 'The seller', color: '#ffb36b', height: 118, kind: ['person'], portrait: 'seller/r1c2',
+    name: 'The seller', color: '#ffb36b', height: 118, kind: ['person'],
+    description: 'a round, jolly market seller in his fifties: big black curly moustache, black curly hair, a red and cream embroidered cap, a long cream djellaba with thin brown stripes, yellow pointed slippers; generous, theatrical, laughs loudly', portrait: 'seller/r1c2',
     sprites: human('seller', { welcome: ['seller/r4c1'], offering: ['seller/r4c2'], laugh: ['seller/r4c3'], panic: ['seller/r4c4'], fist: ['seller/r4c6'] }, false),
     mouths: mouths('talk_seller', { idle: 'profil', front: 'face' }),
     refuse: 'Today I only take tokens. And flowers.', hug: 'A hug from a cat! Good luck for the whole week.',

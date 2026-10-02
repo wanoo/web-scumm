@@ -28,6 +28,7 @@ the human sees the result live in `npm run studio` (it watches the files).
 | `screenshot` | `room, checkpoint?` | PNG of the room under `.cache/studio/`; needs the dev server (`npm run studio`) at `WEB_SCUMM_DEV_URL` (default `http://localhost:5173/`) and Playwright, else says why it is unavailable |
 | `read_doc` | `name` | one of `CONTENT_GUIDE`, `ENGINE`, `TOOLS`, `STUDIO`, `WORKFLOW` (docs/en): the agent learns the DSL through MCP |
 | `run_tests` | | runs `npx vitest run`, returns the summary and the failures |
+| `asset_prompts` | `missing?` | the art prompts of `npm run prompts` (markdown), and `{ missing, sheets }` as structured content: the image ids not cut yet |
 
 Resources: `webscumm://game` (= `list_rooms`) and `webscumm://room/<id>` (= `get_room`), JSON.
 

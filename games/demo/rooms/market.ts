@@ -6,6 +6,7 @@ export default defineRoom({
   id: 'market',
   name: 'The market',
   decor: 'decor/market',
+  description: 'A North African market street at dusk, seen down its length. Left: spice stalls with cones of colourful spices, baskets and crates, shelves of brass lanterns, rugs hanging above. Center: an alley of stone arches lit by hanging lanterns, a minaret against a violet sky. Right: a big blue studded door in a tiled wall, potted plants, bougainvillea, an awning with tassels. Warm cobblestones. Glowing, festive evening light',
 
   props: {
     stall_left: { img: 'furniture_market/etal_gauche' },

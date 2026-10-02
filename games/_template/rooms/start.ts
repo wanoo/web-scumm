@@ -5,6 +5,7 @@ export default defineRoom({
   id: 'start',
   name: 'The garden',
   decor: 'decor/backyard',
+  description: 'A quiet garden in the afternoon. Left: a wooden bench under a tree. Right: a closed garden gate in a low wall. A sandy path as floor. Warm, calm, inviting',
   props: {
     bucket: { name: 'bucket', img: 'home2/r4c2' },
   },
