@@ -18,12 +18,15 @@ téléphone, hors ligne après la première visite.
 | ![Mini-jeu des tuyaux](docs/img/minigame-pipes.jpg) *Mini-jeu des tuyaux, voix d'indice en haut* | ![Mini-jeu de choix](docs/img/minigame-pick.jpg) *Choisir la bonne fleur* |
 | ![Ticket à gratter](docs/img/ending-scratch.jpg) *La fin scellée : un ticket à gratter* | ![Carte finale](docs/img/ending-card.jpg) *La carte finale juge le pronostic du joueur* |
 | ![Éditeur de placement](docs/img/editor.jpg) *L'éditeur de placement dans le navigateur (`?edit=house`)* | ![Page de placement](docs/img/placement-page.jpg) *La page de placement pour téléphone* |
+| ![Studio, onglet Lieux](docs/img/studio-rooms.jpg) *Le Studio, onglet Lieux : le vrai moteur, la fiche de l'élément, textes édités en place* | ![Studio, onglet Storyboard](docs/img/studio-storyboard.jpg) *Le Studio, onglet Storyboard : cases, répliques, aperçu, notes* |
+| ![Studio, onglet Check](docs/img/studio-check.jpg) *Le Studio, onglet Check : validateur, chemin du solveur, captures* | ![Studio, onglet Notes](docs/img/studio-notes.jpg) *Le Studio, onglet Notes : le journal partagé entre toi et l'IA* |
 
 ## État d'avancement
 - Moteur, outils et jeu d'exemple : complets et jouables de bout en bout (validateur, solveur, 35 tests, parcours Playwright).
 - Pages de validation (storyboard, contrôle des sprites, placement) : fonctionnelles, en HTML local ou en artefact claude.ai.
-- **En cours** : un Studio local WYSIWYG (`npm run studio`) pour construire lieux, textes et storyboard sans aucun cloud, et un
-  serveur MCP pour que n'importe quelle IA se branche. Voir `docs/en/STUDIO.md`.
+- **Studio** (`npm run studio`) : construction locale WYSIWYG des lieux, textes, storyboard et notes, sans cloud, 20 tests. Voir `docs/en/STUDIO.md`.
+- **Serveur MCP** (`npm run -s mcp`) : les mêmes opérations comme outils pour Claude Code, Cursor, Codex, Gemini CLI ou tout client MCP. Voir `docs/fr/MCP.md`.
+- À venir : ajout et suppression de sujets de conversation et de réactions depuis le Studio, écoute des bruitages dans l'aperçu du storyboard.
 
 ## Ce qu'il y a dedans
 - **Un moteur** (`src/engine`, TypeScript, sans framework) : les 9 verbes classiques, le sac, des dialogues avec
@@ -47,6 +50,8 @@ npm run validate             # cohérence du contenu
 npm run solve                # prouve que le jeu se finit, imprime le chemin
 npm test                     # tests du moteur + parcours du jeu d'exemple
 npm run build                # types, tests, bundle, contrôle des spoilers, audit → dist/
+npm run studio               # le Studio sur /__studio/ : lieux WYSIWYG, textes, storyboard, notes, vérifications (local)
+npm run -s mcp               # serveur MCP (stdio) qui expose les mêmes opérations à n'importe quelle IA
 ```
 
 Faire son propre jeu :

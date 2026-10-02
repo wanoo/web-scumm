@@ -1,5 +1,7 @@
 # web-scumm — notes for an AI assistant working in this repo
 
+The vendor-neutral manual is `AGENTS.md`: read it first; this file only adds what is specific to Claude Code (skills, MCP via `.mcp.json`).
+
 A mobile-first, SCUMM-style point-and-click engine. A game is **data**, never code: the engine in `src/engine/` reads a
 game folder `games/<id>/` (TypeScript objects + JSON layouts + art). The sample game is `games/demo` ("The Pantry Key").
 
@@ -17,7 +19,8 @@ game folder `games/<id>/` (TypeScript objects + JSON layouts + art). The sample 
 ## Commands
 ```
 npm run dev                 # dev server; ?dev&at=<checkpoint> jumps to a state; ?edit=<room> opens the placement editor
-npm run studio              # dev server + the Studio (/__studio/): edit a room's texts and placement, run checks
+npm run studio              # dev server + the Studio (/__studio/): rooms, texts, storyboard, notes, checks
+npm run -s mcp              # MCP server; .mcp.json registers it for Claude Code in this project
 npm run validate            # broken ids, missing look lines, flags never set/read, minigame params
 npm run solve               # proves the game can be finished from New Game, prints the path
 npm test                    # engine tests + the game's walkthrough

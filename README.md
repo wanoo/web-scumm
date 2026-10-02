@@ -17,12 +17,15 @@ game can be finished, play it in landscape on any phone, offline after the first
 | ![Pipes minigame](docs/img/minigame-pipes.jpg) *Pipes minigame, hint voice on top* | ![Pick minigame](docs/img/minigame-pick.jpg) *Pick the right flower* |
 | ![Scratch ticket](docs/img/ending-scratch.jpg) *The sealed ending: a ticket to scratch* | ![Final card](docs/img/ending-card.jpg) *The final card judges the player's guess* |
 | ![Placement editor](docs/img/editor.jpg) *The in-browser placement editor (`?edit=house`)* | ![Placement page](docs/img/placement-page.jpg) *The phone-friendly placement page* |
+| ![Studio, Rooms tab](docs/img/studio-rooms.jpg) *The Studio, Rooms tab: the real engine, the element's sheet, texts edited in place* | ![Studio, Storyboard tab](docs/img/studio-storyboard.jpg) *The Studio, Storyboard tab: panels, lines, preview, notes* |
+| ![Studio, Check tab](docs/img/studio-check.jpg) *The Studio, Check tab: validator, solver path, screenshots* | ![Studio, Notes tab](docs/img/studio-notes.jpg) *The Studio, Notes tab: the shared log between you and the AI* |
 
 ## Status
 - Engine, tools and the sample game: complete and playable end to end (validator, solver, 35 tests, Playwright playthrough).
 - Review pages (storyboard, sprite review, placement): working, as local HTML or as claude.ai artifacts.
-- **In progress**: a local WYSIWYG Studio (`npm run studio`) to build rooms, texts and the storyboard without any cloud, and an
-  MCP server so any AI assistant can plug in. See `docs/en/STUDIO.md`.
+- **Studio** (`npm run studio`): local WYSIWYG authoring of rooms, texts, storyboard and notes, no cloud, 20 tests. See `docs/en/STUDIO.md`.
+- **MCP server** (`npm run -s mcp`): the same operations as tools for Claude Code, Cursor, Codex, Gemini CLI or any MCP client. See `docs/en/MCP.md`.
+- Next: adding and removing talk topics and reactions from the Studio, playing sound effects in the storyboard preview.
 
 ## What you get
 - **An engine** (`src/engine`, TypeScript, no framework): 9 classic verbs, inventory, dialogue with transcript, hints,
@@ -41,7 +44,8 @@ game can be finished, play it in landscape on any phone, offline after the first
 ```bash
 npm install
 npm run dev                  # open the URL on your phone (same Wi-Fi), hold it in landscape
-npm run studio               # the Studio at /__studio/: rooms WYSIWYG, texts, checks (local, dev only)
+npm run studio               # the Studio at /__studio/: rooms WYSIWYG, texts, storyboard, notes, checks (local)
+npm run -s mcp               # MCP server (stdio) exposing the same operations to any AI client
 npm run validate             # content checks
 npm run solve                # proves the game can be finished, prints the path
 npm test                     # engine tests + the sample game's walkthrough
