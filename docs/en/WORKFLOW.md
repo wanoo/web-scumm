@@ -22,11 +22,14 @@ rewrites the storyboard. Iterate until the author says "v final".
 no people), object sheets (6 × 4 grid of 256 px cells on a flat `#2B2E45` background), character sheets (portraits,
 walk cycle, SCUMM poses), special poses, and the mouth kit for talking. One sheet per prompt, always with the reference
 sheet attached for style.
+In the Studio, the **Assets** tab shows each sheet's prompt next to its cells, with a Copy button.
 
 ## 4. Cut, key and review
 `python3 tools/cut-sheet.py <sheet.png> <sheet-id>` cuts a sheet into `games/<id>/art/<sheet-id>/r<row>c<col>.png`
 with the background keyed out. `npm run page:review` builds the **review page**: every cell of every sheet with a
 keep / redo / unused decision and a note, saved in the artifact. The AI reads the decisions and lists what to regenerate.
+The Studio's **Assets** tab does the cutting too (Upload generated sheet, Replace a cell, never recutting an existing
+cell without asking) and runs `npm run assets`.
 
 ## 5. Write the rooms
 One file per room in `games/<id>/rooms/`, pure data: props and their states, actors, hotspots, look lines, reactions

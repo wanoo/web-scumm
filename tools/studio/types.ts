@@ -129,6 +129,8 @@ export interface StudioSnapshot {
   notes: NotesFile;
   /** Markdown documents by name (CONTENT_GUIDE). */
   docs: Record<string, string>;
+  /** The Assets tab's listing (read-only in the demo; thumbnails from public/assets). */
+  assets?: AssetsListing;
 }
 
 /** One edit made in the demo Studio, replayed on top of the snapshot (and by `npm run studio-apply`). */
@@ -171,3 +173,103 @@ export type StudioToEditor =
   /** Give geometry to an entity the room declares but the layout lacks (no-op if it has some). */
   | { source: 'web-scumm-studio'; type: 'create'; kind: EntityKind; id: Id; at?: Point }
   | { source: 'web-scumm-studio'; type: 'save' };
+
+// ---------------------------------------------------------------------------
+// Assets tab (tools/studio/assets.ts, GET /__studio/api/assets): every image and sound of the game, where it is used,
+// and the art prompts. Paths are relative to the game folder (`art/hero/r1c1.png`).
+// ---------------------------------------------------------------------------
+
+/** `sprites`: a grid sheet (characters, objects); `talk`: a mouth kit (talk_<char>/<pose>/t1…); `furniture`: named pieces. */
+export type AssetSheetKind = 'sprites' | 'decor' | 'furniture' | 'talk';
+
+export interface AssetCell {
+  /** `r1c1`, a named piece (`chaise1`), or `<pose>/t1` in a talk kit. */
+  id: string;
+  /** Source file, relative to the game folder; '' when the cell is referenced but has no file (`missing`). */
+  file: string;
+  w: number;
+  h: number;
+  /** Where the game uses it: `cast.grandpa.walk`, `items.key`, `house.props.pantry`, `skin.map`… (empty: unused). */
+  used: string[];
+  /** The image ids that resolve to this file (`grandpa/r2c1`). */
+  ids: string[];
+  /** Prepared in public/assets and not older than its source. */
+  prepared: boolean;
+  /** The prepared file under public/assets (`img/grandpa/r2c1.webp`), when it exists. */
+  asset?: string;
+  /** Earlier versions kept next to it: `art/grandpa/r2c1_v1.png`… */
+  backups: string[];
+  /** Modification time (ms): cache key for thumbnails. */
+  mtime: number;
+  missing?: boolean;
+}
+
+export interface AssetSheet {
+  id: string;
+  kind: AssetSheetKind;
+  /** The character whose sprites (or mouths) come from this sheet. */
+  character?: string;
+  /** Grid of the generated sheet, `COLSxROWS` (from its prompt, else from its cells). */
+  grid: string;
+  cells: AssetCell[];
+  /** The prompt's kind for this sheet (tools/prompts.ts), when it has one. */
+  promptKind?: string;
+}
+
+export interface AssetDecor extends AssetCell {
+  /** `decor/backyard`. */
+  name: string;
+  /** Rooms painted with it. */
+  rooms: string[];
+}
+
+export interface AssetSound {
+  /** File name (`bell.ogg`). */
+  id: string;
+  kind: 'music' | 'sfx';
+  /** `audio/sfx/bell.ogg`. */
+  file: string;
+  /** `audio.sfx.bell`, then the rooms whose commands play it (`market.on`). */
+  used: string[];
+  prepared: boolean;
+  /** The prepared file under public/assets (`audio/sfx/bell.mp3`). */
+  asset?: string;
+  backups: string[];
+  mtime: number;
+}
+
+export interface AssetPrompt {
+  id: string;
+  kind: string;
+  /** The sheet's section of `npm run prompts`. */
+  markdown: string;
+  /** The same for the missing cells only (`npm run prompts -- --missing`), when some are missing. */
+  missingMarkdown?: string;
+}
+
+export interface AssetsListing {
+  sheets: AssetSheet[];
+  decors: AssetDecor[];
+  sounds: { music: AssetSound[]; sfx: AssetSound[] };
+  /** Ids the game references without a source file (images, then `audio/<kind>/<file>`). */
+  missing: string[];
+  /** Used images and sounds not prepared yet (or older than their source): what `npm run assets` would do. */
+  unprepared: number;
+  prompts: { sheets: AssetPrompt[]; style: string };
+}
+
+/** POST assets/sheet: an uploaded sheet (base64, data URL accepted) cut into `art/<sheetId>/`. */
+export interface SheetUpload { sheetId: string; grid?: string; cells?: string; data: string }
+export interface SheetUploadResult { ok: true; file: string; output: string; written: string[]; backups: string[]; cells: AssetCell[] }
+/** 409 body of POST assets/sheet: cells that exist and would be overwritten. */
+export interface SheetConflict { error: string; conflicts: string[] }
+
+/** POST assets/cell: replace (or add) one cell. `key`: 'auto' (default: key a flat background), 'always', 'never'. */
+export interface CellReplace { sheetId: string; cell: string; data: string; key?: 'auto' | 'always' | 'never' }
+export interface CellReplaceResult { ok: true; file: string; backup?: string; keyed: 'keyed' | 'kept' | 'opaque'; cell: AssetCell }
+
+export interface SoundUpload { kind: 'music' | 'sfx'; file: string; data: string }
+export interface DecorUpload { name: string; data: string }
+export interface UploadResult { ok: true; file: string; backup?: string }
+
+export interface PrepareResult { ok: boolean; code: number; output: string }

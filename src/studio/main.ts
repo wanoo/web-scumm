@@ -4,14 +4,15 @@
 import './style.css';
 import { BASE, serverApi, useApi, type GameInfo, type StudioEvent, type StudioSnapshot } from './api';
 import type { BrowserApi } from './api-browser';
+import { AssetsTab } from './assets';
 import { CheckTab } from './check';
 import { NotesStore, NotesTab, roomNotesBlock } from './notes';
 import { RoomsTab } from './rooms';
 import { StoryboardTab } from './storyboard';
 import { h, toast } from './ui';
 
-type TabId = 'rooms' | 'storyboard' | 'check' | 'notes';
-const TABS: [TabId, string][] = [['rooms', 'Rooms'], ['storyboard', 'Storyboard'], ['check', 'Check'], ['notes', 'Notes']];
+type TabId = 'rooms' | 'storyboard' | 'assets' | 'check' | 'notes';
+const TABS: [TabId, string][] = [['rooms', 'Rooms'], ['storyboard', 'Storyboard'], ['assets', 'Assets'], ['check', 'Check'], ['notes', 'Notes']];
 
 // Vite tells every page to reload when a game file changes (the engine view needs it). The Studio page doesn't:
 // it follows changes through its own event feed, and keeps what is being typed.
@@ -120,7 +121,8 @@ async function start() {
       openRoom(about.split('.')[0]);
     },
   });
-  const panes: Record<TabId, HTMLElement> = { rooms: rooms.el, storyboard: storyboard.el, check: check.el, notes: notes.el };
+  const assets = new AssetsTab({ info, ownWrite, openRoom, prepared: () => rooms.reloadFrame() });
+  const panes: Record<TabId, HTMLElement> = { rooms: rooms.el, storyboard: storyboard.el, assets: assets.el, check: check.el, notes: notes.el };
 
   const nav = h('nav', { class: 'tabs', role: 'tablist' });
   let current: TabId = (TABS.some(([t]) => t === hashTab) ? hashTab : 'rooms') as TabId;
@@ -131,6 +133,7 @@ async function start() {
     history.replaceState(null, '', t === 'rooms' ? `#rooms/${rooms.room}` : `#${t}`);
     if (t === 'storyboard') void storyboard.load();
     if (t === 'notes') void notes.load();
+    if (t === 'assets') void assets.load();
   };
   for (const [id, label] of TABS) {
     nav.append(h('button', { role: 'tab', dataset: { tab: id }, onclick: () => show(id) }, label, id === 'check' ? badge : null));
@@ -163,6 +166,7 @@ async function start() {
     const outside = Date.now() > ownUntil;
     if (outside && /\.(ts|json)$/.test(ev.file)) toast(`${ev.file} changed on disk`, 'info');
     rooms.onFileChanged(ev.file);
+    assets.onFileChanged(ev.file);
     if (ev.file === 'storyboard.json' && outside) storyboard.onDiskChange();
     if (ev.file === 'notes.json' && outside) void store.load();
     if (outside && /\.(ts|json)$/.test(ev.file) && ev.file !== 'notes.json' && ev.file !== 'storyboard.json') check.schedule(1000);

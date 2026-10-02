@@ -3,7 +3,7 @@
 // Types are shared with the server.
 import type { Layout } from '@engine/core/types';
 import type {
-  AddEntity, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, ScreenshotResult, SolveData, ValidateResult,
+  AddEntity, AssetsListing, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, ScreenshotResult, SolveData, ValidateResult,
 } from '../../tools/studio/types';
 
 export type * from '../../tools/studio/types';
@@ -45,6 +45,8 @@ export interface Api {
   validate(): Promise<ValidateResult>;
   solve(from?: string): Promise<SolveData>;
   screenshot(room: string, checkpoint?: string): Promise<Exclude<ScreenshotResult, { unavailable: true }>>;
+  /** Every image and sound, where it is used, and the art prompts (the Assets tab; uploads: src/studio/assets.ts). */
+  assets(): Promise<AssetsListing>;
 }
 
 export const serverApi: Api = {
@@ -64,6 +66,7 @@ export const serverApi: Api = {
   validate: () => call<ValidateResult>('POST', 'validate'),
   solve: (from?: string) => call<SolveData>('POST', 'solve', { from: from || undefined }),
   screenshot: (room: string, checkpoint?: string) => call<Exclude<ScreenshotResult, { unavailable: true }>>('POST', 'screenshot', { room, checkpoint: checkpoint || undefined }),
+  assets: () => call<AssetsListing>('GET', 'assets'),
 };
 
 /** The backend in use (a live binding: the tabs read it at call time). Set once at start by main.ts. */

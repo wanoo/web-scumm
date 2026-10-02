@@ -9,7 +9,7 @@ import { solve as solveGame } from '@engine/tools/solve';
 import { normalizeStoryboard, storyboardMarkdown } from '../../tools/pages/storyboard-data';
 import { classify, formatPath, parsePath, SourceError, type Seg } from '../../tools/studio/paths';
 import type {
-  AddEntity, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, SolveData, StudioPatch, StudioPatchFile,
+  AddEntity, AssetsListing, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, SolveData, StudioPatch, StudioPatchFile,
   StudioSnapshot, TextRef, ValidateResult,
 } from '../../tools/studio/types';
 import { ApiError, type Api } from './api';
@@ -266,6 +266,12 @@ export class BrowserApi implements Api {
       deadEnds: r.deadEnds.map((d) => ({ room: d.room, inventory: d.inventory, path: d.path })),
       errors: r.errors, from: from || null, ms: Date.now() - t0,
     };
+  }
+
+  /** The snapshot's assets listing (read-only: uploads and Prepare need the dev server). */
+  async assets(): Promise<AssetsListing> {
+    if (!this.o.snapshot.assets) throw new ApiError('this demo snapshot has no assets listing: rebuild it with STUDIO=1', 501);
+    return cloneData(this.o.snapshot.assets);
   }
 
   async screenshot(): Promise<never> {

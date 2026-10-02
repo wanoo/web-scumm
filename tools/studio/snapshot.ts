@@ -5,6 +5,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { createAssets } from './assets';
 import { createStudio, type StudioOptions } from './core';
 import type { RoomData, StudioSnapshot } from './types';
 import { ROOT } from '../game';
@@ -25,6 +26,8 @@ export async function buildSnapshot(opts: StudioOptions = {}): Promise<StudioSna
     // JSON round-trip: functions and undefined fields dropped, like the dev server's responses.
     game: JSON.parse(JSON.stringify(game)), rooms: JSON.parse(JSON.stringify(rooms)),
     storyboard: s.getStoryboard(), notes: s.getNotes(), docs,
+    // The Assets tab's listing (no file data: the demo shows the prepared images and sounds of public/assets).
+    assets: await createAssets(s).list(),
   };
 }
 

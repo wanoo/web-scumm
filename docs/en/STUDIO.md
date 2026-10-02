@@ -29,6 +29,8 @@ real engine (the room rendered by `src/engine/dom`), so what you see is what pla
   `storyboard.json` changes on disk (an AI, an editor, git), a banner offers to reload; with unsaved edits it warns
   that saving would overwrite that change. **Export Markdown** writes `games/<id>/storyboard.md` from the saved file
   (the same text as `npm run page:storyboard -- --md`; it offers to save first).
+- **Assets**: every image and sound of the game, where each one is used, its art prompt, and the uploads that replace
+  or add them (see "Assets tab" below).
 - **Check**: the validator and the solver run after every save; their output and the solver path are shown here.
   "Screenshot" renders a room at a checkpoint (needs Playwright).
 - **Notes**: the shared log (`games/<id>/notes.json`), one entry per author ("you", or the AI's name), about a panel
@@ -59,6 +61,14 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 | POST `validate` | → `{ ok, errors: string[], warnings: string[], ms }` |
 | POST `solve` | `{ from?: checkpoint }` → `{ finished, states, truncated, path, roomsReached, unlockedReached, flagsReached, itemsNeverUsed, unusedItems, deadEnds: [{ room, inventory, path }], errors, from, ms }` (400 for an unknown checkpoint) |
 | POST `screenshot` | `{ room, checkpoint? }` → `{ file, url }`: a PNG of the room (editor overlays hidden) under `.cache/studio/<game>-<room>[-<checkpoint>].png`, served at `url` (`GET screenshots/<name>.png`). 501 `{ unavailable: true, reason, error }` if Playwright or its Chromium is missing |
+| GET `assets` | `{ sheets: [{ id, kind: 'sprites' \| 'furniture' \| 'talk', character?, grid, promptKind?, cells: [{ id, file, w, h, used, ids, prepared, asset?, backups, mtime, missing? }] }], decors: [{ name, rooms, …cell }], sounds: { music, sfx: [{ id, kind, file, used, prepared, asset?, backups }] }, missing, unprepared, prompts: { sheets: [{ id, kind, markdown, missingMarkdown? }], style } }`: see "Assets tab" |
+| GET `assets/file/<path>` | a source file of `art/` or `audio/` (path relative to the game folder; anything else is 404) |
+| GET `assets/prompts?missing=1` | `{ markdown }`: the whole `npm run prompts [-- --missing]` document |
+| POST `assets/sheet` | `{ sheetId, grid?: '6x4', cells?: 'r1c1,r2c3', data }` (base64 or data URL) → saves `private/sheets/<sheetId>-<time>.<ext>` and cuts it with `tools/cut-sheet.py` into `art/<sheetId>/`; `{ ok, file, output, written, backups, cells }`. 409 `{ conflicts }` when cells of that sheet exist and `cells` does not name them; a named cell that exists is kept as `<cell>_v<N>.png` first |
+| POST `assets/cell` | `{ sheetId, cell, data, key?: 'auto' \| 'always' \| 'never' }` → replaces (or adds) `art/<sheetId>/<cell>.png`; the old file becomes `<cell>_v<N>.png`; a flat background is keyed with the cutter's rule; `{ ok, file, backup?, keyed: 'keyed' \| 'kept' \| 'opaque', cell }` |
+| POST `assets/decor` | `{ name, data }` (PNG or JPEG) → `art/decor/<name>.<ext>`, the old picture kept as `<name>_v<N>.<ext>`; `{ ok, file, backup? }` |
+| POST `assets/sound` | `{ kind: 'music' \| 'sfx', file, data }` → `audio/<kind>/<file>` (any format ffmpeg reads), the old file kept as a backup; `{ ok, file, backup? }` |
+| POST `assets/prepare` | runs `npm run assets` → `{ ok, code, output }`; with `?stream=1`, the output as plain text while it runs, ending with `[exit <code>]` |
 | GET `events` | server-sent events: `{ type: 'hello', game }` on connection, then `{ type: 'changed', file }` when a file of the game folder changes on disk (`file` relative to it, e.g. `rooms/house.ts`; dotfiles and `private/` are ignored; 150 ms debounce per file) |
 
 The same operations exist as plain functions in `tools/studio/core.ts`, used by the Vite plugin, by the tests and by
@@ -89,6 +99,33 @@ The Rooms tab shows `/?edit=<room>&at=<checkpoint>` in an iframe and talks to th
 (see TOOLS.md, "The placement editor"). The Studio page ignores Vite's full reloads caused by game files (the engine
 view reloads, the Studio keeps what you are typing and follows the change through `events`).
 
+## Assets tab
+The tab lists everything under `games/<id>/art/` and `audio/` against what the game references (`tools/refs.ts`), with
+the prompts of `npm run prompts` (`tools/prompts.ts`, docs/en/PROMPTS.md). Server side: `tools/studio/assets.ts`, mounted
+at `/__studio/api/assets` by the plugin; UI: `src/studio/assets.ts`.
+
+- **Tree** (left): Characters (one entry per sprite sheet, named after the character whose poses it holds), Objects,
+  Backgrounds, Furniture, Talk kits, Sounds (music, sound effects). Badges: red = cells the game references without a
+  file, orange = used but not prepared (or older than their source), grey = cut but unused.
+- **Sheet** (center): the cells as thumbnails with their id and what uses them (`walk`, `portrait`, `items.key`,
+  `house.props.pantry`…); filters All / Used / Unused / Missing. On top, the **Prompt** panel: the sheet's section of the
+  prompts with **Copy prompt** (copies the fenced block for the image model), **Copy prompt for missing cells only** when
+  some are missing, and the shared Style block (folded) with its own Copy. **Upload generated sheet…** sends the image
+  to `POST assets/sheet` with the sheet id and grid; if cells exist already, a dialog lists them, each with a "recut"
+  box (unticked: kept; only the new cells are cut), then the cut result is shown. **Upload sheet into a new sheet id…**
+  (toolbar) does the same for a sheet that has no folder yet.
+- **Cell** (right): large preview, file, size, image ids, prepared or not, where it is used (with "Open room"),
+  **Replace…** (keying: a flat background is keyed by default, or always, or never), and the backups.
+- **Backgrounds**: the decor with the room's hotspots, props (foot and height), actors and walk area drawn over it, and
+  the dashed floor band the prompt asks to keep empty; Replace… and "+ background". **Sounds**: a player per file,
+  where it is used, Replace… (same extension) and Add sound….
+- **Prepare assets (npm run assets)** (toolbar) runs the pipeline with its output live in a drawer; the count next to
+  it is what it would process. Afterwards the Rooms view reloads. A replaced cell shows in the game once prepared.
+- Nothing is ever deleted, and a validated cell is never recut by accident: overwriting needs the cell named, and the
+  old file is kept as `<name>_v<N>`. Backups are not cells (the listing and the prompts ignore them).
+- **Demo mode**: the listing comes from the snapshot (`assets` in `snapshot.json`), the thumbnails and sounds from the
+  prepared files of `public/assets` (unused cells have no preview); uploads and Prepare are hidden.
+
 ## Demo mode
 The Studio also runs without any server, on a static host: https://wanoo.github.io/web-scumm/studio.html is the demo
 game's Studio, built by the CI. Same UI, same engine view and placement editor; the edits stay in the browser.
@@ -96,7 +133,7 @@ game's Studio, built by the CI. Same UI, same engine view and placement editor; 
 - **Build**: `npm run build:studio-demo` (= `STUDIO=1 VITE_STUDIO_DEMO=1 vite build`); the CI sets both variables on its
   `npm run build`. With `STUDIO=1`, the build first writes `public/studio-demo/snapshot.json` (`tools/studio/snapshot.ts`,
   also `npm run studio-snapshot`; gitignored): `{ game, rooms: { <id>: { def, layout, texts, file } }, storyboard, notes,
-  docs: { CONTENT_GUIDE } }`, everything the Studio reads from the API. Without `STUDIO=1`, neither `studio.html` nor
+  docs: { CONTENT_GUIDE }, assets }`, everything the Studio reads from the API. Without `STUDIO=1`, neither `studio.html` nor
   the snapshot reach `dist/`. The Studio's and the dev tools' code goes to `dist/assets/tools/`, outside the service
   worker's precache.
 - **Backend**: `src/studio/api.ts` defines the `Api` interface; the dev server's one is the default. The browser one

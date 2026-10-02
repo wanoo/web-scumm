@@ -35,6 +35,8 @@ que les joueurs auront.
   git), une bannière propose de recharger ; avec des modifications non enregistrées, elle prévient qu'enregistrer
   écraserait ce changement. **Export Markdown** écrit `games/<id>/storyboard.md` à partir du fichier enregistré
   (le même texte que `npm run page:storyboard -- --md` ; elle propose d'enregistrer d'abord).
+- **Assets** : toutes les images et tous les sons du jeu, où chacun sert, son prompt de génération, et les envois qui
+  les remplacent ou les ajoutent (voir « Onglet Assets » plus bas).
 - **Check** : le validateur et le solveur tournent après chaque enregistrement ; leur sortie et le chemin du
   solveur sont affichés ici. « Screenshot » rend un lieu à un checkpoint (nécessite Playwright).
 - **Notes** : le journal partagé (`games/<id>/notes.json`), une entrée par auteur (« you », ou le nom de l'IA), à
@@ -101,6 +103,17 @@ production ne l'inclut pas, sauf `STUDIO=1`. L'onglet **Rooms** affiche `/?edit=
 iframe et parle à l'éditeur via `postMessage` (voir TOOLS.md, « L'éditeur de placement »). La page du Studio ignore
 les rechargements complets de Vite causés par les fichiers du jeu (la vue du moteur se recharge, le Studio garde ce
 qu'on est en train de taper et suit le changement via `events`).
+
+## Onglet Assets
+À gauche, l'arbre : Characters (une entrée par planche de sprites), Objects, Backgrounds, Furniture, Talk kits, Sounds,
+avec des pastilles (rouge : référencé sans fichier ; orange : pas encore préparé ; gris : découpé mais inutilisé). Au
+centre, la planche en vignettes avec l'usage de chaque case et des filtres ; au-dessus, le **prompt** de la planche
+(bouton **Copy prompt**, variante « cases manquantes seulement », bloc Style partagé) et **Upload generated sheet…**,
+qui découpe l'image avec `tools/cut-sheet.py` sans jamais redécouper une case existante sans la cocher. À droite, la
+case en grand, où elle sert, **Replace…** (l'ancien fichier est gardé en `<case>_v<N>.png`) et ses sauvegardes. Les
+décors s'affichent avec les zones du lieu par-dessus ; les sons ont un lecteur. **Prepare assets** lance
+`npm run assets` et affiche sa sortie. En démo, tout est en lecture seule. Points d'accès et détails :
+docs/en/STUDIO.md, « Assets tab ».
 
 ## Mode démo
 Le Studio tourne aussi sans serveur, sur un hébergement statique : https://wanoo.github.io/web-scumm/studio.html est le
