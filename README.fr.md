@@ -54,6 +54,7 @@ téléphone, hors ligne après la première visite.
   gabarit de plan de production pour des sous-agents en parallèle.
 
 ## Démarrer
+Il faut Node 22+, Python 3 avec `pip install -r requirements.txt` (Pillow, NumPy, SciPy pour les outils de sprites) et ffmpeg pour les sons.
 ```bash
 npm install
 npm run dev                  # ouvrir l'adresse sur le téléphone (même Wi-Fi), en paysage

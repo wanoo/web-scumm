@@ -52,6 +52,7 @@ game can be finished, play it in landscape on any phone, offline after the first
   and a production-plan template for parallel sub-agents.
 
 ## Quick start
+Needs Node 22+, Python 3 with `pip install -r requirements.txt` (Pillow, NumPy, SciPy for the sprite tools) and ffmpeg for sounds.
 ```bash
 npm install
 npm run dev                  # open the URL on your phone (same Wi-Fi), hold it in landscape
