@@ -1,7 +1,7 @@
 # Making a game with an AI assistant: the workflow
 
 This is the method that produced the first game built with this engine (a 9-room, 15-character family adventure, written
-and shipped in about three weeks by one person working with Claude Code). Each step has a tool in this repository, and
+and shipped in a single day by one person working with Claude Code). Each step has a tool in this repository, and
 each step ends with something the author can validate on a phone before the next one starts.
 
 ## 1. Story first, as data

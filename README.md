@@ -1,10 +1,16 @@
 # web-scumm
 
 A SCUMM-style point-and-click adventure engine for phones, with the authoring tools and the AI-assisted workflow that
-shipped a complete 9-room family game in three weeks. Write your story as data, place things by dragging, prove the
+shipped a complete 9-room family game in a single day. Write your story as data, place things by dragging, prove the
 game can be finished, play it in landscape on any phone, offline after the first visit.
 
-*[Version française](README.fr.md)* · Sample game: **The Pantry Key** (`games/demo`) → play it on GitHub Pages once the CI has run.
+*[Version française](README.fr.md)*
+
+| | |
+|---|---|
+| 🎮 **Play the sample game** | https://wanoo.github.io/web-scumm/ (phone in landscape, or desktop) |
+| 🛠 **Try the Studio** | https://wanoo.github.io/web-scumm/studio.html (demo mode: edits stay in your browser) |
+| 📦 **Source** | https://github.com/wanoo/web-scumm · release v1.0.0 |
 
 ## In pictures
 

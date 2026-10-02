@@ -1,7 +1,7 @@
 # Fabriquer un jeu avec un assistant IA : la méthode
 
 Voici la méthode qui a produit le premier jeu construit avec ce moteur (une aventure familiale de 9 lieux et
-15 personnages, écrite et livrée en environ trois semaines par une seule personne travaillant avec Claude Code).
+15 personnages, écrite et livrée en une seule journée par une seule personne travaillant avec Claude Code).
 Chaque étape a un outil dans ce dépôt, et chaque étape se termine par quelque chose que l'auteur peut valider sur
 un téléphone avant que la suivante ne commence.
 

@@ -1,11 +1,17 @@
 # web-scumm
 
 Un moteur de point & click façon SCUMM pour téléphone, avec ses outils d'écriture et la méthode de travail avec une IA
-qui a permis de livrer un jeu familial complet de 9 lieux en trois semaines. L'histoire s'écrit en données, les choses
+qui a permis de livrer un jeu familial complet de 9 lieux en une seule journée. L'histoire s'écrit en données, les choses
 se placent à la souris ou au doigt, un solveur prouve que le jeu se finit, et il se joue en paysage sur n'importe quel
 téléphone, hors ligne après la première visite.
 
-*[English version](README.md)* · Jeu d'exemple : **The Pantry Key** (`games/demo`).
+*[English version](README.md)*
+
+| | |
+|---|---|
+| 🎮 **Jouer au jeu d'exemple** | https://wanoo.github.io/web-scumm/ (téléphone en paysage, ou ordinateur) |
+| 🛠 **Essayer le Studio** | https://wanoo.github.io/web-scumm/studio.html (mode démo : les modifications restent dans le navigateur) |
+| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v1.0.0 |
 
 ## En images
 
