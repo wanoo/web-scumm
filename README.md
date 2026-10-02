@@ -41,6 +41,7 @@ game can be finished, play it in landscape on any phone, offline after the first
 ```bash
 npm install
 npm run dev                  # open the URL on your phone (same Wi-Fi), hold it in landscape
+npm run studio               # the Studio at /__studio/: rooms WYSIWYG, texts, checks (local, dev only)
 npm run validate             # content checks
 npm run solve                # proves the game can be finished, prints the path
 npm test                     # engine tests + the sample game's walkthrough

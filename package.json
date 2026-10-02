@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx tools/select-game.ts && vite --host",
+    "studio": "tsx tools/select-game.ts && STUDIO=1 vite --host --open /__studio/",
     "build": "tsx tools/select-game.ts && tsc --noEmit && vitest run && vite build && tsx scripts/check-spoilers.ts && tsx tools/audit-assets.ts",
     "preview": "vite preview --host",
     "start": "sirv dist --host 0.0.0.0 --port ${PORT:-8080} --maxage 3600",

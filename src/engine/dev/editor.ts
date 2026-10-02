@@ -47,6 +47,34 @@ export class Editor {
     window.addEventListener('beforeunload', (e) => { if (this.dirty) e.preventDefault(); });
     this.buildPane();
     this.overlay.draw();
+    this.bridge();
+  }
+
+  // -------------------------------------------------------------- Studio bridge
+  // Inside the Studio (an iframe of /__studio/), the editor tells the parent page what is selected, whether the
+  // layout has unsaved changes and when it was saved; the Studio can ask it to select, place or save something.
+
+  private post(msg: Record<string, unknown>) {
+    if (window.parent === window) return;
+    window.parent.postMessage({ source: 'pocket-scumm-editor', room: this.room.id, ...msg }, location.origin);
+  }
+
+  private bridge() {
+    if (window.parent === window) return;
+    window.addEventListener('message', (e: MessageEvent) => {
+      const m = e.data as { source?: string; type?: string; kind?: 'prop' | 'hotspot' | 'actor'; id?: string; at?: Point };
+      if (e.origin !== location.origin || m?.source !== 'pocket-scumm-studio') return;
+      if (m.type === 'save') void this.save();
+      else if ((m.type === 'select' || m.type === 'create') && m.kind && m.id) {
+        if (m.type === 'create' && this.missing().some((x) => x.kind === m.kind && x.id === m.id)) this.addMissing({ kind: m.kind, id: m.id }, m.at);
+        const key = `${m.kind === 'hotspot' ? 'hs' : m.kind}:${m.id}`;
+        this.overlay.o.selected = key;
+        this.selected.item = key;
+        this.overlay.draw();
+        this.pane?.refresh();
+      }
+    });
+    this.post({ type: 'ready', missing: this.missing() });
   }
 
   private get L(): Layout { return this.overlay.layout(); }
@@ -200,10 +228,14 @@ export class Editor {
     const key = 'id' in h ? `${h.t.startsWith('hs') || (h.t === 'approach' && h.kind === 'hs') ? 'hs' : h.t.startsWith('prop') || (h.t === 'approach' && h.kind === 'prop') ? 'prop' : 'actor'}:${h.id}` : h.t === 'entry' ? `entry:${h.name}` : h.t;
     this.overlay.o.selected = key;
     this.selected.item = key;
+    const [k, id] = key.split(':');
+    const kind = k === 'hs' ? 'hotspot' : k === 'prop' || k === 'actor' ? k : undefined;
+    this.post({ type: 'select', key, kind, id: kind ? id : undefined });
   }
 
   /** After an edit: redraw, and rebuild the scene for whatever is shown. */
   private changed(h: Handle, final = false) {
+    if (!this.dirty) this.post({ type: 'dirty', dirty: true });
     this.dirty = true;
     this.status.state = 'modified, not saved';
     const v = this.snapshot(h);
@@ -234,8 +266,8 @@ export class Editor {
     const L = roundLayout(this.L);
     this.app.engine.layouts[this.room.id] = L;
     const r = await fetch(`/__layout/${this.room.id}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(L) });
-    if (r.ok) { this.dirty = false; this.status.state = `saved (${new Date().toLocaleTimeString()})`; }
-    else this.status.state = `error: ${await r.text()}`;
+    if (r.ok) { this.dirty = false; this.status.state = `saved (${new Date().toLocaleTimeString()})`; this.post({ type: 'saved', ok: true }); }
+    else { this.status.state = `error: ${await r.text()}`; this.post({ type: 'saved', ok: false, error: this.status.state }); }
     this.pane.refresh();
   }
 
@@ -251,11 +283,11 @@ export class Editor {
     ];
   }
 
-  private addMissing(m: { kind: 'hotspot' | 'prop' | 'actor'; id: Id }) {
+  private addMissing(m: { kind: 'hotspot' | 'prop' | 'actor'; id: Id }, at?: Point) {
     const L = this.L;
-    if (m.kind === 'hotspot') (L.hotspots ??= {})[m.id] = { rect: [290, 170, 60, 60] };
-    else if (m.kind === 'prop') (L.props ??= {})[m.id] = { x: 320, y: 300, h: 60 };
-    else (L.actors ??= {})[m.id] = { x: 320, y: 340 };
+    if (m.kind === 'hotspot') (L.hotspots ??= {})[m.id] = { rect: at ? [at[0] - 30, at[1] - 30, 60, 60] : [290, 170, 60, 60] };
+    else if (m.kind === 'prop') (L.props ??= {})[m.id] = { x: at?.[0] ?? 320, y: at?.[1] ?? 300, h: 60 };
+    else (L.actors ??= {})[m.id] = { x: at?.[0] ?? 320, y: at?.[1] ?? 340 };
     this.changed(m.kind === 'hotspot' ? { t: 'hs-move', id: m.id } : m.kind === 'prop' ? { t: 'prop-pos', id: m.id } : { t: 'actor-pos', id: m.id }, true);
     this.buildPane();
   }
@@ -263,6 +295,8 @@ export class Editor {
   buildPane() {
     this.pane?.dispose();
     const pane = new Pane({ title: `Editor: ${this.room.id}` });
+    // Inside the Studio the panel starts folded: the Studio has its own Save button and the room stays visible.
+    if (!this.pane && window.parent !== window) pane.expanded = false;
     (pane.element.parentElement as HTMLElement).style.zIndex = '9000';
     this.pane = pane;
     pane.addBinding(this.status, 'state', { readonly: true });

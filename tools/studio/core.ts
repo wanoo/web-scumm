@@ -1,0 +1,386 @@
+// Studio core: every operation of the Studio API (docs/en/STUDIO.md) as a plain function over a game folder.
+// Used by the Vite plugin (tools/studio/plugin.ts), the tests and the MCP server. Never exits the process: errors
+// are thrown as StudioError (with an HTTP-like status), results are plain JSON.
+import { execFile } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { basename, isAbsolute, join, relative, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import ts from 'typescript';
+import type { Layout, Point } from '../../src/engine/core/types';
+import { validate as validateGame } from '../../src/engine/tools/validate';
+import { solve as solveGame } from '../../src/engine/tools/solve';
+import { loadAssets, loadLayouts } from '../../src/engine/tools/load';
+import { GAME_DIR, ROOT, type GameModule } from '../game';
+import { addToSection, extractTexts, objectText, parseRoom, SourceError, setTextInSource } from './source';
+import type {
+  AddEntity, EditResult, GameInfo, NewNote, Note, NotesFile, RoomData, ScreenshotResult, SolveData, TextRef, ValidateResult,
+} from './types';
+
+export class StudioError extends Error {
+  constructor(message: string, readonly status = 400) { super(message); }
+}
+
+export interface StudioOptions {
+  /** The game folder (default: GAME_DIR, see tools/game.ts). */
+  gameDir?: string;
+  /** Repository root: room files are reported relative to it, screenshots go to <root>/.cache/studio. */
+  root?: string;
+  /** Imports a TypeScript module fresh (not from a cache): the game changes on disk between calls. */
+  importFresh?: (file: string) => Promise<unknown>;
+}
+
+/** Default fresh import: tsx's scoped loader (a new namespace per call, so edited files are read again). */
+async function tsxImport(file: string): Promise<unknown> {
+  const { tsImport } = await import('tsx/esm/api');
+  return tsImport(pathToFileURL(file).href, import.meta.url);
+}
+
+/**
+ * Fresh import in a child process (node + tsx): slower (~0.3 s) but immune to any module cache, e.g. inside Vitest.
+ * Only data crosses the process boundary (functions are dropped), which is all the Studio reads from a game.
+ */
+export function importInChild(file: string, cwd = ROOT): Promise<unknown> {
+  const script = 'const m = await import(process.argv[1]); process.stdout.write(JSON.stringify(m, (k, v) => typeof v === "function" ? undefined : v));';
+  return new Promise((ok, fail) => {
+    execFile(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', script, pathToFileURL(file).href],
+      { cwd, maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
+        if (err) { fail(new Error((stderr || err.message).trim().split('\n').slice(-3).join(' '))); return; }
+        try { ok(JSON.parse(stdout)); } catch (e) { fail(e as Error); }
+      });
+  });
+}
+
+const ID = /^[A-Za-z_][\w-]*$/;
+
+function readJson<T>(file: string, fallback: T): T {
+  if (!existsSync(file)) return fallback;
+  try { return JSON.parse(readFileSync(file, 'utf8')) as T; } catch (e) { throw new StudioError(`${basename(file)}: invalid JSON (${(e as Error).message})`, 500); }
+}
+
+/** Throws a StudioError for a bad `[x, y]`. */
+function point(at: unknown): Point {
+  if (!Array.isArray(at) || at.length !== 2 || !at.every((v) => typeof v === 'number' && Number.isFinite(v))) throw new StudioError('`at` must be [x, y]');
+  return [Math.round(Math.max(0, Math.min(640, at[0]))), Math.round(Math.max(0, Math.min(400, at[1])))];
+}
+
+/** JSON written compactly: a value that fits on one line (within `width`) stays on one line, like a hand-kept file. */
+export function formatJson(value: unknown, width = 120): string {
+  const inline = (v: unknown): string => {
+    if (Array.isArray(v)) return v.length ? `[${v.map(inline).join(', ')}]` : '[]';
+    if (v && typeof v === 'object') {
+      const e = Object.entries(v).filter(([, x]) => x !== undefined);
+      return e.length ? `{ ${e.map(([k, x]) => `${JSON.stringify(k)}: ${inline(x)}`).join(', ')} }` : '{}';
+    }
+    return JSON.stringify(v) ?? 'null';
+  };
+  const block = (v: unknown, ind: string, prefix: number): string => {
+    const one = inline(v);
+    if (ind.length + prefix + one.length <= width || !v || typeof v !== 'object') return one;
+    const next = ind + '  ';
+    if (Array.isArray(v)) return `[\n${v.map((x) => next + block(x, next, 0)).join(',\n')}\n${ind}]`;
+    const e = Object.entries(v).filter(([, x]) => x !== undefined);
+    return `{\n${e.map(([k, x]) => `${next}${JSON.stringify(k)}: ${block(x, next, JSON.stringify(k).length + 2)}`).join(',\n')}\n${ind}}`;
+  };
+  return block(value, '', 0) + '\n';
+}
+
+const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+export function createStudio(opts: StudioOptions = {}) {
+  const dir = resolve(opts.gameDir ?? GAME_DIR);
+  const root = resolve(opts.root ?? ROOT);
+  const importFresh = opts.importFresh ?? tsxImport;
+  const gameId = basename(dir);
+
+  const rel = (file: string) => { const r = relative(root, file); return r.startsWith('..') || isAbsolute(r) ? file : r; };
+  const layoutFile = (id: string) => join(dir, 'layout', `${id}.json`);
+
+  // Writes are serialized: two quick edits of the same file never interleave.
+  let queue: Promise<unknown> = Promise.resolve();
+  const serial = <T>(fn: () => Promise<T> | T): Promise<T> => {
+    const p = queue.then(fn, fn);
+    queue = p.catch(() => undefined);
+    return p;
+  };
+
+  async function loadModule(): Promise<GameModule> {
+    try { return await importFresh(join(dir, 'index.ts')) as GameModule; }
+    catch (e) { throw new StudioError(`the game does not load: ${(e as Error).message}`, 500); }
+  }
+
+  /** rooms/<id>.ts, or the room file whose `id` is this id. */
+  function roomFile(id: string): string {
+    if (!ID.test(id)) throw new StudioError(`invalid room id: "${id}"`);
+    const direct = join(dir, 'rooms', `${id}.ts`);
+    if (existsSync(direct)) return direct;
+    const rooms = join(dir, 'rooms');
+    if (existsSync(rooms)) {
+      for (const f of readdirSync(rooms).filter((x) => x.endsWith('.ts'))) {
+        const file = join(rooms, f);
+        try {
+          const { root: obj } = parseRoom(readFileSync(file, 'utf8'), file);
+          const p = obj.properties.find((q) => ts.isPropertyAssignment(q) && ts.isIdentifier(q.name) && q.name.text === 'id') as ts.PropertyAssignment | undefined;
+          if (p && ts.isStringLiteral(p.initializer) && p.initializer.text === id) return file;
+        } catch { /* not a room file */ }
+      }
+    }
+    throw new StudioError(`unknown room: "${id}"`, 404);
+  }
+
+  function writeRoomCode(file: string, code: string) {
+    const sf = ts.createSourceFile(file, code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+    const diags = (sf as unknown as { parseDiagnostics?: ts.Diagnostic[] }).parseDiagnostics ?? [];
+    if (diags.length) throw new StudioError(`refused: the edit would break ${basename(file)} (${ts.flattenDiagnosticMessageText(diags[0].messageText, ' ')})`, 500);
+    writeFileSync(file, code);
+  }
+
+  const wrap = <T>(fn: () => T): T => {
+    try { return fn(); } catch (e) { if (e instanceof SourceError) throw new StudioError(e.message, e.status); throw e; }
+  };
+
+  // ------------------------------------------------------------------ reading
+
+  async function gameInfo(): Promise<GameInfo> {
+    const mod = await loadModule();
+    const g = mod.game;
+    const manifest = (mod.manifest ?? {}) as { images?: Record<string, [number, number]> };
+    return {
+      id: gameId,
+      title: g.title,
+      hero: g.hero,
+      rooms: g.rooms.map((r) => ({ id: r.id, name: r.name, decor: r.decor })),
+      characters: Object.fromEntries(Object.entries(g.characters).map(([k, c]) => [k, { name: c.name, color: c.color, portrait: c.portrait }])),
+      items: Object.fromEntries(Object.entries(g.items).map(([k, i]) => [k, { name: i.name, icon: i.icon }])),
+      verbs: g.verbs,
+      checkpoints: g.checkpoints ?? {},
+      images: manifest.images ?? {},
+    };
+  }
+
+  function texts(id: string): TextRef[] {
+    const file = roomFile(id);
+    return wrap(() => extractTexts(readFileSync(file, 'utf8'), file)).map(({ segs: _s, ...t }) => ({ ...t, file: rel(file) }));
+  }
+
+  async function getRoom(id: string): Promise<RoomData> {
+    const file = roomFile(id);
+    const mod = await loadModule();
+    const def = mod.game.rooms.find((r) => r.id === id);
+    if (!def) throw new StudioError(`room "${id}" is not in the game (index.ts / game.ts)`, 404);
+    return { def, layout: readJson<Layout>(layoutFile(id), {}), texts: texts(id), file: rel(file) };
+  }
+
+  function getLayout(id: string): Layout {
+    roomFile(id);
+    return readJson<Layout>(layoutFile(id), {});
+  }
+
+  // ------------------------------------------------------------------ writing
+
+  function setLayout(id: string, layout: unknown): Promise<{ ok: true }> {
+    return serial(() => {
+      roomFile(id);
+      if (!layout || typeof layout !== 'object' || Array.isArray(layout)) throw new StudioError('the layout must be an object');
+      mkdirSync(join(dir, 'layout'), { recursive: true });
+      writeFileSync(layoutFile(id), JSON.stringify(layout, null, 2) + '\n');
+      return { ok: true as const };
+    });
+  }
+
+  /**
+   * Replaces the text at `path` in rooms/<id>.ts. `value: null` deletes a list line (or a whole look entry);
+   * a path ending in `[+]` appends a line. Writes nothing when the value is already there.
+   */
+  function setText(id: string, path: string, value: string | null): Promise<EditResult> {
+    return serial(() => {
+      if (typeof path !== 'string' || !path) throw new StudioError('`path` is required');
+      if (value !== null && typeof value !== 'string') throw new StudioError('`value` must be a string or null');
+      const file = roomFile(id);
+      const code = readFileSync(file, 'utf8');
+      const r = wrap(() => setTextInSource(code, path, value, file));
+      if (r.changed) writeRoomCode(file, r.code);
+      return { ok: true as const, line: r.line, changed: r.changed };
+    });
+  }
+
+  /** Adds a prop, hotspot or actor to the room file and gives it a place in the layout. */
+  function addEntity(id: string, e: AddEntity): Promise<EditResult> {
+    return serial(async () => {
+      const file = roomFile(id);
+      if (!e || !['prop', 'hotspot', 'actor'].includes(e.kind)) throw new StudioError('`kind` must be prop, hotspot or actor');
+      if (typeof e.id !== 'string' || !/^[A-Za-z_][\w]*$/.test(e.id)) throw new StudioError('`id` must be letters, digits and _ (not starting with a digit)');
+      const at = point(e.at);
+      const name = typeof e.name === 'string' ? e.name.trim() : '';
+      if (e.kind !== 'actor' && !name) throw new StudioError('`name` is required for a prop or a hotspot');
+      const mod = await loadModule();
+      const room = mod.game.rooms.find((r) => r.id === id);
+      if (room && [room.props, room.hotspots, room.actors].some((o) => o && e.id in o)) throw new StudioError(`"${e.id}" already exists in room "${id}"`, 409);
+      if (e.kind === 'actor') {
+        if (!e.char || !mod.game.characters[e.char]) throw new StudioError(`unknown character: "${e.char ?? ''}"`);
+      }
+      const images = (mod.manifest as { images?: Record<string, unknown> } | undefined)?.images;
+      if (e.kind === 'prop' && e.img && images && Object.keys(images).length && !images[e.img]) throw new StudioError(`image not in the manifest: "${e.img}"`);
+
+      let code = readFileSync(file, 'utf8');
+      const fields: Record<string, string | undefined> =
+        e.kind === 'prop' ? { name, img: e.img || undefined }
+        : e.kind === 'hotspot' ? { name }
+        : { char: e.char, name: name && name !== mod.game.characters[e.char!].name ? name : undefined };
+      const section = e.kind === 'prop' ? 'props' : e.kind === 'hotspot' ? 'hotspots' : 'actors';
+      const r = wrap(() => addToSection(code, section, e.id, objectText(code, fields, file), file));
+      code = r.code;
+      if (typeof e.look === 'string' && e.look.trim()) code = wrap(() => setTextInSource(code, `look.${e.id}[+]`, e.look!.trim(), file)).code;
+      writeRoomCode(file, code);
+
+      const L = readJson<Layout>(layoutFile(id), {});
+      if (e.kind === 'prop') (L.props ??= {})[e.id] = { x: at[0], y: at[1], h: 60 };
+      else if (e.kind === 'hotspot') (L.hotspots ??= {})[e.id] = { rect: [Math.max(0, at[0] - 30), Math.max(0, at[1] - 30), 60, 60] };
+      else (L.actors ??= {})[e.id] = { x: at[0], y: at[1] };
+      mkdirSync(join(dir, 'layout'), { recursive: true });
+      writeFileSync(layoutFile(id), JSON.stringify(L, null, 2) + '\n');
+      return { ok: true as const, line: r.line, changed: true };
+    });
+  }
+
+  // ------------------------------------------------------------------ storyboard and notes
+
+  function getStoryboard(): Record<string, unknown> {
+    return readJson<Record<string, unknown>>(join(dir, 'storyboard.json'), { boards: [] });
+  }
+
+  function setStoryboard(sb: unknown): Promise<{ ok: true; changed: boolean }> {
+    return serial(() => {
+      if (!sb || typeof sb !== 'object' || !Array.isArray((sb as { boards?: unknown }).boards)) throw new StudioError('a storyboard is an object with a `boards` list');
+      const file = join(dir, 'storyboard.json');
+      if (existsSync(file) && sameJson(readJson(file, null), sb)) return { ok: true as const, changed: false };
+      writeFileSync(file, formatJson(sb));
+      return { ok: true as const, changed: true };
+    });
+  }
+
+  const notesFile = () => join(dir, 'notes.json');
+
+  function getNotes(): NotesFile {
+    const n = readJson<NotesFile>(notesFile(), { entries: [] });
+    return { entries: Array.isArray(n.entries) ? n.entries : [] };
+  }
+
+  function addNote(n: NewNote): Promise<Note> {
+    return serial(() => {
+      if (!n || typeof n.text !== 'string' || !n.text.trim()) throw new StudioError('`text` is required');
+      const all = getNotes();
+      const note: Note = {
+        id: `n${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+        about: typeof n.about === 'string' ? n.about.trim() : '',
+        author: typeof n.author === 'string' && n.author.trim() ? n.author.trim() : 'you',
+        text: n.text.trim(),
+        at: new Date().toISOString(),
+      };
+      all.entries.push(note);
+      writeFileSync(notesFile(), JSON.stringify(all, null, 2) + '\n');
+      return note;
+    });
+  }
+
+  // ------------------------------------------------------------------ checks
+
+  async function validate(): Promise<ValidateResult> {
+    const t0 = Date.now();
+    const mod = await loadModule();
+    const layouts = loadLayouts(join(dir, 'layout'));
+    const assets = loadAssets(join(dir, 'assets.gen.json'));
+    let minigames: Record<string, { required?: string[] }> | undefined;
+    try {
+      const eng = await importFresh(join(root, 'src/engine/minigames/index.ts')) as { minigames: Record<string, { required?: string[] }> };
+      minigames = { ...eng.minigames, ...(mod.minigames ?? {}) };
+    } catch { minigames = undefined; }
+    const { errors, warnings } = validateGame(mod.game, layouts, {
+      assets,
+      minigameIds: minigames ? Object.keys(minigames) : undefined,
+      minigameParams: minigames ? Object.fromEntries(Object.entries(minigames).map(([k, m]) => [k, m.required ?? []])) : undefined,
+    });
+    return { ok: errors.length === 0, errors, warnings, ms: Date.now() - t0 };
+  }
+
+  async function solve(from?: string | null, maxStates = 20000): Promise<SolveData> {
+    const t0 = Date.now();
+    const mod = await loadModule();
+    if (from && !mod.game.checkpoints?.[from]) throw new StudioError(`unknown checkpoint: "${from}"`);
+    const layouts = loadLayouts(join(dir, 'layout'));
+    const r = await solveGame(mod.game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new' });
+    return {
+      finished: r.finished, states: r.states, truncated: r.truncated, path: r.path,
+      roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
+      itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems,
+      deadEnds: r.deadEnds.map((d) => ({ room: d.room, inventory: d.inventory, path: d.path })),
+      errors: r.errors, from: from ?? null, ms: Date.now() - t0,
+    };
+  }
+
+  // ------------------------------------------------------------------ screenshot
+
+  const shotsDir = () => join(root, '.cache', 'studio');
+
+  /** Renders a room (optionally at a checkpoint) with the running dev server at `baseUrl`, without the editor's overlays. */
+  async function screenshot(room: string, checkpoint: string | null | undefined, baseUrl: string): Promise<ScreenshotResult> {
+    roomFile(room);
+    if (checkpoint && !ID.test(checkpoint)) throw new StudioError(`invalid checkpoint: "${checkpoint}"`);
+    let pw: typeof import('playwright');
+    try { pw = await import('playwright'); } catch { return { unavailable: true, reason: 'Playwright is not installed (npm i -D playwright && npx playwright install chromium)' }; }
+    let browser: Awaited<ReturnType<typeof pw.chromium.launch>>;
+    try { browser = await pw.chromium.launch(); } catch (e) { return { unavailable: true, reason: `Chromium does not start: ${(e as Error).message.split('\n')[0]}` }; }
+    try {
+      const page = await browser.newPage({ viewport: { width: 960, height: 600 } });
+      // baseUrl: the dev server's root, base path included (http://localhost:5173/ or …/<base>/).
+      const url = new URL(baseUrl);
+      url.search = '';
+      url.hash = '';
+      url.searchParams.set('edit', room);
+      if (checkpoint) url.searchParams.set('at', checkpoint);
+      await page.goto(url.toString());
+      await page.waitForFunction(() => !!(window as unknown as { __editor?: unknown }).__editor, null, { timeout: 20000 });
+      await page.evaluate(() => {
+        document.querySelectorAll<HTMLElement>('.scene > svg, .tp-dfwv').forEach((e) => { e.style.display = 'none'; });
+      });
+      await page.waitForTimeout(700);
+      mkdirSync(shotsDir(), { recursive: true });
+      const name = `${gameId}-${room}${checkpoint ? `-${checkpoint}` : ''}.png`;
+      const file = join(shotsDir(), name);
+      await page.screenshot({ path: file });
+      return { file: rel(file), url: `/__studio/api/screenshots/${name}?t=${Date.now()}` };
+    } finally {
+      await browser.close();
+    }
+  }
+
+  /** A screenshot written by `screenshot`, by its file name (null if absent or not a plain name). */
+  function screenshotPath(name: string): string | null {
+    if (!/^[\w.-]+\.png$/.test(name)) return null;
+    const f = join(shotsDir(), name);
+    return existsSync(f) ? f : null;
+  }
+
+  return {
+    gameDir: dir, gameId, root,
+    gameInfo, getRoom, texts, getLayout, setLayout, setText, addEntity,
+    getStoryboard, setStoryboard, getNotes, addNote, validate, solve, screenshot, screenshotPath,
+  };
+}
+
+export type Studio = ReturnType<typeof createStudio>;
+
+// The current game (GAME / GAME_DIR), for callers that don't need another folder.
+let current: Studio | undefined;
+const cur = () => (current ??= createStudio());
+export const gameInfo = () => cur().gameInfo();
+export const getRoom = (id: string) => cur().getRoom(id);
+export const setLayout = (id: string, layout: unknown) => cur().setLayout(id, layout);
+export const setText = (id: string, path: string, value: string | null) => cur().setText(id, path, value);
+export const addEntity = (id: string, e: AddEntity) => cur().addEntity(id, e);
+export const getStoryboard = () => cur().getStoryboard();
+export const setStoryboard = (sb: unknown) => cur().setStoryboard(sb);
+export const getNotes = () => cur().getNotes();
+export const addNote = (n: NewNote) => cur().addNote(n);
+export const validate = () => cur().validate();
+export const solve = (from?: string | null) => cur().solve(from);
+export const screenshot = (room: string, checkpoint: string | null | undefined, baseUrl: string) => cur().screenshot(room, checkpoint, baseUrl);

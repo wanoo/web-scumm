@@ -17,6 +17,7 @@ game folder `games/<id>/` (TypeScript objects + JSON layouts + art). The sample 
 ## Commands
 ```
 npm run dev                 # dev server; ?dev&at=<checkpoint> jumps to a state; ?edit=<room> opens the placement editor
+npm run studio              # dev server + the Studio (/__studio/): edit a room's texts and placement, run checks
 npm run validate            # broken ids, missing look lines, flags never set/read, minigame params
 npm run solve               # proves the game can be finished from New Game, prints the path
 npm test                    # engine tests + the game's walkthrough

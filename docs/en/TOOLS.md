@@ -83,6 +83,13 @@ The editor's panel holds:
 
 For a prop with a per-state position (`states` in the layout, e.g. a pulled-out stool), the editor edits the variant of the state shown.
 
+Inside the Studio (`/__studio/`, see STUDIO.md) the editor runs in an iframe and talks to the parent page with
+`postMessage` (same origin only). It sends `{ source: 'pocket-scumm-editor', room, type }` messages: `ready` (with
+`missing`, the entities that have no place yet), `select` (`key` such as `prop:lamp`, `hs:door`, `actor:grandma`, plus
+`kind` and `id` for those three), `dirty` (unsaved changes) and `saved` (`ok`, `error`). It accepts
+`{ source: 'pocket-scumm-studio', type }` messages: `select` (`kind`, `id`), `create` (gives a place to an entity the
+room declares but the layout lacks, optionally at `at`) and `save`. In an iframe its panel starts folded.
+
 ## Preparing images and sounds
 
 Before `npm run assets`, a generated sheet is cut into keyed sprites with `tools/cut-sheet.py <sheet.png> <sheet-id>`

@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { VitePWA } from 'vite-plugin-pwa';
 import { GAME, GAME_DIR } from './tools/game';
+import { studioPlugin } from './tools/studio/plugin';
 
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
@@ -83,6 +84,7 @@ export default defineConfig({
   plugins: [
     sitePlugin(),
     layoutWriter(),
+    studioPlugin(),
     // Service worker: the app is cached on install, images and sounds on first use (then served without network).
     VitePWA({
       registerType: 'autoUpdate',
@@ -114,6 +116,8 @@ export default defineConfig({
     { find: /^@game$/, replacement: r(`./games/${GAME}/index.ts`) },
     { find: /^@game\//, replacement: r(`./games/${GAME}/`) },
   ] },
-  build: { target: 'es2020', assetsInlineLimit: 0 },
+  // The Studio page (studio.html, dev server: /__studio/) only enters a build with STUDIO=1.
+  build: { target: 'es2020', assetsInlineLimit: 0,
+    rollupOptions: { input: { index: r('./index.html'), ...(process.env.STUDIO === '1' ? { studio: r('./studio.html') } : {}) } } },
   test: { environment: 'node', include: ['tests/**/*.test.ts'] },
 } as any);
