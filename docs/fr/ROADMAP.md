@@ -74,7 +74,7 @@ Fichiers : `src/engine/core/types.ts` (Layout, PropDef, Cmd), `src/engine/dom/ro
 - **Préférences** : `GameDef.ui.settings?` active vitesse du texte, taille des sous-titres, réduction des animations/shake, police dys (fournie par le jeu dans `skin.fonts`), volumes musique/sfx/voix. Stockées hors sauvegarde.
 - **Démo** : marché élargi (1,5 écran) avec suivi caméra ; porte du garde-manger animée avec `sfx` à la frame 3.
 
-### M4 — « Cast » (v1.6) : plusieurs personnages jouables
+### M4 — « Cast » (v1.6, livré) : plusieurs personnages jouables
 
 Fichiers : `types.ts`, `engine.ts`, `state`, `dom/app.ts` (inventaire, bouton de bascule), `solve.ts`, `validate.ts`, `migrate.ts`.
 

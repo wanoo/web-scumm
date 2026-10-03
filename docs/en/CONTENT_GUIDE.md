@@ -254,6 +254,23 @@ A line stays on screen for as long as it takes to read, or until a tap.
 | `{ seen: 'house.grandma.0' }` | topic #0 of grandma's conversation at the house has already been heard. |
 | `{ actorIn: ['grandpa', 'house'] }` | the moving character is in that room (see "The world lives"). |
 
+## Several playable characters
+
+```ts
+hero: 'bernard',
+players: { ids: ['bernard', 'hoagie', 'laverne'], start: { hoagie: { room: 'past_lab' }, laverne: { room: 'future_lab' } },
+  give: 'Here, {nom}: the {objet}.' },
+```
+
+Each playable character has their own room, position and inventory (`sharedInventory: true` to share one bag). The
+hero is the one controlled first. A button per other character sits in the tools row (their portrait, or their
+initial): tapping it is `{ switchPlayer: 'hoagie' }`, the view moves to their room. An inactive character standing in
+the room is drawn and can be **given** an item: it goes to their bag (`{ transfer: ['hamster', 'laverne'] }` does the
+same from a script). The condition `{ player: 'laverne' }` tells who is acting; `'hero'` in commands always means the
+active one. If a room declares an actor for a playable character, that actor stands for them while they are inactive
+(poses, talk topics); they are not drawn twice. Checkpoints take `active` and `players: { id: { room, inventory } }`.
+The solver switches characters like the player would ("Switch to hoagie" in its path).
+
 ## Staging: wide rooms, animations, voice, settings
 
 ### Wide rooms and the camera

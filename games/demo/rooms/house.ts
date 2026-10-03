@@ -48,6 +48,7 @@ export default defineRoom({
     grandma: ['Grandma. Keeper of sardines. Loser of keys.', 'She smells of tea and biscuits. Not Biscuit the cat. The other kind.'],
     biscuit: ['Biscuit. My big brother. Sleeps twenty hours a day.', 'The other four hours, he naps.'],
     grandpa: ['Grandpa. He came home for the sardines. With his armchair.', 'He is "guarding the pantry". With his eyes closed.'],
+    hero: ['Pixel. Smaller than me. Faster than me. Fine.', 'My little brother. Still planning. Always planning.'],
     window: ['The garden. Grandpa is out there somewhere.', 'Fresh air, birds, flowers. And Grandpa.'],
     door: 'The hall. Nothing to eat there. I checked. Twice.',
     bookshelf: ['Books. Not one about sardines. Disappointing.', 'A cookbook! ...Vegetables. Never mind.'],
@@ -88,6 +89,8 @@ export default defineRoom({
 
     // Small gags (the way out is the `window` exit above).
     { verb: 'open', a: 'door', do: ['The hall. The vacuum cleaner lives there. Our sworn enemy.'] },
+    // Biscuit (the second playable cat) is the one who drinks tea.
+    { verb: ['take', 'use'], a: 'teacup', if: { player: 'biscuit' }, do: [{ nth: [[{ sfx: 'glass' }, 'Lukewarm tea. Biscuit approves.', { set: 'tea_drunk' }], ['Empty. Biscuit regrets nothing.']] }] },
     { verb: 'take', a: 'teacup', do: ['Hot tea and cat paws. No.'] },
     { verb: 'push', a: 'clock', do: ['Heavy. And it judges me.'] },
     { verb: 'take', a: 'bookshelf', do: ['A book falls. "Knitting for beginners." I put it back.'] },

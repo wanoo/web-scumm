@@ -89,7 +89,7 @@ function stateKeys(game: GameDef) {
   };
   findConds(game);
   // A once/nth counter only counts if its block actually changes state (flag, item, prop, room…): repeat gags don't.
-  const CHANGES = /"(set|clear|gain|lose|used|prop|unlock|show|hide|minigame|phone|travel|map|ending|reveal|done|checkpoint|moveActor|emit|startScript|stopScript|goto)"/;
+  const CHANGES = /"(set|clear|gain|lose|used|prop|unlock|show|hide|minigame|phone|travel|map|ending|reveal|done|checkpoint|moveActor|emit|startScript|stopScript|goto|switchPlayer|transfer)"/;
   const matters = (cmds: Cmd[]) => CHANGES.test(JSON.stringify(cmds));
   const onceRead = new Set<string>();
   const nthRead = new Map<string, number>();
@@ -152,8 +152,10 @@ function hashState(s: GameState, keys: ReturnType<typeof stateKeys>): string {
   for (const [k, v] of Object.entries(s.props)) if (keys.propRead.has(k.includes('.') ? k.slice(k.indexOf('.') + 1) : k) || keys.propRead.has(k)) props[k] = v;
   const scripts: Record<string, [number, boolean, boolean]> = {};
   for (const [k, st] of Object.entries(s.scripts ?? {})) scripts[k] = [st.pc, !!st.done, !!st.off];
+  const players: Record<string, unknown> = {};
+  for (const [k, p] of Object.entries(s.players ?? {})) players[k] = [p.room, [...p.inventory].sort(), [...(p.used ?? [])].sort()];
   return JSON.stringify([s.room, [...s.inventory].sort(), sortObj(flags), sortObj(props), [...s.unlocked].sort(), sortObj(vis), sortObj(counters), seen, !!s.done, [...(s.used ?? [])].sort(),
-    sortObj(s.where ?? {}), sortObj(scripts)]);
+    sortObj(s.where ?? {}), sortObj(scripts), s.active ?? '', sortObj(players)]);
 }
 
 function sortObj<T>(o: Record<string, T>): [string, T][] { return Object.entries(o).sort(([a], [b]) => a.localeCompare(b)); }
@@ -269,6 +271,8 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
       if (!s.unlocked.includes(pid) || p.room === s.room || !game.rooms.some((r) => r.id === p.room)) continue;
       tries.push({ label: `Map → ${p.name}`, run: (e) => e.travel(pid), items: [] });
     }
+    // Several playable characters: taking control of another one.
+    for (const pid of probe.playerIds()) if (pid !== probe.heroId()) tries.push({ label: `Switch to ${pid}`, run: (e) => e.switchTo(pid).then(() => undefined), items: [] });
     // The world's scripts: letting one run (until it waits, ends or loops) is something the player can do by waiting.
     for (const sc of probe.scriptsHere()) {
       const st = s.scripts?.[sc.id];

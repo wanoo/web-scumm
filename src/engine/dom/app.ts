@@ -169,6 +169,14 @@ export class App implements Presenter {
       b.setAttribute('aria-label', label); b.title = label; b.onclick = () => fn(b); this.toolsEl.append(b); return b;
     };
     const icons = this.game.skin.icons;
+    // Several playable characters: one button per other character (their portrait, or their initial), before the map.
+    for (const pid of this.game.players?.ids ?? []) {
+      const c = this.game.characters[pid];
+      const b = el('button', 'tool player', c?.portrait ? `<img src="${this.bank.img(c.portrait)}" alt="">` : `<span>${esc((c?.name ?? pid).slice(0, 1))}</span>`);
+      b.dataset.player = pid; b.setAttribute('aria-label', c?.name ?? pid); b.title = c?.name ?? pid;
+      b.onclick = () => { if (!this.engine.busy && !this.speechEl) void this.engine.switchTo(pid); };
+      this.toolsEl.append(b);
+    }
     tool(icons.map, this.game.ui.mapTitle, () => { if (!this.engine.busy && !this.speechEl) void this.engine.openMap(); });
     tool(icons.pause, this.game.ui.pause, () => this.pauseMenu());
     tool(icons.music, this.game.ui.music, (b) => { const on = !this.audio.musicOn; this.audio.setMusic(on); this.audio.setSfx(on); b.classList.toggle('off', !on); });
@@ -330,6 +338,8 @@ export class App implements Presenter {
   private refresh() {
     this.side.classList.toggle('off', this.engine.busy && !this.choosing);
     if (this.engine.state && this.view.room) this.view.refreshVisibility();
+    // The active character's button is hidden, the others show.
+    for (const b of this.toolsEl.querySelectorAll<HTMLElement>('.tool.player')) b.hidden = b.dataset.player === this.engine.heroId();
   }
 
   // ================================================================== Presenter

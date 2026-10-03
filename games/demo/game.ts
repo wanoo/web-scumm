@@ -15,6 +15,8 @@ export const game = defineGame({
   title: 'The Pantry Key',
   saveVersion: 1,
   hero: 'hero',
+  // Two playable cats: Pixel first; Biscuit (asleep at home) can be switched to at any time. He has his own inventory.
+  players: { ids: ['hero', 'biscuit'], start: { biscuit: { room: 'house' } }, give: 'Here, {nom}. The {objet}. Do not eat it.' },
   // Talking to the shell phone gives the room's hints, in Grandma's voice (an offscreen character).
   hintItem: 'shell_phone',
   hintVoice: 'grandma_voice',

@@ -53,8 +53,19 @@ export class Engine {
     return {
       v: this.game.saveVersion, room: s.room, inventory: [...(s.inventory ?? [])], flags: { ...(s.flags ?? {}) },
       props: {}, actors: {}, hero: {}, unlocked: [...(s.unlocked ?? [])], visited: {}, counters: {}, seen: {}, started: Date.now(),
-      where: this.homes(), scripts: {}, camera: { x: 0, follow: true },
+      where: this.homes(), scripts: {}, camera: { x: 0, follow: true }, active: this.game.hero,
     };
+  }
+
+  /** The other playable characters' starting records (`players.start`). */
+  private otherPlayers(): NonNullable<GameState['players']> {
+    const out: NonNullable<GameState['players']> = {};
+    for (const id of this.game.players?.ids ?? []) {
+      if (id === this.game.hero) continue;
+      const st = this.game.players?.start?.[id];
+      out[id] = { room: st?.room ?? this.game.start.room, inventory: [...(st?.inventory ?? [])], hero: {} };
+    }
+    return out;
   }
 
   /** Starting room of every moving character (`CharacterDef.room`). */
@@ -73,6 +84,8 @@ export class Engine {
     s.where = { ...this.homes(), ...(s.where ?? {}) };
     s.scripts ??= {};
     s.camera ??= { x: 0, follow: true };
+    s.active ??= this.game.hero;
+    if (this.game.players) { s.players = { ...this.otherPlayers(), ...(s.players ?? {}) }; delete s.players[s.active]; }
     return s;
   }
 
@@ -117,6 +130,8 @@ export class Engine {
     if (!c) throw new Error(`unknown checkpoint: ${id}`);
     const s = this.fresh();
     Object.assign(s, { room: c.room, inventory: [...(c.inventory ?? [])], flags: { ...(c.flags ?? {}) }, unlocked: [...(c.unlocked ?? s.unlocked)], props: { ...(c.props ?? {}) }, where: { ...s.where, ...(c.where ?? {}) } });
+    if (c.active) s.active = c.active;
+    if (c.players) { s.players = {}; for (const [pid, p] of Object.entries(c.players)) if (pid !== s.active) s.players[pid] = { room: p.room, inventory: [...(p.inventory ?? [])], hero: {} }; }
     this.state = this.ensureState(s);
     await this.enter(c.room, undefined, false);
     this.startScripts(true);
@@ -135,14 +150,69 @@ export class Engine {
 
   // ------------------------------------------------------------------ queries for the UI
 
-  heroId() { return this.game.hero; }
-  private who(w: Id) { return w === HERO ? this.game.hero : w; }
+  /** The character the player controls now. */
+  heroId() { return this.state?.active ?? this.game.hero; }
+  /** The playable characters (`players.ids`, or just the hero). */
+  playerIds(): Id[] { return this.game.players?.ids ?? [this.game.hero]; }
+  isPlayer(id: Id) { return this.playerIds().includes(id); }
+  /** Inactive players standing in this room with no actor declared for them: shown by the view, targetable. */
+  guests(room: RoomDef = this.room()): Record<Id, { char: Id; at: Point }> {
+    const out: Record<Id, { char: Id; at: Point }> = {};
+    for (const [pid, p] of Object.entries(this.state.players ?? {})) {
+      if (p.room !== room.id || pid === this.heroId()) continue;
+      if (Object.values(room.actors ?? {}).some((a) => a.char === pid)) continue;
+      let at: Point = p.hero[room.id] ?? this.layout(room.id).entries?.default ?? [320, 360];
+      // Standing on the very spot of the active character (both arrived by the same entry): step aside.
+      const h = this.state.hero[room.id];
+      if (h && Math.hypot(h[0] - at[0], h[1] - at[1]) < 12) at = [at[0] + (at[0] > 320 ? -60 : 60), at[1]];
+      out[pid] = { char: pid, at };
+    }
+    return out;
+  }
+  private who(w: Id) { return w === HERO ? this.heroId() : w; }
+
+  // ------------------------------------------------------------------ several playable characters
+
+  /** The player takes control of another character: their room, position and inventory come up. */
+  async switchTo(id: Id): Promise<void> {
+    if (!this.isPlayer(id) || id === this.heroId() || this.busy) return;
+    await this.run(async () => { await this.swap(id); await this.enter(this.state.room, undefined, false); this.startScripts(true); });
+  }
+
+  /** Stores the active player's flat fields, loads the other's (no display). */
+  private async swap(id: Id) {
+    const s = this.state;
+    const shared = !!this.game.players?.sharedInventory;
+    s.players ??= {};
+    s.players[s.active ?? this.game.hero] = { room: s.room, inventory: shared ? [] : s.inventory, hero: s.hero, used: shared ? undefined : s.used };
+    const p = s.players[id] ?? { room: this.game.start.room, inventory: [], hero: {} };
+    delete s.players[id];
+    s.active = id;
+    s.room = p.room;
+    s.hero = p.hero;
+    if (!shared) { s.inventory = p.inventory; s.used = p.used; }
+    s.camera = { x: 0, follow: true };
+    this.onChange();
+  }
+
+  /** Hands an item to another player's inventory (shared inventory: nothing to do). */
+  private transfer(item: Id, to: Id) {
+    const s = this.state;
+    if (this.game.players?.sharedInventory || to === this.heroId() || !s.inventory.includes(item)) return;
+    const p = (s.players ??= {})[to] ??= { room: this.game.start.room, inventory: [], hero: {} };
+    s.inventory = s.inventory.filter((x) => x !== item);
+    if (!p.inventory.includes(item)) p.inventory.push(item);
+    if (s.used?.includes(item)) { s.used = s.used.filter((x) => x !== item); (p.used ??= []).push(item); }
+    this.ui.inventory(s.inventory, s.used);
+    this.onChange();
+  }
 
   /** Display name of any id (item, actor, prop, hotspot). */
   nameOf(id: Id, room: RoomDef = this.room()): string {
     if (this.game.items[id] && this.state.inventory.includes(id)) return this.game.items[id].name;
     const act = room.actors?.[id];
     if (act) return act.name ?? this.game.characters[act.char]?.name ?? id;
+    if (this.guests(room)[id]) return this.game.characters[id]?.name ?? id;
     if (room.props?.[id]?.name) return room.props[id].name!;
     if (room.hotspots?.[id]) return room.hotspots[id].name;
     if (this.game.items[id]) return this.game.items[id].name;
@@ -164,6 +234,7 @@ export class Engine {
   kindsOf(id: Id, room: RoomDef = this.room()): string[] {
     const act = room.actors?.[id];
     if (act) return this.game.characters[act.char]?.kind ?? [];
+    if (this.guests(room)[id]) return this.game.characters[id]?.kind ?? [];
     if (room.props?.[id]) return room.props[id].kind ?? [];
     if (room.hotspots?.[id]) return room.hotspots[id].kind ?? [];
     return this.game.items[id]?.kind ?? [];
@@ -192,6 +263,7 @@ export class Engine {
     const over = this.state.actors[`${room.id}.${id}`]?.visible;
     if (over !== undefined) return over;
     const def = act ?? room.props?.[id] ?? room.hotspots?.[id];
+    if (!def && this.guests(room)[id]) return true;
     return def ? check(def.visible, this.state, room.id) : false;
   }
 
@@ -212,6 +284,7 @@ export class Engine {
       ...Object.keys(room.hotspots ?? {}),
       ...Object.entries(room.props ?? {}).filter(([, p]) => p.name).map(([k]) => k),
       ...Object.entries(room.actors ?? {}).filter(([, a]) => a.interactive !== false).map(([k]) => k),
+      ...Object.keys(this.guests(room)),
     ];
     return ids.filter((id) => this.visible(id, room));
   }
@@ -239,6 +312,8 @@ export class Engine {
     }
     if (h?.rect) return [h.rect[0] + h.rect[2] / 2, Math.min(floor, h.rect[1] + h.rect[3] + 12)];
     if (h?.poly) { const xs = h.poly.map((p) => p[0]), ys = h.poly.map((p) => p[1]); return [(Math.min(...xs) + Math.max(...xs)) / 2, Math.min(floor, Math.max(...ys) + 12)]; }
+    const g = this.guests(room)[id];
+    if (g) return [g.at[0] + (g.at[0] > 320 ? -44 : 44), g.at[1]];
     return null;
   }
 
@@ -252,7 +327,7 @@ export class Engine {
     if (o?.x !== undefined) return o.x;
     const p = L.props?.[id];
     if (p) { const st = this.propState(id, room); return (st ? p.states?.[st]?.x : undefined) ?? p.x; }
-    return L.actors?.[id]?.x ?? null;
+    return L.actors?.[id]?.x ?? this.guests(room)[id]?.at[0] ?? null;
   }
 
   // ------------------------------------------------------------------ player actions
@@ -264,7 +339,7 @@ export class Engine {
     if (this.guideWait) {
       const g = this.guideWait;
       const ok = g.verb === act.verb && (act.a === g.target || act.b === g.target);
-      if (!ok) { await this.run(async () => { await this.ui.say(this.game.hero, g.say, {}); }); return 'guide'; }
+      if (!ok) { await this.run(async () => { await this.ui.say(this.heroId(), g.say, {}); }); return 'guide'; }
     }
     let src: Source | null = null;
     await this.run(async () => {
@@ -274,7 +349,7 @@ export class Engine {
       if (inScene) {
         const ap = this.approach(target, room);
         if (ap) {
-          const end = await this.ui.walk(this.game.hero, ap, false);
+          const end = await this.ui.walk(this.heroId(), ap, false);
           if (!end) return;
           this.state.hero[room.id] = end;
         }
@@ -292,8 +367,8 @@ export class Engine {
   /** Walk to a point on the floor. */
   async walkTo(p: Point): Promise<void> {
     if (this.busy) return;
-    if (this.guideWait) { const g = this.guideWait; await this.run(async () => { await this.ui.say(this.game.hero, g.say, {}); }); return; }
-    const end = await this.ui.walk(this.game.hero, p, false);
+    if (this.guideWait) { const g = this.guideWait; await this.run(async () => { await this.ui.say(this.heroId(), g.say, {}); }); return; }
+    const end = await this.ui.walk(this.heroId(), p, false);
     if (end) { this.state.hero[this.state.room] = end; this.save(); }
   }
 
@@ -337,7 +412,7 @@ export class Engine {
   private faceTowards(id: Id, room: RoomDef) {
     const x = this.centerX(id, room);
     const hx = this.state.hero[room.id]?.[0];
-    if (x !== null && hx !== undefined) this.ui.face(this.game.hero, x < hx ? 'left' : 'right');
+    if (x !== null && hx !== undefined) this.ui.face(this.heroId(), x < hx ? 'left' : 'right');
   }
 
   // ------------------------------------------------------------------ resolution
@@ -360,6 +435,12 @@ export class Engine {
     const kind = this.findKind(verb, a, b, room);
     if (kind) { await this.say(HERO, kind, ctx); return 'kind'; }
     if (verb === 'give' && b) {
+      // Another playable character takes the item into their own inventory.
+      if (this.isPlayer(b) && b !== this.heroId() && this.state.inventory.includes(a) && !this.game.players?.sharedInventory) {
+        this.transfer(a, b);
+        await this.say(HERO, this.fill(this.game.players?.give ?? 'Here, {nom}: the {objet}.', a, b), ctx);
+        return 'rule';
+      }
       const char = room.actors?.[b]?.char;
       const refuse = char ? this.game.characters[char]?.refuse : undefined;
       if (refuse) { await this.say(char!, this.fill(refuse, a, b), ctx); return 'refuse'; }
@@ -421,7 +502,7 @@ export class Engine {
     const room = ctx.room;
     const hints = room.hints ?? [];
     const idx = hints.findIndex((h) => !check(h.until, this.state, room.id));
-    const voice = this.game.hintVoice ?? this.game.hero;
+    const voice = this.game.hintVoice ?? this.heroId();
     if (idx < 0) { await this.say(voice, this.fallback('talk', this.game.hintItem!), ctx); return; }
     await this.say(voice, this.pickLine(`hint.${room.id}.${idx}`, hints[idx].lines), ctx);
   }
@@ -603,7 +684,7 @@ export class Engine {
       const who = this.who(c.who ?? HERO);
       const end = await this.ui.walk(who, this.point(c.walk, room), ctx.fast);
       if (end) {
-        if (who === this.game.hero) s.hero[room.id] = end;
+        if (who === this.heroId()) s.hero[room.id] = end;
         else s.actors[this.actorKey(who, room)] = { ...s.actors[this.actorKey(who, room)], x: end[0], y: end[1] };
       }
       return;
@@ -611,7 +692,7 @@ export class Engine {
     if ('place' in c) {
       const who = this.who(c.place[0]);
       this.ui.place(who, c.place[1], c.face);
-      if (who === this.game.hero) s.hero[room.id] = c.place[1];
+      if (who === this.heroId()) s.hero[room.id] = c.place[1];
       else s.actors[this.actorKey(who, room)] = { ...s.actors[this.actorKey(who, room)], x: c.place[1][0], y: c.place[1][1], ...(c.face ? { facing: c.face } : {}) };
       return;
     }
@@ -620,17 +701,17 @@ export class Engine {
       let dir = c.face as 'left' | 'right';
       if (c.face !== 'left' && c.face !== 'right') {
         const x = this.centerX(c.face, room);
-        const me = who === this.game.hero ? s.hero[room.id]?.[0] : this.centerX(who, room);
+        const me = who === this.heroId() ? s.hero[room.id]?.[0] : this.centerX(who, room);
         dir = x !== null && me !== undefined && me !== null && x < me ? 'left' : 'right';
       }
       this.ui.face(who, dir);
-      if (who !== this.game.hero) s.actors[this.actorKey(who, room)] = { ...s.actors[this.actorKey(who, room)], facing: dir };
+      if (who !== this.heroId()) s.actors[this.actorKey(who, room)] = { ...s.actors[this.actorKey(who, room)], facing: dir };
       return;
     }
     if ('pose' in c) {
       const who = this.who(c.pose[0]);
       this.ui.pose(who, c.pose[1]);
-      if (who !== this.game.hero) s.actors[this.actorKey(who, room)] = { ...s.actors[this.actorKey(who, room)], pose: c.pose[1] };
+      if (who !== this.heroId()) s.actors[this.actorKey(who, room)] = { ...s.actors[this.actorKey(who, room)], pose: c.pose[1] };
       return;
     }
     if ('anim' in c) {
@@ -746,6 +827,15 @@ export class Engine {
       return;
     }
     if ('stopScript' in c) { this.scriptState(c.stopScript).off = true; return; }
+    if ('switchPlayer' in c) {
+      if (!this.isPlayer(c.switchPlayer)) throw new Error(`not a playable character: ${c.switchPlayer}`);
+      if (c.switchPlayer === this.heroId()) return;
+      await this.swap(c.switchPlayer);
+      await this.enter(s.room, undefined, false);
+      this.startScripts(true);
+      return;
+    }
+    if ('transfer' in c) { this.transfer(c.transfer[0], c.transfer[1]); return; }
     if ('sfx' in c) { if (!ctx.fast) this.ui.sfx(c.sfx); return; }
     if ('music' in c) { this.ui.music(typeof c.music === 'string' ? { play: c.music } : c.music); return; }
     if ('toast' in c) { this.ui.toast(c.toast); return; }

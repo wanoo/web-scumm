@@ -77,7 +77,7 @@ export class RoomView {
     Object.assign(this.el.style, { position: 'absolute', inset: '0' });
   }
 
-  get heroId() { return this.engine.game.hero; }
+  get heroId() { return this.engine.heroId(); }
 
   resize(u: number) {
     this.u = u;
@@ -118,7 +118,7 @@ export class RoomView {
     const s = this.engine.state;
     const ids = new Set<Id>([room.decor]);
     for (const [id, p] of Object.entries(room.props ?? {})) { if (p.img) ids.add(p.img); Object.values(p.states ?? {}).forEach((x) => ids.add(x)); void id; }
-    const chars = new Set<Id>([this.heroId, ...Object.values(room.actors ?? {}).map((a) => a.char)]);
+    const chars = new Set<Id>([this.heroId, ...Object.values(room.actors ?? {}).map((a) => a.char), ...Object.keys(this.engine.guests(room))]);
     for (const c of chars) {
       const def = this.engine.game.characters[c];
       for (const set of [def?.sprites, ...(def?.variants ?? []).map((v) => v.sprites)]) for (const frames of Object.values(set ?? {})) frames.forEach((f) => ids.add(f));
@@ -155,7 +155,13 @@ export class RoomView {
       e.visible = this.engine.visible(id, room);
       void def;
     }
+    // Inactive playable characters standing here (no actor declared for them): drawn at their saved position.
+    for (const [id, g] of Object.entries(this.engine.guests(room))) {
+      const char = this.engine.character(g.char);
+      this.add({ id, kind: 'actor', x: g.at[0], y: g.at[1], h: char?.height ?? this.engine.game.skin?.heights?.hero ?? 84, flip: g.at[0] > 320, charId: g.char, pose: 'idle', scaleWithDepth: true, visible: true });
+    }
     for (const [id, a] of Object.entries(room.actors ?? {})) {
+      if (a.char === this.heroId) continue; // the active player is the hero entity, not this actor
       const L = this.layout.actors?.[id];
       const o = s.actors[`${room.id}.${id}`] ?? {};
       const char = this.engine.character(a.char);

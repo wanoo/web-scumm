@@ -252,6 +252,23 @@ Une réplique reste à l'écran le temps de la lire, ou jusqu'à un tap.
 | `{ seen: 'maison.grandmere.0' }` | le sujet n° 0 de Grand-mère à la maison a déjà été entendu. |
 | `{ actorIn: ['grandpere', 'maison'] }` | le personnage mobile est dans ce lieu (voir « Le monde vit »). |
 
+## Plusieurs personnages jouables
+
+```ts
+hero: 'bernard',
+players: { ids: ['bernard', 'hoagie', 'laverne'], start: { hoagie: { room: 'labo_passe' }, laverne: { room: 'labo_futur' } },
+  give: 'Tiens, {nom} : {objet}.' },
+```
+
+Chaque personnage jouable a son lieu, sa position et son sac (`sharedInventory: true` pour un sac commun). Le héros
+est celui contrôlé en premier. Un bouton par autre personnage se trouve dans la rangée d'outils (son portrait, ou son
+initiale) : le toucher, c'est `{ switchPlayer: 'hoagie' }`, la vue passe dans son lieu. Un personnage inactif présent
+dans le lieu est dessiné et on peut lui **donner** un objet : il va dans son sac (`{ transfer: ['hamster', 'laverne'] }`
+fait pareil depuis un script). La condition `{ player: 'laverne' }` dit qui agit ; `'hero'` dans les commandes désigne
+toujours l'actif. Si un lieu déclare un acteur pour un personnage jouable, cet acteur le représente quand il est inactif
+(poses, sujets de conversation) ; il n'est pas dessiné deux fois. Les checkpoints acceptent `active` et
+`players: { id: { room, inventory } }`. Le solveur change de personnage comme le joueur (« Switch to hoagie » dans son chemin).
+
 ## Mise en scène : lieux larges, animations, voix, réglages
 
 ### Lieux larges et caméra

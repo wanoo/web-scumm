@@ -74,6 +74,14 @@ export class DevPanel {
       void this.run(() => eng.script([{ set: [nf.name, v] }]));
     });
 
+    if (game.players) {
+      const pf = pane.addFolder({ title: 'Players', expanded: false });
+      for (const pid of eng.playerIds()) {
+        const p = eng.state.players?.[pid];
+        pf.addButton({ title: `${pid === eng.heroId() ? '▶ ' : ''}${pid}${p ? ` (${p.room}, ${p.inventory.length} items)` : ''}` })
+          .on('click', () => void this.run(() => eng.switchTo(pid)));
+      }
+    }
     const where = eng.state.where ?? {};
     if (Object.keys(where).length) {
       const wf = pane.addFolder({ title: 'World', expanded: false });

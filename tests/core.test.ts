@@ -677,3 +677,107 @@ describe('picture: camera, prop animations, frame events, voice', () => {
     expect(r.finished).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Cast: several playable characters.
+// ---------------------------------------------------------------------------
+
+function cast(): GameDef {
+  return {
+    id: 'cast', title: 'Cast', saveVersion: 1, hero: 'ann',
+    players: { ids: ['ann', 'bob'], start: { bob: { room: 'cellar', inventory: ['rope'] } }, give: 'Take this, {nom}: the {objet}.' },
+    verbs: [{ id: 'look', label: 'Look', color: '#fff' }, { id: 'use', label: 'Use', color: '#fff', join: 'with' }, { id: 'give', label: 'Give', color: '#fff', join: 'to' }, { id: 'take', label: 'Take', color: '#fff' }],
+    characters: {
+      ann: { name: 'Ann', color: '#fff', sprites: { idle: ['a/1'] } },
+      bob: { name: 'Bob', color: '#0ff', sprites: { idle: ['b/1'] } },
+    },
+    items: { rope: { name: 'rope', icon: 'i/rope', look: 'A rope.' }, key: { name: 'key', icon: 'i/key', look: 'A key.' } },
+    rooms: [
+      { id: 'hall', name: 'Hall', decor: 'd/hall', hotspots: { hook: { name: 'hook' }, hatch: { name: 'hatch' } }, look: { hook: 'A hook.', hatch: 'A hatch.' },
+        on: [
+          { verb: 'use', a: 'rope', b: 'hook', do: [{ lose: 'rope' }, { set: 'rope_tied' }] },
+          { verb: 'use', a: 'hatch', if: 'rope_tied', do: [{ goto: 'cellar' }] },
+        ], hints: [{ until: 'rope_tied', lines: ['Bob has the rope.'] }] },
+      { id: 'cellar', name: 'Cellar', decor: 'd/cellar', hotspots: { chest: { name: 'chest' }, ladder: { name: 'ladder' } }, look: { chest: 'A chest.', ladder: 'A ladder.' },
+        on: [
+          { verb: 'take', a: 'chest', if: { player: 'bob' }, do: [{ gain: 'key' }, 'Bob opens it.'] },
+          { verb: 'take', a: 'chest', do: ['Too heavy for Ann.'] },
+          { verb: 'use', a: 'ladder', do: [{ goto: 'hall' }] },
+          { verb: 'use', a: 'key', b: 'chest', if: { player: 'ann' }, do: ['Ann wins.', { end: true }] },
+        ], hints: [{ until: 'never', lines: ['The chest.'] }] },
+    ],
+    rules: { fallbacks: { look: ['Nothing.'], use: ['No.'], give: ['No.'], take: ['No.'], use2: ['No.'] } },
+    start: { room: 'hall' },
+    checkpoints: { bobhome: { room: 'cellar', active: 'bob', inventory: ['rope'], players: { ann: { room: 'hall' } } } },
+    skin: { icons: { map: 'ui/map', pause: 'ui/pause', music: 'ui/music' } },
+    ui: {} as GameDef['ui'],
+  };
+}
+const castLayouts: Record<string, Layout> = {
+  hall: { entries: { default: [320, 360] }, hotspots: { hook: { rect: [10, 10, 50, 50] }, hatch: { rect: [100, 10, 50, 50] } } },
+  cellar: { entries: { default: [200, 360] }, hotspots: { chest: { rect: [10, 10, 50, 50] }, ladder: { rect: [100, 10, 50, 50] } } },
+};
+
+describe('cast: several playable characters', () => {
+  it('each player has a room, position and inventory; switching brings theirs up', async () => {
+    const ui = new FakePresenter();
+    const e = new Engine(cast(), castLayouts, ui, new MemoryStore());
+    await e.newGame();
+    expect(e.heroId()).toBe('ann');
+    expect(e.state.players).toEqual({ bob: { room: 'cellar', inventory: ['rope'], hero: {} } });
+    await e.walkTo([100, 350]);
+    await e.switchTo('bob');
+    expect(e.heroId()).toBe('bob');
+    expect(e.state.room).toBe('cellar');
+    expect(e.state.inventory).toEqual(['rope']);
+    expect(e.state.players).toEqual({ ann: { room: 'hall', inventory: [], hero: { hall: [100, 350] }, used: undefined } });
+    expect(ui.log).toContain('enter cellar');
+    expect(check({ player: 'bob' }, e.state)).toBe(true);
+    expect(await e.act({ verb: 'take', a: 'chest' })).toBe('rule');
+    expect(e.state.inventory).toEqual(['rope', 'key']);
+    await e.switchTo('ann');
+    expect(e.state.room).toBe('hall');
+    expect(e.state.hero.hall).toEqual([100, 350]);
+    expect(e.state.inventory).toEqual([]);
+  });
+
+  it('an inactive player standing in the room is a target: giving them an item transfers it', async () => {
+    const ui = new FakePresenter();
+    const e = new Engine(cast(), castLayouts, ui, new MemoryStore());
+    await e.checkpoint('bobhome');
+    expect(e.heroId()).toBe('bob');
+    await e.act({ verb: 'use', a: 'ladder' });
+    expect(e.state.room).toBe('hall');
+    expect(e.targets()).toEqual(['hook', 'hatch', 'ann']);
+    expect(e.nameOf('ann')).toBe('Ann');
+    expect(await e.act({ verb: 'give', a: 'rope', b: 'ann' })).toBe('rule');
+    expect(ui.log.at(-1)).toBe('bob: Take this, Ann: the rope.');
+    expect(e.state.inventory).toEqual([]);
+    expect(e.state.players!.ann.inventory).toEqual(['rope']);
+    await e.script([{ switchPlayer: 'ann' }]);
+    expect(e.state.inventory).toEqual(['rope']);
+    expect(e.targets()).toEqual(['hook', 'hatch', 'bob']);
+    await e.script([{ transfer: ['rope', 'bob'] }]);
+    expect(e.state.inventory).toEqual([]);
+    expect(e.state.players!.bob.inventory).toEqual(['rope']);
+  });
+
+  it('the solver switches characters to finish the game; the validator checks the cast', async () => {
+    const r = await solve(cast(), castLayouts, { maxStates: 2000 });
+    expect(r.finished).toBe(true);
+    expect(r.path).toContain('Switch to bob');
+    expect(r.path.at(-1)).toBe('Use key with chest');
+    expect(validate(cast(), castLayouts).errors).toEqual([]);
+    const g = cast();
+    g.players!.ids = ['ann', 'zed'];
+    g.rooms[0].on!.push({ verb: 'look', a: 'hook', do: [{ switchPlayer: 'bob' }, { transfer: ['key', 'bob'] }] });
+    expect(validate(g, castLayouts).errors).toEqual([
+      'players › unknown character: "zed"',
+      'players.start.bob › not a playable character',
+      'hall.on[2][0] › "bob" is not a playable character (players.ids)',
+      'hall.on[2][1] › "bob" is not a playable character (players.ids)',
+      'cellar.on[0] › "bob" is not a playable character (players.ids)',
+      'checkpoints.bobhome › "bob" is not a playable character',
+    ]);
+  });
+});

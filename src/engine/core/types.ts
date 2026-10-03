@@ -22,6 +22,7 @@ export type Point = [number, number];
  * - `{ unlocked: 'place' }`: the place is unlocked on the map.
  * - `{ seen: 'room.actor.0' }`: the conversation topic has already been heard.
  * - `{ actorIn: ['grandpa', 'garden'] }`: the character is in that room (one that moves: `CharacterDef.room`, `moveActor`).
+ * - `{ player: 'laverne' }`: this character is the one the player controls now (`GameDef.players`).
  */
 export type Cond =
   | string
@@ -35,7 +36,8 @@ export type Cond =
   | { prop: [Id, string] }
   | { unlocked: Id }
   | { seen: string }
-  | { actorIn: [Id, Id] };
+  | { actorIn: [Id, Id] }
+  | { player: Id };
 
 // ---------------------------------------------------------------------------
 // Script commands
@@ -101,6 +103,11 @@ export type Cmd =
   | { waitUntil: Cond }
   /** In a script: pause until the event is emitted. */
   | { waitEvent: Id }
+  // --- several playable characters (GameDef.players)
+  /** The player now controls this character: the view moves to their room, their inventory shows. */
+  | { switchPlayer: Id }
+  /** Hands an item of the active character to another playable character (their own inventory). */
+  | { transfer: [Id, Id] }
   /** Starts a script from its first command (again, if it was done or stopped). */
   | { startScript: Id }
   /** Stops a script; `startScript` brings it back. */
@@ -513,6 +520,20 @@ export interface GameDef {
   /** Save format version. Bump it if the content changes incompatibly. */
   saveVersion: number;
   hero: Id;
+  /**
+   * Several playable characters (Day of the Tentacle style). `hero` is the one controlled first. Each has their own
+   * room, position and inventory (unless `sharedInventory`); `{ switchPlayer }`, the switch buttons and `{ transfer }`
+   * move between them. A character declared as an actor in a room stands for that player there when they are not
+   * active; otherwise the engine shows the inactive players standing where they are.
+   */
+  players?: {
+    ids: Id[];
+    sharedInventory?: boolean;
+    /** Where the others start (default: the start room, nothing in hand). */
+    start?: Record<Id, { room: Id; inventory?: Id[] }>;
+    /** Line said when an item is handed to another player with no written rule ({objet}, {nom}). Default English. */
+    give?: string;
+  };
   /** Inventory item that gives hints when talked to. */
   hintItem?: Id;
   /** Character who speaks during hints (often the plush toy, offscreen). */
@@ -543,7 +564,10 @@ export interface GameDef {
     /** Where the moving characters are (character → room); the others are in their starting room. */
     where?: Record<Id, Id>;
     /** Conditions that must all hold when the chapter ending here is done (solver `--chapters`). */
-    goals?: Cond[] }>;
+    goals?: Cond[];
+    /** Several playable characters: who is active, and where the others are. */
+    active?: Id;
+    players?: Record<Id, { room: Id; inventory?: Id[] }> }>;
   /** Conditions that must never become true (the solver reports the path that makes one true). */
   invariants?: Cond[];
   /** Manual save slots (pause menu: save, load, export, import). Absent or 0: autosave only. */
@@ -707,6 +731,10 @@ export interface GameState {
   scripts?: Record<Id, { pc: number; done?: boolean; off?: boolean }>;
   /** Camera of the current room: left edge x, or following the hero. */
   camera?: { x: number; follow: boolean };
+  /** The character the player controls (`GameDef.players`; otherwise `hero`). */
+  active?: Id;
+  /** The other playable characters: their room, positions and inventory (the active one lives in the flat fields). */
+  players?: Record<Id, { room: Id; inventory: Id[]; hero: Record<Id, Point>; used?: Id[] }>;
   started: number;
   done?: boolean;
 }

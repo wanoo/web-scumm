@@ -194,6 +194,28 @@
        "text": "Locked. I need the key."
       }
      ]
+    },
+    {
+     "id": "house-6",
+     "title": "Biscuit, playable (switch)",
+     "action": "Switch to Biscuit (bag button), use teacup",
+     "sfx": [
+      "glass"
+     ],
+     "lines": [
+      {
+       "who": "stage",
+       "text": "A second playable cat: the switch button next to the map. Biscuit has his own bag; Pixel can give him things."
+      },
+      {
+       "who": "hero",
+       "text": "Lukewarm tea. Biscuit approves."
+      },
+      {
+       "who": "hero",
+       "text": "Empty. Biscuit regrets nothing."
+      }
+     ]
     }
    ],
    "hints": [
@@ -359,6 +381,19 @@
       {
        "who": "hero",
        "text": "He is \"guarding the pantry\". With his eyes closed."
+      }
+     ]
+    },
+    {
+     "action": "Look at Pixel (as Biscuit)",
+     "lines": [
+      {
+       "who": "hero",
+       "text": "Pixel. Smaller than me. Faster than me. Fine."
+      },
+      {
+       "who": "hero",
+       "text": "My little brother. Still planning. Always planning."
       }
      ]
     }

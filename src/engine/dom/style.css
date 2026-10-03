@@ -121,3 +121,8 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 
 /* Settings: text size */
 .scene .speech, .scene .narr, .side .transcript, .side .choices { font-size: calc(1em * var(--text-scale, 1)); }
+
+/* Several playable characters: switch buttons in the tools row */
+.tool.player[hidden] { display: none; }
+.tool.player img { border-radius: 50%; object-fit: cover; }
+.tool.player span { font-family: var(--font-pixel); font-size: .9em; color: #ffd640; }

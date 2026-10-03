@@ -121,7 +121,7 @@ Files: `src/engine/core/types.ts` (Layout, PropDef, Cmd), `src/engine/dom/room.t
   font (provided by the game in `skin.fonts`), music / sfx / voice volumes. Stored outside the save.
 - **Demo**: a wider market (1.5 screens) with camera follow; the pantry door animated with an `sfx` on frame 3.
 
-### M4 — "Cast" (v1.6): several playable characters
+### M4 — "Cast" (v1.6, shipped): several playable characters
 
 Files: `types.ts`, `engine.ts`, state, `dom/app.ts` (inventory, switch button), `solve.ts`, `validate.ts`, `migrate.ts`.
 

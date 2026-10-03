@@ -124,6 +124,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       else if ('prop' in x) propRef(x.prop[0], x.prop[1], where, room);
       else if ('unlocked' in x) { if (!places[x.unlocked]) err(where, `unknown map place: "${x.unlocked}"`); }
       else if ('actorIn' in x) mover(x.actorIn[0], x.actorIn[1], where);
+      else if ('player' in x) { if (!playerIds.includes(x.player)) err(where, `"${x.player}" is not a playable character (players.ids)`); }
     };
     visit(c);
   };
@@ -142,6 +143,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   };
 
   const whoOk = (w: Id, room?: RoomDef) => w === HERO || !!chars[w] || !!room?.actors?.[w];
+  const playerIds = game.players?.ids ?? [game.hero];
 
   // ------------------------------------------------------------ commands
   let inScript = false;
@@ -225,6 +227,12 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     if ('waitEvent' in c) { if (!waited.has(c.waitEvent)) waited.set(c.waitEvent, where); if (!inScript) warn(where, 'waitEvent outside the top level of a script does nothing'); return; }
     if ('startScript' in c) { scriptRefs.push([c.startScript, where]); return; }
     if ('stopScript' in c) { scriptRefs.push([c.stopScript, where]); return; }
+    if ('switchPlayer' in c) { if (!playerIds.includes(c.switchPlayer)) err(where, `"${c.switchPlayer}" is not a playable character (players.ids)`); return; }
+    if ('transfer' in c) {
+      if (!items[c.transfer[0]]) err(where, `unknown item: "${c.transfer[0]}"`);
+      if (!playerIds.includes(c.transfer[1])) err(where, `"${c.transfer[1]}" is not a playable character (players.ids)`);
+      return;
+    }
     if ('sfx' in c) { if (!sfx[c.sfx]) err(where, `unknown sound effect: "${c.sfx}"`); return; }
     if ('music' in c) {
       const m = c.music;
@@ -353,6 +361,19 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
 
   // ------------------------------------------------------------ game
   if (!chars[game.hero]) err('game', `unknown hero: "${game.hero}"`);
+  if (game.players) {
+    const P = game.players;
+    if (!P.ids?.length) err('players', 'no ids');
+    for (const id of P.ids ?? []) if (!chars[id]) err('players', `unknown character: "${id}"`);
+    if (!P.ids?.includes(game.hero)) err('players', `the hero "${game.hero}" must be one of players.ids`);
+    for (const [id, st] of Object.entries(P.start ?? {})) {
+      if (!P.ids?.includes(id)) err(`players.start.${id}`, 'not a playable character');
+      if (!rooms.has(st.room)) err(`players.start.${id}`, `unknown room: "${st.room}"`);
+      for (const i of st.inventory ?? []) if (!items[i]) err(`players.start.${id}`, `unknown item: "${i}"`);
+    }
+    text(P.give, 'players.give');
+    for (const id of P.ids ?? []) if (id !== game.hero && !chars[id]?.sprites?.idle && !chars[id]?.offscreen) warn('players', `"${id}" has no idle sprite: nothing to draw when they stand in a room`);
+  }
   if (game.hintItem && !items[game.hintItem]) err('game', `unknown hint item: "${game.hintItem}"`);
   if (game.hintVoice && !chars[game.hintVoice]) err('game', `unknown hint voice: "${game.hintVoice}"`);
   if (!rooms.has(game.start.room)) err('start', `unknown start room: "${game.start.room}"`);
@@ -490,7 +511,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     const named = [...Object.keys(r.hotspots ?? {}), ...Object.entries(r.props ?? {}).filter(([, p]) => p.name).map(([k]) => k), ...Object.entries(r.actors ?? {}).filter(([, a]) => a.interactive !== false).map(([k]) => k)];
     for (const id of named) if (!r.look?.[id] && !(r.on ?? []).some((x) => ids(x.verb as Id | Id[]).includes('look') && ids(x.a).includes(id))) warn(`${w}.look`, `"${id}" has no text for Look (fallback response)`);
     for (const [k, t] of Object.entries(r.look ?? {})) {
-      if (!ents.has(k) && !items[k]) err(`${w}.look.${k}`, `"${k}" does not exist in the room`);
+      if (!ents.has(k) && !items[k] && !(game.players && playerIds.includes(k))) err(`${w}.look.${k}`, `"${k}" does not exist in the room`);
       texts(t, `${w}.look.${k}`);
     }
     (r.on ?? []).forEach((x, i) => rule(x, `${w} › on[${i}]`.replace(`${w} › `, `${w}.`), r));
@@ -554,6 +575,12 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     for (const p of c.unlocked ?? []) if (!places[p]) err(w, `unknown map place: "${p}"`);
     for (const [k, st] of Object.entries(c.props ?? {})) propRef(k, st, w);
     for (const [ch, rid] of Object.entries(c.where ?? {})) mover(ch, rid, `${w}.where`);
+    if (c.active && !playerIds.includes(c.active)) err(w, `"${c.active}" is not a playable character`);
+    for (const [pid, p] of Object.entries(c.players ?? {})) {
+      if (!playerIds.includes(pid)) err(`${w}.players`, `"${pid}" is not a playable character`);
+      if (!rooms.has(p.room)) err(`${w}.players.${pid}`, `unknown room: "${p.room}"`);
+      for (const i of p.inventory ?? []) if (!items[i]) err(`${w}.players.${pid}`, `unknown item: "${i}"`);
+    }
   }
 
   // Events and scripts

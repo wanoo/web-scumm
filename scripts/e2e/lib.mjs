@@ -206,7 +206,7 @@ export async function launch(url, opts = {}) {
   }
 
   async function openMap() {
-    await page.locator('.tools .tool').first().tap(); // the map tool is always the first (see src/engine/dom/app.ts)
+    await page.locator('.tools .tool:not(.player)').first().tap(); // the map tool is always the first (see src/engine/dom/app.ts)
     for (let i = 0; i < 50; i++) { if ((await state()).map) return; await page.waitForTimeout(80); }
     throw new Error('openMap: the map did not open');
   }
@@ -268,6 +268,8 @@ export async function launch(url, opts = {}) {
       if (m) return { kind: 'travel', place: m[1].trim() };
       m = t.match(/^Script (.+)$/);
       if (m) return { kind: 'script', id: m[1].trim() };
+      m = t.match(/^Switch to (.+)$/);
+      if (m) return { kind: 'switch', id: m[1].trim() };
       const vb = vbs.find((v) => t === v.label || t.startsWith(v.label + ' '));
       if (!vb) return { kind: 'raw', label: t };
       const rest = t.slice(vb.label.length).trim();
@@ -309,6 +311,7 @@ export async function launch(url, opts = {}) {
       if (a.kind === 'talk') { await verbById('talk'); await target(a.actor); await endConversationIfOpen(await say(a.topic)); }
       else if (a.kind === 'travel') { await openMap(); await say(a.place); }
       else if (a.kind === 'script') { await waitScript(a.id); }
+      else if (a.kind === 'switch') { await page.locator(`.tools .tool.player[data-player="${a.id}"]`).tap(); await waitIdle(); }
       else {
         await verbById(a.verb); await target(a.a); if (a.b) await target(a.b);
         await endConversationIfOpen(await waitIdle());
