@@ -108,12 +108,13 @@ describe('import-layout', () => {
     expect(layoutsFromExport(l, 'garden.json')).toEqual([{ room: 'garden', layout: l }]);
   });
 
-  it('merges only the keys present and keeps the rest', () => {
+  it('replaces exported entities, keeps the others and the keys not exported', () => {
     const base = { floor: 390, props: { lamp: { x: 1, y: 2, h: 3, z: 9 }, box: { x: 5, y: 5, h: 5 } }, entries: { default: [1, 1] as [number, number] } };
     const { layout, changes } = mergeLayout(base, { props: { lamp: { x: 10, y: 2, h: 3 } }, hotspots: { door: { rect: [0, 0, 10, 10] } } });
-    expect(layout).toEqual({ floor: 390, props: { lamp: { x: 10, y: 2, h: 3, z: 9 }, box: { x: 5, y: 5, h: 5 } }, entries: { default: [1, 1] },
+    // The page exports complete entities: a `z` removed on the page is removed here (no silent merge back).
+    expect(layout).toEqual({ floor: 390, props: { lamp: { x: 10, y: 2, h: 3 }, box: { x: 5, y: 5, h: 5 } }, entries: { default: [1, 1] },
       hotspots: { door: { rect: [0, 0, 10, 10] } } });
-    expect(changes).toEqual(['~ props.lamp: x 1 → 10', '+ hotspots.door {"rect":[0,0,10,10]}']);
+    expect(changes).toEqual(['~ props.lamp: x 1 → 10, z 9 → —', '+ hotspots.door {"rect":[0,0,10,10]}']);
   });
 
   it('writes the merged layout and is idempotent', () => {

@@ -85,6 +85,6 @@ name), one database document (`{ "room", "layout" }`), or a list of documents as
 (`[{ "id", "data": { "room", "layout" } }]`).
 
 Only keys present in the export change: `hotspots`, `props`, `actors` and `entries` are merged id by id (each object
-shallow-merged), `walk`, `scale` and `floor` are replaced when present. Removals made on the page ("Unplace", "Remove
+each exported entity replaces the stored one), `walk`, `scale` and `floor` are replaced when present. Removals made on the page ("Unplace", "Remove
 approach") are therefore not imported: delete those keys by hand or in the in-game editor. The command prints every
 change (`+` added, `~` changed). Then run `npm run validate` and look at the room (`?dev&at=<checkpoint>`).

@@ -6,7 +6,7 @@
 //   [ { "room", "layout" } | { "id", "data": { "room", "layout" } }, … ]   a list of db documents (ArtifactData list)
 //   Layout                                           "Export room": the room is the file name (<room>.json)
 // Merge rule: only keys present in the export change. `hotspots`, `props`, `actors` and `entries` merge id by id
-// (each object shallow-merged, so keys the page does not edit, like `states`, `z` or `rot`, are kept);
+// (each exported entity replaces the stored one; the page keeps the keys it does not edit, like `states`);
 // `walk`, `scale` and `floor` are replaced when present. Prints what changed. --dry prints without writing.
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
@@ -39,8 +39,9 @@ export function layoutsFromExport(json: unknown, fileName = ''): { room: string;
   return out;
 }
 
-const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
-const short = (v: unknown) => { const s = JSON.stringify(v); return s.length > 60 ? s.slice(0, 57) + '…' : s; };
+const canon = (v: unknown): unknown => Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v as Obj).sort().map((k) => [k, canon((v as Obj)[k])])) : v;
+const same = (a: unknown, b: unknown) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
+const short = (v: unknown) => { const s = JSON.stringify(v) ?? '—'; return s.length > 60 ? s.slice(0, 57) + '…' : s; };
 
 /** Merges `patch` into `base` (both untouched) and lists the changes as readable lines. */
 export function mergeLayout(base: Layout, patch: Layout): { layout: Layout; changes: string[] } {
@@ -52,7 +53,9 @@ export function mergeLayout(base: Layout, patch: Layout): { layout: Layout; chan
       const map = (res[key] ??= {}) as Obj;
       for (const [id, v] of Object.entries(val as Obj)) {
         const before = map[id];
-        const after = key === 'entries' || Array.isArray(v) || !before || typeof before !== 'object' ? v : { ...(before as Obj), ...(v as Obj) };
+        // An entity exported by the placement page is complete (it keeps the keys it does not edit), so it replaces
+        // the stored one: a flag or a `z` removed on the page is removed here too.
+        const after = v;
         if (same(before, after)) continue;
         map[id] = after;
         if (before === undefined) changes.push(`+ ${key}.${id} ${short(after)}`);
