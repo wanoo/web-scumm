@@ -236,8 +236,8 @@ const fills: Record<PuzzleKind, string> = {
 export function toPuzzleSvg(g: PuzzleGraph): string {
   const nodes: SvgNode[] = g.nodes.map((n) => ({ id: n.id, label: n.label, sub: STATE_KINDS.has(n.kind) ? n.kind : n.where, fill: fills[n.kind], stroke: STATE_KINDS.has(n.kind) ? '#999' : '#333', title: n.id, href: n.id }));
   const edges: SvgEdge[] = g.edges.map((e) => ({ from: e.from, to: e.to, dashed: e.kind === 'reads' || e.kind === 'consumes', color: e.kind === 'produces' ? '#2a7' : e.kind === 'consumes' ? '#c33' : '#888', title: `${e.from} ${e.kind} ${e.to}${e.detail ? ` (${e.detail})` : ''}` }));
-  const roots = g.nodes.filter((n) => n.id === 'rule:game/start' || (STATE_KINDS.has(n.kind) && !g.edges.some((e) => e.to === n.id && e.kind === 'produces'))).map((n) => n.id);
-  return layeredSvg(nodes, edges, { roots, width: 170 });
+  const roots = g.nodes.filter((n) => n.id === 'rule:game/start' || !g.edges.some((e) => e.to === n.id)).map((n) => n.id);
+  return layeredSvg(nodes, edges, { roots, width: 170, layering: 'longest' });
 }
 
 /** The graph in DOT (Graphviz) form. */

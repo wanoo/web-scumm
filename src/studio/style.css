@@ -405,7 +405,8 @@ button.danger { border-color: #a33a44; color: #ffb3b3; }
 .dtree ul { list-style: none; margin: 0; padding-left: 14px; border-left: 1px dashed rgba(128,128,128,.5); }
 .dtree > ul { padding-left: 0; border-left: 0; }
 .dtree li { margin: 3px 0; font-size: 13px; }
-.dtree .dnode.link { cursor: pointer; text-decoration: underline dotted; }
+.dtree .dnode.link { cursor: pointer; }
+.dtree .dnode.link:hover { text-decoration: underline dotted; }
 .dtree .d-topic > .dnode { font-weight: 600; }
 .dtree .d-line > .dnode { opacity: .9; }
 .dtree .d-option > .dnode, .dtree .d-choice > .dnode { color: #b9a6ff; }

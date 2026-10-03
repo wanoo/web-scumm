@@ -5,21 +5,36 @@ export interface SvgEdge { from: string; to: string; dashed?: boolean; title?: s
 
 export const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
-/** `roots`: the nodes of the first column (default: those no edge leads to, else the first node). */
-export function layeredSvg(nodes: SvgNode[], edges: SvgEdge[], opts: { roots?: string[]; width?: number; height?: number; font?: number } = {}): string {
+/**
+ * `roots`: the nodes of the first column (default: those no edge leads to, else the first node); nodes no root reaches
+ * start their own column 0. `layering`: `bfs` puts a node at its distance from the roots (the world map);
+ * `longest` at the length of the longest chain leading to it (a puzzle graph: chains spread out instead of piling up).
+ */
+export function layeredSvg(nodes: SvgNode[], edges: SvgEdge[], opts: { roots?: string[]; width?: number; height?: number; font?: number; layering?: 'bfs' | 'longest' } = {}): string {
   const ids = new Set(nodes.map((n) => n.id));
   const W = opts.width ?? 150, H = opts.height ?? 44, GX = 70, GY = 22, F = opts.font ?? 12;
   const hasIn = new Set(edges.filter((e) => ids.has(e.from) && ids.has(e.to) && e.from !== e.to).map((e) => e.to));
   let roots = opts.roots?.filter((r) => ids.has(r)) ?? nodes.filter((n) => !hasIn.has(n.id)).map((n) => n.id);
   if (!roots.length && nodes.length) roots = [nodes[0].id];
-  const dist = new Map<string, number>(roots.map((r) => [r, 0]));
-  const queue = [...roots];
-  while (queue.length) {
-    const cur = queue.shift()!;
-    for (const e of edges) if (e.from === cur && ids.has(e.to) && !dist.has(e.to)) { dist.set(e.to, dist.get(cur)! + 1); queue.push(e.to); }
+  // Discovery order from the roots (then from whatever is left), and the distance from them.
+  const dist = new Map<string, number>();
+  const order: string[] = [];
+  const discover = (starts: string[]) => {
+    const queue = starts.filter((r) => !dist.has(r));
+    for (const r of queue) dist.set(r, 0);
+    while (queue.length) {
+      const cur = queue.shift()!;
+      order.push(cur);
+      for (const e of edges) if (e.from === cur && ids.has(e.to) && !dist.has(e.to)) { dist.set(e.to, dist.get(cur)! + 1); queue.push(e.to); }
+    }
+  };
+  discover(roots);
+  for (const n of nodes) if (!dist.has(n.id)) { discover(nodes.filter((x) => !dist.has(x.id) && !hasIn.has(x.id)).map((x) => x.id)); if (!dist.has(n.id)) discover([n.id]); }
+  if (opts.layering === 'longest') {
+    // Longest path over the edges that go forward in discovery order (the others close cycles).
+    const idx = new Map(order.map((id, i) => [id, i]));
+    for (const id of order) for (const e of edges) if (e.from === id && ids.has(e.to) && idx.get(e.to)! > idx.get(id)!) dist.set(e.to, Math.max(dist.get(e.to)!, dist.get(id)! + 1));
   }
-  const maxD = Math.max(0, ...dist.values());
-  for (const n of nodes) if (!dist.has(n.id)) dist.set(n.id, maxD + 1);
   const cols = new Map<number, string[]>();
   for (const n of nodes) { const d = dist.get(n.id)!; cols.set(d, [...(cols.get(d) ?? []), n.id]); }
   const pos = new Map<string, [number, number]>();

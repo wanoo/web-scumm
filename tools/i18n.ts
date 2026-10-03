@@ -46,9 +46,10 @@ if (cmd === 'status') {
     const st = localeStatus(game, read(l));
     const ok = st.missing.length === 0 && st.stale.length === 0;
     if (!ok) bad++;
-    console.log(`${ok ? '✔' : '…'}  ${l}: ${st.translated}/${st.total} translated${st.missing.length ? `, ${st.missing.length} missing` : ''}${st.stale.length ? `, ${st.stale.length} stale` : ''}${st.long.length ? `, ${st.long.length} long` : ''}`);
+    console.log(`${ok ? '✔' : '…'}  ${l}: ${st.translated}/${st.total} translated${st.missing.length ? `, ${st.missing.length} missing` : ''}${st.stale.length ? `, ${st.stale.length} stale` : ''}${st.long.length ? `, ${st.long.length} long` : ''}${st.same.length && l !== base ? `, ${st.same.length} same as ${base}` : ''}`);
     for (const m of st.missing.slice(0, 10)) console.log(`     missing ${m}`);
     for (const m of st.stale.slice(0, 10)) console.log(`     stale   ${m}`);
+    if (l !== base) for (const m of st.same.slice(0, 10)) console.log(`     same    ${m}`);
   }
   process.exit(0);
 }

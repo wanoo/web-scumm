@@ -136,5 +136,7 @@ export function localeStatus(game: GameDef, table: Record<string, string>, maxTe
   const missing = paths.filter((p) => !(p.path in table)).map((p) => p.path);
   const stale = Object.keys(table).filter((k) => k.startsWith('_stale:') ? !keys.has(k.slice(7)) : !k.startsWith('_') && !keys.has(k));
   const long = paths.filter((p) => (table[p.path] ?? '').length > maxText).map((p) => p.path);
-  return { total: paths.length, translated: paths.length - missing.length, missing, stale, long };
+  // Present but identical to the source text: not translated yet (names and numbers can legitimately stay the same).
+  const same = paths.filter((p) => p.text && table[p.path] === p.text && !/^[\d\s.,:%-]*$/.test(p.text)).map((p) => p.path);
+  return { total: paths.length, translated: paths.length - missing.length, missing, stale, long, same };
 }
