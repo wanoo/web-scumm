@@ -10,7 +10,7 @@ game can be finished, play it in landscape on any phone, offline after the first
 |---|---|
 | 🎮 **Play the sample game** | https://wanoo.github.io/web-scumm/ (phone in landscape, or desktop) |
 | 🛠 **Try the Studio** | https://wanoo.github.io/web-scumm/studio.html (demo mode: edits stay in your browser) |
-| 📦 **Source** | https://github.com/wanoo/web-scumm · release v2.4.0 · [release notes](docs/en/ROADMAP.md) |
+| 📦 **Source** | https://github.com/wanoo/web-scumm · release v2.5.0 · [release notes](docs/en/ROADMAP.md) |
 
 ![Three rooms of the sample game](docs/img/banner.jpg)
 
@@ -132,11 +132,19 @@ colour rules (four tones per material, flat areas, one outline). `artStyle: "pix
 cutter and rendering to true pixel art. `npm run assets` cuts the generated sheets into sprites and prepares
 backgrounds, sounds and voice clips (`docs/en/PROMPTS.md`, `docs/en/TOOLS.md`).
 
+## The sound
+
+`npm run audio` does for sound what the prompts do for images: one bank of Mega Drive instruments
+(`tools/audio/palette.json`) for every track and every effect of a game. A MIDI you may use (yours, or public domain:
+the sample game's theme is Tchaikovsky's *Swan Lake*) is analysed, re-orchestrated for the YM2612 and SN76489 chips
+through a `spec.json` the assistant writes, rendered by Furnace and measured by a QA report; the sound effects are
+short recipes in `audio/sfx.json` rendered from the same palette (`docs/en/AUDIO.md`).
+
 ## With an AI assistant
 
 The content is data and every tool is a command, so an assistant can write a room, check it, solve it, look at it and
 fix it without you. `CLAUDE.md` and `AGENTS.md` carry the rules; `.claude/skills/` the recipes (a new room, a sheet to
-cut); `npm run -s mcp` exposes the same operations as 19 MCP tools to Claude Code, Cursor, Codex, Gemini CLI or any
+cut); `npm run -s mcp` exposes the same operations as 20 MCP tools to Claude Code, Cursor, Codex, Gemini CLI or any
 MCP client (`docs/en/MCP.md`); the Studio's Assistant tab connects any model with those tools; `docs/en/WORKFLOW.md`
 is the method, `docs/en/PRODUCTION.template.md` the plan for parallel sub-agents.
 
@@ -154,6 +162,7 @@ in demo mode at `studio.html`. Any static host works. `GAME=<id> npm run build` 
 
 | Version | What it added |
 |---|---|
+| v2.5 Sound | The Mega Drive audio pipeline (`npm run audio`): music arranged from a MIDI through `spec.json`, sound effects from `sfx.json`, one palette; the sample game gets a theme and chip-rendered effects. |
 | v2.4 Author | Storyboard coverage: badges on every board and panel, a Check panel and the `storyboard_coverage` tool; the cutscene timeline in the Rooms tab. |
 | v2.3 Replay | Sessions recorded and replayed (`npm run replay`, Play tab); the solver's solution replayed by CI in Chromium; the solver profile and "Solver health"; why a thing is live, the critical path and a heat map on the puzzle graph; partial-order reduction (`--por`); custom commands checked in dev. |
 | v2.2 Studio | Dialogue tree (Rooms tab, MCP `dialogue_tree`); the engine's journal (Play tab, dev panel). |
@@ -179,4 +188,4 @@ docs/en docs/fr  CONTENT_GUIDE, CLASSICS, DESIGN, ENGINE, TOOLS, STUDIO, MCP, PA
 
 ## Licences
 
-Code: MIT. Sample artwork: CC BY 4.0 (attribution "Wano"). Sound effects: Kenney, CC0. Fonts: SIL OFL. See `CREDITS.md`.
+Code: MIT. Sample artwork, music arrangement and sound effects: CC BY 4.0 (attribution "Wano"); the music is Tchaikovsky's *Swan Lake* (public domain). Fonts: SIL OFL. See `CREDITS.md`.

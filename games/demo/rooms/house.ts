@@ -3,6 +3,7 @@ import { defineRoom } from '@engine/core/define';
 // Room 1: Grandma's house. Tutorial (in game.ts, start.intro), the armchair, and the finale at the pantry.
 export default defineRoom({
   id: 'house',
+  music: 'theme',
   name: 'Grandma\'s house',
   decor: 'decor/dining',
   description: 'Grandma\'s dining room at golden hour, seen from the front. Left: a tall wooden bookshelf with books, plants and a vase, a lamp with an orange shade on a small side table. Center: wide-open French windows with flowered curtains, giving on to a sunny garden, a village and a church spire. Right: a white door to the hall, family pictures on green damask wallpaper. Terracotta tiled floor with a big red rug. Warm, cozy, late-afternoon sun',

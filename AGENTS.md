@@ -28,6 +28,7 @@ npm test              # engine tests + the game's walkthrough
 npm run e2e -- <url>  # full playthrough by touch in a phone-sized Chromium, screenshots in E2E_OUT
 npm run assets        # art + audio → public/assets + assets.gen.json
 npm run prompts       # image-model prompts for every sheet → games/<id>/prompts.md (--missing: only what is not cut)
+npm run audio -- …    # Mega Drive music from a MIDI (ingest → spec.json → all) and sound effects from sfx.json (docs/en/AUDIO.md)
 npm run build         # type-check, tests, bundle, spoiler check, leak audit
 npm run studio        # the local WYSIWYG Studio (docs/en/STUDIO.md); it watches the files you edit
 npm run mcp           # Model Context Protocol server exposing the Studio operations as tools (docs/en/MCP.md)
@@ -54,6 +55,7 @@ GAME=<id> npm run …   # another game than package.json "config".game
 12. Before asking for a new command or a new field, read `docs/en/CLASSICS.md`: the famous mechanics of the genre are
     combinations of rules, flags, scripts and events the engine already has (insult fights, melting items, patrols,
     haggling, cross-character puzzles…), each with its DSL.
+13. Sounds come from `npm run audio` (docs/en/AUDIO.md): a track is a `spec.json` arrangement of a source you may use (yours, public domain), the effects are `sfx.json` recipes, both on the shared palette. Never drop a sound file of unknown origin into `audio/`.
 
 ## How the human sees your work
 `npm run studio` shows the rooms rendered by the real engine and reloads when you change a file. The human answers in the

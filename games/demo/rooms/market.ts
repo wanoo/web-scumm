@@ -4,6 +4,7 @@ import { defineRoom } from '@engine/core/define';
 // the bouquet pays the deposit.
 export default defineRoom({
   id: 'market',
+  music: 'theme',
   name: 'The market',
   // A wide room (layout `width: 960`, a 1.5-screen backdrop): the camera follows Pixel; `camera` commands pan it.
   decor: 'decor/market_wide',

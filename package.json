@@ -1,7 +1,7 @@
 {
   "name": "web-scumm",
   "private": true,
-  "version": "2.4.0",
+  "version": "2.5.0",
   "type": "module",
   "scripts": {
     "dev": "tsx tools/select-game.ts && vite --host",
@@ -22,6 +22,7 @@
     "icons": "node scripts/gen-icons.mjs",
     "audit": "tsx tools/audit-assets.ts",
     "prompts": "tsx --tsconfig tsconfig.json tools/prompts.ts",
+    "audio": "python3 tools/audio.py",
     "build:web": "vite build",
     "build:studio-demo": "tsx tools/select-game.ts && STUDIO=1 VITE_STUDIO_DEMO=1 vite build",
     "studio-snapshot": "tsx tools/studio/snapshot.ts",

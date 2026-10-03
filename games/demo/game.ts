@@ -100,9 +100,10 @@ export const game = defineGame({
   // Three manual save slots in the pause menu (export / import as a file too), and a Settings entry.
   saves: { slots: 3 },
   settings: true,
-  // No music yet (the demo runs without it): rooms have no `music`, and `audio.music` is empty.
+  // The music and the sound effects are Mega Drive renders built by `npm run audio` (docs/en/AUDIO.md): the theme is
+  // the opening of Tchaikovsky's Swan Lake (public domain), the effects come from games/demo/audio/sfx.json.
   audio: {
-    music: {},
+    music: { theme: 'swan_lake.mp3' },
     sfx: {
       door_open: 'door_open.mp3', door_close: 'door_close.mp3', latch: 'latch.mp3', coins: 'coins.mp3', cloth: 'cloth.mp3',
       paper: 'paper.mp3', click: 'click.mp3', success: 'success.mp3', error: 'error.mp3', ring: 'ring.mp3', drop: 'drop.mp3',
@@ -133,7 +134,7 @@ export const game = defineGame({
     scratch: { ticket: 'items/r4c1', sfx: 'shuffle' },
     card: { accent: '#e8a33d' },
   },
-  titleScreen: { decor: 'decor/dining', footer: 'A tiny point-and-click. Turn your phone sideways.' },
+  titleScreen: { decor: 'decor/dining', music: 'theme', footer: 'A tiny point-and-click. Turn your phone sideways.' },
   credits: [
     'THE PANTRY KEY', '', 'A web-scumm sample game', '',
     'Pixel ........ the grey cat', 'Biscuit ...... the sleepy cat', 'Grandma ...... the key loser', 'Grandpa ...... the pipe expert',

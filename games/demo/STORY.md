@@ -57,6 +57,8 @@ guide, look lists, props with states, visible conditions, kinds, once/nth, choic
 voice, phone (two voices), unlock + map with vehicle, minigames pipes and pick, cutscene, sfx, music push/pop, ending +
 guess, checkpoints per room, used items greyed.
 
-## Sounds (Kenney, CC0, `audio/sfx`)
-door_open, door_close, latch, coins, cloth, paper, click, success, error, ring, drop, bell, glass, metal, shuffle, chips, pluck, select, bong.
-Music: two short loops to be generated (`audio/music/home.mp3`, `market.mp3`); until then the demo runs without music.
+## Sounds (`audio/sfx`, built from `audio/sfx.json` by `npm run audio -- sfx`)
+door_open, door_close, latch, coins, cloth, paper, click, success, error, ring, drop, bell, glass, metal, shuffle, chips, pluck, select, bong:
+Mega Drive renders (YM2612 + SN76489) from the shared palette, so they sound like the music.
+Music: `audio/music/swan_lake.mp3`, the opening of Tchaikovsky's *Swan Lake* (public domain) arranged for the Mega Drive
+chips by `npm run audio` from `audio/projects/swan-lake/spec.json`; played on the title screen and in every room.

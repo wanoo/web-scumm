@@ -82,10 +82,11 @@ describe('assets listing on games/demo', () => {
     expect(dining.rooms).toEqual(['house']);
     expect(dining.used).toContain('house.decor');
     expect(dining.file).toBe('art/decor/dining.jpg');
-    const bell = l.sounds.sfx.find((s) => s.id === 'bell.ogg')!;
+    const bell = l.sounds.sfx.find((s) => s.id === 'bell.mp3')!;
     expect(bell.used[0]).toBe('audio.sfx.bell');
     expect(bell.asset).toBe('audio/sfx/bell.mp3');
-    expect(l.sounds.music).toEqual([]);
+    expect(l.sounds.music.map((m) => m.id)).toEqual(['swan_lake.mp3']);
+    expect(l.sounds.music[0].used).toContain('audio.music.theme');
   });
 
   it('carries the prompt of each sheet and the shared style block', async () => {
@@ -103,7 +104,7 @@ describe('assets listing on games/demo', () => {
 
   it('serves only files of art/ and audio/', () => {
     expect(demo.filePath('art/hero/r1c1.png')).toBe(join(ROOT, 'games', 'demo', 'art', 'hero', 'r1c1.png'));
-    expect(demo.filePath('audio/sfx/bell.ogg')).toBeTruthy();
+    expect(demo.filePath('audio/sfx/bell.mp3')).toBeTruthy();
     for (const bad of ['../package.json', 'art/../index.ts', 'art/%2e%2e/index.ts', 'index.ts', 'art/hero', 'rooms/house.ts', 'art//hero/r1c1.png']) {
       expect(demo.filePath(bad), bad).toBeNull();
     }

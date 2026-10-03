@@ -7,3 +7,12 @@ private/
 games/*/private/
 dist-pages
 public/studio-demo/
+# Audio pipeline (tools/audio): the pinned Furnace binary, the SoundFont, the transcription venv, the big renders
+tools/audio/.furnace/
+tools/audio/.venv/
+games/*/audio/projects/*/out/*.wav
+games/*/audio/projects/*/out/.qa/
+games/*/audio/projects/*/reference.wav
+games/*/audio/projects/*/source_audio.*
+games/*/audio/projects/*/out/*.mp3
+games/*/audio/projects/*/analysis.json

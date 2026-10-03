@@ -184,6 +184,23 @@ fait : le moteur sait ce que chaque action a lu et changé.
   jeu de charge, le profil ne montre aucune dimension où les choses monotones dominent ; cela reste une note dans
   `docs/fr/BENCH.md`.
 
+## v2.5 « Sound » (livrée) : musique et bruitages d'une seule palette
+
+- **La chaîne audio** (`tools/audio`, `npm run audio`, `docs/fr/AUDIO.md`) : un MIDI (ou un fichier audio, transcrit)
+  devient un arrangement Sega Mega Drive (FM YM2612 + PSG SN76489 + batterie DAC) écrit dans un `spec.json` que
+  l'assistant rédige depuis une analyse automatique (pistes, tessitures, doublures, sections) ; Furnace rend `.fur`,
+  `.wav`, `.vgm`, `.mp3` ; un rapport QA mesure chaque canal contre les cibles de la palette, la justesse et la crête.
+  Une seule palette (`tools/audio/palette.json`) pour chaque morceau de chaque jeu, comme un seul bloc de style sert
+  chaque image.
+- **Des bruitages de la même palette** (`games/<id>/audio/sfx.json`, `npm run audio -- sfx`) : de courtes recettes sur
+  les canaux FM, PSG et bruit, rendues, coupées et normalisées en `audio/sfx/*.mp3`. Les dix-neuf bruitages du jeu
+  d'exemple sont maintenant des rendus Mega Drive au lieu d'échantillons Kenney, et il a un thème : l'ouverture du
+  *Lac des cygnes* de Tchaïkovski (domaine public), joué sur l'écran titre et dans chaque lieu.
+- Agnostique : le déroulé et les règles vivent dans `docs/fr/AUDIO.md` (`read_doc AUDIO` par MCP), `AGENTS.md` nomme
+  la commande et la règle de licence ; le skill Claude ne fait qu'y renvoyer.
+- Volontairement non fait : la musique adaptative (transitions à la iMUSE) ; Furnace est téléchargé par `setup`, pas
+  embarqué ; la CI ne rend pas l'audio (les fichiers sont commités).
+
 ## Hors plan (décisions explicites)
 
 - Pas de Phaser ni de canvas : le Presenter DOM suffit pour quelques dizaines d'images ; une salle large reste une translation CSS.

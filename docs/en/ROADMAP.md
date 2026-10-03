@@ -232,6 +232,22 @@ what every action read and changed.
 - Dominance pruning (the auditor's fifth stage) was not done: on the sample game, the private game and the stress game
   the profile shows no dimension where monotonic things dominate; it stays a note in `docs/en/BENCH.md`.
 
+## v2.5 "Sound" (shipped): music and effects from one palette
+
+- **The audio pipeline** (`tools/audio`, `npm run audio`, `docs/en/AUDIO.md`): a MIDI (or an audio file, transcribed)
+  becomes a Sega Mega Drive arrangement (YM2612 FM + SN76489 PSG + DAC drums) written as a `spec.json` the assistant
+  authors from an automatic analysis (tracks, ranges, doublings, sections); Furnace renders `.fur`, `.wav`, `.vgm`,
+  `.mp3`; a QA report measures every channel against the palette's targets, the pitch accuracy and the peak. One
+  palette (`tools/audio/palette.json`) for every track of every game, the way one style block serves every image.
+- **Sound effects from the same palette** (`games/<id>/audio/sfx.json`, `npm run audio -- sfx`): short recipes on the
+  FM, PSG and noise channels, rendered, trimmed and normalised to `audio/sfx/*.mp3`. The sample game's nineteen
+  effects are now Mega Drive renders instead of Kenney samples, and it has a theme: the opening of Tchaikovsky's
+  *Swan Lake* (public domain), played on the title screen and in every room.
+- Vendor-neutral: the workflow and the rules live in `docs/en/AUDIO.md` (`read_doc AUDIO` through MCP), `AGENTS.md`
+  names the command and the licence rule; the Claude skill only points there.
+- Not done, on purpose: adaptive music (iMUSE-like transitions); Furnace is downloaded by `setup`, not bundled; CI
+  does not render audio (the files are committed).
+
 ## Out of scope (explicit decisions)
 
 - No Phaser, no canvas: the DOM Presenter is enough for a few dozen images; a wide room stays a CSS translation.

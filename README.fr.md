@@ -11,7 +11,7 @@ après la première visite.
 |---|---|
 | 🎮 **Jouer au jeu d'exemple** | https://wanoo.github.io/web-scumm/ (téléphone en paysage, ou ordinateur) |
 | 🛠 **Essayer le Studio** | https://wanoo.github.io/web-scumm/studio.html (mode démo : les modifications restent dans ton navigateur) |
-| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v2.4.0 · [notes de version](docs/fr/ROADMAP.md) |
+| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v2.5.0 · [notes de version](docs/fr/ROADMAP.md) |
 
 ![Trois lieux du jeu d'exemple](docs/img/banner.jpg)
 
@@ -138,11 +138,20 @@ de style et les règles de couleur (quatre tons par matière, aplats, un seul co
 `site.json` bascule prompts, découpe et rendu en vrai pixel art. `npm run assets` découpe les planches générées en
 sprites et prépare décors, sons et voix (`docs/fr/PROMPTS.md`, `docs/fr/TOOLS.md`).
 
+## Le son
+
+`npm run audio` fait pour le son ce que les prompts font pour les images : une seule banque d'instruments Mega Drive
+(`tools/audio/palette.json`) pour chaque morceau et chaque bruitage d'un jeu. Un MIDI que tu as le droit d'utiliser
+(le tien, ou du domaine public : le thème du jeu d'exemple est le *Lac des cygnes* de Tchaïkovski) est analysé,
+réorchestré pour les puces YM2612 et SN76489 à travers un `spec.json` que l'assistant écrit, rendu par Furnace et mesuré
+par un rapport QA ; les bruitages sont de courtes recettes dans `audio/sfx.json` rendues depuis la même palette
+(`docs/fr/AUDIO.md`).
+
 ## Avec une IA
 
 Le contenu est données et chaque outil est une commande : un assistant peut écrire un lieu, le vérifier, le résoudre,
 le regarder et le corriger sans toi. `CLAUDE.md` et `AGENTS.md` portent les règles ; `.claude/skills/` les recettes
-(un nouveau lieu, une planche à découper) ; `npm run -s mcp` expose les mêmes opérations en 19 outils MCP pour Claude
+(un nouveau lieu, une planche à découper) ; `npm run -s mcp` expose les mêmes opérations en 20 outils MCP pour Claude
 Code, Cursor, Codex, Gemini CLI ou n'importe quel client MCP (`docs/fr/MCP.md`) ; l'onglet Assistant du Studio
 branche n'importe quel modèle sur ces outils ; `docs/fr/WORKFLOW.md` est la méthode, `docs/fr/PRODUCTION.template.md`
 le plan pour des sous-agents en parallèle.
@@ -162,6 +171,7 @@ construit un autre jeu.
 
 | Version | Ce qu'elle a ajouté |
 |---|---|
+| v2.5 Sound | La chaîne audio Mega Drive (`npm run audio`) : musique arrangée depuis un MIDI via `spec.json`, bruitages depuis `sfx.json`, une seule palette ; le jeu d'exemple reçoit un thème et des bruitages rendus par les puces. |
 | v2.4 Author | Couverture du storyboard : des badges sur chaque board et chaque case, un panneau Check et l'outil `storyboard_coverage` ; la timeline de cinématique dans l'onglet Rooms. |
 | v2.3 Replay | Sessions enregistrées et rejouées (`npm run replay`, onglet Play) ; la solution du solveur rejouée par la CI dans Chromium ; le profil du solveur et « Solver health » ; pourquoi une chose est live, le chemin critique et une carte de chaleur sur le graphe de puzzles ; réduction d'ordre partiel (`--por`) ; commandes custom contrôlées en dev. |
 | v2.2 Studio | L'arbre de dialogue (onglet Rooms, outil MCP `dialogue_tree`) ; le journal du moteur (onglet Play, panneau dev). |
@@ -187,4 +197,4 @@ docs/en docs/fr  CONTENT_GUIDE, CLASSICS, DESIGN, ENGINE, TOOLS, STUDIO, MCP, PA
 
 ## Licences
 
-Code : MIT. Images du jeu d'exemple : CC BY 4.0 (attribution « Wano »). Bruitages : Kenney, CC0. Polices : SIL OFL. Voir `CREDITS.md`.
+Code : MIT. Images, arrangement musical et bruitages du jeu d'exemple : CC BY 4.0 (attribution « Wano ») ; la musique est le *Lac des cygnes* de Tchaïkovski (domaine public). Polices : SIL OFL. Voir `CREDITS.md`.

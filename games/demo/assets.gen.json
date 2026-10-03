@@ -778,7 +778,9 @@
   ]
  },
  "audio": {
-  "music": {},
+  "music": {
+   "theme": "music/swan_lake.mp3"
+  },
   "sfx": {
    "door_open": "sfx/door_open.mp3",
    "door_close": "sfx/door_close.mp3",
