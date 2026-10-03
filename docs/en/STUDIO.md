@@ -34,6 +34,8 @@ real engine (the room rendered by `src/engine/dom`), so what you see is what pla
   or add them (see "Assets tab" below).
 - **Check**: the validator and the solver run after every save; their output and the solver path are shown here.
   "Screenshot" renders a room at a checkpoint (needs Playwright).
+  Below them, the **world map** (rooms, exits, gotos; unreachable rooms and exits with no way back in red) and the
+  **content report** (what each room, item and character amounts to: the profiler of `npm run validate -- --report`).
 - **Notes**: the shared log (`games/<id>/notes.json`), one entry per author ("you", or the AI's name), about a panel
   id, a room id, `room.entity`, or anything (empty: general). The whole log, newest first, grouped by `about` (tagged
   room / panel / entity, with "Open in Rooms" / "Open in Storyboard"); filters: free text, about (rooms with their

@@ -1,6 +1,8 @@
 // Shared types of the Studio: the core functions (tools/studio/core.ts), the dev-server API (tools/studio/plugin.ts),
 // the Studio UI (src/studio/) and the MCP server all speak these shapes. Type-only: safe to import from the browser.
 import type { CharacterDef, GameDef, Id, ItemDef, Layout, Point, RoomDef, VerbDef } from '../../src/engine/core/types';
+import type { ContentReport } from '../../src/engine/tools/report';
+import type { WorldGraph } from '../../src/engine/tools/graph';
 
 /** What a text literal is, from its JSON path in the room file. */
 export type TextKind =
@@ -96,6 +98,11 @@ export interface MarkdownResult { ok: true; file: string; bytes: number; boards:
 
 export interface ValidateResult { ok: boolean; errors: string[]; warnings: string[]; ms: number }
 
+/** The content profiler (src/engine/tools/report.ts) with its Markdown rendering. */
+export interface ReportData { report: ContentReport; markdown: string; ms: number }
+/** The world's map (src/engine/tools/graph.ts), with an SVG and a DOT rendering. */
+export interface GraphData { graph: WorldGraph; svg: string; dot: string }
+
 export interface SolveData {
   finished: boolean;
   states: number;
@@ -108,6 +115,8 @@ export interface SolveData {
   unusedItems: string[];
   deadEnds: { room: string; inventory: string[]; path: string[] }[];
   errors: string[];
+  /** Invariants that became true, with the path (solver). */
+  broken?: { invariant: number; path: string[] }[];
   from: string | null;
   ms: number;
 }

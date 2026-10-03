@@ -1,6 +1,8 @@
 // Content validator: checks that everything referenced exists, and flags what's missing for a good experience.
 // Pure TypeScript (no DOM): runs in node (npm run validate) and in tests.
 import { condFlags } from '../core/cond';
+import { normalizeExits } from '../core/define';
+import { worldGraph } from './graph';
 import type { Cmd, Cond, EventRule, GameDef, Id, Layout, RoomDef, Rule, ScriptDef, VerbId } from '../core/types';
 
 export interface AssetIndex {
@@ -22,7 +24,9 @@ export interface Report { errors: string[]; warnings: string[] }
 
 const HERO = 'hero';
 
-export function validate(game: GameDef, layouts: Record<string, Layout>, opts: ValidateOptions = {}): Report {
+export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts: ValidateOptions = {}): Report {
+  // Declared exits are checked as what they become (hotspots and rules), on a copy: the caller's game stays as written.
+  const game = normalizeExits(structuredClone(gameIn));
   const errors: string[] = [];
   const warnings: string[] = [];
   const maxText = opts.maxText ?? 140;
@@ -406,6 +410,17 @@ export function validate(game: GameDef, layouts: Record<string, Layout>, opts: V
     const L = layouts[r.id];
     const ents = entities(r);
     text(r.name, w);
+    for (const [xid, ex] of Object.entries(r.exits ?? {})) {
+      const xw = `${w}.exits.${xid}`;
+      text(ex.name, xw); text(ex.locked, `${xw}.locked`);
+      if (!rooms.has(ex.to)) err(xw, `unknown room: "${ex.to}"`);
+      else if (typeof ex.entry === 'string' && layouts[ex.to] && !layouts[ex.to].entries?.[ex.entry]) err(xw, `unknown entry point "${ex.entry}" in ${ex.to}`);
+      if (ex.to === r.id) warn(xw, 'exit leading to its own room');
+      for (const v of ex.verbs ?? []) if (!verbIds.has(v)) err(xw, `unknown verb: "${v}"`);
+      if (ex.sfx && !sfx[ex.sfx]) err(xw, `unknown sound effect: "${ex.sfx}"`);
+      const written = gameIn.rooms.find((x) => x.id === r.id)?.hotspots?.[xid];
+      if (written && !written.exit) err(xw, `"${xid}" is both an exit and a hotspot`);
+    }
     if (images) img(r.decor, `${w}.decor`);
     if (r.music && !music[r.music]) err(w, `unknown music: "${r.music}"`);
     if (!L) warn(w, 'no layout: nothing will be clickable (place the room in the editor)');
@@ -463,9 +478,35 @@ export function validate(game: GameDef, layouts: Record<string, Layout>, opts: V
     }
   }
 
+  // World map: every room should be reachable, every exit should have a way back (or say it has not).
+  const g = worldGraph(game);
+  for (const id of g.unreachable) warn(id, 'no exit, goto or map place leads to this room from the start');
+  for (const e of g.oneWay) warn(`${e.from}.exits.${e.via}`, `no way back from ${e.to} to ${e.from} (add oneWay: true if intended)`);
+
+  // Chapters, invariants, saves, migrations
+  (game.invariants ?? []).forEach((c, i) => cond(c, `invariants[${i}]`));
+  if (game.saves && (!Number.isInteger(game.saves.slots) || game.saves.slots < 0)) err('saves', 'slots must be a whole number');
+  if (game.saves?.slots) for (const k of ['save', 'load', 'slot', 'emptySlot', 'exportSave', 'importSave', 'confirmOverwrite'] as const) if (!game.ui[k]) warn(`ui.${k}`, 'missing text for the save menu (English default used)');
+  const migFrom = new Set<number>();
+  for (const [i, m] of (game.migrations ?? []).entries()) {
+    const w = `migrations[${i}]`;
+    if (!Number.isInteger(m.from)) err(w, '"from" must be a version number');
+    if (migFrom.has(m.from)) err(w, `two migrations from version ${m.from}`);
+    migFrom.add(m.from);
+    if (m.from >= game.saveVersion) err(w, `from ${m.from} is not below saveVersion ${game.saveVersion}`);
+    for (const v of Object.values(m.renameFlag ?? {})) if (!v) err(w, 'empty flag name');
+    for (const v of Object.values(m.renameItem ?? {})) if (!items[v]) err(w, `renamed item does not exist: "${v}"`);
+    for (const v of Object.values(m.renameRoom ?? {})) if (!rooms.has(v)) err(w, `renamed room does not exist: "${v}"`);
+    for (const v of Object.values(m.renamePlace ?? {})) if (!places[v]) err(w, `renamed map place does not exist: "${v}"`);
+    for (const v of Object.values(m.renameProp ?? {})) { const [rid, pid] = v.split('.'); if (!rooms.get(rid)?.props?.[pid]) err(w, `renamed prop does not exist: "${v}"`); }
+    for (const v of Object.values(m.renameActor ?? {})) { const [rid, aid] = v.split('.'); if (!rooms.get(rid)?.actors?.[aid]) err(w, `renamed actor does not exist: "${v}"`); }
+  }
+  if (game.migrations?.length) for (let v = Math.min(...migFrom); v < game.saveVersion; v++) if (!migFrom.has(v)) warn('migrations', `no migration from version ${v}: those saves start a new game`);
+
   // Checkpoints
   for (const [cid, c] of Object.entries(game.checkpoints ?? {})) {
     const w = `checkpoints.${cid}`;
+    (c.goals ?? []).forEach((g, i) => cond(g, `${w}.goals[${i}]`, rooms.get(c.room)));
     if (!rooms.has(c.room)) err(w, `unknown room: "${c.room}"`);
     for (const i of c.inventory ?? []) if (!items[i]) err(w, `unknown item: "${i}"`);
     for (const p of c.unlocked ?? []) if (!places[p]) err(w, `unknown map place: "${p}"`);

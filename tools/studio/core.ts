@@ -8,13 +8,16 @@ import { pathToFileURL } from 'node:url';
 import ts from 'typescript';
 import type { Layout, Point } from '../../src/engine/core/types';
 import { validate as validateGame } from '../../src/engine/tools/validate';
+import { normalizeExits } from '../../src/engine/core/define';
 import { solve as solveGame } from '../../src/engine/tools/solve';
+import { report as reportGame, reportMarkdown } from '../../src/engine/tools/report';
+import { toDot, toSvg, worldGraph } from '../../src/engine/tools/graph';
 import { loadAssets, loadLayouts } from '../../src/engine/tools/load';
 import { GAME_DIR, ROOT, type GameModule } from '../game';
 import { normalizeStoryboard, storyboardMarkdown } from '../pages/storyboard-data';
 import { addToSection, extractTexts, objectText, parseRoom, SourceError, setTextInSource } from './source';
 import type {
-  AddEntity, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, ScreenshotResult, SolveData, TextRef, ValidateResult,
+  AddEntity, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, ScreenshotResult, SolveData, TextRef, ValidateResult, ReportData, GraphData,
 } from './types';
 
 export class StudioError extends Error {
@@ -167,7 +170,8 @@ export function createStudio(opts: StudioOptions = {}) {
   async function getRoom(id: string): Promise<RoomData> {
     const file = roomFile(id);
     const mod = await loadModule();
-    const def = mod.game.rooms.find((r) => r.id === id);
+    // Declared exits are shown as what they become (a hotspot and rules at the end of `on`): the written paths hold.
+    const def = normalizeExits(mod.game).rooms.find((r) => r.id === id);
     if (!def) throw new StudioError(`room "${id}" is not in the game (index.ts / game.ts)`, 404);
     return { def, layout: readJson<Layout>(layoutFile(id), {}), texts: texts(id), file: rel(file) };
   }
@@ -357,8 +361,23 @@ export function createStudio(opts: StudioOptions = {}) {
       roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
       itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems,
       deadEnds: r.deadEnds.map((d) => ({ room: d.room, inventory: d.inventory, path: d.path })),
-      errors: r.errors, from: from ?? null, ms: Date.now() - t0,
+      errors: r.errors, broken: r.broken, from: from ?? null, ms: Date.now() - t0,
     };
+  }
+
+  /** The content profiler: what each room, item and character amounts to. */
+  async function report(): Promise<ReportData> {
+    const t0 = Date.now();
+    const mod = await loadModule();
+    const r = reportGame(mod.game, loadLayouts(join(dir, 'layout')));
+    return { report: r, markdown: reportMarkdown(r), ms: Date.now() - t0 };
+  }
+
+  /** The world's map: rooms and the ways between them. */
+  async function graph(): Promise<GraphData> {
+    const mod = await loadModule();
+    const g = worldGraph(mod.game);
+    return { graph: g, svg: toSvg(g), dot: toDot(g) };
   }
 
   // ------------------------------------------------------------------ screenshot
@@ -408,7 +427,7 @@ export function createStudio(opts: StudioOptions = {}) {
     gameDir: dir, gameId, root,
     /** The game module, imported fresh (for tools that read the whole game, e.g. asset prompts). */
     loadGame: loadModule,
-    gameInfo, getRoom, texts, getLayout, setLayout, setText, addEntity,
+    gameInfo, getRoom, texts, getLayout, setLayout, setText, addEntity, report, graph,
     getStoryboard, setStoryboard, getNotes, addNote, editNote, deleteNote, exportStoryboardMarkdown, validate, solve, screenshot, screenshotPath,
   };
 }

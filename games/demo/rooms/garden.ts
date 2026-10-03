@@ -17,8 +17,11 @@ export default defineRoom({
     grandpa: { char: 'grandpa', facing: 'left' },
   },
 
+  exits: {
+    back_door: { name: 'back door', to: 'house', entry: 'garden', sfx: 'door_open', verbs: ['use', 'open', 'push'] },
+  },
+
   hotspots: {
-    back_door: { name: 'back door' },
     gate: { name: 'garden gate' },
     bench: { name: 'bench' },
     gnome: { name: 'garden gnome' },
@@ -72,7 +75,6 @@ export default defineRoom({
     ] },
     { verb: 'take', a: 'sock', do: ['A wet sock. Cat rule number two: never touch wet things.'] },
 
-    { verb: ['use', 'open', 'push'], a: 'back_door', do: [{ sfx: 'door_open' }, { goto: 'house', at: 'garden' }] },
     { verb: ['open', 'use'], a: 'gate', do: ['Dogs. Street. No.'] },
     { verb: 'push', a: 'gnome', do: ['He does not move. He has roots.'] },
     { verb: ['use', 'pull'], a: 'tree', do: ['I could climb it. But sardines do not grow on trees.'] },

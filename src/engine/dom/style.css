@@ -62,11 +62,12 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .choice.read { color: #5f7fa0; }
 .choice.gl { color: #c9b8ff; }
 .dim { position: absolute; inset: 0; background: rgba(10, 6, 20, .6); z-index: 1000; display: flex; align-items: center; justify-content: center; }
-.menu { background: #120d1c; border: 3px solid #2c4a7a; border-radius: 10px; padding: 1em 1.2em; display: flex; flex-direction: column; gap: .45em; min-width: 52%; }
+.menu { max-height: 92%; overflow-y: auto; box-sizing: border-box; background: #120d1c; border: 3px solid #2c4a7a; border-radius: 10px; padding: 1em 1.2em; display: flex; flex-direction: column; gap: .45em; min-width: 52%; }
 .menu h3 { margin: 0 0 .3em; font: 400 .8em var(--font-pixel); color: #ffd84d; text-align: center; }
 .menu p { margin: 0 0 .5em; text-align: center; }
 .menu button { border: 2px solid #1e2a3a; background: #0b1220; border-radius: 6px; padding: .35em .6em; color: #9fe0ff; cursor: pointer; text-align: left; display: flex; justify-content: space-between; gap: 1em; font-size: inherit; }
 .menu button.warn { color: #ff9f7a; }
+.menu button.off { opacity: .45; }
 .menu small { color: #8a8fb0; text-align: center; }
 .letter { position: absolute; left: 0; right: 0; height: 11%; background: #000; z-index: 940; transition: transform .5s; }
 .letter.t { top: 0; transform: translateY(-100%); } .letter.b { bottom: 0; transform: translateY(100%); }

@@ -7,6 +7,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { CharacterDef, GameDef, Layout, PropDef, RoomDef } from '../src/engine/core/types';
+import { normalizeExits } from '../src/engine/core/define';
 import type { GameModule } from './game';
 import { collectRefs } from './refs';
 
@@ -220,7 +221,7 @@ function where(x: number, y?: number, onFurniture?: boolean): string {
 // ------------------------------------------------------------------ main
 
 export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts: PromptOptions): PromptResult {
-  const game: GameDef = mod.game;
+  const game: GameDef = normalizeExits(mod.game); // declared exits are hotspots the backgrounds must show
   const gid = opts.gameId;
   const artStyle: ArtStyle = opts.artStyle ?? readArtStyle(opts.gameDir);
   const pixel = artStyle === 'pixel';

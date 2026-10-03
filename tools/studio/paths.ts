@@ -58,6 +58,7 @@ export function classify(segs: Seg[]): TextKind | null {
   const last = segs[n - 1];
   const prev = segs[n - 2];
   if (last === 'name') return 'name';
+  if (last === 'locked' && segs[0] === 'exits') return 'hero';
   if (last === 'topic') return 'topic';
   if (last === 'toast') return 'toast';
   if (last === 'say' && prev === 'guide') return 'guide';

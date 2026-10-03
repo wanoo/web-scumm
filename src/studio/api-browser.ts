@@ -6,9 +6,11 @@
 import type { GameDef, Layout } from '@engine/core/types';
 import { validate as validateGame, type AssetIndex } from '@engine/tools/validate';
 import { solve as solveGame } from '@engine/tools/solve';
+import { report as reportGame, reportMarkdown } from '@engine/tools/report';
+import { toDot, toSvg, worldGraph } from '@engine/tools/graph';
 import { normalizeStoryboard, storyboardMarkdown } from '../../tools/pages/storyboard-data';
 import { classify, formatPath, parsePath, SourceError, type Seg } from '../../tools/studio/paths';
-import type {
+import type { GraphData, ReportData,
   AddEntity, AssetsListing, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, SolveData, StudioPatch, StudioPatchFile,
   StudioSnapshot, TextRef, ValidateResult,
 } from '../../tools/studio/types';
@@ -258,6 +260,19 @@ export class BrowserApi implements Api {
     return { ok: errors.length === 0, errors, warnings, ms: Date.now() - t0 };
   }
 
+  async report(): Promise<ReportData> {
+    const t0 = Date.now();
+    const { game, layouts } = await this.editedGame();
+    const r = reportGame(game, layouts);
+    return { report: r, markdown: reportMarkdown(r), ms: Date.now() - t0 };
+  }
+
+  async graph(): Promise<GraphData> {
+    const { game } = await this.editedGame();
+    const g = worldGraph(game);
+    return { graph: g, svg: toSvg(g), dot: toDot(g) };
+  }
+
   async solve(from?: string, maxStates = 20000): Promise<SolveData> {
     const t0 = Date.now();
     const { game, layouts } = await this.editedGame();
@@ -268,7 +283,7 @@ export class BrowserApi implements Api {
       roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
       itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems,
       deadEnds: r.deadEnds.map((d) => ({ room: d.room, inventory: d.inventory, path: d.path })),
-      errors: r.errors, from: from || null, ms: Date.now() - t0,
+      errors: r.errors, broken: r.broken, from: from || null, ms: Date.now() - t0,
     };
   }
 

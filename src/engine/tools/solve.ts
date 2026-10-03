@@ -6,7 +6,7 @@
 import { Engine, type Action, type Source } from '../core/engine';
 import { FakePresenter, MemoryStore } from '../core/ports';
 import { check } from '../core/cond';
-import type { Cmd, GameDef, GameState, Id, Layout, VerbId } from '../core/types';
+import type { Cmd, Cond, GameDef, GameState, Id, Layout, VerbId } from '../core/types';
 
 export interface Step { label: string }
 
@@ -27,9 +27,16 @@ export interface SolveResult {
   /** States with no action that changes anything (other than the ending). */
   deadEnds: { path: string[]; room: string; inventory: string[] }[];
   errors: string[];
+  /** Invariants that became true (index in `game.invariants`), with the path that broke them. */
+  broken: { invariant: number; path: string[] }[];
 }
 
-export interface SolveOptions { maxStates?: number; start?: 'new' | { checkpoint: Id } }
+export interface SolveOptions {
+  maxStates?: number;
+  start?: 'new' | { checkpoint: Id };
+  /** Stop when all these conditions hold (a chapter's goals), instead of at the ending. */
+  goal?: Cond[];
+}
 
 interface Node { state: GameState; path: string[] }
 
@@ -201,7 +208,12 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   const startPath: string[] = [];
   if (opts.start && typeof opts.start === 'object') await e0.checkpoint(opts.start.checkpoint);
   else await drive(e0, e0.newGame(), (a) => startPath.push(`(tutorial) ${label(game, a)}`));
-  const reached = (ui: FakePresenter, s: GameState) => s.done || ui.log.includes('ENDING');
+  const reached = (ui: FakePresenter, s: GameState) => opts.goal ? opts.goal.every((c) => check(c, s)) : (s.done || ui.log.includes('ENDING'));
+  const broken: SolveResult['broken'] = [];
+  const brokenSeen = new Set<number>();
+  const checkInvariants = (s: GameState, path: string[]) => {
+    (game.invariants ?? []).forEach((c, i) => { if (!brokenSeen.has(i) && check(c, s)) { brokenSeen.add(i); broken.push({ invariant: i, path }); } });
+  };
 
   const seen = new Map<string, Node>();
   const start: Node = { state: structuredClone(e0.state), path: startPath };
@@ -212,6 +224,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   seen.set(hashState(start.state, keys), start);
   let finish: Node | null = reached(ui0, e0.state) ? start : null;
   let last: Node = start;
+  checkInvariants(start.state, start.path);
 
   while (queue.length && !finish) {
     if (seen.size >= maxStates) break;
@@ -278,6 +291,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
       if (seen.has(h)) continue;
       const next: Node = { state: structuredClone(e.state), path: [...path, t.label] };
       seen.set(h, next);
+      checkInvariants(next.state, next.path);
       if (reached(ui, e.state)) { finish = next; break; }
       enqueue(next);
       if (seen.size >= maxStates) break;
@@ -299,5 +313,6 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     itemsNeverUsed: [...gained].filter((i) => !itemsInRules.has(i)).sort(),
     deadEnds: deadEnds.slice(0, 20),
     errors: [...new Set(errors)].slice(0, 50),
+    broken,
   };
 }

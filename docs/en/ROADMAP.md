@@ -81,7 +81,7 @@ events; an escape hatch with effects declared to the solver.
 - Also: navmesh paths are pulled straight when the shortcut stays inside the walk zone (the hero no longer takes a detour
   around a corner it does not need).
 
-### M2 — "Scale" (v1.4): hold 40 rooms without losing the testers
+### M2 — "Scale" (v1.4, shipped): hold 40 rooms without losing the testers
 
 Files: `src/engine/tools/{validate,solve}.ts`, new `src/engine/tools/graph.ts`, `src/engine/dom/app.ts` (menu), new
 `src/engine/core/migrate.ts`, a `world` review page.

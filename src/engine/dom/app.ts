@@ -29,6 +29,19 @@ class LocalStore implements SaveStore {
   clear() { try { localStorage.removeItem(this.key); } catch { /* same */ } }
 }
 
+/** A manual save slot: the state plus what the menu shows. */
+export interface SlotMeta { at: number; room: Id; roomName: string; v: number }
+export interface Slot { meta: SlotMeta; state: GameState }
+
+/** Manual slots in localStorage (`<game>.slot.<n>`), next to the autosave. */
+export class SlotStore {
+  constructor(private prefix: string) {}
+  private key(n: number) { return `${this.prefix}.slot.${n}`; }
+  get(n: number): Slot | null { try { const v = localStorage.getItem(this.key(n)); return v ? JSON.parse(v) : null; } catch { return null; } }
+  put(n: number, slot: Slot) { try { localStorage.setItem(this.key(n), JSON.stringify(slot)); } catch { /* storage denied */ } }
+  clear(n: number) { try { localStorage.removeItem(this.key(n)); } catch { /* same */ } }
+}
+
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, html?: string) => {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -50,6 +63,7 @@ export class App implements Presenter {
   readonly game: GameDef;
   private mg: Record<Id, Minigame>;
   private sealed!: Ending;
+  readonly slots: SlotStore;
   private root: HTMLElement;
   private g!: HTMLDivElement;
   private scol!: HTMLDivElement;
@@ -90,6 +104,7 @@ export class App implements Presenter {
     this.audio = new Audio(this.bank, { music: o.game.audio?.music, sfx: o.game.audio?.sfx });
     this.mg = { ...builtin, ...(o.minigames ?? {}) };
     this.engine = new Engine(o.game, o.layouts, this, o.store ?? new LocalStore(`${o.game.id}.save`));
+    this.slots = new SlotStore(o.game.id);
     this.view = new RoomView(this.engine, this.bank);
     this.engine.autoScripts = true;
     this.engine.onChange = () => this.refresh();
@@ -771,6 +786,11 @@ export class App implements Presenter {
     const sf = row(ui.sfx, this.audio.sfxOn ? ui.on : ui.off);
     sf.onclick = () => { this.audio.setSfx(!this.audio.sfxOn); sf.lastElementChild!.textContent = this.audio.sfxOn ? ui.on : ui.off; };
     row(ui.autosave, '✓');
+    const slots = this.game.saves?.slots ?? 0;
+    if (slots > 0 && this.engine.state) {
+      row(ui.save ?? 'Save', '💾').onclick = () => this.slotMenu(d, m, 'save', slots);
+      row(ui.load ?? 'Load', '📂').onclick = () => this.slotMenu(d, m, 'load', slots);
+    }
     row(ui.credits, '★').onclick = () => { d.remove(); this.credits(); };
     row(ui.restart, '!', 'warn').onclick = () => {
       m.innerHTML = `<h3>!</h3><p>${esc(ui.confirmErase)}</p>`;
@@ -780,6 +800,46 @@ export class App implements Presenter {
       m.append(y, n);
     };
     d.append(m); this.scene.append(d);
+  }
+
+  /** The save / load menu: one row per slot, export and import as a JSON file. */
+  private slotMenu(d: HTMLElement, m: HTMLElement, mode: 'save' | 'load', count: number) {
+    const ui = this.game.ui;
+    m.innerHTML = `<h3>${esc((mode === 'save' ? ui.save ?? 'Save' : ui.load ?? 'Load').toUpperCase())}</h3>`;
+    const row = (t: string, v: string, cls = '') => { const b = el('button', cls, `<span>${esc(t)}</span><span>${esc(v)}</span>`); m.append(b); return b; };
+    const meta = (): SlotMeta => ({ at: Date.now(), room: this.engine.state.room, roomName: this.engine.room().name, v: this.engine.state.v });
+    const label = (s: Slot | null) => s ? `${s.meta.roomName} · ${new Date(s.meta.at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}` : (ui.emptySlot ?? 'empty');
+    for (let n = 1; n <= count; n++) {
+      const s = this.slots.get(n);
+      const b = row((ui.slot ?? 'Slot {n}').replace('{n}', String(n)), label(s), mode === 'load' && !s ? 'off' : '');
+      if (mode === 'save') b.onclick = () => {
+        const write = () => { this.slots.put(n, { meta: meta(), state: structuredClone(this.engine.state) }); d.remove(); this.toast(`${(ui.slot ?? 'Slot {n}').replace('{n}', String(n))} ✓`); };
+        if (!s) return write();
+        m.innerHTML = `<h3>?</h3><p>${esc(ui.confirmOverwrite ?? 'Overwrite this save?')}</p>`;
+        const y = el('button', 'warn', `<span>${esc(ui.yes)}</span><span>!</span>`), no = el('button', '', `<span>${esc(ui.no)}</span><span>▶</span>`);
+        y.onclick = write; no.onclick = () => d.remove(); m.append(y, no);
+      };
+      else if (s) b.onclick = () => { d.remove(); void this.engine.load(s.state).catch((e) => this.toast(String((e as Error).message))); };
+    }
+    if (mode === 'save') row(ui.exportSave ?? 'Export file', '⤓').onclick = () => {
+      const blob = new Blob([JSON.stringify({ meta: meta(), state: this.engine.state }, null, 1)], { type: 'application/json' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${this.game.id}-save.json`; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000); d.remove();
+    };
+    else row(ui.importSave ?? 'Import file', '⤒').onclick = () => {
+      const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json,.json';
+      inp.onchange = async () => {
+        const f = inp.files?.[0]; if (!f) return;
+        try {
+          const j = JSON.parse(await f.text()) as Slot | GameState;
+          const st = 'state' in j ? j.state : j;
+          if (!st || typeof st !== 'object' || typeof (st as GameState).v !== 'number' || !(st as GameState).room) throw new Error('not a save file');
+          d.remove(); await this.engine.load(st as GameState);
+        } catch (e) { this.toast(String((e as Error).message)); }
+      };
+      inp.click();
+    };
+    row(ui.resume, '▶').onclick = () => d.remove();
   }
 
   /** Title screen, then launches the game. */

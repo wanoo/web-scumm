@@ -5,7 +5,7 @@
 // No node import here: this file is bundled into the Studio page.
 import { z } from 'zod';
 import type { Layout } from '../../src/engine/core/types';
-import type { AddEntity, GameInfo, NewNote, NotesFile, RoomData, SolveData, ValidateResult } from './types';
+import type { AddEntity, GameInfo, GraphData, NewNote, NotesFile, ReportData, RoomData, SolveData, ValidateResult } from './types';
 
 /** The operations the tools need. Same method names as the Studio's `Api` (src/studio/api.ts), so `BrowserApi` fits. */
 export interface ToolBackend {
@@ -20,6 +20,10 @@ export interface ToolBackend {
   addNote(n: NewNote): Promise<unknown>;
   validate(): Promise<ValidateResult>;
   solve(from?: string): Promise<SolveData>;
+  /** The content profiler (rooms, items, characters: what is thin). */
+  report?(): Promise<ReportData>;
+  /** The world's map: rooms, exits, gotos, unreachable rooms. */
+  graph?(): Promise<GraphData>;
   /** Optional abilities: a tool whose ability is missing is left out of `toolsFor(backend)`. */
   screenshot?(room: string, checkpoint?: string): Promise<ToolResult>;
   readDoc?(name: DocName): Promise<string>;
@@ -49,7 +53,7 @@ export interface ToolDef {
   /** It changes a game file (the Studio refreshes after it). */
   writes?: boolean;
   /** The optional backend ability it needs. */
-  needs?: 'screenshot' | 'readDoc' | 'runTests' | 'assetPrompts';
+  needs?: 'screenshot' | 'readDoc' | 'runTests' | 'assetPrompts' | 'report' | 'graph';
   run(args: any, b: ToolBackend): Promise<ToolResult>;
 }
 
@@ -182,6 +186,22 @@ export const TOOLS: ToolDef[] = [
     input: { from: z.string().optional().describe('Checkpoint id (list_rooms checkpoints).') },
     annotations: { readOnlyHint: true },
     run: ({ from }, b) => op(() => b.solve(from)),
+  },
+  {
+    name: 'content_report', title: 'Content profiler',
+    description: 'Game-design profiler, as Markdown: per room (zones, props, actors, exits, rules, topics, hints, scripts; ' +
+      'things with no look line, verbs that only get fallbacks, props that never change), per item (obtained where, ' +
+      'how many rules use it, consumed), per character (rooms, topics, lines, unreachable topics), unreachable rooms and ' +
+      'exits with no way back. Read it to decide what to write next. Read-only.',
+    input: {}, annotations: { readOnlyHint: true }, needs: 'report',
+    run: (_a, b) => op(async () => (await b.report!()).markdown),
+  },
+  {
+    name: 'world_graph', title: 'World map',
+    description: 'The rooms and the ways between them (declared exits, goto commands, map places) as a DOT graph, with ' +
+      'unreachable rooms and exits with no way back. Read-only.',
+    input: {}, annotations: { readOnlyHint: true }, needs: 'graph',
+    run: (_a, b) => op(async () => { const g = await b.graph!(); return `${g.dot}\n\nunreachable: ${g.graph.unreachable.join(', ') || 'none'}\none-way: ${g.graph.oneWay.map((e) => `${e.from} → ${e.to} (${e.via})`).join('; ') || 'none'}`; }),
   },
   {
     name: 'screenshot', title: 'Screenshot a room',

@@ -35,6 +35,8 @@ function textsOfDef(def: RoomDef): Map<string, string> {
   const out = new Map<string, string>();
   const walk = (v: unknown, segs: Seg[]) => {
     if (typeof v === 'string') { if (classify(segs)) out.set(formatPath(segs), v); return; }
+    // Hotspots and rules generated from declared exits are not in the source: their texts live under `exits`.
+    if (v && typeof v === 'object' && !Array.isArray(v) && ((v as { exit?: unknown }).exit === true || (segs[0] === 'on' && typeof (v as { exit?: unknown }).exit === 'string'))) return;
     if (Array.isArray(v)) v.forEach((x, i) => walk(x, [...segs, i]));
     else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, [...segs, k]);
   };
@@ -101,7 +103,7 @@ describe('setText', () => {
     const f = roomFile(demoDir, 'house');
     const before = read(f);
     const r = await demo.setText('house', 'look.teacup[1]', 'Not sardine-flavoured. Pass. Twice.');
-    expect(r).toEqual({ ok: true, line: 41, changed: true });
+    expect(r).toEqual({ ok: true, line: 45, changed: true });
     const after = read(f);
     expect(after).toBe(before.replace("'Not sardine-flavoured. Pass.'", "'Not sardine-flavoured. Pass. Twice.'"));
     const again = await demo.setText('house', 'look.teacup[1]', 'Not sardine-flavoured. Pass. Twice.');

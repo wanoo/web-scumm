@@ -49,6 +49,12 @@ layout, the same shape as `games/<id>/layout/<room>.json`; "Export JSON" gives `
 The page does not edit per-state positions, rotation, `z` or `on`: those keys are kept as they are. For fine work,
 use the in-game editor (`npm run dev`, then `?edit=<room>`).
 
+## The world page
+
+`npm run page:world` draws the rooms and the ways between them (declared exits solid, `goto` commands dashed, rooms on
+the map marked), lists unreachable rooms and exits with no way back, and prints the DOT source for Graphviz. Read-only:
+no annotations, no artifact database; the same picture is in the Studio's Check tab.
+
 ## Where the annotations go
 
 Every page shows a status line at the top and an **Export JSON** button. It works in three modes:

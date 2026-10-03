@@ -3,9 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import { check } from '@engine/core/cond';
-import type { GameDef, Layout } from '@engine/core/types';
+import type { GameDef, GameState, Layout } from '@engine/core/types';
 import { validate } from '@engine/tools/validate';
 import { solve } from '@engine/tools/solve';
+import { migrate } from '@engine/core/migrate';
+import { toDot, toSvg, worldGraph } from '@engine/tools/graph';
+import { report, reportMarkdown } from '@engine/tools/report';
 import { minigames } from '@engine/minigames';
 import { game, layouts } from './fixture';
 
@@ -448,5 +451,145 @@ describe('the world lives', () => {
     // The clock may tick along the way (it is a state the player can reach by waiting); the beats are in order.
     expect(r.path.filter((x) => x !== 'Script hall_clock')).toEqual(['Use gong', 'Script cook_comes', 'Talk cook']);
     expect(r.truncated).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Scale: declared exits, the world's map, chapters and invariants, migrations, the profiler.
+// ---------------------------------------------------------------------------
+
+function scale(): GameDef {
+  return {
+    id: 'scale', title: 'Scale', saveVersion: 3, hero: 'hero',
+    verbs: [{ id: 'look', label: 'Look', color: '#fff' }, { id: 'open', label: 'Open', color: '#fff' }, { id: 'use', label: 'Use', color: '#fff', join: 'with' }, { id: 'take', label: 'Take', color: '#fff' }],
+    characters: { hero: { name: 'Hero', color: '#fff', sprites: { idle: ['h/1'] } } },
+    items: { key: { name: 'key', icon: 'i/key', look: 'A key.' }, gem: { name: 'gem', icon: 'i/gem', look: 'A gem.' } },
+    rooms: [
+      { id: 'hall', name: 'Hall', decor: 'd/hall',
+        hotspots: { mat: { name: 'mat' } },
+        exits: { door: { name: 'door', to: 'yard', entry: 'from_hall', if: { has: 'key' }, locked: 'Locked.', sfx: 'creak' } },
+        look: { mat: 'A mat.', door: 'A door.' },
+        on: [{ verb: 'take', a: 'mat', if: '!key_found', do: [{ gain: 'key' }, { set: 'key_found' }] }],
+        hints: [{ until: { has: 'key' }, lines: ['Under the mat.'] }] },
+      { id: 'yard', name: 'Yard', decor: 'd/yard',
+        hotspots: { well: { name: 'well' } },
+        exits: { back: { name: 'back door', to: 'hall', oneWay: true } },
+        look: { well: 'A well.', back: 'The door.' },
+        on: [{ verb: 'use', a: 'well', do: [{ gain: 'gem' }, { goto: 'attic' }] }],
+        hints: [{ until: 'never', lines: ['Use the well.'] }] },
+      { id: 'attic', name: 'Attic', decor: 'd/attic', hotspots: { chest: { name: 'chest' } }, look: { chest: 'A chest.' },
+        on: [{ verb: 'use', a: 'gem', b: 'chest', do: ['Done.', { end: true }] }], hints: [{ until: 'never', lines: ['The chest.'] }] },
+      { id: 'cellar', name: 'Cellar', decor: 'd/cellar', hotspots: { barrel: { name: 'barrel' } }, look: { barrel: 'A barrel.' } },
+    ],
+    rules: { fallbacks: { look: ['Nothing.'], open: ['No.'], use: ['No.'], take: ['No.'], use2: ['No.'] } },
+    audio: { sfx: { creak: 'creak.mp3' } },
+    start: { room: 'hall' },
+    checkpoints: {
+      yard: { room: 'yard', inventory: ['key'], flags: { key_found: true }, goals: [{ has: 'key' }, { room: 'yard' }] },
+    },
+    invariants: [{ all: [{ has: 'gem' }, { not: { has: 'key' } }] }],
+    migrations: [
+      { from: 1, renameFlag: { found: 'key_found' }, renameItem: { cle: 'key' } },
+      { from: 2, renameRoom: { lobby: 'hall' }, dropFlag: ['tmp'] },
+    ],
+    saves: { slots: 2 },
+    skin: { icons: { map: 'ui/map', pause: 'ui/pause', music: 'ui/music' } },
+    ui: {} as GameDef['ui'],
+  };
+}
+const scaleLayouts: Record<string, Layout> = {
+  hall: { entries: { default: [320, 360] }, hotspots: { mat: { rect: [10, 10, 50, 50] }, door: { rect: [100, 10, 50, 50] } } },
+  yard: { entries: { default: [320, 360], from_hall: [40, 360] }, hotspots: { well: { rect: [10, 10, 50, 50] }, back: { rect: [100, 10, 50, 50] } } },
+  attic: { entries: { default: [320, 360] }, hotspots: { chest: { rect: [10, 10, 50, 50] } } },
+  cellar: { entries: { default: [320, 360] }, hotspots: { barrel: { rect: [10, 10, 50, 50] } } },
+};
+
+describe('scale: exits, chapters, saves', () => {
+  it('a declared exit is a hotspot with a goto rule, locked until its condition holds', async () => {
+    const ui = new FakePresenter();
+    const e = new Engine(scale(), scaleLayouts, ui, new MemoryStore());
+    await e.newGame();
+    expect(e.targets()).toEqual(['mat', 'door']);
+    expect(e.nameOf('door')).toBe('door');
+    expect(e.kindsOf('door')).toEqual(['exit']);
+    expect(await e.act({ verb: 'open', a: 'door' })).toBe('rule');
+    expect(ui.log.at(-1)).toBe('hero: Locked.');
+    await e.act({ verb: 'take', a: 'mat' });
+    await e.act({ verb: 'open', a: 'door' });
+    expect(e.state.room).toBe('yard');
+    expect(e.state.hero.yard).toEqual([40, 360]);
+    expect(ui.log).toContain('sfx creak');
+    expect(await e.act({ verb: 'look', a: 'back' })).toBe('look');
+    expect(ui.log.at(-1)).toBe('hero: The door.');
+  });
+
+  it('the validator and the world graph see unreachable rooms and missing ways back', () => {
+    const g = worldGraph(scale());
+    expect(g.unreachable).toEqual(['cellar']);
+    expect(g.edges.filter((e) => e.kind === 'exit').map((e) => `${e.from}>${e.to}`)).toEqual(['hall>yard', 'yard>hall']);
+    expect(g.edges.filter((e) => e.kind === 'goto').map((e) => `${e.from}>${e.to}:${e.via}`)).toEqual(['yard>attic:on[0][1]']);
+    expect(toDot(g)).toContain('"yard" -> "attic"');
+    expect(toSvg(g)).toContain('unreachable');
+    const { errors, warnings } = validate(scale(), scaleLayouts);
+    expect(errors).toEqual([]);
+    expect(warnings).toContain('cellar › no exit, goto or map place leads to this room from the start');
+    expect(warnings.filter((w) => w.includes('no way back'))).toEqual([]); // yard.back is oneWay; hall.door has a way back through it
+    const g2 = scale();
+    g2.rooms[1].exits!.back.oneWay = false;
+    g2.rooms[1].on = [];
+    expect(validate(g2, scaleLayouts).warnings.filter((w) => w.includes('no way back'))).toEqual([]);
+    g2.rooms[1].exits = {};
+    expect(validate(g2, scaleLayouts).warnings).toContain('hall.exits.door › no way back from yard to hall (add oneWay: true if intended)');
+    g2.rooms[0].hotspots!.door = { name: 'twice' };
+    expect(validate(g2, scaleLayouts).errors).toContain('hall.exits.door › "door" is both an exit and a hotspot');
+  });
+
+  it('the solver proves a chapter by its goals and reports broken invariants', async () => {
+    const r = await solve(scale(), scaleLayouts, { goal: scale().checkpoints!.yard.goals });
+    expect(r.finished).toBe(true);
+    expect(r.path).toEqual(['Take mat', 'Open door']);
+    const r2 = await solve(scale(), scaleLayouts, { start: { checkpoint: 'yard' } });
+    expect(r2.finished).toBe(true);
+    expect(r2.broken).toEqual([]);
+    const g = scale();
+    g.invariants = [{ has: 'gem' }];
+    const r3 = await solve(g, scaleLayouts, { start: { checkpoint: 'yard' } });
+    expect(r3.broken).toEqual([{ invariant: 0, path: ['Use well'] }]);
+  });
+
+  it('migrates an old save step by step, and refuses one with no path', () => {
+    const g = scale();
+    const old = { v: 1, room: 'lobby', inventory: ['cle'], flags: { found: true, tmp: 1 }, props: {}, actors: {}, hero: { lobby: [1, 2] as [number, number] }, unlocked: [], visited: { lobby: 1 }, counters: {}, seen: {}, started: 0 };
+    const s = migrate(g, old as GameState)!;
+    expect(s.v).toBe(3);
+    expect(s.room).toBe('hall');
+    expect(s.inventory).toEqual(['key']);
+    expect(s.flags).toEqual({ key_found: true });
+    expect(s.hero).toEqual({ hall: [1, 2] });
+    expect(s.visited).toEqual({ hall: 1 });
+    expect(old.v).toBe(1); // untouched
+    expect(migrate(g, { ...old, v: 0 } as GameState)).toBeNull();
+    const e = new Engine(g, scaleLayouts, new FakePresenter(), new MemoryStore());
+    e.store.save(old as GameState);
+    expect(e.hasSave()).toBe(true);
+    const { errors, warnings } = validate(g, scaleLayouts);
+    expect(errors).toEqual([]);
+    expect(warnings.filter((w) => w.startsWith('migrations'))).toEqual([]);
+    g.migrations = [{ from: 1 }];
+    expect(validate(g, scaleLayouts).warnings).toContain('migrations › no migration from version 2: those saves start a new game');
+    g.migrations = [{ from: 3, renameItem: { a: 'nope' } }];
+    expect(validate(g, scaleLayouts).errors).toEqual(['migrations[0] › from 3 is not below saveVersion 3', 'migrations[0] › renamed item does not exist: "nope"']);
+  });
+
+  it('the content report counts what matters', () => {
+    const r = report(scale(), scaleLayouts);
+    expect(r.totals.rooms).toBe(4);
+    expect(r.rooms[0]).toMatchObject({ id: 'hall', hotspots: 1, exits: 1, rules: 1, noLook: [] });
+    expect(r.rooms[3].verbsUnused).toEqual(['open', 'take']);
+    expect(r.items.find((i) => i.id === 'gem')).toMatchObject({ gainedIn: ['yard'], usedIn: 1, consumed: false });
+    expect(r.world).toEqual({ unreachable: ['cellar'], oneWay: [] });
+    const md = reportMarkdown(r);
+    expect(md).toContain('**Unreachable rooms:** cellar');
+    expect(md).toContain('| Hall (hall) | 1 | 0 | 0 | 1 | 1 |');
   });
 });

@@ -78,7 +78,7 @@ describe('npm run prompts on games/demo', () => {
     expect(dining).toContain('FORMAT: 1536 x 960 pixels (16:10).');
     expect(dining).toContain('LOCATION: Grandma\'s dining room at golden hour');
     expect(dining).toMatch(/EMPTY SPOTS: .*pantry cupboard.*teacup.*table \(furniture/);
-    expect(dining).toMatch(/MUST SHOW.*garden window.*bookshelf/);
+    expect(dining).toMatch(/MUST SHOW.*bookshelf.*garden window/);
     expect(section(md, '### Background `decor/market`')).toContain('LOCATION: A North African market street');
     const furn = section(md, '### Furniture `furniture_market`');
     expect(furn).toContain('ROW 1: stall left | stall mid | seller\'s stall');

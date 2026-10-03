@@ -254,6 +254,64 @@ A line stays on screen for as long as it takes to read, or until a tap.
 | `{ seen: 'house.grandma.0' }` | topic #0 of grandma's conversation at the house has already been heard. |
 | `{ actorIn: ['grandpa', 'house'] }` | the moving character is in that room (see "The world lives"). |
 
+## Exits, chapters, saves
+
+### Declared exits
+
+A way out can be written as a hotspot plus a rule with `goto`. Declaring it is shorter, and tells the tools the map of
+the world:
+
+```ts
+exits: {
+  window: { name: 'garden window', to: 'garden', entry: 'house', if: { unlocked: 'garden' },
+    locked: 'Not yet. First, the key.', sfx: 'door_open', verbs: ['use', 'open', 'push'] },
+  trapdoor: { name: 'trapdoor', to: 'cellar', oneWay: true },
+},
+```
+
+The engine turns each exit into a hotspot of the same id (kind `exit`, placed in the layout like any zone, with its
+`look` line in `look`) and rules at the end of `on`: "VERB exit → goto" when `if` holds, then the `locked` line. Your own
+rules on the exit come first, so a special reaction (an item used on the door) still wins. `verbs` defaults to use, open,
+walk, go, enter, push, pull (those your game has). From the exits, the `goto` commands and the map, the validator knows
+**which rooms nothing leads to** and **which exits have no way back** (say `oneWay: true` when that is intended); the
+Studio's Check tab and `npm run page:world` draw that map.
+
+### Chapters and invariants
+
+A checkpoint with `goals` is the end of a chapter. `npm run solve -- --chapters` proves each chapter on its own, from
+the previous checkpoint (or a new game) until its goals hold, then from the last checkpoint to the ending: a long game
+is checked in small bounded searches, and a broken chapter is named.
+
+```ts
+checkpoints: {
+  garden: { room: 'garden', inventory: ['token'], goals: [{ has: 'token' }] },
+  market: { room: 'market', …, goals: ['tank_drained', { unlocked: 'market' }] },
+},
+// Must never become true (the solver reports the path that makes one true):
+invariants: [{ all: [{ not: { has: 'token' } }, '!flowers_done'] }],
+```
+
+### Save slots and migrations
+
+```ts
+saves: { slots: 3 },   // the pause menu gets Save / Load with three slots, plus export and import as a JSON file
+ui: { …, save: 'Save', load: 'Load', slot: 'Slot {n}', emptySlot: 'empty', exportSave: 'Export to a file', importSave: 'Import a file', confirmOverwrite: 'Overwrite this slot?' },
+```
+
+The autosave is unchanged. When the content changes incompatibly, bump `saveVersion`; a save of another version used to
+start a new game. Now you can carry it over, as data, one step per version:
+
+```ts
+saveVersion: 3,
+migrations: [
+  { from: 1, renameFlag: { found: 'key_found' }, renameItem: { cle: 'key' } },
+  { from: 2, renameRoom: { lobby: 'hall' }, renameProp: { 'hall.lamp': 'hall.lantern' }, dropFlag: ['tmp'] },
+],
+```
+
+`renameFlag`, `renameItem`, `renameRoom`, `renameProp`, `renameActor`, `renamePlace`, `dropFlag`, `dropItem`. The chain
+must reach `saveVersion`; a save with no path still starts a new game. The validator checks that the new names exist.
+
 ## The world lives: scripts, events, moving characters
 
 Everything above reacts to the player: a tap, a rule, its commands. Three primitives let the world act on its own.

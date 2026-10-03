@@ -115,7 +115,7 @@ describe('tool registry', () => {
     const { tools } = await client.listTools();
     await client.close();
     expect(tools.map((t) => t.name).sort()).toEqual(TOOLS.map((t) => t.name).sort());
-    expect(TOOLS).toHaveLength(15);
+    expect(TOOLS).toHaveLength(17);
     expect(toolsFor(backend).map((t) => t.name).sort()).toEqual(TOOLS.map((t) => t.name).sort());
     expect([...WRITING_TOOLS].sort()).toEqual(['add_entity', 'add_note', 'set_layout', 'set_storyboard', 'set_text']);
   }, 30000);
@@ -137,7 +137,7 @@ describe('tool registry', () => {
   it('a backend without optional abilities loses their tools; bad arguments are tool errors', async () => {
     const { screenshot: _s, readDoc: _r, runTests: _t, assetPrompts: _a, ...plain } = backend;
     expect(toolsFor(plain).map((t) => t.name)).not.toEqual(expect.arrayContaining(['screenshot']));
-    expect(toolsFor(plain)).toHaveLength(11);
+    expect(toolsFor(plain)).toHaveLength(13);
     const r = await callTool('get_room', { nope: 1 }, backend);
     expect(r.isError).toBe(true);
     expect(r.content[0].text).toContain('bad arguments for get_room');

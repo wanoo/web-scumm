@@ -1,5 +1,6 @@
 import { check } from './cond';
 import { assignKeys, EMPTY_LAYOUT, FLOOR, NEAR } from './define';
+import { migrate } from './migrate';
 import type { Presenter, SaveStore } from './ports';
 import type { CharacterDef, Cmd, EventRule, GameDef, GameState, Id, Layout, Point, RoomDef, Rule, ScriptDef, Value, VerbId } from './types';
 
@@ -74,10 +75,7 @@ export class Engine {
     return s;
   }
 
-  hasSave(): boolean {
-    const s = this.store.load();
-    return !!s && s.v === this.game.saveVersion;
-  }
+  hasSave(): boolean { return !!migrate(this.game, this.store.load()); }
 
   async newGame(): Promise<void> {
     this.dropGuide();
@@ -92,9 +90,18 @@ export class Engine {
   }
 
   async continueGame(): Promise<void> {
-    const s = this.store.load();
-    if (!s || s.v !== this.game.saveVersion) return this.newGame();
+    const s = migrate(this.game, this.store.load());
+    if (!s) return this.newGame();
+    await this.load(s);
+  }
+
+  /** Resumes from a state (the autosave, a manual slot, an imported file), migrated if it is older. */
+  async load(saved: GameState): Promise<void> {
+    const s = migrate(this.game, saved);
+    if (!s) throw new Error(`save version ${saved.v} cannot be migrated to ${this.game.saveVersion}`);
+    this.dropGuide();
     this.state = this.ensureState(s);
+    this.store.save(this.state);
     await this.enter(s.room, undefined, false);
     this.startScripts(true);
   }

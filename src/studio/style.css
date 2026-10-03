@@ -384,3 +384,7 @@ select.addsfx { font-size: 12px; padding: 2px 6px; color: var(--muted); }
 .arow > span { flex: 1; }
 button.danger { border-color: #a33a44; color: #ffb3b3; }
 @media (min-width: 1600px) { body.with-assistant .toasts { right: 480px; } }
+
+/* Check tab: the world graph and the content report */
+.check .svgbox { overflow: auto; background: #fff; border-radius: 8px; padding: 8px; }
+.check pre.md { white-space: pre-wrap; font-size: 12px; max-height: 460px; overflow: auto; }

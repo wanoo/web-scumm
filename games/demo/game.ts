@@ -72,22 +72,29 @@ export const game = defineGame({
       'Garden. Grandpa. Key. Sardines. Easy.',
     ],
   },
-  // One ready state per room (?dev&at=<id>, npm run solve -- --from=<id>).
+  // One ready state per room (?dev&at=<id>, npm run solve -- --from=<id>). Each one also ends a chapter: its `goals` are
+  // what the previous chapter must reach (npm run solve -- --chapters proves each chapter on its own).
   checkpoints: {
-    house: { room: 'house', inventory: ['shell_phone'], unlocked: ['house', 'garden'], flags: { guess: 'sardines' } },
-    garden: { room: 'garden', inventory: ['shell_phone', 'token'], unlocked: ['house', 'garden'], flags: { guess: 'sardines' }, props: { 'house.armchair': 'searched' } },
+    house: { room: 'house', inventory: ['shell_phone'], unlocked: ['house', 'garden'], flags: { guess: 'sardines' }, goals: [{ has: 'shell_phone' }, { unlocked: 'garden' }] },
+    garden: { room: 'garden', inventory: ['shell_phone', 'token'], unlocked: ['house', 'garden'], flags: { guess: 'sardines' }, props: { 'house.armchair': 'searched' }, goals: [{ has: 'token' }] },
     market: {
       room: 'market', inventory: ['shell_phone', 'token'], unlocked: ALL,
       flags: { guess: 'sardines', pipe_taken: true, tank_drained: true, lou_has_key: true },
       props: { 'house.armchair': 'searched', 'garden.tank': 'draining' },
+      goals: ['tank_drained', 'lou_has_key', { unlocked: 'market' }],
     },
     finale: {
       room: 'house', inventory: ['shell_phone', 'key'], unlocked: ALL,
       flags: { guess: 'sardines', pipe_taken: true, tank_drained: true, lou_has_key: true, deposit_known: true, flowers_done: true, bouquet_given: true },
       props: { 'house.armchair': 'searched', 'garden.tank': 'draining' },
       where: { grandpa: 'house' },
+      goals: [{ has: 'key' }],
     },
   },
+  // Must never become true: the token gone before the flowers are done (the solver reports the path if it happens).
+  invariants: [{ all: [{ prop: ['house.armchair', 'searched'] }, { not: { has: 'token' } }, '!flowers_done'] }],
+  // Three manual save slots in the pause menu (export / import as a file too).
+  saves: { slots: 3 },
   // No music yet (the demo runs without it): rooms have no `music`, and `audio.music` is empty.
   audio: {
     music: {},
@@ -135,5 +142,6 @@ export const game = defineGame({
     mapLocked: 'Not yet!', mapBack: 'Back', world: 'World', zoomIn: 'Zoom', arrival: 'Arrival:', pickUp: 'Pick up', hangUp: 'Hang up',
     calling: 'calling…', loading: 'Loading…', on: 'on', off: 'off', giveWhat: 'Pick an item from the bag first.', replay: 'Play again',
     miniGame: 'Mini-game', tapToContinue: '▼ tap to continue', ok: 'OK', password: 'Password?',
+    save: 'Save', load: 'Load', slot: 'Slot {n}', emptySlot: 'empty', exportSave: 'Export to a file', importSave: 'Import a file', confirmOverwrite: 'Overwrite this slot?',
   },
 });

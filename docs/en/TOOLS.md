@@ -154,6 +154,15 @@ npm run e2e        # a playthrough in Chromium, phone landscape (dev server alre
 ```
 
 `validate` and `solve` exit with an error (code 1) when there is a blocking problem.
+
+```bash
+npm run solve -- --chapters        # one bounded search per checkpoint with `goals`, then from the last one to the ending
+npm run validate -- --report       # the content profiler: rooms, items, characters, what is thin (Markdown)
+npm run page:world                 # the map of the world as a page (exits, gotos, unreachable rooms, DOT source)
+```
+
+`solve` also reports **invariants** (`GameDef.invariants`) that became true, with the path. The validator warns about
+rooms nothing leads to and declared exits with no way back.
 `validate` also checks each minigame's required parameters (`required`), the images cited in their `params`,
 every `skin` id (manifest images, `audio` sounds) and `ending.scratch`.
 `games/demo/e2e.mjs` is the example of a game-specific `npm run e2e` script: it starts from the title screen, plays the pipes and pick minigames and the sealed ending's scratch ticket for real instead of skipping them, then checks the final card.

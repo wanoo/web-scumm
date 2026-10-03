@@ -147,6 +147,15 @@ npm run e2e        # parcours dans Chromium en paysage téléphone (serveur de d
 ```
 
 `validate` et `solve` sortent en erreur (code 1) quand il y a un problème bloquant.
+
+```bash
+npm run solve -- --chapters        # une recherche bornée par checkpoint avec `goals`, puis du dernier à la fin
+npm run validate -- --report       # le profileur de contenu : lieux, objets, personnages, ce qui est mince (Markdown)
+npm run page:world                 # la carte du monde en page (sorties, gotos, lieux inaccessibles, source DOT)
+```
+
+`solve` signale aussi les **invariants** (`GameDef.invariants`) devenus vrais, avec le chemin. Le validateur avertit des
+lieux que rien n'atteint et des sorties déclarées sans retour.
 `validate` vérifie aussi les paramètres obligatoires des mini-jeux (`required` de chaque mini-jeu), les images citées dans leurs `params`,
 chaque id de `skin` (images du manifeste, sons de `audio`) et `ending.scratch`.
 `games/demo/e2e.mjs` est l'exemple d'un script `npm run e2e` propre à un jeu : il part de l'écran titre, joue pour de vrai les mini-jeux tuyaux et pioche ainsi que le ticket à gratter de la fin scellée au lieu de les passer, puis vérifie la carte finale.

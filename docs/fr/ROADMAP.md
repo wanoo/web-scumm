@@ -52,7 +52,7 @@ Fichiers : `src/engine/core/{types,engine,state}.ts`, nouveau `src/engine/core/s
 - **Démo** : le chat (ou le voisin) patrouille entre jardin et marché ; une cloche du marché émet un événement écouté par la maison.
 - **Docs/outils** : CONTENT_GUIDE en/fr section « Le monde vit » ; `tools/prompts.ts` inchangé ; MCP : les outils `room`/`add` acceptent `scripts`/`events` ; AGENTS.md règle « un PNJ qui bouge est un script, pas une règle ».
 
-### M2 — « Scale » (v1.4) : tenir 40 salles sans perdre les testeurs
+### M2 — « Scale » (v1.4, livré) : tenir 40 salles sans perdre les testeurs
 
 Fichiers : `src/engine/tools/{validate,solve}.ts`, nouveau `src/engine/tools/graph.ts`, `src/engine/dom/app.ts` (menu), nouveau `src/engine/core/migrate.ts`, `tools/pages/review.ts` ou nouvelle page `world`.
 

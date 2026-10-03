@@ -2,7 +2,7 @@
 // or, in demo mode, the browser backend (src/studio/api-browser.ts: a build-time snapshot plus edits in localStorage).
 // Types are shared with the server.
 import type { Layout } from '@engine/core/types';
-import type {
+import type { GraphData, ReportData,
   AddEntity, AssetsListing, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, ScreenshotResult, SolveData, ValidateResult,
 } from '../../tools/studio/types';
 
@@ -44,6 +44,8 @@ export interface Api {
   deleteNote(id: string): Promise<{ ok: true }>;
   validate(): Promise<ValidateResult>;
   solve(from?: string): Promise<SolveData>;
+  report(): Promise<ReportData>;
+  graph(): Promise<GraphData>;
   screenshot(room: string, checkpoint?: string): Promise<Exclude<ScreenshotResult, { unavailable: true }>>;
   /** Every image and sound, where it is used, and the art prompts (the Assets tab; uploads: src/studio/assets.ts). */
   assets(): Promise<AssetsListing>;
@@ -64,6 +66,8 @@ export const serverApi: Api = {
   editNote: (id: string, e: NoteEdit) => call<Note>('PUT', `notes/${encodeURIComponent(id)}`, e),
   deleteNote: (id: string) => call<{ ok: true }>('DELETE', `notes/${encodeURIComponent(id)}`),
   validate: () => call<ValidateResult>('POST', 'validate'),
+  report: () => call<ReportData>('POST', 'report'),
+  graph: () => call<GraphData>('GET', 'graph'),
   solve: (from?: string) => call<SolveData>('POST', 'solve', { from: from || undefined }),
   screenshot: (room: string, checkpoint?: string) => call<Exclude<ScreenshotResult, { unavailable: true }>>('POST', 'screenshot', { room, checkpoint: checkpoint || undefined }),
   assets: () => call<AssetsListing>('GET', 'assets'),

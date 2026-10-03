@@ -252,6 +252,66 @@ Une réplique reste à l'écran le temps de la lire, ou jusqu'à un tap.
 | `{ seen: 'maison.grandmere.0' }` | le sujet n° 0 de Grand-mère à la maison a déjà été entendu. |
 | `{ actorIn: ['grandpere', 'maison'] }` | le personnage mobile est dans ce lieu (voir « Le monde vit »). |
 
+## Sorties, chapitres, sauvegardes
+
+### Les sorties déclarées
+
+Une sortie peut s'écrire comme un hotspot plus une règle avec `goto`. La déclarer est plus court, et donne aux outils la
+carte du monde :
+
+```ts
+exits: {
+  fenetre: { name: 'fenêtre du jardin', to: 'jardin', entry: 'maison', if: { unlocked: 'jardin' },
+    locked: 'Pas encore. D’abord, la clé.', sfx: 'porte', verbs: ['use', 'open', 'push'] },
+  trappe: { name: 'trappe', to: 'cave', oneWay: true },
+},
+```
+
+Le moteur transforme chaque sortie en un hotspot du même id (kind `exit`, placé dans le layout comme toute zone, avec
+sa ligne dans `look`) et en règles ajoutées à la fin de `on` : « VERBE sortie → goto » quand `if` tient, puis la ligne
+`locked`. Tes propres règles sur la sortie passent avant, donc une réaction spéciale (un objet utilisé sur la porte)
+gagne toujours. `verbs` vaut par défaut use, open, walk, go, enter, push, pull (ceux que ton jeu a). À partir des sorties,
+des commandes `goto` et de la carte, le validateur sait **quels lieux ne sont atteints par rien** et **quelles sorties
+n'ont pas de retour** (indique `oneWay: true` quand c'est voulu) ; l'onglet Check du Studio et `npm run page:world`
+dessinent cette carte.
+
+### Chapitres et invariants
+
+Un checkpoint avec `goals` est la fin d'un chapitre. `npm run solve -- --chapters` prouve chaque chapitre séparément,
+depuis le checkpoint précédent (ou une nouvelle partie) jusqu'à ce que ses objectifs tiennent, puis du dernier
+checkpoint à la fin : un jeu long se vérifie en petites recherches bornées, et un chapitre cassé est nommé.
+
+```ts
+checkpoints: {
+  jardin: { room: 'jardin', inventory: ['jeton'], goals: [{ has: 'jeton' }] },
+  marche: { room: 'marche', …, goals: ['cuve_videe', { unlocked: 'marche' }] },
+},
+// Ne doit jamais devenir vrai (le solveur donne le chemin qui le rend vrai) :
+invariants: [{ all: [{ not: { has: 'jeton' } }, '!fleurs_faites'] }],
+```
+
+### Emplacements de sauvegarde et migrations
+
+```ts
+saves: { slots: 3 },   // le menu pause gagne Sauver / Charger avec trois emplacements, plus export et import en fichier JSON
+ui: { …, save: 'Sauver', load: 'Charger', slot: 'Emplacement {n}', emptySlot: 'vide', exportSave: 'Exporter en fichier', importSave: 'Importer un fichier', confirmOverwrite: 'Écraser cet emplacement ?' },
+```
+
+La sauvegarde automatique ne change pas. Quand le contenu change de façon incompatible, on incrémente `saveVersion` ;
+une sauvegarde d'une autre version repartait de zéro. On peut maintenant la convertir, en données, une étape par version :
+
+```ts
+saveVersion: 3,
+migrations: [
+  { from: 1, renameFlag: { trouve: 'cle_trouvee' }, renameItem: { cle: 'key' } },
+  { from: 2, renameRoom: { entree: 'hall' }, renameProp: { 'hall.lampe': 'hall.lanterne' }, dropFlag: ['tmp'] },
+],
+```
+
+`renameFlag`, `renameItem`, `renameRoom`, `renameProp`, `renameActor`, `renamePlace`, `dropFlag`, `dropItem`. La chaîne
+doit atteindre `saveVersion` ; une sauvegarde sans chemin repart toujours de zéro. Le validateur vérifie que les nouveaux
+noms existent.
+
 ## Le monde vit : scripts, événements, personnages mobiles
 
 Tout ce qui précède réagit au joueur : un tap, une règle, ses commandes. Trois primitives permettent au monde d'agir

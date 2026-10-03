@@ -57,6 +57,12 @@ JSON » donne `{ "layouts": { "<room>": … } }`. La page ne modifie pas les pos
 `on` : ces clés sont conservées telles quelles. Pour un travail fin, utiliser l'éditeur en jeu (`npm run dev`, puis
 `?edit=<room>`).
 
+## La page du monde
+
+`npm run page:world` dessine les lieux et les passages entre eux (sorties déclarées en trait plein, commandes `goto` en
+pointillés, lieux sur la carte marqués), liste les lieux inaccessibles et les sorties sans retour, et imprime la source
+DOT pour Graphviz. Lecture seule : pas d'annotations, pas de base d'artefact ; la même image est dans l'onglet Check du Studio.
+
 ## Où vont les annotations
 
 Chaque page affiche une ligne de statut en haut et un bouton **Export JSON**. Elle fonctionne selon trois modes :

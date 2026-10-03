@@ -161,6 +161,8 @@ export interface Rule {
   b?: Id | Id[];
   if?: Cond;
   do: Cmd[];
+  /** Generated from this exit of `RoomDef.exits` (core/define.ts): not written by the author. */
+  exit?: Id;
 }
 
 /**
@@ -281,12 +283,39 @@ export interface HotspotDef {
   name: string;
   kind?: string[];
   visible?: Cond;
+  /** Generated from `RoomDef.exits` (core/define.ts): not written by the author. */
+  exit?: boolean;
 }
 
 export interface TalkTopic {
   topic: string;
   if?: Cond;
   do: Cmd[];
+}
+
+/**
+ * A way out of the room, declared rather than written as a hotspot plus a rule. The engine turns it into exactly that
+ * (core/define.ts `normalizeExits`): a hotspot `id` (placed in the layout like any zone, kind `exit`) and, first in the
+ * room's rules, "VERB id → goto". So everything else (look lines, other rules, the editor, the solver) sees a hotspot.
+ * Declared exits also give the tools the map of the world (unreachable rooms, one-way passages).
+ */
+export interface ExitDef {
+  name: string;
+  to: Id;
+  /** Entry point (layout `entries`) or point in the target room. */
+  entry?: Id | Point;
+  /** Passable only if… (otherwise `locked` is said, or the fallback). */
+  if?: Cond;
+  /** The hero's line when the exit is not passable yet. */
+  locked?: string;
+  /** Verbs that take the exit. Default: use, open, walk, go, enter, push, pull (those the game has). */
+  verbs?: VerbId[];
+  /** Sound played when leaving. */
+  sfx?: Id;
+  visible?: Cond;
+  kind?: string[];
+  /** The player cannot come back this way: the tools stop reporting it as a missing way back. */
+  oneWay?: boolean;
 }
 
 export interface HintDef {
@@ -338,6 +367,8 @@ export interface RoomDef {
   props?: Record<Id, PropDef>;
   actors?: Record<Id, ActorDef>;
   hotspots?: Record<Id, HotspotDef>;
+  /** Ways out (see ExitDef): hotspots with a goto rule, and the world's map for the tools. */
+  exits?: Record<Id, ExitDef>;
   /** Look: a line, or a list (looped). Anything visible should have one. */
   look?: Record<Id, string | string[]>;
   on?: Rule[];
@@ -485,10 +516,24 @@ export interface GameDef {
   skin: SkinDef;
   /** Sealed ending, optional. */
   ending?: EndingDef;
-  /** Ready-to-use states for testing a specific moment (teleport in dev mode, solver). */
+  /**
+   * Ready-to-use states for testing a specific moment (teleport in dev mode, solver). A checkpoint with `goals` is the
+   * end of a chapter: `npm run solve -- --chapters` proves each chapter from the previous checkpoint until its goals hold.
+   */
   checkpoints?: Record<Id, { room: Id; inventory?: Id[]; flags?: Record<Id, Value>; unlocked?: Id[]; props?: Record<string, string>;
     /** Where the moving characters are (character → room); the others are in their starting room. */
-    where?: Record<Id, Id> }>;
+    where?: Record<Id, Id>;
+    /** Conditions that must all hold when the chapter ending here is done (solver `--chapters`). */
+    goals?: Cond[] }>;
+  /** Conditions that must never become true (the solver reports the path that makes one true). */
+  invariants?: Cond[];
+  /** Manual save slots (pause menu: save, load, export, import). Absent or 0: autosave only. */
+  saves?: { slots: number };
+  /**
+   * How to bring an older save up to date, one step per version, as data: renames and drops. A save whose version has
+   * no migration starts a new game (as before). The chain must reach `saveVersion`.
+   */
+  migrations?: Migration[];
   /** Engine texts (menus, confirmations). The engine never hardcodes any text. */
   ui: UiTexts;
   /** Title screen: background image, logo, music, footer. */
@@ -499,6 +544,21 @@ export interface GameDef {
   creditsScreen?: { video?: string; decor?: Id };
   /** End credits, line by line (an empty line = a blank space). */
   credits?: string[];
+}
+
+/** One step of save migration: from version `from` to `from + 1`. Keys are old ids, values new ones. */
+export interface Migration {
+  from: number;
+  renameFlag?: Record<Id, Id>;
+  renameItem?: Record<Id, Id>;
+  renameRoom?: Record<Id, Id>;
+  /** `room.prop` → `room.prop`. */
+  renameProp?: Record<string, string>;
+  /** `room.actor` → `room.actor`. */
+  renameActor?: Record<string, string>;
+  renamePlace?: Record<Id, Id>;
+  dropFlag?: Id[];
+  dropItem?: Id[];
 }
 
 export interface UiTexts {
@@ -541,6 +601,15 @@ export interface UiTexts {
   tapToContinue: string;
   /** Confirm button (sealed ending password). */
   ok: string;
+  // --- manual saves (`GameDef.saves`); English defaults when absent
+  save?: string;
+  load?: string;
+  /** "Slot {n}" ({n} replaced). */
+  slot?: string;
+  emptySlot?: string;
+  exportSave?: string;
+  importSave?: string;
+  confirmOverwrite?: string;
 }
 
 // ---------------------------------------------------------------------------

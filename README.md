@@ -10,7 +10,7 @@ game can be finished, play it in landscape on any phone, offline after the first
 |---|---|
 | 🎮 **Play the sample game** | https://wanoo.github.io/web-scumm/ (phone in landscape, or desktop) |
 | 🛠 **Try the Studio** | https://wanoo.github.io/web-scumm/studio.html (demo mode: edits stay in your browser) |
-| 📦 **Source** | https://github.com/wanoo/web-scumm · release v1.3.0 |
+| 📦 **Source** | https://github.com/wanoo/web-scumm · release v1.4.0 |
 
 ## In pictures
 
@@ -29,12 +29,13 @@ game can be finished, play it in landscape on any phone, offline after the first
 | ![Studio, Assistant](docs/img/studio-assistant.jpg) *The Assistant: any AI model, the same tools as the MCP server, about the selected element* | ![Studio, Assistant settings](docs/img/studio-assistant-settings.jpg) *Assistant settings: OpenAI, Anthropic, Mistral, Ollama or a custom endpoint, key kept in your browser* |
 
 ## Status
-- Engine, tools and the sample game: complete and playable end to end (validator, solver, 111 tests, Playwright playthrough).
+- Engine, tools and the sample game: complete and playable end to end (validator, solver, 116 tests, Playwright playthrough).
 - Review pages (storyboard, sprite review, placement): working, as local HTML or as claude.ai artifacts.
 - **Studio** (`npm run studio`): a complete local creation environment: rooms (WYSIWYG on the real engine), texts, storyboard, notes, **assets** (every image and sound, prompts per sheet, uploads cut automatically) and an **Assistant** that connects any AI model (OpenAI, Anthropic, Mistral, Ollama…) with the same tools as the MCP server. See `docs/en/STUDIO.md`.
 - **Art prompts generator** (`npm run prompts`): ready-to-paste prompts for every character sheet (walk, talk, seated, the special poses your rooms use), object sheet with states, background and furniture, all sharing one style block. See `docs/en/PROMPTS.md`.
 - **Colour discipline and pixel-art preset**: every generated prompt carries the colour rules (4 hue-shifted tones per material, flat areas, one outline); `artStyle: "pixel"` in `site.json` switches prompts, cutter (nearest-neighbour, shared palette, indexed PNG), pipeline (lossless) and rendering to true pixel art. **Palette swap** in the engine recolours a character or a variant from the same sprites.
 - **Design guide** (`docs/en/DESIGN.md`): how to build a good SCUMM-style game with this engine, with a checklist before you share the link.
+- **Scale** (v1.4): **declared exits** (`exits`: a hotspot and its goto rule, generated) and the **world map** the tools draw from them (unreachable rooms, exits with no way back; Studio Check, `npm run page:world`); **chapters** (`goals` on checkpoints, `npm run solve -- --chapters`) and **invariants**; **save slots** with export / import and **data-only migrations** between `saveVersion`s; a **content profiler** (`npm run validate -- --report`, Studio, MCP `content_report`).
 - **The world lives** (v1.3): **scripts** that run on their own between the player's actions (an NPC strolling, an ambient gag, `loop` / `while` / `waitUntil` / `waitEvent`), **events** (`{ emit }` and `events` listeners, room then game) and **moving characters** (`room` + `moveActor`, `{ actorIn }` condition). All data: saved with the game, checked by the validator, played by the solver. See "The world lives" in `docs/en/CONTENT_GUIDE.md`; the roadmap to a LucasArts-scale engine is in `docs/en/ROADMAP.md`.
 - Try the Studio in your browser: https://wanoo.github.io/web-scumm/studio.html (demo mode, edits stay in your browser).
 - **MCP server** (`npm run -s mcp`): the same operations as tools for Claude Code, Cursor, Codex, Gemini CLI or any MCP client. See `docs/en/MCP.md`.

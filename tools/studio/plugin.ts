@@ -52,6 +52,8 @@ function routes(s: Studio): [string, RegExp, Handler][] {
     ['PUT', /^\/notes\/([\w-]+)$/, (m, b) => s.editNote(m[1], b)],
     ['DELETE', /^\/notes\/([\w-]+)$/, (m) => s.deleteNote(m[1])],
     ['POST', /^\/validate$/, () => s.validate()],
+    ['POST', /^\/report$/, () => s.report()],
+    ['GET', /^\/graph$/, () => s.graph()],
     ['POST', /^\/solve$/, (_m, b) => s.solve(typeof b.from === 'string' && b.from ? b.from : null)],
     ['POST', /^\/screenshot$/, async (_m, b, ctx) => {
       if (typeof b.room !== 'string') throw new StudioError('`room` is required');
