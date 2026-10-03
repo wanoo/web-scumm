@@ -121,6 +121,15 @@ mille lignes chacun, pas trois mille), sa direction était juste. Ce que la v2.1
 - **Les traductions survivent aux refactors** : `extract --lang xx` suit un texte déplacé (même texte source dans le
   fichier de référence précédent), gare ce qui a disparu sous `_stale:`, le ressuscite quand le chemin revient.
 
+## v2.2 « Studio » (livrée) : voir le dialogue, voir l'horloge
+
+- **L'arbre de dialogue** (`src/engine/tools/dialogue.ts`) : les sujets d'un personnage en arbre (sujets, répliques,
+  choix et options, branches, chacun avec sa condition), dérivé du DSL, rien à tenir à jour. Dans l'onglet Rooms du
+  Studio (un bouton à côté des sujets ; toucher un nœud saute à son éditeur) et en outil `dialogue_tree`.
+- **Le journal** (`Engine.trace`, mode dev) : ce que chaque action a répondu, les événements émis et les écouteurs
+  atteints, les pas de script, les personnages déplacés, les changements de joueur. Dans l'onglet Play du Studio
+  (filtrable par sorte) et le panneau dev (les dix derniers).
+
 ## Hors plan (décisions explicites)
 
 - Pas de Phaser ni de canvas : le Presenter DOM suffit pour quelques dizaines d'images ; une salle large reste une translation CSS.

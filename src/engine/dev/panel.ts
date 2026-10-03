@@ -105,6 +105,11 @@ export class DevPanel {
       }
     }
 
+    if (eng.trace.length) {
+      const jf = pane.addFolder({ title: 'Journal', expanded: false });
+      for (const x of eng.trace.slice(-10).reverse()) { const row = { line: x.text }; jf.addBinding(row, 'line', { label: x.kind, readonly: true }); }
+    }
+
     if (game.map) {
       const mp = pane.addFolder({ title: 'Map', expanded: false });
       const un: Record<string, boolean> = Object.fromEntries(Object.keys(game.map.places).map((p) => [p, eng.state.unlocked.includes(p)]));

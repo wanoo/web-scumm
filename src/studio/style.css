@@ -400,3 +400,22 @@ button.danger { border-color: #a33a44; color: #ffb3b3; }
 .play .cond.bad { color: #ff9f7a; }
 .play .nest { margin-left: 14px; border-left: 2px solid rgba(255,255,255,.12); padding-left: 8px; }
 @media (max-width: 900px) { .play .playgrid { grid-template-columns: 1fr; } }
+
+/* Dialogue tree (Rooms tab, talk topics) */
+.dtree ul { list-style: none; margin: 0; padding-left: 14px; border-left: 1px dashed rgba(128,128,128,.5); }
+.dtree > ul { padding-left: 0; border-left: 0; }
+.dtree li { margin: 3px 0; font-size: 13px; }
+.dtree .dnode.link { cursor: pointer; text-decoration: underline dotted; }
+.dtree .d-topic > .dnode { font-weight: 600; }
+.dtree .d-line > .dnode { opacity: .9; }
+.dtree .d-option > .dnode, .dtree .d-choice > .dnode { color: #b9a6ff; }
+.dtree .d-if > .dnode, .dtree .d-else > .dnode { color: #e3b341; font-family: ui-monospace, monospace; font-size: 12px; }
+.dtree .d-end > .dnode, .dtree .d-other > .dnode { opacity: .6; font-family: ui-monospace, monospace; font-size: 12px; }
+
+/* Journal (Play tab) */
+.play .journal .trace { margin: 0; padding-left: 18px; font-size: 12px; max-height: 40vh; overflow: auto; }
+.play .journal .trace li { margin: 2px 0; }
+.play .journal .t-event b { color: #b4306a; }
+.play .journal .t-script b { color: #2a7; }
+.play .journal .t-actor b { color: #c27a00; }
+.play .journal .t-player b { color: #6b4fbb; }

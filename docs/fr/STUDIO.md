@@ -11,7 +11,8 @@ que les joueurs auront.
   liste des accessoires / acteurs / zones cliquables du lieu à droite. En sélectionner un (dans la liste ou dans la
   vue) ouvre sa fiche : nom, sorte, états, visibilité, **lignes de Regarder** (ajouter, modifier, supprimer),
   **réactions** (verbe, cibles, condition, commandes en liste de lignes : textes modifiables, autres commandes
-  affichées), **sujets de conversation** ; sous la vue, le nom du lieu, les **indices**, les lignes **à
+  affichées), **sujets de conversation** (en liste, ou en **arbre** : sujets, répliques, choix et leurs options,
+  branches, chacun avec sa condition ; toucher un nœud saute à son éditeur) ; sous la vue, le nom du lieu, les **indices**, les lignes **à
   l'entrée**, les **scripts** et les **événements** du lieu (structure en lecture, textes modifiables). Un texte est enregistré quand le champ perd le focus (Entrée) ; Échap annule. Chaque enregistrement
   affiche un toast et lance Check en arrière-plan ; un placement en cours dans la vue est enregistré d'abord (la vue
   se recharge quand le fichier du lieu change). Les modifications de texte sont écrites directement dans
@@ -48,7 +49,10 @@ que les joueurs auront.
 - **Play** : le jeu lui-même (outils de dev actifs) dans un cadre, à côté de l'**état** en direct (lieu, sac, flags,
   personnages mobiles, scripts, joueurs) et d'un **explicateur de règles** : choisis un verbe, un objet et une cible, et
   chaque règle qui pourrait répondre est listée avec chaque condition évaluée ✓ / ✗ sur l'état en direct ; la première ✓
-  gagne, sinon l'onglet dit quel repli répond (ligne Regarder, sujets, réaction par kind, repli).
+  gagne, sinon l'onglet dit quel repli répond (ligne Regarder, sujets, réaction par kind, repli). En dessous, le
+  **journal** : ce que chaque action a répondu (règle, ligne Regarder, repli…), les événements émis et les écouteurs
+  atteints, chaque pas de script, les personnages déplacés, les changements de joueur ; filtrable par sorte. Le moteur
+  ne le garde qu'en mode dev (`Engine.trace`, les 200 dernières entrées).
 - **Notes** : le journal partagé (`games/<id>/notes.json`), une entrée par auteur (« you », ou le nom de l'IA), à
   propos d'un id de case, d'un id de lieu, de `lieu.entité`, ou de n'importe quoi (vide : général). Le journal
   entier, le plus récent d'abord, groupé par `about` (lieu / case / entité étiquetés, avec « Open in Rooms » /

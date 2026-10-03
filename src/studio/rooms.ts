@@ -4,6 +4,7 @@
 import type { Cmd, Cond, Id, RoomDef, Rule } from '@engine/core/types';
 import { api, BASE, imgUrl, type EditorToStudio, type EntityKind, type GameInfo, type RoomData, type StudioToEditor, type TextRef } from './api';
 import { autoGrow, h, modal, select, toast } from './ui';
+import { dialogueTree, type DialogueNode } from '@engine/tools/dialogue';
 
 export interface RoomsCtx {
   info: GameInfo;
@@ -268,7 +269,7 @@ export class RoomsTab {
     const count = h('span', { class: 'count' });
     const showCount = () => { const n = t.value.length; count.textContent = n > MAX_TEXT - 20 ? String(n) : ''; count.classList.toggle('over', n > MAX_TEXT); };
     showCount();
-    const row = h('div', { class: 'line', title: `${path} · ${ref.file}:${ref.line}` },
+    const row = h('div', { class: 'line', 'data-path': path, title: `${path} · ${ref.file}:${ref.line}` },
       opts.label ? h('span', { class: 'who', style: opts.color ? { color: opts.color } : undefined }, opts.label) : null,
       t, count,
       opts.deletable ? h('button', { class: 'icon del', title: 'Delete this line', 'aria-label': `Delete ${path}`, onclick: () => void this.write(path, null) }, '✕') : null);
@@ -430,15 +431,31 @@ export class RoomsTab {
     // Talk topics
     if (s.kind === 'actor') {
       const topics = d.talk?.[id] ?? [];
-      parts.push(h('section', null, h('h3', null, 'Talk topics ', h('span', { class: 'muted' }, String(topics.length))),
-        topics.length ? topics.map((t, i) => h('div', { class: 'rule' },
+      const list = h('div', null, ...(topics.length ? topics.map((t, i) => h('div', { class: 'rule' },
           h('div', { class: 'rulehead' }, this.line(`talk.${id}[${i}].topic`, { label: 'topic' }) ?? h('span', null, t.topic),
             t.if !== undefined ? h('code', { class: 'cond' }, `if ${condText(t.if)}`) : null),
           this.cmds(t.do, `talk.${id}[${i}].do`)))
-        : h('p', { class: 'muted' }, 'No topics (only the game-wide ones).')));
+        : [h('p', { class: 'muted' }, 'No topics (only the game-wide ones).')]));
+      // The same topics as a tree (read-only): topics, lines, choices and their options, branches; tapping a node
+      // scrolls to its editor in the list.
+      const tree = h('div', { class: 'dtree', hidden: true }, this.dialogueNodes(dialogueTree(topics, `talk.${id}`), list));
+      const toggle = h('button', { class: 'small', onclick: () => { const t = tree.hidden; tree.hidden = !t; list.hidden = t; toggle.textContent = t ? 'List' : 'Tree'; } }, 'Tree');
+      parts.push(h('section', null, h('h3', null, 'Talk topics ', h('span', { class: 'muted' }, String(topics.length)), ' ', topics.length ? toggle : null), list, tree));
     }
     this.sheetEl.replaceChildren(...parts.filter((x): x is HTMLElement => !!x));
     void info;
+  }
+
+  /** The dialogue tree as nested lists; a node with a content path scrolls to that editor in `list`. */
+  private dialogueNodes(nodes: DialogueNode[], list: HTMLElement): HTMLElement {
+    return h('ul', null, ...nodes.map((n) => {
+      const label = n.kind === 'topic' ? `"${n.text}"` : n.kind === 'line' ? `${n.who}: ${n.text}` : n.kind === 'option' ? `○ "${n.text}"` : n.kind === 'choice' ? '? choice' : n.text;
+      const go = n.path ? () => { list.hidden = false; const el = list.querySelector(`[data-path="${CSS.escape(n.path!)}"]`) as HTMLElement | null; el?.scrollIntoView({ block: 'center' }); (el?.querySelector('textarea, input') as HTMLElement | null)?.focus(); } : undefined;
+      return h('li', { class: `d-${n.kind}` },
+        h('span', { class: n.path ? 'dnode link' : 'dnode', onclick: go }, label),
+        n.cond && n.kind !== 'if' ? h('code', { class: 'cond' }, `if ${n.cond}`) : null,
+        n.children?.length ? this.dialogueNodes(n.children, list) : null);
+    }));
   }
 
   // -------------------------------------------------------------- room-wide texts

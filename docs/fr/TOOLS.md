@@ -53,6 +53,7 @@ Paramètres d'URL, serveur de dev uniquement (ils sont ignorés dans le build de
   - **Carte** : débloquer un lieu, ou **Tout débloquer** ;
   - **World** : le lieu de chaque personnage mobile (le changer les déplace, `moveActor`) ;
   - **Scripts** : la position de chaque script en cours (`commande suivante / longueur`, fini, arrêté), avec un bouton arrêter / relancer ;
+  - **Journal** : les dix dernières entrées du journal du moteur (ce qui a répondu, événements, pas de script, déplacements, changements de joueur ; l'onglet Play du Studio le montre en entier) ;
   - **Éditer ce lieu** : ouvre l'éditeur sur le lieu affiché.
 
 ### L'éditeur de placement (`?edit=<lieu>`)

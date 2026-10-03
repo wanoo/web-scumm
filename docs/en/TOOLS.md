@@ -53,6 +53,7 @@ URL parameters, dev server only (they are ignored in the production build):
   - **Map**: unlock a place, or **Unlock all**;
   - **World**: the room of each moving character (change it to `moveActor` them);
   - **Scripts**: the position of each script in scope (`next command / length`, done, stopped), with a stop / restart button;
+  - **Journal**: the last ten entries of the engine's journal (what answered, events, script steps, moves, switches; the Studio's Play tab shows it whole);
   - **Edit this room**: opens the editor on the room shown.
 
 ### The placement editor (`?edit=<room>`)

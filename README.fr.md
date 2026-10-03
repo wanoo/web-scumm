@@ -11,7 +11,7 @@ téléphone, hors ligne après la première visite.
 |---|---|
 | 🎮 **Jouer au jeu d'exemple** | https://wanoo.github.io/web-scumm/ (téléphone en paysage, ou ordinateur) |
 | 🛠 **Essayer le Studio** | https://wanoo.github.io/web-scumm/studio.html (mode démo : les modifications restent dans le navigateur) |
-| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v2.1.0 |
+| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v2.2.0 |
 
 ## En images
 
@@ -30,11 +30,12 @@ téléphone, hors ligne après la première visite.
 | ![Studio, Assistant](docs/img/studio-assistant.jpg) *L'Assistant : n'importe quel modèle, les mêmes outils que le serveur MCP, à propos de l'élément sélectionné* | ![Studio, réglages de l'Assistant](docs/img/studio-assistant-settings.jpg) *Réglages : OpenAI, Anthropic, Mistral, Ollama ou un point d'accès maison, clé gardée dans ton navigateur* |
 
 ## État d'avancement
-- Moteur, outils et jeu d'exemple : complets et jouables de bout en bout (validateur, solveur, 152 tests, parcours Playwright).
+- Moteur, outils et jeu d'exemple : complets et jouables de bout en bout (validateur, solveur, 154 tests, parcours Playwright).
 - Pages de validation (storyboard, contrôle des sprites, placement) : fonctionnelles, en HTML local ou en artefact claude.ai.
 - **Studio** (`npm run studio`) : un environnement de création complet en local : lieux (WYSIWYG sur le vrai moteur), textes, storyboard, notes, **assets** (chaque image et son, prompts par planche, dépôts découpés automatiquement) et un **Assistant** qui branche n'importe quel modèle (OpenAI, Anthropic, Mistral, Ollama…) avec les mêmes outils que le serveur MCP. Voir `docs/fr/STUDIO.md`.
 - **Générateur de prompts** (`npm run prompts`) : prompts prêts à coller pour chaque planche de personnage (marche, parole, assis, poses spéciales utilisées par les lieux), planche d'objets avec états, décors et meubles, tous avec le même bloc de style. Voir `docs/fr/PROMPTS.md`.
 - **Discipline de couleur et préréglage pixel art** : chaque prompt généré porte les règles de couleur (4 tons par matière avec décalage de teinte, aplats, un seul contour) ; `artStyle: "pixel"` dans `site.json` bascule prompts, découpe (plus proche voisin, palette partagée, PNG indexé), pipeline (sans perte) et rendu en vrai pixel art. **Palette swap** dans le moteur : un personnage ou une variante recoloré à partir des mêmes sprites.
+- **Studio** (v2.2) : l'**arbre de dialogue** d'un personnage (sujets, répliques, choix, branches avec leurs conditions) dans l'onglet Rooms et en outil MCP `dialogue_tree`, dérivé du DSL ; le **journal** du moteur (ce qui a répondu, événements, pas de script, déplacements, changements de joueur) dans l'onglet Play et le panneau dev.
 - **Preuve** (v2.1) : **les classiques** (`docs/fr/CLASSICS.md` : vingt mécaniques célèbres écrites avec le DSL, cinq jouées et prouvées dans les tests) ; le **graphe de puzzles** (ce que chaque règle exige et change, une fiche par objet / flag : Check du Studio, `npm run page:puzzles`, outil MCP `puzzle_graph`) ; un **solveur** qui essaie chaque réponse d'un choix, garde exacts les compteurs qui baissent, joue les scripts un wait à la fois et laisse de côté ce qui ne peut pas compter ; un **jeu de charge généré** (`npm run bench`, `docs/fr/BENCH.md`) ; un seul **catalogue des commandes** vérifié par `tsc` ; des boucles avec sons d'image ; des traductions qui suivent un texte déplacé.
 - **Ouverture** (v2.0) : **commandes custom** (`commands` dans `index.ts` : des `effects` déclarés pour le solveur, un `run` pour le navigateur) ; **traductions par extraction** (`npm run i18n`, `locales/<lang>.json`, un réglage Langue) ; l'onglet **Play** du Studio (le jeu à côté de son état en direct et d'un explicateur de règles : pourquoi cette action répond ça) ; micro-jeux de test par primitive dans `tests/fixtures/`.
 - **Distribution** (v1.6) : **plusieurs personnages jouables** (`players`) : chacun son lieu, sa position et son sac ; boutons de bascule dans la rangée d'outils, `{ switchPlayer }`, `{ transfer }`, condition `{ player }` ; donner un objet à un personnage inactif le lui transmet ; le solveur bascule comme le joueur. Démo : Biscuit est jouable.

@@ -175,6 +175,14 @@ thousand), its direction was right. What v2.1 delivered:
 - **Translations survive refactors**: `extract --lang xx` follows a text that moved (same source text in the previous
   reference file), parks what disappeared under `_stale:`, revives it when the path returns.
 
+## v2.2 "Studio" (shipped): see the dialogue, see the clock
+
+- **The dialogue tree** (`src/engine/tools/dialogue.ts`): a character's topics as a tree (topics, lines, choices and
+  options, branches, each with its condition), derived from the DSL, nothing to keep in sync. In the Studio's Rooms tab
+  (a toggle next to the topics; tapping a node jumps to its editor) and as the `dialogue_tree` tool.
+- **The journal** (`Engine.trace`, dev mode): what every action answered, events emitted and listeners reached, script
+  steps, characters moved, player switches. In the Studio's Play tab (filter by kind) and the dev panel (last ten).
+
 ## Out of scope (explicit decisions)
 
 - No Phaser, no canvas: the DOM Presenter is enough for a few dozen images; a wide room stays a CSS translation.

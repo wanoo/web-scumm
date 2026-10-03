@@ -16,6 +16,8 @@ export class PlayTab {
   private frame = h('iframe', { class: 'playframe', title: 'The game', src: `${BASE}?dev` }) as HTMLIFrameElement;
   private state = h('div', { class: 'panel state' });
   private why = h('div', { class: 'panel why' });
+  private journal = h('div', { class: 'panel journal' });
+  private filter: '' | 'action' | 'event' | 'script' | 'actor' | 'player' = '';
   private verb = '';
   private target = '';
   private item = '';
@@ -28,7 +30,7 @@ export class PlayTab {
         h('div', { class: 'playcol' }, this.frame,
           h('p', { class: 'muted small' }, 'The game with the dev tools (?dev): press D for the zone overlay, the DEV panel teleports and sets flags. ',
             h('a', { href: `${BASE}?dev`, target: '_blank', rel: 'noopener' }, 'Open in a new tab ↗'))),
-        h('div', { class: 'playside' }, this.state, this.why)),
+        h('div', { class: 'playside' }, this.state, this.why, this.journal)),
     );
     this.timer = setInterval(() => this.refresh(), 700);
   }
@@ -55,6 +57,18 @@ export class PlayTab {
         s.players ? [h('dt', null, 'Players'), h('dd', null, Object.entries(s.players).map(([p, v]) => `${p}@${v.room} [${v.inventory.join(', ')}]`).join('  '))] : null),
     );
     this.renderWhy(g);
+    this.renderJournal(g.engine);
+  }
+
+  /** The engine's journal (`Engine.trace`, kept in dev mode): what answered, events, script steps, moves, switches. */
+  private renderJournal(e: Engine) {
+    const kinds: [string, string][] = [['', 'everything'], ['action', 'actions'], ['event', 'events'], ['script', 'scripts'], ['actor', 'moves'], ['player', 'switches']];
+    const rows = (e.trace ?? []).filter((x) => !this.filter || x.kind === this.filter).slice(-40).reverse();
+    this.journal.replaceChildren(
+      h('h3', null, 'Journal ', h('span', { class: 'muted small' }, `${e.trace?.length ?? 0} entries`), ' ',
+        select(kinds, this.filter, (v) => { this.filter = v as typeof this.filter; this.refresh(); }, { 'aria-label': 'Journal filter' })),
+      rows.length ? h('ol', { class: 'trace' }, rows.map((x) => h('li', { class: `t-${x.kind}` }, h('span', { class: 'muted small' }, `${new Date(x.t).toLocaleTimeString()} ${x.room} `), h('b', null, x.kind), ' ', x.text)))
+        : h('p', { class: 'muted' }, 'Nothing yet: play in the frame.'));
   }
 
   /** "Why does this action answer that?": every candidate rule with its conditions explained. */

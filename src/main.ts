@@ -39,6 +39,7 @@ ready.then(async () => {
   const app = new App({ root: document.getElementById('app')!, game: g, layouts: L, manifest: manifest as AssetManifest, minigames, commands, store, version: __ASSETS_VERSION__,
     languages: Object.keys(locales ?? {}).length ? { current: lang ?? written.lang ?? 'en', available: [written.lang ?? 'en', ...Object.keys(locales ?? {}).filter((l) => l !== (written.lang ?? 'en'))] } : undefined });
   (window as any).__game = app; // debugging from the console, and driving e2e tests
+  if (dev) app.engine.traceOn = true;
   if (dev) {
     const { startDev } = await import('@engine/dev');
     await startDev(app, {

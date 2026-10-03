@@ -20,6 +20,17 @@ export interface Action { verb: VerbId; a: Id; b?: Id }
 /** Where the response to an action comes from: useful to the solver (only written rules move things forward). */
 export type Source = 'rule' | 'look' | 'talk' | 'hint' | 'kind' | 'refuse' | 'fallback' | 'guide';
 
+/** One line of the engine's journal (`Engine.trace`, kept when `traceOn`). */
+export interface TraceEntry { t: number; kind: 'action' | 'event' | 'script' | 'actor' | 'player'; text: string; room: Id }
+
+/** A short name for a command, for the journal. */
+export function describeCmd(c: Cmd): string {
+  if (typeof c === 'string') return `"${c.length > 24 ? c.slice(0, 24) + '…' : c}"`;
+  const k = Object.keys(c)[0];
+  const v = (c as Record<string, unknown>)[k];
+  return `${k}${typeof v === 'string' ? ` ${v}` : Array.isArray(v) && v.every((x) => typeof x === 'string') ? ` ${v.join(' ')}` : typeof v === 'number' ? ` ${v}` : ''}`;
+}
+
 interface Ctx { room: RoomDef; fast: boolean }
 
 const HERO = 'hero';
@@ -37,6 +48,14 @@ export class Engine {
   private skipping = false;
   /** Called on every state change relevant to the UI (inventory, room, busy state). */
   onChange: () => void = () => {};
+  /** The journal (dev tools, Studio Play tab): what answered, which events fired, how scripts moved. Kept only when `traceOn`. */
+  trace: TraceEntry[] = [];
+  traceOn = false;
+  private log(kind: TraceEntry['kind'], text: string) {
+    if (!this.traceOn) return;
+    this.trace.push({ t: Date.now(), kind, text, room: this.state.room });
+    if (this.trace.length > 200) this.trace.splice(0, this.trace.length - 200);
+  }
   /** Injectable randomness (the solver makes it deterministic). */
   random: () => number = Math.random;
   /**
@@ -186,7 +205,7 @@ export class Engine {
   /** The player takes control of another character: their room, position and inventory come up. */
   async switchTo(id: Id): Promise<void> {
     if (!this.isPlayer(id) || id === this.heroId() || this.busy) return;
-    await this.run(async () => { await this.swap(id); await this.enter(this.state.room, undefined, false); this.startScripts(true); });
+    await this.run(async () => { this.log('player', `switch to ${id}`); await this.swap(id); await this.enter(this.state.room, undefined, false); this.startScripts(true); });
   }
 
   /** Stores the active player's flat fields, loads the other's (no display). */
@@ -366,6 +385,7 @@ export class Engine {
       }
       if (inScene) { this.faceTowards(target, room); this.faceHero(target, room); }
       src = await this.resolve(act, { room, fast: false });
+      this.log('action', `${act.verb} ${act.a}${act.b ? ` → ${act.b}` : ''}: ${src ?? 'nothing'}`);
     });
     if (this.guideWait && src !== null) {
       const g = this.guideWait;
@@ -605,6 +625,7 @@ export class Engine {
     }
     await this.step(c, { room, fast: false });
     st.pc++;
+    this.log('script', `${id} ran ${describeCmd(c)} → ${st.pc >= def.do.length ? (def.loop ? 'loops' : 'done') : st.pc}`);
     if (this.busyCount === 0) this.save();
     this.onChange();
     return 'ran';
@@ -650,6 +671,7 @@ export class Engine {
   /** Fires an event: moves the scripts waiting for it, then runs the listeners of the room, then of the game. */
   async emit(id: Id, ctx: Ctx) {
     const s = this.state;
+    this.log('event', `emit ${id}`);
     for (const def of [...(this.game.scripts ?? []), ...this.game.rooms.flatMap((r) => r.scripts ?? [])]) {
       const st = this.scriptState(def.id);
       const cur = def.do[st.pc];
@@ -659,6 +681,7 @@ export class Engine {
     for (const [list, scope] of scopes) for (const [i, ev] of list.entries()) {
       if (ev.on !== id || !check(ev.if, s, ctx.room.id)) continue;
       if (ev.once) { const k = `event.${scope}.${i}`; if (s.seen[k]) continue; s.seen[k] = 1; }
+      this.log('event', `${id} → ${scope}.events[${i}]${ev.once ? ' (once)' : ''}`);
       await this.exec(ev.do, ctx);
     }
   }
@@ -811,6 +834,7 @@ export class Engine {
     }
     if ('moveActor' in c) {
       const [char, to] = c.moveActor;
+      this.log('actor', `${char} → ${to}`);
       const dest = this.room(to);
       const from = s.where?.[char];
       (s.where ??= {})[char] = to;

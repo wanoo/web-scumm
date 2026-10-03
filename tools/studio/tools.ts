@@ -4,6 +4,7 @@
 // the Studio core (tools/studio/backend.ts), the demo binds the browser backend (src/studio/api-browser.ts).
 // No node import here: this file is bundled into the Studio page.
 import { z } from 'zod';
+import { dialogueText, dialogueTree } from '../../src/engine/tools/dialogue';
 import type { Layout } from '../../src/engine/core/types';
 import type { AddEntity, GameInfo, GraphData, PuzzleData, NewNote, NotesFile, ReportData, RoomData, SolveData, ValidateResult } from './types';
 
@@ -204,6 +205,20 @@ export const TOOLS: ToolDef[] = [
       'unreachable rooms and exits with no way back. Read-only.',
     input: {}, annotations: { readOnlyHint: true }, needs: 'graph',
     run: (_a, b) => op(async () => { const g = await b.graph!(); return `${g.dot}\n\nunreachable: ${g.graph.unreachable.join(', ') || 'none'}\none-way: ${g.graph.oneWay.map((e) => `${e.from} → ${e.to} (${e.via})`).join('; ') || 'none'}`; }),
+  },
+  {
+    name: 'dialogue_tree', title: 'Dialogue tree',
+    description: 'The conversation of a character in a room as an indented tree: topics (with their conditions), lines, ' +
+      'choices and their options, branches. Derived from the talk topics, nothing else to maintain. Read-only.',
+    input: { id: z.string().describe('Room id.'), actor: z.string().optional().describe('Actor id (default: every character with topics).') },
+    annotations: { readOnlyHint: true },
+    run: ({ id, actor }, b) => op(async () => {
+      const r = await b.room(id);
+      const talk = r.def.talk ?? {};
+      const who = actor ? [actor] : Object.keys(talk);
+      if (actor && !talk[actor]) return `no topics for "${actor}" in ${id} (${Object.keys(talk).join(', ') || 'none'})`;
+      return who.map((a) => `# ${a}\n${dialogueText(dialogueTree(talk[a] ?? [], `talk.${a}`))}`).join('\n\n') || `no conversation in ${id}`;
+    }),
   },
   {
     name: 'puzzle_graph', title: 'Puzzle graph',

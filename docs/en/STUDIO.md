@@ -9,8 +9,9 @@ real engine (the room rendered by `src/engine/dom`), so what you see is what pla
   approach points, walk area, scale lines, entries), the list of the room's props / actors / hotspots on the right.
   Selecting one (in the list or in the view) opens its sheet: name, kind, states, visibility, **look lines** (add, edit,
   delete), **reactions** (verb, targets, condition, commands as a list of lines: texts editable, other commands shown),
-  **talk topics**; under the view, the room's name, **hints**, **on enter** lines, the room's **scripts** and **events**
-  (read-only structure, texts editable). A text is saved when the field
+  **talk topics** (as a list, or as a **tree**: topics, lines, choices and their options, branches, each with its
+  condition; tapping a node jumps to its editor); under the view, the room's name, **hints**, **on enter** lines, the
+  room's **scripts** and **events** (read-only structure, texts editable). A text is saved when the field
   loses focus (Enter); Escape cancels. Each save shows a toast and runs Check in the background; a placement in
   progress in the view is saved first (the view reloads when the room file changes). Text edits are written into `rooms/<room>.ts`
   in place (string literals replaced through the TypeScript parser; the file stays readable code). "Add prop / hotspot /
@@ -42,7 +43,9 @@ real engine (the room rendered by `src/engine/dom`), so what you see is what pla
 - **Play**: the game itself (dev tools on) in a frame, next to the live **state** (room, bag, flags, moving
   characters, scripts, players) and a **rule explainer**: pick a verb, an item and a target, and every rule that could
   answer is listed with each condition evaluated ✓ / ✗ against the live state; the first ✓ wins, or the tab says which
-  fallback answers (look line, topics, kind reaction, fallback).
+  fallback answers (look line, topics, kind reaction, fallback). Under it, the **journal**: what every action answered
+  (rule, look line, fallback…), the events emitted and the listeners they reached, each script step, characters moved,
+  player switches; filter by kind. The engine keeps it only in dev mode (`Engine.trace`, the last 200 entries).
 - **Notes**: the shared log (`games/<id>/notes.json`), one entry per author ("you", or the AI's name), about a panel
   id, a room id, `room.entity`, or anything (empty: general). The whole log, newest first, grouped by `about` (tagged
   room / panel / entity, with "Open in Rooms" / "Open in Storyboard"); filters: free text, about (rooms with their
