@@ -65,6 +65,8 @@ export async function launch(url, opts = {}) {
   async function tapXY(x, y) { await page.touchscreen.tap(x, y); }
   async function sceneRect() { return page.locator('.scene').boundingBox(); }
   async function tapScene(x, y) {
+    // Wide rooms: logical coordinates are world coordinates; the scene shows them shifted by the camera.
+    x -= await page.evaluate(() => window.__game?.view?.cam ?? 0);
     const r = await sceneRect();
     if (!r) throw new Error('tapScene: .scene is not visible');
     await tapXY(r.x + (x / LOGICAL.width) * r.width, r.y + (y / LOGICAL.height) * r.height);

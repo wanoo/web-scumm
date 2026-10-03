@@ -82,6 +82,7 @@ Le panneau de l'éditeur contient :
 - **Zone marchable** : créer la zone, ajouter un trou.
 - **Échelle de profondeur** : créer l'échelle, régler les facteurs du fond et de devant.
 - **Entrées** : ajouter un point d'entrée par son nom (`default` est celui utilisé par défaut).
+- **Room width** : la largeur logique d'un lieu large (640 = pas de défilement) et un curseur de caméra pour regarder autour en plaçant.
 
 Pour un accessoire qui a une position par état (`states` dans le layout, par exemple le tabouret tiré), l'éditeur modifie la variante de l'état affiché.
 

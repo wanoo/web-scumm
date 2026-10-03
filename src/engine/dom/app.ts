@@ -29,6 +29,10 @@ class LocalStore implements SaveStore {
   clear() { try { localStorage.removeItem(this.key); } catch { /* same */ } }
 }
 
+/** Player preferences (see `GameDef.settings`). */
+export interface Settings { textSpeed: number; textSize: number; reduceMotion: boolean; readableFont: boolean; musicVolume: number; sfxVolume: number; voiceVolume: number }
+const DEFAULT_SETTINGS: Settings = { textSpeed: 1, textSize: 1, reduceMotion: false, readableFont: false, musicVolume: 1, sfxVolume: 1, voiceVolume: 1 };
+
 /** A manual save slot: the state plus what the menu shows. */
 export interface SlotMeta { at: number; room: Id; roomName: string; v: number }
 export interface Slot { meta: SlotMeta; state: GameState }
@@ -64,6 +68,8 @@ export class App implements Presenter {
   private mg: Record<Id, Minigame>;
   private sealed!: Ending;
   readonly slots: SlotStore;
+  /** Player preferences (`GameDef.settings`), kept in the browser outside the save. */
+  settings: Settings = { ...DEFAULT_SETTINGS };
   private root: HTMLElement;
   private g!: HTMLDivElement;
   private scol!: HTMLDivElement;
@@ -101,13 +107,14 @@ export class App implements Presenter {
     this.game = o.game;
     this.root = o.root;
     this.bank = new AssetBank(o.manifest, o.base ?? `${import.meta.env?.BASE_URL ?? '/'}assets`, o.version ?? '');
-    this.audio = new Audio(this.bank, { music: o.game.audio?.music, sfx: o.game.audio?.sfx });
+    this.audio = new Audio(this.bank, { music: o.game.audio?.music, sfx: o.game.audio?.sfx, voice: o.game.audio?.voices });
     this.mg = { ...builtin, ...(o.minigames ?? {}) };
     this.engine = new Engine(o.game, o.layouts, this, o.store ?? new LocalStore(`${o.game.id}.save`));
     this.slots = new SlotStore(o.game.id);
     this.view = new RoomView(this.engine, this.bank);
     this.engine.autoScripts = true;
     this.engine.onChange = () => this.refresh();
+    try { const raw = localStorage.getItem(`${o.game.id}.settings`); if (raw) this.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }; } catch { /* no storage */ }
     const F = o.game.skin?.fonts;
     document.documentElement.style.setProperty('--font-ui', fontStack(F?.ui ?? FONT_UI));
     document.documentElement.style.setProperty('--font-pixel', fontStack(F?.pixel ?? FONT_PIXEL));
@@ -115,6 +122,7 @@ export class App implements Presenter {
     st.textContent = MINIGAME_CSS;
     document.head.append(st);
     this.buildShell();
+    this.applySettings();
     this.sealed = new Ending({
       game: this.game, scene: this.scene, img: (i) => this.bank.img(i), flags: () => this.engine.state.flags,
       minigame: (id, params) => this.minigame(id, params), toast: (t) => this.toast(t), sfx: (i) => this.audio.sfx(i),
@@ -213,7 +221,7 @@ export class App implements Presenter {
 
   private toScene(e: PointerEvent): Point {
     const r = this.scene.getBoundingClientRect();
-    return [((e.clientX - r.left) / r.width) * 640, ((e.clientY - r.top) / r.height) * 400];
+    return [((e.clientX - r.left) / r.width) * 640 + this.view.cam, ((e.clientY - r.top) / r.height) * 400];
   }
 
   // ================================================================== interaction
@@ -277,7 +285,7 @@ export class App implements Presenter {
     const b = this.view.box(id);
     if (!b) return;
     const l = el('div', 'label', esc(this.engine.nameOf(id)));
-    l.style.left = `${(b[0] + b[2] / 2) * this.u}px`; l.style.top = `${Math.max(14, b[1] - 2) * this.u}px`;
+    l.style.left = `${(b[0] + b[2] / 2 - this.view.cam) * this.u}px`; l.style.top = `${Math.max(14, b[1] - 2) * this.u}px`;
     this.scene.append(l); this.labelEl = l;
   }
 
@@ -336,7 +344,7 @@ export class App implements Presenter {
     this.scene.style.visibility = '';
   }
 
-  say(who: Id, text: string, o: { shout?: boolean; fast?: boolean }): Promise<void> {
+  say(who: Id, text: string, o: { shout?: boolean; fast?: boolean; voice?: Id }): Promise<void> {
     this.endSpeech();
     if (o.fast) return Promise.resolve();
     const char = this.game.characters[who];
@@ -354,7 +362,7 @@ export class App implements Presenter {
       const maxW = Math.min(0.62 * this.sw, 390 * this.u);
       box.style.maxWidth = `${maxW}px`;
       const half = maxW / 2 / this.u + 6;
-      box.style.left = `${Math.max(half, Math.min(640 - half, head[0])) * this.u}px`;
+      box.style.left = `${Math.max(half, Math.min(640 - half, head[0] - this.view.cam)) * this.u}px`;
       box.style.top = `${Math.max(head[1], 70) * this.u}px`;
       this.view.setTalking(who, text.length > 70);
     }
@@ -363,7 +371,10 @@ export class App implements Presenter {
     this.transcribe(who, text, color);
     return new Promise((res) => {
       this.speechDone = res;
-      this.speechTimer = window.setTimeout(() => this.endSpeech(), Math.max(2200, text.length * 70));
+      const mine = box;
+      // With a voice clip, the line lasts as long as the clip (a tap still skips it); otherwise a reading time.
+      if (o.voice && this.audio.hasVoice(o.voice)) this.audio.voice(o.voice).then(() => { if (this.speechEl === mine) this.endSpeech(); });
+      else this.speechTimer = window.setTimeout(() => this.endSpeech(), Math.max(2200, text.length * 70) / this.settings.textSpeed);
     });
   }
 
@@ -416,7 +427,13 @@ export class App implements Presenter {
   place(who: Id, at: Point, face?: 'left' | 'right') { this.view.place(who, at, face); }
   wait(ms: number, fast: boolean) { return fast ? Promise.resolve() : sleep(ms); }
   prop(id: Id, state: string) { this.view.setProp(id, state); this.view.refreshVisibility(); }
-  show(id: Id, visible: boolean, fade: number, fast: boolean) { return this.view.show(id, visible, fade, fast); }
+  propFrame(id: Id, img: Id | null) { this.view.propFrame(id, img); }
+  propLoop(id: Id, frames: Id[], fps: number) { this.view.propLoop(id, frames, fps); }
+  camera(x: number | null, follow: boolean, ms: number, fast: boolean) {
+    if (follow || x === null) { this.view.followHero(); return Promise.resolve(); }
+    return this.view.setCamera(x, fast ? 0 : ms);
+  }
+  show(id: Id, visible: boolean, fade: number, fast: boolean) { return this.view.show(id, visible, fade, fast || this.settings.reduceMotion); }
   inventory(items: Id[], used?: Id[]) {
     this.used = [...(used ?? [])];
     if (!this.view.room) { this.items = [...items]; return; }
@@ -436,7 +453,7 @@ export class App implements Presenter {
     else if (c.once) this.audio.once(c.once);
   }
   toast(text: string) { const t = el('div', 'toast', esc(text)); this.scene.append(t); setTimeout(() => t.remove(), 2400); }
-  shake(ms: number) { this.scene.classList.add('shake'); setTimeout(() => this.scene.classList.remove('shake'), ms); }
+  shake(ms: number) { if (this.settings.reduceMotion) return; this.scene.classList.add('shake'); setTimeout(() => this.scene.classList.remove('shake'), ms); }
 
   guide(g: { verb: VerbId; target: Id } | null) {
     this.guideState = g;
@@ -448,7 +465,7 @@ export class App implements Presenter {
     if (!b) return;
     const s = el('img', 'spark') as HTMLImageElement;
     s.src = this.bank.img(spark); s.alt = '';
-    s.style.width = `${22 * this.u}px`; s.style.left = `${(b[0] + b[2] / 2) * this.u}px`; s.style.top = `${(b[1] + b[3] / 2) * this.u}px`;
+    s.style.width = `${22 * this.u}px`; s.style.left = `${(b[0] + b[2] / 2 - this.view.cam) * this.u}px`; s.style.top = `${(b[1] + b[3] / 2) * this.u}px`;
     this.scene.append(s); this.sparkEl = s;
   }
 
@@ -791,6 +808,7 @@ export class App implements Presenter {
       row(ui.save ?? 'Save', '💾').onclick = () => this.slotMenu(d, m, 'save', slots);
       row(ui.load ?? 'Load', '📂').onclick = () => this.slotMenu(d, m, 'load', slots);
     }
+    if (this.game.settings) row(ui.settings ?? 'Settings', '⚙').onclick = () => this.settingsMenu(d, m);
     row(ui.credits, '★').onclick = () => { d.remove(); this.credits(); };
     row(ui.restart, '!', 'warn').onclick = () => {
       m.innerHTML = `<h3>!</h3><p>${esc(ui.confirmErase)}</p>`;
@@ -800,6 +818,39 @@ export class App implements Presenter {
       m.append(y, n);
     };
     d.append(m); this.scene.append(d);
+  }
+
+  /** Applies the preferences: fonts, text size, volumes, motion. */
+  private applySettings() {
+    const S = this.settings;
+    const F = this.game.skin?.fonts;
+    document.documentElement.style.setProperty('--font-ui', fontStack(S.readableFont && F?.readable ? F.readable : (F?.ui ?? FONT_UI)));
+    this.scene.style.setProperty('--text-scale', String(S.textSize));
+    this.audio.setVolumes(S.musicVolume, S.sfxVolume, S.voiceVolume);
+    this.view.reduceMotion = S.reduceMotion;
+    try { localStorage.setItem(`${this.game.id}.settings`, JSON.stringify(S)); } catch { /* no storage */ }
+  }
+
+  /** The settings menu: each row cycles its value. */
+  private settingsMenu(d: HTMLElement, m: HTMLElement) {
+    const ui = this.game.ui;
+    const S = this.settings;
+    m.innerHTML = `<h3>${esc((ui.settings ?? 'Settings').toUpperCase())}</h3>`;
+    const row = (t: string, v: () => string, onclick: () => void) => {
+      const b = el('button', '', `<span>${esc(t)}</span><span>${esc(v())}</span>`);
+      b.onclick = () => { onclick(); this.applySettings(); b.lastElementChild!.textContent = v(); };
+      m.append(b); return b;
+    };
+    const speeds: [number, string][] = [[0.7, ui.slow ?? 'slow'], [1, ui.normal ?? 'normal'], [1.6, ui.fast ?? 'fast']];
+    row(ui.textSpeed ?? 'Text speed', () => speeds.find(([k]) => k === S.textSpeed)?.[1] ?? String(S.textSpeed), () => { const i = speeds.findIndex(([k]) => k === S.textSpeed); S.textSpeed = speeds[(i + 1) % speeds.length][0]; });
+    row(ui.textSize ?? 'Text size', () => (S.textSize > 1 ? ui.large ?? 'large' : ui.normal ?? 'normal'), () => { S.textSize = S.textSize > 1 ? 1 : 1.3; });
+    row(ui.reduceMotion ?? 'Reduce motion', () => (S.reduceMotion ? ui.on : ui.off), () => { S.reduceMotion = !S.reduceMotion; });
+    if (this.game.skin?.fonts?.readable) row(ui.readableFont ?? 'Readable font', () => (S.readableFont ? ui.on : ui.off), () => { S.readableFont = !S.readableFont; });
+    const vol = (t: string, k: 'musicVolume' | 'sfxVolume' | 'voiceVolume') => row(t, () => `${Math.round(S[k] * 100)} %`, () => { S[k] = Math.round(((S[k] * 4 + 1) % 5)) / 4; });
+    vol(ui.volumeMusic ?? 'Music volume', 'musicVolume');
+    vol(ui.volumeSfx ?? 'Sound volume', 'sfxVolume');
+    if (this.game.audio?.voices && Object.keys(this.game.audio.voices).length) vol(ui.volumeVoice ?? 'Voice volume', 'voiceVolume');
+    const back = el('button', '', `<span>${esc(ui.resume)}</span><span>▶</span>`); back.onclick = () => d.remove(); m.append(back);
   }
 
   /** The save / load menu: one row per slot, export and import as a JSON file. */

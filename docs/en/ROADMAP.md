@@ -103,7 +103,7 @@ Files: `src/engine/tools/{validate,solve}.ts`, new `src/engine/tools/graph.ts`, 
   Same report in the Studio's Check tab.
 - **Demo**: 3 rooms → declared exits, 2 checkpoints with goals, 1 invariant, 3 slots.
 
-### M3 — "Picture" (v1.5): staging
+### M3 — "Picture" (v1.5, shipped): staging
 
 Files: `src/engine/core/types.ts` (Layout, PropDef, Cmd), `src/engine/dom/room.ts`, `src/engine/dev/editor.ts`,
 `tools/pages/placement.ts`, `tools/assets.py`.

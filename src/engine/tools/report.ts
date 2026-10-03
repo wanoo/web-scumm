@@ -37,6 +37,7 @@ function lines(cmds: unknown, out: { who: string; text: string }[]) {
     const o = c as Record<string, unknown>;
     if (Array.isArray(o.say)) out.push({ who: String(o.say[0]), text: String(o.say[1]) });
     for (const k of ['then', 'else', 'once', 'cutscene', 'do', 'after']) lines(o[k], out);
+    if (o.at && typeof o.at === 'object') Object.values(o.at as Record<string, unknown>).forEach((l) => lines(l, out));
     for (const k of ['nth', 'cycle', 'random', 'parallel']) if (Array.isArray(o[k])) (o[k] as unknown[]).forEach((b) => lines(b, out));
     if (Array.isArray(o.choice)) (o.choice as { do: unknown; text: string }[]).forEach((x) => { out.push({ who: 'hero', text: x.text }); lines(x.do, out); });
     if (o.guide && typeof o.guide === 'object') out.push({ who: 'hero', text: String((o.guide as { say: string }).say) });

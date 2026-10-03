@@ -44,6 +44,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   const places = game.map?.places ?? {};
   const music = game.audio?.music ?? {};
   const sfx = game.audio?.sfx ?? {};
+  const voices = game.audio?.voices ?? {};
 
   const flagsRead = new Map<string, string>();
   const flagsSet = new Map<string, string>();
@@ -149,7 +150,12 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   };
   const cmd = (c: Cmd, where: string, room?: RoomDef) => {
     if (typeof c === 'string') { text(c, where); return; }
-    if ('say' in c) { if (!whoOk(c.say[0], room)) err(where, `unknown character: "${c.say[0]}"`); text(c.say[1], where); return; }
+    if ('say' in c) {
+      if (!whoOk(c.say[0], room)) err(where, `unknown character: "${c.say[0]}"`);
+      text(c.say[1], where);
+      if (c.voice && !voices[c.voice]) err(where, `unknown voice clip: "${c.voice}" (audio.voices)`);
+      return;
+    }
     if ('walk' in c) {
       if (c.who && !whoOk(c.who, room)) err(where, `unknown character: "${c.who}"`);
       if (typeof c.walk === 'string' && room) {
@@ -165,7 +171,26 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       return;
     }
     if ('pose' in c) { if (!whoOk(c.pose[0], room)) err(where, `unknown character: "${c.pose[0]}"`); poseRef(c.pose[0], c.pose[1], where, room); return; }
-    if ('anim' in c) { if (!whoOk(c.anim[0], room)) err(where, `unknown character: "${c.anim[0]}"`); poseRef(c.anim[0], c.anim[1], where, room); return; }
+    if ('anim' in c) {
+      if (!whoOk(c.anim[0], room)) err(where, `unknown character: "${c.anim[0]}"`);
+      poseRef(c.anim[0], c.anim[1], where, room);
+      for (const [i, b] of Object.entries(c.at ?? {})) { if (!/^\d+$/.test(i)) err(where, `at: "${i}" is not a frame index`); nested(() => cmds(b, `${where}.at[${i}]`, room)); }
+      return;
+    }
+    if ('play' in c) {
+      const [pid, an] = c.play;
+      const p = room?.props?.[pid];
+      if (room && !p) err(where, `unknown prop: "${pid}"`);
+      else if (p && !p.anims?.[an]) err(where, `prop "${pid}" has no animation "${an}" (anims: ${Object.keys(p.anims ?? {}).join(', ') || 'none'})`);
+      return;
+    }
+    if ('stopAnim' in c) { if (room && !room.props?.[c.stopAnim]) err(where, `unknown prop: "${c.stopAnim}"`); return; }
+    if ('camera' in c) {
+      const cam = c.camera;
+      if (typeof cam === 'object' && 'to' in cam && room && !entities(room).has(cam.to) && !whoOk(cam.to, room)) err(where, `unknown camera target: "${cam.to}"`);
+      if (room && layouts[room.id] && (layouts[room.id].width ?? 640) <= 640) warn(where, `camera in a 640-wide room (set "width" in the layout): no effect`);
+      return;
+    }
     if ('wait' in c) return;
     if ('parallel' in c) { nested(() => c.parallel.forEach((b, j) => cmds(b, `${where}.parallel[${j}]`, room))); return; }
     if ('prop' in c) { propRef(c.prop[0], c.prop[1], where, room); return; }
@@ -431,6 +456,17 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       img(p.img, pw);
       for (const [st, im] of Object.entries(p.states ?? {})) img(im, `${pw}.${st}`);
       if (p.initial && p.states && !p.states[p.initial]) err(pw, `unknown initial state: "${p.initial}"`);
+      for (const [an, a] of Object.entries(p.anims ?? {})) {
+        const aw = `${pw}.anims.${an}`;
+        if (!a.frames?.length) err(aw, 'animation with no frame');
+        a.frames?.forEach((f, i) => img(f, `${aw}[${i}]`));
+        if (a.fps !== undefined && !(a.fps > 0)) err(aw, 'fps must be positive');
+        for (const [i, b] of Object.entries(a.at ?? {})) {
+          if (!/^\d+$/.test(i) || Number(i) >= (a.frames?.length ?? 0)) err(aw, `at: frame ${i} is outside the animation (${a.frames?.length ?? 0} frames)`);
+          cmds(b, `${aw}.at[${i}]`, r);
+        }
+        if (a.loop && a.at && Object.keys(a.at).length) warn(aw, 'a looping animation does not run its "at" commands');
+      }
       cond(p.visible, pw, r);
       if (p.name !== undefined) text(p.name, pw);
       if (L && !L.props?.[pid]) err(pw, 'no position in the layout');
@@ -471,6 +507,11 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     events(r.events, `${w}.events`, r);
 
     if (L) {
+      if (L.width !== undefined && (typeof L.width !== 'number' || L.width < 640)) err(`${w}.layout`, 'width must be a number of at least 640');
+      const W = L.width ?? 640;
+      for (const [k, h] of Object.entries(L.hotspots ?? {})) if (h.rect && h.rect[0] + h.rect[2] > W + 1) warn(`${w}.layout`, `zone "${k}" goes beyond the room's width (${W})`);
+      for (const [k, p] of Object.entries(L.props ?? {})) if (p.x > W) warn(`${w}.layout`, `prop "${k}" is beyond the room's width (${W})`);
+      for (const [k, p] of Object.entries(L.entries ?? {})) if (p[0] > W) warn(`${w}.layout`, `entry "${k}" is beyond the room's width (${W})`);
       for (const k of Object.keys(L.hotspots ?? {})) if (!r.hotspots?.[k]) warn(`${w}.layout`, `zone "${k}" has no hotspot in the room`);
       for (const k of Object.keys(L.props ?? {})) if (!r.props?.[k]) warn(`${w}.layout`, `position "${k}" has no prop in the room`);
       for (const k of Object.keys(L.actors ?? {})) if (!r.actors?.[k]) warn(`${w}.layout`, `position "${k}" has no actor in the room`);
@@ -487,6 +528,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   (game.invariants ?? []).forEach((c, i) => cond(c, `invariants[${i}]`));
   if (game.saves && (!Number.isInteger(game.saves.slots) || game.saves.slots < 0)) err('saves', 'slots must be a whole number');
   if (game.saves?.slots) for (const k of ['save', 'load', 'slot', 'emptySlot', 'exportSave', 'importSave', 'confirmOverwrite'] as const) if (!game.ui[k]) warn(`ui.${k}`, 'missing text for the save menu (English default used)');
+  if (game.settings) for (const k of ['settings', 'textSpeed', 'textSize', 'reduceMotion', 'volumeMusic', 'volumeSfx', 'slow', 'normal', 'fast', 'large'] as const) if (!game.ui[k]) warn(`ui.${k}`, 'missing text for the settings menu (English default used)');
   const migFrom = new Set<number>();
   for (const [i, m] of (game.migrations ?? []).entries()) {
     const w = `migrations[${i}]`;

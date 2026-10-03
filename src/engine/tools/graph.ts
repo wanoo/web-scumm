@@ -28,6 +28,7 @@ function gotos(cmds: Cmd[] | undefined, where: string, out: [Id, string][]) {
     if (typeof c !== 'object') return;
     const here = `${where}[${i}]`;
     if ('goto' in c) out.push([c.goto, here]);
+    else if ('anim' in c) { for (const [i, b] of Object.entries(c.at ?? {})) gotos(b, `${here}.at[${i}]`, out); }
     else if ('if' in c) { gotos(c.then, `${here}.then`, out); gotos(c.else, `${here}.else`, out); }
     else if ('once' in c) gotos(c.once, `${here}.once`, out);
     else if ('nth' in c) c.nth.forEach((b, j) => gotos(b, `${here}.nth[${j}]`, out));

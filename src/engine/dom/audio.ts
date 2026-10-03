@@ -12,12 +12,15 @@ export class Audio {
   musicOn = true;
   sfxOn = true;
   private volume = 0.55;
+  /** Settings multipliers (0 to 1). */
+  private vol = { music: 1, sfx: 1, voice: 1 };
+  private speaking: Howl | null = null;
 
   /** The browser only allows sound after a gesture: we wait for the first one, and replay whatever was requested before. */
   private unlocked = false;
   private pending: string | null = null;
 
-  constructor(private bank: AssetBank, private files: { music?: Record<string, string>; sfx?: Record<string, string> }) {
+  constructor(private bank: AssetBank, private files: { music?: Record<string, string>; sfx?: Record<string, string>; voice?: Record<string, string> }) {
     const unlock = () => {
       if (this.unlocked) return;
       this.unlocked = true;
@@ -32,7 +35,7 @@ export class Audio {
   private fadeIn(h: Howl, ms = 600) {
     const steps = 12; let i = 0;
     h.volume(0);
-    const t = setInterval(() => { i++; if (this.current?.howl !== h || !this.musicOn) { clearInterval(t); return; } h.volume(this.volume * i / steps); if (i >= steps) clearInterval(t); }, ms / steps);
+    const t = setInterval(() => { i++; if (this.current?.howl !== h || !this.musicOn) { clearInterval(t); return; } h.volume(this.volume * this.vol.music * i / steps); if (i >= steps) clearInterval(t); }, ms / steps);
   }
 
   /** Playback refused (missing gesture): restart from the beginning on the next gesture. */
@@ -41,16 +44,40 @@ export class Audio {
     for (const ev of ['pointerdown', 'touchend', 'keydown']) document.addEventListener(ev, again, { once: true, capture: true, passive: true });
   }
 
-  private howl(kind: 'music' | 'sfx', id: string, loop: boolean): Howl | null {
+  private howl(kind: 'music' | 'sfx' | 'voice', id: string, loop: boolean): Howl | null {
     const key = `${kind}:${id}`;
     const file = this.files[kind]?.[id];
     if (!file) return null;
     let h = this.tracks.get(key);
     if (!h) {
-      h = new Howl({ src: [kind === 'music' ? this.bank.music(file) : this.bank.sfx(file)], loop, html5: kind === 'music', preload: true });
+      h = new Howl({ src: [kind === 'music' ? this.bank.music(file) : kind === 'voice' ? this.bank.voice(file) : this.bank.sfx(file)], loop, html5: kind === 'music', preload: true });
       this.tracks.set(key, h);
     }
     return h;
+  }
+
+  hasVoice(id: string) { return !!this.files.voice?.[id]; }
+
+  /** Plays a voice clip; resolves when it ends (right away if sound is off or the clip is missing). */
+  voice(id: string): Promise<void> {
+    this.speaking?.stop(); this.speaking = null;
+    if (!this.sfxOn || !this.unlocked || this.vol.voice <= 0) return Promise.resolve();
+    const h = this.howl('voice', id, false);
+    if (!h) return Promise.resolve();
+    this.speaking = h;
+    return new Promise((res) => {
+      h.off('end'); h.off('playerror'); h.off('loaderror');
+      h.once('end', () => { if (this.speaking === h) this.speaking = null; res(); });
+      h.once('playerror', () => res()); h.once('loaderror', () => res());
+      h.volume(0.9 * this.vol.voice); h.seek(0); h.play();
+    });
+  }
+
+  /** Settings: multipliers on music, sound effects and voice. */
+  setVolumes(music: number, sfx: number, voice: number) {
+    this.vol = { music, sfx, voice };
+    const c = this.current?.howl;
+    if (c && this.musicOn) c.volume(this.volume * music);
   }
 
   play(id: string) {
@@ -85,9 +112,9 @@ export class Audio {
   }
 
   sfx(id: string) {
-    if (!this.sfxOn) return;
+    if (!this.sfxOn || this.vol.sfx <= 0) return;
     const h = this.howl('sfx', id, false);
-    h?.volume(0.8); h?.play();
+    h?.volume(0.8 * this.vol.sfx); h?.play();
   }
 
   /** Looping sound effect, stopped by the returned function. */

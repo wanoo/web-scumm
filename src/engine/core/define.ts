@@ -49,6 +49,7 @@ export function assignKeys(game: GameDef): GameDef {
     cmds.forEach((c, i) => {
       if (typeof c === 'string') return;
       const here = `${prefix}.${i}`;
+      if ('anim' in c && c.at) { for (const [i, b] of Object.entries(c.at)) walk(b, `${here}.at${i}`); return; }
       if ('once' in c) { c.key ??= here; walk(c.once, here); }
       else if ('nth' in c) { c.key ??= here; c.nth.forEach((b, j) => walk(b, `${here}.${j}`)); }
       else if ('cycle' in c) { c.key ??= here; c.cycle.forEach((b, j) => walk(b, `${here}.${j}`)); }
@@ -65,6 +66,7 @@ export function assignKeys(game: GameDef): GameDef {
   };
   for (const r of game.rooms) {
     walk(r.onEnter, `${r.id}:enter`);
+    for (const [pid, p] of Object.entries(r.props ?? {})) for (const [an, a] of Object.entries(p.anims ?? {})) for (const [i, b] of Object.entries(a.at ?? {})) walk(b, `${r.id}:prop.${pid}.${an}.${i}`);
     // Rules generated from exits come last: the written rules keep their keys.
     const nw = r.on?.findIndex((x) => x.exit) ?? -1;
     r.on?.forEach((rule, i) => walk(rule.do, nw < 0 || i < nw ? `${r.id}:on${i}` : `${r.id}:exit${i - nw}`));

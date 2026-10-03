@@ -88,8 +88,8 @@
    1280,
    800
   ],
-  "decor/market": [
-   1280,
+  "decor/market_wide": [
+   1917,
    800
   ],
   "furniture_dining/chaise2": [
@@ -799,7 +799,8 @@
    "pluck": "sfx/pluck.mp3",
    "select": "sfx/select.mp3",
    "bong": "sfx/bong.mp3"
-  }
+  },
+  "voices": {}
  },
  "videos": {}
 }

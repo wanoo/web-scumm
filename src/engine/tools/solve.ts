@@ -46,7 +46,8 @@ function stateKeys(game: GameDef) {
   const nth = new Map<string, number>();
   const walk = (cmds: Cmd[] | undefined) => cmds?.forEach((c) => {
     if (typeof c === 'string') return;
-    if ('once' in c) { if (c.key) once.add(c.key); walk(c.once); }
+    if ('anim' in c) { if (c.at) Object.values(c.at).forEach(walk); }
+    else if ('once' in c) { if (c.key) once.add(c.key); walk(c.once); }
     else if ('nth' in c) { if (c.key) nth.set(c.key, c.nth.length - 1); c.nth.forEach(walk); }
     else if ('cycle' in c) c.cycle.forEach(walk);
     else if ('random' in c) c.random.forEach(walk);
@@ -60,6 +61,7 @@ function stateKeys(game: GameDef) {
   for (const r of game.rooms) {
     walk(r.onEnter); r.on?.forEach((x) => walk(x.do)); Object.values(r.talk ?? {}).forEach((ts) => ts.forEach((t) => walk(t.do)));
     r.scripts?.forEach((x) => walk(x.do)); r.events?.forEach((x) => walk(x.do));
+    for (const p of Object.values(r.props ?? {})) for (const a of Object.values(p.anims ?? {})) Object.values(a.at ?? {}).forEach(walk);
   }
   game.rules.on?.forEach((x) => walk(x.do));
   game.scripts?.forEach((x) => walk(x.do)); game.events?.forEach((x) => walk(x.do));
@@ -93,7 +95,8 @@ function stateKeys(game: GameDef) {
   const nthRead = new Map<string, number>();
   const walk2 = (cmds: Cmd[] | undefined) => cmds?.forEach((c) => {
     if (typeof c === 'string') return;
-    if ('once' in c) { if (c.key && matters(c.once)) onceRead.add(c.key); walk2(c.once); }
+    if ('anim' in c) { if (c.at) Object.values(c.at).forEach(walk2); }
+    else if ('once' in c) { if (c.key && matters(c.once)) onceRead.add(c.key); walk2(c.once); }
     else if ('nth' in c) { if (c.key && matters(c.nth.flat())) nthRead.set(c.key, c.nth.length - 1); c.nth.forEach(walk2); }
     else if ('cycle' in c) c.cycle.forEach(walk2);
     else if ('random' in c) c.random.forEach(walk2);
@@ -107,6 +110,7 @@ function stateKeys(game: GameDef) {
   for (const r of game.rooms) {
     walk2(r.onEnter); r.on?.forEach((x) => walk2(x.do)); Object.values(r.talk ?? {}).forEach((ts) => ts.forEach((t) => walk2(t.do)));
     r.scripts?.forEach((x) => walk2(x.do)); r.events?.forEach((x) => walk2(x.do));
+    for (const p of Object.values(r.props ?? {})) for (const a of Object.values(p.anims ?? {})) Object.values(a.at ?? {}).forEach(walk2);
   }
   game.rules.on?.forEach((x) => walk2(x.do));
   game.scripts?.forEach((x) => walk2(x.do)); game.events?.forEach((x) => walk2(x.do));

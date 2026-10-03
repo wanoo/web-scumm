@@ -3,7 +3,7 @@
 Current game: env GAME, else package.json -> "config": { "game" }, else "demo" (same rule as tools/game.ts).
 Sources: games/<id>/sources.json, else the game's default folders:
   images  games/<id>/art/{id}.png            decors  games/<id>/art/decor/{name}.png
-  video   games/<id>/art/decor/{name}.mp4    sounds  games/<id>/audio/music/{file}, games/<id>/audio/sfx/{file}
+  video   games/<id>/art/decor/{name}.mp4    sounds  games/<id>/audio/music/{file}, games/<id>/audio/sfx/{file}, games/<id>/audio/voice/{file}
 Outputs: public/assets/img/<id>.webp, public/assets/audio/{music,sfx}/<file>, public/assets/video/<name>.mp4,
 and the manifest games/<id>/assets.gen.json (pixel sizes, for proportions).
 Only reprocesses what changed. See docs/en/TOOLS.md (sources.json format, "overrides").
@@ -51,6 +51,7 @@ DEFAULT_SOURCES = {
     'video': f'{GAME_DIR}/art/decor/{{name}}.mp4',
     'music': f'{GAME_DIR}/audio/music/{{file}}',
     'sfx': f'{GAME_DIR}/audio/sfx/{{file}}',
+    'voices': f'{GAME_DIR}/audio/voice/{{file}}',
 }
 SOURCES = dict(DEFAULT_SOURCES)
 if os.path.exists(f'{GAME_DIR}/sources.json'):
@@ -143,6 +144,9 @@ for rid in refs['images']:
         elif PIXEL:
             # Drawn 4x up: back to its art pixels (a background already at pixel size, 640 px wide or less, stays as is).
             if im.width > 640: im = im.resize((round(im.width / PIXEL_SCALE), round(im.height / PIXEL_SCALE)), Image.NEAREST)
+        elif im.width / im.height > 1.6 + 0.02:
+            # A wide room (Layout.width > 640): 800 tall, as wide as the source says (e.g. 1920 for 960 logical units).
+            im = im.resize((round(im.width * 800 / im.height), 800), Image.LANCZOS)
         else:
             im = im.resize((1280, 800), Image.LANCZOS)
         webp(im, dst, opt.get('quality', 82))
@@ -165,11 +169,11 @@ def encode(src, dst, rate, stereo):
     subprocess.run(cmd, check=True)
     return True
 
-audio = {'music': {}, 'sfx': {}}
+audio = {'music': {}, 'sfx': {}, 'voices': {}}
 amissing, aenc = [], 0
-for kind, rate, stereo in (('music', '96k', True), ('sfx', '128k', False)):
+for kind, rate, stereo in (('music', '96k', True), ('sfx', '128k', False), ('voices', '64k', False)):
     pats = patterns(SOURCES[kind])
-    for aid, f in refs['audio'][kind].items():
+    for aid, f in refs['audio'].get(kind, {}).items():
         # Candidates in pattern order; a requested .mp3 can come from an .ogg of the same name.
         cands = [(p['path'].format(file=f), p.get('rate', rate)) for p in pats]
         if f.endswith('.mp3'):

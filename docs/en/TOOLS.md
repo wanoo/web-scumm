@@ -82,6 +82,7 @@ The editor's panel holds:
 - **Walkable zone**: create the zone, add a hole.
 - **Depth scale**: create the scale, set the back and front factors.
 - **Entries**: add an entry point by name (`default` is the one used by default).
+- **Room width**: the logical width of a wide room (640 = no scrolling) and a camera slider to look around while placing.
 
 For a prop with a per-state position (`states` in the layout, e.g. a pulled-out stool), the editor edits the variant of the state shown.
 

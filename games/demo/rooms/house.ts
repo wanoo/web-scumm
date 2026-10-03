@@ -8,7 +8,9 @@ export default defineRoom({
   description: 'Grandma\'s dining room at golden hour, seen from the front. Left: a tall wooden bookshelf with books, plants and a vase, a lamp with an orange shade on a small side table. Center: wide-open French windows with flowered curtains, giving on to a sunny garden, a village and a church spire. Right: a white door to the hall, family pictures on green damask wallpaper. Terracotta tiled floor with a big red rug. Warm, cozy, late-afternoon sun',
 
   props: {
-    pantry: { name: 'pantry cupboard', states: { locked: 'home2/r1c3', open: 'home2/r1c4' }, initial: 'locked' },
+    pantry: { name: 'pantry cupboard', states: { locked: 'home2/r1c3', open: 'home2/r1c4' }, initial: 'locked',
+      // A prop animation with a frame event: the door jumps, the latch clicks on frame 1 (`{ play: ['pantry', 'rattle'] }`).
+      anims: { rattle: { frames: ['home2/r1c4', 'home2/r1c3', 'home2/r1c4', 'home2/r1c3'], fps: 12, at: { 1: [{ sfx: 'latch' }] } } } },
     // Once Grandpa is home (game.ts `events`), he sits here: his seated sheet brings its own armchair.
     armchair: { name: 'Grandpa\'s armchair', states: { remote: 'home2/r2c1', searched: 'home2/r2c2' }, initial: 'remote', visible: { not: { actorIn: ['grandpa', 'house'] } } },
     clock: { name: 'clock', img: 'home2/r1c5' },
@@ -66,7 +68,7 @@ export default defineRoom({
 
     // The pantry, and the finale.
     { verb: 'look', a: 'pantry', if: { prop: ['pantry', 'open'] }, do: ['Open. An empty tin. A happy cat.'] },
-    { verb: ['open', 'use', 'pull'], a: 'pantry', if: { prop: ['pantry', 'locked'] }, do: [{ sfx: 'latch' }, 'Locked. I need the key.'] },
+    { verb: ['open', 'use', 'pull'], a: 'pantry', if: { prop: ['pantry', 'locked'] }, do: [{ play: ['pantry', 'rattle'] }, 'Locked. I need the key.'] },
     { verb: 'use', a: 'key', b: 'pantry', if: { prop: ['pantry', 'locked'] }, do: [
       { cutscene: [
         { sfx: 'metal' }, { wait: 300 }, { sfx: 'latch' }, { prop: ['pantry', 'open'] }, { sfx: 'door_open' },

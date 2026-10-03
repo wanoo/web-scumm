@@ -93,8 +93,9 @@ export const game = defineGame({
   },
   // Must never become true: the token gone before the flowers are done (the solver reports the path if it happens).
   invariants: [{ all: [{ prop: ['house.armchair', 'searched'] }, { not: { has: 'token' } }, '!flowers_done'] }],
-  // Three manual save slots in the pause menu (export / import as a file too).
+  // Three manual save slots in the pause menu (export / import as a file too), and a Settings entry.
   saves: { slots: 3 },
+  settings: true,
   // No music yet (the demo runs without it): rooms have no `music`, and `audio.music` is empty.
   audio: {
     music: {},
@@ -143,5 +144,7 @@ export const game = defineGame({
     calling: 'calling…', loading: 'Loading…', on: 'on', off: 'off', giveWhat: 'Pick an item from the bag first.', replay: 'Play again',
     miniGame: 'Mini-game', tapToContinue: '▼ tap to continue', ok: 'OK', password: 'Password?',
     save: 'Save', load: 'Load', slot: 'Slot {n}', emptySlot: 'empty', exportSave: 'Export to a file', importSave: 'Import a file', confirmOverwrite: 'Overwrite this slot?',
+    settings: 'Settings', textSpeed: 'Text speed', textSize: 'Text size', reduceMotion: 'Reduce motion', readableFont: 'Readable font',
+    volumeMusic: 'Music volume', volumeSfx: 'Sound volume', volumeVoice: 'Voice volume', slow: 'slow', normal: 'normal', fast: 'fast', large: 'large',
   },
 });

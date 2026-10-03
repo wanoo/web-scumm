@@ -252,6 +252,59 @@ Une réplique reste à l'écran le temps de la lire, ou jusqu'à un tap.
 | `{ seen: 'maison.grandmere.0' }` | le sujet n° 0 de Grand-mère à la maison a déjà été entendu. |
 | `{ actorIn: ['grandpere', 'maison'] }` | le personnage mobile est dans ce lieu (voir « Le monde vit »). |
 
+## Mise en scène : lieux larges, animations, voix, réglages
+
+### Lieux larges et caméra
+
+Un lieu fait 640 × 400 unités logiques. Donne à son layout une `width` (ex. 960, 1280 : dossier « Room width » de
+l'éditeur, ou `layout/<lieu>.json`) et peins son décor aussi large (800 px de haut, la largeur en proportion ;
+`npm run assets` la garde) : le lieu défile, et la **caméra** suit le héros. Les positions restent des coordonnées du
+monde (un accessoire à x 900 est dans la partie droite). Des commandes déplacent la caméra :
+
+| Commande | Effet |
+|---|---|
+| `{ camera: { to: 'etals_lointains', ms: 900 } }` | Panoramique pour centrer quelque chose (acteur, accessoire, zone), puis reste là. |
+| `{ camera: { pan: 320, ms: 600 } }` | Panoramique vers un bord gauche, en unités logiques (borné au lieu). |
+| `{ camera: 'follow' }` (ou `'reset'`) | Suivre à nouveau le héros. Entrer dans un lieu suit toujours le héros. |
+
+La caméra est dans l'état (une sauvegarde la restitue), le solveur l'ignore, et « réduire les animations » rend chaque
+panoramique instantané.
+
+### Animations d'accessoires et événements de frame
+
+```ts
+props: {
+  garde_manger: { name: 'garde-manger', states: { ferme: 'home/r1c3', ouvert: 'home/r1c4' }, initial: 'ferme',
+    anims: { secoue: { frames: ['home/r1c4', 'home/r1c3', 'home/r1c4', 'home/r1c3'], fps: 12, at: { 1: [{ sfx: 'loquet' }] } },
+             halo: { frames: ['home/g1', 'home/g2'], fps: 4, loop: true } } },
+},
+on: [{ verb: 'open', a: 'garde_manger', do: [{ play: ['garde_manger', 'secoue'] }, 'Fermé.'] }],
+```
+
+`{ play: [accessoire, nom] }` montre les images l'une après l'autre à `fps` et **exécute les commandes de `at` quand
+cette image est atteinte** (un son sur la bonne image, un flag, une réplique), puis l'accessoire reprend l'image de son
+état. Une animation `loop` tourne toute seule jusqu'à `{ stopAnim: accessoire }` (son `at` est ignoré). Les poses des
+personnages ont la même chose : `{ anim: ['hero', 'saut'], ms: 600, at: { 2: [{ sfx: 'boum' }] } }` exécute les
+commandes quand la pose atteint cette image, au `fps` du personnage.
+
+### Voix
+
+```ts
+audio: { voices: { grandmere_01: 'grandmere-01.mp3' } },   // fichiers dans games/<id>/audio/voice/
+{ say: ['grandmere', 'Pixel ! Mauvaise nouvelle.'], voice: 'grandmere_01' }
+```
+
+La réplique reste à l'écran tant que le clip joue (un tap la passe toujours) ; sans clip, le temps de lecture
+s'applique. Le volume des voix est un réglage à part.
+
+### Réglages
+
+`settings: true` ajoute une entrée Réglages au menu pause : vitesse du texte (lent / normal / rapide), taille du texte
+(normal / grand), réduire les animations (pas de tremblement, caméra et fondus instantanés), une police lisible quand le
+jeu en fournit une (`skin.fonts.readable`), volumes musique / sons / voix. Les préférences restent dans le navigateur,
+hors sauvegarde. Textes : `ui.settings`, `ui.textSpeed`, `ui.textSize`, `ui.reduceMotion`, `ui.readableFont`,
+`ui.volumeMusic`, `ui.volumeSfx`, `ui.volumeVoice`, `ui.slow`, `ui.normal`, `ui.fast`, `ui.large` (défauts anglais si absents).
+
 ## Sorties, chapitres, sauvegardes
 
 ### Les sorties déclarées

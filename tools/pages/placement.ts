@@ -163,9 +163,12 @@ const SCRIPT = String.raw`
   function render() {
     while (svg.firstChild) svg.removeChild(svg.firstChild);
     var l = L(), s = k(), sw = 2 * s;
-    if (cur.decor) el('image', { href: cur.decor, x: 0, y: 0, width: 640, height: 400, preserveAspectRatio: 'none' });
-    else { el('rect', { x: 0, y: 0, width: 640, height: 400, fill: '#2b2e45' }); label(320, 200, 'no decor image'); }
-    el('rect', { x: 0, y: 0, width: 640, height: 400, fill: 'transparent', 'data-h': 'bg' });
+    var W = l.width || 640;
+    svg.setAttribute('viewBox', '0 0 ' + W + ' 400');
+    if (cur.decor) el('image', { href: cur.decor, x: 0, y: 0, width: W, height: 400, preserveAspectRatio: 'none' });
+    else { el('rect', { x: 0, y: 0, width: W, height: 400, fill: '#2b2e45' }); label(W / 2, 200, 'no decor image'); }
+    el('rect', { x: 0, y: 0, width: W, height: 400, fill: 'transparent', 'data-h': 'bg' });
+    if (W > 640) for (var cx = 640; cx < W; cx += 640) el('line', { x1: cx, x2: cx, y1: 0, y2: 400, stroke: '#fff', 'stroke-width': s, 'stroke-dasharray': 6 * s, opacity: .5, 'pointer-events': 'none' });
     // Walk area (and holes)
     if (layers.walk) {
       var area = l.walk && l.walk.area || DEF.walk, ghost = !(l.walk && l.walk.area);
@@ -180,8 +183,8 @@ const SCRIPT = String.raw`
     if (layers.scale) {
       var sc = l.scale || DEF.scale;
       sc.forEach(function (row, i) {
-        el('line', { x1: 0, x2: 640, y1: row[0], y2: row[0], stroke: '#6ab8ff', 'stroke-width': sw, 'stroke-dasharray': (l.scale ? 10 : 4) * s, 'pointer-events': 'none' });
-        el('rect', { x: 0, y: row[0] - 12 * s, width: 640, height: 24 * s, fill: 'transparent', 'data-h': 'scale:' + i });
+        el('line', { x1: 0, x2: W, y1: row[0], y2: row[0], stroke: '#6ab8ff', 'stroke-width': sw, 'stroke-dasharray': (l.scale ? 10 : 4) * s, 'pointer-events': 'none' });
+        el('rect', { x: 0, y: row[0] - 12 * s, width: W, height: 24 * s, fill: 'transparent', 'data-h': 'scale:' + i });
         label(600, row[0] - 5 * s, '×' + row[1], '#9fd0ff');
       });
     }
@@ -331,7 +334,7 @@ const SCRIPT = String.raw`
   function ownScale() { var l = L(); if (!l.scale) l.scale = JSON.parse(JSON.stringify(DEF.scale)); return l.scale; }
 
   // ---- dragging (pointer capture on the svg itself: the scene is redrawn on every move)
-  function pt(e) { var p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; var q = p.matrixTransform(svg.getScreenCTM().inverse()); return [Math.max(0, Math.min(640, q.x)), Math.max(0, Math.min(400, q.y))]; }
+  function pt(e) { var p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; var q = p.matrixTransform(svg.getScreenCTM().inverse()); return [Math.max(0, Math.min(L().width || 640, q.x)), Math.max(0, Math.min(400, q.y))]; }
   svg.addEventListener('pointerdown', function (e) {
     var h = e.target.getAttribute && e.target.getAttribute('data-h'); if (!h) return;
     var a = h.split(':'), p = pt(e);

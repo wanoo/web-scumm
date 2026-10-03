@@ -5,7 +5,8 @@ import { defineRoom } from '@engine/core/define';
 export default defineRoom({
   id: 'market',
   name: 'The market',
-  decor: 'decor/market',
+  // A wide room (layout `width: 960`, a 1.5-screen backdrop): the camera follows Pixel; `camera` commands pan it.
+  decor: 'decor/market_wide',
   description: 'A North African market street at dusk, seen down its length. Left: spice stalls with cones of colourful spices, baskets and crates, shelves of brass lanterns, rugs hanging above. Center: an alley of stone arches lit by hanging lanterns, a minaret against a violet sky. Right: a big blue studded door in a tiled wall, potted plants, bougainvillea, an awning with tassels. Warm cobblestones. Glowing, festive evening light',
 
   props: {
@@ -25,6 +26,7 @@ export default defineRoom({
   hotspots: {
     alley: { name: 'alley' },
     blue_door: { name: 'blue door' },
+    far_stalls: { name: 'far stalls' },
   },
 
   look: {
@@ -34,11 +36,13 @@ export default defineRoom({
     bouquet: 'My bouquet! Freshly picked. By me. With paws.',
     neighbor: ['Lou, the neighbour. Fixes everything. Borrows everything.', 'Lou smells of oil and socks.'],
     seller: ['The seller. Big moustache. Bigger smile.', 'He keeps looking at the flowers. Suspicious.'],
-    alley: 'The alley goes on and on. Like Biscuit\'s naps. The map is that way.',
+    far_stalls: ['More stalls, further down. Also no sardines.', 'A whole market and not one fish.'],
     blue_door: 'A big blue door. Locked. Everything is locked today.',
   },
 
   on: [
+    // Looking down the alley pans the camera to the far stalls, then back to Pixel.
+    { verb: 'look', a: 'alley', do: [{ camera: { to: 'far_stalls', ms: 900 } }, 'The alley goes on and on. Like Biscuit\'s naps. The map is that way.', { camera: 'follow' }] },
     // Token → the flower game (pick). Win → the bouquet appears on the stall.
     { verb: 'give', a: 'token', b: 'seller', if: '!flowers_done', do: [
       { say: ['seller', 'A token? Today I only take flowers. For... reasons.'] },
@@ -126,7 +130,7 @@ export default defineRoom({
   // Lou cannot stand still: a stroll along the stalls, on its own, until the deal is done.
   scripts: [
     { id: 'lou_paces', loop: true, while: '!bouquet_given', do: [
-      { wait: 6000 }, { walk: [235, 262], who: 'neighbor' }, { face: 'left', who: 'neighbor' }, { wait: 3000 },
+      { wait: 6000 }, { walk: [760, 300], who: 'neighbor' }, { face: 'left', who: 'neighbor' }, { wait: 3000 },
       { walk: [147, 278], who: 'neighbor' }, { face: 'right', who: 'neighbor' },
     ] },
   ],

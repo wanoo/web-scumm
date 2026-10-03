@@ -3,7 +3,7 @@
 import { pathToFileURL } from 'node:url';
 import type { GameModule } from './game';
 
-export interface Refs { images: string[]; audio: { music: Record<string, string>; sfx: Record<string, string> } }
+export interface Refs { images: string[]; audio: { music: Record<string, string>; sfx: Record<string, string>; voices?: Record<string, string> } }
 
 /** Collects the image ids (and audio tables) cited by a game module. Pure: no file access. */
 export function collectRefs({ game, extraImages }: Pick<GameModule, 'game' | 'extraImages'>): Refs {
@@ -24,6 +24,7 @@ export function collectRefs({ game, extraImages }: Pick<GameModule, 'game' | 'ex
       const o = c as Record<string, unknown>;
       if ('minigame' in o) { scanParams(o.params); scanCmds(o.then); }
       for (const k of ['then', 'else', 'once', 'cutscene', 'do', 'after']) scanCmds(o[k]);
+      if (o.at && typeof o.at === 'object') Object.values(o.at as Record<string, unknown>).forEach(scanCmds);
       for (const k of ['nth', 'cycle', 'random', 'parallel']) if (Array.isArray(o[k])) (o[k] as unknown[]).forEach(scanCmds);
       if (Array.isArray(o.choice)) (o.choice as { do: unknown }[]).forEach((x) => scanCmds(x.do));
     }
@@ -31,7 +32,10 @@ export function collectRefs({ game, extraImages }: Pick<GameModule, 'game' | 'ex
 
   for (const r of game.rooms) {
     add(r.decor);
-    for (const p of Object.values(r.props ?? {})) { add(p.img); Object.values(p.states ?? {}).forEach(add); }
+    for (const p of Object.values(r.props ?? {})) {
+      add(p.img); Object.values(p.states ?? {}).forEach(add);
+      for (const a of Object.values(p.anims ?? {})) { a.frames.forEach(add); Object.values(a.at ?? {}).forEach(scanCmds); }
+    }
     scanCmds(r.onEnter);
     r.on?.forEach((x) => scanCmds(x.do));
     Object.values(r.talk ?? {}).forEach((ts) => ts.forEach((t) => scanCmds(t.do)));
@@ -65,7 +69,7 @@ export function collectRefs({ game, extraImages }: Pick<GameModule, 'game' | 'ex
   // Images the game asks to keep even if nothing cites them.
   (extraImages ?? []).forEach(add);
 
-  return { images: [...images].sort(), audio: { music: game.audio?.music ?? {}, sfx: game.audio?.sfx ?? {} } };
+  return { images: [...images].sort(), audio: { music: game.audio?.music ?? {}, sfx: game.audio?.sfx ?? {}, voices: game.audio?.voices ?? {} } };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

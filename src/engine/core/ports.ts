@@ -7,7 +7,7 @@ import type { GameState, Id, Point, RoomDef, VerbId } from './types';
  */
 export interface Presenter {
   enterRoom(room: RoomDef, state: GameState): Promise<void>;
-  say(who: Id, text: string, o: { shout?: boolean; fast?: boolean }): Promise<void>;
+  say(who: Id, text: string, o: { shout?: boolean; fast?: boolean; voice?: Id }): Promise<void>;
   /** Moves a character. Returns the arrival point, or null if the move was interrupted. */
   walk(who: Id, to: Point, fast: boolean): Promise<Point | null>;
   face(who: Id, dir: 'left' | 'right'): void;
@@ -16,6 +16,12 @@ export interface Presenter {
   place(who: Id, at: Point, face?: 'left' | 'right'): void;
   wait(ms: number, fast: boolean): Promise<void>;
   prop(id: Id, state: string): void;
+  /** A frame of a prop animation (null: back to the state image). */
+  propFrame(id: Id, img: Id | null): void;
+  /** A looping prop animation (an empty list stops it). */
+  propLoop(id: Id, frames: Id[], fps: number): void;
+  /** Camera: follow the hero, or go to left edge `x` over `ms`. */
+  camera(x: number | null, follow: boolean, ms: number, fast: boolean): Promise<void>;
   show(id: Id, visible: boolean, fade: number, fast: boolean): Promise<void>;
   /** Inventory contents; `used` = greyed-out items (already used). */
   inventory(items: Id[], used?: Id[]): void;
@@ -66,6 +72,9 @@ export class FakePresenter implements Presenter {
   place() {}
   async wait() {}
   prop(id: Id, state: string) { this.log.push(`prop ${id} ${state}`); }
+  propFrame(id: Id, img: Id | null) { this.log.push(`frame ${id} ${img ?? '-'}`); }
+  propLoop(id: Id, frames: Id[]) { this.log.push(`loop ${id} ${frames.length}`); }
+  async camera(x: number | null, follow: boolean) { this.log.push(`camera ${follow ? 'follow' : x}`); }
   async show(id: Id, v: boolean) { this.log.push(`${v ? 'show' : 'hide'} ${id}`); }
   inventory(items: Id[]) { this.log.push(`inv ${items.join(',')}`); }
   sfx(id: Id) { this.log.push(`sfx ${id}`); }

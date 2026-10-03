@@ -593,3 +593,87 @@ describe('scale: exits, chapters, saves', () => {
     expect(md).toContain('| Hall (hall) | 1 | 0 | 0 | 1 | 1 |');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Picture: camera, prop animations with frame events, voice.
+// ---------------------------------------------------------------------------
+
+function picture(): GameDef {
+  return {
+    id: 'picture', title: 'Picture', saveVersion: 1, hero: 'hero',
+    verbs: [{ id: 'look', label: 'Look', color: '#fff' }, { id: 'use', label: 'Use', color: '#fff', join: 'with' }],
+    characters: { hero: { name: 'Hero', color: '#fff', fps: 10, sprites: { idle: ['h/1'], jump: ['h/2', 'h/3', 'h/4'] } } },
+    items: {},
+    rooms: [
+      { id: 'street', name: 'Street', decor: 'd/street',
+        props: { door: { name: 'door', states: { shut: 'p/shut', open: 'p/open' }, initial: 'shut',
+          anims: { rattle: { frames: ['p/a', 'p/b', 'p/a'], fps: 10, at: { 1: [{ sfx: 'latch' }] } }, glow: { frames: ['p/g1', 'p/g2'], fps: 4, loop: true } } } },
+        hotspots: { far: { name: 'far end' } },
+        look: { door: 'A door.', far: 'Far.' },
+        on: [
+          { verb: 'use', a: 'door', do: [{ play: ['door', 'rattle'] }, 'Locked.'] },
+          { verb: 'look', a: 'far', do: [{ camera: { to: 'far', ms: 300 } }, { camera: { pan: 100 } }, 'Far away.', { camera: 'follow' }] },
+          { verb: 'use', a: 'far', do: [{ anim: ['hero', 'jump'], ms: 300, at: { 2: [{ set: 'jumped' }] } }, { play: ['door', 'glow'] }, { say: ['hero', 'Glowing.'], voice: 'v1' }, { stopAnim: 'door' }, { end: true }] },
+        ],
+        hints: [{ until: 'never', lines: ['Use the far end.'] }] },
+    ],
+    rules: { fallbacks: { look: ['Nothing.'], use: ['No.'], use2: ['No.'] } },
+    audio: { sfx: { latch: 'latch.mp3' }, voices: { v1: 'hero-01.mp3' } },
+    start: { room: 'street' },
+    settings: true,
+    skin: { icons: { map: 'ui/map', pause: 'ui/pause', music: 'ui/music' } },
+    ui: {} as GameDef['ui'],
+  };
+}
+const pictureLayouts: Record<string, Layout> = {
+  street: { width: 1200, entries: { default: [100, 360] }, props: { door: { x: 300, y: 340, h: 80 } }, hotspots: { far: { rect: [1000, 200, 100, 100], approach: [1000, 360] } } },
+};
+
+describe('picture: camera, prop animations, frame events, voice', () => {
+  it('plays a prop animation frame by frame, running the frame commands, then restores the prop', async () => {
+    const ui = new FakePresenter();
+    const e = new Engine(picture(), pictureLayouts, ui, new MemoryStore());
+    await e.newGame();
+    expect(await e.act({ verb: 'use', a: 'door' })).toBe('rule');
+    expect(ui.log.slice(-6)).toEqual(['frame door p/a', 'frame door p/b', 'sfx latch', 'frame door p/a', 'frame door -', 'hero: Locked.']);
+  });
+
+  it('camera commands are saved in the state, clamped to the room, and follow again', async () => {
+    const ui = new FakePresenter();
+    const e = new Engine(picture(), pictureLayouts, ui, new MemoryStore());
+    await e.newGame();
+    expect(e.state.camera).toEqual({ x: 0, follow: true });
+    await e.act({ verb: 'look', a: 'far' });
+    expect(ui.log.filter((l) => l.startsWith('camera'))).toEqual(['camera 560', 'camera 100', 'camera follow']);
+    expect(e.state.camera).toEqual({ x: 0, follow: true });
+  });
+
+  it('frame events on a character animation, loops, voice and the validator', async () => {
+    const ui = new FakePresenter();
+    const e = new Engine(picture(), pictureLayouts, ui, new MemoryStore());
+    await e.newGame();
+    await e.act({ verb: 'use', a: 'far' });
+    expect(e.state.flags.jumped).toBe(true);
+    expect(ui.log).toContain('loop door 2');
+    expect(ui.log).toContain('loop door 0');
+    expect(e.state.done).toBe(true);
+    const { errors, warnings } = validate(picture(), pictureLayouts);
+    expect(errors).toEqual([]);
+    expect(warnings.filter((w) => w.includes('camera'))).toEqual([]);
+    const g = picture();
+    g.rooms[0].on![0].do = [{ play: ['door', 'nope'] }, { say: ['hero', 'x'], voice: 'v9' }, { anim: ['hero', 'jump'], at: { x: ['a'] } as never }];
+    g.rooms[0].props!.door.anims!.glow.at = { 5: ['late'] };
+    const v = validate(g, { street: { ...pictureLayouts.street, width: 600 } });
+    expect(v.errors).toEqual([
+      'street.props.door.anims.glow › at: frame 5 is outside the animation (2 frames)',
+      'street.on[0][0] › prop "door" has no animation "nope" (anims: rattle, glow)',
+      'street.on[0][1] › unknown voice clip: "v9" (audio.voices)',
+      'street.on[0][2] › at: "x" is not a frame index',
+      'street.layout › width must be a number of at least 640',
+    ]);
+    expect(v.warnings).toContain('street.props.door.anims.glow › a looping animation does not run its "at" commands');
+    expect(v.warnings).toContain('street.on[1][0] › camera in a 640-wide room (set "width" in the layout): no effect');
+    const r = await solve(picture(), pictureLayouts, { maxStates: 100 });
+    expect(r.finished).toBe(true);
+  });
+});

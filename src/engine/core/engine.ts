@@ -53,7 +53,7 @@ export class Engine {
     return {
       v: this.game.saveVersion, room: s.room, inventory: [...(s.inventory ?? [])], flags: { ...(s.flags ?? {}) },
       props: {}, actors: {}, hero: {}, unlocked: [...(s.unlocked ?? [])], visited: {}, counters: {}, seen: {}, started: Date.now(),
-      where: this.homes(), scripts: {},
+      where: this.homes(), scripts: {}, camera: { x: 0, follow: true },
     };
   }
 
@@ -72,6 +72,7 @@ export class Engine {
     }
     s.where = { ...this.homes(), ...(s.where ?? {}) };
     s.scripts ??= {};
+    s.camera ??= { x: 0, follow: true };
     return s;
   }
 
@@ -458,6 +459,7 @@ export class Engine {
   /** Enters a room: state, display, music, then arrival script. */
   async enter(id: Id, at: Id | Point | undefined, runEnter: boolean) {
     const room = this.room(id);
+    if (this.state.room !== id || at !== undefined) this.state.camera = { x: 0, follow: true };
     this.state.room = id;
     const L = this.layout(id);
     if (at) this.state.hero[id] = Array.isArray(at) ? at : (L.entries?.[at] ?? L.entries?.default ?? [320, 360]);
@@ -570,8 +572,8 @@ export class Engine {
   /** Runs a script in the current room (usable by the UI or tests). */
   async script(cmds: Cmd[]) { await this.run(() => this.exec(cmds, { room: this.room(), fast: false })); }
 
-  private async say(who: Id, text: string, ctx: Ctx, shout = false) {
-    await this.ui.say(this.who(who), text, { shout, fast: ctx.fast });
+  private async say(who: Id, text: string, ctx: Ctx, shout = false, voice?: Id) {
+    await this.ui.say(this.who(who), text, { shout, fast: ctx.fast, voice });
   }
 
   private point(t: Id | Point, room: RoomDef): Point {
@@ -596,7 +598,7 @@ export class Engine {
     const s = this.state;
     const room = ctx.room;
     if (typeof c === 'string') return this.say(HERO, c, ctx);
-    if ('say' in c) return this.say(c.say[0], c.say[1], ctx, !!c.shout);
+    if ('say' in c) return this.say(c.say[0], c.say[1], ctx, !!c.shout, c.voice);
     if ('walk' in c) {
       const who = this.who(c.who ?? HERO);
       const end = await this.ui.walk(who, this.point(c.walk, room), ctx.fast);
@@ -631,7 +633,45 @@ export class Engine {
       if (who !== this.game.hero) s.actors[this.actorKey(who, room)] = { ...s.actors[this.actorKey(who, room)], pose: c.pose[1] };
       return;
     }
-    if ('anim' in c) return this.ui.anim(this.who(c.anim[0]), c.anim[1], c.ms ?? 800, ctx.fast);
+    if ('anim' in c) {
+      const who = this.who(c.anim[0]);
+      if (!c.at) return this.ui.anim(who, c.anim[1], c.ms ?? 800, ctx.fast);
+      // Frame events: the commands of `at` run when the pose reaches that frame (at the character's fps).
+      const fps = this.character(who)?.fps ?? 8;
+      const p = this.ui.anim(who, c.anim[1], c.ms ?? 800, ctx.fast);
+      let t = 0;
+      for (const i of Object.keys(c.at).map(Number).sort((a, b) => a - b)) {
+        const at = (i * 1000) / fps;
+        if (at > t) { await this.ui.wait(at - t, ctx.fast); t = at; }
+        await this.exec(c.at[i], ctx);
+      }
+      await p;
+      return;
+    }
+    if ('play' in c) {
+      const [pid, name] = c.play;
+      const def = room.props?.[pid]?.anims?.[name];
+      if (!def) throw new Error(`no animation "${name}" on prop "${pid}" in ${room.id}`);
+      const fps = def.fps ?? 8;
+      if (def.loop) { this.ui.propLoop(pid, def.frames, fps); return; }
+      for (let i = 0; i < def.frames.length; i++) {
+        this.ui.propFrame(pid, def.frames[i]);
+        if (def.at?.[i]) await this.exec(def.at[i], ctx);
+        await this.ui.wait(1000 / fps, ctx.fast);
+      }
+      this.ui.propFrame(pid, null);
+      return;
+    }
+    if ('stopAnim' in c) { this.ui.propLoop(c.stopAnim, [], 0); return; }
+    if ('camera' in c) {
+      const W = this.layout(room.id).width ?? 640;
+      const clamp = (x: number) => Math.max(0, Math.min(W - 640, x));
+      if (c.camera === 'follow' || c.camera === 'reset') { s.camera = { x: 0, follow: true }; await this.ui.camera(null, true, 0, ctx.fast); return; }
+      const x = clamp('pan' in c.camera ? c.camera.pan : (this.centerX(c.camera.to, room) ?? 320) - 320);
+      s.camera = { x, follow: false };
+      await this.ui.camera(x, false, c.camera.ms ?? 600, ctx.fast);
+      return;
+    }
     if ('wait' in c) return this.ui.wait(c.wait, ctx.fast);
     if ('parallel' in c) { await Promise.all(c.parallel.map((b) => this.exec(b, ctx))); return; }
     if ('prop' in c) {

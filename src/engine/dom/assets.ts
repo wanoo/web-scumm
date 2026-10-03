@@ -1,7 +1,7 @@
 /** Catalogue of images and sounds prepared by `npm run assets`. */
 export interface AssetManifest {
   images: Record<string, [number, number]>;
-  audio?: { music?: Record<string, string>; sfx?: Record<string, string> };
+  audio?: { music?: Record<string, string>; sfx?: Record<string, string>; voices?: Record<string, string> };
   videos?: Record<string, number>;
 }
 
@@ -18,6 +18,7 @@ export class AssetBank {
   widthFor(id: string, h: number): number { const [w0, h0] = this.size(id); return (h * w0) / h0; }
   music(file: string) { return this.v(`${this.base}/audio/music/${file}`); }
   sfx(file: string) { return this.v(`${this.base}/audio/sfx/${file}`); }
+  voice(file: string) { return this.v(`${this.base}/audio/voices/${file}`); }
   video(file: string) { return this.v(`${this.base}/video/${file}`); }
 
   /**

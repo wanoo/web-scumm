@@ -79,10 +79,10 @@ describe('npm run prompts on games/demo', () => {
     expect(dining).toContain('LOCATION: Grandma\'s dining room at golden hour');
     expect(dining).toMatch(/EMPTY SPOTS: .*pantry cupboard.*teacup.*table \(furniture/);
     expect(dining).toMatch(/MUST SHOW.*bookshelf.*garden window/);
-    expect(section(md, '### Background `decor/market`')).toContain('LOCATION: A North African market street');
+    expect(section(md, '### Background `decor/market_wide`')).toContain('LOCATION: A North African market street');
     const furn = section(md, '### Furniture `furniture_market`');
     expect(furn).toContain('ROW 1: stall left | stall mid | seller\'s stall');
-    expect(furn).toContain('decor/market.jpg');
+    expect(furn).toContain('decor/market_wide.jpg');
   });
 
   it('ends with the checklist, in order', () => {

@@ -739,10 +739,12 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
         people.push(`${a.name ?? game.characters[a.char]?.name ?? aid}${g ? ` (${where(g.x, g.y)})` : ''}`);
       }
     }
+    // A wide room (layout `width` > 640) wants a backdrop that many screens wide; the game scrolls it.
+    const wideW = Math.max(640, ...rooms.map((r) => layouts[r.id]?.width ?? 640));
     const body = [
       'Create a background image for a point-and-click adventure game.',
       `STYLE: ${STYLE_BG}`,
-      'FORMAT: 1536 x 960 pixels (16:10).',
+      wideW > 640 ? `FORMAT: ${Math.round((1536 * wideW) / 640)} x 960 pixels: a panorama ${(wideW / 640).toFixed(1)} screens wide (the game scrolls it; one 16:10 screen is 1536 x 960).` : 'FORMAT: 1536 x 960 pixels (16:10).',
       'COMPOSITION — follow it strictly:',
       '- One single eye-level perspective: the back wall or horizon seen from the front, one vanishing point in the center. No fisheye, no isometric view, no tilted camera.',
       '- Scale: an adult standing on the floor near the front is about one third of the image height.',

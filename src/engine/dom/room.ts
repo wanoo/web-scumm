@@ -31,6 +31,9 @@ interface Ent {
   over?: string;
   frame: number;
   img?: Id;
+  /** Props: a frame of an animation shown instead of the state image, and a running loop. */
+  frameImg?: Id;
+  loop?: { frames: Id[]; fps: number; i: number; acc: number };
   visible: boolean;
   shadow?: HTMLDivElement;
   /** Character that keeps its size (placed) or follows depth (hero, walking actor). */
@@ -57,6 +60,16 @@ export class RoomView {
   /** Recoloured sprites of characters with a `palette` (one blob URL per image and palette, kept across rooms). */
   private palettes = new PaletteCache();
   talking: Id | null = null;
+  /** Wide rooms: logical width, and the camera (left edge, logical units). `follow`: it tracks the hero. */
+  width = 640;
+  cam = 0;
+  follow = true;
+  private bg: HTMLImageElement | null = null;
+  private pan: { from: number; to: number; t0: number; ms: number; done: () => void } | null = null;
+  /** Called whenever the camera moves (the dev overlay pans with it). */
+  onCamera: ((cam: number) => void) | null = null;
+  /** Reduced motion (settings): instant camera moves. */
+  reduceMotion = false;
 
   constructor(private engine: Engine, private bank: AssetBank) {
     this.el = document.createElement('div');
@@ -68,7 +81,30 @@ export class RoomView {
 
   resize(u: number) {
     this.u = u;
+    if (this.bg) this.bg.style.width = `${this.width * u}px`;
     for (const e of this.ents.values()) this.draw(e);
+    this.applyCam();
+  }
+
+  // ------------------------------------------------------------ camera
+
+  private clampCam(x: number) { return Math.max(0, Math.min(this.width - 640, x)); }
+  private applyCam() {
+    this.el.style.transform = this.width > 640 ? `translateX(${-this.cam * this.u}px)` : '';
+    this.onCamera?.(this.cam);
+  }
+  /** The camera the hero would have at this instant (centred on them, clamped). */
+  private heroCam(): number {
+    const h = this.ents.get(this.heroId);
+    return this.clampCam((h?.x ?? 320) - 320);
+  }
+  followHero() { this.follow = true; this.pan = null; }
+  /** Moves the camera to left edge `x` (follow off), animated over `ms`. */
+  setCamera(x: number, ms = 0): Promise<void> {
+    this.follow = false;
+    const to = this.clampCam(x);
+    if (this.width <= 640 || ms <= 0 || this.reduceMotion || Math.abs(to - this.cam) < 1) { this.pan = null; this.cam = to; this.applyCam(); return Promise.resolve(); }
+    return new Promise((done) => { this.pan = { from: this.cam, to, t0: performance.now(), ms, done }; });
   }
 
   /** Builds the room from the game state. */
@@ -105,7 +141,10 @@ export class RoomView {
 
     const bg = document.createElement('img');
     bg.className = 'bg'; bg.alt = ''; bg.draggable = false; bg.src = this.bank.img(room.decor);
+    this.width = Math.max(640, this.layout.width ?? 640);
+    bg.style.width = `${this.width * this.u}px`;
     this.el.append(bg);
+    this.bg = bg;
 
     for (const [id, def] of Object.entries(room.props ?? {})) {
       const L = this.layout.props?.[id];
@@ -130,6 +169,12 @@ export class RoomView {
       this.add({ id: this.heroId, kind: 'hero', x, y, h: char?.height ?? this.engine.game.skin?.heights?.hero ?? 84, flip: false, charId: this.heroId, pose: 'idle', scaleWithDepth: true, visible: true });
     }
     for (const e of this.ents.values()) this.draw(e);
+    // The camera: as saved (a pan left it somewhere), or on the hero.
+    const c = s.camera;
+    this.pan = null;
+    this.follow = c?.follow ?? true;
+    this.cam = this.follow ? this.heroCam() : this.clampCam(c?.x ?? 0);
+    this.applyCam();
     this.last = performance.now();
     const tick = (t: number) => { this.tick(t); this.raf = requestAnimationFrame(tick); };
     this.raf = requestAnimationFrame(tick);
@@ -186,7 +231,7 @@ export class RoomView {
   private draw(e: Ent) {
     const u = this.u;
     let img: Id | undefined, h = e.h;
-    if (e.kind === 'prop') img = e.img;
+    if (e.kind === 'prop') img = e.frameImg ?? e.img;
     else {
       const fr = this.frames(e);
       img = fr[e.frame % Math.max(1, fr.length)];
@@ -230,6 +275,26 @@ export class RoomView {
   private tick(t: number) {
     const dt = Math.min(0.05, (t - this.last) / 1000);
     this.last = t;
+    // Camera: a pan in progress, or following the hero (smoothed).
+    if (this.width > 640) {
+      if (this.pan) {
+        const p = this.pan;
+        const k = Math.min(1, (t - p.t0) / p.ms);
+        const ease = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+        this.cam = p.from + (p.to - p.from) * ease;
+        if (k >= 1) { this.pan = null; p.done(); }
+        this.applyCam();
+      } else if (this.follow) {
+        const target = this.heroCam();
+        if (Math.abs(target - this.cam) > 0.5) { this.cam += (target - this.cam) * Math.min(1, dt * (this.reduceMotion ? 60 : 5)); this.applyCam(); }
+      }
+    }
+    // Prop animations that loop.
+    for (const e of this.ents.values()) {
+      if (!e.loop) continue;
+      e.loop.acc += dt;
+      if (e.loop.acc >= 1 / e.loop.fps) { e.loop.acc = 0; e.loop.i = (e.loop.i + 1) % e.loop.frames.length; e.frameImg = e.loop.frames[e.loop.i]; this.draw(e); }
+    }
     // Mouths: during speech, t2/t3/t4 at random every 160 to 220 ms; at rest, an occasional blink.
     for (const e of this.ents.values()) {
       if (e.kind === 'prop' || e.over?.startsWith('walk')) continue;
@@ -313,6 +378,23 @@ export class RoomView {
     const e = this.ents.get(id);
     if (!e) return;
     this.applyPropState(e);
+    this.draw(e);
+  }
+
+  propFrame(id: Id, img: Id | null) {
+    const e = this.ents.get(id);
+    if (!e) return;
+    e.frameImg = img ?? undefined;
+    this.draw(e);
+  }
+
+  propLoop(id: Id, frames: Id[], fps: number) {
+    const e = this.ents.get(id);
+    if (!e) return;
+    if (!frames.length) { e.loop = undefined; e.frameImg = undefined; this.draw(e); return; }
+    void this.bank.preload(new Set(frames));
+    e.loop = { frames, fps: fps || 8, i: 0, acc: 0 };
+    e.frameImg = frames[0];
     this.draw(e);
   }
 

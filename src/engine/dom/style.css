@@ -118,3 +118,6 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 /* Inventory item that has already been used: greyed out; inert (locked) as long as no rule targets it. */
 .slot.used.locked img { opacity: .4; filter: grayscale(1); }
 .slot.used.locked { cursor: default; border-style: dashed; border-color: #1e2a3a; }
+
+/* Settings: text size */
+.scene .speech, .scene .narr, .side .transcript, .side .choices { font-size: calc(1em * var(--text-scale, 1)); }

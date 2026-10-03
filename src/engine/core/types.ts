@@ -54,15 +54,27 @@ export type WalkTarget = Id | Point;
 export type Cmd =
   | string
   // --- speech
-  | { say: [Who, string]; shout?: boolean }
+  | { say: [Who, string]; shout?: boolean;
+      /** A voice clip (`audio.voices`): the line stays as long as the clip plays, then moves on. */
+      voice?: Id }
   // --- movement and poses
   | { walk: WalkTarget; who?: Who }
   | { face: 'left' | 'right' | Id; who?: Who }
   | { pose: [Who, string] }
-  | { anim: [Who, string]; ms?: number }
+  /** `at`: commands run when the animation reaches that frame (index in the pose's images, at the character's `fps`). */
+  | { anim: [Who, string]; ms?: number; at?: Record<number, Cmd[]> }
   | { place: [Who, Point]; face?: 'left' | 'right' }
   | { wait: number }
   | { parallel: Cmd[][] }
+  /**
+   * Camera of a wide room (`Layout.width` > 640): follow the hero again, pan to a left edge x (animated over `ms`),
+   * centre on something (`to`), or `reset` (= follow). Ignored in a 640-wide room.
+   */
+  | { camera: 'follow' | 'reset' | { pan: number; ms?: number } | { to: Id; ms?: number } }
+  /** Plays a prop animation (`PropDef.anims`): waits for it to end, unless it loops. Its `at` commands run on the way. */
+  | { play: [Id, string] }
+  /** Stops a looping prop animation: the prop shows its state image again. */
+  | { stopAnim: Id }
   // --- world
   | { prop: [Id, string] }
   | { show: Id; fade?: number }
@@ -256,10 +268,15 @@ export interface ItemDef {
 }
 
 /** A prop in the scenery, with states (e.g. amp off/on). Its position comes from the layout. */
+/** A prop animation: images in order at `fps` (default 8); `at` = commands run when a frame is reached (index). */
+export interface PropAnim { frames: Id[]; fps?: number; loop?: boolean; at?: Record<number, Cmd[]> }
+
 export interface PropDef {
   /** A single image, or one image per state. */
   img?: Id;
   states?: Record<string, Id>;
+  /** Animations played by `{ play: [prop, name] }`; the prop goes back to its state image afterwards. */
+  anims?: Record<string, PropAnim>;
   initial?: string;
   /** Display name: if there is one, the prop is interactive. */
   name?: string;
@@ -435,6 +452,8 @@ export interface GameRules {
 export interface AudioDef {
   music?: Record<Id, string>;
   sfx?: Record<Id, string>;
+  /** Voice clips (`games/<id>/audio/voice/<file>`), played by `say` with `voice`. */
+  voices?: Record<Id, string>;
 }
 
 /** Sealed ending (`ending` module): encrypted content, decrypted at the end of the game and shown on a card. */
@@ -475,8 +494,8 @@ export interface SkinDef {
     cardFallback?: Id;
   };
   sounds?: { phone?: Id; plane?: Id; confetti?: Id; jingle?: Id; end?: Id };
-  /** CSS font families (--font-ui and --font-pixel variables). Default: 'DotGothic16' and 'Press Start 2P'. */
-  fonts?: { ui?: string; pixel?: string };
+  /** CSS font families (--font-ui and --font-pixel variables). Default: 'DotGothic16' and 'Press Start 2P'. `readable`: the "readable font" setting (e.g. a dyslexia-friendly family the game ships). */
+  fonts?: { ui?: string; pixel?: string; readable?: string };
   /** Default heights for characters with no `height` (logical units). Default: actor 110, hero 84. */
   heights?: { actor?: number; hero?: number };
   /** Poses tried, in order, for a call's frame (`phone`). Default: phone, front, face, idle. */
@@ -529,6 +548,11 @@ export interface GameDef {
   invariants?: Cond[];
   /** Manual save slots (pause menu: save, load, export, import). Absent or 0: autosave only. */
   saves?: { slots: number };
+  /**
+   * A Settings entry in the pause menu: text speed and size, reduced motion (no shake, instant camera and fades),
+   * readable font (`skin.fonts.readable`), music / sound / voice volumes. Kept in the browser, outside the save.
+   */
+  settings?: boolean;
   /**
    * How to bring an older save up to date, one step per version, as data: renames and drops. A save whose version has
    * no migration starts a new game (as before). The chain must reach `saveVersion`.
@@ -610,6 +634,20 @@ export interface UiTexts {
   exportSave?: string;
   importSave?: string;
   confirmOverwrite?: string;
+  // --- settings (`GameDef.settings`); English defaults when absent
+  settings?: string;
+  textSpeed?: string;
+  textSize?: string;
+  reduceMotion?: string;
+  readableFont?: string;
+  volumeMusic?: string;
+  volumeSfx?: string;
+  volumeVoice?: string;
+  /** Values of text speed / size: slow, normal, fast, large. */
+  slow?: string;
+  normal?: string;
+  fast?: string;
+  large?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -617,6 +655,8 @@ export interface UiTexts {
 // ---------------------------------------------------------------------------
 
 export interface Layout {
+  /** Width of the room in logical units (default 640): wider, the room scrolls and a camera follows the hero. */
+  width?: number;
   /** Floor bottom (logical y): computed approach points never go lower. Default FLOOR (395, core/define.ts). */
   floor?: number;
   /** Walkable zone: an outer polygon and holes (furniture). */
@@ -665,6 +705,8 @@ export interface GameState {
   where?: Record<Id, Id>;
   /** Position of each script: next command, finished, stopped. Absent in old saves. */
   scripts?: Record<Id, { pc: number; done?: boolean; off?: boolean }>;
+  /** Camera of the current room: left edge x, or following the hero. */
+  camera?: { x: number; follow: boolean };
   started: number;
   done?: boolean;
 }

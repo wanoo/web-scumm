@@ -48,10 +48,13 @@ export class Overlay {
 
   toLogical(e: { clientX: number; clientY: number }): Point {
     const r = this.app.scene.getBoundingClientRect();
-    return [((e.clientX - r.left) / r.width) * 640, ((e.clientY - r.top) / r.height) * 400];
+    return [((e.clientX - r.left) / r.width) * 640 + this.app.view.cam, ((e.clientY - r.top) / r.height) * 400];
   }
 
   setVisible(v: boolean) { this.visible = v; this.svg.style.display = v ? '' : 'none'; if (v) this.draw(); }
+
+  /** Pans with the camera of a wide room. */
+  pan(cam: number) { this.svg.setAttribute('viewBox', `${cam} 0 640 400`); }
 
   draw() {
     if (!this.visible || !this.app.view.room) return;

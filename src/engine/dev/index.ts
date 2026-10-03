@@ -23,6 +23,7 @@ export async function startDev(app: App, o: { edit: string | null; checkpoint: s
       await eng.enter(o.edit, undefined, false);
     }
     const ed = new Editor(app, { saveOffline: o.saveOffline });
+    app.view.onCamera = (cam) => ed.overlay.pan(cam);
     window.addEventListener('resize', () => setTimeout(() => ed.overlay.draw(), 50));
     (window as unknown as { __editor: Editor }).__editor = ed;
     return;
@@ -33,6 +34,7 @@ export async function startDev(app: App, o: { edit: string | null; checkpoint: s
   else void eng.newGame(); // arrival may wait on a player action (tutorial): we don't wait
 
   const ov = new Overlay(app, { edit: false, all: false });
+  app.view.onCamera = (cam) => ov.pan(cam);
   const redraw = () => setTimeout(() => ov.draw(), 60);
   new DevPanel(app, redraw);
   ov.draw();

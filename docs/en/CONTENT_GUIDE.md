@@ -254,6 +254,57 @@ A line stays on screen for as long as it takes to read, or until a tap.
 | `{ seen: 'house.grandma.0' }` | topic #0 of grandma's conversation at the house has already been heard. |
 | `{ actorIn: ['grandpa', 'house'] }` | the moving character is in that room (see "The world lives"). |
 
+## Staging: wide rooms, animations, voice, settings
+
+### Wide rooms and the camera
+
+A room is 640 × 400 logical units. Give its layout a `width` (e.g. 960, 1280: in the editor's "Room width" folder, or
+in `layout/<room>.json`) and paint its backdrop that wide (800 px tall, the width in proportion; `npm run assets` keeps
+it): the room scrolls, and the **camera** follows the hero. Positions stay world coordinates (a prop at x 900 is in the
+right part). Commands move the camera:
+
+| Command | Effect |
+|---|---|
+| `{ camera: { to: 'far_stalls', ms: 900 } }` | Pan to centre on something (an actor, a prop, a zone), then stay there. |
+| `{ camera: { pan: 320, ms: 600 } }` | Pan to a left edge, in logical units (clamped to the room). |
+| `{ camera: 'follow' }` (or `'reset'`) | Follow the hero again. Entering a room always follows the hero. |
+
+The camera is in the state (a save restores it), the solver ignores it, and "reduce motion" makes every pan instant.
+
+### Prop animations and frame events
+
+```ts
+props: {
+  pantry: { name: 'pantry', states: { locked: 'home/r1c3', open: 'home/r1c4' }, initial: 'locked',
+    anims: { rattle: { frames: ['home/r1c4', 'home/r1c3', 'home/r1c4', 'home/r1c3'], fps: 12, at: { 1: [{ sfx: 'latch' }] } },
+             glow: { frames: ['home/g1', 'home/g2'], fps: 4, loop: true } } },
+},
+on: [{ verb: 'open', a: 'pantry', do: [{ play: ['pantry', 'rattle'] }, 'Locked.'] }],
+```
+
+`{ play: [prop, name] }` shows the frames in turn at `fps` and **runs the commands of `at` when that frame is reached**
+(a sound on the right frame, a flag, a line), then the prop goes back to its state image. A `loop` animation plays on
+its own until `{ stopAnim: prop }` (its `at` is ignored). Character poses get the same: `{ anim: ['hero', 'jump'], ms: 600, at: { 2: [{ sfx: 'thud' }] } }`
+runs the commands when the pose reaches that frame, at the character's `fps`.
+
+### Voice
+
+```ts
+audio: { voices: { grandma_01: 'grandma-01.mp3' } },   // files in games/<id>/audio/voice/
+{ say: ['grandma', 'Pixel! Bad news.'], voice: 'grandma_01' }
+```
+
+The line stays on screen as long as the clip plays (a tap still skips it); without a clip, the reading time applies.
+The voice volume is a setting of its own.
+
+### Settings
+
+`settings: true` adds a Settings entry to the pause menu: text speed (slow / normal / fast), text size (normal / large),
+reduce motion (no shake, instant camera and fades), a readable font when the game ships one (`skin.fonts.readable`),
+music / sound / voice volumes. Preferences stay in the browser, outside the save. Texts: `ui.settings`, `ui.textSpeed`,
+`ui.textSize`, `ui.reduceMotion`, `ui.readableFont`, `ui.volumeMusic`, `ui.volumeSfx`, `ui.volumeVoice`, `ui.slow`,
+`ui.normal`, `ui.fast`, `ui.large` (English defaults when absent).
+
 ## Exits, chapters, saves
 
 ### Declared exits

@@ -11,7 +11,7 @@ téléphone, hors ligne après la première visite.
 |---|---|
 | 🎮 **Jouer au jeu d'exemple** | https://wanoo.github.io/web-scumm/ (téléphone en paysage, ou ordinateur) |
 | 🛠 **Essayer le Studio** | https://wanoo.github.io/web-scumm/studio.html (mode démo : les modifications restent dans le navigateur) |
-| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v1.4.0 |
+| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v1.5.0 |
 
 ## En images
 
@@ -30,11 +30,12 @@ téléphone, hors ligne après la première visite.
 | ![Studio, Assistant](docs/img/studio-assistant.jpg) *L'Assistant : n'importe quel modèle, les mêmes outils que le serveur MCP, à propos de l'élément sélectionné* | ![Studio, réglages de l'Assistant](docs/img/studio-assistant-settings.jpg) *Réglages : OpenAI, Anthropic, Mistral, Ollama ou un point d'accès maison, clé gardée dans ton navigateur* |
 
 ## État d'avancement
-- Moteur, outils et jeu d'exemple : complets et jouables de bout en bout (validateur, solveur, 116 tests, parcours Playwright).
+- Moteur, outils et jeu d'exemple : complets et jouables de bout en bout (validateur, solveur, 119 tests, parcours Playwright).
 - Pages de validation (storyboard, contrôle des sprites, placement) : fonctionnelles, en HTML local ou en artefact claude.ai.
 - **Studio** (`npm run studio`) : un environnement de création complet en local : lieux (WYSIWYG sur le vrai moteur), textes, storyboard, notes, **assets** (chaque image et son, prompts par planche, dépôts découpés automatiquement) et un **Assistant** qui branche n'importe quel modèle (OpenAI, Anthropic, Mistral, Ollama…) avec les mêmes outils que le serveur MCP. Voir `docs/fr/STUDIO.md`.
 - **Générateur de prompts** (`npm run prompts`) : prompts prêts à coller pour chaque planche de personnage (marche, parole, assis, poses spéciales utilisées par les lieux), planche d'objets avec états, décors et meubles, tous avec le même bloc de style. Voir `docs/fr/PROMPTS.md`.
 - **Discipline de couleur et préréglage pixel art** : chaque prompt généré porte les règles de couleur (4 tons par matière avec décalage de teinte, aplats, un seul contour) ; `artStyle: "pixel"` dans `site.json` bascule prompts, découpe (plus proche voisin, palette partagée, PNG indexé), pipeline (sans perte) et rendu en vrai pixel art. **Palette swap** dans le moteur : un personnage ou une variante recoloré à partir des mêmes sprites.
+- **Image** (v1.5) : **lieux larges** (`width` dans le layout) avec une **caméra** qui suit le héros et des commandes `camera` (panoramique, centrer sur quelque chose) ; **animations d'accessoires à événements de frame** (`anims`, `{ play }`, `at: { image: [commandes] }`, aussi sur `anim` des personnages) ; **voix** sur les répliques (`audio.voices`, `say.voice`) ; un menu **Réglages** (vitesse et taille du texte, réduire les animations, police lisible, volumes musique / sons / voix).
 - **Échelle** (v1.4) : **sorties déclarées** (`exits` : un hotspot et sa règle goto, générés) et la **carte du monde** que les outils en tirent (lieux inaccessibles, sorties sans retour ; Check du Studio, `npm run page:world`) ; **chapitres** (`goals` sur les checkpoints, `npm run solve -- --chapters`) et **invariants** ; **emplacements de sauvegarde** avec export / import et **migrations en données** entre `saveVersion` ; un **profileur de contenu** (`npm run validate -- --report`, Studio, MCP `content_report`).
 - **Le monde vit** (v1.3) : des **scripts** qui tournent tout seuls entre les actions du joueur (un PNJ qui déambule, un gag d'ambiance, `loop` / `while` / `waitUntil` / `waitEvent`), des **événements** (`{ emit }` et écouteurs `events`, lieu puis jeu) et des **personnages mobiles** (`room` + `moveActor`, condition `{ actorIn }`). Tout en données : sauvegardé avec la partie, vérifié par le validateur, joué par le solveur. Voir « Le monde vit » dans `docs/fr/CONTENT_GUIDE.md` ; la feuille de route vers un moteur d'échelle LucasArts est dans `docs/fr/ROADMAP.md`.
 - **Guide de conception** (`docs/fr/DESIGN.md`) : comment construire un bon jeu SCUMM avec ce moteur, avec la liste de contrôle avant de partager le lien.

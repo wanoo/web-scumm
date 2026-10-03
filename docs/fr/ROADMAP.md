@@ -64,7 +64,7 @@ Fichiers : `src/engine/tools/{validate,solve}.ts`, nouveau `src/engine/tools/gra
 - **Profileur de contenu** : `npm run validate -- --report` : par salle (hotspots sans `look`, verbes en repli, props sans changement), par objet (obtenu où, utilisé combien, consommé), par personnage (sujets, inatteignables, lignes > N). Même rapport dans Studio Check.
 - **Démo** : 3 salles → exits déclarés, 2 checkpoints avec goals, 1 invariant, 3 slots.
 
-### M3 — « Picture » (v1.5) : la mise en scène
+### M3 — « Picture » (v1.5, livré) : la mise en scène
 
 Fichiers : `src/engine/core/types.ts` (Layout, PropDef, Cmd), `src/engine/dom/room.ts`, `src/engine/dev/editor.ts`, `tools/pages/placement.ts`, `tools/assets.py`.
 
