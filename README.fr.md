@@ -13,17 +13,47 @@ après la première visite.
 | 🛠 **Essayer le Studio** | https://wanoo.github.io/web-scumm/studio.html (mode démo : les modifications restent dans ton navigateur) |
 | 📦 **Code source** | https://github.com/wanoo/web-scumm · version v2.2.0 · [notes de version](docs/fr/ROADMAP.md) |
 
-## À quoi ça ressemble
-
 ![Trois lieux du jeu d'exemple](docs/img/banner.jpg)
 
-| | |
-|---|---|
-| ![Écran titre](docs/img/title.jpg) *Écran titre, téléphone en paysage* | ![Dialogue](docs/img/dialogue.jpg) *Sujets de conversation, transcription, une couleur par personnage* |
-| ![Lieu large](docs/img/wide-room.jpg) *Un lieu plus large que l'écran : la caméra suit le héros* | ![Deux personnages jouables](docs/img/players.jpg) *Deux personnages jouables : le bouton en bas change de personnage, chacun a son sac* |
-| ![Carte du monde](docs/img/map.jpg) *La carte, avec véhicules et marqueurs « nouveau »* | ![Appel à deux voix](docs/img/phone-call.jpg) *Un appel téléphonique à deux voix* |
-| ![Mini-jeu des tuyaux](docs/img/minigame-pipes.jpg) *Un mini-jeu (tuyaux), la voix d'aide au-dessus* | ![Carte finale](docs/img/ending-card.jpg) *La fin scellée : un ticket à gratter, puis une carte qui juge le pronostic du joueur* |
-| ![En français](docs/img/french.jpg) *Le même jeu en français : un fichier JSON, un réglage Langue* | ![Réglages](docs/img/settings.jpg) *Réglages : vitesse et taille du texte, mouvements réduits, police lisible, volumes* |
+## Le jeu
+
+Ce que les joueurs ont : neuf verbes classiques, un inventaire, des dialogues avec transcription, des indices donnés
+par un personnage, une carte du monde avec véhicules, des cinématiques, des appels à deux voix, des mini-jeux (tuyaux,
+câbles emmêlés, choix, cache-cache, course, caresses, ticket à gratter), des lieux plus larges que l'écran, plusieurs
+personnages jouables, une fin scellée facultative (chiffrée AES, révélée en jouant), la sauvegarde automatique plus
+des emplacements avec export / import, des réglages, des traductions, tactile et souris, téléphone et ordinateur, hors
+ligne après la première visite.
+
+<table>
+<tr><td width="50%" valign="top"><img src="docs/img/title.jpg" alt="Écran titre, téléphone en paysage" width="100%"><br><sub>Écran titre, téléphone en paysage</sub></td><td width="50%" valign="top"><img src="docs/img/room-garden.jpg" alt="Un lieu : neuf verbes, le sac, la scène" width="100%"><br><sub>Un lieu : neuf verbes, le sac, la scène</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/dialogue.jpg" alt="Sujets de conversation, transcription, une couleur par personnage" width="100%"><br><sub>Sujets de conversation, transcription, une couleur par personnage</sub></td><td width="50%" valign="top"><img src="docs/img/phone-call.jpg" alt="Un appel téléphonique à deux voix" width="100%"><br><sub>Un appel téléphonique à deux voix</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/wide-room.jpg" alt="Un lieu plus large que l'écran : la caméra suit le héros" width="100%"><br><sub>Un lieu plus large que l'écran : la caméra suit le héros</sub></td><td width="50%" valign="top"><img src="docs/img/players.jpg" alt="Deux personnages jouables : le bouton en bas change de personnage, chacun a son sac" width="100%"><br><sub>Deux personnages jouables : le bouton en bas change de personnage, chacun a son sac</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/map.jpg" alt="La carte du monde, avec véhicules et marqueurs « nouveau »" width="100%"><br><sub>La carte du monde, avec véhicules et marqueurs « nouveau »</sub></td><td width="50%" valign="top"><img src="docs/img/minigame-pipes.jpg" alt="Un mini-jeu (tuyaux), la voix d'aide au-dessus" width="100%"><br><sub>Un mini-jeu (tuyaux), la voix d'aide au-dessus</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/minigame-pick.jpg" alt="Choisir la bonne fleur" width="100%"><br><sub>Choisir la bonne fleur</sub></td><td width="50%" valign="top"><img src="docs/img/ending-scratch.jpg" alt="La fin scellée : un ticket à gratter" width="100%"><br><sub>La fin scellée : un ticket à gratter</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/ending-card.jpg" alt="La carte finale juge le pronostic du joueur" width="100%"><br><sub>La carte finale juge le pronostic du joueur</sub></td><td width="50%" valign="top"><img src="docs/img/french.jpg" alt="Le même jeu en français : un fichier JSON, un réglage Langue" width="100%"><br><sub>Le même jeu en français : un fichier JSON, un réglage Langue</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/settings.jpg" alt="Réglages : vitesse et taille du texte, mouvements réduits, police lisible, volumes" width="100%"><br><sub>Réglages : vitesse et taille du texte, mouvements réduits, police lisible, volumes</sub></td><td width="50%" valign="top"><img src="docs/img/save-slots.jpg" alt="Emplacements de sauvegarde, export dans un fichier, import" width="100%"><br><sub>Emplacements de sauvegarde, export dans un fichier, import</sub></td></tr>
+</table>
+
+## Le Studio
+
+`npm run studio` ouvre un environnement de création local sur les fichiers du jeu ; `studio.html` sur le site de démo
+est le même en mode démo (les modifications restent dans ton navigateur). Chaque onglet est un travail, dans l'ordre
+où on les fait : écrire l'histoire, placer les lieux, générer les images, vérifier, jouer, prendre des notes avec
+l'IA. Voir `docs/fr/STUDIO.md`.
+
+<table>
+<tr><td width="50%" valign="top"><img src="docs/img/studio-rooms.jpg" alt="<b>Rooms</b> : le lieu rendu par le vrai moteur, l'éditeur de placement par-dessus ; sélectionne n'importe quoi et modifie sur place ses lignes, ses réactions et ses sujets" width="100%"><br><sub><b>Rooms</b> : le lieu rendu par le vrai moteur, l'éditeur de placement par-dessus ; sélectionne n'importe quoi et modifie sur place ses lignes, ses réactions et ses sujets</sub></td><td width="50%" valign="top"><img src="docs/img/studio-dialogue-tree.jpg" alt="<b>Arbre de dialogue</b> : les sujets d'un personnage en arbre (répliques, choix, branches, conditions), dérivé du contenu ; toucher un nœud saute à son éditeur" width="100%"><br><sub><b>Arbre de dialogue</b> : les sujets d'un personnage en arbre (répliques, choix, branches, conditions), dérivé du contenu ; toucher un nœud saute à son éditeur</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/studio-storyboard.jpg" alt="<b>Storyboard</b> : l'histoire case par case, répliques, aperçu, notes ; la première chose à écrire" width="100%"><br><sub><b>Storyboard</b> : l'histoire case par case, répliques, aperçu, notes ; la première chose à écrire</sub></td><td width="50%" valign="top"><img src="docs/img/studio-assets.jpg" alt="<b>Assets</b> : chaque planche et chaque case, où elle sert, le prompt à coller dans un modèle d'images, les envois découpés automatiquement" width="100%"><br><sub><b>Assets</b> : chaque planche et chaque case, où elle sert, le prompt à coller dans un modèle d'images, les envois découpés automatiquement</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/studio-assets-decor.jpg" alt="<b>Un décor</b> avec ses zones, accessoires et bande de sol superposés" width="100%"><br><sub><b>Un décor</b> avec ses zones, accessoires et bande de sol superposés</sub></td><td width="50%" valign="top"><img src="docs/img/studio-check.jpg" alt="<b>Check</b> : validateur, chemin du solveur, carte du monde, graphe de puzzles et rapport de contenu, relancés après chaque enregistrement" width="100%"><br><sub><b>Check</b> : validateur, chemin du solveur, carte du monde, graphe de puzzles et rapport de contenu, relancés après chaque enregistrement</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/studio-puzzles.jpg" alt="<b>Puzzles</b> : toucher un objet ou un flag affiche sa fiche : d'où il vient, ce qui en a besoin, ce qu'il débloque" width="100%"><br><sub><b>Puzzles</b> : toucher un objet ou un flag affiche sa fiche : d'où il vient, ce qui en a besoin, ce qu'il débloque</sub></td><td width="50%" valign="top"><img src="docs/img/studio-play.jpg" alt="<b>Play</b> : le jeu à côté de son état en direct, un explicateur de règles (chaque condition ✓ / ✗) et le journal" width="100%"><br><sub><b>Play</b> : le jeu à côté de son état en direct, un explicateur de règles (chaque condition ✓ / ✗) et le journal</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/studio-notes.jpg" alt="<b>Notes</b> : le journal partagé entre toi et l'IA, à propos d'une case, d'un lieu ou d'un élément" width="100%"><br><sub><b>Notes</b> : le journal partagé entre toi et l'IA, à propos d'une case, d'un lieu ou d'un élément</sub></td><td width="50%" valign="top"><img src="docs/img/studio-assistant.jpg" alt="<b>Assistant</b> : n'importe quel modèle d'IA avec les mêmes outils que le serveur MCP, à propos de l'élément sélectionné" width="100%"><br><sub><b>Assistant</b> : n'importe quel modèle d'IA avec les mêmes outils que le serveur MCP, à propos de l'élément sélectionné</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/editor.jpg" alt="<b>L'éditeur de placement</b> dans le jeu lui-même (<code>?edit=house</code>)" width="100%"><br><sub><b>L'éditeur de placement</b> dans le jeu lui-même (<code>?edit=house</code>)</sub></td><td width="50%" valign="top"><img src="docs/img/placement-page.jpg" alt="<b>La page de placement</b> : placer les choses depuis un téléphone, exporter le layout" width="100%"><br><sub><b>La page de placement</b> : placer les choses depuis un téléphone, exporter le layout</sub></td></tr>
+</table>
+
+![Graphe de puzzles](docs/img/puzzles-page.jpg)
+<sub>Le graphe de puzzles (`npm run page:puzzles`, aussi dans Check) : les choses en couleur, les actions en blanc ;
+flèches grises pour ce qu'une action exige, vertes pour ce qu'elle produit, rouges pour ce qu'elle consomme. Toucher
+une chose affiche sa fiche.</sub>
 
 ## Démarrer
 
@@ -87,33 +117,12 @@ npm run page:puzzles               # le graphe de puzzles en page (aussi dans l'
 npm run page:world                 # la carte du monde : sorties, gotos, lieux inaccessibles
 ```
 
-![Graphe de puzzles](docs/img/puzzles-page.jpg)
-*Le graphe de puzzles : les choses en couleur (objets, flags, accessoires, lieux de la carte, événements), les actions
-en blanc (règles, sujets, scripts, écouteurs, objectifs) ; flèches grises pour ce qu'une action exige, vertes pour ce
-qu'elle produit, rouges pour ce qu'elle consomme. Toucher une chose affiche sa fiche : obtenue par, utilisée par, exige
-d'abord, débloque, en aval.*
-
 Le solveur utilise le vrai moteur avec un écran muet : ce qu'il trouve, un joueur peut le faire. Il essaie chaque
 réponse d'un choix, change de personnage jouable, fait avancer les scripts un wait à la fois, et laisse hors de l'état
 ce qui ne peut pas changer l'issue (un flag que seul son poseur lit, une horloge que personne ne regarde) : un monde
 plein de décoration ne lui coûte rien, un jeu généré de 100 salles et 5 joueurs est prouvé en huit secondes
 (`docs/fr/BENCH.md`). Il signale les impasses, les objets jamais utilisés, les **invariants** devenus vrais, et le chemin
 qui y mène.
-
-## Le Studio
-
-`npm run studio` ouvre un environnement de création local sur les fichiers du jeu ; `studio.html` sur le site de démo
-est le même en mode démo (les modifications restent dans ton navigateur). Chaque onglet est un travail :
-
-| | |
-|---|---|
-| ![Onglet Rooms](docs/img/studio-rooms.jpg) **Rooms** : le lieu rendu par le vrai moteur avec l'éditeur de placement par-dessus ; sélectionne un accessoire, un acteur ou une zone et modifie sur place ses lignes Regarder, ses réactions et ses sujets. | ![Arbre de dialogue](docs/img/studio-dialogue-tree.jpg) **Arbre de dialogue** : les sujets d'un personnage en arbre (répliques, choix, branches, conditions), dérivé du contenu ; toucher un nœud saute à son éditeur. |
-| ![Onglet Storyboard](docs/img/studio-storyboard.jpg) **Storyboard** : l'histoire case par case, répliques, aperçu, notes ; la première chose à écrire. | ![Onglet Assets](docs/img/studio-assets.jpg) **Assets** : chaque planche et chaque case, où elle sert, le prompt à coller dans un modèle d'images, les envois découpés automatiquement. |
-| ![Onglet Check](docs/img/studio-check.jpg) **Check** : validateur, chemin du solveur, carte du monde, graphe de puzzles et rapport de contenu, relancés après chaque enregistrement ; captures d'un lieu à un checkpoint. | ![Fiche de puzzle](docs/img/studio-puzzles.jpg) **Puzzles** (dans Check) : toucher un objet ou un flag affiche sa fiche : d'où il vient, ce qui en a besoin, ce qu'il débloque. |
-| ![Onglet Play](docs/img/studio-play.jpg) **Play** : le jeu à côté de son état en direct, un explicateur de règles (quelle règle répond à cette action, chaque condition ✓ / ✗) et le **journal** (ce qui a répondu, événements, pas de script, déplacements). | ![Onglet Notes](docs/img/studio-notes.jpg) **Notes** : le journal partagé entre toi et l'IA, à propos d'une case, d'un lieu ou d'un élément. |
-| ![Assistant](docs/img/studio-assistant.jpg) **Assistant** : n'importe quel modèle d'IA (OpenAI, Anthropic, Mistral, Ollama…) avec les mêmes outils que le serveur MCP, à propos de l'élément sélectionné. | ![Un décor avec ses zones](docs/img/studio-assets-decor.jpg) **Un décor** avec ses zones, accessoires et bande de sol superposés, depuis l'onglet Assets. |
-
-Voir `docs/fr/STUDIO.md`.
 
 ## Les images
 
@@ -122,19 +131,6 @@ poses que tes lieux utilisent), chaque planche d'objet avec ses états, chaque d
 de style et les règles de couleur (quatre tons par matière, aplats, un seul contour). `artStyle: "pixel"` dans
 `site.json` bascule prompts, découpe et rendu en vrai pixel art. `npm run assets` découpe les planches générées en
 sprites et prépare décors, sons et voix (`docs/fr/PROMPTS.md`, `docs/fr/TOOLS.md`).
-
-## Ce que les joueurs ont
-
-Neuf verbes classiques, un inventaire, des dialogues avec transcription, des indices donnés par un personnage, une
-carte du monde avec véhicules, des cinématiques, des appels à deux voix, des mini-jeux (tuyaux, câbles emmêlés, choix,
-cache-cache, course, caresses, ticket à gratter), une fin scellée facultative (chiffrée AES, révélée en jouant), la
-sauvegarde automatique plus des emplacements avec export / import, des réglages (vitesse et taille du texte,
-mouvements réduits, police lisible, volumes), des traductions (`?lang=en` ou le réglage Langue), tactile et souris,
-téléphone et ordinateur, hors ligne après la première visite.
-
-| | |
-|---|---|
-| ![Emplacements de sauvegarde](docs/img/save-slots.jpg) *Emplacements de sauvegarde, export dans un fichier, import* | ![Éditeur de placement](docs/img/editor.jpg) *L'éditeur de placement dans le navigateur (`?edit=house`), pour placer les choses depuis un téléphone* |
 
 ## Avec une IA
 

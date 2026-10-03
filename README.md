@@ -12,17 +12,44 @@ game can be finished, play it in landscape on any phone, offline after the first
 | 🛠 **Try the Studio** | https://wanoo.github.io/web-scumm/studio.html (demo mode: edits stay in your browser) |
 | 📦 **Source** | https://github.com/wanoo/web-scumm · release v2.2.0 · [release notes](docs/en/ROADMAP.md) |
 
-## What it looks like
-
 ![Three rooms of the sample game](docs/img/banner.jpg)
 
-| | |
-|---|---|
-| ![Title screen](docs/img/title.jpg) *Title screen, phone in landscape* | ![Dialogue](docs/img/dialogue.jpg) *Talk topics, transcript, a colour per character* |
-| ![Wide room](docs/img/wide-room.jpg) *A room wider than the screen: the camera follows the hero* | ![Two playable characters](docs/img/players.jpg) *Two playable characters: the button at the bottom switches, each has their own bag* |
-| ![World map](docs/img/map.jpg) *The map, with vehicles and "news" markers* | ![Two-voice phone call](docs/img/phone-call.jpg) *A two-voice phone call* |
-| ![Pipes minigame](docs/img/minigame-pipes.jpg) *A minigame (pipes), hint voice on top* | ![Final card](docs/img/ending-card.jpg) *The sealed ending: a scratch ticket, then a card that judges the player's guess* |
-| ![In French](docs/img/french.jpg) *The same game in French: one JSON file, a Language setting* | ![Settings](docs/img/settings.jpg) *Settings: text speed and size, reduced motion, readable font, volumes* |
+## The game
+
+What players get: nine classic verbs, an inventory, dialogue with a transcript, hints from a character, a world map
+with vehicles, cutscenes, two-voice phone calls, minigames (pipes, cable tangle, pick, hide and seek, runner, petting,
+scratch ticket), rooms wider than the screen, several playable characters, an optional sealed ending (AES-encrypted,
+revealed in play), autosave plus save slots with export / import, settings, translations, touch and mouse, phone and
+desktop layouts, offline after the first visit.
+
+<table>
+<tr><td width="50%" valign="top"><img src="docs/img/title.jpg" alt="Title screen, phone in landscape" width="100%"><br><sub>Title screen, phone in landscape</sub></td><td width="50%" valign="top"><img src="docs/img/room-garden.jpg" alt="A room: nine verbs, the bag, the scene" width="100%"><br><sub>A room: nine verbs, the bag, the scene</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/dialogue.jpg" alt="Talk topics, transcript, a colour per character" width="100%"><br><sub>Talk topics, transcript, a colour per character</sub></td><td width="50%" valign="top"><img src="docs/img/phone-call.jpg" alt="A two-voice phone call" width="100%"><br><sub>A two-voice phone call</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/wide-room.jpg" alt="A room wider than the screen: the camera follows the hero" width="100%"><br><sub>A room wider than the screen: the camera follows the hero</sub></td><td width="50%" valign="top"><img src="docs/img/players.jpg" alt="Two playable characters: the button at the bottom switches, each has their own bag" width="100%"><br><sub>Two playable characters: the button at the bottom switches, each has their own bag</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/map.jpg" alt="The world map, with vehicles and “news” markers" width="100%"><br><sub>The world map, with vehicles and “news” markers</sub></td><td width="50%" valign="top"><img src="docs/img/minigame-pipes.jpg" alt="A minigame (pipes), the hint voice on top" width="100%"><br><sub>A minigame (pipes), the hint voice on top</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/minigame-pick.jpg" alt="Pick the right flower" width="100%"><br><sub>Pick the right flower</sub></td><td width="50%" valign="top"><img src="docs/img/ending-scratch.jpg" alt="The sealed ending: a ticket to scratch" width="100%"><br><sub>The sealed ending: a ticket to scratch</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/ending-card.jpg" alt="The final card judges the player's guess" width="100%"><br><sub>The final card judges the player's guess</sub></td><td width="50%" valign="top"><img src="docs/img/french.jpg" alt="The same game in French: one JSON file, a Language setting" width="100%"><br><sub>The same game in French: one JSON file, a Language setting</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/settings.jpg" alt="Settings: text speed and size, reduced motion, readable font, volumes" width="100%"><br><sub>Settings: text speed and size, reduced motion, readable font, volumes</sub></td><td width="50%" valign="top"><img src="docs/img/save-slots.jpg" alt="Save slots, export to a file, import" width="100%"><br><sub>Save slots, export to a file, import</sub></td></tr>
+</table>
+
+## The Studio
+
+`npm run studio` opens a local creation environment on the game's files; `studio.html` on the demo site is the same
+in demo mode (edits stay in your browser). Each tab is one job, in the order you do them: write the story, place the
+rooms, generate the art, check, play, take notes with the AI. See `docs/en/STUDIO.md`.
+
+<table>
+<tr><td width="50%" valign="top"><img src="docs/img/studio-rooms.jpg" alt="<b>Rooms</b>: the room rendered by the real engine, the placement editor on top; select anything and edit its lines, reactions and topics in place" width="100%"><br><sub><b>Rooms</b>: the room rendered by the real engine, the placement editor on top; select anything and edit its lines, reactions and topics in place</sub></td><td width="50%" valign="top"><img src="docs/img/studio-dialogue-tree.jpg" alt="<b>Dialogue tree</b>: a character's topics as a tree (lines, choices, branches, conditions), derived from the content; tap a node to jump to its editor" width="100%"><br><sub><b>Dialogue tree</b>: a character's topics as a tree (lines, choices, branches, conditions), derived from the content; tap a node to jump to its editor</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/studio-storyboard.jpg" alt="<b>Storyboard</b>: the story panel by panel, lines, preview, notes; the first thing to write" width="100%"><br><sub><b>Storyboard</b>: the story panel by panel, lines, preview, notes; the first thing to write</sub></td><td width="50%" valign="top"><img src="docs/img/studio-assets.jpg" alt="<b>Assets</b>: every sheet and cell, where it is used, the art prompt to paste into an image model, uploads cut automatically" width="100%"><br><sub><b>Assets</b>: every sheet and cell, where it is used, the art prompt to paste into an image model, uploads cut automatically</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/studio-assets-decor.jpg" alt="<b>A background</b> with its hotspots, props and floor band overlaid" width="100%"><br><sub><b>A background</b> with its hotspots, props and floor band overlaid</sub></td><td width="50%" valign="top"><img src="docs/img/studio-check.jpg" alt="<b>Check</b>: validator, solver path, world map, puzzle graph and content report, re-run after every save" width="100%"><br><sub><b>Check</b>: validator, solver path, world map, puzzle graph and content report, re-run after every save</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/studio-puzzles.jpg" alt="<b>Puzzles</b>: tap an item or a flag for its card: where it comes from, what needs it, what it unlocks" width="100%"><br><sub><b>Puzzles</b>: tap an item or a flag for its card: where it comes from, what needs it, what it unlocks</sub></td><td width="50%" valign="top"><img src="docs/img/studio-play.jpg" alt="<b>Play</b>: the game beside its live state, a rule explainer (every condition ✓ / ✗) and the journal" width="100%"><br><sub><b>Play</b>: the game beside its live state, a rule explainer (every condition ✓ / ✗) and the journal</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/studio-notes.jpg" alt="<b>Notes</b>: the shared log between you and the AI, about a panel, a room or an element" width="100%"><br><sub><b>Notes</b>: the shared log between you and the AI, about a panel, a room or an element</sub></td><td width="50%" valign="top"><img src="docs/img/studio-assistant.jpg" alt="<b>Assistant</b>: any AI model with the same tools as the MCP server, about the selected element" width="100%"><br><sub><b>Assistant</b>: any AI model with the same tools as the MCP server, about the selected element</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/editor.jpg" alt="<b>The placement editor</b> in the game itself (<code>?edit=house</code>)" width="100%"><br><sub><b>The placement editor</b> in the game itself (<code>?edit=house</code>)</sub></td><td width="50%" valign="top"><img src="docs/img/placement-page.jpg" alt="<b>The placement page</b>: place things from a phone, export the layout" width="100%"><br><sub><b>The placement page</b>: place things from a phone, export the layout</sub></td></tr>
+</table>
+
+![Puzzle graph](docs/img/puzzles-page.jpg)
+<sub>The puzzle graph (`npm run page:puzzles`, also in Check): coloured things, white actions; grey arrows for what an
+action needs, green for what it produces, red for what it consumes. Tap a thing for its card.</sub>
 
 ## Quick start
 
@@ -85,31 +112,11 @@ npm run page:puzzles               # the puzzle graph as a page (also in the Stu
 npm run page:world                 # the map of the world: exits, gotos, unreachable rooms
 ```
 
-![Puzzle graph](docs/img/puzzles-page.jpg)
-*The puzzle graph: coloured things (items, flags, props, places, events), white actions (rules, topics, scripts,
-listeners, goals); grey arrows for what an action needs, green for what it produces, red for what it consumes. Tap a
-thing for its card: acquired by, used by, requires first, unlocks, downstream.*
-
 The solver uses the real engine with a silent screen, so what it finds a player can do. It tries every reply of a
 choice, switches playable characters, lets scripts advance one wait at a time, and leaves out of the state whatever
 cannot change the outcome (a flag only its setter reads, a clock nobody looks at), so a world full of decoration costs
 nothing: a generated 100-room, 5-player game is proven in eight seconds (`docs/en/BENCH.md`). It reports dead ends,
 items never used, **invariants** that became true, and the path that got there.
-
-## The Studio
-
-`npm run studio` opens a local creation environment on the game's files; `studio.html` on the demo site is the same
-in demo mode (edits stay in your browser). Each tab is one job:
-
-| | |
-|---|---|
-| ![Rooms tab](docs/img/studio-rooms.jpg) **Rooms**: the room rendered by the real engine with the placement editor on top; select a prop, actor or hotspot and edit its look lines, reactions and topics in place. | ![Dialogue tree](docs/img/studio-dialogue-tree.jpg) **Dialogue tree**: a character's topics as a tree (lines, choices, branches, conditions), derived from the content; tap a node to jump to its editor. |
-| ![Storyboard tab](docs/img/studio-storyboard.jpg) **Storyboard**: the story panel by panel, lines, preview, notes; the first thing to write. | ![Assets tab](docs/img/studio-assets.jpg) **Assets**: every sheet and cell, where it is used, the art prompt to paste into an image model, uploads cut automatically. |
-| ![Check tab](docs/img/studio-check.jpg) **Check**: validator, solver path, world map, puzzle graph and content report, re-run after every save; screenshots of a room at a checkpoint. | ![Puzzle card](docs/img/studio-puzzles.jpg) **Puzzles** (in Check): tap an item or flag for its card: where it comes from, what needs it, what it unlocks. |
-| ![Play tab](docs/img/studio-play.jpg) **Play**: the game beside its live state, a rule explainer (which rule answers this action, with every condition ✓ / ✗) and the **journal** (what answered, events, script steps, moves). | ![Notes tab](docs/img/studio-notes.jpg) **Notes**: the shared log between you and the AI, about a panel, a room or an element. |
-| ![Assistant](docs/img/studio-assistant.jpg) **Assistant**: any AI model (OpenAI, Anthropic, Mistral, Ollama…) with the same tools as the MCP server, about the selected element. | ![A background with its spots](docs/img/studio-assets-decor.jpg) **A background** with its hotspots, props and floor band overlaid, from the Assets tab. |
-
-See `docs/en/STUDIO.md`.
 
 ## The art
 
@@ -118,18 +125,6 @@ use), every object sheet with its states, every background and furniture piece, 
 colour rules (four tones per material, flat areas, one outline). `artStyle: "pixel"` in `site.json` switches prompts,
 cutter and rendering to true pixel art. `npm run assets` cuts the generated sheets into sprites and prepares
 backgrounds, sounds and voice clips (`docs/en/PROMPTS.md`, `docs/en/TOOLS.md`).
-
-## What players get
-
-Nine classic verbs, an inventory, dialogue with a transcript, hints from a character, a world map with vehicles,
-cutscenes, two-voice phone calls, minigames (pipes, cable tangle, pick, hide and seek, runner, petting, scratch
-ticket), an optional sealed ending (AES-encrypted, revealed in play), autosave plus save slots with export / import,
-settings (text speed and size, reduced motion, readable font, volumes), translations (`?lang=fr` or the Language
-setting), touch and mouse, phone and desktop layouts, offline after the first visit.
-
-| | |
-|---|---|
-| ![Save slots](docs/img/save-slots.jpg) *Save slots, export to a file, import* | ![Placement editor](docs/img/editor.jpg) *The in-browser placement editor (`?edit=house`) for the person placing things on a phone* |
 
 ## With an AI assistant
 
