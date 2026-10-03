@@ -31,6 +31,7 @@ npm run prompts       # image-model prompts for every sheet → games/<id>/promp
 npm run build         # type-check, tests, bundle, spoiler check, leak audit
 npm run studio        # the local WYSIWYG Studio (docs/en/STUDIO.md); it watches the files you edit
 npm run mcp           # Model Context Protocol server exposing the Studio operations as tools (docs/en/MCP.md)
+npm run i18n -- status   # translation coverage (locales/<lang>.json); `extract --lang <xx>` to (re)build a table
 GAME=<id> npm run …   # another game than package.json "config".game
 ```
 

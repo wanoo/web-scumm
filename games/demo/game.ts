@@ -13,6 +13,7 @@ const ALL = ['house', 'garden', 'market'];
 export const game = defineGame({
   id: 'demo',
   title: 'The Pantry Key',
+  lang: 'en',
   saveVersion: 1,
   hero: 'hero',
   // Two playable cats: Pixel first; Biscuit (asleep at home) can be switched to at any time. He has his own inventory.
@@ -148,5 +149,6 @@ export const game = defineGame({
     save: 'Save', load: 'Load', slot: 'Slot {n}', emptySlot: 'empty', exportSave: 'Export to a file', importSave: 'Import a file', confirmOverwrite: 'Overwrite this slot?',
     settings: 'Settings', textSpeed: 'Text speed', textSize: 'Text size', reduceMotion: 'Reduce motion', readableFont: 'Readable font',
     volumeMusic: 'Music volume', volumeSfx: 'Sound volume', volumeVoice: 'Voice volume', slow: 'slow', normal: 'normal', fast: 'fast', large: 'large',
+    language: 'Language',
   },
 });

@@ -4,6 +4,7 @@
 import type { Cond, GameDef, Id, Layout, RoomDef } from '../core/types';
 import { normalizeExits } from '../core/define';
 import { worldGraph } from './graph';
+import { localeStatus } from './i18n';
 
 export interface RoomReport {
   id: Id; name: string;
@@ -23,6 +24,8 @@ export interface ContentReport {
   items: ItemReport[];
   characters: CharacterReport[];
   world: { unreachable: Id[]; oneWay: string[] };
+  /** Translation coverage per language (`locales` given). */
+  locales?: { lang: string; total: number; translated: number; missing: number; stale: number; long: number }[];
   totals: { rooms: number; items: number; characters: number; rules: number; lines: number; words: number };
 }
 
@@ -64,7 +67,7 @@ function roomCmds(r: RoomDef): unknown[][] {
     ...(r.scripts ?? []).map((s) => s.do), ...(r.events ?? []).map((e) => e.do)];
 }
 
-export function report(gameIn: GameDef, _layouts: Record<string, Layout> = {}, opts: { maxText?: number } = {}): ContentReport {
+export function report(gameIn: GameDef, _layouts: Record<string, Layout> = {}, opts: { maxText?: number; locales?: Record<string, Record<string, string>> } = {}): ContentReport {
   const game = normalizeExits(structuredClone(gameIn));
   const maxText = opts.maxText ?? 140;
   const allCmds: unknown[][] = [game.start.intro ?? [], ...(game.rules.on ?? []).map((x) => x.do), ...(game.scripts ?? []).map((s) => s.do), ...(game.events ?? []).map((e) => e.do)];
@@ -127,6 +130,10 @@ export function report(gameIn: GameDef, _layouts: Record<string, Layout> = {}, o
   return {
     rooms, items, characters,
     world: { unreachable: g.unreachable, oneWay: g.oneWay.map((e) => `${e.from} → ${e.to} (${e.via})`) },
+    locales: opts.locales && Object.keys(opts.locales).length ? Object.entries(opts.locales).map(([lang, table]) => {
+      const st = localeStatus(gameIn, table, maxText);
+      return { lang, total: st.total, translated: st.translated, missing: st.missing.length, stale: st.stale.length, long: st.long.length };
+    }) : undefined,
     totals: { rooms: game.rooms.length, items: items.length, characters: characters.length,
       rules: game.rooms.reduce((n, r) => n + (r.on ?? []).filter((x) => !x.exit).length, 0) + (game.rules.on ?? []).length,
       lines: all.length, words: all.reduce((n, x) => n + x.text.split(/\s+/).filter(Boolean).length, 0) },
@@ -146,6 +153,7 @@ export function reportMarkdown(r: ContentReport): string {
   out.push(`# Content report`, '', `${r.totals.rooms} rooms · ${r.totals.items} items · ${r.totals.characters} characters · ${r.totals.rules} rules · ${r.totals.lines} lines (${r.totals.words} words)`, '');
   if (r.world.unreachable.length) out.push(`**Unreachable rooms:** ${r.world.unreachable.join(', ')}`, '');
   if (r.world.oneWay.length) out.push(`**Exits with no way back:** ${r.world.oneWay.join('; ')}`, '');
+  if (r.locales?.length) out.push(`**Translations:** ${r.locales.map((l) => `${l.lang} ${l.translated}/${l.total}${l.missing ? ` (${l.missing} missing)` : ''}${l.stale ? ` (${l.stale} stale)` : ''}`).join(' · ')}`, '');
   out.push('## Rooms', '', '| Room | zones | props | actors | exits | rules | topics | hints | scripts | notes |', '|---|---|---|---|---|---|---|---|---|---|');
   for (const x of r.rooms) {
     const notes: string[] = [];

@@ -11,6 +11,11 @@ import { toDot, toSvg, worldGraph } from '@engine/tools/graph';
 import { report, reportMarkdown } from '@engine/tools/report';
 import { minigames } from '@engine/minigames';
 import { game, layouts } from './fixture';
+import { mini, miniLayouts } from './fixtures/mini';
+import { world, worldLayouts } from './fixtures/world';
+import { scale, scaleLayouts } from './fixtures/scale';
+import { picture, pictureLayouts } from './fixtures/picture';
+import { cast, castLayouts } from './fixtures/cast';
 
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
@@ -170,38 +175,6 @@ describe('validator', () => {
 // Dummy game: two-way phone call, used items, actor cutscene.
 // ---------------------------------------------------------------------------
 
-function mini(): GameDef {
-  return {
-    id: 'mini', title: 'Mini', saveVersion: 1, hero: 'hero',
-    verbs: [{ id: 'look', label: 'Look', color: '#fff' }, { id: 'use', label: 'Use', color: '#fff', join: 'with' }, { id: 'give', label: 'Give', color: '#fff', join: 'to' }],
-    characters: {
-      hero: { name: 'Hero', color: '#fff', sprites: { idle: ['h/1'] } },
-      voice: { name: 'Voice', color: '#f0f', offscreen: true },
-      ann: { name: 'Ann', color: '#0ff', height: 108, sprites: { idle: ['m/1'], phone: ['m/2'] }, mouths: { phone: { closed: 'tm/1', open: ['tm/2', 'tm/3'] } } },
-      bea: { name: 'Bea', color: '#ff0', height: 84, sprites: { idle: ['p/1'], phone: ['p/2'] } },
-      uncle: { name: 'Uncle', color: '#0f0', sprites: { idle: ['pa/1'], front: ['pa/2'], attack: ['pa/3'] } },
-    },
-    items: { cle: { name: 'key', icon: 'i/cle' }, badge: { name: 'badge', icon: 'i/badge' } },
-    rooms: [
-      { id: 'a', name: 'A', decor: 'd/a',
-        props: { valise: { img: 'o/valise', name: 'suitcase' } },
-        actors: { uncle: { char: 'uncle', pose: 'front' } },
-        on: [{ verb: 'use', a: 'cle', b: 'valise', do: [{ used: 'cle' }, 'Opened.'] }] },
-      { id: 'b', name: 'B', decor: 'd/b',
-        props: { cadenas: { img: 'o/cadenas', name: 'padlock' } },
-        on: [{ verb: 'use', a: ['cle', 'badge'], b: 'cadenas', do: ['No, not that.'] }] },
-    ],
-    rules: { fallbacks: { look: ['Nothing.'], use: ['No.'], use2: ['These do not go together.'] } },
-    start: { room: 'a', inventory: ['cle', 'badge'] },
-    skin: { icons: { map: 'ui/map', pause: 'ui/pause', music: 'ui/music' } },
-    ui: {} as GameDef['ui'],
-  };
-}
-
-const miniLayouts: Record<string, Layout> = {
-  a: { entries: { default: [320, 360] }, props: { valise: { x: 300, y: 340, h: 40, rot: 13, flipV: true, states: {} } }, actors: { uncle: { x: 200, y: 300, h: 110, z: 500 } } },
-  b: { entries: { default: [320, 360] }, props: { cadenas: { x: 300, y: 340, h: 40 } } },
-};
 
 function bootMini() {
   const ui = new FakePresenter();
@@ -298,48 +271,6 @@ describe('actor cutscene', () => {
 // The world lives: a moving character, events, scripts.
 // ---------------------------------------------------------------------------
 
-function world(): GameDef {
-  return {
-    id: 'world', title: 'World', saveVersion: 1, hero: 'hero',
-    verbs: [{ id: 'look', label: 'Look', color: '#fff' }, { id: 'use', label: 'Use', color: '#fff', join: 'with' }, { id: 'talk', label: 'Talk', color: '#fff' }],
-    characters: {
-      hero: { name: 'Hero', color: '#fff', sprites: { idle: ['h/1'] } },
-      cook: { name: 'Cook', color: '#0f0', room: 'kitchen', sprites: { idle: ['c/1'] } },
-    },
-    items: {},
-    rooms: [
-      { id: 'hall', name: 'Hall', decor: 'd/hall',
-        actors: { cook: { char: 'cook' } },
-        hotspots: { door: { name: 'door' }, gong: { name: 'gong' } },
-        look: { door: 'A door.', gong: 'A gong.', cook: 'The cook.' },
-        on: [
-          { verb: 'use', a: 'door', do: [{ goto: 'kitchen' }] },
-          { verb: 'use', a: 'gong', do: [{ emit: 'gong' }] },
-          { verb: 'talk', a: 'cook', if: { actorIn: ['cook', 'hall'] }, do: [{ say: ['cook', 'Dinner!'] }, { set: 'dinner' }, { end: true }] },
-        ],
-        events: [{ on: 'gong', once: true, do: [{ set: 'rang' }] }],
-        scripts: [{ id: 'hall_clock', loop: true, do: [{ wait: 1000 }, { inc: 'ticks' }] }],
-      },
-      { id: 'kitchen', name: 'Kitchen', decor: 'd/kitchen',
-        actors: { cook: { char: 'cook' } },
-        hotspots: { door: { name: 'door' } },
-        look: { door: 'A door.', cook: 'The cook, cooking.' },
-        on: [{ verb: 'use', a: 'door', do: [{ goto: 'hall' }] }],
-      },
-    ],
-    scripts: [{ id: 'cook_comes', do: [{ waitEvent: 'gong' }, { moveActor: ['cook', 'hall'] }, { toast: 'The cook comes.' }] }],
-    events: [{ on: 'gong', do: [{ inc: 'gongs' }] }],
-    rules: { fallbacks: { look: ['Nothing.'], use: ['No.'], talk: ['...'], use2: ['No.'] } },
-    start: { room: 'hall' },
-    skin: { icons: { map: 'ui/map', pause: 'ui/pause', music: 'ui/music' } },
-    ui: {} as GameDef['ui'],
-  };
-}
-
-const worldLayouts: Record<string, Layout> = {
-  hall: { entries: { default: [320, 360] }, actors: { cook: { x: 200, y: 300, h: 100 } }, hotspots: { door: { rect: [0, 0, 50, 50] }, gong: { rect: [100, 0, 50, 50] } } },
-  kitchen: { entries: { default: [320, 360] }, actors: { cook: { x: 400, y: 320, h: 100 } }, hotspots: { door: { rect: [0, 0, 50, 50] } } },
-};
 
 function bootWorld(g: GameDef = world()) {
   const ui = new FakePresenter();
@@ -458,51 +389,6 @@ describe('the world lives', () => {
 // Scale: declared exits, the world's map, chapters and invariants, migrations, the profiler.
 // ---------------------------------------------------------------------------
 
-function scale(): GameDef {
-  return {
-    id: 'scale', title: 'Scale', saveVersion: 3, hero: 'hero',
-    verbs: [{ id: 'look', label: 'Look', color: '#fff' }, { id: 'open', label: 'Open', color: '#fff' }, { id: 'use', label: 'Use', color: '#fff', join: 'with' }, { id: 'take', label: 'Take', color: '#fff' }],
-    characters: { hero: { name: 'Hero', color: '#fff', sprites: { idle: ['h/1'] } } },
-    items: { key: { name: 'key', icon: 'i/key', look: 'A key.' }, gem: { name: 'gem', icon: 'i/gem', look: 'A gem.' } },
-    rooms: [
-      { id: 'hall', name: 'Hall', decor: 'd/hall',
-        hotspots: { mat: { name: 'mat' } },
-        exits: { door: { name: 'door', to: 'yard', entry: 'from_hall', if: { has: 'key' }, locked: 'Locked.', sfx: 'creak' } },
-        look: { mat: 'A mat.', door: 'A door.' },
-        on: [{ verb: 'take', a: 'mat', if: '!key_found', do: [{ gain: 'key' }, { set: 'key_found' }] }],
-        hints: [{ until: { has: 'key' }, lines: ['Under the mat.'] }] },
-      { id: 'yard', name: 'Yard', decor: 'd/yard',
-        hotspots: { well: { name: 'well' } },
-        exits: { back: { name: 'back door', to: 'hall', oneWay: true } },
-        look: { well: 'A well.', back: 'The door.' },
-        on: [{ verb: 'use', a: 'well', do: [{ gain: 'gem' }, { goto: 'attic' }] }],
-        hints: [{ until: 'never', lines: ['Use the well.'] }] },
-      { id: 'attic', name: 'Attic', decor: 'd/attic', hotspots: { chest: { name: 'chest' } }, look: { chest: 'A chest.' },
-        on: [{ verb: 'use', a: 'gem', b: 'chest', do: ['Done.', { end: true }] }], hints: [{ until: 'never', lines: ['The chest.'] }] },
-      { id: 'cellar', name: 'Cellar', decor: 'd/cellar', hotspots: { barrel: { name: 'barrel' } }, look: { barrel: 'A barrel.' } },
-    ],
-    rules: { fallbacks: { look: ['Nothing.'], open: ['No.'], use: ['No.'], take: ['No.'], use2: ['No.'] } },
-    audio: { sfx: { creak: 'creak.mp3' } },
-    start: { room: 'hall' },
-    checkpoints: {
-      yard: { room: 'yard', inventory: ['key'], flags: { key_found: true }, goals: [{ has: 'key' }, { room: 'yard' }] },
-    },
-    invariants: [{ all: [{ has: 'gem' }, { not: { has: 'key' } }] }],
-    migrations: [
-      { from: 1, renameFlag: { found: 'key_found' }, renameItem: { cle: 'key' } },
-      { from: 2, renameRoom: { lobby: 'hall' }, dropFlag: ['tmp'] },
-    ],
-    saves: { slots: 2 },
-    skin: { icons: { map: 'ui/map', pause: 'ui/pause', music: 'ui/music' } },
-    ui: {} as GameDef['ui'],
-  };
-}
-const scaleLayouts: Record<string, Layout> = {
-  hall: { entries: { default: [320, 360] }, hotspots: { mat: { rect: [10, 10, 50, 50] }, door: { rect: [100, 10, 50, 50] } } },
-  yard: { entries: { default: [320, 360], from_hall: [40, 360] }, hotspots: { well: { rect: [10, 10, 50, 50] }, back: { rect: [100, 10, 50, 50] } } },
-  attic: { entries: { default: [320, 360] }, hotspots: { chest: { rect: [10, 10, 50, 50] } } },
-  cellar: { entries: { default: [320, 360] }, hotspots: { barrel: { rect: [10, 10, 50, 50] } } },
-};
 
 describe('scale: exits, chapters, saves', () => {
   it('a declared exit is a hotspot with a goto rule, locked until its condition holds', async () => {
@@ -598,36 +484,6 @@ describe('scale: exits, chapters, saves', () => {
 // Picture: camera, prop animations with frame events, voice.
 // ---------------------------------------------------------------------------
 
-function picture(): GameDef {
-  return {
-    id: 'picture', title: 'Picture', saveVersion: 1, hero: 'hero',
-    verbs: [{ id: 'look', label: 'Look', color: '#fff' }, { id: 'use', label: 'Use', color: '#fff', join: 'with' }],
-    characters: { hero: { name: 'Hero', color: '#fff', fps: 10, sprites: { idle: ['h/1'], jump: ['h/2', 'h/3', 'h/4'] } } },
-    items: {},
-    rooms: [
-      { id: 'street', name: 'Street', decor: 'd/street',
-        props: { door: { name: 'door', states: { shut: 'p/shut', open: 'p/open' }, initial: 'shut',
-          anims: { rattle: { frames: ['p/a', 'p/b', 'p/a'], fps: 10, at: { 1: [{ sfx: 'latch' }] } }, glow: { frames: ['p/g1', 'p/g2'], fps: 4, loop: true } } } },
-        hotspots: { far: { name: 'far end' } },
-        look: { door: 'A door.', far: 'Far.' },
-        on: [
-          { verb: 'use', a: 'door', do: [{ play: ['door', 'rattle'] }, 'Locked.'] },
-          { verb: 'look', a: 'far', do: [{ camera: { to: 'far', ms: 300 } }, { camera: { pan: 100 } }, 'Far away.', { camera: 'follow' }] },
-          { verb: 'use', a: 'far', do: [{ anim: ['hero', 'jump'], ms: 300, at: { 2: [{ set: 'jumped' }] } }, { play: ['door', 'glow'] }, { say: ['hero', 'Glowing.'], voice: 'v1' }, { stopAnim: 'door' }, { end: true }] },
-        ],
-        hints: [{ until: 'never', lines: ['Use the far end.'] }] },
-    ],
-    rules: { fallbacks: { look: ['Nothing.'], use: ['No.'], use2: ['No.'] } },
-    audio: { sfx: { latch: 'latch.mp3' }, voices: { v1: 'hero-01.mp3' } },
-    start: { room: 'street' },
-    settings: true,
-    skin: { icons: { map: 'ui/map', pause: 'ui/pause', music: 'ui/music' } },
-    ui: {} as GameDef['ui'],
-  };
-}
-const pictureLayouts: Record<string, Layout> = {
-  street: { width: 1200, entries: { default: [100, 360] }, props: { door: { x: 300, y: 340, h: 80 } }, hotspots: { far: { rect: [1000, 200, 100, 100], approach: [1000, 360] } } },
-};
 
 describe('picture: camera, prop animations, frame events, voice', () => {
   it('plays a prop animation frame by frame, running the frame commands, then restores the prop', async () => {
@@ -682,41 +538,6 @@ describe('picture: camera, prop animations, frame events, voice', () => {
 // Cast: several playable characters.
 // ---------------------------------------------------------------------------
 
-function cast(): GameDef {
-  return {
-    id: 'cast', title: 'Cast', saveVersion: 1, hero: 'ann',
-    players: { ids: ['ann', 'bob'], start: { bob: { room: 'cellar', inventory: ['rope'] } }, give: 'Take this, {nom}: the {objet}.' },
-    verbs: [{ id: 'look', label: 'Look', color: '#fff' }, { id: 'use', label: 'Use', color: '#fff', join: 'with' }, { id: 'give', label: 'Give', color: '#fff', join: 'to' }, { id: 'take', label: 'Take', color: '#fff' }],
-    characters: {
-      ann: { name: 'Ann', color: '#fff', sprites: { idle: ['a/1'] } },
-      bob: { name: 'Bob', color: '#0ff', sprites: { idle: ['b/1'] } },
-    },
-    items: { rope: { name: 'rope', icon: 'i/rope', look: 'A rope.' }, key: { name: 'key', icon: 'i/key', look: 'A key.' } },
-    rooms: [
-      { id: 'hall', name: 'Hall', decor: 'd/hall', hotspots: { hook: { name: 'hook' }, hatch: { name: 'hatch' } }, look: { hook: 'A hook.', hatch: 'A hatch.' },
-        on: [
-          { verb: 'use', a: 'rope', b: 'hook', do: [{ lose: 'rope' }, { set: 'rope_tied' }] },
-          { verb: 'use', a: 'hatch', if: 'rope_tied', do: [{ goto: 'cellar' }] },
-        ], hints: [{ until: 'rope_tied', lines: ['Bob has the rope.'] }] },
-      { id: 'cellar', name: 'Cellar', decor: 'd/cellar', hotspots: { chest: { name: 'chest' }, ladder: { name: 'ladder' } }, look: { chest: 'A chest.', ladder: 'A ladder.' },
-        on: [
-          { verb: 'take', a: 'chest', if: { player: 'bob' }, do: [{ gain: 'key' }, 'Bob opens it.'] },
-          { verb: 'take', a: 'chest', do: ['Too heavy for Ann.'] },
-          { verb: 'use', a: 'ladder', do: [{ goto: 'hall' }] },
-          { verb: 'use', a: 'key', b: 'chest', if: { player: 'ann' }, do: ['Ann wins.', { end: true }] },
-        ], hints: [{ until: 'never', lines: ['The chest.'] }] },
-    ],
-    rules: { fallbacks: { look: ['Nothing.'], use: ['No.'], give: ['No.'], take: ['No.'], use2: ['No.'] } },
-    start: { room: 'hall' },
-    checkpoints: { bobhome: { room: 'cellar', active: 'bob', inventory: ['rope'], players: { ann: { room: 'hall' } } } },
-    skin: { icons: { map: 'ui/map', pause: 'ui/pause', music: 'ui/music' } },
-    ui: {} as GameDef['ui'],
-  };
-}
-const castLayouts: Record<string, Layout> = {
-  hall: { entries: { default: [320, 360] }, hotspots: { hook: { rect: [10, 10, 50, 50] }, hatch: { rect: [100, 10, 50, 50] } } },
-  cellar: { entries: { default: [200, 360] }, hotspots: { chest: { rect: [10, 10, 50, 50] }, ladder: { rect: [100, 10, 50, 50] } } },
-};
 
 describe('cast: several playable characters', () => {
   it('each player has a room, position and inventory; switching brings theirs up', async () => {

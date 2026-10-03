@@ -4,6 +4,7 @@
 // (a "2nd time" gag, opening/closing a cupboard with no consequence) don't create a new state.
 // Uses the real engine with a silent presenter: whatever the solver finds, the player can do.
 import { Engine, type Action, type Source } from '../core/engine';
+import type { CustomCommands } from '../core/custom';
 import { FakePresenter, MemoryStore } from '../core/ports';
 import { check } from '../core/cond';
 import type { Cmd, Cond, GameDef, GameState, Id, Layout, VerbId } from '../core/types';
@@ -36,6 +37,8 @@ export interface SolveOptions {
   start?: 'new' | { checkpoint: Id };
   /** Stop when all these conditions hold (a chapter's goals), instead of at the ending. */
   goal?: Cond[];
+  /** The game's custom commands: their `effects` apply (their `run` never does here). */
+  commands?: CustomCommands;
 }
 
 interface Node { state: GameState; path: string[] }
@@ -192,7 +195,7 @@ function label(game: GameDef, a: Action): string {
 export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, opts: SolveOptions = {}): Promise<SolveResult> {
   const maxStates = opts.maxStates ?? 20000;
   const game = structuredClone(gameIn);
-  const keys0 = new Engine(game, layouts, new FakePresenter(), new MemoryStore()); // assigns the keys
+  const keys0 = new Engine(game, layouts, new FakePresenter(), new MemoryStore(), { commands: opts.commands }); // assigns the keys
   const keys = stateKeys(keys0.game);
   const errors: string[] = [];
   const itemsInRules = new Set<string>();
@@ -204,7 +207,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
 
   const makeEngine = () => {
     const ui = new FakePresenter();
-    const e = new Engine(game, layouts, ui, new MemoryStore());
+    const e = new Engine(game, layouts, ui, new MemoryStore(), { commands: opts.commands });
     e.random = () => 0;
     return { e, ui };
   };

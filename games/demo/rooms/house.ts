@@ -80,6 +80,8 @@ export default defineRoom({
         { face: 'biscuit', who: 'grandma' },
         { say: ['grandma', 'Ha! Two cats, one tin. Share, you two.'] },
         { pose: ['hero', 'idle'] }, 'Fine. Half. Ish.',
+        // A custom command of the game (index.ts `commands`): stars over the scene, no effect on the state.
+        { custom: 'sparkle', args: { ms: 1400 } },
       ] },
       { ending: true, after: [
         { say: ['grandma', 'Well done, Pixel. Best breakfast ever.'] },

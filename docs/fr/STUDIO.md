@@ -41,6 +41,10 @@ que les joueurs auront.
   solveur sont affichés ici. « Screenshot » rend un lieu à un checkpoint (nécessite Playwright).
   En dessous, la **carte du monde** (lieux, sorties, gotos ; lieux inaccessibles et sorties sans retour en rouge) et le
   **rapport de contenu** (ce que pèse chaque lieu, objet et personnage : le profileur de `npm run validate -- --report`).
+- **Play** : le jeu lui-même (outils de dev actifs) dans un cadre, à côté de l'**état** en direct (lieu, sac, flags,
+  personnages mobiles, scripts, joueurs) et d'un **explicateur de règles** : choisis un verbe, un objet et une cible, et
+  chaque règle qui pourrait répondre est listée avec chaque condition évaluée ✓ / ✗ sur l'état en direct ; la première ✓
+  gagne, sinon l'onglet dit quel repli répond (ligne Regarder, sujets, réaction par kind, repli).
 - **Notes** : le journal partagé (`games/<id>/notes.json`), une entrée par auteur (« you », ou le nom de l'IA), à
   propos d'un id de case, d'un id de lieu, de `lieu.entité`, ou de n'importe quoi (vide : général). Le journal
   entier, le plus récent d'abord, groupé par `about` (lieu / case / entité étiquetés, avec « Open in Rooms » /

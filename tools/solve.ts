@@ -9,7 +9,7 @@ import { solve } from '../src/engine/tools/solve';
 import { loadLayouts } from '../src/engine/tools/load';
 import { GAME_DIR, loadGameModule } from './game';
 
-const { game } = await loadGameModule();
+const { game, commands } = await loadGameModule();
 const layouts = loadLayouts(resolve(GAME_DIR, 'layout'));
 const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split('=')[1];
 const from = arg('from');
@@ -24,7 +24,7 @@ if (process.argv.includes('--chapters')) {
   let bad = 0;
   for (const [id, c] of cps) {
     const t = Date.now();
-    const r = await solve(game, layouts, { maxStates, start: prev ? { checkpoint: prev } : 'new', goal: c.goals });
+    const r = await solve(game, layouts, { maxStates, start: prev ? { checkpoint: prev } : 'new', goal: c.goals, commands });
     const ok = r.finished && !r.broken.length;
     if (!ok) bad++;
     console.log(`${ok ? '✔' : '✖'}  chapter → ${id} (from ${prev ?? 'new game'}): ${r.finished ? `${r.path.length} actions` : 'goals not reached'}, ${r.states} states, ${((Date.now() - t) / 1000).toFixed(1)} s${r.truncated ? ' (limit reached)' : ''}`);
@@ -34,7 +34,7 @@ if (process.argv.includes('--chapters')) {
     prev = id;
   }
   const t = Date.now();
-  const r = await solve(game, layouts, { maxStates, start: { checkpoint: prev! } });
+  const r = await solve(game, layouts, { maxStates, start: { checkpoint: prev! }, commands });
   const ok = r.finished && !r.broken.length;
   if (!ok) bad++;
   console.log(`${ok ? '✔' : '✖'}  chapter → ending (from ${prev}): ${r.finished ? `${r.path.length} actions` : 'no ending reached'}, ${r.states} states, ${((Date.now() - t) / 1000).toFixed(1)} s`);
@@ -42,7 +42,7 @@ if (process.argv.includes('--chapters')) {
   process.exit(bad ? 1 : 0);
 }
 
-const r = await solve(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new' });
+const r = await solve(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands });
 
 if (asJson) {
   // The solver only labels each step (e.g. "Open door", "Give key → grandpa", `Talk lou: "..."`,

@@ -160,6 +160,7 @@ npm run e2e        # a playthrough in Chromium, phone landscape (dev server alre
 npm run solve -- --chapters        # one bounded search per checkpoint with `goals`, then from the last one to the ending
 npm run validate -- --report       # the content profiler: rooms, items, characters, what is thin (Markdown)
 npm run page:world                 # the map of the world as a page (exits, gotos, unreachable rooms, DOT source)
+npm run i18n -- extract [--lang xx]   # translation tables (games/<id>/locales/<xx>.json); `status` for the coverage
 ```
 
 `solve` also reports **invariants** (`GameDef.invariants`) that became true, with the path. The validator warns about

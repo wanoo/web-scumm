@@ -37,7 +37,7 @@ let snapshot: StudioSnapshot;
 const loadGame = async (): Promise<GameModuleLike> => {
   const [g, eng] = await Promise.all([import('../games/demo/index'), import('../src/engine/minigames')]);
   const m = g.manifest as unknown as { images: Record<string, [number, number]>; audio?: Record<string, unknown> };
-  return { game: g.game, minigames: { ...eng.minigames, ...g.minigames }, assets: { images: m.images, audio: m.audio } };
+  return { game: g.game, minigames: { ...eng.minigames, ...g.minigames }, commands: g.commands, locales: g.locales, assets: { images: m.images, audio: m.audio } };
 };
 const fresh = (storage = new FakeStorage()) => ({ storage, api: new BrowserApi({ snapshot, storage, loadGame, now: () => new Date('2026-10-01T10:00:00Z') }) });
 

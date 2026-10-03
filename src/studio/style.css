@@ -388,3 +388,15 @@ button.danger { border-color: #a33a44; color: #ffb3b3; }
 /* Check tab: the world graph and the content report */
 .check .svgbox { overflow: auto; background: #fff; border-radius: 8px; padding: 8px; }
 .check pre.md { white-space: pre-wrap; font-size: 12px; max-height: 460px; overflow: auto; }
+
+/* Play tab: the game in a frame, the state and the rule explainer beside it */
+.play .playgrid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); gap: 16px; align-items: start; }
+.play .playframe { width: 100%; aspect-ratio: 844 / 390; border: 1px solid var(--line, #334); border-radius: 8px; background: #000; }
+.play .playside { display: flex; flex-direction: column; gap: 12px; }
+.play .rule { padding: 6px 8px; border-radius: 6px; margin: 6px 0; background: rgba(255,255,255,.04); }
+.play .rule.bad { opacity: .75; }
+.play .cond { font-size: 13px; }
+.play .cond.ok { color: #7ed98a; }
+.play .cond.bad { color: #ff9f7a; }
+.play .nest { margin-left: 14px; border-left: 2px solid rgba(255,255,255,.12); padding-left: 8px; }
+@media (max-width: 900px) { .play .playgrid { grid-template-columns: 1fr; } }

@@ -9,6 +9,7 @@ import { solve } from '@engine/tools/solve';
 import { minigames } from '@engine/minigames';
 import { verdict } from '@engine/ending/card';
 import { game } from '../games/demo/game';
+import { commands } from '../games/demo/index';
 import manifest from '../games/demo/assets.gen.json';
 import house from '../games/demo/layout/house.json';
 import garden from '../games/demo/layout/garden.json';
@@ -19,7 +20,7 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 
 function boot() {
   const ui = new FakePresenter();
-  const e = new Engine(structuredClone(game), layouts, ui, new MemoryStore());
+  const e = new Engine(structuredClone(game), layouts, ui, new MemoryStore(), { commands });
   e.random = () => 0;
   return { e, ui };
 }
@@ -35,8 +36,8 @@ describe('demo: content', () => {
   });
 
   it('the solver finishes the game from New Game and from every checkpoint', async () => {
-    expect((await solve(game, layouts)).finished).toBe(true);
-    for (const cp of Object.keys(game.checkpoints ?? {})) expect((await solve(game, layouts, { start: { checkpoint: cp } })).finished, cp).toBe(true);
+    expect((await solve(game, layouts, { commands })).finished).toBe(true);
+    for (const cp of Object.keys(game.checkpoints ?? {})) expect((await solve(game, layouts, { start: { checkpoint: cp }, commands })).finished, cp).toBe(true);
   });
 });
 

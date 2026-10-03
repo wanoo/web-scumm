@@ -22,7 +22,10 @@ export interface GameModuleLike {
   game: GameDef;
   /** Minigames of the engine and of the game (ids and required params are validated). */
   minigames?: Record<string, { required?: string[] }>;
-  assets?: AssetIndex;
+  assets?: AssetIndex;  /** Custom commands (`{ custom }`): their effects for validate and solve. */
+  commands?: import('@engine/core/custom').CustomCommands;
+  /** Translation tables, for the report's coverage. */
+  locales?: Record<string, Record<string, string>>;
 }
 
 export interface BrowserApiOptions {
@@ -253,7 +256,7 @@ export class BrowserApi implements Api {
     const { mod, game, layouts } = await this.editedGame();
     const mg = mod.minigames;
     const { errors, warnings } = validateGame(game, layouts, {
-      assets: mod.assets,
+      assets: mod.assets, commands: mod.commands,
       minigameIds: mg ? Object.keys(mg) : undefined,
       minigameParams: mg ? Object.fromEntries(Object.entries(mg).map(([k, m]) => [k, m.required ?? []])) : undefined,
     });
@@ -262,8 +265,8 @@ export class BrowserApi implements Api {
 
   async report(): Promise<ReportData> {
     const t0 = Date.now();
-    const { game, layouts } = await this.editedGame();
-    const r = reportGame(game, layouts);
+    const { mod, game, layouts } = await this.editedGame();
+    const r = reportGame(game, layouts, { locales: mod.locales });
     return { report: r, markdown: reportMarkdown(r), ms: Date.now() - t0 };
   }
 
@@ -275,9 +278,9 @@ export class BrowserApi implements Api {
 
   async solve(from?: string, maxStates = 20000): Promise<SolveData> {
     const t0 = Date.now();
-    const { game, layouts } = await this.editedGame();
+    const { mod, game, layouts } = await this.editedGame();
     if (from && !game.checkpoints?.[from]) throw new ApiError(`unknown checkpoint: "${from}"`, 400);
-    const r = await solveGame(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new' });
+    const r = await solveGame(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands: mod.commands });
     return {
       finished: r.finished, states: r.states, truncated: r.truncated, path: r.path,
       roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,

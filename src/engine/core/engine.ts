@@ -3,6 +3,16 @@ import { assignKeys, EMPTY_LAYOUT, FLOOR, NEAR } from './define';
 import { migrate } from './migrate';
 import type { Presenter, SaveStore } from './ports';
 import type { CharacterDef, Cmd, EventRule, GameDef, GameState, Id, Layout, Point, RoomDef, Rule, ScriptDef, Value, VerbId } from './types';
+import type { CustomCommands } from './custom';
+
+export interface EngineOptions {
+  /** The game's custom commands (`{ custom }`), from games/<id>/index.ts. */
+  commands?: CustomCommands;
+  /** Run their `run` part (the browser app); off in node (tests, solver): only `effects` apply. */
+  runCustom?: boolean;
+  /** The scene element handed to custom commands (DOM renderer). */
+  scene?: () => HTMLElement | undefined;
+}
 
 /** A player action: VERB a (with/to b). `a` can be an inventory item, `b` is always a target. */
 export interface Action { verb: VerbId; a: Id; b?: Id }
@@ -40,7 +50,7 @@ export class Engine {
   /** Scripts whose loop is running (auto mode). */
   private loops = new Set<Id>();
 
-  constructor(game: GameDef, layouts: Record<Id, Layout>, readonly ui: Presenter, readonly store: SaveStore) {
+  constructor(game: GameDef, layouts: Record<Id, Layout>, readonly ui: Presenter, readonly store: SaveStore, readonly opts: EngineOptions = {}) {
     this.game = assignKeys(game);
     this.layouts = layouts;
     this.rooms = new Map(game.rooms.map((r) => [r.id, r]));
@@ -836,6 +846,13 @@ export class Engine {
       return;
     }
     if ('transfer' in c) { this.transfer(c.transfer[0], c.transfer[1]); return; }
+    if ('custom' in c) {
+      const cmd = this.opts.commands?.[c.custom];
+      if (!cmd) throw new Error(`unknown custom command: ${c.custom} (export it from games/<id>/index.ts "commands")`);
+      await this.exec(cmd.effects, ctx);
+      if (cmd.run && this.opts.runCustom && !ctx.fast) await cmd.run({ game: this.game, state: s, room, args: c.args, ui: this.ui, scene: this.opts.scene?.(), fast: ctx.fast });
+      return;
+    }
     if ('sfx' in c) { if (!ctx.fast) this.ui.sfx(c.sfx); return; }
     if ('music' in c) { this.ui.music(typeof c.music === 'string' ? { play: c.music } : c.music); return; }
     if ('toast' in c) { this.ui.toast(c.toast); return; }

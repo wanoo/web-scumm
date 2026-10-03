@@ -36,6 +36,10 @@ real engine (the room rendered by `src/engine/dom`), so what you see is what pla
   "Screenshot" renders a room at a checkpoint (needs Playwright).
   Below them, the **world map** (rooms, exits, gotos; unreachable rooms and exits with no way back in red) and the
   **content report** (what each room, item and character amounts to: the profiler of `npm run validate -- --report`).
+- **Play**: the game itself (dev tools on) in a frame, next to the live **state** (room, bag, flags, moving
+  characters, scripts, players) and a **rule explainer**: pick a verb, an item and a target, and every rule that could
+  answer is listed with each condition evaluated ✓ / ✗ against the live state; the first ✓ wins, or the tab says which
+  fallback answers (look line, topics, kind reaction, fallback).
 - **Notes**: the shared log (`games/<id>/notes.json`), one entry per author ("you", or the AI's name), about a panel
   id, a room id, `room.entity`, or anything (empty: general). The whole log, newest first, grouped by `about` (tagged
   room / panel / entity, with "Open in Rooms" / "Open in Storyboard"); filters: free text, about (rooms with their

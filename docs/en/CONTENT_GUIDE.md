@@ -254,6 +254,46 @@ A line stays on screen for as long as it takes to read, or until a tap.
 | `{ seen: 'house.grandma.0' }` | topic #0 of grandma's conversation at the house has already been heard. |
 | `{ actorIn: ['grandpa', 'house'] }` | the moving character is in that room (see "The world lives"). |
 
+## When the DSL is not enough
+
+A game can define its own commands in code, in `games/<id>/index.ts`:
+
+```ts
+export const commands: CustomCommands = {
+  sparkle: { pure: true, run: async ({ scene, args }) => { /* draw stars over `scene` for args.ms */ } },
+  explode: { effects: [{ set: 'chicken_exploded' }, { lose: 'chicken' }, { sfx: 'boom' }], run: ({ scene }) => { /* the blast */ } },
+};
+// in a script:  { custom: 'sparkle', args: { ms: 1200 } }
+```
+
+`effects` says what the command does to the game, as plain commands: they run first, in the browser **and** in the
+solver, so a custom command never breaks `npm run solve` nor the save. `run` is the visual part, browser only (it gets
+the scene element, the presenter, the state to read, the arguments). A command that changes nothing says `pure: true`.
+The validator refuses a command that declares neither.
+
+## Translations
+
+Content stays written in one language (`lang: 'en'` in `game.ts`). Translating is a table, not keys in the content:
+
+```bash
+npm run i18n -- extract              # games/<id>/locales/en.json: every text with its path (the reference)
+npm run i18n -- extract --lang fr    # locales/fr.json: keeps what is translated, adds the missing texts to translate
+npm run i18n -- status               # coverage of every language, stale paths, long lines
+```
+
+A path looks like `room:house/look.pantry[1]`, `item:key/name`, `char:grandma/refuse`, `ui/newGame`,
+`rules/fallbacks.look[2]`, `start/intro[0].say`; the file is `{ "<path>": "<text>" }`. The game ships the files it has
+(`locales` in `index.ts` picks them up); the player gets `?lang=fr`, their choice in Settings (`ui.language`), or their
+browser's language when a translation exists. Texts a file lacks stay as written. `npm run validate -- --report` and the
+Studio's Check tab show the coverage.
+
+## Your own minigames
+
+The engine ships pipes, cables, pick, hide, runner, stroke and scratch. A game adds its own (`minigames` in
+`index.ts`): an object `{ run(ctx): Promise<void>; required?: string[] }` where `ctx` gives the overlay element,
+scale, images, sounds, the `params` of the command and an abort signal; `required` names the params the validator
+checks. `{ minigame: 'sword_fight', params: { … }, then: [ … ] }` then plays it like a built-in one. See `src/engine/minigames/types.ts`.
+
 ## Several playable characters
 
 ```ts

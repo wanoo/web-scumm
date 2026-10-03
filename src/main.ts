@@ -1,7 +1,19 @@
 import { App } from '@engine/dom/app';
 import type { SaveStore } from '@engine/core/ports';
 import { FONT_PIXEL, FONT_UI } from '@engine/dom/fonts';
-import { game, layouts, manifest, minigames } from '@game';
+import * as mod from '@game';
+import type { GameModule } from '../tools/game';
+import type { AssetManifest } from '@engine/dom/assets';
+import { applyLocale } from '@engine/tools/i18n';
+
+const { game: written, layouts, manifest, minigames, commands, locales } = mod as unknown as GameModule & { locales?: Record<string, Record<string, string>> };
+// Language: ?lang=, then the player's choice (settings), then the browser's, if the game ships that translation.
+const q0 = new URLSearchParams(location.search);
+let lang = q0.get('lang') || undefined;
+if (!lang) { try { lang = localStorage.getItem(`${written.id}.lang`) ?? undefined; } catch { /* no storage */ } }
+if (!lang && locales) lang = Object.keys(locales).find((l) => navigator.language.toLowerCase().startsWith(l.toLowerCase()));
+const game = lang && locales?.[lang] ? applyLocale(written, locales[lang]) : written;
+document.documentElement.lang = lang ?? written.lang ?? 'en';
 
 // Game fonts (skin.fonts): wait for them to load so text measurements are accurate.
 const fonts = (document as any).fonts;
@@ -24,7 +36,8 @@ ready.then(async () => {
     try { ls = localStorage; } catch { /* storage blocked */ }
     ({ game: g, layouts: L } = patchGame(game, layouts, readPatches(ls, __GAME__)));
   }
-  const app = new App({ root: document.getElementById('app')!, game: g, layouts: L, manifest, minigames, store, version: __ASSETS_VERSION__ });
+  const app = new App({ root: document.getElementById('app')!, game: g, layouts: L, manifest: manifest as AssetManifest, minigames, commands, store, version: __ASSETS_VERSION__,
+    languages: Object.keys(locales ?? {}).length ? { current: lang ?? written.lang ?? 'en', available: [written.lang ?? 'en', ...Object.keys(locales ?? {}).filter((l) => l !== (written.lang ?? 'en'))] } : undefined });
   (window as any).__game = app; // debugging from the console, and driving e2e tests
   if (dev) {
     const { startDev } = await import('@engine/dev');

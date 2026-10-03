@@ -8,12 +8,13 @@ import { AssetsTab } from './assets';
 import { AssistantPanel } from './assistant';
 import { CheckTab } from './check';
 import { NotesStore, NotesTab, roomNotesBlock } from './notes';
+import { PlayTab } from './play';
 import { RoomsTab } from './rooms';
 import { StoryboardTab } from './storyboard';
 import { h, toast } from './ui';
 
-type TabId = 'rooms' | 'storyboard' | 'assets' | 'check' | 'notes';
-const TABS: [TabId, string][] = [['rooms', 'Rooms'], ['storyboard', 'Storyboard'], ['assets', 'Assets'], ['check', 'Check'], ['notes', 'Notes']];
+type TabId = 'rooms' | 'storyboard' | 'assets' | 'check' | 'play' | 'notes';
+const TABS: [TabId, string][] = [['rooms', 'Rooms'], ['storyboard', 'Storyboard'], ['assets', 'Assets'], ['check', 'Check'], ['play', 'Play'], ['notes', 'Notes']];
 
 // Vite tells every page to reload when a game file changes (the engine view needs it). The Studio page doesn't:
 // it follows changes through its own event feed, and keeps what is being typed.
@@ -46,7 +47,7 @@ async function demoApi(): Promise<BrowserApi> {
     loadGame: async () => {
       const [g, eng] = await Promise.all([import('@game'), import('@engine/minigames')]);
       const m = g.manifest as unknown as { images?: Record<string, [number, number]>; audio?: Record<string, unknown> };
-      return { game: g.game, minigames: { ...eng.minigames, ...g.minigames }, assets: m.images ? { images: m.images, audio: m.audio } : undefined };
+      return { game: g.game, minigames: { ...eng.minigames, ...g.minigames }, commands: g.commands, locales: g.locales, assets: m.images ? { images: m.images, audio: m.audio } : undefined };
     },
   });
 }
@@ -123,7 +124,8 @@ async function start() {
     },
   });
   const assets = new AssetsTab({ info, ownWrite, openRoom, prepared: () => rooms.reloadFrame() });
-  const panes: Record<TabId, HTMLElement> = { rooms: rooms.el, storyboard: storyboard.el, assets: assets.el, check: check.el, notes: notes.el };
+  const play = new PlayTab(info);
+  const panes: Record<TabId, HTMLElement> = { rooms: rooms.el, storyboard: storyboard.el, assets: assets.el, check: check.el, play: play.el, notes: notes.el };
 
   const nav = h('nav', { class: 'tabs', role: 'tablist' });
   let current: TabId = (TABS.some(([t]) => t === hashTab) ? hashTab : 'rooms') as TabId;

@@ -84,7 +84,7 @@ Fichiers : `types.ts`, `engine.ts`, `state`, `dom/app.ts` (inventaire, bouton de
 - Solveur : la bascule est une action ; le hash inclut tous les joueurs. Validate : objet transférable vers un joueur qui ne peut jamais le recevoir.
 - Fixture de test dédié (voir M5) ; la démo n'en a pas besoin, un second exemple `games/trio` (3 salles, 2 joueurs) sert d'illustration et de test e2e.
 
-### M5 — « Open » (v2.0) : ouverture et robustesse
+### M5 — « Open » (v2.0, livré) : ouverture et robustesse
 
 - **Commandes custom** : `games/<id>/index.ts` exporte `commands?: Record<name, { run(ctx, args): Promise<void>; effects?: Cmd[] }>` ; commande `{ custom: name, args }`. Le solveur applique `effects` ; `validate` exige `effects` ou `pure: true`. Doc : « quand le DSL ne suffit pas ».
 - **Localisation** : `npm run i18n extract` écrit `games/<id>/locales/<base>.json` (clé = chemin de contenu, valeur = texte) ; `locales/<lang>.json` surcharge au chargement ; `GameDef.lang`/sélecteur. Studio : onglet couverture (manquant, trop long). Le contenu source reste inline : rien ne change pour l'IA qui écrit un jeu.

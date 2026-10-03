@@ -4,6 +4,7 @@ import type { Presenter, SaveStore } from '../core/ports';
 import type { GameDef, GameState, Id, Layout, Point, RoomDef, VerbId } from '../core/types';
 import { minigames as builtin, MINIGAME_CSS, type Minigame } from '../minigames';
 import { Ending } from '../ending';
+import type { CustomCommands } from '../core/custom';
 import { AssetBank, type AssetManifest } from './assets';
 import { Audio } from './audio';
 import { FONT_PIXEL, FONT_UI, fontStack } from './fonts';
@@ -16,6 +17,10 @@ export interface AppOptions {
   layouts: Record<Id, Layout>;
   manifest: AssetManifest;
   minigames?: Record<Id, Minigame>;
+  /** Custom commands (`{ custom }`), from games/<id>/index.ts. */
+  commands?: CustomCommands;
+  /** Translations the game ships: the settings menu offers them (the page reloads with the choice). */
+  languages?: { current: string; available: string[] };
   store?: SaveStore;
   base?: string;
   /** Asset version (added to URLs to invalidate the cache). */
@@ -109,7 +114,7 @@ export class App implements Presenter {
     this.bank = new AssetBank(o.manifest, o.base ?? `${import.meta.env?.BASE_URL ?? '/'}assets`, o.version ?? '');
     this.audio = new Audio(this.bank, { music: o.game.audio?.music, sfx: o.game.audio?.sfx, voice: o.game.audio?.voices });
     this.mg = { ...builtin, ...(o.minigames ?? {}) };
-    this.engine = new Engine(o.game, o.layouts, this, o.store ?? new LocalStore(`${o.game.id}.save`));
+    this.engine = new Engine(o.game, o.layouts, this, o.store ?? new LocalStore(`${o.game.id}.save`), { commands: o.commands, runCustom: true, scene: () => this.scene });
     this.slots = new SlotStore(o.game.id);
     this.view = new RoomView(this.engine, this.bank);
     this.engine.autoScripts = true;
@@ -856,6 +861,16 @@ export class App implements Presenter {
     row(ui.textSize ?? 'Text size', () => (S.textSize > 1 ? ui.large ?? 'large' : ui.normal ?? 'normal'), () => { S.textSize = S.textSize > 1 ? 1 : 1.3; });
     row(ui.reduceMotion ?? 'Reduce motion', () => (S.reduceMotion ? ui.on : ui.off), () => { S.reduceMotion = !S.reduceMotion; });
     if (this.game.skin?.fonts?.readable) row(ui.readableFont ?? 'Readable font', () => (S.readableFont ? ui.on : ui.off), () => { S.readableFont = !S.readableFont; });
+    const langs = this.o.languages;
+    if (langs && langs.available.length > 1) {
+      const b = el('button', '', `<span>${esc(ui.language ?? 'Language')}</span><span>${esc(langs.current)}</span>`);
+      b.onclick = () => {
+        const next = langs.available[(langs.available.indexOf(langs.current) + 1) % langs.available.length];
+        try { localStorage.setItem(`${this.game.id}.lang`, next); } catch { /* no storage */ }
+        const u = new URL(location.href); u.searchParams.delete('lang'); location.href = u.toString();
+      };
+      m.append(b);
+    }
     const vol = (t: string, k: 'musicVolume' | 'sfxVolume' | 'voiceVolume') => row(t, () => `${Math.round(S[k] * 100)} %`, () => { S[k] = Math.round(((S[k] * 4 + 1) % 5)) / 4; });
     vol(ui.volumeMusic ?? 'Music volume', 'musicVolume');
     vol(ui.volumeSfx ?? 'Sound volume', 'sfxVolume');

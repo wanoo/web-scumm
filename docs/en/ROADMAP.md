@@ -133,7 +133,7 @@ Files: `types.ts`, `engine.ts`, state, `dom/app.ts` (inventory, switch button), 
 - Solver: switching is an action; the hash includes every player. Validate: an item transferred to a player who can never receive it.
 - A dedicated test fixture (see M5); the demo does not need it, a second sample `games/trio` (3 rooms, 2 players) illustrates and tests it end to end.
 
-### M5 — "Open" (v2.0): openness and robustness
+### M5 — "Open" (v2.0, shipped): openness and robustness
 
 - **Custom commands**: `games/<id>/index.ts` exports `commands?: Record<name, { run(ctx, args); effects?: Cmd[] }>`;
   command `{ custom: name, args }`. The solver applies `effects`; `validate` requires `effects` or `pure: true`.

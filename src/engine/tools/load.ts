@@ -16,3 +16,13 @@ export function loadAssets(file: string): AssetIndex | undefined {
   const j = JSON.parse(readFileSync(file, 'utf8'));
   return { images: j.images ?? {}, audio: j.audio };
 }
+
+/** Translation tables of a game folder: locales/<lang>.json → language → (path → text). */
+export function loadLocales(dir: string): Record<string, Record<string, string>> {
+  const out: Record<string, Record<string, string>> = {};
+  if (!existsSync(dir)) return out;
+  for (const f of readdirSync(dir)) if (f.endsWith('.json')) {
+    try { out[f.slice(0, -5)] = JSON.parse(readFileSync(join(dir, f), 'utf8')); } catch { /* unreadable: skipped */ }
+  }
+  return out;
+}

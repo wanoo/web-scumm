@@ -252,6 +252,47 @@ Une réplique reste à l'écran le temps de la lire, ou jusqu'à un tap.
 | `{ seen: 'maison.grandmere.0' }` | le sujet n° 0 de Grand-mère à la maison a déjà été entendu. |
 | `{ actorIn: ['grandpere', 'maison'] }` | le personnage mobile est dans ce lieu (voir « Le monde vit »). |
 
+## Quand le DSL ne suffit pas
+
+Un jeu peut définir ses propres commandes en code, dans `games/<id>/index.ts` :
+
+```ts
+export const commands: CustomCommands = {
+  sparkle: { pure: true, run: async ({ scene, args }) => { /* des étoiles sur `scene` pendant args.ms */ } },
+  explose: { effects: [{ set: 'poulet_explose' }, { lose: 'poulet' }, { sfx: 'boum' }], run: ({ scene }) => { /* le souffle */ } },
+};
+// dans un script :  { custom: 'sparkle', args: { ms: 1200 } }
+```
+
+`effects` dit ce que la commande fait au jeu, en commandes ordinaires : elles s'exécutent d'abord, dans le navigateur
+**et** dans le solveur, donc une commande custom ne casse jamais `npm run solve` ni la sauvegarde. `run` est la partie
+visuelle, navigateur seulement (elle reçoit l'élément de la scène, le presenter, l'état en lecture, les arguments). Une
+commande qui ne change rien dit `pure: true`. Le validateur refuse une commande qui ne déclare ni l'un ni l'autre.
+
+## Traductions
+
+Le contenu reste écrit dans une langue (`lang: 'fr'` dans `game.ts`). Traduire, c'est une table, pas des clés dans le contenu :
+
+```bash
+npm run i18n -- extract              # games/<id>/locales/fr.json : chaque texte avec son chemin (la référence)
+npm run i18n -- extract --lang en    # locales/en.json : garde ce qui est traduit, ajoute les textes manquants à traduire
+npm run i18n -- status               # couverture de chaque langue, chemins obsolètes, lignes longues
+```
+
+Un chemin ressemble à `room:maison/look.garde_manger[1]`, `item:cle/name`, `char:grandmere/refuse`, `ui/newGame`,
+`rules/fallbacks.look[2]`, `start/intro[0].say` ; le fichier est `{ "<chemin>": "<texte>" }`. Le jeu embarque les
+fichiers qu'il a (`locales` dans `index.ts` les ramasse) ; le joueur a `?lang=en`, son choix dans Réglages
+(`ui.language`), ou la langue de son navigateur quand la traduction existe. Les textes absents d'un fichier restent
+comme écrits. `npm run validate -- --report` et l'onglet Check du Studio montrent la couverture.
+
+## Tes propres mini-jeux
+
+Le moteur fournit pipes, cables, pick, hide, runner, stroke et scratch. Un jeu ajoute les siens (`minigames` dans
+`index.ts`) : un objet `{ run(ctx): Promise<void>; required?: string[] }` où `ctx` donne l'élément de superposition,
+l'échelle, les images, les sons, les `params` de la commande et un signal d'annulation ; `required` nomme les params que
+le validateur vérifie. `{ minigame: 'duel', params: { … }, then: [ … ] }` le joue ensuite comme un mini-jeu intégré.
+Voir `src/engine/minigames/types.ts`.
+
 ## Plusieurs personnages jouables
 
 ```ts

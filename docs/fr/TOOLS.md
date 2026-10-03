@@ -153,6 +153,7 @@ npm run e2e        # parcours dans Chromium en paysage téléphone (serveur de d
 npm run solve -- --chapters        # une recherche bornée par checkpoint avec `goals`, puis du dernier à la fin
 npm run validate -- --report       # le profileur de contenu : lieux, objets, personnages, ce qui est mince (Markdown)
 npm run page:world                 # la carte du monde en page (sorties, gotos, lieux inaccessibles, source DOT)
+npm run i18n -- extract [--lang xx]   # tables de traduction (games/<id>/locales/<xx>.json) ; `status` pour la couverture
 ```
 
 `solve` signale aussi les **invariants** (`GameDef.invariants`) devenus vrais, avec le chemin. Le validateur avertit des

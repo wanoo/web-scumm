@@ -3,7 +3,7 @@
 import { resolve } from 'node:path';
 import { validate } from '../src/engine/tools/validate';
 import { report, reportMarkdown } from '../src/engine/tools/report';
-import { loadAssets, loadLayouts } from '../src/engine/tools/load';
+import { loadAssets, loadLayouts, loadLocales } from '../src/engine/tools/load';
 import { GAME, GAME_DIR, loadGameModule } from './game';
 
 const mod = await loadGameModule();
@@ -15,8 +15,8 @@ try { minigames = { ...(await import('../src/engine/minigames/index')).minigames
 const minigameIds = minigames ? Object.keys(minigames) : undefined;
 const minigameParams = minigames ? Object.fromEntries(Object.entries(minigames).map(([k, m]) => [k, m.required ?? []])) : undefined;
 
-if (process.argv.includes('--report')) { process.stdout.write(reportMarkdown(report(game, layouts))); process.exit(0); }
-const { errors, warnings } = validate(game, layouts, { assets, minigameIds, minigameParams });
+if (process.argv.includes('--report')) { process.stdout.write(reportMarkdown(report(game, layouts, { locales: loadLocales(resolve(GAME_DIR, 'locales')) }))); process.exit(0); }
+const { errors, warnings } = validate(game, layouts, { assets, minigameIds, minigameParams, commands: mod.commands });
 const quiet = process.argv.includes('--errors');
 if (!quiet && warnings.length) {
   console.log(`\n⚠  ${warnings.length} warning(s)`);

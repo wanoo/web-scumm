@@ -108,6 +108,11 @@ export type Cmd =
   | { switchPlayer: Id }
   /** Hands an item of the active character to another playable character (their own inventory). */
   | { transfer: [Id, Id] }
+  /**
+   * A command the game defines in code (`commands` exported by games/<id>/index.ts, see core/custom.ts): its declared
+   * `effects` run here (the solver and the save know them), then its `run` draws whatever it wants in the browser.
+   */
+  | { custom: string; args?: unknown }
   /** Starts a script from its first command (again, if it was done or stopped). */
   | { startScript: Id }
   /** Stops a script; `startScript` brings it back. */
@@ -517,6 +522,8 @@ export interface SkinDef {
 export interface GameDef {
   id: Id;
   title: string;
+  /** Language of the content as written (BCP 47, e.g. 'en', 'fr'). Translations: `locales/<lang>.json` (tools/i18n.ts). */
+  lang?: string;
   /** Save format version. Bump it if the content changes incompatibly. */
   saveVersion: number;
   hero: Id;
@@ -667,6 +674,8 @@ export interface UiTexts {
   volumeMusic?: string;
   volumeSfx?: string;
   volumeVoice?: string;
+  /** Language row of the settings menu (when the game ships translations). */
+  language?: string;
   /** Values of text speed / size: slow, normal, fast, large. */
   slow?: string;
   normal?: string;

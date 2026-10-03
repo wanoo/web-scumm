@@ -18,6 +18,8 @@ export interface ValidateOptions {
   minigameParams?: Record<string, string[]>;
   /** Maximum length of a line before a warning. */
   maxText?: number;
+  /** The game's custom commands (`{ custom }`): checked to exist and to declare `effects` or `pure`. Absent = no check. */
+  commands?: Record<string, { effects?: unknown[]; pure?: boolean }>;
 }
 
 export interface Report { errors: string[]; warnings: string[] }
@@ -227,6 +229,15 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     if ('waitEvent' in c) { if (!waited.has(c.waitEvent)) waited.set(c.waitEvent, where); if (!inScript) warn(where, 'waitEvent outside the top level of a script does nothing'); return; }
     if ('startScript' in c) { scriptRefs.push([c.startScript, where]); return; }
     if ('stopScript' in c) { scriptRefs.push([c.stopScript, where]); return; }
+    if ('custom' in c) {
+      if (opts.commands) {
+        const k = opts.commands[c.custom];
+        if (!k) err(where, `unknown custom command: "${c.custom}" (known: ${Object.keys(opts.commands).join(', ') || 'none'})`);
+        else if (!k.effects && !k.pure) err(where, `custom command "${c.custom}" declares neither "effects" nor "pure: true": the solver cannot know what it does`);
+        else if (k.effects) nested(() => cmds(k.effects as Cmd[], `commands.${c.custom}.effects`, room));
+      }
+      return;
+    }
     if ('switchPlayer' in c) { if (!playerIds.includes(c.switchPlayer)) err(where, `"${c.switchPlayer}" is not a playable character (players.ids)`); return; }
     if ('transfer' in c) {
       if (!items[c.transfer[0]]) err(where, `unknown item: "${c.transfer[0]}"`);

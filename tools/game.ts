@@ -5,6 +5,7 @@ import { basename, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { GameDef, Layout } from '../src/engine/core/types';
 import type { Minigame } from '../src/engine/minigames/types';
+import type { CustomCommands } from '../src/engine/core/custom';
 
 // import.meta.url (not import.meta.dirname): vite.config.ts bundles this file and only rewrites import.meta.url.
 export const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
@@ -33,6 +34,10 @@ export interface GameModule {
   minigames?: Record<string, Minigame>;
   /** Images to prepare even if no content references them (npm run assets). */
   extraImages?: string[];
+  /** Custom commands (`{ custom }`), see src/engine/core/custom.ts. */
+  commands?: CustomCommands;
+  /** Translations: language → (text path → text), from locales/<lang>.json (tools/i18n.ts). */
+  locales?: Record<string, Record<string, string>>;
 }
 
 /** Loads games/<GAME>/index.ts. */

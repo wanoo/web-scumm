@@ -11,7 +11,7 @@ téléphone, hors ligne après la première visite.
 |---|---|
 | 🎮 **Jouer au jeu d'exemple** | https://wanoo.github.io/web-scumm/ (téléphone en paysage, ou ordinateur) |
 | 🛠 **Essayer le Studio** | https://wanoo.github.io/web-scumm/studio.html (mode démo : les modifications restent dans le navigateur) |
-| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v1.6.0 |
+| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v2.0.0 |
 
 ## En images
 
@@ -30,11 +30,12 @@ téléphone, hors ligne après la première visite.
 | ![Studio, Assistant](docs/img/studio-assistant.jpg) *L'Assistant : n'importe quel modèle, les mêmes outils que le serveur MCP, à propos de l'élément sélectionné* | ![Studio, réglages de l'Assistant](docs/img/studio-assistant-settings.jpg) *Réglages : OpenAI, Anthropic, Mistral, Ollama ou un point d'accès maison, clé gardée dans ton navigateur* |
 
 ## État d'avancement
-- Moteur, outils et jeu d'exemple : complets et jouables de bout en bout (validateur, solveur, 122 tests, parcours Playwright).
+- Moteur, outils et jeu d'exemple : complets et jouables de bout en bout (validateur, solveur, 126 tests, parcours Playwright).
 - Pages de validation (storyboard, contrôle des sprites, placement) : fonctionnelles, en HTML local ou en artefact claude.ai.
 - **Studio** (`npm run studio`) : un environnement de création complet en local : lieux (WYSIWYG sur le vrai moteur), textes, storyboard, notes, **assets** (chaque image et son, prompts par planche, dépôts découpés automatiquement) et un **Assistant** qui branche n'importe quel modèle (OpenAI, Anthropic, Mistral, Ollama…) avec les mêmes outils que le serveur MCP. Voir `docs/fr/STUDIO.md`.
 - **Générateur de prompts** (`npm run prompts`) : prompts prêts à coller pour chaque planche de personnage (marche, parole, assis, poses spéciales utilisées par les lieux), planche d'objets avec états, décors et meubles, tous avec le même bloc de style. Voir `docs/fr/PROMPTS.md`.
 - **Discipline de couleur et préréglage pixel art** : chaque prompt généré porte les règles de couleur (4 tons par matière avec décalage de teinte, aplats, un seul contour) ; `artStyle: "pixel"` dans `site.json` bascule prompts, découpe (plus proche voisin, palette partagée, PNG indexé), pipeline (sans perte) et rendu en vrai pixel art. **Palette swap** dans le moteur : un personnage ou une variante recoloré à partir des mêmes sprites.
+- **Ouverture** (v2.0) : **commandes custom** (`commands` dans `index.ts` : des `effects` déclarés pour le solveur, un `run` pour le navigateur) ; **traductions par extraction** (`npm run i18n`, `locales/<lang>.json`, un réglage Langue) ; l'onglet **Play** du Studio (le jeu à côté de son état en direct et d'un explicateur de règles : pourquoi cette action répond ça) ; micro-jeux de test par primitive dans `tests/fixtures/`.
 - **Distribution** (v1.6) : **plusieurs personnages jouables** (`players`) : chacun son lieu, sa position et son sac ; boutons de bascule dans la rangée d'outils, `{ switchPlayer }`, `{ transfer }`, condition `{ player }` ; donner un objet à un personnage inactif le lui transmet ; le solveur bascule comme le joueur. Démo : Biscuit est jouable.
 - **Image** (v1.5) : **lieux larges** (`width` dans le layout) avec une **caméra** qui suit le héros et des commandes `camera` (panoramique, centrer sur quelque chose) ; **animations d'accessoires à événements de frame** (`anims`, `{ play }`, `at: { image: [commandes] }`, aussi sur `anim` des personnages) ; **voix** sur les répliques (`audio.voices`, `say.voice`) ; un menu **Réglages** (vitesse et taille du texte, réduire les animations, police lisible, volumes musique / sons / voix).
 - **Échelle** (v1.4) : **sorties déclarées** (`exits` : un hotspot et sa règle goto, générés) et la **carte du monde** que les outils en tirent (lieux inaccessibles, sorties sans retour ; Check du Studio, `npm run page:world`) ; **chapitres** (`goals` sur les checkpoints, `npm run solve -- --chapters`) et **invariants** ; **emplacements de sauvegarde** avec export / import et **migrations en données** entre `saveVersion` ; un **profileur de contenu** (`npm run validate -- --report`, Studio, MCP `content_report`).

@@ -12,7 +12,7 @@ import { normalizeExits } from '../../src/engine/core/define';
 import { solve as solveGame } from '../../src/engine/tools/solve';
 import { report as reportGame, reportMarkdown } from '../../src/engine/tools/report';
 import { toDot, toSvg, worldGraph } from '../../src/engine/tools/graph';
-import { loadAssets, loadLayouts } from '../../src/engine/tools/load';
+import { loadAssets, loadLayouts, loadLocales } from '../../src/engine/tools/load';
 import { GAME_DIR, ROOT, type GameModule } from '../game';
 import { normalizeStoryboard, storyboardMarkdown } from '../pages/storyboard-data';
 import { addToSection, extractTexts, objectText, parseRoom, SourceError, setTextInSource } from './source';
@@ -343,7 +343,7 @@ export function createStudio(opts: StudioOptions = {}) {
       minigames = { ...eng.minigames, ...(mod.minigames ?? {}) };
     } catch { minigames = undefined; }
     const { errors, warnings } = validateGame(mod.game, layouts, {
-      assets,
+      assets, commands: mod.commands,
       minigameIds: minigames ? Object.keys(minigames) : undefined,
       minigameParams: minigames ? Object.fromEntries(Object.entries(minigames).map(([k, m]) => [k, m.required ?? []])) : undefined,
     });
@@ -355,7 +355,7 @@ export function createStudio(opts: StudioOptions = {}) {
     const mod = await loadModule();
     if (from && !mod.game.checkpoints?.[from]) throw new StudioError(`unknown checkpoint: "${from}"`);
     const layouts = loadLayouts(join(dir, 'layout'));
-    const r = await solveGame(mod.game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new' });
+    const r = await solveGame(mod.game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands: mod.commands });
     return {
       finished: r.finished, states: r.states, truncated: r.truncated, path: r.path,
       roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
@@ -369,7 +369,7 @@ export function createStudio(opts: StudioOptions = {}) {
   async function report(): Promise<ReportData> {
     const t0 = Date.now();
     const mod = await loadModule();
-    const r = reportGame(mod.game, loadLayouts(join(dir, 'layout')));
+    const r = reportGame(mod.game, loadLayouts(join(dir, 'layout')), { locales: loadLocales(join(dir, 'locales')) });
     return { report: r, markdown: reportMarkdown(r), ms: Date.now() - t0 };
   }
 
