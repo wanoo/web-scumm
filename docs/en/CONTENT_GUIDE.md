@@ -201,6 +201,8 @@ A line stays on screen for as long as it takes to read, or until a tap.
 | `{ unlock: 'market' }` | Unlock a place on the map. A locked place does not appear. |
 | `{ goto: 'market', at: 'gate' }` | Change rooms (optional entry point, defined in the layout). |
 | `{ map: true }` | Open the map. |
+| `{ moveActor: ['grandpa', 'house'], at?: 'door' }` | Send a character to another room: see "The world lives" below. |
+| `{ emit: 'bell_rang' }` | Fire an event: its listeners run right here (see "The world lives"). |
 
 ### Audio and effects
 
@@ -250,6 +252,79 @@ A line stays on screen for as long as it takes to read, or until a tap.
 | `{ prop: ['lamp', 'on'] }`, `{ prop: ['house.lamp', 'on'] }` | the prop is in that state (in the current room, or `'room.prop'`). |
 | `{ unlocked: 'market' }` | the place is unlocked on the map. |
 | `{ seen: 'house.grandma.0' }` | topic #0 of grandma's conversation at the house has already been heard. |
+| `{ actorIn: ['grandpa', 'house'] }` | the moving character is in that room (see "The world lives"). |
+
+## The world lives: scripts, events, moving characters
+
+Everything above reacts to the player: a tap, a rule, its commands. Three primitives let the world act on its own.
+They are data like the rest, so `validate`, `solve` and the save understand them.
+
+### Scripts: things that happen without a tap
+
+A script is a list of commands that runs on its own, **one command at a time, in the gaps between the player's actions**:
+never during an action, a cutscene, a conversation or a minigame. The engine resumes it at the next gap. A room's scripts
+run while the player is in the room; the game's scripts (`scripts` in `game.ts`) run everywhere.
+
+```ts
+scripts: [
+  // Biscuit stretches every seven seconds, forever.
+  { id: 'biscuit_naps', loop: true, do: [{ wait: 7000 }, { anim: ['biscuit', 'stretch'], ms: 1200 }] },
+  // Lou strolls between two spots until the deal is done; when `while` turns false the script rewinds and waits.
+  { id: 'lou_paces', loop: true, while: '!bouquet_given', do: [
+    { wait: 6000 }, { walk: [235, 262], who: 'neighbor' }, { wait: 3000 }, { walk: [147, 278], who: 'neighbor' },
+  ] },
+  // Once: the cook comes when the gong rings, then the script is done.
+  { id: 'cook_comes', do: [{ waitEvent: 'gong' }, { moveActor: ['cook', 'hall'] }, { say: ['cook', 'Dinner!'] }] },
+],
+```
+
+| Field or command | Effect |
+|---|---|
+| `id` | Unique in the whole game (a script can be waited on from anywhere). |
+| `loop: true` | Starts again from the top when done. A loop must contain a `wait`, `waitUntil` or `waitEvent`. |
+| `while: COND` | Runs only while the condition holds; when it turns false, the script rewinds to its first command and waits. |
+| `{ wait: 3000 }` | A pause: the player keeps playing meanwhile. |
+| `{ waitUntil: COND }` | Pauses until the condition holds (checked at every gap). |
+| `{ waitEvent: 'gong' }` | Pauses until the event is emitted, even from another room. |
+| `{ startScript: 'id' }`, `{ stopScript: 'id' }` | From any script or rule: start a script from the top (again, if done or stopped), or stop it. |
+
+A script's position is saved with the game: it resumes where it was. Since a script's commands interleave with the
+player's actions at the level of a whole command, keep each command short (a `walk`, a line, a pose), and put a sequence
+that must not be interrupted in a `cutscene`. A script cannot be skipped by the player.
+
+### Events: "something just happened"
+
+A flag is a state (the door *is* open). An event is a moment (the bell *just* rang). `{ emit: 'bell_rang' }` runs, right
+there and in order, the listeners of the current room, then the game's:
+
+```ts
+// market.ts, in a rule:  { gain: 'key' }, { emit: 'key_found' }
+// game.ts:
+events: [
+  { on: 'key_found', once: true, do: [{ moveActor: ['grandpa', 'house'] }, { toast: 'Grandpa went home.' }] },
+],
+```
+
+`if` and `once` work as on a rule. An event is not remembered: to react later (next time the player enters a room), set
+a flag in the listener and test it in `onEnter`. A script paused on `waitEvent` for that event moves on, wherever it is.
+
+### Moving characters
+
+A character declared as an actor in several rooms normally shows in all of them (Grandma in the kitchen *and* the
+garden). Give it a starting room, and only its actor in that room shows; `moveActor` sends it elsewhere:
+
+```ts
+// cast.ts
+grandpa: { name: 'Grandpa', room: 'garden', … },
+// house.ts and garden.ts both declare   actors: { grandpa: { char: 'grandpa' } }   and place him in their layout.
+// anywhere:  { moveActor: ['grandpa', 'house'] }            at his layout position in the house
+//            { moveActor: ['grandpa', 'house'], at: 'door' } at that entry point (or a point) of the house
+// conditions: { actorIn: ['grandpa', 'house'] }
+```
+
+The character is removed from the room it leaves and appears in the one it reaches, on screen if the player is there.
+`checkpoints` take a `where: { grandpa: 'house' }` to start with a character elsewhere than its starting room.
+The validator refuses `moveActor` toward a room where the character is not an actor, or for a character with no `room`.
 
 ## Characters, items, map
 

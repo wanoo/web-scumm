@@ -50,8 +50,12 @@ function stateKeys(game: GameDef) {
     else if ('minigame' in c) walk(c.then);
     else if ('phone' in c) walk(c.do);
   });
-  for (const r of game.rooms) { walk(r.onEnter); r.on?.forEach((x) => walk(x.do)); Object.values(r.talk ?? {}).forEach((ts) => ts.forEach((t) => walk(t.do))); }
+  for (const r of game.rooms) {
+    walk(r.onEnter); r.on?.forEach((x) => walk(x.do)); Object.values(r.talk ?? {}).forEach((ts) => ts.forEach((t) => walk(t.do)));
+    r.scripts?.forEach((x) => walk(x.do)); r.events?.forEach((x) => walk(x.do));
+  }
   game.rules.on?.forEach((x) => walk(x.do));
+  game.scripts?.forEach((x) => walk(x.do)); game.events?.forEach((x) => walk(x.do));
   walk(game.start.intro);
   const json = JSON.stringify(game);
   // `seen` only counts if a condition reads it
@@ -76,7 +80,7 @@ function stateKeys(game: GameDef) {
   };
   findConds(game);
   // A once/nth counter only counts if its block actually changes state (flag, item, prop, room…): repeat gags don't.
-  const CHANGES = /"(set|clear|gain|lose|used|prop|unlock|show|hide|minigame|phone|travel|map|ending|reveal|done|checkpoint)"/;
+  const CHANGES = /"(set|clear|gain|lose|used|prop|unlock|show|hide|minigame|phone|travel|map|ending|reveal|done|checkpoint|moveActor|emit|startScript|stopScript|goto)"/;
   const matters = (cmds: Cmd[]) => CHANGES.test(JSON.stringify(cmds));
   const onceRead = new Set<string>();
   const nthRead = new Map<string, number>();
@@ -93,14 +97,37 @@ function stateKeys(game: GameDef) {
     else if ('minigame' in c) walk2(c.then);
     else if ('phone' in c) walk2(c.do);
   });
-  for (const r of game.rooms) { walk2(r.onEnter); r.on?.forEach((x) => walk2(x.do)); Object.values(r.talk ?? {}).forEach((ts) => ts.forEach((t) => walk2(t.do))); }
+  for (const r of game.rooms) {
+    walk2(r.onEnter); r.on?.forEach((x) => walk2(x.do)); Object.values(r.talk ?? {}).forEach((ts) => ts.forEach((t) => walk2(t.do)));
+    r.scripts?.forEach((x) => walk2(x.do)); r.events?.forEach((x) => walk2(x.do));
+  }
   game.rules.on?.forEach((x) => walk2(x.do));
+  game.scripts?.forEach((x) => walk2(x.do)); game.events?.forEach((x) => walk2(x.do));
   walk2(game.start.intro);
+  // A counter only counts up to the highest value a condition compares it with: beyond, more `inc` change nothing.
+  // A number nobody compares is just true: a script that counts forever doesn't create states forever.
+  const flagBounds = new Map<string, number>();
+  const findBounds = (v: unknown) => {
+    if (!v || typeof v !== 'object') return;
+    if (Array.isArray(v)) { v.forEach(findBounds); return; }
+    const o = v as Record<string, unknown>;
+    if (typeof o.flag === 'string') {
+      for (const k of ['eq', 'gte', 'lt'] as const) if (typeof o[k] === 'number') flagBounds.set(o.flag, Math.max(flagBounds.get(o.flag) ?? -Infinity, o[k] as number));
+    }
+    Object.values(o).forEach(findBounds);
+  };
+  findBounds(game);
   void once; void nth;
-  return { once: onceRead, nth: nthRead, seenRead, propRead };
+  return { once: onceRead, nth: nthRead, seenRead, propRead, flagBounds };
 }
 
 function hashState(s: GameState, keys: ReturnType<typeof stateKeys>): string {
+  const flags: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(s.flags)) {
+    if (typeof v !== 'number') { flags[k] = v; continue; }
+    const b = keys.flagBounds.get(k);
+    flags[k] = b === undefined ? !!v : Math.min(v, b + 1);
+  }
   const counters: Record<string, number> = {};
   for (const [k, v] of Object.entries(s.counters)) {
     if (keys.once.has(k)) counters[k] = v ? 1 : 0;
@@ -108,10 +135,14 @@ function hashState(s: GameState, keys: ReturnType<typeof stateKeys>): string {
   }
   const vis: Record<string, boolean> = {};
   for (const [k, a] of Object.entries(s.actors)) if (a.visible !== undefined) vis[k] = a.visible;
-  const seen = Object.keys(s.seen).filter((k) => keys.seenRead.has(k)).sort();
+  // `once` listeners (`event.*`) change what the next emit does: they are part of the state.
+  const seen = Object.keys(s.seen).filter((k) => keys.seenRead.has(k) || k.startsWith('event.')).sort();
   const props: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(s.props)) if (keys.propRead.has(k.includes('.') ? k.slice(k.indexOf('.') + 1) : k) || keys.propRead.has(k)) props[k] = v;
-  return JSON.stringify([s.room, [...s.inventory].sort(), sortObj(s.flags), sortObj(props), [...s.unlocked].sort(), sortObj(vis), sortObj(counters), seen, !!s.done, [...(s.used ?? [])].sort()]);
+  const scripts: Record<string, [number, boolean, boolean]> = {};
+  for (const [k, st] of Object.entries(s.scripts ?? {})) scripts[k] = [st.pc, !!st.done, !!st.off];
+  return JSON.stringify([s.room, [...s.inventory].sort(), sortObj(flags), sortObj(props), [...s.unlocked].sort(), sortObj(vis), sortObj(counters), seen, !!s.done, [...(s.used ?? [])].sort(),
+    sortObj(s.where ?? {}), sortObj(scripts)]);
 }
 
 function sortObj<T>(o: Record<string, T>): [string, T][] { return Object.entries(o).sort(([a], [b]) => a.localeCompare(b)); }
@@ -220,6 +251,12 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     for (const [pid, p] of Object.entries(game.map?.places ?? {})) {
       if (!s.unlocked.includes(pid) || p.room === s.room || !game.rooms.some((r) => r.id === p.room)) continue;
       tries.push({ label: `Map → ${p.name}`, run: (e) => e.travel(pid), items: [] });
+    }
+    // The world's scripts: letting one run (until it waits, ends or loops) is something the player can do by waiting.
+    for (const sc of probe.scriptsHere()) {
+      const st = s.scripts?.[sc.id];
+      if (st?.done || st?.off) continue;
+      tries.push({ label: `Script ${sc.id}`, run: (e) => e.runScript(sc.id).then(() => undefined), items: [] });
     }
 
     let progressed = false;

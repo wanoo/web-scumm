@@ -66,6 +66,10 @@ Le choix se fait tout seul (`App.layout`), et se refait si la fenêtre change de
 4. `resolve` cherche la réaction : règle du lieu → règle du jeu → Regarder → Parler (indices, conversation) → sorte → refus → repli.
 5. Les commandes s'exécutent une à une ; chacune appelle le Presenter (dire, marcher, changer un accessoire, jouer un son…).
 6. À la fin, l'état est sauvegardé (localStorage). Tout l'état est du JSON : `GameState` dans `types.ts`.
+7. Dans les creux entre deux actions, les **scripts** du monde avancent d'une commande chacun (`ScriptDef`,
+   `Engine.advance`) : PNJ qui déambule, gag d'ambiance, personnage qui change de lieu (`moveActor`) quand un événement
+   émis (`emit`) réveille son `waitEvent`. Leur position vit aussi dans l'état : une sauvegarde les reprend, et le solveur
+   les joue comme des actions (« Script <id> »).
 
 ## Pourquoi ces choix
 

@@ -264,6 +264,8 @@ export async function launch(url, opts = {}) {
       if (m) return { kind: 'talk', actor: m[1].trim(), topic: m[2].trim() };
       m = t.match(/^Carte\s*→\s*(.+)$/) || t.match(/^Map\s*→\s*(.+)$/);
       if (m) return { kind: 'travel', place: m[1].trim() };
+      m = t.match(/^Script (.+)$/);
+      if (m) return { kind: 'script', id: m[1].trim() };
       const vb = vbs.find((v) => t === v.label || t.startsWith(v.label + ' '));
       if (!vb) return { kind: 'raw', label: t };
       const rest = t.slice(vb.label.length).trim();
@@ -284,6 +286,19 @@ export async function launch(url, opts = {}) {
     }
   }
 
+  /** The world's scripts run on their own in the browser: a "Script <id>" step of the solver's path only waits
+   * until that script has moved on (its saved position changed, or it finished), then until the engine is idle. */
+  async function waitScript(id, { timeout = 20000 } = {}) {
+    const before = await page.evaluate((i) => JSON.stringify(window.__game.engine.state.scripts?.[i] ?? null), id);
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeout) {
+      const now = await page.evaluate((i) => JSON.stringify(window.__game.engine.state.scripts?.[i] ?? null), id);
+      if (now !== before) break;
+      await page.waitForTimeout(200);
+    }
+    return waitIdle();
+  }
+
   /** Replays a solver action path by tapping. Unparsed steps are logged and skipped rather than failing the run. */
   async function walkthrough(path) {
     const actions = await actionsFromPath(path);
@@ -291,6 +306,7 @@ export async function launch(url, opts = {}) {
       if (a.kind === 'raw') { console.log(`walkthrough: step ${i + 1} not understood, skipped: ${a.label}`); continue; }
       if (a.kind === 'talk') { await verbById('talk'); await target(a.actor); await endConversationIfOpen(await say(a.topic)); }
       else if (a.kind === 'travel') { await openMap(); await say(a.place); }
+      else if (a.kind === 'script') { await waitScript(a.id); }
       else {
         await verbById(a.verb); await target(a.a); if (a.b) await target(a.b);
         await endConversationIfOpen(await waitIdle());

@@ -71,6 +71,9 @@ The choice is made automatically (`App.layout`), and redone whenever the window 
 4. `resolve` looks for the reaction: room rule → game rule → Look → Talk (hints, conversation) → kind → refusal → fallback.
 5. The commands run one by one; each calls the Presenter (speak, walk, change a prop, play a sound…).
 6. At the end, the state is saved (localStorage). All of the state is JSON: `GameState` in `types.ts`.
+7. In the gaps between actions, the world's **scripts** advance one command each (`ScriptDef`, `Engine.advance`): NPC
+   strolls, ambient gags, a character that `moveActor`s to another room when an `emit`ted event wakes its `waitEvent`.
+   Their position lives in the state too, so a save resumes them, and the solver plays them as actions ("Script <id>").
 
 ## Why these choices
 

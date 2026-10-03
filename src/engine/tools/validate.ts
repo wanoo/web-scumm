@@ -1,7 +1,7 @@
 // Content validator: checks that everything referenced exists, and flags what's missing for a good experience.
 // Pure TypeScript (no DOM): runs in node (npm run validate) and in tests.
 import { condFlags } from '../core/cond';
-import type { Cmd, Cond, GameDef, Id, Layout, RoomDef, Rule, VerbId } from '../core/types';
+import type { Cmd, Cond, EventRule, GameDef, Id, Layout, RoomDef, Rule, ScriptDef, VerbId } from '../core/types';
 
 export interface AssetIndex {
   images: Record<string, [number, number]>;
@@ -43,6 +43,27 @@ export function validate(game: GameDef, layouts: Record<string, Layout>, opts: V
 
   const flagsRead = new Map<string, string>();
   const flagsSet = new Map<string, string>();
+  // Events: emitted somewhere, listened to somewhere, waited for by a script; scripts by id.
+  const emitted = new Map<string, string>();
+  const listened = new Map<string, string>();
+  const waited = new Map<string, string>();
+  const scriptIds = new Map<string, string>();
+  const scriptRefs: [string, string][] = [];
+  for (const sc of game.scripts ?? []) scriptIds.set(sc.id, 'scripts');
+  for (const r of game.rooms) for (const sc of r.scripts ?? []) {
+    if (scriptIds.has(sc.id)) err(`${r.id}.scripts`, `duplicate script id: "${sc.id}" (also in ${scriptIds.get(sc.id)})`);
+    scriptIds.set(sc.id, `${r.id}.scripts`);
+  }
+  /** A moving character: declared with a starting room, and an actor of it in the target room. */
+  const mover = (char: Id, roomId: Id, where: string) => {
+    const ch = chars[char];
+    if (!ch) { err(where, `unknown character: "${char}"`); return; }
+    if (!ch.room) err(where, `character "${char}" has no starting room ("room" in its definition), needed to move it between rooms`);
+    else if (!rooms.has(ch.room)) err(where, `character "${char}": unknown starting room "${ch.room}"`);
+    const r = rooms.get(roomId);
+    if (!r) { err(where, `unknown room: "${roomId}"`); return; }
+    if (!Object.values(r.actors ?? {}).some((a) => a.char === char)) err(where, `"${char}" is not an actor in ${roomId}: declare it there (actors) and place it in the layout`);
+  };
   const read = (c: Cond | undefined, where: string) => { for (const f of condFlags(c)) if (!flagsRead.has(f)) flagsRead.set(f, where); };
   const setF = (f: string, where: string) => { if (!flagsSet.has(f)) flagsSet.set(f, where); };
   for (const f of Object.keys(game.start.flags ?? {})) setF(f, 'start');
@@ -97,6 +118,7 @@ export function validate(game: GameDef, layouts: Record<string, Layout>, opts: V
       else if ('room' in x) { if (!rooms.has(x.room)) err(where, `unknown room in condition: "${x.room}"`); }
       else if ('prop' in x) propRef(x.prop[0], x.prop[1], where, room);
       else if ('unlocked' in x) { if (!places[x.unlocked]) err(where, `unknown map place: "${x.unlocked}"`); }
+      else if ('actorIn' in x) mover(x.actorIn[0], x.actorIn[1], where);
     };
     visit(c);
   };
@@ -117,6 +139,7 @@ export function validate(game: GameDef, layouts: Record<string, Layout>, opts: V
   const whoOk = (w: Id, room?: RoomDef) => w === HERO || !!chars[w] || !!room?.actors?.[w];
 
   // ------------------------------------------------------------ commands
+  let inScript = false;
   const cmds = (list: Cmd[] | undefined, where: string, room?: RoomDef) => {
     list?.forEach((c, i) => cmd(c, `${where}[${i}]`, room));
   };
@@ -140,7 +163,7 @@ export function validate(game: GameDef, layouts: Record<string, Layout>, opts: V
     if ('pose' in c) { if (!whoOk(c.pose[0], room)) err(where, `unknown character: "${c.pose[0]}"`); poseRef(c.pose[0], c.pose[1], where, room); return; }
     if ('anim' in c) { if (!whoOk(c.anim[0], room)) err(where, `unknown character: "${c.anim[0]}"`); poseRef(c.anim[0], c.anim[1], where, room); return; }
     if ('wait' in c) return;
-    if ('parallel' in c) { c.parallel.forEach((b, j) => cmds(b, `${where}.parallel[${j}]`, room)); return; }
+    if ('parallel' in c) { nested(() => c.parallel.forEach((b, j) => cmds(b, `${where}.parallel[${j}]`, room))); return; }
     if ('prop' in c) { propRef(c.prop[0], c.prop[1], where, room); return; }
     if ('show' in c || 'hide' in c) {
       const id = 'show' in c ? c.show : (c as { hide: Id }).hide;
@@ -161,6 +184,18 @@ export function validate(game: GameDef, layouts: Record<string, Layout>, opts: V
       return;
     }
     if ('map' in c) return;
+    if ('moveActor' in c) {
+      const [char, to] = c.moveActor;
+      if (char === HERO || char === game.hero) err(where, 'moveActor is for other characters: the hero changes rooms with goto');
+      else mover(char, to, where);
+      if (typeof c.at === 'string' && layouts[to] && !layouts[to].entries?.[c.at]) err(where, `unknown entry point "${c.at}" in ${to}`);
+      return;
+    }
+    if ('emit' in c) { if (!c.emit) err(where, 'empty event id'); else if (!emitted.has(c.emit)) emitted.set(c.emit, where); return; }
+    if ('waitUntil' in c) { cond(c.waitUntil, where, room); if (!inScript) warn(where, 'waitUntil outside a script: it polls the condition and blocks the player'); return; }
+    if ('waitEvent' in c) { if (!waited.has(c.waitEvent)) waited.set(c.waitEvent, where); if (!inScript) warn(where, 'waitEvent outside the top level of a script does nothing'); return; }
+    if ('startScript' in c) { scriptRefs.push([c.startScript, where]); return; }
+    if ('stopScript' in c) { scriptRefs.push([c.stopScript, where]); return; }
     if ('sfx' in c) { if (!sfx[c.sfx]) err(where, `unknown sound effect: "${c.sfx}"`); return; }
     if ('music' in c) {
       const m = c.music;
@@ -170,28 +205,28 @@ export function validate(game: GameDef, layouts: Record<string, Layout>, opts: V
     }
     if ('toast' in c) { text(c.toast, where); return; }
     if ('shake' in c) return;
-    if ('if' in c) { cond(c.if, where, room); cmds(c.then, `${where}.then`, room); cmds(c.else, `${where}.else`, room); return; }
-    if ('once' in c) { cmds(c.once, `${where}.once`, room); return; }
-    if ('nth' in c) { c.nth.forEach((b, j) => cmds(b, `${where}.nth[${j}]`, room)); return; }
-    if ('cycle' in c) { c.cycle.forEach((b, j) => cmds(b, `${where}.cycle[${j}]`, room)); return; }
-    if ('random' in c) { c.random.forEach((b, j) => cmds(b, `${where}.random[${j}]`, room)); return; }
-    if ('cutscene' in c) { cmds(c.cutscene, `${where}.cutscene`, room); return; }
+    if ('if' in c) { cond(c.if, where, room); nested(() => { cmds(c.then, `${where}.then`, room); cmds(c.else, `${where}.else`, room); }); return; }
+    if ('once' in c) { nested(() => cmds(c.once, `${where}.once`, room)); return; }
+    if ('nth' in c) { nested(() => c.nth.forEach((b, j) => cmds(b, `${where}.nth[${j}]`, room))); return; }
+    if ('cycle' in c) { nested(() => c.cycle.forEach((b, j) => cmds(b, `${where}.cycle[${j}]`, room))); return; }
+    if ('random' in c) { nested(() => c.random.forEach((b, j) => cmds(b, `${where}.random[${j}]`, room))); return; }
+    if ('cutscene' in c) { nested(() => cmds(c.cutscene, `${where}.cutscene`, room)); return; }
     if ('choice' in c) {
       if (!c.choice.length) err(where, 'choice with no option');
-      c.choice.forEach((o, j) => { text(o.text, `${where}.choice[${j}]`); cond(o.if, `${where}.choice[${j}]`, room); cmds(o.do, `${where}.choice[${j}]`, room); });
+      nested(() => c.choice.forEach((o, j) => { text(o.text, `${where}.choice[${j}]`); cond(o.if, `${where}.choice[${j}]`, room); cmds(o.do, `${where}.choice[${j}]`, room); }));
       return;
     }
     if ('minigame' in c) {
       if (opts.minigameIds && !opts.minigameIds.includes(c.minigame)) err(where, `unknown minigame: "${c.minigame}" (known: ${opts.minigameIds.join(', ')})`);
       minigameParams(c.minigame, c.params, where);
-      cmds(c.then, `${where}.then`, room);
+      nested(() => cmds(c.then, `${where}.then`, room));
       return;
     }
     if ('phone' in c) {
       const list = Array.isArray(c.phone) ? c.phone : [c.phone];
       if (!list.length) err(where, 'call with no one on the line');
       for (const w of list) if (!whoOk(w, room)) err(where, `unknown character: "${w}"`);
-      cmds(c.do, `${where}.phone`, room);
+      nested(() => cmds(c.do, `${where}.phone`, room));
       return;
     }
     if ('guide' in c) {
@@ -204,11 +239,38 @@ export function validate(game: GameDef, layouts: Record<string, Layout>, opts: V
     if ('talk' in c) { if (room && !room.talk?.[c.talk]) err(where, `no conversation topics for "${c.talk}"`); return; }
     if ('ending' in c || 'reveal' in c) {
       if (!game.ending) err(where, 'sealed ending without "ending" in the game');
-      cmds(c.after, `${where}.after`, room);
+      nested(() => cmds(c.after, `${where}.after`, room));
       return;
     }
     if ('hint' in c || 'end' in c) return;
     err(where, `unknown command: ${JSON.stringify(c)}`);
+  };
+  /** Commands nested in a block are not at a script's top level (where waitUntil / waitEvent pause the script). */
+  const nested = (fn: () => void) => { const was = inScript; inScript = false; fn(); inScript = was; };
+
+  /** The world's scripts: unique ids (checked above), a loop that waits, commands checked at the top level. */
+  const scripts = (list: ScriptDef[] | undefined, where: string, room?: RoomDef) => {
+    list?.forEach((sc, i) => {
+      const w = `${where}[${i}]`;
+      if (!sc.id) err(w, 'script without id');
+      cond(sc.while, `${w}.while`, room);
+      if (!sc.do?.length) { err(w, 'script with no command'); return; }
+      const pauses = sc.do.some((c) => typeof c === 'object' && ('wait' in c || 'waitUntil' in c || 'waitEvent' in c));
+      if (sc.loop && !pauses) err(w, `loop script "${sc.id}" never waits (add a wait, waitUntil or waitEvent)`);
+      inScript = true;
+      cmds(sc.do, `${w}.do`, room);
+      inScript = false;
+    });
+  };
+  const events = (list: EventRule[] | undefined, where: string, room?: RoomDef) => {
+    list?.forEach((ev, i) => {
+      const w = `${where}[${i}]`;
+      if (!ev.on) err(w, 'listener without event id ("on")');
+      else if (!listened.has(ev.on)) listened.set(ev.on, w);
+      cond(ev.if, w, room);
+      if (!ev.do?.length) warn(w, 'listener with no command');
+      cmds(ev.do, `${w}.do`, room);
+    });
   };
 
   /** Required params of the minigame, and images referenced in the params. */
@@ -278,6 +340,10 @@ export function validate(game: GameDef, layouts: Record<string, Layout>, opts: V
       frames.forEach((f) => img(f, `${w}.${pose}`));
     }
     if (!c.offscreen && c.sprites && !c.sprites.idle) warn(w, 'no "idle" pose');
+    if (c.room) {
+      if (!rooms.has(c.room)) err(w, `unknown starting room: "${c.room}"`);
+      else if (!Object.values(rooms.get(c.room)!.actors ?? {}).some((a) => a.char === cid)) err(w, `starting room "${c.room}" has no actor of "${cid}"`);
+    }
     // Palette swap: source and target colours must be #rrggbb (others are ignored by the renderer).
     const palette = (pal: unknown, tol: unknown, pw: string) => {
       if (pal === undefined) return;
@@ -312,6 +378,8 @@ export function validate(game: GameDef, layouts: Record<string, Layout>, opts: V
     for (const it of ids(k.item)) if (!items[it]) warn(w, `unknown item (reserved for later?): "${it}"`);
   });
   (game.rules.on ?? []).forEach((r, i) => rule(r, `rules.on[${i}]`));
+  scripts(game.scripts, 'scripts');
+  events(game.events, 'events');
 
   // Map
   if (game.map) {
@@ -384,6 +452,8 @@ export function validate(game: GameDef, layouts: Record<string, Layout>, opts: V
     (r.hints ?? []).forEach((h, i) => { cond(h.until, `${w}.hints[${i}]`, r); texts(h.lines, `${w}.hints[${i}]`); });
     if ((r.on ?? []).length && !(r.hints ?? []).length) warn(w, 'has puzzles but no hints');
     cmds(r.onEnter, `${w}.onEnter`, r);
+    scripts(r.scripts, `${w}.scripts`, r);
+    events(r.events, `${w}.events`, r);
 
     if (L) {
       for (const k of Object.keys(L.hotspots ?? {})) if (!r.hotspots?.[k]) warn(`${w}.layout`, `zone "${k}" has no hotspot in the room`);
@@ -400,7 +470,14 @@ export function validate(game: GameDef, layouts: Record<string, Layout>, opts: V
     for (const i of c.inventory ?? []) if (!items[i]) err(w, `unknown item: "${i}"`);
     for (const p of c.unlocked ?? []) if (!places[p]) err(w, `unknown map place: "${p}"`);
     for (const [k, st] of Object.entries(c.props ?? {})) propRef(k, st, w);
+    for (const [ch, rid] of Object.entries(c.where ?? {})) mover(ch, rid, `${w}.where`);
   }
+
+  // Events and scripts
+  for (const [id, where] of scriptRefs) if (!scriptIds.has(id)) err(where, `unknown script: "${id}"`);
+  for (const [ev, where] of emitted) if (!listened.has(ev) && !waited.has(ev)) warn(where, `event "${ev}" is emitted but nothing listens to it`);
+  for (const [ev, where] of listened) if (!emitted.has(ev)) warn(where, `event "${ev}" is listened to but never emitted`);
+  for (const [ev, where] of waited) if (!emitted.has(ev)) warn(where, `script waits for event "${ev}", which is never emitted`);
 
   // Flags
   for (const [f, where] of flagsRead) if (!flagsSet.has(f)) warn(where, `flag "${f}" is read but never set`);

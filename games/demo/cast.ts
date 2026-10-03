@@ -61,6 +61,8 @@ export const characters: Record<string, CharacterDef> = {
   },
   grandpa: {
     name: 'Grandpa', color: '#8fd3ff', height: 100, kind: ['person'],
+    // He starts in the garden and moves home (with the armchair) when the key is found: game.ts `events`.
+    room: 'garden',
     description: 'a relaxed grandfather in his seventies: short grey hair, short white beard, red sunglasses, a navy track jacket with white and red stripes, a grey t-shirt, blue jeans, white sneakers; always sitting in his green armchair with a flowered cushion, a TV remote at hand; laid-back, dozes a lot, laughs easily', portrait: 'grandpa/r1c2',
     sprites: { idle: ['grandpa_seated/r2c1'], surprised: ['grandpa_seated/r2c3'], laugh: ['grandpa_seated/r2c4'], slumped: ['grandpa_seated/r2c6'] },
     mouths: mouths('talk_grandpa', { idle: 'assis' }),

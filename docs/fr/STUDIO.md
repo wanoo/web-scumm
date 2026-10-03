@@ -11,8 +11,8 @@ que les joueurs auront.
   liste des accessoires / acteurs / zones cliquables du lieu à droite. En sélectionner un (dans la liste ou dans la
   vue) ouvre sa fiche : nom, sorte, états, visibilité, **lignes de Regarder** (ajouter, modifier, supprimer),
   **réactions** (verbe, cibles, condition, commandes en liste de lignes : textes modifiables, autres commandes
-  affichées), **sujets de conversation** ; sous la vue, le nom du lieu, les **indices** et les lignes **à
-  l'entrée**. Un texte est enregistré quand le champ perd le focus (Entrée) ; Échap annule. Chaque enregistrement
+  affichées), **sujets de conversation** ; sous la vue, le nom du lieu, les **indices**, les lignes **à
+  l'entrée**, les **scripts** et les **événements** du lieu (structure en lecture, textes modifiables). Un texte est enregistré quand le champ perd le focus (Entrée) ; Échap annule. Chaque enregistrement
   affiche un toast et lance Check en arrière-plan ; un placement en cours dans la vue est enregistré d'abord (la vue
   se recharge quand le fichier du lieu change). Les modifications de texte sont écrites directement dans
   `rooms/<room>.ts` (les littéraux de chaîne sont remplacés via l'analyseur TypeScript ; le fichier reste du code

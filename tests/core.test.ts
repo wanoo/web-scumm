@@ -5,6 +5,7 @@ import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import { check } from '@engine/core/cond';
 import type { GameDef, Layout } from '@engine/core/types';
 import { validate } from '@engine/tools/validate';
+import { solve } from '@engine/tools/solve';
 import { minigames } from '@engine/minigames';
 import { game, layouts } from './fixture';
 
@@ -287,5 +288,165 @@ describe('actor cutscene', () => {
     const { errors, warnings } = validate(mini(), miniLayouts);
     expect(errors).toEqual([]);
     expect(warnings.filter((w) => w.includes('attack'))).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The world lives: a moving character, events, scripts.
+// ---------------------------------------------------------------------------
+
+function world(): GameDef {
+  return {
+    id: 'world', title: 'World', saveVersion: 1, hero: 'hero',
+    verbs: [{ id: 'look', label: 'Look', color: '#fff' }, { id: 'use', label: 'Use', color: '#fff', join: 'with' }, { id: 'talk', label: 'Talk', color: '#fff' }],
+    characters: {
+      hero: { name: 'Hero', color: '#fff', sprites: { idle: ['h/1'] } },
+      cook: { name: 'Cook', color: '#0f0', room: 'kitchen', sprites: { idle: ['c/1'] } },
+    },
+    items: {},
+    rooms: [
+      { id: 'hall', name: 'Hall', decor: 'd/hall',
+        actors: { cook: { char: 'cook' } },
+        hotspots: { door: { name: 'door' }, gong: { name: 'gong' } },
+        look: { door: 'A door.', gong: 'A gong.', cook: 'The cook.' },
+        on: [
+          { verb: 'use', a: 'door', do: [{ goto: 'kitchen' }] },
+          { verb: 'use', a: 'gong', do: [{ emit: 'gong' }] },
+          { verb: 'talk', a: 'cook', if: { actorIn: ['cook', 'hall'] }, do: [{ say: ['cook', 'Dinner!'] }, { set: 'dinner' }, { end: true }] },
+        ],
+        events: [{ on: 'gong', once: true, do: [{ set: 'rang' }] }],
+        scripts: [{ id: 'hall_clock', loop: true, do: [{ wait: 1000 }, { inc: 'ticks' }] }],
+      },
+      { id: 'kitchen', name: 'Kitchen', decor: 'd/kitchen',
+        actors: { cook: { char: 'cook' } },
+        hotspots: { door: { name: 'door' } },
+        look: { door: 'A door.', cook: 'The cook, cooking.' },
+        on: [{ verb: 'use', a: 'door', do: [{ goto: 'hall' }] }],
+      },
+    ],
+    scripts: [{ id: 'cook_comes', do: [{ waitEvent: 'gong' }, { moveActor: ['cook', 'hall'] }, { toast: 'The cook comes.' }] }],
+    events: [{ on: 'gong', do: [{ inc: 'gongs' }] }],
+    rules: { fallbacks: { look: ['Nothing.'], use: ['No.'], talk: ['...'], use2: ['No.'] } },
+    start: { room: 'hall' },
+    skin: { icons: { map: 'ui/map', pause: 'ui/pause', music: 'ui/music' } },
+    ui: {} as GameDef['ui'],
+  };
+}
+
+const worldLayouts: Record<string, Layout> = {
+  hall: { entries: { default: [320, 360] }, actors: { cook: { x: 200, y: 300, h: 100 } }, hotspots: { door: { rect: [0, 0, 50, 50] }, gong: { rect: [100, 0, 50, 50] } } },
+  kitchen: { entries: { default: [320, 360] }, actors: { cook: { x: 400, y: 320, h: 100 } }, hotspots: { door: { rect: [0, 0, 50, 50] } } },
+};
+
+function bootWorld(g: GameDef = world()) {
+  const ui = new FakePresenter();
+  const store = new MemoryStore();
+  const e = new Engine(g, worldLayouts, ui, store);
+  e.random = () => 0;
+  return { e, ui, store };
+}
+
+describe('the world lives', () => {
+  it('a moving character only shows in the room it is in', async () => {
+    const { e } = bootWorld();
+    await e.newGame();
+    expect(e.state.where).toEqual({ cook: 'kitchen' });
+    expect(e.visible('cook')).toBe(false);
+    expect(e.targets()).toEqual(['door', 'gong']);
+    await e.act({ verb: 'use', a: 'door' });
+    expect(e.state.room).toBe('kitchen');
+    expect(e.visible('cook')).toBe(true);
+    expect(check({ actorIn: ['cook', 'kitchen'] }, e.state)).toBe(true);
+  });
+
+  it('emit runs the room listeners, then the game ones; once is once', async () => {
+    const { e } = bootWorld();
+    await e.newGame();
+    await e.act({ verb: 'use', a: 'gong' });
+    expect(e.state.flags).toEqual({ rang: true, gongs: 1 });
+    await e.act({ verb: 'use', a: 'gong' });
+    expect(e.state.flags).toEqual({ rang: true, gongs: 2 });
+    expect(e.state.seen['event.hall.0']).toBe(1);
+  });
+
+  it('a script waits for an event, then moves the character into the room on screen', async () => {
+    const { e, ui } = bootWorld();
+    await e.newGame();
+    expect(await e.runScript('cook_comes')).toBe(false);
+    expect(e.scriptState('cook_comes')).toEqual({ pc: 0 });
+    expect(await e.act({ verb: 'talk', a: 'cook' })).toBe('fallback'); // not here yet
+    await e.act({ verb: 'use', a: 'gong' });
+    expect(e.scriptState('cook_comes').pc).toBe(1); // past the waitEvent
+    expect(await e.runScript('cook_comes')).toBe(true);
+    expect(e.state.where).toEqual({ cook: 'hall' });
+    expect(e.state.actors['hall.cook']).toEqual({});
+    expect(e.visible('cook')).toBe(true);
+    expect(ui.log.slice(-2)).toEqual(['show cook', 'toast The cook comes.']);
+    expect(e.scriptState('cook_comes')).toEqual({ pc: 3, done: true });
+    expect(await e.runScript('cook_comes')).toBe(false);
+    expect(await e.act({ verb: 'talk', a: 'cook' })).toBe('rule');
+    expect(e.state.done).toBe(true);
+  });
+
+  it('a loop script runs one iteration at a time, resumes from the save, and can be stopped and restarted', async () => {
+    const { e, store } = bootWorld();
+    await e.newGame();
+    expect(await e.runScript('hall_clock')).toBe(true);
+    expect(e.state.flags.ticks).toBe(1);
+    expect(e.scriptState('hall_clock')).toEqual({ pc: 0 });
+    await e.runScript('hall_clock');
+    expect(e.state.flags.ticks).toBe(2);
+    await e.script([{ stopScript: 'hall_clock' }]);
+    expect(await e.runScript('hall_clock')).toBe(false);
+    e.save();
+    const e2 = new Engine(world(), worldLayouts, new FakePresenter(), store);
+    await e2.continueGame();
+    expect(e2.scriptState('hall_clock')).toEqual({ pc: 0, off: true });
+    await e2.script([{ startScript: 'hall_clock' }]);
+    expect(await e2.runScript('hall_clock')).toBe(true);
+    expect(e2.state.flags.ticks).toBe(3);
+  });
+
+  it('scripts pause while the engine is busy, and the while condition rewinds them', async () => {
+    const g = world();
+    g.rooms[0].scripts = [{ id: 'guard', loop: true, while: '!dinner', do: [{ set: 'step1' }, { wait: 10 }, { set: 'step2' }] }];
+    const { e } = bootWorld(g);
+    await e.newGame();
+    expect(await e.advance('guard')).toBe('ran');
+    e.state.flags.dinner = true;
+    expect(await e.advance('guard')).toBe('blocked');
+    expect(e.scriptState('guard').pc).toBe(0);
+    delete e.state.flags.dinner;
+    // busy: a player action in progress
+    const p = e.act({ verb: 'look', a: 'gong' });
+    expect(await e.advance('guard')).toBe('blocked');
+    await p;
+    expect(await e.runScript('guard')).toBe(true);
+    expect(e.state.flags).toMatchObject({ step1: true, step2: true });
+  });
+
+  it('the validator knows the world', () => {
+    expect(validate(world(), worldLayouts).errors).toEqual([]);
+    const g = world();
+    g.characters.cook.room = undefined;
+    g.rooms[0].scripts!.push({ id: 'spin', loop: true, do: [{ set: 'x' }] }, { id: 'hall_clock', do: ['dup'] });
+    g.rooms[0].on!.push({ verb: 'use', a: 'gong', do: [{ startScript: 'nope' }, { emit: 'silence' }] });
+    const { errors, warnings } = validate(g, worldLayouts);
+    expect(errors).toEqual([
+      'hall.scripts › duplicate script id: "hall_clock" (also in hall.scripts)',
+      'scripts[0].do[1] › character "cook" has no starting room ("room" in its definition), needed to move it between rooms',
+      'hall.on[2] › character "cook" has no starting room ("room" in its definition), needed to move it between rooms',
+      'hall.scripts[1] › loop script "spin" never waits (add a wait, waitUntil or waitEvent)',
+      'hall.on[3][0] › unknown script: "nope"',
+    ]);
+    expect(warnings).toContain('hall.on[3][1] › event "silence" is emitted but nothing listens to it');
+  });
+
+  it('the solver lets scripts run and finishes the game through them', async () => {
+    const r = await solve(world(), worldLayouts, { maxStates: 500 });
+    expect(r.finished).toBe(true);
+    // The clock may tick along the way (it is a state the player can reach by waiting); the beats are in order.
+    expect(r.path.filter((x) => x !== 'Script hall_clock')).toEqual(['Use gong', 'Script cook_comes', 'Talk cook']);
+    expect(r.truncated).toBe(false);
   });
 });

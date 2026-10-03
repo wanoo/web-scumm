@@ -67,6 +67,8 @@ export default defineRoom({
       { gain: 'key' }, { sfx: 'coins' }, { pose: ['seller', 'idle'] },
       { pose: ['neighbor', 'celebrate'] }, { say: ['neighbor', 'Yes! My lantern!'] },
       'And my sardines!', { pose: ['neighbor', 'idle'] },
+      // The world hears it: Grandpa goes home (game.ts `events`).
+      { emit: 'key_found' },
     ] },
 
     { verb: 'take', a: 'lantern', do: [{ say: ['seller', 'Paws off! That lantern is sold. Almost.'] }] },
@@ -119,5 +121,13 @@ export default defineRoom({
 
   onEnter: [
     { once: [{ say: ['neighbor', 'Pixel! Over here!'] }, 'Lou! Where is my key?'] },
+  ],
+
+  // Lou cannot stand still: a stroll along the stalls, on its own, until the deal is done.
+  scripts: [
+    { id: 'lou_paces', loop: true, while: '!bouquet_given', do: [
+      { wait: 6000 }, { walk: [235, 262], who: 'neighbor' }, { face: 'left', who: 'neighbor' }, { wait: 3000 },
+      { walk: [147, 278], who: 'neighbor' }, { face: 'right', who: 'neighbor' },
+    ] },
   ],
 });

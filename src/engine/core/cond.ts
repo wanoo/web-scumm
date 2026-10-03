@@ -24,6 +24,7 @@ export function check(c: Cond | undefined, s: GameState, room: Id = s.room): boo
   }
   if ('unlocked' in c) return s.unlocked.includes(c.unlocked);
   if ('seen' in c) return !!s.seen[c.seen];
+  if ('actorIn' in c) return s.where?.[c.actorIn[0]] === c.actorIn[1];
   return false;
 }
 

@@ -35,8 +35,12 @@ export function collectRefs({ game, extraImages }: Pick<GameModule, 'game' | 'ex
     scanCmds(r.onEnter);
     r.on?.forEach((x) => scanCmds(x.do));
     Object.values(r.talk ?? {}).forEach((ts) => ts.forEach((t) => scanCmds(t.do)));
+    r.scripts?.forEach((x) => scanCmds(x.do));
+    r.events?.forEach((x) => scanCmds(x.do));
   }
   game.rules.on?.forEach((x) => scanCmds(x.do));
+  game.scripts?.forEach((x) => scanCmds(x.do));
+  game.events?.forEach((x) => scanCmds(x.do));
   scanCmds(game.start.intro);
   for (const c of Object.values(game.characters)) {
     add(c.portrait);

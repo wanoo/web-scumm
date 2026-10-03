@@ -38,8 +38,12 @@ export function assignKeys(game: GameDef): GameDef {
     walk(r.onEnter, `${r.id}:enter`);
     r.on?.forEach((rule, i) => walk(rule.do, `${r.id}:on${i}`));
     for (const [actor, topics] of Object.entries(r.talk ?? {})) topics.forEach((t, i) => walk(t.do, `${r.id}:talk.${actor}.${i}`));
+    r.scripts?.forEach((sc) => walk(sc.do, `${r.id}:script.${sc.id}`));
+    r.events?.forEach((ev, i) => walk(ev.do, `${r.id}:event${i}`));
   }
   game.rules.on?.forEach((rule, i) => walk(rule.do, `game:on${i}`));
+  game.scripts?.forEach((sc) => walk(sc.do, `game:script.${sc.id}`));
+  game.events?.forEach((ev, i) => walk(ev.do, `game:event${i}`));
   walk(game.start.intro, 'game:intro');
   return game;
 }

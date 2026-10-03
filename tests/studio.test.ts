@@ -101,7 +101,7 @@ describe('setText', () => {
     const f = roomFile(demoDir, 'house');
     const before = read(f);
     const r = await demo.setText('house', 'look.teacup[1]', 'Not sardine-flavoured. Pass. Twice.');
-    expect(r).toEqual({ ok: true, line: 38, changed: true });
+    expect(r).toEqual({ ok: true, line: 41, changed: true });
     const after = read(f);
     expect(after).toBe(before.replace("'Not sardine-flavoured. Pass.'", "'Not sardine-flavoured. Pass. Twice.'"));
     const again = await demo.setText('house', 'look.teacup[1]', 'Not sardine-flavoured. Pass. Twice.');

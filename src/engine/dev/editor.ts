@@ -26,6 +26,11 @@ export function roundLayout(L: Layout): Layout {
  * Placement editor (?edit=<room>): drag clickable zones, props, characters, approach and entry points,
  * the walkable zone and the scale with the mouse, then save the JSON layout (dev server only).
  */
+export interface EditorOptions {
+  /** Where a layout goes when there is no dev server (a Studio demo build): e.g. the demo's edits in this browser. */
+  saveOffline?: (room: Id, layout: Layout) => void | Promise<void>;
+}
+
 export class Editor {
   readonly overlay: Overlay;
   private drag: Drag | null = null;
@@ -36,7 +41,7 @@ export class Editor {
   private dirty = false;
   private status = { state: 'up to date' };
 
-  constructor(private app: App) {
+  constructor(private app: App, private opts: EditorOptions = {}) {
     this.overlay = new Overlay(app, { edit: true, all: true });
     const svg = this.overlay.svg;
     svg.addEventListener('pointerdown', (e) => this.down(e));
@@ -283,15 +288,8 @@ export class Editor {
     if (error) { this.status.state = `error: ${error}`; this.post({ type: 'saved', ok: false, error: this.status.state }); }
     else if (!offline) { done(); this.post({ type: 'saved', ok: true }); }
     else if (window.parent !== window) { done(); this.post({ type: 'saved', ok: true, layout: L }); }
-    else {
-      const { readPatches, writePatches } = await import('../../studio/demo-patch');
-      let store: Storage | undefined;
-      try { store = localStorage; } catch { /* blocked */ }
-      const patches = readPatches(store, __GAME__).filter((p) => !(p.kind === 'layout' && p.room === this.room.id));
-      writePatches(store, __GAME__, [...patches, { kind: 'layout', room: this.room.id, layout: L }]);
-      done();
-      this.status.state += ' in this browser';
-    }
+    else if (this.opts.saveOffline) { await this.opts.saveOffline(this.room.id, L); done(); this.status.state += ' in this browser'; }
+    else this.status.state = 'error: no dev server, the layout is not saved';
     this.pane.refresh();
   }
 

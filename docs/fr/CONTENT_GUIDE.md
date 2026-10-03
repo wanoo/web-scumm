@@ -199,6 +199,8 @@ Une réplique reste à l'écran le temps de la lire, ou jusqu'à un tap.
 | `{ unlock: 'marche' }` | Débloque un lieu sur la carte. Un lieu verrouillé n'apparaît pas. |
 | `{ goto: 'marche', at: 'porte' }` | Change de lieu (point d'entrée facultatif, défini dans le layout). |
 | `{ map: true }` | Ouvre la carte. |
+| `{ moveActor: ['grandpere', 'maison'], at?: 'porte' }` | Envoie un personnage dans un autre lieu : voir « Le monde vit » plus bas. |
+| `{ emit: 'cloche' }` | Déclenche un événement : ses écouteurs s'exécutent ici même (voir « Le monde vit »). |
 
 ### Audio et effets
 
@@ -248,6 +250,80 @@ Une réplique reste à l'écran le temps de la lire, ou jusqu'à un tap.
 | `{ prop: ['lampe', 'on'] }`, `{ prop: ['maison.lampe', 'on'] }` | l'accessoire est dans cet état (dans le lieu courant, ou `'lieu.accessoire'`). |
 | `{ unlocked: 'marche' }` | le lieu est débloqué sur la carte. |
 | `{ seen: 'maison.grandmere.0' }` | le sujet n° 0 de Grand-mère à la maison a déjà été entendu. |
+| `{ actorIn: ['grandpere', 'maison'] }` | le personnage mobile est dans ce lieu (voir « Le monde vit »). |
+
+## Le monde vit : scripts, événements, personnages mobiles
+
+Tout ce qui précède réagit au joueur : un tap, une règle, ses commandes. Trois primitives permettent au monde d'agir
+tout seul. Ce sont des données comme le reste : `validate`, `solve` et la sauvegarde les comprennent.
+
+### Les scripts : ce qui se passe sans tap
+
+Un script est une liste de commandes qui tourne toute seule, **une commande à la fois, dans les creux entre les actions
+du joueur** : jamais pendant une action, une cinématique, une conversation ou un mini-jeu. Le moteur le reprend au creux
+suivant. Les scripts d'un lieu tournent tant que le joueur y est ; ceux du jeu (`scripts` dans `game.ts`) partout.
+
+```ts
+scripts: [
+  // Biscuit s'étire toutes les sept secondes, pour toujours.
+  { id: 'biscuit_naps', loop: true, do: [{ wait: 7000 }, { anim: ['biscuit', 'stretch'], ms: 1200 }] },
+  // Lou fait les cent pas entre deux points tant que l'affaire n'est pas conclue ; quand `while` devient faux, le script revient au début et attend.
+  { id: 'lou_paces', loop: true, while: '!bouquet_given', do: [
+    { wait: 6000 }, { walk: [235, 262], who: 'neighbor' }, { wait: 3000 }, { walk: [147, 278], who: 'neighbor' },
+  ] },
+  // Une fois : le cuisinier arrive quand le gong sonne, puis le script est terminé.
+  { id: 'cook_comes', do: [{ waitEvent: 'gong' }, { moveActor: ['cook', 'hall'] }, { say: ['cook', 'À table !'] }] },
+],
+```
+
+| Champ ou commande | Effet |
+|---|---|
+| `id` | Unique dans tout le jeu (on peut attendre un script depuis n'importe où). |
+| `loop: true` | Recommence du début une fois fini. Une boucle doit contenir un `wait`, `waitUntil` ou `waitEvent`. |
+| `while: COND` | Ne tourne que tant que la condition tient ; quand elle devient fausse, le script revient à sa première commande et attend. |
+| `{ wait: 3000 }` | Une pause : le joueur continue de jouer pendant ce temps. |
+| `{ waitUntil: COND }` | Attend que la condition soit vraie (vérifiée à chaque creux). |
+| `{ waitEvent: 'gong' }` | Attend que l'événement soit émis, même depuis un autre lieu. |
+| `{ startScript: 'id' }`, `{ stopScript: 'id' }` | Depuis un script ou une règle : relance un script du début (même fini ou arrêté), ou l'arrête. |
+
+La position d'un script est sauvegardée avec la partie : il reprend où il en était. Comme ses commandes s'intercalent
+avec les actions du joueur à l'échelle d'une commande entière, garde chaque commande courte (un `walk`, une réplique,
+une pose), et mets une séquence qui ne doit pas être interrompue dans une `cutscene`. Le joueur ne peut pas passer un script.
+
+### Les événements : « il vient de se passer quelque chose »
+
+Un flag est un état (la porte *est* ouverte). Un événement est un instant (la cloche *vient de* sonner).
+`{ emit: 'cloche' }` exécute, ici même et dans l'ordre, les écouteurs du lieu courant, puis ceux du jeu :
+
+```ts
+// marche.ts, dans une règle :  { gain: 'cle' }, { emit: 'key_found' }
+// game.ts :
+events: [
+  { on: 'key_found', once: true, do: [{ moveActor: ['grandpa', 'house'] }, { toast: 'Grand-père est rentré.' }] },
+],
+```
+
+`if` et `once` marchent comme sur une règle. Un événement n'est pas mémorisé : pour réagir plus tard (à la prochaine
+entrée dans un lieu), pose un flag dans l'écouteur et teste-le dans `onEnter`. Un script en pause sur `waitEvent` pour
+cet événement avance, où qu'il soit.
+
+### Les personnages mobiles
+
+Un personnage déclaré comme acteur dans plusieurs lieux s'affiche normalement dans tous (Grand-mère dans la cuisine
+*et* au jardin). Donne-lui un lieu de départ, et seul son acteur de ce lieu s'affiche ; `moveActor` l'envoie ailleurs :
+
+```ts
+// cast.ts
+grandpa: { name: 'Grand-père', room: 'garden', … },
+// house.ts et garden.ts déclarent tous deux   actors: { grandpa: { char: 'grandpa' } }   et le placent dans leur layout.
+// n'importe où :  { moveActor: ['grandpa', 'house'] }            à sa position du layout de la maison
+//                 { moveActor: ['grandpa', 'house'], at: 'door' } à ce point d'entrée (ou un point) de la maison
+// conditions : { actorIn: ['grandpa', 'house'] }
+```
+
+Le personnage disparaît du lieu qu'il quitte et apparaît dans celui qu'il rejoint, à l'écran si le joueur y est.
+Les `checkpoints` acceptent `where: { grandpa: 'house' }` pour démarrer avec un personnage ailleurs que dans son lieu
+de départ. Le validateur refuse un `moveActor` vers un lieu où le personnage n'est pas acteur, ou pour un personnage sans `room`.
 
 ## Personnages, objets, carte
 

@@ -457,6 +457,16 @@ export class RoomsTab {
           this.appender(`hints[${i}].lines`, 'New hint line…')))
         : h('p', { class: 'muted' }, 'No hints in this room.')),
       h('section', null, h('h3', null, 'On enter'), d.onEnter?.length ? this.cmds(d.onEnter, 'onEnter') : h('p', { class: 'muted' }, 'Nothing happens on entering.')),
+      h('section', null, h('h3', null, 'Scripts ', h('span', { class: 'muted small' }, 'run on their own while the player is here')),
+        d.scripts?.length ? d.scripts.map((sc, i) => h('div', { class: 'rule' },
+          h('div', { class: 'rulehead' }, h('code', null, sc.id), h('span', { class: 'muted small' }, `${sc.loop ? 'loop' : 'once'}${sc.while ? ` while ${condText(sc.while)}` : ''}`)),
+          this.cmds(sc.do, `scripts[${i}].do`)))
+        : h('p', { class: 'muted' }, 'No scripts in this room.')),
+      h('section', null, h('h3', null, 'Events ', h('span', { class: 'muted small' }, 'listeners of { emit }')),
+        d.events?.length ? d.events.map((ev, i) => h('div', { class: 'rule' },
+          h('div', { class: 'rulehead' }, h('code', null, `on ${ev.on}`), h('span', { class: 'muted small' }, `${ev.once ? 'once' : ''}${ev.if ? ` if ${condText(ev.if)}` : ''}`)),
+          this.cmds(ev.do, `events[${i}].do`)))
+        : h('p', { class: 'muted' }, 'No listeners in this room.')),
     );
     const notes = this.ctx.notesBlock?.(this.roomId);
     if (notes) this.roomSheetEl.append(notes);

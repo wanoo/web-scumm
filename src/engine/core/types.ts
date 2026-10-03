@@ -21,6 +21,7 @@ export type Point = [number, number];
  * - `{ prop: ['amp', 'on'] }`: the prop is in that state (in the current room, or `'room.prop'`).
  * - `{ unlocked: 'place' }`: the place is unlocked on the map.
  * - `{ seen: 'room.actor.0' }`: the conversation topic has already been heard.
+ * - `{ actorIn: ['grandpa', 'garden'] }`: the character is in that room (one that moves: `CharacterDef.room`, `moveActor`).
  */
 export type Cond =
   | string
@@ -33,7 +34,8 @@ export type Cond =
   | { room: Id }
   | { prop: [Id, string] }
   | { unlocked: Id }
-  | { seen: string };
+  | { seen: string }
+  | { actorIn: [Id, Id] };
 
 // ---------------------------------------------------------------------------
 // Script commands
@@ -75,6 +77,22 @@ export type Cmd =
   | { unlock: Id }
   | { goto: Id; at?: Id | Point }
   | { map: true }
+  /**
+   * Moves a character to another room, where it must be declared as an actor (and placed in the layout). The character
+   * needs a starting room (`CharacterDef.room`). `at`: an entry point or a point of that room; otherwise its layout position.
+   */
+  | { moveActor: [Id, Id]; at?: Id | Point }
+  // --- events and scripts (EventRule, ScriptDef)
+  /** Fires an event: the listeners of the current room, then of the game (`events`), run right here, in order. */
+  | { emit: Id }
+  /** In a script: pause until the condition holds. */
+  | { waitUntil: Cond }
+  /** In a script: pause until the event is emitted. */
+  | { waitEvent: Id }
+  /** Starts a script from its first command (again, if it was done or stopped). */
+  | { startScript: Id }
+  /** Stops a script; `startScript` brings it back. */
+  | { stopScript: Id }
   // --- audio and effects
   | { sfx: Id }
   | { music: Id | { push: Id } | { pop: true } | { stop: true } | { once: Id } }
@@ -190,6 +208,11 @@ export interface CharacterDef {
   portrait?: Id;
   /** Kinds, for kind-based reactions (e.g. ['person'], ['cat']). */
   kind?: string[];
+  /**
+   * Starting room of a character that moves between rooms (`moveActor`, `actorIn`): only its actor in that room shows
+   * at first, the ones declared in other rooms wait for it. Without it, every actor of the character shows (the usual case).
+   */
+  room?: Id;
   /** Offscreen voice: speaks in a frame at the top of the screen (narrator, plush toy, phone). */
   offscreen?: boolean;
   /** Refusal when given an item with no written reaction. */
@@ -272,6 +295,29 @@ export interface HintDef {
   lines: string[];
 }
 
+/**
+ * A script of the world: it runs on its own, without a player action, one command at a time, in the gaps between the
+ * player's actions (never during one, a cutscene, a conversation or a minigame). A room's scripts run while the player
+ * is in the room; the game's scripts run everywhere. Its position is saved: it resumes where it was.
+ */
+export interface ScriptDef {
+  /** Unique in the whole game. */
+  id: Id;
+  /** Runs only while this holds; when false, the script rewinds and waits. */
+  while?: Cond;
+  /** Starts again from the top when done. A loop needs a `wait`, `waitUntil` or `waitEvent`. */
+  loop?: boolean;
+  do: Cmd[];
+}
+
+/** A listener: when `on` is emitted (`{ emit }`) and the condition holds, `do` runs. `once`: only the first time. */
+export interface EventRule {
+  on: Id;
+  if?: Cond;
+  once?: boolean;
+  do: Cmd[];
+}
+
 export interface RoomDef {
   id: Id;
   name: string;
@@ -299,6 +345,10 @@ export interface RoomDef {
   talk?: Record<Id, TalkTopic[]>;
   hints?: HintDef[];
   onEnter?: Cmd[];
+  /** Scripts that run on their own while the player is in the room (see ScriptDef). */
+  scripts?: ScriptDef[];
+  /** Listeners of the room's events, then of the game's (see EventRule). */
+  events?: EventRule[];
   /** Is the hero present? (no for a pure cutscene) */
   hero?: boolean;
   /** Narrator voice for the room, for offscreen comments. */
@@ -423,6 +473,10 @@ export interface GameDef {
   rooms: RoomDef[];
   map?: MapDef;
   rules: GameRules;
+  /** Scripts that run everywhere (see ScriptDef). */
+  scripts?: ScriptDef[];
+  /** Listeners of the game's events, after the room's (see EventRule). */
+  events?: EventRule[];
   /** Topics added to every conversation. */
   globalTalk?: { hug?: string; bye?: string; byeLine?: string };
   start: { room: Id; inventory?: Id[]; flags?: Record<Id, Value>; unlocked?: Id[]; intro?: Cmd[] };
@@ -432,7 +486,9 @@ export interface GameDef {
   /** Sealed ending, optional. */
   ending?: EndingDef;
   /** Ready-to-use states for testing a specific moment (teleport in dev mode, solver). */
-  checkpoints?: Record<Id, { room: Id; inventory?: Id[]; flags?: Record<Id, Value>; unlocked?: Id[]; props?: Record<string, string> }>;
+  checkpoints?: Record<Id, { room: Id; inventory?: Id[]; flags?: Record<Id, Value>; unlocked?: Id[]; props?: Record<string, string>;
+    /** Where the moving characters are (character → room); the others are in their starting room. */
+    where?: Record<Id, Id> }>;
   /** Engine texts (menus, confirmations). The engine never hardcodes any text. */
   ui: UiTexts;
   /** Title screen: background image, logo, music, footer. */
@@ -536,6 +592,10 @@ export interface GameState {
   seen: Record<string, 1>;
   /** Used inventory items (greyed out). Absent in old saves. */
   used?: Id[];
+  /** Room of each moving character (`CharacterDef.room`, `moveActor`). Absent in old saves. */
+  where?: Record<Id, Id>;
+  /** Position of each script: next command, finished, stopped. Absent in old saves. */
+  scripts?: Record<Id, { pc: number; done?: boolean; off?: boolean }>;
   started: number;
   done?: boolean;
 }

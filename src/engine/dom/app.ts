@@ -91,6 +91,7 @@ export class App implements Presenter {
     this.mg = { ...builtin, ...(o.minigames ?? {}) };
     this.engine = new Engine(o.game, o.layouts, this, o.store ?? new LocalStore(`${o.game.id}.save`));
     this.view = new RoomView(this.engine, this.bank);
+    this.engine.autoScripts = true;
     this.engine.onChange = () => this.refresh();
     const F = o.game.skin?.fonts;
     document.documentElement.style.setProperty('--font-ui', fontStack(F?.ui ?? FONT_UI));

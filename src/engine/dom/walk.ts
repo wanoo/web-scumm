@@ -6,6 +6,8 @@ import type { Layout, Point } from '../core/types';
 export class WalkArea {
   private mesh: NavMesh | null = null;
   private tris: Point[][] = [];
+  /** Boundary edges (outer polygon and holes), for line-of-sight tests. */
+  private edges: [Point, Point][] = [];
 
   constructor(layout: Layout) {
     const w = layout.walk;
@@ -14,6 +16,7 @@ export class WalkArea {
     const holes: number[] = [];
     for (const p of w.area) flat.push(p[0], p[1]);
     for (const h of w.holes ?? []) { holes.push(flat.length / 2); for (const p of h) flat.push(p[0], p[1]); }
+    for (const poly of [w.area, ...(w.holes ?? [])]) poly.forEach((p, i) => this.edges.push([p, poly[(i + 1) % poly.length]]));
     const tri = earcut(flat, holes.length ? holes : undefined);
     const polys: { x: number; y: number }[][] = [];
     for (let i = 0; i < tri.length; i += 3) polys.push([0, 1, 2].map((k) => ({ x: flat[tri[i + k] * 2], y: flat[tri[i + k] * 2 + 1] })));
@@ -37,13 +40,40 @@ export class WalkArea {
     return best;
   }
 
-  /** Path (successive points, excluding the start). With no defined zone: a straight line. */
+  /** Is the straight segment free: it crosses no boundary edge, and its middle is inside the zone? */
+  private free(a: Point, b: Point): boolean {
+    if (!this.mesh) return true;
+    const mid = { x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2 };
+    if (!this.mesh.isPointInMesh(mid)) return false;
+    const cross = (o: Point, p: Point, q: Point) => (p[0] - o[0]) * (q[1] - o[1]) - (p[1] - o[1]) * (q[0] - o[0]);
+    for (const [c, d] of this.edges) {
+      const d1 = cross(a, b, c), d2 = cross(a, b, d), d3 = cross(c, d, a), d4 = cross(c, d, b);
+      // proper crossing only: touching an edge or a vertex is allowed (points are clamped onto the zone)
+      if (((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0))) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Path (successive points, excluding the start). With no defined zone: a straight line. The navmesh's path follows
+   * the triangulation and can take detours around a corner it does not need: it is then pulled straight, point by
+   * point, as long as the shortcut stays in the zone.
+   */
   path(from: Point, to: Point): Point[] {
     if (!this.mesh) return [to];
     const a = this.clamp(from), b = this.clamp(to);
+    if (this.free(a, b)) return [b];
     const res = this.mesh.findPath({ x: a[0], y: a[1] }, { x: b[0], y: b[1] });
     if (!res || !res.length) return [b];
-    return res.slice(1).map((v) => [v.x, v.y] as Point);
+    const pts = [a, ...res.slice(1).map((v) => [v.x, v.y] as Point)];
+    const out: Point[] = [];
+    for (let i = 0; i < pts.length - 1;) {
+      let j = pts.length - 1;
+      while (j > i + 1 && !this.free(pts[i], pts[j])) j--;
+      out.push(pts[j]);
+      i = j;
+    }
+    return out;
   }
 }
 

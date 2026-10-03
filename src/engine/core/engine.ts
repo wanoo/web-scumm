@@ -1,7 +1,7 @@
 import { check } from './cond';
 import { assignKeys, EMPTY_LAYOUT, FLOOR, NEAR } from './define';
 import type { Presenter, SaveStore } from './ports';
-import type { CharacterDef, Cmd, GameDef, GameState, Id, Layout, Point, RoomDef, Rule, Value, VerbId } from './types';
+import type { CharacterDef, Cmd, EventRule, GameDef, GameState, Id, Layout, Point, RoomDef, Rule, ScriptDef, Value, VerbId } from './types';
 
 /** A player action: VERB a (with/to b). `a` can be an inventory item, `b` is always a target. */
 export interface Action { verb: VerbId; a: Id; b?: Id }
@@ -28,6 +28,16 @@ export class Engine {
   onChange: () => void = () => {};
   /** Injectable randomness (the solver makes it deterministic). */
   random: () => number = Math.random;
+  /**
+   * The world's scripts run on their own (the browser app sets it). Off in node: tests and the solver step them
+   * with `runScript` / `advance`.
+   */
+  autoScripts = false;
+  /** Generations of the running script loops: a new room (room scripts) or a new session (game scripts) stops the old ones. */
+  private roomGen = 0;
+  private sessionGen = 0;
+  /** Scripts whose loop is running (auto mode). */
+  private loops = new Set<Id>();
 
   constructor(game: GameDef, layouts: Record<Id, Layout>, readonly ui: Presenter, readonly store: SaveStore) {
     this.game = assignKeys(game);
@@ -42,15 +52,25 @@ export class Engine {
     return {
       v: this.game.saveVersion, room: s.room, inventory: [...(s.inventory ?? [])], flags: { ...(s.flags ?? {}) },
       props: {}, actors: {}, hero: {}, unlocked: [...(s.unlocked ?? [])], visited: {}, counters: {}, seen: {}, started: Date.now(),
+      where: this.homes(), scripts: {},
     };
   }
 
-  /** Gives their initial state to props that don't have one yet (new game, content added since). */
-  private ensureProps(s: GameState) {
+  /** Starting room of every moving character (`CharacterDef.room`). */
+  private homes(): Record<Id, Id> {
+    const out: Record<Id, Id> = {};
+    for (const [id, c] of Object.entries(this.game.characters)) if (c.room) out[id] = c.room;
+    return out;
+  }
+
+  /** Fills what a state may lack: props' initial state, moving characters' room, scripts (new game, old save, content added since). */
+  private ensureState(s: GameState) {
     for (const r of this.game.rooms) for (const [id, p] of Object.entries(r.props ?? {})) {
       const k = `${r.id}.${id}`;
       if (s.props[k] === undefined && p.states) s.props[k] = p.initial ?? Object.keys(p.states)[0];
     }
+    s.where = { ...this.homes(), ...(s.where ?? {}) };
+    s.scripts ??= {};
     return s;
   }
 
@@ -61,24 +81,26 @@ export class Engine {
 
   async newGame(): Promise<void> {
     this.dropGuide();
-    this.state = this.ensureProps(this.fresh());
+    this.state = this.ensureState(this.fresh());
     this.store.save(this.state);
     // The prologue runs before the first room's arrival script (otherwise the tutorial would wait for it).
     await this.enter(this.state.room, undefined, false);
     if (this.game.start.intro) await this.script(this.game.start.intro);
     const first = this.room();
     if (first.onEnter) await this.run(() => this.exec(first.onEnter, { room: first, fast: false }));
+    this.startScripts(true);
   }
 
   async continueGame(): Promise<void> {
     const s = this.store.load();
     if (!s || s.v !== this.game.saveVersion) return this.newGame();
-    this.state = this.ensureProps(s);
+    this.state = this.ensureState(s);
     await this.enter(s.room, undefined, false);
+    this.startScripts(true);
   }
 
   /** Forgets a pending tutorial step (game session change). */
-  private dropGuide() { this.guideWait = null; this.ui.guide(null); this.busyCount = 0; }
+  private dropGuide() { this.guideWait = null; this.ui.guide(null); this.busyCount = 0; this.sessionGen++; this.roomGen++; }
 
   /** Loads a checkpoint (dev mode, solver). */
   async checkpoint(id: Id): Promise<void> {
@@ -86,9 +108,10 @@ export class Engine {
     const c = this.game.checkpoints?.[id];
     if (!c) throw new Error(`unknown checkpoint: ${id}`);
     const s = this.fresh();
-    Object.assign(s, { room: c.room, inventory: [...(c.inventory ?? [])], flags: { ...(c.flags ?? {}) }, unlocked: [...(c.unlocked ?? s.unlocked)], props: { ...(c.props ?? {}) } });
-    this.state = this.ensureProps(s);
+    Object.assign(s, { room: c.room, inventory: [...(c.inventory ?? [])], flags: { ...(c.flags ?? {}) }, unlocked: [...(c.unlocked ?? s.unlocked)], props: { ...(c.props ?? {}) }, where: { ...s.where, ...(c.where ?? {}) } });
+    this.state = this.ensureState(s);
     await this.enter(c.room, undefined, false);
+    this.startScripts(true);
   }
 
   save() { this.store.save(this.state); }
@@ -154,12 +177,19 @@ export class Engine {
     return true;
   }
 
-  /** Is the entity visible in the current room? */
+  /** Is the entity visible in the current room? A moving character only shows in the room it is in. */
   visible(id: Id, room: RoomDef = this.room()): boolean {
+    const act = room.actors?.[id];
+    if (act) { const w = this.state.where?.[act.char]; if (w !== undefined && w !== room.id) return false; }
     const over = this.state.actors[`${room.id}.${id}`]?.visible;
     if (over !== undefined) return over;
-    const def = room.actors?.[id] ?? room.props?.[id] ?? room.hotspots?.[id];
+    const def = act ?? room.props?.[id] ?? room.hotspots?.[id];
     return def ? check(def.visible, this.state, room.id) : false;
+  }
+
+  /** The actor of a character in a room (its id in `room.actors`), if declared there. */
+  instanceOf(char: Id, room: RoomDef): Id | undefined {
+    return Object.entries(room.actors ?? {}).find(([, a]) => a.char === char)?.[0];
   }
 
   propState(id: Id, room: RoomDef = this.room()): string | undefined {
@@ -432,6 +462,100 @@ export class Engine {
     if (room.music) this.ui.music({ play: room.music });
     this.onChange();
     if (runEnter && room.onEnter) await this.exec(room.onEnter, { room, fast: false });
+    if (runEnter) this.startScripts(false);
+  }
+
+  // ------------------------------------------------------------------ the world's scripts and events
+
+  /** A script by id, wherever it is declared (ids are unique in the game). */
+  scriptDef(id: Id): ScriptDef | undefined {
+    return this.game.scripts?.find((x) => x.id === id) ?? this.game.rooms.flatMap((r) => r.scripts ?? []).find((x) => x.id === id);
+  }
+
+  /** The scripts in scope right now: the current room's, then the game's. */
+  scriptsHere(): ScriptDef[] { return [...(this.room().scripts ?? []), ...(this.game.scripts ?? [])]; }
+
+  /** State of a script: next command (`pc`), finished, stopped. */
+  scriptState(id: Id) { return (this.state.scripts ??= {})[id] ??= { pc: 0 }; }
+
+  /**
+   * One step of a script. 'ran': a command ran, or a wait was satisfied. 'blocked': the engine is busy (player action,
+   * cutscene, conversation, minigame), the `while` condition is false, a `waitUntil` is false or a `waitEvent` pending.
+   * 'wrapped': a loop starts again. 'done', 'off': finished, stopped.
+   */
+  async advance(id: Id): Promise<'ran' | 'blocked' | 'wrapped' | 'done' | 'off'> {
+    const def = this.scriptDef(id);
+    if (!def) throw new Error(`unknown script: ${id}`);
+    const s = this.state;
+    const st = this.scriptState(id);
+    if (st.off) return 'off';
+    if (st.done) return 'done';
+    if (this.busyCount > 0 || s.done) return 'blocked';
+    const room = this.room();
+    if (def.while && !check(def.while, s, room.id)) { st.pc = 0; return 'blocked'; }
+    if (st.pc >= def.do.length) {
+      if (!def.loop) { st.done = true; this.save(); return 'done'; }
+      st.pc = 0;
+      return 'wrapped';
+    }
+    const c = def.do[st.pc];
+    if (typeof c === 'object') {
+      if ('waitUntil' in c) { if (!check(c.waitUntil, s, room.id)) return 'blocked'; st.pc++; return 'ran'; }
+      if ('waitEvent' in c) return 'blocked'; // emit() moves the script past it
+    }
+    await this.step(c, { room, fast: false });
+    st.pc++;
+    if (this.busyCount === 0) this.save();
+    this.onChange();
+    return 'ran';
+  }
+
+  /** Runs a script until it blocks, finishes or completes one iteration of its loop (tests, solver). True if anything ran. */
+  async runScript(id: Id): Promise<boolean> {
+    let ran = false;
+    for (let guard = 0; guard < 1000; guard++) {
+      const r = await this.advance(id);
+      if (r !== 'ran') return ran;
+      ran = true;
+    }
+    return ran;
+  }
+
+  /** Starts the loops of the scripts in scope (auto mode): the room's on each room entry, the game's too on a new session. */
+  private startScripts(session: boolean) {
+    this.roomGen++;
+    if (session) this.sessionGen++;
+    if (!this.autoScripts) return;
+    for (const def of this.room().scripts ?? []) void this.loop(def.id, false, this.roomGen);
+    if (session) for (const def of this.game.scripts ?? []) void this.loop(def.id, true, this.sessionGen);
+  }
+
+  private async loop(id: Id, global: boolean, gen: number) {
+    this.loops.add(id);
+    try {
+      while (this.state && !this.state.done && gen === (global ? this.sessionGen : this.roomGen)) {
+        let r: Awaited<ReturnType<Engine['advance']>>;
+        try { r = await this.advance(id); } catch (e) { console.error(`script ${id}:`, e); return; }
+        if (r === 'done' || r === 'off') return;
+        if (r !== 'ran') await this.ui.wait(250, false);
+      }
+    } finally { this.loops.delete(id); }
+  }
+
+  /** Fires an event: moves the scripts waiting for it, then runs the listeners of the room, then of the game. */
+  async emit(id: Id, ctx: Ctx) {
+    const s = this.state;
+    for (const def of [...(this.game.scripts ?? []), ...this.game.rooms.flatMap((r) => r.scripts ?? [])]) {
+      const st = this.scriptState(def.id);
+      const cur = def.do[st.pc];
+      if (!st.done && !st.off && cur && typeof cur === 'object' && 'waitEvent' in cur && cur.waitEvent === id) st.pc++;
+    }
+    const scopes: [EventRule[], string][] = [[ctx.room.events ?? [], ctx.room.id], [this.game.events ?? [], 'game']];
+    for (const [list, scope] of scopes) for (const [i, ev] of list.entries()) {
+      if (ev.on !== id || !check(ev.if, s, ctx.room.id)) continue;
+      if (ev.once) { const k = `event.${scope}.${i}`; if (s.seen[k]) continue; s.seen[k] = 1; }
+      await this.exec(ev.do, ctx);
+    }
   }
 
   // ------------------------------------------------------------------ scripts
@@ -537,6 +661,44 @@ export class Engine {
       if (pick) { const p = this.game.map?.places[pick]; if (p) await this.enter(p.room, undefined, true); }
       return;
     }
+    if ('moveActor' in c) {
+      const [char, to] = c.moveActor;
+      const dest = this.room(to);
+      const from = s.where?.[char];
+      (s.where ??= {})[char] = to;
+      const inst = this.instanceOf(char, dest);
+      let at: Point | undefined;
+      if (inst) {
+        const key = `${to}.${inst}`;
+        const L = this.layout(to);
+        at = c.at ? (Array.isArray(c.at) ? c.at : L.entries?.[c.at]) : undefined;
+        const o = { ...s.actors[key] };
+        delete o.x; delete o.y; delete o.visible;
+        s.actors[key] = at ? { ...o, x: at[0], y: at[1] } : o;
+      }
+      // The view: the character leaves the room on screen, or arrives in it.
+      if (from === s.room && to !== s.room) { const i = this.instanceOf(char, room); if (i) await this.ui.show(i, false, 0, true); }
+      if (to === s.room && inst) {
+        const pos = at ?? (() => { const a = this.layout(to).actors?.[inst]; return a ? [a.x, a.y] as Point : undefined; })();
+        if (pos) this.ui.place(inst, pos);
+        await this.ui.show(inst, true, 0, true);
+      }
+      this.onChange();
+      return;
+    }
+    if ('emit' in c) return this.emit(c.emit, ctx);
+    if ('waitUntil' in c) { for (let guard = 0; guard < 100000 && !check(c.waitUntil, s, room.id); guard++) await this.ui.wait(250, ctx.fast); return; }
+    if ('waitEvent' in c) return; // only meaningful at the top level of a script (advance); elsewhere it is a no-op
+    if ('startScript' in c) {
+      if (!this.scriptDef(c.startScript)) throw new Error(`unknown script: ${c.startScript}`);
+      (s.scripts ??= {})[c.startScript] = { pc: 0 };
+      if (this.autoScripts && !this.loops.has(c.startScript)) {
+        const global = !!this.game.scripts?.some((x) => x.id === c.startScript);
+        if (global || this.room().scripts?.some((x) => x.id === c.startScript)) void this.loop(c.startScript, global, global ? this.sessionGen : this.roomGen);
+      }
+      return;
+    }
+    if ('stopScript' in c) { this.scriptState(c.stopScript).off = true; return; }
     if ('sfx' in c) { if (!ctx.fast) this.ui.sfx(c.sfx); return; }
     if ('music' in c) { this.ui.music(typeof c.music === 'string' ? { play: c.music } : c.music); return; }
     if ('toast' in c) { this.ui.toast(c.toast); return; }

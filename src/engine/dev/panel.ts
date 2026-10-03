@@ -2,7 +2,7 @@ import { Pane } from 'tweakpane';
 import type { App } from '../dom/app';
 import type { Value } from '../core/types';
 
-/** Debug panel (?dev): checkpoints, rooms, inventory, flags, map. */
+/** Debug panel (?dev): checkpoints, rooms, inventory, flags, map, the world's characters and scripts. */
 export class DevPanel {
   private pane!: Pane;
   private info = { room: '', busy: false };
@@ -73,6 +73,29 @@ export class DevPanel {
       const v: Value = nf.value === 'true' ? true : nf.value === 'false' ? false : isNaN(Number(nf.value)) ? nf.value : Number(nf.value);
       void this.run(() => eng.script([{ set: [nf.name, v] }]));
     });
+
+    const where = eng.state.where ?? {};
+    if (Object.keys(where).length) {
+      const wf = pane.addFolder({ title: 'World', expanded: false });
+      for (const [ch, rid] of Object.entries(where)) {
+        const row = { room: rid };
+        wf.addBinding(row, 'room', { label: ch, options: Object.fromEntries(game.rooms.map((r) => [r.id, r.id])) })
+          .on('change', (ev) => void this.run(() => eng.script([{ moveActor: [ch, ev.value] }])));
+      }
+    }
+
+    const scripts = eng.scriptsHere();
+    if (scripts.length) {
+      const sf = pane.addFolder({ title: 'Scripts', expanded: false });
+      for (const sc of scripts) {
+        const st = eng.scriptState(sc.id);
+        const row = { at: `${st.off ? 'stopped' : st.done ? 'done' : `${st.pc}/${sc.do.length}`}` };
+        sf.addBinding(row, 'at', { label: sc.id, readonly: true });
+        if (eng.autoScripts) sf.addButton({ title: st.off || st.done ? `▶ ${sc.id}` : `■ ${sc.id}` })
+          .on('click', () => void this.run(() => eng.script([st.off || st.done ? { startScript: sc.id } : { stopScript: sc.id }])));
+        else sf.addButton({ title: `step ${sc.id}` }).on('click', () => void this.run(() => eng.advance(sc.id).then(() => undefined)));
+      }
+    }
 
     if (game.map) {
       const mp = pane.addFolder({ title: 'Map', expanded: false });

@@ -51,6 +51,8 @@ Paramètres d'URL, serveur de dev uniquement (ils sont ignorés dans le build de
   - **Sac** : cocher ou décocher un objet ;
   - **Flags** : modifier les flags existants, ou poser un flag nom / valeur (`true`, `false`, un nombre ou un texte) ;
   - **Carte** : débloquer un lieu, ou **Tout débloquer** ;
+  - **World** : le lieu de chaque personnage mobile (le changer les déplace, `moveActor`) ;
+  - **Scripts** : la position de chaque script en cours (`commande suivante / longueur`, fini, arrêté), avec un bouton arrêter / relancer ;
   - **Éditer ce lieu** : ouvre l'éditeur sur le lieu affiché.
 
 ### L'éditeur de placement (`?edit=<lieu>`)

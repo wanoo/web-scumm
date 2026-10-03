@@ -9,7 +9,8 @@ real engine (the room rendered by `src/engine/dom`), so what you see is what pla
   approach points, walk area, scale lines, entries), the list of the room's props / actors / hotspots on the right.
   Selecting one (in the list or in the view) opens its sheet: name, kind, states, visibility, **look lines** (add, edit,
   delete), **reactions** (verb, targets, condition, commands as a list of lines: texts editable, other commands shown),
-  **talk topics**; under the view, the room's name, **hints** and **on enter** lines. A text is saved when the field
+  **talk topics**; under the view, the room's name, **hints**, **on enter** lines, the room's **scripts** and **events**
+  (read-only structure, texts editable). A text is saved when the field
   loses focus (Enter); Escape cancels. Each save shows a toast and runs Check in the background; a placement in
   progress in the view is saved first (the view reloads when the room file changes). Text edits are written into `rooms/<room>.ts`
   in place (string literals replaced through the TypeScript parser; the file stays readable code). "Add prop / hotspot /

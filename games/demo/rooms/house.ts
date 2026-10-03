@@ -9,7 +9,8 @@ export default defineRoom({
 
   props: {
     pantry: { name: 'pantry cupboard', states: { locked: 'home2/r1c3', open: 'home2/r1c4' }, initial: 'locked' },
-    armchair: { name: 'Grandpa\'s armchair', states: { remote: 'home2/r2c1', searched: 'home2/r2c2' }, initial: 'remote' },
+    // Once Grandpa is home (game.ts `events`), he sits here: his seated sheet brings its own armchair.
+    armchair: { name: 'Grandpa\'s armchair', states: { remote: 'home2/r2c1', searched: 'home2/r2c2' }, initial: 'remote', visible: { not: { actorIn: ['grandpa', 'house'] } } },
     clock: { name: 'clock', img: 'home2/r1c5' },
     table: { img: 'furniture_dining/table' },
     chair: { img: 'furniture_dining/chaise2' },
@@ -20,6 +21,8 @@ export default defineRoom({
   actors: {
     grandma: { char: 'grandma', facing: 'right' },
     biscuit: { char: 'biscuit', pose: 'sleep' },
+    // A moving character (cast.ts `room: 'garden'`): hidden here until `moveActor` brings him home.
+    grandpa: { char: 'grandpa', facing: 'left' },
   },
 
   hotspots: {
@@ -38,6 +41,7 @@ export default defineRoom({
     teacup: ['Grandma\'s tea. Lukewarm.', 'Not sardine-flavoured. Pass.'],
     grandma: ['Grandma. Keeper of sardines. Loser of keys.', 'She smells of tea and biscuits. Not Biscuit the cat. The other kind.'],
     biscuit: ['Biscuit. My big brother. Sleeps twenty hours a day.', 'The other four hours, he naps.'],
+    grandpa: ['Grandpa. He came home for the sardines. With his armchair.', 'He is "guarding the pantry". With his eyes closed.'],
     window: ['The garden. Grandpa is out there somewhere.', 'Fresh air, birds, flowers. And Grandpa.'],
     door: 'The hall. Nothing to eat there. I checked. Twice.',
     bookshelf: ['Books. Not one about sardines. Disappointing.', 'A cookbook! ...Vegetables. Never mind.'],
@@ -105,6 +109,10 @@ export default defineRoom({
       ] },
       { topic: 'I found the key!', if: { has: 'key' }, do: [{ say: ['grandma', 'Then what are you waiting for? Open the pantry!'] }] },
     ],
+    grandpa: [
+      { topic: 'Why are you home?', do: [{ say: ['grandpa', 'A cat with a key. I had to see this.'] }, { pose: ['grandpa', 'laugh'] }, { wait: 700 }, { pose: ['grandpa', 'idle'] }] },
+      { topic: 'You carried the armchair back?', do: [{ say: ['grandpa', 'It walked. I only steered.'] }, 'Armchairs. Full of secrets.'] },
+    ],
   },
 
   // Hints from the shell phone (Grandma's voice), in puzzle order.
@@ -119,5 +127,11 @@ export default defineRoom({
 
   onEnter: [
     { if: { has: 'key' }, then: [{ once: ['Home! Pantry, here I come.'] }] },
+    { if: { actorIn: ['grandpa', 'house'] }, then: [{ once: [{ say: ['grandpa', 'Pixel! I beat you home. The armchair is faster than it looks.'] }] }] },
+  ],
+
+  // Biscuit lives his own life: a stretch every so often, on its own, between the player's actions.
+  scripts: [
+    { id: 'biscuit_naps', loop: true, do: [{ wait: 7000 }, { anim: ['biscuit', 'stretch'], ms: 1200 }] },
   ],
 });

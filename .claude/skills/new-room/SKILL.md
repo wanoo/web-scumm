@@ -9,7 +9,8 @@ Inputs: the board of `games/<id>/storyboard.json` for this room, and the decor i
 1. Read `docs/en/CONTENT_GUIDE.md` and `src/engine/core/types.ts` (RoomDef, Cmd, Cond).
 2. Create `games/<id>/rooms/<room>.ts` with `defineRoom({...})`: `id`, `name`, `decor`, `music?`, `props`, `actors`,
    `hotspots`, `look` (one line or a list for every visible thing), `on` (rules: most specific first), `talk`, `hints`
-   (in puzzle order, each with an `until` condition), `onEnter` (`once` for the arrival line). Export `checkpoints`
+   (in puzzle order, each with an `until` condition), `onEnter` (`once` for the arrival line), and when the room should
+   feel alive, `scripts` (an NPC stroll, an ambient gag: `loop` + `wait`) and `events` (listeners of `{ emit }`). Export `checkpoints`
    with a ready state at the room's entrance and one after its puzzle.
 3. Register the room in `game.ts` (`rooms`, `checkpoints`, map place if any).
 4. Add new items to `items.ts`, new characters with `/new-character`.

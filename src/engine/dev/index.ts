@@ -1,5 +1,5 @@
 import type { App } from '../dom/app';
-import { Editor } from './editor';
+import { Editor, type EditorOptions } from './editor';
 import { Overlay } from './overlay';
 import { DevPanel } from './panel';
 
@@ -9,7 +9,7 @@ import { DevPanel } from './panel';
  * - `?edit=<room>`: placement editor, which saves layout/<room>.json.
  * - `?at=<checkpoint>`: starts on a checkpoint.
  */
-export async function startDev(app: App, o: { edit: string | null; checkpoint: string | null }) {
+export async function startDev(app: App, o: { edit: string | null; checkpoint: string | null } & EditorOptions) {
   const eng = app.engine;
   const game = eng.game;
 
@@ -22,7 +22,7 @@ export async function startDev(app: App, o: { edit: string | null; checkpoint: s
       if (!eng.state) eng.state = eng.fresh();
       await eng.enter(o.edit, undefined, false);
     }
-    const ed = new Editor(app);
+    const ed = new Editor(app, { saveOffline: o.saveOffline });
     window.addEventListener('resize', () => setTimeout(() => ed.overlay.draw(), 50));
     (window as unknown as { __editor: Editor }).__editor = ed;
     return;

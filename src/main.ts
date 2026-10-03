@@ -28,7 +28,17 @@ ready.then(async () => {
   (window as any).__game = app; // debugging from the console, and driving e2e tests
   if (dev) {
     const { startDev } = await import('@engine/dev');
-    await startDev(app, { edit: q.get('edit'), checkpoint: q.get('at') });
+    await startDev(app, {
+      edit: q.get('edit'), checkpoint: q.get('at'),
+      // No dev server (a Studio demo build): a saved layout joins the demo's edits in this browser.
+      saveOffline: async (room, layout) => {
+        const { readPatches, writePatches } = await import('./studio/demo-patch');
+        let store: Storage | undefined;
+        try { store = localStorage; } catch { /* blocked */ }
+        const patches = readPatches(store, __GAME__).filter((p) => !(p.kind === 'layout' && p.room === room));
+        writePatches(store, __GAME__, [...patches, { kind: 'layout', room, layout }]);
+      },
+    });
     return;
   }
   await app.showTitle();

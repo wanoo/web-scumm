@@ -124,8 +124,12 @@ describe('demo: walkthrough', () => {
     expect(e.state.inventory).toContain('key');
 
     // Home: the pantry, the sealed ending.
+    // The key_found event moved Grandpa home: he greets us after the arrival line, his armchair prop is gone (he brought his own).
+    expect(e.state.where).toEqual({ grandpa: 'house' });
     await e.travel('house');
-    expect(ui.log.at(-1)).toBe('hero: Home! Pantry, here I come.');
+    expect(ui.log.slice(-2)).toEqual(['hero: Home! Pantry, here I come.', 'grandpa: Pixel! I beat you home. The armchair is faster than it looks.']);
+    expect(e.visible('grandpa')).toBe(true);
+    expect(e.visible('armchair')).toBe(false);
     await e.act({ verb: 'use', a: 'key', b: 'pantry' });
     expect(e.propState('pantry')).toBe('open');
     expect(e.isUsed('key')).toBe(true);

@@ -43,6 +43,10 @@ export const game = defineGame({
     vehicles: { car: 'ui/r2c2', plane: 'ui/r2c1', pin: 'ui/r1c6', news: 'ui/r2c4' },
   },
   rules,
+  // The world reacts on its own: when the key is found (market), Grandpa goes home for the finale.
+  events: [
+    { on: 'key_found', once: true, do: [{ moveActor: ['grandpa', 'house'] }, { toast: 'Grandpa went home. With the armchair.' }] },
+  ],
   globalTalk: { hug: 'Can I have a cuddle?', bye: 'Bye!', byeLine: 'Bye bye.' },
   start: {
     room: 'house',
@@ -81,6 +85,7 @@ export const game = defineGame({
       room: 'house', inventory: ['shell_phone', 'key'], unlocked: ALL,
       flags: { guess: 'sardines', pipe_taken: true, tank_drained: true, lou_has_key: true, deposit_known: true, flowers_done: true, bouquet_given: true },
       props: { 'house.armchair': 'searched', 'garden.tank': 'draining' },
+      where: { grandpa: 'house' },
     },
   },
   // No music yet (the demo runs without it): rooms have no `music`, and `audio.music` is empty.

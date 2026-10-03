@@ -47,6 +47,9 @@ GAME=<id> npm run …   # another game than package.json "config".game
 9. When unsure what the human wants, write a note in `notes.json` (`about` = the room, panel or id) instead of guessing.
 10. Art prompts: never write a sprite prompt by hand; run `npm run prompts` (or the `asset_prompts` MCP tool) and paste
     its sections, so every sheet shares the style block and the engine's pose rows.
+11. A character that moves or acts on its own is a `scripts` entry (room or game), not a rule; "something just
+    happened" is `{ emit }` + `events`, not a flag; a character present in several rooms over the story gets a `room`
+    and `moveActor`. See "The world lives" in the content guide.
 
 ## How the human sees your work
 `npm run studio` shows the rooms rendered by the real engine and reloads when you change a file. The human answers in the
