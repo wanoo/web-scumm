@@ -1,8 +1,8 @@
 {
   "title": "Swan Lake, Scene (Tchaikovsky)",
-  "author": "arr. web-scumm (tools/audio), after Tchaikovsky, public domain",
+  "author": "arr. web-scumm (tools/audio) after Tchaikovsky (public domain); MIDI transcription from classicals.de, CC BY-NC 4.0",
   "slug": "swan-lake",
-  "comment": "The opening of Swan Lake's Scene: the oboe theme over tremolo strings, restated by the clarinet, the harp arpeggios, then the rising strings to the C major chord. Bars 1-21 of the source at the first tempo (80 BPM); the later tempo changes are left out.",
+  "comment": "The opening of Swan Lake's Scene: the oboe theme over tremolo strings, restated by the clarinet, the harp arpeggios, then the rising strings to the C major chord. Bars 1-21 of the source at the first tempo (80 BPM); the later tempo changes are left out. Source MIDI: \"Introduction and Scene\" from https://www.classicals.de (CC BY-NC 4.0): this track is for non-commercial use; a commercial game needs another transcription.",
   "source": "source.mid",
   "bars": 21,
   "rows_per_beat": 8,

@@ -25,8 +25,10 @@ Il faut Python 3 avec numpy, `ffmpeg` et `fluidsynth` (`brew install ffmpeg flui
 
 1. **Les sources.** La source d'un morceau doit être à toi, dans le domaine public, ou sous une licence qui autorise
    une œuvre dérivée (un MIDI d'une pièce du XIXᵉ siècle, oui ; un thème de film, non). Dis d'où elle vient dans
-   `spec.json` (`author`, `comment`) et dans `CREDITS.md`. Le thème du jeu d'exemple est le *Lac des cygnes* de
-   Tchaïkovski.
+   `spec.json` (`author`, `comment`), dans un `SOURCE.md` à côté de `source.mid`, et dans `CREDITS.md`. Une
+   transcription a sa propre licence, et l'arrangement en hérite : le thème du jeu d'exemple est le *Lac des cygnes* de
+   Tchaïkovski (domaine public) depuis un MIDI de [classicals.de](https://www.classicals.de) en CC BY-NC 4.0, donc non
+   commercial, à remplacer dans un jeu vendu.
 2. **Une seule palette.** `tools/audio/palette.json` contient les patches FM, les enveloppes PSG, le kit de batterie
    DAC et les cibles de mix. Chaque projet et chaque bruitage s'y construisent. Un son manquant est un nouveau patch
    dans la palette (avec un `desc`), jamais un patch ad hoc dans un spec ; un patch dont dépendent des morceaux livrés

@@ -188,4 +188,4 @@ docs/en docs/fr  CONTENT_GUIDE, CLASSICS, DESIGN, ENGINE, TOOLS, STUDIO, MCP, PA
 
 ## Licences
 
-Code: MIT. Sample artwork, music arrangement and sound effects: CC BY 4.0 (attribution "Wano"); the music is Tchaikovsky's *Swan Lake* (public domain). Fonts: SIL OFL. See `CREDITS.md`.
+Code: MIT. Sample artwork and sound effects: CC BY 4.0 (attribution "Wano"). The sample theme (Tchaikovsky's *Swan Lake*, public domain) is arranged from a [classicals.de](https://www.classicals.de) transcription, CC BY-NC 4.0: non-commercial, to replace in a commercial game. Fonts: SIL OFL. See `CREDITS.md`.

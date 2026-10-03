@@ -25,7 +25,10 @@ Needs Python 3 with numpy, `ffmpeg` and `fluidsynth` (`brew install ffmpeg fluid
 
 1. **Sources.** The source of a track must be yours, in the public domain, or under a licence that allows a derived
    work (a MIDI of a 19th-century piece is fine; a film theme is not). Say where it comes from in `spec.json`
-   (`author`, `comment`) and in `CREDITS.md`. The sample game's theme is Tchaikovsky's *Swan Lake*.
+   (`author`, `comment`), in a `SOURCE.md` next to `source.mid`, and in `CREDITS.md`. A transcription has a licence
+   of its own, and the arrangement inherits it: the sample game's theme is Tchaikovsky's *Swan Lake* (public
+   domain) from a [classicals.de](https://www.classicals.de) MIDI under CC BY-NC 4.0, so it is non-commercial, to
+   replace in a game that is sold.
 2. **One palette.** `tools/audio/palette.json` holds the FM patches, PSG envelopes, DAC drum kit and mix targets.
    Every project and every sound effect builds from it. A missing sound is a new patch in the palette (with a `desc`),
    never an ad-hoc patch in one spec; a patch that shipped tracks rely on is not edited (add one, or bump `version`).

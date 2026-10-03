@@ -197,4 +197,4 @@ docs/en docs/fr  CONTENT_GUIDE, CLASSICS, DESIGN, ENGINE, TOOLS, STUDIO, MCP, PA
 
 ## Licences
 
-Code : MIT. Images, arrangement musical et bruitages du jeu d'exemple : CC BY 4.0 (attribution « Wano ») ; la musique est le *Lac des cygnes* de Tchaïkovski (domaine public). Polices : SIL OFL. Voir `CREDITS.md`.
+Code : MIT. Images et bruitages du jeu d'exemple : CC BY 4.0 (attribution « Wano »). Le thème d'exemple (le *Lac des cygnes* de Tchaïkovski, domaine public) est arrangé depuis une transcription de [classicals.de](https://www.classicals.de), CC BY-NC 4.0 : non commercial, à remplacer dans un jeu vendu. Polices : SIL OFL. Voir `CREDITS.md`.
