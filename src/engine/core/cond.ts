@@ -61,3 +61,26 @@ export function condFlags(c: Cond | undefined, out: Set<string> = new Set()): Se
   else if ('any' in c) c.any.forEach((x) => condFlags(x, out));
   return out;
 }
+
+/** One thing a condition reads: a flag, an item in the bag, a prop state, a room… `neg`: read under a `not` or `!`. */
+export interface CondAtom { kind: 'flag' | 'has' | 'prop' | 'visited' | 'room' | 'unlocked' | 'seen' | 'actorIn' | 'player'; id: string; neg?: boolean; detail?: string }
+
+/** Every atom a condition reads (the puzzle graph). `room`: the room of unprefixed props. */
+export function condAtoms(c: Cond | undefined, room?: Id, out: CondAtom[] = [], neg = false): CondAtom[] {
+  if (c === undefined) return out;
+  const add = (a: CondAtom) => { out.push(neg ? { ...a, neg: true } : a); };
+  if (typeof c === 'string') { const n = c.startsWith('!') !== neg; out.push({ kind: 'flag', id: c.replace(/^!/, ''), ...(n ? { neg: true } : {}) }); }
+  else if ('has' in c) add({ kind: 'has', id: c.has });
+  else if ('flag' in c) add({ kind: 'flag', id: c.flag, detail: 'eq' in c ? `= ${JSON.stringify(c.eq)}` : c.gte !== undefined ? `≥ ${c.gte}` : c.lt !== undefined ? `< ${c.lt}` : undefined });
+  else if ('not' in c) condAtoms(c.not, room, out, !neg);
+  else if ('all' in c) c.all.forEach((x) => condAtoms(x, room, out, neg));
+  else if ('any' in c) c.any.forEach((x) => condAtoms(x, room, out, neg));
+  else if ('visited' in c) add({ kind: 'visited', id: c.visited });
+  else if ('room' in c) add({ kind: 'room', id: c.room });
+  else if ('prop' in c) add({ kind: 'prop', id: c.prop[0].includes('.') || !room ? c.prop[0] : `${room}.${c.prop[0]}`, detail: c.prop[1] });
+  else if ('unlocked' in c) add({ kind: 'unlocked', id: c.unlocked });
+  else if ('seen' in c) add({ kind: 'seen', id: c.seen });
+  else if ('actorIn' in c) add({ kind: 'actorIn', id: `${c.actorIn[0]}@${c.actorIn[1]}` });
+  else if ('player' in c) add({ kind: 'player', id: c.player });
+  return out;
+}

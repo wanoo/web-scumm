@@ -30,6 +30,7 @@ export function coreBackend(studio: Studio, o: CoreBackendOptions): ToolBackend 
     validate: () => studio.validate(),
     report: () => studio.report(),
     graph: () => studio.graph(),
+    puzzle: (id) => studio.puzzle(id),
     solve: (from) => studio.solve(from),
     author: o.author,
     readDoc: async (name) => readFileSync(join(o.root, 'docs', 'en', `${name}.md`), 'utf8'),

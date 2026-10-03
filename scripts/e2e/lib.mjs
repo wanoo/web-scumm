@@ -262,8 +262,11 @@ export async function launch(url, opts = {}) {
     const vbs = [...(await verbs())].sort((a, b) => b.label.length - a.label.length); // longest label first: avoids prefix collisions
     return path.map((raw) => {
       const t = raw.replace(/^\((tutoriel|tutorial)\)\s*/, '');
+      // A label may end with the answers given to nested choice prompts: ` › "reply" › "reply"`.
+      const picks = [];
+      for (let mm; (mm = t.match(/ › "([^"]*)"$/)); t = t.slice(0, -mm[0].length)) picks.unshift(mm[1]);
       let m = t.match(/^Parler (.+?)\s*:\s*«(.*)»$/) || t.match(/^Talk (.+?):\s*"(.*)"$/);
-      if (m) return { kind: 'talk', actor: m[1].trim(), topic: m[2].trim() };
+      if (m) return { kind: 'talk', actor: m[1].trim(), topic: m[2].trim(), picks };
       m = t.match(/^Carte\s*→\s*(.+)$/) || t.match(/^Map\s*→\s*(.+)$/);
       if (m) return { kind: 'travel', place: m[1].trim() };
       m = t.match(/^Script (.+)$/);
@@ -275,7 +278,7 @@ export async function launch(url, opts = {}) {
       const rest = t.slice(vb.label.length).trim();
       const sep = ` ${vb.join} `;
       const i = rest.indexOf(sep);
-      return i === -1 ? { kind: 'act', verb: vb.id, a: rest } : { kind: 'act', verb: vb.id, a: rest.slice(0, i).trim(), b: rest.slice(i + sep.length).trim() };
+      return i === -1 ? { kind: 'act', verb: vb.id, a: rest, picks } : { kind: 'act', verb: vb.id, a: rest.slice(0, i).trim(), b: rest.slice(i + sep.length).trim(), picks };
     });
   }
 
@@ -283,7 +286,8 @@ export async function launch(url, opts = {}) {
    * reaction, and a topic's own reaction can branch through a nested `{ choice }` prompt first: mirrors the
    * solver's FakePresenter, which defaults every unforced choice to the last option, so repeatedly taps the
    * last option until no choice is left standing — the nested prompt, then "Bye!" at the topic list itself. */
-  async function endConversationIfOpen(s, { max = 5 } = {}) {
+  async function endConversationIfOpen(s, { max = 5, picks = [] } = {}) {
+    for (const text of picks) { if (!s.choices) break; s = await say(text); }
     for (let i = 0; i < max && s.choices; i++) {
       await page.locator('.side .choices .choice').last().tap();
       s = await waitIdle();
@@ -308,13 +312,13 @@ export async function launch(url, opts = {}) {
     const actions = await actionsFromPath(path);
     for (const [i, a] of actions.entries()) {
       if (a.kind === 'raw') { console.log(`walkthrough: step ${i + 1} not understood, skipped: ${a.label}`); continue; }
-      if (a.kind === 'talk') { await verbById('talk'); await target(a.actor); await endConversationIfOpen(await say(a.topic)); }
+      if (a.kind === 'talk') { await verbById('talk'); await target(a.actor); await endConversationIfOpen(await say(a.topic), { picks: a.picks }); }
       else if (a.kind === 'travel') { await openMap(); await say(a.place); }
       else if (a.kind === 'script') { await waitScript(a.id); }
       else if (a.kind === 'switch') { await page.locator(`.tools .tool.player[data-player="${a.id}"]`).tap(); await waitIdle(); }
       else {
         await verbById(a.verb); await target(a.a); if (a.b) await target(a.b);
-        await endConversationIfOpen(await waitIdle());
+        await endConversationIfOpen(await waitIdle(), { picks: a.picks });
       }
       await screenshot(`walk-${String(i + 1).padStart(3, '0')}`).catch(() => {});
     }

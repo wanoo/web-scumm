@@ -10,7 +10,7 @@ game can be finished, play it in landscape on any phone, offline after the first
 |---|---|
 | 🎮 **Play the sample game** | https://wanoo.github.io/web-scumm/ (phone in landscape, or desktop) |
 | 🛠 **Try the Studio** | https://wanoo.github.io/web-scumm/studio.html (demo mode: edits stay in your browser) |
-| 📦 **Source** | https://github.com/wanoo/web-scumm · release v2.0.1 |
+| 📦 **Source** | https://github.com/wanoo/web-scumm · release v2.1.0 |
 
 ## In pictures
 
@@ -29,12 +29,13 @@ game can be finished, play it in landscape on any phone, offline after the first
 | ![Studio, Assistant](docs/img/studio-assistant.jpg) *The Assistant: any AI model, the same tools as the MCP server, about the selected element* | ![Studio, Assistant settings](docs/img/studio-assistant-settings.jpg) *Assistant settings: OpenAI, Anthropic, Mistral, Ollama or a custom endpoint, key kept in your browser* |
 
 ## Status
-- Engine, tools and the sample game: complete and playable end to end (validator, solver, 126 tests, Playwright playthrough).
+- Engine, tools and the sample game: complete and playable end to end (validator, solver, 152 tests, Playwright playthrough).
 - Review pages (storyboard, sprite review, placement): working, as local HTML or as claude.ai artifacts.
 - **Studio** (`npm run studio`): a complete local creation environment: rooms (WYSIWYG on the real engine), texts, storyboard, notes, **assets** (every image and sound, prompts per sheet, uploads cut automatically) and an **Assistant** that connects any AI model (OpenAI, Anthropic, Mistral, Ollama…) with the same tools as the MCP server. See `docs/en/STUDIO.md`.
 - **Art prompts generator** (`npm run prompts`): ready-to-paste prompts for every character sheet (walk, talk, seated, the special poses your rooms use), object sheet with states, background and furniture, all sharing one style block. See `docs/en/PROMPTS.md`.
 - **Colour discipline and pixel-art preset**: every generated prompt carries the colour rules (4 hue-shifted tones per material, flat areas, one outline); `artStyle: "pixel"` in `site.json` switches prompts, cutter (nearest-neighbour, shared palette, indexed PNG), pipeline (lossless) and rendering to true pixel art. **Palette swap** in the engine recolours a character or a variant from the same sprites.
 - **Design guide** (`docs/en/DESIGN.md`): how to build a good SCUMM-style game with this engine, with a checklist before you share the link.
+- **Proof** (v2.1): **the classics** (`docs/en/CLASSICS.md`: twenty famous mechanics written with the DSL, five played and proven in the tests); the **puzzle graph** (what every rule needs and changes, a card per item / flag: Studio Check, `npm run page:puzzles`, MCP `puzzle_graph`); a **solver** that tries every reply of a choice, keeps counters that go down exact, plays scripts one wait at a time and leaves out what cannot matter; a **generated stress game** (`npm run bench`, `docs/en/BENCH.md`); one **catalogue of the commands** checked by `tsc`; loops with frame sounds; translations that follow a moved text.
 - **Open** (v2.0): **custom commands** (`commands` in `index.ts`: declared `effects` for the solver, a `run` for the browser); **translations by extraction** (`npm run i18n`, `locales/<lang>.json`, a Language setting); the Studio's **Play tab** (the game beside its live state and a rule explainer: why this action answers that); micro-game fixtures per primitive in `tests/fixtures/`.
 - **Cast** (v1.6): **several playable characters** (`players`): each with their own room, position and bag; switch buttons in the tools row, `{ switchPlayer }`, `{ transfer }`, condition `{ player }`; giving an item to an inactive character hands it over; the solver switches like the player. Demo: Biscuit is playable.
 - **Picture** (v1.5): **wide rooms** (`width` in the layout) with a **camera** that follows the hero and `camera` commands (pan, centre on something); **prop animations with frame events** (`anims`, `{ play }`, `at: { frame: [commands] }`, also on character `anim`); **voice clips** on lines (`audio.voices`, `say.voice`); a **Settings** menu (text speed and size, reduce motion, readable font, music / sound / voice volumes).
@@ -86,7 +87,7 @@ games/demo/      the sample game: game.ts, rooms/, layout/, art/, audio/, storyb
 games/_template/ copied by npm run new-game
 tools/           validate, solve, refs, assets.py, cut-sheet.py, talk-*.py, pages/, audit-assets
 scripts/         e2e harness, seal (sealed ending), gen-icons, new-game
-docs/en docs/fr  ENGINE, CONTENT_GUIDE, DESIGN (design guide), TOOLS, WORKFLOW, PROMPTS, PAGES, PRODUCTION.template
+docs/en docs/fr  ENGINE, CONTENT_GUIDE, DESIGN (design guide), CLASSICS (famous mechanics, written with the DSL), TOOLS, WORKFLOW, PROMPTS, PAGES, PRODUCTION.template
 ```
 
 ## Deploy

@@ -5,7 +5,7 @@
 // No node import here: this file is bundled into the Studio page.
 import { z } from 'zod';
 import type { Layout } from '../../src/engine/core/types';
-import type { AddEntity, GameInfo, GraphData, NewNote, NotesFile, ReportData, RoomData, SolveData, ValidateResult } from './types';
+import type { AddEntity, GameInfo, GraphData, PuzzleData, NewNote, NotesFile, ReportData, RoomData, SolveData, ValidateResult } from './types';
 
 /** The operations the tools need. Same method names as the Studio's `Api` (src/studio/api.ts), so `BrowserApi` fits. */
 export interface ToolBackend {
@@ -24,6 +24,8 @@ export interface ToolBackend {
   report?(): Promise<ReportData>;
   /** The world's map: rooms, exits, gotos, unreachable rooms. */
   graph?(): Promise<GraphData>;
+  /** The puzzle graph; `id`: one item / flag / prop card. */
+  puzzle?(id?: string): Promise<PuzzleData>;
   /** Optional abilities: a tool whose ability is missing is left out of `toolsFor(backend)`. */
   screenshot?(room: string, checkpoint?: string): Promise<ToolResult>;
   readDoc?(name: DocName): Promise<string>;
@@ -53,7 +55,7 @@ export interface ToolDef {
   /** It changes a game file (the Studio refreshes after it). */
   writes?: boolean;
   /** The optional backend ability it needs. */
-  needs?: 'screenshot' | 'readDoc' | 'runTests' | 'assetPrompts' | 'report' | 'graph';
+  needs?: 'screenshot' | 'readDoc' | 'runTests' | 'assetPrompts' | 'report' | 'graph' | 'puzzle';
   run(args: any, b: ToolBackend): Promise<ToolResult>;
 }
 
@@ -202,6 +204,16 @@ export const TOOLS: ToolDef[] = [
       'unreachable rooms and exits with no way back. Read-only.',
     input: {}, annotations: { readOnlyHint: true }, needs: 'graph',
     run: (_a, b) => op(async () => { const g = await b.graph!(); return `${g.dot}\n\nunreachable: ${g.graph.unreachable.join(', ') || 'none'}\none-way: ${g.graph.oneWay.map((e) => `${e.from} → ${e.to} (${e.via})`).join('; ') || 'none'}`; }),
+  },
+  {
+    name: 'puzzle_graph', title: 'Puzzle graph',
+    description: 'What every rule, topic, script and listener needs (conditions, items) and changes (items, flags, props, ' +
+      'places, events). Without `id`: the overview as Markdown (every item and flag with what produces and uses it, flags ' +
+      'read but never set, things produced but never used). With `id` (an item, flag, prop, place or event): its card: ' +
+      'acquired by, consumed by, used by, requires first, unlocks, downstream. Read it before changing a puzzle. Read-only.',
+    input: { id: z.string().optional().describe('An item, flag, prop (room.prop), place or event id; none for the overview.') },
+    annotations: { readOnlyHint: true }, needs: 'puzzle',
+    run: ({ id }, b) => op(async () => (await b.puzzle!(id)).markdown),
   },
   {
     name: 'screenshot', title: 'Screenshot a room',

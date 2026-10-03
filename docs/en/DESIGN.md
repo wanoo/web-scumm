@@ -122,6 +122,16 @@ It also prints three warnings worth reading:
 
 `npm run solve -- --from=market` starts from a checkpoint, handy while you work on one room.
 
+### Reading the puzzle graph
+
+Before touching a puzzle, ask the graph what hangs on it: `npm run page:puzzles`, the Puzzles panel of the Studio's
+Check tab, or the `puzzle_graph` tool with an id. The card of the pantry key in the demo reads: acquired by *give
+bouquet + seller*; used by *use key + pantry* and the finale's goal; requires first *bouquet*, *flowers_done*,
+*bouquet_given*; unlocks the pantry and the end. Remove the bouquet trade and the card tells you what breaks before the
+solver does. The overview lists three smells: a thing **read but never produced** (a flag nobody sets), a thing
+**produced but never used** (a flag or item that leads nowhere), and a flag **set only by actions that already need it**
+(it can never become true; the validator warns too).
+
 ## 4. Rooms
 
 | Element | Rule of thumb |

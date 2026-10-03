@@ -153,6 +153,8 @@ npm run e2e        # parcours dans Chromium en paysage téléphone (serveur de d
 npm run solve -- --chapters        # une recherche bornée par checkpoint avec `goals`, puis du dernier à la fin
 npm run validate -- --report       # le profileur de contenu : lieux, objets, personnages, ce qui est mince (Markdown)
 npm run page:world                 # la carte du monde en page (sorties, gotos, lieux inaccessibles, source DOT)
+npm run page:puzzles               # le graphe de puzzles en page : ce que chaque règle exige et change, une fiche par objet / flag
+npm run bench -- --rooms=40        # un jeu généré de cette taille, chaque outil chronométré dessus (docs/fr/BENCH.md)
 npm run i18n -- extract [--lang xx]   # tables de traduction (games/<id>/locales/<xx>.json) ; `status` pour la couverture
 ```
 

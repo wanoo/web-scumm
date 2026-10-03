@@ -73,7 +73,9 @@ The choice is made automatically (`App.layout`), and redone whenever the window 
 6. At the end, the state is saved (localStorage). All of the state is JSON: `GameState` in `types.ts`.
 7. In the gaps between actions, the world's **scripts** advance one command each (`ScriptDef`, `Engine.advance`): NPC
    strolls, ambient gags, a character that `moveActor`s to another room when an `emit`ted event wakes its `waitEvent`.
-   Their position lives in the state too, so a save resumes them, and the solver plays them as actions ("Script <id>").
+   Their position lives in the state too, so a save resumes them, and the solver plays them as actions ("Script <id>": the script runs up to its next `wait`, so a patrol is seen room by room). The solver also tries every option of a `choice` prompt (the path then reads `Talk x: "topic" › "reply"`), and keeps the exact value of a counter that is ever lowered or set to a number. It leaves out of the state whatever
+   cannot change the outcome (the puzzle graph tells: a flag read by nothing but its own setter, a clock script nobody
+   reads, a walker nobody waits for), so a decorative world costs it nothing.
 
 ## Why these choices
 

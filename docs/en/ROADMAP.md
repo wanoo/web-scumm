@@ -148,6 +148,33 @@ Files: `types.ts`, `engine.ts`, state, `dom/app.ts` (inventory, switch button), 
   `check`, exposed in dev mode).
 - **Minigames**: nothing to code; document the existing registry as `activities` and ship an example in `games/_template`.
 
+## v2.1 "Proof" (shipped): prove the engine rather than extend it
+
+A second audit, on v2.0.1, concluded that the primitives were there and that the next step was proof and tooling, not
+more commands. Two of its claims were wrong (`engine.ts` and `types.ts` are under a thousand lines each, not three
+thousand), its direction was right. What v2.1 delivered:
+
+- **One catalogue of the commands** (`src/engine/core/cmds.ts`): every key of `Cmd`, which ones hold nested lists, which
+  ones change the state, which ones carry text; the validator, the solver, the texts walker and the content tools read
+  it. Adding a variant to `Cmd` without listing it fails `tsc`; `tests/cmds.test.ts` runs every command through the
+  validator and the engine.
+- **The classics** (`docs/en/CLASSICS.md`): twenty famous mechanics of the genre written with the DSL as is, each
+  marked native / feasible / custom, five of them played and proven in `tests/classics.test.ts`. Writing them found
+  three real solver gaps, fixed: it only ever took the last option of a `choice`, it clamped counters that go down
+  (haggling), and it ran a script whole instead of one `wait` at a time (a patrol was never seen in the middle room).
+- **The puzzle graph** (`src/engine/tools/puzzle.ts`): what every rule, topic, script and listener needs and changes;
+  a card per item, flag, prop, place or event (acquired by, used by, requires first, unlocks, downstream); in the
+  Studio's Check tab, as `npm run page:puzzles`, as the `puzzle_graph` tool. The validator uses it to spot a flag only
+  set by actions that already need it.
+- **The solver prunes what cannot matter**: from the same graph, a flag nobody but its setter reads, a script whose
+  effects reach nothing live, a walker nobody waits for are left out of the state. The generated 40-room game went
+  from "20 000 states, truncated" to 804 states in a second (`docs/en/BENCH.md`).
+- **A generated stress game** (`src/engine/tools/stress.ts`, `npm run bench`): rooms, players, items, flags, walkers,
+  scripts, topics, chapters and migrations at any size, every tool timed on it; a small one runs in the tests.
+- **Loops honour `at`** for sounds and shakes; the validator refuses a state change there.
+- **Translations survive refactors**: `extract --lang xx` follows a text that moved (same source text in the previous
+  reference file), parks what disappeared under `_stale:`, revives it when the path returns.
+
 ## Out of scope (explicit decisions)
 
 - No Phaser, no canvas: the DOM Presenter is enough for a few dozen images; a wide room stays a CSS translation.

@@ -1,7 +1,7 @@
 {
   "name": "web-scumm",
   "private": true,
-  "version": "2.0.1",
+  "version": "2.1.0",
   "type": "module",
   "scripts": {
     "dev": "tsx tools/select-game.ts && vite --host",
@@ -30,7 +30,9 @@
     "page:review": "tsx --tsconfig tsconfig.json tools/pages/review.ts",
     "page:placement": "tsx --tsconfig tsconfig.json tools/pages/placement.ts",
     "page:world": "tsx --tsconfig tsconfig.json tools/pages/world.ts",
+    "page:puzzles": "tsx --tsconfig tsconfig.json tools/pages/puzzles.ts",
     "i18n": "tsx --tsconfig tsconfig.json tools/i18n.ts",
+    "bench": "tsx --tsconfig tsconfig.json tools/bench.ts",
     "import-layout": "tsx --tsconfig tsconfig.json tools/pages/import-layout.ts"
   },
   "config": {

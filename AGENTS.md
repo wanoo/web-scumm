@@ -51,6 +51,9 @@ GAME=<id> npm run …   # another game than package.json "config".game
 11. A character that moves or acts on its own is a `scripts` entry (room or game), not a rule; "something just
     happened" is `{ emit }` + `events`, not a flag; a character present in several rooms over the story gets a `room`
     and `moveActor`. See "The world lives" in the content guide.
+12. Before asking for a new command or a new field, read `docs/en/CLASSICS.md`: the famous mechanics of the genre are
+    combinations of rules, flags, scripts and events the engine already has (insult fights, melting items, patrols,
+    haggling, cross-character puzzles…), each with its DSL.
 
 ## How the human sees your work
 `npm run studio` shows the rooms rendered by the real engine and reloads when you change a file. The human answers in the

@@ -443,7 +443,7 @@ export class App implements Presenter {
   wait(ms: number, fast: boolean) { return fast ? Promise.resolve() : sleep(ms); }
   prop(id: Id, state: string) { this.view.setProp(id, state); this.view.refreshVisibility(); }
   propFrame(id: Id, img: Id | null) { this.view.propFrame(id, img); }
-  propLoop(id: Id, frames: Id[], fps: number) { this.view.propLoop(id, frames, fps); }
+  propLoop(id: Id, frames: Id[], fps: number, onFrame?: (i: number) => void) { this.view.propLoop(id, frames, fps, onFrame); }
   camera(x: number | null, follow: boolean, ms: number, fast: boolean) {
     if (follow || x === null) { this.view.followHero(); return Promise.resolve(); }
     return this.view.setCamera(x, fast ? 0 : ms);

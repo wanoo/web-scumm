@@ -54,6 +54,7 @@ function routes(s: Studio): [string, RegExp, Handler][] {
     ['POST', /^\/validate$/, () => s.validate()],
     ['POST', /^\/report$/, () => s.report()],
     ['GET', /^\/graph$/, () => s.graph()],
+    ['POST', /^\/puzzle$/, (_m, b) => s.puzzle(typeof b.id === 'string' && b.id ? b.id : undefined)],
     ['POST', /^\/solve$/, (_m, b) => s.solve(typeof b.from === 'string' && b.from ? b.from : null)],
     ['POST', /^\/screenshot$/, async (_m, b, ctx) => {
       if (typeof b.room !== 'string') throw new StudioError('`room` is required');

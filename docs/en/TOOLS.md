@@ -160,6 +160,8 @@ npm run e2e        # a playthrough in Chromium, phone landscape (dev server alre
 npm run solve -- --chapters        # one bounded search per checkpoint with `goals`, then from the last one to the ending
 npm run validate -- --report       # the content profiler: rooms, items, characters, what is thin (Markdown)
 npm run page:world                 # the map of the world as a page (exits, gotos, unreachable rooms, DOT source)
+npm run page:puzzles               # the puzzle graph as a page: what every rule needs and changes, a card per item / flag
+npm run bench -- --rooms=40        # a generated game of that size, every tool timed on it (docs/en/BENCH.md)
 npm run i18n -- extract [--lang xx]   # translation tables (games/<id>/locales/<xx>.json); `status` for the coverage
 ```
 

@@ -1,7 +1,8 @@
 // Content profiler: not CPU, game design. What each room, item and character amounts to, so an author (or an AI) sees
 // at a glance what is thin: hotspots with no look line, verbs that only get fallbacks, props that never change, items
 // obtained but never used, characters with unreachable topics, long lines. Pure: runs in node and in the Studio.
-import type { Cond, GameDef, Id, Layout, RoomDef } from '../core/types';
+import type { Cmd, Cond, GameDef, Id, Layout, RoomDef } from '../core/types';
+import { eachCmd, someCmd } from '../core/cmds';
 import { normalizeExits } from '../core/define';
 import { worldGraph } from './graph';
 import { localeStatus } from './i18n';
@@ -33,33 +34,16 @@ const asList = <T>(x: T | T[] | undefined): T[] => x === undefined ? [] : Array.
 
 /** Every text line said anywhere in a command list, with its speaker. */
 function lines(cmds: unknown, out: { who: string; text: string }[]) {
-  if (!Array.isArray(cmds)) return;
-  for (const c of cmds) {
-    if (typeof c === 'string') { out.push({ who: 'hero', text: c }); continue; }
-    if (!c || typeof c !== 'object') continue;
-    const o = c as Record<string, unknown>;
-    if (Array.isArray(o.say)) out.push({ who: String(o.say[0]), text: String(o.say[1]) });
-    for (const k of ['then', 'else', 'once', 'cutscene', 'do', 'after']) lines(o[k], out);
-    if (o.at && typeof o.at === 'object') Object.values(o.at as Record<string, unknown>).forEach((l) => lines(l, out));
-    for (const k of ['nth', 'cycle', 'random', 'parallel']) if (Array.isArray(o[k])) (o[k] as unknown[]).forEach((b) => lines(b, out));
-    if (Array.isArray(o.choice)) (o.choice as { do: unknown; text: string }[]).forEach((x) => { out.push({ who: 'hero', text: x.text }); lines(x.do, out); });
-    if (o.guide && typeof o.guide === 'object') out.push({ who: 'hero', text: String((o.guide as { say: string }).say) });
-  }
+  eachCmd(cmds as Cmd[], (c) => {
+    if (typeof c === 'string') { out.push({ who: 'hero', text: c }); return; }
+    if ('say' in c) out.push({ who: String(c.say[0]), text: c.say[1] });
+    else if ('choice' in c) c.choice.forEach((x) => out.push({ who: 'hero', text: x.text }));
+    else if ('guide' in c) out.push({ who: 'hero', text: c.guide.say });
+  });
 }
 
-/** Does any command of the list (deep) contain this key with this value? */
-function has(cmds: unknown, test: (o: Record<string, unknown>) => boolean): boolean {
-  if (!Array.isArray(cmds)) return false;
-  for (const c of cmds) {
-    if (!c || typeof c !== 'object') continue;
-    const o = c as Record<string, unknown>;
-    if (test(o)) return true;
-    for (const k of ['then', 'else', 'once', 'cutscene', 'do', 'after']) if (has(o[k], test)) return true;
-    for (const k of ['nth', 'cycle', 'random', 'parallel']) if (Array.isArray(o[k]) && (o[k] as unknown[]).some((b) => has(b, test))) return true;
-    if (Array.isArray(o.choice) && (o.choice as { do: unknown }[]).some((x) => has(x.do, test))) return true;
-  }
-  return false;
-}
+/** Does any command of the list (deep) satisfy the test? */
+const has = (cmds: unknown, test: (o: Record<string, unknown>) => boolean) => someCmd(cmds as Cmd[], (c) => test(c as Record<string, unknown>));
 
 /** All the command lists of a room (rules, topics, hints excluded, onEnter, scripts, events). */
 function roomCmds(r: RoomDef): unknown[][] {

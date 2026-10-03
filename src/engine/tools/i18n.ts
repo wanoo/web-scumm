@@ -4,6 +4,7 @@
 // Paths: `room:house/look.pantry[1]`, `item:key/name`, `char:grandma/refuse`, `ui/newGame`, `rules/fallbacks.look[2]`,
 // `start/intro[0]`, `credits[3]`, `map/places.house.name`…
 import type { Cmd, GameDef, RoomDef } from '../core/types';
+import { subLists } from '../core/cmds';
 
 type Fn = (path: string, text: string) => string | undefined;
 
@@ -15,18 +16,8 @@ function cmds(list: Cmd[] | undefined, path: string, fn: Fn) {
     if ('say' in c) { const r = fn(`${p}.say`, c.say[1]); if (r !== undefined) c.say[1] = r; }
     else if ('toast' in c) { const r = fn(`${p}.toast`, c.toast); if (r !== undefined) c.toast = r; }
     else if ('guide' in c) { const r = fn(`${p}.guide`, c.guide.say); if (r !== undefined) c.guide.say = r; }
-    else if ('if' in c) { cmds(c.then, `${p}.then`, fn); cmds(c.else, `${p}.else`, fn); }
-    else if ('once' in c) cmds(c.once, `${p}.once`, fn);
-    else if ('nth' in c) c.nth.forEach((b, j) => cmds(b, `${p}.nth[${j}]`, fn));
-    else if ('cycle' in c) c.cycle.forEach((b, j) => cmds(b, `${p}.cycle[${j}]`, fn));
-    else if ('random' in c) c.random.forEach((b, j) => cmds(b, `${p}.random[${j}]`, fn));
-    else if ('parallel' in c) c.parallel.forEach((b, j) => cmds(b, `${p}.parallel[${j}]`, fn));
-    else if ('cutscene' in c) cmds(c.cutscene, `${p}.cutscene`, fn);
-    else if ('choice' in c) c.choice.forEach((o, j) => { const r = fn(`${p}.choice[${j}].text`, o.text); if (r !== undefined) o.text = r; cmds(o.do, `${p}.choice[${j}].do`, fn); });
-    else if ('minigame' in c) cmds(c.then, `${p}.then`, fn);
-    else if ('phone' in c) cmds(c.do, `${p}.do`, fn);
-    else if ('anim' in c) { for (const [k, b] of Object.entries(c.at ?? {})) cmds(b, `${p}.at[${k}]`, fn); }
-    else if ('ending' in c || 'reveal' in c) cmds(c.after, `${p}.after`, fn);
+    else if ('choice' in c) { c.choice.forEach((o, j) => { const r = fn(`${p}.choice[${j}].text`, o.text); if (r !== undefined) o.text = r; cmds(o.do, `${p}.choice[${j}].do`, fn); }); return; }
+    for (const s of subLists(c)) cmds(s.list, p + s.path, fn);
   });
 }
 
@@ -101,12 +92,49 @@ export function applyLocale<T extends GameDef>(game: T, table: Record<string, st
   return g;
 }
 
+export interface Merged { table: Record<string, string>; added: number; remapped: number; revived: number; stale: string[] }
+
+/**
+ * A translation table brought up to date with the game's current texts: a translated path is kept; a path that is new
+ * but whose source text (as `oldBase` recorded it at the previous extraction) matches an entry that disappeared takes
+ * its translation (a reordered list, a moved rule); the rest gets the source text, to translate. Entries that no longer
+ * match anything are kept under `_stale:<old path>` (ignored by `applyLocale`, listed by `localeStatus`), and such an
+ * entry comes back when its path exists again.
+ */
+export function mergeLocale(paths: { path: string; text: string }[], existing: Record<string, string>, oldBase: Record<string, string> = {}): Merged {
+  const known = new Set(paths.map((p) => p.path));
+  const now = new Map(paths.map((p) => [p.path, p.text]));
+  // The pool of translations with no current home: parked ones, paths that disappeared, and paths whose source text
+  // changed since the previous reference (the old translation belongs to the old text).
+  const pool = new Map<string, string>();
+  for (const [k, v] of Object.entries(existing)) {
+    if (k.startsWith('_stale:')) pool.set(k.slice(7), v);
+    else if (k.startsWith('_')) continue;
+    else if (!known.has(k)) pool.set(k, v);
+    else if (oldBase[k] !== undefined && oldBase[k] !== now.get(k) && v !== oldBase[k]) pool.set(k, v);
+  }
+  const bySrc = new Map<string, string[]>();
+  for (const p of pool.keys()) { const src = oldBase[p]; if (src !== undefined && pool.get(p) !== src) bySrc.set(src, [...(bySrc.get(src) ?? []), p]); }
+  const table: Record<string, string> = {};
+  const used = new Set<string>();
+  let added = 0, remapped = 0, revived = 0;
+  for (const { path, text } of paths) {
+    if (existing[path] && !pool.has(path)) { table[path] = existing[path]; continue; }
+    if (pool.has(path) && !used.has(path) && (oldBase[path] === undefined || oldBase[path] === text)) { table[path] = pool.get(path)!; used.add(path); revived++; continue; }
+    const cands = bySrc.get(text)?.filter((o) => !used.has(o));
+    if (cands?.length) { used.add(cands[0]); table[path] = pool.get(cands[0])!; remapped++; continue; }
+    table[path] = text; added++;
+  }
+  for (const [p, v] of pool) if (!used.has(p) && v !== oldBase[p]) table[`_stale:${p}`] = v;
+  return { table, added, remapped, revived, stale: [...pool.keys()].filter((p) => !used.has(p) && pool.get(p) !== oldBase[p]) };
+}
+
 /** Coverage of a translation table against the game: what is missing, what no longer exists, what is long. */
 export function localeStatus(game: GameDef, table: Record<string, string>, maxText = 140) {
   const paths = textPaths(game);
   const keys = new Set(paths.map((p) => p.path));
   const missing = paths.filter((p) => !(p.path in table)).map((p) => p.path);
-  const stale = Object.keys(table).filter((k) => !k.startsWith('_') && !keys.has(k));
+  const stale = Object.keys(table).filter((k) => k.startsWith('_stale:') ? !keys.has(k.slice(7)) : !k.startsWith('_') && !keys.has(k));
   const long = paths.filter((p) => (table[p.path] ?? '').length > maxText).map((p) => p.path);
   return { total: paths.length, translated: paths.length - missing.length, missing, stale, long };
 }

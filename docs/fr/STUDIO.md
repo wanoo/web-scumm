@@ -40,7 +40,11 @@ que les joueurs auront.
 - **Check** : le validateur et le solveur tournent après chaque enregistrement ; leur sortie et le chemin du
   solveur sont affichés ici. « Screenshot » rend un lieu à un checkpoint (nécessite Playwright).
   En dessous, la **carte du monde** (lieux, sorties, gotos ; lieux inaccessibles et sorties sans retour en rouge) et le
-  **rapport de contenu** (ce que pèse chaque lieu, objet et personnage : le profileur de `npm run validate -- --report`).
+  **rapport de contenu** (ce que pèse chaque lieu, objet et personnage : le profileur de `npm run validate -- --report`),
+  et le **graphe de puzzles** : chaque règle, sujet, script et écouteur avec ce qu'il exige (flèches grises, pointillées
+  quand c'est lu à l'intérieur de ses commandes) et ce qu'il produit (vert) ou consomme (rouge) ; toucher un objet, un flag,
+  un accessoire, un lieu de la carte ou un événement affiche sa fiche (obtenu par, utilisé par, exige d'abord, débloque,
+  en aval), le même texte que renvoie l'outil `puzzle_graph`.
 - **Play** : le jeu lui-même (outils de dev actifs) dans un cadre, à côté de l'**état** en direct (lieu, sac, flags,
   personnages mobiles, scripts, joueurs) et d'un **explicateur de règles** : choisis un verbe, un objet et une cible, et
   chaque règle qui pourrait répondre est listée avec chaque condition évaluée ✓ / ✗ sur l'état en direct ; la première ✓

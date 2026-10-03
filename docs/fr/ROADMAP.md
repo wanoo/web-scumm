@@ -92,6 +92,35 @@ Fichiers : `types.ts`, `engine.ts`, `state`, `dom/app.ts` (inventaire, bouton de
 - **Studio « Play »** : onglet jouant le jeu en iframe `?dev` avec inspecteur d'état (déjà dans le panneau dev) et **explicateur de règle** : clic sur un hotspot/objet → liste des règles candidates avec chaque condition évaluée ✓/✗ (réutilise `evalCond` du core, exposé en mode dev).
 - **Mini-jeux** : rien à coder, documenter le registre existant comme `activities` et livrer un exemple dans `games/_template`.
 
+## v2.1 « Proof » (livrée) : prouver le moteur plutôt que l'étendre
+
+Un second audit, sur la 2.0.1, a conclu que les primitives étaient là et que l'étape suivante était la preuve et
+l'outillage, pas d'autres commandes. Deux de ses affirmations étaient fausses (`engine.ts` et `types.ts` font moins de
+mille lignes chacun, pas trois mille), sa direction était juste. Ce que la v2.1 a livré :
+
+- **Un seul catalogue des commandes** (`src/engine/core/cmds.ts`) : chaque clé de `Cmd`, lesquelles portent des listes
+  imbriquées, lesquelles changent l'état, lesquelles portent du texte ; le validateur, le solveur, le parcours des
+  textes et les outils de contenu le lisent. Ajouter une variante à `Cmd` sans la lister casse `tsc` ;
+  `tests/cmds.test.ts` passe chaque commande dans le validateur et le moteur.
+- **Les classiques** (`docs/fr/CLASSICS.md`) : vingt mécaniques célèbres du genre écrites avec le DSL tel quel, chacune
+  marquée natif / faisable / custom, cinq jouées et prouvées dans `tests/classics.test.ts`. Les écrire a trouvé trois
+  vrais trous du solveur, corrigés : il ne prenait que la dernière option d'un `choice`, il bornait les compteurs qui
+  baissent (le marchandage), et il jouait un script d'un bloc au lieu d'un `wait` à la fois (une ronde n'était jamais
+  vue dans la salle du milieu).
+- **Le graphe de puzzles** (`src/engine/tools/puzzle.ts`) : ce que chaque règle, sujet, script et écouteur exige et
+  change ; une fiche par objet, flag, accessoire, lieu ou événement (obtenu par, utilisé par, exige d'abord, débloque,
+  en aval) ; dans l'onglet Check du Studio, en page `npm run page:puzzles`, en outil `puzzle_graph`. Le validateur s'en
+  sert pour repérer un flag posé seulement par des actions qui l'exigent déjà.
+- **Le solveur élague ce qui ne peut pas compter** : depuis le même graphe, un flag que seul son poseur lit, un script
+  dont les effets n'atteignent rien de vivant, un promeneur que personne n'attend sortent de l'état. Le jeu généré de
+  40 salles est passé de « 20 000 états, tronqué » à 804 états en une seconde (`docs/fr/BENCH.md`).
+- **Un jeu de charge généré** (`src/engine/tools/stress.ts`, `npm run bench`) : salles, joueurs, objets, flags,
+  promeneurs, scripts, sujets, chapitres et migrations à toute taille, chaque outil chronométré dessus ; un petit tourne
+  dans les tests.
+- **Les boucles honorent `at`** pour les sons et les secousses ; le validateur y refuse un changement d'état.
+- **Les traductions survivent aux refactors** : `extract --lang xx` suit un texte déplacé (même texte source dans le
+  fichier de référence précédent), gare ce qui a disparu sous `_stale:`, le ressuscite quand le chemin revient.
+
 ## Hors plan (décisions explicites)
 
 - Pas de Phaser ni de canvas : le Presenter DOM suffit pour quelques dizaines d'images ; une salle large reste une translation CSS.

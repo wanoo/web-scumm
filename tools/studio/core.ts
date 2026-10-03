@@ -12,12 +12,13 @@ import { normalizeExits } from '../../src/engine/core/define';
 import { solve as solveGame } from '../../src/engine/tools/solve';
 import { report as reportGame, reportMarkdown } from '../../src/engine/tools/report';
 import { toDot, toSvg, worldGraph } from '../../src/engine/tools/graph';
+import { puzzleGraph, puzzleMarkdown, toPuzzleDot, toPuzzleSvg } from '../../src/engine/tools/puzzle';
 import { loadAssets, loadLayouts, loadLocales } from '../../src/engine/tools/load';
 import { GAME_DIR, ROOT, type GameModule } from '../game';
 import { normalizeStoryboard, storyboardMarkdown } from '../pages/storyboard-data';
 import { addToSection, extractTexts, objectText, parseRoom, SourceError, setTextInSource } from './source';
 import type {
-  AddEntity, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, ScreenshotResult, SolveData, TextRef, ValidateResult, ReportData, GraphData,
+  AddEntity, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, ScreenshotResult, SolveData, TextRef, ValidateResult, ReportData, GraphData, PuzzleData,
 } from './types';
 
 export class StudioError extends Error {
@@ -373,6 +374,13 @@ export function createStudio(opts: StudioOptions = {}) {
     return { report: r, markdown: reportMarkdown(r), ms: Date.now() - t0 };
   }
 
+  /** The puzzle graph: what every rule needs and changes; `id` = one item / flag / prop card. */
+  async function puzzle(id?: string): Promise<PuzzleData> {
+    const mod = await loadModule();
+    const g = puzzleGraph(mod.game, { commands: mod.commands });
+    return { graph: g, svg: toPuzzleSvg(g), dot: toPuzzleDot(g), markdown: puzzleMarkdown(g, id || undefined), ...(id ? { id } : {}) };
+  }
+
   /** The world's map: rooms and the ways between them. */
   async function graph(): Promise<GraphData> {
     const mod = await loadModule();
@@ -427,7 +435,7 @@ export function createStudio(opts: StudioOptions = {}) {
     gameDir: dir, gameId, root,
     /** The game module, imported fresh (for tools that read the whole game, e.g. asset prompts). */
     loadGame: loadModule,
-    gameInfo, getRoom, texts, getLayout, setLayout, setText, addEntity, report, graph,
+    gameInfo, getRoom, texts, getLayout, setLayout, setText, addEntity, report, graph, puzzle,
     getStoryboard, setStoryboard, getNotes, addNote, editNote, deleteNote, exportStoryboardMarkdown, validate, solve, screenshot, screenshotPath,
   };
 }

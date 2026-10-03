@@ -63,6 +63,15 @@ JSON » donne `{ "layouts": { "<room>": … } }`. La page ne modifie pas les pos
 pointillés, lieux sur la carte marqués), liste les lieux inaccessibles et les sorties sans retour, et imprime la source
 DOT pour Graphviz. Lecture seule : pas d'annotations, pas de base d'artefact ; la même image est dans l'onglet Check du Studio.
 
+## La page des puzzles
+
+`npm run page:puzzles` dessine le graphe de puzzles : les choses (objets, flags, accessoires, lieux de la carte,
+événements, personnages déplacés) en couleur, les actions (règles, sujets, scripts, écouteurs, objectifs de chapitre) en
+blanc ; flèches grises pour ce qu'une action exige, pointillées quand c'est lu dans ses commandes, vertes pour ce qu'elle
+produit, rouges tiretées pour ce qu'elle consomme. Toucher une chose affiche sa fiche : obtenu par, consommé par, utilisé
+par, exige d'abord, débloque, en aval. La page liste ce qui est lu mais jamais produit et ce qui est produit mais jamais
+utilisé, imprime le tableau récapitulatif et la source DOT. Lecture seule.
+
 ## Où vont les annotations
 
 Chaque page affiche une ligne de statut en haut et un bouton **Export JSON**. Elle fonctionne selon trois modes :

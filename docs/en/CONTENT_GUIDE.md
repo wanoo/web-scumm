@@ -277,7 +277,7 @@ Content stays written in one language (`lang: 'en'` in `game.ts`). Translating i
 
 ```bash
 npm run i18n -- extract              # games/<id>/locales/en.json: every text with its path (the reference)
-npm run i18n -- extract --lang fr    # locales/fr.json: keeps what is translated, adds the missing texts to translate
+npm run i18n -- extract --lang fr    # locales/fr.json: keeps what is translated, follows moved texts, adds the missing ones
 npm run i18n -- status               # coverage of every language, stale paths, long lines
 ```
 
@@ -286,6 +286,13 @@ A path looks like `room:house/look.pantry[1]`, `item:key/name`, `char:grandma/re
 (`locales` in `index.ts` picks them up); the player gets `?lang=fr`, their choice in Settings (`ui.language`), or their
 browser's language when a translation exists. Texts a file lacks stay as written. `npm run validate -- --report` and the
 Studio's Check tab show the coverage.
+
+Paths follow the structure, so a refactor moves them: `extract --lang fr` copes. It compares the game with the
+reference file (`locales/en.json`, refreshed at the same time): a text that moved (a reordered list, a rule moved up)
+keeps its translation because its source text is the same; a text that disappeared is parked under `_stale:<old path>`
+(ignored in play, listed by `status`, deleted by hand when sure) and comes back with its translation if the path returns;
+a text whose source changed is offered again to translate. Rule of thumb: run `extract --lang xx` after every refactor,
+before translating anything new, and commit the reference file with the translations.
 
 ## Your own minigames
 
@@ -341,7 +348,9 @@ on: [{ verb: 'open', a: 'pantry', do: [{ play: ['pantry', 'rattle'] }, 'Locked.'
 
 `{ play: [prop, name] }` shows the frames in turn at `fps` and **runs the commands of `at` when that frame is reached**
 (a sound on the right frame, a flag, a line), then the prop goes back to its state image. A `loop` animation plays on
-its own until `{ stopAnim: prop }` (its `at` is ignored). Character poses get the same: `{ anim: ['hero', 'jump'], ms: 600, at: { 2: [{ sfx: 'thud' }] } }`
+its own until `{ stopAnim: prop }`; its `at` only plays sounds and shakes (`sfx`, `shake`), every turn of the loop: a
+machine that clanks on frame 4 is `glow: { frames: […], loop: true, at: { 4: [{ sfx: 'clank' }] } }`, and the validator
+refuses a flag or a line there (the loop never ends). Character poses get the same: `{ anim: ['hero', 'jump'], ms: 600, at: { 2: [{ sfx: 'thud' }] } }`
 runs the commands when the pose reaches that frame, at the character's `fps`.
 
 ### Voice
@@ -448,7 +457,7 @@ scripts: [
 |---|---|
 | `id` | Unique in the whole game (a script can be waited on from anywhere). |
 | `loop: true` | Starts again from the top when done. A loop must contain a `wait`, `waitUntil` or `waitEvent`. |
-| `while: COND` | Runs only while the condition holds; when it turns false, the script rewinds to its first command and waits. |
+| `while: COND` | Runs only while the condition holds; when it turns false, the script rewinds to its first command and waits. It is checked before every command: a script that `lose`s the item its `while` needs stops right there (gain the new item first, then lose the old one). |
 | `{ wait: 3000 }` | A pause: the player keeps playing meanwhile. |
 | `{ waitUntil: COND }` | Pauses until the condition holds (checked at every gap). |
 | `{ waitEvent: 'gong' }` | Pauses until the event is emitted, even from another room. |

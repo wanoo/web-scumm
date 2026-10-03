@@ -521,13 +521,13 @@ describe('picture: camera, prop animations, frame events, voice', () => {
     g.rooms[0].props!.door.anims!.glow.at = { 5: ['late'] };
     const v = validate(g, { street: { ...pictureLayouts.street, width: 600 } });
     expect(v.errors).toEqual([
+      'street.props.door.anims.glow.at[5] › a looping animation only plays sounds and shakes at a frame (sfx, shake): the loop never ends, anything else would repeat forever',
       'street.props.door.anims.glow › at: frame 5 is outside the animation (2 frames)',
       'street.on[0][0] › prop "door" has no animation "nope" (anims: rattle, glow)',
       'street.on[0][1] › unknown voice clip: "v9" (audio.voices)',
       'street.on[0][2] › at: "x" is not a frame index',
       'street.layout › width must be a number of at least 640',
     ]);
-    expect(v.warnings).toContain('street.props.door.anims.glow › a looping animation does not run its "at" commands');
     expect(v.warnings).toContain('street.on[1][0] › camera in a 640-wide room (set "width" in the layout): no effect');
     const r = await solve(picture(), pictureLayouts, { maxStates: 100 });
     expect(r.finished).toBe(true);

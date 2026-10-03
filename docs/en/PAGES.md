@@ -55,6 +55,14 @@ use the in-game editor (`npm run dev`, then `?edit=<room>`).
 the map marked), lists unreachable rooms and exits with no way back, and prints the DOT source for Graphviz. Read-only:
 no annotations, no artifact database; the same picture is in the Studio's Check tab.
 
+## The puzzles page
+
+`npm run page:puzzles` draws the puzzle graph: things (items, flags, props, places, events, moved characters) in colour,
+actions (rules, topics, scripts, listeners, chapter goals) in white; grey arrows for what an action needs, dotted when
+it is read inside its commands, green for what it produces, red dashed for what it consumes. Tap a thing for its card:
+acquired by, consumed by, used by, requires first, unlocks, downstream. The page lists what is read but never produced
+and what is produced but never used, prints the overview table and the DOT source. Read-only.
+
 ## Where the annotations go
 
 Every page shows a status line at the top and an **Export JSON** button. It works in three modes:

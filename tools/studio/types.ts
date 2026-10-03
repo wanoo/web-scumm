@@ -3,6 +3,7 @@
 import type { CharacterDef, GameDef, Id, ItemDef, Layout, Point, RoomDef, VerbDef } from '../../src/engine/core/types';
 import type { ContentReport } from '../../src/engine/tools/report';
 import type { WorldGraph } from '../../src/engine/tools/graph';
+import type { PuzzleGraph } from '../../src/engine/tools/puzzle';
 
 /** What a text literal is, from its JSON path in the room file. */
 export type TextKind =
@@ -102,6 +103,8 @@ export interface ValidateResult { ok: boolean; errors: string[]; warnings: strin
 export interface ReportData { report: ContentReport; markdown: string; ms: number }
 /** The world's map (src/engine/tools/graph.ts), with an SVG and a DOT rendering. */
 export interface GraphData { graph: WorldGraph; svg: string; dot: string }
+/** The puzzle graph (src/engine/tools/puzzle.ts): the whole graph as SVG and DOT, the overview or one card as Markdown. */
+export interface PuzzleData { graph: PuzzleGraph; svg: string; dot: string; markdown: string; id?: string }
 
 export interface SolveData {
   finished: boolean;

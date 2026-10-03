@@ -126,6 +126,16 @@ Il affiche aussi trois alertes à lire :
 
 `npm run solve -- --from=market` part d'un point de reprise, pratique quand on travaille sur un seul lieu.
 
+### Lire le graphe de puzzles
+
+Avant de toucher une énigme, demander au graphe ce qui en dépend : `npm run page:puzzles`, le panneau Puzzles de
+l'onglet Check du Studio, ou l'outil `puzzle_graph` avec un id. La fiche de la clé du garde-manger dans la démo dit :
+obtenue par *give bouquet + seller* ; utilisée par *use key + pantry* et l'objectif du finale ; exige d'abord *bouquet*,
+*flowers_done*, *bouquet_given* ; débloque le garde-manger et la fin. Retirez l'échange du bouquet et la fiche dit ce
+qui casse avant le solveur. Le récapitulatif liste trois odeurs : une chose **lue mais jamais produite** (un flag que
+personne ne pose), une chose **produite mais jamais utilisée** (un flag ou un objet qui ne mène nulle part), et un flag
+**posé seulement par des actions qui l'exigent déjà** (il ne peut jamais devenir vrai ; le validateur avertit aussi).
+
 ## 4. Les lieux
 
 | Élément | Règle empirique |

@@ -19,7 +19,8 @@ export interface Presenter {
   /** A frame of a prop animation (null: back to the state image). */
   propFrame(id: Id, img: Id | null): void;
   /** A looping prop animation (an empty list stops it). */
-  propLoop(id: Id, frames: Id[], fps: number): void;
+  /** `onFrame`: called when the loop shows frame `i` (the engine plays the frame's sounds there). */
+  propLoop(id: Id, frames: Id[], fps: number, onFrame?: (i: number) => void): void;
   /** Camera: follow the hero, or go to left edge `x` over `ms`. */
   camera(x: number | null, follow: boolean, ms: number, fast: boolean): Promise<void>;
   show(id: Id, visible: boolean, fade: number, fast: boolean): Promise<void>;
@@ -73,7 +74,7 @@ export class FakePresenter implements Presenter {
   async wait() {}
   prop(id: Id, state: string) { this.log.push(`prop ${id} ${state}`); }
   propFrame(id: Id, img: Id | null) { this.log.push(`frame ${id} ${img ?? '-'}`); }
-  propLoop(id: Id, frames: Id[]) { this.log.push(`loop ${id} ${frames.length}`); }
+  propLoop(id: Id, frames: Id[], _fps: number, onFrame?: (i: number) => void) { this.log.push(`loop ${id} ${frames.length}${onFrame ? ' +at' : ''}`); }
   async camera(x: number | null, follow: boolean) { this.log.push(`camera ${follow ? 'follow' : x}`); }
   async show(id: Id, v: boolean) { this.log.push(`${v ? 'show' : 'hide'} ${id}`); }
   inventory(items: Id[]) { this.log.push(`inv ${items.join(',')}`); }
@@ -83,7 +84,10 @@ export class FakePresenter implements Presenter {
   shake() {}
   async openMap() { return this.mapPicks.length ? this.mapPicks.shift()! : null; }
   async minigame(id: Id) { this.log.push(`minigame ${id}`); }
-  async choose(options: { text: string }[]) {
+  /** Every choice asked so far: how many options, and whether it was a topic list (the solver enumerates the others). */
+  asked: { n: number; topic: boolean; texts: string[] }[] = [];
+  async choose(options: { text: string }[], who?: Id) {
+    this.asked.push({ n: options.length, topic: who !== undefined, texts: options.map((o) => o.text) });
     const i = this.picks.length ? this.picks.shift()! : options.length - 1;
     this.log.push(`choose ${options[i]?.text}`);
     return i;

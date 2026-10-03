@@ -33,7 +33,7 @@ interface Ent {
   img?: Id;
   /** Props: a frame of an animation shown instead of the state image, and a running loop. */
   frameImg?: Id;
-  loop?: { frames: Id[]; fps: number; i: number; acc: number };
+  loop?: { frames: Id[]; fps: number; i: number; acc: number; onFrame?: (i: number) => void };
   visible: boolean;
   shadow?: HTMLDivElement;
   /** Character that keeps its size (placed) or follows depth (hero, walking actor). */
@@ -299,7 +299,7 @@ export class RoomView {
     for (const e of this.ents.values()) {
       if (!e.loop) continue;
       e.loop.acc += dt;
-      if (e.loop.acc >= 1 / e.loop.fps) { e.loop.acc = 0; e.loop.i = (e.loop.i + 1) % e.loop.frames.length; e.frameImg = e.loop.frames[e.loop.i]; this.draw(e); }
+      if (e.loop.acc >= 1 / e.loop.fps) { e.loop.acc = 0; e.loop.i = (e.loop.i + 1) % e.loop.frames.length; e.frameImg = e.loop.frames[e.loop.i]; this.draw(e); e.loop.onFrame?.(e.loop.i); }
     }
     // Mouths: during speech, t2/t3/t4 at random every 160 to 220 ms; at rest, an occasional blink.
     for (const e of this.ents.values()) {
@@ -394,14 +394,15 @@ export class RoomView {
     this.draw(e);
   }
 
-  propLoop(id: Id, frames: Id[], fps: number) {
+  propLoop(id: Id, frames: Id[], fps: number, onFrame?: (i: number) => void) {
     const e = this.ents.get(id);
     if (!e) return;
     if (!frames.length) { e.loop = undefined; e.frameImg = undefined; this.draw(e); return; }
     void this.bank.preload(new Set(frames));
-    e.loop = { frames, fps: fps || 8, i: 0, acc: 0 };
+    e.loop = { frames, fps: fps || 8, i: 0, acc: 0, onFrame };
     e.frameImg = frames[0];
     this.draw(e);
+    onFrame?.(0);
   }
 
   refreshVisibility() {

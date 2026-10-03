@@ -69,7 +69,9 @@ Le choix se fait tout seul (`App.layout`), et se refait si la fenêtre change de
 7. Dans les creux entre deux actions, les **scripts** du monde avancent d'une commande chacun (`ScriptDef`,
    `Engine.advance`) : PNJ qui déambule, gag d'ambiance, personnage qui change de lieu (`moveActor`) quand un événement
    émis (`emit`) réveille son `waitEvent`. Leur position vit aussi dans l'état : une sauvegarde les reprend, et le solveur
-   les joue comme des actions (« Script <id> »).
+   les joue comme des actions (« Script <id> » : le script avance jusqu'à son prochain `wait`, une ronde est donc vue salle par salle). Le solveur essaie aussi chaque option d'un `choice` (le chemin s'écrit alors `Talk x: "sujet" › "réponse"`), et garde la valeur exacte d'un compteur qui baisse ou qui est posé à un nombre. Il laisse hors de l'état ce qui ne
+   peut pas changer l'issue (le graphe de puzzles le dit : un flag que seul son poseur lit, un script d'horloge que
+   personne ne regarde, un promeneur que personne n'attend), donc un monde décoratif ne lui coûte rien.
 
 ## Pourquoi ces choix
 

@@ -1,8 +1,10 @@
 // Content validator: checks that everything referenced exists, and flags what's missing for a good experience.
 // Pure TypeScript (no DOM): runs in node (npm run validate) and in tests.
 import { condFlags } from '../core/cond';
+import { subLists } from '../core/cmds';
 import { normalizeExits } from '../core/define';
 import { worldGraph } from './graph';
+import { puzzleGraph, puzzleIssues } from './puzzle';
 import type { Cmd, Cond, EventRule, GameDef, Id, Layout, RoomDef, Rule, ScriptDef, VerbId } from '../core/types';
 
 export interface AssetIndex {
@@ -153,6 +155,10 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     list?.forEach((c, i) => cmd(c, `${where}[${i}]`, room));
   };
   const cmd = (c: Cmd, where: string, room?: RoomDef) => {
+    cmdChecks(c, where, room);
+    for (const s of subLists(c)) nested(() => cmds(s.list, where + s.path, room));
+  };
+  const cmdChecks = (c: Cmd, where: string, room?: RoomDef) => {
     if (typeof c === 'string') { text(c, where); return; }
     if ('say' in c) {
       if (!whoOk(c.say[0], room)) err(where, `unknown character: "${c.say[0]}"`);
@@ -178,7 +184,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     if ('anim' in c) {
       if (!whoOk(c.anim[0], room)) err(where, `unknown character: "${c.anim[0]}"`);
       poseRef(c.anim[0], c.anim[1], where, room);
-      for (const [i, b] of Object.entries(c.at ?? {})) { if (!/^\d+$/.test(i)) err(where, `at: "${i}" is not a frame index`); nested(() => cmds(b, `${where}.at[${i}]`, room)); }
+      for (const i of Object.keys(c.at ?? {})) if (!/^\d+$/.test(i)) err(where, `at: "${i}" is not a frame index`);
       return;
     }
     if ('play' in c) {
@@ -196,7 +202,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       return;
     }
     if ('wait' in c) return;
-    if ('parallel' in c) { nested(() => c.parallel.forEach((b, j) => cmds(b, `${where}.parallel[${j}]`, room))); return; }
+    if ('parallel' in c) return;
     if ('prop' in c) { propRef(c.prop[0], c.prop[1], where, room); return; }
     if ('show' in c || 'hide' in c) {
       const id = 'show' in c ? c.show : (c as { hide: Id }).hide;
@@ -253,28 +259,22 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     }
     if ('toast' in c) { text(c.toast, where); return; }
     if ('shake' in c) return;
-    if ('if' in c) { cond(c.if, where, room); nested(() => { cmds(c.then, `${where}.then`, room); cmds(c.else, `${where}.else`, room); }); return; }
-    if ('once' in c) { nested(() => cmds(c.once, `${where}.once`, room)); return; }
-    if ('nth' in c) { nested(() => c.nth.forEach((b, j) => cmds(b, `${where}.nth[${j}]`, room))); return; }
-    if ('cycle' in c) { nested(() => c.cycle.forEach((b, j) => cmds(b, `${where}.cycle[${j}]`, room))); return; }
-    if ('random' in c) { nested(() => c.random.forEach((b, j) => cmds(b, `${where}.random[${j}]`, room))); return; }
-    if ('cutscene' in c) { nested(() => cmds(c.cutscene, `${where}.cutscene`, room)); return; }
+    if ('if' in c) { cond(c.if, where, room); return; }
+    if ('once' in c || 'nth' in c || 'cycle' in c || 'random' in c || 'cutscene' in c) return;
     if ('choice' in c) {
       if (!c.choice.length) err(where, 'choice with no option');
-      nested(() => c.choice.forEach((o, j) => { text(o.text, `${where}.choice[${j}]`); cond(o.if, `${where}.choice[${j}]`, room); cmds(o.do, `${where}.choice[${j}]`, room); }));
+      c.choice.forEach((o, j) => { text(o.text, `${where}.choice[${j}]`); cond(o.if, `${where}.choice[${j}]`, room); });
       return;
     }
     if ('minigame' in c) {
       if (opts.minigameIds && !opts.minigameIds.includes(c.minigame)) err(where, `unknown minigame: "${c.minigame}" (known: ${opts.minigameIds.join(', ')})`);
       minigameParams(c.minigame, c.params, where);
-      nested(() => cmds(c.then, `${where}.then`, room));
       return;
     }
     if ('phone' in c) {
       const list = Array.isArray(c.phone) ? c.phone : [c.phone];
       if (!list.length) err(where, 'call with no one on the line');
       for (const w of list) if (!whoOk(w, room)) err(where, `unknown character: "${w}"`);
-      nested(() => cmds(c.do, `${where}.phone`, room));
       return;
     }
     if ('guide' in c) {
@@ -287,7 +287,6 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     if ('talk' in c) { if (room && !room.talk?.[c.talk]) err(where, `no conversation topics for "${c.talk}"`); return; }
     if ('ending' in c || 'reveal' in c) {
       if (!game.ending) err(where, 'sealed ending without "ending" in the game');
-      nested(() => cmds(c.after, `${where}.after`, room));
       return;
     }
     if ('hint' in c || 'end' in c) return;
@@ -490,6 +489,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       if (p.initial && p.states && !p.states[p.initial]) err(pw, `unknown initial state: "${p.initial}"`);
       for (const [an, a] of Object.entries(p.anims ?? {})) {
         const aw = `${pw}.anims.${an}`;
+        if (a.loop) for (const [k, b] of Object.entries(a.at ?? {})) for (const x of b) if (typeof x !== 'object' || !('sfx' in x || 'shake' in x)) err(`${aw}.at[${k}]`, 'a looping animation only plays sounds and shakes at a frame (sfx, shake): the loop never ends, anything else would repeat forever');
         if (!a.frames?.length) err(aw, 'animation with no frame');
         a.frames?.forEach((f, i) => img(f, `${aw}[${i}]`));
         if (a.fps !== undefined && !(a.fps > 0)) err(aw, 'fps must be positive');
@@ -497,7 +497,6 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
           if (!/^\d+$/.test(i) || Number(i) >= (a.frames?.length ?? 0)) err(aw, `at: frame ${i} is outside the animation (${a.frames?.length ?? 0} frames)`);
           cmds(b, `${aw}.at[${i}]`, r);
         }
-        if (a.loop && a.at && Object.keys(a.at).length) warn(aw, 'a looping animation does not run its "at" commands');
       }
       cond(p.visible, pw, r);
       if (p.name !== undefined) text(p.name, pw);
@@ -603,6 +602,8 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   // Flags
   for (const [f, where] of flagsRead) if (!flagsSet.has(f)) warn(where, `flag "${f}" is read but never set`);
   for (const [f, where] of flagsSet) if (!flagsRead.has(f)) warn(where, `(info) flag "${f}" is set but never read`);
+  // The puzzle graph: a flag only set by actions that already need it can never become true.
+  for (const n of puzzleIssues(puzzleGraph(game, { commands: opts.commands })).selfLocked) warn(flagsSet.get(n.label) ?? 'flags', `flag "${n.label}" is only set by actions that already require it: it can never become true`);
 
   return { errors, warnings };
 }

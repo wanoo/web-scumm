@@ -8,9 +8,10 @@ import { validate as validateGame, type AssetIndex } from '@engine/tools/validat
 import { solve as solveGame } from '@engine/tools/solve';
 import { report as reportGame, reportMarkdown } from '@engine/tools/report';
 import { toDot, toSvg, worldGraph } from '@engine/tools/graph';
+import { puzzleGraph, puzzleMarkdown, toPuzzleDot, toPuzzleSvg } from '@engine/tools/puzzle';
 import { normalizeStoryboard, storyboardMarkdown } from '../../tools/pages/storyboard-data';
 import { classify, formatPath, parsePath, SourceError, type Seg } from '../../tools/studio/paths';
-import type { GraphData, ReportData,
+import type { GraphData, PuzzleData, ReportData,
   AddEntity, AssetsListing, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, SolveData, StudioPatch, StudioPatchFile,
   StudioSnapshot, TextRef, ValidateResult,
 } from '../../tools/studio/types';
@@ -274,6 +275,12 @@ export class BrowserApi implements Api {
     const { game } = await this.editedGame();
     const g = worldGraph(game);
     return { graph: g, svg: toSvg(g), dot: toDot(g) };
+  }
+
+  async puzzle(id?: string): Promise<PuzzleData> {
+    const { mod, game } = await this.editedGame();
+    const g = puzzleGraph(game, { commands: mod.commands });
+    return { graph: g, svg: toPuzzleSvg(g), dot: toPuzzleDot(g), markdown: puzzleMarkdown(g, id || undefined), ...(id ? { id } : {}) };
   }
 
   async solve(from?: string, maxStates = 20000): Promise<SolveData> {

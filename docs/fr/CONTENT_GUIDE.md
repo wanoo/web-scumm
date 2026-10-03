@@ -275,7 +275,7 @@ Le contenu reste écrit dans une langue (`lang: 'fr'` dans `game.ts`). Traduire,
 
 ```bash
 npm run i18n -- extract              # games/<id>/locales/fr.json : chaque texte avec son chemin (la référence)
-npm run i18n -- extract --lang en    # locales/en.json : garde ce qui est traduit, ajoute les textes manquants à traduire
+npm run i18n -- extract --lang en    # locales/en.json : garde ce qui est traduit, suit les textes déplacés, ajoute les manquants
 npm run i18n -- status               # couverture de chaque langue, chemins obsolètes, lignes longues
 ```
 
@@ -284,6 +284,13 @@ Un chemin ressemble à `room:maison/look.garde_manger[1]`, `item:cle/name`, `cha
 fichiers qu'il a (`locales` dans `index.ts` les ramasse) ; le joueur a `?lang=en`, son choix dans Réglages
 (`ui.language`), ou la langue de son navigateur quand la traduction existe. Les textes absents d'un fichier restent
 comme écrits. `npm run validate -- --report` et l'onglet Check du Studio montrent la couverture.
+
+Les chemins suivent la structure, donc un refactor les déplace : `extract --lang en` s'en sort. Il compare le jeu au
+fichier de référence (`locales/fr.json`, rafraîchi en même temps) : un texte déplacé (une liste réordonnée, une règle
+remontée) garde sa traduction parce que son texte source est le même ; un texte disparu est garé sous `_stale:<ancien
+chemin>` (ignoré en jeu, listé par `status`, à supprimer à la main quand on est sûr) et revient avec sa traduction si le
+chemin réapparaît ; un texte dont la source a changé est proposé à nouveau à traduire. Règle simple : lancer `extract
+--lang xx` après chaque refactor, avant de traduire du neuf, et commiter le fichier de référence avec les traductions.
 
 ## Tes propres mini-jeux
 
@@ -341,7 +348,10 @@ on: [{ verb: 'open', a: 'garde_manger', do: [{ play: ['garde_manger', 'secoue'] 
 
 `{ play: [accessoire, nom] }` montre les images l'une après l'autre à `fps` et **exécute les commandes de `at` quand
 cette image est atteinte** (un son sur la bonne image, un flag, une réplique), puis l'accessoire reprend l'image de son
-état. Une animation `loop` tourne toute seule jusqu'à `{ stopAnim: accessoire }` (son `at` est ignoré). Les poses des
+état. Une animation `loop` tourne toute seule jusqu'à `{ stopAnim: accessoire }` ; son `at` ne joue que des sons et des
+secousses (`sfx`, `shake`), à chaque tour de boucle : une machine qui claque à l'image 4, c'est
+`glow: { frames: […], loop: true, at: { 4: [{ sfx: 'clank' }] } }`, et le validateur y refuse un flag ou une réplique (la
+boucle ne finit jamais). Les poses des
 personnages ont la même chose : `{ anim: ['hero', 'saut'], ms: 600, at: { 2: [{ sfx: 'boum' }] } }` exécute les
 commandes quand la pose atteint cette image, au `fps` du personnage.
 
@@ -451,7 +461,7 @@ scripts: [
 |---|---|
 | `id` | Unique dans tout le jeu (on peut attendre un script depuis n'importe où). |
 | `loop: true` | Recommence du début une fois fini. Une boucle doit contenir un `wait`, `waitUntil` ou `waitEvent`. |
-| `while: COND` | Ne tourne que tant que la condition tient ; quand elle devient fausse, le script revient à sa première commande et attend. |
+| `while: COND` | Ne tourne que tant que la condition tient ; quand elle devient fausse, le script revient à sa première commande et attend. Elle est vérifiée avant chaque commande : un script qui `lose` l'objet dont son `while` a besoin s'arrête là (donner le nouvel objet d'abord, retirer l'ancien ensuite). |
 | `{ wait: 3000 }` | Une pause : le joueur continue de jouer pendant ce temps. |
 | `{ waitUntil: COND }` | Attend que la condition soit vraie (vérifiée à chaque creux). |
 | `{ waitEvent: 'gong' }` | Attend que l'événement soit émis, même depuis un autre lieu. |

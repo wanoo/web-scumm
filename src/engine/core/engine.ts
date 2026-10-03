@@ -610,10 +610,15 @@ export class Engine {
     return 'ran';
   }
 
-  /** Runs a script until it blocks, finishes or completes one iteration of its loop (tests, solver). True if anything ran. */
-  async runScript(id: Id): Promise<boolean> {
+  /**
+   * Runs a script until it blocks, finishes or completes one iteration of its loop (tests, solver). True if anything ran.
+   * `turn`: stop before the next `wait` instead, once something ran: for the solver, letting time pass is one choice at a
+   * time (a patrol that walks in, then out, must be seen in between).
+   */
+  async runScript(id: Id, turn = false): Promise<boolean> {
     let ran = false;
     for (let guard = 0; guard < 1000; guard++) {
+      if (turn && ran) { const c = this.scriptDef(id)?.do[this.scriptState(id).pc]; if (typeof c === 'object' && 'wait' in c) return ran; }
       const r = await this.advance(id);
       if (r !== 'ran') return ran;
       ran = true;
@@ -744,7 +749,12 @@ export class Engine {
       const def = room.props?.[pid]?.anims?.[name];
       if (!def) throw new Error(`no animation "${name}" on prop "${pid}" in ${room.id}`);
       const fps = def.fps ?? 8;
-      if (def.loop) { this.ui.propLoop(pid, def.frames, fps); return; }
+      if (def.loop) {
+        // A loop never ends: its frame events only play sounds and shakes (the validator refuses anything else).
+        const at = def.at;
+        this.ui.propLoop(pid, def.frames, fps, at && Object.keys(at).length ? (i) => { for (const x of at[i] ?? []) if (typeof x === 'object' && ('sfx' in x || 'shake' in x)) void this.step(x, ctx); } : undefined);
+        return;
+      }
       for (let i = 0; i < def.frames.length; i++) {
         this.ui.propFrame(pid, def.frames[i]);
         if (def.at?.[i]) await this.exec(def.at[i], ctx);

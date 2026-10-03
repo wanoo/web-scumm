@@ -28,6 +28,7 @@ the human sees the result live in `npm run studio` (it watches the files).
 | `solve` | `from?` | proves the game can be finished (from New Game or a checkpoint) |
 | `content_report` | The content profiler as Markdown: per room, item and character, what is thin; unreachable rooms. Read-only. |
 | `world_graph` | The rooms and the ways between them as DOT, with unreachable rooms and exits with no way back. Read-only. |
+| `puzzle_graph` | What every rule, topic, script and listener needs and changes. Without `id`: the overview (every item and flag, what produces and uses it, flags read but never set, things produced but never used). With `id` (item, flag, prop, place, event): its card: acquired by, consumed by, used by, requires first, unlocks, downstream. Read-only. |
 | `screenshot` | `room, checkpoint?` | PNG of the room under `.cache/studio/`; needs the dev server (`npm run studio`) at `WEB_SCUMM_DEV_URL` (default `http://localhost:5173/`) and Playwright, else says why it is unavailable |
 | `read_doc` | `name` | one of `CONTENT_GUIDE`, `ENGINE`, `TOOLS`, `STUDIO`, `WORKFLOW` (docs/en): the agent learns the DSL through MCP |
 | `run_tests` | | runs `npx vitest run`, returns the summary and the failures |

@@ -35,7 +35,10 @@ real engine (the room rendered by `src/engine/dom`), so what you see is what pla
 - **Check**: the validator and the solver run after every save; their output and the solver path are shown here.
   "Screenshot" renders a room at a checkpoint (needs Playwright).
   Below them, the **world map** (rooms, exits, gotos; unreachable rooms and exits with no way back in red) and the
-  **content report** (what each room, item and character amounts to: the profiler of `npm run validate -- --report`).
+  **content report** (what each room, item and character amounts to: the profiler of `npm run validate -- --report`),
+  and the **puzzle graph**: every rule, topic, script and listener with what it needs (grey arrows, dotted when read
+  inside its commands) and what it produces (green) or consumes (red); tap an item, flag, prop, place or event for its
+  card (acquired by, used by, requires first, unlocks, downstream), the same text the `puzzle_graph` tool returns.
 - **Play**: the game itself (dev tools on) in a frame, next to the live **state** (room, bag, flags, moving
   characters, scripts, players) and a **rule explainer**: pick a verb, an item and a target, and every rule that could
   answer is listed with each condition evaluated ✓ / ✗ against the live state; the first ✓ wins, or the tab says which
