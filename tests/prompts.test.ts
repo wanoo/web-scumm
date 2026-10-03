@@ -1,11 +1,11 @@
 // tools/prompts.ts (npm run prompts) on games/demo: one section per sheet, the engine's pose rows, the special poses
 // on their cells, object sheets grouped by folder, backgrounds with their empty spots, and --missing on a temp copy.
-import { cpSync, mkdtempSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import type { GameDef } from '@engine/core/types';
-import { buildPrompts } from '../tools/prompts';
+import { buildPrompts, COLOR_RULES, readArtStyle } from '../tools/prompts';
 import { game } from '../games/demo/game';
 
 const ROOT = resolve(__dirname, '..');
@@ -127,5 +127,53 @@ describe('npm run prompts --missing', () => {
     expect(home2).not.toContain('clock');
     expect(home2.match(/^- r\dc\d /gm)).toEqual(['- r1c4 ']);
     expect(md).toContain('python3 tools/cut-sheet.py games/demo/private/sheets/home2.png home2 --cells r1c4');
+  });
+});
+
+describe('art style presets', () => {
+  const colorBlock = COLOR_RULES.join('\n');
+
+  it('cel (the demo): COLOR RULES in the style block and in every sheet prompt, clean cel shading, no pixel rules', () => {
+    expect(readArtStyle(GAME_DIR)).toBe('cel');
+    const md = buildPrompts({ game }, opts).markdown;
+    const style = md.slice(md.indexOf('## Style block'), md.indexOf('\n## ', md.indexOf('## Style block') + 5));
+    expect(style).toContain(colorBlock);
+    expect(colorBlock).toContain('- Hue-shift every ramp: highlights are brighter, slightly less saturated and shifted toward the warm light (yellow)');
+    expect(colorBlock).toContain('- One single outline colour for the whole sheet (dark warm brown-black), consistent line weight.');
+    expect(section(md, '#### Base sheet `hero`')).toContain(colorBlock);
+    expect(section(md, '### Objects `home2`')).toContain('COLOR RULES:');
+    expect(section(md, '### Background `decor/dining`')).toContain('- One single outline colour for the whole image');
+    expect(md).toContain('clean cel shading with flat tones');
+    expect(md).not.toContain('soft cel shading');
+    expect(md).not.toContain('PIXEL RULES');
+    expect(md).toContain('- Art style: `cel`');
+  });
+
+  it('pixel: the STYLE sentence becomes retro pixel art and the strict rules are added, with the note that the tools enforce them', () => {
+    const md = buildPrompts({ game }, { ...opts, artStyle: 'pixel' }).markdown;
+    expect(md).toContain('STYLE (characters): match exactly the art style of the attached reference sheet: retro pixel art in the spirit of 1990s LucasArts adventures');
+    expect(md).toContain('1 pixel = 1 pixel, crisp, no anti-aliasing');
+    expect(md).not.toContain('clean cel shading with flat tones');
+    expect(md).toContain(colorBlock);
+    const hero = section(md, '#### Base sheet `hero`');
+    expect(hero).toContain('PIXEL RULES — strict:');
+    expect(hero).toContain('The whole canvas is drawn on a 384 x 256 pixel grid (64 x 64 per 256 px cell), scaled up 4x with hard edges');
+    expect(hero).toContain('- Exact flat RGB values');
+    expect(hero).toContain('- No anti-aliasing: no semi-transparent');
+    expect(hero).toContain('- The same material keeps exactly the same RGB values on every frame and every cell.');
+    expect(section(md, '### Background `decor/dining`')).toContain('The whole image is drawn on a 384 x 240 pixel grid');
+    expect(md).toContain('the tools enforce the PIXEL RULES after generation');
+    expect(md).toContain('- Art style: `pixel`');
+  });
+
+  it('reads artStyle from site.json', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'artstyle-'));
+    try {
+      expect(readArtStyle(dir)).toBe('cel');
+      writeFileSync(join(dir, 'site.json'), JSON.stringify({ artStyle: 'pixel' }));
+      expect(readArtStyle(dir)).toBe('pixel');
+      writeFileSync(join(dir, 'site.json'), JSON.stringify({ artStyle: 'watercolour' }));
+      expect(readArtStyle(dir)).toBe('cel');
+    } finally { rmSync(dir, { recursive: true, force: true }); }
   });
 });

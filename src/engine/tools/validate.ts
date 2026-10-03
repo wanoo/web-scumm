@@ -278,6 +278,18 @@ export function validate(game: GameDef, layouts: Record<string, Layout>, opts: V
       frames.forEach((f) => img(f, `${w}.${pose}`));
     }
     if (!c.offscreen && c.sprites && !c.sprites.idle) warn(w, 'no "idle" pose');
+    // Palette swap: source and target colours must be #rrggbb (others are ignored by the renderer).
+    const palette = (pal: unknown, tol: unknown, pw: string) => {
+      if (pal === undefined) return;
+      if (!pal || typeof pal !== 'object' || Array.isArray(pal)) { warn(pw, 'palette must be an object { "#rrggbb": "#rrggbb" }'); return; }
+      for (const [k, v] of Object.entries(pal)) {
+        if (!/^#[0-9a-fA-F]{6}$/.test(k)) warn(pw, `palette key "${k}" is not a #rrggbb colour (ignored)`);
+        if (typeof v !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(v)) warn(pw, `palette value for "${k}" is not a #rrggbb colour (ignored): ${JSON.stringify(v)}`);
+      }
+      if (tol !== undefined && (typeof tol !== 'number' || tol < 0)) warn(pw, 'paletteTolerance must be a number >= 0');
+    };
+    palette(c.palette, c.paletteTolerance, `${w}.palette`);
+    (c.variants ?? []).forEach((v, i) => palette(v.palette, v.paletteTolerance, `${w}.variants[${i}].palette`));
   }
   for (const [iid, it] of Object.entries(items)) {
     const w = `item ${iid}`;

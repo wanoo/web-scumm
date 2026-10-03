@@ -202,8 +202,24 @@ export interface CharacterDef {
   glow?: string;
   /** Mouths per pose (see MouthSet). With no mouth for a pose, the character keeps the same image while speaking. */
   mouths?: Record<string, MouthSet>;
-  /** Image sets depending on state: the first variant whose condition is true replaces sprites / mouths / portrait. */
-  variants?: { if: Cond; sprites?: SpriteSet; mouths?: Record<string, MouthSet>; portrait?: Id }[];
+  /**
+   * Palette swap: source colour → target colour, both `#rrggbb` (e.g. `{ '#492a25': '#b0592a' }`). The room view
+   * recolours every sprite and mouth frame of the character once (offscreen canvas, cached), keeping alpha. Exact RGB
+   * matches only, unless `paletteTolerance` is set. Exact colours survive best with the `pixel` art style (site.json
+   * `artStyle`), whose cutter writes one exact value per material. Portraits in menus are not recoloured.
+   */
+  palette?: Record<string, string>;
+  /**
+   * RGB distance under which a pixel counts as a source colour of `palette` (default 0: exact matches only). With a
+   * tolerance, the nearest source colour wins and the pixel keeps its offset from it, so painted (`cel`) art and lossy
+   * WebP still recolour cleanly. Around 10 to 16 suits cel art; keep it below the distance to the outline colour.
+   */
+  paletteTolerance?: number;
+  /**
+   * Image sets depending on state: the first variant whose condition is true replaces sprites / mouths / portrait,
+   * and `palette` / `paletteTolerance` when it has them (a variant with no palette keeps the character's).
+   */
+  variants?: { if: Cond; sprites?: SpriteSet; mouths?: Record<string, MouthSet>; portrait?: Id; palette?: Record<string, string>; paletteTolerance?: number }[];
 }
 
 export interface ItemDef {
@@ -384,6 +400,11 @@ export interface SkinDef {
   heights?: { actor?: number; hero?: number };
   /** Poses tried, in order, for a call's frame (`phone`). Default: phone, front, face, idle. */
   callPoses?: string[];
+  /**
+   * Pixel-art game (site.json `artStyle: "pixel"`): images scaled up by the browser keep hard edges
+   * (`image-rendering: pixelated` on the scene's images) instead of being smoothed. Default off.
+   */
+  pixelArt?: boolean;
 }
 
 export interface GameDef {

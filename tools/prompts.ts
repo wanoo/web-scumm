@@ -25,6 +25,26 @@ export interface PromptOptions {
   layouts?: Record<string, Layout>;
   /** Repository root, for the paths shown in the text (default: the parent of `games/`). */
   root?: string;
+  /** Art style preset (default: `artStyle` of `<gameDir>/site.json`, else `cel`). */
+  artStyle?: ArtStyle;
+}
+
+/**
+ * Art style preset, from `games/<id>/site.json` → `"artStyle"`. `cel` (default): painted cartoon, clean cel shading with
+ * flat tones. `pixel`: retro pixel art drawn 4× up on the same canvas; the cutter scales it back down and fixes its
+ * colours (`tools/cut-sheet.py`), `npm run assets` keeps it lossless and the engine draws it with hard edges.
+ */
+export type ArtStyle = 'cel' | 'pixel';
+
+/** Pixel art: each art pixel is drawn as a SCALE × SCALE block (a 256 px cell is a 64 × 64 grid). */
+export const PIXEL_SCALE = 4;
+
+/** `artStyle` of `<gameDir>/site.json` (`cel` when absent, unreadable or unknown). */
+export function readArtStyle(gameDir: string): ArtStyle {
+  try {
+    const s = JSON.parse(readFileSync(join(gameDir, 'site.json'), 'utf8'));
+    return s?.artStyle === 'pixel' ? 'pixel' : 'cel';
+  } catch { return 'cel'; }
 }
 
 export interface PromptSheet {
@@ -44,9 +64,43 @@ export interface PromptResult {
 
 // ------------------------------------------------------------------ the shared text (docs/en/PROMPTS.md)
 
-const STYLE_CHAR = 'warm expressive cartoon caricature in the spirit of Day of the Tentacle and Monkey Island 2 remastered, clean dark outlines, soft cel shading, head about one third of the body height, friendly and funny.';
-const STYLE_OBJ = 'same clean dark outlines, same soft cel shading, same warm palette and level of detail, Day of the Tentacle / Monkey Island 2 remastered spirit, funny and friendly.';
-const STYLE_BG = 'match exactly the art style of the attached reference sheet (same clean dark outlines, soft cel shading, warm saturated palette). A hand-painted background for a 1990s LucasArts point-and-click adventure, in the spirit of Day of the Tentacle and Monkey Island 2 remastered: cozy, funny, full of small details, but readable.';
+interface StyleText { char: string; obj: string; bg: string }
+const STYLES: Record<ArtStyle, StyleText> = {
+  cel: {
+    char: 'warm expressive cartoon caricature in the spirit of Day of the Tentacle and Monkey Island 2 remastered, clean dark outlines, clean cel shading with flat tones, head about one third of the body height, friendly and funny.',
+    obj: 'same clean dark outlines, same clean cel shading with flat tones, same warm palette and level of detail, Day of the Tentacle / Monkey Island 2 remastered spirit, funny and friendly.',
+    bg: 'match exactly the art style of the attached reference sheet (same clean dark outlines, clean cel shading with flat tones, warm saturated palette). A hand-painted background for a 1990s LucasArts point-and-click adventure, in the spirit of Day of the Tentacle and Monkey Island 2 remastered: cozy, funny, full of small details, but readable.',
+  },
+  pixel: {
+    char: 'retro pixel art in the spirit of 1990s LucasArts adventures (Day of the Tentacle, Monkey Island 2), 1 pixel = 1 pixel, crisp, no anti-aliasing: a warm expressive cartoon caricature with a clean dark one-pixel outline and flat cel-shaded tones, head about one third of the body height, friendly and funny.',
+    obj: 'same retro pixel art, 1 pixel = 1 pixel, crisp, no anti-aliasing, same dark one-pixel outline, same flat tones, same warm palette and level of detail, 1990s LucasArts spirit, funny and friendly.',
+    bg: `match exactly the art style of the attached reference sheet (same retro pixel art, crisp, no anti-aliasing, same flat tones, warm saturated palette). A pixel-art background for a 1990s LucasArts point-and-click adventure, in the spirit of Day of the Tentacle and Monkey Island 2: drawn on a ${1536 / PIXEL_SCALE} x ${960 / PIXEL_SCALE} pixel grid and scaled up ${PIXEL_SCALE}x with hard edges; cozy, funny, full of small details, but readable.`,
+  },
+};
+/** The colour discipline shared by every art style (docs/en/PROMPTS.md, "Common rules"). */
+export const COLOR_RULES = [
+  'COLOR RULES:',
+  '- Use a limited palette. For each material (skin, hair, each garment, each object) use at most 4 flat tones: highlight, base, shadow, deep shadow.',
+  '- Hue-shift every ramp: highlights are brighter, slightly less saturated and shifted toward the warm light (yellow); shadows are darker, more saturated and shifted toward cool purple. Never make highlights by adding white, never make shadows by adding black.',
+  '- Flat, clearly separated areas: no gradients, no airbrush, no blur, no dithering.',
+  '- One single outline colour for the whole sheet (dark warm brown-black), consistent line weight.',
+  '- The same material keeps exactly the same tones on every cell of the sheet and on every animation frame.',
+];
+/** Pixel art only: the strict rules the cutter enforces afterwards. `grid`: what is drawn on the pixel grid. */
+function pixelRules(grid: string): string[] {
+  return [
+    'PIXEL RULES — strict:',
+    `- ${grid}, scaled up ${PIXEL_SCALE}x with hard edges: every art pixel is an exact ${PIXEL_SCALE} x ${PIXEL_SCALE} square of one single colour, aligned to the grid. No detail smaller than one art pixel.`,
+    '- Exact flat RGB values: every pixel uses one of its material\'s tones exactly, never an in-between value.',
+    '- No anti-aliasing: no semi-transparent, blended or soft pixels on any edge, not even against the background.',
+    '- The same material keeps exactly the same RGB values on every frame and every cell.',
+  ];
+}
+/** What the pixel grid is, for a canvas of w × h px (cells of 256 px, or a background). */
+function pixelGrid(w: number, h: number, cells: boolean): string {
+  const g = (n: number) => Math.round(n / PIXEL_SCALE);
+  return `The whole ${cells ? 'canvas' : 'image'} is drawn on a ${g(w)} x ${g(h)} pixel grid${cells ? ` (${g(256)} x ${g(256)} per 256 px cell)` : ''}`;
+}
 const BACKGROUND_LINE = `BACKGROUND: one single flat uniform color ${BG} over the whole canvas. No gradient, no texture, no vignette, no floor, no cast shadow on the background, no grid lines, no borders.`;
 const NO_TEXT = 'DO NOT add any text, names, labels, numbers, logos or watermarks.';
 const LIGHT = 'Consistent lighting from the upper left.';
@@ -168,6 +222,11 @@ function where(x: number, y?: number, onFurniture?: boolean): string {
 export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts: PromptOptions): PromptResult {
   const game: GameDef = mod.game;
   const gid = opts.gameId;
+  const artStyle: ArtStyle = opts.artStyle ?? readArtStyle(opts.gameDir);
+  const pixel = artStyle === 'pixel';
+  const { char: STYLE_CHAR, obj: STYLE_OBJ, bg: STYLE_BG } = STYLES[artStyle];
+  /** Colour rules (every style) and, for pixel art, the strict pixel rules, for a sheet of 256 px cells or a background. */
+  const colorLines = (w = 1536, h = 1024, cells = true) => [...COLOR_RULES, ...(pixel ? pixelRules(pixelGrid(w, h, cells)) : [])];
   const artDir = opts.artDir ?? join(opts.gameDir, 'art');
   const root = opts.root ?? resolve(opts.gameDir, '..', '..');
   const rel = (p: string) => relative(root, p) || '.';
@@ -219,9 +278,14 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
       `STYLE (characters): match exactly the art style of the attached reference sheet: ${STYLE_CHAR}`,
       `STYLE (objects): match exactly the art style of the attached reference sheet: ${STYLE_OBJ} Objects are shown in a 3/4 view from slightly above.`,
       `STYLE (backgrounds): ${STYLE_BG}`,
+      ...colorLines(),
       BACKGROUND_LINE,
       `${NO_TEXT} ${LIGHT}`,
     ]), '',
+    `- Art style: \`${artStyle}\` (\`artStyle\` in \`games/${gid}/site.json\`: \`cel\` or \`pixel\`).`,
+    ...(pixel ? [`- Pixel art: the tools enforce the PIXEL RULES after generation. \`tools/cut-sheet.py\` (it reads \`artStyle\`) scales each cell down ${PIXEL_SCALE}× with nearest neighbour, ` +
+      'merges near-identical colours into one exact value and keeps at most 32 colours per cell (indexed PNG); `npm run assets` writes lossless WebP ' +
+      `and scales full-size backgrounds down ${PIXEL_SCALE}× the same way; set \`skin: { pixelArt: true }\` in the game so the engine draws every image with hard edges.`] : []),
     `- Background color: flat \`${BG}\` (the cutter keys it out). Light from the upper left.`,
     '- Never write a brand or a famous character\'s name: describe the thing instead.',
     '- Object states: same size, same angle, same position from one cell to the next; only the described change differs.',
@@ -369,14 +433,14 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
             ? '- Full-body figures (rows 2 to 4) all at the SAME scale, the body about 200 pixels long in profile, paws resting on the same baseline 16 pixels above the bottom of each cell.'
             : '- Full-body figures (rows 2 to 4) all at the SAME scale, about 220 pixels tall, feet resting on the same baseline 16 pixels above the bottom of each cell.',
           '- Leave empty space around each figure: nothing may touch or cross a cell border.');
-        body.push(...rows, BACKGROUND_LINE, `${NO_TEXT} Same outfit, same colors and same proportions in all 24 cells. ${LIGHT}`);
+        body.push(...rows, ...colorLines(), BACKGROUND_LINE, `${NO_TEXT} Same outfit, same colors and same proportions in all 24 cells. ${LIGHT}`);
       } else {
         body.push(`Create a pixel-art character sprite sheet for a point-and-click adventure game: SPECIAL POSES of the character of the attached base sheet (same face, same outfit, same scale as the base sheet).`,
           `STYLE: match exactly the art style of the attached reference sheet: ${STYLE_CHAR}`,
           `CHARACTER: ${desc}`,
           `LAYOUT: canvas 1536 x ${maxRow * 256}, 6 columns x ${maxRow} rows of 256 x 256 cells, one figure per cell, feet on the baseline 16 pixels above the bottom of each cell (except jumps, which rise above it), nothing touching the borders.`);
         if (anySeated) body.push(`SEATED POSES: draw the seat together with the character, as one single figure group: the SAME ${seat}, at the same size, angle and position in every seated cell, resting on the baseline. Only the character's pose changes.`);
-        body.push(...rows, BACKGROUND_LINE.replace(' over the whole canvas', ''), `${NO_TEXT} Same face, same outfit, same scale as the base sheet in every cell. ${LIGHT}`);
+        body.push(...rows, ...colorLines(1536, maxRow * 256), BACKGROUND_LINE.replace(' over the whole canvas', ''), `${NO_TEXT} Same face, same outfit, same scale as the base sheet in every cell. ${LIGHT}`);
       }
       out.push(fence(body), '');
 
@@ -579,6 +643,7 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
           '- One object per cell, centered, filling about 70% of the cell. Nothing may touch or cross a cell border.',
           '- When several cells show STATES of the same object, draw it with the exact same size, angle and position in each of those cells: only the described change differs.',
           ...(fromAbove ? ['- Minigame tiles are seen from DIRECTLY ABOVE, flat, no perspective, all at the same tile size, their edges lining up at the middle of each border.'] : []),
+          ...colorLines(maxC * 256, maxR * 256),
           BACKGROUND_LINE.replace('no vignette, ', ''),
           `DO NOT add any text, letters, numbers, labels, logos or watermarks. No hands, no people. ${LIGHT}`,
           'CELL BY CELL (left to right):',
@@ -617,10 +682,11 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
       ? ['Create an item sheet for a point-and-click adventure game.',
         `STYLE: match exactly the art style, lighting and colors of the attached decor${decor ? ` (${decor})` : ''}.`,
         `LAYOUT: canvas 1536 x 1024, an invisible grid of ${cols} x ${rowsN}, one object per cell, centered, nothing touching the cell borders. One single flat uniform background color ${BG}, no gradient, no floor, no cast shadow on the background, no text.`,
-        'Every object is seen from the SAME angle and at the SAME scale as in the attached decor.']
+        'Every object is seen from the SAME angle and at the SAME scale as in the attached decor.', ...colorLines()]
       : [`Create an item sheet for a point-and-click adventure game: ${theme}.`,
         `STYLE: match exactly the art style of the attached reference sheet: ${STYLE_OBJ} Objects are shown in a 3/4 view from slightly above.`,
         `LAYOUT: canvas 1536 x 1024, an invisible grid of ${cols} columns x ${rowsN} rows, one object per cell, centered, filling about 70% of the cell, nothing touching the cell borders. States of the same object: same size, same angle, same position.`,
+        ...colorLines(),
         BACKGROUND_LINE.replace('no vignette, ', ''),
         `DO NOT add any text, letters, numbers, labels, logos or watermarks. No hands, no people. ${LIGHT}`];
     for (let r = 1; r <= rowsN; r++) {
@@ -681,6 +747,8 @@ export function buildPrompts(mod: Pick<GameModule, 'game' | 'extraImages'>, opts
       '- Scale: an adult standing on the floor near the front is about one third of the image height.',
       '- A clear, empty, walkable floor band across the lower part of the image, from about 58% to 95% of the height. Keep the center of the floor clear: large furniture stays against the walls.',
       '- One single main light source, warm; shadows lean toward deep purple, never pure black.',
+      ...colorLines(1536, 960, false).map((l) => l.replace('for the whole sheet', 'for the whole image')
+        .replace(/on every cell of the sheet and on every animation frame|on every frame and every cell/, 'everywhere in the image')),
       'DO NOT draw any people or animals. DO NOT write any text, letters, numbers or logos: signs and screens stay blank.',
       `LOCATION: ${loc}`,
       ...(mustShow.length ? [`MUST SHOW, clearly and easy to tap: ${mustShow.join(', ')}.`] : []),

@@ -13,6 +13,7 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .scene img.bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 .spr { position: absolute; pointer-events: none; transform-origin: 50% 100%; transition: opacity .3s; }
 .spr.flip { transform: scaleX(-1); }
+.scene.pixel img { image-rendering: pixelated; } /* GameDef.skin.pixelArt */
 .shadow { position: absolute; border-radius: 50%; background: rgba(25, 5, 35, .35); pointer-events: none; }
 .side { flex: 1; min-width: 0; background: #07070d; border-left: 2px solid #1e2a3a; display: flex; flex-direction: column; gap: 6px; padding: 8px; box-sizing: border-box; }
 .side.off { opacity: .35; pointer-events: none; }

@@ -7,6 +7,9 @@ Sources: games/<id>/sources.json, else the game's default folders:
 Outputs: public/assets/img/<id>.webp, public/assets/audio/{music,sfx}/<file>, public/assets/video/<name>.mp4,
 and the manifest games/<id>/assets.gen.json (pixel sizes, for proportions).
 Only reprocesses what changed. See docs/en/TOOLS.md (sources.json format, "overrides").
+Pixel art ("artStyle": "pixel" in games/<id>/site.json): lossless WebP, every resize with nearest neighbour, and a
+background wider than 640 px (drawn 4x up, docs/en/PROMPTS.md) is scaled down 4x to its art pixels; the engine scales
+it back up with hard edges (skin.pixelArt). "cel" (default): unchanged.
 """
 import glob, json, os, re, subprocess, sys
 from PIL import Image
@@ -25,6 +28,18 @@ def game_id():
 
 GAME = game_id()
 GAME_DIR = f'games/{GAME}'
+
+def art_style():
+    try: return 'pixel' if json.load(open(f'{GAME_DIR}/site.json')).get('artStyle') == 'pixel' else 'cel'
+    except Exception: return 'cel'
+
+PIXEL = art_style() == 'pixel'
+PIXEL_SCALE = 4
+# Resampling filter and WebP options: smooth and lossy for painted (cel) art, exact for pixel art.
+SMOOTH = Image.NEAREST if PIXEL else Image.LANCZOS
+def webp(im, dst, quality):
+    if PIXEL: im.save(dst, lossless=True, exact=True)
+    else: im.save(dst, quality=quality)
 refs = json.load(open('.cache/refs.json'))
 OUT_IMG = 'public/assets/img'
 OUT_AUDIO = 'public/assets/audio'
@@ -51,8 +66,15 @@ if os.path.exists(MANIFEST):
     try: old = json.load(open(MANIFEST)).get('images', {})
     except Exception: old = {}
 
+# Switching artStyle reprocesses every image (the manifest remembers the style it was built with).
+old_style = None
+if os.path.exists(MANIFEST):
+    try: old_style = json.load(open(MANIFEST)).get('artStyle')
+    except Exception: pass
+RESTYLE = (old_style or 'cel') != ('pixel' if PIXEL else 'cel')
+
 def fresh(src, dst):
-    return os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src)
+    return not RESTYLE and os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src)
 
 def keyed(im, tol=12):
     """Makes transparent the flat background connected to the border (same rule as tools/cut-sheet.py, without the holes)."""
@@ -107,27 +129,30 @@ for rid in refs['images']:
         if box: im = im.crop(box)
         fit = opt.get('fit', 420)
         k = min(1.0, fit / max(im.width, im.height))
-        if k < 1: im = im.resize((round(im.width * k), round(im.height * k)), Image.LANCZOS)
-        im.save(dst, quality=opt.get('quality', 85))
+        if k < 1: im = im.resize((round(im.width * k), round(im.height * k)), SMOOTH)
+        webp(im, dst, opt.get('quality', 85))
     elif rid.startswith('decor/'):
         # Decor: 1280 x 800 by default; "crop" [x0, y0, x1, y1] then "size" [w, h], or "height" (proportional width).
         im = im.convert('RGB')
         if 'crop' in opt: im = im.crop(tuple(opt['crop']))
         if 'size' in opt:
-            im = im.resize(tuple(opt['size']), Image.LANCZOS)
+            im = im.resize(tuple(opt['size']), SMOOTH)
         elif 'height' in opt:
             h = opt['height']
-            im = im.resize((round(im.width * h / im.height), h), Image.LANCZOS)
+            im = im.resize((round(im.width * h / im.height), h), SMOOTH)
+        elif PIXEL:
+            # Drawn 4x up: back to its art pixels (a background already at pixel size, 640 px wide or less, stays as is).
+            if im.width > 640: im = im.resize((round(im.width / PIXEL_SCALE), round(im.height / PIXEL_SCALE)), Image.NEAREST)
         else:
             im = im.resize((1280, 800), Image.LANCZOS)
-        im.save(dst, quality=opt.get('quality', 82))
+        webp(im, dst, opt.get('quality', 82))
     else:
         im = im.convert('RGBA')
         box = im.getbbox()
         if box: im = im.crop(box)
         k = min(1.0, 420 / max(im.width, im.height))
-        if k < 1: im = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.LANCZOS)
-        im.save(dst, quality=88)
+        if k < 1: im = im.resize((max(1, round(im.width * k)), max(1, round(im.height * k))), SMOOTH)
+        webp(im, dst, 88)
     images[rid] = [im.width, im.height]
     done += 1
 
@@ -176,7 +201,9 @@ for src in sorted(glob.glob(vpat.replace('{name}', '*'))):
                         '-pix_fmt', 'yuv420p', '-movflags', '+faststart', dst], check=True)
     videos[name] = os.path.getsize(dst)
 
-json.dump({'images': dict(sorted(images.items())), 'audio': audio, 'videos': videos}, open(MANIFEST, 'w'), indent=1)
+manifest = {'images': dict(sorted(images.items())), 'audio': audio, 'videos': videos}
+if PIXEL: manifest['artStyle'] = 'pixel'
+json.dump(manifest, open(MANIFEST, 'w'), indent=1)
 
 size = sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk('public/assets') for f in fs)
 print(f'images: {len(images)} ready ({done} processed), sounds: {sum(len(v) for v in audio.values())} ({aenc} encoded), public/assets = {size / 1e6:.1f} MB')

@@ -28,7 +28,14 @@ games/<id>/
   layout/house.json one file per room (geometry, written by the editor)
   assets.gen.json  manifest of images and sounds (written by npm run assets)
   sources.json     where the asset sources come from (optional, see TOOLS.md)
+  site.json        page title, description, theme colour, art style (see below)
 ```
+
+`site.json`: `{ "lang": "en", "title": "…", "shortName": "…", "description": "…", "themeColor": "#0a0a12",
+"artStyle": "cel" }`. `title`, `description` and `themeColor` go into `index.html` and the PWA manifest. `artStyle` is
+`"cel"` (default: painted cartoon) or `"pixel"` (retro pixel art): it changes the art prompts (`npm run prompts`), the
+cutter (`tools/cut-sheet.py`) and `npm run assets` (lossless WebP, nearest-neighbour resizing); see
+[PROMPTS.md](PROMPTS.md). For `pixel`, also set `skin: { pixelArt: true }` in `game.ts`.
 
 ## A room, step by step
 
@@ -294,6 +301,25 @@ hero: { …, sprites: cat('hero'), variants: [{ if: { has: 'bucket' }, sprites: 
 The first variant whose condition is true replaces `sprites`, `mouths` and `portrait`. The change shows right away
 (e.g. as soon as the bucket is picked up).
 
+### Palette swap (`palette`, also on variants)
+
+One sheet, several looks: `palette` maps source colours to target colours, both `#rrggbb`. The room view recolours
+every sprite and mouth frame of the character once, in an offscreen canvas (cached, alpha kept). A variant's
+`palette` replaces the character's while its condition holds (a variant without one keeps the character's).
+
+```ts
+biscuit: { …, sprites: cat('cat'),
+  palette: { '#2c1818': '#7a3416', '#492a25': '#b0592a', '#543329': '#c4703a' }, paletteTolerance: 14,
+  variants: [{ if: 'muddy', palette: { '#492a25': '#5a4a3a' } }] },
+```
+
+Matches are exact RGB by default: this suits the `pixel` art style, whose cutter gives every material one exact value.
+Painted (`cel`) sheets and lossy WebP have many neighbouring tones: `paletteTolerance` (an RGB distance, 10 to 16 is a
+good start, below the distance to the outline colour) recolours every pixel near a source colour, keeping its offset
+from it. Pick the source colours from the cut PNG (the most frequent opaque colours of a cell). The demo's Biscuit
+uses this to become a ginger tabby. Portraits in menus and calls are not recoloured. `npm run validate` warns about a
+key or value that is not `#rrggbb`.
+
 ### Things with multiple states (a seagull that watches / snaps, an old dog that sleeps / sulks / yawns, a cat's eye glowing on a screen)
 
 A hotspot has only a name and a zone. For a drawn thing that changes, use a **stateful prop**:
@@ -330,6 +356,7 @@ skin: {
   fonts: { ui: 'DotGothic16', pixel: 'Press Start 2P' },   // CSS families → the --font-ui and --font-pixel variables
   heights: { actor: 110, hero: 84 },                       // default height for a character with no `height`
   callPoses: ['phone', 'telephone', 'front', 'face', 'idle'],   // poses tried for a call's frame
+  pixelArt: false,                                         // true: scaled-up images keep hard edges (artStyle "pixel")
 },
 ```
 

@@ -53,12 +53,52 @@ also returns the missing image ids as structured JSON. The templates below are w
 - **Object states**: same size, same angle, same position from one cell to the next; only the described change
   differs.
 - **Cutting**: only cut the new sheet, using `CUT_OUT` if needed. Never re-cut sprites that are already validated.
+- **Colours**: every prompt carries the same COLOR RULES block, whatever the art style (`npm run prompts` adds it to
+  the style block and to every sheet; on a background, "sheet" reads "image"):
+
+```
+COLOR RULES:
+- Use a limited palette. For each material (skin, hair, each garment, each object) use at most 4 flat tones: highlight, base, shadow, deep shadow.
+- Hue-shift every ramp: highlights are brighter, slightly less saturated and shifted toward the warm light (yellow); shadows are darker, more saturated and shifted toward cool purple. Never make highlights by adding white, never make shadows by adding black.
+- Flat, clearly separated areas: no gradients, no airbrush, no blur, no dithering.
+- One single outline colour for the whole sheet (dark warm brown-black), consistent line weight.
+- The same material keeps exactly the same tones on every cell of the sheet and on every animation frame.
+```
+
+### Art style: `cel` or `pixel` (`artStyle` in `games/<id>/site.json`)
+
+`"artStyle": "cel"` (default) is the painted cartoon look above: clean dark outlines, clean cel shading with flat
+tones. `"artStyle": "pixel"` switches the whole pipeline to retro pixel art:
+
+- **Prompts**: the STYLE sentence becomes "retro pixel art in the spirit of 1990s LucasArts adventures (Day of the
+  Tentacle, Monkey Island 2), 1 pixel = 1 pixel, crisp, no anti-aliasing…". The canvas stays 1536 × 1024 (256 px
+  cells), drawn as pixel art scaled up 4×: each figure lives on a 64 × 64 grid per cell, a background on 384 × 240.
+  Every prompt gets the strict block after the COLOR RULES:
+
+```
+PIXEL RULES — strict:
+- The whole canvas is drawn on a 384 x 256 pixel grid (64 x 64 per 256 px cell), scaled up 4x with hard edges: every art pixel is an exact 4 x 4 square of one single colour, aligned to the grid. No detail smaller than one art pixel.
+- Exact flat RGB values: every pixel uses one of its material's tones exactly, never an in-between value.
+- No anti-aliasing: no semi-transparent, blended or soft pixels on any edge, not even against the background.
+- The same material keeps exactly the same RGB values on every frame and every cell.
+```
+
+- **The tools enforce these rules after generation**, since no image model follows them exactly:
+  `tools/cut-sheet.py` (it reads `artStyle`; `--pixel` / `--cel` force it, `--scale 4`, `--colors 32`) scales each
+  figure down 4× with nearest neighbour, keeps only fully opaque or fully transparent pixels, quantizes each cell to at
+  most 32 colours (median cut, no dithering) and merges near-identical colours (RGB distance < 8) into one exact value,
+  shared by every cell of the sheet; cells are written as indexed PNGs (mode P, index 0 transparent). The Studio's
+  sheet and cell uploads do the same. `npm run assets` then writes lossless WebP, resizes only with nearest neighbour,
+  and scales a background wider than 640 px down 4× to its art pixels.
+- **Engine**: set `skin: { pixelArt: true }` in `game.ts` so the scaled-up images keep hard edges
+  (`image-rendering: pixelated`).
+- **Palette swaps** (`palette` on a character, CONTENT_GUIDE.md) work best with `pixel`: the colours are exact.
 
 ### Background (1536 × 960, 16:10)
 
 ```
 Create a background image for a point-and-click adventure game.
-STYLE: match exactly the art style of the attached reference sheet (same clean dark outlines, soft cel shading, warm saturated palette). A hand-painted background for a 1990s LucasArts point-and-click adventure, in the spirit of Day of the Tentacle and Monkey Island 2 remastered: cozy, funny, full of small details, but readable.
+STYLE: match exactly the art style of the attached reference sheet (same clean dark outlines, clean cel shading with flat tones, warm saturated palette). A hand-painted background for a 1990s LucasArts point-and-click adventure, in the spirit of Day of the Tentacle and Monkey Island 2 remastered: cozy, funny, full of small details, but readable.
 FORMAT: 1536 x 960 pixels (16:10).
 COMPOSITION — follow it strictly:
 - One single eye-level perspective: the back wall or horizon seen from the front, one vanishing point in the center. No fisheye, no isometric view, no tilted camera.
@@ -86,7 +126,7 @@ Every object is seen from the SAME angle and at the SAME scale as in the attache
 
 ```
 Create an item sheet for a point-and-click adventure game: <theme of the sheet>.
-STYLE: match exactly the art style of the attached item sheets: same clean dark outlines, same soft cel shading, same warm palette and level of detail, Day of the Tentacle / Monkey Island 2 remastered spirit, funny and friendly. Objects are shown in a 3/4 view from slightly above.
+STYLE: match exactly the art style of the attached item sheets: same clean dark outlines, same clean cel shading with flat tones, same warm palette and level of detail, Day of the Tentacle / Monkey Island 2 remastered spirit, funny and friendly. Objects are shown in a 3/4 view from slightly above.
 LAYOUT — follow it strictly:
 - Canvas 1536 x 1024 pixels, landscape.
 - An invisible grid of 6 columns x 4 rows, every cell exactly 256 x 256 pixels.
@@ -106,7 +146,7 @@ tile size, and edges that line up at the middle of each border.
 
 ```
 Create a pixel-art character sprite sheet for a point-and-click adventure game.
-STYLE: match exactly the art style of the first attached image (reference sheet): warm expressive cartoon caricature in the spirit of Day of the Tentacle and Monkey Island 2 remastered, clean dark outlines, soft cel shading, head about one third of the body height, friendly and funny.
+STYLE: match exactly the art style of the first attached image (reference sheet): warm expressive cartoon caricature in the spirit of Day of the Tentacle and Monkey Island 2 remastered, clean dark outlines, clean cel shading with flat tones, head about one third of the body height, friendly and funny.
 CHARACTER: <description: age, hair, glasses, build, outfit, signature accessory, personality>
 SHEET LAYOUT — follow it strictly:
 - Canvas 1536 x 1024 pixels, landscape.
@@ -201,7 +241,7 @@ them back to the same size and colors.
 
 ```
 Create a pixel-art character sprite sheet for a point-and-click adventure game: TALKING FRAMES of a character who already exists.
-STYLE: match exactly the art style of the attached <sheet>.png: warm expressive cartoon caricature in the spirit of Day of the Tentacle and Monkey Island 2 remastered, clean dark outlines, soft cel shading.
+STYLE: match exactly the art style of the attached <sheet>.png: warm expressive cartoon caricature in the spirit of Day of the Tentacle and Monkey Island 2 remastered, clean dark outlines, clean cel shading with flat tones.
 CHARACTER: <name and short description> EXACTLY as on the attached sheet: same face, hair, glasses, beard, clothes, colors, proportions and scale.
 IMPORTANT: in each row, the body, arms, hands, feet, hair and position are EXACTLY IDENTICAL in all 6 cells, like frames of an animation where ONLY the mouth and eyes change. Nothing else moves.
 LAYOUT: canvas 1536 x 1024, 6 columns x 4 rows of 256 x 256 cells, one figure per cell, centered, same scale as the attached sheet, feet (or seat) on the same baseline 16 pixels above the bottom of each cell, nothing touching the borders.

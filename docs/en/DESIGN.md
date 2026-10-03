@@ -206,6 +206,9 @@ lay pipes. The seller wants flowers, so you pick them.
 ## 9. Art consistency
 
 - **One reference sheet** for the style, attached to every image prompt. See [PROMPTS.md](PROMPTS.md).
+- **Colour discipline**: every prompt carries the COLOR RULES (at most 4 hue-shifted flat tones per material, one
+  outline colour, the same tones on every frame). `artStyle` in `site.json` picks `cel` (default) or `pixel`, whose
+  tools then enforce exact colours. See [PROMPTS.md](PROMPTS.md#art-style-cel-or-pixel-artstyle-in-gamesidsitejson).
 - **Generate prompts, do not improvise them**: `npm run prompts` writes them from the content (the `description` of
   each room and character), so names, looks and sizes match.
 - **Backgrounds with an empty floor band** and no people: 1536 × 960, characters and props are added on top.

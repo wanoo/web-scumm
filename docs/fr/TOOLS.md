@@ -88,7 +88,9 @@ Pour un accessoire qui a une position par état (`states` dans le layout, par ex
 Avant `npm run assets`, une planche générée se découpe en sprites détourés avec `tools/cut-sheet.py <planche.png> <id-planche>`
 (et les outils `tools/talk-kit.py`, `tools/talk-apply.py`, `tools/talk-normalize.py` pour les bouches qui parlent) :
 voir `docs/fr/PROMPTS.md`. Les prompts eux-mêmes viennent de `npm run prompts` (`--missing` pour les planches pas
-encore découpées), qui écrit `games/<id>/prompts.md`.
+encore découpées), qui écrit `games/<id>/prompts.md`. Avec `"artStyle": "pixel"` dans `site.json` (ou `--pixel`),
+le découpage réduit aussi chaque case 4× (`--scale`), la limite à 32 couleurs exactes (`--colors`) et écrit des PNG
+indexés ; `npm run assets` écrit alors du WebP sans perte (voir PROMPTS.md, « Style graphique »).
 
 ```bash
 npm run prompts    # un prompt prêt à coller par planche + les commandes de découpe → games/<id>/prompts.md

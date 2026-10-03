@@ -27,7 +27,14 @@ games/<jeu>/
   layout/maison.json un fichier par lieu (géométrie, écrit par l'éditeur)
   assets.gen.json  manifeste des images et sons (écrit par npm run assets)
   sources.json     d'où viennent les sources d'assets (facultatif, voir TOOLS.md)
+  site.json        titre de la page, description, couleur, style graphique (voir plus bas)
 ```
+
+`site.json` : `{ "lang": "fr", "title": "…", "shortName": "…", "description": "…", "themeColor": "#0a0a12",
+"artStyle": "cel" }`. `title`, `description` et `themeColor` vont dans `index.html` et le manifeste PWA. `artStyle`
+vaut `"cel"` (défaut : dessin animé peint) ou `"pixel"` (pixel art rétro) : il change les prompts d'images
+(`npm run prompts`), le découpage (`tools/cut-sheet.py`) et `npm run assets` (WebP sans perte, redimensionnement au
+plus proche voisin) ; voir [PROMPTS.md](PROMPTS.md). Pour `pixel`, mettre aussi `skin: { pixelArt: true }` dans `game.ts`.
 
 ## Un lieu, pas à pas
 
@@ -290,6 +297,26 @@ hero: { …, sprites: cat('hero'), variants: [{ if: { has: 'seau' }, sprites: ca
 
 La première variante dont la condition est vraie remplace `sprites`, `mouths` et `portrait`. Le changement se voit tout de suite (ex. dès qu'on prend le seau).
 
+### Changement de palette (`palette`, aussi sur les variantes)
+
+Une planche, plusieurs apparences : `palette` associe des couleurs sources à des couleurs cibles, toutes en `#rrggbb`.
+La vue du lieu recolore une fois chaque image de pose et de bouche du personnage, dans un canevas hors écran (en cache,
+transparence gardée). La `palette` d'une variante remplace celle du personnage tant que sa condition tient (une
+variante sans palette garde celle du personnage).
+
+```ts
+biscuit: { …, sprites: cat('cat'),
+  palette: { '#2c1818': '#7a3416', '#492a25': '#b0592a', '#543329': '#c4703a' }, paletteTolerance: 14,
+  variants: [{ if: 'boueux', palette: { '#492a25': '#5a4a3a' } }] },
+```
+
+Par défaut, seules les couleurs RVB exactes changent : cela convient au style `pixel`, dont le découpage donne une
+valeur exacte par matière. Les planches peintes (`cel`) et le WebP avec perte ont beaucoup de tons voisins :
+`paletteTolerance` (une distance RVB, 10 à 16 pour commencer, sous la distance à la couleur du contour) recolore tout
+pixel proche d'une couleur source en gardant son écart. Prendre les couleurs sources dans le PNG découpé (les couleurs
+opaques les plus fréquentes d'une case). Biscuit, dans la démo, devient ainsi un chat roux tigré. Les portraits des
+menus et des appels ne sont pas recolorés. `npm run validate` signale une clé ou une valeur qui n'est pas en `#rrggbb`.
+
 ### Choses à plusieurs états (une mouette qui regarde / gobe, un vieux chien qui dort / boude / bâille, l'œil d'un chat qui brille sur un écran)
 
 Un hotspot n'a qu'un nom et qu'une zone. Pour une chose dessinée qui change, utiliser un **accessoire à états** :
@@ -324,6 +351,7 @@ skin: {
   fonts: { ui: 'DotGothic16', pixel: 'Press Start 2P' },   // familles CSS → variables --font-ui et --font-pixel
   heights: { actor: 110, hero: 84 },                       // hauteur d'un personnage sans `height`
   callPoses: ['phone', 'telephone', 'front', 'face', 'idle'],   // poses essayées pour le cadre d'un appel
+  pixelArt: false,                                         // true : les images agrandies gardent des bords nets (artStyle "pixel")
 },
 ```
 

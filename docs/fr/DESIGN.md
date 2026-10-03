@@ -210,6 +210,9 @@ autre sortie, alors on pose des tuyaux. Le vendeur veut des fleurs, alors on les
 ## 9. La cohérence graphique
 
 - **Une planche de référence** pour le style, jointe à chaque prompt d'image. Voir [PROMPTS.md](PROMPTS.md).
+- **Discipline des couleurs** : chaque prompt porte les COLOR RULES (4 aplats au plus par matière, avec décalage de
+  teinte, une seule couleur de contour, les mêmes tons sur chaque image). `artStyle` dans `site.json` choisit `cel`
+  (défaut) ou `pixel`, dont les outils imposent ensuite des couleurs exactes. Voir [PROMPTS.md](PROMPTS.md).
 - **Générer les prompts, ne pas les improviser** : `npm run prompts` les écrit depuis le contenu (la `description` de
   chaque lieu et de chaque personnage), pour que noms, apparences et tailles concordent.
 - **Des décors avec une bande de sol vide** et sans personnages : 1536 × 960, personnages et accessoires viennent par-dessus.

@@ -430,7 +430,7 @@ export function createAssets(studio: Studio) {
       try {
         mkdirSync(dirname(target), { recursive: true });
         const kept = existsSync(target) ? rel(backup(target)) : undefined;
-        const r = await run('python3', ['-c', KEY_PY, join(root, 'tools', 'cut-sheet.py'), tmp, target, key], root);
+        const r = await run('python3', ['-c', KEY_PY, join(root, 'tools', 'cut-sheet.py'), tmp, target, key, artDir], root, { ...process.env, GAME: studio.gameId });
         const keyed = r.output.trim().split('\n').pop() as CellReplaceResult['keyed'];
         if (r.code !== 0 || !['keyed', 'kept', 'opaque'].includes(keyed)) throw new StudioError(`keying failed (${r.code}): ${r.output.trim().split('\n').slice(-3).join(' ')}`, 500);
         return { ok: true as const, file: rel(target), ...(kept ? { backup: kept } : {}), keyed, cell: await cellEntry(b.sheetId, b.cell) };
@@ -493,32 +493,43 @@ export type Assets = ReturnType<typeof createAssets>;
 
 /**
  * Keys one uploaded cell with the cutter's own rule (tools/cut-sheet.py: background = the border's median colour,
- * flood-filled from the border, tolerance 30), then crops it to its figure. argv: cut-sheet.py, source, target, mode.
- * Prints `kept` (the image already has transparency), `opaque` (no flat background, or mode never) or `keyed`.
+ * flood-filled from the border, tolerance 30), then crops it to its figure. argv: cut-sheet.py, source, target, mode,
+ * art folder. Prints `kept` (the image already has transparency), `opaque` (no flat background, or mode never) or `keyed`.
+ * Pixel-art games (site.json `artStyle: "pixel"`, next to the art folder): the cell is then fixed like a cut sheet
+ * (scaled down 4× when larger than 128 px, colours reduced and snapped to the sheet's existing ones, indexed PNG).
  */
 const KEY_PY = String.raw`
-import importlib.util, sys
+import importlib.util, os, sys
 sys.dont_write_bytecode = True
 import numpy as np
 from PIL import Image
 spec = importlib.util.spec_from_file_location('cut_sheet', sys.argv[1])
 cut = importlib.util.module_from_spec(spec); spec.loader.exec_module(cut)
 src, dst, mode = sys.argv[2], sys.argv[3], sys.argv[4]
+pixel = len(sys.argv) > 5 and cut.art_style(sys.argv[5]) == 'pixel'
+def save(img, what):
+    if pixel and what != 'opaque':
+        a = np.asarray(img.convert('RGBA'))
+        scale = cut.PIXEL_SCALE if max(a.shape[:2]) > 2 * cut.CELL // cut.PIXEL_SCALE else 1
+        cut.pixelize(a, scale, cut.PIXEL_COLORS, shared=cut.existing_colors(os.path.dirname(dst))).save(dst, transparency=0)
+    else:
+        img.save(dst)
+    print(what); sys.exit(0)
 im = Image.open(src)
 rgba = im.convert('RGBA')
 alpha = np.asarray(rgba)[..., 3]
 if (alpha < 250).mean() > 0.01 and mode != 'always':
     box = rgba.getbbox()
-    (rgba.crop(box) if box else rgba).save(dst); print('kept'); sys.exit(0)
+    save(rgba.crop(box) if box else rgba, 'kept')
 a = np.asarray(im.convert('RGB')).astype(int)
 edge = np.concatenate([a[0], a[-1], a[:, 0], a[:, -1]])
 flat = (np.sqrt(((edge - np.median(edge, axis=0)) ** 2).sum(-1)) <= 30).mean() > 0.9
 if mode == 'never' or (mode == 'auto' and not flat):
-    rgba.save(dst); print('opaque'); sys.exit(0)
+    save(rgba, 'opaque')
 fg = ~cut.flood_from_border(cut.bg_mask(a))
 out = Image.fromarray(np.dstack([a.astype(np.uint8), (fg * 255).astype(np.uint8)]), 'RGBA')
 box = out.getbbox()
-(out.crop(box) if box else out).save(dst); print('keyed')
+save(out.crop(box) if box else out, 'keyed')
 `;
 
 // ------------------------------------------------------------------ the HTTP side (/__studio/api/assets/*)

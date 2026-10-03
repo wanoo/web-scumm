@@ -118,6 +118,8 @@ export class App implements Presenter {
     this.g = el('div', 'game');
     this.scol = el('div', 'scol');
     this.scene = el('div', 'scene');
+    // Pixel-art games: sprites and backgrounds scaled up with hard edges (style.css `.scene.pixel img`).
+    if (this.game.skin?.pixelArt) this.scene.classList.add('pixel');
     this.scene.append(this.view.el);
     this.scene.append(el('div', 'letter t'), el('div', 'letter b'));
     this.sbar = el('div', 'sbar');

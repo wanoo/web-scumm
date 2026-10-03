@@ -124,7 +124,10 @@ export class Engine {
     const c = this.game.characters[id];
     if (!c?.variants || !this.state) return c;
     const v = c.variants.find((x) => check(x.if, this.state));
-    return v ? { ...c, sprites: v.sprites ?? c.sprites, mouths: v.mouths ?? c.mouths, portrait: v.portrait ?? c.portrait } : c;
+    return v ? {
+      ...c, sprites: v.sprites ?? c.sprites, mouths: v.mouths ?? c.mouths, portrait: v.portrait ?? c.portrait,
+      palette: v.palette ?? c.palette, paletteTolerance: v.palette ? v.paletteTolerance : c.paletteTolerance,
+    } : c;
   }
 
   kindsOf(id: Id, room: RoomDef = this.room()): string[] {

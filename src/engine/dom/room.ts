@@ -1,6 +1,7 @@
 import type { Engine } from '../core/engine';
 import type { CharacterDef, Id, Layout, Point, RoomDef } from '../core/types';
 import type { AssetBank } from './assets';
+import { PaletteCache } from './palette';
 import { depthScale, WalkArea } from './walk';
 
 /** Something drawn in the scene: prop, actor or hero. */
@@ -53,6 +54,8 @@ export class RoomView {
   private last = 0;
   private acc = 0;
   private walkTokens = new Map<Id, number>();
+  /** Recoloured sprites of characters with a `palette` (one blob URL per image and palette, kept across rooms). */
+  private palettes = new PaletteCache();
   talking: Id | null = null;
 
   constructor(private engine: Engine, private bank: AssetBank) {
@@ -86,6 +89,19 @@ export class RoomView {
       for (const m of [def?.mouths, ...(def?.variants ?? []).map((v) => v.mouths)]) for (const ms of Object.values(m ?? {})) [ms.closed, ...ms.open, ms.blink, ms.smile].forEach((f) => f && ids.add(f));
     }
     await this.bank.preload(ids);
+    // Palette swaps: every frame of the character, under its own palette and each variant's, ready before drawing.
+    const swaps: Promise<string>[] = [];
+    for (const c of chars) {
+      const def = this.engine.game.characters[c];
+      if (!def) continue;
+      const frames = new Set<Id>();
+      for (const set of [def.sprites, ...(def.variants ?? []).map((v) => v.sprites)]) for (const f of Object.values(set ?? {})) f.forEach((x) => frames.add(x));
+      for (const m of [def.mouths, ...(def.variants ?? []).map((v) => v.mouths)]) for (const ms of Object.values(m ?? {})) [ms.closed, ...ms.open, ms.blink, ms.smile].forEach((x) => x && frames.add(x));
+      const pals: { pal?: Record<string, string>; tol?: number }[] = [{ pal: def.palette, tol: def.paletteTolerance },
+        ...(def.variants ?? []).map((v) => (v.palette ? { pal: v.palette, tol: v.paletteTolerance } : { pal: def.palette, tol: def.paletteTolerance }))];
+      for (const { pal, tol } of pals) if (pal && Object.keys(pal).length) for (const f of frames) swaps.push(this.palettes.load(this.bank.img(f), pal, tol ?? 0));
+    }
+    await Promise.all(swaps);
 
     const bg = document.createElement('img');
     bg.className = 'bg'; bg.alt = ''; bg.draggable = false; bg.src = this.bank.img(room.decor);
@@ -182,7 +198,14 @@ export class RoomView {
     }
     if (!img) { e.el.style.display = 'none'; if (e.shadow) e.shadow.style.display = 'none'; return; }
     const w = this.bank.widthFor(img, h);
-    if (e.el.dataset.img !== img) { e.el.src = this.bank.img(img); e.el.dataset.img = img; }
+    const c = e.kind === 'prop' ? undefined : this.char(e);
+    const pal = c?.palette && Object.keys(c.palette).length ? c.palette : undefined;
+    const key = pal ? `${img}|${JSON.stringify(pal)}|${c?.paletteTolerance ?? 0}` : img;
+    if (e.el.dataset.img !== key) {
+      const url = this.bank.img(img);
+      e.el.src = (pal && this.palettes.get(url, pal, c?.paletteTolerance ?? 0)) || url;
+      e.el.dataset.img = key;
+    }
     Object.assign(e.el.style, {
       display: '', left: `${(e.x - w / 2) * u}px`, top: `${(e.y - h - e.bob) * u}px`, width: `${w * u}px`, height: `${h * u}px`,
       zIndex: String(Math.round(e.z ?? e.y)), opacity: e.visible ? '' : '0', visibility: e.visible ? '' : 'hidden',
