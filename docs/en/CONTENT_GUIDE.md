@@ -269,7 +269,9 @@ export const commands: CustomCommands = {
 `effects` says what the command does to the game, as plain commands: they run first, in the browser **and** in the
 solver, so a custom command never breaks `npm run solve` nor the save. `run` is the visual part, browser only (it gets
 the scene element, the presenter, the state to read, the arguments). A command that changes nothing says `pure: true`.
-The validator refuses a command that declares neither.
+The validator refuses a command that declares neither. `run` must not touch the state: in dev mode the engine compares
+the state before and after it and reports in the journal a `run` that changed something outside `effects` (the solver,
+the saves and the replay only know `effects`).
 
 ## Translations
 

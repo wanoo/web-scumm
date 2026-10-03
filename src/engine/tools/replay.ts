@@ -1,0 +1,130 @@
+// Replay: runs a recorded session (`Engine.session`: the inputs since a new game, a save or a checkpoint, with the
+// answers given on the way) on a silent engine, and says where it stops matching the recording. A tester's bug report
+// is a save plus this log; the solver's solution is one too (`SolveResult.steps`), so the same function proves it.
+import { Engine, type TraceEntry } from '../core/engine';
+import type { CustomCommands } from '../core/custom';
+import { FakePresenter, MemoryStore } from '../core/ports';
+import type { GameDef, GameState, Id, Layout, Session, SessionEntry } from '../core/types';
+
+/** A session to replay: `base` is only needed when it starts from a save. */
+export type Replayable = Pick<Session, 'start' | 'log'> & Partial<Pick<Session, 'v' | 'base'>>;
+
+export interface ReplayResult {
+  state: GameState;
+  trace: TraceEntry[];
+  /** The session the replay recorded (digests, what ran). */
+  session: Session;
+  /** How many entries were played. */
+  played: number;
+  /** The ending was reached. */
+  ended: boolean;
+  /** The first entry whose outcome differed from the recording, and why. */
+  divergedAt?: number;
+  divergence?: string;
+}
+
+export interface ReplayOptions {
+  /** Play only the first `upTo` entries. */
+  upTo?: number;
+  commands?: CustomCommands;
+  /** Called after each entry (a Studio scrubber shows the state as it goes). */
+  onEntry?: (i: number, e: Engine) => void;
+}
+
+const tick = () => new Promise<void>((r) => setTimeout(r, 0));
+
+/** Waits for an engine call, unless it pauses on a tutorial step: the next input of the log is that step. */
+async function settle(e: Engine, p: Promise<unknown>, pending: Promise<unknown>[]): Promise<void> {
+  let done = false;
+  const q = p.then(() => { done = true; }, () => { done = true; });
+  for (let guard = 0; guard < 500; guard++) {
+    await Promise.race([q, tick()]);
+    if (done) return;
+    if (e.guiding) { pending.push(q); return; }
+  }
+  throw new Error('the engine never yields control back (stuck choice?)');
+}
+
+/** A short name for an entry (the journal, the Studio, the e2e harness). */
+export function labelOf(game: GameDef, en: SessionEntry): string {
+  if ('act' in en) {
+    const v = game.verbs.find((x) => x.id === en.act.verb);
+    const base = en.act.b ? `${v?.label ?? en.act.verb} ${en.act.a} ${v?.join ?? '→'} ${en.act.b}` : `${v?.label ?? en.act.verb} ${en.act.a}`;
+    return `${base}${en.picks?.length ? ` [${en.picks.join(',')}]` : ''}${en.aborted ? ' (interrupted)' : ''}`;
+  }
+  if ('travel' in en) return `Map → ${game.map?.places[en.travel]?.name ?? en.travel}`;
+  if ('switch' in en) return `Switch to ${en.switch}`;
+  if ('map' in en) return `Map${en.maps?.[0] ? ` → ${game.map?.places[en.maps[0]]?.name ?? en.maps[0]}` : ' (closed)'}`;
+  if ('step' in en) return `Script ${en.step}`;
+  if ('script' in en) return `Run ${en.script.length} command${en.script.length > 1 ? 's' : ''}`;
+  if ('enter' in en) return `Go to ${en.enter}`;
+  return `New game${en.picks?.length ? ` [${en.picks.join(',')}]` : ''}`;
+}
+
+/**
+ * Replays a session on a fresh silent engine. The recorded answers (choices, map, random draws) are fed back; the
+ * scripts advance exactly when they did. `divergedAt` points at the first entry whose state digest (when the
+ * recording has one) or outcome differs.
+ */
+export async function replay(gameIn: GameDef, layouts: Record<Id, Layout>, session: Replayable, opts: ReplayOptions = {}): Promise<ReplayResult> {
+  const game = structuredClone(gameIn);
+  const ui = new FakePresenter();
+  const e = new Engine(game, layouts, ui, new MemoryStore(), { commands: opts.commands });
+  e.traceOn = true;
+  e.digestOn = true;
+  e.random = () => 0; // every draw was recorded; a missing one is deterministic anyway
+  e.feedSession({ v: session.v ?? game.saveVersion, start: session.start, base: session.base ?? (null as unknown as GameState), log: session.log });
+  const pending: Promise<unknown>[] = [];
+  const log = session.log;
+  let i = 0;
+  if (session.start.kind === 'new') {
+    if (log[0] && 'start' in log[0]) i = 1;
+    await settle(e, e.newGame(), pending);
+  } else if (session.start.kind === 'checkpoint') await e.checkpoint(session.start.id);
+  else {
+    if (!session.base) throw new Error('a session that starts from a save needs its base state');
+    await e.load(structuredClone(session.base));
+  }
+  const end = Math.min(log.length, opts.upTo ?? log.length);
+  let divergedAt: number | undefined, divergence: string | undefined;
+  let played = 0;
+  for (; i < end; i++) {
+    const en = log[i];
+    // A pending call (the intro waiting for a tutorial step) gets to continue before the next input, as in the game.
+    for (let guard = 0; guard < 100 && (guard === 0 || e.busy); guard++) await tick();
+    const n0 = e.session?.log.length ?? 0;
+    const run = 'act' in en ? e.act(en.act).then(() => undefined)
+      : 'travel' in en ? e.travel(en.travel)
+      : 'switch' in en ? e.switchTo(en.switch)
+      : 'map' in en ? e.openMap()
+      : 'step' in en ? e.advance(en.step).then(() => undefined)
+      : 'script' in en ? e.script(en.script)
+      : 'enter' in en ? e.teleport(en.enter)
+      : Promise.resolve();
+    await settle(e, run, pending);
+    played++;
+    opts.onEntry?.(i, e);
+    const mine = e.session?.log[n0];
+    if (!mine) { divergedAt = i; divergence = `${labelOf(game, en)}: nothing happened`; break; }
+    if (en.digest && mine.digest && en.digest !== mine.digest) { divergedAt = i; divergence = `${labelOf(game, en)}: the state differs from the recording`; break; }
+    if ('act' in en && 'act' in mine && !!en.aborted !== !!mine.aborted) { divergedAt = i; divergence = `${labelOf(game, en)}: ${en.aborted ? 'was interrupted' : 'ran'} in the recording`; break; }
+  }
+  await Promise.race([Promise.all(pending), tick().then(tick)]);
+  return { state: e.state, trace: e.trace, session: e.session!, played, ended: !!e.state.done || ui.log.includes('ENDING'), ...(divergedAt !== undefined ? { divergedAt, divergence } : {}) };
+}
+
+/** The file a tester sends: the session, the journal, the game and its save version. */
+export interface SessionFile { kind: 'web-scumm-session'; game: Id; v: number; at: number; session: Session; trace: TraceEntry[] }
+
+export function sessionFile(gameId: Id, e: Engine): SessionFile {
+  if (!e.session) throw new Error('no session yet: start or load a game first');
+  return { kind: 'web-scumm-session', game: gameId, v: e.game.saveVersion, at: Date.now(), session: structuredClone(e.session), trace: [...e.trace] };
+}
+
+/** Reads a session file (or a bare session) and checks its shape. */
+export function parseSessionFile(text: string): SessionFile {
+  const j = JSON.parse(text) as Partial<SessionFile> & Partial<Session>;
+  const session = (j.session ?? (j.log ? j : undefined)) as Session | undefined;
+  if (!session || !Array.isArray(session.log) || !session.start?.kind) throw new Error('not a session file');
+  return { kind: 'web-scumm-session', game: j.game ?? '', v: j.v ?? session.v, at: j.at ?? 0, session, trace: j.trace ?? [] };
+}

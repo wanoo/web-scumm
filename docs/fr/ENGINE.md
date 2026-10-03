@@ -71,7 +71,14 @@ Le choix se fait tout seul (`App.layout`), et se refait si la fenêtre change de
    émis (`emit`) réveille son `waitEvent`. Leur position vit aussi dans l'état : une sauvegarde les reprend, et le solveur
    les joue comme des actions (« Script <id> » : le script avance jusqu'à son prochain `wait`, une ronde est donc vue salle par salle). Le solveur essaie aussi chaque option d'un `choice` (le chemin s'écrit alors `Talk x: "sujet" › "réponse"`), et garde la valeur exacte d'un compteur qui baisse ou qui est posé à un nombre. Il laisse hors de l'état ce qui ne
    peut pas changer l'issue (le graphe de puzzles le dit : un flag que seul son poseur lit, un script d'horloge que
-   personne ne regarde, un promeneur que personne n'attend), donc un monde décoratif ne lui coûte rien.
+   personne ne regarde, un promeneur que personne n'attend), donc un monde décoratif ne lui coûte rien. Il note aussi
+   ce que chaque action a lu (`Engine.reads`) et ce qui a répondu (`SessionEntry.ran`) : le profil (`--profile`) dit
+   de quoi les états sont faits, et la réduction d'ordre partiel (`--por`, `src/engine/tools/por.ts`) saute les
+   ordres des actions qui commutent.
+8. Chaque entrée est **enregistrée** (`Engine.session` : actions, carte, changements de joueur, pas de script, avec les
+   choix, réponses à la carte et tirages aléatoires rencontrés), donc une session exportée du jeu se rejoue sur un
+   moteur silencieux (`replay()`, `npm run replay`) et retombe sur le même état ; la solution du solveur est une telle
+   session (`SolveResult.steps`).
 
 ## Pourquoi ces choix
 

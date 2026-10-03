@@ -62,3 +62,12 @@ export function modal(title: string, body: Node, onClose?: () => void): () => vo
   document.body.append(wrap);
   return close;
 }
+
+/** Hands a text file to the user. */
+export function download(name: string, text: string, type: string) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = h('a', { href: url, download: name, hidden: true });
+  document.body.append(a);
+  a.click();
+  setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1000);
+}

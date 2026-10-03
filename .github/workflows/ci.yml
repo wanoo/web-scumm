@@ -32,6 +32,28 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           path: dist
+  # The sample game played by touch in Chromium: the solver's solution replayed step by step, the minigames for real
+  # (games/demo/e2e.mjs). Separate from `check`: the Pages deploy does not wait for it.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run dev -- --port 5173 --host 127.0.0.1 &
+      - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5173/ > /dev/null && break; sleep 1; done
+      - run: npm run e2e -- http://127.0.0.1:5173/ --game demo
+        env:
+          E2E_OUT: /tmp/e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-screenshots
+          path: /tmp/e2e
   pages:
     needs: check
     if: github.ref == 'refs/heads/main'

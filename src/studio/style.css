@@ -420,3 +420,19 @@ button.danger { border-color: #a33a44; color: #ffb3b3; }
 .play .journal .t-script b { color: #2a7; }
 .play .journal .t-actor b { color: #c27a00; }
 .play .journal .t-player b { color: #6b4fbb; }
+
+/* Play tab: replay of a session file */
+.play .replay { margin: 6px 0; padding: 6px; border: 1px solid #333; border-radius: 4px; }
+.play .replay input[type=range] { flex: 1; min-width: 120px; }
+.play .replay .session { margin: 6px 0 0; padding-left: 22px; max-height: 180px; overflow: auto; font-size: 12px; }
+.play .replay .session li { cursor: pointer; opacity: .55; }
+.play .replay .session li.played { opacity: 1; }
+.play .replay .session li.bad { color: #f66; }
+.bar.inline { display: inline-flex; gap: 4px; }
+
+/* Check tab: solver health */
+.check .health { margin-top: 8px; }
+.check .health summary { cursor: pointer; }
+.check table.dims { border-collapse: collapse; font-size: 12px; margin: 6px 0; }
+.check table.dims th, .check table.dims td { text-align: left; padding: 2px 10px 2px 0; border-bottom: 1px solid #333; }
+.check .puzzles .bar label { font-size: 12px; margin-right: 10px; }

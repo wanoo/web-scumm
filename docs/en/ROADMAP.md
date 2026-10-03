@@ -183,6 +183,38 @@ thousand), its direction was right. What v2.1 delivered:
 - **The journal** (`Engine.trace`, dev mode): what every action answered, events emitted and listeners reached, script
   steps, characters moved, player switches. In the Studio's Play tab (filter by kind) and the dev panel (last ten).
 
+## v2.3 "Replay" (shipped): reproduce, profile, prune
+
+The third audit asked for three things a long game needs more than any primitive: reproduce a tester's bug, know why
+the solver is slow or big, and explore fewer equivalent orders. All three come from the same fact: the engine knows
+what every action read and changed.
+
+- **The session** (`Engine.session`, always recorded): every input since the game started or a save was loaded
+  (actions, map travels, player switches, script steps), with the answers given on the way (choices, map, random draws)
+  and what answered (the puzzle graph's ids). "Export session" in the game's save menu, in the dev panel and in the
+  Studio's Play tab; `npm run replay -- file.json` plays it on the real engine without a display and says where it
+  stops matching (`src/engine/tools/replay.ts`). A bug report is a session file and a screenshot; the Play tab's
+  **Replay** scrubs through it and lands the game anywhere on the way.
+- **The solver's solution is a session** (`SolveResult.steps`): `replay()` proves it, the e2e harness taps it (no more
+  label parsing), and CI plays the sample game in Chromium on every push.
+- **The solver profile** (`npm run solve -- --profile`, the Check tab's "Solver health", the `solve` tool with
+  `profile: true`): states, engine runs, no-ops, what the states are made of (which dimension splits them most), states
+  by room, what answered most (a heat map on the puzzle graph), use/give combinations that could only fall back,
+  independent dimensions (a checkpoint between them would cut the states), monotonic things. Actions no written rule
+  can answer are not run at all any more: three times fewer engine runs on the sample game.
+- **Why is this live?** (`liveClasses`, `whyLive` in `src/engine/tools/puzzle.ts`): every node of the puzzle graph is
+  *critical* (it reaches the end, a goal or an invariant), *world*, *visible* or *dead* (out of the solver's state); a
+  card shows the chain; "Critical path" fades the rest of the graph.
+- **Partial-order reduction** (`src/engine/tools/por.ts`, `npm run solve -- --por=sleep|stubborn`): actions that
+  touch different things commute. `sleep` skips the orders already covered (fewer runs, the same states); `stubborn`
+  explores one of several commuting actions at a time (fewer states too: k independent pickups before a door are k + 1
+  states instead of 2^k). Off by default, the plain search stays the proof; `tests/por.test.ts` checks that every
+  fixture gives the same answers in all three modes.
+- **Custom commands checked** in dev mode: a `run` that changes the state outside its declared `effects` is reported
+  in the journal.
+- Two holes of the state hash closed (`visited`, the counters of `random` blocks); the dialogue tree's lines jump to
+  their editor again.
+
 ## Out of scope (explicit decisions)
 
 - No Phaser, no canvas: the DOM Presenter is enough for a few dozen images; a wide room stays a CSS translation.

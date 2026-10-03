@@ -8,7 +8,7 @@ import { validate as validateGame, type AssetIndex } from '@engine/tools/validat
 import { solve as solveGame } from '@engine/tools/solve';
 import { report as reportGame, reportMarkdown } from '@engine/tools/report';
 import { toDot, toSvg, worldGraph } from '@engine/tools/graph';
-import { puzzleGraph, puzzleMarkdown, toPuzzleDot, toPuzzleSvg } from '@engine/tools/puzzle';
+import { extraReads, liveClasses, puzzleGraph, puzzleMarkdown, toPuzzleDot, toPuzzleSvg } from '@engine/tools/puzzle';
 import { normalizeStoryboard, storyboardMarkdown } from '../../tools/pages/storyboard-data';
 import { classify, formatPath, parsePath, SourceError, type Seg } from '../../tools/studio/paths';
 import type { GraphData, PuzzleData, ReportData,
@@ -280,7 +280,8 @@ export class BrowserApi implements Api {
   async puzzle(id?: string): Promise<PuzzleData> {
     const { mod, game } = await this.editedGame();
     const g = puzzleGraph(game, { commands: mod.commands });
-    return { graph: g, svg: toPuzzleSvg(g), dot: toPuzzleDot(g), markdown: puzzleMarkdown(g, id || undefined), ...(id ? { id } : {}) };
+    const extra = extraReads(game);
+    return { graph: g, svg: toPuzzleSvg(g), dot: toPuzzleDot(g), markdown: puzzleMarkdown(g, id || undefined, { extra }), classes: Object.fromEntries(liveClasses(g, extra)), ...(id ? { id } : {}) };
   }
 
   async solve(from?: string, maxStates = 20000): Promise<SolveData> {
@@ -293,7 +294,7 @@ export class BrowserApi implements Api {
       roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
       itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems,
       deadEnds: r.deadEnds.map((d) => ({ room: d.room, inventory: d.inventory, path: d.path })),
-      errors: r.errors, broken: r.broken, from: from || null, ms: Date.now() - t0,
+      errors: r.errors, broken: r.broken, from: from || null, ms: Date.now() - t0, profile: r.profile,
     };
   }
 

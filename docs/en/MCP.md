@@ -25,11 +25,11 @@ the human sees the result live in `npm run studio` (it watches the files).
 | `get_storyboard` / `set_storyboard` | `storyboard` | reads / writes `storyboard.json` (`{ boards: [...] }`) |
 | `get_notes` / `add_note` | `about?, author?, text` | the shared log `notes.json`; `author` defaults to the MCP client's name, else `ai`; notes with `task: true` are requests the human sent from the Studio's Assistant |
 | `validate` | | `{ ok, errors, warnings, ms }` |
-| `solve` | `from?` | proves the game can be finished (from New Game or a checkpoint) |
-| `content_report` | The content profiler as Markdown: per room, item and character, what is thin; unreachable rooms. Read-only. |
-| `world_graph` | The rooms and the ways between them as DOT, with unreachable rooms and exits with no way back. Read-only. |
-| `dialogue_tree` | A character's conversation in a room as an indented tree: topics with their conditions, lines, choices and their options, branches. Derived from the topics. Read-only. |
-| `puzzle_graph` | What every rule, topic, script and listener needs and changes. Without `id`: the overview (every item and flag, what produces and uses it, flags read but never set, things produced but never used). With `id` (item, flag, prop, place, event): its card: acquired by, consumed by, used by, requires first, unlocks, downstream. Read-only. |
+| `solve` | `from?, profile?` | proves the game can be finished (from New Game or a checkpoint); `profile: true` adds what the states are made of and what the search cost (independent dimensions, rooms with runaway branching, monotonic things) |
+| `content_report` | | the content profiler as Markdown: per room, item and character, what is thin; unreachable rooms |
+| `world_graph` | | the rooms and the ways between them as DOT, with unreachable rooms and exits with no way back |
+| `dialogue_tree` | `id, actor?` | a character's conversation in a room as an indented tree: topics with their conditions, lines, choices and their options, branches; derived from the topics |
+| `puzzle_graph` | `id?` | what every rule, topic, script and listener needs and changes. Without `id`: the overview (every item and flag, what produces and uses it, flags read but never set, things produced but never used). With `id` (item, flag, prop, place, event): its card: acquired by, consumed by, used by, requires first, unlocks, downstream, and why the solver keeps it (critical, world, visible or dead, with the chain to the end) |
 | `screenshot` | `room, checkpoint?` | PNG of the room under `.cache/studio/`; needs the dev server (`npm run studio`) at `WEB_SCUMM_DEV_URL` (default `http://localhost:5173/`) and Playwright, else says why it is unavailable |
 | `read_doc` | `name` | one of `CONTENT_GUIDE`, `ENGINE`, `TOOLS`, `STUDIO`, `WORKFLOW` (docs/en): the agent learns the DSL through MCP |
 | `run_tests` | | runs `npx vitest run`, returns the summary and the failures |

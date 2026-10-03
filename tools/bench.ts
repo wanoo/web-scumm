@@ -1,6 +1,7 @@
 // npm run bench [-- --rooms=40 --players=3 --items=30 --flags=100 --npcs=5 --scripts=10 --topics=40 --max=200000]
 // Generates a game of that size (src/engine/tools/stress.ts) and times every tool on it: validate, solve (global and
-// per chapter), the content report, the world and puzzle graphs, text extraction and translation, a save migration.
+// per chapter, plain and with the partial-order reduction), the content report, the world and puzzle graphs, text
+// extraction and translation, a save migration.
 import { validate } from '../src/engine/tools/validate';
 import { solve } from '../src/engine/tools/solve';
 import { report, reportMarkdown } from '../src/engine/tools/report';
@@ -38,11 +39,12 @@ const cps = Object.keys(game.checkpoints ?? {});
 let prev: string | undefined;
 for (const cp of cps) {
   const goal = game.checkpoints![cp].goals;
-  await time(`solve chapter ${cp}`, () => solve(game, layouts, { maxStates: max, start: prev ? { checkpoint: prev } : 'new', goal }), (r) => `${r.finished ? 'finished' : 'NOT finished'}, ${r.states} states, ${r.path.length} actions${r.truncated ? ' (limit)' : ''}`);
+  await time(`solve chapter ${cp}`, () => solve(game, layouts, { maxStates: max, start: prev ? { checkpoint: prev } : 'new', goal }), (r) => `${r.finished ? 'finished' : 'NOT finished'}, ${r.states} states, ${r.path.length} actions, ${r.profile.tries} runs${r.truncated ? ' (limit)' : ''}`);
   prev = cp;
 }
-await time(`solve from ${prev} to the end`, () => solve(game, layouts, { maxStates: max, start: { checkpoint: prev! } }), (r) => `${r.finished ? 'finished' : 'NOT finished'}, ${r.states} states, ${r.path.length} actions${r.truncated ? ' (limit)' : ''}`);
-await time('solve global', () => solve(game, layouts, { maxStates: max }), (r) => `${r.finished ? 'finished' : 'NOT finished'}, ${r.states} states, ${r.path.length} actions${r.truncated ? ' (limit)' : ''}${r.broken.length ? `, ${r.broken.length} invariant(s) broken` : ''}`);
+await time(`solve from ${prev} to the end`, () => solve(game, layouts, { maxStates: max, start: { checkpoint: prev! } }), (r) => `${r.finished ? 'finished' : 'NOT finished'}, ${r.states} states, ${r.path.length} actions, ${r.profile.tries} runs${r.truncated ? ' (limit)' : ''}`);
+await time('solve global', () => solve(game, layouts, { maxStates: max }), (r) => `${r.finished ? 'finished' : 'NOT finished'}, ${r.states} states, ${r.path.length} actions, ${r.profile.tries} runs${r.truncated ? ' (limit)' : ''}${r.broken.length ? `, ${r.broken.length} invariant(s) broken` : ''}`);
+await time('solve global, --por=stubborn', () => solve(game, layouts, { maxStates: max, por: 'stubborn' }), (r) => `${r.finished ? 'finished' : 'NOT finished'}, ${r.states} states, ${r.path.length} actions, ${r.profile.tries} runs, ${r.profile.postponed} postponed${r.truncated ? ' (limit)' : ''}`);
 console.log('');
 console.log('| Step | Result |', '\n|---|---|');
 for (const [a, b] of rows) console.log(`| ${a} | ${b} |`);

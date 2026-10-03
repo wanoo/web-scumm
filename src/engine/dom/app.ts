@@ -119,6 +119,7 @@ export class App implements Presenter {
     this.view = new RoomView(this.engine, this.bank);
     this.engine.autoScripts = true;
     this.engine.onChange = () => this.refresh();
+    this.engine.digestOn = true;
     try { const raw = localStorage.getItem(`${o.game.id}.settings`); if (raw) this.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }; } catch { /* no storage */ }
     const F = o.game.skin?.fonts;
     document.documentElement.style.setProperty('--font-ui', fontStack(F?.ui ?? FONT_UI));
@@ -901,6 +902,15 @@ export class App implements Presenter {
       const blob = new Blob([JSON.stringify({ meta: meta(), state: this.engine.state }, null, 1)], { type: 'application/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${this.game.id}-save.json`; a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 2000); d.remove();
+    };
+    if (mode === 'save') row(ui.exportSession ?? 'Export session', '⤓').onclick = () => {
+      // The inputs since the game started or a save was loaded, with the journal: `npm run replay` plays it back.
+      void import('../tools/replay').then(({ sessionFile }) => {
+        const blob = new Blob([JSON.stringify(sessionFile(this.game.id, this.engine), null, 1)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${this.game.id}-session.json`; a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      });
+      d.remove();
     };
     else row(ui.importSave ?? 'Import file', '⤒').onclick = () => {
       const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json,.json';

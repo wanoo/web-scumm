@@ -1,9 +1,12 @@
-import { check } from './cond';
+import { check, condAtoms, type CondAtom } from './cond';
 import { assignKeys, EMPTY_LAYOUT, FLOOR, NEAR } from './define';
 import { migrate } from './migrate';
+import { stateDiff, stateDigest } from './diff';
 import type { Presenter, SaveStore } from './ports';
-import type { CharacterDef, Cmd, EventRule, GameDef, GameState, Id, Layout, Point, RoomDef, Rule, ScriptDef, Value, VerbId } from './types';
+import type { Action, CharacterDef, Cmd, Cond, EventRule, GameDef, GameState, Id, Layout, Point, RoomDef, Rule, ScriptDef, Session, SessionEntry, Value, VerbId } from './types';
 import type { CustomCommands } from './custom';
+
+export type { Action } from './types';
 
 export interface EngineOptions {
   /** The game's custom commands (`{ custom }`), from games/<id>/index.ts. */
@@ -13,9 +16,6 @@ export interface EngineOptions {
   /** The scene element handed to custom commands (DOM renderer). */
   scene?: () => HTMLElement | undefined;
 }
-
-/** A player action: VERB a (with/to b). `a` can be an inventory item, `b` is always a target. */
-export interface Action { verb: VerbId; a: Id; b?: Id }
 
 /** Where the response to an action comes from: useful to the solver (only written rules move things forward). */
 export type Source = 'rule' | 'look' | 'talk' | 'hint' | 'kind' | 'refuse' | 'fallback' | 'guide';
@@ -36,6 +36,9 @@ interface Ctx { room: RoomDef; fast: boolean }
 const HERO = 'hero';
 
 const near = (a: Point, b: Point) => Math.hypot(a[0] - b[0], a[1] - b[1]) <= NEAR;
+
+/** A condition atom as `kind:id` (`Engine.reads`). */
+export const atomKey = (a: CondAtom) => `${a.kind}:${a.id}`;
 
 export class Engine {
   readonly game: GameDef;
@@ -58,6 +61,68 @@ export class Engine {
   }
   /** Injectable randomness (the solver makes it deterministic). */
   random: () => number = Math.random;
+  /**
+   * The session: the player's inputs since the game started or a save was loaded, with the answers given on the way
+   * (`SessionEntry`). Always recorded: exported with a save, it is the bug report `replay()` reproduces.
+   */
+  session: Session | null = null;
+  /** Store a digest of the state after every input (the browser app does; the solver has no use for it). */
+  digestOn = false;
+  /** Replay: the recorded entries to take the answers from, in order (`feed()`). */
+  private feed: SessionEntry[] | null = null;
+  /** The open entries (an input can resume a pending one: the tutorial step the intro waits for). */
+  private open: { entry: SessionEntry; src?: SessionEntry; pi: number; mi: number; ri: number; steps: number }[] = [];
+  /** Condition atoms read since the last `reads = new Set()` (the solver's independence analysis); null: not collected. */
+  reads: Set<string> | null = null;
+  static readonly SESSION_MAX = 5000;
+
+  /** Opens an entry of the session (and takes its recorded twin when replaying). */
+  private begin(entry: SessionEntry) {
+    if (!this.open.length && this.session && this.session.log.length >= Engine.SESSION_MAX) {
+      this.session = { v: this.game.saveVersion, start: { kind: 'load' }, base: structuredClone(this.state), log: [] };
+    }
+    this.session ??= { v: this.game.saveVersion, start: { kind: 'load' }, base: this.state, log: [] };
+    this.session.log.push(entry);
+    this.open.push({ entry, src: this.feed?.shift(), pi: 0, mi: 0, ri: 0, steps: 0 });
+  }
+  private end() {
+    const o = this.open.pop();
+    if (o && this.digestOn) o.entry.digest = stateDigest(this.state);
+  }
+  private get cur() { return this.open.length ? this.open[this.open.length - 1] : undefined; }
+  /** Records what answered (a rule, a topic, a listener, a script step: the puzzle graph's ids). */
+  private ran(id: string) { const o = this.cur; if (o) (o.entry.ran ??= []).push(id); }
+  /** Replays a session: the engine takes the recorded answers instead of asking the presenter. */
+  feedSession(s: Session) { this.feed = [...s.log]; }
+  /** A choice, recorded (and fed back when replaying). */
+  private async choose(options: { text: string; seen?: boolean; global?: boolean }[], who?: Id): Promise<number> {
+    const o = this.cur;
+    const fed = o?.src?.picks?.[o.pi];
+    const i = fed !== undefined ? (o!.pi++, fed) : await this.ui.choose(options, who);
+    if (o) (o.entry.picks ??= []).push(i);
+    return i;
+  }
+  /** The map's answer, recorded. */
+  private async pickPlace(): Promise<Id | null> {
+    const o = this.cur;
+    const fed = o?.src?.maps?.[o.mi];
+    const p = fed !== undefined ? (o!.mi++, fed) : await this.ui.openMap(this.state);
+    if (o) (o.entry.maps ??= []).push(p);
+    return p;
+  }
+  /** A random draw, recorded. */
+  private rand(): number {
+    const o = this.cur;
+    const fed = o?.src?.rnd?.[o.ri];
+    const r = fed !== undefined ? (o!.ri++, fed) : this.random();
+    if (o) (o.entry.rnd ??= []).push(r);
+    return r;
+  }
+  /** A condition, with its atoms collected when `reads` is on. */
+  private cond(c: Cond | undefined, room?: Id): boolean {
+    if (this.reads && c !== undefined) for (const a of condAtoms(c, room ?? this.state.room)) this.reads.add(atomKey(a));
+    return check(c, this.state, room);
+  }
   /**
    * The world's scripts run on their own (the browser app sets it). Off in node: tests and the solver step them
    * with `runScript` / `advance`.
@@ -124,11 +189,16 @@ export class Engine {
     this.dropGuide();
     this.state = this.ensureState(this.fresh());
     this.store.save(this.state);
-    // The prologue runs before the first room's arrival script (otherwise the tutorial would wait for it).
-    await this.enter(this.state.room, undefined, false);
-    if (this.game.start.intro) await this.script(this.game.start.intro);
-    const first = this.room();
-    if (first.onEnter) await this.run(() => this.exec(first.onEnter, { room: first, fast: false }));
+    this.session = { v: this.game.saveVersion, start: { kind: 'new' }, base: structuredClone(this.state), log: [] };
+    this.begin({ start: 'new' });
+    this.ran('rule:game/start');
+    try {
+      // The prologue runs before the first room's arrival script (otherwise the tutorial would wait for it).
+      await this.enter(this.state.room, undefined, false);
+      if (this.game.start.intro) await this.run(() => this.exec(this.game.start.intro, { room: this.room(), fast: false }));
+      const first = this.room();
+      if (first.onEnter) { this.ran(`rule:${first.id}/enter`); await this.run(() => this.exec(first.onEnter, { room: first, fast: false })); }
+    } finally { this.end(); }
     this.startScripts(true);
   }
 
@@ -145,6 +215,7 @@ export class Engine {
     this.dropGuide();
     this.state = this.ensureState(s);
     this.store.save(this.state);
+    this.session = { v: this.game.saveVersion, start: { kind: 'load' }, base: structuredClone(this.state), log: [] };
     await this.enter(s.room, undefined, false);
     this.startScripts(true);
   }
@@ -162,6 +233,7 @@ export class Engine {
     if (c.active) s.active = c.active;
     if (c.players) { s.players = {}; for (const [pid, p] of Object.entries(c.players)) if (pid !== s.active) s.players[pid] = { room: p.room, inventory: [...(p.inventory ?? [])], hero: {} }; }
     this.state = this.ensureState(s);
+    this.session = { v: this.game.saveVersion, start: { kind: 'checkpoint', id }, base: structuredClone(this.state), log: [] };
     await this.enter(c.room, undefined, false);
     this.startScripts(true);
   }
@@ -188,6 +260,7 @@ export class Engine {
   guests(room: RoomDef = this.room()): Record<Id, { char: Id; at: Point }> {
     const out: Record<Id, { char: Id; at: Point }> = {};
     for (const [pid, p] of Object.entries(this.state.players ?? {})) {
+      this.reads?.add(`players:${pid}`);
       if (p.room !== room.id || pid === this.heroId()) continue;
       if (Object.values(room.actors ?? {}).some((a) => a.char === pid)) continue;
       let at: Point = p.hero[room.id] ?? this.layout(room.id).entries?.default ?? [320, 360];
@@ -205,12 +278,14 @@ export class Engine {
   /** The player takes control of another character: their room, position and inventory come up. */
   async switchTo(id: Id): Promise<void> {
     if (!this.isPlayer(id) || id === this.heroId() || this.busy) return;
-    await this.run(async () => { this.log('player', `switch to ${id}`); await this.swap(id); await this.enter(this.state.room, undefined, false); this.startScripts(true); });
+    this.begin({ switch: id });
+    try { await this.run(async () => { this.log('player', `switch to ${id}`); await this.swap(id); await this.enter(this.state.room, undefined, false); this.startScripts(true); }); } finally { this.end(); }
   }
 
   /** Stores the active player's flat fields, loads the other's (no display). */
   private async swap(id: Id) {
     const s = this.state;
+    this.reads?.add(`players:${id}`);
     const shared = !!this.game.players?.sharedInventory;
     s.players ??= {};
     s.players[s.active ?? this.game.hero] = { room: s.room, inventory: shared ? [] : s.inventory, hero: s.hero, used: shared ? undefined : s.used };
@@ -288,12 +363,13 @@ export class Engine {
   /** Is the entity visible in the current room? A moving character only shows in the room it is in. */
   visible(id: Id, room: RoomDef = this.room()): boolean {
     const act = room.actors?.[id];
+    if (this.reads) { if (act) this.reads.add(`where:${act.char}`); this.reads.add(`visible:${room.id}.${id}`); }
     if (act) { const w = this.state.where?.[act.char]; if (w !== undefined && w !== room.id) return false; }
     const over = this.state.actors[`${room.id}.${id}`]?.visible;
     if (over !== undefined) return over;
     const def = act ?? room.props?.[id] ?? room.hotspots?.[id];
     if (!def && this.guests(room)[id]) return true;
-    return def ? check(def.visible, this.state, room.id) : false;
+    return def ? this.cond(def.visible, room.id) : false;
   }
 
   /** The actor of a character in a room (its id in `room.actors`), if declared there. */
@@ -316,6 +392,12 @@ export class Engine {
       ...Object.keys(this.guests(room)),
     ];
     return ids.filter((id) => this.visible(id, room));
+  }
+
+  /** Is this id something the room offers to target (declared and visible)? Reads only what concerns it. */
+  private inScene(id: Id, room: RoomDef): boolean {
+    const declared = !!room.hotspots?.[id] || !!room.props?.[id]?.name || (room.actors?.[id] !== undefined && room.actors[id].interactive !== false) || !!this.guests(room)[id];
+    return declared && this.visible(id, room);
   }
 
   /** Point where the hero stands to act on a target. */
@@ -371,22 +453,29 @@ export class Engine {
       if (!ok) { await this.run(async () => { await this.ui.say(this.heroId(), g.say, {}); }); return 'guide'; }
     }
     let src: Source | null = null;
-    await this.run(async () => {
-      const room = this.room();
-      const target = act.b ?? act.a;
-      const inScene = !this.state.inventory.includes(target) && this.targets(room).includes(target);
-      if (inScene) {
-        const ap = this.approach(target, room);
-        if (ap) {
-          const end = await this.ui.walk(this.heroId(), ap, false);
-          if (!end) return;
-          this.state.hero[room.id] = end;
+    const entry: SessionEntry = { act: { ...act } };
+    this.begin(entry);
+    if (this.reads) { this.reads.add(`item:${act.a}`); if (act.b) this.reads.add(`item:${act.b}`); }
+    try {
+      // Replaying a walk the player interrupted: nothing happened then, nothing happens now.
+      if (this.cur?.src && 'act' in this.cur.src && this.cur.src.aborted) { entry.aborted = true; return null; }
+      await this.run(async () => {
+        const room = this.room();
+        const target = act.b ?? act.a;
+        const inScene = !this.state.inventory.includes(target) && this.inScene(target, room);
+        if (inScene) {
+          const ap = this.approach(target, room);
+          if (ap) {
+            const end = await this.ui.walk(this.heroId(), ap, false);
+            if (!end) { entry.aborted = true; return; }
+            this.state.hero[room.id] = end;
+          }
         }
-      }
-      if (inScene) { this.faceTowards(target, room); this.faceHero(target, room); }
-      src = await this.resolve(act, { room, fast: false });
-      this.log('action', `${act.verb} ${act.a}${act.b ? ` → ${act.b}` : ''}: ${src ?? 'nothing'}`);
-    });
+        if (inScene) { this.faceTowards(target, room); this.faceHero(target, room); }
+        src = await this.resolve(act, { room, fast: false });
+        this.log('action', `${act.verb} ${act.a}${act.b ? ` → ${act.b}` : ''}: ${src ?? 'nothing'}`);
+      });
+    } finally { this.end(); }
     if (this.guideWait && src !== null) {
       const g = this.guideWait;
       if (g.verb === act.verb && (act.a === g.target || act.b === g.target)) { this.guideWait = null; this.ui.guide(null); g.resolve(); }
@@ -406,20 +495,30 @@ export class Engine {
   async travel(place: Id): Promise<void> {
     const p = this.game.map?.places[place];
     if (!p || !this.state.unlocked.includes(place)) return;
-    await this.run(() => this.enter(p.room, undefined, true));
+    this.begin({ travel: place });
+    try { await this.run(() => this.enter(p.room, undefined, true)); } finally { this.end(); }
   }
 
   /** Opens the map from the UI. */
   async openMap(): Promise<void> {
     if (this.busy) return;
-    await this.run(async () => {
-      const pick = await this.ui.openMap(this.state);
-      if (pick) { const p = this.game.map?.places[pick]; if (p) await this.enter(p.room, undefined, true); }
-    });
+    this.begin({ map: true });
+    try {
+      await this.run(async () => {
+        const pick = await this.pickPlace();
+        if (pick) { const p = this.game.map?.places[pick]; if (p) await this.enter(p.room, undefined, true); }
+      });
+    } finally { this.end(); }
+  }
+
+  /** Goes to a room without playing its arrival script (dev panel). */
+  async teleport(id: Id): Promise<void> {
+    this.begin({ enter: id });
+    try { await this.enter(id, undefined, false); } finally { this.end(); }
   }
 
   /** Skip the current cutscene. */
-  skip() { this.skipping = true; }
+  skip() { this.skipping = true; const o = this.cur; if (o) o.entry.skipAt = o.steps; }
 
   private async run(fn: () => Promise<void>) {
     this.busyCount++;
@@ -452,7 +551,7 @@ export class Engine {
     const { verb, a, b } = act;
     const room = ctx.room;
     const rule = this.findRule(verb, a, b, room);
-    if (rule) { await this.exec(rule.do, ctx); return 'rule'; }
+    if (rule) { this.ran(rule.id); await this.exec(rule.do, ctx); return 'rule'; }
 
     if (verb === 'look' && !b) {
       const lines = room.look?.[a] ?? (this.state.inventory.includes(a) ? this.game.items[a]?.look : undefined);
@@ -481,16 +580,15 @@ export class Engine {
   }
 
   /** Matching written rule (room, then game). Exposed for the solver. */
-  findRule(verb: VerbId, a: Id, b: Id | undefined, room: RoomDef): Rule | null {
+  findRule(verb: VerbId, a: Id, b: Id | undefined, room: RoomDef): (Rule & { id: string }) | null {
     const has = (x: Id | Id[] | undefined, v: Id | undefined) => x === undefined ? v === undefined : v !== undefined && (Array.isArray(x) ? x.includes(v) : x === v);
     const verbOk = (r: Rule) => Array.isArray(r.verb) ? r.verb.includes(verb) : r.verb === verb;
     const inv = this.state.inventory;
-    for (const list of [room.on ?? [], this.game.rules.on ?? []]) {
-      for (const r of list) {
-        if (!verbOk(r) || !check(r.if, this.state, room.id)) continue;
-        if (has(r.a, a) && has(r.b, b)) return r;
-        // two inventory items: order doesn't matter
-        if (b && inv.includes(a) && inv.includes(b) && has(r.a, b) && has(r.b, a)) return r;
+    for (const [list, scope] of [[room.on ?? [], room.id], [this.game.rules.on ?? [], 'game']] as const) {
+      for (const [i, r] of list.entries()) {
+        if (!verbOk(r) || !this.cond(r.if, room.id)) continue;
+        const hit = (has(r.a, a) && has(r.b, b)) || (!!b && inv.includes(a) && inv.includes(b) && has(r.a, b) && has(r.b, a)); // two inventory items: order doesn't matter
+        if (hit) return { ...r, id: `rule:${scope}/on[${i}]` };
       }
     }
     return null;
@@ -515,7 +613,7 @@ export class Engine {
 
   private fallback(key: string, a: Id, b?: Id): string {
     const list = this.game.rules.fallbacks[key as VerbId] ?? this.game.rules.fallbacks.look ?? ['…'];
-    let i = Math.floor(this.random() * list.length);
+    let i = Math.floor(this.rand() * list.length);
     if (list.length > 1 && i === this.lastFallback[key]) i = (i + 1) % list.length;
     this.lastFallback[key] = i;
     return this.fill(list[i], a, b);
@@ -543,13 +641,14 @@ export class Engine {
     const char = room.actors?.[actor]?.char ?? actor;
     const g = this.game.globalTalk ?? {};
     for (;;) {
-      const topics = (room.talk?.[actor] ?? []).map((t, i) => ({ t, i })).filter(({ t }) => check(t.if, this.state, room.id));
+      const topics = (room.talk?.[actor] ?? []).map((t, i) => ({ t, i })).filter(({ t }) => this.cond(t.if, room.id));
       const opts = topics.map(({ i, t }) => ({ text: t.topic, seen: !!this.state.seen[`${room.id}.${actor}.${i}`] }));
       if (g.hug) opts.push({ text: g.hug, seen: false, global: true } as never);
       opts.push({ text: g.bye ?? '…', seen: false, global: true } as never);
-      const pick = await this.ui.choose(opts, char);
+      const pick = await this.choose(opts, char);
       if (pick < topics.length) {
         const { t, i } = topics[pick];
+        this.ran(`topic:${room.id}/${actor}[${i}]`);
         await this.say(HERO, t.topic, ctx);
         await this.exec(t.do, ctx);
         this.state.seen[`${room.id}.${actor}.${i}`] = 1;
@@ -581,7 +680,7 @@ export class Engine {
     this.ui.inventory(this.state.inventory, this.state.used);
     if (room.music) this.ui.music({ play: room.music });
     this.onChange();
-    if (runEnter && room.onEnter) await this.exec(room.onEnter, { room, fast: false });
+    if (runEnter && room.onEnter) { this.ran(`rule:${id}/enter`); await this.exec(room.onEnter, { room, fast: false }); }
     if (runEnter) this.startScripts(false);
   }
 
@@ -608,23 +707,25 @@ export class Engine {
     if (!def) throw new Error(`unknown script: ${id}`);
     const s = this.state;
     const st = this.scriptState(id);
+    this.reads?.add(`script:${id}`);
     if (st.off) return 'off';
     if (st.done) return 'done';
     if (this.busyCount > 0 || s.done) return 'blocked';
     const room = this.room();
-    if (def.while && !check(def.while, s, room.id)) { st.pc = 0; return 'blocked'; }
+    if (def.while && !this.cond(def.while, room.id)) { if (st.pc) { this.begin({ step: id }); st.pc = 0; this.end(); } return 'blocked'; }
     if (st.pc >= def.do.length) {
       if (!def.loop) { st.done = true; this.save(); return 'done'; }
-      st.pc = 0;
+      this.begin({ step: id }); st.pc = 0; this.end();
       return 'wrapped';
     }
     const c = def.do[st.pc];
     if (typeof c === 'object') {
-      if ('waitUntil' in c) { if (!check(c.waitUntil, s, room.id)) return 'blocked'; st.pc++; return 'ran'; }
+      if ('waitUntil' in c) { if (!this.cond(c.waitUntil, room.id)) return 'blocked'; this.begin({ step: id }); st.pc++; this.end(); return 'ran'; }
       if ('waitEvent' in c) return 'blocked'; // emit() moves the script past it
     }
-    await this.step(c, { room, fast: false });
-    st.pc++;
+    this.begin({ step: id });
+    this.ran(`script:${id}`);
+    try { await this.step(c, { room, fast: false }); } finally { st.pc++; this.end(); }
     this.log('script', `${id} ran ${describeCmd(c)} → ${st.pc >= def.do.length ? (def.loop ? 'loops' : 'done') : st.pc}`);
     if (this.busyCount === 0) this.save();
     this.onChange();
@@ -674,14 +775,16 @@ export class Engine {
     this.log('event', `emit ${id}`);
     for (const def of [...(this.game.scripts ?? []), ...this.game.rooms.flatMap((r) => r.scripts ?? [])]) {
       const st = this.scriptState(def.id);
+      this.reads?.add(`script:${def.id}`);
       const cur = def.do[st.pc];
       if (!st.done && !st.off && cur && typeof cur === 'object' && 'waitEvent' in cur && cur.waitEvent === id) st.pc++;
     }
     const scopes: [EventRule[], string][] = [[ctx.room.events ?? [], ctx.room.id], [this.game.events ?? [], 'game']];
     for (const [list, scope] of scopes) for (const [i, ev] of list.entries()) {
-      if (ev.on !== id || !check(ev.if, s, ctx.room.id)) continue;
-      if (ev.once) { const k = `event.${scope}.${i}`; if (s.seen[k]) continue; s.seen[k] = 1; }
+      if (ev.on !== id || !this.cond(ev.if, ctx.room.id)) continue;
+      if (ev.once) { const k = `event.${scope}.${i}`; this.reads?.add(`seen:${k}`); if (s.seen[k]) continue; s.seen[k] = 1; }
       this.log('event', `${id} → ${scope}.events[${i}]${ev.once ? ' (once)' : ''}`);
+      this.ran(`listener:${scope}/events[${i}]`);
       await this.exec(ev.do, ctx);
     }
   }
@@ -689,7 +792,10 @@ export class Engine {
   // ------------------------------------------------------------------ scripts
 
   /** Runs a script in the current room (usable by the UI or tests). */
-  async script(cmds: Cmd[]) { await this.run(() => this.exec(cmds, { room: this.room(), fast: false })); }
+  async script(cmds: Cmd[]) {
+    this.begin({ script: cmds });
+    try { await this.run(() => this.exec(cmds, { room: this.room(), fast: false })); } finally { this.end(); }
+  }
 
   private async say(who: Id, text: string, ctx: Ctx, shout = false, voice?: Id) {
     await this.ui.say(this.who(who), text, { shout, fast: ctx.fast, voice });
@@ -716,6 +822,8 @@ export class Engine {
   private async step(c: Cmd, ctx: Ctx): Promise<void> {
     const s = this.state;
     const room = ctx.room;
+    const o = this.cur;
+    if (o) { if (o.src?.skipAt === o.steps) this.skipping = true; o.steps++; }
     if (typeof c === 'string') return this.say(HERO, c, ctx);
     if ('say' in c) return this.say(c.say[0], c.say[1], ctx, !!c.shout, c.voice);
     if ('walk' in c) {
@@ -828,7 +936,7 @@ export class Engine {
     if ('unlock' in c) { if (!s.unlocked.includes(c.unlock)) s.unlocked.push(c.unlock); return; }
     if ('goto' in c) { await this.enter(c.goto, c.at, true); return; }
     if ('map' in c) {
-      const pick = await this.ui.openMap(s);
+      const pick = await this.pickPlace();
       if (pick) { const p = this.game.map?.places[pick]; if (p) await this.enter(p.room, undefined, true); }
       return;
     }
@@ -859,7 +967,7 @@ export class Engine {
       return;
     }
     if ('emit' in c) return this.emit(c.emit, ctx);
-    if ('waitUntil' in c) { for (let guard = 0; guard < 100000 && !check(c.waitUntil, s, room.id); guard++) await this.ui.wait(250, ctx.fast); return; }
+    if ('waitUntil' in c) { for (let guard = 0; guard < 100000 && !this.cond(c.waitUntil, room.id); guard++) await this.ui.wait(250, ctx.fast); return; }
     if ('waitEvent' in c) return; // only meaningful at the top level of a script (advance); elsewhere it is a no-op
     if ('startScript' in c) {
       if (!this.scriptDef(c.startScript)) throw new Error(`unknown script: ${c.startScript}`);
@@ -884,16 +992,25 @@ export class Engine {
       const cmd = this.opts.commands?.[c.custom];
       if (!cmd) throw new Error(`unknown custom command: ${c.custom} (export it from games/<id>/index.ts "commands")`);
       await this.exec(cmd.effects, ctx);
-      if (cmd.run && this.opts.runCustom && !ctx.fast) await cmd.run({ game: this.game, state: s, room, args: c.args, ui: this.ui, scene: this.opts.scene?.(), fast: ctx.fast });
+      if (cmd.run && this.opts.runCustom && !ctx.fast) {
+        // `run` is display only: in dev (journal on), a state change outside the declared `effects` is reported.
+        const before = this.traceOn ? structuredClone(s) : null;
+        await cmd.run({ game: this.game, state: s, room, args: c.args, ui: this.ui, scene: this.opts.scene?.(), fast: ctx.fast });
+        if (before) {
+          const diff = stateDiff(before, s);
+          if (diff.length) { const msg = `custom "${c.custom}" changed ${diff.join(', ')} outside its declared effects`; this.log('action', msg); console.warn(msg); }
+        }
+      }
       return;
     }
     if ('sfx' in c) { if (!ctx.fast) this.ui.sfx(c.sfx); return; }
     if ('music' in c) { this.ui.music(typeof c.music === 'string' ? { play: c.music } : c.music); return; }
     if ('toast' in c) { this.ui.toast(c.toast); return; }
     if ('shake' in c) { if (!ctx.fast) this.ui.shake(c.shake); return; }
-    if ('if' in c) return this.exec(check(c.if, s, room.id) ? c.then : c.else, ctx);
+    if ('if' in c) return this.exec(this.cond(c.if, room.id) ? c.then : c.else, ctx);
     if ('once' in c) {
       const k = c.key!;
+      this.reads?.add(`once:${k}`);
       if (s.counters[k]) return;
       s.counters[k] = 1;
       return this.exec(c.once, ctx);
@@ -901,6 +1018,7 @@ export class Engine {
     if ('nth' in c || 'cycle' in c) {
       const list = 'nth' in c ? c.nth : c.cycle;
       const k = c.key!;
+      this.reads?.add(`nth:${k}`);
       const n = s.counters[k] ?? 0;
       s.counters[k] = n + 1;
       const i = 'nth' in c ? Math.min(n, list.length - 1) : n % list.length;
@@ -908,7 +1026,8 @@ export class Engine {
     }
     if ('random' in c) {
       const k = c.key!;
-      let i = Math.floor(this.random() * c.random.length);
+      this.reads?.add(`random:${k}`);
+      let i = Math.floor(this.rand() * c.random.length);
       if (c.random.length > 1 && i === s.counters[k]) i = (i + 1) % c.random.length;
       s.counters[k] = i;
       return this.exec(c.random[i], ctx);
@@ -920,9 +1039,9 @@ export class Engine {
       return;
     }
     if ('choice' in c) {
-      const opts = c.choice.map((o, i) => ({ o, i })).filter(({ o, i }) => check(o.if, s, room.id) && !(o.once && s.seen[`choice.${room.id}.${o.text}`]));
+      const opts = c.choice.map((o, i) => ({ o, i })).filter(({ o, i }) => { if (o.once) this.reads?.add(`seen:choice.${room.id}.${o.text}`); return this.cond(o.if, room.id) && !(o.once && s.seen[`choice.${room.id}.${o.text}`]); });
       if (!opts.length) return;
-      const pick = await this.ui.choose(opts.map(({ o }) => ({ text: o.text })));
+      const pick = await this.choose(opts.map(({ o }) => ({ text: o.text })));
       const { o } = opts[Math.max(0, Math.min(pick, opts.length - 1))];
       if (o.once) s.seen[`choice.${room.id}.${o.text}`] = 1;
       await this.say(HERO, o.text, ctx);

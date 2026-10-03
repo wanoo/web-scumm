@@ -45,7 +45,13 @@ que les joueurs auront.
   et le **graphe de puzzles** : chaque règle, sujet, script et écouteur avec ce qu'il exige (flèches grises, pointillées
   quand c'est lu à l'intérieur de ses commandes) et ce qu'il produit (vert) ou consomme (rouge) ; toucher un objet, un flag,
   un accessoire, un lieu de la carte ou un événement affiche sa fiche (obtenu par, utilisé par, exige d'abord, débloque,
-  en aval), le même texte que renvoie l'outil `puzzle_graph`.
+  en aval, et pourquoi le solveur le garde : critical, world, visible ou dead, avec la chaîne jusqu'à la fin), le même
+  texte que renvoie l'outil `puzzle_graph`. Deux interrupteurs au-dessus du graphe : **Critical path** estompe tout ce
+  qui ne mène pas à la fin, à un objectif ou à un invariant ; **Heat** colore chaque règle, sujet, écouteur, script et
+  lieu selon le nombre de fois où le solveur y est passé. Sous le chemin du solveur, **Solver health** : exécutions du
+  moteur, actions sautées, actions sans effet, actions par état, les dimensions qui séparent le plus les états, les
+  avertissements qu'un auteur traite (dimensions indépendantes : un checkpoint entre elles couperait les états ; un
+  lieu au branchement démesuré), le profil complet de `npm run solve -- --profile`.
 - **Play** : le jeu lui-même (outils de dev actifs) dans un cadre, à côté de l'**état** en direct (lieu, sac, flags,
   personnages mobiles, scripts, joueurs) et d'un **explicateur de règles** : choisis un verbe, un objet et une cible, et
   chaque règle qui pourrait répondre est listée avec chaque condition évaluée ✓ / ✗ sur l'état en direct ; la première ✓
@@ -53,6 +59,10 @@ que les joueurs auront.
   **journal** : ce que chaque action a répondu (règle, ligne Regarder, repli…), les événements émis et les écouteurs
   atteints, chaque pas de script, les personnages déplacés, les changements de joueur ; filtrable par sorte. Le moteur
   ne le garde qu'en mode dev (`Engine.trace`, les 200 dernières entrées).
+  À côté, **Export session** télécharge les entrées depuis le début de la partie (avec le journal : un rapport de bug
+  que `npm run replay` rejoue) et **Replay…** en charge une : le moteur la joue en silence, le jeu se pose là où elle
+  finit, un curseur parcourt les entrées (en toucher une y pose le jeu), et une divergence avec l'enregistrement est
+  signalée.
 - **Notes** : le journal partagé (`games/<id>/notes.json`), une entrée par auteur (« you », ou le nom de l'IA), à
   propos d'un id de case, d'un id de lieu, de `lieu.entité`, ou de n'importe quoi (vide : général). Le journal
   entier, le plus récent d'abord, groupé par `about` (lieu / case / entité étiquetés, avec « Open in Rooms » /
@@ -82,7 +92,7 @@ capture d'écran indisponible).
 | PUT `notes/:id` | `{ text, about? }` → la `Note` mise à jour (texte débarrassé des espaces superflus, `edited` réglé à maintenant ; `at`, `author` et l'ordre inchangés) ; 400 texte vide, 404 id inconnu |
 | DELETE `notes/:id` | → `{ ok }`, la note retirée de `notes.json` ; 404 id inconnu |
 | POST `validate` | → `{ ok, errors: string[], warnings: string[], ms }` |
-| POST `solve` | `{ from?: checkpoint }` → `{ finished, states, truncated, path, roomsReached, unlockedReached, flagsReached, itemsNeverUsed, unusedItems, deadEnds: [{ room, inventory, path }], errors, from, ms }` (400 pour un checkpoint inconnu) |
+| POST `solve` | `{ from?: checkpoint }` → `{ finished, states, truncated, path, roomsReached, unlockedReached, flagsReached, itemsNeverUsed, unusedItems, deadEnds: [{ room, inventory, path }], errors, from, ms, profile }` (400 pour un checkpoint inconnu) ; `profile` est le `SolveProfile` de `src/engine/tools/solve.ts` |
 | POST `screenshot` | `{ room, checkpoint? }` → `{ file, url }` : un PNG du lieu (overlays de l'éditeur masqués) sous `.cache/studio/<game>-<room>[-<checkpoint>].png`, servi à `url` (`GET screenshots/<name>.png`). 501 `{ unavailable: true, reason, error }` si Playwright ou son Chromium est manquant |
 | GET `events` | évènements envoyés par le serveur (SSE) : `{ type: 'hello', game }` à la connexion, puis `{ type: 'changed', file }` quand un fichier du dossier du jeu change sur le disque (`file` relatif à ce dossier, ex. `rooms/house.ts` ; les dotfiles et `private/` sont ignorés ; anti-rebond de 150 ms par fichier) |
 

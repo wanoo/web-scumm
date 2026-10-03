@@ -10,7 +10,7 @@ game can be finished, play it in landscape on any phone, offline after the first
 |---|---|
 | 🎮 **Play the sample game** | https://wanoo.github.io/web-scumm/ (phone in landscape, or desktop) |
 | 🛠 **Try the Studio** | https://wanoo.github.io/web-scumm/studio.html (demo mode: edits stay in your browser) |
-| 📦 **Source** | https://github.com/wanoo/web-scumm · release v2.2.0 · [release notes](docs/en/ROADMAP.md) |
+| 📦 **Source** | https://github.com/wanoo/web-scumm · release v2.3.0 · [release notes](docs/en/ROADMAP.md) |
 
 ![Three rooms of the sample game](docs/img/banner.jpg)
 
@@ -43,6 +43,7 @@ rooms, generate the art, check, play, take notes with the AI. See `docs/en/STUDI
 <tr><td width="50%" valign="top"><img src="docs/img/studio-storyboard.jpg" alt="<b>Storyboard</b>: the story panel by panel, lines, preview, notes; the first thing to write" width="100%"><br><sub><b>Storyboard</b>: the story panel by panel, lines, preview, notes; the first thing to write</sub></td><td width="50%" valign="top"><img src="docs/img/studio-assets.jpg" alt="<b>Assets</b>: every sheet and cell, where it is used, the art prompt to paste into an image model, uploads cut automatically" width="100%"><br><sub><b>Assets</b>: every sheet and cell, where it is used, the art prompt to paste into an image model, uploads cut automatically</sub></td></tr>
 <tr><td width="50%" valign="top"><img src="docs/img/studio-assets-decor.jpg" alt="<b>A background</b> with its hotspots, props and floor band overlaid" width="100%"><br><sub><b>A background</b> with its hotspots, props and floor band overlaid</sub></td><td width="50%" valign="top"><img src="docs/img/studio-check.jpg" alt="<b>Check</b>: validator, solver path, world map, puzzle graph and content report, re-run after every save" width="100%"><br><sub><b>Check</b>: validator, solver path, world map, puzzle graph and content report, re-run after every save</sub></td></tr>
 <tr><td width="50%" valign="top"><img src="docs/img/studio-puzzles.jpg" alt="<b>Puzzles</b>: tap an item or a flag for its card: where it comes from, what needs it, what it unlocks" width="100%"><br><sub><b>Puzzles</b>: tap an item or a flag for its card: where it comes from, what needs it, what it unlocks</sub></td><td width="50%" valign="top"><img src="docs/img/studio-play.jpg" alt="<b>Play</b>: the game beside its live state, a rule explainer (every condition ✓ / ✗) and the journal" width="100%"><br><sub><b>Play</b>: the game beside its live state, a rule explainer (every condition ✓ / ✗) and the journal</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/studio-solver-health.jpg" alt="<b>Solver health</b>: what the states are made of, what the search cost, the warnings a designer acts on; a heat map and the critical path on the puzzle graph" width="100%"><br><sub><b>Solver health</b>: what the states are made of, what the search cost, the warnings a designer acts on; a heat map and the critical path on the puzzle graph</sub></td><td width="50%" valign="top"><img src="docs/img/studio-play-replay.jpg" alt="<b>Replay</b>: a session file (a tester's bug report) scrubbed through in the Play tab; the game lands wherever you stop" width="100%"><br><sub><b>Replay</b>: a session file (a tester's bug report) scrubbed through in the Play tab; the game lands wherever you stop</sub></td></tr>
 <tr><td width="50%" valign="top"><img src="docs/img/studio-notes.jpg" alt="<b>Notes</b>: the shared log between you and the AI, about a panel, a room or an element" width="100%"><br><sub><b>Notes</b>: the shared log between you and the AI, about a panel, a room or an element</sub></td><td width="50%" valign="top"><img src="docs/img/studio-assistant.jpg" alt="<b>Assistant</b>: any AI model with the same tools as the MCP server, about the selected element" width="100%"><br><sub><b>Assistant</b>: any AI model with the same tools as the MCP server, about the selected element</sub></td></tr>
 <tr><td width="50%" valign="top"><img src="docs/img/editor.jpg" alt="<b>The placement editor</b> in the game itself (<code>?edit=house</code>)" width="100%"><br><sub><b>The placement editor</b> in the game itself (<code>?edit=house</code>)</sub></td><td width="50%" valign="top"><img src="docs/img/placement-page.jpg" alt="<b>The placement page</b>: place things from a phone, export the layout" width="100%"><br><sub><b>The placement page</b>: place things from a phone, export the layout</sub></td></tr>
 </table>
@@ -50,6 +51,10 @@ rooms, generate the art, check, play, take notes with the AI. See `docs/en/STUDI
 ![Puzzle graph](docs/img/puzzles-page.jpg)
 <sub>The puzzle graph (`npm run page:puzzles`, also in Check): coloured things, white actions; grey arrows for what an
 action needs, green for what it produces, red for what it consumes. Tap a thing for its card.</sub>
+
+<img src="docs/img/studio-critical-path.jpg" alt="The puzzle graph with the critical path and the solver's heat map" width="629"><br>
+<sub>The same graph with **Critical path** and **Heat** on: what does not lead to the end fades, the rules the solver
+went through most turn red; a card says why the solver keeps a thing (critical, world, visible or dead).</sub>
 
 ## Quick start
 
@@ -148,6 +153,7 @@ in demo mode at `studio.html`. Any static host works. `GAME=<id> npm run build` 
 
 | Version | What it added |
 |---|---|
+| v2.3 Replay | Sessions recorded and replayed (`npm run replay`, Play tab); the solver's solution replayed by CI in Chromium; the solver profile and "Solver health"; why a thing is live, the critical path and a heat map on the puzzle graph; partial-order reduction (`--por`); custom commands checked in dev. |
 | v2.2 Studio | Dialogue tree (Rooms tab, MCP `dialogue_tree`); the engine's journal (Play tab, dev panel). |
 | v2.1 Proof | The classics (`CLASSICS.md`); the puzzle graph; a solver that enumerates choices, keeps counters exact, plays scripts a wait at a time and prunes what cannot matter; the stress bench; one catalogue of the commands checked by `tsc`; loops with frame sounds; translations that follow moved texts. |
 | v2.0 Open | Custom commands with declared effects; translations by extraction; the Play tab with its rule explainer; fixtures per primitive. |

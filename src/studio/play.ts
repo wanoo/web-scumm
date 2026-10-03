@@ -4,8 +4,9 @@
 import { explainCond, type Explained } from '@engine/core/cond';
 import type { Engine } from '@engine/core/engine';
 import type { GameDef, Id, Rule } from '@engine/core/types';
+import { labelOf, parseSessionFile, replay, sessionFile, type ReplayResult, type SessionFile } from '@engine/tools/replay';
 import { BASE, type GameInfo } from './api';
-import { h, select } from './ui';
+import { download, h, select, toast } from './ui';
 
 type GameWindow = Window & { __game?: { engine: Engine; game: GameDef } };
 
@@ -22,6 +23,8 @@ export class PlayTab {
   private target = '';
   private item = '';
   private timer: ReturnType<typeof setInterval> | undefined;
+  /** A session being replayed in the frame: the file, how far, and what the replay gave. */
+  private rep: { file: SessionFile; upTo: number; result?: ReplayResult; busy?: boolean } | null = null;
 
   constructor(private info: GameInfo) {
     this.verb = info.verbs[0]?.id ?? '';
@@ -60,15 +63,73 @@ export class PlayTab {
     this.renderJournal(g.engine);
   }
 
+  /** The session file of the game in the frame: the inputs since it started, with the journal. */
+  private exportSession(g: { engine: Engine; game: GameDef }) {
+    try { download(`${g.game.id}-session.json`, JSON.stringify(sessionFile(g.game.id, g.engine), null, 1), 'application/json'); }
+    catch (e) { toast(String((e as Error).message), 'error'); }
+  }
+
+  /** Replays a session file in the frame: the engine plays it silently, the game loads the state it reaches. */
+  private importSession(g: { engine: Engine; game: GameDef }) {
+    const inp = h('input', { type: 'file', accept: 'application/json,.json', hidden: true }) as HTMLInputElement;
+    inp.onchange = async () => {
+      const f = inp.files?.[0];
+      if (!f) return;
+      try {
+        const file = parseSessionFile(await f.text());
+        if (file.game && file.game !== g.game.id) toast(`recorded on "${file.game}", this is "${g.game.id}"`, 'info');
+        this.rep = { file, upTo: file.session.log.length };
+        await this.scrub(g, this.rep.upTo);
+      } catch (e) { toast(String((e as Error).message), 'error'); }
+    };
+    document.body.append(inp);
+    inp.click();
+    setTimeout(() => inp.remove(), 1000);
+  }
+
+  /** Plays the first `upTo` entries of the loaded session and puts the game there. */
+  private async scrub(g: { engine: Engine; game: GameDef }, upTo: number) {
+    const rep = this.rep;
+    if (!rep || rep.busy) return;
+    rep.busy = true;
+    rep.upTo = upTo;
+    try {
+      const r = await replay(structuredClone(g.game), structuredClone(g.engine.layouts), rep.file.session, { upTo, commands: g.engine.opts.commands });
+      rep.result = r;
+      await g.engine.load(structuredClone(r.state));
+      if (r.divergedAt !== undefined) toast(`diverges at entry ${r.divergedAt + 1}: ${r.divergence}`, 'error', 5000);
+    } catch (e) { toast(String((e as Error).message), 'error'); }
+    finally { rep.busy = false; this.refresh(); }
+  }
+
   /** The engine's journal (`Engine.trace`, kept in dev mode): what answered, events, script steps, moves, switches. */
   private renderJournal(e: Engine) {
+    const g = this.game()!;
     const kinds: [string, string][] = [['', 'everything'], ['action', 'actions'], ['event', 'events'], ['script', 'scripts'], ['actor', 'moves'], ['player', 'switches']];
-    const rows = (e.trace ?? []).filter((x) => !this.filter || x.kind === this.filter).slice(-40).reverse();
-    this.journal.replaceChildren(
-      h('h3', null, 'Journal ', h('span', { class: 'muted small' }, `${e.trace?.length ?? 0} entries`), ' ',
-        select(kinds, this.filter, (v) => { this.filter = v as typeof this.filter; this.refresh(); }, { 'aria-label': 'Journal filter' })),
-      rows.length ? h('ol', { class: 'trace' }, rows.map((x) => h('li', { class: `t-${x.kind}` }, h('span', { class: 'muted small' }, `${new Date(x.t).toLocaleTimeString()} ${x.room} `), h('b', null, x.kind), ' ', x.text)))
-        : h('p', { class: 'muted' }, 'Nothing yet: play in the frame.'));
+    const rep = this.rep;
+    const trace = rep?.result ? rep.result.trace : (e.trace ?? []);
+    const rows = trace.filter((x) => !this.filter || x.kind === this.filter).slice(-40).reverse();
+    const tools = h('span', { class: 'bar inline' },
+      h('button', { class: 'small', title: 'The inputs since the game started, with the journal: a bug report `npm run replay` plays back', onclick: () => this.exportSession(g) }, 'Export session'),
+      h('button', { class: 'small', title: 'Play a session file here and land the game where it ends', onclick: () => this.importSession(g) }, 'Replay…'));
+    const out: Node[] = [h('h3', null, 'Journal ', h('span', { class: 'muted small' }, `${trace.length} lines · ${(rep?.result ? rep.result.played : e.session?.log.length) ?? 0} inputs`), ' ',
+      select(kinds, this.filter, (v) => { this.filter = v as typeof this.filter; this.refresh(); }, { 'aria-label': 'Journal filter' }), ' ', tools)];
+    if (rep) {
+      const log = rep.file.session.log;
+      const n = Math.min(rep.upTo, log.length);
+      const d = rep.result?.divergedAt;
+      out.push(h('div', { class: 'replay' },
+        h('div', { class: 'bar' },
+          h('b', null, 'Replay '), h('span', { class: 'muted small' }, `${n} / ${log.length}${rep.busy ? ' …' : ''}${rep.result?.ended ? ' · the ending' : ''}`),
+          h('input', { type: 'range', min: '0', max: String(log.length), value: String(n), 'aria-label': 'Replay position', onchange: (ev: Event) => void this.scrub(g, Number((ev.target as HTMLInputElement).value)) }),
+          h('button', { class: 'small', onclick: () => { this.rep = null; this.refresh(); } }, 'Close')),
+        d !== undefined ? h('p', { class: 'bad small' }, `✖ diverges at entry ${d + 1}: ${rep.result?.divergence}`) : null,
+        h('ol', { class: 'session' }, log.map((en, i) => h('li', { class: `${i < n ? 'played' : ''}${d === i ? ' bad' : ''}`, onclick: () => void this.scrub(g, i + 1) },
+          labelOf(g.game, en), en.ran?.length ? h('span', { class: 'muted small' }, ` ← ${en.ran.join(', ')}`) : null)))));
+    }
+    out.push(rows.length ? h('ol', { class: 'trace' }, rows.map((x) => h('li', { class: `t-${x.kind}` }, h('span', { class: 'muted small' }, `${new Date(x.t).toLocaleTimeString()} ${x.room} `), h('b', null, x.kind), ' ', x.text)))
+      : h('p', { class: 'muted' }, 'Nothing yet: play in the frame.'));
+    this.journal.replaceChildren(...out);
   }
 
   /** "Why does this action answer that?": every candidate rule with its conditions explained. */

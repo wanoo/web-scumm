@@ -268,6 +268,9 @@ export const commands: CustomCommands = {
 **et** dans le solveur, donc une commande custom ne casse jamais `npm run solve` ni la sauvegarde. `run` est la partie
 visuelle, navigateur seulement (elle reçoit l'élément de la scène, le presenter, l'état en lecture, les arguments). Une
 commande qui ne change rien dit `pure: true`. Le validateur refuse une commande qui ne déclare ni l'un ni l'autre.
+`run` ne doit pas toucher l'état : en mode dev le moteur compare l'état avant et après, et signale dans le journal un
+`run` qui a changé quelque chose hors de `effects` (le solveur, les sauvegardes et le replay ne connaissent que
+`effects`).
 
 ## Traductions
 

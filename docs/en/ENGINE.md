@@ -75,7 +75,12 @@ The choice is made automatically (`App.layout`), and redone whenever the window 
    strolls, ambient gags, a character that `moveActor`s to another room when an `emit`ted event wakes its `waitEvent`.
    Their position lives in the state too, so a save resumes them, and the solver plays them as actions ("Script <id>": the script runs up to its next `wait`, so a patrol is seen room by room). The solver also tries every option of a `choice` prompt (the path then reads `Talk x: "topic" › "reply"`), and keeps the exact value of a counter that is ever lowered or set to a number. It leaves out of the state whatever
    cannot change the outcome (the puzzle graph tells: a flag read by nothing but its own setter, a clock script nobody
-   reads, a walker nobody waits for), so a decorative world costs it nothing.
+   reads, a walker nobody waits for), so a decorative world costs it nothing. It also records what every action read
+   (`Engine.reads`) and what answered (`SessionEntry.ran`): the profile (`--profile`) says what the states are made
+   of, and the partial-order reduction (`--por`, `src/engine/tools/por.ts`) skips the orders of actions that commute.
+8. Every input is **recorded** (`Engine.session`: actions, map, switches, script steps, with the choices, map picks
+   and random draws they met), so a session exported from the game replays on a silent engine (`replay()`,
+   `npm run replay`) and lands on the same state; the solver's solution is such a session (`SolveResult.steps`).
 
 ## Why these choices
 

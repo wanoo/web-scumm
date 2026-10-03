@@ -12,7 +12,7 @@ export interface DialogueNode {
   who?: string;
   /** The gate (topics, options, branches). */
   cond?: string;
-  /** The content path of the text (`talk.lou[2].do[0].say`), for the Studio's editors. */
+  /** The content path of the text (`talk.lou[2].do[0].say[1]`), the Studio's editors' `data-path`. */
   path?: string;
   children?: DialogueNode[];
 }
@@ -22,7 +22,7 @@ function cmds(list: Cmd[] | undefined, path: string): DialogueNode[] {
   list?.forEach((c, i) => {
     const p = `${path}[${i}]`;
     if (typeof c === 'string') { out.push({ kind: 'line', text: c, who: 'hero', path: p }); return; }
-    if ('say' in c) out.push({ kind: 'line', text: c.say[1], who: c.say[0], path: `${p}.say` });
+    if ('say' in c) out.push({ kind: 'line', text: c.say[1], who: c.say[0], path: `${p}.say[1]` });
     else if ('choice' in c) out.push({ kind: 'choice', text: 'choice', children: c.choice.map((o, j) => ({ kind: 'option', text: o.text, cond: o.if === undefined ? undefined : condText(o.if), path: `${p}.choice[${j}].text`, children: cmds(o.do, `${p}.choice[${j}].do`) })) });
     else if ('if' in c) {
       out.push({ kind: 'if', text: `if ${condText(c.if)}`, cond: condText(c.if), children: cmds(c.then, `${p}.then`) });

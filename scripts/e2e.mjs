@@ -4,7 +4,7 @@
 //   - If games/<GAME>/e2e.mjs exists, it is loaded and must export `run(harness)`: a game-specific walkthrough,
 //     free to call the generic harness and to play its own minigames for real instead of skipping them.
 //   - Otherwise, this script asks `npm run solve -- --json` for an action path and replays it with
-//     harness.walkthrough(path).
+//     harness.walkthrough(steps).
 // Screenshots land in E2E_OUT (default /tmp/e2e). The server (dev or deployed) must already answer at <url>.
 import { resolve } from 'node:path';
 import { existsSync } from 'node:fs';
@@ -42,8 +42,8 @@ try {
     if (!stdout) throw new Error(`npm run solve -- --json produced no output${r.stderr ? `: ${r.stderr}` : ''}`);
     const solved = JSON.parse(stdout.split('\n').pop());
     if (!solved.finished) console.log('e2e: warning — the solver did not reach the end; replaying its best path anyway');
-    console.log(`e2e: replaying ${solved.path.length} action(s) from the solver`);
-    await harness.walkthrough(solved.path);
+    console.log(`e2e: replaying ${solved.steps.length} step(s) from the solver`);
+    await harness.walkthrough(solved.steps);
   }
   console.log('e2e: done');
 } catch (e) {

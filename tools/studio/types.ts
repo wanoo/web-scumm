@@ -3,7 +3,8 @@
 import type { CharacterDef, GameDef, Id, ItemDef, Layout, Point, RoomDef, VerbDef } from '../../src/engine/core/types';
 import type { ContentReport } from '../../src/engine/tools/report';
 import type { WorldGraph } from '../../src/engine/tools/graph';
-import type { PuzzleGraph } from '../../src/engine/tools/puzzle';
+import type { LiveClass, PuzzleGraph } from '../../src/engine/tools/puzzle';
+import type { SolveProfile } from '../../src/engine/tools/solve';
 
 /** What a text literal is, from its JSON path in the room file. */
 export type TextKind =
@@ -104,7 +105,11 @@ export interface ReportData { report: ContentReport; markdown: string; ms: numbe
 /** The world's map (src/engine/tools/graph.ts), with an SVG and a DOT rendering. */
 export interface GraphData { graph: WorldGraph; svg: string; dot: string }
 /** The puzzle graph (src/engine/tools/puzzle.ts): the whole graph as SVG and DOT, the overview or one card as Markdown. */
-export interface PuzzleData { graph: PuzzleGraph; svg: string; dot: string; markdown: string; id?: string }
+export interface PuzzleData {
+  graph: PuzzleGraph; svg: string; dot: string; markdown: string; id?: string;
+  /** Why the solver keeps each node: critical (reaches the end or a goal), world, visible, or dead (not in its state). */
+  classes: Record<string, LiveClass>;
+}
 
 export interface SolveData {
   finished: boolean;
@@ -122,6 +127,8 @@ export interface SolveData {
   broken?: { invariant: number; path: string[] }[];
   from: string | null;
   ms: number;
+  /** What the states are made of and what the search cost (`profileText` renders it). */
+  profile?: SolveProfile;
 }
 
 export type ScreenshotResult = { file: string; url: string } | { unavailable: true; reason: string };

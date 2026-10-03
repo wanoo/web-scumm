@@ -17,17 +17,19 @@ const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..', '..');
 
 // --------------------------------------------------------------------------------- the solver's action path
 
-/** `npx tsx tools/solve.ts --json` for GAME=demo: the same path `scripts/e2e.mjs` would replay verbatim. We
- * reuse most of it (via harness.walkthrough on the parts that don't touch a minigame), and drive the three
- * minigame-triggering steps (pipes, pick, the sealed ending's scratch ticket) ourselves, by their exact label. */
-function solvePath() {
+/** `npx tsx tools/solve.ts --json` for GAME=demo: the session entries `scripts/e2e.mjs` would replay verbatim. We
+ * reuse most of them (via harness.walkthrough on the parts that don't touch a minigame), and drive the three
+ * minigame-triggering steps (pipes, pick, the sealed ending's scratch ticket) ourselves. */
+function solveSteps() {
   const r = spawnSync('npx', ['tsx', 'tools/solve.ts', '--json'], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, GAME: 'demo' } });
   const out = (r.stdout ?? '').trim();
   if (!out) throw new Error(`games/demo/e2e.mjs: tools/solve.ts --json produced no output${r.stderr ? `: ${r.stderr}` : ''}`);
   const solved = JSON.parse(out.split('\n').pop());
   if (!solved.finished) throw new Error('games/demo/e2e.mjs: the solver did not reach an ending from a new game');
-  return solved.path;
+  return solved.steps;
 }
+
+const isAct = (en, verb, a, b) => 'act' in en && en.act.verb === verb && en.act.a === a && en.act.b === b;
 
 // --------------------------------------------------------------------------------- small helpers local to this game
 
@@ -183,15 +185,14 @@ export async function run(h) {
   await h.page.goto(bare.toString());
   await h.page.waitForFunction(() => !!window.__game, null, { timeout: 15000 });
 
-  const path = solvePath();
-  const pipesStep = 'Use pipe with tank';
-  const pickStep = 'Give token to seller';
-  const finaleStep = 'Use key with pantry';
-  const iPipes = path.indexOf(pipesStep);
-  const iPick = path.indexOf(pickStep);
-  const iFinale = path.indexOf(finaleStep);
-  if (iPipes === -1 || iPick === -1 || iFinale === -1 || iFinale !== path.length - 1) {
-    throw new Error(`games/demo/e2e.mjs: unexpected solver path, cannot locate the three minigame steps: ${JSON.stringify(path)}`);
+  const steps = solveSteps();
+  const iPipes = steps.findIndex((en) => isAct(en, 'use', 'pipe', 'tank'));
+  const iPick = steps.findIndex((en) => isAct(en, 'give', 'token', 'seller'));
+  const iFinale = steps.findIndex((en) => isAct(en, 'use', 'key', 'pantry'));
+  // steps[0] is the new game itself (the opening guess), steps[1..3] the three tutorial actions played below by hand
+  const iFirst = 4;
+  if (iPipes === -1 || iPick === -1 || iFinale === -1 || iFinale !== steps.length - 1 || !isAct(steps[1], 'look', 'pantry') || !isAct(steps[3], 'take', 'shell')) {
+    throw new Error(`games/demo/e2e.mjs: unexpected solver steps, cannot locate the tutorial and the three minigame steps: ${JSON.stringify(steps.map((en) => 'act' in en ? en.act : en))}`);
   }
 
   // ---- title screen -> New game
@@ -210,8 +211,8 @@ export async function run(h) {
   await h.screenshot('walk-tutorial-002');
   await doGuidedStep(h, 'take', 'shell');
   await h.screenshot('walk-tutorial-003');
-  // the rest of the pre-pipes path (steps 3..iPipes-1): open the armchair, open the window into the garden, take the pipe
-  await h.walkthrough(path.slice(3, iPipes));
+  // the rest of the pre-pipes path: open the armchair, open the window into the garden, take the pipe
+  await h.walkthrough(steps.slice(iFirst, iPipes));
   await h.screenshot('garden-entrance');
 
   // ---- the pipes minigame, played for real
@@ -223,7 +224,7 @@ export async function run(h) {
   await h.waitIdle(); // Grandpa's reaction to the sock
 
   // ---- read the sock, call Lou, travel to the market (steps iPipes+1 .. iPick-1)
-  await h.walkthrough(path.slice(iPipes + 1, iPick));
+  await h.walkthrough(steps.slice(iPipes + 1, iPick));
   await h.screenshot('market-entrance');
 
   // ---- the pick minigame, played for real
@@ -234,18 +235,17 @@ export async function run(h) {
   await h.waitIdle(); // "Beautiful! I put it on the stall for you."
 
   // ---- take the bouquet, pay the seller, travel home (steps iPick+1 .. iFinale-1): includes the map travel
-  for (const raw of path.slice(iPick + 1, iFinale)) {
-    if (raw.startsWith('Carte') || raw.startsWith('Map')) {
+  for (const en of steps.slice(iPick + 1, iFinale)) {
+    if ('travel' in en) {
       await h.openMap();
       await h.screenshot('map');
-      const place = raw.replace(/^(Carte|Map)\s*→\s*/, '');
-      await h.say(place);
+      await h.say(await h.page.evaluate((p) => window.__game.game.map.places[p].name, en.travel));
       // the map's own travel animation (the car/plane flying across) is cosmetic and outlives the engine's
       // "busy" state, so `say`'s waitIdle can return before the map overlay actually closes: wait for that too,
       // so the next screenshot shows the room itself, not the map mid-travel.
       for (let waited = 0; waited < 5000 && (await h.state()).map; waited += 100) await h.page.waitForTimeout(100);
     } else {
-      await h.walkthrough([raw]);
+      await h.walkthrough([en]);
     }
   }
   await h.screenshot('house-entrance-2');

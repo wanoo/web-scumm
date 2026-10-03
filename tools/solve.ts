@@ -1,11 +1,12 @@
 // npm run solve: proves that the game can be finished from "New game".
-// Options: --max=20000 (number of states), --from=<checkpoint>, --json (JSON output for scripts/e2e.mjs: the action
-// path on stdout, no other text; the default output, meant for humans, doesn't change), --chapters (one bounded search
+// Options: --max=20000 (number of states), --from=<checkpoint>, --json (JSON output for scripts/e2e.mjs: the labelled
+// path and the session entries `steps` on stdout, no other text; the default output, meant for humans, doesn't change:
+// other scripts read it), --profile (what the states are made of, what the search cost), --por=sleep|stubborn (partial-order reduction: fewer engine runs, or fewer states too), --chapters (one bounded search
 // per checkpoint that declares `goals`: from the previous checkpoint until its goals hold, then from the last one to the
 // ending; each chapter must be solvable on its own).
 // The game: GAME, otherwise package.json → config.game (see tools/game.ts).
 import { resolve } from 'node:path';
-import { solve } from '../src/engine/tools/solve';
+import { profileText, solve } from '../src/engine/tools/solve';
 import { loadLayouts } from '../src/engine/tools/load';
 import { GAME_DIR, loadGameModule } from './game';
 
@@ -16,6 +17,7 @@ const from = arg('from');
 const asJson = process.argv.includes('--json');
 const t0 = Date.now();
 const maxStates = Number(arg('max') ?? 20000);
+const por = arg('por') === 'sleep' ? 'sleep' as const : arg('por') === 'stubborn' ? 'stubborn' as const : false;
 
 if (process.argv.includes('--chapters')) {
   const cps = Object.entries(game.checkpoints ?? {}).filter(([, c]) => c.goals?.length);
@@ -24,7 +26,7 @@ if (process.argv.includes('--chapters')) {
   let bad = 0;
   for (const [id, c] of cps) {
     const t = Date.now();
-    const r = await solve(game, layouts, { maxStates, start: prev ? { checkpoint: prev } : 'new', goal: c.goals, commands });
+    const r = await solve(game, layouts, { maxStates, start: prev ? { checkpoint: prev } : 'new', goal: c.goals, commands, por });
     const ok = r.finished && !r.broken.length;
     if (!ok) bad++;
     console.log(`${ok ? '✔' : '✖'}  chapter → ${id} (from ${prev ?? 'new game'}): ${r.finished ? `${r.path.length} actions` : 'goals not reached'}, ${r.states} states, ${((Date.now() - t) / 1000).toFixed(1)} s${r.truncated ? ' (limit reached)' : ''}`);
@@ -34,7 +36,7 @@ if (process.argv.includes('--chapters')) {
     prev = id;
   }
   const t = Date.now();
-  const r = await solve(game, layouts, { maxStates, start: { checkpoint: prev! }, commands });
+  const r = await solve(game, layouts, { maxStates, start: { checkpoint: prev! }, commands, por });
   const ok = r.finished && !r.broken.length;
   if (!ok) bad++;
   console.log(`${ok ? '✔' : '✖'}  chapter → ending (from ${prev}): ${r.finished ? `${r.path.length} actions` : 'no ending reached'}, ${r.states} states, ${((Date.now() - t) / 1000).toFixed(1)} s`);
@@ -42,16 +44,14 @@ if (process.argv.includes('--chapters')) {
   process.exit(bad ? 1 : 0);
 }
 
-const r = await solve(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands });
+const r = await solve(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands, por });
 
 if (asJson) {
-  // The solver only labels each step (e.g. "Open door", "Give key → grandpa", `Talk lou: "..."`,
-  // "Map → Market"); it does not keep the raw { verb, a, b } objects. scripts/e2e/lib.mjs's walkthrough()
-  // parses these labels back into actions at runtime, using the game's own verbs (id, label, join).
+  // `path` labels each step for humans; `steps` are the session entries ({ act, picks… }) the e2e harness replays.
   console.log(JSON.stringify({
-    finished: r.finished, states: r.states, truncated: r.truncated, path: r.path,
+    finished: r.finished, states: r.states, truncated: r.truncated, path: r.path, steps: r.steps,
     roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
-    itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems, errors: r.errors, broken: r.broken,
+    itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems, errors: r.errors, broken: r.broken, profile: r.profile,
   }));
   process.exit(r.errors.length || r.broken.length ? 1 : 0);
 }
@@ -73,4 +73,5 @@ if (r.broken.length) {
   for (const b of r.broken) console.log(`   #${b.invariant} ${JSON.stringify(game.invariants?.[b.invariant])} became true after: ${b.path.slice(-4).join(' › ') || 'the start'}`);
 }
 if (r.errors.length) { console.log(`\n✖  Errors during exploration:`); r.errors.forEach((e) => console.log('   ' + e)); }
+if (process.argv.includes('--profile')) console.log('\n' + profileText(r.profile, game));
 process.exit(r.errors.length || r.broken.length ? 1 : 0);

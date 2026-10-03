@@ -11,7 +11,7 @@ import { NotesStore, NotesTab, roomNotesBlock } from './notes';
 import { PlayTab } from './play';
 import { RoomsTab } from './rooms';
 import { StoryboardTab } from './storyboard';
-import { h, toast } from './ui';
+import { download, h, toast } from './ui';
 
 type TabId = 'rooms' | 'storyboard' | 'assets' | 'check' | 'play' | 'notes';
 const TABS: [TabId, string][] = [['rooms', 'Rooms'], ['storyboard', 'Storyboard'], ['assets', 'Assets'], ['check', 'Check'], ['play', 'Play'], ['notes', 'Notes']];
@@ -21,15 +21,6 @@ const TABS: [TabId, string][] = [['rooms', 'Rooms'], ['storyboard', 'Storyboard'
 import.meta.hot?.on('vite:beforeFullReload', (p: { path?: string; triggeredBy?: string }) => {
   if (p.triggeredBy && /[\\/]games[\\/]/.test(p.triggeredBy)) p.path = '/__studio-no-reload.html';
 });
-
-/** Hands a text file to the user. */
-function download(name: string, text: string, type: string) {
-  const url = URL.createObjectURL(new Blob([text], { type }));
-  const a = h('a', { href: url, download: name, hidden: true });
-  document.body.append(a);
-  a.click();
-  setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 1000);
-}
 
 /** The demo backend: the snapshot served next to studio.html, the edits in localStorage, the game module for checks. */
 async function demoApi(): Promise<BrowserApi> {

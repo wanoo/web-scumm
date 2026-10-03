@@ -85,8 +85,9 @@ export function puzzleGraph(gameIn: GameDef, opts: { commands?: Record<string, {
       requires(a, rule.if, r);
       for (const t of [...asList(rule.a), ...asList(rule.b)]) {
         if (game.items[t]) edge(node('item', t, itemLabel(t)), a, 'requires', verb);
+        // A hidden target cannot be acted on: its visibility gates the rule.
         const vis = r.hotspots?.[t]?.visible ?? r.props?.[t]?.visible ?? r.actors?.[t]?.visible;
-        if (vis !== undefined) requires(a, vis as Cond, r, 'reads');
+        if (vis !== undefined) requires(a, vis as Cond, r);
       }
       effects(a, rule.do, r);
     });
@@ -139,7 +140,38 @@ export interface Liveness {
   actors: Set<string>;
   /** Actions whose effects reach something live (script ids bare, the others as node ids). */
   actions: Set<string>;
+  /** Every live node id. */
+  nodes: Set<string>;
+  /** The edge that made a node live (none for a seed): the chain `whyLive` follows. */
+  because: Map<string, PuzzleEdge>;
 }
+
+/** The conditions the solver reads outside the content: the ending's guess flag and every `visible` condition. */
+export function extraReads(game: GameDef, goal?: Cond[]): CondAtom[] {
+  const extra: CondAtom[] = [];
+  for (const c of goal ?? []) condAtoms(c, undefined, extra);
+  if (game.ending?.guess) extra.push({ kind: 'flag', id: game.ending.guess.flag });
+  const find = (v: unknown) => {
+    if (!v || typeof v !== 'object') return;
+    if (Array.isArray(v)) { v.forEach(find); return; }
+    for (const [k, x] of Object.entries(v as Record<string, unknown>)) { if (k === 'visible') condAtoms(x as Cond, undefined, extra); find(x); }
+  };
+  find(game.rooms);
+  return extra;
+}
+
+/** The backward fixpoint from the seeds: a node is live when an edge of it reaches a live node. */
+function liveFrom(g: PuzzleGraph, seeds: Iterable<string>): { live: Set<string>; because: Map<string, PuzzleEdge> } {
+  const live = new Set<string>(seeds);
+  const because = new Map<string, PuzzleEdge>();
+  for (let changed = true; changed;) {
+    changed = false;
+    for (const e of g.edges) if (live.has(e.to) && !live.has(e.from)) { live.add(e.from); because.set(e.from, e); changed = true; }
+  }
+  return { live, because };
+}
+
+const SEED_KINDS: Record<'critical' | 'world', PuzzleKind[]> = { critical: ['end', 'goal'], world: ['end', 'goal', 'room', 'place', 'player'] };
 
 /**
  * What matters for progress (the solver's state). Rooms, places, players and the end are live; a chapter goal or an
@@ -150,22 +182,51 @@ export interface Liveness {
  */
 export function liveness(g: PuzzleGraph, extraReads: CondAtom[] = []): Liveness {
   const byId = new Map(g.nodes.map((n) => [n.id, n]));
-  const live = new Set<string>();
-  for (const n of g.nodes) if (n.kind === 'end' || n.kind === 'room' || n.kind === 'place' || n.kind === 'player' || n.kind === 'goal') live.add(n.id);
-  for (const a of extraReads) live.add(atomNodeId(a));
-  for (let changed = true; changed;) {
-    changed = false;
-    for (const e of g.edges) {
-      if (e.kind === 'produces' || e.kind === 'consumes') { if (live.has(e.to) && !live.has(e.from)) { live.add(e.from); changed = true; } }
-      else if (live.has(e.to) && !live.has(e.from)) { live.add(e.from); changed = true; }
-    }
-  }
+  const { live, because } = liveFrom(g, [...g.nodes.filter((n) => SEED_KINDS.world.includes(n.kind)).map((n) => n.id), ...extraReads.map(atomNodeId)]);
   const names = (prefix: string) => new Set([...live].filter((id) => id.startsWith(prefix)).map((id) => id.slice(prefix.length)));
   return {
     flags: names('flag:'), items: names('item:'), props: names('prop:'),
     actors: new Set([...names('actor:')].map((x) => x.slice(0, x.indexOf('@')))),
     actions: new Set([...live].filter((id) => byId.has(id) && !STATE_KINDS.has(byId.get(id)!.kind)).map((id) => byId.get(id)!.kind === 'script' ? id.slice(7) : id)),
+    nodes: live, because,
   };
+}
+
+/**
+ * Why the solver keeps a thing in its state: `critical` reaches the end, a goal or an invariant; `world` only reaches a
+ * room, a place or a playable character; `visible` is only read by a `visible` condition or the ending's guess;
+ * `dead` is read by nothing live (not in the state at all).
+ */
+export type LiveClass = 'critical' | 'world' | 'visible' | 'dead';
+
+export function liveClasses(g: PuzzleGraph, extra: CondAtom[] = []): Map<string, LiveClass> {
+  const out = new Map<string, LiveClass>();
+  const crit = liveFrom(g, g.nodes.filter((n) => SEED_KINDS.critical.includes(n.kind)).map((n) => n.id)).live;
+  const world = liveFrom(g, g.nodes.filter((n) => SEED_KINDS.world.includes(n.kind)).map((n) => n.id)).live;
+  const all = liveness(g, extra).nodes;
+  for (const n of g.nodes) out.set(n.id, crit.has(n.id) ? 'critical' : world.has(n.id) ? 'world' : all.has(n.id) ? 'visible' : 'dead');
+  return out;
+}
+
+/** The chain that keeps a node in the solver's state, from it to the seed (the end, a goal, a room…), and its class. */
+export function whyLive(g: PuzzleGraph, id: string, extra: CondAtom[] = []): { class: LiveClass; chain: PuzzleNode[] } {
+  const node = findNode(g, id);
+  if (!node) return { class: 'dead', chain: [] };
+  const byId = new Map(g.nodes.map((n) => [n.id, n]));
+  const cls = liveClasses(g, extra).get(node.id) ?? 'dead';
+  if (cls === 'dead') return { class: cls, chain: [] };
+  const seeds = cls === 'critical' ? g.nodes.filter((n) => SEED_KINDS.critical.includes(n.kind)).map((n) => n.id)
+    : cls === 'world' ? g.nodes.filter((n) => SEED_KINDS.world.includes(n.kind)).map((n) => n.id)
+    : [...g.nodes.filter((n) => SEED_KINDS.world.includes(n.kind)).map((n) => n.id), ...extra.map(atomNodeId)];
+  const { because } = liveFrom(g, seeds);
+  const chain: PuzzleNode[] = [node];
+  const seen = new Set([node.id]);
+  for (let cur = node.id, e = because.get(cur); e && !seen.has(e.to); e = because.get(cur)) {
+    cur = e.to; seen.add(cur);
+    const n = byId.get(cur);
+    if (n) chain.push(n); else if (cls === 'visible') chain.push({ id: cur, kind: 'flag', label: `${cur.slice(cur.indexOf(':') + 1)} (a visible condition)` });
+  }
+  return { class: cls, chain };
 }
 
 /** The node named `id` (`item:key`), or by its bare name among the state kinds (`key`). */
@@ -187,12 +248,15 @@ export interface PuzzleCard {
   unlocks: PuzzleNode[];
   /** Everything that transitively follows from the using actions. */
   downstream: PuzzleNode[];
+  /** Why the solver keeps it in its state (`whyLive`), when `extra` is given. */
+  live?: { class: LiveClass; chain: PuzzleNode[] };
 }
 
 /** One card: where it comes from, what needs it, what it unlocks, what depends on it further down. */
-export function puzzleFor(g: PuzzleGraph, id: string): PuzzleCard | undefined {
+export function puzzleFor(g: PuzzleGraph, id: string, opts: { extra?: CondAtom[] } = {}): PuzzleCard | undefined {
   const node = findNode(g, id);
   if (!node) return undefined;
+  const live = opts.extra ? whyLive(g, node.id, opts.extra) : undefined;
   const byId = new Map(g.nodes.map((n) => [n.id, n]));
   const n = (x: string) => byId.get(x)!;
   const acquiredBy = g.edges.filter((e) => e.to === node.id && e.kind === 'produces').map((e) => ({ action: n(e.from), detail: e.detail }));
@@ -211,7 +275,7 @@ export function puzzleFor(g: PuzzleGraph, id: string): PuzzleCard | undefined {
     downstream.push(n(cur));
     for (const e of g.edges) if (e.from === cur && (e.kind === 'requires' || e.kind === 'reads')) for (const e2 of g.edges) if (e2.from === e.to && e2.kind === 'produces' && !seen.has(e2.to)) queue.push(e2.to);
   }
-  return { node, acquiredBy, consumedBy, usedBy, requires, unlocks, downstream };
+  return { node, acquiredBy, consumedBy, usedBy, requires, unlocks, downstream, ...(live ? { live } : {}) };
 }
 
 /** State nodes nothing produces (orphans: a flag read but never set) and nodes nothing uses (dead ends). */
@@ -232,10 +296,24 @@ const fills: Record<PuzzleKind, string> = {
   rule: '#fff', topic: '#fff', script: '#fff', listener: '#fff', goal: '#fff',
 };
 
-/** The graph as SVG: state nodes coloured by kind, actions white; requires solid, reads dotted, produces green, consumes red. */
-export function toPuzzleSvg(g: PuzzleGraph): string {
-  const nodes: SvgNode[] = g.nodes.map((n) => ({ id: n.id, label: n.label, sub: STATE_KINDS.has(n.kind) ? n.kind : n.where, fill: fills[n.kind], stroke: STATE_KINDS.has(n.kind) ? '#999' : '#333', title: n.id, href: n.id }));
-  const edges: SvgEdge[] = g.edges.map((e) => ({ from: e.from, to: e.to, dashed: e.kind === 'reads' || e.kind === 'consumes', color: e.kind === 'produces' ? '#2a7' : e.kind === 'consumes' ? '#c33' : '#888', title: `${e.from} ${e.kind} ${e.to}${e.detail ? ` (${e.detail})` : ''}` }));
+/** A heat colour for a share in [0, 1] (pale yellow to red). */
+export function heatFill(t: number): string {
+  const x = Math.max(0, Math.min(1, t));
+  const r = 255, gr = Math.round(240 - 170 * x), b = Math.round(170 - 150 * x);
+  return `rgb(${r},${gr},${b})`;
+}
+
+/**
+ * The graph as SVG: state nodes coloured by kind, actions white; requires solid, reads dotted, produces green, consumes
+ * red. `heat`: a count per node (the solver's `perAction`, `perRoom`): the hotter, the redder. `focus`: the node ids to
+ * keep bright (the critical path); the others fade.
+ */
+export function toPuzzleSvg(g: PuzzleGraph, opts: { heat?: Record<string, number>; focus?: Set<string> } = {}): string {
+  const max = Math.max(1, ...Object.values(opts.heat ?? {}));
+  const heat = (id: string) => { const n = opts.heat?.[id]; return n === undefined ? undefined : heatFill(Math.log1p(n) / Math.log1p(max)); };
+  const dim = (id: string) => opts.focus && !opts.focus.has(id) ? 0.25 : undefined;
+  const nodes: SvgNode[] = g.nodes.map((n) => ({ id: n.id, label: n.label, sub: STATE_KINDS.has(n.kind) ? n.kind : n.where, fill: heat(n.id) ?? fills[n.kind], stroke: STATE_KINDS.has(n.kind) ? '#999' : '#333', title: `${n.id}${opts.heat?.[n.id] !== undefined ? ` · ${opts.heat[n.id]}` : ''}`, href: n.id, opacity: dim(n.id) }));
+  const edges: SvgEdge[] = g.edges.map((e) => ({ from: e.from, to: e.to, dashed: e.kind === 'reads' || e.kind === 'consumes', color: e.kind === 'produces' ? '#2a7' : e.kind === 'consumes' ? '#c33' : '#888', title: `${e.from} ${e.kind} ${e.to}${e.detail ? ` (${e.detail})` : ''}`, opacity: dim(e.from) ?? dim(e.to) }));
   const roots = g.nodes.filter((n) => n.id === 'rule:game/start' || !g.edges.some((e) => e.to === n.id)).map((n) => n.id);
   return layeredSvg(nodes, edges, { roots, width: 170, layering: 'longest' });
 }
@@ -253,13 +331,17 @@ export function toPuzzleDot(g: PuzzleGraph): string {
 const where = (n: PuzzleNode) => n.where && n.where !== 'game' ? ` (${n.where})` : n.where === 'game' ? ' (game)' : '';
 
 /** A card as Markdown, or without `id` the overview: every item and flag with its producers and users, then the issues. */
-export function puzzleMarkdown(g: PuzzleGraph, id?: string): string {
+export function puzzleMarkdown(g: PuzzleGraph, id?: string, opts: { extra?: CondAtom[] } = {}): string {
   const out: string[] = [];
   if (id) {
-    const c = puzzleFor(g, id);
+    const c = puzzleFor(g, id, opts);
     if (!c) return `No item, flag, prop, place or event named "${id}".`;
     out.push(`# ${c.node.kind} ${c.node.label}`, '');
     const list = (title: string, items: string[]) => { out.push(`**${title}:** ${items.join('; ') || 'nothing'}`, ''); };
+    if (c.live) {
+      const why = { critical: 'it leads to the end, a goal or an invariant', world: 'it leads to a room, a place or a playable character, not to the end', visible: 'only a visible condition or the ending\'s guess reads it', dead: 'nothing live reads it: not in the solver\'s state' }[c.live.class];
+      list(`solver: ${c.live.class}`, [why, ...(c.live.chain.length > 1 ? [c.live.chain.map((n) => `${n.kind} ${n.label}`).join(' → ')] : [])]);
+    }
     list('acquired by', c.acquiredBy.map((a) => `${a.action.label}${where(a.action)}${a.detail ? ` [${a.detail}]` : ''}`));
     if (c.consumedBy.length) list('consumed by', c.consumedBy.map((a) => `${a.action.label}${where(a.action)}`));
     list('used by', c.usedBy.map((u) => `${u.action.label}${where(u.action)}${u.kind === 'reads' ? ' (inside)' : ''}${u.detail ? ` [${u.detail}]` : ''}`));

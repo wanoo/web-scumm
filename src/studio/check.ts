@@ -1,4 +1,6 @@
 // Check tab: the validator and the solver (run after every save), and a screenshot of a room at a checkpoint.
+import { heatFill } from '@engine/tools/puzzle';
+import { profileText, type SolveProfile } from '@engine/tools/solve';
 import { api, type GameInfo, type GraphData, type PuzzleData, type ReportData, type SolveData, type ValidateResult } from './api';
 import { append, h, select, toast } from './ui';
 
@@ -17,6 +19,9 @@ export class CheckTab {
   private g: GraphData | null = null;
   private p: PuzzleData | null = null;
   private card = h('pre', { class: 'md card' });
+  /** Puzzle graph toggles: fade everything off the critical path; colour nodes by how often the solver went through them. */
+  private focus = false;
+  private heat = false;
   private err = '';
   private running = false;
   private from = '';
@@ -100,7 +105,8 @@ export class CheckTab {
           s.itemsNeverUsed.length ? [h('dt', null, 'Items never used'), h('dd', null, s.itemsNeverUsed.join(', '))] : null,
           s.unusedItems.length ? [h('dt', null, 'Items never obtained'), h('dd', null, s.unusedItems.join(', '))] : null),
         s.deadEnds.length ? h('div', null, h('h4', null, `Dead ends (${s.deadEnds.length})`),
-          h('ul', { class: 'msgs warnings' }, s.deadEnds.slice(0, 8).map((d) => h('li', null, `${d.room}, [${d.inventory.join(', ')}] after ${d.path.slice(-3).join(' › ') || 'the start'}`)))) : null)] : []),
+          h('ul', { class: 'msgs warnings' }, s.deadEnds.slice(0, 8).map((d) => h('li', null, `${d.room}, [${d.inventory.join(', ')}] after ${d.path.slice(-3).join(' › ') || 'the start'}`)))) : null,
+        s.profile ? this.health(s.profile) : null)] : []),
       ...(this.g ? [h('div', { class: 'panel world' },
         h('h3', null, 'World ', h('span', { class: 'muted small' }, `${this.g.graph.rooms.length} rooms · exits solid, gotos dashed, ◎ on the map`)),
         this.g.graph.unreachable.length ? h('p', { class: 'error' }, `Unreachable: ${this.g.graph.unreachable.join(', ')}`) : null,
@@ -108,6 +114,10 @@ export class CheckTab {
         svgNode(this.g.svg))] : []),
       ...(this.p ? [h('div', { class: 'panel puzzles' },
         h('h3', null, 'Puzzles ', h('span', { class: 'muted small' }, `${this.p.graph.nodes.length} nodes · tap an item, flag or prop for its card · green: produces, red: consumes, dotted: read inside`)),
+        h('div', { class: 'bar' },
+          h('label', { title: 'Keep only what leads to the end, a goal or an invariant; the rest fades' }, h('input', { type: 'checkbox', checked: this.focus, onchange: (ev: Event) => { this.focus = (ev.target as HTMLInputElement).checked; this.restyle(); } }), ' Critical path'),
+          h('label', { title: 'Colour each rule, topic, listener, script and room by how many times the solver went through it' }, h('input', { type: 'checkbox', checked: this.heat, disabled: !s?.profile, onchange: (ev: Event) => { this.heat = (ev.target as HTMLInputElement).checked; this.restyle(); } }), ' Heat (solver)'),
+          h('span', { class: 'muted small' }, `${Object.values(this.p.classes).filter((c) => c === 'critical').length} critical · ${Object.values(this.p.classes).filter((c) => c === 'dead').length} out of the solver's state`)),
         this.puzzleSvg(this.p.svg), this.card,
         h('details', null, h('summary', null, 'Overview'), h('pre', { class: 'md' }, this.p.markdown)))] : []),
       ...(this.r ? [h('div', { class: 'panel report' },
@@ -115,6 +125,8 @@ export class CheckTab {
         h('pre', { class: 'md' }, this.r.markdown))] : []),
     ]);
   }
+
+  private svgBox: HTMLElement | null = null;
 
   /** The puzzle SVG, with a card for the tapped node (its `data-node` id). */
   private puzzleSvg(svg: string): HTMLElement {
@@ -126,7 +138,44 @@ export class CheckTab {
       this.card.textContent = '…';
       void api.puzzle(id).then((p) => { this.card.textContent = p.markdown; }).catch((e) => { this.card.textContent = (e as Error).message; });
     });
+    this.svgBox = box;
+    this.restyle();
     return box;
+  }
+
+  /** Applies the critical-path and heat toggles to the drawn graph (no round trip). */
+  private restyle() {
+    const box = this.svgBox, p = this.p;
+    if (!box || !p) return;
+    const heat: Record<string, number> = { ...(this.s?.profile?.perAction ?? {}) };
+    for (const [room, n] of Object.entries(this.s?.profile?.perRoom ?? {})) heat[`room:${room}`] = n;
+    const max = Math.max(1, ...Object.values(heat));
+    for (const g of box.querySelectorAll<SVGGElement>('g[data-node]')) {
+      const id = g.dataset.node!;
+      const rect = g.querySelector('rect');
+      if (!rect) continue;
+      if (!rect.dataset.fill) rect.dataset.fill = rect.getAttribute('fill') ?? '';
+      g.style.opacity = this.focus && p.classes[id] !== 'critical' ? '0.22' : '';
+      const n = heat[id];
+      rect.setAttribute('fill', this.heat && n !== undefined ? heatFill(Math.log1p(n) / Math.log1p(max)) : rect.dataset.fill);
+    }
+    for (const path of box.querySelectorAll<SVGPathElement>('path[marker-end]')) path.style.opacity = this.focus ? '0.35' : '';
+  }
+
+  /** What the solver measured: the cost of the search and what makes the states, with the warnings a designer acts on. */
+  private health(P: SolveProfile): HTMLElement {
+    const warns: string[] = [];
+    for (const g of P.independent) warns.push(`${g.dims.join(', ')} evolve independently (${g.combos} of ${g.product} combinations seen): a checkpoint between them would cut the states`);
+    for (const [room, f] of Object.entries(P.fallbackByRoom)) if (f.candidates >= 40 && f.fallback / f.candidates >= 0.9) warns.push(`${room}: ${f.candidates} use/give combinations, ${f.rules} answered by a rule (the rest is skipped statically)`);
+    if (P.branching.worst && P.branching.max >= 60) warns.push(`${P.branching.worst.room} offers ${P.branching.max} actions to try with ${P.branching.worst.inventory.length} items in the bag; ${P.branching.worst.effective} changed something`);
+    const dims = P.dims.filter((d) => d.split > 0).slice(0, 8);
+    return h('details', { class: 'health', open: true },
+      h('summary', null, 'Solver health ', h('span', { class: 'muted small' }, `${P.tries} runs · ${P.skipped} actions skipped · ${P.noops} no-ops · queue ${P.maxQueue} · ${P.branching.avg.toFixed(0)} actions per state`)),
+      warns.length ? h('ul', { class: 'msgs warnings' }, warns.map((w) => h('li', null, w))) : h('p', { class: 'muted small' }, 'No independent branches, no room with runaway branching.'),
+      dims.length ? h('table', { class: 'dims' }, h('tr', null, h('th', null, 'splits the states'), h('th', null, 'merged without it'), h('th', null, 'values')),
+        dims.map((d) => h('tr', null, h('td', null, d.key), h('td', null, String(d.split)), h('td', null, String(d.values))))) : null,
+      h('p', { class: 'muted small' }, `Monotonic: ${P.monotonic.flags.length} flags, ${P.monotonic.items.length} items never lost once gained.`),
+      h('details', null, h('summary', null, 'Full profile'), h('pre', { class: 'md' }, profileText(P))));
   }
 
   private async screenshot() {

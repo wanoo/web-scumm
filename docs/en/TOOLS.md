@@ -53,7 +53,7 @@ URL parameters, dev server only (they are ignored in the production build):
   - **Map**: unlock a place, or **Unlock all**;
   - **World**: the room of each moving character (change it to `moveActor` them);
   - **Scripts**: the position of each script in scope (`next command / length`, done, stopped), with a stop / restart button;
-  - **Journal**: the last ten entries of the engine's journal (what answered, events, script steps, moves, switches; the Studio's Play tab shows it whole);
+  - **Journal**: the last ten entries of the engine's journal (what answered, events, script steps, moves, switches; the Studio's Play tab shows it whole), and **Export session**: the inputs since the game started, for `npm run replay`;
   - **Edit this room**: opens the editor on the room shown.
 
 ### The placement editor (`?edit=<room>`)
@@ -164,7 +164,17 @@ npm run page:world                 # the map of the world as a page (exits, goto
 npm run page:puzzles               # the puzzle graph as a page: what every rule needs and changes, a card per item / flag
 npm run bench -- --rooms=40        # a generated game of that size, every tool timed on it (docs/en/BENCH.md)
 npm run i18n -- extract [--lang xx]   # translation tables (games/<id>/locales/<xx>.json); `status` for the coverage
+npm run solve -- --profile         # what the states are made of and what the search cost (docs/en/BENCH.md)
+npm run solve -- --por=stubborn    # partial-order reduction: commuting actions one at a time (fewer states, same proof)
+npm run replay -- session.json     # plays a session file on the real engine, prints the journal and the final state
 ```
+
+**Sessions.** The engine records every input since the game started or a save was loaded (actions, map, switches,
+script steps) with the answers given on the way (choices, random draws). The game's save menu, the dev panel and the
+Studio's Play tab export it as `<game>-session.json`; `npm run replay` plays it back without a display and exits 1 at
+the first entry whose outcome differs from the recording (`--upTo=N` stops earlier, `--json` for scripts). A tester's
+bug report is that file and a screenshot. The solver's solution is a session too (`npm run solve -- --json` gives
+`steps`), which is what `npm run e2e` taps through.
 
 `solve` also reports **invariants** (`GameDef.invariants`) that became true, with the path. The validator warns about
 rooms nothing leads to and declared exits with no way back.

@@ -130,6 +130,40 @@ mille lignes chacun, pas trois mille), sa direction était juste. Ce que la v2.1
   atteints, les pas de script, les personnages déplacés, les changements de joueur. Dans l'onglet Play du Studio
   (filtrable par sorte) et le panneau dev (les dix derniers).
 
+## v2.3 « Replay » (livrée) : reproduire, profiler, élaguer
+
+Le troisième audit demandait trois choses dont un jeu long a plus besoin que d'une primitive : reproduire le bug d'un
+testeur, savoir pourquoi le solveur est lent ou gros, explorer moins d'ordres équivalents. Les trois viennent du même
+fait : le moteur sait ce que chaque action a lu et changé.
+
+- **La session** (`Engine.session`, toujours enregistrée) : chaque entrée depuis le début de la partie ou le chargement
+  d'une sauvegarde (actions, voyages sur la carte, changements de joueur, pas de script), avec les réponses données en
+  chemin (choix, carte, tirages aléatoires) et ce qui a répondu (les ids du graphe de puzzles). « Exporter la session »
+  dans le menu de sauvegarde du jeu, dans le panneau dev et dans l'onglet Play du Studio ; `npm run replay -- fichier.json`
+  la rejoue sur le vrai moteur sans affichage et dit où elle cesse de correspondre (`src/engine/tools/replay.ts`). Un
+  rapport de bug, c'est un fichier de session et une capture ; le **Replay** de l'onglet Play le parcourt au curseur et
+  pose le jeu n'importe où en chemin.
+- **La solution du solveur est une session** (`SolveResult.steps`) : `replay()` la prouve, le harnais e2e la joue au
+  doigt (plus d'analyse de libellés), et la CI joue le jeu d'exemple dans Chromium à chaque push.
+- **Le profil du solveur** (`npm run solve -- --profile`, le « Solver health » de l'onglet Check, l'outil `solve` avec
+  `profile: true`) : états, exécutions du moteur, actions sans effet, de quoi les états sont faits (quelle dimension les
+  sépare le plus), états par lieu, ce qui a répondu le plus (une carte de chaleur sur le graphe de puzzles), les
+  combinaisons use/give qui ne pouvaient que retomber sur le repli, les dimensions indépendantes (un checkpoint entre
+  elles couperait les états), les choses monotones. Les actions qu'aucune règle écrite ne peut répondre ne sont plus
+  exécutées du tout : trois fois moins d'exécutions du moteur sur le jeu d'exemple.
+- **Pourquoi est-ce live ?** (`liveClasses`, `whyLive` dans `src/engine/tools/puzzle.ts`) : chaque nœud du graphe de
+  puzzles est *critical* (il mène à la fin, à un objectif ou à un invariant), *world*, *visible* ou *dead* (hors de
+  l'état du solveur) ; la fiche montre la chaîne ; « Critical path » estompe le reste du graphe.
+- **Réduction d'ordre partiel** (`src/engine/tools/por.ts`, `npm run solve -- --por=sleep|stubborn`) : des actions qui
+  touchent des choses différentes commutent. `sleep` saute les ordres déjà couverts (moins d'exécutions, les mêmes
+  états) ; `stubborn` n'explore qu'une action commutante à la fois (moins d'états aussi : k ramassages indépendants
+  avant une porte font k + 1 états au lieu de 2^k). Désactivée par défaut, la recherche simple reste la preuve ;
+  `tests/por.test.ts` vérifie que chaque fixture donne les mêmes réponses dans les trois modes.
+- **Commandes custom contrôlées** en mode dev : un `run` qui change l'état hors de ses `effects` déclarés est signalé
+  dans le journal.
+- Deux trous du hash d'état bouchés (`visited`, les compteurs des blocs `random`) ; les répliques de l'arbre de
+  dialogue sautent de nouveau à leur éditeur.
+
 ## Hors plan (décisions explicites)
 
 - Pas de Phaser ni de canvas : le Presenter DOM suffit pour quelques dizaines d'images ; une salle large reste une translation CSS.

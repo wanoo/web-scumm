@@ -53,7 +53,7 @@ Paramètres d'URL, serveur de dev uniquement (ils sont ignorés dans le build de
   - **Carte** : débloquer un lieu, ou **Tout débloquer** ;
   - **World** : le lieu de chaque personnage mobile (le changer les déplace, `moveActor`) ;
   - **Scripts** : la position de chaque script en cours (`commande suivante / longueur`, fini, arrêté), avec un bouton arrêter / relancer ;
-  - **Journal** : les dix dernières entrées du journal du moteur (ce qui a répondu, événements, pas de script, déplacements, changements de joueur ; l'onglet Play du Studio le montre en entier) ;
+  - **Journal** : les dix dernières entrées du journal du moteur (ce qui a répondu, événements, pas de script, déplacements, changements de joueur ; l'onglet Play du Studio le montre en entier), et **Export session** : les entrées depuis le début de la partie, pour `npm run replay` ;
   - **Éditer ce lieu** : ouvre l'éditeur sur le lieu affiché.
 
 ### L'éditeur de placement (`?edit=<lieu>`)
@@ -157,7 +157,18 @@ npm run page:world                 # la carte du monde en page (sorties, gotos, 
 npm run page:puzzles               # le graphe de puzzles en page : ce que chaque règle exige et change, une fiche par objet / flag
 npm run bench -- --rooms=40        # un jeu généré de cette taille, chaque outil chronométré dessus (docs/fr/BENCH.md)
 npm run i18n -- extract [--lang xx]   # tables de traduction (games/<id>/locales/<xx>.json) ; `status` pour la couverture
+npm run solve -- --profile         # de quoi les états sont faits et ce que la recherche a coûté (docs/fr/BENCH.md)
+npm run solve -- --por=stubborn    # réduction d'ordre partiel : les actions commutantes une à la fois (moins d'états, même preuve)
+npm run replay -- session.json     # rejoue un fichier de session sur le vrai moteur, imprime le journal et l'état final
 ```
+
+**Sessions.** Le moteur enregistre chaque entrée depuis le début de la partie ou le chargement d'une sauvegarde
+(actions, carte, changements de joueur, pas de script) avec les réponses données en chemin (choix, tirages
+aléatoires). Le menu de sauvegarde du jeu, le panneau dev et l'onglet Play du Studio l'exportent en
+`<jeu>-session.json` ; `npm run replay` la rejoue sans affichage et sort en code 1 à la première entrée dont l'issue
+diffère de l'enregistrement (`--upTo=N` s'arrête avant, `--json` pour les scripts). Le rapport de bug d'un testeur,
+c'est ce fichier et une capture. La solution du solveur est aussi une session (`npm run solve -- --json` donne
+`steps`) : c'est elle que `npm run e2e` joue au doigt.
 
 `solve` signale aussi les **invariants** (`GameDef.invariants`) devenus vrais, avec le chemin. Le validateur avertit des
 lieux que rien n'atteint et des sorties déclarées sans retour.

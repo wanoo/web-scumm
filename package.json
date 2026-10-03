@@ -1,7 +1,7 @@
 {
   "name": "web-scumm",
   "private": true,
-  "version": "2.2.0",
+  "version": "2.3.0",
   "type": "module",
   "scripts": {
     "dev": "tsx tools/select-game.ts && vite --host",
@@ -13,6 +13,7 @@
     "e2e": "node scripts/e2e.mjs",
     "validate": "tsx tools/validate.ts",
     "solve": "tsx tools/solve.ts",
+    "replay": "tsx tools/replay.ts",
     "mcp": "tsx tools/mcp/server.ts",
     "assets": "mkdir -p .cache && tsx --tsconfig tsconfig.json tools/refs.ts > .cache/refs.json && python3 tools/assets.py",
     "game": "tsx tools/select-game.ts",

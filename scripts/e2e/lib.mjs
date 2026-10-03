@@ -21,7 +21,7 @@
 //   skip()                        taps the minigame's `.mg-skip` button if present; true if it did
 //   act(action)                   drives { verb, a, b? } straight through window.__game.engine.act, no tapping
 //   play(steps)                   plays [{ verb, a, b? }, …] (verb ids, see src/engine/core/engine.ts Action) by tapping
-//   walkthrough(path)             replays an `npm run solve -- --json` action path (see tools/solve.ts) by tapping
+//   walkthrough(steps)            replays session entries (`npm run solve -- --json` steps, an exported session) by tapping
 //   close()                       closes the browser
 import { chromium } from 'playwright';
 import { mkdirSync, readdirSync, rmSync } from 'node:fs';
@@ -256,42 +256,35 @@ export async function launch(url, opts = {}) {
     }
   }
 
-  /** Turns the solver's labels (tools/solve.ts --json, e.g. "Open door", "Give key → grandpa",
-   * `Parler lou : « ... »`, "Carte → Market") back into actions, using the game's own verbs (id, label, join). */
-  async function actionsFromPath(path) {
-    const vbs = [...(await verbs())].sort((a, b) => b.label.length - a.label.length); // longest label first: avoids prefix collisions
-    return path.map((raw) => {
-      const t = raw.replace(/^\((tutoriel|tutorial)\)\s*/, '');
-      // A label may end with the answers given to nested choice prompts: ` › "reply" › "reply"`.
-      const picks = [];
-      for (let mm; (mm = t.match(/ › "([^"]*)"$/)); t = t.slice(0, -mm[0].length)) picks.unshift(mm[1]);
-      let m = t.match(/^Parler (.+?)\s*:\s*«(.*)»$/) || t.match(/^Talk (.+?):\s*"(.*)"$/);
-      if (m) return { kind: 'talk', actor: m[1].trim(), topic: m[2].trim(), picks };
-      m = t.match(/^Carte\s*→\s*(.+)$/) || t.match(/^Map\s*→\s*(.+)$/);
-      if (m) return { kind: 'travel', place: m[1].trim() };
-      m = t.match(/^Script (.+)$/);
-      if (m) return { kind: 'script', id: m[1].trim() };
-      m = t.match(/^Switch to (.+)$/);
-      if (m) return { kind: 'switch', id: m[1].trim() };
-      const vb = vbs.find((v) => t === v.label || t.startsWith(v.label + ' '));
-      if (!vb) return { kind: 'raw', label: t };
-      const rest = t.slice(vb.label.length).trim();
-      const sep = ` ${vb.join} `;
-      const i = rest.indexOf(sep);
-      return i === -1 ? { kind: 'act', verb: vb.id, a: rest, picks } : { kind: 'act', verb: vb.id, a: rest.slice(0, i).trim(), b: rest.slice(i + sep.length).trim(), picks };
-    });
+  /** Taps the n-th option of the open choice list (a talk topic, a nested reply, "Bye"): the index the engine
+   * recorded in the session entry's `picks`. Polls for the list first: it can still be rendering. */
+  async function pick(i, { max = 3000 } = {}) {
+    const all = page.locator('.side .choices .choice');
+    for (let waited = 0; waited < max; waited += 100) {
+      if ((await all.count()) > i) break;
+      await page.waitForTimeout(100);
+    }
+    if ((await all.count()) <= i) throw new Error(`pick: no choice #${i} (${await all.count()} shown)`);
+    const before = await choiceTexts();
+    await all.nth(i).tap();
+    for (let waited = 0; waited < 6000; waited += 100) {
+      const s = await state();
+      if (s.busy || s.speech || !s.choices) break;
+      const now = await choiceTexts();
+      if (now.length !== before.length || now.some((t, i) => t !== before[i])) break;
+      await page.waitForTimeout(100);
+    }
+    return waitIdle();
   }
 
-  /** A conversation (talkLoop in src/engine/core/engine.ts) loops back to the topic list after each topic's
-   * reaction, and a topic's own reaction can branch through a nested `{ choice }` prompt first: mirrors the
-   * solver's FakePresenter, which defaults every unforced choice to the last option, so repeatedly taps the
-   * last option until no choice is left standing — the nested prompt, then "Bye!" at the topic list itself. */
-  async function endConversationIfOpen(s, { max = 5, picks = [] } = {}) {
-    for (const text of picks) { if (!s.choices) break; s = await say(text); }
-    for (let i = 0; i < max && s.choices; i++) {
-      await page.locator('.side .choices .choice').last().tap();
-      s = await waitIdle();
-    }
+  /** Answers the choice prompts an action opened, in the recorded order (`SessionEntry.picks`); a conversation
+   * ends with its "Bye" pick. Leftover prompts (a recording that stopped mid-conversation) are closed on the
+   * last option, as the solver's silent presenter would. */
+  async function answer(picks = []) {
+    let s = await waitIdle();
+    for (const i of picks) { if (!s.choices) break; s = await pick(i); }
+    for (let n = 0; n < 5 && s.choices; n++) { await page.locator('.side .choices .choice').last().tap(); s = await waitIdle(); }
+    return s;
   }
 
   /** The world's scripts run on their own in the browser: a "Script <id>" step of the solver's path only waits
@@ -307,19 +300,25 @@ export async function launch(url, opts = {}) {
     return waitIdle();
   }
 
-  /** Replays a solver action path by tapping. Unparsed steps are logged and skipped rather than failing the run. */
-  async function walkthrough(path) {
-    const actions = await actionsFromPath(path);
-    for (const [i, a] of actions.entries()) {
-      if (a.kind === 'raw') { console.log(`walkthrough: step ${i + 1} not understood, skipped: ${a.label}`); continue; }
-      if (a.kind === 'talk') { await verbById('talk'); await target(a.actor); await endConversationIfOpen(await say(a.topic), { picks: a.picks }); }
-      else if (a.kind === 'travel') { await openMap(); await say(a.place); }
-      else if (a.kind === 'script') { await waitScript(a.id); }
-      else if (a.kind === 'switch') { await page.locator(`.tools .tool.player[data-player="${a.id}"]`).tap(); await waitIdle(); }
-      else {
-        await verbById(a.verb); await target(a.a); if (a.b) await target(a.b);
-        await endConversationIfOpen(await waitIdle(), { picks: a.picks });
-      }
+  /** A place's name on the map (the map lists places by name). */
+  const placeName = (id) => page.evaluate((p) => window.__game.game.map?.places?.[p]?.name ?? p, id);
+
+  /** Replays session entries (`npm run solve -- --json` `steps`, or an exported session's `log`) by tapping:
+   * the verb and targets of an action, then its recorded answers; the map; another playable character; a
+   * script step (waits for the script to move). A `start` entry (the new game) is the caller's business. */
+  async function walkthrough(steps) {
+    for (const [i, en] of steps.entries()) {
+      if ('start' in en) { console.log(`walkthrough: step ${i + 1} is the new game itself, skipped`); continue; }
+      if ('act' in en) {
+        if (en.aborted) continue;
+        await verbById(en.act.verb); await target(en.act.a); if (en.act.b) await target(en.act.b);
+        await answer(en.picks);
+      } else if ('travel' in en) { await openMap(); await say(await placeName(en.travel)); }
+      else if ('map' in en) { await openMap(); if (en.maps?.[0]) await say(await placeName(en.maps[0])); else { await page.keyboard.press('Escape').catch(() => {}); await waitIdle(); } }
+      else if ('step' in en) { await waitScript(en.step); }
+      else if ('switch' in en) { await page.locator(`.tools .tool.player[data-player="${en.switch}"]`).tap(); await waitIdle(); }
+      else if ('script' in en) { await page.evaluate((c) => window.__game.engine.script(c), en.script); await waitIdle(); }
+      else if ('enter' in en) { await page.evaluate((r) => window.__game.engine.teleport(r), en.enter); await waitIdle(); }
       await screenshot(`walk-${String(i + 1).padStart(3, '0')}`).catch(() => {});
     }
   }
@@ -328,6 +327,6 @@ export async function launch(url, opts = {}) {
 
   return {
     page, errors, screenshot, tapXY, tapScene, drag, line, pointOn, tapTarget, verb, verbById,
-    itemSlot, item, inInventory, target, state, waitIdle, openMap, say, skip, act, play, walkthrough, close,
+    itemSlot, item, inInventory, target, state, waitIdle, openMap, say, pick, answer, skip, act, play, walkthrough, close,
   };
 }

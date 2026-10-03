@@ -39,13 +39,22 @@ real engine (the room rendered by `src/engine/dom`), so what you see is what pla
   **content report** (what each room, item and character amounts to: the profiler of `npm run validate -- --report`),
   and the **puzzle graph**: every rule, topic, script and listener with what it needs (grey arrows, dotted when read
   inside its commands) and what it produces (green) or consumes (red); tap an item, flag, prop, place or event for its
-  card (acquired by, used by, requires first, unlocks, downstream), the same text the `puzzle_graph` tool returns.
+  card (acquired by, used by, requires first, unlocks, downstream, and why the solver keeps it: critical, world,
+  visible or dead, with the chain to the end), the same text the `puzzle_graph` tool returns. Two toggles above the
+  graph: **Critical path** fades everything that does not lead to the end, a goal or an invariant; **Heat** colours
+  each rule, topic, listener, script and room by how many times the solver went through it. Under the solver path,
+  **Solver health**: engine runs, actions skipped, no-ops, actions per state, which dimensions split the states most,
+  the warnings a designer acts on (independent dimensions: a checkpoint between them would cut the states; a room with
+  runaway branching), the full profile of `npm run solve -- --profile`.
 - **Play**: the game itself (dev tools on) in a frame, next to the live **state** (room, bag, flags, moving
   characters, scripts, players) and a **rule explainer**: pick a verb, an item and a target, and every rule that could
   answer is listed with each condition evaluated ✓ / ✗ against the live state; the first ✓ wins, or the tab says which
   fallback answers (look line, topics, kind reaction, fallback). Under it, the **journal**: what every action answered
   (rule, look line, fallback…), the events emitted and the listeners they reached, each script step, characters moved,
   player switches; filter by kind. The engine keeps it only in dev mode (`Engine.trace`, the last 200 entries).
+  Next to it, **Export session** downloads the inputs since the game started (with the journal: a bug report
+  `npm run replay` plays back) and **Replay…** loads one: the engine plays it silently, the game lands where it ends,
+  a slider scrubs through the entries (tap one to land there), and a divergence from the recording is flagged.
 - **Notes**: the shared log (`games/<id>/notes.json`), one entry per author ("you", or the AI's name), about a panel
   id, a room id, `room.entity`, or anything (empty: general). The whole log, newest first, grouped by `about` (tagged
   room / panel / entity, with "Open in Rooms" / "Open in Storyboard"); filters: free text, about (rooms with their
@@ -72,7 +81,7 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 | PUT `notes/:id` | `{ text, about? }` → the updated `Note` (text trimmed, `edited` set to now; `at`, `author` and the order unchanged); 400 empty text, 404 unknown id |
 | DELETE `notes/:id` | → `{ ok }`, the note removed from `notes.json`; 404 unknown id |
 | POST `validate` | → `{ ok, errors: string[], warnings: string[], ms }` |
-| POST `solve` | `{ from?: checkpoint }` → `{ finished, states, truncated, path, roomsReached, unlockedReached, flagsReached, itemsNeverUsed, unusedItems, deadEnds: [{ room, inventory, path }], errors, from, ms }` (400 for an unknown checkpoint) |
+| POST `solve` | `{ from?: checkpoint }` → `{ finished, states, truncated, path, roomsReached, unlockedReached, flagsReached, itemsNeverUsed, unusedItems, deadEnds: [{ room, inventory, path }], errors, from, ms, profile }` (400 for an unknown checkpoint); `profile` is the `SolveProfile` of `src/engine/tools/solve.ts` |
 | POST `screenshot` | `{ room, checkpoint? }` → `{ file, url }`: a PNG of the room (editor overlays hidden) under `.cache/studio/<game>-<room>[-<checkpoint>].png`, served at `url` (`GET screenshots/<name>.png`). 501 `{ unavailable: true, reason, error }` if Playwright or its Chromium is missing |
 | GET `assets` | `{ sheets: [{ id, kind: 'sprites' \| 'furniture' \| 'talk', character?, grid, promptKind?, cells: [{ id, file, w, h, used, ids, prepared, asset?, backups, mtime, missing? }] }], decors: [{ name, rooms, …cell }], sounds: { music, sfx: [{ id, kind, file, used, prepared, asset?, backups }] }, missing, unprepared, prompts: { sheets: [{ id, kind, markdown, missingMarkdown? }], style } }`: see "Assets tab" |
 | GET `assets/file/<path>` | a source file of `art/` or `audio/` (path relative to the game folder; anything else is 404) |

@@ -11,7 +11,7 @@ après la première visite.
 |---|---|
 | 🎮 **Jouer au jeu d'exemple** | https://wanoo.github.io/web-scumm/ (téléphone en paysage, ou ordinateur) |
 | 🛠 **Essayer le Studio** | https://wanoo.github.io/web-scumm/studio.html (mode démo : les modifications restent dans ton navigateur) |
-| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v2.2.0 · [notes de version](docs/fr/ROADMAP.md) |
+| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v2.3.0 · [notes de version](docs/fr/ROADMAP.md) |
 
 ![Trois lieux du jeu d'exemple](docs/img/banner.jpg)
 
@@ -46,6 +46,7 @@ l'IA. Voir `docs/fr/STUDIO.md`.
 <tr><td width="50%" valign="top"><img src="docs/img/studio-storyboard.jpg" alt="<b>Storyboard</b> : l'histoire case par case, répliques, aperçu, notes ; la première chose à écrire" width="100%"><br><sub><b>Storyboard</b> : l'histoire case par case, répliques, aperçu, notes ; la première chose à écrire</sub></td><td width="50%" valign="top"><img src="docs/img/studio-assets.jpg" alt="<b>Assets</b> : chaque planche et chaque case, où elle sert, le prompt à coller dans un modèle d'images, les envois découpés automatiquement" width="100%"><br><sub><b>Assets</b> : chaque planche et chaque case, où elle sert, le prompt à coller dans un modèle d'images, les envois découpés automatiquement</sub></td></tr>
 <tr><td width="50%" valign="top"><img src="docs/img/studio-assets-decor.jpg" alt="<b>Un décor</b> avec ses zones, accessoires et bande de sol superposés" width="100%"><br><sub><b>Un décor</b> avec ses zones, accessoires et bande de sol superposés</sub></td><td width="50%" valign="top"><img src="docs/img/studio-check.jpg" alt="<b>Check</b> : validateur, chemin du solveur, carte du monde, graphe de puzzles et rapport de contenu, relancés après chaque enregistrement" width="100%"><br><sub><b>Check</b> : validateur, chemin du solveur, carte du monde, graphe de puzzles et rapport de contenu, relancés après chaque enregistrement</sub></td></tr>
 <tr><td width="50%" valign="top"><img src="docs/img/studio-puzzles.jpg" alt="<b>Puzzles</b> : toucher un objet ou un flag affiche sa fiche : d'où il vient, ce qui en a besoin, ce qu'il débloque" width="100%"><br><sub><b>Puzzles</b> : toucher un objet ou un flag affiche sa fiche : d'où il vient, ce qui en a besoin, ce qu'il débloque</sub></td><td width="50%" valign="top"><img src="docs/img/studio-play.jpg" alt="<b>Play</b> : le jeu à côté de son état en direct, un explicateur de règles (chaque condition ✓ / ✗) et le journal" width="100%"><br><sub><b>Play</b> : le jeu à côté de son état en direct, un explicateur de règles (chaque condition ✓ / ✗) et le journal</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/studio-solver-health.jpg" alt="<b>Solver health</b> : de quoi les états sont faits, ce que la recherche a coûté, les avertissements qu'un auteur traite ; une carte de chaleur et le chemin critique sur le graphe de puzzles" width="100%"><br><sub><b>Solver health</b> : de quoi les états sont faits, ce que la recherche a coûté, les avertissements qu'un auteur traite ; une carte de chaleur et le chemin critique sur le graphe de puzzles</sub></td><td width="50%" valign="top"><img src="docs/img/studio-play-replay.jpg" alt="<b>Replay</b> : un fichier de session (le rapport de bug d'un testeur) parcouru au curseur dans l'onglet Play ; le jeu se pose là où tu t'arrêtes" width="100%"><br><sub><b>Replay</b> : un fichier de session (le rapport de bug d'un testeur) parcouru au curseur dans l'onglet Play ; le jeu se pose là où tu t'arrêtes</sub></td></tr>
 <tr><td width="50%" valign="top"><img src="docs/img/studio-notes.jpg" alt="<b>Notes</b> : le journal partagé entre toi et l'IA, à propos d'une case, d'un lieu ou d'un élément" width="100%"><br><sub><b>Notes</b> : le journal partagé entre toi et l'IA, à propos d'une case, d'un lieu ou d'un élément</sub></td><td width="50%" valign="top"><img src="docs/img/studio-assistant.jpg" alt="<b>Assistant</b> : n'importe quel modèle d'IA avec les mêmes outils que le serveur MCP, à propos de l'élément sélectionné" width="100%"><br><sub><b>Assistant</b> : n'importe quel modèle d'IA avec les mêmes outils que le serveur MCP, à propos de l'élément sélectionné</sub></td></tr>
 <tr><td width="50%" valign="top"><img src="docs/img/editor.jpg" alt="<b>L'éditeur de placement</b> dans le jeu lui-même (<code>?edit=house</code>)" width="100%"><br><sub><b>L'éditeur de placement</b> dans le jeu lui-même (<code>?edit=house</code>)</sub></td><td width="50%" valign="top"><img src="docs/img/placement-page.jpg" alt="<b>La page de placement</b> : placer les choses depuis un téléphone, exporter le layout" width="100%"><br><sub><b>La page de placement</b> : placer les choses depuis un téléphone, exporter le layout</sub></td></tr>
 </table>
@@ -54,6 +55,10 @@ l'IA. Voir `docs/fr/STUDIO.md`.
 <sub>Le graphe de puzzles (`npm run page:puzzles`, aussi dans Check) : les choses en couleur, les actions en blanc ;
 flèches grises pour ce qu'une action exige, vertes pour ce qu'elle produit, rouges pour ce qu'elle consomme. Toucher
 une chose affiche sa fiche.</sub>
+
+<img src="docs/img/studio-critical-path.jpg" alt="Le graphe de puzzles avec le chemin critique et la carte de chaleur du solveur" width="629"><br>
+<sub>Le même graphe avec **Critical path** et **Heat** : ce qui ne mène pas à la fin s'estompe, les règles par lesquelles
+le solveur est le plus passé rougissent ; une fiche dit pourquoi le solveur garde une chose (critical, world, visible ou dead).</sub>
 
 ## Démarrer
 
@@ -156,6 +161,7 @@ construit un autre jeu.
 
 | Version | Ce qu'elle a ajouté |
 |---|---|
+| v2.3 Replay | Sessions enregistrées et rejouées (`npm run replay`, onglet Play) ; la solution du solveur rejouée par la CI dans Chromium ; le profil du solveur et « Solver health » ; pourquoi une chose est live, le chemin critique et une carte de chaleur sur le graphe de puzzles ; réduction d'ordre partiel (`--por`) ; commandes custom contrôlées en dev. |
 | v2.2 Studio | L'arbre de dialogue (onglet Rooms, outil MCP `dialogue_tree`) ; le journal du moteur (onglet Play, panneau dev). |
 | v2.1 Proof | Les classiques (`CLASSICS.md`) ; le graphe de puzzles ; un solveur qui énumère les choix, garde les compteurs exacts, joue les scripts un wait à la fois et élague ce qui ne peut pas compter ; le bench de charge ; un seul catalogue des commandes vérifié par `tsc` ; des boucles avec sons d'image ; des traductions qui suivent les textes déplacés. |
 | v2.0 Open | Commandes custom à effets déclarés ; traductions par extraction ; l'onglet Play et son explicateur de règles ; fixtures par primitive. |

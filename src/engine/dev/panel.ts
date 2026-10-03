@@ -53,7 +53,7 @@ export class DevPanel {
     cp.addButton({ title: 'New game' }).on('click', () => { eng.store.clear(); void eng.newGame(); setTimeout(() => this.build(), 300); });
 
     const rooms = pane.addFolder({ title: 'Rooms', expanded: false });
-    for (const r of game.rooms) rooms.addButton({ title: `→ ${r.id}` }).on('click', () => void this.run(() => eng.enter(r.id, undefined, false)));
+    for (const r of game.rooms) rooms.addButton({ title: `→ ${r.id}` }).on('click', () => void this.run(() => eng.teleport(r.id)));
 
     if (!eng.state) return;
     const inv = pane.addFolder({ title: 'Inventory', expanded: false });
@@ -105,9 +105,14 @@ export class DevPanel {
       }
     }
 
-    if (eng.trace.length) {
+    if (eng.trace.length || eng.session?.log.length) {
       const jf = pane.addFolder({ title: 'Journal', expanded: false });
       for (const x of eng.trace.slice(-10).reverse()) { const row = { line: x.text }; jf.addBinding(row, 'line', { label: x.kind, readonly: true }); }
+      jf.addButton({ title: `Export session (${eng.session?.log.length ?? 0} inputs)` }).on('click', () => void import('../tools/replay').then(({ sessionFile }) => {
+        const blob = new Blob([JSON.stringify(sessionFile(game.id, eng), null, 1)], { type: 'application/json' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${game.id}-session.json`; a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      }));
     }
 
     if (game.map) {

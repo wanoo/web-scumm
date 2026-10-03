@@ -1,7 +1,7 @@
 // A small layered drawing of a directed graph as SVG, shared by the world map and the puzzle graph. Nodes go in
 // columns by distance from the roots (breadth first), edges are Bézier curves with an arrow head. Self-contained.
-export interface SvgNode { id: string; label: string; sub?: string; fill?: string; stroke?: string; strokeWidth?: number; title?: string; href?: string }
-export interface SvgEdge { from: string; to: string; dashed?: boolean; title?: string; color?: string }
+export interface SvgNode { id: string; label: string; sub?: string; fill?: string; stroke?: string; strokeWidth?: number; title?: string; href?: string; opacity?: number }
+export interface SvgEdge { from: string; to: string; dashed?: boolean; title?: string; color?: string; opacity?: number }
 
 export const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
@@ -54,11 +54,11 @@ export function layeredSvg(nodes: SvgNode[], edges: SvgEdge[], opts: { roots?: s
     if (drawn.has(k)) continue;
     drawn.add(k);
     const [x1, y1] = [a[0] + (b[0] >= a[0] ? W : 0), a[1] + H / 2], [x2, y2] = [b[0] + (b[0] >= a[0] ? 0 : W), b[1] + H / 2];
-    out.push(`<path d="M${x1} ${y1} C${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}" fill="none" stroke="${e.color ?? '#888'}" stroke-width="1.5"${e.dashed ? ' stroke-dasharray="5 4"' : ''} marker-end="url(#arr)">${e.title ? `<title>${esc(e.title)}</title>` : ''}</path>`);
+    out.push(`<path d="M${x1} ${y1} C${(x1 + x2) / 2} ${y1}, ${(x1 + x2) / 2} ${y2}, ${x2} ${y2}" fill="none" stroke="${e.color ?? '#888'}" stroke-width="1.5"${e.dashed ? ' stroke-dasharray="5 4"' : ''}${e.opacity !== undefined ? ` opacity="${e.opacity}"` : ''} marker-end="url(#arr)">${e.title ? `<title>${esc(e.title)}</title>` : ''}</path>`);
   }
   for (const n of nodes) {
     const [x, y] = pos.get(n.id)!;
-    const g = `<g${n.href ? ` data-node="${esc(n.href)}" style="cursor:pointer"` : ''}>${n.title ? `<title>${esc(n.title)}</title>` : ''}<rect x="${x}" y="${y}" width="${W}" height="${H}" rx="8" fill="${n.fill ?? '#f3f4f6'}" stroke="${n.stroke ?? '#aaa'}" stroke-width="${n.strokeWidth ?? 1}"/>` +
+    const g = `<g${n.href ? ` data-node="${esc(n.href)}" style="cursor:pointer"` : ''}${n.opacity !== undefined ? ` opacity="${n.opacity}"` : ''}>${n.title ? `<title>${esc(n.title)}</title>` : ''}<rect x="${x}" y="${y}" width="${W}" height="${H}" rx="8" fill="${n.fill ?? '#f3f4f6'}" stroke="${n.stroke ?? '#aaa'}" stroke-width="${n.strokeWidth ?? 1}"/>` +
       `<text x="${x + 10}" y="${y + 18}" fill="#111" font-weight="600">${esc(n.label)}</text>` +
       (n.sub !== undefined ? `<text x="${x + 10}" y="${y + 34}" fill="#666">${esc(n.sub)}</text>` : '') + '</g>';
     out.push(g);

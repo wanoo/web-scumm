@@ -4,6 +4,7 @@
 // the Studio core (tools/studio/backend.ts), the demo binds the browser backend (src/studio/api-browser.ts).
 // No node import here: this file is bundled into the Studio page.
 import { z } from 'zod';
+import { profileText } from '../../src/engine/tools/solve';
 import { dialogueText, dialogueTree } from '../../src/engine/tools/dialogue';
 import type { Layout } from '../../src/engine/core/types';
 import type { AddEntity, GameInfo, GraphData, PuzzleData, NewNote, NotesFile, ReportData, RoomData, SolveData, ValidateResult } from './types';
@@ -185,10 +186,10 @@ export const TOOLS: ToolDef[] = [
     name: 'solve', title: 'Solve the game',
     description: 'Explores the game states to prove it can be finished, from New Game or from checkpoint `from`. ' +
       'Result { finished, states, truncated, path, roomsReached, flagsReached, itemsNeverUsed, unusedItems, deadEnds, ' +
-      'errors, from, ms }. `finished: false` or dead ends are bugs to fix.',
-    input: { from: z.string().optional().describe('Checkpoint id (list_rooms checkpoints).') },
+      'errors, from, ms }. `finished: false` or dead ends are bugs to fix. `profile: true` adds why the search is slow or big.',
+    input: { from: z.string().optional().describe('Checkpoint id (list_rooms checkpoints).'), profile: z.boolean().optional().describe('Add the solver profile as text: what the states are made of, what the search cost, independent dimensions, monotonic things.') },
     annotations: { readOnlyHint: true },
-    run: ({ from }, b) => op(() => b.solve(from)),
+    run: ({ from, profile }, b) => op(async () => { const r = await b.solve(from); if (!profile) { const { profile: _p, ...rest } = r; return rest; } return { ...r, profile: r.profile ? profileText(r.profile) : undefined }; }),
   },
   {
     name: 'content_report', title: 'Content profiler',

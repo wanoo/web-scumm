@@ -1,7 +1,9 @@
 // The puzzle graph (src/engine/tools/puzzle.ts): what each action needs and changes, derived from the content.
 import { describe, expect, it } from 'vitest';
 import { condAtoms } from '@engine/core/cond';
-import { findNode, puzzleFor, puzzleGraph, puzzleIssues, puzzleMarkdown, toPuzzleDot, toPuzzleSvg } from '@engine/tools/puzzle';
+import { extraReads, findNode, heatFill, liveClasses, puzzleFor, puzzleGraph, puzzleIssues, puzzleMarkdown, toPuzzleDot, toPuzzleSvg, whyLive } from '@engine/tools/puzzle';
+import { game as demo } from '../games/demo/game';
+import { commands } from '../games/demo/index';
 import { validate } from '@engine/tools/validate';
 import { grog, grogLayouts, mansion, stan } from './fixtures/classics';
 import { scale } from './fixtures/scale';
@@ -59,5 +61,38 @@ describe('the puzzle graph', () => {
     expect(puzzleIssues(puzzleGraph(g)).selfLocked.map((n) => n.label)).toEqual(['locked']);
     expect(validate(g, grogLayouts).warnings.some((w) => /"locked" is only set by actions that already require it/.test(w))).toBe(true);
     expect(puzzleIssues(puzzleGraph(grog())).selfLocked).toEqual([]);
+  });
+});
+
+describe('why the solver keeps a thing', () => {
+  it('classes every node: critical reaches the end or a goal, dead is read by nothing live', () => {
+    const g = puzzleGraph(demo, { commands });
+    const extra = extraReads(demo);
+    const cl = liveClasses(g, extra);
+    expect(cl.get('item:key')).toBe('critical');
+    expect(cl.get('end:end')).toBe('critical');
+    expect(cl.get('flag:guess')).toBe('visible'); // only the ending's guess reads it
+    expect(cl.get('flag:tea_drunk')).toBe('dead');
+    expect([...cl.values()].filter((c) => c === 'critical').length).toBeGreaterThan(20);
+  });
+  it('explains the chain from a thing to its seed', () => {
+    const g = puzzleGraph(demo, { commands });
+    const extra = extraReads(demo);
+    const why = whyLive(g, 'key', extra);
+    expect(why.class).toBe('critical');
+    expect(why.chain.map((n) => n.id)).toEqual(['item:key', 'goal:finale']);
+    expect(whyLive(g, 'tea_drunk', extra)).toEqual({ class: 'dead', chain: [] });
+    const card = puzzleMarkdown(g, 'key', { extra });
+    expect(card).toContain('**solver: critical:**');
+    expect(card).toContain('pantry key → goal goal finale');
+    expect(puzzleFor(g, 'key')!.live).toBeUndefined();
+  });
+  it('draws heat and fades everything off the critical path', () => {
+    const g = puzzleGraph(demo, { commands });
+    const cl = liveClasses(g, extraReads(demo));
+    const svg = toPuzzleSvg(g, { heat: { 'rule:house/enter': 24, 'rule:garden/enter': 2 }, focus: new Set([...cl].filter(([, c]) => c === 'critical').map(([id]) => id)) });
+    expect(svg).toContain('rule:house/enter · 24');
+    expect(svg).toContain('opacity="0.25"');
+    expect(heatFill(0)).not.toBe(heatFill(1));
   });
 });

@@ -12,7 +12,7 @@ import { normalizeExits } from '../../src/engine/core/define';
 import { solve as solveGame } from '../../src/engine/tools/solve';
 import { report as reportGame, reportMarkdown } from '../../src/engine/tools/report';
 import { toDot, toSvg, worldGraph } from '../../src/engine/tools/graph';
-import { puzzleGraph, puzzleMarkdown, toPuzzleDot, toPuzzleSvg } from '../../src/engine/tools/puzzle';
+import { extraReads, liveClasses, puzzleGraph, puzzleMarkdown, toPuzzleDot, toPuzzleSvg } from '../../src/engine/tools/puzzle';
 import { loadAssets, loadLayouts, loadLocales } from '../../src/engine/tools/load';
 import { GAME_DIR, ROOT, type GameModule } from '../game';
 import { normalizeStoryboard, storyboardMarkdown } from '../pages/storyboard-data';
@@ -362,7 +362,7 @@ export function createStudio(opts: StudioOptions = {}) {
       roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
       itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems,
       deadEnds: r.deadEnds.map((d) => ({ room: d.room, inventory: d.inventory, path: d.path })),
-      errors: r.errors, broken: r.broken, from: from ?? null, ms: Date.now() - t0,
+      errors: r.errors, broken: r.broken, from: from ?? null, ms: Date.now() - t0, profile: r.profile,
     };
   }
 
@@ -378,7 +378,8 @@ export function createStudio(opts: StudioOptions = {}) {
   async function puzzle(id?: string): Promise<PuzzleData> {
     const mod = await loadModule();
     const g = puzzleGraph(mod.game, { commands: mod.commands });
-    return { graph: g, svg: toPuzzleSvg(g), dot: toPuzzleDot(g), markdown: puzzleMarkdown(g, id || undefined), ...(id ? { id } : {}) };
+    const extra = extraReads(mod.game);
+    return { graph: g, svg: toPuzzleSvg(g), dot: toPuzzleDot(g), markdown: puzzleMarkdown(g, id || undefined, { extra }), classes: Object.fromEntries(liveClasses(g, extra)), ...(id ? { id } : {}) };
   }
 
   /** The world's map: rooms and the ways between them. */
