@@ -11,7 +11,7 @@ téléphone, hors ligne après la première visite.
 |---|---|
 | 🎮 **Jouer au jeu d'exemple** | https://wanoo.github.io/web-scumm/ (téléphone en paysage, ou ordinateur) |
 | 🛠 **Essayer le Studio** | https://wanoo.github.io/web-scumm/studio.html (mode démo : les modifications restent dans le navigateur) |
-| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v2.0.0 |
+| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v2.0.1 |
 
 ## En images
 

@@ -94,8 +94,9 @@ export const game = defineGame({
       goals: [{ has: 'key' }],
     },
   },
-  // Must never become true: the token gone before the flowers are done (the solver reports the path if it happens).
-  invariants: [{ all: [{ prop: ['house.armchair', 'searched'] }, { not: { has: 'token' } }, '!flowers_done'] }],
+  // Must never become true: Pixel's token gone before the flowers are done (the solver reports the path if it happens).
+  // Scoped to Pixel: Biscuit's bag is his own (the CI caught this one when Biscuit became playable).
+  invariants: [{ all: [{ player: 'hero' }, { prop: ['house.armchair', 'searched'] }, { not: { has: 'token' } }, '!flowers_done'] }],
   // Three manual save slots in the pause menu (export / import as a file too), and a Settings entry.
   saves: { slots: 3 },
   settings: true,
