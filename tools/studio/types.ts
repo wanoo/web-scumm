@@ -5,6 +5,7 @@ import type { ContentReport } from '../../src/engine/tools/report';
 import type { WorldGraph } from '../../src/engine/tools/graph';
 import type { LiveClass, PuzzleGraph } from '../../src/engine/tools/puzzle';
 import type { SolveProfile } from '../../src/engine/tools/solve';
+import type { Coverage } from '../../src/engine/tools/coverage';
 
 /** What a text literal is, from its JSON path in the room file. */
 export type TextKind =
@@ -110,6 +111,9 @@ export interface PuzzleData {
   /** Why the solver keeps each node: critical (reaches the end or a goal), world, visible, or dead (not in its state). */
   classes: Record<string, LiveClass>;
 }
+
+/** The storyboard checked against the content (src/engine/tools/coverage.ts), with its Markdown rendering. */
+export interface CoverageData { coverage: Coverage; markdown: string; ms: number }
 
 export interface SolveData {
   finished: boolean;

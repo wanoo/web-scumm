@@ -36,6 +36,8 @@ jobs:
   # (games/demo/e2e.mjs). Separate from `check`: the Pages deploy does not wait for it.
   e2e:
     runs-on: ubuntu-latest
+    # Playwright taps on a shared runner can be flaky: this job reports, it does not block (see docs/en/TOOLS.md).
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

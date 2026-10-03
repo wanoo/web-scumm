@@ -2,7 +2,7 @@
 // or, in demo mode, the browser backend (src/studio/api-browser.ts: a build-time snapshot plus edits in localStorage).
 // Types are shared with the server.
 import type { Layout } from '@engine/core/types';
-import type { GraphData, PuzzleData, ReportData,
+import type { CoverageData, GraphData, PuzzleData, ReportData,
   AddEntity, AssetsListing, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, ScreenshotResult, SolveData, ValidateResult,
 } from '../../tools/studio/types';
 
@@ -47,6 +47,8 @@ export interface Api {
   report(): Promise<ReportData>;
   graph(): Promise<GraphData>;
   puzzle(id?: string): Promise<PuzzleData>;
+  /** The storyboard checked against the content. */
+  coverage(): Promise<CoverageData>;
   screenshot(room: string, checkpoint?: string): Promise<Exclude<ScreenshotResult, { unavailable: true }>>;
   /** Every image and sound, where it is used, and the art prompts (the Assets tab; uploads: src/studio/assets.ts). */
   assets(): Promise<AssetsListing>;
@@ -70,6 +72,7 @@ export const serverApi: Api = {
   report: () => call<ReportData>('POST', 'report'),
   graph: () => call<GraphData>('GET', 'graph'),
   puzzle: (id?: string) => call<PuzzleData>('POST', 'puzzle', { id: id || undefined }),
+  coverage: () => call<CoverageData>('POST', 'coverage'),
   solve: (from?: string) => call<SolveData>('POST', 'solve', { from: from || undefined }),
   screenshot: (room: string, checkpoint?: string) => call<Exclude<ScreenshotResult, { unavailable: true }>>('POST', 'screenshot', { room, checkpoint: checkpoint || undefined }),
   assets: () => call<AssetsListing>('GET', 'assets'),

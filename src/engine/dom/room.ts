@@ -1,4 +1,5 @@
 import type { Engine } from '../core/engine';
+import { WALK_SPEED } from '../core/timing';
 import type { CharacterDef, Id, Layout, Point, RoomDef } from '../core/types';
 import type { AssetBank } from './assets';
 import { PaletteCache } from './palette';
@@ -40,7 +41,6 @@ interface Ent {
   scaleWithDepth: boolean;
 }
 
-const WALK_SPEED = 150; // logical units per second
 
 /**
  * View of a room: backdrop, props, characters, depth sort, walking, poses.

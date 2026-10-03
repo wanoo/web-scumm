@@ -164,6 +164,26 @@ fait : le moteur sait ce que chaque action a lu et changé.
 - Deux trous du hash d'état bouchés (`visited`, les compteurs des blocs `random`) ; les répliques de l'arbre de
   dialogue sautent de nouveau à leur éditeur.
 
+## v2.4 « Author » (livrée) : l'histoire face au jeu, la cinématique face au chrono
+
+- **Couverture du storyboard** (`src/engine/tools/coverage.ts`) : le storyboard (`games/<id>/storyboard.json`)
+  confronté au contenu : lieux, locuteurs, personnages des conversations et sons par id ; les actions des cases
+  (« Open Grandpa's armchair », « Use pipe with tank », « Talk to Lou: Where is the key? ») analysées avec les verbes du
+  jeu et les noms des choses du lieu, puis cherchées dans les règles, les réactions par kind, les sujets et les lignes
+  Regarder ; répliques, sujets et indices par leur texte (exact, proche, ou absent). Chaque vérification est *ok*,
+  *partial* (les morceaux existent, aucune règle ne répond ; une réplique proche), *missing* ou *unknown* (de la
+  prose). Des badges sur les boards et les cases de l'onglet Storyboard du Studio (avec la liste de ce qui manque
+  encore), un panneau « Storyboard coverage » dans Check, l'outil `storyboard_coverage` (20 outils).
+- **La timeline de cinématique** (`src/engine/tools/timeline.ts`, `src/engine/core/timing.ts`) : combien de temps
+  prend une liste de commandes et ce qui se chevauche, lu dans le DSL tel qu'il est écrit : les répliques durent ce que
+  le présentateur les affiche, les marches la distance que dit le layout, les animations leurs images, les branches
+  `parallel` sur leurs propres pistes, un choix ou un mini-jeu marqué comme le tour du joueur. Un bouton « Timeline »
+  à côté de chaque cinématique, script d'arrivée et script du monde dans l'onglet Rooms ; toucher une barre saute à sa
+  ligne. Les durées du présentateur viennent maintenant d'un seul fichier.
+- L'élagage par dominance (cinquième palier de l'auditeur) n'a pas été fait : sur le jeu d'exemple, le jeu privé et le
+  jeu de charge, le profil ne montre aucune dimension où les choses monotones dominent ; cela reste une note dans
+  `docs/fr/BENCH.md`.
+
 ## Hors plan (décisions explicites)
 
 - Pas de Phaser ni de canvas : le Presenter DOM suffit pour quelques dizaines d'images ; une salle large reste une translation CSS.

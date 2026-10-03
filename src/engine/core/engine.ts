@@ -2,6 +2,7 @@ import { check, condAtoms, type CondAtom } from './cond';
 import { assignKeys, EMPTY_LAYOUT, FLOOR, NEAR } from './define';
 import { migrate } from './migrate';
 import { stateDiff, stateDigest } from './diff';
+import { ANIM_MS, CAMERA_MS, FPS } from './timing';
 import type { Presenter, SaveStore } from './ports';
 import type { Action, CharacterDef, Cmd, Cond, EventRule, GameDef, GameState, Id, Layout, Point, RoomDef, Rule, ScriptDef, Session, SessionEntry, Value, VerbId } from './types';
 import type { CustomCommands } from './custom';
@@ -862,10 +863,10 @@ export class Engine {
     }
     if ('anim' in c) {
       const who = this.who(c.anim[0]);
-      if (!c.at) return this.ui.anim(who, c.anim[1], c.ms ?? 800, ctx.fast);
+      if (!c.at) return this.ui.anim(who, c.anim[1], c.ms ?? ANIM_MS, ctx.fast);
       // Frame events: the commands of `at` run when the pose reaches that frame (at the character's fps).
-      const fps = this.character(who)?.fps ?? 8;
-      const p = this.ui.anim(who, c.anim[1], c.ms ?? 800, ctx.fast);
+      const fps = this.character(who)?.fps ?? FPS;
+      const p = this.ui.anim(who, c.anim[1], c.ms ?? ANIM_MS, ctx.fast);
       let t = 0;
       for (const i of Object.keys(c.at).map(Number).sort((a, b) => a - b)) {
         const at = (i * 1000) / fps;
@@ -879,7 +880,7 @@ export class Engine {
       const [pid, name] = c.play;
       const def = room.props?.[pid]?.anims?.[name];
       if (!def) throw new Error(`no animation "${name}" on prop "${pid}" in ${room.id}`);
-      const fps = def.fps ?? 8;
+      const fps = def.fps ?? FPS;
       if (def.loop) {
         // A loop never ends: its frame events only play sounds and shakes (the validator refuses anything else).
         const at = def.at;
@@ -901,7 +902,7 @@ export class Engine {
       if (c.camera === 'follow' || c.camera === 'reset') { s.camera = { x: 0, follow: true }; await this.ui.camera(null, true, 0, ctx.fast); return; }
       const x = clamp('pan' in c.camera ? c.camera.pan : (this.centerX(c.camera.to, room) ?? 320) - 320);
       s.camera = { x, follow: false };
-      await this.ui.camera(x, false, c.camera.ms ?? 600, ctx.fast);
+      await this.ui.camera(x, false, c.camera.ms ?? CAMERA_MS, ctx.fast);
       return;
     }
     if ('wait' in c) return this.ui.wait(c.wait, ctx.fast);

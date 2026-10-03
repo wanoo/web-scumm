@@ -12,7 +12,7 @@ que les joueurs auront.
   vue) ouvre sa fiche : nom, sorte, états, visibilité, **lignes de Regarder** (ajouter, modifier, supprimer),
   **réactions** (verbe, cibles, condition, commandes en liste de lignes : textes modifiables, autres commandes
   affichées), **sujets de conversation** (en liste, ou en **arbre** : sujets, répliques, choix et leurs options,
-  branches, chacun avec sa condition ; toucher un nœud saute à son éditeur) ; sous la vue, le nom du lieu, les **indices**, les lignes **à
+  branches, chacun avec sa condition ; toucher un nœud saute à son éditeur) ; à côté de chaque cinématique, script d'arrivée et script du monde, un bouton **Timeline** dessine combien dure chaque commande et ce qui se chevauche (répliques, marches, animations, branches parallèles, les tours du joueur en rouge ; toucher une barre saute à sa ligne) ; sous la vue, le nom du lieu, les **indices**, les lignes **à
   l'entrée**, les **scripts** et les **événements** du lieu (structure en lecture, textes modifiables). Un texte est enregistré quand le champ perd le focus (Entrée) ; Échap annule. Chaque enregistrement
   affiche un toast et lance Check en arrière-plan ; un placement en cours dans la vue est enregistré d'abord (la vue
   se recharge quand le fichier du lieu change). Les modifications de texte sont écrites directement dans
@@ -38,6 +38,11 @@ que les joueurs auront.
   (le même texte que `npm run page:storyboard -- --md` ; elle propose d'enregistrer d'abord).
 - **Assets** : toutes les images et tous les sons du jeu, où chacun sert, son prompt de génération, et les envois qui
   les remplacent ou les ajoutent (voir « Onglet Assets » plus bas).
+- **Storyboard** (voir plus bas) : le storyboard enregistré est confronté au contenu après chaque chargement et
+  enregistrement (`src/engine/tools/coverage.ts`) : un badge sur chaque board et chaque case (✓ tout est dans le jeu,
+  ~ en partie, ✗ quelque chose manque, ? de la prose), et sous une case la liste de ce qui n'y est pas encore (une
+  action qu'aucune règle ne répond, une réplique que le jeu ne dit pas, un son absent de `audio.sfx`) ; la barre montre
+  le score global.
 - **Check** : le validateur et le solveur tournent après chaque enregistrement ; leur sortie et le chemin du
   solveur sont affichés ici. « Screenshot » rend un lieu à un checkpoint (nécessite Playwright).
   En dessous, la **carte du monde** (lieux, sorties, gotos ; lieux inaccessibles et sorties sans retour en rouge) et le
@@ -51,7 +56,8 @@ que les joueurs auront.
   lieu selon le nombre de fois où le solveur y est passé. Sous le chemin du solveur, **Solver health** : exécutions du
   moteur, actions sautées, actions sans effet, actions par état, les dimensions qui séparent le plus les états, les
   avertissements qu'un auteur traite (dimensions indépendantes : un checkpoint entre elles couperait les états ; un
-  lieu au branchement démesuré), le profil complet de `npm run solve -- --profile`.
+  lieu au branchement démesuré), le profil complet de `npm run solve -- --profile`. Plus bas, **Storyboard coverage** :
+  le storyboard confronté au contenu, le même texte que renvoie l'outil `storyboard_coverage`.
 - **Play** : le jeu lui-même (outils de dev actifs) dans un cadre, à côté de l'**état** en direct (lieu, sac, flags,
   personnages mobiles, scripts, joueurs) et d'un **explicateur de règles** : choisis un verbe, un objet et une cible, et
   chaque règle qui pourrait répondre est listée avec chaque condition évaluée ✓ / ✗ sur l'état en direct ; la première ✓
@@ -92,6 +98,7 @@ capture d'écran indisponible).
 | PUT `notes/:id` | `{ text, about? }` → la `Note` mise à jour (texte débarrassé des espaces superflus, `edited` réglé à maintenant ; `at`, `author` et l'ordre inchangés) ; 400 texte vide, 404 id inconnu |
 | DELETE `notes/:id` | → `{ ok }`, la note retirée de `notes.json` ; 404 id inconnu |
 | POST `validate` | → `{ ok, errors: string[], warnings: string[], ms }` |
+| POST `coverage` | → `{ coverage, markdown, ms }` : le storyboard enregistré confronté au contenu (`src/engine/tools/coverage.ts` : par board et par case, chaque lieu, locuteur, réplique, sujet, son et action ok / partial / missing / unknown) |
 | POST `solve` | `{ from?: checkpoint }` → `{ finished, states, truncated, path, roomsReached, unlockedReached, flagsReached, itemsNeverUsed, unusedItems, deadEnds: [{ room, inventory, path }], errors, from, ms, profile }` (400 pour un checkpoint inconnu) ; `profile` est le `SolveProfile` de `src/engine/tools/solve.ts` |
 | POST `screenshot` | `{ room, checkpoint? }` → `{ file, url }` : un PNG du lieu (overlays de l'éditeur masqués) sous `.cache/studio/<game>-<room>[-<checkpoint>].png`, servi à `url` (`GET screenshots/<name>.png`). 501 `{ unavailable: true, reason, error }` si Playwright ou son Chromium est manquant |
 | GET `events` | évènements envoyés par le serveur (SSE) : `{ type: 'hello', game }` à la connexion, puis `{ type: 'changed', file }` quand un fichier du dossier du jeu change sur le disque (`file` relatif à ce dossier, ex. `rooms/house.ts` ; les dotfiles et `private/` sont ignorés ; anti-rebond de 150 ms par fichier) |

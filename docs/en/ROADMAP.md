@@ -215,6 +215,23 @@ what every action read and changed.
 - Two holes of the state hash closed (`visited`, the counters of `random` blocks); the dialogue tree's lines jump to
   their editor again.
 
+## v2.4 "Author" (shipped): the story against the game, the cutscene against the clock
+
+- **Storyboard coverage** (`src/engine/tools/coverage.ts`): the storyboard (`games/<id>/storyboard.json`) checked
+  against the content: rooms, speakers, talk characters and sounds by id; panel actions ("Open Grandpa's armchair",
+  "Use pipe with tank", "Talk to Lou: Where is the key?") parsed with the game's verbs and the names of the things in the
+  room, then looked up in the rules, the kind reactions, the topics and the look lines; lines, topics and hints by
+  text (exact, close, or absent). Every check is *ok*, *partial* (the pieces exist, no rule answers; a close line),
+  *missing* or *unknown* (prose). Badges on the boards and panels of the Studio's Storyboard tab (with the list of
+  what is not there yet), a "Storyboard coverage" panel in Check, the `storyboard_coverage` tool (20 tools).
+- **The cutscene timeline** (`src/engine/tools/timeline.ts`, `src/engine/core/timing.ts`): how long a command list
+  takes and what overlaps, read from the DSL as written: lines last as the presenter shows them, walks as far as the
+  layout says, animations their frames, `parallel` branches on their own lanes, a choice or a minigame marked as the
+  player's turn. A "Timeline" toggle next to every cutscene, arrival script and world script in the Rooms tab; tap a
+  bar to jump to its line. The presenter's durations now come from one file.
+- Dominance pruning (the auditor's fifth stage) was not done: on the sample game, the private game and the stress game
+  the profile shows no dimension where monotonic things dominate; it stays a note in `docs/en/BENCH.md`.
+
 ## Out of scope (explicit decisions)
 
 - No Phaser, no canvas: the DOM Presenter is enough for a few dozen images; a wide room stays a CSS translation.

@@ -10,8 +10,9 @@ import { report as reportGame, reportMarkdown } from '@engine/tools/report';
 import { toDot, toSvg, worldGraph } from '@engine/tools/graph';
 import { extraReads, liveClasses, puzzleGraph, puzzleMarkdown, toPuzzleDot, toPuzzleSvg } from '@engine/tools/puzzle';
 import { normalizeStoryboard, storyboardMarkdown } from '../../tools/pages/storyboard-data';
+import { coverageMarkdown, storyboardCoverage } from '@engine/tools/coverage';
 import { classify, formatPath, parsePath, SourceError, type Seg } from '../../tools/studio/paths';
-import type { GraphData, PuzzleData, ReportData,
+import type { CoverageData, GraphData, PuzzleData, ReportData,
   AddEntity, AssetsListing, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, SolveData, StudioPatch, StudioPatchFile,
   StudioSnapshot, TextRef, ValidateResult,
 } from '../../tools/studio/types';
@@ -282,6 +283,13 @@ export class BrowserApi implements Api {
     const g = puzzleGraph(game, { commands: mod.commands });
     const extra = extraReads(game);
     return { graph: g, svg: toPuzzleSvg(g), dot: toPuzzleDot(g), markdown: puzzleMarkdown(g, id || undefined, { extra }), classes: Object.fromEntries(liveClasses(g, extra)), ...(id ? { id } : {}) };
+  }
+
+  async coverage(): Promise<CoverageData> {
+    const t0 = Date.now();
+    const { game } = await this.editedGame();
+    const c = storyboardCoverage(game, normalizeStoryboard(await this.storyboardRaw()));
+    return { coverage: c, markdown: coverageMarkdown(c), ms: Date.now() - t0 };
   }
 
   async solve(from?: string, maxStates = 20000): Promise<SolveData> {

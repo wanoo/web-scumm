@@ -5,6 +5,7 @@ import type { Cmd, Cond, Id, RoomDef, Rule } from '@engine/core/types';
 import { api, BASE, imgUrl, type EditorToStudio, type EntityKind, type GameInfo, type RoomData, type StudioToEditor, type TextRef } from './api';
 import { autoGrow, h, modal, select, toast } from './ui';
 import { dialogueTree, type DialogueNode } from '@engine/tools/dialogue';
+import { timeline, type Timeline } from '@engine/tools/timeline';
 
 export interface RoomsCtx {
   info: GameInfo;
@@ -340,7 +341,8 @@ export class RoomsTab {
         if (c.else) box.append(nest('else', c.else, `${p}.else`));
         return;
       }
-      for (const k of ['once', 'cutscene'] as const) if (k in c) { box.append(nest(k, (c as Record<string, Cmd[]>)[k], `${p}.${k}`)); return; }
+      if ('cutscene' in c) { box.append(h('div', { class: 'nest' }, h('div', { class: 'chip k' }, 'cutscene'), this.timed(c.cutscene, `${p}.cutscene`))); return; }
+      if ('once' in c) { box.append(nest('once', c.once, `${p}.once`)); return; }
       for (const k of ['nth', 'cycle', 'random', 'parallel'] as const) {
         if (k in c) {
           const branches = (c as Record<string, Cmd[][]>)[k];
@@ -358,9 +360,43 @@ export class RoomsTab {
       if ('phone' in c) { box.append(nest(`phone ${asList(c.phone).join(', ')}`, c.do, `${p}.do`)); return; }
       if ('minigame' in c && c.then) { box.append(h('div', { class: 'chip' }, chipText(c)), nest('then', c.then, `${p}.then`)); return; }
       if (('ending' in c || 'reveal' in c) && c.after) { box.append(h('div', { class: 'chip' }, chipText(c)), nest('after', c.after, `${p}.after`)); return; }
-      box.append(h('div', { class: 'chip' }, chipText(c)));
+      box.append(h('div', { class: 'chip', 'data-path': p }, chipText(c)));
     });
     return box;
+  }
+
+  /** A command list with a "Timeline" toggle: how long it takes and what overlaps, drawn as bars; tap one to jump to its line. */
+  private timed(list: Cmd[] | undefined, path: string): HTMLElement {
+    const cmds = this.cmds(list, path);
+    if (!list?.length) return cmds;
+    const d = this.data;
+    const bars = h('div', { class: 'tl', hidden: true });
+    const toggle = h('button', { class: 'small', title: 'How long each command takes on screen, what runs in parallel, where the player is waited for', onclick: () => {
+      const show = bars.hidden;
+      if (show && !bars.childElementCount) bars.append(...this.timelineBars(timeline(list, { game: { characters: this.ctx.info.characters as unknown as Record<string, { fps?: number }> }, room: d?.def, layout: d?.layout, path }), cmds));
+      bars.hidden = !show;
+      toggle.textContent = show ? 'Hide timeline' : 'Timeline';
+    } }, 'Timeline');
+    return h('div', { class: 'timed' }, h('div', { class: 'bar small' }, toggle), bars, cmds);
+  }
+
+  private timelineBars(t: Timeline, list: HTMLElement): HTMLElement[] {
+    const total = Math.max(t.total, 1);
+    const s = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
+    const rows: HTMLElement[] = [];
+    for (let lane = 0; lane < t.lanes; lane++) {
+      const row = h('div', { class: 'tlrow' });
+      for (const it of t.items.filter((x) => x.lane === lane)) {
+        const w = it.open ? 2 : Math.max(0.6, ((it.end - it.start) / total) * 100);
+        row.append(h('span', { class: `tlbar k-${it.kind}${it.open ? ' open' : ''}${it.estimated ? ' est' : ''}`, style: { left: `${(it.start / total) * 100}%`, width: `${w}%` },
+          title: `${it.label} · ${s(it.start)} → ${it.open ? 'the player' : s(it.end)}${it.estimated ? ' (estimated)' : ''}`,
+          onclick: () => { const el = list.querySelector<HTMLElement>(`[data-path="${CSS.escape(it.path)}"]`); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200); (el.querySelector('textarea, input') as HTMLElement | null)?.focus(); } } },
+          it.label));
+      }
+      rows.push(row);
+    }
+    rows.push(h('div', { class: 'muted small' }, `${t.openEnded ? `at least ${s(t.total)}, then the player` : s(t.total)} · ${t.items.filter((x) => x.kind === 'say').length} lines`));
+    return rows;
   }
 
   // -------------------------------------------------------------- the selected entity's sheet
@@ -473,11 +509,11 @@ export class RoomsTab {
           hd.lines.map((_, j) => this.line(`hints[${i}].lines[${j}]`, { deletable: hd.lines.length > 1 })),
           this.appender(`hints[${i}].lines`, 'New hint line…')))
         : h('p', { class: 'muted' }, 'No hints in this room.')),
-      h('section', null, h('h3', null, 'On enter'), d.onEnter?.length ? this.cmds(d.onEnter, 'onEnter') : h('p', { class: 'muted' }, 'Nothing happens on entering.')),
+      h('section', null, h('h3', null, 'On enter'), d.onEnter?.length ? this.timed(d.onEnter, 'onEnter') : h('p', { class: 'muted' }, 'Nothing happens on entering.')),
       h('section', null, h('h3', null, 'Scripts ', h('span', { class: 'muted small' }, 'run on their own while the player is here')),
         d.scripts?.length ? d.scripts.map((sc, i) => h('div', { class: 'rule' },
           h('div', { class: 'rulehead' }, h('code', null, sc.id), h('span', { class: 'muted small' }, `${sc.loop ? 'loop' : 'once'}${sc.while ? ` while ${condText(sc.while)}` : ''}`)),
-          this.cmds(sc.do, `scripts[${i}].do`)))
+          this.timed(sc.do, `scripts[${i}].do`)))
         : h('p', { class: 'muted' }, 'No scripts in this room.')),
       h('section', null, h('h3', null, 'Events ', h('span', { class: 'muted small' }, 'listeners of { emit }')),
         d.events?.length ? d.events.map((ev, i) => h('div', { class: 'rule' },

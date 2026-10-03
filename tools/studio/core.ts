@@ -13,11 +13,12 @@ import { solve as solveGame } from '../../src/engine/tools/solve';
 import { report as reportGame, reportMarkdown } from '../../src/engine/tools/report';
 import { toDot, toSvg, worldGraph } from '../../src/engine/tools/graph';
 import { extraReads, liveClasses, puzzleGraph, puzzleMarkdown, toPuzzleDot, toPuzzleSvg } from '../../src/engine/tools/puzzle';
+import { coverageMarkdown, storyboardCoverage } from '../../src/engine/tools/coverage';
 import { loadAssets, loadLayouts, loadLocales } from '../../src/engine/tools/load';
 import { GAME_DIR, ROOT, type GameModule } from '../game';
 import { normalizeStoryboard, storyboardMarkdown } from '../pages/storyboard-data';
 import { addToSection, extractTexts, objectText, parseRoom, SourceError, setTextInSource } from './source';
-import type {
+import type { CoverageData,
   AddEntity, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, ScreenshotResult, SolveData, TextRef, ValidateResult, ReportData, GraphData, PuzzleData,
 } from './types';
 
@@ -331,6 +332,15 @@ export function createStudio(opts: StudioOptions = {}) {
     });
   }
 
+  /** The storyboard against the content: what each board, panel, line, topic and sound amounts to in the game. */
+  async function coverage(): Promise<CoverageData> {
+    const t0 = Date.now();
+    const mod = await loadModule();
+    const sb = normalizeStoryboard(readJson<unknown>(join(dir, 'storyboard.json'), { boards: [] }));
+    const c = storyboardCoverage(mod.game, sb);
+    return { coverage: c, markdown: coverageMarkdown(c), ms: Date.now() - t0 };
+  }
+
   // ------------------------------------------------------------------ checks
 
   async function validate(): Promise<ValidateResult> {
@@ -436,7 +446,7 @@ export function createStudio(opts: StudioOptions = {}) {
     gameDir: dir, gameId, root,
     /** The game module, imported fresh (for tools that read the whole game, e.g. asset prompts). */
     loadGame: loadModule,
-    gameInfo, getRoom, texts, getLayout, setLayout, setText, addEntity, report, graph, puzzle,
+    gameInfo, getRoom, texts, getLayout, setLayout, setText, addEntity, report, graph, puzzle, coverage,
     getStoryboard, setStoryboard, getNotes, addNote, editNote, deleteNote, exportStoryboardMarkdown, validate, solve, screenshot, screenshotPath,
   };
 }

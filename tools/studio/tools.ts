@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { profileText } from '../../src/engine/tools/solve';
 import { dialogueText, dialogueTree } from '../../src/engine/tools/dialogue';
 import type { Layout } from '../../src/engine/core/types';
-import type { AddEntity, GameInfo, GraphData, PuzzleData, NewNote, NotesFile, ReportData, RoomData, SolveData, ValidateResult } from './types';
+import type { AddEntity, CoverageData, GameInfo, GraphData, PuzzleData, NewNote, NotesFile, ReportData, RoomData, SolveData, ValidateResult } from './types';
 
 /** The operations the tools need. Same method names as the Studio's `Api` (src/studio/api.ts), so `BrowserApi` fits. */
 export interface ToolBackend {
@@ -28,6 +28,8 @@ export interface ToolBackend {
   graph?(): Promise<GraphData>;
   /** The puzzle graph; `id`: one item / flag / prop card. */
   puzzle?(id?: string): Promise<PuzzleData>;
+  /** The storyboard checked against the content. */
+  coverage?(): Promise<CoverageData>;
   /** Optional abilities: a tool whose ability is missing is left out of `toolsFor(backend)`. */
   screenshot?(room: string, checkpoint?: string): Promise<ToolResult>;
   readDoc?(name: DocName): Promise<string>;
@@ -57,7 +59,7 @@ export interface ToolDef {
   /** It changes a game file (the Studio refreshes after it). */
   writes?: boolean;
   /** The optional backend ability it needs. */
-  needs?: 'screenshot' | 'readDoc' | 'runTests' | 'assetPrompts' | 'report' | 'graph' | 'puzzle';
+  needs?: 'screenshot' | 'readDoc' | 'runTests' | 'assetPrompts' | 'report' | 'graph' | 'puzzle' | 'coverage';
   run(args: any, b: ToolBackend): Promise<ToolResult>;
 }
 
@@ -230,6 +232,15 @@ export const TOOLS: ToolDef[] = [
     input: { id: z.string().optional().describe('An item, flag, prop (room.prop), place or event id; none for the overview.') },
     annotations: { readOnlyHint: true }, needs: 'puzzle',
     run: ({ id }, b) => op(async () => (await b.puzzle!(id)).markdown),
+  },
+  {
+    name: 'storyboard_coverage', title: 'Storyboard coverage',
+    description: 'The storyboard (get_storyboard) checked against the content, as Markdown: per board and panel, ' +
+      'whether its room, speakers, lines, talk topics, sounds and actions ("Open the armchair", "Use pipe with tank") ' +
+      'exist in the game: ok, partial (the pieces exist, no rule answers; a close line), missing, or unknown (prose). ' +
+      'Read it to find what of the story is not implemented yet. Read-only.',
+    input: {}, annotations: { readOnlyHint: true }, needs: 'coverage',
+    run: (_a, b) => op(async () => (await b.coverage!()).markdown),
   },
   {
     name: 'screenshot', title: 'Screenshot a room',

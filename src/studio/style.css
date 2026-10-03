@@ -436,3 +436,30 @@ button.danger { border-color: #a33a44; color: #ffb3b3; }
 .check table.dims { border-collapse: collapse; font-size: 12px; margin: 6px 0; }
 .check table.dims th, .check table.dims td { text-align: left; padding: 2px 10px 2px 0; border-bottom: 1px solid #333; }
 .check .puzzles .bar label { font-size: 12px; margin-right: 10px; }
+
+/* Rooms tab: the cutscene timeline */
+.timed .bar.small { margin: 2px 0; }
+.tl { position: relative; margin: 4px 0 6px; padding: 4px 0; border: 1px solid #333; border-radius: 4px; background: #0b0f17; overflow: hidden; }
+.tlrow { position: relative; height: 18px; margin: 2px 4px; }
+.tlbar { position: absolute; top: 0; height: 16px; line-height: 16px; font-size: 10px; padding: 0 4px; border-radius: 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; background: #334; color: #ddd; cursor: pointer; box-sizing: border-box; }
+.tlbar.k-say { background: #2b4a7a; }
+.tlbar.k-wait { background: #444; }
+.tlbar.k-walk { background: #3a6a3a; }
+.tlbar.k-anim, .tlbar.k-play { background: #6a4a8a; }
+.tlbar.k-camera { background: #7a6a2a; }
+.tlbar.k-show { background: #555; }
+.tlbar.k-branch { background: transparent; border-left: 2px solid var(--blue); color: var(--blue); }
+.tlbar.k-cmd { background: transparent; border-left: 2px solid #666; color: #999; min-width: 2px; }
+.tlbar.open { background: #a33; min-width: 10px; }
+.tlbar.est { border: 1px dashed #aaa; }
+.line.flash, .chip.flash { outline: 2px solid var(--yellow); }
+
+/* Storyboard tab: coverage badges; Check tab: coverage panel */
+.cov { display: inline-block; min-width: 1.2em; padding: 0 5px; border-radius: 9px; font-size: 11px; font-weight: 700; text-align: center; margin-left: 4px; }
+.cov.ok { background: #1f5f2f; color: #cfc; }
+.cov.partial { background: #6a5a1a; color: #ffe; }
+.cov.missing { background: #6a1f1f; color: #fdd; }
+.cov.unknown { background: #333; color: #aaa; }
+.sb .card .covlist { font-size: 11px; color: var(--muted); margin: 2px 0 0; padding-left: 16px; }
+.sb .card .covlist li.missing { color: #f88; }
+.sb .card .covlist li.partial { color: #ec6; }

@@ -2,7 +2,8 @@
 // in memory; Save writes the whole document (PUT storyboard). Beside the editor, the selected panel composed like a
 // storyboard frame (room decor, speakers' portraits, the lines as the game shows them) and the notes about it.
 import type { SbBoard, SbLine, SbPanel, SbReaction, SbTopic } from '../../tools/pages/storyboard-data';
-import { api, imgUrl, type GameInfo } from './api';
+import { api, imgUrl, type CoverageData, type GameInfo } from './api';
+import type { BoardCoverage, Check, CoverStatus, PanelCoverage } from '@engine/tools/coverage';
 import { composer, liveBlock, newestFirst, noteItem, type NotesStore } from './notes';
 import { autoGrow, h, toast } from './ui';
 
@@ -70,10 +71,13 @@ export class StoryboardTab {
   private listEl = h('nav', { class: 'sbboards', 'aria-label': 'Boards' });
   private editEl = h('div', { class: 'sbedit' });
   private previewEl = h('aside', { class: 'sbpreview', 'aria-label': 'Panel preview' });
+  /** The saved storyboard checked against the content (badges on boards and panels). */
+  private cov: CoverageData | null = null;
+  private covEl = h('span', { class: 'muted small' });
 
   constructor(private ctx: StoryboardCtx) {
     this.el.append(
-      h('div', { class: 'bar sbbar' }, this.saveBtn, this.stateEl,
+      h('div', { class: 'bar sbbar' }, this.saveBtn, this.stateEl, this.covEl,
         h('button', { onclick: () => void this.exportMd(), title: 'Write games/<id>/storyboard.md from the saved storyboard.json' }, 'Export Markdown'),
         h('button', { onclick: () => void this.reload(), title: 'Read storyboard.json again (drops unsaved edits)' }, api.mode === 'demo' ? 'Reload saved' : 'Reload from disk')),
       this.banner,
@@ -91,8 +95,24 @@ export class StoryboardTab {
   /** First load (later calls keep the in-memory edits; use reload()). */
   async load() { if (!this.doc) await this.reload(true); }
 
+  /** Checks the saved storyboard against the content; redraws the badges. */
+  async refreshCoverage() {
+    try {
+      this.cov = await api.coverage();
+      const c = this.cov.coverage;
+      this.covEl.replaceChildren(h('span', { class: `cov ${c.score >= 0.95 ? 'ok' : c.score >= 0.7 ? 'partial' : 'missing'}`, title: 'How much of the saved storyboard the game implements (Check tab for the detail)' }, `${Math.round(c.score * 100)}%`),
+        ` ${c.totals.ok} implemented · ${c.totals.partial} partial · ${c.totals.missing} missing`);
+    } catch { this.cov = null; this.covEl.replaceChildren(); }
+    if (this.doc) { this.renderList(); this.renderEditor(); }
+  }
+
+  private boardCov(id: string): BoardCoverage | undefined { return this.cov?.coverage.boards.find((b) => b.id === id); }
+  private panelCov(id: string): PanelCoverage | undefined { return this.cov?.coverage.boards.flatMap((b) => b.panels).find((p) => p.id === id); }
+  private badge(status: CoverStatus, title: string): HTMLElement { return h('span', { class: `cov ${status}`, title }, { ok: '✓', partial: '~', missing: '✗', unknown: '?' }[status]); }
+
   async reload(silent = false) {
     if (!silent && this.dirty && !confirm('Drop your unsaved storyboard edits and read storyboard.json again?')) return;
+    void this.refreshCoverage();
     try {
       const raw = await api.storyboardRaw();
       this.savedJson = JSON.stringify(raw);
@@ -149,6 +169,7 @@ export class StoryboardTab {
       this.savedJson = json;
       this.banner.hidden = true;
       toast(r.changed ? 'Storyboard saved' : 'Nothing to save');
+      void this.refreshCoverage();
     } catch (e) { toast((e as Error).message, 'error'); }
     finally { this.saveBtn.disabled = false; this.updateState(); }
   }
@@ -205,7 +226,7 @@ export class StoryboardTab {
         const on = i === this.bi;
         return h('li', { class: on ? 'on' : '' },
           h('button', { class: 'bsel', 'aria-current': on ? 'true' : undefined, onclick: () => { this.bi = i; this.pi = 0; this.li = 0; this.renderAll(); } },
-            h('span', { class: 'btitle' }, `${i + 1}. ${b.title || b.id}`),
+            h('span', { class: 'btitle' }, `${i + 1}. ${b.title || b.id}`, (() => { const c = this.boardCov(b.id); return c ? this.badge(c.status, `${Math.round(c.score * 100)}% of this board is in the game`) : null; })()),
             h('span', { class: 'broom' }, b.room ? rooms.find((r) => r.id === b.room)?.name ?? b.room : 'no room', ` · ${b.panels.length} panel(s)`),
             b.goal ? h('span', { class: 'bgoal' }, b.goal) : null),
           on ? h('span', { class: 'bops' },
@@ -379,9 +400,13 @@ export class StoryboardTab {
       h('option', { value: '' }, '+ sfx'), known.filter((s) => !sfx.includes(s)).map((s) => h('option', { value: s }, s)));
     addSfx.addEventListener('change', () => { if (!addSfx.value) return; (p.sfx ??= []).push(addSfx.value); this.changed(true); });
     const idIn = this.input(p, 'id', { label: `Panel ${i + 1} id`, cls: 'pid', onInput: () => this.renderPreview() });
+    const pc = this.panelCov(p.id);
+    const notOk = (list: Check[]) => list.filter((x) => x.status === 'partial' || x.status === 'missing');
+    const issues = pc ? notOk([...(pc.action ? [pc.action] : []), ...pc.lines, ...pc.sfx]) : [];
     const card = h('article', { class: `card${on ? ' on' : ''}`, onfocusin: () => select(), onclick: () => select() },
       h('header', null,
         h('span', { class: 'num' }, String(i + 1)),
+        pc ? this.badge(pc.status, pc.status === 'ok' ? 'Everything in this panel is in the game' : `${Math.round(pc.score * 100)}% of this panel is in the game (saved version)`) : null,
         this.input(p, 'title', { label: `Panel ${i + 1} title`, placeholder: 'Panel title', cls: 'ptitle', fk: `p${i}.title` }),
         idIn,
         h('span', { class: 'cops' },
@@ -410,6 +435,7 @@ export class StoryboardTab {
         sfx.map((s, k) => h('span', { class: `chipx${known.length && !known.includes(s) ? ' unknown' : ''}`, title: known.includes(s) ? s : `${s}: not in audio.sfx` }, s,
           h('button', { class: 'icon', 'aria-label': `Remove sound ${s}`, onclick: () => { sfx.splice(k, 1); this.changed(true); } }, '✕'))),
         addSfx),
+      issues.length ? h('ul', { class: 'covlist' }, issues.map((x) => h('li', { class: x.status, title: x.path ?? '' }, `${x.status === 'missing' ? '✗' : '~'} ${x.what}${x.detail ? ` — ${x.detail}` : ''}`))) : null,
       this.ctx.notes.about(p.id).length ? h('span', { class: 'ncount', title: 'Notes about this panel' }, `✎ ${this.ctx.notes.about(p.id).length}`) : null);
     return card;
   }

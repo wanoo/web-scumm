@@ -10,7 +10,7 @@ real engine (the room rendered by `src/engine/dom`), so what you see is what pla
   Selecting one (in the list or in the view) opens its sheet: name, kind, states, visibility, **look lines** (add, edit,
   delete), **reactions** (verb, targets, condition, commands as a list of lines: texts editable, other commands shown),
   **talk topics** (as a list, or as a **tree**: topics, lines, choices and their options, branches, each with its
-  condition; tapping a node jumps to its editor); under the view, the room's name, **hints**, **on enter** lines, the
+  condition; tapping a node jumps to its editor); next to every cutscene, arrival script and world script, a **Timeline** toggle draws how long each command takes and what overlaps (lines, walks, animations, parallel branches, the player's turns in red; tap a bar to jump to its line); under the view, the room's name, **hints**, **on enter** lines, the
   room's **scripts** and **events** (read-only structure, texts editable). A text is saved when the field
   loses focus (Enter); Escape cancels. Each save shows a toast and runs Check in the background; a placement in
   progress in the view is saved first (the view reloads when the room file changes). Text edits are written into `rooms/<room>.ts`
@@ -33,6 +33,10 @@ real engine (the room rendered by `src/engine/dom`), so what you see is what pla
   (the same text as `npm run page:storyboard -- --md`; it offers to save first).
 - **Assets**: every image and sound of the game, where each one is used, its art prompt, and the uploads that replace
   or add them (see "Assets tab" below).
+- **Storyboard** (see below): the saved storyboard is checked against the content after every load and save
+  (`src/engine/tools/coverage.ts`): a badge on each board and panel (✓ everything is in the game, ~ partly, ✗ something
+  is missing, ? prose), and under a panel the list of what is not there yet (an action no rule answers, a line the game
+  does not say, a sound not in `audio.sfx`); the bar shows the overall score.
 - **Check**: the validator and the solver run after every save; their output and the solver path are shown here.
   "Screenshot" renders a room at a checkpoint (needs Playwright).
   Below them, the **world map** (rooms, exits, gotos; unreachable rooms and exits with no way back in red) and the
@@ -45,7 +49,8 @@ real engine (the room rendered by `src/engine/dom`), so what you see is what pla
   each rule, topic, listener, script and room by how many times the solver went through it. Under the solver path,
   **Solver health**: engine runs, actions skipped, no-ops, actions per state, which dimensions split the states most,
   the warnings a designer acts on (independent dimensions: a checkpoint between them would cut the states; a room with
-  runaway branching), the full profile of `npm run solve -- --profile`.
+  runaway branching), the full profile of `npm run solve -- --profile`. Further down, **Storyboard coverage**: the
+  storyboard checked against the content, the same text the `storyboard_coverage` tool returns.
 - **Play**: the game itself (dev tools on) in a frame, next to the live **state** (room, bag, flags, moving
   characters, scripts, players) and a **rule explainer**: pick a verb, an item and a target, and every rule that could
   answer is listed with each condition evaluated ✓ / ✗ against the live state; the first ✓ wins, or the tab says which
@@ -81,6 +86,7 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 | PUT `notes/:id` | `{ text, about? }` → the updated `Note` (text trimmed, `edited` set to now; `at`, `author` and the order unchanged); 400 empty text, 404 unknown id |
 | DELETE `notes/:id` | → `{ ok }`, the note removed from `notes.json`; 404 unknown id |
 | POST `validate` | → `{ ok, errors: string[], warnings: string[], ms }` |
+| POST `coverage` | → `{ coverage, markdown, ms }`: the saved storyboard checked against the content (`src/engine/tools/coverage.ts`: per board and panel, each room, speaker, line, topic, sound and action ok / partial / missing / unknown) |
 | POST `solve` | `{ from?: checkpoint }` → `{ finished, states, truncated, path, roomsReached, unlockedReached, flagsReached, itemsNeverUsed, unusedItems, deadEnds: [{ room, inventory, path }], errors, from, ms, profile }` (400 for an unknown checkpoint); `profile` is the `SolveProfile` of `src/engine/tools/solve.ts` |
 | POST `screenshot` | `{ room, checkpoint? }` → `{ file, url }`: a PNG of the room (editor overlays hidden) under `.cache/studio/<game>-<room>[-<checkpoint>].png`, served at `url` (`GET screenshots/<name>.png`). 501 `{ unavailable: true, reason, error }` if Playwright or its Chromium is missing |
 | GET `assets` | `{ sheets: [{ id, kind: 'sprites' \| 'furniture' \| 'talk', character?, grid, promptKind?, cells: [{ id, file, w, h, used, ids, prepared, asset?, backups, mtime, missing? }] }], decors: [{ name, rooms, …cell }], sounds: { music, sfx: [{ id, kind, file, used, prepared, asset?, backups }] }, missing, unprepared, prompts: { sheets: [{ id, kind, markdown, missingMarkdown? }], style } }`: see "Assets tab" |

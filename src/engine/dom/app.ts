@@ -1,4 +1,5 @@
 import { check } from '../core/cond';
+import { sayMs } from '../core/timing';
 import { Engine } from '../core/engine';
 import type { Presenter, SaveStore } from '../core/ports';
 import type { GameDef, GameState, Id, Layout, Point, RoomDef, VerbId } from '../core/types';
@@ -390,7 +391,7 @@ export class App implements Presenter {
       const mine = box;
       // With a voice clip, the line lasts as long as the clip (a tap still skips it); otherwise a reading time.
       if (o.voice && this.audio.hasVoice(o.voice)) this.audio.voice(o.voice).then(() => { if (this.speechEl === mine) this.endSpeech(); });
-      else this.speechTimer = window.setTimeout(() => this.endSpeech(), Math.max(2200, text.length * 70) / this.settings.textSpeed);
+      else this.speechTimer = window.setTimeout(() => this.endSpeech(), sayMs(text, this.settings.textSpeed));
     });
   }
 
