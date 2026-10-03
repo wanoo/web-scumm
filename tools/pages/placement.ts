@@ -3,7 +3,7 @@
 // entries and scale lines, draggable by touch or mouse. Saves `{ room, layout }` in the artifact db collection
 // `layouts` (doc id = room id) and in localStorage; "Export" gives the same shape as games/<id>/layout/<room>.json.
 // Bring the result back with `npm run import-layout <file|dir>`. Simpler than the in-game editor (?edit=<room>):
-// no per-state positions, no rotation, no z; those keys are kept untouched.
+// no per-state positions; `z`, `on`, `flip`, `flipV` and `rot` are edited in the side panel.
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { GameDef, Layout, RoomDef } from '../../src/engine/core/types';
@@ -150,6 +150,15 @@ const SCRIPT = String.raw`
       stroke: '#000', 'stroke-width': 3 * k(), 'paint-order': 'stroke', 'pointer-events': 'none' }); t.textContent = text;
   }
   function isSel(kind, id) { return selected && selected.kind === kind && selected.id === id; }
+  // Effective depth order, as the engine computes it: z, else y + 200 when the prop sits on furniture, else the feet y.
+  function zOf(v) { return v.z != null ? v.z : v.on ? v.y + 200 : v.y; }
+  function spriteTransform(v, w, dh) {
+    var t = [];
+    if (v.rot) t.push('rotate(' + v.rot + ' ' + v.x + ' ' + (v.y - dh / 2) + ')');
+    if (v.flip) t.push('translate(' + (2 * v.x) + ' 0) scale(-1 1)');
+    if (v.flipV) t.push('translate(0 ' + (2 * v.y - dh) + ') scale(1 -1)');
+    return t.length ? t.join(' ') : null;
+  }
 
   function render() {
     while (svg.firstChild) svg.removeChild(svg.firstChild);
@@ -196,12 +205,12 @@ const SCRIPT = String.raw`
     });
     // Props and actors, back to front
     var sprites = cur.items.filter(function (it) { return it.kind !== 'hotspot' && layers[it.kind]; })
-      .map(function (it) { return { it: it, p: pos(it) }; }).sort(function (a, b) { return a.p.v.y - b.p.v.y; });
+      .map(function (it) { return { it: it, p: pos(it) }; }).sort(function (a, b) { return zOf(a.p.v) - zOf(b.p.v); });
     sprites.forEach(function (o) {
       var it = o.it, v = o.p.v, h = v.h || it.h, dh = it.depth ? h * depth(v.y) : h, w = dh * it.aspect, on = isSel(it.kind, it.id);
       var g = el('g', { opacity: o.p.missing ? .75 : 1 });
       if (it.img) el('image', { href: it.img, x: v.x - w / 2, y: v.y - dh, width: w, height: dh, preserveAspectRatio: 'none',
-        transform: v.flip ? 'translate(' + (2 * v.x) + ' 0) scale(-1 1)' : null, 'data-h': 'move:' + it.kind + ':' + it.id }, g);
+        transform: spriteTransform(v, w, dh), 'data-h': 'move:' + it.kind + ':' + it.id }, g);
       el('rect', { x: v.x - w / 2, y: v.y - dh, width: w, height: dh, fill: it.img ? 'transparent' : 'rgba(255,255,255,.15)',
         stroke: on ? '#fff' : o.p.missing ? '#ffb86b' : 'rgba(255,255,255,.35)', 'stroke-width': on ? sw : s, 'stroke-dasharray': o.p.missing || !on ? 4 * s : null,
         'data-h': 'move:' + it.kind + ':' + it.id }, g);
@@ -266,9 +275,24 @@ const SCRIPT = String.raw`
         f.appendChild(num('x', p.v.x, function (v) { own(it).x = round(v); }));
         f.appendChild(num('y', p.v.y, function (v) { own(it).y = round(v); }));
         f.appendChild(num('h', p.v.h || it.h, function (v) { own(it).h = round(v); }));
-        var fl = document.createElement('label'); fl.textContent = 'flip';
-        var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!p.v.flip; cb.onchange = function () { var o = own(it); if (cb.checked) o.flip = true; else delete o.flip; changed(); };
-        fl.appendChild(cb); f.appendChild(fl);
+        var flag = function (key, text) {
+          var fl = document.createElement('label'); fl.textContent = text;
+          var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!p.v[key]; cb.onchange = function () { var o = own(it); if (cb.checked) o[key] = true; else delete o[key]; changed(); };
+          fl.appendChild(cb); f.appendChild(fl);
+        };
+        flag('flip', 'mirror \u2194');
+        if (it.kind === 'prop') { flag('flipV', 'mirror \u2195'); flag('on', 'on furniture (z = y + 200)'); }
+        // z: empty = automatic (feet y, or y + 200 on furniture); a number forces the depth order
+        var zl = document.createElement('label'); zl.textContent = 'z (' + zOf(p.v) + (p.v.z != null ? '' : ' auto') + ')';
+        var zi = document.createElement('input'); zi.type = 'number'; zi.step = '1'; zi.placeholder = 'auto'; zi.value = p.v.z != null ? p.v.z : '';
+        zi.onchange = function () { var o = own(it); if (zi.value === '') delete o.z; else o.z = round(+zi.value); changed(); };
+        zl.appendChild(zi); f.appendChild(zl);
+        var zr = document.createElement('div'); zr.className = 'row';
+        zr.appendChild(btn('Behind \u2212', function () { var o = own(it); o.z = zOf(o) - 1; changed(); }));
+        zr.appendChild(btn('In front +', function () { var o = own(it); o.z = zOf(o) + 1; changed(); }));
+        zr.appendChild(btn('Auto z', function () { delete own(it).z; changed(); }));
+        f.appendChild(zr);
+        if (it.kind === 'prop') f.appendChild(num('rot \u00b0', p.v.rot || 0, function (v) { var o = own(it); if (Math.round(v)) o.rot = round(v); else delete o.rot; }));
       }
       if (p.v.approach) row.appendChild(btn('Remove approach', function () { delete own(it).approach; changed(); }));
       else row.appendChild(btn('Add approach', function () {
