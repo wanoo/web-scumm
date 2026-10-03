@@ -10,7 +10,7 @@ game can be finished, play it in landscape on any phone, offline after the first
 |---|---|
 | 🎮 **Play the sample game** | https://wanoo.github.io/web-scumm/ (phone in landscape, or desktop) |
 | 🛠 **Try the Studio** | https://wanoo.github.io/web-scumm/studio.html (demo mode: edits stay in your browser) |
-| 📦 **Source** | https://github.com/wanoo/web-scumm · release v1.1.0 |
+| 📦 **Source** | https://github.com/wanoo/web-scumm · release v1.2.0 |
 
 ## In pictures
 
@@ -33,6 +33,7 @@ game can be finished, play it in landscape on any phone, offline after the first
 - Review pages (storyboard, sprite review, placement): working, as local HTML or as claude.ai artifacts.
 - **Studio** (`npm run studio`): a complete local creation environment: rooms (WYSIWYG on the real engine), texts, storyboard, notes, **assets** (every image and sound, prompts per sheet, uploads cut automatically) and an **Assistant** that connects any AI model (OpenAI, Anthropic, Mistral, Ollama…) with the same tools as the MCP server. See `docs/en/STUDIO.md`.
 - **Art prompts generator** (`npm run prompts`): ready-to-paste prompts for every character sheet (walk, talk, seated, the special poses your rooms use), object sheet with states, background and furniture, all sharing one style block. See `docs/en/PROMPTS.md`.
+- **Colour discipline and pixel-art preset**: every generated prompt carries the colour rules (4 hue-shifted tones per material, flat areas, one outline); `artStyle: "pixel"` in `site.json` switches prompts, cutter (nearest-neighbour, shared palette, indexed PNG), pipeline (lossless) and rendering to true pixel art. **Palette swap** in the engine recolours a character or a variant from the same sprites.
 - **Design guide** (`docs/en/DESIGN.md`): how to build a good SCUMM-style game with this engine, with a checklist before you share the link.
 - Try the Studio in your browser: https://wanoo.github.io/web-scumm/studio.html (demo mode, edits stay in your browser).
 - **MCP server** (`npm run -s mcp`): the same operations as tools for Claude Code, Cursor, Codex, Gemini CLI or any MCP client. See `docs/en/MCP.md`.
