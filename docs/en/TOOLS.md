@@ -170,7 +170,7 @@ npm run solve -- --prove --chapters   # the proof by chapters: each chapter prov
 npm run validate -- --report       # the content profiler: rooms, items, characters, what is thin (Markdown)
 npm run page:world                 # the map of the world as a page (exits, gotos, unreachable rooms, DOT source)
 npm run page:puzzles               # the puzzle graph as a page: what every rule needs and changes, a card per item / flag
-npm run bench -- --matrix [--max=20000]   # the 3.3 reference table: the proof on 20/40 rooms × 1/2/3 characters, where the time goes (BENCH.md)
+npm run bench -- --matrix [--eras] [--max=20000]   # the 3.3 reference table (--eras: characters confined to eras, the reference game): the proof on 20/40 rooms × 1/2/3 characters, where the time goes (BENCH.md)
 npm run bench -- --rooms=40 [--prove --v3]   # a generated game of that size, every tool timed on it; --prove adds the exhaustive proof, --v3 generates it with stable ids (docs/en/BENCH.md)
 npm run i18n -- extract [--lang xx]   # translation tables (games/<id>/locales/<xx>.json); `status` for the coverage
 npm run solve -- --profile         # what the states are made of and what the search cost (docs/en/BENCH.md)

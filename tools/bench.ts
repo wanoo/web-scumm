@@ -1,7 +1,7 @@
 // npm run bench [-- --rooms=40 --players=3 --items=30 --flags=100 --npcs=5 --scripts=10 --topics=40 --max=200000 --prove --v3]
 // --prove adds the exhaustive proof of the whole game (slow on a big one: the reduction is off in proof mode);
 // --v3 generates the game with stable ids (schemaVersion 3), as a real v3 game.
-// --matrix: the 3.3 "Scale" reference table instead: the exhaustive proof on 20 and 40 rooms × 1, 2 and 3 playable
+// --matrix [--eras]: the 3.3 "Scale" reference table instead: the exhaustive proof on 20 and 40 rooms × 1, 2 and 3 playable
 //   characters (12 items, 30 flags, 1 walker, 2 scripts, 8 topics; --max states each), with where the time goes and
 //   how many distinct character positions the states hold. Markdown on stdout (docs/en/BENCH.md "v3.3").
 // Generates a game of that size (src/engine/tools/stress.ts) and times every tool on it: validate, solve (global and
@@ -24,10 +24,13 @@ const opts = { rooms: arg('rooms', 40), players: arg('players', 3), items: arg('
 const max = arg('max', 200000);
 if (process.argv.includes('--matrix')) {
   const cap = arg('max', 20000);
+  // --eras: the 3.3 reference (each character confined to its era, items crossing through time chutes); without it,
+  // the open chain where every character can pick up anyone's items (the worst case).
+  const erasRef = process.argv.includes('--eras');
   console.log(`| Game | Proof | States | Engine runs | Time | Positions | Time split (run / clone / hash / queue / tries / other) |`);
   console.log('|---|---|---|---|---|---|---|');
   for (const rooms of [20, 40]) for (const players of [1, 2, 3]) {
-    const g = makeStressGame({ rooms, players, items: 12, flags: 30, npcs: 1, scripts: 2, topics: 8, schemaVersion: 3 });
+    const g = makeStressGame({ rooms, players, items: 12, flags: 30, npcs: 1, scripts: 2, topics: 8, schemaVersion: 3, eras: erasRef });
     const r = await solve(g.game, g.layouts, { mode: 'prove', maxStates: cap });
     const t = r.profile.timing; const tot = Object.values(t).reduce((a, b) => a + b, 0) || 1;
     const pc = (k: keyof typeof t) => `${Math.round((100 * t[k]) / tot)}%`;

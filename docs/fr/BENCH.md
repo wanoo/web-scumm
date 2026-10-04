@@ -248,3 +248,47 @@ Le personnage actif n'est plus un facteur (positions 18 796 → 112 à trois per
 restent tronquées : le lieu exact et le sac de chaque personnage fragmentent maintenant les états. C'est le travail
 des régions de mobilité.
 
+### Après `v33-mobility` : régions de mobilité, et la preuve de référence
+
+Le lieu exact d'un personnage est remplacé par sa **région** : les lieux entre lesquels il peut marcher en silence
+(sorties générées et voyages par la carte vers des lieux sans `onEnter`, dont rien ne lit le `visited`, et qu'aucune
+condition ne nomme), la partie fortement connexe autour de lui vue avec son propre sac. La preuve propose les actions
+de chaque lieu de la région sous la forme `Go to <lieu> › action` ; le trajet est joué une fois par lieu, chaque pas
+vérifié (il arrive, il ne change rien de ce que lit le solveur), et un pas qui n'est pas silencieux relance la
+recherche avec les lieux exacts (`profile.mobility.reason`). Le témoin d'une preuve par régions se rejoue sur le vrai
+moteur.
+
+**La référence** (`npm run bench -- --matrix --eras`, `makeStressGame({ eras: true })`) : chaque personnage confiné
+dans son époque, l'objet qui ouvre la première serrure de l'époque suivante envoyé par une goulotte temporelle
+(`{ transfer }`), goulottes à sens unique, marcheurs, scripts et sujets ; `softlock: true` ajoute une poubelle qui
+détruit l'objet 0. Mode preuve, budget de 200 000 états :
+
+| Jeu | Preuve | États | Exécutions | Temps |
+|---|---|---|---|---|
+| 20 lieux, 1 personnage | résolue | 83 | 1 787 | 0.2 s |
+| 20 lieux, 2 personnages | résolue | 358 | 7 260 | 0.8 s |
+| 20 lieux, 3 personnages | résolue | 481 | 11 277 | 1.1 s |
+| 40 lieux, 1 personnage | résolue | 163 | 6 787 | 2.1 s |
+| 40 lieux, 2 personnages | résolue | 678 | 25 660 | 6.5 s |
+| 40 lieux, 3 personnages | résolue | 578 | 21 886 | 4.2 s |
+
+L'objectif de la 3.3 est atteint sur elle : 40 lieux × 3 personnages prouvés en 578 états et 4,2 s. Sur des versions
+à 12 lieux, la recherche explicite (les deux abstractions coupées) donne les mêmes verdicts avec 13 à 15 fois plus
+d'états (2 906 contre 230 à deux personnages, 16 944 contre 1 100 à trois), et trouve le même softlock dans la
+variante négative (`tests/reference-proof.test.ts`).
+
+**La chaîne ouverte reste hors de portée, et c'est le jeu, pas l'abstraction.** Sans époques, chaque personnage peut
+parcourir toute la chaîne et ramasser l'objet de n'importe qui : quel personnage porte quel objet est un vrai produit
+que la preuve doit couvrir (budget de 20 000 états) :
+
+| Jeu | Preuve | États | Temps |
+|---|---|---|---|
+| 20 lieux, 2 personnages | tronquée | 20 000 | 57.9 s |
+| 20 lieux, 3 personnages | tronquée | 20 000 | 33.8 s |
+| 40 lieux, 2 personnages | tronquée | 20 000 | 451.7 s |
+| 40 lieux, 3 personnages | tronquée | 20 000 | 65.9 s |
+
+Aucune réduction exacte ne peut retirer ces états ; un jeu construit ainsi se vérifie par le témoin, les témoins par
+chapitre et les playtests, ou en bornant qui peut porter quoi. Avec un seul personnage, les régions réduisent aussi la
+chaîne ouverte (40 lieux : 3 197 → 163 états).
+

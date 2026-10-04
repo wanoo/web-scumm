@@ -32,3 +32,42 @@ describe('the canonical character', () => {
     expect(r.profile.canonical).toMatchObject({ applied: false, reason: 'the goal reads { player }' });
   }, 60000);
 });
+
+describe('mobility regions', () => {
+  const games: [string, GameDef, Record<string, Layout>, object][] = [
+    ['cast fixture', cast(), castLayouts, {}],
+    ['demo', structuredClone(demo), demoLayouts, { commands }],
+    ...[4, 6, 8].map((rooms): [string, GameDef, Record<string, Layout>, object] => { const g = makeStressGame({ rooms, players: 1, items: rooms + 1, flags: 4, npcs: 1, scripts: 1, topics: 2 }); return [`stress ${rooms} rooms, 1 character`, g.game, g.layouts, {}]; }),
+    ...[5, 6].map((rooms): [string, GameDef, Record<string, Layout>, object] => { const g = makeStressGame({ rooms, players: 2, items: 4, flags: 4, npcs: 0, scripts: 0, topics: 2 }); return [`stress ${rooms} rooms, 2 characters`, g.game, g.layouts, {}]; }),
+  ];
+  for (const [name, game, layouts, o] of games) it(`${name}: same verdict as exact rooms, no more states`, async () => {
+    const exact = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', mobility: false, maxStates: 60000 });
+    const regions = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', mobility: true, maxStates: 60000 });
+    expect(exact.truncated).toBe(false);
+    expect(verdict(regions)).toEqual(verdict(exact));
+    expect(regions.states).toBeLessThanOrEqual(exact.states);
+    expect(regions.profile.mobility.applied).toBe(true);
+  }, 180000);
+
+  it('a softlock behind a silent move is still found', async () => {
+    // A one-way trapdoor out of the region, into a room without the key: the region must not hide it.
+    const g = makeStressGame({ rooms: 8, players: 1, items: 7, flags: 2, npcs: 0, scripts: 0, topics: 1 });
+    const r6 = g.game.rooms.find((r) => r.id === 'r6')!;
+    r6.exits = { ...(r6.exits ?? {}), trap: { name: 'trapdoor', to: 'r1', oneWay: true } };
+    g.game.rooms.find((r) => r.id === 'r1')!.on!.push({ verb: 'use', a: 'lock', if: 'never_set', do: ['Nope.'] });
+    const exact = await solve(structuredClone(g.game), g.layouts, { mode: 'prove', mobility: false, maxStates: 60000 });
+    const regions = await solve(structuredClone(g.game), g.layouts, { mode: 'prove', mobility: true, maxStates: 60000 });
+    expect(verdict(regions)).toEqual(verdict(exact));
+  }, 120000);
+
+  it('the witness of a region proof replays on the real engine', async () => {
+    const { replay } = await import('@engine/tools/replay');
+    const g = makeStressGame({ rooms: 8, players: 1, items: 7, flags: 2, npcs: 0, scripts: 0, topics: 1 });
+    const r = await solve(g.game, g.layouts, { mode: 'prove', mobility: true });
+    expect(r.finished).toBe(true);
+    expect(r.path.some((p) => p.startsWith('Go to '))).toBe(true);
+    const p = await replay(g.game, g.layouts, { start: { kind: 'new' }, log: r.steps });
+    expect(p.divergedAt).toBeUndefined();
+    expect(p.ended).toBe(true);
+  }, 120000);
+});

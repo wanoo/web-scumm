@@ -12,6 +12,14 @@ export interface StressOptions {
   migrations?: number;
   /** Schema 3: every rule, topic, listener, block and script step gets a stable id (`assignIds`), as a real v3 game. */
   schemaVersion?: 2 | 3;
+  /**
+   * Each playable character confined to its own era (the 3.3 reference game): no door between two eras, the item
+   * that opens the next era's first lock goes through a time chute (`{ transfer }` to the next character). Without
+   * it, every character can walk the whole chain and pick up anyone's items: the worst case for the proof.
+   */
+  eras?: boolean;
+  /** With `eras`: a trash can in the first room destroys item 0, a reachable softlock (the negative reference). */
+  softlock?: boolean;
 }
 
 export function makeStressGame(o: StressOptions = {}): { game: GameDef; layouts: Record<string, Layout> } {
@@ -24,6 +32,10 @@ export function makeStressGame(o: StressOptions = {}): { game: GameDef; layouts:
   const migrations = o.migrations ?? 10;
   const boundary = (k: number) => Math.floor((k * N) / P); // the room where player k starts and takes over
   const takerOf = (i: number) => { let k = 0; for (let j = 1; j < P; j++) if (boundary(j) === i) k = j; return k; };
+  const eras = !!o.eras && P > 1;
+  /** The room where an era starts (a wall before it), and the character who lives there. */
+  const eraStart = new Map<number, number>([...Array(P).keys()].slice(1).map((k) => [boundary(k), k]));
+  const eraOf = (i: number) => [...Array(P).keys()].filter((k) => boundary(k) <= i).pop() ?? 0;
   const rid = (i: number) => `r${i}`;
   const item = (i: number) => `item_${i}`;
 
@@ -64,10 +76,23 @@ export function makeStressGame(o: StressOptions = {}): { game: GameDef; layouts:
       flagCount++;
       r.hints!.push({ until: `opened_${i}`, lines: [`Item ${i - 1} fits lock ${i}.`] });
     }
-    if (i < N - 1) { r.exits!.next = { name: `way to room ${i + 1}`, to: rid(i + 1), entry: 'from_prev', ...(i >= 1 ? { if: `opened_${i}`, locked: `Lock ${i} holds the door.` } : {}) }; lay.hotspots!.next = { rect: [560, 200, 60, 80] }; }
-    if (i >= 1) { r.exits!.prev = { name: `way back to room ${i - 1}`, to: rid(i - 1), entry: 'from_next' }; lay.hotspots!.prev = { rect: [20, 200, 60, 80] }; }
+    // In eras mode, the last room of an era has a time chute to the next one instead of a door.
+    if (eras && eraStart.has(i + 1)) {
+      const k = eraStart.get(i + 1)!;
+      spot('timechute', 'time chute');
+      r.look!.timechute = 'A time chute.';
+      r.on!.push({ verb: 'use', a: item(i), b: 'timechute', if: `!sent_${i}`, do: [{ transfer: [item(i), `p${k}`] }, { set: `sent_${i}` }, `Item ${i} goes through time to Player ${k}.`] });
+      flagCount++;
+    }
+    if (eras && o.softlock && i === 0) {
+      spot('trash', 'trash can');
+      r.look!.trash = 'A trash can.';
+      r.on!.push({ verb: 'use', a: item(0), b: 'trash', do: [{ lose: item(0) }, 'Oops. Item 0 is gone for good.'] });
+    }
+    if (i < N - 1 && !(eras && eraStart.has(i + 1))) { r.exits!.next = { name: `way to room ${i + 1}`, to: rid(i + 1), entry: 'from_prev', ...(i >= 1 ? { if: `opened_${i}`, locked: `Lock ${i} holds the door.` } : {}) }; lay.hotspots!.next = { rect: [560, 200, 60, 80] }; }
+    if (i >= 1 && !(eras && eraStart.has(i))) { r.exits!.prev = { name: `way back to room ${i - 1}`, to: rid(i - 1), entry: 'from_next' }; lay.hotspots!.prev = { rect: [20, 200, 60, 80] }; }
     // A shortcut back every 7 rooms, one way (forward, it would skip the locks).
-    if (i % 7 === 6 && i - 3 >= 0) { r.exits!.chute = { name: 'chute', to: rid(i - 3), oneWay: true }; lay.hotspots!.chute = { rect: [300, 200, 40, 40] }; }
+    if (i % 7 === 6 && i - 3 >= 0 && !(eras && eraOf(i - 3) !== eraOf(i))) { r.exits!.chute = { name: 'chute', to: rid(i - 3), oneWay: true }; lay.hotspots!.chute = { rect: [300, 200, 40, 40] }; }
     // Extra items: a trinket to take and a bin to drop it in, in rooms along the way.
     const ex = [...Array(extras).keys()].filter((j) => j % N === i);
     for (const j of ex) {
@@ -116,6 +141,8 @@ export function makeStressGame(o: StressOptions = {}): { game: GameDef; layouts:
     // The goal state of chapter c: locks 1..b opened (item b-1 was consumed by lock b), items 0..b-1 taken.
     for (let i = 0; i < b; i++) flags[`got_${i}`] = true;
     for (let i = 1; i <= b; i++) flags[`opened_${i}`] = true;
+    // Eras: the items that crossed a time chute before room b.
+    if (eras) for (const s of eraStart.keys()) if (s <= b) flags[`sent_${s - 1}`] = true;
     const players: Record<string, { room: Id }> = {};
     for (let k = 0; k < P; k++) if (k !== carrier) players[`p${k}`] = { room: rid(Math.min(boundary(k), b)) };
     checkpoints[`chapter_${c}`] = { room: rid(b), active, inventory: [], players, flags, goals: [{ room: rid(b) }, `opened_${b}`] };
