@@ -20,7 +20,7 @@ What players get: nine classic verbs, an inventory, dialogue with a transcript, 
 with vehicles, cutscenes, two-voice phone calls, minigames (pipes, cable tangle, pick, hide and seek, runner, petting,
 scratch ticket), rooms wider than the screen, several playable characters, an optional sealed ending (AES-encrypted,
 revealed in play), autosave plus save slots with export / import, settings, translations, touch and mouse, phone and
-desktop layouts, and the whole game offline after the first visit.
+desktop layouts, the whole game at the keyboard, and the whole game offline after the first visit.
 
 <table>
 <tr><td width="50%" valign="top"><img src="docs/img/title.jpg" alt="Title screen, phone in landscape" width="100%"><br><sub>Title screen, phone in landscape</sub></td><td width="50%" valign="top"><img src="docs/img/room-garden.jpg" alt="A room: nine verbs, the bag, the scene" width="100%"><br><sub>A room: nine verbs, the bag, the scene</sub></td></tr>

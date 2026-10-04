@@ -37,6 +37,9 @@ export async function launch(url, opts = {}) {
   for (const f of readdirSync(out)) if (f.endsWith('.png')) rmSync(`${out}/${f}`);
 
   const browserName = opts.browser ?? process.env.E2E_BROWSER ?? 'chromium';
+  // Keyboard mode (opts.input: 'keyboard', or E2E_INPUT=keyboard): every tap becomes focus + Enter on the same
+  // control (verbs, targets, items, choices, the map, Skip, cards), a line of dialogue is advanced with Space.
+  const keyboard = (opts.input ?? process.env.E2E_INPUT) === 'keyboard';
   const browserType = { chromium, firefox, webkit }[browserName];
   if (!browserType) throw new Error(`unknown E2E browser "${browserName}" (expected chromium, webkit or firefox)`);
   const browser = await browserType.launch();
@@ -69,6 +72,12 @@ export async function launch(url, opts = {}) {
   // ------------------------------------------------------------------ taps and drags
 
   async function tapXY(x, y) { await page.touchscreen.tap(x, y); }
+  /** Taps a control, or focuses it and presses Enter in keyboard mode. */
+  async function activate(locator, tapOpts = {}) {
+    if (!keyboard) { await locator.tap(tapOpts); return; }
+    await locator.focus({ timeout: tapOpts.timeout ?? 30000 });
+    await page.keyboard.press('Enter');
+  }
   async function sceneRect() { return page.locator('.scene').boundingBox(); }
   async function tapScene(x, y) {
     // Wide rooms: logical coordinates are world coordinates; the scene shows them shifted by the camera.
@@ -108,6 +117,7 @@ export async function launch(url, opts = {}) {
     }, id);
   }
   async function tapTarget(id) {
+    if (keyboard) { await activate(page.locator(`.a11y-target[data-target="${id}"]`).first()); return; }
     const q = await pointOn(id);
     if (!q) throw new Error(`tapTarget: no box for ${id}`);
     await tapScene(q[0], q[1]);
@@ -117,7 +127,7 @@ export async function launch(url, opts = {}) {
 
   async function verb(label) {
     for (let k = 0; k < 50; k++) {
-      await page.locator('.verb', { hasText: label }).tap();
+      await activate(page.locator('.verb', { hasText: label }));
       const ok = await page.evaluate((l) => window.__game.game.verbs.find((v) => v.id === window.__game.verb)?.label === l, label);
       if (ok) return;
       await page.waitForTimeout(150);
@@ -150,7 +160,7 @@ export async function launch(url, opts = {}) {
     }
     throw new Error(`itemSlot: not in the bag: ${id}`);
   }
-  async function item(id) { await (await itemSlot(id)).tap(); }
+  async function item(id) { await activate(await itemSlot(id)); }
   const inInventory = (id) => page.evaluate((id) => window.__game.engine.state.inventory.includes(id), id);
   async function target(id) { if (await inInventory(id)) await item(id); else await tapTarget(id); }
 
@@ -190,7 +200,7 @@ export async function launch(url, opts = {}) {
     if (!(await b.count())) return false;
     // The overlay may be mid-transition (a minigame just won, its card fading): tap without waiting for the button
     // to be stable, and treat one detached in the meantime as already gone (CI runners hit that race every time).
-    try { await b.first().tap({ force: true, timeout: 3000 }); return true; } catch { return false; }
+    try { await activate(b.first(), { force: true, timeout: 3000 }); return true; } catch { return false; }
   }
 
   /** Completes the built-in scratch minigame with pointer strokes. It intentionally has no Skip button when used
@@ -225,7 +235,7 @@ export async function launch(url, opts = {}) {
     const overlays = page.locator('.overlay:not(.mapview)');
     for (let i = 0; i < (await overlays.count()); i++) {
       const b = overlays.nth(i).locator('.bigbtn');
-      if ((await b.count()) === 1) { await b.first().tap(); return true; }
+      if ((await b.count()) === 1) { await activate(b.first()); return true; }
     }
     return false;
   }
@@ -247,7 +257,7 @@ export async function launch(url, opts = {}) {
   async function waitIdle({ max = 10000, interval = 80, ignoreGuide = null, acceptEnding = false } = {}) {
     for (let waited = 0; waited < max; waited += interval) {
       const s = await state();
-      if (s.speech) { await tapScene(320, 10).catch(() => {}); await page.waitForTimeout(interval); continue; }
+      if (s.speech) { if (keyboard) await page.keyboard.press('Space'); else await tapScene(320, 10).catch(() => {}); await page.waitForTimeout(interval); continue; }
       if (await skip()) { await page.waitForTimeout(interval); continue; }
       if (await scratch()) { await page.waitForTimeout(interval); continue; }
       if (acceptEnding && (await page.locator('.overlay:not(.mapview) .bigbtn').count()) >= 2) return { ...s, ending: true };
@@ -272,7 +282,7 @@ export async function launch(url, opts = {}) {
     // A click less than 700 ms after dismissing speech is intentionally swallowed to prevent click-through. Fast
     // browser engines can reach the map button inside that window, so retry like verb() does instead of timing out.
     for (let attempt = 0; attempt < 20; attempt++) {
-      await button.tap();
+      await activate(button);
       for (let i = 0; i < 4; i++) { if ((await state()).map) return; await page.waitForTimeout(80); }
     }
     throw new Error('openMap: the map did not open');
@@ -293,7 +303,7 @@ export async function launch(url, opts = {}) {
     }
     if (!(await c.count())) throw new Error(`say: no choice matching "${text}"`);
     const before = await choiceTexts();
-    await c.first().tap();
+    await activate(c.first());
     for (let waited = 0; waited < 6000; waited += 100) {
       const s = await state();
       if (s.speech || !s.choices) break;
@@ -333,7 +343,7 @@ export async function launch(url, opts = {}) {
     }
     if ((await all.count()) <= i) throw new Error(`pick: no choice #${i} (${await all.count()} shown)`);
     const before = await choiceTexts();
-    await all.nth(i).tap();
+    await activate(all.nth(i));
     for (let waited = 0; waited < 6000; waited += 100) {
       const s = await state();
       if (s.speech || !s.choices) break;
@@ -381,7 +391,7 @@ export async function launch(url, opts = {}) {
       if ('start' in en) {
         const titleNewGame = page.locator('.overlay .bigbtn').first();
         if (await titleNewGame.count()) {
-          await titleNewGame.tap();
+          await activate(titleNewGame);
           // The title click starts an async launch. Do not let waitIdle observe the tiny gap before newGame() has
           // reached its first visible prompt (or completed), otherwise it can report an idle game while the prologue
           // is about to appear. Browser sessions record a digest when the start entry finishes.

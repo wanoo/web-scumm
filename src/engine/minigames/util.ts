@@ -44,6 +44,7 @@ export function skipButton(ctx: MinigameCtx, parent: HTMLElement, onSkip: () => 
   b.style.fontSize = `${Math.max(12, 13 * ctx.u)}px`;
   b.addEventListener('click', (e) => { e.stopPropagation(); onSkip(); });
   parent.append(b);
+  queueMicrotask(() => b.focus({ preventScroll: true }));
   return b;
 }
 

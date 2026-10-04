@@ -701,6 +701,8 @@ export interface UiTexts {
   confirmOverwrite?: string;
   /** Visible warning when the browser refuses or loses a save write. */
   saveFailed?: string;
+  /** Label of the "tap to continue" marker for screen readers (Space / Enter advance a line). English default. */
+  advance?: string;
   /** Prefix shown when obsolete references were removed from an otherwise valid save. */
   saveAdjusted?: string;
   /** Prompt displayed when a new PWA build is ready. */

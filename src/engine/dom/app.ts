@@ -10,6 +10,7 @@ import { AssetBank, type AssetManifest } from './assets';
 import { Audio } from './audio';
 import { FONT_PIXEL, FONT_UI, fontStack } from './fonts';
 import { RoomView } from './room';
+import { isTyping, roving, trapFocus } from './a11y';
 import { offlinePlan, planSize } from './offline';
 import './style.css';
 import { parseSave, parseSlot, saveEnvelope, type SlotRecord } from '../core/save';
@@ -235,6 +236,8 @@ export class App implements Presenter {
     this.scol.append(this.scene);
     this.side = el('div', 'side');
     this.verbsEl = el('div', 'verbs');
+    this.verbsEl.setAttribute('role', 'group'); this.verbsEl.setAttribute('aria-label', 'Verbs');
+    roving(this.verbsEl, '.verb');
     for (const v of this.game.verbs) {
       const b = el('button', 'verb', esc(v.label));
       b.style.color = v.color; b.dataset.verb = v.id;
@@ -275,7 +278,32 @@ export class App implements Presenter {
     this.scene.addEventListener('pointerdown', (e) => this.onScenePointer(e));
     this.scene.addEventListener('pointermove', (e) => this.onHover(e));
     this.scene.addEventListener('pointerleave', () => { this.showLabel(null); this.sentence(); });
-    this.g.addEventListener('keydown', (e) => { if (e.key === 'Escape') (this.scene.querySelector('.dim, .overlay .dim') as HTMLElement | null)?.remove(); });
+    // The keyboard plays the whole game: Space / Enter advance a line, Escape closes what is on top, then pauses.
+    document.addEventListener('keydown', (e) => this.onKey(e));
+  }
+
+  /** Escape closes the topmost thing (a menu, the map, the transcript, a cutscene's skip) or opens the pause menu;
+   * Space and Enter advance a line of dialogue (a focused button already acts on Enter and Space on its own). */
+  private onKey(e: KeyboardEvent) {
+    if (isTyping(e) || !this.engine.state) return;
+    const onButton = (e.target as HTMLElement | null)?.tagName === 'BUTTON';
+    if (e.key === 'Escape') {
+      const dim = this.scene.querySelector<HTMLElement>('.dim');
+      if (dim) { dim.remove(); return; }
+      const mapBack = this.side.querySelector<HTMLButtonElement>('.mapview ~ * .choice.gl, .choices .choice.gl:last-child');
+      if (this.scene.querySelector('.overlay.mapview') && mapBack) { mapBack.click(); return; }
+      const mgSkip = this.scene.querySelector<HTMLButtonElement>('.overlay .mg-skip');
+      if (mgSkip) { mgSkip.click(); return; }
+      if (this.transcript) { this.closeTranscript(); return; }
+      const skip = this.scene.querySelector<HTMLButtonElement>('.skip');
+      if (skip) { skip.click(); return; }
+      if (this.choosing) { const last = this.side.querySelector<HTMLButtonElement>('.choices .choice.gl:last-child'); if (last) { last.click(); return; } }
+      if (!this.scene.querySelector('.overlay')) this.pauseMenu();
+      return;
+    }
+    if ((e.key === ' ' || e.key === 'Enter') && this.speechEl && !onButton && !this.scene.querySelector('.overlay:not(.mapview) .mg-skip')) {
+      e.preventDefault(); this.endSpeech(); this.eatClick = performance.now();
+    }
   }
 
   private layout() {
@@ -408,6 +436,7 @@ export class App implements Presenter {
   private renderVerbs() {
     for (const b of this.verbsEl.children as HTMLCollectionOf<HTMLElement>) {
       b.classList.toggle('on', b.dataset.verb === this.verb);
+      b.setAttribute('aria-pressed', String(b.dataset.verb === this.verb));
       b.classList.toggle('blink', b.dataset.verb === this.guideState?.verb);
     }
   }
@@ -489,7 +518,9 @@ export class App implements Presenter {
       box.style.top = `${Math.max(head[1], 70) * this.u}px`;
       this.view.setTalking(who, text.length > 70);
     }
-    this.scene.append(box, el('div', 'tapnext', '▼'));
+    const next = el('button', 'tapnext', '▼'); next.setAttribute('aria-label', this.game.ui.advance ?? 'Continue'); next.tabIndex = -1;
+    next.onclick = (e) => { e.stopPropagation(); this.endSpeech(); this.eatClick = performance.now(); };
+    this.scene.append(box, next);
     this.speechEl = box;
     this.transcribe(who, text, color);
     return new Promise((res) => {
@@ -604,6 +635,7 @@ export class App implements Presenter {
     if (on) {
       const b = el('button', 'skip', esc(this.game.ui.skip));
       b.onclick = (e) => { e.stopPropagation(); this.engine.skip(); this.endSpeech(); };
+      queueMicrotask(() => b.focus({ preventScroll: true }));
       this.scene.append(b);
     }
   }
@@ -621,7 +653,10 @@ export class App implements Presenter {
       const c = this.game.characters[who];
       box.append(el('div', 'who', `${c?.portrait ? `<img src="${this.bank.img(c.portrait)}" alt="">` : ''}${esc(c?.name ?? who)}`));
     }
+    box.setAttribute('role', 'group'); box.setAttribute('aria-label', who ? (this.game.characters[who]?.name ?? who) : this.game.ui.mapTitle);
+    roving(box, '.choice');
     this.side.insertBefore(box, this.toolsEl);
+    queueMicrotask(() => box.querySelector<HTMLElement>('.choice')?.focus({ preventScroll: true }));
     return new Promise((res) => {
       options.forEach((o, i) => {
         const b = el('button', 'choice' + (o.seen ? ' read' : '') + (o.global ? ' gl' : ''), '• ' + esc(o.text));
@@ -757,6 +792,7 @@ export class App implements Presenter {
     if (map.music) this.audio.push(map.music);
     const ov = el('div', 'overlay mapview');
     ov.style.background = '#000';
+    ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-label', this.game.ui.mapTitle);
     this.scene.append(ov);
     this.verbsEl.hidden = true; this.invEl.hidden = true; this.invNav.hidden = true;
     // The place list is a prompt like a `choice`: `choosing` keeps refresh() from dimming the side column (busy) while
@@ -765,6 +801,8 @@ export class App implements Presenter {
     this.choosing = true;
     this.side.classList.remove('off');
     const list = el('div', 'choices');
+    list.setAttribute('role', 'group'); list.setAttribute('aria-label', this.game.ui.mapTitle);
+    roving(list, '.choice');
     this.side.insertBefore(list, this.toolsEl);
     const places = () => Object.entries(map.places).filter(([id, p]) => state.unlocked.includes(id) && p.region === region);
     const icons = this.game.skin.icons;
@@ -826,6 +864,7 @@ export class App implements Presenter {
         const back = el('button', 'choice gl', '• ' + esc(this.game.ui.mapBack));
         back.onclick = () => { cleanup(); resolve(null); };
         list.append(back);
+        queueMicrotask(() => list.querySelector<HTMLElement>('.choice')?.focus({ preventScroll: true }));
       };
       const go = async (id: Id) => {
         if (id === here) { cleanup(); resolve(null); return; }
@@ -930,15 +969,8 @@ export class App implements Presenter {
     const previousFocus = document.activeElement as HTMLElement | null;
     const d = el('div', 'dim'); const m = el('div', 'menu', `<h3>${esc(ui.pause.toUpperCase())}</h3>`);
     m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', ui.pause);
-    const remove = d.remove.bind(d); d.remove = () => { remove(); previousFocus?.focus(); };
-    d.addEventListener('keydown', (e) => {
-      if (e.key !== 'Tab') return;
-      const focusable = [...m.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])')];
-      if (!focusable.length) return;
-      const first = focusable[0], last = focusable.at(-1)!;
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    });
+    const remove = d.remove.bind(d); d.remove = () => { release(); remove(); previousFocus?.focus(); };
+    const release = trapFocus(m, { onEscape: () => d.remove(), restore: false });
     const row = (t: string, v: string, cls = '') => { const b = el('button', cls, `<span>${esc(t)}</span><span>${esc(v)}</span>`); m.append(b); return b; };
     row(ui.resume, '▶').onclick = () => d.remove();
     const mu = row(ui.music, this.audio.musicOn ? ui.on : ui.off);
@@ -960,7 +992,7 @@ export class App implements Presenter {
       y.onclick = () => { d.remove(); this.engine.store.clear(); void this.engine.newGame(); };
       m.append(y, n);
     };
-    d.append(m); this.scene.append(d); queueMicrotask(() => m.querySelector<HTMLElement>('button')?.focus());
+    d.append(m); this.scene.append(d);
   }
 
   /** Applies the preferences: fonts, text size, volumes, motion. */
@@ -1092,6 +1124,7 @@ export class App implements Presenter {
     const has = this.engine.hasSave();
     (cb as HTMLButtonElement).disabled = !has;
     row.append(nb, cb); ov.append(row);
+    queueMicrotask(() => nb.focus({ preventScroll: true }));
     if (T?.footer) { const f = el('div', '', esc(T.footer)); Object.assign(f.style, { position: 'absolute', bottom: '2.5%', left: '0', right: '0', textAlign: 'center', font: `${Math.max(7, Math.round(this.sw * 0.011))}px var(--font-pixel)`, color: '#c8bedc', textShadow: '2px 2px 0 #14081e' }); ov.append(f); }
     let musicStarted = false;
     const startMusic = () => { if (!musicStarted && T?.music) { musicStarted = true; this.audio.play(T.music); } };

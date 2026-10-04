@@ -496,3 +496,26 @@ Verdict: the whole game offline after the first visit, measured by the PWA smoke
 | e2e demo, production, Chromium | passed end to end |
 
 → next: Claude · merge after CI, then `v3-a11y`
+
+## #18 · 2026-10-04 · Claude · proposal · v3-a11y
+Branch: v3-a11y · from main@4b04fe0, merged with main after v3-offline
+Verdict: a whole game at the keyboard, replayed by the harness
+
+- `src/engine/dom/a11y.ts`: `trapFocus`, `roving`, `isTyping` (happy-dom tests). In the App: verbs `role=group`
+  with arrows and `aria-pressed`; choices and the map's places take the focus when they appear, arrows move; the map
+  is a dialog; Space / Enter advance a line; Escape closes the topmost thing (menu, map, transcript, a cutscene's or
+  minigame's Skip) or opens the pause menu, which keeps the focus inside (the old ad-hoc trap replaced); cutscene and
+  minigame Skip buttons and the title's New game take the focus; the continue marker is a button named `ui.advance`.
+- Harness: `launch(url, { input: 'keyboard' })` / `npm run e2e -- --keyboard`: every tap becomes focus + Enter on
+  the same control, a line is advanced with Space; CI gains a `chromium / keyboard` row, experimental.
+- Docs: ENGINE "Accessibility" (en, fr), README, UPGRADING §7 (`advance`), CHANGELOG; demo `ui.advance` + fr.
+
+### Checks run
+| Command | Result |
+|---|---|
+| `tsc --noEmit`, `npm test` | clean, 229 passed (+ tests/dom/a11y.test.ts under happy-dom) |
+| `npm run e2e -- --prod --generic --keyboard` | the 16 solver steps, at the keyboard |
+| `npm run e2e -- --prod` (touch, the demo's own walkthrough) | passed end to end |
+| `npm run i18n -- status` | en 392/392, fr 392/392 |
+
+→ next: Claude · merge after CI, then `v3-lint`
