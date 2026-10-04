@@ -43,9 +43,9 @@ export default defineRoom({
 
   on: [
     // Looking down the alley pans the camera to the far stalls, then back to Pixel.
-    { verb: 'look', a: 'alley', do: [{ camera: { to: 'far_stalls', ms: 900 } }, 'The alley goes on and on. Like Biscuit\'s naps. The map is that way.', { camera: 'follow' }] },
+    { id: 'market.look-alley', verb: 'look', a: 'alley', do: [{ camera: { to: 'far_stalls', ms: 900 } }, 'The alley goes on and on. Like Biscuit\'s naps. The map is that way.', { camera: 'follow' }] },
     // Token → the flower game (pick). Win → the bouquet appears on the stall.
-    { verb: 'give', a: 'token', b: 'seller', if: '!flowers_done', do: [
+    { id: 'market.give-token-seller', verb: 'give', a: 'token', b: 'seller', if: '!flowers_done', do: [
       { say: ['seller', 'A token? Today I only take flowers. For... reasons.'] },
       { say: ['seller', 'Pick the right three flowers from my bucket, and the token will do.'] },
       { minigame: 'pick', params: {
@@ -61,10 +61,10 @@ export default defineRoom({
         { say: ['seller', 'Beautiful! I put it on the stall for you.'] },
       ] },
     ] },
-    { verb: 'take', a: 'bouquet', do: [{ gain: 'bouquet' }, { sfx: 'pluck' }, 'For the seller. Not for eating. Sadly.'] },
+    { id: 'market.take-bouquet', verb: 'take', a: 'bouquet', do: [{ gain: 'bouquet' }, { sfx: 'pluck' }, 'For the seller. Not for eating. Sadly.'] },
 
     // Bouquet → the key.
-    { verb: 'give', a: 'bouquet', b: 'seller', do: [
+    { id: 'market.give-bouquet-seller', verb: 'give', a: 'bouquet', b: 'seller', do: [
       { lose: 'bouquet' }, { set: 'bouquet_given' },
       { say: ['seller', 'For me? ...Oh no. Today is my wedding anniversary!'] },
       { pose: ['seller', 'panic'] }, { say: ['seller', 'I forgot! You saved me, little cat.'] },
@@ -76,42 +76,42 @@ export default defineRoom({
       { emit: 'key_found' },
     ] },
 
-    { verb: 'take', a: 'lantern', do: [{ say: ['seller', 'Paws off! That lantern is sold. Almost.'] }] },
-    { verb: 'take', a: 'oranges', do: ['Oranges are not sardines. Nice try, oranges.'] },
-    { verb: ['use', 'open'], a: 'alley', do: [{ map: true }] },
-    { verb: ['open', 'push'], a: 'blue_door', do: [{ sfx: 'door_close' }, 'Locked. Of course.'] },
+    { id: 'market.take-lantern', verb: 'take', a: 'lantern', do: [{ say: ['seller', 'Paws off! That lantern is sold. Almost.'] }] },
+    { id: 'market.take-oranges', verb: 'take', a: 'oranges', do: ['Oranges are not sardines. Nice try, oranges.'] },
+    { id: 'market.use-alley', verb: ['use', 'open'], a: 'alley', do: [{ map: true }] },
+    { id: 'market.open-blue-door', verb: ['open', 'push'], a: 'blue_door', do: [{ sfx: 'door_close' }, 'Locked. Of course.'] },
   ],
 
   talk: {
     neighbor: [
-      { topic: 'Where is the pantry key?', do: [
+      { id: 'market.neighbor.where-is-the-pantry-key', topic: 'Where is the pantry key?', do: [
         { say: ['neighbor', 'Ah. I left it with the seller. A deposit for that lantern.'] },
         { say: ['neighbor', 'Pay for the lantern and the key is yours.'] },
         { set: 'deposit_known' },
         { choice: [
-          { text: 'That is MY key! Well, Grandma\'s.', do: [
+          { id: 'market.neighbor.where-is-the-pantry-key.c-that-is-my-key', text: 'That is MY key! Well, Grandma\'s.', do: [
             { pose: ['neighbor', 'pinch'] }, { say: ['neighbor', 'Technically, it is his now. Deposits are serious business.'] }, { pose: ['neighbor', 'idle'] },
           ] },
-          { text: 'Fine. How do I pay?', do: [
+          { id: 'market.neighbor.where-is-the-pantry-key.c-fine-how-do-i', text: 'Fine. How do I pay?', do: [
             { pose: ['neighbor', 'thumbs'] }, { say: ['neighbor', 'He loves tokens. And flowers. Mostly flowers today.'] }, { pose: ['neighbor', 'idle'] },
           ] },
         ] },
       ] },
-      { topic: 'Why did you take the key?', do: [
+      { id: 'market.neighbor.why-did-you-take-the-key', topic: 'Why did you take the key?', do: [
         { say: ['neighbor', 'To make a copy. In case Grandma loses it.'] }, 'She did lose it.', { say: ['neighbor', 'See? I was right.'] },
       ] },
-      { topic: 'What is the lantern for?', do: [{ say: ['neighbor', 'For my garage. I fix things at night. Like a bat with a wrench.'] }] },
+      { id: 'market.neighbor.what-is-the-lantern-for', topic: 'What is the lantern for?', do: [{ say: ['neighbor', 'For my garage. I fix things at night. Like a bat with a wrench.'] }] },
     ],
     seller: [
-      { topic: 'Can I have the key?', do: [
+      { id: 'market.seller.can-i-have-the-key', topic: 'Can I have the key?', do: [
         { say: ['seller', 'The key is Lou\'s deposit. Pay for the lantern, and it is yours.'] },
         { say: ['seller', 'Tokens are fine. Flowers are better. Today, flowers are much better.'] },
       ] },
-      { topic: 'Do you sell sardines?', do: [
+      { id: 'market.seller.do-you-sell-sardines', topic: 'Do you sell sardines?', do: [
         { say: ['seller', 'Sardines? No. Spices, teapots, lanterns.'] }, 'Worst. Market. Ever.',
         { pose: ['seller', 'laugh'] }, { wait: 700 }, { pose: ['seller', 'idle'] },
       ] },
-      { topic: 'Why flowers today?', do: [{ say: ['seller', 'No reason. Definitely no reason. What day is it?'] }] },
+      { id: 'market.seller.why-flowers-today', topic: 'Why flowers today?', do: [{ say: ['seller', 'No reason. Definitely no reason. What day is it?'] }] },
     ],
   },
 
@@ -125,12 +125,12 @@ export default defineRoom({
   ],
 
   onEnter: [
-    { once: [{ say: ['neighbor', 'Pixel! Over here!'] }, 'Lou! Where is my key?'] },
+    { id: 'market.enter.once', once: [{ say: ['neighbor', 'Pixel! Over here!'] }, 'Lou! Where is my key?'] },
   ],
 
   // Lou cannot stand still: a stroll along the stalls, on its own, until the deal is done.
   scripts: [
-    { id: 'lou_paces', loop: true, while: '!bouquet_given', do: [
+    { stepIds: ['lou_paces.wait', 'lou_paces.walk', 'lou_paces.face', 'lou_paces.wait-2', 'lou_paces.walk-2', 'lou_paces.face-2'], id: 'lou_paces', loop: true, while: '!bouquet_given', do: [
       { wait: 6000 }, { walk: [760, 300], who: 'neighbor' }, { face: 'left', who: 'neighbor' }, { wait: 3000 },
       { walk: [147, 278], who: 'neighbor' }, { face: 'right', who: 'neighbor' },
     ] },

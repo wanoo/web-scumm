@@ -25,7 +25,7 @@ export const rules: GameRules = {
   ],
   on: [
     // Once the note is read, the shell phone calls Lou (two voices on the line). Before that, it gives hints.
-    { verb: 'talk', a: 'shell_phone', if: { all: ['lou_has_key', { not: { unlocked: 'market' } }] }, do: [
+    { id: 'game.talk-shell-phone', verb: 'talk', a: 'shell_phone', if: { all: ['lou_has_key', { not: { unlocked: 'market' } }] }, do: [
       'Shell phone, call Lou!',
       { phone: ['neighbor', 'seller'], do: [
         { say: ['neighbor', 'Lou speaking. Oh, hi Pixel!'] },

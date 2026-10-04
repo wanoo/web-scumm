@@ -1,6 +1,6 @@
 import { check, condAtoms, type CondAtom } from './cond';
 import { compileGame, EMPTY_LAYOUT, FLOOR, NEAR } from './define';
-import { ruleActionId } from './content-ids';
+import { listenerActionId, ruleActionId, topicActionId } from './content-ids';
 import { migrate } from './migrate';
 import { stateDiff, stateDigest } from './diff';
 import { ANIM_MS, CAMERA_MS, FPS } from './timing';
@@ -651,7 +651,7 @@ export class Engine {
       const pick = await this.choose(opts, char);
       if (pick < topics.length) {
         const { t, i } = topics[pick];
-        this.ran(`topic:${t.id ?? `${room.id}/${actor}[${i}]`}`);
+        this.ran(topicActionId(room.id, actor, i, t));
         await this.say(HERO, t.topic, ctx);
         await this.exec(t.do, ctx);
         this.state.seen[topicKey(t, i)] = 1;
@@ -797,7 +797,7 @@ export class Engine {
       if (ev.on !== id || !this.cond(ev.if, ctx.room.id)) continue;
       if (ev.once) { const k = `event.${ev.id ?? `${scope}.${i}`}`; this.reads?.add(`seen:${k}`); if (s.seen[k]) continue; s.seen[k] = 1; }
       this.log('event', `${id} → ${scope}.events[${i}]${ev.once ? ' (once)' : ''}`);
-      this.ran(`listener:${scope}/events[${i}]`);
+      this.ran(listenerActionId(scope, i, ev));
       await this.exec(ev.do, ctx);
     }
   }

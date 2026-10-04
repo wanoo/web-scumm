@@ -1,5 +1,25 @@
 # Changelog
 
+## 3.1.0 — unreleased
+
+### Added
+
+- `npm run ids`: stable ids (schema 3) written into a game's sources, its locale tables renamed to the id-based
+  paths, and the `renameSeen` / `renameCounter` migration step generated for its v2 saves (`docs/en/UPGRADING.md` §2).
+
+### Changed
+
+- The sample game is schema 3: every rule, topic, listener, choice and block has an id; its v1 saves migrate.
+- Translation paths name rules, topics, choices and listeners by id when they have one (`room:house/on.<id>.do[1]`);
+  v2 content keeps the positional paths. The puzzle graph, the solver and the Play tab name topics and listeners by
+  the same ids as the engine (the solver's heatmap now colours v3 topics).
+- The sample game's credits name the Swan Lake arrangement and its CC BY-NC 4.0 licence.
+
+### Fixed
+
+- `npm run e2e:pwa` on WebKit reports that offline navigation cannot be automated instead of failing on the
+  resource errors of the aborted navigation.
+
 ## 3.0.0 — 2026-10-04
 
 The first v3 release, co-developed by two assistants under `docs/dev/CHARTER.md`; the review trail is `docs/dev/LOG.md`.

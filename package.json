@@ -25,6 +25,7 @@
     "validate": "tsx tools/validate.ts",
     "solve": "tsx tools/solve.ts",
     "replay": "tsx tools/replay.ts",
+    "ids": "tsx tools/ids.ts",
     "mcp": "tsx tools/mcp/server.ts",
     "assets": "mkdir -p .cache && tsx --tsconfig tsconfig.json tools/refs.ts > .cache/refs.json && python3 tools/assets.py",
     "game": "tsx tools/select-game.ts",

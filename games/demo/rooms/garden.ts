@@ -43,10 +43,10 @@ export default defineRoom({
   },
 
   on: [
-    { verb: 'take', a: 'spare_pipe', do: [{ set: 'pipe_taken' }, { gain: 'pipe' }, { sfx: 'metal' }, 'A pipe! Grandpa will not miss it. He is asleep.'] },
+    { id: 'garden.take-spare-pipe', verb: 'take', a: 'spare_pipe', do: [{ set: 'pipe_taken' }, { gain: 'pipe' }, { sfx: 'metal' }, 'A pipe! Grandpa will not miss it. He is asleep.'] },
 
     // The tank: the tap is stuck, the pipe opens another way out (pipes minigame).
-    { verb: 'use', a: 'pipe', b: 'tank', if: '!tank_drained', do: [
+    { id: 'garden.use-pipe-tank', verb: 'use', a: 'pipe', b: 'tank', if: '!tank_drained', do: [
       { minigame: 'pipes', params: {
         tiles: { ground: 'pipes/r3c1', straight: ['pipes/r3c2', 'pipes/r3c5'], elbow: ['pipes/r3c3', 'pipes/r3c6'], tee: ['pipes/r3c4', 'pipes/r4c1'] },
         source: 'pipes/r4c2', nozzle: ['pipes/r4c3', 'pipes/r4c4'], tank: 'house/r3c5', mushrooms: ['house/r4c5', 'house/r4c6'],
@@ -63,39 +63,39 @@ export default defineRoom({
         ] },
       ] },
     ] },
-    { verb: ['use', 'open', 'pull'], a: 'tank', if: '!tank_drained', do: ['The tap is stuck. The water needs another way out. A pipe, maybe?'] },
-    { verb: ['use', 'open', 'pull'], a: 'tank', do: ['Empty-ish. The only treasure was a sock.'] },
-    { verb: 'look', a: 'tank', if: 'tank_drained', do: ['Draining. Slowly. Very slowly.'] },
+    { id: 'garden.use-tank', verb: ['use', 'open', 'pull'], a: 'tank', if: '!tank_drained', do: ['The tap is stuck. The water needs another way out. A pipe, maybe?'] },
+    { id: 'garden.use-tank-2', verb: ['use', 'open', 'pull'], a: 'tank', do: ['Empty-ish. The only treasure was a sock.'] },
+    { id: 'garden.look-tank', verb: 'look', a: 'tank', if: 'tank_drained', do: ['Draining. Slowly. Very slowly.'] },
 
     // The sock and its note: Lou has the key.
-    { verb: 'look', a: 'sock', do: [
+    { id: 'garden.look-sock', verb: 'look', a: 'sock', do: [
       { if: '!lou_has_key', then: [
         { sfx: 'paper' }, 'A wet sock. With a note inside!', 'It says: "Borrowed the key to copy it. Lou."', { set: 'lou_has_key' },
         { say: ['grandpa', 'Lou, the neighbour! Call Lou with the shell phone.'] },
       ], else: ['A sock. Lou leaves socks everywhere.'] },
     ] },
-    { verb: 'take', a: 'sock', do: ['A wet sock. Cat rule number two: never touch wet things.'] },
+    { id: 'garden.take-sock', verb: 'take', a: 'sock', do: ['A wet sock. Cat rule number two: never touch wet things.'] },
 
-    { verb: ['open', 'use'], a: 'gate', do: ['Dogs. Street. No.'] },
-    { verb: 'push', a: 'gnome', do: ['He does not move. He has roots.'] },
-    { verb: ['use', 'pull'], a: 'tree', do: ['I could climb it. But sardines do not grow on trees.'] },
-    { verb: ['take', 'use'], a: 'can', do: ['Empty. I am not carrying an empty can around.'] },
+    { id: 'garden.open-gate', verb: ['open', 'use'], a: 'gate', do: ['Dogs. Street. No.'] },
+    { id: 'garden.push-gnome', verb: 'push', a: 'gnome', do: ['He does not move. He has roots.'] },
+    { id: 'garden.use-tree', verb: ['use', 'pull'], a: 'tree', do: ['I could climb it. But sardines do not grow on trees.'] },
+    { id: 'garden.take-can', verb: ['take', 'use'], a: 'can', do: ['Empty. I am not carrying an empty can around.'] },
   ],
 
   talk: {
     grandpa: [
-      { topic: 'Where is the key?', if: '!tank_drained', do: [
-        { nth: [
+      { id: 'garden.grandpa.where-is-the-key', topic: 'Where is the key?', if: '!tank_drained', do: [
+        { id: 'garden.grandpa.where-is-the-key.nth', nth: [
           [{ say: ['grandpa', 'The key? It fell in the water tank. Plop.'] }, { say: ['grandpa', 'Drain it. But the tap is stuck.'] }],
           [{ say: ['grandpa', 'Still stuck? Try a pipe. Pipes are good with water.'] }],
           [{ pose: ['grandpa', 'laugh'] }, { say: ['grandpa', 'Ha! A cat doing plumbing. I love it.'] }, { pose: ['grandpa', 'idle'] }],
         ] },
       ] },
-      { topic: 'There was no key in the tank!', if: 'tank_drained', do: [
+      { id: 'garden.grandpa.there-was-no-key-in-the', topic: 'There was no key in the tank!', if: 'tank_drained', do: [
         { say: ['grandpa', 'No? Only a sock? Read the sock. Socks always have something to say.'] },
       ] },
-      { topic: 'Why is your armchair outside?', do: [{ say: ['grandpa', 'It wanted some sun. Armchairs need vitamins too.'] }] },
-      { topic: 'Are you fixing the pipes?', do: [
+      { id: 'garden.grandpa.why-is-your-armchair', topic: 'Why is your armchair outside?', do: [{ say: ['grandpa', 'It wanted some sun. Armchairs need vitamins too.'] }] },
+      { id: 'garden.grandpa.are-you-fixing-the-pipes', topic: 'Are you fixing the pipes?', do: [
         { say: ['grandpa', 'Yes. With my eyes closed. I am an expert.'] },
         { pose: ['grandpa', 'slumped'] }, { wait: 900 }, { pose: ['grandpa', 'idle'] },
       ] },
@@ -112,7 +112,7 @@ export default defineRoom({
   ],
 
   onEnter: [
-    { once: [
+    { id: 'garden.enter.once', once: [
       { say: ['grandpa', 'Pixel! Did you come to help me fix the pipes?'] },
       'I came for a key. And sardines.',
     ] },

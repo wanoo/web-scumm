@@ -33,7 +33,8 @@ schemaVersion: 3,
 { id: 'clock', stepIds: ['wait', 'chime'], do: [{ wait: 1000 }, { sfx: 'chime' }] }
 ```
 
-`compileGame(source)` clones and normalises the authoring source once; v3 output is frozen in development. The engine,
+`npm run ids -- --write --map` writes those ids into an existing game and the migration step its saves need
+(`docs/en/UPGRADING.md` §2). `compileGame(source)` clones and normalises the authoring source once; v3 output is frozen in development. The engine,
 validator, solver, replay and puzzle tools consume the same compiled representation. See [UPGRADING.md](UPGRADING.md)
 before converting an existing game.
 

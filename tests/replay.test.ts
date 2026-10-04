@@ -38,7 +38,7 @@ describe('the solver\'s solution replays', () => {
     expect(p.ended).toBe(true);
     for (const s of r.steps) expect(labelOf(demo, s)).toBeTruthy();
     expect(r.steps[0]).toMatchObject({ start: 'new', picks: [2] });
-    expect(r.steps.at(-1)).toMatchObject({ act: { verb: 'use', a: 'key', b: 'pantry' }, ran: ['rule:house/on[6]'] });
+    expect(r.steps.at(-1)).toMatchObject({ act: { verb: 'use', a: 'key', b: 'pantry' }, ran: ['rule:house.use-key-pantry'] });
   });
 });
 

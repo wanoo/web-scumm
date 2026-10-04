@@ -3,12 +3,15 @@
 // characters with events, ambient scripts, topics, extra items and flags, artificial save migrations, chapter goals
 // and invariants. No art: layouts are rectangles. Deterministic: the same options give the same game.
 import type { Cond, GameDef, Id, Layout, Migration, RoomDef, ScriptDef } from '../core/types';
+import { assignIds } from '../core/content-ids';
 
 export interface StressOptions {
   rooms?: number; players?: number; items?: number; flags?: number; npcs?: number; scripts?: number; topics?: number;
   /** Number of chapters (checkpoints with goals); default: one per player. */
   chapters?: number;
   migrations?: number;
+  /** Schema 3: every rule, topic, listener, block and script step gets a stable id (`assignIds`), as a real v3 game. */
+  schemaVersion?: 2 | 3;
 }
 
 export function makeStressGame(o: StressOptions = {}): { game: GameDef; layouts: Record<string, Layout> } {
@@ -133,5 +136,6 @@ export function makeStressGame(o: StressOptions = {}): { game: GameDef; layouts:
     skin: { icons: { map: 'ui/map', pause: 'ui/pause', music: 'ui/music' } },
     ui: {} as GameDef['ui'],
   };
+  if (o.schemaVersion === 3) return { game: { ...assignIds(game).game, schemaVersion: 3 }, layouts };
   return { game, layouts };
 }
