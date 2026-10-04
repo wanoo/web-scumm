@@ -7,7 +7,8 @@
 // The game: GAME, otherwise package.json → config.game (see tools/game.ts).
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { placeholderVerdict, provenanceReport, type Provenance } from '../src/engine/tools/provenance';
+import { licenceVerdict, lockDiff, lockMessages, placeholderVerdict, provenanceReport, type Provenance, type ProvenanceLock } from '../src/engine/tools/provenance';
+import { fileFacts, LOCK, readJson, shippedKeys } from './provenance-files';
 import { validate } from '../src/engine/tools/validate';
 import { report, reportMarkdown } from '../src/engine/tools/report';
 import { loadAssets, loadLayouts, loadLocales } from '../src/engine/tools/load';
@@ -35,6 +36,12 @@ if (existsSync(provFile) && assets) {
   for (const a of r.ambiguous) errors.push(`provenance.json › ${a}: more than one entry matches this asset; make the patterns disjoint`);
   const prov = JSON.parse(readFileSync(provFile, 'utf8')) as Provenance;
   if (release) { const v = placeholderVerdict(prov, r); errors.push(...v.errors); warnings.push(...v.warnings); }
+  // The lock: the files and claims that were reviewed. Required for a release; otherwise checked when present.
+  const lock = readJson<ProvenanceLock>(LOCK);
+  const keys = shippedKeys(game);
+  if (lock) (release ? errors : warnings).push(...lockMessages(lockDiff(keys, prov, fileFacts(keys), lock)));
+  else if (release) errors.push('provenance.lock.json › missing: a release ships the files that were reviewed (npm run provenance -- --lock)');
+  if (release) { const l = licenceVerdict(keys, prov); errors.push(...l.errors); warnings.push(...l.warnings); }
 } else if (release) errors.push('provenance.json › missing: a release says where every asset comes from (docs/en/TOOLS.md "Asset provenance")');
 const quiet = process.argv.includes('--errors');
 if (!quiet && warnings.length) {

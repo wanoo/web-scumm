@@ -24,6 +24,8 @@ export function gameId(): string {
 const DIR_ENV = process.env.GAME_DIR?.trim();
 export const GAME = DIR_ENV && !process.env.GAME?.trim() ? basename(resolve(DIR_ENV)) : gameId();
 export const GAME_DIR = DIR_ENV ? resolve(DIR_ENV) : resolve(ROOT, 'games', GAME);
+/** The built assets that ship (`npm run assets` writes them): public/assets, or ASSETS_DIR (a test fixture's own files). */
+export const ASSETS_DIR = process.env.ASSETS_DIR?.trim() ? resolve(process.env.ASSETS_DIR.trim()) : resolve(ROOT, 'public', 'assets');
 
 /** What games/<id>/index.ts exports. Outside Vite, `layouts` is empty: the tools read layout/*.json from disk. */
 export interface GameModule {
