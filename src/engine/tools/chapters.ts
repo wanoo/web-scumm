@@ -4,6 +4,7 @@
 // hand-written checkpoint. The checkpoint itself must be one of those boundary states, else the content and the
 // checkpoint disagree. Sound when a chapter reads nothing but what the projection keeps, which is how the projection
 // is built (the state keys of that chapter's search).
+import { chaptersHeadline, exitOf, worstStatus, type ExitCode, type ProofStatus } from './status';
 import type { CustomCommands } from '../core/custom';
 import { Engine } from '../core/engine';
 import { FakePresenter, MemoryStore } from '../core/ports';
@@ -32,7 +33,10 @@ export interface ChapterProof {
 
 export interface ChaptersProof {
   /** The searches' worst status, and `checkpoint_mismatch` when they all solved but a checkpoint is no reachable state. */
-  status: SolveResult['status'] | 'checkpoint_mismatch';
+  status: ProofStatus;
+  /** The status as an exit code and a sentence (`src/engine/tools/status.ts`). */
+  exit: ExitCode;
+  headline: string;
   chapters: ChapterProof[];
   ms: number;
 }
@@ -42,10 +46,9 @@ export interface ChaptersProof {
  * 0 every chapter solved and every checkpoint reachable, 2 truncated, 1 anything else (softlocks, unsolved, error,
  * a checkpoint no boundary state matches).
  */
-export const chaptersExitCode = (p: ChaptersProof) => (p.status === 'solved' ? 0 : p.status === 'truncated' ? 2 : 1);
+export const chaptersExitCode = (p: Pick<ChaptersProof, 'status'>) => exitOf(p.status);
 
-const rank: Record<SolveResult['status'], number> = { solved: 0, softlocks: 1, unsolved: 2, truncated: 3, error: 4 };
-const worst = (a: SolveResult['status'], b: SolveResult['status']) => (rank[a] >= rank[b] ? a : b);
+const worst = worstStatus;
 
 /** The state a hand-written checkpoint stands for. */
 async function checkpointState(game: GameDef, layouts: Record<string, Layout>, id: Id, commands?: CustomCommands): Promise<GameState> {
@@ -125,5 +128,6 @@ export async function proveChapters(game: GameDef, layouts: Record<string, Layou
   }
   if (cps.length && starts.length) await run('ending', undefined, undefined);
   const mismatch = chapters.some((c) => c.checkpointUnreachable);
-  return { status: status === 'solved' && mismatch ? 'checkpoint_mismatch' : status, chapters, ms: Date.now() - t0 };
+  const final: ProofStatus = status === 'solved' && mismatch ? 'checkpoint_mismatch' : status;
+  return { status: final, exit: exitOf(final), headline: chaptersHeadline({ status: final, chapters }), chapters, ms: Date.now() - t0 };
 }

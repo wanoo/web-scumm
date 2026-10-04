@@ -308,7 +308,7 @@ export class BrowserApi implements Api {
     if (from && !game.checkpoints?.[from]) throw new ApiError(`unknown checkpoint: "${from}"`, 400);
     const r = await solveGame(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands: mod.commands, mode: prove ? 'prove' : 'witness' });
     return {
-      status: r.status, mode: r.mode, softlocks: r.softlocks,
+      status: r.status, exit: r.exit, headline: r.headline, mode: r.mode, softlocks: r.softlocks,
       finished: r.finished, states: r.states, truncated: r.truncated, path: r.path,
       roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
       itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems,

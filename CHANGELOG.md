@@ -23,6 +23,11 @@
 
 ### Changed
 
+- One status for every tool (`src/engine/tools/status.ts`): `SolveResult` and `ChaptersProof` carry `status`,
+  `exit` and `headline`; `npm run solve` (text and `--json`), the Studio's Check tab and the `solve` MCP tool print
+  those. A broken invariant is now the status `broken` (it was `solved` with exit 1), and the Studio no longer says
+  "the game can be finished" over a truncated proof or one with softlocks. Witness chapters combine their statuses
+  by severity, not by the largest exit code.
 - The proof by chapters runs one search per chapter from all its boundary states at once (`start: { states }`),
   sharing its seen states: on the demo 5.7 s instead of 90–147 s, the same boundaries as the explicit search at every
   chapter. Mobility turns itself off, and says why, when no move of the game can be silent.

@@ -207,6 +207,21 @@ its stable id, and what to do. Exit codes: 0 clean, 1 an error that is not ignor
 'code:<id>', 'code:<room>/<path>'] }` in `game.ts` keeps a red herring on purpose. The Studio's Check tab shows the
 same list with links into Rooms; the `lint` MCP tool returns it as Markdown. `verify:game` runs it (so does the CI).
 
+**One status.** A solver run and a proof by chapters carry one status, its exit code and its sentence
+(`src/engine/tools/status.ts`): `npm run solve` prints the sentence and exits with the code, `--json` carries
+`status`, `exit` and `headline`, the Studio's Check tab shows the sentence, the `solve` MCP tool returns all three.
+None of them words its own verdict.
+
+| Status | Exit | Meaning |
+|---|---|---|
+| `solved` | 0 | the ending (or a chapter's goal) is reached; with `--prove`, it stays reachable from every reachable state |
+| `softlocks` | 1 | reachable states from which it can no longer be reached (`softlockCount`, `softlockCauses`) |
+| `unsolved` | 1 | it is not reached from any state explored |
+| `truncated` | 2 | the search stopped at `--max` states: nothing is proved |
+| `broken` | 1 | an invariant is true on a reachable state (before 3.3: `solved` with exit 1) |
+| `error` | 1 | the engine failed while exploring |
+| `checkpoint_mismatch` | 1 | chapters only: every chapter proved, but a checkpoint is none of its reachable boundary states |
+
 **Continuous integration.** Every push to `main`, `v3` or `v3-*` runs `npm run build` (checks, Node and Python tests,
 `verify:game`, the bundle, the spoiler and asset audits), `npm run prove:game` on the sample game, `npm run audit:deps`,
 then the production e2e in Chromium (the demo's own walkthrough) and WebKit (the generic replay), both gates, and the

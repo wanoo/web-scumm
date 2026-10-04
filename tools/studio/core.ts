@@ -393,7 +393,7 @@ export function createStudio(opts: StudioOptions = {}) {
     const layouts = loadLayouts(join(dir, 'layout'));
     const r = await solveGame(mod.game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands: mod.commands, mode });
     return {
-      status: r.status, mode: r.mode, softlocks: r.softlocks,
+      status: r.status, exit: r.exit, headline: r.headline, mode: r.mode, softlocks: r.softlocks,
       finished: r.finished, states: r.states, truncated: r.truncated, path: r.path,
       roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
       itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems,

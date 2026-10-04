@@ -81,6 +81,9 @@ describe('MCP server on games/demo', () => {
     const r = await call(demo, 'get_room', { id: 'nowhere' });
     expect(r.isError).toBe(true);
     expect(r.content[0].text).toContain('unknown room');
+    const ok = parse(await call(demo, 'solve', {}));
+    expect({ status: ok.status, exit: ok.exit }).toEqual({ status: 'solved', exit: 0 });
+    expect(ok.headline).toMatch(/^solved: the ending is reached/);
     const s = await call(demo, 'solve', { from: 'no-such-checkpoint' });
     expect(s.isError).toBe(true);
     // the server is still alive
