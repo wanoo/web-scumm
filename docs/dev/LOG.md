@@ -628,7 +628,8 @@ Verdict: the proof measured honestly, the pipeline that a studio expects
   and 39 counters; the dry run is then empty. Schema 3, saveVersion 2, the generated migration step.
 - Evidence: tsc clean, 150 tests, the solver's witness identical to main's (59 actions, same path; 333 states instead
   of 355), `npm run lint` finds one deliberate forever hint (silenced with `lint.ignore`) and two known red herrings,
-  the build precaches 13 entries (2.8 MB), the full phone e2e (recorded below once finished).
+  the build precaches 13 entries (2.8 MB), the full phone e2e green (nine rooms, seven minigames, the
+  autosave resumed from IndexedDB, exit 0).
 - Release 3.1.0 "Playtest": version, CHANGELOG date, ROADMAP dates, README (22 tools, release row); the `release`
   workflow publishes from the tag.
 - → next: tag `v3.1.0` once the private e2e is green; the user's phone check (update prompt, offline room, v1 save).
