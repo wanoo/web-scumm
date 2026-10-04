@@ -1,208 +1,181 @@
 # web-scumm
 
-Un moteur de point-and-click à la SCUMM pour téléphones, avec les outils d'écriture et la méthode de travail avec une
-IA qui ont permis de livrer un jeu familial complet de 9 lieux en une journée. Écris ton histoire sous forme de données,
-place les choses en les glissant, prouve que le jeu se finit, joue en paysage sur n'importe quel téléphone, hors
-ligne après la première visite.
+**Créez un point-and-click complet avec une IA, et prouvez qu'il peut être terminé.**
+
+Un moteur d'aventure à la SCUMM pensé pour le téléphone, un Studio visuel pour produire le jeu, et une chaîne qui le
+vérifie, le prouve et le publie en jeu web jouable hors ligne. Il est né comme moteur d'un jeu familial de 9 lieux,
+écrit et livré en une seule journée avec un assistant IA.
 
 *[English version](README.md)*
 
 | | |
 |---|---|
-| 🎮 **Jouer au jeu d'exemple** | https://wanoo.github.io/web-scumm/ (téléphone en paysage, ou ordinateur) |
-| 🛠 **Essayer le Studio** | https://wanoo.github.io/web-scumm/studio.html (mode démo : les modifications restent dans ton navigateur) |
-| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v3.2.2 · [journal des changements](CHANGELOG.md) · [passer de la v2](docs/fr/UPGRADING.md) |
+| 🎮 **Jouer** | [The Pantry Key](https://wanoo.github.io/web-scumm/), le jeu d'exemple : téléphone à l'horizontale, ou ordinateur |
+| 🛠 **Studio** | [Ouvrir le Studio](https://wanoo.github.io/web-scumm/studio.html) en mode démo : vos modifications restent dans votre navigateur |
+| 🚀 **Démarrer** | [Créer son jeu](#créer-son-jeu) en quelques commandes |
+| 📚 **Docs** | [La méthode](docs/fr/WORKFLOW.md) · [le format du contenu](docs/fr/CONTENT_GUIDE.md) · [toute la documentation](#documentation) |
 
-![Trois lieux du jeu d'exemple](docs/img/banner.jpg)
+![The Pantry Key : la maison de Grand-mère, neuf verbes, le sac](docs/img/v33-hero.webp)
 
-## Le jeu
+**Nouveau en v3.3 « Scale » :** les jeux à plusieurs personnages jouables sont prouvés, plus seulement joués. Une
+aventure de référence de 40 lieux à trois personnages, avec des sacs séparés et des objets qui passent d'une époque à
+l'autre, est vérifiée état par état en 3,5 secondes
+([la mesure](docs/fr/BENCH.md#330-mesurée-sur-la-release-5-octobre-2026-cache-coupé)).
 
-Ce que les joueurs ont : neuf verbes classiques, un inventaire, des dialogues avec transcription, des indices donnés
-par un personnage, une carte du monde avec véhicules, des cinématiques, des appels à deux voix, des mini-jeux (tuyaux,
-câbles emmêlés, choix, cache-cache, course, caresses, ticket à gratter), des lieux plus larges que l'écran, plusieurs
-personnages jouables, une fin scellée facultative (chiffrée AES, révélée en jouant), la sauvegarde automatique plus
-des emplacements avec export / import, des réglages, des traductions, tactile et souris, téléphone et ordinateur, et
-le jeu entier au clavier, et le jeu entier hors ligne après la première visite.
+## Bien plus qu'un moteur
+
+| Étape | Ce que web-scumm apporte |
+|---|---|
+| **Écrire** | D'abord un storyboard, puis les lieux, les dialogues à choix, les indices et les règles, tout en données. |
+| **Construire** | Des lieux placés à la souris, des personnages découpés dans des planches générées, un prompt pour chaque image, une musique et des bruitages chiptune. |
+| **Vérifier** | Les références cassées, les répliques non traduites, la licence de chaque fichier livré, ce qu'un téléphone doit télécharger. |
+| **Prouver** | Un chemin jusqu'à la fin, chaque état où la fin est perdue et pourquoi, des sauvegardes qui passent d'une version à l'autre, de vrais navigateurs. |
+| **Livrer** | Un jeu web statique qui s'installe sur un téléphone, joue hors ligne, au toucher, à la souris ou au clavier. |
+
+## La v3.3 en chiffres
+
+Mesuré sur la release, cache de preuve coupé ([BENCH.md](docs/fr/BENCH.md)) :
+
+| Quoi | Résultat |
+|---|---|
+| Jeu de référence, 40 lieux, 3 personnages jouables | prouvé en 578 états, 3,5 s |
+| Le jeu d'exemple, chaque état atteignable | prouvé en 2,2 s, puis 0,17 s depuis le cache de preuve |
+| Le jeu d'exemple, chapitre par chapitre | prouvé en 3,3 s |
+| Les 7 mini-jeux fournis | chacun gagné au clavier seul, dans Chromium et WebKit |
+| Accessibilité | aucune violation axe-core grave ou critique sur les écrans contrôlés |
+| Assets livrés | empreinte et licence de chaque fichier verrouillées après relecture ; budgets de poids par lieu et par chapitre |
+
+La preuve explore le jeu comme le moteur le joue et suppose les mini-jeux réussis. Le jeu de référence garde chaque
+personnage dans son époque. Quand les objets circulent librement entre trois personnages, la recherche s'arrête encore
+avant la fin, et BENCH.md le dit.
+
+## Ce que reçoit le joueur
 
 <table>
-<tr><td width="50%" valign="top"><img src="docs/img/title.jpg" alt="Écran titre, téléphone en paysage" width="100%"><br><sub>Écran titre, téléphone en paysage</sub></td><td width="50%" valign="top"><img src="docs/img/room-garden.jpg" alt="Un lieu : neuf verbes, le sac, la scène" width="100%"><br><sub>Un lieu : neuf verbes, le sac, la scène</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/dialogue.jpg" alt="Sujets de conversation, transcription, une couleur par personnage" width="100%"><br><sub>Sujets de conversation, transcription, une couleur par personnage</sub></td><td width="50%" valign="top"><img src="docs/img/phone-call.jpg" alt="Un appel téléphonique à deux voix" width="100%"><br><sub>Un appel téléphonique à deux voix</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/wide-room.jpg" alt="Un lieu plus large que l'écran : la caméra suit le héros" width="100%"><br><sub>Un lieu plus large que l'écran : la caméra suit le héros</sub></td><td width="50%" valign="top"><img src="docs/img/players.jpg" alt="Deux personnages jouables : le bouton en bas change de personnage, chacun a son sac" width="100%"><br><sub>Deux personnages jouables : le bouton en bas change de personnage, chacun a son sac</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/map.jpg" alt="La carte du monde, avec véhicules et marqueurs « nouveau »" width="100%"><br><sub>La carte du monde, avec véhicules et marqueurs « nouveau »</sub></td><td width="50%" valign="top"><img src="docs/img/minigame-pipes.jpg" alt="Un mini-jeu (tuyaux), la voix d'aide au-dessus" width="100%"><br><sub>Un mini-jeu (tuyaux), la voix d'aide au-dessus</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/minigame-pick.jpg" alt="Choisir la bonne fleur" width="100%"><br><sub>Choisir la bonne fleur</sub></td><td width="50%" valign="top"><img src="docs/img/ending-scratch.jpg" alt="La fin scellée : un ticket à gratter" width="100%"><br><sub>La fin scellée : un ticket à gratter</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/ending-card.jpg" alt="La carte finale juge le pronostic du joueur" width="100%"><br><sub>La carte finale juge le pronostic du joueur</sub></td><td width="50%" valign="top"><img src="docs/img/french.jpg" alt="Le même jeu en français : un fichier JSON, un réglage Langue" width="100%"><br><sub>Le même jeu en français : un fichier JSON, un réglage Langue</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/settings.jpg" alt="Réglages : vitesse et taille du texte, mouvements réduits, police lisible, volumes" width="100%"><br><sub>Réglages : vitesse et taille du texte, mouvements réduits, police lisible, volumes</sub></td><td width="50%" valign="top"><img src="docs/img/save-slots.jpg" alt="Emplacements de sauvegarde, export dans un fichier, import" width="100%"><br><sub>Emplacements de sauvegarde, export dans un fichier, import</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/v33-player-scene.webp" alt="Parler à Grand-mère : ses sujets dans la colonne de droite" width="100%"><br><sub>Des conversations à sujets et à choix, avec leur transcription</sub></td><td width="50%" valign="top"><img src="docs/img/v33-player-minigame.webp" alt="Le mini-jeu des tuyaux : amener l'eau aux champignons" width="100%"><br><sub>Des mini-jeux, au toucher ou au clavier</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/v33-player-map.webp" alt="La carte du monde, des personnages épinglés dessus" width="100%"><br><sub>Une carte du monde, des personnages qui changent de lieu</sub></td><td width="50%" valign="top"><img src="docs/img/v33-player-ending.webp" alt="La carte finale : Pixel a trouvé les sardines" width="100%"><br><sub>Une fin qui se souvient de ce que le joueur a deviné</sub></td></tr>
 </table>
 
-## Le Studio
+Neuf verbes classiques et un sac, des dialogues, des indices donnés par un personnage, des cinématiques et des appels
+téléphoniques, des lieux plus larges que l'écran, plusieurs personnages jouables avec leur propre sac, des scripts et
+des événements, sept mini-jeux, une fin scellée en option, sauvegarde automatique et emplacements, traductions,
+réglages, toucher, souris et clavier, et le jeu entier hors ligne après la première visite.
 
-`npm run studio` ouvre un environnement de création local sur les fichiers du jeu ; `studio.html` sur le site de démo
-est le même en mode démo (les modifications restent dans ton navigateur). Chaque onglet est un travail, dans l'ordre
-où on les fait : écrire l'histoire, placer les lieux, générer les images, vérifier, jouer, prendre des notes avec
-l'IA. Voir `docs/fr/STUDIO.md`.
+## Ce que reçoit l'auteur
 
 <table>
-<tr><td width="50%" valign="top"><img src="docs/img/studio-rooms.jpg" alt="<b>Rooms</b> : le lieu rendu par le vrai moteur, l'éditeur de placement par-dessus ; sélectionne n'importe quoi et modifie sur place ses lignes, ses réactions et ses sujets" width="100%"><br><sub><b>Rooms</b> : le lieu rendu par le vrai moteur, l'éditeur de placement par-dessus ; sélectionne n'importe quoi et modifie sur place ses lignes, ses réactions et ses sujets</sub></td><td width="50%" valign="top"><img src="docs/img/studio-dialogue-tree.jpg" alt="<b>Arbre de dialogue</b> : les sujets d'un personnage en arbre (répliques, choix, branches, conditions), dérivé du contenu ; toucher un nœud saute à son éditeur" width="100%"><br><sub><b>Arbre de dialogue</b> : les sujets d'un personnage en arbre (répliques, choix, branches, conditions), dérivé du contenu ; toucher un nœud saute à son éditeur</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/studio-storyboard.jpg" alt="<b>Storyboard</b> : l'histoire case par case, répliques, aperçu, notes ; la première chose à écrire" width="100%"><br><sub><b>Storyboard</b> : l'histoire case par case, répliques, aperçu, notes ; la première chose à écrire</sub></td><td width="50%" valign="top"><img src="docs/img/studio-assets.jpg" alt="<b>Assets</b> : chaque planche et chaque case, où elle sert, le prompt à coller dans un modèle d'images, les envois découpés automatiquement" width="100%"><br><sub><b>Assets</b> : chaque planche et chaque case, où elle sert, le prompt à coller dans un modèle d'images, les envois découpés automatiquement</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/studio-assets-decor.jpg" alt="<b>Un décor</b> avec ses zones, accessoires et bande de sol superposés" width="100%"><br><sub><b>Un décor</b> avec ses zones, accessoires et bande de sol superposés</sub></td><td width="50%" valign="top"><img src="docs/img/studio-check.jpg" alt="<b>Check</b> : validateur, chemin du solveur, carte du monde, graphe de puzzles et rapport de contenu, relancés après chaque enregistrement" width="100%"><br><sub><b>Check</b> : validateur, chemin du solveur, carte du monde, graphe de puzzles et rapport de contenu, relancés après chaque enregistrement</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/studio-puzzles.jpg" alt="<b>Puzzles</b> : toucher un objet ou un flag affiche sa fiche : d'où il vient, ce qui en a besoin, ce qu'il débloque" width="100%"><br><sub><b>Puzzles</b> : toucher un objet ou un flag affiche sa fiche : d'où il vient, ce qui en a besoin, ce qu'il débloque</sub></td><td width="50%" valign="top"><img src="docs/img/studio-play.jpg" alt="<b>Play</b> : le jeu à côté de son état en direct, un explicateur de règles (chaque condition ✓ / ✗) et le journal" width="100%"><br><sub><b>Play</b> : le jeu à côté de son état en direct, un explicateur de règles (chaque condition ✓ / ✗) et le journal</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/studio-coverage.jpg" alt="<b>Couverture du storyboard</b> : chaque board et chaque case confrontés au jeu ; ce que l'histoire dit et que le jeu ne fait pas encore est listé sous la case" width="100%"><br><sub><b>Couverture du storyboard</b> : chaque board et chaque case confrontés au jeu ; ce que l'histoire dit et que le jeu ne fait pas encore est listé sous la case</sub></td><td width="50%" valign="top"><img src="docs/img/studio-timeline.jpg" alt="<b>Timeline de cinématique</b> : combien dure chaque réplique, marche et animation, ce qui tourne en parallèle, où l'on attend le joueur ; toucher une barre édite la ligne" width="100%"><br><sub><b>Timeline de cinématique</b> : combien dure chaque réplique, marche et animation, ce qui tourne en parallèle, où l'on attend le joueur ; toucher une barre édite la ligne</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/studio-solver-health.jpg" alt="<b>Solver health</b> : de quoi les états sont faits, ce que la recherche a coûté, les avertissements qu'un auteur traite ; une carte de chaleur et le chemin critique sur le graphe de puzzles" width="100%"><br><sub><b>Solver health</b> : de quoi les états sont faits, ce que la recherche a coûté, les avertissements qu'un auteur traite ; une carte de chaleur et le chemin critique sur le graphe de puzzles</sub></td><td width="50%" valign="top"><img src="docs/img/studio-play-replay.jpg" alt="<b>Replay</b> : un fichier de session (le rapport de bug d'un testeur) parcouru au curseur dans l'onglet Play ; le jeu se pose là où tu t'arrêtes" width="100%"><br><sub><b>Replay</b> : un fichier de session (le rapport de bug d'un testeur) parcouru au curseur dans l'onglet Play ; le jeu se pose là où tu t'arrêtes</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/studio-notes.jpg" alt="<b>Notes</b> : le journal partagé entre toi et l'IA, à propos d'une case, d'un lieu ou d'un élément" width="100%"><br><sub><b>Notes</b> : le journal partagé entre toi et l'IA, à propos d'une case, d'un lieu ou d'un élément</sub></td><td width="50%" valign="top"><img src="docs/img/studio-assistant.jpg" alt="<b>Assistant</b> : n'importe quel modèle d'IA avec les mêmes outils que le serveur MCP, à propos de l'élément sélectionné" width="100%"><br><sub><b>Assistant</b> : n'importe quel modèle d'IA avec les mêmes outils que le serveur MCP, à propos de l'élément sélectionné</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/editor.jpg" alt="<b>L'éditeur de placement</b> dans le jeu lui-même (<code>?edit=house</code>)" width="100%"><br><sub><b>L'éditeur de placement</b> dans le jeu lui-même (<code>?edit=house</code>)</sub></td><td width="50%" valign="top"><img src="docs/img/placement-page.jpg" alt="<b>La page de placement</b> : placer les choses depuis un téléphone, exporter le layout" width="100%"><br><sub><b>La page de placement</b> : placer les choses depuis un téléphone, exporter le layout</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/v33-studio-rooms.webp" alt="Studio, onglet Rooms : le garde-manger sélectionné, ses regards et réactions modifiables" width="100%"><br><sub><b>Rooms</b> : le vrai moteur, un éditeur de placement par-dessus, chaque réplique modifiable sur place</sub></td><td width="50%" valign="top"><img src="docs/img/v33-studio-storyboard.webp" alt="Studio, onglet Storyboard : planches et cases, implémenté à 100 %" width="100%"><br><sub><b>Storyboard</b> : l'histoire case par case, comparée au jeu</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/v33-studio-assets.webp" alt="Studio, onglet Assets : la planche de Pixel, case par case, avec l'usage de chacune" width="100%"><br><sub><b>Assets</b> : chaque planche et chaque case, où elle sert, le prompt qui la fabrique</sub></td><td width="50%" valign="top"><img src="docs/img/v33-studio-check.webp" alt="Studio, onglet Check : validateur, chemin du solveur et santé du solveur" width="100%"><br><sub><b>Check</b> : le validateur et le solveur, relancés à chaque sauvegarde</sub></td></tr>
 </table>
 
-![Graphe de puzzles](docs/img/puzzles-page.jpg)
-<sub>Le graphe de puzzles (`npm run page:puzzles`, aussi dans Check) : les choses en couleur, les actions en blanc ;
-flèches grises pour ce qu'une action exige, vertes pour ce qu'elle produit, rouges pour ce qu'elle consomme. Toucher
-une chose affiche sa fiche.</sub>
+<img src="docs/img/v33-proof-graph.webp" alt="Le graphe des énigmes avec le chemin critique et la chaleur du solveur" width="420" align="right">
 
-<img src="docs/img/studio-critical-path.jpg" alt="Le graphe de puzzles avec le chemin critique et la carte de chaleur du solveur" width="629"><br>
-<sub>Le même graphe avec **Critical path** et **Heat** : ce qui ne mène pas à la fin s'estompe, les règles par lesquelles
-le solveur est le plus passé rougissent ; une fiche dit pourquoi le solveur garde une chose (critical, world, visible ou dead).</sub>
+Le graphe des énigmes montre à quoi mène chaque objet, chaque drapeau et chaque lieu. Avec **Critical path**, ce qui
+ne mène pas à la fin s'estompe. Avec **Heat**, les règles par lesquelles le solveur est le plus passé rougissent. Le
+Studio a aussi un onglet Play avec l'explication des règles et le rejeu des sessions, des notes partagées avec l'IA, et
+un Assistant qui fonctionne avec n'importe quel modèle.
 
-## Démarrer
+<br clear="right">
 
-Node 22+. La suite de tests complète et les outils d'images demandent aussi Python 3 avec
-`pip install -r requirements.txt` (Pillow, NumPy, SciPy) ; le rendu audio demande ffmpeg.
+## Créer son jeu
+
+Il faut Node 22+, Python 3 pour les outils d'image (`pip install -r requirements.txt`) et ffmpeg pour le son.
 
 ```bash
 npm install
-npm run dev          # le jeu d'exemple sur cet ordinateur
-npm run dev:lan      # autorise le réseau local, puis ouvre l'URL sur ton téléphone (même Wi-Fi)
-npm run studio       # le Studio sur /__studio/ : lieux, textes, storyboard, images, vérifications, jeu, notes
-npm test             # tests Node du moteur, des outils et parcours du jeu d'exemple
-npm run test:assets  # tests Python des images et du pipeline d'assets
+npm run doctor                       # vérifie Node, les modules Python, ffmpeg et les navigateurs de test
+npm run new-game my-game "My Game"   # games/my-game depuis le modèle, devient le jeu courant
+npm run assets                       # prépare les images provisoires
+npm run studio                       # le Studio : lieux, histoire, assets, vérifications, jeu
 ```
 
-Faire son propre jeu :
+Puis, avant que quelqu'un y joue :
 
 ```bash
-npm run new-game mon-jeu "Mon Jeu"   # games/mon-jeu depuis le modèle, défini comme jeu courant
-npm run assets                       # prépare les images provisoires
-npm run dev                          # ?edit=debut place les choses, ?dev&at=debut saute à un checkpoint
+npm run verify:game   # validation, un chemin jusqu'à la fin, chapitres, traductions, lint, playtests
+npm run prove:game    # chaque état atteignable : un softlock ou une recherche tronquée échouent
+npm run build         # tests, bundle et audits, dans dist/ pour n'importe quel hébergement statique
 ```
 
-Puis écrire `games/mon-jeu/rooms/*.ts` avec `docs/fr/CONTENT_GUIDE.md` ouvert. L'histoire va d'abord dans
-`storyboard.json` ; `docs/fr/WORKFLOW.md` est la méthode complète, pas à pas ; `docs/fr/DESIGN.md` explique comment en
-faire un bon jeu.
+`npm run dev` lance le jeu sur cet ordinateur, `npm run dev:lan` sur votre téléphone. Écrivez d'abord l'histoire dans
+`storyboard.json`, puis les lieux avec [CONTENT_GUIDE](docs/fr/CONTENT_GUIDE.md) ouvert.
+[WORKFLOW](docs/fr/WORKFLOW.md) décrit toute la méthode, étape par étape.
 
-## Comment un jeu s'écrit
+## Comment s'écrit un jeu
 
-Tout est données : lieux, accessoires à états, personnages, objets, règles, sujets de conversation, indices, scripts,
-événements. Aucun code dans le contenu, donc chaque outil peut le lire, le vérifier et le jouer.
+Tout est donnée : lieux, accessoires à états, personnages, objets, règles, sujets, indices, scripts, événements. Il n'y
+a pas de code dans le contenu, donc chaque outil peut le lire, le vérifier et le jouer.
 
 ```ts
-export const jardin: RoomDef = {
-  id: 'garden', name: 'Le jardin', decor: 'garden',
-  props: { tank: { name: 'citerne', states: { full: 'tank_full', empty: 'tank_empty' } } },
+export const garden: RoomDef = {
+  id: 'garden', name: 'The garden', decor: 'garden',
+  props: { tank: { name: 'water tank', states: { full: 'tank_full', empty: 'tank_empty' } } },
   actors: { grandpa: { char: 'grandpa' } },
-  exits: { back_door: { name: 'porte de derrière', to: 'house', entry: 'garden' } },
-  look: { tank: ['Une grande citerne. Pleine à ras bord.', 'Il y a quelque chose au fond.'] },
+  exits: { back_door: { name: 'back door', to: 'house', entry: 'garden' } },
   on: [
     { verb: 'use', a: 'pipe', b: 'tank', if: '!tank_drained',
-      do: [{ minigame: 'pipes', params: { /* ses tuiles : voir games/demo */ } }, { lose: 'pipe' }, { set: 'tank_drained' }, { prop: ['tank', 'empty'] }, { show: 'sock' }] },
+      do: [{ minigame: 'pipes', params: { /* voir games/demo */ } }, { lose: 'pipe' }, { set: 'tank_drained' }, { prop: ['tank', 'empty'] }] },
   ],
-  talk: { grandpa: [{ topic: 'Où est la clé ?', if: '!tank_drained', do: [{ say: ['grandpa', 'Tombée dans la citerne. Plouf.'] }] }] },
-  scripts: [{ id: 'grandpa_naps', loop: true, do: [{ wait: 7000 }, { anim: ['grandpa', 'snore'], ms: 1200 }] }],
-  hints: [{ until: 'tank_drained', lines: ['Utilise le tuyau sur la citerne.'] }],
+  talk: { grandpa: [{ topic: 'Where is the key?', if: '!tank_drained', do: [{ say: ['grandpa', 'It fell in the tank. Plop.'] }] }] },
+  hints: [{ until: 'tank_drained', lines: ['Use the pipe on the water tank.'] }],
 };
 ```
 
-Une règle, c'est un verbe, une cible, une condition et une liste de commandes. Les sujets se ramifient avec `choice`
-et `if`. Les scripts tournent entre les actions du joueur ; les événements (`emit` / `events`) font réagir un lieu à
-un autre. Les personnages changent de lieu, plusieurs peuvent être jouables, un lieu peut être plus large que l'écran.
-Tout le vocabulaire est dans `src/engine/core/types.ts` ; `docs/fr/CLASSICS.md` montre vingt mécaniques célèbres
-(combat d'insultes, chope qui fond, infirmière en ronde, marchandage, arbre planté dans le passé) écrites avec.
+Une règle, c'est un verbe, une cible, une condition et une liste de commandes. [CLASSICS](docs/fr/CLASSICS.md) écrit
+avec elles vingt mécaniques célèbres du genre : le duel d'insultes, une infirmière qui fait sa ronde, un arbre planté
+dans le passé.
 
-## Vérifier avant que quelqu'un y joue
+## Pourquoi une IA peut vraiment y travailler
 
-```bash
-npm run validate                   # références cassées, Regarder manquants, flags jamais posés, scripts qui n'attendent jamais…
-npm run validate -- --report       # le profileur de contenu : ce que pèse chaque lieu, objet et personnage
-npm run solve                      # joue chaque action depuis « Nouvelle partie » et imprime un chemin jusqu'à la fin
-npm run solve -- --chapters        # une preuve bornée par chapitre (checkpoints avec goals), puis jusqu'à la fin
-npm run page:puzzles               # le graphe de puzzles en page (aussi dans l'onglet Check du Studio)
-npm run page:world                 # la carte du monde : sorties, gotos, lieux inaccessibles
-```
+- Le contenu est déclaratif : un assistant le lit et l'écrit comme n'importe quel fichier.
+- Chaque opération est une commande, et les mêmes opérations sont des outils MCP pour Claude Code, Cursor, Codex,
+  Gemini CLI ou tout client MCP ([MCP](docs/fr/MCP.md)). L'Assistant du Studio les donne à n'importe quel modèle.
+- Après chaque modification, l'assistant peut valider, résoudre, rejouer et faire une capture : il voit ses propres
+  erreurs.
+- Chaque résultat reste relisible par une personne, dans le Studio et dans Git. `CLAUDE.md` et `AGENTS.md` en fixent
+  les règles.
 
-Le solveur utilise le vrai moteur avec un écran muet : ce qu'il trouve, un joueur peut le faire. Il essaie chaque
-réponse d'un choix, change de personnage jouable, fait avancer les scripts un wait à la fois, et laisse hors de l'état
-ce qui ne peut pas changer l'issue (un flag que seul son poseur lit, une horloge que personne ne regarde) : un monde
-plein de décoration ne lui coûte rien, un jeu généré de 100 salles et 5 joueurs est résolu en trois secondes, et la
-preuve exhaustive est une passe `--prove` bornée et honnête
-(`docs/fr/BENCH.md`). Il signale les impasses, les objets jamais utilisés, les **invariants** devenus vrais, et le chemin
-qui y mène.
+## Images et son
 
-## Les images
+`npm run prompts` écrit des prompts d'image prêts à coller pour chaque planche de personnage, objet, décor et meuble,
+tous dans un même style. `npm run assets` découpe les planches générées en sprites ([PROMPTS](docs/fr/PROMPTS.md)).
+`npm run audio` arrange un MIDI pour les puces de la Mega Drive et rend les bruitages avec la même palette
+([AUDIO](docs/fr/AUDIO.md)).
 
-`npm run prompts` écrit des prompts prêts à coller pour chaque planche de personnage (marche, parole, assis, les
-poses que tes lieux utilisent), chaque planche d'objet avec ses états, chaque décor et meuble, tous avec le même bloc
-de style et les règles de couleur (quatre tons par matière, aplats, un seul contour). `artStyle: "pixel"` dans
-`site.json` bascule prompts, découpe et rendu en vrai pixel art. `npm run assets` découpe les planches générées en
-sprites et prépare décors, sons et voix (`docs/fr/PROMPTS.md`, `docs/fr/TOOLS.md`).
+## Documentation
 
-## Le son
-
-`npm run audio` fait pour le son ce que les prompts font pour les images : une seule banque d'instruments Mega Drive
-(`tools/audio/palette.json`) pour chaque morceau et chaque bruitage d'un jeu. Un MIDI que tu as le droit d'utiliser
-(le tien, ou du domaine public : le thème du jeu d'exemple est le *Lac des cygnes* de Tchaïkovski) est analysé,
-réorchestré pour les puces YM2612 et SN76489 à travers un `spec.json` que l'assistant écrit, rendu par Furnace et mesuré
-par un rapport QA ; les bruitages sont de courtes recettes dans `audio/sfx.json` rendues depuis la même palette
-(`docs/fr/AUDIO.md`).
-
-## Avec une IA
-
-Le contenu est données et chaque outil est une commande : un assistant peut écrire un lieu, le vérifier, le résoudre,
-le regarder et le corriger sans toi. `CLAUDE.md` et `AGENTS.md` portent les règles ; `.claude/skills/` les recettes
-(un nouveau lieu, une planche à découper) ; `npm run -s mcp` expose les mêmes opérations en 22 outils MCP pour Claude
-Code, Cursor, Codex, Gemini CLI ou n'importe quel client MCP (`docs/fr/MCP.md`) ; l'onglet Assistant du Studio
-branche n'importe quel modèle sur ces outils ; `docs/fr/WORKFLOW.md` est la méthode, `docs/fr/PRODUCTION.template.md`
-le plan pour des sous-agents en parallèle.
-
-```bash
-npm run i18n -- extract --lang en    # une table de traduction (games/<id>/locales/en.json) qui survit aux refactors
-npm run bench -- --rooms=40          # un jeu généré de cette taille, chaque outil chronométré dessus
-npm run e2e                          # le jeu d'exemple joué dans Chromium, téléphone en paysage, avec captures
-npm run build                        # types, tests, bundle, contrôle des spoilers, audit des noms privés → dist/
-```
-
-`npm run build` produit un `dist/` statique ; la CI le déploie sur GitHub Pages à chaque push sur `main`, avec le
-Studio en mode démo sur `studio.html`. N'importe quel hébergement statique convient. `GAME=<id> npm run build`
-construit un autre jeu.
-
-## Versions
-
-| Version | Ce qu'elle a ajouté |
+| Lire | Pour |
 |---|---|
-| v3.2 Production | Un id stable par ligne (traductions et voix survivent à une insertion) ; une table des textes anglais par défaut et un e2e en langue de release ; des sauvegardes qui ne perdent jamais la partie, des sauvegardes figées par release, un aller-retour navigateur avec et sans IndexedDB ; softlocks comptés et regroupés par cause, la preuve par chapitres avec checkpoints vérifiés (BENCH.md dit où la preuve s'arrête) ; chaque mini-jeu au clavier et axe-core en CI ; provenance des assets ; un second jeu fait par `new-game` passe toutes les portes. |
-| v3.1.1 Truth | Chaque commande verte dit ce qu'elle prouve : l'e2e exige une passe résolue et la fin du moteur, comptes de playtests et codes de sortie du lint honnêtes, un statut hors ligne vrai avec réessai, des appels au fournisseur sans redirection et avec délai, une release qui attend la CI de son tag, une sauvegarde figée par release. |
-| v3.1 Playtest | `npm run ids` et la démo en schéma 3 ; `bootGame` ; emplacements dans IndexedDB ; le jeu entier hors ligne après la première visite ; le jeu entier au clavier ; le lint de contenu (`npm run lint`, panneau Check, outil MCP) ; l'enregistreur de playtests (sessions partagées depuis les téléphones, rejouées en CI, blocages sur la heatmap) ; la preuve mesurée honnêtement, workflows release et prove. |
-| v3.0 Trust | Ids stables (`schemaVersion: 3`) ; une enveloppe de sauvegarde validée avec autosave IndexedDB vérifiée ; `solve --prove` avec softlocks et codes de sortie honnêtes ; Studio en loopback avec jeton LAN ; cibles d'accessibilité ; le guide de migration. Co-développée avec Codex (`docs/dev/`). |
-| v2.5 Sound | La chaîne audio Mega Drive (`npm run audio`) : musique arrangée depuis un MIDI via `spec.json`, bruitages depuis `sfx.json`, une seule palette ; le jeu d'exemple reçoit un thème et des bruitages rendus par les puces. |
-| v2.4 Author | Couverture du storyboard : des badges sur chaque board et chaque case, un panneau Check et l'outil `storyboard_coverage` ; la timeline de cinématique dans l'onglet Rooms. |
-| v2.3 Replay | Sessions enregistrées et rejouées (`npm run replay`, onglet Play) ; la solution du solveur rejouée par la CI dans Chromium ; le profil du solveur et « Solver health » ; pourquoi une chose est live, le chemin critique et une carte de chaleur sur le graphe de puzzles ; réduction d'ordre partiel (`--por`) ; commandes custom contrôlées en dev. |
-| v2.2 Studio | L'arbre de dialogue (onglet Rooms, outil MCP `dialogue_tree`) ; le journal du moteur (onglet Play, panneau dev). |
-| v2.1 Proof | Les classiques (`CLASSICS.md`) ; le graphe de puzzles ; un solveur qui énumère les choix, garde les compteurs exacts, joue les scripts un wait à la fois et élague ce qui ne peut pas compter ; le bench de charge ; un seul catalogue des commandes vérifié par `tsc` ; des boucles avec sons d'image ; des traductions qui suivent les textes déplacés. |
-| v2.0 Open | Commandes custom à effets déclarés ; traductions par extraction ; l'onglet Play et son explicateur de règles ; fixtures par primitive. |
-| v1.6 Cast | Plusieurs personnages jouables (`players`, `switchPlayer`, `transfer`). |
-| v1.5 Picture | Lieux larges et caméra ; animations d'accessoires à événements d'image ; voix ; le menu Réglages. |
-| v1.4 Scale | Sorties déclarées et carte du monde ; chapitres et invariants ; emplacements de sauvegarde et migrations en données ; le profileur de contenu. |
-| v1.3 World | Scripts, événements, personnages qui changent de lieu. |
+| [WORKFLOW](docs/fr/WORKFLOW.md) | la méthode, de la première idée à la release |
+| [CONTENT_GUIDE](docs/fr/CONTENT_GUIDE.md) · [CLASSICS](docs/fr/CLASSICS.md) · [DESIGN](docs/fr/DESIGN.md) | écrire le contenu, les mécaniques célèbres, en faire un bon jeu |
+| [STUDIO](docs/fr/STUDIO.md) · [TOOLS](docs/fr/TOOLS.md) · [MCP](docs/fr/MCP.md) | le Studio, chaque commande, les outils pour l'IA |
+| [ENGINE](docs/fr/ENGINE.md) · [BENCH](docs/fr/BENCH.md) | le fonctionnement du moteur, ce que la preuve sait faire et ne sait pas faire |
+| [PROMPTS](docs/fr/PROMPTS.md) · [AUDIO](docs/fr/AUDIO.md) · [PAGES](docs/fr/PAGES.md) | les images, le son, les pages de relecture |
+| [ROADMAP](docs/fr/ROADMAP.md) · [CHANGELOG](CHANGELOG.md) · [UPGRADING](docs/fr/UPGRADING.md) | d'où il vient, chaque release, passer à une nouvelle version |
 
-Le raisonnement derrière chaque jalon est dans `docs/fr/ROADMAP.md`.
+Chaque page existe aussi en anglais sous `docs/en/`. `docs/dev/` contient le journal du travail avec l'autre
+assistant.
+
+## Releases
+
+Release actuelle : [v3.3.0 « Scale »](https://github.com/wanoo/web-scumm/releases/tag/v3.3.0). L'histoire de la v1.3
+à la v3.3 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt
 
 ```
-src/engine/      core (DSL, moteur, catalogue des commandes), tools (validate, solve, puzzle, graph, report, i18n, stress), dom (rendu), minigames, ending, dev (éditeur)
-games/demo/      le jeu d'exemple : game.ts, rooms/, layout/, art/, audio/, locales/, storyboard.json, site.json
+src/engine/      core (le DSL, le moteur), tools (validate, solve, lint, i18n…), dom (le rendu), minigames
+games/demo/      le jeu d'exemple : lieux, plans, images, audio, traductions, storyboard
 games/_template/ copié par npm run new-game
-tools/           CLIs (validate, solve, i18n, bench, prompts), pages/, studio/, mcp/, assets.py, cut-sheet.py
-scripts/         harnais e2e, seal (fin scellée), gen-icons, new-game
-docs/en docs/fr  CONTENT_GUIDE, CLASSICS, DESIGN, ENGINE, TOOLS, STUDIO, MCP, PAGES, PROMPTS, WORKFLOW, BENCH, ROADMAP, AUDIO, UPGRADING ; docs/dev : l'échange avec l'autre assistant
+tools/           les commandes, le Studio, le serveur MCP, la chaîne d'images
+scripts/         les tests navigateur, la fin scellée, new-game, les captures du README
+docs/en docs/fr  la documentation ; docs/dev : le journal de travail
 ```
+
+Les images de cette page viennent du bundle de production et du Studio, prises par `npm run docs:screenshots`.
 
 ## Licences
 
-Code : MIT. Images et bruitages du jeu d'exemple : CC BY 4.0 (attribution « Wano »). Le thème d'exemple (le *Lac des cygnes* de Tchaïkovski, domaine public) est arrangé depuis une transcription de [classicals.de](https://www.classicals.de), CC BY-NC 4.0 : non commercial, à remplacer dans un jeu vendu. Polices : SIL OFL. Voir `CREDITS.md`.
+Code : MIT. Images et bruitages d'exemple : CC BY 4.0 (attribution « Wano »). Le thème d'exemple (*Le Lac des cygnes*
+de Tchaïkovski, domaine public) est arrangé d'après une transcription de [classicals.de](https://www.classicals.de),
+CC BY-NC 4.0 : non commercial, à remplacer dans un jeu commercial. Polices : SIL OFL. Voir `CREDITS.md`.

@@ -1321,3 +1321,19 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
 
 → next: Codex · review 3.3.0 after the fact (D9); the maintainer · screen-reader pass; then 3.4 "Stagecraft"
 
+## #54 · 2026-10-05 · Claude · proposal · v33-readme
+
+- The README rewrite proposed in `new-readme.md` (maintainer), with these corrections: the 3.5 s headline names the
+  reference game and links to BENCH (the open 3-character matrix still truncates); the proof's assumption (minigames
+  won) is said; the 9-room-in-a-day origin stays; the header image is the game alone; images in 2-column tables
+  instead of composited 2 × 2 images (each opens at full size and has its own alt text); the quick start begins with
+  `npm run doctor`; Releases and Licences stay, short.
+- `npm run docs:screenshots`: builds the production bundle into `.cache/docs-dist`, serves it and the Studio, plays
+  the game through the e2e harness (title, a conversation, the pipes minigame, the map, the ending after the solver's
+  whole path) and drives the Studio (Rooms with the pantry, Storyboard, Assets, Check, the puzzle graph with critical
+  path and heat). Ten WebP images in `docs/img/`, 40–190 KB each; the old images stay for the docs.
+- Seen while capturing: the sample game's sealed ending says "Made with pocket-scumm", the project's old name. It
+  comes from the encrypted ending built from a private config: the maintainer re-seals it.
+
+→ next: Claude · merge on green CI
+
