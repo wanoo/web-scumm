@@ -224,7 +224,7 @@ La proposition d'ouverture est la beta de Codex (`v3-beta1`, journal #1), revue 
   mis en cache plutôt qu'un téléchargement illimité de tout le jeu.
 - **upgrading** : `docs/en/UPGRADING.md` + `docs/fr/UPGRADING.md`, la liste v2 → v3, exécutée sur le jeu privé de référence.
 
-## v3.1 « Playtest » (livrée le 5 octobre 2026) : ce que la v3.0.0 a laissé ouvert, puis deux outils qu'un studio attend
+## v3.1 « Playtest » (livrée le 4 octobre 2026) : ce que la v3.0.0 a laissé ouvert, puis deux outils qu'un studio attend
 
 Une branche `v3-<sujet>` à la fois, chacune avec son entrée de journal, ses tests, ses docs dans les deux langues et
 une passe CI, fusionnée dans `main` au fur et à mesure : `v3-webkit` (le rejeu générique depuis le titre ; WebKit

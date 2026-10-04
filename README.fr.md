@@ -11,7 +11,7 @@ ligne après la première visite.
 |---|---|
 | 🎮 **Jouer au jeu d'exemple** | https://wanoo.github.io/web-scumm/ (téléphone en paysage, ou ordinateur) |
 | 🛠 **Essayer le Studio** | https://wanoo.github.io/web-scumm/studio.html (mode démo : les modifications restent dans ton navigateur) |
-| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v3.0.0 · [journal des changements](CHANGELOG.md) · [passer de la v2](docs/fr/UPGRADING.md) |
+| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v3.1.0 · [journal des changements](CHANGELOG.md) · [passer de la v2](docs/fr/UPGRADING.md) |
 
 ![Trois lieux du jeu d'exemple](docs/img/banner.jpg)
 
