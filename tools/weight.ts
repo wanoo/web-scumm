@@ -2,6 +2,7 @@
 // player can be in during it, from the proof by chapters), against `assetBudgets` (`initialKB`, `roomKB`, `chapterKB`). Sizes are the
 // built files (public/assets, `ASSETS_DIR` for a fixture). Exit codes: 0 within budget, 1 over a budget or a file
 // missing (`--release`: or a budget not set, the step of `verify:release`). `--json` for tools. docs/en/TOOLS.md "Weight".
+import { cachedSolve } from './proof-cache';
 import { statSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { assetPath } from '../src/engine/tools/provenance';
@@ -21,7 +22,7 @@ for (const k of keys) { const p = assetPath(k); const f = p ? resolve(ASSETS_DIR
 // boundary state), including the rooms where it ends.
 const chapters: { id: string; rooms: string[] }[] = [];
 if (Object.values(game.checkpoints ?? {}).some((c) => c.goals?.length)) {
-  const p = await proveChapters(game, layouts, { commands: mod.commands });
+  const p = await proveChapters(game, layouts, { commands: mod.commands, solver: cachedSolve });
   for (const c of p.chapters) chapters.push({ id: c.id, rooms: [...new Set(c.results.flatMap((r) => [...r.roomsReached, ...r.boundaries.map((b) => b.room)]))].sort() });
 }
 

@@ -4,6 +4,10 @@
 
 ### Added
 
+- The persistent proof cache (`tools/proof-cache.ts`, `.cache/proofs/`): a solver run keyed by the engine's sources,
+  the game's sources and content, and the options (defaults normalised) is given back when none changed, and the
+  outputs say so (`cached` in `--json`). `npm run solve` (every mode), `--chapters` and `npm run lint` use it;
+  `--no-cache` / `PROOF_CACHE=0` turn it off. Demo: warm proof 0.17 s (cold 2.4 s), chapters 1.1 s (cold 3.4 s).
 - Weight budgets (`npm run weight`, `assetBudgets.initialKB / roomKB / chapterKB`): what a phone downloads before the
   first room is playable, per room and per chapter (every room reachable in it, from the proof by chapters), from the
   built files; over a budget fails, and `verify:release` requires the budgets. Demo: 2.0 MB initial, 2.4 MB at most

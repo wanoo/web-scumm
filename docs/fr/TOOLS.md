@@ -201,6 +201,14 @@ Codes de sortie : 0 propre, 1 une erreur non ignorée, 2 la recherche a été tr
 dans `game.ts` garde un faux indice voulu. L'onglet Check du Studio montre la même liste avec des liens vers Rooms ;
 l'outil MCP `lint` la renvoie en Markdown. `verify:game` le lance (la CI aussi).
 
+**Cache de preuve.** Une exécution du solveur ne dépend que du code du moteur, du jeu (contenu, plans, commandes
+personnalisées, et les sources du dossier du jeu) et des options : `npm run solve` (tous modes), `--chapters` et
+`npm run lint` gardent chaque résultat dans `.cache/proofs/` et le rendent quand rien de cela n'a changé, en le disant
+(`(from the proof cache, key …)` ; `cached` dans `--json`). Le build, `verify:game`, `prove:game` et `release-check`
+posent plusieurs fois les mêmes questions ; sur la démo, une preuve en cache prend 0,2 s au lieu de 2,4 s.
+`--no-cache` ou `PROOF_CACHE=0` relance ; `PROOF_CACHE_DIR` le déplace ; une erreur du moteur n'est jamais gardée. Les
+tests appellent le solveur directement et ne s'en servent jamais.
+
 **Un seul statut.** Une exécution du solveur et une preuve par chapitres portent un statut, son code de sortie et sa
 phrase (`src/engine/tools/status.ts`) : `npm run solve` affiche la phrase et sort avec le code, `--json` porte
 `status`, `exit` et `headline`, l'onglet Check du Studio montre la phrase, l'outil MCP `solve` rend les trois. Aucun
