@@ -648,10 +648,14 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     // hop checked (arrives, changes nothing the solver reads); the tries of that room start from where it ends.
     const placed: { st: GameState; via?: Id; pre?: SessionEntry[]; prefix?: string; region?: Id[] }[] = [];
     for (const v of variants) {
-      if (!model) { placed.push(v); continue; }
+      // What a character's view reaches is reached (the explicit search would switch to it, or walk there): the room
+      // reports and the lint's `room-never-reached` must not depend on the abstractions (tests/audit.test.ts).
+      v.st.inventory.forEach((i) => itemsSeen.add(i));
+      if (!model) { placed.push(v); roomsReached.add(v.st.room); continue; }
       const R = model.region(v.st);
       mobInfo.largest = Math.max(mobInfo.largest, R.rooms.length);
       for (const r of R.rooms) {
+        roomsReached.add(r);
         if (r === v.st.room) { placed.push({ ...v, region: R.rooms }); continue; }
         const { e } = makeEngine();
         e.state = timed('clone', () => structuredClone(v.st));

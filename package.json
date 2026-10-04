@@ -20,7 +20,7 @@
     "prove:game": "npm run solve -- --prove && npm run solve -- --prove --chapters",
     "e2e:smoke": "node scripts/e2e.mjs --generic --prod",
     "e2e:pwa": "node scripts/e2e-pwa.mjs",
-    "release-check": "npm run doctor && npm run build && npm run verify:release && npm run prove:game && npm run audit:deps && npm audit --audit-level=high",
+    "release-check": "npm run doctor && npm run build && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run audit:deps && npm audit --audit-level=high",
     "e2e": "node scripts/e2e.mjs",
     "validate": "tsx tools/validate.ts",
     "solve": "tsx tools/solve.ts",

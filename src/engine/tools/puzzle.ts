@@ -78,6 +78,23 @@ export function puzzleGraph(gameIn: GameDef, opts: { commands?: Record<string, {
     else if ('custom' in c) effects(action, opts.commands?.[c.custom]?.effects as Cmd[] | undefined, room);
   });
 
+  // The first written rule that matches answers (Engine.findRule: the room's rules, then the game's): an earlier rule
+  // that can answer the same action shadows a later one while its condition holds, so the later one also depends on
+  // that condition. Without these edges, a flag that only gates a shadowing rule looked dead, and the solver merged
+  // states where different rules answer (found by the random games of tests/audit.test.ts).
+  const overlaps = (x: { verb: Id | Id[]; a?: Id | Id[]; b?: Id | Id[] }, y: typeof x) => {
+    const meet = (p: Id[], q: Id[]) => p.some((v) => q.includes(v));
+    const bs = (r: typeof x) => r.b === undefined ? ['\u0000'] : asList(r.b);
+    if (!meet(asList(x.verb), asList(y.verb))) return false;
+    return (meet(asList(x.a), asList(y.a)) && meet(bs(x), bs(y))) || (x.b !== undefined && y.b !== undefined && meet(asList(x.a), asList(y.b)) && meet(asList(x.b), asList(y.a)));
+  };
+  const shadowing = (list: { rule: NonNullable<RoomDef['on']>[number]; id: string; room?: RoomDef }[]) => list.forEach((later, j) => {
+    for (const earlier of list.slice(0, j)) if (overlaps(earlier.rule, later.rule)) requires(later.id, earlier.rule.if, earlier.room, 'reads');
+  });
+  const gameRules = (game.rules.on ?? []).map((rule, i) => ({ rule, id: ruleActionId('game', i, rule) }));
+  for (const r of game.rooms) shadowing([...(r.on ?? []).map((rule, i) => ({ rule, id: ruleActionId(r.id, i, rule), room: r })), ...gameRules]);
+  if (!game.rooms.length) shadowing(gameRules);
+
   for (const r of game.rooms) {
     if (r.onEnter?.length) { const a = node('rule', `${r.id}/enter`, `enter ${r.name}`, r.id); effects(a, r.onEnter, r); }
     (r.on ?? []).forEach((rule, i) => {

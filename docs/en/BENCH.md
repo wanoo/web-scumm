@@ -313,7 +313,7 @@ same. It relies on the read trace being complete: one skip in 16 is run anyway a
 error, never a silent skip. `tests/memo.test.ts` runs every skip anyway on twelve fixtures (witness and proof) and on
 the demo: same verdicts, states, softlocks, witnesses and reachability counts. This is an equivalence checked on that
 corpus, not a proof for every game: a future condition or command that forgets to declare a read would break it, and
-only a check that runs every skip would catch it.
+only a check that runs every skip would catch it (`npm run solve -- --audit-abstractions`, 3.3.1).
 
 | Demo | Before | With the memo |
 |---|---|---|
@@ -344,3 +344,27 @@ With the proof cache warm, the demo's global proof answers in 0.17 s and its cha
 (characters not confined to an era, items moving freely) still truncates with 2 and 3 characters: see
 "After `v33-mobility`".
 
+## 3.3.1: the abstractions audited (5 October 2026)
+
+`npm run solve -- --audit-abstractions` (`src/engine/tools/audit.ts`) proves the selected game twice: with the
+abstractions, every memo hit run anyway and compared, and with all of them off. It fails (exit 1) on any difference in
+the verdict, the broken invariants, whether softlocks exist, or the flags, rooms and places reached; it says `partial`
+(exit 2) when the explicit search does not fit the budget, because then the verdicts were not compared. On the demo:
+`same`, 3 480 states against 6 528, 95 625 memo hits all identical, 9.5 s. `release-check` runs it.
+
+`tests/audit.test.ts` runs the same audit on 120 random games (`tests/gen/random-game.ts`: 2–4 rooms, 1–2 characters,
+negative `has`, consumption, transfers, counters, `once` / `nth` / `cycle`, nested `if`), and on one game per command
+and per condition of the DSL (the two tables are checked against the `Cmd` and `Cond` types: a new variant without a
+sample does not compile). Of the 120 random games, 92 are `same` (the explicit search: 26 solved, 18 with softlocks,
+48 unsolved) and 28 `partial` at 3 000 states; none diverged.
+
+What it found, and what is fixed:
+
+- **A dead flag that was not dead.** The first written rule that matches answers. A flag that gates only an earlier
+  rule, which itself only touches that flag, looked dead to the liveness analysis, yet it decides whether the earlier
+  rule or a later one answers. The solver merged the two states and lost every path through the later rule; on one
+  random game, the abstractions happened to reach a flag the explicit search did not. This was a flaw of the base
+  search, not of an abstraction. The puzzle graph now links an earlier rule's condition to every later rule it can
+  shadow (`puzzleGraph`); the demo and the reference game keep exactly the same state counts.
+- **Rooms reached.** With the canonical character, a room where only another playable character stood was missing
+  from `roomsReached` (and so could be reported by the lint as never reached). Every character's view now counts.

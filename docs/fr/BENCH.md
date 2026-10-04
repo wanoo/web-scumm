@@ -333,7 +333,7 @@ des lectures est complète : un saut sur 16 est lancé quand même et comparé, 
 un saut silencieux. `tests/memo.test.ts` lance chaque saut quand même sur douze fixtures (témoin et preuve) et sur la
 démo : mêmes verdicts, états, softlocks, témoins et compteurs d'atteignabilité. C'est une équivalence vérifiée sur ce
 corpus, pas une preuve pour tout jeu : une future condition ou commande qui oublierait de déclarer une lecture la
-casserait, et seule une vérification qui lance chaque saut le verrait.
+casserait, et seule une vérification qui lance chaque saut le verrait (`npm run solve -- --audit-abstractions`, 3.3.1).
 
 | Démo | Avant | Avec la mémoire |
 |---|---|---|
@@ -365,3 +365,30 @@ Avec le cache de preuve chaud, la preuve globale de la démo répond en 0,17 s e
 ouverte (personnages non confinés à une époque, objets qui circulent librement) tronque toujours avec 2 et 3
 personnages : voir « Après `v33-mobility` ».
 
+## 3.3.1 : les abstractions auditées (5 octobre 2026)
+
+`npm run solve -- --audit-abstractions` (`src/engine/tools/audit.ts`) prouve le jeu sélectionné deux fois : avec les
+abstractions, chaque saut de la mémoire lancé quand même et comparé, et avec toutes coupées. Il échoue (sortie 1) sur
+toute différence de verdict, d'invariants cassés, d'existence de softlocks, ou de flags, lieux et emplacements
+atteints ; il dit `partial` (sortie 2) quand la recherche explicite ne tient pas dans le budget, parce qu'alors les
+verdicts n'ont pas été comparés. Sur la démo : `same`, 3 480 états contre 6 528, 95 625 sauts tous identiques, 9,5 s.
+`release-check` le lance.
+
+`tests/audit.test.ts` lance le même audit sur 120 jeux aléatoires (`tests/gen/random-game.ts` : 2 à 4 lieux, 1 ou 2
+personnages, `has` négatif, consommation, transferts, compteurs, `once` / `nth` / `cycle`, `if` imbriqués), et sur un
+jeu par commande et par condition du DSL (les deux tables sont vérifiées contre les types `Cmd` et `Cond` : une
+nouvelle variante sans exemple ne compile pas). Sur les 120 jeux aléatoires, 92 sont `same` (la recherche explicite :
+26 résolus, 18 avec softlocks, 48 non résolus) et 28 `partial` à 3 000 états ; aucun n'a divergé.
+
+Ce qu'il a trouvé, et qui est corrigé :
+
+- **Un flag mort qui ne l'était pas.** La première règle écrite qui correspond répond. Un flag qui ne garde qu'une
+  règle antérieure, laquelle ne touche que ce flag, semblait mort à l'analyse de vivacité ; pourtant il décide si
+  c'est la règle antérieure ou une suivante qui répond. Le solveur fusionnait les deux états et perdait tout chemin
+  passant par la règle suivante ; sur un jeu aléatoire, les abstractions atteignaient par hasard un flag que la
+  recherche explicite n'atteignait pas. C'était un défaut de la recherche de base, pas d'une abstraction. Le graphe de
+  puzzles relie maintenant la condition d'une règle antérieure à chaque règle suivante qu'elle peut masquer
+  (`puzzleGraph`) ; la démo et le jeu de référence gardent exactement les mêmes nombres d'états.
+- **Lieux atteints.** Avec le personnage canonique, un lieu où seul un autre personnage jouable se tenait manquait à
+  `roomsReached` (et le lint pouvait donc le dire jamais atteint). Le point de vue de chaque personnage compte
+  maintenant.
