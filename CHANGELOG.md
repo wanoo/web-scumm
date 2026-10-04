@@ -38,6 +38,9 @@
 
 ### Fixed
 
+- Docs: the assistant key is in `sessionStorage` (STUDIO fr), a phone needs `dev:lan` (DESIGN), the branch model
+  after v3.0.0 (ROADMAP, CHARTER, AGENTS), `page:world`, the README's releases table and repository map, the
+  attribution URL in LICENSE-ASSETS, `read_doc` reads UPGRADING and CLASSICS, `docs/fr/MCP.md` is a full translation.
 - The two-entry build Pages deploys (game + Studio demo) could not open offline: the chunks of the game's locales,
   its session export and the save envelope's schema went under `assets/tools/`, which the worker does not precache.
   The CI e2e job now builds that shape.

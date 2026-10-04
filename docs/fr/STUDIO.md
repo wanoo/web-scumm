@@ -177,7 +177,7 @@ Le bouton **Assistant** de la barre du haut (ou la touche `a` hors d'un champ) o
 d'aider à compléter le jeu. Il a les mêmes outils que le serveur MCP (registre commun `tools/studio/tools.ts`) et part
 de l'élément sélectionné (pièce et entité, panneau du storyboard, ou le jeu entier). Le serveur du Studio relaie la
 conversation (`POST /__studio/api/assistant/chat`, événements SSE, 12 tours d'outils au plus). La clé d'API reste dans
-le `localStorage` du navigateur et n'est jamais écrite sur disque ni journalisée. Sans clé, **Send as a task**
+le `sessionStorage` de cet onglet (effacée à sa fermeture) et n'est jamais écrite sur disque ni journalisée. Sans clé, **Send as a task**
 écrit une note `task: true` dans `notes.json`, qu'un agent connecté en MCP reprend avec `get_notes`. En mode démo, la
 page appelle le fournisseur elle-même (Ollama local conseillé ; OpenAI refuse parfois les appels depuis un navigateur).
 Détails : docs/en/STUDIO.md, section « Assistant ».

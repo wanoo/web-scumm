@@ -175,6 +175,8 @@ construit un autre jeu.
 
 | Version | Ce qu'elle a ajouté |
 |---|---|
+| v3.1 Playtest | `npm run ids` et la démo en schéma 3 ; `bootGame` ; emplacements dans IndexedDB ; le jeu entier hors ligne après la première visite ; le jeu entier au clavier ; le lint de contenu (`npm run lint`, panneau Check, outil MCP) ; l'enregistreur de playtests (sessions partagées depuis les téléphones, rejouées en CI, blocages sur la heatmap) ; la preuve mesurée honnêtement, workflows release et prove. |
+| v3.0 Trust | Ids stables (`schemaVersion: 3`) ; une enveloppe de sauvegarde validée avec autosave IndexedDB vérifiée ; `solve --prove` avec softlocks et codes de sortie honnêtes ; Studio en loopback avec jeton LAN ; cibles d'accessibilité ; le guide de migration. Co-développée avec Codex (`docs/dev/`). |
 | v2.5 Sound | La chaîne audio Mega Drive (`npm run audio`) : musique arrangée depuis un MIDI via `spec.json`, bruitages depuis `sfx.json`, une seule palette ; le jeu d'exemple reçoit un thème et des bruitages rendus par les puces. |
 | v2.4 Author | Couverture du storyboard : des badges sur chaque board et chaque case, un panneau Check et l'outil `storyboard_coverage` ; la timeline de cinématique dans l'onglet Rooms. |
 | v2.3 Replay | Sessions enregistrées et rejouées (`npm run replay`, onglet Play) ; la solution du solveur rejouée par la CI dans Chromium ; le profil du solveur et « Solver health » ; pourquoi une chose est live, le chemin critique et une carte de chaleur sur le graphe de puzzles ; réduction d'ordre partiel (`--por`) ; commandes custom contrôlées en dev. |
@@ -196,7 +198,7 @@ games/demo/      le jeu d'exemple : game.ts, rooms/, layout/, art/, audio/, loca
 games/_template/ copié par npm run new-game
 tools/           CLIs (validate, solve, i18n, bench, prompts), pages/, studio/, mcp/, assets.py, cut-sheet.py
 scripts/         harnais e2e, seal (fin scellée), gen-icons, new-game
-docs/en docs/fr  CONTENT_GUIDE, CLASSICS, DESIGN, ENGINE, TOOLS, STUDIO, MCP, PAGES, PROMPTS, WORKFLOW, BENCH, ROADMAP
+docs/en docs/fr  CONTENT_GUIDE, CLASSICS, DESIGN, ENGINE, TOOLS, STUDIO, MCP, PAGES, PROMPTS, WORKFLOW, BENCH, ROADMAP, AUDIO, UPGRADING ; docs/dev : l'échange avec l'autre assistant
 ```
 
 ## Licences

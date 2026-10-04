@@ -59,6 +59,8 @@ describe('MCP server on games/demo', () => {
     const v = parse(await call(demo, 'validate'));
     expect(v.ok).toBe(true);
 
+    const classics = await call(demo, 'read_doc', { name: 'CLASSICS' });
+    expect(JSON.stringify(classics)).toContain('insult');
     const doc = await call(demo, 'read_doc', { name: 'STUDIO' });
     expect(doc.content[0].text).toContain('# Studio');
 

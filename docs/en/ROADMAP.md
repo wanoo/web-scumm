@@ -89,7 +89,7 @@ Files: `src/engine/tools/{validate,solve}.ts`, new `src/engine/tools/graph.ts`, 
 - **Declared exits**: `RoomDef.exits: Record<id, { to; entry?; if?; walkTo?; transition?: 'fade' | 'cut' }>`. An exit is
   rendered as a hotspot (same layout); the engine generates the `goto` rule. Existing `goto` hotspots stay valid.
 - **World graph**: `graph.ts` builds rooms / exits / entries; `validate` reports unreachable rooms, missing entry points,
-  unintended one-way exits (unless `oneWay: true`). `npm run pages -- world`: a clickable graph (DOT / SVG export), also in
+  unintended one-way exits (unless `oneWay: true`). `npm run page:world`: a clickable graph (DOT / SVG export), also in
   the Studio's Check tab.
 - **Chapters and goals**: `checkpoints[i].goals?: Cond[]` and `GameDef.invariants?: Cond[]` ("never true"). `solve`
   resolves checkpoint to checkpoint by default (each segment bounded), then globally on request; fails if an invariant
@@ -252,7 +252,8 @@ what every action read and changed.
 
 Co-developed by two assistants under `docs/dev/CHARTER.md`; the exchange is `docs/dev/LOG.md`, the decisions
 `docs/dev/DECISIONS.md`. v3 may break v2 (D1): every break ships with its migration and an upgrading guide, and the
-private reference game is migrated on a branch before v3.0.0 is tagged. `main` stays v2.5.0 until then.
+private reference game is migrated on a branch before v3.0.0 is tagged. Since v3.0.0, `main` is the release branch and
+each `v3-<topic>` merges there as it passes its gates (D7).
 
 The opening proposal is Codex's beta (`v3-beta1`, log #1), reviewed in log #2. Its topics, each a `v3-<topic>` branch
 when split out:
@@ -269,13 +270,16 @@ when split out:
   whole-game download.
 - **upgrading**: `docs/en/UPGRADING.md` + `docs/fr/UPGRADING.md`, the v2 → v3 checklist, run on the private reference game.
 
-## v3.1 "Playtest" (in progress on `main`, one `v3-<topic>` branch at a time)
+## v3.1 "Playtest" (shipped 5 October 2026): what v3.0.0 left open, then two tools a studio expects
 
-What v3.0.0 left open, then two tools a studio expects. Done so far: `v3-webkit` (the generic replay starts from the
-title, WebKit stays experimental until three green runs), `v3-ids` (`npm run ids`, the sample game on schema 3,
-translation paths by id). Next: `v3-boot` (`bootGame`), `v3-slots` (slots in IndexedDB), `v3-offline` (full game
-offline after the first visit, D5), `v3-a11y` (a whole game at the keyboard), `v3-lint` (content lint from the puzzle
-graph), `v3-playtests` (sessions shared from phones, replayed in CI, stalls on the heatmap), `v3-ci`, `v3-docs`.
+One `v3-<topic>` branch at a time, each with its log entry, tests, docs in both languages and a CI run, merged into
+`main` as it passed: `v3-webkit` (the generic replay from the title; WebKit gates after its three green runs),
+`v3-ids` (`npm run ids`, the sample game on schema 3, translation paths by id), `v3-boot` (`bootGame`; the
+precache fix of the two-entry build), `v3-slots` (slots in IndexedDB), `v3-offline` (the whole game offline after
+the first visit, D5), `v3-a11y` (a whole game at the keyboard), `v3-lint` (the content lint), `v3-playtests`
+(sessions from phones replayed in CI, stalls on the heat map), `v3-ci` (the proof measured honestly, release and
+prove workflows, Dependabot), `v3-docs` (this sweep). Next for the solver: the reduction in proof mode, with
+`tests/por.test.ts` as its proof (BENCH.md).
 
 ## Out of scope (explicit decisions)
 
@@ -290,4 +294,4 @@ graph), `v3-playtests` (sessions shared from phones, replayed in CI, stalls on t
 3. A save made with the previous version of the demo loads after migration (a unit test on a JSON frozen per milestone).
 4. Copy of `src/engine` into the private game: its tests, solver and e2e unchanged.
 5. MCP: `npm run -s mcp` lists the updated tools; a fresh AI session adds a script / event to the demo following only CONTENT_GUIDE.
-6. Tagged release with notes; README "Status" updated.
+6. Tagged release with notes; the README's "Releases" table updated.

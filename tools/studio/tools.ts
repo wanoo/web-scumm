@@ -50,7 +50,7 @@ export type ToolResult = {
   structuredContent?: Record<string, unknown>;
 };
 
-export const DOCS = ['CONTENT_GUIDE', 'ENGINE', 'TOOLS', 'STUDIO', 'WORKFLOW', 'AUDIO', 'UPGRADING'] as const;
+export const DOCS = ['CONTENT_GUIDE', 'ENGINE', 'TOOLS', 'STUDIO', 'WORKFLOW', 'AUDIO', 'UPGRADING', 'CLASSICS'] as const;
 export type DocName = (typeof DOCS)[number];
 
 export interface ToolDef {
@@ -280,7 +280,8 @@ export const TOOLS: ToolDef[] = [
   {
     name: 'read_doc', title: 'Read a documentation page',
     description: 'Returns one page of docs/en/: CONTENT_GUIDE (the game format, the DSL of rooms, conditions and ' +
-      'commands: read it first), ENGINE, TOOLS, STUDIO or WORKFLOW. Read-only.',
+      'commands: read it first), ENGINE, TOOLS, STUDIO, WORKFLOW, AUDIO (music and effects), UPGRADING (v2 to v3), ' +
+      'CLASSICS (the famous mechanics of the genre, each with its DSL: read it before asking for a new command). Read-only.',
     input: { name: z.enum(DOCS) },
     annotations: { readOnlyHint: true }, needs: 'readDoc',
     run: ({ name }, b) => op(() => b.readDoc!(name)),

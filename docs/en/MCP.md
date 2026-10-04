@@ -34,7 +34,7 @@ the human sees the result live in `npm run studio` (it watches the files).
 | `playtests` | | the sessions players shared (`games/<id>/playtests/`) replayed on the current content and summed up, as Markdown: time per room, stalls, hints, where they stopped, sessions the content has outgrown |
 | `lint` | `prove?` | the content lint as Markdown (`npm run lint`): conditions nothing can satisfy, hidden rules, red herrings, stuck hints, dead options, and after a solver run the live actions never run and the rooms never reached; each finding with its path, id and fix |
 | `screenshot` | `room, checkpoint?` | PNG of the room under `.cache/studio/`; needs the dev server (`npm run studio`) at `WEB_SCUMM_DEV_URL` (default `http://localhost:5173/`) and Playwright, else says why it is unavailable |
-| `read_doc` | `name` | one of `CONTENT_GUIDE`, `ENGINE`, `TOOLS`, `STUDIO`, `WORKFLOW`, `AUDIO` (docs/en): the agent learns the DSL and the audio pipeline through MCP |
+| `read_doc` | `name` | one of `CONTENT_GUIDE`, `ENGINE`, `TOOLS`, `STUDIO`, `WORKFLOW`, `AUDIO`, `UPGRADING`, `CLASSICS` (docs/en): the agent learns the DSL, the audio pipeline, the v2 → v3 move and the classic mechanics through MCP |
 | `run_tests` | | runs `npx vitest run`, returns the summary and the failures |
 | `asset_prompts` | `missing?` | the art prompts of `npm run prompts` (markdown), and `{ missing, sheets }` as structured content: the image ids not cut yet |
 
@@ -91,5 +91,5 @@ Node 22+.
 ## A typical session
 1. `read_doc CONTENT_GUIDE`, `list_rooms`, `get_storyboard`, `get_notes`.
 2. Edit: `set_storyboard` first, then `set_text` / `add_entity` in the rooms.
-3. `validate`, `solve`, `run_tests`; `screenshot` if the human runs the Studio.
+3. `validate`, `solve`, `lint`, `run_tests`; `screenshot` if the human runs the Studio.
 4. `add_note` for anything the human must decide or place; read their answer with `get_notes`.
