@@ -18,6 +18,8 @@ export interface ValidateOptions {
   minigameIds?: string[];
   /** Required params of each minigame (Minigame.required). Absent = no check. */
   minigameParams?: Record<string, string[]>;
+  /** Params that name an image or a sound (Minigame.bindings): they must exist. Absent = images found by shape only. */
+  minigameBindings?: Record<string, { images?: string[]; sfx?: string[] }>;
   /** Maximum length of a line before a warning. */
   maxText?: number;
   /** The game's custom commands (`{ custom }`): checked to exist and to declare `effects` or `pure`. Absent = no check. */
@@ -338,6 +340,10 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   const minigameParams = (id: Id, params: Record<string, unknown> | undefined, where: string) => {
     const need = opts.minigameParams?.[id];
     for (const k of need ?? []) if (params?.[k] === undefined) err(where, `minigame "${id}": missing required param "${k}"`);
+    const b = opts.minigameBindings?.[id];
+    const at = (path: string) => path.split('.').reduce<unknown>((v, k) => (v && typeof v === 'object' ? (v as Record<string, unknown>)[k] : undefined), params);
+    for (const k of b?.images ?? []) { const v = at(k); if (typeof v === 'string') img(v, `${where}.params.${k}`); else if (v !== undefined) err(`${where}.params.${k}`, `minigame "${id}": "${k}" must be an image id`); }
+    for (const k of b?.sfx ?? []) { const v = at(k); if (v === undefined) continue; if (typeof v !== 'string' || !game.audio?.sfx?.[v]) err(`${where}.params.${k}`, `minigame "${id}": unknown sound "${String(v)}" (audio.sfx)`); }
     const scan = (v: unknown, w: string) => {
       if (typeof v === 'string') { if (/^[a-z0-9_-]+\/[A-Za-z0-9_-]+$/.test(v)) img(v, w); }
       else if (Array.isArray(v)) v.forEach((x, i) => scan(x, `${w}[${i}]`));

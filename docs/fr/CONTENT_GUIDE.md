@@ -640,7 +640,14 @@ skin: {
 },
 ```
 
-Les textes d'interface sont dans `ui` (dont `tapToContinue`, « ▼ toucher pour continuer », et `ok`, le bouton du mot de passe).
+Les textes d'interface sont dans `ui` (dont `tapToContinue`, « ▼ toucher pour continuer », et `ok`, le bouton du mot de passe). Les
+clés que le moteur affiche lui-même ont une **valeur anglaise par défaut** quand le jeu les omet (`src/engine/dom/ui-defaults.ts`) :
+`verbs` (le libellé ARIA de la barre des verbes), `saveFailed`, `saveAdjusted`, `updateAvailable`, `updateNow`, `advance`, `jump`,
+`duck`, `offlineStatus`, `offlineComplete`, `offlineRetry`, `save`, `load`, `slot`, `emptySlot`, `confirmOverwrite`,
+`exportSave`, `importSave`, `exportSession`, `shareSession`, `settings`, `textSpeed`, `textSize`, `slow`, `normal`,
+`fast`, `large`, `reduceMotion`, `readableFont`, `language`, `volumeMusic`, `volumeSfx`, `volumeVoice`. Un jeu dans une
+autre langue les fournit toutes : `npm run i18n -- status` liste les clés laissées aux valeurs par défaut, et
+`npm run e2e -- --lang <xx>` échoue dès que l'une d'elles est visible.
 
 ## Le layout (écrit par l'éditeur, à ne pas taper à la main)
 
@@ -665,6 +672,10 @@ Une image se désigne par `dossier/nom`, le chemin du fichier découpé dans `ga
 `npm run assets` prépare uniquement les images citées par le contenu, et `npm run validate` signale toute image introuvable.
 
 ## Mini-jeux disponibles
+
+Chaque mini-jeu déclare son contrat : les params `required`, `textParams` (les chaînes visibles par le joueur, extraites
+pour la traduction) et `bindings` (les params qui nomment une image ou un son : `validate` vérifie qu'ils existent, par
+exemple `sfx` de `stroke`, `sfx.ring` / `sfx.stamp` de `cables`, `ticket` et `sfx` de `scratch`).
 
 Tous les mini-jeux acceptent `intro` (consigne de la voix des indices au début) et `win` (phrase de fin). Aucun ne s'échoue, et tous ont un bouton « Passer » (sauf `scratch`, qui est la fin scellée elle-même).
 Le moteur ne nomme aucune image : chaque mini-jeu reçoit les siennes par `params`. Les paramètres **en gras** sont obligatoires ; `npm run validate` signale ceux qui manquent.

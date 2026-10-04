@@ -8,6 +8,7 @@ import { el, finisher, num, skipButton, stage, str, toast } from './util';
 const SLOW_MIN = 25, SLOW_MAX = 260; // speed in logical units per second
 
 export const stroke: Minigame = {
+  bindings: { sfx: ['sfx'] },
   required: ['target', 'hand'],
   textParams: ['intro', 'win', 'tooFast'],
   run(ctx: MinigameCtx) {

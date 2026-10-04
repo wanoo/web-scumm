@@ -27,11 +27,13 @@ const at = flag('at');
 const prod = args.includes('--prod');
 const generic = args.includes('--generic');
 const keyboard = args.includes('--keyboard');
+// --lang <xx>: play in that language and fail on any visible English default of the engine (`harness.leaks()`).
+const lang = flag('lang');
 // Same game resolution as tools/game.ts (env GAME, else package.json config.game, else "demo"); --game overrides both.
 const GAME = flag('game') ?? process.env.GAME ?? 'demo';
 
-console.log(`e2e: ${url} (game: ${GAME}, browser: ${process.env.E2E_BROWSER ?? 'chromium'}, ${prod ? 'production' : 'development'}${keyboard ? ', keyboard' : ''})`);
-const harness = await launch(url, { at, dev: !prod, input: keyboard ? 'keyboard' : undefined });
+console.log(`e2e: ${url} (game: ${GAME}, browser: ${process.env.E2E_BROWSER ?? 'chromium'}, ${prod ? 'production' : 'development'}${keyboard ? ', keyboard' : ''}${lang ? `, lang ${lang}` : ''})`);
+const harness = await launch(url, { at, dev: !prod, input: keyboard ? 'keyboard' : undefined, lang });
 let ok = true;
 try {
   const gameScript = resolve(ROOT, 'games', GAME, 'e2e.mjs');
@@ -51,6 +53,16 @@ try {
     await harness.walkthrough(solved.steps);
     if (!(await harness.ended())) throw new Error('the solver\'s path was replayed but the game did not reach its ending (engine.state.done is false)');
     console.log('e2e: the ending was reached');
+  }
+  if (lang) {
+    // The release-language check: nothing visible may be an English default of the engine, on the screen as it is
+    // after the walkthrough and in the pause menu (where most of the engine's own texts live).
+    const found = new Set(await harness.leaks());
+    await harness.page.evaluate(() => window.__game.pauseMenu());
+    for (const t of await harness.leaks()) found.add(t);
+    await harness.page.keyboard.press('Escape').catch(() => {});
+    if (found.size) throw new Error(`language "${lang}": ${found.size} visible text(s) are the engine's English defaults: ${[...found].join(' | ')} (add the keys to the game's ui / locales)`);
+    console.log(`e2e: no English default visible in "${lang}"`);
   }
   console.log('e2e: done');
 } catch (e) {

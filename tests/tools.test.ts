@@ -26,3 +26,16 @@ describe('solve', () => {
     expect(r.roomsReached).toContain('garden');
   });
 });
+
+describe('minigame bindings', () => {
+  it('flags a sound a minigame param names that the game does not have', () => {
+    const bad = structuredClone(game) as GameDef;
+    bad.audio = { ...(bad.audio ?? {}), sfx: { purr: 'purr.mp3' } };
+    bad.rooms[0].on!.push({ verb: 'use', a: 'lamp', do: [{ minigame: 'stroke', params: { target: 'lamp/off', hand: 'lamp/off', sfx: 'nope' } }] });
+    const bindings = { stroke: { sfx: ['sfx'] } };
+    const { errors } = validate(bad, layouts, { minigameBindings: bindings });
+    expect(errors.some((e) => e.includes('unknown sound "nope"'))).toBe(true);
+    bad.rooms[0].on!.at(-1)!.do = [{ minigame: 'stroke', params: { target: 'lamp/off', hand: 'lamp/off', sfx: 'purr' } }];
+    expect(validate(bad, layouts, { minigameBindings: bindings }).errors.some((e) => e.includes('unknown sound'))).toBe(false);
+  });
+});
