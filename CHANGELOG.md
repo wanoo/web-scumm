@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.2.2 — 2026-10-04
+
+### Fixed
+
+- `release-check` never ran `validate --release`: the provenance, placeholder and line-id checks of 3.2.1 could be
+  skipped by the release workflow. `npm run verify:release` (validate `--release`, `i18n -- status`, strict playtests)
+  is now a step of `release-check`, and `tests/release-gate.test.ts` breaks a clean fixture one defect at a time
+  (no provenance, an unexcepted placeholder, a translation without line ids) through the CLI.
+- A game translated into a single other language (only `fr.json`, no source file) skipped the line-id requirement:
+  "translated" now means a locale other than `game.lang` (default `en`).
+- Placeholder exceptions are per asset: `releaseExceptions: [{ match, reason }]` replaces the global
+  `allowPlaceholders` of 3.2.1 (an old reason never covers a new placeholder); an asset two provenance entries match
+  is an error instead of the first entry winning.
+- Docs no longer describe a placeholder as a warning, line ids as required only with voices, or the sample game as
+  keeping its plain lines.
+
 ## 3.2.1 — 2026-10-04
 
 ### Fixed

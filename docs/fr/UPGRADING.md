@@ -180,7 +180,7 @@ le début de son texte). Une table de traduction et un clip de voix sont alors i
 supprimer une ligne ne décale jamais les autres. `npm run ids -- --lines --write --map` donne leurs ids aux objets qui
 n'en ont pas et renomme les clés de `locales/*.json` (une seconde passe renomme depuis les chemins courants ; rien de
 déjà consigné dans `ids.migration.json` / `ids.paths.json` n'est perdu) ; `--lines=all` transforme d'abord chaque
-ligne en chaîne nue en `{ say: ['hero', texte], id }` pour un jeu qui double ou traduit chaque ligne (verbeux : la démo
-garde ses chaînes nues, indexées par leur propriétaire et leur position). `audio.voices[<id de ligne>]` joue sans
-écrire `voice` sur la ligne. `npm run validate -- --release` signale une ligne sans id (depuis la 3.2.1 une erreur, chaînes nues comprises, quand
-le jeu a plus d'une langue ou des voix : lancer `--lines=all` une fois) ; `npm run i18n -- voices` liste les lignes avec un id et sans clip, et les clips qu'aucune ligne ne réclame.
+ligne en chaîne nue en `{ say: ['hero', texte], id }` : exigé pour un jeu livré dans une autre langue que la sienne
+(`game.lang`, `en` par défaut) ou doublé ; la démo l'a fait en 3.2.1. `audio.voices[<id de ligne>]` joue sans écrire
+`voice` sur la ligne. `npm run validate -- --release` signale une ligne sans id (une erreur, chaînes nues comprises,
+dans un jeu traduit ou doublé : lancer `--lines=all` une fois ; un avertissement sinon) ; `npm run i18n -- voices` liste les lignes avec un id et sans clip, et les clips qu'aucune ligne ne réclame.

@@ -1,7 +1,7 @@
 {
   "name": "web-scumm",
   "private": true,
-  "version": "3.2.1",
+  "version": "3.2.2",
   "type": "module",
   "scripts": {
     "dev": "tsx tools/select-game.ts && vite",
@@ -20,7 +20,7 @@
     "prove:game": "npm run solve -- --prove && npm run solve -- --prove --chapters",
     "e2e:smoke": "node scripts/e2e.mjs --generic --prod",
     "e2e:pwa": "node scripts/e2e-pwa.mjs",
-    "release-check": "npm run doctor && npm run build && npm run prove:game && npm run playtests -- --strict && npm run audit:deps && npm audit --audit-level=high",
+    "release-check": "npm run doctor && npm run build && npm run verify:release && npm run prove:game && npm run audit:deps && npm audit --audit-level=high",
     "e2e": "node scripts/e2e.mjs",
     "validate": "tsx tools/validate.ts",
     "solve": "tsx tools/solve.ts",
@@ -51,7 +51,8 @@
     "page:puzzles": "tsx --tsconfig tsconfig.json tools/pages/puzzles.ts",
     "i18n": "tsx --tsconfig tsconfig.json tools/i18n.ts",
     "bench": "tsx --tsconfig tsconfig.json tools/bench.ts",
-    "import-layout": "tsx --tsconfig tsconfig.json tools/pages/import-layout.ts"
+    "import-layout": "tsx --tsconfig tsconfig.json tools/pages/import-layout.ts",
+    "verify:release": "npm run validate -- --release && npm run i18n -- status && npm run playtests -- --strict"
   },
   "config": {
     "game": "demo"

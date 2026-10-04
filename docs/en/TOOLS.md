@@ -178,7 +178,8 @@ npm run replay -- session.json     # plays a session file on the real engine, pr
 npm run ids [-- --write --map]     # stable ids (schema 3) written into the sources, locales renamed, the save migration step (docs/en/UPGRADING.md)
 npm run ids -- --lines [--write --map]   # an id on every say / toast / guide object (--lines=all: plain strings too, required for a translated or voiced release): translations and voices keyed by it (UPGRADING §9)
 npm run i18n -- voices             # the lines with an id and no voice clip, the clips no line claims
-npm run validate -- --release      # also: a line without a stable id (error when the game has voices)
+npm run validate -- --release      # also: provenance, placeholders, and a stable id on every line of a game shipped in another language than its own or voiced
+npm run verify:release             # validate --release + i18n status + strict playtests: a step of release-check
 npm run playtests [-- --strict --out=.cache/playtests]  # the sessions players shared (games/<id>/playtests) replayed and summed up: time per room, stalls, hints, heat map
 npm run e2e -- <url> --lang fr           # the whole game in that language; fails on any visible English default of the engine
 npm run lint [-- --prove | --static | --json]   # content lint: conditions nothing can satisfy, hidden rules, red herrings, stuck hints, actions never run
@@ -243,10 +244,12 @@ every `skin` id (manifest images, `audio` sounds) and `ending.scratch`.
 `games/<id>/provenance.json` says where every shipped asset comes from: entries `{ match, source, licence, author?,
 prompt?, status: 'final' | 'placeholder', note? }`, where `match` covers asset keys with `*` (`img:<manifest image
 id>`, `sfx:<file>`, `music:<file>`, `voice:<file>`, `video:<file>`). `npm run validate` checks a game that has the
-file (every asset covered, every entry complete); `npm run validate -- --release` requires it and warns about every
-placeholder that would ship. `npm run new-game` writes one for the art it borrows from the sample game (all
-placeholders, CC BY 4.0); the sample game's own file marks its non-commercial music as the one placeholder. In a
-release a placeholder is an error, unless the file says why it may ship (`"allowPlaceholders": "reason"`).
+file (every asset covered by exactly one entry: two entries matching the same asset are an error, whatever their
+order; every entry complete); `npm run validate -- --release` requires the file, and a placeholder is an error unless
+a `releaseExceptions: [{ match, reason }]` entry names that asset (an exception never covers a placeholder added
+later). `npm run new-game` writes one for the art it borrows from the sample game (all placeholders, CC BY 4.0); the
+sample game's file excepts its non-commercial music by name. `npm run verify:release` (validate `--release`,
+`i18n -- status`, strict playtests) is a step of `npm run release-check`, so the release workflow runs it.
 Translations: a text identical to the source fails `npm run i18n -- status` unless `i18n: { same: [paths] }` in
 `game.ts` lists it (a name, "OK", an arrow).
 `npm run audit` is a different check: it keeps names from a private project out of the public repository.

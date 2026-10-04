@@ -174,8 +174,8 @@ start of its text). A translation table and a voice clip are then keyed by it: i
 never shifts the others. `npm run ids -- --lines --write --map` gives the ids to the objects that lack them and renames
 the keys of `locales/*.json` (a second pass renames from the current paths, nothing already recorded in
 `ids.migration.json` / `ids.paths.json` is lost); `--lines=all` first turns every plain string line into
-`{ say: ['hero', text], id }` for a game that voices or translates every line (verbose: the sample game keeps its
-plain strings, which stay keyed by their owner and position). `audio.voices[<line id>]` plays without writing `voice`
-on the line. `npm run validate -- --release` reports a line without an id (since 3.2.1 an error, plain strings included, when the
-game ships more than one language or has voices: run `--lines=all` once);
+`{ say: ['hero', text], id }`: required for a game that ships a language other than its own (`game.lang`, default
+`en`) or has voices; the sample game did it in 3.2.1. `audio.voices[<line id>]` plays without writing `voice` on the
+line. `npm run validate -- --release` reports a line without an id (an error, plain strings included, in a translated
+or voiced game: run `--lines=all` once; a warning otherwise);
 `npm run i18n -- voices` lists the lines with an id and no clip, and the clips no line claims.
