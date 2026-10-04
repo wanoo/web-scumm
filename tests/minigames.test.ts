@@ -132,3 +132,17 @@ describe('touch minigames', () => {
     expect(worst).toBeLessThanOrEqual(320 - 95); // … but always stays behind the second runner
   });
 });
+
+describe('a skip is reported to the host', () => {
+  it('skipped() sends a bubbling mg-skip event (App.minigameLog tells a win from a skip by it)', async () => {
+    const { skipped } = await import('@engine/minigames/util');
+    const host = new EventTarget();
+    let seen: Event | null = null;
+    host.addEventListener('mg-skip', (e) => { seen = e; });
+    skipped(host as unknown as HTMLElement);
+    expect(seen).not.toBeNull();
+    expect((seen as unknown as Event).bubbles).toBe(true);
+    // the bare element stubs of the tests above have no dispatchEvent: nothing to report, nothing thrown
+    expect(() => skipped({} as HTMLElement)).not.toThrow();
+  });
+});

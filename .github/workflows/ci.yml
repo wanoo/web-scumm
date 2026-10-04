@@ -112,6 +112,14 @@ jobs:
         env:
           E2E_BROWSER: ${{ matrix.browser }}
           E2E_OUT: /tmp/e2e-${{ matrix.browser }}
+      # The accessibility and storage gates (since 3.3): axe on the conversation menu, the map, the save / load slots,
+      # the confirmations and every built-in minigame; every minigame won at the keyboard; an older save (v2
+      # localStorage, a 3.1.0 IndexedDB record) upgraded and resumed. Blocking in Chromium (keyboard row) and WebKit.
+      - run: npm run e2e:a11y -- http://127.0.0.1:5173/
+        if: (matrix.browser == 'chromium' && matrix.mode == 'keyboard') || (matrix.browser == 'webkit' && matrix.mode == 'generic')
+        env:
+          E2E_BROWSER: ${{ matrix.browser }}
+          E2E_OUT: /tmp/e2e-${{ matrix.browser }}/a11y
       # Chromium proves the offline game (every file of the plan in the cache). WebKit cannot navigate offline under
       # Playwright: its run reports "skipped", accepted here, never counted as a proof.
       - run: npm run e2e:pwa -- http://127.0.0.1:5173/ ${{ matrix.browser == 'webkit' && '--allow-skip' || '' }}

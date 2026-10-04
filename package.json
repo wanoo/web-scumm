@@ -54,7 +54,8 @@
     "import-layout": "tsx --tsconfig tsconfig.json tools/pages/import-layout.ts",
     "verify:release": "npm run validate -- --release && npm run weight -- --release && npm run i18n -- status && npm run playtests -- --strict",
     "provenance": "tsx tools/provenance.ts",
-    "weight": "tsx tools/weight.ts"
+    "weight": "tsx tools/weight.ts",
+    "e2e:a11y": "node scripts/e2e-a11y.mjs"
   },
   "config": {
     "game": "demo"

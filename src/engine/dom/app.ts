@@ -140,6 +140,8 @@ export class App implements Presenter {
   private offlineDone!: (s: OfflineStatus) => void;
   /** Where the full warm-up stands (`GameDef.offline`): only `complete` means the whole game is in the cache. */
   offlineStatus: OfflineStatus = { state: 'idle', done: 0, total: 0, failed: [] };
+  /** Every minigame played in this page: won, or skipped with its Skip button (`mg-skip`), and how long it took. */
+  readonly minigameLog: { id: Id; skipped: boolean; ms: number }[] = [];
   private offlineWatchers = new Set<(s: OfflineStatus) => void>();
   /** Resolves with the final status of the first full warm-up (`complete`, `partial`, `skipped` or `off`). */
   readonly offlineReady: Promise<OfflineStatus> = new Promise((r) => { this.offlineDone = r; });
@@ -926,6 +928,9 @@ export class App implements Presenter {
     const voice = this.game.characters[this.game.hintVoice ?? this.game.hero];
     let frame: HTMLElement | null = null;
     const ac = new AbortController();
+    const entry = { id, skipped: false, ms: 0 };
+    const t0 = performance.now();
+    host.addEventListener('mg-skip', () => { entry.skipped = true; });
     try {
       await game.run({
         root: host, u: this.u,
@@ -938,6 +943,8 @@ export class App implements Presenter {
         labels: { skip: this.game.ui.skip, jump: this.t('jump'), duck: this.t('duck') },
       });
     } finally {
+      entry.ms = Math.round(performance.now() - t0);
+      this.minigameLog.push(entry);
       ac.abort();
       host.remove();
       this.side.classList.remove('off');
