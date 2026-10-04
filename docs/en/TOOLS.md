@@ -207,6 +207,13 @@ its stable id, and what to do. Exit codes: 0 clean, 1 an error that is not ignor
 'code:<id>', 'code:<room>/<path>'] }` in `game.ts` keeps a red herring on purpose. The Studio's Check tab shows the
 same list with links into Rooms; the `lint` MCP tool returns it as Markdown. `verify:game` runs it (so does the CI).
 
+**Proof cache.** A solver run depends only on the engine's code, the game (content, layouts, custom commands, and
+the game folder's sources) and the options: `npm run solve` (every mode), `--chapters` and `npm run lint` keep each
+result in `.cache/proofs/` and give it back when none of that changed, saying so (`(from the proof cache, key …)`;
+`cached` in `--json`). The build, `verify:game`, `prove:game` and `release-check` ask the same questions several
+times; on the demo a warm proof takes 0.2 s instead of 2.4 s. `--no-cache` or `PROOF_CACHE=0` runs again;
+`PROOF_CACHE_DIR` moves it; an engine error is never kept. Tests call the solver directly and never use it.
+
 **One status.** A solver run and a proof by chapters carry one status, its exit code and its sentence
 (`src/engine/tools/status.ts`): `npm run solve` prints the sentence and exits with the code, `--json` carries
 `status`, `exit` and `headline`, the Studio's Check tab shows the sentence, the `solve` MCP tool returns all three.

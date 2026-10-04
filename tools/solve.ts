@@ -8,9 +8,10 @@
 // boundary state of the previous one (deduped by what the chapter reads), not from the hand-written checkpoint, which
 // must itself be one of those boundary states (src/engine/tools/chapters.ts).
 // The game: GAME, otherwise package.json → config.game (see tools/game.ts).
+import { cachedSolve } from './proof-cache';
 import { exitOf, worstStatus, type SolveStatus } from '../src/engine/tools/status';
 import { resolve } from 'node:path';
-import { profileText, solve } from '../src/engine/tools/solve';
+import { profileText } from '../src/engine/tools/solve';
 import { MAX_STARTS, proveChapters } from '../src/engine/tools/chapters';
 import { loadLayouts } from '../src/engine/tools/load';
 import { GAME_DIR, loadGameModule } from './game';
@@ -26,7 +27,7 @@ const por = arg('por') === 'sleep' ? 'sleep' as const : arg('por') === 'stubborn
 const mode = process.argv.includes('--prove') ? 'prove' as const : 'witness' as const;
 
 if (process.argv.includes('--chapters') && mode === 'prove') {
-  const p = await proveChapters(game, layouts, { maxStates, commands, mode: 'prove' });
+  const p = await proveChapters(game, layouts, { maxStates, commands, mode: 'prove', solver: cachedSolve });
   // A game without chapters is proved by the global search (`--prove`): nothing more to do here, and not a failure.
   if (!p.chapters.length) { console.log('ℹ  No checkpoint declares `goals`: no chapter to prove (the global proof covers the game)'); process.exit(0); }
   if (asJson) { console.log(JSON.stringify({ status: p.status, exit: p.exit, headline: p.headline, ms: p.ms, chapters: p.chapters.map(({ results, ...c }) => ({ ...c, softlockCauses: results.flatMap((r) => r.softlockCauses) })) })); process.exit(p.exit); }
@@ -38,7 +39,8 @@ if (process.argv.includes('--chapters') && mode === 'prove') {
     for (const r of c.results) for (const cause of r.softlockCauses.slice(0, 5)) console.log(`   ✖ ${cause.count} softlock state(s) after "${cause.action}" in ${cause.room}: ${cause.sample.slice(-4).join(' › ')}`);
     for (const r of c.results) for (const e of r.errors) console.log('   ' + e);
   }
-  console.log(`${p.exit === 0 ? '✔' : '✖'}  proof by chapters: ${p.headline} — ${(p.ms / 1000).toFixed(1)} s`);
+  const hits = p.chapters.flatMap((c) => c.results).filter((x) => (x as { cached?: string }).cached).length;
+  console.log(`${p.exit === 0 ? '✔' : '✖'}  proof by chapters: ${p.headline} — ${(p.ms / 1000).toFixed(1)} s${hits ? ` (${hits} search(es) from the proof cache)` : ''}`);
   process.exit(p.exit);
 }
 
@@ -49,7 +51,7 @@ if (process.argv.includes('--chapters')) {
   let worst: SolveStatus = 'solved';
   for (const [id, c] of cps) {
     const t = Date.now();
-    const r = await solve(game, layouts, { maxStates, start: prev ? { checkpoint: prev } : 'new', goal: c.goals, commands, por, mode });
+    const r = await cachedSolve(game, layouts, { maxStates, start: prev ? { checkpoint: prev } : 'new', goal: c.goals, commands, por, mode });
     worst = worstStatus(worst, r.status);
     const ok = r.exit === 0;
     console.log(`${ok ? '✔' : '✖'}  chapter → ${id} (from ${prev ?? 'new game'}): ${r.finished ? `${r.path.length} actions` : 'goals not reached'}, ${r.states} states, ${((Date.now() - t) / 1000).toFixed(1)} s${r.truncated ? ' (limit reached)' : ''}${r.softlocks.length ? ` (${r.softlocks.length} softlock samples)` : ''}`);
@@ -59,7 +61,7 @@ if (process.argv.includes('--chapters')) {
     prev = id;
   }
   const t = Date.now();
-  const r = await solve(game, layouts, { maxStates, start: { checkpoint: prev! }, commands, por, mode });
+  const r = await cachedSolve(game, layouts, { maxStates, start: { checkpoint: prev! }, commands, por, mode });
   worst = worstStatus(worst, r.status);
   const ok = r.exit === 0;
   console.log(`${ok ? '✔' : '✖'}  chapter → ending (from ${prev}): ${r.finished ? `${r.path.length} actions` : 'no ending reached'}, ${r.states} states, ${((Date.now() - t) / 1000).toFixed(1)} s`);
@@ -67,12 +69,12 @@ if (process.argv.includes('--chapters')) {
   process.exit(exitOf(worst));
 }
 
-const r = await solve(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands, por, mode });
+const r = await cachedSolve(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands, por, mode });
 
 if (asJson) {
   // `path` labels each step for humans; `steps` are the session entries ({ act, picks… }) the e2e harness replays.
   console.log(JSON.stringify({
-    status: r.status, exit: r.exit, headline: r.headline, mode: r.mode, finished: r.finished, states: r.states, truncated: r.truncated, path: r.path, steps: r.steps,
+    status: r.status, exit: r.exit, headline: r.headline, mode: r.mode, cached: r.cached ?? null, finished: r.finished, states: r.states, truncated: r.truncated, path: r.path, steps: r.steps,
     softlockCount: r.softlockCount, softlockCauses: r.softlockCauses,
     roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
     itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems, softlocks: r.softlocks, assumptions: r.assumptions,
@@ -83,6 +85,7 @@ if (asJson) {
 
 console.log(`\n${r.finished ? '✔  The game can be finished' : '…  No ending reached'} — ${r.states} states explored in ${((Date.now() - t0) / 1000).toFixed(1)} s${r.truncated ? ' (limit reached)' : ''}`);
 console.log(`${r.exit === 0 ? '✔' : '✖'}  ${r.mode === 'prove' ? 'Proof' : 'Witness'} ${r.headline}${r.assumptions.length ? ` · assumptions: ${r.assumptions.join(', ')}` : ''}`);
+if (r.cached) console.log(`   (from the proof cache, key ${r.cached}: the engine, the game and the options are unchanged; --no-cache runs it again)`);
 console.log(`\n${r.finished ? 'Path found' : 'Path to the last explored state'} (${r.path.length} actions):`);
 r.path.forEach((p, i) => console.log(`  ${String(i + 1).padStart(3)}. ${p}`));
 console.log(`\nRooms reached: ${r.roomsReached.join(', ') || '—'}`);

@@ -4,6 +4,10 @@
 
 ### Added
 
+- The persistent proof cache (`tools/proof-cache.ts`, `.cache/proofs/`): a solver run keyed by the engine's sources,
+  the game's sources and content, and the options (defaults normalised) is given back when none changed, and the
+  outputs say so (`cached` in `--json`). `npm run solve` (every mode), `--chapters` and `npm run lint` use it;
+  `--no-cache` / `PROOF_CACHE=0` turn it off. Demo: warm proof 0.17 s (cold 2.4 s), chapters 1.1 s (cold 3.4 s).
 - The solver measures itself: `profile.timing` (tries, engine, clone, run, hash, queue, other, classify, in ms) and
   `profile.positions` (distinct character positions among the states); `npm run bench -- --matrix` prints the
   3.3 reference table (20 / 40 rooms × 1 / 2 / 3 characters).
