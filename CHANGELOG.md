@@ -1,5 +1,37 @@
 # Changelog
 
+## 3.0.0 — 2026-10-04
+
+The first v3 release, co-developed by two assistants under `docs/dev/CHARTER.md`; the review trail is `docs/dev/LOG.md`.
+v3 breaks v2 on purpose (decision D1): `docs/en/UPGRADING.md` is the list of what to do, and nothing in it is needed
+to keep a v2 game running on this engine during the transition.
+
+### Added
+
+- `docs/en/UPGRADING.md` + `docs/fr/UPGRADING.md`, readable through the MCP `read_doc` tool.
+- `npm run prove:game`: the exhaustive proof (global and per chapter) as an explicit release gate, run by
+  `release-check`, never by `build`.
+- `scripts/e2e/lib.mjs`: `E2E_CPU=<rate>` throttles Chromium like a shared runner; the harness prints the engine's
+  state when a step fails.
+
+### Changed
+
+- Stable ids are named by one function (`src/engine/core/content-ids.ts`) shared by the engine, the solver and the
+  puzzle graph.
+- A save that names content that no longer exists is pruned with a visible toast (`ui.saveAdjusted`), not refused;
+  only structural corruption, an unknown current room or an unknown active player reject it.
+- The accessibility targets are keyboard-only: touch and mouse go through the room's hit-testing, which picks the
+  smallest zone under the finger.
+- The CI runs the production e2e in Chromium (gate) and WebKit (experimental until three green runs).
+- Offline: the room and its neighbours are warmed; the README says what is cached offline. Whether a global preload
+  returns is decision D5, pending.
+
+### Fixed
+
+- The map's place list could become untappable when anything refreshed the screen while the map waited (seen on
+  every CI run, latent on slow phones).
+- The e2e harness no longer waits 30 s for a minigame's Skip button that is fading after a win.
+
 ## 3.0.0-beta.1 — 2026-10-04
 
 First public v3 preview. The save envelope and authoring template are v3; existing v2 games remain supported during the beta. This release is not the final v3 compatibility commitment.

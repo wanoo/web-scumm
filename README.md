@@ -10,7 +10,7 @@ game can be finished, play it in landscape on any phone, and resume offline in r
 |---|---|
 | 🎮 **Play the sample game** | https://wanoo.github.io/web-scumm/ (phone in landscape, or desktop) |
 | 🛠 **Try the Studio** | https://wanoo.github.io/web-scumm/studio.html (demo mode: edits stay in your browser) |
-| 📦 **Source** | https://github.com/wanoo/web-scumm · preview v3.0.0-beta.1 · [changelog](CHANGELOG.md) |
+| 📦 **Source** | https://github.com/wanoo/web-scumm · release v3.0.0 · [changelog](CHANGELOG.md) · [upgrading from v2](docs/en/UPGRADING.md) |
 
 ![Three rooms of the sample game](docs/img/banner.jpg)
 
