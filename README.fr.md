@@ -158,8 +158,8 @@ assistant.
 
 ## Releases
 
-Release actuelle : [v3.3.0 « Scale »](https://github.com/wanoo/web-scumm/releases/tag/v3.3.0). L'histoire de la v1.3
-à la v3.3 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
+Release actuelle : [v3.3.1 « Truth »](https://github.com/wanoo/web-scumm/releases/tag/v3.3.1), un correctif de la v3.3
+« Scale ». L'histoire de la v1.3 à la v3.3 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt
 

@@ -153,8 +153,8 @@ Every page also exists in French under `docs/fr/`. `docs/dev/` holds the log of 
 
 ## Releases
 
-Current release: [v3.3.0 "Scale"](https://github.com/wanoo/web-scumm/releases/tag/v3.3.0). The story from v1.3 to
-v3.3 is in the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
+Current release: [v3.3.1 "Truth"](https://github.com/wanoo/web-scumm/releases/tag/v3.3.1), a patch of v3.3 "Scale". The
+story from v1.3 to v3.3 is in the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map
 

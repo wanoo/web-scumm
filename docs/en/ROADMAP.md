@@ -336,9 +336,38 @@ checklist in `docs/dev/`), the open 3-character matrix where items move freely b
 of item placements, BENCH.md). Stagecraft (layers, walk topology, structured Studio editors, voice production) moves
 to 3.4.
 
+## v3.3.1 "Truth" (5 October 2026): what 3.3.0 promised, made exact
+
+From Codex's review of 3.3.0 (LOG #55), one branch at a time (D9): `v331-docs-truth` (the partial-order reduction
+marked historical and refused in proofs, the memo "checked, not proved", the reference "structured by eras", no WCAG
+claim, the manual pass sheets), `v331-abstraction-audit` (`solve --audit-abstractions` on any game, 120 random games
+and one game per command and condition; it found a flaw of the base search, rule shadowing missing from the liveness
+analysis, fixed), `v331-commercial` (`verify:commercial`; release exceptions printed by name), `v331-ci-gates`
+(WebKit at the keyboard and the French game gate; a Safari offline checklist), `v331-release` (the built game, an SBOM
+and an attestation on the GitHub release; the notes list the manual passes, D12).
+
+## v3.4 "Stagecraft" (planned): picture, scene and Studio
+
+Decided with the maintainer (D10, D11, D13), from Codex's 3.4 plan and its extension. In dependency order: one asset
+graph shared by preloading, offline, provenance and budgets, checked against the bytes a browser really transfers;
+a renderer contract with the DOM as the reference; the stage schema (layers, occluders, walk zones and links, as data,
+the logic staying in the DSL); a Canvas 2D renderer with the DOM overlay for UI and accessibility; layers, parallax,
+masks, lights, particles and transitions; walk topology (zones, stairs, ladders, a 2-axis camera); stage physics as
+closed forms of time; voice production; the structured Studio; a reference chapter of 8–12 rooms made from the sample
+game's art. Blocking: budgets against real bytes, visual baselines, DOM/Canvas parity, 3.x saves, a 6-layer scene with
+3 masks at 30 FPS under 4× CPU throttling, the Studio editing a stage scene, the chapter proved and played at the
+keyboard in Chromium and WebKit, in French. Reported (D12): screen reader, testers, a real phone, Safari, voices.
+
+## v3.5 "Score" (planned): music, workers, inventories
+
+A music director with synchronised stems (cues, states, quantized transitions, stingers, ducking), solver workers
+judged by measurement (identical results, ×2 with 4 workers, or off by default), and a certified canonical item owner
+for proofs (dominance only for witness searches: it cannot prune a proof).
+
 ## Out of scope (explicit decisions)
 
-- No Phaser, no canvas: the DOM Presenter is enough for a few dozen images; a wide room stays a CSS translation.
+- No Phaser, no general physics engine (D10). Canvas 2D is allowed from 3.4 as a second scene renderer, the DOM staying
+  the reference until they agree; WebGL only for an effect Canvas 2D measurably cannot hold.
 - No dialogue format parallel to the DSL.
 - No npm package before a second person asks for it (unchanged).
 

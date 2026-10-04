@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { collectChecks, doctorReport } from '../tools/doctor-checks';
 import { serveArgs } from '../tools/serve-args';
-import { releaseNotes } from '../scripts/release-notes.mjs';
+import { manualPasses, releaseNotes } from '../scripts/release-notes.mjs';
 
 describe('doctor', () => {
   const probes = (ok: boolean) => ({
@@ -40,6 +40,11 @@ describe('release notes', () => {
     expect(releaseNotes(log, 'v3.1.0')).toBe('### Added\n\n- a\n');
     expect(releaseNotes(log, '3.0.0')).toBe('- b\n');
     expect(releaseNotes(log, 'v3.2.0')).toBeNull();
+    // D12: the notes say which manual pass was done, or that none was.
+    expect(manualPasses(null)).toContain('None recorded for this release');
+    const sheet = '| Pass | Status | Who | Device | Failed |\n|---|---|---|---|---|\n| Screen reader | done | Ann | iPhone | — |\n| Safari offline | not done | | | |\n';
+    expect(manualPasses(sheet)).toContain('1 of 2 done.');
+    expect(manualPasses(sheet)).toContain('| Safari offline | not done |');
   });
 });
 
