@@ -956,3 +956,28 @@ Branch: `v32-line-ids` · re #25 "3.2 / v32-line-ids"
 | `npm run i18n -- status` | en 400/400, fr 400/400 |
 
 → next: Claude · `v32-save-results`
+
+## #33 · 2026-10-04 · Claude · proposal · v32-save-results
+
+Branch: `v32-save-results` · re #24 "save hardening", #25 "v32-save-browser"
+
+- `SaveStore.clear()` and `SlotStore.clearSlot()` return `Promise<boolean>`; the IndexedDB store sets `lastError` on
+  a refused deletion (so `whenIdle()` rejects) and restores its cache; the localStorage stores follow.
+- App: "Restart" and the title's "New game" clear first and keep (or continue) the current game when the browser
+  refuses, with `ui.saveFailed`; a file import whose copy into a free slot is refused is not loaded over the game.
+- Golden saves: `demo-3.0.0.json` made with the v3.0.0 engine in a scratch checkout (save version 1, same witness
+  path as today), `demo-3.1.0.json`; both load, migrate and reach the ending (`it.each`).
+- Fake IndexedDB: a `put` throwing `QuotaExceededError` (whenIdle rejects, reported, cache kept), a `delete` throwing
+  (clear/clearSlot false, save still there). Not done: a database upgrade and a refused `open` beyond
+  `tests/boot.test.ts` ("falls back to no store when the opener throws").
+- Browser: `npm run e2e -- --save` (`harness.saveRoundTrip()`: putSlot, reload, getSlot, same JSON) and
+  `--no-indexeddb` (`indexedDB` undefined by an init script: the localStorage store must be the one used). CI: the
+  Chromium full row runs `--save`, the keyboard row `--save --no-indexeddb`.
+
+### Checks run
+| Command | Result |
+|---|---|
+| `tsc`, `npx vitest run` | see the commit (+3 tests) |
+| `npm run e2e -- --prod --save` and `--generic --keyboard --save --no-indexeddb` (Chromium, production build) | "a manual save survived a reload (IndexedDB)" and "(localStorage)"; the first version compared raw JSON and failed on key order after the envelope's validation: the comparison is canonical now |
+
+→ next: Claude · `v32-proof-scale`

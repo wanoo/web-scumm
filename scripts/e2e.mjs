@@ -29,11 +29,15 @@ const generic = args.includes('--generic');
 const keyboard = args.includes('--keyboard');
 // --lang <xx>: play in that language and fail on any visible English default of the engine (`harness.leaks()`).
 const lang = flag('lang');
+// --save: after the walkthrough, a manual save must survive a reload; --no-indexeddb: with the browser offering no
+// IndexedDB, so the localStorage fallback is exercised.
+const saveCheck = args.includes('--save');
+const noIndexedDb = args.includes('--no-indexeddb');
 // Same game resolution as tools/game.ts (env GAME, else package.json config.game, else "demo"); --game overrides both.
 const GAME = flag('game') ?? process.env.GAME ?? 'demo';
 
-console.log(`e2e: ${url} (game: ${GAME}, browser: ${process.env.E2E_BROWSER ?? 'chromium'}, ${prod ? 'production' : 'development'}${keyboard ? ', keyboard' : ''}${lang ? `, lang ${lang}` : ''})`);
-const harness = await launch(url, { at, dev: !prod, input: keyboard ? 'keyboard' : undefined, lang });
+console.log(`e2e: ${url} (game: ${GAME}, browser: ${process.env.E2E_BROWSER ?? 'chromium'}, ${prod ? 'production' : 'development'}${keyboard ? ', keyboard' : ''}${lang ? `, lang ${lang}` : ''}${saveCheck ? ', save round trip' : ''}${noIndexedDb ? ', no IndexedDB' : ''})`);
+const harness = await launch(url, { at, dev: !prod, input: keyboard ? 'keyboard' : undefined, lang, noIndexedDb });
 let ok = true;
 try {
   const gameScript = resolve(ROOT, 'games', GAME, 'e2e.mjs');
@@ -63,6 +67,13 @@ try {
     await harness.page.keyboard.press('Escape').catch(() => {});
     if (found.size) throw new Error(`language "${lang}": ${found.size} visible text(s) are the engine's English defaults: ${[...found].join(' | ')} (add the keys to the game's ui / locales)`);
     console.log(`e2e: no English default visible in "${lang}"`);
+  }
+  if (saveCheck) {
+    const r = await harness.saveRoundTrip();
+    if (!r.same) throw new Error(`a manual save did not come back identical after a reload (store ${r.store})`);
+    if (noIndexedDb && r.store !== 'localStorage') throw new Error(`without IndexedDB the game should use its localStorage store, it used ${r.store}`);
+    if (!noIndexedDb && r.store !== 'IndexedDB') throw new Error(`the game should use its IndexedDB store, it used ${r.store}`);
+    console.log(`e2e: a manual save survived a reload (${r.store})`);
   }
   console.log('e2e: done');
 } catch (e) {

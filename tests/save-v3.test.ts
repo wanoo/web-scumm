@@ -55,14 +55,17 @@ describe('save envelope v3', () => {
 });
 
 describe('golden saves', () => {
-  it('a save made by the demo at 3.1.0 loads on this engine and still reaches the ending', async () => {
+  // One save per release, made by the demo of that release eight inputs into the witness: it must load on the
+  // current engine (migrated when its save version is older) and still reach the ending with the remaining inputs.
+  it.each(['3.0.0', '3.1.0'])('a save made by the demo at %s loads on this engine and still reaches the ending', async (version) => {
     const { readFileSync } = await import('node:fs');
     const { replay } = await import('@engine/tools/replay');
     const { game: demo, layouts: demoLayouts, commands } = await import('../games/demo');
-    const golden = JSON.parse(readFileSync('tests/fixtures/saves/demo-3.1.0.json', 'utf8'));
+    const golden = JSON.parse(readFileSync(`tests/fixtures/saves/demo-${version}.json`, 'utf8'));
     const warnings: string[] = [];
     const state = parseSave(demo, golden.envelope, { warn: (m) => warnings.push(m) });
     expect(warnings).toEqual([]); // nothing pruned: the content this save names still exists
+    expect(state.v).toBe(demo.saveVersion);
     const p = await replay(demo, demoLayouts, { start: { kind: 'load' }, base: state, log: golden.remaining }, { commands });
     expect(p.divergedAt).toBeUndefined();
     expect(p.ended).toBe(true);

@@ -73,7 +73,7 @@ jobs:
           VITE_STUDIO_DEMO: '1'
       - run: npm run preview -- --port 5173 &
       - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5173/ > /dev/null && break; sleep 1; done
-      - run: npm run e2e -- http://127.0.0.1:5173/ --game demo --prod ${{ matrix.mode == 'generic' && '--generic' || matrix.mode == 'keyboard' && '--generic --keyboard' || matrix.mode == 'fr' && '--generic --lang fr' || '' }}
+      - run: npm run e2e -- http://127.0.0.1:5173/ --game demo --prod ${{ matrix.mode == 'generic' && '--generic' || matrix.mode == 'keyboard' && '--generic --keyboard --save --no-indexeddb' || matrix.mode == 'fr' && '--generic --lang fr' || '--save' }}
         env:
           E2E_BROWSER: ${{ matrix.browser }}
           E2E_OUT: /tmp/e2e-${{ matrix.browser }}

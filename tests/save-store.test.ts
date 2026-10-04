@@ -83,3 +83,47 @@ describe('IndexedDbSaveStore', () => {
     expect(errors.length).toBe(1);
   });
 });
+
+describe('IndexedDbSaveStore: when the browser refuses', () => {
+  const fails = () => { const out: Error[] = []; return { out, fail: (e: Error) => out.push(e) }; };
+  const quota = () => Object.assign(new Error('QuotaExceededError: the quota has been exceeded'), { name: 'QuotaExceededError' });
+
+  it('a write refused for quota: whenIdle rejects, the failure is reported, the cache keeps the state', async () => {
+    const { out, fail } = fails();
+    const store = await IndexedDbSaveStore.open(mini(), fail);
+    const e = new Engine(mini(), miniLayouts, new FakePresenter(), store);
+    await e.newGame();
+    await store.whenIdle();
+    const put = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function () { throw quota(); };
+    try {
+      e.state.flags.after_quota = true;
+      store.save(e.state);
+      await expect(store.whenIdle()).rejects.toThrow(/Quota/);
+      expect(out.map((x) => x.name)).toEqual(['QuotaExceededError']);
+      expect(store.load()?.flags.after_quota).toBe(true); // the in-page cache still answers; the durable copy is the previous one
+    } finally { IDBObjectStore.prototype.put = put; }
+  });
+
+  it('a refused deletion: clear() is false, the save stays, clearSlot() is false', async () => {
+    const { out, fail } = fails();
+    const game = mini(); game.saves = { slots: 1 };
+    const store = await IndexedDbSaveStore.open(game, fail);
+    const e = new Engine(game, miniLayouts, new FakePresenter(), store);
+    await e.newGame();
+    await store.whenIdle();
+    expect(await store.putSlot(1, e.state, { at: 1, room: e.state.room, roomName: 'R', v: e.state.v })).toBe(true);
+    const del = IDBObjectStore.prototype.delete;
+    IDBObjectStore.prototype.delete = function () { throw new Error('read-only database'); };
+    try {
+      expect(await store.clear()).toBe(false);
+      expect(store.load()).not.toBeNull();
+      await expect(store.whenIdle()).rejects.toThrow(/read-only/);
+      expect(await store.clearSlot(1)).toBe(false);
+      expect(await store.getSlot(1)).not.toBeNull();
+      expect(out.length).toBe(2);
+    } finally { IDBObjectStore.prototype.delete = del; }
+    expect(await store.clear()).toBe(true);
+    expect(store.load()).toBeNull();
+  });
+});

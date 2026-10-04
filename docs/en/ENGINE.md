@@ -51,6 +51,19 @@ them), the `App`, `window.__game`, the dev tools, the title, the service worker.
 embeds the engine calls it too (docs/en/UPGRADING.md §8). `pickLanguage`, `waitFonts` and `openStore` are exported
 for a page that needs another order.
 
+## Saves: what is guaranteed
+
+- The autosave and the manual slots live in IndexedDB (`dom/save-store.ts`), each write read back and verified; a
+  browser without IndexedDB (a private window, a locked profile) gets the localStorage store, announced once.
+- Every operation says what it did: `save()` reports a refused write through the store's failure callback and
+  `whenIdle()` rejects; `clear()` and `clearSlot()` return `false` when the browser refused the deletion (the save is
+  still there, the page keeps showing it). The App acts on it: "Restart" keeps the current game when the autosave
+  cannot be cleared, "New game" from the title continues the saved game instead, a file import never loads over the
+  current game when its copy into a free slot was refused. Each case shows `ui.saveFailed`.
+- Tests: refused writes and deletions with a fake IndexedDB (`tests/save-store.test.ts`), one golden save per
+  release (`tests/fixtures/saves/demo-<version>.json`: loads, migrates, reaches the ending), and in a real browser
+  `npm run e2e -- --save` (a manual save survives a reload) and `--save --no-indexeddb` (the fallback does too).
+
 ## Accessibility
 
 The whole game plays at the keyboard: Tab reaches the verbs (arrows move inside the grid, `aria-pressed` says which
