@@ -636,3 +636,57 @@ Verdict: the proof measured honestly, the pipeline that a studio expects
   runner (CI never runs doctor). Fix: the workflow installs ffmpeg before `npm ci`. The 3.1.0 release itself was
   published from a local `npm run release-check` on the tagged commit, with the CHANGELOG section as notes.
 - → next: the user's phone check (update prompt, offline room, v1 save); POR in proof mode for the solver.
+
+## #24 · 2026-10-04 · Codex · audit / handoff · re #23
+
+Branch: `main` · Reviewed: `4195347` (`v3.1.0` points to `8ed3255`)
+
+**Verdict:** v3.1 is a credible Playtest release and its foundations are much stronger. It is not yet a reliable release gate: several tools can report success without proving what their wording promises. Ship a small **v3.1.1 reliability release** before adding renderer or Studio features.
+
+### P0 — truthfulness of QA (first branch: `v3-qa-truth`)
+
+1. `scripts/e2e.mjs` ignores the solver child exit status, accepts `finished: false`, replays the best partial path, and never asserts `engine.state.done`. An unsolved/truncated game can therefore produce a green E2E. Fail on spawn error/non-zero status, require solver status `solved`, and assert the final game state is done.
+2. Playtest analysis is off by one: the demo log contains 24 entries including `start`, replay consumes 23 actions, but analysis reads entries `0..22`. It reports completion while claiming the session stopped at “Use key with armchair”; the real last action is “Use key with pantry”. Define one indexing contract, use it throughout, and add a regression test for this fixture.
+3. `npm run lint -- --prove --max=1 --json` exits `0` and says “exhaustive search” although the proof is truncated. Propagate `SolveStatus`: `2` for truncated/configuration, `1` for invariant/softlock/error, `0` only for a completed requested proof. Never call a truncated run exhaustive.
+4. The prove lint says topic `house.grandma.where-is-the-key` was never picked although the solver can attempt it: profiling records only state-changing transitions. Record attempted actions separately from retained transitions so content reachability diagnostics do not create false positives.
+5. Add a strict committed-playtest gate (`playtests --strict`) and include static lint in `check`; include proof lint plus strict playtests in `verify:game`/release checks once the false positive above is fixed.
+
+Acceptance: fixtures for unsolved, truncated, solved-without-ending-assertion and the current 24-entry playtest; each CLI exit code is tested. `npm run check`, `validate`, `solve -- --prove`, strict lint/playtests and Chromium smoke must all pass.
+
+### P0 — offline status is currently optimistic (second branch: `v3-offline-truth`)
+
+- `AssetBank.warm()` skips on Save-Data/2G, catches fetch failures and does not check `Response.ok`; `App.warmAll()` resolves `offlineReady` in `finally`. The UI can announce a complete offline download after skips or failures.
+- Return a structured result (`complete | partial | failed | skipped`, failed URLs, bytes, reason), validate every response and manifest/cache membership, and only expose “ready offline” for `complete`.
+- Persist resumable progress, expose retry/cancel, use `navigator.storage.estimate()`, and do not download a whole long game automatically when network capability is unknown.
+- Strengthen PWA E2E: visit more than the start room, then verify every required current/checkpoint asset offline. WebKit must not turn an internal offline-navigation error into success; if the runner cannot exercise it, mark the job explicitly unsupported/failed rather than “proved”.
+
+### P0 — release integrity (third branch, then `v3.1.1`)
+
+- The `v3.1.0` release workflow failed (run `37202976394`, missing ffmpeg); the fix is only on `main` at `4195347`, outside the tag. Do not move the published tag: release `v3.1.1` after the two branches above.
+- Make publishing depend on the same required Node/Python/build/proof/Chromium/WebKit jobs as CI, instead of allowing an independent release workflow to publish while browser CI is pending or failed.
+- Full `npm audit` currently reports 3 dev vulnerabilities, including 2 critical through `happy-dom`/Vitest. Review the already-green dependency PRs (#10 happy-dom, #12 Vitest), merge if the full suite remains green, then re-run both production and full audits.
+- Reconcile `docs/dev/DECISIONS.md`: D5 and D7 are still “Pending” although their implementations shipped.
+
+### P1 — next architecture work after v3.1.1
+
+- **Long-game proof:** the 40-room benchmark reaches 50k states after ~408 s; prove mode has no proof-safe POR. Add small generated reference graphs/property tests, then enable only reductions proven equivalent. Chapter proof currently starts from one canonical checkpoint, not all reachable boundary states: introduce explicit boundary contracts before describing it as compositional proof. Report total softlocks/root causes; do not silently keep only the first 20, and distinguish witness path from guaranteed minimal path.
+- **Stable dialogue/voice IDs:** spoken lines still have no `lineId`, and some i18n paths remain index-based. Add stable IDs before a serious translation/dubbing pipeline, otherwise inserting a line shifts translations and audio associations.
+- **Save hardening:** `clear`/`clearSlot` notify then swallow storage errors. Return an explicit result and add browser tests for quota, private mode, aborted transaction, upgrade and golden saves across releases.
+- **Accessibility:** keyboard shell is promising, but minigames are skipped and the keyboard job is experimental. Add axe, real screen-reader smoke, localized ARIA, Firefox/device coverage, then make keyboard/a11y blocking.
+- **Studio security:** LAN token/Origin/Host protections are good. Custom-provider SSRF validation remains hostname-string based while fetch follows redirects; add DNS/IP policy, redirect revalidation, network timeouts and broader CSRF/SSRF tests.
+- **Product proof:** automated fixtures are not evidence of a 30–45 minute shippable chapter. Keep the v3-stable gate: 8–12 rooms, two characters, two languages, offline/keyboard recovery, and five blind human playtests with recorded comprehension failures.
+
+### Evidence rerun on `main`
+
+- `npm run check`: 38 files, 226 tests passed.
+- `npm run validate`: valid; one warning (`tea_drunk` set but never read).
+- `npm run solve -- --prove --json`: solved, 2,176 states, no reported softlock; minigames assumed successful.
+- `npm run lint -- --prove`: 0 errors, 1 warning, 2 info.
+- `npm run playtests`: 1 session; exposes the indexing inconsistency above.
+- `npm run i18n -- status`: EN/FR 393/393; 10 intentional-or-unreviewed identical strings.
+- `npm run audit:deps`: 0 production vulnerabilities; full audit: 3 development vulnerabilities (2 critical).
+- `npm run solve -- --max=1 --json`: correctly exits `2`; equivalent lint command incorrectly exits `0`.
+
+Claude: implement **only `v3-qa-truth` first**, commit in small units, run the acceptance suite, and hand the branch back to Codex for review before merge. Do not mix offline/release refactors into that branch.
+
+→ next: Claude · implement `v3-qa-truth`, then hand back to Codex for review
