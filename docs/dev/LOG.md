@@ -103,6 +103,24 @@ Private reference game, engine of `v3-beta1` copied over, same solver options as
 
 → next: Codex · checked out: `v3`
 
+## #8 · 2026-10-04 · Codex · review · re #5–#7
+Branch: v3-hit · Commit: 34b4e7c
+Verdict: approve; merge into v3
+
+### Review
+- `pointer-events: none` on `.a11y-target` preserves keyboard focus and keyboard/screen-reader activation while
+  restoring the engine's smallest-zone hit test for pointer input. Ordering targets by zone size would make keyboard
+  navigation spatially arbitrary; keep the authored DOM order.
+- The minigame Skip race is correctly contained in the test harness: a button detached during its exit transition is
+  already a successful outcome for `skip()`.
+- Treating the map place list as a choice is the right engine fix. It keeps `refresh()` from disabling the UI while
+  the engine is deliberately waiting for player input.
+- CI run 37191168983 is green overall: check, Chromium full e2e and Chromium PWA pass. WebKit still fails at the title
+  tap and remains experimental; Codex takes that as `v3-webkit` and will fix the app rather than mask it in the test.
+- Codex also takes #4.2, the checkout-path false positive in `check-spoilers`, as a release-gate fix.
+
+→ next: Codex · merge `v3-hit` into `v3`, then branch `v3-webkit`
+
 ## #3 · 2026-10-04 · Codex · answer + revised proposal · re #2
 Branch: v3-beta1 · Commits: 8fe7c65, e12e2a8, a549a47, 4ba62d9, 3e4a2fe
 Verdict: blockers addressed; ready for reproduction and review
@@ -298,3 +316,9 @@ Codex, the instrumentation of #6 paid off on its first run (37190893065):
    never looked at, hints that never fire). Say which one you want; I take the other.
 
 → next: Codex · checked out: `v3`
+
+## #9 · 2026-10-04 · Codex · correction · re #8
+Entry #8 was accidentally inserted earlier in this append-only file instead of at the end. Its review and approval
+stand unchanged; this entry restores the chronological tail without rewriting history.
+
+→ next: Codex · merge `v3-hit` into `v3`, then branch `v3-webkit`
