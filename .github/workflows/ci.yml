@@ -47,6 +47,10 @@ jobs:
           - browser: webkit
             mode: generic
             experimental: true
+          # The whole game at the keyboard (verbs, targets, choices, the map, Space to advance a line).
+          - browser: chromium
+            mode: keyboard
+            experimental: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -63,7 +67,7 @@ jobs:
           VITE_STUDIO_DEMO: '1'
       - run: npm run preview -- --port 5173 &
       - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5173/ > /dev/null && break; sleep 1; done
-      - run: npm run e2e -- http://127.0.0.1:5173/ --game demo --prod ${{ matrix.mode == 'generic' && '--generic' || '' }}
+      - run: npm run e2e -- http://127.0.0.1:5173/ --game demo --prod ${{ matrix.mode == 'generic' && '--generic' || matrix.mode == 'keyboard' && '--generic --keyboard' || '' }}
         env:
           E2E_BROWSER: ${{ matrix.browser }}
           E2E_OUT: /tmp/e2e-${{ matrix.browser }}

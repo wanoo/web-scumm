@@ -153,7 +153,7 @@ export const game = defineGame({
     mapLocked: 'Not yet!', mapBack: 'Back', world: 'World', zoomIn: 'Zoom', arrival: 'Arrival:', pickUp: 'Pick up', hangUp: 'Hang up',
     calling: 'calling…', loading: 'Loading…', on: 'on', off: 'off', giveWhat: 'Pick an item from the bag first.', replay: 'Play again',
     miniGame: 'Mini-game', tapToContinue: '▼ tap to continue', ok: 'OK', password: 'Password?',
-    save: 'Save', load: 'Load', slot: 'Slot {n}', emptySlot: 'empty', exportSave: 'Export to a file', importSave: 'Import a file', confirmOverwrite: 'Overwrite this slot?', saveFailed: 'Save failed',
+    save: 'Save', load: 'Load', slot: 'Slot {n}', emptySlot: 'empty', exportSave: 'Export to a file', importSave: 'Import a file', confirmOverwrite: 'Overwrite this slot?', saveFailed: 'Save failed', advance: 'Continue',
     saveAdjusted: 'Save adjusted for this version',
     updateAvailable: 'A new version is ready.', updateNow: 'Save and update',
     settings: 'Settings', textSpeed: 'Text speed', textSize: 'Text size', reduceMotion: 'Reduce motion', readableFont: 'Readable font',

@@ -50,6 +50,17 @@ jusqu'à ce que l'App puisse les montrer), l'`App`, `window.__game`, les outils 
 `src/main.ts` l'appelle ; un jeu qui embarque le moteur aussi (docs/fr/UPGRADING.md §8). `pickLanguage`, `waitFonts`
 et `openStore` sont exportés pour une page qui a besoin d'un autre ordre.
 
+## Accessibilité
+
+Le jeu entier se joue au clavier : Tab atteint les verbes (les flèches circulent dans la grille, `aria-pressed` dit
+lequel est choisi), les cibles de la scène (un bouton caché par point chaud, prop ou personnage visible, dans l'ordre
+de la scène), le sac et les outils ; les choix d'une conversation et les lieux de la carte prennent le focus quand ils
+apparaissent (flèches, Entrée) ; Espace ou Entrée fait avancer une réplique ; Échap ferme ce qui est au-dessus (un
+menu, la carte, une transcription, le Passer d'une cinématique ou d'un mini-jeu) et sinon ouvre le menu pause, dont
+le focus ne sort pas. Une région live annonce le lieu, chaque réplique et chaque objet gagné. `ui.advance` nomme le
+repère « toucher pour continuer » pour les lecteurs d'écran. `npm run e2e -- --generic --keyboard` rejoue la solution
+du solveur au clavier ; les mini-jeux eux-mêmes y sont passés (leur bouton Passer prend le focus).
+
 ## Deux dispositions
 
 - **Téléphone (écran tactile), en paysage** : la scène à gauche ; à droite, une colonne avec les 9 verbes en 3×3, le sac sur 3 colonnes et les icônes Carte / Menu / Son. La phrase s'affiche en bas de la scène.
