@@ -48,7 +48,8 @@ at them to catch what the solver cannot see (a character standing on a table, a 
 
 ## 8. Ship
 `npm run build` type-checks, tests, bundles, and audits the output. Deploy `dist/` anywhere static (GitHub Pages via the
-CI workflow, Clever Cloud, Netlify…). The service worker caches everything after the first visit; the game then works offline.
+CI workflow, Clever Cloud, Netlify…). The service worker caches the app shell and every asset used or warmed nearby;
+those cached rooms can then be resumed offline. Unvisited rooms are deliberately not downloaded in full up front.
 
 ## Working with sub-agents
 For a game of several rooms, split the work into packages that an orchestrator hands to sub-agents: engine changes,

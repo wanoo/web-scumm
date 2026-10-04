@@ -55,8 +55,9 @@ sur une table, une réplique coupée par le bord de l'écran).
 
 ## 8. Livrer
 `npm run build` vérifie les types, lance les tests, assemble et audite le résultat. On déploie `dist/` n'importe
-où en statique (GitHub Pages via le workflow CI, Clever Cloud, Netlify…). Le service worker met tout en cache
-après la première visite ; le jeu fonctionne alors hors ligne.
+où en statique (GitHub Pages via le workflow CI, Clever Cloud, Netlify…). Le service worker met en cache l'application
+et chaque ressource utilisée ou préchargée dans les lieux voisins ; ces lieux peuvent ensuite être repris hors ligne.
+Les lieux jamais visités ne sont volontairement pas tous téléchargés dès le départ.
 
 ## Travailler avec des sous-agents
 Pour un jeu de plusieurs lieux, on découpe le travail en lots qu'un orchestrateur confie à des sous-agents :

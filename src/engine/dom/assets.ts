@@ -23,7 +23,8 @@ export class AssetBank {
 
   /**
    * Downloads in the background (without disrupting the game) files the service worker keeps cached:
-   * the rest of the game then shows up without waiting. Does nothing in "save data" mode.
+   * those nearby assets then show up without waiting and remain available to the service worker. Does nothing in
+   * "save data" mode.
    */
   async warm(urls: string[], parallel = 3): Promise<void> {
     const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;

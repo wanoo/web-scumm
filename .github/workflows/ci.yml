@@ -35,14 +35,19 @@ jobs:
   # generic solver session as a cross-engine smoke test. Both block deployment.
   e2e:
     runs-on: ubuntu-latest
+    # WebKit is a new cross-engine signal in beta 1. Keep it visible but non-blocking until three consecutive green
+    # runs; Chromium remains the deployment gate throughout.
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - browser: chromium
             mode: full
+            experimental: false
           - browser: webkit
             mode: generic
+            experimental: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

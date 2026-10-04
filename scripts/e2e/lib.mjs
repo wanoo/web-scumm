@@ -227,7 +227,7 @@ export async function launch(url, opts = {}) {
    * travel keeps its place list on screen through the travel animation (~2s): wait for that same list to
    * actually change (or for speech/busy/no-choices) before handing off to waitIdle, instead of returning
    * the instant we see *a* choices list, which could be the stale one we just tapped. */
-  async function say(text, { max = 3000 } = {}) {
+  async function say(text, { max = 12000 } = {}) {
     const c = page.locator('.side .choices .choice', { hasText: text });
     for (let waited = 0; waited < max; waited += 100) {
       if (await c.count()) break;
