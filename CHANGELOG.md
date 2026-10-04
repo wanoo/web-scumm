@@ -4,6 +4,10 @@
 
 ### Added
 
+- Playtests: the pause menu's "Share session" sends a session from a phone (ids only); `npm run playtests` replays the
+  files of `games/<id>/playtests/` and sums them up (time per room, stalls, hints, where players stopped, a heat map);
+  `verify:game` runs it, the Studio's Check tab shows it and can colour the puzzle graph by the players' sessions,
+  the `playtests` MCP tool returns it. Session entries carry a timestamp when the game runs in a page.
 - The whole game at the keyboard: verbs, scene targets, inventory, choices, the map, Space to advance a line, Escape
   to close or pause, focus kept inside menus; `npm run e2e -- --generic --keyboard` (`docs/en/ENGINE.md`,
   "Accessibility"); `ui.advance` names the continue marker.

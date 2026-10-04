@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { profileText } from '../../src/engine/tools/solve';
 import { dialogueText, dialogueTree } from '../../src/engine/tools/dialogue';
 import type { Layout } from '../../src/engine/core/types';
-import type { AddEntity, CoverageData, GameInfo, LintData, GraphData, PuzzleData, NewNote, NotesFile, ReportData, RoomData, SolveData, ValidateResult } from './types';
+import type { AddEntity, CoverageData, GameInfo, LintData, PlaytestsData, GraphData, PuzzleData, NewNote, NotesFile, ReportData, RoomData, SolveData, ValidateResult } from './types';
 
 /** The operations the tools need. Same method names as the Studio's `Api` (src/studio/api.ts), so `BrowserApi` fits. */
 export interface ToolBackend {
@@ -30,6 +30,8 @@ export interface ToolBackend {
   puzzle?(id?: string): Promise<PuzzleData>;
   /** The storyboard checked against the content. */
   coverage?(): Promise<CoverageData>;
+  /** The playtests of games/<id>/playtests replayed and summed up. */
+  playtests?(): Promise<PlaytestsData>;
   /** The content lint after a solver run (`prove`: the exhaustive search). */
   lint?(prove?: boolean): Promise<LintData>;
   /** Optional abilities: a tool whose ability is missing is left out of `toolsFor(backend)`. */
@@ -61,7 +63,7 @@ export interface ToolDef {
   /** It changes a game file (the Studio refreshes after it). */
   writes?: boolean;
   /** The optional backend ability it needs. */
-  needs?: 'screenshot' | 'readDoc' | 'runTests' | 'assetPrompts' | 'report' | 'graph' | 'puzzle' | 'coverage' | 'lint';
+  needs?: 'screenshot' | 'readDoc' | 'runTests' | 'assetPrompts' | 'report' | 'graph' | 'puzzle' | 'coverage' | 'lint' | 'playtests';
   run(args: any, b: ToolBackend): Promise<ToolResult>;
 }
 
@@ -243,6 +245,15 @@ export const TOOLS: ToolDef[] = [
       'Read it to find what of the story is not implemented yet. Read-only.',
     input: {}, annotations: { readOnlyHint: true }, needs: 'coverage',
     run: (_a, b) => op(async () => (await b.coverage!()).markdown),
+  },
+  {
+    name: 'playtests', title: 'Playtests',
+    description: 'The sessions players shared from their phones (games/<id>/playtests/*.session.json, ids only) ' +
+      'replayed on the current content and summed up, as Markdown: time per room, where players stall (the same ' +
+      'action again and again without effect), hints shown, where they stopped, minigames played, sessions the content ' +
+      'has outgrown. Read it to know where the game is harder than you think. Read-only.',
+    input: {}, annotations: { readOnlyHint: true }, needs: 'playtests',
+    run: (_a, b) => op(async () => (await b.playtests!()).markdown),
   },
   {
     name: 'lint', title: 'Content lint',

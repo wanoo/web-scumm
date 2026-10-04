@@ -703,6 +703,8 @@ export interface UiTexts {
   confirmOverwrite?: string;
   /** Visible warning when the browser refuses or loses a save write. */
   saveFailed?: string;
+  /** The pause menu's "Share session" row (Web Share, else a download): a playtest file for `npm run playtests`. */
+  shareSession?: string;
   /** Label of the "tap to continue" marker for screen readers (Space / Enter advance a line). English default. */
   advance?: string;
   /** Prefix shown when obsolete references were removed from an otherwise valid save. */
@@ -820,6 +822,8 @@ export type SessionEntry = (
   ran?: string[];
   /** The state after the entry (`stateDigest`), to spot where a replay diverges. */
   digest?: string;
+  /** Milliseconds since the session started (`Engine.clock`; absent in the solver and the tests): playtests read it, replay ignores it. */
+  t?: number;
 };
 
 export interface Session {
@@ -829,4 +833,6 @@ export interface Session {
   /** The state it started from. */
   base: GameState;
   log: SessionEntry[];
+  /** When it started (epoch ms), when a clock was set. */
+  at?: number;
 }

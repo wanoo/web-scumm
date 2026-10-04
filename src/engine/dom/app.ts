@@ -195,6 +195,7 @@ export class App implements Presenter {
     this.slots = o.slots ?? (typeof store.listSlots === 'function' ? (store as SlotStore) : new LocalSlotStore(o.game.id, o.game, storageFailure, storageWarning));
     this.view = new RoomView(this.engine, this.bank);
     this.engine.autoScripts = true;
+    this.engine.clock = () => performance.now();
     this.engine.onChange = () => this.refresh();
     this.engine.digestOn = true;
     try { const raw = localStorage.getItem(`${o.game.id}.settings`); if (raw) this.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) }; } catch { /* no storage */ }
@@ -1072,6 +1073,19 @@ export class App implements Presenter {
       const blob = new Blob([JSON.stringify(saveEnvelope(this.game, this.engine.state), null, 1)], { type: 'application/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${this.game.id}-save.json`; a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 2000); d.remove();
+    };
+    if (mode === 'save') row(ui.shareSession ?? 'Share session', '⇪').onclick = () => {
+      // A playtest: the inputs since the game started, ids only, for games/<id>/playtests/ (npm run playtests).
+      void import('../tools/replay').then(async ({ sessionFile }) => {
+        const json = JSON.stringify(sessionFile(this.game.id, this.engine, { playtest: true }));
+        const name = `${this.game.id}-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.session.json`;
+        const file = new File([json], name, { type: 'application/json' });
+        const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
+        if (nav.canShare?.({ files: [file] })) { try { await nav.share({ files: [file], title: this.game.title }); return; } catch { /* cancelled: fall back to the download */ } }
+        const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name; a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      });
+      d.remove();
     };
     if (mode === 'save') row(ui.exportSession ?? 'Export session', '⤓').onclick = () => {
       // The inputs since the game started or a save was loaded, with the journal: `npm run replay` plays it back.

@@ -154,7 +154,7 @@ par un rapport QA ; les bruitages sont de courtes recettes dans `audio/sfx.json`
 
 Le contenu est données et chaque outil est une commande : un assistant peut écrire un lieu, le vérifier, le résoudre,
 le regarder et le corriger sans toi. `CLAUDE.md` et `AGENTS.md` portent les règles ; `.claude/skills/` les recettes
-(un nouveau lieu, une planche à découper) ; `npm run -s mcp` expose les mêmes opérations en 21 outils MCP pour Claude
+(un nouveau lieu, une planche à découper) ; `npm run -s mcp` expose les mêmes opérations en 22 outils MCP pour Claude
 Code, Cursor, Codex, Gemini CLI ou n'importe quel client MCP (`docs/fr/MCP.md`) ; l'onglet Assistant du Studio
 branche n'importe quel modèle sur ces outils ; `docs/fr/WORKFLOW.md` est la méthode, `docs/fr/PRODUCTION.template.md`
 le plan pour des sous-agents en parallèle.
