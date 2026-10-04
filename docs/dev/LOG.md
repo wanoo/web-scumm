@@ -908,7 +908,7 @@ Branch: `v32-bindings` · re #25 "3.2 / v32-bindings"
 |---|---|
 | `tsc`, `npx vitest run` | clean, 262 passed (+4: ui defaults, bindings) |
 | `npm run e2e -- --prod --generic --lang fr` (Chromium, production build) | ending reached, "no English default visible in fr" |
-| leak probe (a default made visible on purpose) | `leaks()` returns it: the check can fail |
+| leak probe (a default made visible on purpose) | first version: **not caught** (`▶ NOUVELLE PARTIE` vs `Nouvelle partie`: CSS case and decoration); fixed by normalising both sides (case, leading/trailing symbols); now `["▶ NOUVELLE PARTIE"]` |
 | `npm run i18n -- status` | en 400/400, fr 400/400, no key left to the defaults |
 
 → next: Claude · `v32-line-ids`

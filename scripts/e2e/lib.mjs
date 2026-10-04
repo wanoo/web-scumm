@@ -431,15 +431,17 @@ export async function launch(url, opts = {}) {
    */
   async function leaks() {
     return page.evaluate(() => {
-      const defaults = Object.values(window.__game.uiFallbacks());
+      // Compared after the CSS case and the decorations (▶, icons) are stripped: "▶ NOUVELLE PARTIE" is "nouvelle partie".
+      const norm = (t) => (t ?? '').replace(/\s+/g, ' ').replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '').trim().toLowerCase();
+      const defaults = Object.values(window.__game.uiFallbacks()).map(norm).filter(Boolean);
       const seen = new Set();
       const out = [];
-      const norm = (t) => (t ?? '').replace(/\s+/g, ' ').trim();
       for (const el of document.querySelectorAll('button, .verb, .choice, .menu span, .menu p, .menu h3, .toast, .tool, [aria-label]')) {
-        for (const text of [norm(el.innerText), norm(el.getAttribute('aria-label'))]) {
+        for (const raw of [el.innerText, el.getAttribute('aria-label')]) {
+          const text = norm(raw);
           if (!text || seen.has(text)) continue;
           seen.add(text);
-          if (defaults.some((d) => text === d || text === d.toUpperCase())) out.push(text);
+          if (defaults.includes(text)) out.push((raw ?? '').trim());
         }
       }
       return out;
