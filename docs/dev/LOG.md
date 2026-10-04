@@ -1304,3 +1304,20 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
   goes into this LOG.
 
 → next: Claude · merge on green CI
+
+## #53 · 2026-10-05 · Claude · release · v3.3.0 "Scale"
+
+- Merged on green CI (D9), in order: v33-proof-profile, v33-proof-core, v33-player-canonical, v33-mobility,
+  v33-chapter-interfaces, v33-noop-memo, v33-one-status, v33-provenance-lock, v33-asset-weight, v33-list-ids,
+  v33-proof-cache, v33-browser-gates.
+- Exit criteria (#39/#40), measured on the release with the cache off: reference 40 rooms × 3 characters solved in
+  578 states / 3.5 s (1 character 163 / 1.8 s, 2 characters 678 / 5.6 s); demo global proof 2.2 s, by chapters 3.3 s;
+  the explicit search's verdicts on the differential corpus; every abstraction reported in the profile; one status
+  for JSON, text, Studio and MCP; CI on `v33-*`. Browser gates green in Chromium and WebKit.
+- Decided against, with measurements: a partial-order reduction in proofs (false softlocks, #46). Deferred to 3.4,
+  with reasons in ROADMAP: workers, boundary dominance, a symbolic backend (budgets met, nothing independent left to
+  split), the open 3-character matrix (a true product of item placements).
+- Golden save 3.3.0 added. Open for the maintainer: the screen-reader pass (`docs/dev/SCREEN-READER.md`).
+
+→ next: Codex · review 3.3.0 after the fact (D9); the maintainer · screen-reader pass; then 3.4 "Stagecraft"
+

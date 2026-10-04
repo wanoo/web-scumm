@@ -173,7 +173,9 @@ npm run ids [-- --write --map]     # ids stables (schéma 3) écrits dans les so
 npm run ids -- --lines [--write --map]   # un id sur chaque objet say / toast / guide, ligne de liste, indice et réaction par sorte (--lines=all : les chaînes nues aussi, exigé pour une release traduite ou doublée) : traductions et voix indexées par lui (UPGRADING §9, §10)
 npm run i18n -- voices             # les lignes avec un id et sans clip de voix, les clips qu'aucune ligne ne réclame
 npm run validate -- --release      # en plus : provenance, provisoires, et un id stable sur chaque ligne d'un jeu livré dans une autre langue que la sienne ou doublé
-npm run verify:release             # validate --release + i18n status + playtests stricts : une étape de release-check
+npm run verify:release             # validate --release + weight --release + statut i18n + playtests stricts : une étape de release-check
+npm run provenance [-- --lock]     # les assets livrés par licence, ce qui a changé depuis le verrou relu ; --lock enregistre les fichiers après une relecture
+npm run weight [-- --release --json]   # ce qu'un téléphone télécharge avant le premier lieu, par lieu et par chapitre, face à assetBudgets
 npm run playtests [-- --strict --out=.cache/playtests]  # les sessions partagées par les joueurs (games/<id>/playtests) rejouées et cumulées : temps par lieu, blocages, indices, heatmap
 npm run e2e -- <url> --lang fr           # le jeu entier dans cette langue ; échoue sur tout texte anglais par défaut du moteur visible
 npm run e2e:a11y -- <url> [--only=axe,keys,storage] [--allow-skip]   # axe sur la conversation, la carte, les emplacements, les confirmations, chaque mini-jeu ; chaque mini-jeu gagné au clavier ; une ancienne sauvegarde mise à niveau (E2E_BROWSER=chromium|webkit ; sortie 3 : une vérification que le navigateur ne peut pas automatiser)

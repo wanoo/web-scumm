@@ -180,7 +180,9 @@ npm run ids [-- --write --map]     # stable ids (schema 3) written into the sour
 npm run ids -- --lines [--write --map]   # an id on every say / toast / guide object, list line, hint and kind reaction (--lines=all: plain strings too, required for a translated or voiced release): translations and voices keyed by it (UPGRADING §9, §10)
 npm run i18n -- voices             # the lines with an id and no voice clip, the clips no line claims
 npm run validate -- --release      # also: provenance, placeholders, and a stable id on every line of a game shipped in another language than its own or voiced
-npm run verify:release             # validate --release + i18n status + strict playtests: a step of release-check
+npm run verify:release             # validate --release + weight --release + i18n status + strict playtests: a step of release-check
+npm run provenance [-- --lock]     # the shipped assets by licence, what changed since the reviewed lock; --lock records the files after a review
+npm run weight [-- --release --json]   # what a phone downloads before the first room, per room and per chapter, against assetBudgets
 npm run playtests [-- --strict --out=.cache/playtests]  # the sessions players shared (games/<id>/playtests) replayed and summed up: time per room, stalls, hints, heat map
 npm run e2e -- <url> --lang fr           # the whole game in that language; fails on any visible English default of the engine
 npm run e2e:a11y -- <url> [--only=axe,keys,storage] [--allow-skip]   # axe on the conversation, map, slots, confirmations, every minigame; every minigame won at the keyboard; an older save upgraded (E2E_BROWSER=chromium|webkit; exit 3: a check the browser cannot automate)

@@ -263,16 +263,37 @@ chaque asset livré), `v32-release` (un second jeu fait par `new-game` passe tou
 dans BENCH.md et ENGINE.md : prouver un long jeu à plusieurs personnages (la piste solveur 3.3 ci-dessous), un
 passage au lecteur d'écran (manuel), l'épinglage DNS des fournisseurs personnalisés.
 
-## v3.3 « Scale » (proposée, LOG #39) : prouver les jeux à plusieurs personnages, fermer les contrats de production
+## v3.3 « Scale » (5 octobre 2026) : prouver les jeux à plusieurs personnages, fermer les contrats de production
 
-D'après une relecture extérieure (LOG #38), dans l'ordre : profiler la recherche ; une frontière de preuve (pile,
-pointeurs parents, ids numériques d'états) ; le personnage actif hors de l'état ; régions de mobilité et
-macro-déplacements ; interfaces de chapitre projetées sur ce que la suite lit ; une réduction sûre pour la preuve avec
-condition de cycle, validée de façon différentielle sur des milliers de jeux générés ; frontières en parallèle ; un
-backend symbolique (BDD) seulement si de vrais jeux dépassent encore les budgets. Sortie : le jeu de stress de 40 lieux
-prouvé avec 1, 2 et 3 personnages (BENCH.md). Ajouté par la relecture de la 3.2.1 (LOG #40) : états projetés sur le
-cône de dépendances du but, dédoublonnage et dominance des frontières, un cache de preuve persistant indexé par
-l'empreinte du jeu, le but et le checkpoint.
+D'après une relecture extérieure (LOG #38) et les relectures de la 3.2 par Codex (LOG #39, #40), une branche à la fois,
+chacune fusionnée sur CI verte (D9). La preuve : `v33-proof-profile` (où passe le temps, `npm run bench -- --matrix`),
+`v33-proof-core` (une frontière en tas et des pointeurs parents : la file passe de 89 % du temps à rien, mêmes
+témoins), `v33-player-canonical` (les états qui ne diffèrent que par le personnage actif n'en font qu'un),
+`v33-mobility` (régions de mobilité : les déplacements silencieux repliés dans l'action suivante, un repli exact quand
+un déplacement ne l'est pas), `v33-chapter-interfaces` (une recherche partagée par chapitre depuis tous les états
+frontière, un but vérifié du point de vue de chaque personnage : un vrai défaut trouvé contre la recherche explicite),
+`v33-noop-memo` (la réduction d'ordre partiel mesurée en preuve et refusée : elle signalait un softlock inexistant ; à
+la place, les écritures du moteur sont tracées et un essai qui n'a rien écrit n'est pas relancé sur les mêmes valeurs
+lues, chaque saut vérifiable), `v33-one-status` (un statut, un code de sortie et une phrase pour la ligne de commande,
+son JSON, le Studio et l'outil MCP), `v33-proof-cache` (un résultat indexé par le moteur, le jeu et les options, rendu
+quand rien n'a changé). La production : `v33-list-ids` (listes de regards, indices, réponses par défaut et réactions
+par genre ont des ids stables), `v33-provenance-lock` (un verrou relu de chaque fichier livré et une politique de
+licences, exigés pour une release), `v33-asset-weight` (ce qu'un téléphone télécharge avant le premier lieu, par lieu
+et par chapitre, tenu à des budgets), `v33-browser-gates` (axe-core sur les dialogues, la carte, les emplacements de
+sauvegarde et chaque mini-jeu ; chaque mini-jeu gagné au clavier dans un vrai navigateur ; mises à niveau du stockage
+dans Chromium et WebKit).
+
+Critères de sortie, mesurés (BENCH.md « v3.3 ») : le jeu de référence de 40 lieux et 3 personnages prouvé en 578
+états et 3,5 s (budget 200 000 états, 60 s) ; la démo prouvée en 2,2 s (budget 5 s) et par chapitres en 3,3 s (budget
+20 s) ; les abstractions donnent les verdicts de la recherche explicite sur le corpus différentiel
+(`tests/reference-proof.test.ts`, `tests/memo.test.ts`, `tests/canonical.test.ts`) ; le profil dit ce que chaque
+abstraction a fait ou pourquoi elle est coupée ; un seul statut partout ; CI sur `v33-*`. Pas fait, dit ici : les
+workers en parallèle (chaque chapitre est une seule recherche partagée et les chapitres se suivent : il ne reste rien
+d'indépendant à répartir, et chaque budget est tenu), la dominance entre états frontière et un backend symbolique
+(aucun jeu ne dépasse les budgets), un passage manuel au lecteur d'écran (celui du mainteneur, liste dans
+`docs/dev/`), la matrice ouverte à 3 personnages où les objets circulent librement (un vrai produit des placements
+d'objets, BENCH.md). Stagecraft (calques, topologie de marche, éditeurs structurés du Studio, production des voix)
+passe en 3.4.
 
 ## Hors plan (décisions explicites)
 

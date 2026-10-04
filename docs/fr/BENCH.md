@@ -345,3 +345,17 @@ Abstractions (each one exact, or turned off and why):
   no-op memo            95625 runs skipped (5976 of them run anyway and identical), 522 kept, 4728 refused
 ```
 
+### 3.3.0, mesurée sur la release (5 octobre 2026, cache coupé)
+
+| Jeu | Statut | États | Exécutions du moteur | Temps | Budget 3.3 |
+|---|---|---|---|---|---|
+| Démo, preuve globale | solved | 3 480 | 40 191 | 2,2 s | 5 s |
+| Démo, preuve par chapitres | solved | 5 chapitres | | 3,3 s | 20 s |
+| Référence, 40 lieux, 1 personnage | solved | 163 | 764 | 1,8 s | |
+| Référence, 40 lieux, 2 personnages | solved | 678 | 11 348 | 5,6 s | |
+| Référence, 40 lieux, 3 personnages | solved | 578 | 10 647 | 3,5 s | 200 000 états, 60 s |
+
+Avec le cache de preuve chaud, la preuve globale de la démo répond en 0,17 s et ses chapitres en 1,1 s. La matrice
+ouverte (personnages non confinés à une époque, objets qui circulent librement) tronque toujours avec 2 et 3
+personnages : voir « Après `v33-mobility` ».
+

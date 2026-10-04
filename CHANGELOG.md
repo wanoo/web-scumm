@@ -1,9 +1,10 @@
 # Changelog
 
-## 3.3.0 — unreleased
+## 3.3.0 — 2026-10-05
 
 ### Added
 
+- A golden save for 3.3.0 (`tests/fixtures/saves/demo-3.3.0.json`): it loads and reaches the ending on this engine.
 - `npm run e2e:a11y` (a CI gate in Chromium and WebKit): axe-core on a conversation menu, the map, the save and load
   slots, the overwrite and restart confirmations and every bundled minigame; every bundled minigame won with key
   presses only in a real browser (a win is a minigame that ended without Skip: `App.minigameLog`, fed by a new
