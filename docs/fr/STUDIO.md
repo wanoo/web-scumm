@@ -130,7 +130,10 @@ son séparateur. Les chemins des éléments suivants se décalent après un ajou
 ### Diffusion
 La page du Studio est `studio.html` à la racine du dépôt (point d'entrée `src/studio/main.ts`). N'importe quel
 serveur de dev la sert à `/__studio/` (`npm run dev` aussi) ; `npm run studio` l'ouvre en plus. Un build de
-production ne l'inclut pas, sauf `STUDIO=1`. L'onglet **Rooms** affiche `/?edit=<room>&at=<checkpoint>` dans une
+production ne l'inclut pas, sauf `STUDIO=1`. Le serveur de dev n'écoute que 127.0.0.1 ; `npm run studio:lan` (ou
+`dev:lan`) l'ouvre au réseau local avec un jeton de session imprimé au démarrage : le Studio et l'éditeur demandent
+`?token=…` une fois (puis un cookie), et chaque route d'écriture exige aussi un en-tête `Origin` de même origine
+(`tools/studio/security.ts`). Ne jamais exposer ces ports sur Internet (`SECURITY.md`). L'onglet **Rooms** affiche `/?edit=<room>&at=<checkpoint>` dans une
 iframe et parle à l'éditeur via `postMessage` (voir TOOLS.md, « L'éditeur de placement »). La page du Studio ignore
 les rechargements complets de Vite causés par les fichiers du jeu (la vue du moteur se recharge, le Studio garde ce
 qu'on est en train de taper et suit le changement via `events`).

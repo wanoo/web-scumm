@@ -428,8 +428,30 @@ migrations: [
 ],
 ```
 
-`renameFlag`, `renameItem`, `renameRoom`, `renameProp`, `renameActor`, `renamePlace`, `dropFlag`, `dropItem`. The chain
-must reach `saveVersion`; a save with no path still starts a new game. The validator checks that the new names exist.
+`renameFlag`, `renameItem`, `renameRoom`, `renameProp`, `renameActor`, `renamePlace`, `dropFlag`, `dropItem`, and for
+the v3 keys `renameCounter`, `renameSeen`, `renameScript`, `renameScriptStep`, `renamePlayer`, `renameCharacter`,
+`dropCounter`, `dropSeen`, `dropScript`. The chain must reach `saveVersion`; a save with no path still starts a new
+game. The validator checks that the new names exist.
+
+A save that names something the content no longer has (a removed room in `visited`, a removed prop, a script, a place)
+is not refused: the engine drops those entries, keeps Continue, and the game shows one toast (`ui.saveAdjusted`)
+listing what went. Only a corrupt file, an unknown *current* room or an unknown active player reject a save.
+
+### Stable ids (`schemaVersion: 3`)
+
+```ts
+schemaVersion: 3,
+on: [{ id: 'house.search-armchair', verb: 'open', a: 'armchair', do: [...] }],
+talk: { grandma: [{ id: 'grandma.ask-key', topic: 'Where is the key?', do: [...] }] },
+onEnter: [{ id: 'house.first-arrival', once: ['A quiet house.'] }],
+scripts: [{ id: 'clock', stepIds: ['tick', 'tock'], do: [{ wait: 1000 }, { sfx: 'tick' }] }],
+```
+
+With `schemaVersion: 3`, every rule, choice option, talk topic, listener, `once` / `nth` / `cycle` / `random` block and
+script step carries an `id` the validator requires and checks for duplicates. The saves, the translation tables, the
+puzzle graph and the solver name things by those ids instead of their position: you can reorder rules, translate a
+topic or move a script step and the player's save still means the same thing. Without `schemaVersion`, the game is
+v2 content and the positions are used, as before. `docs/en/UPGRADING.md` walks through the move.
 
 ## The world lives: scripts, events, moving characters
 

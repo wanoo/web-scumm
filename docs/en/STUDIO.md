@@ -123,6 +123,10 @@ its separator. Paths of the following items shift after an append or a deletion:
 ### Serving
 The Studio page is `studio.html` at the repository root (entry `src/studio/main.ts`). Any dev server serves it at
 `/__studio/` (`npm run dev` too); `npm run studio` also opens it. A production build leaves it out unless `STUDIO=1` (see "Demo mode").
+The dev server listens on 127.0.0.1 only. `npm run studio:lan` (or `dev:lan`) opens it to the local network with a
+one-session token printed at start: the Studio and the editor need `?token=…` once (then a cookie), every write route
+also requires a same-origin `Origin` header (`tools/studio/security.ts`). Never forward these ports to the Internet
+(`SECURITY.md`).
 The Rooms tab shows `/?edit=<room>&at=<checkpoint>` in an iframe and talks to the editor through `postMessage`
 (see TOOLS.md, "The placement editor"). The Studio page ignores Vite's full reloads caused by game files (the engine
 view reloads, the Studio keeps what you are typing and follows the change through `events`).

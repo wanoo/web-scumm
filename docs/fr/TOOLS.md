@@ -144,11 +144,19 @@ Options d'un override : `keyed` (fond uni relié au bord rendu transparent, puis
 npm run validate   # références cassées, textes vides ou trop longs, Regarder manquants, flags jamais posés ou jamais lus
 npm run solve      # prouve que la partie se termine ; liste les impasses et les objets jamais utilisés
 npm run solve -- --from=<checkpoint> --max=50000
-npm test           # tests du moteur sur tests/fixture (cœur, mini-jeux, outils), puis ceux de le jeu d'exemple
-npm run e2e        # parcours dans Chromium en paysage téléphone (serveur de dev lancé)
+npm run solve -- --prove          # exhaustif : tous les états atteignables, les softlocks (états d'où la fin est inatteignable)
+npm test           # tests Node : moteur sur tests/fixture (cœur, mini-jeux, outils), puis ceux du jeu d'exemple
+npm run test:assets   # les tests d'images et de pipeline d'assets (Python)
+npm run check      # tsc + tests Node ;  npm run verify:game = validate, solve, --prove, --prove --chapters, i18n status
+npm run e2e        # parcours dans Chromium en paysage téléphone (serveur de dev lancé) ; --prod contre un build
+npm run doctor     # Node, Python, ffmpeg et navigateurs Playwright, avec la correction pour chaque manque
 ```
 
-`validate` et `solve` sortent en erreur (code 1) quand il y a un problème bloquant.
+`validate` sort en code 1 sur un problème bloquant. `solve` sort `0` résolu, `1` non résolu / softlocks / erreurs /
+invariant cassé, `2` tronqué (le budget `--max` s'est épuisé avant) ; sa deuxième ligne dit `Witness status:` ou
+`Proof status:` avec les hypothèses de modélisation (mini-jeux supposés gagnés). Le mode preuve est exhaustif et tourne
+sans réduction d'ordre partiel : sur un jeu long, donnez-lui un budget, ou prouvez chapitre par chapitre
+(`--prove --chapters`). `docs/fr/UPGRADING.md` liste ce qui change depuis la v2.
 
 ```bash
 npm run solve -- --chapters        # une recherche bornée par checkpoint avec `goals`, puis du dernier à la fin

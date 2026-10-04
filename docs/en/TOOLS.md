@@ -151,11 +151,19 @@ An override's options: `keyed` (a flat background connected to the border made t
 npm run validate   # broken references, empty or too-long text, missing Look lines, flags never set or never read
 npm run solve      # proves the game can be finished; lists dead ends and items never used
 npm run solve -- --from=<checkpoint> --max=50000
-npm test           # engine tests on tests/fixture (core, minigames, tools), then the sample game's own tests
-npm run e2e        # a playthrough in Chromium, phone landscape (dev server already running)
+npm run solve -- --prove          # exhaustive: every reachable state, the softlocks (states the ending cannot be reached from)
+npm test           # Node tests: engine on tests/fixture (core, minigames, tools), then the sample game's own tests
+npm run test:assets   # the Python-backed image and asset-pipeline tests
+npm run check      # tsc + the Node tests;  npm run verify:game = validate, solve, --prove, --prove --chapters, i18n status
+npm run e2e        # a playthrough in Chromium, phone landscape (dev server already running); --prod against a build
+npm run doctor     # Node, Python, ffmpeg and Playwright browsers, with the fix for each missing one
 ```
 
-`validate` and `solve` exit with an error (code 1) when there is a blocking problem.
+`validate` exits 1 on a blocking problem. `solve` exits `0` solved, `1` unsolved / softlocks / errors / broken
+invariant, `2` truncated (the `--max` budget ran out first); its second line says `Witness status:` or `Proof status:`
+with the modelling assumptions (minigames assumed won). Proof mode is exhaustive and runs without the partial-order
+reduction: on a long game give it a budget, or prove chapter by chapter (`--prove --chapters`). `docs/en/UPGRADING.md`
+lists what changed from v2.
 
 ```bash
 npm run solve -- --chapters        # one bounded search per checkpoint with `goals`, then from the last one to the ending

@@ -45,7 +45,7 @@ export type ToolResult = {
   structuredContent?: Record<string, unknown>;
 };
 
-export const DOCS = ['CONTENT_GUIDE', 'ENGINE', 'TOOLS', 'STUDIO', 'WORKFLOW', 'AUDIO'] as const;
+export const DOCS = ['CONTENT_GUIDE', 'ENGINE', 'TOOLS', 'STUDIO', 'WORKFLOW', 'AUDIO', 'UPGRADING'] as const;
 export type DocName = (typeof DOCS)[number];
 
 export interface ToolDef {

@@ -432,9 +432,32 @@ migrations: [
 ],
 ```
 
-`renameFlag`, `renameItem`, `renameRoom`, `renameProp`, `renameActor`, `renamePlace`, `dropFlag`, `dropItem`. La chaîne
-doit atteindre `saveVersion` ; une sauvegarde sans chemin repart toujours de zéro. Le validateur vérifie que les nouveaux
-noms existent.
+`renameFlag`, `renameItem`, `renameRoom`, `renameProp`, `renameActor`, `renamePlace`, `dropFlag`, `dropItem`, et pour
+les clés v3 `renameCounter`, `renameSeen`, `renameScript`, `renameScriptStep`, `renamePlayer`, `renameCharacter`,
+`dropCounter`, `dropSeen`, `dropScript`. La chaîne doit atteindre `saveVersion` ; une sauvegarde sans chemin repart
+toujours de zéro. Le validateur vérifie que les nouveaux noms existent.
+
+Une sauvegarde qui cite quelque chose que le contenu n'a plus (un lieu retiré dans `visited`, un prop, un script, une
+place) n'est pas refusée : le moteur retire ces entrées, garde Continuer, et le jeu affiche un toast
+(`ui.saveAdjusted`) qui liste ce qui est parti. Seuls un fichier corrompu, un lieu *courant* inconnu ou un joueur actif
+inconnu font refuser une sauvegarde.
+
+### Ids stables (`schemaVersion: 3`)
+
+```ts
+schemaVersion: 3,
+on: [{ id: 'house.search-armchair', verb: 'open', a: 'armchair', do: [...] }],
+talk: { grandma: [{ id: 'grandma.ask-key', topic: 'Où est la clé ?', do: [...] }] },
+onEnter: [{ id: 'house.first-arrival', once: ['Une maison tranquille.'] }],
+scripts: [{ id: 'clock', stepIds: ['tick', 'tock'], do: [{ wait: 1000 }, { sfx: 'tick' }] }],
+```
+
+Avec `schemaVersion: 3`, chaque règle, option de `choice`, sujet de dialogue, écouteur, bloc `once` / `nth` / `cycle`
+/ `random` et pas de script porte un `id` que le validateur exige et dont il refuse les doublons. Les sauvegardes, les
+tables de traduction, le graphe de puzzles et le solveur nomment les choses par ces ids plutôt que par leur position :
+on peut réordonner des règles, traduire un sujet ou déplacer un pas de script, la sauvegarde du joueur veut toujours
+dire la même chose. Sans `schemaVersion`, le jeu est du contenu v2 et les positions servent, comme avant.
+`docs/fr/UPGRADING.md` détaille le passage.
 
 ## Le monde vit : scripts, événements, personnages mobiles
 
