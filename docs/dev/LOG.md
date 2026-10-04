@@ -1361,3 +1361,22 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 
 → next: Claude · merge on green CI, then v331-abstraction-audit
 
+## #56 · 2026-10-05 · Claude · proposal · v331-abstraction-audit
+
+- `npm run solve -- --audit-abstractions` (`src/engine/tools/audit.ts`): the proof with the abstractions
+  (`memoVerify: 1`) against the explicit search (memo, canonical character and mobility off). Compared: status,
+  finished, broken invariants, softlocks or not, flags / rooms / places reached; errors compared by room and message
+  (the abstractions label paths differently). Exit 0 same, 1 diverged, 2 partial (explicit search over `--max`). Demo:
+  same, 3 480 vs 6 528 states, 95 625 memo hits identical, 9.5 s. Added to `release-check`.
+- `tests/gen/random-game.ts` (mulberry32, seeded) and `tests/audit.test.ts`: 120 random games (92 same, 28 partial at
+  3 000 states, 0 diverged; the explicit search 26 solved / 18 softlocks / 48 unsolved), one game per `CmdKey` and per
+  `Cond` kind (compile-time exhaustive), and two regressions.
+- Found and fixed: (1) **rule shadowing missing from liveness**, a flaw of the base search. `take spot if f1 → unset
+  f1` before `take spot → gain item2, set took_item2`: f1 is read only by a rule that only touches f1, so it looked
+  dead and the states with and without it merged, losing the later rule. `puzzleGraph` now adds a `reads` edge from an
+  earlier overlapping rule's condition to each later rule (room rules, then game rules, as `Engine.findRule`). Same
+  state counts on the demo (3 480) and the era reference (578 at 40 × 3). (2) `roomsReached` with the canonical
+  character missed inactive characters' rooms.
+
+→ next: Claude · merge on green CI, then v331-commercial
+

@@ -2,13 +2,14 @@
 // graph and report every reachable state from which the goal is no longer reachable.
 // Options: --max=20000 (number of states), --from=<checkpoint>, --json (JSON output for scripts/e2e.mjs: the labelled
 // path and the session entries `steps` on stdout, no other text; the default output, meant for humans, doesn't change:
-// other scripts read it), --profile (what the states are made of, what the search cost), --por=sleep|stubborn (partial-order reduction: fewer engine runs, or fewer states too), --chapters (one bounded search
+// other scripts read it), --profile (what the states are made of, what the search cost), --por=sleep|stubborn (partial-order reduction: fewer engine runs, or fewer states too), --audit-abstractions (the proof with the abstractions against the explicit search, every memo hit run: 0 same, 1 diverged, 2 explicit search truncated), --chapters (one bounded search
 // per checkpoint that declares `goals`: from the previous checkpoint until its goals hold, then from the last one to the
 // ending; each chapter must be solvable on its own). With --prove, --chapters proves each chapter from every reachable
 // boundary state of the previous one (deduped by what the chapter reads), not from the hand-written checkpoint, which
 // must itself be one of those boundary states (src/engine/tools/chapters.ts).
 // The game: GAME, otherwise package.json → config.game (see tools/game.ts).
 import { cachedSolve } from './proof-cache';
+import { auditAbstractions } from '../src/engine/tools/audit';
 import { exitOf, worstStatus, type SolveStatus } from '../src/engine/tools/status';
 import { resolve } from 'node:path';
 import { profileText } from '../src/engine/tools/solve';
@@ -27,6 +28,16 @@ const por = arg('por') === 'sleep' ? 'sleep' as const : arg('por') === 'stubborn
 const mode = process.argv.includes('--prove') ? 'prove' as const : 'witness' as const;
 // The reductions have no proof of equivalence for softlocks (BENCH.md, "Fewer orders"): the solver ignores them when proving.
 if (por && mode === 'prove' && !asJson) console.log(`ℹ  --por=${por} is ignored in proof mode: it can report a softlock that does not exist (BENCH.md)`);
+
+if (process.argv.includes('--audit-abstractions')) {
+  const a = await auditAbstractions(game, layouts, { maxStates, commands });
+  if (asJson) { console.log(JSON.stringify(a)); process.exit(a.exit); }
+  console.log(`  with the abstractions  ${a.abstract.status}, ${a.abstract.states} states (canonical ${a.abstract.canonical ? 'on' : 'off'}, mobility ${a.abstract.mobility ? 'on' : 'off'}, ${a.abstract.memo.hits} memo hits, all run anyway)`);
+  console.log(`  explicit search        ${a.explicit.status}, ${a.explicit.states} states${a.explicit.truncated ? ' (truncated)' : ''}`);
+  for (const d of a.divergences) console.log(`   ✖ ${d}`);
+  console.log(`${a.exit === 0 ? '✔' : '✖'}  Audit ${a.headline} — ${(a.ms / 1000).toFixed(1)} s`);
+  process.exit(a.exit);
+}
 
 if (process.argv.includes('--chapters') && mode === 'prove') {
   const p = await proveChapters(game, layouts, { maxStates, commands, mode: 'prove', solver: cachedSolve });

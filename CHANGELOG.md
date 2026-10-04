@@ -4,8 +4,22 @@
 
 ### Added
 
+- `npm run solve -- --audit-abstractions` (`src/engine/tools/audit.ts`, in `release-check`): the proof with the
+  abstractions, every no-op memo hit run anyway, against the explicit search with all of them off; any difference in
+  the verdict, invariants, softlocks or what is reached fails (exit 1), an explicit search over budget is `partial`
+  (exit 2). `tests/audit.test.ts`: the same audit on 120 seeded random games (`tests/gen/random-game.ts`) and on one
+  game per command and per condition (checked against the types at compile time).
 - `docs/dev/passes/`: one sheet per release for the checks automation cannot make (screen reader, Safari offline, a
   real phone, playtesters, voices, a signed tag); a release lists in its notes the ones not done (D12).
+
+### Fixed
+
+- The solver merged states that differ by a flag gating only an earlier rule, though that flag decides whether the
+  earlier or a later rule answers the same action (first match wins): every path through the later rule could be lost,
+  in every mode. The puzzle graph now links an earlier rule's condition to each later rule it can shadow. Found by the
+  random games; the demo and the reference game keep the same state counts.
+- With several playable characters, `roomsReached` missed the rooms where only an inactive character stood when the
+  canonical character was on (the lint's `room-never-reached` could follow).
 
 ### Changed
 
