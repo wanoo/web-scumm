@@ -166,7 +166,7 @@ npm run page:puzzles               # le graphe de puzzles en page : ce que chaqu
 npm run bench -- --matrix [--eras] [--max=20000]   # la table de référence 3.3 (--eras : personnages confinés à leur époque, le jeu de référence) : la preuve sur 20/40 lieux × 1/2/3 personnages, où part le temps (BENCH.md)
 npm run bench -- --rooms=40 [--prove --v3]   # un jeu généré de cette taille, chaque outil chronométré dessus ; --prove ajoute la preuve exhaustive, --v3 le génère avec des ids stables (docs/fr/BENCH.md)
 npm run i18n -- extract [--lang xx]   # tables de traduction (games/<id>/locales/<xx>.json) ; `status` pour la couverture
-npm run solve -- --profile         # de quoi les états sont faits et ce que la recherche a coûté (docs/fr/BENCH.md)
+npm run solve -- --profile         # de quoi les états sont faits, ce que la recherche a coûté, ce que chaque abstraction a fait (docs/fr/BENCH.md)
 npm run solve -- --por=stubborn    # réduction d'ordre partiel : les actions commutantes une à la fois (moins d'états, même preuve)
 npm run replay -- session.json     # rejoue un fichier de session sur le vrai moteur, imprime le journal et l'état final
 npm run ids [-- --write --map]     # ids stables (schéma 3) écrits dans les sources, locales renommées, l'étape de migration des sauvegardes (docs/fr/UPGRADING.md)

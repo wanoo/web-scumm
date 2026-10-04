@@ -1,5 +1,6 @@
 import { check, condAtoms, type CondAtom } from './cond';
 import { compileGame, EMPTY_LAYOUT, FLOOR, NEAR } from './define';
+import { CHANGES, cmdKey } from './cmds';
 import { listenerActionId, ruleActionId, topicActionId } from './content-ids';
 import { migrate } from './migrate';
 import { stateDiff, stateDigest } from './diff';
@@ -79,6 +80,13 @@ export class Engine {
   private open: { entry: SessionEntry; src?: SessionEntry; pi: number; mi: number; ri: number; steps: number }[] = [];
   /** Condition atoms read since the last `reads = new Set()` (the solver's independence analysis); null: not collected. */
   reads: Set<string> | null = null;
+  /**
+   * State writes since the solver last set it (`kind:id`, `*` for a write the solver cannot name): a command of
+   * `CHANGES`, a counter (`once`, `nth`, `random`), a seen mark (topic, `once` choice or listener), a room entry, a
+   * script step, a switch or a transfer. Recorded even when the value written is the one already there: a run that
+   * writes nothing the solver hashes is a no-op wherever it reads the same. Null: not collected.
+   */
+  writes: Set<string> | null = null;
   static readonly SESSION_MAX = 5000;
 
   /** Opens an entry of the session (and takes its recorded twin when replaying). */
@@ -298,6 +306,7 @@ export class Engine {
   /** Stores the active player's flat fields, loads the other's (no display). */
   private async swap(id: Id) {
     const s = this.state;
+    this.writes?.add('*');
     this.reads?.add(`players:${id}`);
     const shared = !!this.game.players?.sharedInventory;
     s.players ??= {};
@@ -315,6 +324,7 @@ export class Engine {
   /** Hands an item to another player's inventory (shared inventory: nothing to do). */
   private transfer(item: Id, to: Id) {
     const s = this.state;
+    this.writes?.add('*');
     if (this.game.players?.sharedInventory || to === this.heroId() || !s.inventory.includes(item)) return;
     const p = (s.players ??= {})[to] ??= { room: this.game.start.room, inventory: [], hero: {} };
     s.inventory = s.inventory.filter((x) => x !== item);
@@ -368,7 +378,7 @@ export class Engine {
     if (!this.isUsed(id)) return false;
     const has = (x: Id | Id[] | undefined) => x !== undefined && (Array.isArray(x) ? x.includes(id) : x === id);
     for (const list of [room.on ?? [], this.game.rules.on ?? []]) {
-      for (const r of list) if ((has(r.a) || has(r.b)) && check(r.if, this.state, room.id)) return false;
+      for (const r of list) if ((has(r.a) || has(r.b)) && this.cond(r.if, room.id)) return false;
     }
     return true;
   }
@@ -642,7 +652,7 @@ export class Engine {
   private async hint(ctx: Ctx) {
     const room = ctx.room;
     const hints = room.hints ?? [];
-    const idx = hints.findIndex((h) => !check(h.until, this.state, room.id));
+    const idx = hints.findIndex((h) => !this.cond(h.until, room.id));
     const voice = this.game.hintVoice ?? this.heroId();
     this.ran(`hint:${room.id}/${idx < 0 ? 'none' : idx}`);
     if (idx < 0) { await this.say(voice, this.fallback('talk', this.game.hintItem!), ctx); return; }
@@ -667,6 +677,7 @@ export class Engine {
         await this.say(HERO, t.topic, ctx);
         await this.exec(t.do, ctx);
         this.state.seen[topicKey(t, i)] = 1;
+        this.writes?.add(`seen:${topicKey(t, i)}`);
         continue;
       }
       if (g.hug && pick === topics.length) {
@@ -686,6 +697,7 @@ export class Engine {
     const room = this.room(id);
     if (this.state.room !== id || at !== undefined) this.state.camera = { x: 0, follow: true };
     this.state.room = id;
+    this.writes?.add('*');
     const L = this.layout(id);
     if (at) this.state.hero[id] = Array.isArray(at) ? at : (L.entries?.[at] ?? L.entries?.default ?? [320, 360]);
     else this.state.hero[id] ??= L.entries?.default ?? [320, 360];
@@ -712,11 +724,12 @@ export class Engine {
   /** State of a script: next command (`pc`), finished, stopped. */
   scriptState(id: Id) {
     const def = this.scriptDef(id);
+    if (!this.state.scripts?.[id]) this.writes?.add(`script:${id}`);
     const st = (this.state.scripts ??= {})[id] ??= { pc: 0 };
     // A v3 save follows the named step after authoring steps are reordered. `pc` remains for v2 saves and debugging.
     if (st.step && def?.stepIds) {
       const pc = def.stepIds.indexOf(st.step);
-      if (pc >= 0) st.pc = pc;
+      if (pc >= 0 && st.pc !== pc) { st.pc = pc; this.writes?.add(`script:${id}`); }
     }
     if (def?.stepIds) st.step = def.stepIds[st.pc];
     return st;
@@ -737,20 +750,21 @@ export class Engine {
     if (st.done) return 'done';
     if (this.busyCount > 0 || s.done) return 'blocked';
     const room = this.room();
-    if (def.while && !this.cond(def.while, room.id)) { if (st.pc) { this.begin({ step: id }); st.pc = 0; this.end(); } return 'blocked'; }
+    if (def.while && !this.cond(def.while, room.id)) { if (st.pc) { this.writes?.add(`script:${id}`); this.begin({ step: id }); st.pc = 0; this.end(); } return 'blocked'; }
     if (st.pc >= def.do.length) {
+      this.writes?.add(`script:${id}`);
       if (!def.loop) { st.done = true; this.save(); return 'done'; }
       this.begin({ step: id }); st.pc = 0; this.end();
       return 'wrapped';
     }
     const c = def.do[st.pc];
     if (typeof c === 'object') {
-      if ('waitUntil' in c) { if (!this.cond(c.waitUntil, room.id)) return 'blocked'; this.begin({ step: id }); st.pc++; this.end(); return 'ran'; }
+      if ('waitUntil' in c) { if (!this.cond(c.waitUntil, room.id)) return 'blocked'; this.writes?.add(`script:${id}`); this.begin({ step: id }); st.pc++; this.end(); return 'ran'; }
       if ('waitEvent' in c) return 'blocked'; // emit() moves the script past it
     }
     this.begin({ step: id });
     this.ran(`script:${id}`);
-    try { await this.step(c, { room, fast: false }); } finally { st.pc++; if (def.stepIds) st.step = def.stepIds[st.pc]; this.end(); }
+    try { await this.step(c, { room, fast: false }); } finally { this.writes?.add(`script:${id}`); st.pc++; if (def.stepIds) st.step = def.stepIds[st.pc]; this.end(); }
     this.log('script', `${id} ran ${describeCmd(c)} → ${st.pc >= def.do.length ? (def.loop ? 'loops' : 'done') : st.pc}`);
     if (this.busyCount === 0) this.save();
     this.onChange();
@@ -802,12 +816,12 @@ export class Engine {
       const st = this.scriptState(def.id);
       this.reads?.add(`script:${def.id}`);
       const cur = def.do[st.pc];
-      if (!st.done && !st.off && cur && typeof cur === 'object' && 'waitEvent' in cur && cur.waitEvent === id) st.pc++;
+      if (!st.done && !st.off && cur && typeof cur === 'object' && 'waitEvent' in cur && cur.waitEvent === id) { st.pc++; this.writes?.add(`script:${def.id}`); }
     }
     const scopes: [EventRule[], string][] = [[ctx.room.events ?? [], ctx.room.id], [this.game.events ?? [], 'game']];
     for (const [list, scope] of scopes) for (const [i, ev] of list.entries()) {
       if (ev.on !== id || !this.cond(ev.if, ctx.room.id)) continue;
-      if (ev.once) { const k = `event.${ev.id ?? `${scope}.${i}`}`; this.reads?.add(`seen:${k}`); if (s.seen[k]) continue; s.seen[k] = 1; }
+      if (ev.once) { const k = `event.${ev.id ?? `${scope}.${i}`}`; this.reads?.add(`seen:${k}`); if (s.seen[k]) continue; s.seen[k] = 1; this.writes?.add(`seen:${k}`); }
       this.log('event', `${id} → ${scope}.events[${i}]${ev.once ? ' (once)' : ''}`);
       this.ran(listenerActionId(scope, i, ev));
       await this.exec(ev.do, ctx);
@@ -850,6 +864,7 @@ export class Engine {
     const o = this.cur;
     if (o) { if (o.src?.skipAt === o.steps) this.skipping = true; o.steps++; }
     if (typeof c === 'string') return this.say(HERO, c, ctx);
+    if (this.writes) { const k = cmdKey(c); if (k && CHANGES.has(k)) this.writes.add('set' in c ? `flag:${Array.isArray(c.set) ? c.set[0] : c.set}` : 'unset' in c ? `flag:${c.unset}` : 'inc' in c ? `flag:${c.inc}` : '*'); }
     if ('say' in c) return this.say(c.say[0], c.say[1], ctx, !!c.shout, c.voice ?? (c.id && this.game.audio?.voices?.[c.id] ? c.id : undefined));
     if ('walk' in c) {
       const who = this.who(c.who ?? HERO);
@@ -1038,6 +1053,7 @@ export class Engine {
       this.reads?.add(`once:${k}`);
       if (s.counters[k]) return;
       s.counters[k] = 1;
+      this.writes?.add(`once:${k}`);
       return this.exec(c.once, ctx);
     }
     if ('nth' in c || 'cycle' in c) {
@@ -1046,6 +1062,7 @@ export class Engine {
       this.reads?.add(`nth:${k}`);
       const n = s.counters[k] ?? 0;
       s.counters[k] = n + 1;
+      this.writes?.add(`nth:${k}`);
       const i = 'nth' in c ? Math.min(n, list.length - 1) : n % list.length;
       return this.exec(list[i], ctx);
     }
@@ -1055,6 +1072,7 @@ export class Engine {
       let i = Math.floor(this.rand() * c.random.length);
       if (c.random.length > 1 && i === s.counters[k]) i = (i + 1) % c.random.length;
       s.counters[k] = i;
+      this.writes?.add(`random:${k}`);
       return this.exec(c.random[i], ctx);
     }
     if ('cutscene' in c) {
@@ -1069,7 +1087,7 @@ export class Engine {
       if (!opts.length) return;
       const pick = await this.choose(opts.map(({ o }) => ({ text: o.text })));
       const { o } = opts[Math.max(0, Math.min(pick, opts.length - 1))];
-      if (o.once) s.seen[choiceKey(o)] = 1;
+      if (o.once) { s.seen[choiceKey(o)] = 1; this.writes?.add(`seen:${choiceKey(o)}`); }
       await this.say(HERO, o.text, ctx);
       return this.exec(o.do, ctx);
     }

@@ -1193,3 +1193,18 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
 
 → next: Claude · merge `v33-mobility` and this branch on green CI; then the production closure and 3.3.0
 
+## #46 · 2026-10-04 · Claude · proposal · v33-noop-memo (replaces v33-proof-por)
+
+- Measured before building: sleep sets in proof mode (`unsafeReduction`) on the demo skip 0.6% of runs and are
+  slower; on the era game 20 × 3 and 40 × 3 they skip under 2% and report a softlock the plain proof does not have
+  (dropped edges feed the reverse reachability). Test added. Decision: no POR in proofs; `v33-proof-por` dropped.
+- Where the cost is: 78% of the demo's runs, 92% of the era game's, change nothing. `Engine.writes` (keys written,
+  even unchanged values) beside `Engine.reads`; a run writing nothing hashed is memoised with its read values; the
+  same try on the same values is skipped. Two untracked checks fixed (used-item lock, hint `until`).
+- Exactness: `memoVerify` runs 1 skip in N anyway (16 by default, 1 in tests) and reports a difference as an error.
+  `tests/memo.test.ts`: 12 fixtures × witness/prove + demo, every skip run and compared, identical results.
+- Demo: proof 4.4 → 2.2 s (129 840 → 40 191 runs), chapters 5.7 → 3.3 s; era 40 × 3: 4.5 → 3.5 s.
+- Exit criterion "every abstraction says what it did": the profile's `Abstractions` lines (canonical, mobility, memo).
+
+→ next: Claude · merge on green CI; then the single status (JSON, text, Studio, MCP) and the production closure
+
