@@ -1220,4 +1220,18 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
   the policy, no policy; the fixture ships its own files (`ASSETS_DIR`). Unit tests for the lock diff and the policy.
 
 → next: Claude · merge on green CI; then the asset weight budgets and the browser accessibility gates
+## #47 · 2026-10-04 · Claude · proposal · v33-one-status
+
+- `src/engine/tools/status.ts`: one status, its exit code (0 solved, 2 truncated, 1 anything else) and its sentence,
+  carried by `SolveResult` and `ChaptersProof` (`status`, `exit`, `headline`). `npm run solve` (text, `--json`), the
+  Studio's Check tab and the MCP `solve` tool print those; `tests/status.test.ts` checks the CLI JSON, the CLI text
+  and the Studio against the solver on the demo, `tests/mcp.test.ts` the MCP tool.
+- What it exposed: a broken invariant was `solved` with exit 1, and the Studio said "the game can be finished" from
+  `finished` alone (over a truncated proof or softlocks). Now `broken` is a status, ranked after `error`.
+- And a real generator bug: the stress game's second invariant ("p0 lost item 0 before door 1") is true as soon as
+  p0 gives the item to another character; the explicit search breaks it too, the old status hid it behind `solved`.
+  Replaced by a true invariant that still reads `{ player }` (reference numbers unchanged).
+- Witness chapters combined exit codes by `max` (a failing chapter plus a truncated one gave 2): now by severity.
+
+→ next: Claude · merge on green CI; then the production closure, then 3.3.0
 
