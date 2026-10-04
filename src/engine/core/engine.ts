@@ -241,8 +241,10 @@ export class Engine {
     if (!c) throw new Error(`unknown checkpoint: ${id}`);
     const s = this.fresh();
     Object.assign(s, { room: c.room, inventory: [...(c.inventory ?? [])], flags: { ...(c.flags ?? {}) }, unlocked: [...(c.unlocked ?? s.unlocked)], props: { ...(c.props ?? {}) }, where: { ...s.where, ...(c.where ?? {}) } });
+    if (c.used) s.used = [...c.used];
+    if (c.seen) s.seen = { ...c.seen };
     if (c.active) s.active = c.active;
-    if (c.players) { s.players = {}; for (const [pid, p] of Object.entries(c.players)) if (pid !== s.active) s.players[pid] = { room: p.room, inventory: [...(p.inventory ?? [])], hero: {} }; }
+    if (c.players) { s.players = {}; for (const [pid, p] of Object.entries(c.players)) if (pid !== s.active) s.players[pid] = { room: p.room, inventory: [...(p.inventory ?? [])], hero: {}, ...(p.used ? { used: [...p.used] } : {}) }; }
     this.state = this.ensureState(s);
     this.newSession({ kind: 'checkpoint', id });
     await this.enter(c.room, undefined, false);

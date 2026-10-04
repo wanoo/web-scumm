@@ -4,6 +4,17 @@
 
 ### Added
 
+- The proof says how a game is lost: `softlockCount` (every reachable softlock state, not 20 samples) and
+  `softlockCauses` (grouped by the step that lost the game); a proof from "New game" branches over the intro's
+  choices. `npm run solve -- --prove --chapters` proves each chapter from every reachable boundary state of the
+  previous one and reports a checkpoint no boundary state matches (with the dimensions that differ); one state budget
+  covers the whole proof, past it `truncated`. Checkpoints take `used`, `seen` and `players[].used`. The demo's
+  checkpoints were fixed to be reachable states. Measured honestly (BENCH.md): complete for a 40-room single-character
+  chain, truncated with two or more playable characters, chapters or not.
+- The differential suite (`tests/por.test.ts`) compares the reductions with the plain proof on eight fixtures,
+  including a softlock that commutes with everything: stubborn sets agree, sleep sets invent softlocks on three; the
+  reductions stay off in proof mode (`unsafeReduction` is for the suite only).
+
 - Saves say what they did: `clear()` / `clearSlot()` return `false` when the browser refuses (the save stays, the
   failure is reported, `whenIdle()` rejects); "Restart" and a refused file import keep the current game; golden
   saves for 3.0.0 and 3.1.0 load, migrate and reach the ending; refused writes and deletions are tested with a fake

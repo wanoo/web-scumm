@@ -52,3 +52,16 @@ export function trials(): GameDef {
   };
 }
 export const trialsLayouts: Record<string, Layout> = { island: { entries: { default: [320, 360] } } };
+
+/**
+ * A hidden softlock that commutes with everything else: `k` independent pickups, and a hammer that breaks the
+ * only exit for good. Every order of the pickups is equivalent; the one losing step must survive any reduction.
+ */
+export function trap(k: number): GameDef {
+  const g = pickups(k, true);
+  const room = g.rooms[0];
+  room.hotspots = { ...(room.hotspots ?? {}), hammer: { name: 'hammer' } };
+  room.look = { ...(room.look ?? {}), hammer: 'A hammer.' };
+  room.on = [...(room.on ?? []).map((r) => (r.a === 'door' && !r.b ? { ...r, if: r.if ? { all: [r.if as never, '!broken'] } : '!broken' } : r)), { verb: 'use', a: 'hammer', if: '!broken', do: [{ set: 'broken' }, 'Oops.'] }];
+  return g;
+}

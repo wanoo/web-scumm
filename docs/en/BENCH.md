@@ -127,3 +127,36 @@ in that mode (a reduction must not drop a losing branch from a proof until it ha
 sample proves in 1.3 s) and a weekly job with a budget for a big one (`.github/workflows/prove.yml`); on a long game,
 prove chapter by chapter (`--prove --chapters`), where each search is bounded by its goals. Bringing the reduction into
 proof mode, with the equivalence tests of `tests/por.test.ts` as its proof, is the next step for the solver.
+
+## v3.2: softlock causes, the proof by chapters, and where the proof stops (4 October 2026)
+
+A proof now reports **every** reachable softlock state (`softlockCount`), grouped by the step that lost the game
+(`softlockCauses`: the first action from a state that could still win into one that cannot), and a proof from "New
+game" branches over the intro's choices too (the demo's proof grew from 2 176 to 6 528 states: it had only proved the
+default answer). `npm run solve -- --prove --chapters` proves each chapter from **every** reachable boundary state of
+the previous one (every state where its goals hold, deduped by what the next chapter reads), and reports a checkpoint
+that matches none, with the dimensions that differ: it found three of the demo's four checkpoints disagreeing with
+the content (Biscuit's position and the pipe already used, a once-listener already fired, the room where the key is
+found), all fixed. One state budget covers the whole proof (`maxStates × 10`, at most 1 000 boundary starts per
+chapter): past it the result is `truncated`, never green.
+
+Same laptop; 12 items, 30 flags, 1 walker, 2 scripts, 8 topics; `maxStates` 20 000:
+
+| Game | Global proof | Proof by chapters |
+|---|---|---|
+| sample game (3 rooms, 4 chapters) | solved, 6 528 states, 4.9 s | solved from 1/78/243/312/288 boundary states, 115 670 states, 89 s |
+| 20 rooms, 1 player, 4 chapters | solved, 797 states, 0.2 s | solved, 1 466 states, 0.4 s |
+| 40 rooms, 1 player, 8 chapters | solved, 3 197 states, 1.1 s | solved, 6 034 states, 2.3 s |
+| 20 rooms, 2 players, 4 chapters | **truncated** at 20 000 states, 8.7 s | **truncated** in chapter 1, 6.8 s |
+| 40 rooms, 3 players, 3 chapters | **truncated** at 20 000 states, 51 s | **truncated** in chapter 1, 26 s |
+
+What this says, plainly: the exhaustive proof is complete and fast for a single-character chain of 40 rooms; with
+several playable characters the reachable states multiply (each one's room and bag) and both proofs stop at the
+budget and say so. Cutting the game into chapters does not change that, because the first chapter already holds the
+product; it checks the checkpoints and proves each chapter from every way into it, which is what a long
+single-character game needs. Without a written equivalence argument, the reductions stay off in proof mode, and the
+differential suite (`tests/por.test.ts`) shows why: sleep sets invent softlocks on three of eight fixtures (dropped
+edges feed the reverse reachability that classifies them), stubborn sets agreed on all eight. A multi-character
+long game is proved per character (a checkpoint where the others wait) or relies on the witness, the chapter
+witnesses and the playtests. The solver's next step is the stubborn-set argument for proof mode.
+

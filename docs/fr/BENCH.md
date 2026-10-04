@@ -137,3 +137,38 @@ prove:game` est donc une porte de release pour un petit jeu (la démo se prouve 
 borné pour un grand (`.github/workflows/prove.yml`) ; sur un jeu long, prouver chapitre par chapitre
 (`--prove --chapters`), chaque recherche étant bornée par ses buts. Amener la réduction en mode preuve, avec les tests
 d'équivalence de `tests/por.test.ts` pour preuve, est le prochain pas du solveur.
+
+## v3.2 : causes des softlocks, preuve par chapitres, et où la preuve s'arrête (4 octobre 2026)
+
+Une preuve rapporte désormais **chaque** état de softlock atteignable (`softlockCount`), regroupés par l'étape qui a
+perdu la partie (`softlockCauses` : la première action qui mène d'un état encore gagnable à un état qui ne l'est
+plus), et une preuve depuis « Nouvelle partie » explore aussi les choix de l'introduction (la preuve de la démo passe
+de 2 176 à 6 528 états : elle n'avait prouvé que la réponse par défaut). `npm run solve -- --prove --chapters` prouve
+chaque chapitre depuis **chaque** état frontière atteignable du précédent (chaque état où ses objectifs tiennent,
+dédoublonné par ce que le chapitre suivant lit) et signale un checkpoint qui n'en égale aucun, avec les dimensions
+qui diffèrent : il a trouvé trois des quatre checkpoints de la démo en désaccord avec le contenu (la place de Biscuit
+et le tuyau déjà utilisé, un écouteur `once` déjà déclenché, le lieu où l'on trouve la clé), tous corrigés. Un seul
+budget d'états couvre toute la preuve (`maxStates × 10`, au plus 1 000 départs par chapitre) : au-delà, le résultat est
+`truncated`, jamais vert.
+
+Même portable ; 12 objets, 30 flags, 1 marcheur, 2 scripts, 8 sujets ; `maxStates` 20 000 :
+
+| Jeu | Preuve globale | Preuve par chapitres |
+|---|---|---|
+| démo (3 lieux, 4 chapitres) | résolue, 6 528 états, 4,9 s | résolue depuis 1/78/243/312/288 états frontière, 115 670 états, 89 s |
+| 20 lieux, 1 personnage, 4 chapitres | résolue, 797 états, 0,2 s | résolue, 1 466 états, 0,4 s |
+| 40 lieux, 1 personnage, 8 chapitres | résolue, 3 197 états, 1,1 s | résolue, 6 034 états, 2,3 s |
+| 20 lieux, 2 personnages, 4 chapitres | **tronquée** à 20 000 états, 8,7 s | **tronquée** au chapitre 1, 6,8 s |
+| 40 lieux, 3 personnages, 3 chapitres | **tronquée** à 20 000 états, 51 s | **tronquée** au chapitre 1, 26 s |
+
+Ce que cela dit, simplement : la preuve exhaustive est complète et rapide pour une chaîne de 40 lieux à un seul
+personnage ; avec plusieurs personnages jouables, les états atteignables se multiplient (le lieu et le sac de chacun)
+et les deux preuves s'arrêtent au budget en le disant. Découper en chapitres n'y change rien, car le premier chapitre
+contient déjà le produit ; cela vérifie les checkpoints et prouve chaque chapitre depuis toutes ses entrées, ce dont
+un long jeu à un personnage a besoin. Sans argument d'équivalence écrit, les réductions restent éteintes en mode
+preuve, et la suite différentielle (`tests/por.test.ts`) montre pourquoi : les ensembles sleep inventent des
+softlocks sur trois fixtures sur huit (les arêtes retirées nourrissent l'atteignabilité inverse qui les classe), les
+ensembles stubborn s'accordent sur les huit. Un long jeu à plusieurs personnages se prouve personnage par personnage
+(un checkpoint où les autres attendent) ou s'appuie sur le témoin, les témoins par chapitre et les playtests. Le
+prochain pas du solveur : l'argument des ensembles stubborn en mode preuve.
+

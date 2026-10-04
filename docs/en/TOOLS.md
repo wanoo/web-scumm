@@ -166,6 +166,7 @@ exhaustive softlock gate, and `npm run release-check` includes it.
 
 ```bash
 npm run solve -- --chapters        # one bounded search per checkpoint with `goals`, then from the last one to the ending
+npm run solve -- --prove --chapters   # the proof by chapters: each chapter proved from EVERY reachable boundary state of the previous one; a checkpoint that matches none is an error
 npm run validate -- --report       # the content profiler: rooms, items, characters, what is thin (Markdown)
 npm run page:world                 # the map of the world as a page (exits, gotos, unreachable rooms, DOT source)
 npm run page:puzzles               # the puzzle graph as a page: what every rule needs and changes, a card per item / flag

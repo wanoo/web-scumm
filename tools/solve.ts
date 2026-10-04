@@ -4,10 +4,13 @@
 // path and the session entries `steps` on stdout, no other text; the default output, meant for humans, doesn't change:
 // other scripts read it), --profile (what the states are made of, what the search cost), --por=sleep|stubborn (partial-order reduction: fewer engine runs, or fewer states too), --chapters (one bounded search
 // per checkpoint that declares `goals`: from the previous checkpoint until its goals hold, then from the last one to the
-// ending; each chapter must be solvable on its own).
+// ending; each chapter must be solvable on its own). With --prove, --chapters proves each chapter from every reachable
+// boundary state of the previous one (deduped by what the chapter reads), not from the hand-written checkpoint, which
+// must itself be one of those boundary states (src/engine/tools/chapters.ts).
 // The game: GAME, otherwise package.json → config.game (see tools/game.ts).
 import { resolve } from 'node:path';
 import { profileText, solve } from '../src/engine/tools/solve';
+import { MAX_STARTS, proveChapters } from '../src/engine/tools/chapters';
 import { loadLayouts } from '../src/engine/tools/load';
 import { GAME_DIR, loadGameModule } from './game';
 
@@ -21,6 +24,23 @@ const maxStates = Number(arg('max') ?? 20000);
 const por = arg('por') === 'sleep' ? 'sleep' as const : arg('por') === 'stubborn' ? 'stubborn' as const : false;
 const mode = process.argv.includes('--prove') ? 'prove' as const : 'witness' as const;
 const exitCode = (r: Awaited<ReturnType<typeof solve>>) => r.status === 'truncated' ? 2 : r.status === 'solved' && !r.broken.length ? 0 : 1;
+
+if (process.argv.includes('--chapters') && mode === 'prove') {
+  const p = await proveChapters(game, layouts, { maxStates, commands, mode: 'prove' });
+  if (!p.chapters.length) { console.log('✖  No checkpoint declares `goals`: nothing to prove by chapter'); process.exit(1); }
+  if (asJson) { console.log(JSON.stringify({ status: p.status, ms: p.ms, chapters: p.chapters.map(({ results, ...c }) => ({ ...c, softlockCauses: results.flatMap((r) => r.softlockCauses) })) })); process.exit(p.status === 'solved' ? 0 : p.status === 'truncated' ? 2 : 1); }
+  for (const c of p.chapters) {
+    const ok = c.status === 'solved' && !c.checkpointUnreachable;
+    if (c.status === 'truncated' && !c.results.length) { console.log(`✖  chapter → ${c.id}: truncated, ${c.distinct} distinct boundary states exceed the budget of ${MAX_STARTS} starts (the proof stops here)`); continue; }
+    console.log(`${ok ? '✔' : '✖'}  chapter → ${c.id}: ${c.status} from ${c.distinct} boundary state(s), ${c.states} states, ${(c.ms / 1000).toFixed(1)} s${c.softlockCount ? `, ${c.softlockCount} softlock state(s)` : ''}${c.boundaries ? `, ${c.boundaries} distinct boundary state(s) for the next chapter` : ''}`);
+    if (c.checkpointUnreachable) console.log(`   ✖ checkpoint "${c.id}" is not one of the reachable boundary states of this chapter; closest one differs on: ${(c.checkpointDiff ?? []).join(', ') || '(nothing: no boundary state at all)'}`);
+    for (const r of c.results) for (const cause of r.softlockCauses.slice(0, 5)) console.log(`   ✖ ${cause.count} softlock state(s) after "${cause.action}" in ${cause.room}: ${cause.sample.slice(-4).join(' › ')}`);
+    for (const r of c.results) for (const e of r.errors) console.log('   ' + e);
+  }
+  const unreachable = p.chapters.some((c) => c.checkpointUnreachable);
+  console.log(`${p.status === 'solved' && !unreachable ? '✔' : '✖'}  proof by chapters: ${p.status}${unreachable ? ', a checkpoint is unreachable' : ''} — ${(p.ms / 1000).toFixed(1)} s`);
+  process.exit(p.status === 'solved' && !unreachable ? 0 : p.status === 'truncated' ? 2 : 1);
+}
 
 if (process.argv.includes('--chapters')) {
   const cps = Object.entries(game.checkpoints ?? {}).filter(([, c]) => c.goals?.length);
@@ -55,6 +75,7 @@ if (asJson) {
   // `path` labels each step for humans; `steps` are the session entries ({ act, picks… }) the e2e harness replays.
   console.log(JSON.stringify({
     status: r.status, mode: r.mode, finished: r.finished, states: r.states, truncated: r.truncated, path: r.path, steps: r.steps,
+    softlockCount: r.softlockCount, softlockCauses: r.softlockCauses,
     roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
     itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems, softlocks: r.softlocks, assumptions: r.assumptions,
     errors: r.errors, broken: r.broken, profile: r.profile,
@@ -75,9 +96,10 @@ if (r.deadEnds.length) {
   console.log(`\nDead ends (${r.deadEnds.length}):`);
   for (const d of r.deadEnds.slice(0, 5)) console.log(`  - ${d.room}, inventory [${d.inventory.join(', ')}] after: ${d.path.slice(-3).join(' › ') || 'the start'}`);
 }
-if (r.softlocks.length) {
-  console.log(`\n✖  Reachable softlocks (${r.softlocks.length} samples):`);
-  for (const d of r.softlocks.slice(0, 5)) console.log(`  - ${d.room}, inventory [${d.inventory.join(', ')}] after: ${d.path.slice(-4).join(' › ') || 'the start'}`);
+if (r.softlockCount) {
+  console.log(`\n✖  Reachable softlocks: ${r.softlockCount} state(s) from which the ending is lost, ${r.softlockCauses.length} cause(s):`);
+  for (const c of r.softlockCauses.slice(0, 10)) console.log(`  - ${c.count} state(s) after "${c.action}" in ${c.room}: ${c.sample.slice(-4).join(' › ') || 'the start'}`);
+  console.log(`  (the path shown is the shortest found, not necessarily the shortest there is)`);
 }
 if (r.broken.length) {
   console.log(`\n✖  Invariants broken (${r.broken.length}):`);

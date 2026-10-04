@@ -79,6 +79,12 @@ export interface SolveResult {
   errors: string[];
   /** Invariants that became true (index in `game.invariants`), with the path that broke them. */
   broken: { invariant: number; path: string[] }[];
+  /** Proof mode: how many reachable states cannot reach the goal any more (`softlocks` holds at most 20 samples). */
+  softlockCount: number;
+  /** Proof mode: the softlocks grouped by the step that lost the game (the first action from a safe state into an unsafe one). */
+  softlockCauses: { action: string; room: Id; count: number; sample: string[] }[];
+  /** Proof mode with a `goal`: every reachable state where the goal holds (a chapter's boundary; `proveChapters` starts the next chapter from each). */
+  boundaries: GameState[];
   profile: SolveProfile;
 }
 
@@ -86,7 +92,8 @@ export interface SolveOptions {
   maxStates?: number;
   /** `witness` stops at the first solution; `prove` explores the whole reachable graph and finds softlocks. */
   mode?: 'witness' | 'prove';
-  start?: 'new' | { checkpoint: Id };
+  /** Where the search starts: a new game, a checkpoint, or a state (a chapter's boundary state, `proveChapters`). */
+  start?: 'new' | { checkpoint: Id } | { state: GameState };
   /** Stop when all these conditions hold (a chapter's goals), instead of at the ending. */
   goal?: Cond[];
   /** The game's custom commands: their `effects` apply (their `run` never does here). */
@@ -97,6 +104,11 @@ export interface SolveOptions {
    * explores one of several commuting actions at a time (fewer states too). Off by default.
    */
   por?: 'sleep' | 'stubborn' | false;
+  /**
+   * Lets `por` apply in proof mode. The reductions have no proof of equivalence for softlock detection (the edges
+   * they drop feed the reverse reachability): only `tests/por.test.ts` (the differential suite) sets this.
+   */
+  unsafeReduction?: boolean;
 }
 
 interface Node {
@@ -106,6 +118,9 @@ interface Node {
   expanded: boolean;
   /** A node seen again with a smaller sleep set: only these actions are still to try. */
   only?: Set<string>;
+  /** How it was first reached: the parent's hash and the step's label (the softlock causes walk this). */
+  parent?: string;
+  via?: string;
 }
 
 /** Keys of once / nth blocks: their counter changes behaviour, so it's part of the state. */
@@ -299,6 +314,17 @@ function label(game: GameDef, a: Action): string {
   return a.b ? `${v?.label ?? a.verb} ${a.a} ${v?.join ?? '→'} ${a.b}` : `${v?.label ?? a.verb} ${a.a}`;
 }
 
+/**
+ * What a chapter reads of a state, as a key: two boundary states with the same key are the same start for that
+ * chapter (its rules, hints, scripts and goal read nothing else). `proveChapters` dedupes the previous chapter's
+ * boundaries by it.
+ */
+export function projectState(gameIn: GameDef, layouts: Record<string, Layout>, state: GameState, opts: Pick<SolveOptions, 'commands' | 'goal'> = {}): string {
+  const game = compileGame(gameIn) as GameDef;
+  const keyed = new Engine(game, layouts, new FakePresenter(), new MemoryStore(), { commands: opts.commands });
+  return JSON.stringify(stateDims(state, stateKeys(keyed.game, opts.commands, opts.goal)));
+}
+
 export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, opts: SolveOptions = {}): Promise<SolveResult> {
   const maxStates = opts.maxStates ?? 20000;
   const mode = opts.mode ?? 'witness';
@@ -336,7 +362,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   // Starting state
   const { e: e0, ui: ui0 } = makeEngine();
   const startPath: string[] = [];
-  if (opts.start && typeof opts.start === 'object') await e0.checkpoint(opts.start.checkpoint);
+  if (opts.start && typeof opts.start === 'object') { if ('checkpoint' in opts.start) await e0.checkpoint(opts.start.checkpoint); else await e0.load(structuredClone(opts.start.state)); }
   else await drive(e0, e0.newGame(), (a) => startPath.push(`(tutorial) ${label(game, a)}`));
   const reached = (ui: FakePresenter, s: GameState) => opts.goal ? opts.goal.every((c) => check(c, s)) : (s.done || ui.log.includes('ENDING'));
   const broken: SolveResult['broken'] = [];
@@ -348,7 +374,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   const seen = new Map<string, Node>();
   // A reduction must not remove a losing branch from a proof. Keep proof mode deliberately conservative until the
   // reductions themselves have a model-equivalence proof.
-  const por = mode === 'prove' ? false : (opts.por ?? false);
+  const por = mode === 'prove' && !opts.unsafeReduction ? false : (opts.por ?? false);
   const stx = por === 'stubborn' ? staticTransitions(puzzleGraph(game, { commands: opts.commands })) : null;
   // What the search looks for: an action that changes it is never postponed by the reduction.
   const goalDims = new Set<string>(['done', ...(opts.goal ?? []).flatMap((c) => condAtoms(c).map(atomDim))]);
@@ -361,6 +387,24 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   let finish: Node | null = reached(ui0, e0.state) ? start : null;
   const startHash = JSON.stringify(start.dims);
   const goals = new Set<string>(finish ? [startHash] : []);
+  // A proof from "New game" branches over the intro's choices too (the silent presenter picks the last option by
+  // default): each choice met during the start is varied one at a time, the others at their default. Without this,
+  // a flag the intro sets from a choice would be "proved" on one value only.
+  if (mode === 'prove' && (opts.start === undefined || opts.start === 'new')) {
+    for (let j = 0; j < ui0.asked.length; j++) for (let o = 0; o < ui0.asked[j].n - 1; o++) {
+      const { e, ui } = makeEngine();
+      ui.picks = [...ui0.asked.slice(0, j).map((a) => a.n - 1), o];
+      const path: string[] = [`New game › "${ui0.asked[j].texts[o]}"`];
+      await drive(e, e.newGame(), (a) => path.push(`(tutorial) ${label(game, a)}`));
+      const dims = stateDims(e.state, keys);
+      const h = JSON.stringify(dims);
+      if (seen.has(h)) continue;
+      const alt: Node = { state: structuredClone(e.state), path, steps: e.session?.log ?? [], dims, sleep: new Map(), expanded: false };
+      seen.set(h, alt);
+      enqueue(alt);
+      if (reached(ui, e.state)) { goals.add(h); finish ??= alt; }
+    }
+  }
   const edges = new Map<string, Set<string>>();
   let limitReached = false;
   let last: Node = start;
@@ -532,7 +576,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
         }
         continue;
       }
-      const next: Node = { state: structuredClone(e.state), path: [...path, t.label], steps: [...node.steps, ...(e.session?.log ?? [])], dims, sleep, expanded: false };
+      const next: Node = { state: structuredClone(e.state), path: [...path, t.label], steps: [...node.steps, ...(e.session?.log ?? [])], dims, sleep, expanded: false, parent: h0, via: t.label };
       checkInvariants(next.state, next.path);
       if (hitGoal) {
         seen.set(h, next);
@@ -590,10 +634,22 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
       for (const p of reverse.get(h) ?? []) todo.push(p);
     }
   }
-  const softlocks = mode === 'prove' && !limitReached && finish
-    ? [...seen.entries()].filter(([h]) => !canReachGoal.has(h)).map(([, n]) => ({ path: n.path, room: n.state.room, inventory: [...n.state.inventory] }))
-      .sort((a, b) => a.path.length - b.path.length).slice(0, 20)
-    : [];
+  const unsafe = mode === 'prove' && !limitReached && finish ? [...seen.entries()].filter(([h]) => !canReachGoal.has(h)) : [];
+  const softlocks = unsafe.map(([, n]) => ({ path: n.path, room: n.state.room, inventory: [...n.state.inventory] }))
+    .sort((a, b) => a.path.length - b.path.length).slice(0, 20);
+  // The step that lost the game: walk each unsafe state up to the first unsafe one whose parent is safe (or the start).
+  const causes = new Map<string, { action: string; room: Id; count: number; sample: string[] }>();
+  for (const [, n] of unsafe) {
+    let cur: Node = n;
+    while (cur.parent && !canReachGoal.has(cur.parent) && seen.has(cur.parent)) cur = seen.get(cur.parent)!;
+    const action = cur.via ?? '(start)';
+    const room = cur.parent ? seen.get(cur.parent)!.state.room : cur.state.room;
+    const key = `${room}\u0000${action}`;
+    const c = causes.get(key);
+    if (c) { c.count++; if (cur.path.length < c.sample.length) c.sample = cur.path; } else causes.set(key, { action, room, count: 1, sample: cur.path });
+  }
+  const softlockCauses = [...causes.values()].sort((a, b) => b.count - a.count || a.action.localeCompare(b.action));
+  const boundaries = mode === 'prove' && opts.goal && !limitReached ? [...goals].map((h) => seen.get(h)!).filter(Boolean).map((n) => structuredClone(n.state)) : [];
   const assumptions = new Set<string>();
   for (const { list } of cmdLists(game)) eachCmd(list, (c) => { if (typeof c !== 'string' && 'minigame' in c) assumptions.add(`minigame:${c.minigame}:success`); });
   const uniqueErrors = [...new Set(errors)].slice(0, 50);
@@ -619,6 +675,9 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     itemsNeverUsed: [...gained].filter((i) => !itemsInRules.has(i)).sort(),
     deadEnds: deadEnds.slice(0, 20),
     softlocks,
+    softlockCount: unsafe.length,
+    softlockCauses,
+    boundaries,
     assumptions: [...assumptions].sort(),
     errors: uniqueErrors,
     broken,

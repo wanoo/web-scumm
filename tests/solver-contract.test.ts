@@ -65,3 +65,57 @@ describe('solver result contract', () => {
     expect((await solve(pickups(3, false), pickupsLayouts, { mode: 'prove' })).status).toBe('unsolved');
   });
 });
+
+describe('boundaries and the proof by chapters', () => {
+  it('a proof with a goal returns every state where the goal holds; the next chapter starts from each distinct one', async () => {
+    const { proveChapters } = await import('@engine/tools/chapters');
+    const { makeStressGame } = await import('@engine/tools/stress');
+    const stress = makeStressGame({ rooms: 6, players: 1, items: 6, flags: 10, npcs: 0, scripts: 0, topics: 2, chapters: 2 });
+    const first = Object.entries(stress.game.checkpoints!)[0];
+    const r = await solve(stress.game, stress.layouts, { mode: 'prove', goal: first[1].goals });
+    expect(r.status).toBe('solved');
+    expect(r.boundaries.length).toBeGreaterThan(0);
+    const p = await proveChapters(stress.game, stress.layouts, { mode: 'prove' });
+    expect(p.status).toBe('solved');
+    expect(p.chapters.map((c) => c.id)).toEqual([...Object.keys(stress.game.checkpoints!), 'ending']);
+    expect(p.chapters[0].from).toBe(1);
+    expect(p.chapters[1].from).toBe(p.chapters[0].boundaries);
+    expect(p.chapters.every((c) => !c.checkpointUnreachable)).toBe(true);
+  }, 60000);
+
+  it('a checkpoint that no reachable boundary state matches is reported', async () => {
+    const { proveChapters } = await import('@engine/tools/chapters');
+    const game = base();
+    game.rooms[0].on = [
+      { verb: 'use', a: 'danger', do: [{ set: 'armed' }] },
+      { verb: 'use', a: 'exit', if: { all: ['armed', '!bogus'] }, do: [{ end: true }] },
+    ];
+    // `bogus` is read by the ending's rule, so the next chapter's projection keeps it: no reachable state has it.
+    game.checkpoints = { armed: { room: 'room', flags: { armed: true, bogus: true }, goals: ['armed'] } };
+    const p = await proveChapters(game, layouts, { mode: 'prove' });
+    expect(p.chapters[0].checkpointUnreachable).toBe(true);
+  });
+});
+
+describe('the proof by chapters stays honest past its budget', () => {
+  it('a chapter with more boundary states than the cap is truncated, and nothing after it is claimed', async () => {
+    const { proveChapters } = await import('@engine/tools/chapters');
+    const { makeStressGame } = await import('@engine/tools/stress');
+    const stress = makeStressGame({ rooms: 10, players: 2, items: 6, flags: 10, npcs: 0, scripts: 0, topics: 2, chapters: 2 });
+    const p = await proveChapters(stress.game, stress.layouts, { mode: 'prove', maxStarts: 3 });
+    expect(p.status).toBe('truncated');
+    expect(p.chapters.at(-1)!.status).toBe('truncated');
+    expect(p.chapters.map((c) => c.id)).not.toContain('ending');
+  }, 60000);
+});
+
+describe('the proof by chapters has one state budget', () => {
+  it('past the budget the proof is truncated, never green', async () => {
+    const { proveChapters } = await import('@engine/tools/chapters');
+    const { makeStressGame } = await import('@engine/tools/stress');
+    const stress = makeStressGame({ rooms: 10, players: 2, items: 6, flags: 10, npcs: 0, scripts: 0, topics: 2, chapters: 2 });
+    const p = await proveChapters(stress.game, stress.layouts, { mode: 'prove', budget: 50 });
+    expect(p.status).toBe('truncated');
+    expect(p.chapters.reduce((n, c) => n + c.states, 0)).toBeLessThanOrEqual(50 + 20000);
+  }, 60000);
+});
