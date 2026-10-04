@@ -13,6 +13,7 @@ import { atomDim, diffDims, independent, readDims, staticTransitions, stubbornKe
 import { condAtoms } from '../core/cond';
 import type { Cond, GameDef, GameState, Id, Layout, SessionEntry, VerbId } from '../core/types';
 import { compileGame } from '../core/define';
+import { ruleActionId } from '../core/content-ids';
 
 export interface Step { label: string }
 
@@ -391,7 +392,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     // An action no written rule can answer (whatever the conditions) falls to a look line, a kind reaction or the
     // fallback line: nothing changes, so the engine is not even run. The exceptions that do change something without
     // a rule: talking to the hint item, giving to another playable character (the topics are tries of their own).
-    const rules = [...(room.on ?? []).map((r, i) => ({ r, id: `rule:${r.id ?? `${room.id}/on[${i}]`}` })), ...(game.rules.on ?? []).map((r, i) => ({ r, id: `rule:${r.id ?? `game/on[${i}]`}` }))];
+    const rules = [...(room.on ?? []).map((r, i) => ({ r, id: ruleActionId(room.id, i, r) })), ...(game.rules.on ?? []).map((r, i) => ({ r, id: ruleActionId('game', i, r) }))];
     const hasId = (x: Id | Id[] | undefined, v: Id | undefined) => x === undefined ? v === undefined : v !== undefined && (Array.isArray(x) ? x.includes(v) : x === v);
     const answers = (v: VerbId, a: Id, b?: Id) => rules.filter(({ r }) => (Array.isArray(r.verb) ? r.verb.includes(v) : r.verb === v) &&
       ((hasId(r.a, a) && hasId(r.b, b)) || (!!b && inv.includes(a) && inv.includes(b) && hasId(r.a, b) && hasId(r.b, a)))).map((x) => x.id);

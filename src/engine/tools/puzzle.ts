@@ -6,6 +6,7 @@ import type { Cmd, Cond, GameDef, Id, RoomDef } from '../core/types';
 import { condAtoms, type CondAtom } from '../core/cond';
 import { eachCmd } from '../core/cmds';
 import { normalizeExits } from '../core/define';
+import { ruleActionId } from '../core/content-ids';
 import { esc, layeredSvg, type SvgEdge, type SvgNode } from './svg';
 
 /** State nodes (what the world is) and action nodes (what changes it). */
@@ -81,7 +82,8 @@ export function puzzleGraph(gameIn: GameDef, opts: { commands?: Record<string, {
     if (r.onEnter?.length) { const a = node('rule', `${r.id}/enter`, `enter ${r.name}`, r.id); effects(a, r.onEnter, r); }
     (r.on ?? []).forEach((rule, i) => {
       const verb = asList(rule.verb).join('/');
-      const a = node('rule', `${r.id}/on[${i}]`, `${verb} ${asList(rule.a).join('|')}${rule.b ? ` + ${asList(rule.b).join('|')}` : ''}`, r.id);
+      const a = ruleActionId(r.id, i, rule);
+      node('rule', a.slice('rule:'.length), `${verb} ${asList(rule.a).join('|')}${rule.b ? ` + ${asList(rule.b).join('|')}` : ''}`, r.id);
       requires(a, rule.if, r);
       for (const t of [...asList(rule.a), ...asList(rule.b)]) {
         if (game.items[t]) edge(node('item', t, itemLabel(t)), a, 'requires', verb);
@@ -101,7 +103,8 @@ export function puzzleGraph(gameIn: GameDef, opts: { commands?: Record<string, {
   }
   (game.rules.on ?? []).forEach((rule, i) => {
     const verb = asList(rule.verb).join('/');
-    const a = node('rule', `game/on[${i}]`, `${verb} ${asList(rule.a).join('|')}${rule.b ? ` + ${asList(rule.b).join('|')}` : ''}`, 'game');
+    const a = ruleActionId('game', i, rule);
+    node('rule', a.slice('rule:'.length), `${verb} ${asList(rule.a).join('|')}${rule.b ? ` + ${asList(rule.b).join('|')}` : ''}`, 'game');
     requires(a, rule.if, undefined);
     for (const t of [...asList(rule.a), ...asList(rule.b)]) if (game.items[t]) edge(node('item', t, itemLabel(t)), a, 'requires', verb);
     effects(a, rule.do, undefined);
@@ -362,4 +365,3 @@ export function puzzleMarkdown(g: PuzzleGraph, id?: string, opts: { extra?: Cond
   if (issues.selfLocked.length) out.push('', `**Set only by actions that already need it:** ${issues.selfLocked.map((n) => n.label).join(', ')}`);
   return out.join('\n') + '\n';
 }
-

@@ -4,8 +4,21 @@ import { applyMigration } from '@engine/core/migrate';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import type { Cmd, GameState } from '@engine/core/types';
 import { mini, miniLayouts } from './fixtures/mini';
+import { puzzleGraph } from '@engine/tools/puzzle';
+import { solve } from '@engine/tools/solve';
 
 describe('stable v3 persistence ids', () => {
+  it('uses the same stable rule id in the engine journal, puzzle graph and solver profile', async () => {
+    const game = mini(); game.schemaVersion = 3;
+    game.rooms[0].on![0] = { ...game.rooms[0].on![0], id: 'open.case', do: [{ end: true }] };
+    const ui = new FakePresenter(); const engine = new Engine(game, miniLayouts, ui, new MemoryStore());
+    await engine.newGame(); await engine.act({ verb: 'use', a: 'cle', b: 'valise' });
+    expect(engine.session?.log.at(-1)?.ran).toContain('rule:open.case');
+    expect(puzzleGraph(game).nodes.some((n) => n.id === 'rule:open.case')).toBe(true);
+    const result = await solve(game, miniLayouts);
+    expect(result.profile.perAction['rule:open.case']).toBeGreaterThan(0);
+  });
+
   it('a once choice remains consumed after its text is translated', async () => {
     const game = mini(); game.schemaVersion = 3;
     const ui = new FakePresenter(); const engine = new Engine(game, miniLayouts, ui, new MemoryStore());

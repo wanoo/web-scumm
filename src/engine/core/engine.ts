@@ -1,5 +1,6 @@
 import { check, condAtoms, type CondAtom } from './cond';
 import { compileGame, EMPTY_LAYOUT, FLOOR, NEAR } from './define';
+import { ruleActionId } from './content-ids';
 import { migrate } from './migrate';
 import { stateDiff, stateDigest } from './diff';
 import { ANIM_MS, CAMERA_MS, FPS } from './timing';
@@ -589,7 +590,7 @@ export class Engine {
       for (const [i, r] of list.entries()) {
         if (!verbOk(r) || !this.cond(r.if, room.id)) continue;
         const hit = (has(r.a, a) && has(r.b, b)) || (!!b && inv.includes(a) && inv.includes(b) && has(r.a, b) && has(r.b, a)); // two inventory items: order doesn't matter
-        if (hit) return { ...r, id: `rule:${scope}/on[${i}]` };
+        if (hit) return { ...r, id: ruleActionId(scope, i, r) };
       }
     }
     return null;
