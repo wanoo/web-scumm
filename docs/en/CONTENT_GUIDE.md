@@ -526,6 +526,10 @@ grandpa: { name: 'Grandpa', room: 'garden', … },
 
 The character is removed from the room it leaves and appears in the one it reaches, on screen if the player is there.
 `checkpoints` take a `where: { grandpa: 'house' }` to start with a character elsewhere than its starting room.
+A checkpoint with `goals` must be a state the game can really reach when those goals hold: `npm run solve -- --prove
+--chapters` proves each chapter from every reachable boundary state and reports a checkpoint that matches none, with
+the dimensions that differ (`room: house vs market`). `used`, `seen` and `players[].used` let a checkpoint name what a
+real playthrough leaves behind (an item already used, a once-listener already fired).
 The validator refuses `moveActor` toward a room where the character is not an actor, or for a character with no `room`.
 
 ## Characters, items, map

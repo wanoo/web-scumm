@@ -531,6 +531,10 @@ grandpa: { name: 'Grand-père', room: 'garden', … },
 ```
 
 Le personnage disparaît du lieu qu'il quitte et apparaît dans celui qu'il rejoint, à l'écran si le joueur y est.
+Un checkpoint avec `goals` doit être un état que le jeu atteint vraiment quand ces objectifs tiennent : `npm run solve --
+--prove --chapters` prouve chaque chapitre depuis chaque état frontière atteignable et signale un checkpoint qui n'en
+égale aucun, avec les dimensions qui diffèrent (`room: house vs market`). `used`, `seen` et `players[].used` laissent
+un checkpoint nommer ce qu'une vraie partie laisse derrière elle (un objet déjà utilisé, un écouteur `once` déjà déclenché).
 Les `checkpoints` acceptent `where: { grandpa: 'house' }` pour démarrer avec un personnage ailleurs que dans son lieu
 de départ. Le validateur refuse un `moveActor` vers un lieu où le personnage n'est pas acteur, ou pour un personnage sans `room`.
 

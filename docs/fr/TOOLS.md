@@ -159,6 +159,7 @@ d'états est épuisé : c'est `truncated`, jamais une preuve. `npm run build` ex
 
 ```bash
 npm run solve -- --chapters        # une recherche bornée par checkpoint avec `goals`, puis du dernier à la fin
+npm run solve -- --prove --chapters   # la preuve par chapitres : chaque chapitre prouvé depuis CHAQUE état frontière atteignable du précédent ; un checkpoint qui n'en égale aucun est une erreur
 npm run validate -- --report       # le profileur de contenu : lieux, objets, personnages, ce qui est mince (Markdown)
 npm run page:world                 # la carte du monde en page (sorties, gotos, lieux inaccessibles, source DOT)
 npm run page:puzzles               # le graphe de puzzles en page : ce que chaque règle exige et change, une fiche par objet / flag

@@ -6,6 +6,7 @@
 // extraction and translation, a save migration.
 import { validate } from '../src/engine/tools/validate';
 import { solve } from '../src/engine/tools/solve';
+import { proveChapters } from '../src/engine/tools/chapters';
 import { report, reportMarkdown } from '../src/engine/tools/report';
 import { worldGraph, toSvg } from '../src/engine/tools/graph';
 import { puzzleGraph, toPuzzleSvg } from '../src/engine/tools/puzzle';
@@ -48,7 +49,8 @@ for (const cp of cps) {
 }
 await time(`solve from ${prev} to the end`, () => solve(game, layouts, { maxStates: max, start: { checkpoint: prev! } }), (r) => `${r.finished ? 'finished' : 'NOT finished'}, ${r.states} states, ${r.path.length} actions, ${r.profile.tries} runs${r.truncated ? ' (limit)' : ''}`);
 await time('solve global', () => solve(game, layouts, { maxStates: max }), (r) => `${r.finished ? 'finished' : 'NOT finished'}, ${r.states} states, ${r.path.length} actions, ${r.profile.tries} runs${r.truncated ? ' (limit)' : ''}${r.broken.length ? `, ${r.broken.length} invariant(s) broken` : ''}`);
-if (prove) await time('solve global, --prove', () => solve(game, layouts, { maxStates: max, mode: 'prove' }), (r) => `${r.status}, ${r.states} states, ${r.profile.tries} runs, ${r.softlocks.length} softlock sample(s)${r.truncated ? ' (limit)' : ''}`);
+if (prove) await time('solve global, --prove', () => solve(game, layouts, { maxStates: max, mode: 'prove' }), (r) => `${r.status}, ${r.states} states, ${r.profile.tries} runs, ${r.softlockCount} softlock state(s)${r.truncated ? ' (limit)' : ''}`);
+if (prove) await time('prove by chapters (compositional)', () => proveChapters(game, layouts, { maxStates: max, mode: 'prove' }), (r) => `${r.status}, ${r.chapters.length} chapters, ${r.chapters.reduce((n, c) => n + c.states, 0)} states, from ${r.chapters.map((c) => c.distinct).join('/')} boundary state(s), ${r.chapters.reduce((n, c) => n + c.softlockCount, 0)} softlock state(s)${r.chapters.some((c) => c.checkpointUnreachable) ? ', a checkpoint unreachable' : ''}`);
 await time('solve global, --por=stubborn', () => solve(game, layouts, { maxStates: max, por: 'stubborn' }), (r) => `${r.finished ? 'finished' : 'NOT finished'}, ${r.states} states, ${r.path.length} actions, ${r.profile.tries} runs, ${r.profile.postponed} postponed${r.truncated ? ' (limit)' : ''}`);
 console.log('');
 console.log('| Step | Result |', '\n|---|---|');

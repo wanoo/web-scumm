@@ -88,13 +88,19 @@ export const game = defineGame({
       room: 'market', inventory: ['shell_phone', 'token'], unlocked: ALL,
       flags: { guess: 'sardines', pipe_taken: true, tank_drained: true, lou_has_key: true },
       props: { 'house.armchair': 'searched', 'garden.tank': 'draining' },
+      // Biscuit stayed in the garden with the pipe (used on the tank) and the shell phone: a reachable boundary state.
+      players: { biscuit: { room: 'garden', inventory: ['pipe', 'shell_phone'], used: ['pipe'] } },
       goals: ['tank_drained', 'lou_has_key', { unlocked: 'market' }],
     },
     finale: {
-      room: 'house', inventory: ['shell_phone', 'key'], unlocked: ALL,
+      // Where the key is found (the chapter's goal holds there): a reachable boundary state.
+      room: 'market', inventory: ['shell_phone', 'key'], unlocked: ALL,
       flags: { guess: 'sardines', pipe_taken: true, tank_drained: true, lou_has_key: true, deposit_known: true, flowers_done: true, bouquet_given: true },
       props: { 'house.armchair': 'searched', 'garden.tank': 'draining' },
       where: { grandpa: 'house' },
+      players: { biscuit: { room: 'garden', inventory: ['pipe', 'shell_phone'], used: ['pipe'] } },
+      // The key was found: the once-listener that sent Grandpa home has fired (a reachable boundary state names it).
+      seen: { 'event.game.on-key-found': 1 },
       goals: [{ has: 'key' }],
     },
   },

@@ -9,7 +9,7 @@ import house from '../games/demo/layout/house.json';
 import garden from '../games/demo/layout/garden.json';
 import market from '../games/demo/layout/market.json';
 import { dott, dottLayouts, grog, grogLayouts, insults, insultsLayouts, mansion, mansionLayouts, stan, stanLayouts } from './fixtures/classics';
-import { pickups, pickupsLayouts, trials, trialsLayouts } from './fixtures/por';
+import { pickups, pickupsLayouts, trials, trialsLayouts, trap } from './fixtures/por';
 import { world, worldLayouts } from './fixtures/world';
 import { cast, castLayouts } from './fixtures/cast';
 
@@ -90,5 +90,44 @@ describe('proof mode', () => {
     expect(proof.profile.postponed).toBe(0);
     expect(proof.profile.slept).toBe(0);
     expect(proof.states).toBeGreaterThanOrEqual(plain.states);
+  });
+});
+
+describe('proof mode: the differential suite', () => {
+  // The reductions have no proof of equivalence for softlock detection; this is the evidence, fixture by fixture.
+  // The verdicts must agree with the plain exhaustive search; the state counts may not (stubborn sets visit fewer).
+  const stress = makeStressGame({ rooms: 8, players: 2, items: 10, flags: 20, npcs: 1, scripts: 2, topics: 4 });
+  const games: [string, GameDef, Record<string, Layout>, Partial<SolveOptions>][] = [
+    ['grog', grog(), grogLayouts, {}], ['stan', stan(), stanLayouts, {}], ['trials', trials(), trialsLayouts, {}],
+    ['pickups 4', pickups(4, true), pickupsLayouts, {}], ['pickups 4 (dead end)', pickups(4, false), pickupsLayouts, {}],
+    ['trap 3 (a commuting softlock)', trap(3), pickupsLayouts, {}], ['stress 8 rooms', stress.game, stress.layouts, { maxStates: 20000 }],
+    ['demo', structuredClone(demo), demoLayouts, { commands }],
+  ];
+  // Sleep sets drop edges, and the reverse reachability that classifies softlocks reads the edges: on three of the
+  // eight fixtures they invent softlocks. Recorded here as the evidence that keeps them out of proof mode.
+  const SLEEP_AGREES: Record<string, boolean> = { grog: true, stan: true, trials: false, 'pickups 4': false, 'pickups 4 (dead end)': true, 'trap 3 (a commuting softlock)': false, 'stress 8 rooms': true, demo: true };
+  const agree = (a: Awaited<ReturnType<typeof solve>>, b: Awaited<ReturnType<typeof solve>>) =>
+    a.status === b.status && a.finished === b.finished && JSON.stringify(a.broken) === JSON.stringify(b.broken)
+    && JSON.stringify(a.softlockCauses.map((c) => `${c.room}: ${c.action}`).sort()) === JSON.stringify(b.softlockCauses.map((c) => `${c.room}: ${c.action}`).sort());
+  for (const [name, game, layouts, o] of games) {
+    it(`${name}: stubborn sets reach the plain verdict`, async () => {
+      const plain = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', por: false });
+      const reduced = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', por: 'stubborn', unsafeReduction: true });
+      expect(plain.truncated).toBe(false);
+      expect(agree(plain, reduced)).toBe(true);
+    }, 60000);
+    it(`${name}: sleep sets ${SLEEP_AGREES[name] ? 'agree' : 'invent softlocks'}`, async () => {
+      const plain = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', por: false });
+      const reduced = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', por: 'sleep', unsafeReduction: true });
+      expect(agree(plain, reduced)).toBe(SLEEP_AGREES[name]);
+    }, 60000);
+  }
+
+  it('the trap: one cause, every losing state counted', async () => {
+    const r = await solve(trap(3), pickupsLayouts, { mode: 'prove' });
+    expect(r.status).toBe('softlocks');
+    expect(r.softlockCauses.map((c) => c.action)).toEqual(['Use hammer']);
+    expect(r.softlockCount).toBe(r.softlockCauses[0].count);
+    expect(r.softlockCount).toBe(8); // 2^3 pickup subsets, each with the exit broken
   });
 });

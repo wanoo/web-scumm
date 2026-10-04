@@ -590,7 +590,11 @@ export interface GameDef {
     goals?: Cond[];
     /** Several playable characters: who is active, and where the others are. */
     active?: Id;
-    players?: Record<Id, { room: Id; inventory?: Id[] }> }>;
+    players?: Record<Id, { room: Id; inventory?: Id[]; used?: Id[] }>;
+    /** Items already used (`used` once/`used` conditions) and topics / listeners / choices already seen (`seen`
+     *  keys by id): a checkpoint that the proof by chapters recognises as a reachable boundary state names them. */
+    used?: Id[];
+    seen?: Record<string, 1> }>;
   /** Conditions that must never become true (the solver reports the path that makes one true). */
   invariants?: Cond[];
   /** Manual save slots (pause menu: save, load, export, import). Absent or 0: autosave only. */

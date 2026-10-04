@@ -108,14 +108,17 @@ export function makeStressGame(o: StressOptions = {}): { game: GameDef; layouts:
   // Chapter c ends when room b is reached and its lock opened; its checkpoint is "just arrived in room b, the previous
   // room's item in the bag of whoever carried it" (the player who took over last before b).
   for (let c = 1; c <= chapters; c++) {
-    const b = Math.max(1, Math.floor((c * (N - 1)) / chapters));
+    // Never on the last room: its lock is the ending, a chapter there would have nothing left to prove.
+    const b = Math.max(1, Math.min(N - 2, Math.floor((c * (N - 1)) / chapters)));
     const carrier = [...Array(P).keys()].filter((k) => boundary(k) <= b - 1).pop() ?? 0;
     const active = `p${carrier}`;
     const flags: Record<string, boolean> = { ...startFlags };
-    for (let i = 0; i < b; i++) { flags[`got_${i}`] = true; if (i >= 1 && i < b) flags[`opened_${i}`] = true; }
+    // The goal state of chapter c: locks 1..b opened (item b-1 was consumed by lock b), items 0..b-1 taken.
+    for (let i = 0; i < b; i++) flags[`got_${i}`] = true;
+    for (let i = 1; i <= b; i++) flags[`opened_${i}`] = true;
     const players: Record<string, { room: Id }> = {};
     for (let k = 0; k < P; k++) if (k !== carrier) players[`p${k}`] = { room: rid(Math.min(boundary(k), b)) };
-    checkpoints[`chapter_${c}`] = { room: rid(b), active, inventory: [item(b - 1)], players, flags, goals: [{ room: rid(b) }, `opened_${b}`] };
+    checkpoints[`chapter_${c}`] = { room: rid(b), active, inventory: [], players, flags, goals: [{ room: rid(b) }, `opened_${b}`] };
   }
   const mig: Migration[] = [];
   for (let m = 1; m <= migrations; m++) mig.push({ from: m, renameFlag: { [`old_${m}`]: `got_${m % N}` }, dropFlag: [`tmp_${m}`] });

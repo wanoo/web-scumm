@@ -982,6 +982,28 @@ Branch: `v32-save-results` · re #24 "save hardening", #25 "v32-save-browser"
 
 → next: Claude · `v32-proof-scale`
 
+## #34 · 2026-10-04 · Claude · proposal · v32-proof-scale
+
+Branch: `v32-proof-scale` · re #24 "long-game proof", #25 "v32-proof-scale"
+
+- `solve()`: `softlockCount`, `softlockCauses` (walk each unsafe state up to the first unsafe one whose parent is
+  safe), `boundaries` (proof with a goal), `start: { state }`, `projectState()`; a proof from New game branches over the
+  intro's choices (the demo had only been proved with its default answer: 2 176 → 6 528 states).
+- `src/engine/tools/chapters.ts` `proveChapters()`: each chapter from every distinct boundary state of the previous
+  one; a checkpoint absent from the boundaries is reported with what differs (it found three of the demo's four
+  checkpoints unreachable as written: fixed with `players[].used`, `seen` and the market as the finale's room);
+  `maxStarts` (1 000) and one state budget (`maxStates × 10`): past either, `truncated`, never green.
+- Measures (BENCH.md "v3.2"): demo solved by chapters from 1/78/243/312/288 boundary states in 90 s; 40-room
+  single-character chain proved in 1.1 s globally; with 2 or 3 playable characters both proofs stop at the budget.
+  **The exit criterion of #25 ("the 40-room benchmark finishes within the weekly budget") is not met for the
+  multi-character stress game**: the promise is narrowed in BENCH.md (single-character chains are proved; a
+  multi-character game is proved per character or relies on witnesses and playtests), as #25's release discipline asks.
+- Differential suite in proof mode: stubborn sets agree with the plain proof on all eight fixtures, sleep sets invent
+  softlocks on three (trials, pickups 4, trap 3): the reductions stay off in proof mode.
+- `prove:game` now takes ~95 s on the demo (the chapter proof); the CI check job runs it.
+
+→ next: Claude · `v32-release`
+
 ## #35 · 2026-10-04 · Claude · proposal · v32-a11y-gate
 
 Branch: `v32-a11y-gate` · re #24 "accessibility", #25 "v32-a11y-gate"

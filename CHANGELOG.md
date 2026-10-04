@@ -5,6 +5,16 @@
 
 ### Added
 
+- The proof says how a game is lost: `softlockCount` (every reachable softlock state, not 20 samples) and
+  `softlockCauses` (grouped by the step that lost the game); a proof from "New game" branches over the intro's
+  choices. `npm run solve -- --prove --chapters` proves each chapter from every reachable boundary state of the
+  previous one and reports a checkpoint no boundary state matches (with the dimensions that differ); one state budget
+  covers the whole proof, past it `truncated`. Checkpoints take `used`, `seen` and `players[].used`. The demo's
+  checkpoints were fixed to be reachable states. Measured honestly (BENCH.md): complete for a 40-room single-character
+  chain, truncated with two or more playable characters, chapters or not.
+- The differential suite (`tests/por.test.ts`) compares the reductions with the plain proof on eight fixtures,
+  including a softlock that commutes with everything: stubborn sets agree, sleep sets invent softlocks on three; the
+  reductions stay off in proof mode (`unsafeReduction` is for the suite only).
 - Accessibility as a gate: the seven bundled minigames play to their end at the keyboard (keys(), operable(),
   arrowFocus() in `minigames/util.ts`; Skip no longer takes the focus a minigame gave one of its controls);
   `npm run e2e -- --axe` (axe-core on the title, a room, the pause menu, the ending) fails on any serious or critical
