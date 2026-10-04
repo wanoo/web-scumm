@@ -248,6 +248,27 @@ what every action read and changed.
 - Not done, on purpose: adaptive music (iMUSE-like transitions); Furnace is downloaded by `setup`, not bundled; CI
   does not render audio (the files are committed).
 
+## v3 "Trust" (shipped 4 October 2026): the engine you can trust a long game to
+
+Co-developed by two assistants under `docs/dev/CHARTER.md`; the exchange is `docs/dev/LOG.md`, the decisions
+`docs/dev/DECISIONS.md`. v3 may break v2 (D1): every break ships with its migration and an upgrading guide, and the
+private reference game is migrated on a branch before v3.0.0 is tagged. `main` stays v2.5.0 until then.
+
+The opening proposal is Codex's beta (`v3-beta1`, log #1), reviewed in log #2. Its topics, each a `v3-<topic>` branch
+when split out:
+
+- **saves**: a validated save envelope, an IndexedDB autosave read back after each write, visible storage failures,
+  a PWA update that waits for a verified save; stale references pruned, not rejected.
+- **prove**: `solve -- --prove` with an honest `status`, softlocks by reverse reachability, `random` and nested
+  choices explored; the proof stays outside `npm run build` or runs with the reduction and a budget.
+- **ids**: `schemaVersion: 3` with stable ids on rules, choices, topics, listeners, persistent blocks and script steps;
+  one naming function shared by the engine, the solver and the puzzle graph.
+- **studio-security**: loopback by default, LAN token, same-origin writes, key in sessionStorage.
+- **ci**: production-build e2e, WebKit smoke test (non-blocking until three green runs), `doctor`, `audit:deps`.
+- **offline**: budgeted room/neighbor warming, with an explicit cached-rooms offline contract instead of an unbounded
+  whole-game download.
+- **upgrading**: `docs/en/UPGRADING.md` + `docs/fr/UPGRADING.md`, the v2 → v3 checklist, run on the private reference game.
+
 ## Out of scope (explicit decisions)
 
 - No Phaser, no canvas: the DOM Presenter is enough for a few dozen images; a wide room stays a CSS translation.

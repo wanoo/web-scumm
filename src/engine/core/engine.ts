@@ -1,5 +1,6 @@
 import { check, condAtoms, type CondAtom } from './cond';
-import { assignKeys, EMPTY_LAYOUT, FLOOR, NEAR } from './define';
+import { compileGame, EMPTY_LAYOUT, FLOOR, NEAR } from './define';
+import { ruleActionId } from './content-ids';
 import { migrate } from './migrate';
 import { stateDiff, stateDigest } from './diff';
 import { ANIM_MS, CAMERA_MS, FPS } from './timing';
@@ -136,9 +137,9 @@ export class Engine {
   private loops = new Set<Id>();
 
   constructor(game: GameDef, layouts: Record<Id, Layout>, readonly ui: Presenter, readonly store: SaveStore, readonly opts: EngineOptions = {}) {
-    this.game = assignKeys(game);
+    this.game = compileGame(game) as GameDef;
     this.layouts = layouts;
-    this.rooms = new Map(game.rooms.map((r) => [r.id, r]));
+    this.rooms = new Map(this.game.rooms.map((r) => [r.id, r]));
   }
 
   // ------------------------------------------------------------------ game session
@@ -589,7 +590,7 @@ export class Engine {
       for (const [i, r] of list.entries()) {
         if (!verbOk(r) || !this.cond(r.if, room.id)) continue;
         const hit = (has(r.a, a) && has(r.b, b)) || (!!b && inv.includes(a) && inv.includes(b) && has(r.a, b) && has(r.b, a)); // two inventory items: order doesn't matter
-        if (hit) return { ...r, id: `rule:${scope}/on[${i}]` };
+        if (hit) return { ...r, id: ruleActionId(scope, i, r) };
       }
     }
     return null;
@@ -643,16 +644,17 @@ export class Engine {
     const g = this.game.globalTalk ?? {};
     for (;;) {
       const topics = (room.talk?.[actor] ?? []).map((t, i) => ({ t, i })).filter(({ t }) => this.cond(t.if, room.id));
-      const opts = topics.map(({ i, t }) => ({ text: t.topic, seen: !!this.state.seen[`${room.id}.${actor}.${i}`] }));
+      const topicKey = (t: (typeof topics)[number]['t'], i: number) => t.id ? `topic.${t.id}` : `${room.id}.${actor}.${i}`;
+      const opts = topics.map(({ i, t }) => ({ text: t.topic, seen: !!this.state.seen[topicKey(t, i)] }));
       if (g.hug) opts.push({ text: g.hug, seen: false, global: true } as never);
       opts.push({ text: g.bye ?? '…', seen: false, global: true } as never);
       const pick = await this.choose(opts, char);
       if (pick < topics.length) {
         const { t, i } = topics[pick];
-        this.ran(`topic:${room.id}/${actor}[${i}]`);
+        this.ran(`topic:${t.id ?? `${room.id}/${actor}[${i}]`}`);
         await this.say(HERO, t.topic, ctx);
         await this.exec(t.do, ctx);
-        this.state.seen[`${room.id}.${actor}.${i}`] = 1;
+        this.state.seen[topicKey(t, i)] = 1;
         continue;
       }
       if (g.hug && pick === topics.length) {
@@ -696,7 +698,17 @@ export class Engine {
   scriptsHere(): ScriptDef[] { return [...(this.room().scripts ?? []), ...(this.game.scripts ?? [])]; }
 
   /** State of a script: next command (`pc`), finished, stopped. */
-  scriptState(id: Id) { return (this.state.scripts ??= {})[id] ??= { pc: 0 }; }
+  scriptState(id: Id) {
+    const def = this.scriptDef(id);
+    const st = (this.state.scripts ??= {})[id] ??= { pc: 0 };
+    // A v3 save follows the named step after authoring steps are reordered. `pc` remains for v2 saves and debugging.
+    if (st.step && def?.stepIds) {
+      const pc = def.stepIds.indexOf(st.step);
+      if (pc >= 0) st.pc = pc;
+    }
+    if (def?.stepIds) st.step = def.stepIds[st.pc];
+    return st;
+  }
 
   /**
    * One step of a script. 'ran': a command ran, or a wait was satisfied. 'blocked': the engine is busy (player action,
@@ -726,7 +738,7 @@ export class Engine {
     }
     this.begin({ step: id });
     this.ran(`script:${id}`);
-    try { await this.step(c, { room, fast: false }); } finally { st.pc++; this.end(); }
+    try { await this.step(c, { room, fast: false }); } finally { st.pc++; if (def.stepIds) st.step = def.stepIds[st.pc]; this.end(); }
     this.log('script', `${id} ran ${describeCmd(c)} → ${st.pc >= def.do.length ? (def.loop ? 'loops' : 'done') : st.pc}`);
     if (this.busyCount === 0) this.save();
     this.onChange();
@@ -783,7 +795,7 @@ export class Engine {
     const scopes: [EventRule[], string][] = [[ctx.room.events ?? [], ctx.room.id], [this.game.events ?? [], 'game']];
     for (const [list, scope] of scopes) for (const [i, ev] of list.entries()) {
       if (ev.on !== id || !this.cond(ev.if, ctx.room.id)) continue;
-      if (ev.once) { const k = `event.${scope}.${i}`; this.reads?.add(`seen:${k}`); if (s.seen[k]) continue; s.seen[k] = 1; }
+      if (ev.once) { const k = `event.${ev.id ?? `${scope}.${i}`}`; this.reads?.add(`seen:${k}`); if (s.seen[k]) continue; s.seen[k] = 1; }
       this.log('event', `${id} → ${scope}.events[${i}]${ev.once ? ' (once)' : ''}`);
       this.ran(`listener:${scope}/events[${i}]`);
       await this.exec(ev.do, ctx);
@@ -1040,11 +1052,12 @@ export class Engine {
       return;
     }
     if ('choice' in c) {
-      const opts = c.choice.map((o, i) => ({ o, i })).filter(({ o, i }) => { if (o.once) this.reads?.add(`seen:choice.${room.id}.${o.text}`); return this.cond(o.if, room.id) && !(o.once && s.seen[`choice.${room.id}.${o.text}`]); });
+      const choiceKey = (o: (typeof c.choice)[number]) => `choice.${o.id ?? `${room.id}.${o.text}`}`;
+      const opts = c.choice.map((o, i) => ({ o, i })).filter(({ o }) => { const k = choiceKey(o); if (o.once) this.reads?.add(`seen:${k}`); return this.cond(o.if, room.id) && !(o.once && s.seen[k]); });
       if (!opts.length) return;
       const pick = await this.choose(opts.map(({ o }) => ({ text: o.text })));
       const { o } = opts[Math.max(0, Math.min(pick, opts.length - 1))];
-      if (o.once) s.seen[`choice.${room.id}.${o.text}`] = 1;
+      if (o.once) s.seen[choiceKey(o)] = 1;
       await this.say(HERO, o.text, ctx);
       return this.exec(o.do, ctx);
     }

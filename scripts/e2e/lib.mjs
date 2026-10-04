@@ -23,7 +23,7 @@
 //   play(steps)                   plays [{ verb, a, b? }, …] (verb ids, see src/engine/core/engine.ts Action) by tapping
 //   walkthrough(steps)            replays session entries (`npm run solve -- --json` steps, an exported session) by tapping
 //   close()                       closes the browser
-import { chromium } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 
 const VIEWPORT = { width: 844, height: 390 };
@@ -35,9 +35,14 @@ export async function launch(url, opts = {}) {
   mkdirSync(out, { recursive: true });
   for (const f of readdirSync(out)) if (f.endsWith('.png')) rmSync(`${out}/${f}`);
 
-  const browser = await chromium.launch();
+  const browserName = opts.browser ?? process.env.E2E_BROWSER ?? 'chromium';
+  const browserType = { chromium, firefox, webkit }[browserName];
+  if (!browserType) throw new Error(`unknown E2E browser "${browserName}" (expected chromium, webkit or firefox)`);
+  const browser = await browserType.launch();
   const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
-  const cdp = await page.context().newCDPSession(page);
+  const cdp = browserName === 'chromium' ? await page.context().newCDPSession(page) : null;
+  // E2E_CPU=4 slows the page's CPU like a shared CI runner (Chromium only), to reproduce timing failures locally.
+  if (cdp && process.env.E2E_CPU) await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.E2E_CPU) });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.stack ?? String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -72,15 +77,21 @@ export async function launch(url, opts = {}) {
     await tapXY(r.x + (x / LOGICAL.width) * r.width, r.y + (y / LOGICAL.height) * r.height);
   }
 
-  /** A finger drag through touch events (CDP), from which the browser derives real pointer events. `points` are logical scene points. */
+  /** A finger drag through touch events in Chromium, with pointer-event fallback on the other browser engines. */
   async function drag(points, stepMs = 16) {
     const r = await sceneRect();
     const toPx = ([x, y]) => [r.x + (x / LOGICAL.width) * r.width, r.y + (y / LOGICAL.height) * r.height];
-    const send = (type, [x, y]) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
     const first = toPx(points[0]);
-    await send('touchStart', first);
-    for (const p of points.slice(1)) { await send('touchMove', toPx(p)); await page.waitForTimeout(stepMs); }
-    await send('touchEnd', toPx(points[points.length - 1]));
+    if (cdp) {
+      const send = (type, [x, y]) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
+      await send('touchStart', first);
+      for (const p of points.slice(1)) { await send('touchMove', toPx(p)); await page.waitForTimeout(stepMs); }
+      await send('touchEnd', toPx(points[points.length - 1]));
+    } else {
+      await page.mouse.move(first[0], first[1]); await page.mouse.down();
+      for (const p of points.slice(1)) { const [x, y] = toPx(p); await page.mouse.move(x, y); await page.waitForTimeout(stepMs); }
+      await page.mouse.up();
+    }
   }
   const line = (a, z, n) => Array.from({ length: n + 1 }, (_, i) => [a[0] + ((z[0] - a[0]) * i) / n, a[1] + ((z[1] - a[1]) * i) / n]);
 
@@ -144,6 +155,21 @@ export async function launch(url, opts = {}) {
 
   // ------------------------------------------------------------------ waiting for the engine
 
+  /** What the engine was doing when a step failed: busy, speech, choices, overlays, the side column's state, the
+   * last journal lines and the busy counter — printed by scripts/e2e.mjs so a CI log explains a timed-out tap. */
+  async function diagnose() {
+    return page.evaluate(() => {
+      const e = window.__game?.engine;
+      return {
+        busy: !!e?.busy, busyCount: e?.busyCount, room: e?.state?.room,
+        sideOff: !!document.querySelector('.side.off'), choosing: !!document.querySelector('.side .choices .choice'),
+        overlays: [...document.querySelectorAll('.overlay')].map((o) => o.className),
+        speech: document.querySelector('.scene > .speech, .scene > .narr')?.textContent?.slice(0, 80) ?? null,
+        trace: (e?.trace ?? []).slice(-6),
+      };
+    }).catch((err) => ({ error: String(err) }));
+  }
+
   async function state() {
     return page.evaluate(() => {
       const speechEl = document.querySelector('.scene > .speech, .scene > .narr');
@@ -159,8 +185,10 @@ export async function launch(url, opts = {}) {
 
   async function skip() {
     const b = page.locator('.overlay .mg-skip');
-    if (await b.count()) { await b.first().tap(); return true; }
-    return false;
+    if (!(await b.count())) return false;
+    // The overlay may be mid-transition (a minigame just won, its card fading): tap without waiting for the button
+    // to be stable, and treat one detached in the meantime as already gone (CI runners hit that race every time).
+    try { await b.first().tap({ force: true, timeout: 3000 }); return true; } catch { return false; }
   }
 
   /** A one-button overlay card (e.g. an incoming phone call's "pick up"): a single `.bigbtn` in a non-map
@@ -218,7 +246,7 @@ export async function launch(url, opts = {}) {
    * travel keeps its place list on screen through the travel animation (~2s): wait for that same list to
    * actually change (or for speech/busy/no-choices) before handing off to waitIdle, instead of returning
    * the instant we see *a* choices list, which could be the stale one we just tapped. */
-  async function say(text, { max = 3000 } = {}) {
+  async function say(text, { max = 12000 } = {}) {
     const c = page.locator('.side .choices .choice', { hasText: text });
     for (let waited = 0; waited < max; waited += 100) {
       if (await c.count()) break;
@@ -327,6 +355,6 @@ export async function launch(url, opts = {}) {
 
   return {
     page, errors, screenshot, tapXY, tapScene, drag, line, pointOn, tapTarget, verb, verbById,
-    itemSlot, item, inInventory, target, state, waitIdle, openMap, say, pick, answer, skip, act, play, walkthrough, close,
+    itemSlot, item, inInventory, target, state, diagnose, waitIdle, openMap, say, pick, answer, skip, act, play, walkthrough, close,
   };
 }

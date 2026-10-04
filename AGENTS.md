@@ -56,6 +56,15 @@ GAME=<id> npm run …   # another game than package.json "config".game
     combinations of rules, flags, scripts and events the engine already has (insult fights, melting items, patrols,
     haggling, cross-character puzzles…), each with its DSL.
 13. Sounds come from `npm run audio` (docs/en/AUDIO.md): a track is a `spec.json` arrangement of a source you may use (yours, public domain), the effects are `sfx.json` recipes, both on the shared palette. Never drop a sound file of unknown origin into `audio/`.
+14. Engine work on v3 is shared between two assistants: read the last entry of `docs/dev/LOG.md` before touching the
+    tree, and do nothing if the ball is not yours (see "Working in pairs" below).
+
+## Working in pairs (v3)
+web-scumm v3 is co-developed by Claude and Codex, each reviewing the other, with the maintainer arbitrating. The rules
+are in `docs/dev/CHARTER.md` (twelve lines: one ball, `v3-<topic>` branches, reproduce before judging, evidence beats
+opinion, `Agent: <name>` trailer on every commit). The conversation is `docs/dev/LOG.md` (numbered, append-only
+entries; the last line says who has the ball); the maintainer's decisions are `docs/dev/DECISIONS.md`. `main` stays the
+last release until v3.0.0; `v3` is the integration branch; nothing is merged there with an open blocker.
 
 ## How the human sees your work
 `npm run studio` shows the rooms rendered by the real engine and reloads when you change a file. The human answers in the

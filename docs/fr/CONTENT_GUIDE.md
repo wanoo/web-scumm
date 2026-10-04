@@ -16,6 +16,27 @@ Les types complets, avec leurs commentaires, sont dans `src/engine/core/types.ts
 3. **Rien n'est bloquant.** Toute action a une réponse. Sans réaction écrite, le moteur répond avec les réponses de repli du jeu.
 4. **Coordonnées logiques.** Un décor mesure 640 × 400, origine en haut à gauche. Un personnage est placé par ses pieds.
 
+## Le contrat d'identité v3
+
+Un nouveau jeu pose `schemaVersion: 3` dans `game.ts`. Tout ce dont la position d'exécution survit dans une sauvegarde
+porte un id explicite et unique : chaque `Rule`, `TalkTopic`, `Choice`, `EventRule`, ainsi que chaque bloc `once`, `nth`,
+`cycle` ou `random`. Un `ScriptDef` a déjà son id et ajoute une entrée `stepIds` par commande de premier niveau. Le
+validateur refuse un jeu v3 avec des ids absents ou dupliqués. Réordonner le contenu ou traduire un texte ne change donc
+plus le sens d'une sauvegarde.
+
+```ts
+schemaVersion: 3,
+// …
+{ id: 'ouvrir.garde_manger', verb: 'open', a: 'garde_manger', do: […] }
+{ id: 'demander.cle', topic: 'Où est la clé ?', do: […] }
+{ once: […], id: 'arrivee.premiere' }
+{ id: 'horloge', stepIds: ['attendre', 'sonner'], do: [{ wait: 1000 }, { sfx: 'carillon' }] }
+```
+
+`compileGame(source)` clone et normalise la source une seule fois ; sa sortie v3 est figée en développement. Moteur,
+validateur, solveur, replay et outils de puzzle consomment la même représentation compilée. Lire
+[UPGRADING.md](UPGRADING.md) avant de convertir un jeu existant.
+
 ## Les fichiers
 
 ```
@@ -77,10 +98,10 @@ export default defineRoom({
 
   // Réactions écrites. Voir « Les réactions ».
   on: [
-    { verb: 'pull', a: 'tabouret', if: { prop: ['tabouret', 'etagere'] }, do: [
+    { id: 'tirer.tabouret', verb: 'pull', a: 'tabouret', if: { prop: ['tabouret', 'etagere'] }, do: [
       { prop: ['tabouret', 'tire'] }, 'Et voilà. Un marchepied.',
     ] },
-    { verb: 'use', a: 'corde', b: ['crochet', 'seau'], do: [
+    { id: 'nouer.corde', verb: 'use', a: 'corde', b: ['crochet', 'seau'], do: [
       { lose: 'corde' }, { set: 'attache' },
       'Attachée. Un bout au crochet, l’autre au seau.',
       { say: ['grandmere', 'Fais attention avec ce seau, ma chérie.'] },
@@ -90,8 +111,8 @@ export default defineRoom({
   // Sujets de conversation (2 ou 3). « Un câlin ? » et « Au revoir » sont ajoutés tout seuls.
   talk: {
     grandmere: [
-      { topic: 'Grand-mère, c’est quoi dans le panier ?', do: [{ say: ['grandmere', 'Une surprise pour tout le monde.'] }] },
-      { topic: 'Je peux aller au marché toute seule ?', do: [
+      { id: 'demander.panier', topic: 'Grand-mère, c’est quoi dans le panier ?', do: [{ say: ['grandmere', 'Une surprise pour tout le monde.'] }] },
+      { id: 'demander.marche', topic: 'Je peux aller au marché toute seule ?', do: [
         { say: ['grandmere', 'Toute seule ?! Avec ton écharpe, ton bonnet, ta gourde…'] },
         { say: ['grandmere', '… Bon. De retour à dix heures.'] },
       ] },
@@ -106,7 +127,7 @@ export default defineRoom({
 
   // À chaque entrée dans le lieu.
   onEnter: [
-    { once: [ 'Le salon. La base de toute aventure.' ] },
+    { once: [ 'Le salon. La base de toute aventure.' ], id: 'arrivee.premiere' },
   ],
 });
 ```
@@ -421,8 +442,9 @@ saves: { slots: 3 },   // le menu pause gagne Sauver / Charger avec trois emplac
 ui: { …, save: 'Sauver', load: 'Charger', slot: 'Emplacement {n}', emptySlot: 'vide', exportSave: 'Exporter en fichier', importSave: 'Importer un fichier', confirmOverwrite: 'Écraser cet emplacement ?' },
 ```
 
-La sauvegarde automatique ne change pas. Quand le contenu change de façon incompatible, on incrémente `saveVersion` ;
-une sauvegarde d'une autre version repartait de zéro. On peut maintenant la convertir, en données, une étape par version :
+L'autosauvegarde utilise une enveloppe v3 validée avant de toucher à la partie courante, avec une écriture IndexedDB
+relue et un import de compatibilité localStorage. Quand le contenu change de façon incompatible, on incrémente
+`saveVersion` et on convertit l'état, en données, une étape par version :
 
 ```ts
 saveVersion: 3,
@@ -432,9 +454,10 @@ migrations: [
 ],
 ```
 
-`renameFlag`, `renameItem`, `renameRoom`, `renameProp`, `renameActor`, `renamePlace`, `dropFlag`, `dropItem`. La chaîne
-doit atteindre `saveVersion` ; une sauvegarde sans chemin repart toujours de zéro. Le validateur vérifie que les nouveaux
-noms existent.
+La migration couvre aussi compteurs, ids vus, scripts, étapes de script nommées, joueurs et personnages ; voir le type
+`Migration` complet. La chaîne doit atteindre `saveVersion` ; une sauvegarde sans chemin repart toujours de zéro. Les
+références facultatives périmées restantes sont élaguées avec un avertissement visible ; une corruption structurelle,
+un autre jeu, un lieu courant absent ou un joueur actif inconnu est refusé sans toucher à la session courante.
 
 ## Le monde vit : scripts, événements, personnages mobiles
 

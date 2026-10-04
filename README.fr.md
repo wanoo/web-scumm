@@ -2,8 +2,8 @@
 
 Un moteur de point-and-click à la SCUMM pour téléphones, avec les outils d'écriture et la méthode de travail avec une
 IA qui ont permis de livrer un jeu familial complet de 9 lieux en une journée. Écris ton histoire sous forme de données,
-place les choses en les glissant, prouve que le jeu se finit, joue en paysage sur n'importe quel téléphone, hors ligne
-après la première visite.
+place les choses en les glissant, prouve que le jeu se finit, joue en paysage sur n'importe quel téléphone et reprends
+hors ligne dans les lieux déjà mis en cache sur l'appareil.
 
 *[English version](README.md)*
 
@@ -11,7 +11,7 @@ après la première visite.
 |---|---|
 | 🎮 **Jouer au jeu d'exemple** | https://wanoo.github.io/web-scumm/ (téléphone en paysage, ou ordinateur) |
 | 🛠 **Essayer le Studio** | https://wanoo.github.io/web-scumm/studio.html (mode démo : les modifications restent dans ton navigateur) |
-| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v2.5.0 · [notes de version](docs/fr/ROADMAP.md) |
+| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v3.0.0 · [journal des changements](CHANGELOG.md) · [passer de la v2](docs/fr/UPGRADING.md) |
 
 ![Trois lieux du jeu d'exemple](docs/img/banner.jpg)
 
@@ -21,8 +21,8 @@ Ce que les joueurs ont : neuf verbes classiques, un inventaire, des dialogues av
 par un personnage, une carte du monde avec véhicules, des cinématiques, des appels à deux voix, des mini-jeux (tuyaux,
 câbles emmêlés, choix, cache-cache, course, caresses, ticket à gratter), des lieux plus larges que l'écran, plusieurs
 personnages jouables, une fin scellée facultative (chiffrée AES, révélée en jouant), la sauvegarde automatique plus
-des emplacements avec export / import, des réglages, des traductions, tactile et souris, téléphone et ordinateur, hors
-ligne après la première visite.
+des emplacements avec export / import, des réglages, des traductions, tactile et souris, téléphone et ordinateur, et
+jeu hors ligne pour l'application et les lieux déjà mis en cache.
 
 <table>
 <tr><td width="50%" valign="top"><img src="docs/img/title.jpg" alt="Écran titre, téléphone en paysage" width="100%"><br><sub>Écran titre, téléphone en paysage</sub></td><td width="50%" valign="top"><img src="docs/img/room-garden.jpg" alt="Un lieu : neuf verbes, le sac, la scène" width="100%"><br><sub>Un lieu : neuf verbes, le sac, la scène</sub></td></tr>
@@ -63,13 +63,16 @@ le solveur est le plus passé rougissent ; une fiche dit pourquoi le solveur gar
 
 ## Démarrer
 
-Node 22+. Pour les outils d'images : Python 3 avec `pip install -r requirements.txt` (Pillow, NumPy, SciPy) et ffmpeg.
+Node 22+. La suite de tests complète et les outils d'images demandent aussi Python 3 avec
+`pip install -r requirements.txt` (Pillow, NumPy, SciPy) ; le rendu audio demande ffmpeg.
 
 ```bash
 npm install
-npm run dev          # le jeu d'exemple ; ouvre l'URL sur ton téléphone (même Wi-Fi), tiens-le en paysage
+npm run dev          # le jeu d'exemple sur cet ordinateur
+npm run dev:lan      # autorise le réseau local, puis ouvre l'URL sur ton téléphone (même Wi-Fi)
 npm run studio       # le Studio sur /__studio/ : lieux, textes, storyboard, images, vérifications, jeu, notes
-npm test             # 154 tests : moteur, outils, parcours du jeu d'exemple
+npm test             # tests Node du moteur, des outils et parcours du jeu d'exemple
+npm run test:assets  # tests Python des images et du pipeline d'assets
 ```
 
 Faire son propre jeu :

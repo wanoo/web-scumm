@@ -7,6 +7,7 @@ interface Spot { img: string; x: number; y: number; h: number; reply?: string; f
 
 export const hide: Minigame = {
   required: ['spots'],
+  textParams: ['intro', 'win', 'spots.*.reply'],
   run(ctx: MinigameCtx) {
     const p = ctx.params;
     const spots = (Array.isArray(p.spots) ? p.spots : []) as Spot[];

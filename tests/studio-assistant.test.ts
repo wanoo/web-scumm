@@ -9,7 +9,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { getDefaultEnvironment, StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { endpoint, runAssistant, type AssistantEvent } from '../tools/studio/assistant-loop';
-import { assistantHandler } from '../tools/studio/assistant';
+import { assistantHandler, parseProvider } from '../tools/studio/assistant';
 import { coreBackend } from '../tools/studio/backend';
 import { createStudio, importInChild } from '../tools/studio/core';
 import { callTool, jsonSchema, TOOLS, toolsFor, WRITING_TOOLS } from '../tools/studio/tools';
@@ -216,7 +216,7 @@ describe('agentic loop', () => {
 describe('relay routes', () => {
   let base = '';
   beforeAll(async () => {
-    const handler = assistantHandler(studio, { root: ROOT, devUrl: () => 'http://127.0.0.1:9/' });
+    const handler = assistantHandler(studio, { root: ROOT, devUrl: () => 'http://127.0.0.1:9/', allowCustomProvider: true, allowPrivateProviderForTests: true });
     base = await listen((req, res) => {
       req.url = (req.url ?? '').replace(/^\/__studio\/api\/assistant/, '');
       void handler(req, res, () => { res.statusCode = 404; res.end('{"error":"no such endpoint"}'); });
@@ -258,5 +258,15 @@ describe('relay routes', () => {
     expect(note).toMatchObject({ about: 'house.pantry', author: 'you', text: 'Write 3 look lines', task: true });
     const file = JSON.parse(readFileSync(join(demoDir, 'notes.json'), 'utf8'));
     expect(file.entries.at(-1)).toMatchObject({ id: note.id, task: true });
+  });
+});
+
+describe('provider URL policy', () => {
+  it('allows presets and explicit local Ollama, but blocks SSRF destinations', () => {
+    expect(parseProvider({ kind: 'openai', baseUrl: 'https://api.openai.com', model: 'gpt' }).baseUrl).toBe('https://api.openai.com');
+    expect(parseProvider({ kind: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen' }).kind).toBe('ollama');
+    expect(() => parseProvider({ kind: 'openai', baseUrl: 'http://169.254.169.254/latest', model: 'x' }, true)).toThrow(/HTTPS|private/);
+    expect(() => parseProvider({ kind: 'openai', baseUrl: 'https://example.test', model: 'x' })).toThrow(/disabled/);
+    expect(parseProvider({ kind: 'openai', baseUrl: 'https://example.test/v1', model: 'x' }, true).baseUrl).toContain('example.test');
   });
 });

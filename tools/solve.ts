@@ -1,4 +1,5 @@
-// npm run solve: proves that the game can be finished from "New game".
+// npm run solve: finds a witness that the game can be finished from "New game". Add --prove to exhaust the reachable
+// graph and report every reachable state from which the goal is no longer reachable.
 // Options: --max=20000 (number of states), --from=<checkpoint>, --json (JSON output for scripts/e2e.mjs: the labelled
 // path and the session entries `steps` on stdout, no other text; the default output, meant for humans, doesn't change:
 // other scripts read it), --profile (what the states are made of, what the search cost), --por=sleep|stubborn (partial-order reduction: fewer engine runs, or fewer states too), --chapters (one bounded search
@@ -18,6 +19,8 @@ const asJson = process.argv.includes('--json');
 const t0 = Date.now();
 const maxStates = Number(arg('max') ?? 20000);
 const por = arg('por') === 'sleep' ? 'sleep' as const : arg('por') === 'stubborn' ? 'stubborn' as const : false;
+const mode = process.argv.includes('--prove') ? 'prove' as const : 'witness' as const;
+const exitCode = (r: Awaited<ReturnType<typeof solve>>) => r.status === 'truncated' ? 2 : r.status === 'solved' && !r.broken.length ? 0 : 1;
 
 if (process.argv.includes('--chapters')) {
   const cps = Object.entries(game.checkpoints ?? {}).filter(([, c]) => c.goals?.length);
@@ -26,37 +29,41 @@ if (process.argv.includes('--chapters')) {
   let bad = 0;
   for (const [id, c] of cps) {
     const t = Date.now();
-    const r = await solve(game, layouts, { maxStates, start: prev ? { checkpoint: prev } : 'new', goal: c.goals, commands, por });
-    const ok = r.finished && !r.broken.length;
-    if (!ok) bad++;
-    console.log(`${ok ? '✔' : '✖'}  chapter → ${id} (from ${prev ?? 'new game'}): ${r.finished ? `${r.path.length} actions` : 'goals not reached'}, ${r.states} states, ${((Date.now() - t) / 1000).toFixed(1)} s${r.truncated ? ' (limit reached)' : ''}`);
+    const r = await solve(game, layouts, { maxStates, start: prev ? { checkpoint: prev } : 'new', goal: c.goals, commands, por, mode });
+    const code = exitCode(r);
+    bad = Math.max(bad, code);
+    const ok = code === 0;
+    console.log(`${ok ? '✔' : '✖'}  chapter → ${id} (from ${prev ?? 'new game'}): ${r.finished ? `${r.path.length} actions` : 'goals not reached'}, ${r.states} states, ${((Date.now() - t) / 1000).toFixed(1)} s${r.truncated ? ' (limit reached)' : ''}${r.softlocks.length ? ` (${r.softlocks.length} softlock samples)` : ''}`);
     if (!r.finished) r.path.slice(-5).forEach((p) => console.log(`     … ${p}`));
     for (const b of r.broken) console.log(`   ✖ invariant #${b.invariant} became true after: ${b.path.slice(-3).join(' › ')}`);
     for (const e of r.errors) console.log('   ' + e);
     prev = id;
   }
   const t = Date.now();
-  const r = await solve(game, layouts, { maxStates, start: { checkpoint: prev! }, commands, por });
-  const ok = r.finished && !r.broken.length;
-  if (!ok) bad++;
+  const r = await solve(game, layouts, { maxStates, start: { checkpoint: prev! }, commands, por, mode });
+  const code = exitCode(r);
+  bad = Math.max(bad, code);
+  const ok = code === 0;
   console.log(`${ok ? '✔' : '✖'}  chapter → ending (from ${prev}): ${r.finished ? `${r.path.length} actions` : 'no ending reached'}, ${r.states} states, ${((Date.now() - t) / 1000).toFixed(1)} s`);
   for (const b of r.broken) console.log(`   ✖ invariant #${b.invariant} became true after: ${b.path.slice(-3).join(' › ')}`);
-  process.exit(bad ? 1 : 0);
+  process.exit(bad);
 }
 
-const r = await solve(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands, por });
+const r = await solve(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands, por, mode });
 
 if (asJson) {
   // `path` labels each step for humans; `steps` are the session entries ({ act, picks… }) the e2e harness replays.
   console.log(JSON.stringify({
-    finished: r.finished, states: r.states, truncated: r.truncated, path: r.path, steps: r.steps,
+    status: r.status, mode: r.mode, finished: r.finished, states: r.states, truncated: r.truncated, path: r.path, steps: r.steps,
     roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
-    itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems, errors: r.errors, broken: r.broken, profile: r.profile,
+    itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems, softlocks: r.softlocks, assumptions: r.assumptions,
+    errors: r.errors, broken: r.broken, profile: r.profile,
   }));
-  process.exit(r.errors.length || r.broken.length ? 1 : 0);
+  process.exit(exitCode(r));
 }
 
 console.log(`\n${r.finished ? '✔  The game can be finished' : '…  No ending reached'} — ${r.states} states explored in ${((Date.now() - t0) / 1000).toFixed(1)} s${r.truncated ? ' (limit reached)' : ''}`);
+console.log(`${r.mode === 'prove' ? 'Proof' : 'Witness'} status: ${r.status}${r.assumptions.length ? ` · assumptions: ${r.assumptions.join(', ')}` : ''}`);
 console.log(`\n${r.finished ? 'Path found' : 'Path to the last explored state'} (${r.path.length} actions):`);
 r.path.forEach((p, i) => console.log(`  ${String(i + 1).padStart(3)}. ${p}`));
 console.log(`\nRooms reached: ${r.roomsReached.join(', ') || '—'}`);
@@ -68,10 +75,14 @@ if (r.deadEnds.length) {
   console.log(`\nDead ends (${r.deadEnds.length}):`);
   for (const d of r.deadEnds.slice(0, 5)) console.log(`  - ${d.room}, inventory [${d.inventory.join(', ')}] after: ${d.path.slice(-3).join(' › ') || 'the start'}`);
 }
+if (r.softlocks.length) {
+  console.log(`\n✖  Reachable softlocks (${r.softlocks.length} samples):`);
+  for (const d of r.softlocks.slice(0, 5)) console.log(`  - ${d.room}, inventory [${d.inventory.join(', ')}] after: ${d.path.slice(-4).join(' › ') || 'the start'}`);
+}
 if (r.broken.length) {
   console.log(`\n✖  Invariants broken (${r.broken.length}):`);
   for (const b of r.broken) console.log(`   #${b.invariant} ${JSON.stringify(game.invariants?.[b.invariant])} became true after: ${b.path.slice(-4).join(' › ') || 'the start'}`);
 }
 if (r.errors.length) { console.log(`\n✖  Errors during exploration:`); r.errors.forEach((e) => console.log('   ' + e)); }
 if (process.argv.includes('--profile')) console.log('\n' + profileText(r.profile, game));
-process.exit(r.errors.length || r.broken.length ? 1 : 0);
+process.exit(exitCode(r));

@@ -61,7 +61,7 @@ export default defineRoom({
     { verb: 'take', a: 'shell', do: [{ gain: 'shell_phone' }, { sfx: 'select' }, 'Got it. It smells like the sea.'] },
 
     // The armchair: a token behind the cushion, once (the prop state remembers it).
-    { verb: ['open', 'pull', 'push', 'use'], a: 'armchair', if: { prop: ['armchair', 'remote'] }, do: [
+    { verb: ['open', 'pull', 'push', 'use'], a: 'armchair', if: { all: [{ player: 'hero' }, { prop: ['armchair', 'remote'] }] }, do: [
       { sfx: 'cloth' }, { prop: ['armchair', 'searched'] }, 'Behind the cushion... a market token!', { gain: 'token' },
       'And Grandpa\'s remote. I will leave that one. Too much TV.',
     ] },

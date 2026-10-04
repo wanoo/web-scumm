@@ -26,6 +26,7 @@ function sprites(v: unknown, h: number, slideH: number): RunnerSprites | null {
 
 export const runner: Minigame = {
   required: ['hero', 'chaser', 'obstacles', 'bg'],
+  textParams: ['intro', 'win', 'stumble'],
   run(ctx: MinigameCtx) {
     const p = ctx.params;
     const seconds = num(p.seconds, 20);

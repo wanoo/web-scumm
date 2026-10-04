@@ -4,20 +4,50 @@
 // Paths: `room:house/look.pantry[1]`, `item:key/name`, `char:grandma/refuse`, `ui/newGame`, `rules/fallbacks.look[2]`,
 // `start/intro[0]`, `credits[3]`, `map/places.house.name`…
 import type { Cmd, GameDef, RoomDef } from '../core/types';
+import type { Minigame } from '../minigames/types';
 import { subLists } from '../core/cmds';
 
 type Fn = (path: string, text: string) => string | undefined;
+export type MinigameTexts = Record<string, Pick<Minigame, 'textParams'>>;
+
+/** Metadata kept here too so node tools understand built-ins without loading their DOM implementations. */
+const BUILTIN_TEXT_PARAMS: Record<string, string[]> = {
+  pipes: ['intro', 'win'], pick: ['rounds.*.prompt', 'decoyLine', 'wrongLine', 'win'],
+  hide: ['intro', 'win', 'spots.*.reply'], runner: ['intro', 'win', 'stumble'],
+  stroke: ['intro', 'win', 'tooFast'], cables: ['intro', 'win', 'windowsText'], scratch: [],
+};
+
+/** Visits a string at a dotted minigame-param path; `*` visits array items or object values. */
+function paramText(value: unknown, parts: string[], path: string, fn: Fn): void {
+  if (!parts.length) return;
+  const [head, ...tail] = parts;
+  if (head === '*') {
+    if (Array.isArray(value)) value.forEach((v, i) => paramText(v, tail, `${path}[${i}]`, fn));
+    else if (value && typeof value === 'object') for (const [k, v] of Object.entries(value)) paramText(v, tail, `${path}.${k}`, fn);
+    return;
+  }
+  if (!value || typeof value !== 'object') return;
+  const o = value as Record<string, unknown>;
+  if (!tail.length) {
+    if (typeof o[head] !== 'string') return;
+    const r = fn(`${path}.${head}`, o[head] as string);
+    if (r !== undefined) o[head] = r;
+    return;
+  }
+  paramText(o[head], tail, `${path}.${head}`, fn);
+}
 
 /** Walks a command list; `fn` may replace a text (the list is changed in place). */
-function cmds(list: Cmd[] | undefined, path: string, fn: Fn) {
+function cmds(list: Cmd[] | undefined, path: string, fn: Fn, minigames: MinigameTexts) {
   list?.forEach((c, i) => {
     const p = `${path}[${i}]`;
     if (typeof c === 'string') { const r = fn(p, c); if (r !== undefined) list[i] = r; return; }
     if ('say' in c) { const r = fn(`${p}.say`, c.say[1]); if (r !== undefined) c.say[1] = r; }
     else if ('toast' in c) { const r = fn(`${p}.toast`, c.toast); if (r !== undefined) c.toast = r; }
     else if ('guide' in c) { const r = fn(`${p}.guide`, c.guide.say); if (r !== undefined) c.guide.say = r; }
-    else if ('choice' in c) { c.choice.forEach((o, j) => { const r = fn(`${p}.choice[${j}].text`, o.text); if (r !== undefined) o.text = r; cmds(o.do, `${p}.choice[${j}].do`, fn); }); return; }
-    for (const s of subLists(c)) cmds(s.list, p + s.path, fn);
+    else if ('choice' in c) { c.choice.forEach((o, j) => { const r = fn(`${p}.choice[${j}].text`, o.text); if (r !== undefined) o.text = r; cmds(o.do, `${p}.choice[${j}].do`, fn, minigames); }); return; }
+    if ('minigame' in c) for (const q of minigames[c.minigame]?.textParams ?? BUILTIN_TEXT_PARAMS[c.minigame] ?? []) paramText(c.params, q.split('.'), `${p}.params`, fn);
+    for (const s of subLists(c)) cmds(s.list, p + s.path, fn, minigames);
   });
 }
 
@@ -28,7 +58,7 @@ function strOrList(o: Record<string, string | string[]> | undefined, path: strin
   }
 }
 
-function room(r: RoomDef, fn: Fn) {
+function room(r: RoomDef, fn: Fn, minigames: MinigameTexts) {
   const P = `room:${r.id}/`;
   const one = (path: string, v: string | undefined, set: (x: string) => void) => { if (v === undefined) return; const x = fn(P + path, v); if (x !== undefined) set(x); };
   one('name', r.name, (x) => { r.name = x; });
@@ -37,20 +67,21 @@ function room(r: RoomDef, fn: Fn) {
   for (const [id, a] of Object.entries(r.actors ?? {})) one(`actors.${id}.name`, a.name, (x) => { a.name = x; });
   for (const [id, e] of Object.entries(r.exits ?? {})) { one(`exits.${id}.name`, e.name, (x) => { e.name = x; }); one(`exits.${id}.locked`, e.locked, (x) => { e.locked = x; }); }
   strOrList(r.look, `${P}look`, fn);
-  (r.on ?? []).forEach((x, i) => { if (!x.exit) cmds(x.do, `${P}on[${i}].do`, fn); });
-  for (const [actor, ts] of Object.entries(r.talk ?? {})) ts.forEach((t, i) => { one(`talk.${actor}[${i}].topic`, t.topic, (x) => { t.topic = x; }); cmds(t.do, `${P}talk.${actor}[${i}].do`, fn); });
+  (r.on ?? []).forEach((x, i) => { if (!x.exit) cmds(x.do, `${P}on[${i}].do`, fn, minigames); });
+  for (const [actor, ts] of Object.entries(r.talk ?? {})) ts.forEach((t, i) => { one(`talk.${actor}[${i}].topic`, t.topic, (x) => { t.topic = x; }); cmds(t.do, `${P}talk.${actor}[${i}].do`, fn, minigames); });
   (r.hints ?? []).forEach((h, i) => h.lines.forEach((l, j) => one(`hints[${i}].lines[${j}]`, l, (x) => { h.lines[j] = x; })));
-  cmds(r.onEnter, `${P}onEnter`, fn);
-  (r.scripts ?? []).forEach((sc) => cmds(sc.do, `${P}scripts.${sc.id}.do`, fn));
-  (r.events ?? []).forEach((ev, i) => cmds(ev.do, `${P}events[${i}].do`, fn));
-  for (const [pid, p] of Object.entries(r.props ?? {})) for (const [an, a] of Object.entries(p.anims ?? {})) for (const [k, b] of Object.entries(a.at ?? {})) cmds(b, `${P}props.${pid}.anims.${an}.at[${k}]`, fn);
+  cmds(r.onEnter, `${P}onEnter`, fn, minigames);
+  (r.scripts ?? []).forEach((sc) => cmds(sc.do, `${P}scripts.${sc.id}.do`, fn, minigames));
+  (r.events ?? []).forEach((ev, i) => cmds(ev.do, `${P}events[${i}].do`, fn, minigames));
+  for (const [pid, p] of Object.entries(r.props ?? {})) for (const [an, a] of Object.entries(p.anims ?? {})) for (const [k, b] of Object.entries(a.at ?? {})) cmds(b, `${P}props.${pid}.anims.${an}.at[${k}]`, fn, minigames);
 }
 
 /** Visits every text of the game; `fn` may return a replacement. The game is changed in place. */
-export function walkTexts(game: GameDef, fn: Fn): void {
+export function walkTexts(game: GameDef, fn: Fn, minigames: MinigameTexts = {}): void {
   const one = (path: string, v: string | undefined, set: (x: string) => void) => { if (v === undefined) return; const x = fn(path, v); if (x !== undefined) set(x); };
   one('title', game.title, (x) => { game.title = x; });
-  game.rooms.forEach((r) => room(r, fn));
+  game.rooms.forEach((r) => room(r, fn, minigames));
+  game.verbs.forEach((v) => { one(`verb:${v.id}/label`, v.label, (x) => { v.label = x; }); one(`verb:${v.id}/join`, v.join, (x) => { v.join = x; }); });
   for (const [id, it] of Object.entries(game.items)) {
     one(`item:${id}/name`, it.name, (x) => { it.name = x; });
     if (typeof it.look === 'string') one(`item:${id}/look`, it.look, (x) => { it.look = x; });
@@ -59,12 +90,12 @@ export function walkTexts(game: GameDef, fn: Fn): void {
   for (const [id, c] of Object.entries(game.characters)) { one(`char:${id}/name`, c.name, (x) => { c.name = x; }); one(`char:${id}/refuse`, c.refuse, (x) => { c.refuse = x; }); one(`char:${id}/hug`, c.hug, (x) => { c.hug = x; }); }
   for (const [v, list] of Object.entries(game.rules.fallbacks)) list?.forEach((t, i) => one(`rules/fallbacks.${v}[${i}]`, t, (x) => { list[i] = x; }));
   (game.rules.kinds ?? []).forEach((k, i) => one(`rules/kinds[${i}].say`, k.say, (x) => { k.say = x; }));
-  (game.rules.on ?? []).forEach((r, i) => cmds(r.do, `rules/on[${i}].do`, fn));
-  (game.scripts ?? []).forEach((sc) => cmds(sc.do, `scripts.${sc.id}.do`, fn));
-  (game.events ?? []).forEach((ev, i) => cmds(ev.do, `events[${i}].do`, fn));
+  (game.rules.on ?? []).forEach((r, i) => cmds(r.do, `rules/on[${i}].do`, fn, minigames));
+  (game.scripts ?? []).forEach((sc) => cmds(sc.do, `scripts.${sc.id}.do`, fn, minigames));
+  (game.events ?? []).forEach((ev, i) => cmds(ev.do, `events[${i}].do`, fn, minigames));
   if (game.globalTalk) for (const k of ['hug', 'bye', 'byeLine'] as const) one(`globalTalk/${k}`, game.globalTalk[k], (x) => { game.globalTalk![k] = x; });
   if (game.players?.give) one('players/give', game.players.give, (x) => { game.players!.give = x; });
-  cmds(game.start.intro, 'start/intro', fn);
+  cmds(game.start.intro, 'start/intro', fn, minigames);
   for (const [k, v] of Object.entries(game.ui)) if (typeof v === 'string') one(`ui/${k}`, v, (x) => { (game.ui as unknown as Record<string, string>)[k] = x; });
   (game.credits ?? []).forEach((t, i) => one(`credits[${i}]`, t, (x) => { game.credits![i] = x; }));
   one('titleScreen/footer', game.titleScreen?.footer, (x) => { game.titleScreen!.footer = x; });
@@ -75,20 +106,21 @@ export function walkTexts(game: GameDef, fn: Fn): void {
     for (const k of ['right', 'wrong', 'none'] as const) one(`ending/guess.${k}`, g[k], (x) => { g[k] = x; });
     for (const [k, v] of Object.entries(g.labels)) one(`ending/guess.labels.${k}`, v, (x) => { g.labels[k] = x; });
   }
+  if (game.ending?.password && 'typed' in game.ending.password) one('ending/password.prompt', game.ending.password.prompt, (x) => { (game.ending!.password as { typed: true; prompt: string }).prompt = x; });
 }
 
 /** Every text of the game with its path, in content order. */
-export function textPaths(game: GameDef): { path: string; text: string }[] {
+export function textPaths(game: GameDef, minigames: MinigameTexts = {}): { path: string; text: string }[] {
   const out: { path: string; text: string }[] = [];
-  walkTexts(structuredClone(game), (path, text) => { out.push({ path, text }); return undefined; });
+  walkTexts(structuredClone(game), (path, text) => { out.push({ path, text }); return undefined; }, minigames);
   return out;
 }
 
 /** The game with its texts translated from `table` (path → text); texts the table lacks stay as written. */
-export function applyLocale<T extends GameDef>(game: T, table: Record<string, string> | undefined): T {
+export function applyLocale<T extends GameDef>(game: T, table: Record<string, string> | undefined, minigames: MinigameTexts = {}): T {
   if (!table) return game;
   const g = structuredClone(game);
-  walkTexts(g, (path, text) => { const t = table[path]; return typeof t === 'string' && (t !== '' || text === '') ? t : undefined; });
+  walkTexts(g, (path, text) => { const t = table[path]; return typeof t === 'string' && (t !== '' || text === '') ? t : undefined; }, minigames);
   return g;
 }
 

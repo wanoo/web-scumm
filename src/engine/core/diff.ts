@@ -10,7 +10,7 @@ export function logicalState(s: GameState) {
     room: s.room, inventory: [...s.inventory].sort(), flags: sorted(s.flags), props: sorted(s.props),
     visible: sorted(Object.fromEntries(Object.entries(s.actors).filter(([, a]) => a.visible !== undefined).map(([k, a]) => [k, a.visible!]))),
     unlocked: [...s.unlocked].sort(), visited: sorted(s.visited), counters: sorted(s.counters), seen: Object.keys(s.seen).sort(),
-    used: [...(s.used ?? [])].sort(), where: sorted(s.where), scripts: sorted(s.scripts).map(([k, st]) => [k, st.pc, !!st.done, !!st.off] as const),
+    used: [...(s.used ?? [])].sort(), where: sorted(s.where), scripts: sorted(s.scripts).map(([k, st]) => [k, st.step ?? st.pc, !!st.done, !!st.off] as const),
     active: s.active ?? '', players: sorted(s.players).map(([k, p]) => [k, p.room, [...p.inventory].sort(), [...(p.used ?? [])].sort()] as const), done: !!s.done,
   };
 }
