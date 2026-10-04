@@ -1236,4 +1236,29 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
   and `--no-cache`. Not done: sharing the cache between CI runs (actions/cache), left for when CI time matters.
 
 → next: Claude · merge on green CI; `weight` should pass `solver: cachedSolve` once both branches are in main
+## #48 · 2026-10-04 · Claude · proposal · v33-provenance-lock
+
+- Production closure, provenance part (LOG #39 "provenance hashes and licence policy"): `provenance.lock.json`
+  (SHA-256, bytes, and the entry's pattern, licence and status per shipped file), written by
+  `npm run provenance -- --lock` after a review. `validate --release` requires it and fails on a changed, new or
+  missing file or an edited claim; plain `validate` warns. A licence policy `licences: { allow }` is required for a
+  release; an asset outside it needs a `releaseExceptions` entry naming it.
+- Demo: policy `CC BY 4.0`, its NC music excepted by name (warning), 214 files locked, `validate --release` green.
+- `tests/release-gate.test.ts` breaks the clean fixture through the CLI: a changed file, no lock, a licence outside
+  the policy, no policy; the fixture ships its own files (`ASSETS_DIR`). Unit tests for the lock diff and the policy.
+
+→ next: Claude · merge on green CI; then the asset weight budgets and the browser accessibility gates
+
+## #49 · 2026-10-04 · Claude · proposal · v33-asset-weight
+
+- Production closure, budgets part (review of 3.2: "budgets initial/salle/chapitre"): `src/engine/tools/weight.ts`
+  lists a room's assets as the engine preloads them (dom/room.ts: backdrop, props in every state, every playable
+  character and the room's actors with variants and mouths) plus its music and sound effects; the initial set adds the
+  title, the column icons and the bag at the start. `npm run weight` weighs the built files; chapters use the proof
+  by chapters (every room reachable during it, and the rooms where it ends).
+- Demo, measured: initial 2 032 KB (97 files), rooms 2 381 / 2 000 / 1 712 KB, chapters 2 398 then 3 675 KB (the map
+  opens every room). Budgets 2 500 / 3 000 / 4 500 KB. `verify:release` runs `weight -- --release` (budgets required).
+- Built on `v33-provenance-lock` (asset paths, `ASSETS_DIR`).
+
+→ next: Claude · merge after `v33-provenance-lock`, on green CI; then the browser accessibility gates
 

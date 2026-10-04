@@ -616,8 +616,13 @@ export interface GameDef {
   /** Translation paths whose text stays the same in every language on purpose (a name, "OK", ▲): every other text
    *  identical to the source is an untranslated line and fails `npm run i18n -- status`. */
   i18n?: { same?: string[] };
-  /** Background-preload batch sizes (per step, not totals). They never affect assets required to render the current room. */
-  assetBudgets?: { initialImages?: number; neighboringRooms?: number; audioFiles?: number };
+  /**
+   * Background-preload batch sizes (per step, not totals: `initialImages`, `neighboringRooms`, `audioFiles`), and the
+   * weight budgets in KB that `npm run weight` holds the game to: before the first room is playable (`initialKB`), per
+   * room (`roomKB`), per chapter (`chapterKB`, every room a player can be in during it). The batch sizes never affect the
+   * assets required to render the current room.
+   */
+  assetBudgets?: { initialImages?: number; neighboringRooms?: number; audioFiles?: number; initialKB?: number; roomKB?: number; chapterKB?: number };
   /**
    * How to bring an older save up to date, one step per version, as data: renames and drops. A save whose version has
    * no migration starts a new game (as before). The chain must reach `saveVersion`.

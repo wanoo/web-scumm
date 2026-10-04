@@ -109,6 +109,9 @@ export const game = defineGame({
   invariants: [{ all: [{ player: 'hero' }, { prop: ['house.armchair', 'searched'] }, { not: { has: 'token' } }, '!flowers_done'] }],
   // Three manual save slots in the pause menu (export / import as a file too), and a Settings entry.
   saves: { slots: 3 },
+  // What a phone downloads (npm run weight, measured 4 Oct 2026: 2.0 MB before the first room, 2.4 MB for the market,
+  // 3.7 MB for a chapter since the map opens every room), with about 20% of headroom.
+  assetBudgets: { initialKB: 2500, roomKB: 3000, chapterKB: 4500 },
   // Texts that stay the same in French on purpose: names, ▲ ▼, OK, words French borrowed (`npm run i18n -- status`).
   i18n: { same: ['room:market/props.oranges.name', 'room:market/props.bouquet.name', 'item:bouquet/name', 'char:hero/name', 'char:biscuit/name', 'char:neighbor/name', 'ui/pause', 'ui/zoomIn', 'ui/ok', 'ui/jump', 'ui/duck', 'ui/normal'] },
   settings: true,

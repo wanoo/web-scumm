@@ -268,7 +268,21 @@ manifeste>`, `sfx:<fichier>`, `music:<fichier>`, `voice:<fichier>`, `video:<fich
 jeu qui a le fichier (chaque asset couvert par une seule entrée : deux entrées qui couvrent le même asset sont une
 erreur, quel que soit leur ordre ; chaque entrée complète) ; `npm run validate -- --release` exige le fichier, et un
 provisoire est une erreur sauf si une entrée `releaseExceptions: [{ match, reason }]` nomme cet asset (une exception
-ne couvre jamais un provisoire ajouté plus tard). `npm run new-game` en écrit un pour les images empruntées à la démo
+ne couvre jamais un provisoire ajouté plus tard). Une release exige aussi une politique de licences,
+`licences: { allow: ['CC BY 4.0', 'own work'] }` (toute autre licence échoue sauf si une exception nomme l'asset), et
+`provenance.lock.json` : `npm run provenance -- --lock` écrit, après une relecture, l'empreinte SHA-256 et la taille de
+chaque fichier livré avec ce que son entrée affirmait (motif, licence, statut). `validate --release` échoue ensuite sur
+un fichier modifié, un asset livré depuis, un fichier manquant ou une entrée modifiée depuis la relecture ; un
+`validate` simple ne fait qu'avertir. `npm run provenance` liste les assets par licence et ce qui a changé depuis le
+verrou (sortie 1 quand quelque chose est à relire). Les fichiers sont lus dans `public/assets` (`ASSETS_DIR` pour une
+fixture). **Poids.** `npm run weight` additionne ce qu'un téléphone télécharge, d'après les fichiers construits : avant que le
+premier lieu soit jouable (titre, icônes de la colonne, le sac au départ, le premier lieu), par lieu (les images que
+le moteur précharge en construisant le lieu : décor, accessoires dans tous leurs états, chaque personnage qui peut s'y
+tenir avec ses variantes et ses bouches ; plus sa musique et les bruitages que ses commandes jouent), et par chapitre
+(chaque lieu où un joueur peut se trouver pendant ce chapitre, d'après la preuve par chapitres). `assetBudgets: {
+initialKB, roomKB, chapterKB }` dans `game.ts` sont les limites ; en dépasser une, ou un fichier manquant, sort avec 1.
+`--release` (une étape de `verify:release`) échoue aussi quand un budget n'est pas fixé. `--json`.
+`npm run new-game` en écrit un pour les images empruntées à la démo
 (toutes provisoires, CC BY 4.0) ; celui de la démo excepte nommément sa musique non commerciale.
 `npm run verify:release` (validate `--release`, `i18n -- status`, playtests stricts) est une étape de
 `npm run release-check`, donc le workflow de release le lance. Traductions : un texte identique à la source fait échouer
