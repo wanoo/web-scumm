@@ -709,6 +709,10 @@ export interface UiTexts {
   advance?: string;
   /** Prefix shown when obsolete references were removed from an otherwise valid save. */
   saveAdjusted?: string;
+  /** The pause menu's offline row: its label, the word for a complete cache, the word that invites a retry. English defaults. */
+  offlineStatus?: string;
+  offlineComplete?: string;
+  offlineRetry?: string;
   /** Prompt displayed when a new PWA build is ready. */
   updateAvailable?: string;
   updateNow?: string;

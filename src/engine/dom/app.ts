@@ -11,7 +11,7 @@ import { Audio } from './audio';
 import { FONT_PIXEL, FONT_UI, fontStack } from './fonts';
 import { RoomView } from './room';
 import { isTyping, roving, trapFocus } from './a11y';
-import { offlinePlan, planSize } from './offline';
+import { offlinePlan, offlineFinish, offlineFold, offlineStart, offlineText, type OfflineStatus } from './offline';
 import './style.css';
 import { parseSave, parseSlot, saveEnvelope, type SlotRecord } from '../core/save';
 
@@ -134,9 +134,12 @@ export class App implements Presenter {
   private inCutscene = false;
   private saveError: string | null = null;
   private warmedAll = false;
-  private offlineDone!: () => void;
-  /** Resolves once the whole game is cached for offline play (`GameDef.offline`), or at once when it is not asked. */
-  readonly offlineReady: Promise<void> = new Promise((r) => { this.offlineDone = r; });
+  private offlineDone!: (s: OfflineStatus) => void;
+  /** Where the full warm-up stands (`GameDef.offline`): only `complete` means the whole game is in the cache. */
+  offlineStatus: OfflineStatus = { state: 'idle', done: 0, total: 0, failed: [] };
+  private offlineWatchers = new Set<(s: OfflineStatus) => void>();
+  /** Resolves with the final status of the first full warm-up (`complete`, `partial`, `skipped` or `off`). */
+  readonly offlineReady: Promise<OfflineStatus> = new Promise((r) => { this.offlineDone = r; });
   private saveWarning: string | null = null;
   private a11yTargets: HTMLDivElement | null = null;
   private live!: HTMLDivElement;
@@ -979,6 +982,15 @@ export class App implements Presenter {
     const sf = row(ui.sfx, this.audio.sfxOn ? ui.on : ui.off);
     sf.onclick = () => { this.audio.setSfx(!this.audio.sfxOn); sf.lastElementChild!.textContent = this.audio.sfxOn ? ui.on : ui.off; };
     row(ui.autosave, this.saveError ? '⚠' : '✓');
+    if (this.game.offline !== 'nearby') {
+      // What is really in the cache: a tap retries a partial warm-up (files already cached are not fetched again).
+      const labels = { complete: ui.offlineComplete ?? 'complete', retry: ui.offlineRetry ?? 'retry' };
+      const off = row(ui.offlineStatus ?? 'Offline', offlineText(this.offlineStatus, labels));
+      off.setAttribute('aria-live', 'polite');
+      const stop = this.onOffline((s) => { off.lastElementChild!.textContent = offlineText(s, labels); });
+      const prevRemove = d.remove; d.remove = () => { stop(); prevRemove(); };
+      off.onclick = () => { if (this.offlineStatus.state === 'partial' || this.offlineStatus.state === 'skipped') void this.warmAll(true); };
+    }
     const slots = this.game.saves?.slots ?? 0;
     if (slots > 0 && this.engine.state) {
       row(ui.save ?? 'Save', '💾').onclick = () => void this.slotMenu(d, m, 'save', slots);
@@ -1204,23 +1216,49 @@ export class App implements Presenter {
    * The rest of the game, for offline play (`GameDef.offline`, default `full`): once per page, after the room-scoped
    * warm-up, batch by batch during idle time, paused while the page is hidden. The room renderer never waits for it.
    */
-  private async warmAll() {
-    if (this.warmedAll) return;
+  async warmAll(retry = false) {
+    if (this.warmedAll && !retry) return;
+    if (this.offlineStatus.state === 'running') return;
+    const first = !this.warmedAll;
     this.warmedAll = true;
+    const set = (s: OfflineStatus) => { this.offlineStatus = s; this.offlineWatchers.forEach((w) => w(s)); };
     try {
-      if (this.game.offline === 'nearby') return;
+      if (this.game.offline === 'nearby') { set({ state: 'off', done: 0, total: 0, failed: [] }); return; }
       const b = this.bank;
       const plan = offlinePlan(this.game, b.manifest);
-      const url = (kind: string, id: string) => kind === 'img' ? b.img(id) : kind === 'sfx' ? b.sfx(id) : kind === 'voice' ? b.voice(id) : kind === 'music' ? b.music(id) : b.video(id);
+      let estimate: { usage?: number; quota?: number } | undefined;
+      try { estimate = await (navigator as unknown as { storage?: { estimate?: () => Promise<{ usage?: number; quota?: number }> } }).storage?.estimate?.(); } catch { /* no estimate: proceed */ }
+      let status = offlineStart(plan, estimate);
+      set(status);
+      if (status.state !== 'running') return; // quota too small: say so, download nothing
       const visible = () => new Promise<void>((r) => { if (!document.hidden) return r(); const on = () => { if (!document.hidden) { document.removeEventListener('visibilitychange', on); r(); } }; document.addEventListener('visibilitychange', on); });
       for (const batch of plan) {
         await visible();
-        await b.warm(batch.ids.map((id) => url(batch.kind, id)), batch.kind === 'img' ? 3 : 1, { heavy: batch.kind === 'music' || batch.kind === 'video' });
+        const r = await b.warm(batch.ids.map((id) => this.offlineUrl(batch.kind, id)), batch.kind === 'img' ? 3 : 1, { heavy: batch.kind === 'music' || batch.kind === 'video' });
+        status = offlineFold(status, r, batch.ids.length);
+        set(status);
       }
-      const { files } = planSize(plan);
-      if (import.meta.env?.DEV) console.info(`offline: ${files} files warmed`);
-    } finally { this.offlineDone(); }
+      status = offlineFinish(status);
+      set(status);
+      if (import.meta.env?.DEV) console.info(`offline: ${status.state}, ${status.done}/${status.total} files${status.reason ? ` (${status.reason})` : ''}`);
+    } catch (e) {
+      set(offlineFinish({ ...this.offlineStatus, state: 'partial', reason: this.offlineStatus.reason ?? 'network' }));
+      console.warn('offline warm-up stopped', e);
+    } finally { if (first) this.offlineDone(this.offlineStatus); }
   }
+
+  private offlineUrl(kind: string, id: string) {
+    const b = this.bank;
+    return kind === 'img' ? b.img(id) : kind === 'sfx' ? b.sfx(id) : kind === 'voice' ? b.voice(id) : kind === 'music' ? b.music(id) : b.video(id);
+  }
+
+  /** Every URL the full warm-up caches (`scripts/e2e-pwa.mjs` checks each one against the cache, offline). */
+  offlineUrls(): string[] {
+    return offlinePlan(this.game, this.bank.manifest).flatMap((batch) => batch.ids.map((id) => this.offlineUrl(batch.kind, id)));
+  }
+
+  /** Watches the warm-up status (the pause menu's row); returns the unsubscribe. */
+  onOffline(w: (s: OfflineStatus) => void): () => void { this.offlineWatchers.add(w); return () => this.offlineWatchers.delete(w); }
 
   /** The title screen takes up the full width (no side column). */
   private layoutTitle(full: boolean) {

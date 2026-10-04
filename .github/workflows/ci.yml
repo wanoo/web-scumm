@@ -73,7 +73,9 @@ jobs:
         env:
           E2E_BROWSER: ${{ matrix.browser }}
           E2E_OUT: /tmp/e2e-${{ matrix.browser }}
-      - run: npm run e2e:pwa -- http://127.0.0.1:5173/
+      # Chromium proves the offline game (every file of the plan in the cache). WebKit cannot navigate offline under
+      # Playwright: its run reports "skipped", accepted here, never counted as a proof.
+      - run: npm run e2e:pwa -- http://127.0.0.1:5173/ ${{ matrix.browser == 'webkit' && '--allow-skip' || '' }}
         env:
           E2E_BROWSER: ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
