@@ -168,6 +168,7 @@ npm run solve -- --profile         # de quoi les états sont faits et ce que la 
 npm run solve -- --por=stubborn    # réduction d'ordre partiel : les actions commutantes une à la fois (moins d'états, même preuve)
 npm run replay -- session.json     # rejoue un fichier de session sur le vrai moteur, imprime le journal et l'état final
 npm run ids [-- --write --map]     # ids stables (schéma 3) écrits dans les sources, locales renommées, l'étape de migration des sauvegardes (docs/fr/UPGRADING.md)
+npm run playtests [-- --out=.cache/playtests]  # les sessions partagées par les joueurs (games/<id>/playtests) rejouées et cumulées : temps par lieu, blocages, indices, heatmap
 npm run lint [-- --prove | --static | --json]   # lint de contenu : conditions insatisfaisables, règles masquées, faux indices, indices bloqués, actions jamais jouées
 npm run doctor                     # vérifie Node, modules Python, ffmpeg et navigateurs Playwright
 npm run check                      # vérifie les types et lance les tests Node
@@ -188,6 +189,16 @@ témoin, avertissements avec `--prove`). Chaque constat nomme son lieu et son ch
 stable et quoi faire. Code 1 seulement sur une erreur. `lint: { ignore: ['code', 'code:<id>', 'code:<lieu>/<chemin>'] }`
 dans `game.ts` garde un faux indice voulu. L'onglet Check du Studio montre la même liste avec des liens vers Rooms ;
 l'outil MCP `lint` la renvoie en Markdown. À lancer avant de demander une relecture.
+
+**Playtests.** Sur un téléphone, **Partager la session** dans le menu pause envoie la session en fichier (Web Share,
+sinon un téléchargement) : des ids et des index seulement, aucun texte, aucun journal. Déposez-le dans
+`games/<id>/playtests/` (commité ; `npm run audit` le couvre). `npm run playtests` rejoue chaque fichier sur le contenu
+courant et cumule : temps de jeu par lieu (un trou de plus d'une minute est une pause), où les joueurs bloquent (la
+même action trois fois sans effet), indices montrés, mini-jeux joués, où chacun s'est arrêté, et une heatmap avec les
+mêmes clés que celle du solveur (`--out` écrit `report.md`, `report.json`, `heat.svg`). Une session que le contenu a
+dépassée est signalée comme divergente, jamais en erreur : réenregistrer ou supprimer. `verify:game` le lance, donc
+la CI rejoue chaque playtest commité. L'onglet Check du Studio montre le même rapport et laisse la chaleur du graphe
+de puzzles venir des joueurs ; l'outil MCP `playtests` renvoie le Markdown.
 
 **Sessions.** Le moteur enregistre chaque entrée depuis le début de la partie ou le chargement d'une sauvegarde
 (actions, carte, changements de joueur, pas de script) avec les réponses données en chemin (choix, tirages

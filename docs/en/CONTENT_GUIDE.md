@@ -718,6 +718,7 @@ ending"). Right before it, the script plays whatever it wants (the family gather
 
 ## Checking your work
 
+`ui.shareSession` names the pause menu's row that sends a playtest from a phone (docs/en/TOOLS.md, "Playtests").
 `npm run lint` (docs/en/TOOLS.md, "Lint") reads the puzzle graph and a solver run for what the validator cannot see:
 a condition nothing sets, a rule another rule hides, an item no rule needs, a hint that cannot fire, an action the
 solver never ran. A finding you keep on purpose (a red herring) is silenced in `game.ts`:

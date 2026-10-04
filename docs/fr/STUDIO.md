@@ -69,7 +69,9 @@ commandes personnalisées sont du code de confiance, pas des données isolées. 
   lieu au branchement démesuré), le profil complet de `npm run solve -- --profile`. Plus bas, **Storyboard coverage** :
   le storyboard confronté au contenu, le même texte que renvoie l'outil `storyboard_coverage`. Avant lui, **Content
   lint** : les constats de `npm run lint` (erreurs, avertissements, infos), chacun un lien vers l'onglet Rooms, le
-  même texte que renvoie l'outil `lint`.
+  même texte que renvoie l'outil `lint`. Au-dessus, **Playtests** (serveur de dev seulement) : les sessions de
+  `games/<id>/playtests/` rejouées et cumulées, et le sélecteur « Heat » du graphe de puzzles peut colorer les nœuds
+  d'après les sessions des joueurs plutôt que les passes du solveur.
 - **Play** : le jeu lui-même (outils de dev actifs) dans un cadre, à côté de l'**état** en direct (lieu, sac, flags,
   personnages mobiles, scripts, joueurs) et d'un **explicateur de règles** : choisis un verbe, un objet et une cible, et
   chaque règle qui pourrait répondre est listée avec chaque condition évaluée ✓ / ✗ sur l'état en direct ; la première ✓
@@ -111,6 +113,7 @@ capture d'écran indisponible).
 | DELETE `notes/:id` | → `{ ok }`, la note retirée de `notes.json` ; 404 id inconnu |
 | POST `validate` | → `{ ok, errors: string[], warnings: string[], ms }` |
 | POST `coverage` | → `{ coverage, markdown, ms }` : le storyboard enregistré confronté au contenu (`src/engine/tools/coverage.ts` : par board et par case, chaque lieu, locuteur, réplique, sujet, son et action ok / partial / missing / unknown) |
+| POST `playtests` | → `{ report, markdown, files, ms }` : les playtests de `games/<id>/playtests/` rejoués et cumulés (`src/engine/tools/playtests.ts`) |
 | POST `lint` | `{ prove? }` → `{ lint, markdown, mode, ms }` : le lint de contenu après une passe du solveur (`src/engine/tools/lint.ts` ; `prove` : la recherche exhaustive d'abord) |
 | POST `solve` | `{ from?: checkpoint }` → `{ finished, states, truncated, path, roomsReached, unlockedReached, flagsReached, itemsNeverUsed, unusedItems, deadEnds: [{ room, inventory, path }], errors, from, ms, profile }` (400 pour un checkpoint inconnu) ; `profile` est le `SolveProfile` de `src/engine/tools/solve.ts` |
 | POST `screenshot` | `{ room, checkpoint? }` → `{ file, url }` : un PNG du lieu (overlays de l'éditeur masqués) sous `.cache/studio/<game>-<room>[-<checkpoint>].png`, servi à `url` (`GET screenshots/<name>.png`). 501 `{ unavailable: true, reason, error }` si Playwright ou son Chromium est manquant |

@@ -61,7 +61,8 @@ Ollama preset. Game TypeScript and custom commands are trusted code, not sandbox
   runaway branching), the full profile of `npm run solve -- --profile`. Further down, **Storyboard coverage**: the
   storyboard checked against the content, the same text the `storyboard_coverage` tool returns. Before it, **Content
   lint**: the findings of `npm run lint` (errors, warnings, info), each a link into the Rooms tab, the same text the
-  `lint` tool returns.
+  `lint` tool returns. Above it, **Playtests** (dev server only): the sessions of `games/<id>/playtests/` replayed and
+  summed up, and the puzzle graph's "Heat" selector can colour the nodes by the players' sessions instead of the solver's runs.
 - **Play**: the game itself (dev tools on) in a frame, next to the live **state** (room, bag, flags, moving
   characters, scripts, players) and a **rule explainer**: pick a verb, an item and a target, and every rule that could
   answer is listed with each condition evaluated ✓ / ✗ against the live state; the first ✓ wins, or the tab says which
@@ -98,6 +99,7 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 | DELETE `notes/:id` | → `{ ok }`, the note removed from `notes.json`; 404 unknown id |
 | POST `validate` | → `{ ok, errors: string[], warnings: string[], ms }` |
 | POST `coverage` | → `{ coverage, markdown, ms }`: the saved storyboard checked against the content (`src/engine/tools/coverage.ts`: per board and panel, each room, speaker, line, topic, sound and action ok / partial / missing / unknown) |
+| POST `playtests` | → `{ report, markdown, files, ms }`: the playtests of `games/<id>/playtests/` replayed and summed up (`src/engine/tools/playtests.ts`) |
 | POST `lint` | `{ prove? }` → `{ lint, markdown, mode, ms }`: the content lint after a solver run (`src/engine/tools/lint.ts`; `prove`: the exhaustive search first) |
 | POST `solve` | `{ from?: checkpoint }` → `{ finished, states, truncated, path, roomsReached, unlockedReached, flagsReached, itemsNeverUsed, unusedItems, deadEnds: [{ room, inventory, path }], errors, from, ms, profile }` (400 for an unknown checkpoint); `profile` is the `SolveProfile` of `src/engine/tools/solve.ts` |
 | POST `screenshot` | `{ room, checkpoint? }` → `{ file, url }`: a PNG of the room (editor overlays hidden) under `.cache/studio/<game>-<room>[-<checkpoint>].png`, served at `url` (`GET screenshots/<name>.png`). 501 `{ unavailable: true, reason, error }` if Playwright or its Chromium is missing |

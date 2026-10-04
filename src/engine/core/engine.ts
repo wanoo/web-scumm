@@ -63,6 +63,9 @@ export class Engine {
   }
   /** Injectable randomness (the solver makes it deterministic). */
   random: () => number = Math.random;
+  /** A clock (ms) for the session's `t` timestamps; none in the solver and the tests, so their sessions stay byte-identical. */
+  clock: (() => number) | null = null;
+  private sessionT0 = 0;
   /**
    * The session: the player's inputs since the game started or a save was loaded, with the answers given on the way
    * (`SessionEntry`). Always recorded: exported with a save, it is the bug report `replay()` reproduces.
@@ -80,13 +83,19 @@ export class Engine {
 
   /** Opens an entry of the session (and takes its recorded twin when replaying). */
   private begin(entry: SessionEntry) {
-    if (!this.open.length && this.session && this.session.log.length >= Engine.SESSION_MAX) {
-      this.session = { v: this.game.saveVersion, start: { kind: 'load' }, base: structuredClone(this.state), log: [] };
-    }
-    this.session ??= { v: this.game.saveVersion, start: { kind: 'load' }, base: this.state, log: [] };
+    if (!this.open.length && this.session && this.session.log.length >= Engine.SESSION_MAX) this.newSession({ kind: 'load' });
+    this.session ??= this.newSession({ kind: 'load' });
+    if (this.clock) entry.t = Math.round(this.clock() - this.sessionT0);
     this.session.log.push(entry);
     this.open.push({ entry, src: this.feed?.shift(), pi: 0, mi: 0, ri: 0, steps: 0 });
   }
+  /** A fresh session from the current state; the clock, when set, dates it and its entries. */
+  private newSession(start: Session['start']): Session {
+    this.sessionT0 = this.clock?.() ?? 0;
+    this.session = { v: this.game.saveVersion, start, base: structuredClone(this.state), log: [], ...(this.clock ? { at: Date.now() } : {}) };
+    return this.session;
+  }
+
   private end() {
     const o = this.open.pop();
     if (o && this.digestOn) o.entry.digest = stateDigest(this.state);
@@ -191,7 +200,7 @@ export class Engine {
     this.dropGuide();
     this.state = this.ensureState(this.fresh());
     this.store.save(this.state);
-    this.session = { v: this.game.saveVersion, start: { kind: 'new' }, base: structuredClone(this.state), log: [] };
+    this.newSession({ kind: 'new' });
     this.begin({ start: 'new' });
     this.ran('rule:game/start');
     try {
@@ -217,7 +226,7 @@ export class Engine {
     this.dropGuide();
     this.state = this.ensureState(s);
     this.store.save(this.state);
-    this.session = { v: this.game.saveVersion, start: { kind: 'load' }, base: structuredClone(this.state), log: [] };
+    this.newSession({ kind: 'load' });
     await this.enter(s.room, undefined, false);
     this.startScripts(true);
   }
@@ -235,7 +244,7 @@ export class Engine {
     if (c.active) s.active = c.active;
     if (c.players) { s.players = {}; for (const [pid, p] of Object.entries(c.players)) if (pid !== s.active) s.players[pid] = { room: p.room, inventory: [...(p.inventory ?? [])], hero: {} }; }
     this.state = this.ensureState(s);
-    this.session = { v: this.game.saveVersion, start: { kind: 'checkpoint', id }, base: structuredClone(this.state), log: [] };
+    this.newSession({ kind: 'checkpoint', id });
     await this.enter(c.room, undefined, false);
     this.startScripts(true);
   }
@@ -633,6 +642,7 @@ export class Engine {
     const hints = room.hints ?? [];
     const idx = hints.findIndex((h) => !check(h.until, this.state, room.id));
     const voice = this.game.hintVoice ?? this.heroId();
+    this.ran(`hint:${room.id}/${idx < 0 ? 'none' : idx}`);
     if (idx < 0) { await this.say(voice, this.fallback('talk', this.game.hintItem!), ctx); return; }
     await this.say(voice, this.pickLine(`hint.${room.id}.${idx}`, hints[idx].lines), ctx);
   }
@@ -1062,6 +1072,7 @@ export class Engine {
       return this.exec(o.do, ctx);
     }
     if ('minigame' in c) {
+      this.ran(`minigame:${c.minigame}`);
       await this.ui.minigame(c.minigame, c.params ?? {});
       return this.exec(c.then, ctx);
     }

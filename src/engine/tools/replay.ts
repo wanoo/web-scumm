@@ -116,9 +116,12 @@ export async function replay(gameIn: GameDef, layouts: Record<Id, Layout>, sessi
 /** The file a tester sends: the session, the journal, the game and its save version. */
 export interface SessionFile { kind: 'web-scumm-session'; game: Id; v: number; at: number; session: Session; trace: TraceEntry[] }
 
-export function sessionFile(gameId: Id, e: Engine): SessionFile {
+export function sessionFile(gameId: Id, e: Engine, o: { playtest?: boolean } = {}): SessionFile {
   if (!e.session) throw new Error('no session yet: start or load a game first');
-  return { kind: 'web-scumm-session', game: gameId, v: e.game.saveVersion, at: Date.now(), session: structuredClone(e.session), trace: [...e.trace] };
+  const session = structuredClone(e.session);
+  // A playtest leaves the device with ids and indices only: no journal (its lines carry text), no dev-panel scripts.
+  if (o.playtest) for (const en of session.log) if ('script' in en) en.script = [];
+  return { kind: 'web-scumm-session', game: gameId, v: e.game.saveVersion, at: session.at ?? Date.now(), session, trace: o.playtest ? [] : [...e.trace] };
 }
 
 /** Reads a session file (or a bare session) and checks its shape. */

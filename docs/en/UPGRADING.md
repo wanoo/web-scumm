@@ -132,7 +132,7 @@ verdict (`Witness status:` / `Proof status:`), everything else is unchanged.
 | a script | `stepIds`, one per command of `do` | a save resumes at the named step after a reorder |
 
 **New `ui` keys** (English defaults when absent): `saveFailed`, `saveAdjusted`, `updateAvailable`, `updateNow`, `advance`
-(3.1, the "tap to continue" marker for screen readers).
+(3.1, the "tap to continue" marker for screen readers), `shareSession` (3.1, the playtest row of the pause menu).
 
 ## 8. A game that embeds the engine (a copy of `src/engine`)
 

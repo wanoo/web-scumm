@@ -540,3 +540,34 @@ Verdict: the content lint, the first of the two "semi-pro" tools (#7.3)
 | `npm run audit`, `npm run i18n -- status` | clean, 391/391 |
 
 → next: Claude · merge after CI, then `v3-playtests`
+
+## #20 · 2026-10-04 · Claude · proposal · v3-playtests
+Branch: v3-playtests · from main@f2ca99e, merged with main after v3-a11y and v3-lint
+Verdict: the playtest recorder, the second "semi-pro" tool (#7.3)
+
+- Engine: `Engine.clock` (null in the solver and the tests, `performance.now` in the page) dates the session (`at`)
+  and every entry (`t`, ms); replay and the solver ignore it, their fixtures are byte-identical. `hint()` and the
+  `minigame` command record `hint:<room>/<i>` and `minigame:<id>` in `ran`.
+- Capture: the pause menu's "Share session" (`ui.shareSession`) sends `sessionFile(…, { playtest: true })`: no
+  journal, no dev-panel scripts, ids and indices only; Web Share with a file, else a download. Convention:
+  `games/<id>/playtests/*.session.json`, committed, covered by `npm run audit`.
+- `src/engine/tools/playtests.ts` `analyzePlaytests()` replays each file (`replay`'s `onEntry`): time per room with
+  pauses over 60 s excluded, effective vs no-effect inputs, stalls (3 tries of the same action without effect),
+  hints, minigames, interrupted walks, the abandon point, a heat map keyed by puzzle-graph node ids; divergence
+  reported per file, never thrown. `playtestsMarkdown`.
+- `npm run playtests [-- --out]` (exit 0 with no file; `verify:game` runs it, so CI replays every committed
+  playtest), MCP tool `playtests` (22 tools, 18 plain), Studio Check panel "Playtests" and a "Heat" selector
+  none / solver / playtests on the puzzle graph; `POST /playtests`.
+- A sample committed: `games/demo/playtests/walkthrough-hesitant.session.json` (the solver's path with hesitations:
+  two stalls, two hints, 105 s of play).
+- Docs: TOOLS "Playtests" paragraph (every measure, privacy), STUDIO, MCP, CONTENT_GUIDE (`ui.shareSession`),
+  UPGRADING §7, CHANGELOG (en, fr).
+
+### Checks run
+| Command | Result |
+|---|---|
+| `tsc --noEmit`, `npm test` | clean, 238 passed (+ tests/playtests.test.ts, tool counts) |
+| `npm run playtests` on the demo | 1 session, 23 inputs, 2 stalls, 2 hints, heat on 3 rooms |
+| `npm run verify:game`, `npm run audit`, `npm run i18n -- status` | green, clean, 393/393 |
+
+→ next: Claude · merge after CI, then `v3-ci` and `v3-docs`

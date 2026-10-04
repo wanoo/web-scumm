@@ -14,12 +14,14 @@ import { report as reportGame, reportMarkdown } from '../../src/engine/tools/rep
 import { toDot, toSvg, worldGraph } from '../../src/engine/tools/graph';
 import { extraReads, liveClasses, puzzleGraph, puzzleMarkdown, toPuzzleDot, toPuzzleSvg } from '../../src/engine/tools/puzzle';
 import { coverageMarkdown, storyboardCoverage } from '../../src/engine/tools/coverage';
+import { analyzePlaytests, playtestsMarkdown, type PlaytestFile } from '../../src/engine/tools/playtests';
+import { parseSessionFile } from '../../src/engine/tools/replay';
 import { lintContent, lintMarkdown } from '../../src/engine/tools/lint';
 import { loadAssets, loadLayouts, loadLocales } from '../../src/engine/tools/load';
 import { GAME_DIR, ROOT, type GameModule } from '../game';
 import { normalizeStoryboard, storyboardMarkdown } from '../pages/storyboard-data';
 import { addToSection, extractTexts, objectText, parseRoom, SourceError, setTextInSource } from './source';
-import type { CoverageData, LintData,
+import type { CoverageData, LintData, PlaytestsData,
   AddEntity, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, ScreenshotResult, SolveData, TextRef, ValidateResult, ReportData, GraphData, PuzzleData,
 } from './types';
 
@@ -362,6 +364,17 @@ export function createStudio(opts: StudioOptions = {}) {
     return { ok: errors.length === 0, errors, warnings, ms: Date.now() - t0 };
   }
 
+  /** The playtests of games/<id>/playtests/*.session.json replayed and summed up. */
+  async function playtests(): Promise<PlaytestsData> {
+    const t0 = Date.now();
+    const mod = await loadModule();
+    const layouts = loadLayouts(join(dir, 'layout'));
+    const folder = join(dir, 'playtests');
+    const files: PlaytestFile[] = existsSync(folder) ? readdirSync(folder).filter((f) => f.endsWith('.session.json')).sort().map((name) => ({ name, file: parseSessionFile(readFileSync(join(folder, name), 'utf8')) })) : [];
+    const report = await analyzePlaytests(mod.game, layouts, files, { commands: mod.commands });
+    return { report, markdown: playtestsMarkdown(report, mod.game), files: files.length, ms: Date.now() - t0 };
+  }
+
   /** The content lint after a witness (or, `prove`, exhaustive) solver run. */
   async function lint(prove = false): Promise<LintData> {
     const t0 = Date.now();
@@ -457,7 +470,7 @@ export function createStudio(opts: StudioOptions = {}) {
     gameDir: dir, gameId, root,
     /** The game module, imported fresh (for tools that read the whole game, e.g. asset prompts). */
     loadGame: loadModule,
-    gameInfo, getRoom, texts, getLayout, setLayout, setText, addEntity, report, graph, puzzle, coverage, lint,
+    gameInfo, getRoom, texts, getLayout, setLayout, setText, addEntity, report, graph, puzzle, coverage, lint, playtests,
     getStoryboard, setStoryboard, getNotes, addNote, editNote, deleteNote, exportStoryboardMarkdown, validate, solve, screenshot, screenshotPath,
   };
 }

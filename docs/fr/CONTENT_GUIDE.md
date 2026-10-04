@@ -717,6 +717,8 @@ Juste avant, le scénario joue ce qu'il veut (la famille autour du canapé, le c
 
 ## Vérifier son travail
 
+`ui.shareSession` nomme la ligne du menu pause qui envoie un playtest depuis un téléphone (docs/fr/TOOLS.md,
+« Playtests »).
 `npm run lint` (docs/fr/TOOLS.md, « Lint ») lit le graphe de puzzles et une passe du solveur pour ce que le
 validateur ne voit pas : une condition que rien ne pose, une règle qu'une autre masque, un objet qu'aucune règle
 n'exige, un indice qui ne peut pas se déclencher, une action jamais jouée par le solveur. Un constat gardé exprès (un

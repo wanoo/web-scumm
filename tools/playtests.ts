@@ -1,0 +1,54 @@
+// npm run playtests [-- --json] [--dir=games/<id>/playtests] [--out=.cache/playtests]
+// Replays every playtest of the current game (sessions shared from phones: ids and indices only) and sums them up:
+// time per room, where players stall, hints shown, where they stopped, a heat map on the puzzle graph. A session the
+// content has outgrown (the replay diverges) is reported, not an error: re-record or delete it. No file: exit 0.
+// --out writes report.md, report.json and heat.svg. --json prints the report on stdout, nothing else.
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, relative, resolve } from 'node:path';
+import { analyzePlaytests, playtestsMarkdown, type PlaytestFile } from '../src/engine/tools/playtests';
+import { parseSessionFile } from '../src/engine/tools/replay';
+import { puzzleGraph, toPuzzleSvg } from '../src/engine/tools/puzzle';
+import { loadLayouts } from '../src/engine/tools/load';
+import { GAME, GAME_DIR, ROOT, loadGameModule } from './game';
+
+const args = process.argv.slice(2);
+const arg = (k: string) => args.find((a) => a.startsWith(`--${k}=`))?.split('=')[1];
+const asJson = args.includes('--json');
+const dir = resolve(arg('dir') ?? join(GAME_DIR, 'playtests'));
+const { game, commands } = await loadGameModule();
+const layouts = loadLayouts(resolve(GAME_DIR, 'layout'));
+
+const names = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.session.json')).sort() : [];
+if (!names.length) {
+  if (asJson) console.log(JSON.stringify({ files: [], total: { files: 0, entries: 0, ms: 0 } }));
+  else console.log(`[${GAME}] no playtests in ${relative(ROOT, dir)} (play on a phone, "Share session" in the pause menu, drop the file there)`);
+  process.exit(0);
+}
+const files: PlaytestFile[] = [];
+let bad = 0;
+for (const name of names) {
+  try {
+    const file = parseSessionFile(readFileSync(join(dir, name), 'utf8'));
+    if (file.game && file.game !== game.id) { console.error(`  ✖ ${name}: recorded on game "${file.game}", not "${game.id}"`); bad++; continue; }
+    if (file.v !== game.saveVersion) console.error(`  ⚠ ${name}: recorded with save version ${file.v}, the game is at ${game.saveVersion}: the replay may diverge`);
+    files.push({ name, file });
+  } catch (e) { console.error(`  ✖ ${name}: ${(e as Error).message}`); bad++; }
+}
+if (bad) process.exit(1);
+
+const t0 = Date.now();
+const report = await analyzePlaytests(game, layouts, files, { commands });
+const markdown = playtestsMarkdown(report, game);
+if (asJson) console.log(JSON.stringify(report));
+else {
+  console.log(markdown);
+  console.log(`${files.length} session(s) replayed in ${((Date.now() - t0) / 1000).toFixed(1)} s${report.divergences ? ` · ${report.divergences} diverged (content changed since: re-record or delete)` : ''}`);
+}
+const out = arg('out');
+if (out) {
+  mkdirSync(out, { recursive: true });
+  writeFileSync(join(out, 'report.md'), markdown);
+  writeFileSync(join(out, 'report.json'), JSON.stringify(report, null, 1));
+  writeFileSync(join(out, 'heat.svg'), toPuzzleSvg(puzzleGraph(game, { commands }), { heat: report.heat }));
+  if (!asJson) console.log(`written: ${relative(ROOT, out)}/report.md, report.json, heat.svg`);
+}

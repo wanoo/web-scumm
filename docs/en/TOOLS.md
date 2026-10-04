@@ -175,6 +175,7 @@ npm run solve -- --profile         # what the states are made of and what the se
 npm run solve -- --por=stubborn    # partial-order reduction: commuting actions one at a time (fewer states, same proof)
 npm run replay -- session.json     # plays a session file on the real engine, prints the journal and the final state
 npm run ids [-- --write --map]     # stable ids (schema 3) written into the sources, locales renamed, the save migration step (docs/en/UPGRADING.md)
+npm run playtests [-- --out=.cache/playtests]  # the sessions players shared (games/<id>/playtests) replayed and summed up: time per room, stalls, hints, heat map
 npm run lint [-- --prove | --static | --json]   # content lint: conditions nothing can satisfy, hidden rules, red herrings, stuck hints, actions never run
 npm run doctor                     # checks Node, Python modules, ffmpeg and Playwright browsers
 npm run check                      # type-check and Node tests
@@ -194,6 +195,15 @@ info); after a solver run, a live action the witness never ran and a room it nev
 the Rooms tab shows), its stable id, and what to do. Exit 1 only on an error. `lint: { ignore: ['code',
 'code:<id>', 'code:<room>/<path>'] }` in `game.ts` keeps a red herring on purpose. The Studio's Check tab shows the
 same list with links into Rooms; the `lint` MCP tool returns it as Markdown. Run it before asking for a review.
+
+**Playtests.** On a phone, the pause menu's **Share session** sends the session as a file (Web Share, else a
+download): ids and indices only, no text, no journal. Drop it in `games/<id>/playtests/` (committed; `npm run audit`
+covers it). `npm run playtests` replays every file on the current content and sums them up: play time per room (gaps
+over a minute are pauses), where players stall (the same action three times without effect), hints shown, minigames
+played, where each player stopped, and a heat map keyed like the solver's (`--out` writes `report.md`, `report.json`,
+`heat.svg`). A session the content has outgrown is reported as diverged, never an error: re-record or delete it.
+`verify:game` runs it, so the CI replays every committed playtest. The Studio's Check tab shows the same report and
+lets the puzzle graph's heat come from the players; the `playtests` MCP tool returns the Markdown.
 
 **Sessions.** The engine records every input since the game started or a save was loaded (actions, map, switches,
 script steps) with the answers given on the way (choices, random draws). The game's save menu, the dev panel and the

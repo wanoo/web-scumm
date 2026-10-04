@@ -349,6 +349,7 @@
  "ui/confirmOverwrite": "Overwrite this slot?",
  "ui/saveFailed": "Save failed",
  "ui/advance": "Continue",
+ "ui/shareSession": "Share session",
  "ui/saveAdjusted": "Save adjusted for this version",
  "ui/updateAvailable": "A new version is ready.",
  "ui/updateNow": "Save and update",
