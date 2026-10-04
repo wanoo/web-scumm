@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assetKeys, provenanceReport } from '@engine/tools/provenance';
+import { assetKeys, placeholderVerdict, provenanceReport } from '@engine/tools/provenance';
 import { game as demo } from '../games/demo/game';
 import demoManifest from '../games/demo/assets.gen.json';
 import demoProvenance from '../games/demo/provenance.json';
@@ -28,3 +28,13 @@ describe('asset provenance', () => {
     expect(r.placeholders).toEqual(['music:swan_lake.mp3']);
   });
 });
+
+describe('placeholders in a release', () => {
+  const r = { keys: 2, uncovered: [], placeholders: ['music:theme.mp3'], incomplete: [] };
+  it('fail it, unless the file says why they may ship', () => {
+    expect(placeholderVerdict({ assets: [] }, r).errors).toHaveLength(1);
+    expect(placeholderVerdict({ assets: [], allowPlaceholders: 'a demo' }, r)).toEqual({ errors: [], warnings: [expect.stringContaining('allowed: a demo')] });
+    expect(placeholderVerdict({ assets: [] }, { ...r, placeholders: [] })).toEqual({ errors: [], warnings: [] });
+  });
+});
+

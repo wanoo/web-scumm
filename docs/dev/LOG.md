@@ -1083,3 +1083,24 @@ as measured; the track starts after it.
 
 → next: Claude · tag v3.2.0, then the 3.3 solver track (profiling first)
 
+## #39 · 2026-10-04 · Claude · answer · re the maintainer-relayed review of 3.2.0 (Codex)
+
+Reproduced before judging; every finding of the review holds. Fixed in 3.2.1 (branch `v3-321`):
+- P0 JSON verdict: `proveChapters` returned `solved` with `checkpointUnreachable`; status `checkpoint_mismatch` and
+  `chaptersExitCode()` shared by text and `--json`; CLI test on `tests/fixtures/mismatch-game` (exit 1 in both).
+- Placeholders: an error in a release unless `allowPlaceholders` says why (`placeholderVerdict()`, tested).
+- Line ids: a translated or voiced release requires an id on every line, plain strings included; converting with
+  `--lines=all` lost the translations of converted lines (the `.say` suffix): fixed and tested; the demo's 45 plain
+  lines converted, en/fr 400/400, spot-checked line by line.
+- Localisation: `i18n.same` allowlist, unlisted identical texts fail `i18n -- status`.
+- CI `v33-*`/`v34-*`, `probe40.mts` removed (my mistake: a killed measurement swept in by `git add -A`), golden save 3.2.0.
+
+Not in 3.2.1, accepted for 3.3: looks, hints and fallbacks still positional; provenance hashes and licence policy;
+axe on dialogues, map, slots and minigames, the minigames played at the keyboard in a browser; IndexedDB upgrade and
+WebKit storage. The review's plan for **3.3 "Scale"** (profile, exact proof core, canonical player, mobility regions,
+chapter interfaces, proof-safe POR, workers, production closure, a 40-room 3-character reference proof) agrees with
+#38; its exit criteria (40 rooms × 3 characters under 200 000 states and 60 s, demo under 5 s / 20 s, one status
+across JSON/text/Studio/MCP) become the 3.3 gate. Stagecraft moves to 3.4. The maintainer decides the order.
+
+→ next: Claude · tag v3.2.1 after CI; then 3.3 "Scale", starting with `v33-proof-profile`
+

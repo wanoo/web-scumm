@@ -613,6 +613,9 @@ export interface GameDef {
   offline?: 'full' | 'nearby';
   /** Content lint (`npm run lint`): codes to silence, as `code`, `code:<stable id>` or `code:<room>/<path>`. */
   lint?: { ignore?: string[] };
+  /** Translation paths whose text stays the same in every language on purpose (a name, "OK", ▲): every other text
+   *  identical to the source is an untranslated line and fails `npm run i18n -- status`. */
+  i18n?: { same?: string[] };
   /** Background-preload batch sizes (per step, not totals). They never affect assets required to render the current room. */
   assetBudgets?: { initialImages?: number; neighboringRooms?: number; audioFiles?: number };
   /**

@@ -30,7 +30,19 @@ export interface ChapterProof {
   results: SolveResult[];
 }
 
-export interface ChaptersProof { status: SolveResult['status']; chapters: ChapterProof[]; ms: number }
+export interface ChaptersProof {
+  /** The searches' worst status, and `checkpoint_mismatch` when they all solved but a checkpoint is no reachable state. */
+  status: SolveResult['status'] | 'checkpoint_mismatch';
+  chapters: ChapterProof[];
+  ms: number;
+}
+
+/**
+ * The one exit code of a proof by chapters, for the text output, `--json`, the Studio and the MCP tool alike:
+ * 0 every chapter solved and every checkpoint reachable, 2 truncated, 1 anything else (softlocks, unsolved, error,
+ * a checkpoint no boundary state matches).
+ */
+export const chaptersExitCode = (p: ChaptersProof) => (p.status === 'solved' ? 0 : p.status === 'truncated' ? 2 : 1);
 
 const rank: Record<SolveResult['status'], number> = { solved: 0, softlocks: 1, unsolved: 2, truncated: 3, error: 4 };
 const worst = (a: SolveResult['status'], b: SolveResult['status']) => (rank[a] >= rank[b] ? a : b);
@@ -108,5 +120,6 @@ export async function proveChapters(game: GameDef, layouts: Record<string, Layou
     await run(id, c.goals, next, id);
   }
   if (cps.length && starts.length) await run('ending', undefined, undefined);
-  return { status, chapters, ms: Date.now() - t0 };
+  const mismatch = chapters.some((c) => c.checkpointUnreachable);
+  return { status: status === 'solved' && mismatch ? 'checkpoint_mismatch' : status, chapters, ms: Date.now() - t0 };
 }

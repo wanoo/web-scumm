@@ -62,7 +62,7 @@ export const game = defineGame({
     intro: [
       { id: 'game.intro.l-pixel-bad-news', say: ['grandma', 'Pixel! Bad news. The sardines are locked in the pantry...'] },
       { id: 'game.intro.l-and-i-lost-the', say: ['grandma', '...and I lost the key.'] },
-      'Wait. What is really in that pantry?',
+      { say: ['hero', 'Wait. What is really in that pantry?'], id: 'game.intro.l-wait-what-is' },
       { choice: [
         { id: 'game.intro.c-sardines-obvious', text: 'Sardines. Obviously.', do: [{ set: ['guess', 'sardines'] }] },
         { id: 'game.intro.c-a-mouse-a-big', text: 'A mouse. A big one.', do: [{ set: ['guess', 'mouse'] }] },
@@ -76,7 +76,7 @@ export const game = defineGame({
       ] },
       { id: 'game.intro.l-take-my-shell', say: ['grandma', 'Take my shell phone. Talk into it if you get stuck.'] },
       { id: 'game.intro.l-pick-up-the', guide: { verb: 'take', target: 'shell', say: 'PICK UP the shell phone on the table.' } },
-      'Garden. Grandpa. Key. Sardines. Easy.',
+      { say: ['hero', 'Garden. Grandpa. Key. Sardines. Easy.'], id: 'game.intro.l-garden-grandpa' },
     ],
   },
   // One ready state per room (?dev&at=<id>, npm run solve -- --from=<id>). Each one also ends a chapter: its `goals` are
@@ -109,6 +109,8 @@ export const game = defineGame({
   invariants: [{ all: [{ player: 'hero' }, { prop: ['house.armchair', 'searched'] }, { not: { has: 'token' } }, '!flowers_done'] }],
   // Three manual save slots in the pause menu (export / import as a file too), and a Settings entry.
   saves: { slots: 3 },
+  // Texts that stay the same in French on purpose: names, ▲ ▼, OK, words French borrowed (`npm run i18n -- status`).
+  i18n: { same: ['room:market/props.oranges.name', 'room:market/props.bouquet.name', 'item:bouquet/name', 'char:hero/name', 'char:biscuit/name', 'char:neighbor/name', 'ui/pause', 'ui/zoomIn', 'ui/ok', 'ui/jump', 'ui/duck', 'ui/normal'] },
   settings: true,
   // The music and the sound effects are Mega Drive renders built by `npm run audio` (docs/en/AUDIO.md): the theme is
   // the opening of Tchaikovsky's Swan Lake (public domain), the effects come from games/demo/audio/sfx.json.

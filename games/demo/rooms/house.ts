@@ -58,45 +58,45 @@ export default defineRoom({
 
   on: [
     // Tutorial step 3, and the hint item.
-    { id: 'house.take-shell', verb: 'take', a: 'shell', do: [{ gain: 'shell_phone' }, { sfx: 'select' }, 'Got it. It smells like the sea.'] },
+    { id: 'house.take-shell', verb: 'take', a: 'shell', do: [{ gain: 'shell_phone' }, { sfx: 'select' }, { say: ['hero', 'Got it. It smells like the sea.'], id: 'house.take-shell.l-got-it-it-smells' }] },
 
     // The armchair: a token behind the cushion, once (the prop state remembers it).
     { id: 'house.open-armchair', verb: ['open', 'pull', 'push', 'use'], a: 'armchair', if: { all: [{ player: 'hero' }, { prop: ['armchair', 'remote'] }] }, do: [
-      { sfx: 'cloth' }, { prop: ['armchair', 'searched'] }, 'Behind the cushion... a market token!', { gain: 'token' },
-      'And Grandpa\'s remote. I will leave that one. Too much TV.',
+      { sfx: 'cloth' }, { prop: ['armchair', 'searched'] }, { say: ['hero', 'Behind the cushion... a market token!'], id: 'house.open-armchair.l-behind-the' }, { gain: 'token' },
+      { say: ['hero', 'And Grandpa\'s remote. I will leave that one. Too much TV.'], id: 'house.open-armchair.l-and-grandpa-s' },
     ] },
-    { id: 'house.open-armchair-2', verb: ['open', 'pull', 'push', 'use'], a: 'armchair', do: ['Just crumbs. Old crumbs.'] },
-    { id: 'house.look-armchair', verb: 'look', a: 'armchair', if: { prop: ['armchair', 'searched'] }, do: ['Just an armchair now. A comfy one.'] },
+    { id: 'house.open-armchair-2', verb: ['open', 'pull', 'push', 'use'], a: 'armchair', do: [{ say: ['hero', 'Just crumbs. Old crumbs.'], id: 'house.open-armchair-2.l-just-crumbs-old' }] },
+    { id: 'house.look-armchair', verb: 'look', a: 'armchair', if: { prop: ['armchair', 'searched'] }, do: [{ say: ['hero', 'Just an armchair now. A comfy one.'], id: 'house.look-armchair.l-just-an-armchair' }] },
 
     // The pantry, and the finale.
-    { id: 'house.look-pantry', verb: 'look', a: 'pantry', if: { prop: ['pantry', 'open'] }, do: ['Open. An empty tin. A happy cat.'] },
-    { id: 'house.open-pantry', verb: ['open', 'use', 'pull'], a: 'pantry', if: { prop: ['pantry', 'locked'] }, do: [{ play: ['pantry', 'rattle'] }, 'Locked. I need the key.'] },
+    { id: 'house.look-pantry', verb: 'look', a: 'pantry', if: { prop: ['pantry', 'open'] }, do: [{ say: ['hero', 'Open. An empty tin. A happy cat.'], id: 'house.look-pantry.l-open-an-empty' }] },
+    { id: 'house.open-pantry', verb: ['open', 'use', 'pull'], a: 'pantry', if: { prop: ['pantry', 'locked'] }, do: [{ play: ['pantry', 'rattle'] }, { say: ['hero', 'Locked. I need the key.'], id: 'house.open-pantry.l-locked-i-need' }] },
     { id: 'house.use-key-pantry', verb: 'use', a: 'key', b: 'pantry', if: { prop: ['pantry', 'locked'] }, do: [
       { cutscene: [
         { sfx: 'metal' }, { wait: 300 }, { sfx: 'latch' }, { prop: ['pantry', 'open'] }, { sfx: 'door_open' },
         { used: 'key' }, { set: 'pantry_open' },
-        'Open! Sardines! Hello, my little friends.',
+        { say: ['hero', 'Open! Sardines! Hello, my little friends.'], id: 'house.use-key-pantry.l-open-sardines' },
         { pose: ['hero', 'eat'] }, { sfx: 'chips' }, { wait: 1400 },
         { pose: ['biscuit', 'idle'] }, { id: 'house.use-key-pantry.l-mrrp-did-someone', say: ['biscuit', 'Mrrp? Did someone say sardines?'] },
         { face: 'biscuit', who: 'grandma' },
         { id: 'house.use-key-pantry.l-ha-two-cats-one', say: ['grandma', 'Ha! Two cats, one tin. Share, you two.'] },
-        { pose: ['hero', 'idle'] }, 'Fine. Half. Ish.',
+        { pose: ['hero', 'idle'] }, { say: ['hero', 'Fine. Half. Ish.'], id: 'house.use-key-pantry.l-fine-half-ish' },
         // A custom command of the game (index.ts `commands`): stars over the scene, no effect on the state.
         { custom: 'sparkle', args: { ms: 1400 } },
       ] },
       { ending: true, after: [
         { id: 'house.use-key-pantry.l-well-done-pixel', say: ['grandma', 'Well done, Pixel. Best breakfast ever.'] },
-        'Best. Breakfast. Ever.',
+        { say: ['hero', 'Best. Breakfast. Ever.'], id: 'house.use-key-pantry.l-best-breakfast' },
       ] },
     ] },
 
     // Small gags (the way out is the `window` exit above).
-    { id: 'house.open-door', verb: 'open', a: 'door', do: ['The hall. The vacuum cleaner lives there. Our sworn enemy.'] },
+    { id: 'house.open-door', verb: 'open', a: 'door', do: [{ say: ['hero', 'The hall. The vacuum cleaner lives there. Our sworn enemy.'], id: 'house.open-door.l-the-hall-the' }] },
     // Biscuit (the second playable cat) is the one who drinks tea.
-    { id: 'house.take-teacup', verb: ['take', 'use'], a: 'teacup', if: { player: 'biscuit' }, do: [{ id: 'house.take-teacup.nth', nth: [[{ sfx: 'glass' }, 'Lukewarm tea. Biscuit approves.', { set: 'tea_drunk' }], ['Empty. Biscuit regrets nothing.']] }] },
-    { id: 'house.take-teacup-2', verb: 'take', a: 'teacup', do: ['Hot tea and cat paws. No.'] },
-    { id: 'house.push-clock', verb: 'push', a: 'clock', do: ['Heavy. And it judges me.'] },
-    { id: 'house.take-bookshelf', verb: 'take', a: 'bookshelf', do: ['A book falls. "Knitting for beginners." I put it back.'] },
+    { id: 'house.take-teacup', verb: ['take', 'use'], a: 'teacup', if: { player: 'biscuit' }, do: [{ id: 'house.take-teacup.nth', nth: [[{ sfx: 'glass' }, { say: ['hero', 'Lukewarm tea. Biscuit approves.'], id: 'house.take-teacup.nth.l-lukewarm-tea' }, { set: 'tea_drunk' }], [{ say: ['hero', 'Empty. Biscuit regrets nothing.'], id: 'house.take-teacup.nth.l-empty-biscuit' }]] }] },
+    { id: 'house.take-teacup-2', verb: 'take', a: 'teacup', do: [{ say: ['hero', 'Hot tea and cat paws. No.'], id: 'house.take-teacup-2.l-hot-tea-and-cat' }] },
+    { id: 'house.push-clock', verb: 'push', a: 'clock', do: [{ say: ['hero', 'Heavy. And it judges me.'], id: 'house.push-clock.l-heavy-and-it' }] },
+    { id: 'house.take-bookshelf', verb: 'take', a: 'bookshelf', do: [{ say: ['hero', 'A book falls. "Knitting for beginners." I put it back.'], id: 'house.take-bookshelf.l-a-book-falls' }] },
   ],
 
   talk: {
@@ -115,13 +115,13 @@ export default defineRoom({
       ] },
       { id: 'house.grandma.why-lock-the-sardines', topic: 'Why lock the sardines?', do: [
         { id: 'house.grandma.why-lock-the-sardines.l-because-a', say: ['grandma', 'Because a certain cat opens cupboards. A certain grey cat.'] },
-        'Biscuit. Definitely Biscuit.',
+        { say: ['hero', 'Biscuit. Definitely Biscuit.'], id: 'house.grandma.why-lock-the-sardines.l-biscuit-definite' },
       ] },
       { id: 'house.grandma.i-found-the-key', topic: 'I found the key!', if: { has: 'key' }, do: [{ id: 'house.grandma.i-found-the-key.l-then-what-are', say: ['grandma', 'Then what are you waiting for? Open the pantry!'] }] },
     ],
     grandpa: [
       { id: 'house.grandpa.why-are-you-home', topic: 'Why are you home?', do: [{ id: 'house.grandpa.why-are-you-home.l-a-cat-with-a-key', say: ['grandpa', 'A cat with a key. I had to see this.'] }, { pose: ['grandpa', 'laugh'] }, { wait: 700 }, { pose: ['grandpa', 'idle'] }] },
-      { id: 'house.grandpa.you-carried-the-armchair', topic: 'You carried the armchair back?', do: [{ id: 'house.grandpa.you-carried-the-armchair.l-it-walked-i-only', say: ['grandpa', 'It walked. I only steered.'] }, 'Armchairs. Full of secrets.'] },
+      { id: 'house.grandpa.you-carried-the-armchair', topic: 'You carried the armchair back?', do: [{ id: 'house.grandpa.you-carried-the-armchair.l-it-walked-i-only', say: ['grandpa', 'It walked. I only steered.'] }, { say: ['hero', 'Armchairs. Full of secrets.'], id: 'house.grandpa.you-carried-the-armchair.l-armchairs-full' }] },
     ],
   },
 
@@ -136,7 +136,7 @@ export default defineRoom({
   ],
 
   onEnter: [
-    { if: { has: 'key' }, then: [{ id: 'house.enter.once', once: ['Home! Pantry, here I come.'] }] },
+    { if: { has: 'key' }, then: [{ id: 'house.enter.once', once: [{ say: ['hero', 'Home! Pantry, here I come.'], id: 'house.enter.once.l-home-pantry-here' }] }] },
     { if: { actorIn: ['grandpa', 'house'] }, then: [{ id: 'house.enter.once-2', once: [{ id: 'house.enter.once-2.l-pixel-i-beat-you', say: ['grandpa', 'Pixel! I beat you home. The armchair is faster than it looks.'] }] }] },
   ],
 

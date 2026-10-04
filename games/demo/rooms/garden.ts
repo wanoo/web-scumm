@@ -43,7 +43,7 @@ export default defineRoom({
   },
 
   on: [
-    { id: 'garden.take-spare-pipe', verb: 'take', a: 'spare_pipe', do: [{ set: 'pipe_taken' }, { gain: 'pipe' }, { sfx: 'metal' }, 'A pipe! Grandpa will not miss it. He is asleep.'] },
+    { id: 'garden.take-spare-pipe', verb: 'take', a: 'spare_pipe', do: [{ set: 'pipe_taken' }, { gain: 'pipe' }, { sfx: 'metal' }, { say: ['hero', 'A pipe! Grandpa will not miss it. He is asleep.'], id: 'garden.take-spare-pipe.l-a-pipe-grandpa' }] },
 
     // The tank: the tap is stuck, the pipe opens another way out (pipes minigame).
     { id: 'garden.use-pipe-tank', verb: 'use', a: 'pipe', b: 'tank', if: '!tank_drained', do: [
@@ -58,28 +58,28 @@ export default defineRoom({
           { pose: ['grandpa', 'surprised'] },
           { id: 'garden.use-pipe-tank.l-look-something', say: ['grandpa', 'Look! Something at the bottom!'] },
           { wait: 500 },
-          'That is not a key. That is a sock.',
+          { say: ['hero', 'That is not a key. That is a sock.'], id: 'garden.use-pipe-tank.l-that-is-not-a' },
           { pose: ['grandpa', 'idle'] },
         ] },
       ] },
     ] },
-    { id: 'garden.use-tank', verb: ['use', 'open', 'pull'], a: 'tank', if: '!tank_drained', do: ['The tap is stuck. The water needs another way out. A pipe, maybe?'] },
-    { id: 'garden.use-tank-2', verb: ['use', 'open', 'pull'], a: 'tank', do: ['Empty-ish. The only treasure was a sock.'] },
-    { id: 'garden.look-tank', verb: 'look', a: 'tank', if: 'tank_drained', do: ['Draining. Slowly. Very slowly.'] },
+    { id: 'garden.use-tank', verb: ['use', 'open', 'pull'], a: 'tank', if: '!tank_drained', do: [{ say: ['hero', 'The tap is stuck. The water needs another way out. A pipe, maybe?'], id: 'garden.use-tank.l-the-tap-is-stuck' }] },
+    { id: 'garden.use-tank-2', verb: ['use', 'open', 'pull'], a: 'tank', do: [{ say: ['hero', 'Empty-ish. The only treasure was a sock.'], id: 'garden.use-tank-2.l-empty-ish-the' }] },
+    { id: 'garden.look-tank', verb: 'look', a: 'tank', if: 'tank_drained', do: [{ say: ['hero', 'Draining. Slowly. Very slowly.'], id: 'garden.look-tank.l-draining-slowly' }] },
 
     // The sock and its note: Lou has the key.
     { id: 'garden.look-sock', verb: 'look', a: 'sock', do: [
       { if: '!lou_has_key', then: [
-        { sfx: 'paper' }, 'A wet sock. With a note inside!', 'It says: "Borrowed the key to copy it. Lou."', { set: 'lou_has_key' },
+        { sfx: 'paper' }, { say: ['hero', 'A wet sock. With a note inside!'], id: 'garden.look-sock.l-a-wet-sock-with' }, { say: ['hero', 'It says: "Borrowed the key to copy it. Lou."'], id: 'garden.look-sock.l-it-says-borrowed' }, { set: 'lou_has_key' },
         { id: 'garden.look-sock.l-lou-the-neighbou', say: ['grandpa', 'Lou, the neighbour! Call Lou with the shell phone.'] },
-      ], else: ['A sock. Lou leaves socks everywhere.'] },
+      ], else: [{ say: ['hero', 'A sock. Lou leaves socks everywhere.'], id: 'garden.look-sock.l-a-sock-lou' }] },
     ] },
-    { id: 'garden.take-sock', verb: 'take', a: 'sock', do: ['A wet sock. Cat rule number two: never touch wet things.'] },
+    { id: 'garden.take-sock', verb: 'take', a: 'sock', do: [{ say: ['hero', 'A wet sock. Cat rule number two: never touch wet things.'], id: 'garden.take-sock.l-a-wet-sock-cat' }] },
 
-    { id: 'garden.open-gate', verb: ['open', 'use'], a: 'gate', do: ['Dogs. Street. No.'] },
-    { id: 'garden.push-gnome', verb: 'push', a: 'gnome', do: ['He does not move. He has roots.'] },
-    { id: 'garden.use-tree', verb: ['use', 'pull'], a: 'tree', do: ['I could climb it. But sardines do not grow on trees.'] },
-    { id: 'garden.take-can', verb: ['take', 'use'], a: 'can', do: ['Empty. I am not carrying an empty can around.'] },
+    { id: 'garden.open-gate', verb: ['open', 'use'], a: 'gate', do: [{ say: ['hero', 'Dogs. Street. No.'], id: 'garden.open-gate.l-dogs-street-no' }] },
+    { id: 'garden.push-gnome', verb: 'push', a: 'gnome', do: [{ say: ['hero', 'He does not move. He has roots.'], id: 'garden.push-gnome.l-he-does-not-move' }] },
+    { id: 'garden.use-tree', verb: ['use', 'pull'], a: 'tree', do: [{ say: ['hero', 'I could climb it. But sardines do not grow on trees.'], id: 'garden.use-tree.l-i-could-climb-it' }] },
+    { id: 'garden.take-can', verb: ['take', 'use'], a: 'can', do: [{ say: ['hero', 'Empty. I am not carrying an empty can around.'], id: 'garden.take-can.l-empty-i-am-not' }] },
   ],
 
   talk: {
@@ -114,7 +114,7 @@ export default defineRoom({
   onEnter: [
     { id: 'garden.enter.once', once: [
       { id: 'garden.enter.once.l-pixel-did-you', say: ['grandpa', 'Pixel! Did you come to help me fix the pipes?'] },
-      'I came for a key. And sardines.',
+      { say: ['hero', 'I came for a key. And sardines.'], id: 'garden.enter.once.l-i-came-for-a-key' },
     ] },
   ],
 });

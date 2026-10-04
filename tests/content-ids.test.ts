@@ -115,6 +115,8 @@ describe('line ids', () => {
     expect(lineIdFor('x', 'Hello, world! How are you today?')).toBe('x.l-hello-world-how');
     const all = assignIds(game(), { lines: 'all' });
     expect(all.game.rooms[0].on![0].do[0]).toEqual({ say: ['hero', 'Locked.'], id: 'r.open-door.l-locked' });
+    // the plain line's translation was keyed by its position; as a say object it lives under `.say` (3.2.1)
+    expect(renamePaths({ 'room:a/on.r.open-door.do[0]': 'Fermé.' }, all.map.paths)).toEqual({ 'room:a/on.r.open-door.do.r.open-door.l-locked.say': 'Fermé.' });
     const again = assignIds(a.game, { lines: true });
     expect(again.added).toBe(0);
     expect(lineIds(a.game).map((l) => l.id)).toEqual(['r.open-door.l-really-locked', 'r.open-door.l-try-the-key', 'r.open-door.l-inside']);

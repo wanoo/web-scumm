@@ -43,7 +43,7 @@ export default defineRoom({
 
   on: [
     // Looking down the alley pans the camera to the far stalls, then back to Pixel.
-    { id: 'market.look-alley', verb: 'look', a: 'alley', do: [{ camera: { to: 'far_stalls', ms: 900 } }, 'The alley goes on and on. Like Biscuit\'s naps. The map is that way.', { camera: 'follow' }] },
+    { id: 'market.look-alley', verb: 'look', a: 'alley', do: [{ camera: { to: 'far_stalls', ms: 900 } }, { say: ['hero', 'The alley goes on and on. Like Biscuit\'s naps. The map is that way.'], id: 'market.look-alley.l-the-alley-goes' }, { camera: 'follow' }] },
     // Token → the flower game (pick). Win → the bouquet appears on the stall.
     { id: 'market.give-token-seller', verb: 'give', a: 'token', b: 'seller', if: '!flowers_done', do: [
       { id: 'market.give-token-seller.l-a-token-today-i', say: ['seller', 'A token? Today I only take flowers. For... reasons.'] },
@@ -61,7 +61,7 @@ export default defineRoom({
         { id: 'market.give-token-seller.l-beautiful-i-put', say: ['seller', 'Beautiful! I put it on the stall for you.'] },
       ] },
     ] },
-    { id: 'market.take-bouquet', verb: 'take', a: 'bouquet', do: [{ gain: 'bouquet' }, { sfx: 'pluck' }, 'For the seller. Not for eating. Sadly.'] },
+    { id: 'market.take-bouquet', verb: 'take', a: 'bouquet', do: [{ gain: 'bouquet' }, { sfx: 'pluck' }, { say: ['hero', 'For the seller. Not for eating. Sadly.'], id: 'market.take-bouquet.l-for-the-seller' }] },
 
     // Bouquet → the key.
     { id: 'market.give-bouquet-seller', verb: 'give', a: 'bouquet', b: 'seller', do: [
@@ -71,15 +71,15 @@ export default defineRoom({
       { pose: ['seller', 'offering'] }, { id: 'market.give-bouquet-seller.l-here-the-key-the', say: ['seller', 'Here: the key. The lantern is paid.'] },
       { gain: 'key' }, { sfx: 'coins' }, { pose: ['seller', 'idle'] },
       { pose: ['neighbor', 'celebrate'] }, { id: 'market.give-bouquet-seller.l-yes-my-lantern', say: ['neighbor', 'Yes! My lantern!'] },
-      'And my sardines!', { pose: ['neighbor', 'idle'] },
+      { say: ['hero', 'And my sardines!'], id: 'market.give-bouquet-seller.l-and-my-sardines' }, { pose: ['neighbor', 'idle'] },
       // The world hears it: Grandpa goes home (game.ts `events`).
       { emit: 'key_found' },
     ] },
 
     { id: 'market.take-lantern', verb: 'take', a: 'lantern', do: [{ id: 'market.take-lantern.l-paws-off-that', say: ['seller', 'Paws off! That lantern is sold. Almost.'] }] },
-    { id: 'market.take-oranges', verb: 'take', a: 'oranges', do: ['Oranges are not sardines. Nice try, oranges.'] },
+    { id: 'market.take-oranges', verb: 'take', a: 'oranges', do: [{ say: ['hero', 'Oranges are not sardines. Nice try, oranges.'], id: 'market.take-oranges.l-oranges-are-not' }] },
     { id: 'market.use-alley', verb: ['use', 'open'], a: 'alley', do: [{ map: true }] },
-    { id: 'market.open-blue-door', verb: ['open', 'push'], a: 'blue_door', do: [{ sfx: 'door_close' }, 'Locked. Of course.'] },
+    { id: 'market.open-blue-door', verb: ['open', 'push'], a: 'blue_door', do: [{ sfx: 'door_close' }, { say: ['hero', 'Locked. Of course.'], id: 'market.open-blue-door.l-locked-of-course' }] },
   ],
 
   talk: {
@@ -98,7 +98,7 @@ export default defineRoom({
         ] },
       ] },
       { id: 'market.neighbor.why-did-you-take-the-key', topic: 'Why did you take the key?', do: [
-        { id: 'market.neighbor.why-did-you-take-the-key.l-to-make-a-copy', say: ['neighbor', 'To make a copy. In case Grandma loses it.'] }, 'She did lose it.', { id: 'market.neighbor.why-did-you-take-the-key.l-see-i-was-right', say: ['neighbor', 'See? I was right.'] },
+        { id: 'market.neighbor.why-did-you-take-the-key.l-to-make-a-copy', say: ['neighbor', 'To make a copy. In case Grandma loses it.'] }, { say: ['hero', 'She did lose it.'], id: 'market.neighbor.why-did-you-take-the-key.l-she-did-lose-it' }, { id: 'market.neighbor.why-did-you-take-the-key.l-see-i-was-right', say: ['neighbor', 'See? I was right.'] },
       ] },
       { id: 'market.neighbor.what-is-the-lantern-for', topic: 'What is the lantern for?', do: [{ id: 'market.neighbor.what-is-the-lantern-for.l-for-my-garage-i', say: ['neighbor', 'For my garage. I fix things at night. Like a bat with a wrench.'] }] },
     ],
@@ -108,7 +108,7 @@ export default defineRoom({
         { id: 'market.seller.can-i-have-the-key.l-tokens-are-fine', say: ['seller', 'Tokens are fine. Flowers are better. Today, flowers are much better.'] },
       ] },
       { id: 'market.seller.do-you-sell-sardines', topic: 'Do you sell sardines?', do: [
-        { id: 'market.seller.do-you-sell-sardines.l-sardines-no', say: ['seller', 'Sardines? No. Spices, teapots, lanterns.'] }, 'Worst. Market. Ever.',
+        { id: 'market.seller.do-you-sell-sardines.l-sardines-no', say: ['seller', 'Sardines? No. Spices, teapots, lanterns.'] }, { say: ['hero', 'Worst. Market. Ever.'], id: 'market.seller.do-you-sell-sardines.l-worst-market' },
         { pose: ['seller', 'laugh'] }, { wait: 700 }, { pose: ['seller', 'idle'] },
       ] },
       { id: 'market.seller.why-flowers-today', topic: 'Why flowers today?', do: [{ id: 'market.seller.why-flowers-today.l-no-reason', say: ['seller', 'No reason. Definitely no reason. What day is it?'] }] },
@@ -125,7 +125,7 @@ export default defineRoom({
   ],
 
   onEnter: [
-    { id: 'market.enter.once', once: [{ id: 'market.enter.once.l-pixel-over-here', say: ['neighbor', 'Pixel! Over here!'] }, 'Lou! Where is my key?'] },
+    { id: 'market.enter.once', once: [{ id: 'market.enter.once.l-pixel-over-here', say: ['neighbor', 'Pixel! Over here!'] }, { say: ['hero', 'Lou! Where is my key?'], id: 'market.enter.once.l-lou-where-is-my' }] },
   ],
 
   // Lou cannot stand still: a stroll along the stalls, on its own, until the deal is done.

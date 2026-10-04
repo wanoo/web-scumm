@@ -263,7 +263,7 @@ chaque asset livré), `v32-release` (un second jeu fait par `new-game` passe tou
 dans BENCH.md et ENGINE.md : prouver un long jeu à plusieurs personnages (la piste solveur 3.3 ci-dessous), un
 passage au lecteur d'écran (manuel), l'épinglage DNS des fournisseurs personnalisés.
 
-## Piste solveur v3.3 (prévue) : prouver les jeux à plusieurs personnages
+## v3.3 « Scale » (proposée, LOG #39) : prouver les jeux à plusieurs personnages, fermer les contrats de production
 
 D'après une relecture extérieure (LOG #38), dans l'ordre : profiler la recherche ; une frontière de preuve (pile,
 pointeurs parents, ids numériques d'états) ; le personnage actif hors de l'état ; régions de mobilité et

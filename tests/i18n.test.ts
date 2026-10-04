@@ -67,3 +67,15 @@ describe('lines keyed by id', () => {
     expect(ui.voices).toEqual(['r.open-door.l-really-locked']);
   });
 });
+
+describe('identical on purpose', () => {
+  it('a text identical to the source is untranslated unless i18n.same lists it', () => {
+    const g = mini();
+    const table = Object.fromEntries(textPaths(g).map((p) => [p.path, p.text]));
+    const all = localeStatus(g, table);
+    expect(all.untranslated.length).toBe(all.same.length);
+    g.i18n = { same: all.same.slice(0, 1) };
+    expect(localeStatus(g, table).untranslated).toEqual(all.same.slice(1));
+  });
+});
+
