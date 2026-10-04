@@ -19,6 +19,8 @@ export interface MobilityModel {
   hops(view: GameState, room: Id): Hop[];
   /** The region of the view's room, and the route to each of its rooms. */
   region(view: GameState): { rooms: Id[]; key: string; route: (to: Id) => Hop[] };
+  /** No exit or map trip of the game can ever be silent: every region is a single room. */
+  trivial: boolean;
 }
 
 /** Every room a condition names, anywhere a condition can be (content, invariants, a goal). */
@@ -85,7 +87,8 @@ export function mobilityModel(game: GameDef, visitedRead: Set<string>, goal?: Co
     const route = (to: Id) => { const out: Hop[] = []; for (let r = to; r !== start;) { const h = via.get(r)!; out.unshift(h); r = h.from; } return out; };
     return { rooms: members, key: members.join('+'), route };
   };
-  return { observed, hops, region };
+  const trivial = ![...exits].some(([from, xs]) => xs.some((x) => silentTarget(from, x.to))) && !Object.values(game.map?.places ?? {}).some((p) => game.rooms.some((r) => silentTarget(r.id, p.room)));
+  return { observed, hops, region, trivial };
 }
 
 /** A character's view of a state: its room and bag in the active slots (the others' fields as they are). */

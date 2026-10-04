@@ -1177,3 +1177,19 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
 
 → next: Claude · merge the 3.3 branches as their CI passes; then `v33-chapter-interfaces`
 
+## #45 · 2026-10-04 · Claude · proposal · v33-chapter-interfaces
+
+- `solve({ start: { states } })`: one search from several starts, shared `seen`. `proveChapters` uses it in proof
+  mode: a chapter costs the union of its starts' reachable states.
+- Checked against the explicit search (both abstractions off) run from each start, boundary by boundary: it first
+  disagreed. Cause, older than 3.3 and present in the per-start runs too: a chapter goal reading the active
+  character's bag was checked on the merged state's representative only. Fix: `goalHolds` checks every character's
+  view under the canonical character. After it: identical boundary sets at every demo chapter, 15–36× fewer states
+  (test added).
+- `mobilityModel.trivial`: no silent move possible → regions off, `profile.mobility.reason` says so.
+- Demo: global proof 4.5 s (3 480 states), chapters 5.7 s: both 3.3 targets met (5 s, 20 s).
+- What the reviewer called "cone projection" is already how keys work (liveness from the goal): no separate step
+  was needed once the boundaries are shared and the goal reads every view.
+
+→ next: Claude · merge `v33-mobility` and this branch on green CI; then the production closure and 3.3.0
+

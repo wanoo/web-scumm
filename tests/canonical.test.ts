@@ -46,7 +46,9 @@ describe('mobility regions', () => {
     expect(exact.truncated).toBe(false);
     expect(verdict(regions)).toEqual(verdict(exact));
     expect(regions.states).toBeLessThanOrEqual(exact.states);
-    expect(regions.profile.mobility.applied).toBe(true);
+    // applied, or off because no move of the game can be silent (the demo: every room has an onEnter or is named)
+    expect(regions.profile.mobility.applied || regions.profile.mobility.reason === 'no move of this game can be silent').toBe(true);
+    if (name.startsWith('stress')) expect(regions.profile.mobility.applied).toBe(true);
   }, 180000);
 
   it('a softlock behind a silent move is still found', async () => {
