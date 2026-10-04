@@ -4,6 +4,9 @@
 
 ### Added
 
+- `npm run lint`, the `lint` MCP tool and a "Content lint" panel in the Studio's Check tab: from the puzzle graph,
+  conditions nothing can satisfy, rules another rule hides, red herrings, stuck hints, dead options; after a solver
+  run, live actions never run and rooms never reached. `GameDef.lint.ignore` keeps a finding on purpose.
 - `bootGame` (`src/engine/boot.ts`): the page's bootstrap is part of the engine; `src/main.ts` only says what is
   specific to its build (`docs/en/UPGRADING.md` §8).
 - `npm run ids`: stable ids (schema 3) written into a game's sources, its locale tables renamed to the id-based

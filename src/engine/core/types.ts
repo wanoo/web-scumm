@@ -603,6 +603,8 @@ export interface GameDef {
    * room and its neighbours, a room never visited may need the network.
    */
   offline?: 'full' | 'nearby';
+  /** Content lint (`npm run lint`): codes to silence, as `code`, `code:<stable id>` or `code:<room>/<path>`. */
+  lint?: { ignore?: string[] };
   /** Background-preload batch sizes (per step, not totals). They never affect assets required to render the current room. */
   assetBudgets?: { initialImages?: number; neighboringRooms?: number; audioFiles?: number };
   /**

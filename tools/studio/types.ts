@@ -6,6 +6,7 @@ import type { WorldGraph } from '../../src/engine/tools/graph';
 import type { LiveClass, PuzzleGraph } from '../../src/engine/tools/puzzle';
 import type { SolveProfile } from '../../src/engine/tools/solve';
 import type { Coverage } from '../../src/engine/tools/coverage';
+import type { LintResult } from '../../src/engine/tools/lint';
 
 /** What a text literal is, from its JSON path in the room file. */
 export type TextKind =
@@ -114,6 +115,9 @@ export interface PuzzleData {
 
 /** The storyboard checked against the content (src/engine/tools/coverage.ts), with its Markdown rendering. */
 export interface CoverageData { coverage: Coverage; markdown: string; ms: number }
+
+/** The content lint (src/engine/tools/lint.ts) after a solver run, with its Markdown rendering. */
+export interface LintData { lint: LintResult; markdown: string; mode: 'static' | 'witness' | 'prove'; ms: number }
 
 export interface SolveData {
   finished: boolean;

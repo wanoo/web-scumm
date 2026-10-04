@@ -168,12 +168,26 @@ npm run solve -- --profile         # de quoi les états sont faits et ce que la 
 npm run solve -- --por=stubborn    # réduction d'ordre partiel : les actions commutantes une à la fois (moins d'états, même preuve)
 npm run replay -- session.json     # rejoue un fichier de session sur le vrai moteur, imprime le journal et l'état final
 npm run ids [-- --write --map]     # ids stables (schéma 3) écrits dans les sources, locales renommées, l'étape de migration des sauvegardes (docs/fr/UPGRADING.md)
+npm run lint [-- --prove | --static | --json]   # lint de contenu : conditions insatisfaisables, règles masquées, faux indices, indices bloqués, actions jamais jouées
 npm run doctor                     # vérifie Node, modules Python, ffmpeg et navigateurs Playwright
 npm run check                      # vérifie les types et lance les tests Node
 npm run verify:game                # validation, témoins globaux/par chapitre et couverture des traductions
 npm run prove:game                 # preuve exhaustive globale/par chapitre ; échoue sur softlock ou troncature
 npm run release-check              # prérequis, build, preuve et audit des dépendances de production
 ```
+
+**Lint.** `npm run lint` dit ce que `validate` ne peut pas dire (il vérifie formes et références) et ce que `solve`
+ne dit pas fort (il répond « ça se finit ? ») : depuis le graphe de puzzles, une condition que rien ne pose
+(`cond-never-true`, une erreur), une règle qu'une autre attrape avant (`rule-shadowed`), un objet qu'aucune règle
+n'exige (`item-red-herring`) ou que rien ne donne (`item-never-gained`), un indice qui attend ce que rien ne pose
+(`hint-stuck`, une erreur) ou qui a le même `until` qu'un indice antérieur (`hint-never-fires`), un sujet, une option
+de choix ou un écouteur morts, un choix à une seule option, une sortie conditionnée sans ligne `locked`, une action
+qui ne change que ce que rien de vivant ne lit (`action-dead`, info) ; après une passe du solveur, une action vivante
+que le témoin n'a jamais jouée et un lieu jamais atteint (`rule-never-run`, `room-never-reached` : info avec le
+témoin, avertissements avec `--prove`). Chaque constat nomme son lieu et son chemin (celui de l'onglet Rooms), son id
+stable et quoi faire. Code 1 seulement sur une erreur. `lint: { ignore: ['code', 'code:<id>', 'code:<lieu>/<chemin>'] }`
+dans `game.ts` garde un faux indice voulu. L'onglet Check du Studio montre la même liste avec des liens vers Rooms ;
+l'outil MCP `lint` la renvoie en Markdown. À lancer avant de demander une relecture.
 
 **Sessions.** Le moteur enregistre chaque entrée depuis le début de la partie ou le chargement d'une sauvegarde
 (actions, carte, changements de joueur, pas de script) avec les réponses données en chemin (choix, tirages

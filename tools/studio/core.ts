@@ -14,11 +14,12 @@ import { report as reportGame, reportMarkdown } from '../../src/engine/tools/rep
 import { toDot, toSvg, worldGraph } from '../../src/engine/tools/graph';
 import { extraReads, liveClasses, puzzleGraph, puzzleMarkdown, toPuzzleDot, toPuzzleSvg } from '../../src/engine/tools/puzzle';
 import { coverageMarkdown, storyboardCoverage } from '../../src/engine/tools/coverage';
+import { lintContent, lintMarkdown } from '../../src/engine/tools/lint';
 import { loadAssets, loadLayouts, loadLocales } from '../../src/engine/tools/load';
 import { GAME_DIR, ROOT, type GameModule } from '../game';
 import { normalizeStoryboard, storyboardMarkdown } from '../pages/storyboard-data';
 import { addToSection, extractTexts, objectText, parseRoom, SourceError, setTextInSource } from './source';
-import type { CoverageData,
+import type { CoverageData, LintData,
   AddEntity, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, ScreenshotResult, SolveData, TextRef, ValidateResult, ReportData, GraphData, PuzzleData,
 } from './types';
 
@@ -361,6 +362,16 @@ export function createStudio(opts: StudioOptions = {}) {
     return { ok: errors.length === 0, errors, warnings, ms: Date.now() - t0 };
   }
 
+  /** The content lint after a witness (or, `prove`, exhaustive) solver run. */
+  async function lint(prove = false): Promise<LintData> {
+    const t0 = Date.now();
+    const mod = await loadModule();
+    const layouts = loadLayouts(join(dir, 'layout'));
+    const s = await solveGame(mod.game, layouts, { commands: mod.commands, mode: prove ? 'prove' : 'witness' });
+    const r = lintContent(mod.game, layouts, { solve: s, commands: mod.commands });
+    return { lint: r, markdown: lintMarkdown(r, s.mode), mode: s.mode, ms: Date.now() - t0 };
+  }
+
   async function solve(from?: string | null, maxStates = 20000): Promise<SolveData> {
     const t0 = Date.now();
     const mod = await loadModule();
@@ -446,7 +457,7 @@ export function createStudio(opts: StudioOptions = {}) {
     gameDir: dir, gameId, root,
     /** The game module, imported fresh (for tools that read the whole game, e.g. asset prompts). */
     loadGame: loadModule,
-    gameInfo, getRoom, texts, getLayout, setLayout, setText, addEntity, report, graph, puzzle, coverage,
+    gameInfo, getRoom, texts, getLayout, setLayout, setText, addEntity, report, graph, puzzle, coverage, lint,
     getStoryboard, setStoryboard, getNotes, addNote, editNote, deleteNote, exportStoryboardMarkdown, validate, solve, screenshot, screenshotPath,
   };
 }

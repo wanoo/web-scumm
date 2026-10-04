@@ -59,7 +59,9 @@ Ollama preset. Game TypeScript and custom commands are trusted code, not sandbox
   **Solver health**: engine runs, actions skipped, no-ops, actions per state, which dimensions split the states most,
   the warnings a designer acts on (independent dimensions: a checkpoint between them would cut the states; a room with
   runaway branching), the full profile of `npm run solve -- --profile`. Further down, **Storyboard coverage**: the
-  storyboard checked against the content, the same text the `storyboard_coverage` tool returns.
+  storyboard checked against the content, the same text the `storyboard_coverage` tool returns. Before it, **Content
+  lint**: the findings of `npm run lint` (errors, warnings, info), each a link into the Rooms tab, the same text the
+  `lint` tool returns.
 - **Play**: the game itself (dev tools on) in a frame, next to the live **state** (room, bag, flags, moving
   characters, scripts, players) and a **rule explainer**: pick a verb, an item and a target, and every rule that could
   answer is listed with each condition evaluated ✓ / ✗ against the live state; the first ✓ wins, or the tab says which
@@ -96,6 +98,7 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 | DELETE `notes/:id` | → `{ ok }`, the note removed from `notes.json`; 404 unknown id |
 | POST `validate` | → `{ ok, errors: string[], warnings: string[], ms }` |
 | POST `coverage` | → `{ coverage, markdown, ms }`: the saved storyboard checked against the content (`src/engine/tools/coverage.ts`: per board and panel, each room, speaker, line, topic, sound and action ok / partial / missing / unknown) |
+| POST `lint` | `{ prove? }` → `{ lint, markdown, mode, ms }`: the content lint after a solver run (`src/engine/tools/lint.ts`; `prove`: the exhaustive search first) |
 | POST `solve` | `{ from?: checkpoint }` → `{ finished, states, truncated, path, roomsReached, unlockedReached, flagsReached, itemsNeverUsed, unusedItems, deadEnds: [{ room, inventory, path }], errors, from, ms, profile }` (400 for an unknown checkpoint); `profile` is the `SolveProfile` of `src/engine/tools/solve.ts` |
 | POST `screenshot` | `{ room, checkpoint? }` → `{ file, url }`: a PNG of the room (editor overlays hidden) under `.cache/studio/<game>-<room>[-<checkpoint>].png`, served at `url` (`GET screenshots/<name>.png`). 501 `{ unavailable: true, reason, error }` if Playwright or its Chromium is missing |
 | GET `assets` | `{ sheets: [{ id, kind: 'sprites' \| 'furniture' \| 'talk', character?, grid, promptKind?, cells: [{ id, file, w, h, used, ids, prepared, asset?, backups, mtime, missing? }] }], decors: [{ name, rooms, …cell }], sounds: { music, sfx: [{ id, kind, file, used, prepared, asset?, backups }] }, missing, unprepared, prompts: { sheets: [{ id, kind, markdown, missingMarkdown? }], style } }`: see "Assets tab" |
