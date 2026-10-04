@@ -18,9 +18,10 @@ mkdirSync(join(dir, 'art/decor'), { recursive: true });
 if (existsSync('games/demo/art/decor/backyard.jpg')) cpSync('games/demo/art/decor/backyard.jpg', join(dir, 'art/decor/backyard.jpg'));
 
 // The placeholder art comes from the sample game: say so, with its licence, so it is never shipped by mistake
-// (npm run validate -- --release warns about every placeholder, and fails on an asset no entry covers).
+// (npm run validate -- --release fails on every placeholder, on an asset no entry covers, on a licence outside
+// `licences.allow`, and without a provenance.lock.json: npm run provenance -- --lock once the art is reviewed).
 const borrowed = { source: 'Placeholder from the web-scumm sample game (games/demo/art), replace before a release', author: 'Wano', licence: 'CC BY 4.0', status: 'placeholder', note: 'Attribution if kept: "Artwork by Wano, from the web-scumm project (https://github.com/wanoo/web-scumm)"' };
-writeFileSync(join(dir, 'provenance.json'), JSON.stringify({ assets: [
+writeFileSync(join(dir, 'provenance.json'), JSON.stringify({ licences: { allow: ['CC BY 4.0'] }, assets: [
   ...['img:hero/*', 'img:ui/*', 'img:items/*', 'img:home2/*', 'img:decor/backyard'].map((match) => ({ match, ...borrowed })),
 ] }, null, 2) + '\n');
 

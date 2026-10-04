@@ -4,6 +4,11 @@
 
 ### Added
 
+- Provenance tied to the files (`npm run provenance`, `provenance.lock.json`): `--lock` records each shipped file's
+  SHA-256 and size with the claims of its entry after a review; `validate --release` fails on a file changed or
+  shipped since, a missing file or an entry edited since, and on a licence outside the game's policy
+  (`licences: { allow }` in `provenance.json`, required for a release; an asset outside it ships only if a
+  `releaseExceptions` entry names it). The demo is locked (214 files, 4.6 MB); `new-game` writes a policy.
 - The solver measures itself: `profile.timing` (tries, engine, clone, run, hash, queue, other, classify, in ms) and
   `profile.positions` (distinct character positions among the states); `npm run bench -- --matrix` prints the
   3.3 reference table (20 / 40 rooms × 1 / 2 / 3 characters).

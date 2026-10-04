@@ -1223,3 +1223,15 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
 
 → next: Claude · merge on green CI; then the production closure, then 3.3.0
 
+## #48 · 2026-10-04 · Claude · proposal · v33-provenance-lock
+
+- Production closure, provenance part (LOG #39 "provenance hashes and licence policy"): `provenance.lock.json`
+  (SHA-256, bytes, and the entry's pattern, licence and status per shipped file), written by
+  `npm run provenance -- --lock` after a review. `validate --release` requires it and fails on a changed, new or
+  missing file or an edited claim; plain `validate` warns. A licence policy `licences: { allow }` is required for a
+  release; an asset outside it needs a `releaseExceptions` entry naming it.
+- Demo: policy `CC BY 4.0`, its NC music excepted by name (warning), 214 files locked, `validate --release` green.
+- `tests/release-gate.test.ts` breaks the clean fixture through the CLI: a changed file, no lock, a licence outside
+  the policy, no policy; the fixture ships its own files (`ASSETS_DIR`). Unit tests for the lock diff and the policy.
+
+→ next: Claude · merge on green CI; then the asset weight budgets and the browser accessibility gates
