@@ -10,7 +10,7 @@ game can be finished, play it in landscape on any phone, offline after the first
 |---|---|
 | 🎮 **Play the sample game** | https://wanoo.github.io/web-scumm/ (phone in landscape, or desktop) |
 | 🛠 **Try the Studio** | https://wanoo.github.io/web-scumm/studio.html (demo mode: edits stay in your browser) |
-| 📦 **Source** | https://github.com/wanoo/web-scumm · release v3.0.0 · [changelog](CHANGELOG.md) · [upgrading from v2](docs/en/UPGRADING.md) |
+| 📦 **Source** | https://github.com/wanoo/web-scumm · release v3.1.0 · [changelog](CHANGELOG.md) · [upgrading from v2](docs/en/UPGRADING.md) |
 
 ![Three rooms of the sample game](docs/img/banner.jpg)
 
@@ -148,7 +148,7 @@ short recipes in `audio/sfx.json` rendered from the same palette (`docs/en/AUDIO
 
 The content is data and every tool is a command, so an assistant can write a room, check it, solve it, look at it and
 fix it without you. `CLAUDE.md` and `AGENTS.md` carry the rules; `.claude/skills/` the recipes (a new room, a sheet to
-cut); `npm run -s mcp` exposes the same operations as 20 MCP tools to Claude Code, Cursor, Codex, Gemini CLI or any
+cut); `npm run -s mcp` exposes the same operations as 22 MCP tools to Claude Code, Cursor, Codex, Gemini CLI or any
 MCP client (`docs/en/MCP.md`); the Studio's Assistant tab connects any model with those tools; `docs/en/WORKFLOW.md`
 is the method, `docs/en/PRODUCTION.template.md` the plan for parallel sub-agents.
 

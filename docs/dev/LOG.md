@@ -616,3 +616,19 @@ Verdict: the proof measured honestly, the pipeline that a studio expects
 - Checks: `tsc --noEmit` clean, mcp + studio-assistant tests 16/16, `audit-assets` clean.
 - → next: CI on `v3-docs`, merge into `main` after `v3-ci`; then chantier 11 (the private reference game) and the
   3.1.0 release.
+
+## #23 · 2026-10-04 · Claude · the private reference game on 3.1, and the 3.1.0 release (chantier 11)
+
+- The private reference game now embeds the 3.1 engine: `bootGame` in its entry, the loopback dev server with the
+  LAN token, the PWA in prompt mode, the tools chunk rule, the French labels of the slots, the share and the update
+  rows, `offline: 'full'` (39 MB: 18 MB of images, 21 MB of audio, music last), the new tools (`ids`, `lint`,
+  `playtests`, `replay`, `doctor`, `serve`, `e2e-pwa`) and the engine tests that need no sample game.
+- `npm run ids`: 569 ids written by the codemod, 5 by hand (two choice options of the intro list, three topics of a
+  list built by code), 12 spots reported for lists that are variables or spreads; the migration maps 63 `seen` keys
+  and 39 counters; the dry run is then empty. Schema 3, saveVersion 2, the generated migration step.
+- Evidence: tsc clean, 150 tests, the solver's witness identical to main's (59 actions, same path; 333 states instead
+  of 355), `npm run lint` finds one deliberate forever hint (silenced with `lint.ignore`) and two known red herrings,
+  the build precaches 13 entries (2.8 MB), the full phone e2e (recorded below once finished).
+- Release 3.1.0 "Playtest": version, CHANGELOG date, ROADMAP dates, README (22 tools, release row); the `release`
+  workflow publishes from the tag.
+- → next: tag `v3.1.0` once the private e2e is green; the user's phone check (update prompt, offline room, v1 save).

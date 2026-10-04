@@ -270,7 +270,7 @@ when split out:
   whole-game download.
 - **upgrading**: `docs/en/UPGRADING.md` + `docs/fr/UPGRADING.md`, the v2 → v3 checklist, run on the private reference game.
 
-## v3.1 "Playtest" (shipped 5 October 2026): what v3.0.0 left open, then two tools a studio expects
+## v3.1 "Playtest" (shipped 4 October 2026): what v3.0.0 left open, then two tools a studio expects
 
 One `v3-<topic>` branch at a time, each with its log entry, tests, docs in both languages and a CI run, merged into
 `main` as it passed: `v3-webkit` (the generic replay from the title; WebKit gates after its three green runs),
