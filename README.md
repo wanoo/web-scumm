@@ -10,7 +10,7 @@ game can be finished, play it in landscape on any phone, offline after the first
 |---|---|
 | 🎮 **Play the sample game** | https://wanoo.github.io/web-scumm/ (phone in landscape, or desktop) |
 | 🛠 **Try the Studio** | https://wanoo.github.io/web-scumm/studio.html (demo mode: edits stay in your browser) |
-| 📦 **Source** | https://github.com/wanoo/web-scumm · release v3.1.0 · [changelog](CHANGELOG.md) · [upgrading from v2](docs/en/UPGRADING.md) |
+| 📦 **Source** | https://github.com/wanoo/web-scumm · release v3.1.1 · [changelog](CHANGELOG.md) · [upgrading from v2](docs/en/UPGRADING.md) |
 
 ![Three rooms of the sample game](docs/img/banner.jpg)
 
@@ -166,6 +166,7 @@ in demo mode at `studio.html`. Any static host works. `GAME=<id> npm run build` 
 
 | Version | What it added |
 |---|---|
+| v3.1.1 Truth | Every green command means what it says: the e2e needs a solved run and the engine's ending, honest playtest counts and lint exit codes, a truthful offline status with retry, provider calls that follow no redirect and time out, a release that waits for the CI of its tag, a golden save per release. |
 | v3.1 Playtest | `npm run ids` and the sample game on schema 3; `bootGame`; slots in IndexedDB; the whole game offline after the first visit; the whole game at the keyboard; the content lint (`npm run lint`, Check panel, MCP tool); the playtest recorder (sessions shared from phones, replayed in CI, stalls on the heat map); the proof measured honestly, release and prove workflows. |
 | v3.0 Trust | Stable ids (`schemaVersion: 3`); a validated save envelope with a verified IndexedDB autosave; `solve --prove` with softlocks and honest exit codes; Studio on loopback with a LAN token; accessibility targets; the upgrading guide. Co-developed with Codex (`docs/dev/`). |
 | v2.5 Sound | The Mega Drive audio pipeline (`npm run audio`): music arranged from a MIDI through `spec.json`, sound effects from `sfx.json`, one palette; the sample game gets a theme and chip-rendered effects. |

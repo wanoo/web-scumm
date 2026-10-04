@@ -235,6 +235,19 @@ bloquant après ses trois runs verts), `v3-ids` (`npm run ids`, la démo en sch�
 heatmap), `v3-ci` (la preuve mesurée honnêtement, workflows release et prove, Dependabot), `v3-docs` (ce balayage).
 Prochain pas du solveur : la réduction en mode preuve, avec `tests/por.test.ts` pour preuve (BENCH.md).
 
+## v3.1.1 « Truth » (4 octobre 2026) : chaque commande verte dit exactement ce qu'elle prouve
+
+L'audit de la 3.1 par Codex (LOG #24) a trouvé des outils capables d'annoncer un succès sans prouver ce que leur
+libellé promet ; le mainteneur a choisi de corriger avant de construire (LOG #25, #26). `v3-qa-truth` : l'e2e exige
+une passe du solveur `solved` et le `state.done` du moteur (une fin scellée le pose désormais), l'analyse des playtests
+compte depuis la première entrée, le lint sort 2 sur une recherche tronquée et lit chaque action tentée,
+`verify:game` lance le lint, `playtests --strict` garde les releases. `v3-offline-truth` : le préchargement rend ce
+qu'il a fait, le statut n'est `complete` que si chaque fichier est en cache, le menu pause l'affiche, la fumée PWA
+vérifie tout le plan et ne compte jamais le saut de WebKit comme une preuve. `v3-studio-net` : hôtes privés refusés
+dans les deux familles d'adresses, aucune redirection, un délai et un plafond sur les appels au fournisseur.
+`v3-release-truth` : la release part du succès de la CI du tag, une sauvegarde figée 3.1.0, l'audit complet des
+dépendances, D5/D7/D8/D9 consignées. Le jeu de référence privé reste en 3.1.0 (D8).
+
 ## Hors plan (décisions explicites)
 
 - Pas de Phaser ni de canvas : le Presenter DOM suffit pour quelques dizaines d'images ; une salle large reste une translation CSS.

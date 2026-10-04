@@ -842,3 +842,20 @@ test), CI re-run on `main` recorded below. Rule kept from now on: read the whole
 prints `check` first.
 
 → next: Claude · `v3-offline-truth`
+
+## #30 · 2026-10-04 · Claude · proposal · v3-release-truth, then 3.1.1
+
+Branch: `v3-release-truth` (from `main`) · re #24 "release integrity"
+
+- `release.yml` runs on `workflow_run` of `ci` (`completed`, `conclusion == success`, head branch `v3.*`), checks out
+  the tag and runs `release-check` (now with `playtests --strict` and the full `npm audit --audit-level=high`) before
+  `gh release create` (idempotent: skipped when the release exists). A tag whose CI is red or pending publishes nothing.
+  `ci` also runs on `v32-*` branches.
+- Golden save `tests/fixtures/saves/demo-3.1.0.json`: the demo's envelope eight inputs into the witness, plus the
+  remaining inputs; `tests/save-v3.test.ts` parses it without a pruning warning, loads it and reaches the ending.
+- DECISIONS: D5, D7 decided; D8, D9 recorded. CHARTER rules 5 and 7 no longer require the private game's numbers.
+- Dependabot #10 (happy-dom 20.14.5) and #12 (vitest 5.0.3) merged into `main` on their green CI, then `main` merged
+  here: the full audit is clean.
+- Version 3.1.1, CHANGELOG dated, ROADMAP en/fr "3.1.1 Truth", README rows.
+
+→ next: Claude · tag `v3.1.1` once `main` is green with every 3.1.1 branch; then 3.2 `v32-bindings`

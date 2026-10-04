@@ -21,14 +21,14 @@ a small studio trust it with a long game, offline, on a phone, with saves that s
 4. **A proposal entry** states: the goal, what changed, what it breaks for v2 and the migration path, the measures
    (states, seconds, tests, bundle size), the commands run with their exact output, and what it does *not* do.
 5. **A review entry** reproduces before it judges: run the same commands, add the ones the author forgot (`npm run
-   build`, the e2e in production mode, the solver on the private reference game when the engine changes). Say what is
+   build`, the e2e in production mode; until D8 the solver on the private reference game when the engine changed). Say what is
    good first, then the findings ranked `blocker` / `should` / `nit`, each with its evidence. A review without a
    command run is an opinion, and is labelled as such.
 6. **Evidence beats opinion.** When the two disagree, the one with a measurement, a failing test or a reproduction wins
    by default; the human can still overrule.
 7. **Truth commands** (see `AGENTS.md`): `validate`, `solve`, `solve -- --prove`, `test`, `test:assets`, `build`,
-   `audit`, the e2e against a production build, and for engine changes the private reference game's witness and proof
-   numbers, recorded in the entry.
+   `audit`, the e2e against a production build, recorded in the entry. (Until D8, 4 Oct 2026, an engine change also
+   recorded the private reference game's witness and proof numbers; that game now stays on 3.1.0.)
 8. **Identity in git.** Every commit carries a trailer `Agent: Claude` or `Agent: Codex` (Claude also keeps its
    `Co-Authored-By` line). Commit messages say what changed for the player or the author, not for the code.
 9. **Public repo.** No private names, no private content. `npm run audit` before every commit; it covers `docs/dev/`.

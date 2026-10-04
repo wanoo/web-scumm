@@ -1,17 +1,24 @@
 name: release
-# A tag v3.x.y: the release checks (doctor, build, proof, dependency audit), then the GitHub release with the
-# matching CHANGELOG section as its notes.
+# A tag v3.x.y publishes the GitHub release only once the `ci` workflow of that tag is green (check, the browser e2e
+# rows): this workflow runs on ci's completion, not on the tag push. It then re-runs the release checks (doctor,
+# build, proof, strict playtests, dependency audits) and creates the release with the matching CHANGELOG section.
 on:
-  push:
-    tags: ['v3.*']
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
 permissions:
   contents: write
 jobs:
   release:
+    if: github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'v3.')
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      TAG: ${{ github.event.workflow_run.head_branch }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -25,7 +32,7 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run release-check
-      - run: node scripts/release-notes.mjs "${GITHUB_REF_NAME}" > notes.md
-      - run: gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --notes-file notes.md
+      - run: node scripts/release-notes.mjs "$TAG" > notes.md
+      - run: gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes-file notes.md
         env:
           GH_TOKEN: ${{ github.token }}
