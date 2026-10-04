@@ -232,3 +232,45 @@ same verdict.
 The active character is no longer a factor (positions 18 796 → 112 with three characters), but the stress chains
 still truncate: each character's exact room and bag now split the states. That is the mobility regions' job.
 
+### After `v33-mobility`: mobility regions, and the reference proof
+
+A character's exact room is replaced by its **region**: the rooms it can walk between silently (generated exits and
+map trips to rooms without `onEnter`, whose `visited` nothing reads, and that no condition names), the strongly
+connected part around it under its own view. The proof offers the actions of every room of the region as
+`Go to <room> › action`; the route is played once per room, every hop checked (it arrives, it changes nothing the
+solver reads), and one that is not silent restarts the search with exact rooms (`profile.mobility.reason`). The
+witness of a region proof replays on the real engine.
+
+**The reference** (`npm run bench -- --matrix --eras`, `makeStressGame({ eras: true })`): each character confined to
+its era, the item that opens the next era's first lock sent through a time chute (`{ transfer }`), one-way chutes,
+walkers, scripts and topics; `softlock: true` adds a trash can that destroys item 0. Proof mode, 200 000-state budget:
+
+| Game | Proof | States | Engine runs | Time |
+|---|---|---|---|---|
+| 20 rooms, 1 character | solved | 83 | 1 787 | 0.2 s |
+| 20 rooms, 2 characters | solved | 358 | 7 260 | 0.8 s |
+| 20 rooms, 3 characters | solved | 481 | 11 277 | 1.1 s |
+| 40 rooms, 1 character | solved | 163 | 6 787 | 2.1 s |
+| 40 rooms, 2 characters | solved | 678 | 25 660 | 6.5 s |
+| 40 rooms, 3 characters | solved | 578 | 21 886 | 4.2 s |
+
+The 3.3 target is met on it: 40 rooms × 3 characters proved in 578 states and 4.2 s. On 12-room versions the
+explicit search (both abstractions off) gives the same verdicts with 13–15× more states (2 906 vs 230 with two
+characters, 16 944 vs 1 100 with three), and finds the same softlock in the negative variant
+(`tests/reference-proof.test.ts`).
+
+**The open chain is still out of reach, and that is the game, not the abstraction.** Without eras, every character
+can walk the whole chain and pick up anyone's item: which character carries which item is a real product the proof
+must cover (20 000-state budget):
+
+| Game | Proof | States | Time |
+|---|---|---|---|
+| 20 rooms, 2 characters | truncated | 20 000 | 57.9 s |
+| 20 rooms, 3 characters | truncated | 20 000 | 33.8 s |
+| 40 rooms, 2 characters | truncated | 20 000 | 451.7 s |
+| 40 rooms, 3 characters | truncated | 20 000 | 65.9 s |
+
+Exact reductions cannot remove those states; a game built that way is checked by the witness, the chapter witnesses
+and the playtests, or by bounding who can carry what. With one character the regions shrink the open chain too
+(40 rooms: 3 197 → 163 states).
+

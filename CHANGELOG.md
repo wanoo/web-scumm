@@ -10,6 +10,12 @@
 
 ### Changed
 
+- Mobility regions (`mobility`, on in proof mode, `src/engine/tools/mobility.ts`): a character's exact room becomes
+  the region of rooms it can walk between silently, actions of every room of the region are offered as
+  `Go to <room> › action`, every hop is checked when played and a non-silent one restarts with exact rooms; witnesses
+  replay. `makeStressGame({ eras: true, softlock? })` and `npm run bench -- --matrix --eras`: the reference game is
+  proved at 40 rooms × 3 characters in 578 states and 4.2 s; same verdicts as the explicit search, softlock included
+  (`tests/reference-proof.test.ts`, `tests/canonical.test.ts`).
 - The canonical character (`canonicalPlayers`, on in proof mode): states that differ only by the active character
   are one, each state offers every character's actions when a switch changes nothing the solver reads; invariants
   are checked from every character's view; off when the goal reads `{ player }`. Same verdicts as the explicit search

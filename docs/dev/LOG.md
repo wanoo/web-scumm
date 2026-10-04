@@ -1157,3 +1157,23 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
 
 → next: Claude · `v33-mobility` (regions of silent reversible moves per character)
 
+## #44 · 2026-10-04 · Claude · proposal · v33-mobility (and the reference proof)
+
+- `src/engine/tools/mobility.ts`: silent hops (generated exits whose rule is only `goto` + `sfx`, map trips) to
+  rooms without `onEnter`, unread `visited`, not named by any condition (content, invariants, goal); the region is the
+  SCC around the character under its own view; `regionDims` replaces rooms in `room` / `pos:` / `player:` dims.
+- Expansion: per character view, per room of its region, the route is played once on a copy, each hop checked
+  (arrives; canonical dims unchanged); tries start from there with the route's session entries kept (`pre`), so the
+  steps replay. A hop that fails the claim raises `MobilityError`: `solve` reruns with exact rooms and says so.
+- `makeStressGame({ eras, softlock })`: the reference game #39 asked for (characters confined to eras, transfers
+  through time chutes, one-way chutes, walkers, scripts, topics, a softlock variant).
+- Evidence: verdict equality with the explicit search (both abstractions off) on the cast fixture, the demo,
+  generated 1-, 2-, 3-character games, a softlock behind a one-way trapdoor, and the 12-room reference with and
+  without its softlock; a region witness replays. Reference matrix: 40 rooms × 3 characters proved in 578 states,
+  4.2 s (exit target: < 200 000, < 60 s). The open chain still truncates: its item distribution across characters is
+  a real product (BENCH.md says so).
+- Not met yet: the demo under 5 s globally (4.9 s, borderline) and 20 s by chapters (104 s): the chapter-interface
+  branch is next.
+
+→ next: Claude · merge the 3.3 branches as their CI passes; then `v33-chapter-interfaces`
+
