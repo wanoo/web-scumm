@@ -102,8 +102,8 @@ Option+Tab. Sur chacun de ces écrans, une violation `serious` ou `critical` fai
 `scripts/e2e/lib.mjs` liste les règles acceptées : aucune aujourd'hui). Les images sont décoratives sauf si elles
 sont nommées (la scène s'atteint par ses cibles, un objet par son nom), une case vide de l'inventaire sort de
 l'arbre d'accessibilité. CI : la ligne Chromium clavier (clavier, axe, une sauvegarde aller-retour sans IndexedDB,
-`e2e:a11y`) est bloquante, tout comme `e2e:a11y` dans la ligne WebKit ; le jeu entier au clavier dans WebKit tourne,
-pas encore bloquant. axe ne prouve pas la conformité WCAG : un passage au lecteur d'écran (VoiceOver sur iOS,
+`e2e:a11y`) est bloquante, tout comme `e2e:a11y` dans la ligne WebKit ; le jeu entier au clavier dans WebKit est
+aussi bloquant (depuis la 3.3.1). axe ne prouve pas la conformité WCAG : un passage au lecteur d'écran (VoiceOver sur iOS,
 TalkBack sur Android : le titre, une conversation, un objet, la carte, un mini-jeu) reste une vérification manuelle
 avant une release, avec la liste de contrôle de `docs/dev/SCREEN-READER.md` et le résultat dans `docs/dev/passes/`. Ce
 que le moteur peut affirmer est donc « testé au clavier, aucune violation axe grave ou critique sur les écrans
