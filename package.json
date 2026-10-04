@@ -55,7 +55,8 @@
     "verify:release": "npm run validate -- --release && npm run weight -- --release && npm run i18n -- status && npm run playtests -- --strict",
     "provenance": "tsx tools/provenance.ts",
     "weight": "tsx tools/weight.ts",
-    "e2e:a11y": "node scripts/e2e-a11y.mjs"
+    "e2e:a11y": "node scripts/e2e-a11y.mjs",
+    "docs:screenshots": "node scripts/docs-screenshots.mjs"
   },
   "config": {
     "game": "demo"

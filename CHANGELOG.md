@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- The README (en and fr) is a showcase: the promise, the v3.3 measurements with their limits, four player and four
+  Studio images, a quick start that begins with `npm run doctor`, then links to the docs. The images come from the
+  production bundle and the Studio through `npm run docs:screenshots` (`scripts/docs-screenshots.mjs`).
+
 ## 3.3.0 — 2026-10-05
 
 ### Added
