@@ -4,6 +4,12 @@
 
 ### Added
 
+- `npm run e2e:a11y` (a CI gate in Chromium and WebKit): axe-core on a conversation menu, the map, the save and load
+  slots, the overwrite and restart confirmations and every bundled minigame; every bundled minigame won with key
+  presses only in a real browser (a win is a minigame that ended without Skip: `App.minigameLog`, fed by a new
+  `mg-skip` event); an older save upgraded by the real build (the v2 localStorage autosave and slot moved into
+  IndexedDB, a 3.1.0 IndexedDB envelope migrated and resumed, then a manual save round trip). A checklist for the
+  manual screen-reader pass before a release: `docs/dev/SCREEN-READER.md`.
 - The solver measures itself: `profile.timing` (tries, engine, clone, run, hash, queue, other, classify, in ms) and
   `profile.positions` (distinct character positions among the states); `npm run bench -- --matrix` prints the
   3.3 reference table (20 / 40 rooms × 1 / 2 / 3 characters).

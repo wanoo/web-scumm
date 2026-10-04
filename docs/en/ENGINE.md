@@ -63,6 +63,10 @@ for a page that needs another order.
 - Tests: refused writes and deletions with a fake IndexedDB (`tests/save-store.test.ts`), one golden save per
   release (`tests/fixtures/saves/demo-<version>.json`: loads, migrates, reaches the ending), and in a real browser
   `npm run e2e -- --save` (a manual save survives a reload) and `--save --no-indexeddb` (the fallback does too).
+- An older save is upgraded by the real build, in Chromium and WebKit (`npm run e2e:a11y`, its storage part, a CI
+  gate since 3.3): the v2 localStorage autosave and slot are copied into IndexedDB and removed only after the copy is
+  verified, a 3.1.0 envelope already in IndexedDB is migrated, the title's Continue resumes it, and a manual save then
+  survives a reload.
 
 ## Accessibility
 
@@ -82,12 +86,19 @@ plug picks it up, Enter on a socket plugs it in). The minigame takes the focus o
 otherwise. `tests/dom/minigames-keyboard.test.ts` plays five of them to the end with key events.
 
 **What is checked, and what is not.** `npm run e2e -- --axe` runs axe-core on the title, a room, the pause menu and
-the ending: a `serious` or `critical` violation fails the run (`AXE_ACCEPTED` in `scripts/e2e/lib.mjs` lists the
+the ending, and `npm run e2e:a11y` on a conversation menu, the map, the save and load slots, the overwrite and
+restart confirmations and every bundled minigame as it opens. `npm run e2e:a11y` also wins each bundled minigame in
+a real browser with key presses only (no tap, no state written by the test), reading the page as a player does:
+the option images, the hiding spots' and plugs' names, the help highlight of `pipes`; a win is a minigame that ended
+without its Skip button (`App.minigameLog`, fed by the `mg-skip` event), and Skip is reached with Tab once. On
+macOS, WebKit moves Tab between buttons only with Option held (the system's own setting): the check presses
+Option+Tab there. On each of these screens, a `serious` or `critical` violation fails the run (`AXE_ACCEPTED` in `scripts/e2e/lib.mjs` lists the
 accepted rules: none today). Images are decorative unless named (the scene is reached through its targets, an
 item by its name), an empty inventory slot is out of the accessibility tree. CI: the Chromium keyboard row
-(keyboard, axe, a save round trip without IndexedDB) gates; WebKit at the keyboard runs, not yet gating. axe
-does not prove WCAG conformance: a screen-reader pass (VoiceOver on iOS, TalkBack on Android: the title, a
-conversation, an item, the map, a minigame) stays a manual check before a release.
+(keyboard, axe, a save round trip without IndexedDB, `e2e:a11y`) gates, and so does `e2e:a11y` in the WebKit row;
+the whole game at the keyboard in WebKit runs, not yet gating. axe does not prove WCAG conformance: a screen-reader
+pass (VoiceOver on iOS, TalkBack on Android: the title, a conversation, an item, the map, a minigame) stays a manual
+check before a release, with the checklist in `docs/dev/SCREEN-READER.md`.
 
 ## Two layouts
 

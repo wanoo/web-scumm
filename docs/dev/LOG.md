@@ -1223,3 +1223,27 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
 
 → next: Claude · merge on green CI; then the production closure, then 3.3.0
 
+## #48 · 2026-10-05 · Claude · proposal · v33-browser-gates
+
+- Production closure, browser part (LOG #39): `scripts/e2e-a11y.mjs` (`npm run e2e:a11y`), against the production
+  preview, in three parts. The minigames are opened with the engine's own `script()` hook, with params that use the
+  demo's shipped images.
+- axe-core on a conversation menu (the market's neighbour), the map, the pause menu, the save and load slots, the
+  overwrite and restart confirmations, and all 7 bundled minigames as they open: 0 serious or critical violations
+  in Chromium and WebKit, `AXE_ACCEPTED` still empty.
+- Keyboard: each bundled minigame won with key presses only, reading the page as a player does (the option images,
+  the spots' and plugs' names, the pipes' own help highlight with `helpAfter: 0`). A win is a minigame that ended
+  without Skip: `App.minigameLog`, fed by a new bubbling `mg-skip` event (unit test). Measured, Chromium and WebKit
+  alike: pick 2.8 s, pipes 2.4–2.9 s, hide 1.4 s, cables 2.8 s, runner 10.1 s (3 jumps, 1 duck, 0 stumbles),
+  scratch 0.7 s, stroke 6.5 s. Skip reached with Shift+Tab and pressed with Enter; macOS WebKit needs
+  Option+Shift+Tab to reach a button (the system's setting), which the script presses there.
+- Storage, Chromium and WebKit: a v2 localStorage autosave and slot (built from the 3.0.0 golden save) moved into
+  IndexedDB with the old keys removed; the title's Continue resumes it; a manual save survives a reload; a 3.1.0
+  envelope written straight into IndexedDB is migrated and resumed. A browser that gives no IndexedDB under
+  automation reports "skipped" (exit 3), never a pass.
+- CI: one step in the Chromium keyboard row and the WebKit generic row, both blocking (about 1 min each).
+- Not automatable: the screen-reader pass. `docs/dev/SCREEN-READER.md` is the maintainer's checklist; its result
+  goes into this LOG.
+
+→ next: Claude · merge on green CI
+

@@ -183,6 +183,7 @@ npm run validate -- --release      # also: provenance, placeholders, and a stabl
 npm run verify:release             # validate --release + i18n status + strict playtests: a step of release-check
 npm run playtests [-- --strict --out=.cache/playtests]  # the sessions players shared (games/<id>/playtests) replayed and summed up: time per room, stalls, hints, heat map
 npm run e2e -- <url> --lang fr           # the whole game in that language; fails on any visible English default of the engine
+npm run e2e:a11y -- <url> [--only=axe,keys,storage] [--allow-skip]   # axe on the conversation, map, slots, confirmations, every minigame; every minigame won at the keyboard; an older save upgraded (E2E_BROWSER=chromium|webkit; exit 3: a check the browser cannot automate)
 npm run lint [-- --prove | --static | --json]   # content lint: conditions nothing can satisfy, hidden rules, red herrings, stuck hints, actions never run
 npm run doctor                     # checks Node, Python modules, ffmpeg and Playwright browsers
 npm run check                      # type-check and Node tests

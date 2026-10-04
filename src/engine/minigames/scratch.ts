@@ -1,5 +1,5 @@
 import type { Minigame, MinigameCtx } from './types';
-import { el, finisher, num, stage, str, keys } from './util';
+import { el, finisher, num, stage, str, keys, skipped } from './util';
 
 // Scratch ticket: a silver layer that rubs off under a finger. Ends when `threshold` of the surface is scratched off.
 // The hidden text comes from the params (the decrypted sealed ending): the engine never writes it itself.
@@ -100,7 +100,7 @@ export const scratch: Minigame = {
     if (p.skippable) {
       const b = el('button', 'mg-skip', ctx.labels.skip) as HTMLButtonElement;
       b.type = 'button';
-      b.addEventListener('click', () => { cv.style.opacity = '0'; setTimeout(f.finish, 400); });
+      b.addEventListener('click', () => { skipped(box); cv.style.opacity = '0'; setTimeout(f.finish, 400); });
       box.append(b);
     }
     return f.promise.then(() => { offKeys(); box.remove(); });

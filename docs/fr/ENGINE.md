@@ -65,6 +65,11 @@ et `openStore` sont exportés pour une page qui a besoin d'un autre ordre.
   figée par release (`tests/fixtures/saves/demo-<version>.json` : se charge, migre, atteint la fin), et dans un vrai
   navigateur `npm run e2e -- --save` (une sauvegarde manuelle survit à un rechargement) et `--save --no-indexeddb` (le
   repli aussi).
+- Une sauvegarde plus ancienne est mise à niveau par la vraie version construite, dans Chromium et WebKit
+  (`npm run e2e:a11y`, sa partie stockage, une porte de la CI depuis la 3.3) : l'autosauvegarde et l'emplacement v2
+  en localStorage sont copiés dans IndexedDB et supprimés seulement une fois la copie vérifiée, une enveloppe 3.1.0
+  déjà dans IndexedDB est migrée, le bouton Continuer du titre la reprend, et une sauvegarde manuelle survit ensuite
+  à un rechargement.
 
 ## Accessibilité
 
@@ -86,13 +91,21 @@ prend le focus sur sa première commande, sinon Passer le garde. `tests/dom/mini
 d'entre eux jusqu'au bout avec des événements clavier.
 
 **Ce qui est vérifié, et ce qui ne l'est pas.** `npm run e2e -- --axe` lance axe-core sur le titre, un lieu, le menu
-pause et la fin : une violation `serious` ou `critical` fait échouer le passage (`AXE_ACCEPTED` dans
+pause et la fin, et `npm run e2e:a11y` sur un menu de conversation, la carte, les emplacements de sauvegarde et de
+chargement, les confirmations d'écrasement et de recommencement, et chaque mini-jeu livré à son ouverture.
+`npm run e2e:a11y` gagne aussi chaque mini-jeu livré dans un vrai navigateur, avec des touches seulement (aucun
+toucher, aucun état écrit par le test), en lisant la page comme un joueur : les images des options, les noms des
+cachettes et des fiches, la surbrillance d'aide de `pipes` ; une victoire est un mini-jeu terminé sans son bouton
+Passer (`App.minigameLog`, alimenté par l'événement `mg-skip`), et Passer est atteint une fois avec Tab. Sur macOS,
+WebKit ne déplace Tab entre les boutons qu'avec Option enfoncée (le réglage du système) : la vérification y presse
+Option+Tab. Sur chacun de ces écrans, une violation `serious` ou `critical` fait échouer le passage (`AXE_ACCEPTED` dans
 `scripts/e2e/lib.mjs` liste les règles acceptées : aucune aujourd'hui). Les images sont décoratives sauf si elles
 sont nommées (la scène s'atteint par ses cibles, un objet par son nom), une case vide de l'inventaire sort de
-l'arbre d'accessibilité. CI : la ligne Chromium clavier (clavier, axe, une sauvegarde aller-retour sans IndexedDB)
-est bloquante ; WebKit au clavier tourne, pas encore bloquant. axe ne prouve pas la conformité WCAG : un passage au
-lecteur d'écran (VoiceOver sur iOS, TalkBack sur Android : le titre, une conversation, un objet, la carte, un
-mini-jeu) reste une vérification manuelle avant une release.
+l'arbre d'accessibilité. CI : la ligne Chromium clavier (clavier, axe, une sauvegarde aller-retour sans IndexedDB,
+`e2e:a11y`) est bloquante, tout comme `e2e:a11y` dans la ligne WebKit ; le jeu entier au clavier dans WebKit tourne,
+pas encore bloquant. axe ne prouve pas la conformité WCAG : un passage au lecteur d'écran (VoiceOver sur iOS,
+TalkBack sur Android : le titre, une conversation, un objet, la carte, un mini-jeu) reste une vérification manuelle
+avant une release, avec la liste de contrôle de `docs/dev/SCREEN-READER.md`.
 ## Deux dispositions
 
 - **Téléphone (écran tactile), en paysage** : la scène à gauche ; à droite, une colonne avec les 9 verbes en 3×3, le sac sur 3 colonnes et les icônes Carte / Menu / Son. La phrase s'affiche en bas de la scène.

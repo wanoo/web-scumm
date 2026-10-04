@@ -37,12 +37,21 @@ export function move(ctx: MinigameCtx, s: Spr, x: number, y: number, h = s.h, id
   s.x = x; s.y = y; s.h = h;
 }
 
+/**
+ * Tells the host the player skipped (an `mg-skip` event that bubbles from the minigame): the host records whether a
+ * minigame was won or skipped (`App.minigameLog`), the browser checks prove a win at the keyboard by it.
+ */
+export function skipped(from: HTMLElement) {
+  const E = (globalThis as { CustomEvent?: typeof CustomEvent }).CustomEvent;
+  if (E && typeof (from as { dispatchEvent?: unknown }).dispatchEvent === 'function') from.dispatchEvent(new E('mg-skip', { bubbles: true }));
+}
+
 /** Always-present "Skip" button. */
 export function skipButton(ctx: MinigameCtx, parent: HTMLElement, onSkip: () => void): HTMLButtonElement {
   const b = el('button', 'mg-skip', ctx.labels.skip);
   b.type = 'button';
   b.style.fontSize = `${Math.max(12, 13 * ctx.u)}px`;
-  b.addEventListener('click', (e) => { e.stopPropagation(); onSkip(); });
+  b.addEventListener('click', (e) => { e.stopPropagation(); skipped(parent); onSkip(); });
   parent.append(b);
   // The focus goes to Skip unless the minigame already put it on one of its own controls (a keyboard-playable game).
   // Tests drive the minigames with bare element stubs: focus is optional there.
