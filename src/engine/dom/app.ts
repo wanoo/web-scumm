@@ -30,9 +30,9 @@ export interface AppOptions {
 }
 
 class LocalStore implements SaveStore {
-  constructor(private key: string, private game: GameDef, private fail: (error: Error) => void) {}
+  constructor(private key: string, private game: GameDef, private fail: (error: Error) => void, private warn: (message: string) => void) {}
   load(): GameState | null {
-    try { const v = localStorage.getItem(this.key); return v ? parseSave(this.game, JSON.parse(v)) : null; }
+    try { const v = localStorage.getItem(this.key); return v ? parseSave(this.game, JSON.parse(v), { warn: this.warn }) : null; }
     catch (e) { this.fail(e as Error); return null; }
   }
   save(s: GameState) {
@@ -57,10 +57,10 @@ export interface Slot { meta: SlotMeta; state: GameState }
 
 /** Manual slots in localStorage (`<game>.slot.<n>`), next to the autosave. */
 export class SlotStore {
-  constructor(private prefix: string, private game: GameDef, private fail: (error: Error) => void) {}
+  constructor(private prefix: string, private game: GameDef, private fail: (error: Error) => void, private warn: (message: string) => void) {}
   private key(n: number) { return `${this.prefix}.slot.${n}`; }
   get(n: number): Slot | null {
-    try { const v = localStorage.getItem(this.key(n)); if (!v) return null; const x = JSON.parse(v) as Slot; return { meta: x.meta, state: parseSave(this.game, x.state) }; }
+    try { const v = localStorage.getItem(this.key(n)); if (!v) return null; const x = JSON.parse(v) as Slot; return { meta: x.meta, state: parseSave(this.game, x.state, { warn: this.warn }) }; }
     catch (e) { this.fail(e as Error); return null; }
   }
   put(n: number, slot: Slot): boolean {
@@ -127,6 +127,7 @@ export class App implements Presenter {
   private eatClick = -Infinity;
   private inCutscene = false;
   private saveError: string | null = null;
+  private saveWarning: string | null = null;
   private a11yTargets: HTMLDivElement | null = null;
   private live!: HTMLDivElement;
 
@@ -135,6 +136,13 @@ export class App implements Presenter {
     if (this.saveError === error.message) return;
     this.saveError = error.message;
     if (this.scene) this.toast(`${this.game.ui.saveFailed ?? 'Save failed'}: ${error.message}`);
+  }
+
+  /** A content update may safely prune stale optional ids; tell the player without disabling Continue. */
+  reportSaveWarning(message: string) {
+    if (this.saveWarning === message) return;
+    this.saveWarning = message;
+    if (this.scene) this.toast(`${this.game.ui.saveAdjusted ?? 'Save adjusted for this version'}: ${message}`);
   }
 
   /** Offers a service-worker update and activates it only after a verified autosave. */
@@ -171,8 +179,9 @@ export class App implements Presenter {
     this.audio = new Audio(this.bank, { music: o.game.audio?.music, sfx: o.game.audio?.sfx, voice: o.game.audio?.voices });
     this.mg = { ...builtin, ...(o.minigames ?? {}) };
     const storageFailure = (error: Error) => queueMicrotask(() => this.reportStorageError(error));
-    this.engine = new Engine(o.game, o.layouts, this, o.store ?? new LocalStore(`${o.game.id}.save`, o.game, storageFailure), { commands: o.commands, runCustom: true, scene: () => this.scene });
-    this.slots = new SlotStore(o.game.id, o.game, storageFailure);
+    const storageWarning = (message: string) => queueMicrotask(() => this.reportSaveWarning(message));
+    this.engine = new Engine(o.game, o.layouts, this, o.store ?? new LocalStore(`${o.game.id}.save`, o.game, storageFailure, storageWarning), { commands: o.commands, runCustom: true, scene: () => this.scene });
+    this.slots = new SlotStore(o.game.id, o.game, storageFailure, storageWarning);
     this.view = new RoomView(this.engine, this.bank);
     this.engine.autoScripts = true;
     this.engine.onChange = () => this.refresh();
@@ -1021,7 +1030,7 @@ export class App implements Presenter {
       inp.onchange = async () => {
         const f = inp.files?.[0]; if (!f) return;
         try {
-          const st = parseSave(this.game, JSON.parse(await f.text()));
+          const st = parseSave(this.game, JSON.parse(await f.text()), { warn: (message) => this.reportSaveWarning(message) });
           d.remove(); await this.engine.load(st);
         } catch (e) { this.toast(String((e as Error).message)); }
       };

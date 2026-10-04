@@ -26,7 +26,7 @@ export class IndexedDbSaveStore implements SaveStore {
   private lastError: Error | null = null;
   private constructor(private db: IDBDatabase, private game: GameDef, private fail: (error: Error) => void) {}
 
-  static async open(game: GameDef, fail: (error: Error) => void): Promise<IndexedDbSaveStore> {
+  static async open(game: GameDef, fail: (error: Error) => void, warn: (message: string) => void = console.warn): Promise<IndexedDbSaveStore> {
     if (!globalThis.indexedDB) throw new Error('IndexedDB is unavailable');
     const open = indexedDB.open(DB, 1);
     open.onupgradeneeded = () => { if (!open.result.objectStoreNames.contains(STORE)) open.result.createObjectStore(STORE); };
@@ -35,13 +35,13 @@ export class IndexedDbSaveStore implements SaveStore {
     const tx = db.transaction(STORE, 'readonly');
     const saved = await request(tx.objectStore(STORE).get(`${game.id}:auto`));
     await transaction(tx);
-    if (saved !== undefined) out.value = parseSave(game, saved);
+    if (saved !== undefined) out.value = parseSave(game, saved, { warn });
     else {
       // One-time import of the v2 localStorage autosave. It is removed only after IndexedDB verifies the copy.
       let legacy: string | null = null;
       try { legacy = localStorage.getItem(`${game.id}.save`); } catch { /* unavailable localStorage is fine */ }
       if (legacy) {
-        out.value = parseSave(game, JSON.parse(legacy));
+        out.value = parseSave(game, JSON.parse(legacy), { warn });
         await out.write(out.value);
         try { localStorage.removeItem(`${game.id}.save`); } catch { /* the durable copy already exists */ }
       }

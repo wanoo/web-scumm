@@ -33,8 +33,14 @@ export function saveEnvelope(game: GameDef, state: GameState): SaveEnvelopeV3 {
   return { format: 'web-scumm-save', schema: 3, gameId: game.id, gameSaveVersion: game.saveVersion, savedAt: Date.now(), state: structuredClone(state) };
 }
 
-/** Parses an envelope (or a legacy raw state), then rejects references that do not exist in this game. */
-export function parseSave(game: GameDef, input: unknown): GameState {
+export interface ParseSaveOptions { warn?: (message: string) => void }
+
+/**
+ * Parses an envelope (or a legacy raw state). Structural corruption and references needed to resume (the current room
+ * and active player) are rejected. Stale, non-essential content references are pruned so an ordinary content update
+ * does not destroy Continue; the caller receives one warning listing what changed.
+ */
+export function parseSave(game: GameDef, input: unknown, opts: ParseSaveOptions = {}): GameState {
   let raw: unknown = input;
   if (input && typeof input === 'object' && 'format' in input) {
     const env = SaveEnvelopeV3Schema.parse(input);
@@ -47,42 +53,58 @@ export function parseSave(game: GameDef, input: unknown): GameState {
   if (!state) throw new Error(`save version ${parsed.v} cannot be migrated to ${game.saveVersion}`);
   const rooms = new Map(game.rooms.map((r) => [r.id, r]));
   const players = new Set(game.players?.ids ?? [game.hero]);
-  const item = (x: Id, where: string) => { if (!game.items[x]) throw new Error(`${where}: unknown item "${x}"`); };
-  const room = (x: Id, where: string) => { if (!rooms.has(x)) throw new Error(`${where}: unknown room "${x}"`); };
-  room(state.room, 'state.room');
-  state.inventory.forEach((x) => item(x, 'state.inventory'));
-  state.used?.forEach((x) => item(x, 'state.used'));
-  state.unlocked.forEach((x) => { if (!game.map?.places[x]) throw new Error(`state.unlocked: unknown place "${x}"`); });
-  for (const x of Object.keys(state.hero)) room(x, 'state.hero');
-  for (const x of Object.keys(state.visited)) room(x, 'state.visited');
+  const stale: string[] = [];
+  const drop = (where: string, id: Id) => stale.push(`${where} "${id}"`);
+  const knownItems = (xs: Id[], where: string) => xs.filter((x) => game.items[x] ? true : (drop(where, x), false));
+  const pruneKeys = <T>(record: Record<Id, T>, keep: (id: Id, value: T) => boolean, where: string) => {
+    for (const [id, value] of Object.entries(record)) if (!keep(id, value)) { delete record[id]; drop(where, id); }
+  };
+  if (!rooms.has(state.room)) throw new Error(`state.room: unknown current room "${state.room}"`);
+  if (state.active && !players.has(state.active)) throw new Error(`state.active: unknown active player "${state.active}"`);
+  state.inventory = knownItems(state.inventory, 'state.inventory');
+  if (state.used) state.used = knownItems(state.used, 'state.used');
+  state.unlocked = state.unlocked.filter((x) => game.map?.places[x] ? true : (drop('state.unlocked', x), false));
+  pruneKeys(state.hero, (id) => rooms.has(id), 'state.hero');
+  pruneKeys(state.visited, (id) => rooms.has(id), 'state.visited');
   for (const [actor, at] of Object.entries(state.where ?? {})) {
-    if (!game.characters[actor]) throw new Error(`state.where: unknown character "${actor}"`);
-    room(at, 'state.where');
+    const character = game.characters[actor];
+    if (!character) { delete state.where![actor]; drop('state.where character', actor); continue; }
+    if (!rooms.has(at)) {
+      const home = character.room;
+      if (home && rooms.has(home)) state.where![actor] = home;
+      else delete state.where![actor];
+      drop('state.where room', at);
+    }
   }
-  if (state.active && !players.has(state.active)) throw new Error(`state.active: unknown player "${state.active}"`);
   for (const [pid, p] of Object.entries(state.players ?? {})) {
-    if (!players.has(pid)) throw new Error(`state.players: unknown player "${pid}"`);
-    room(p.room, `state.players.${pid}.room`); p.inventory.forEach((x) => item(x, `state.players.${pid}.inventory`));
-    p.used?.forEach((x) => item(x, `state.players.${pid}.used`));
+    if (!players.has(pid)) { delete state.players![pid]; drop('state.players', pid); continue; }
+    if (!rooms.has(p.room)) {
+      const start = game.players?.start?.[pid]?.room ?? game.start.room;
+      if (!rooms.has(start)) { delete state.players![pid]; drop(`state.players.${pid}.room`, p.room); continue; }
+      drop(`state.players.${pid}.room`, p.room); p.room = start;
+    }
+    p.inventory = knownItems(p.inventory, `state.players.${pid}.inventory`);
+    if (p.used) p.used = knownItems(p.used, `state.players.${pid}.used`);
+    pruneKeys(p.hero, (id) => rooms.has(id), `state.players.${pid}.hero`);
   }
   for (const [key, propState] of Object.entries(state.props)) {
     const cut = key.indexOf('.');
     const r = cut > 0 ? rooms.get(key.slice(0, cut)) : undefined;
     const p = cut > 0 ? r?.props?.[key.slice(cut + 1)] : undefined;
-    if (!p) throw new Error(`state.props: unknown prop "${key}"`);
-    if (p.states && !p.states[propState]) throw new Error(`state.props: unknown state "${propState}" for "${key}"`);
+    if (!p || !p.states || !p.states[propState]) { delete state.props[key]; drop('state.props', key); }
   }
   for (const key of Object.keys(state.actors)) {
     const cut = key.indexOf('.');
     const r = cut > 0 ? rooms.get(key.slice(0, cut)) : undefined;
-    if (!r?.actors?.[key.slice(cut + 1)] && !r?.props?.[key.slice(cut + 1)]) throw new Error(`state.actors: unknown actor or prop "${key}"`);
+    if (!r?.actors?.[key.slice(cut + 1)] && !r?.props?.[key.slice(cut + 1)]) { delete state.actors[key]; drop('state.actors', key); }
   }
   const scripts = new Map([...(game.scripts ?? []), ...game.rooms.flatMap((r) => r.scripts ?? [])].map((s) => [s.id, s]));
   for (const [sid, st] of Object.entries(state.scripts ?? {})) {
     const def = scripts.get(sid);
-    if (!def) throw new Error(`state.scripts: unknown script "${sid}"`);
-    if (st.step && def.stepIds && !def.stepIds.includes(st.step)) throw new Error(`state.scripts.${sid}: unknown step "${st.step}"`);
-    if (!st.step && st.pc > def.do.length) throw new Error(`state.scripts.${sid}: instruction ${st.pc} is out of range`);
+    if (!def || (st.step && def.stepIds && !def.stepIds.includes(st.step)) || (!st.step && st.pc > def.do.length)) {
+      delete state.scripts![sid]; drop('state.scripts', sid);
+    }
   }
+  if (stale.length) (opts.warn ?? console.warn)(`save adjusted after a content update: ${stale.join(', ')}`);
   return state;
 }

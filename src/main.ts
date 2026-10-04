@@ -28,6 +28,7 @@ ready.then(async () => {
   let g = game, L = layouts;
   let store: SaveStore | undefined;
   let pendingStorageError: Error | undefined;
+  let pendingSaveWarning: string | undefined;
   let app: App | undefined;
   if (dev && import.meta.env.VITE_STUDIO_DEMO === '1') {
     // The edited game never touches the player's saved game (same origin as the game on a static host).
@@ -41,7 +42,11 @@ ready.then(async () => {
   if (!store) {
     try {
       const { IndexedDbSaveStore } = await import('@engine/dom/save-store');
-      store = await IndexedDbSaveStore.open(g, (error) => { if (app) app.reportStorageError(error); else pendingStorageError = error; });
+      store = await IndexedDbSaveStore.open(
+        g,
+        (error) => { if (app) app.reportStorageError(error); else pendingStorageError = error; },
+        (message) => { if (app) app.reportSaveWarning(message); else pendingSaveWarning = message; },
+      );
     } catch (e) {
       // App's verified localStorage adapter remains a compatibility fallback when IndexedDB itself is unavailable.
       console.warn('IndexedDB autosave unavailable; using localStorage fallback', e);
@@ -50,6 +55,7 @@ ready.then(async () => {
   app = new App({ root: document.getElementById('app')!, game: g, layouts: L, manifest: manifest as AssetManifest, minigames, commands, store, version: __ASSETS_VERSION__,
     languages: Object.keys(locales ?? {}).length ? { current: lang ?? written.lang ?? 'en', available: [written.lang ?? 'en', ...Object.keys(locales ?? {}).filter((l) => l !== (written.lang ?? 'en'))] } : undefined });
   if (pendingStorageError) app.reportStorageError(pendingStorageError);
+  if (pendingSaveWarning) app.reportSaveWarning(pendingSaveWarning);
   (window as any).__game = app; // debugging from the console, and driving e2e tests
   if (dev) app.engine.traceOn = true;
   if (dev) {
