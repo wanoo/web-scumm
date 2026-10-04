@@ -49,7 +49,7 @@ class LocalStore implements SaveStore {
       parseSave(this.game, JSON.parse(check));
     } catch (e) { this.fail(e as Error); }
   }
-  clear() { try { localStorage.removeItem(this.key); } catch (e) { this.fail(e as Error); } }
+  async clear() { try { localStorage.removeItem(this.key); return true; } catch (e) { this.fail(e as Error); return false; } }
 }
 
 /** Player preferences (see `GameDef.settings`). */
@@ -74,7 +74,7 @@ export class LocalSlotStore implements SlotStore {
       return true;
     } catch (e) { this.fail(e as Error); return false; }
   }
-  async clearSlot(n: number) { try { localStorage.removeItem(this.key(n)); } catch (e) { this.fail(e as Error); } }
+  async clearSlot(n: number) { try { localStorage.removeItem(this.key(n)); return true; } catch (e) { this.fail(e as Error); return false; } }
 }
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, html?: string) => {
@@ -1008,7 +1008,7 @@ export class App implements Presenter {
       m.innerHTML = `<h3>!</h3><p>${esc(ui.confirmErase)}</p>`;
       const y = el('button', 'warn', `<span>${esc(ui.yes)}</span><span>!</span>`), n = el('button', '', `<span>${esc(ui.no)}</span><span>▶</span>`);
       n.onclick = () => d.remove();
-      y.onclick = () => { d.remove(); this.engine.store.clear(); void this.engine.newGame(); };
+      y.onclick = () => { d.remove(); void this.restart(); };
       m.append(y, n);
     };
     d.append(m); this.scene.append(d);
@@ -1125,7 +1125,9 @@ export class App implements Presenter {
           const free = metas.findIndex((x) => !x);
           if (free >= 0) {
             const roomName = this.game.rooms.find((r) => r.id === st.room)?.name ?? st.room;
-            if (await this.slots.putSlot(free + 1, structuredClone(st), { at: Date.now(), room: st.room, roomName, v: st.v })) this.toast(`${slotName(free + 1)} ✓`);
+            // The write failed (reported): the current game is kept, the file is not loaded over it.
+            if (!(await this.slots.putSlot(free + 1, structuredClone(st), { at: Date.now(), room: st.room, roomName, v: st.v }))) return;
+            this.toast(`${slotName(free + 1)} ✓`);
           }
           await this.engine.load(st);
         } catch (e) { this.toast(String((e as Error).message)); }
@@ -1133,6 +1135,12 @@ export class App implements Presenter {
       inp.click();
     };
     row(ui.resume, '▶').onclick = () => d.remove();
+  }
+
+  /** "Restart from the beginning": the autosave must go first; when the browser refuses, the player keeps the game. */
+  private async restart() {
+    if (!(await this.engine.store.clear())) { this.toast(this.t('saveFailed')); return; }
+    await this.engine.newGame();
   }
 
   /** Title screen, then launches the game. */
@@ -1163,7 +1171,7 @@ export class App implements Presenter {
     ov.addEventListener('pointerdown', startMusic);
     const launch = async (fresh: boolean) => {
       ov.remove(); this.side.style.display = ''; this.layoutTitle(false);
-      if (fresh) { this.engine.store.clear(); await this.engine.newGame(); } else await this.engine.continueGame();
+      if (fresh) { if (!(await this.engine.store.clear())) { this.toast(this.t('saveFailed')); if (this.engine.hasSave()) { await this.engine.continueGame(); return; } } await this.engine.newGame(); } else await this.engine.continueGame();
     };
     nb.onclick = () => {
       startMusic();

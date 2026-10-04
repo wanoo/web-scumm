@@ -4,6 +4,12 @@
 
 ### Added
 
+- Saves say what they did: `clear()` / `clearSlot()` return `false` when the browser refuses (the save stays, the
+  failure is reported, `whenIdle()` rejects); "Restart" and a refused file import keep the current game; golden
+  saves for 3.0.0 and 3.1.0 load, migrate and reach the ending; refused writes and deletions are tested with a fake
+  IndexedDB; `npm run e2e -- --save` proves a manual save survives a reload in a real browser, `--no-indexeddb` the
+  localStorage fallback (both in CI).
+
 - Line ids: `say`, `toast` and `guide` carry an optional stable `id`; translation paths follow it
   (`do.<line id>.say` instead of `do[3].say`), `audio.voices[<line id>]` plays without writing `voice` on the line,
   `npm run ids -- --lines` (or `--lines=all` for plain strings too) writes them and renames the locales from their

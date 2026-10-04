@@ -93,13 +93,14 @@ export class IndexedDbSaveStore implements SaveStore, SlotStore {
     return done;
   }
 
-  clearSlot(n: number): Promise<void> {
+  clearSlot(n: number): Promise<boolean> {
     const done = this.pending.then(async () => {
       const tx = this.db.transaction(STORE, 'readwrite');
       tx.objectStore(STORE).delete(this.slotKey(n));
       await transaction(tx);
-    }).catch((e) => this.fail(e instanceof Error ? e : new Error(String(e))));
-    this.pending = done;
+      return true;
+    }).catch((e) => { this.fail(e instanceof Error ? e : new Error(String(e))); return false; });
+    this.pending = done.then(() => undefined);
     return done;
   }
 
@@ -127,13 +128,24 @@ export class IndexedDbSaveStore implements SaveStore, SlotStore {
     });
   }
 
-  clear(): void {
+  clear(): Promise<boolean> {
+    const previous = this.value;
     this.value = null;
-    this.pending = this.pending.then(async () => {
+    this.lastError = null;
+    const done = this.pending.then(async () => {
       const tx = this.db.transaction(STORE, 'readwrite');
       tx.objectStore(STORE).delete(`${this.game.id}:auto`);
       await transaction(tx);
-    }).catch((e) => this.fail(e instanceof Error ? e : new Error(String(e))));
+      return true;
+    }).catch((e) => {
+      // The durable save is still there: the cache says so too, and the failure is reported like a failed write.
+      this.value = previous;
+      this.lastError = e instanceof Error ? e : new Error(String(e));
+      this.fail(this.lastError);
+      return false;
+    });
+    this.pending = done.then(() => undefined);
+    return done;
   }
 
   /** Tests and shutdown flows can await the latest verified write. */

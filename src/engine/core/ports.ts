@@ -47,7 +47,8 @@ export interface Presenter {
 export interface SaveStore {
   load(): GameState | null;
   save(s: GameState): void;
-  clear(): void;
+  /** False when the browser refused the deletion (reported through the store's failure callback): the save is still there. */
+  clear(): Promise<boolean>;
   /** Resolves after the latest durable write has been verified. Async stores may reject on failure. */
   whenIdle?(): Promise<void>;
 }
@@ -61,14 +62,15 @@ export interface SlotStore {
   getSlot(n: number): Promise<GameState | null>;
   /** False when the browser refused or lost the write (the failure was reported). */
   putSlot(n: number, state: GameState, meta: SlotMeta): Promise<boolean>;
-  clearSlot(n: number): Promise<void>;
+  /** False when the browser refused the deletion (reported). */
+  clearSlot(n: number): Promise<boolean>;
 }
 
 export class MemoryStore implements SaveStore {
   data: GameState | null = null;
   load() { return this.data ? structuredClone(this.data) : null; }
   save(s: GameState) { this.data = structuredClone(s); }
-  clear() { this.data = null; }
+  async clear() { this.data = null; return true; }
 }
 
 /** Silent presenter for node: everything finishes immediately, and everything is logged to `log`. */

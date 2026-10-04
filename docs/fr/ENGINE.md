@@ -50,6 +50,22 @@ jusqu'à ce que l'App puisse les montrer), l'`App`, `window.__game`, les outils 
 `src/main.ts` l'appelle ; un jeu qui embarque le moteur aussi (docs/fr/UPGRADING.md §8). `pickLanguage`, `waitFonts`
 et `openStore` sont exportés pour une page qui a besoin d'un autre ordre.
 
+## Sauvegardes : ce qui est garanti
+
+- L'autosauvegarde et les emplacements manuels vivent dans IndexedDB (`dom/save-store.ts`), chaque écriture relue et
+  vérifiée ; un navigateur sans IndexedDB (fenêtre privée, profil verrouillé) reçoit le stockage localStorage, annoncé
+  une fois.
+- Chaque opération dit ce qu'elle a fait : `save()` signale une écriture refusée par le rappel d'échec du stockage et
+  `whenIdle()` rejette ; `clear()` et `clearSlot()` rendent `false` quand le navigateur a refusé la suppression (la
+  sauvegarde est toujours là, la page continue de la montrer). L'App en tient compte : « Recommencer » garde la partie
+  en cours quand l'autosauvegarde ne peut pas être effacée, « Nouvelle partie » depuis le titre reprend la partie
+  sauvegardée à la place, un import de fichier ne charge jamais par-dessus la partie courante quand sa copie dans un
+  emplacement libre a été refusée. Chaque cas affiche `ui.saveFailed`.
+- Tests : écritures et suppressions refusées avec un IndexedDB factice (`tests/save-store.test.ts`), une sauvegarde
+  figée par release (`tests/fixtures/saves/demo-<version>.json` : se charge, migre, atteint la fin), et dans un vrai
+  navigateur `npm run e2e -- --save` (une sauvegarde manuelle survit à un rechargement) et `--save --no-indexeddb` (le
+  repli aussi).
+
 ## Accessibilité
 
 Le jeu entier se joue au clavier : Tab atteint les verbes (les flèches circulent dans la grille, `aria-pressed` dit

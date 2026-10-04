@@ -44,6 +44,9 @@ export async function launch(url, opts = {}) {
   if (!browserType) throw new Error(`unknown E2E browser "${browserName}" (expected chromium, webkit or firefox)`);
   const browser = await browserType.launch();
   const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+  // opts.noIndexedDb: the browser offers no IndexedDB (a private window, a locked-down profile): the game must fall
+  // back to its localStorage store and say so, never lose a save silently.
+  if (opts.noIndexedDb) await page.addInitScript(() => { Object.defineProperty(window, 'indexedDB', { value: undefined, configurable: true }); });
   const cdp = browserName === 'chromium' ? await page.context().newCDPSession(page) : null;
   // E2E_CPU=4 slows the page's CPU like a shared CI runner (Chromium only), to reproduce timing failures locally.
   if (cdp && process.env.E2E_CPU) await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.E2E_CPU) });
@@ -448,6 +451,30 @@ export async function launch(url, opts = {}) {
     }).catch(() => []);
   }
 
+  /**
+   * A manual save that survives a reload: the state goes to slot 1 through the page's slot store, the page is
+   * reloaded, the slot is read back and compared. Returns what differed (empty when the round trip is exact).
+   */
+  async function saveRoundTrip() {
+    // Compared on a canonical form (sorted keys, no undefined): the store validates the envelope on the way back and
+    // may write the same state with its keys in another order.
+    const CANON = `function canon(v) { return Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).filter(([, x]) => x !== undefined).sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, x]) => [k, canon(x)])) : v; }`;
+    const kind = `('listSlots' in window.__game.engine.store ? 'IndexedDB' : 'localStorage')`;
+    const before = await page.evaluate(`(async () => { ${CANON}
+      const app = window.__game, st = app.engine.state;
+      const roomName = app.game.rooms.find((r) => r.id === st.room)?.name ?? st.room;
+      const ok = await app.slots.putSlot(1, structuredClone(st), { at: Date.now(), room: st.room, roomName, v: st.v });
+      return { ok, json: JSON.stringify(canon(st)), store: ${kind} }; })()`);
+    if (!before.ok) throw new Error(`saveRoundTrip: putSlot(1) refused (store ${before.store})`);
+    await page.reload();
+    await page.waitForFunction(() => !!window.__game, null, { timeout: 15000 });
+    const after = await page.evaluate(`(async () => { ${CANON}
+      const s = await window.__game.slots.getSlot(1);
+      return { json: s ? JSON.stringify(canon(s)) : null, store: ${kind} }; })()`);
+    if (!after.json) throw new Error(`saveRoundTrip: slot 1 is empty after the reload (store ${after.store})`);
+    return { same: before.json === after.json, store: after.store };
+  }
+
   /** The game reached an ending: the engine says so (`state.done`), not a screenshot of a card. */
   async function ended() { return page.evaluate(() => !!window.__game?.engine?.state?.done).catch(() => false); }
 
@@ -455,6 +482,6 @@ export async function launch(url, opts = {}) {
 
   return {
     page, errors, screenshot, tapXY, tapScene, drag, line, pointOn, tapTarget, verb, verbById,
-    itemSlot, item, inInventory, target, state, diagnose, waitIdle, openMap, say, pick, answer, skip, act, play, walkthrough, close, ended, leaks,
+    itemSlot, item, inInventory, target, state, diagnose, waitIdle, openMap, say, pick, answer, skip, act, play, walkthrough, close, ended, leaks, saveRoundTrip,
   };
 }

@@ -50,7 +50,7 @@ export class DevPanel {
 
     const cp = pane.addFolder({ title: 'Checkpoints' });
     for (const id of Object.keys(game.checkpoints ?? {})) cp.addButton({ title: id }).on('click', () => void this.run(() => eng.checkpoint(id)));
-    cp.addButton({ title: 'New game' }).on('click', () => { eng.store.clear(); void eng.newGame(); setTimeout(() => this.build(), 300); });
+    cp.addButton({ title: 'New game' }).on('click', () => { void eng.store.clear().then(() => eng.newGame()); setTimeout(() => this.build(), 300); });
 
     const rooms = pane.addFolder({ title: 'Rooms', expanded: false });
     for (const r of game.rooms) rooms.addButton({ title: `→ ${r.id}` }).on('click', () => void this.run(() => eng.teleport(r.id)));
