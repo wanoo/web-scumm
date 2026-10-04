@@ -3,6 +3,7 @@ import { readdir, readFile, access } from 'node:fs/promises';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GAME_DIR } from '../tools/game';
+import { isPrivateDistFile } from './spoiler-path';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '..');
@@ -36,7 +37,7 @@ async function main() {
     }
   }
   for await (const f of walk(dist)) {
-    if (f.includes(`${'/'}private${'/'}`) || /(reveal|ending)\.config/.test(f)) { console.error(`✘ private file in dist: ${f}`); bad++; }
+    if (isPrivateDistFile(dist, f)) { console.error(`✘ private file in dist: ${f}`); bad++; }
   }
   const bin = await readFile(resolve(dist, 'data/dossier.bin')).catch(() => null);
   if (bin) {

@@ -14,14 +14,15 @@
 //   verb(label)                   taps the verb button with this visible label
 //   itemSlot(id) / item(id)       locates the bag slot for an item id (paging through the bag if needed) / taps it
 //   inInventory(id) / target(id)  true if the item is in the bag; taps it there, else taps it in the scene
-//   state()                       { busy, speech, text, choices, map } snapshot of the engine/UI
+//   state()                       { busy, guiding, speech, text, choices, map } snapshot of the engine/UI
 //   waitIdle(opts?)               advances speech, skips a minigame's `.mg-skip`, stops at a choice or idle
 //   openMap()                     taps the map tool and waits for the map overlay
 //   say(text)                     taps a `.choice` containing this text (a talk topic, or a map place)
 //   skip()                        taps the minigame's `.mg-skip` button if present; true if it did
 //   act(action)                   drives { verb, a, b? } straight through window.__game.engine.act, no tapping
 //   play(steps)                   plays [{ verb, a, b? }, …] (verb ids, see src/engine/core/engine.ts Action) by tapping
-//   walkthrough(steps)            replays session entries (`npm run solve -- --json` steps, an exported session) by tapping
+//   walkthrough(steps)            replays session entries (`npm run solve -- --json` steps, an exported session) by tapping,
+//                                 including starting a new game from the production title screen
 //   close()                       closes the browser
 import { chromium, firefox, webkit } from 'playwright';
 import { mkdirSync, readdirSync, rmSync } from 'node:fs';
@@ -161,7 +162,7 @@ export async function launch(url, opts = {}) {
     return page.evaluate(() => {
       const e = window.__game?.engine;
       return {
-        busy: !!e?.busy, busyCount: e?.busyCount, room: e?.state?.room,
+        busy: !!e?.busy, busyCount: e?.busyCount, guiding: e?.guiding ?? null, room: e?.state?.room,
         sideOff: !!document.querySelector('.side.off'), choosing: !!document.querySelector('.side .choices .choice'),
         overlays: [...document.querySelectorAll('.overlay')].map((o) => o.className),
         speech: document.querySelector('.scene > .speech, .scene > .narr')?.textContent?.slice(0, 80) ?? null,
@@ -175,6 +176,7 @@ export async function launch(url, opts = {}) {
       const speechEl = document.querySelector('.scene > .speech, .scene > .narr');
       return {
         busy: !!window.__game.engine.busy,
+        guiding: window.__game.engine.guiding ?? null,
         speech: !!speechEl,
         text: speechEl?.textContent ?? '',
         choices: document.querySelectorAll('.side .choices .choice').length,
@@ -189,6 +191,32 @@ export async function launch(url, opts = {}) {
     // The overlay may be mid-transition (a minigame just won, its card fading): tap without waiting for the button
     // to be stable, and treat one detached in the meantime as already gone (CI runners hit that race every time).
     try { await b.first().tap({ force: true, timeout: 3000 }); return true; } catch { return false; }
+  }
+
+  /** Completes the built-in scratch minigame with pointer strokes. It intentionally has no Skip button when used
+   * as a finale, so a generic solver-session replay must exercise the real interaction just like a player. */
+  async function scratch() {
+    const canvas = page.locator('.overlay .mg-scratch canvas');
+    if (!(await canvas.count())) return false;
+    const box = await canvas.first().boundingBox();
+    if (!box) return false;
+    const cols = Math.max(8, Math.round(box.width / 30));
+    sweep: for (let pass = 0; pass < 2; pass++) {
+      for (let row = 0; row < 9; row++) {
+        const y = box.y + ((row + 0.5) / 9) * box.height;
+        await page.mouse.move(box.x + 2, y); await page.mouse.down();
+        for (let col = 0; col <= cols; col++) {
+          await page.mouse.move(box.x + (col / cols) * box.width, y, { steps: 3 });
+          if (!(await canvas.count())) break sweep;
+        }
+        await page.mouse.up().catch(() => {});
+        const opacity = await canvas.evaluate((node) => node.style.opacity).catch(() => '0');
+        if (opacity === '0') break sweep;
+      }
+    }
+    await page.mouse.up().catch(() => {});
+    await canvas.waitFor({ state: 'detached', timeout: 10000 });
+    return true;
   }
 
   /** A one-button overlay card (e.g. an incoming phone call's "pick up"): a single `.bigbtn` in a non-map
@@ -214,15 +242,21 @@ export async function launch(url, opts = {}) {
   /** Advances speech by tapping the scene, skips a minigame if it offers `.mg-skip`, answers a one-button
    * overlay card, closes a conversation's leftover transcript, and returns once the engine is idle or a
    * choice (talk topic, map place, menu…) needs the caller. */
-  async function waitIdle({ max = 10000, interval = 80 } = {}) {
+  const sameGuide = (a, b) => !!a && !!b && a.verb === b.verb && a.target === b.target;
+
+  async function waitIdle({ max = 10000, interval = 80, ignoreGuide = null, acceptEnding = false } = {}) {
     for (let waited = 0; waited < max; waited += interval) {
       const s = await state();
       if (s.speech) { await tapScene(320, 10).catch(() => {}); await page.waitForTimeout(interval); continue; }
       if (await skip()) { await page.waitForTimeout(interval); continue; }
+      if (await scratch()) { await page.waitForTimeout(interval); continue; }
+      if (acceptEnding && (await page.locator('.overlay:not(.mapview) .bigbtn').count()) >= 2) return { ...s, ending: true };
       if (s.choices) return s;
+      // A guide deliberately keeps the engine's intro command pending while handing control to the player.
+      if (s.guiding && !sameGuide(s.guiding, ignoreGuide)) return s;
       if (await confirmCard()) { await page.waitForTimeout(interval); continue; }
       if (await dismissTranscript()) { await page.waitForTimeout(interval); continue; }
-      if (!s.busy) {
+      if (!s.busy && !sameGuide(s.guiding, ignoreGuide)) {
         await page.waitForTimeout(interval);
         const s2 = await state();
         if (!s2.busy && !s2.speech && !s2.choices) return s2;
@@ -234,8 +268,13 @@ export async function launch(url, opts = {}) {
   }
 
   async function openMap() {
-    await page.locator('.tools .tool:not(.player)').first().tap(); // the map tool is always the first (see src/engine/dom/app.ts)
-    for (let i = 0; i < 50; i++) { if ((await state()).map) return; await page.waitForTimeout(80); }
+    const button = page.locator('.tools .tool:not(.player)').first(); // the map tool is always the first (see src/engine/dom/app.ts)
+    // A click less than 700 ms after dismissing speech is intentionally swallowed to prevent click-through. Fast
+    // browser engines can reach the map button inside that window, so retry like verb() does instead of timing out.
+    for (let attempt = 0; attempt < 20; attempt++) {
+      await button.tap();
+      for (let i = 0; i < 4; i++) { if ((await state()).map) return; await page.waitForTimeout(80); }
+    }
     throw new Error('openMap: the map did not open');
   }
 
@@ -257,7 +296,7 @@ export async function launch(url, opts = {}) {
     await c.first().tap();
     for (let waited = 0; waited < 6000; waited += 100) {
       const s = await state();
-      if (s.busy || s.speech || !s.choices) break;
+      if (s.speech || !s.choices) break;
       const now = await choiceTexts();
       if (now.length !== before.length || now.some((t, i) => t !== before[i])) break;
       await page.waitForTimeout(100);
@@ -286,7 +325,7 @@ export async function launch(url, opts = {}) {
 
   /** Taps the n-th option of the open choice list (a talk topic, a nested reply, "Bye"): the index the engine
    * recorded in the session entry's `picks`. Polls for the list first: it can still be rendering. */
-  async function pick(i, { max = 3000 } = {}) {
+  async function pick(i, { max = 3000, ignoreGuide = null, acceptEnding = false } = {}) {
     const all = page.locator('.side .choices .choice');
     for (let waited = 0; waited < max; waited += 100) {
       if ((await all.count()) > i) break;
@@ -297,21 +336,24 @@ export async function launch(url, opts = {}) {
     await all.nth(i).tap();
     for (let waited = 0; waited < 6000; waited += 100) {
       const s = await state();
-      if (s.busy || s.speech || !s.choices) break;
+      if (s.speech || !s.choices) break;
       const now = await choiceTexts();
       if (now.length !== before.length || now.some((t, i) => t !== before[i])) break;
       await page.waitForTimeout(100);
     }
-    return waitIdle();
+    return waitIdle({ ignoreGuide, acceptEnding });
   }
 
   /** Answers the choice prompts an action opened, in the recorded order (`SessionEntry.picks`); a conversation
    * ends with its "Bye" pick. Leftover prompts (a recording that stopped mid-conversation) are closed on the
    * last option, as the solver's silent presenter would. */
-  async function answer(picks = []) {
-    let s = await waitIdle();
-    for (const i of picks) { if (!s.choices) break; s = await pick(i); }
-    for (let n = 0; n < 5 && s.choices; n++) { await page.locator('.side .choices .choice').last().tap(); s = await waitIdle(); }
+  async function answer(picks = [], { ignoreGuide = null, acceptEnding = false } = {}) {
+    let s = await waitIdle({ ignoreGuide, acceptEnding });
+    for (const i of picks) { if (!s.choices) break; s = await pick(i, { ignoreGuide, acceptEnding }); }
+    for (let n = 0; n < 5 && s.choices; n++) {
+      await page.locator('.side .choices .choice').last().tap();
+      s = await waitIdle({ ignoreGuide, acceptEnding });
+    }
     return s;
   }
 
@@ -332,15 +374,34 @@ export async function launch(url, opts = {}) {
   const placeName = (id) => page.evaluate((p) => window.__game.game.map?.places?.[p]?.name ?? p, id);
 
   /** Replays session entries (`npm run solve -- --json` `steps`, or an exported session's `log`) by tapping:
-   * the verb and targets of an action, then its recorded answers; the map; another playable character; a
-   * script step (waits for the script to move). A `start` entry (the new game) is the caller's business. */
+   * the title screen for a `start` entry and its recorded intro choices; the verb and targets of an action, then
+   * its recorded answers; the map; another playable character; or a script step (waits for the script to move). */
   async function walkthrough(steps) {
     for (const [i, en] of steps.entries()) {
-      if ('start' in en) { console.log(`walkthrough: step ${i + 1} is the new game itself, skipped`); continue; }
-      if ('act' in en) {
-        if (en.aborted) continue;
-        await verbById(en.act.verb); await target(en.act.a); if (en.act.b) await target(en.act.b);
+      if ('start' in en) {
+        const titleNewGame = page.locator('.overlay .bigbtn').first();
+        if (await titleNewGame.count()) {
+          await titleNewGame.tap();
+          // The title click starts an async launch. Do not let waitIdle observe the tiny gap before newGame() has
+          // reached its first visible prompt (or completed), otherwise it can report an idle game while the prologue
+          // is about to appear. Browser sessions record a digest when the start entry finishes.
+          await page.waitForFunction(() => {
+            const e = window.__game?.engine;
+            if (e?.session?.start?.kind !== 'new') return false;
+            return !!document.querySelector('.scene > .speech, .scene > .narr, .side .choices .choice')
+              || !!e.guiding || !!e.session.log[0]?.digest;
+          });
+        }
+        else {
+          const room = await page.evaluate(() => window.__game?.engine?.state?.room);
+          if (!room) throw new Error('walkthrough: start entry found, but neither a title button nor a running game exists');
+        }
         await answer(en.picks);
+      } else if ('act' in en) {
+        if (en.aborted) continue;
+        const guide = await page.evaluate(() => window.__game.engine.guiding);
+        await verbById(en.act.verb); await target(en.act.a); if (en.act.b) await target(en.act.b);
+        await answer(en.picks, { ignoreGuide: guide, acceptEnding: i === steps.length - 1 });
       } else if ('travel' in en) { await openMap(); await say(await placeName(en.travel)); }
       else if ('map' in en) { await openMap(); if (en.maps?.[0]) await say(await placeName(en.maps[0])); else { await page.keyboard.press('Escape').catch(() => {}); await waitIdle(); } }
       else if ('step' in en) { await waitScript(en.step); }
