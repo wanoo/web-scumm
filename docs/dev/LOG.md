@@ -832,3 +832,13 @@ private reference game stays on 3.1.0 and is no longer a gate.
 | e2e production Chromium (generic and the demo's) | see below |
 
 → next: Claude · `v3-offline-truth` after this branch's CI; Codex reviews the 3.1.1 release when it lands
+
+## #28 · 2026-10-04 · Claude · correction · re #26
+
+`v3-qa-truth` was merged into `main` (985c2f1) while its `check` job was red: I read the e2e lines of the run and
+not the first one. The failure was a 5 s vitest timeout on the demo's full proof in `tests/lint.test.ts` (1.5 s on
+this machine, slower on the runner), not a behaviour; fixed forward on `main` within minutes (30 s timeout on that
+test), CI re-run on `main` recorded below. Rule kept from now on: read the whole job list, and the CI watcher
+prints `check` first.
+
+→ next: Claude · `v3-offline-truth`
