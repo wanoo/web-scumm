@@ -52,11 +52,11 @@ Le choix se fait tout seul (`App.layout`), et se refait si la fenêtre change de
 
 ## Cache et fluidité
 
-- Un **service worker** (vite-plugin-pwa / Workbox) garde l'application en cache dès la première visite. Les images et les sons sont gardés au premier usage, puis servis sans réseau.
+- Un **service worker** (vite-plugin-pwa / Workbox) garde l'application de base en cache dès la première visite. Les images et les sons sont gardés au premier usage, puis servis sans réseau.
   La musique est servie par morceaux (requêtes partielles) depuis le cache.
-- Dès l'écran titre, le moteur **précharge en tâche de fond** toutes les images, les bruitages, puis les musiques (celle du lieu de la sauvegarde et des lieux débloqués d'abord). Rien n'est préchargé en mode « économie de données ».
+- Dès l'écran titre puis après chaque changement de lieu, le moteur **réchauffe en tâche de fond** le lieu courant, les lieux directement accessibles et leur audio, dans les limites de `GameDef.assetBudgets`. Il ne le fait pas sur une connexion contrainte ou en mode « économie de données », et ne télécharge jamais automatiquement tout le catalogue d'un jeu long.
 - Chaque adresse d'image ou de son porte `?v=<empreinte>` : l'empreinte change dès qu'un fichier de `public/assets` change, ce qui contourne l'ancien cache. Le fichier de la fin scellée (`data/`) est toujours redemandé au réseau d'abord.
-- Une fois tout chargé, le jeu fonctionne hors ligne.
+- L'application de base et les ressources déjà en cache fonctionnent hors ligne. Un lieu jamais visité ni préchargé peut encore demander le réseau.
 
 ## Cycle d'une action
 
@@ -65,7 +65,7 @@ Le choix se fait tout seul (`App.layout`), et se refait si la fenêtre change de
 3. Le moteur fait marcher le héros jusqu'au point d'approche (layout), le tourne vers la cible.
 4. `resolve` cherche la réaction : règle du lieu → règle du jeu → Regarder → Parler (indices, conversation) → sorte → refus → repli.
 5. Les commandes s'exécutent une à une ; chacune appelle le Presenter (dire, marcher, changer un accessoire, jouer un son…).
-6. À la fin, l'état est sauvegardé (localStorage). Tout l'état est du JSON : `GameState` dans `types.ts`.
+6. À la fin, l'état est sauvegardé (autosauvegarde IndexedDB vérifiée, avec repli de compatibilité localStorage). Tout l'état est du JSON : `GameState` dans `types.ts`.
 7. Dans les creux entre deux actions, les **scripts** du monde avancent d'une commande chacun (`ScriptDef`,
    `Engine.advance`) : PNJ qui déambule, gag d'ambiance, personnage qui change de lieu (`moveActor`) quand un événement
    émis (`emit`) réveille son `waitEvent`. Leur position vit aussi dans l'état : une sauvegarde les reprend, et le solveur

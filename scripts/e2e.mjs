@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// npm run e2e [url] [--game demo] [--at=<checkpoint>]
-// Plays a web-scumm game by touch in a phone-sized Chromium (viewport, helpers: scripts/e2e/lib.mjs).
+// npm run e2e [url] [--game demo] [--at=<checkpoint>] [--prod] [--generic]
+// Plays a web-scumm game by touch in a phone-sized browser (E2E_BROWSER=chromium|webkit|firefox).
 //   - If games/<GAME>/e2e.mjs exists, it is loaded and must export `run(harness)`: a game-specific walkthrough,
 //     free to call the generic harness and to play its own minigames for real instead of skipping them.
 //   - Otherwise, this script asks `npm run solve -- --json` for an action path and replays it with
@@ -23,15 +23,17 @@ const flag = (name) => {
   return i !== -1 ? args[i + 1] : undefined;
 };
 const at = flag('at');
+const prod = args.includes('--prod');
+const generic = args.includes('--generic');
 // Same game resolution as tools/game.ts (env GAME, else package.json config.game, else "demo"); --game overrides both.
 const GAME = flag('game') ?? process.env.GAME ?? 'demo';
 
-console.log(`e2e: ${url} (game: ${GAME})`);
-const harness = await launch(url, { at });
+console.log(`e2e: ${url} (game: ${GAME}, browser: ${process.env.E2E_BROWSER ?? 'chromium'}, ${prod ? 'production' : 'development'})`);
+const harness = await launch(url, { at, dev: !prod });
 let ok = true;
 try {
   const gameScript = resolve(ROOT, 'games', GAME, 'e2e.mjs');
-  if (existsSync(gameScript)) {
+  if (!generic && existsSync(gameScript)) {
     console.log(`e2e: playing games/${GAME}/e2e.mjs`);
     const { run } = await import(pathToFileURL(gameScript).href);
     await run(harness);

@@ -55,13 +55,14 @@ The choice is made automatically (`App.layout`), and redone whenever the window 
 
 ## Cache and responsiveness
 
-- A **service worker** (vite-plugin-pwa / Workbox) keeps the app cached from the first visit. Images and sounds are kept
-  on first use, then served without the network. Music is served in chunks (range requests) from the cache.
-- From the title screen, the engine **preloads in the background** every image, every sound effect, then every music
-  track (the save's room and the unlocked places first). Nothing is preloaded in "data saver" mode.
+- A **service worker** (vite-plugin-pwa / Workbox) keeps the app shell cached from the first visit. Images and sounds
+  are kept on first use, then served without the network. Music is served in chunks (range requests) from the cache.
+- From the title screen and after each room change, the engine **warms in the background** the current room, directly
+  reachable rooms and their audio, within `GameDef.assetBudgets`. It does not warm assets on a constrained or
+  "save data" connection, and it never downloads a long game's entire asset catalogue automatically.
 - Every image or sound address carries `?v=<hash>`: the hash changes as soon as a file in `public/assets` changes, which
   bypasses the old cache. The sealed ending's file (`data/`) is always requested from the network first.
-- Once everything is loaded, the game works offline.
+- The app shell and assets already cached work offline. A room never visited or warmed may still need the network.
 
 ## The action cycle
 
@@ -70,7 +71,8 @@ The choice is made automatically (`App.layout`), and redone whenever the window 
 3. The engine walks the hero to the approach point (layout), turns them toward the target.
 4. `resolve` looks for the reaction: room rule → game rule → Look → Talk (hints, conversation) → kind → refusal → fallback.
 5. The commands run one by one; each calls the Presenter (speak, walk, change a prop, play a sound…).
-6. At the end, the state is saved (localStorage). All of the state is JSON: `GameState` in `types.ts`.
+6. At the end, the state is saved (verified IndexedDB autosave, with localStorage compatibility fallback). All of the
+   state is JSON: `GameState` in `types.ts`.
 7. In the gaps between actions, the world's **scripts** advance one command each (`ScriptDef`, `Engine.advance`): NPC
    strolls, ambient gags, a character that `moveActor`s to another room when an `emit`ted event wakes its `waitEvent`.
    Their position lives in the state too, so a save resumes them, and the solver plays them as actions ("Script <id>": the script runs up to its next `wait`, so a patrol is seen room by room). The solver also tries every option of a `choice` prompt (the path then reads `Talk x: "topic" › "reply"`), and keeps the exact value of a counter that is ever lowered or set to a number. It leaves out of the state whatever

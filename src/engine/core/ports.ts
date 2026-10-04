@@ -48,6 +48,8 @@ export interface SaveStore {
   load(): GameState | null;
   save(s: GameState): void;
   clear(): void;
+  /** Resolves after the latest durable write has been verified. Async stores may reject on failure. */
+  whenIdle?(): Promise<void>;
 }
 
 export class MemoryStore implements SaveStore {

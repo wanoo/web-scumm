@@ -51,7 +51,7 @@ if (cmd === 'status') {
     for (const m of st.stale.slice(0, 10)) console.log(`     stale   ${m}`);
     if (l !== base) for (const m of st.same.slice(0, 10)) console.log(`     same    ${m}`);
   }
-  process.exit(0);
+  process.exit(bad ? 1 : 0);
 }
 console.log('usage: npm run i18n -- extract [--lang <xx>] | status');
 process.exit(1);

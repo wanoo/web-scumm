@@ -19,12 +19,10 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt
       - run: npm ci
-      - run: npm run audit
-      - run: npm run validate
-      - run: npm run solve
-      - run: npm test
-      # The game, plus the Studio in demo mode at studio.html (docs/en/STUDIO.md, "Demo mode").
       - run: npm run build
+      - run: npm run audit:deps
+      # Rebuild with the Studio demo entry for Pages after the complete release checks passed.
+      - run: npm run build:web
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
           STUDIO: '1'
@@ -33,12 +31,23 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           path: dist
-  # The sample game played by touch in Chromium: the solver's solution replayed step by step, the minigames for real
-  # (games/demo/e2e.mjs). Separate from `check`: the Pages deploy does not wait for it.
+  # The production bundle played by touch. Chromium runs the complete game-specific walkthrough; WebKit runs the
+  # generic solver session as a cross-engine smoke test. Both block deployment.
   e2e:
     runs-on: ubuntu-latest
-    # Playwright taps on a shared runner can be flaky: this job reports, it does not block (see docs/en/TOOLS.md).
-    continue-on-error: true
+    # WebKit is a new cross-engine signal in beta 1. Keep it visible but non-blocking until three consecutive green
+    # runs; Chromium remains the deployment gate throughout.
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - browser: chromium
+            mode: full
+            experimental: false
+          - browser: webkit
+            mode: generic
+            experimental: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -46,19 +55,24 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npm run dev -- --port 5173 --host 127.0.0.1 &
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run build:web
+      - run: npm run preview -- --port 5173 &
       - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5173/ > /dev/null && break; sleep 1; done
-      - run: npm run e2e -- http://127.0.0.1:5173/ --game demo
+      - run: npm run e2e -- http://127.0.0.1:5173/ --game demo --prod ${{ matrix.mode == 'generic' && '--generic' || '' }}
         env:
-          E2E_OUT: /tmp/e2e
+          E2E_BROWSER: ${{ matrix.browser }}
+          E2E_OUT: /tmp/e2e-${{ matrix.browser }}
+      - run: npm run e2e:pwa -- http://127.0.0.1:5173/
+        env:
+          E2E_BROWSER: ${{ matrix.browser }}
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: e2e-screenshots
-          path: /tmp/e2e
+          name: e2e-screenshots-${{ matrix.browser }}
+          path: /tmp/e2e-${{ matrix.browser }}
   pages:
-    needs: check
+    needs: [check, e2e]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

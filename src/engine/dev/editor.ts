@@ -279,7 +279,8 @@ export class Editor {
     let offline = import.meta.env.VITE_STUDIO_DEMO === '1';
     if (!offline) {
       try {
-        const r = await fetch(`/__layout/${this.room.id}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(L) });
+        const token = new URLSearchParams(location.search).get('token');
+        const r = await fetch(`/__layout/${this.room.id}${token ? `?token=${encodeURIComponent(token)}` : ''}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(L) });
         if (r.status === 404 || r.status === 405) offline = true;
         else if (!r.ok) error = await r.text();
       } catch { offline = true; }

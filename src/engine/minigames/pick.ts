@@ -9,6 +9,7 @@ interface Round { prompt?: string; options: string[]; answer: number }
 
 export const pick: Minigame = {
   required: ['rounds'],
+  textParams: ['rounds.*.prompt', 'decoyLine', 'wrongLine', 'win'],
   async run(ctx: MinigameCtx) {
     const p = ctx.params;
     const rounds = Array.isArray(p.rounds) ? (p.rounds as Round[]) : [];

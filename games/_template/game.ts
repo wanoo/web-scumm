@@ -5,6 +5,7 @@ import { rules } from './rules';
 import start, { checkpoints as startCp } from './rooms/start';
 
 export const game = defineGame({
+  schemaVersion: 3,
   id: '__ID__',
   title: '__TITLE__',
   saveVersion: 1,

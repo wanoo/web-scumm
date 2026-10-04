@@ -17,6 +17,26 @@ The full types, with their comments, are in `src/engine/core/types.ts`. Your edi
    game's fallback responses.
 4. **Logical coordinates.** A background measures 640 × 400, origin top-left. A character is placed by its feet.
 
+## The v3 identity contract
+
+New games set `schemaVersion: 3` in `game.ts`. Anything whose execution position survives in a save has an explicit,
+unique id: every `Rule`, `TalkTopic`, `Choice`, `EventRule`, and every `once`, `nth`, `cycle` or `random` block. A
+`ScriptDef` already has an id and adds one `stepIds` entry per top-level command. The validator rejects a v3 game with
+missing or duplicate ids. Reordering content or translating text therefore does not change the meaning of a save.
+
+```ts
+schemaVersion: 3,
+// …
+{ id: 'open.pantry', verb: 'open', a: 'pantry', do: […] }
+{ id: 'ask.key', topic: 'Where is the key?', do: […] }
+{ once: […], id: 'arrival.first' }
+{ id: 'clock', stepIds: ['wait', 'chime'], do: [{ wait: 1000 }, { sfx: 'chime' }] }
+```
+
+`compileGame(source)` clones and normalises the authoring source once; v3 output is frozen in development. The engine,
+validator, solver, replay and puzzle tools consume the same compiled representation. See [UPGRADING.md](UPGRADING.md)
+before converting an existing game.
+
 ## The files
 
 ```
@@ -78,10 +98,10 @@ export default defineRoom({
 
   // Written reactions. See "The reactions".
   on: [
-    { verb: 'pull', a: 'stool', if: { prop: ['stool', 'shelf'] }, do: [
+    { id: 'pull.stool', verb: 'pull', a: 'stool', if: { prop: ['stool', 'shelf'] }, do: [
       { prop: ['stool', 'pulled'] }, 'There. A step up.',
     ] },
-    { verb: 'use', a: 'rope', b: ['hook', 'bucket'], do: [
+    { id: 'tie.rope', verb: 'use', a: 'rope', b: ['hook', 'bucket'], do: [
       { lose: 'rope' }, { set: 'tied' },
       'Tied. One end on the hook, the other on the bucket.',
       { say: ['grandma', 'Careful with that bucket, dear.'] },
@@ -91,8 +111,8 @@ export default defineRoom({
   // Talk topics (2 or 3). "Hug?" and "Bye" are added automatically.
   talk: {
     grandma: [
-      { topic: "Grandma, what's in the basket?", do: [{ say: ['grandma', 'A surprise for everyone.'] }] },
-      { topic: 'Can I go to the market alone?', do: [
+      { id: 'ask.basket', topic: "Grandma, what's in the basket?", do: [{ say: ['grandma', 'A surprise for everyone.'] }] },
+      { id: 'ask.market', topic: 'Can I go to the market alone?', do: [
         { say: ['grandma', 'Alone?! With your scarf, your hat, your water bottle…'] },
         { say: ['grandma', '… Fine. Back by ten.'] },
       ] },
@@ -107,7 +127,7 @@ export default defineRoom({
 
   // On every entry into the room.
   onEnter: [
-    { once: [ 'The living room. Home base.' ] },
+    { once: [ 'The living room. Home base.' ], id: 'arrival.first' },
   ],
 });
 ```
@@ -417,8 +437,9 @@ saves: { slots: 3 },   // the pause menu gets Save / Load with three slots, plus
 ui: { …, save: 'Save', load: 'Load', slot: 'Slot {n}', emptySlot: 'empty', exportSave: 'Export to a file', importSave: 'Import a file', confirmOverwrite: 'Overwrite this slot?' },
 ```
 
-The autosave is unchanged. When the content changes incompatibly, bump `saveVersion`; a save of another version used to
-start a new game. Now you can carry it over, as data, one step per version:
+Autosaves use a v3 envelope validated before the current game changes, with a verified IndexedDB write and a
+localStorage compatibility import. When the content changes incompatibly, bump `saveVersion` and carry the state over
+as data, one step per version:
 
 ```ts
 saveVersion: 3,
@@ -428,8 +449,10 @@ migrations: [
 ],
 ```
 
-`renameFlag`, `renameItem`, `renameRoom`, `renameProp`, `renameActor`, `renamePlace`, `dropFlag`, `dropItem`. The chain
-must reach `saveVersion`; a save with no path still starts a new game. The validator checks that the new names exist.
+The migration also supports counters, seen ids, scripts, named script steps, players and characters; see the complete
+`Migration` type. The chain must reach `saveVersion`; a save with no path still starts a new game. Stale optional
+references left after migration are pruned with a visible warning, while structural corruption, a foreign game, a
+missing current room or an unknown active player is rejected without changing the current session.
 
 ## The world lives: scripts, events, moving characters
 

@@ -23,11 +23,12 @@ export class AssetBank {
 
   /**
    * Downloads in the background (without disrupting the game) files the service worker keeps cached:
-   * the rest of the game then shows up without waiting. Does nothing in "save data" mode.
+   * those nearby assets then show up without waiting and remain available to the service worker. Does nothing in
+   * "save data" mode.
    */
   async warm(urls: string[], parallel = 3): Promise<void> {
-    const conn = (navigator as unknown as { connection?: { saveData?: boolean } }).connection;
-    if (conn?.saveData) return;
+    const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
+    if (conn?.saveData || conn?.effectiveType === 'slow-2g' || conn?.effectiveType === '2g') return;
     const todo = urls.filter((u) => !this.warmed.has(u));
     todo.forEach((u) => this.warmed.add(u));
     const idle = () => new Promise<void>((r) => ('requestIdleCallback' in window ? (window as any).requestIdleCallback(() => r(), { timeout: 1500 }) : setTimeout(r, 50)));

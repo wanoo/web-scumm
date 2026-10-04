@@ -7,6 +7,7 @@ import { el, finisher, num, stage, str } from './util';
 
 export const scratch: Minigame = {
   required: ['ticket'],
+  textParams: [],
   run(ctx: MinigameCtx) {
     const p = ctx.params;
     const ticket = str(p.ticket, '');

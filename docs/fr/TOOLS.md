@@ -23,7 +23,10 @@ ses fichiers directement (`tests/demo.test.ts`, `tests/walkthrough.test.ts`).
 ## Jouer et déboguer
 
 ```bash
-npm run dev        # serveur de dev, aussi joignable depuis un téléphone du réseau local
+npm run dev        # serveur de dev limité à la machine locale
+npm run dev:lan    # mode réseau local explicite ; affiche une URL avec jeton de session
+npm run studio     # Studio limité à la machine locale
+npm run studio:lan # Studio protégé par jeton sur le réseau local
 ```
 
 Paramètres d'URL, serveur de dev uniquement (ils sont ignorés dans le build de production) :
@@ -142,13 +145,17 @@ Options d'un override : `keyed` (fond uni relié au bord rendu transparent, puis
 
 ```bash
 npm run validate   # références cassées, textes vides ou trop longs, Regarder manquants, flags jamais posés ou jamais lus
-npm run solve      # prouve que la partie se termine ; liste les impasses et les objets jamais utilisés
+npm run solve      # témoin rapide : trouve un chemin jusqu'à la fin
+npm run solve -- --prove # preuve exhaustive : signale les états accessibles sans chemin vers la fin
 npm run solve -- --from=<checkpoint> --max=50000
-npm test           # tests du moteur sur tests/fixture (cœur, mini-jeux, outils), puis ceux de le jeu d'exemple
+npm test           # tests Node du moteur, des outils et du jeu sélectionné
+npm run test:assets # tests Python des images et du pipeline d'assets
 npm run e2e        # parcours dans Chromium en paysage téléphone (serveur de dev lancé)
 ```
 
-`validate` et `solve` sortent en erreur (code 1) quand il y a un problème bloquant.
+`validate` et `solve` sortent avec le code 1 pour un problème bloquant. `solve` sort avec le code 2 si son budget
+d'états est épuisé : c'est `truncated`, jamais une preuve. `npm run build` exige un chemin gagnant ;
+`npm run prove:game` est la porte exhaustive explicite contre les softlocks et `npm run release-check` l'inclut.
 
 ```bash
 npm run solve -- --chapters        # une recherche bornée par checkpoint avec `goals`, puis du dernier à la fin
@@ -160,6 +167,11 @@ npm run i18n -- extract [--lang xx]   # tables de traduction (games/<id>/locales
 npm run solve -- --profile         # de quoi les états sont faits et ce que la recherche a coûté (docs/fr/BENCH.md)
 npm run solve -- --por=stubborn    # réduction d'ordre partiel : les actions commutantes une à la fois (moins d'états, même preuve)
 npm run replay -- session.json     # rejoue un fichier de session sur le vrai moteur, imprime le journal et l'état final
+npm run doctor                     # vérifie Node, modules Python, ffmpeg et navigateurs Playwright
+npm run check                      # vérifie les types et lance les tests Node
+npm run verify:game                # validation, témoins globaux/par chapitre et couverture des traductions
+npm run prove:game                 # preuve exhaustive globale/par chapitre ; échoue sur softlock ou troncature
+npm run release-check              # prérequis, build, preuve et audit des dépendances de production
 ```
 
 **Sessions.** Le moteur enregistre chaque entrée depuis le début de la partie ou le chargement d'une sauvegarde

@@ -71,6 +71,7 @@ export function fits(c: Cell): boolean {
 
 export const pipes: Minigame = {
   required: ['tiles', 'source', 'nozzle', 'tank'],
+  textParams: ['intro', 'win'],
   run(ctx: MinigameCtx) {
     const p = ctx.params;
     const t = (p.tiles && typeof p.tiles === 'object' ? p.tiles : {}) as Record<string, unknown>;

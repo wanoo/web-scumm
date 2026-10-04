@@ -219,7 +219,8 @@ La proposition d'ouverture est la beta de Codex (`v3-beta1`, journal #1), revue 
   script ; une seule fonction de nommage partagée par le moteur, le solveur et le graphe de puzzles.
 - **studio-security** : loopback par défaut, jeton LAN, écritures same-origin, clé en sessionStorage.
 - **ci** : e2e sur le build de production, fumée WebKit (non bloquante jusqu'à trois runs verts), `doctor`, `audit:deps`.
-- **offline** : préchargement par pièce d'abord, puis le préchargement global que promet le README, avec des budgets.
+- **offline** : préchargement budgété du lieu et de ses voisins, avec un contrat hors ligne explicite limité aux lieux
+  mis en cache plutôt qu'un téléchargement illimité de tout le jeu.
 - **upgrading** : `docs/en/UPGRADING.md` + `docs/fr/UPGRADING.md`, la liste v2 → v3, exécutée sur le jeu privé de référence.
 
 ## Hors plan (décisions explicites)

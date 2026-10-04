@@ -7,6 +7,7 @@ import { assetsMiddleware } from './assets';
 import { registerAssistant } from './assistant';
 import { createStudio, StudioError, type Studio } from './core';
 import type { StudioEvent } from './types';
+import { authorizeStudioRequest } from './security';
 
 const MAX_BODY = 8 * 1024 * 1024;
 
@@ -100,6 +101,7 @@ export function studioPlugin(): Plugin {
       // /__studio/ → studio.html (the Vite html pipeline serves and transforms it).
       server.middlewares.use((req, res, next) => {
         const [path, query] = (req.url ?? '').split('?');
+        if ((path === '/__studio' || path.startsWith('/__studio/')) && !authorizeStudioRequest(req, res)) return;
         if (path === '/__studio') { res.statusCode = 302; res.setHeader('location', `/__studio/${query ? `?${query}` : ''}`); res.end(); return; }
         if (path === '/__studio/' || path === '/__studio/index.html') req.url = `/studio.html${query ? `?${query}` : ''}`;
         next();

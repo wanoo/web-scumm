@@ -8,6 +8,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { GAME, GAME_DIR } from './tools/game';
 import { studioPlugin } from './tools/studio/plugin';
 import { writeSnapshot } from './tools/studio/snapshot';
+import { authorizeStudioRequest } from './tools/studio/security';
 
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
@@ -18,11 +19,17 @@ function layoutWriter(): Plugin {
     apply: 'serve',
     configureServer(server) {
       server.middlewares.use('/__layout', (req, res) => {
+        if (!authorizeStudioRequest(req, res)) return;
         const room = (req.url ?? '').replace(/^\//, '').split('?')[0];
         if (req.method !== 'POST' || !/^[a-z0-9_-]+$/i.test(room)) { res.statusCode = 400; res.end('invalid request'); return; }
-        let body = '';
-        req.on('data', (c) => { body += c; });
+        let body = '', tooLarge = false;
+        req.on('data', (c) => {
+          if (tooLarge) return;
+          body += c;
+          if (body.length > 1024 * 1024) { tooLarge = true; res.statusCode = 413; res.end('layout body too large'); req.destroy(); }
+        });
         req.on('end', async () => {
+          if (tooLarge) return;
           try {
             const json = JSON.parse(body);
             await writeFile(r(`./games/${GAME}/layout/${room}.json`), JSON.stringify(json, null, 2) + '\n');
@@ -114,8 +121,8 @@ export default defineConfig({
     studioDemo(),
     // Service worker: the app is cached on install, images and sounds on first use (then served without network).
     VitePWA({
-      registerType: 'autoUpdate',
-      injectRegister: 'auto',
+      registerType: 'prompt',
+      injectRegister: false,
       manifest: false,
       workbox: {
         globPatterns: ['**/*.{js,css,html,ttf,webmanifest}', 'icons/*.png'],
@@ -123,8 +130,8 @@ export default defineConfig({
         globIgnores: ['assets/img/**', 'assets/audio/**', 'assets/video/**', 'data/**', 'assets/tools/**', 'studio-demo/**'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true,
+        clientsClaim: false,
+        skipWaiting: false,
         runtimeCaching: [
           { urlPattern: /\/assets\/img\//, handler: 'CacheFirst',
             options: { cacheName: 'jeu-images', expiration: { maxEntries: 2000, maxAgeSeconds: 90 * 86400 }, cacheableResponse: { statuses: [0, 200] } } },
@@ -137,7 +144,9 @@ export default defineConfig({
       },
     }),
   ],
-  server: { port: 5173, host: true },
+  // File-writing Studio routes are intentionally loopback-only by default. `npm run dev:lan` / `studio:lan` opt in
+  // to LAN access (the Studio adds an authentication token in that mode).
+  server: { port: 5173, host: process.env.WEB_SCUMM_LAN === '1' ? true : '127.0.0.1' },
   // The current game (GAME, otherwise package.json → config.game, otherwise demo): `@game` → games/<GAME>/index.ts.
   resolve: { alias: [
     { find: '@engine', replacement: r('./src/engine') },
@@ -154,5 +163,5 @@ export default defineConfig({
         chunkFileNames: (c: { moduleIds: string[] }) => (c.moduleIds.length && c.moduleIds.every(isToolModule) ? 'assets/tools/[name]-[hash].js' : 'assets/[name]-[hash].js'),
       },
     } },
-  test: { environment: 'node', include: ['tests/**/*.test.ts'] },
+  test: { environment: 'node', include: ['tests/**/*.test.ts', `games/${GAME}/tests/**/*.test.ts`] },
 } as any);

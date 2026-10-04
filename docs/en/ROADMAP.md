@@ -265,7 +265,8 @@ when split out:
   one naming function shared by the engine, the solver and the puzzle graph.
 - **studio-security**: loopback by default, LAN token, same-origin writes, key in sessionStorage.
 - **ci**: production-build e2e, WebKit smoke test (non-blocking until three green runs), `doctor`, `audit:deps`.
-- **offline**: room-scoped warming first, then the global preload the README promises, with budgets.
+- **offline**: budgeted room/neighbor warming, with an explicit cached-rooms offline contract instead of an unbounded
+  whole-game download.
 - **upgrading**: `docs/en/UPGRADING.md` + `docs/fr/UPGRADING.md`, the v2 → v3 checklist, run on the private reference game.
 
 ## Out of scope (explicit decisions)

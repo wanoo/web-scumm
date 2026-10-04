@@ -11,6 +11,7 @@ import { Audio } from './audio';
 import { FONT_PIXEL, FONT_UI, fontStack } from './fonts';
 import { RoomView } from './room';
 import './style.css';
+import { parseSave, saveEnvelope } from '../core/save';
 
 export interface AppOptions {
   root: HTMLElement;
@@ -29,10 +30,21 @@ export interface AppOptions {
 }
 
 class LocalStore implements SaveStore {
-  constructor(private key: string) {}
-  load(): GameState | null { try { const v = localStorage.getItem(this.key); return v ? JSON.parse(v) : null; } catch { return null; } }
-  save(s: GameState) { try { localStorage.setItem(this.key, JSON.stringify(s)); } catch { /* storage denied */ } }
-  clear() { try { localStorage.removeItem(this.key); } catch { /* same */ } }
+  constructor(private key: string, private game: GameDef, private fail: (error: Error) => void, private warn: (message: string) => void) {}
+  load(): GameState | null {
+    try { const v = localStorage.getItem(this.key); return v ? parseSave(this.game, JSON.parse(v), { warn: this.warn }) : null; }
+    catch (e) { this.fail(e as Error); return null; }
+  }
+  save(s: GameState) {
+    try {
+      const raw = JSON.stringify(saveEnvelope(this.game, s));
+      localStorage.setItem(this.key, raw);
+      const check = localStorage.getItem(this.key);
+      if (!check) throw new Error('the browser did not retain the autosave');
+      parseSave(this.game, JSON.parse(check));
+    } catch (e) { this.fail(e as Error); }
+  }
+  clear() { try { localStorage.removeItem(this.key); } catch (e) { this.fail(e as Error); } }
 }
 
 /** Player preferences (see `GameDef.settings`). */
@@ -45,11 +57,17 @@ export interface Slot { meta: SlotMeta; state: GameState }
 
 /** Manual slots in localStorage (`<game>.slot.<n>`), next to the autosave. */
 export class SlotStore {
-  constructor(private prefix: string) {}
+  constructor(private prefix: string, private game: GameDef, private fail: (error: Error) => void, private warn: (message: string) => void) {}
   private key(n: number) { return `${this.prefix}.slot.${n}`; }
-  get(n: number): Slot | null { try { const v = localStorage.getItem(this.key(n)); return v ? JSON.parse(v) : null; } catch { return null; } }
-  put(n: number, slot: Slot) { try { localStorage.setItem(this.key(n), JSON.stringify(slot)); } catch { /* storage denied */ } }
-  clear(n: number) { try { localStorage.removeItem(this.key(n)); } catch { /* same */ } }
+  get(n: number): Slot | null {
+    try { const v = localStorage.getItem(this.key(n)); if (!v) return null; const x = JSON.parse(v) as Slot; return { meta: x.meta, state: parseSave(this.game, x.state, { warn: this.warn }) }; }
+    catch (e) { this.fail(e as Error); return null; }
+  }
+  put(n: number, slot: Slot): boolean {
+    try { const raw = JSON.stringify(slot); localStorage.setItem(this.key(n), raw); if (localStorage.getItem(this.key(n)) !== raw) throw new Error('the browser did not retain the save slot'); return true; }
+    catch (e) { this.fail(e as Error); return false; }
+  }
+  clear(n: number) { try { localStorage.removeItem(this.key(n)); } catch (e) { this.fail(e as Error); } }
 }
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, html?: string) => {
@@ -108,6 +126,51 @@ export class App implements Presenter {
   private speechTimer = 0;
   private eatClick = -Infinity;
   private inCutscene = false;
+  private saveError: string | null = null;
+  private saveWarning: string | null = null;
+  private a11yTargets: HTMLDivElement | null = null;
+  private live!: HTMLDivElement;
+
+  /** Makes an asynchronous storage failure visible instead of silently claiming autosave success. */
+  reportStorageError(error: Error) {
+    if (this.saveError === error.message) return;
+    this.saveError = error.message;
+    if (this.scene) this.toast(`${this.game.ui.saveFailed ?? 'Save failed'}: ${error.message}`);
+  }
+
+  /** A content update may safely prune stale optional ids; tell the player without disabling Continue. */
+  reportSaveWarning(message: string) {
+    if (this.saveWarning === message) return;
+    this.saveWarning = message;
+    if (this.scene) this.toast(`${this.game.ui.saveAdjusted ?? 'Save adjusted for this version'}: ${message}`);
+  }
+
+  /** Offers a service-worker update and activates it only after a verified autosave. */
+  offerUpdate(activate: () => Promise<void>) {
+    if (this.root.querySelector('.update-banner')) return;
+    const box = el('div', 'update-banner');
+    box.setAttribute('role', 'status');
+    const text = el('span', '', esc(this.game.ui.updateAvailable ?? 'A new version is ready.'));
+    const button = el('button', '', esc(this.game.ui.updateNow ?? 'Save and update'));
+    button.onclick = async () => {
+      button.disabled = true;
+      this.saveError = null;
+      try {
+        // On the untouched title screen there is no progress to persist; do not create a misleading Continue save.
+        if (this.engine.hasSave()) {
+          this.engine.save();
+          await this.engine.store.whenIdle?.();
+        }
+        if (this.saveError) throw new Error(this.saveError);
+        await activate();
+      } catch (e) {
+        this.reportStorageError(e instanceof Error ? e : new Error(String(e)));
+        button.disabled = false;
+      }
+    };
+    box.append(text, button);
+    this.root.append(box);
+  }
 
   constructor(private o: AppOptions) {
     this.game = o.game;
@@ -115,8 +178,10 @@ export class App implements Presenter {
     this.bank = new AssetBank(o.manifest, o.base ?? `${import.meta.env?.BASE_URL ?? '/'}assets`, o.version ?? '');
     this.audio = new Audio(this.bank, { music: o.game.audio?.music, sfx: o.game.audio?.sfx, voice: o.game.audio?.voices });
     this.mg = { ...builtin, ...(o.minigames ?? {}) };
-    this.engine = new Engine(o.game, o.layouts, this, o.store ?? new LocalStore(`${o.game.id}.save`), { commands: o.commands, runCustom: true, scene: () => this.scene });
-    this.slots = new SlotStore(o.game.id);
+    const storageFailure = (error: Error) => queueMicrotask(() => this.reportStorageError(error));
+    const storageWarning = (message: string) => queueMicrotask(() => this.reportSaveWarning(message));
+    this.engine = new Engine(o.game, o.layouts, this, o.store ?? new LocalStore(`${o.game.id}.save`, o.game, storageFailure, storageWarning), { commands: o.commands, runCustom: true, scene: () => this.scene });
+    this.slots = new SlotStore(o.game.id, o.game, storageFailure, storageWarning);
     this.view = new RoomView(this.engine, this.bank);
     this.engine.autoScripts = true;
     this.engine.onChange = () => this.refresh();
@@ -152,6 +217,8 @@ export class App implements Presenter {
     // Pixel-art games: sprites and backgrounds scaled up with hard edges (style.css `.scene.pixel img`).
     if (this.game.skin?.pixelArt) this.scene.classList.add('pixel');
     this.scene.append(this.view.el);
+    this.live = el('div', 'sr-only'); this.live.setAttribute('aria-live', 'polite'); this.live.setAttribute('aria-atomic', 'true');
+    this.scene.append(this.live);
     this.scene.append(el('div', 'letter t'), el('div', 'letter b'));
     this.sbar = el('div', 'sbar');
     this.scene.append(this.sbar);
@@ -198,6 +265,7 @@ export class App implements Presenter {
     this.scene.addEventListener('pointerdown', (e) => this.onScenePointer(e));
     this.scene.addEventListener('pointermove', (e) => this.onHover(e));
     this.scene.addEventListener('pointerleave', () => { this.showLabel(null); this.sentence(); });
+    this.g.addEventListener('keydown', (e) => { if (e.key === 'Escape') (this.scene.querySelector('.dim, .overlay .dim') as HTMLElement | null)?.remove(); });
   }
 
   private layout() {
@@ -231,6 +299,7 @@ export class App implements Presenter {
     Object.assign(this.scene.style, { width: `${sw}px`, height: `${sh}px`, fontSize: `${Math.max(13, Math.round(sw * 0.03))}px` });
     this.u = sw / 640; this.sw = sw;
     this.view.resize(this.u);
+    this.renderA11yTargets();
     if (this.items) this.renderInv();
   }
 
@@ -262,6 +331,33 @@ export class App implements Presenter {
     await this.engine.act({ verb: v, a: id });
   }
 
+  private async actOnTarget(id: Id) {
+    const v = this.verb;
+    if (!v) { const ap = this.engine.approach(id); this.sentence(id); if (ap) await this.engine.walkTo(ap); return; }
+    if ((v === 'use' || v === 'give') && this.a) { const a = this.a; this.resetVerb(); await this.engine.act({ verb: v, a, b: id }); return; }
+    if (v === 'give') { void this.say(this.game.hero, this.game.ui.giveWhat, {}); return; }
+    this.resetVerb();
+    await this.engine.act({ verb: v, a: id });
+  }
+
+  /** Keyboard and screen-reader representation of the visible coordinate-based scene hotspots. */
+  private renderA11yTargets() {
+    this.a11yTargets?.remove();
+    if (!this.view.room || !this.engine.state) return;
+    const layer = el('div', 'a11y-targets'); layer.setAttribute('aria-label', this.view.room.name);
+    for (const id of this.engine.targets(this.view.room)) {
+      const box = this.view.box(id); if (!box) continue;
+      const b = el('button', 'a11y-target', esc(this.engine.nameOf(id)));
+      b.dataset.target = id; b.setAttribute('aria-label', this.engine.nameOf(id));
+      Object.assign(b.style, { left: `${box[0] * this.u}px`, top: `${box[1] * this.u}px`, width: `${Math.max(24, box[2] * this.u)}px`, height: `${Math.max(24, box[3] * this.u)}px` });
+      b.onfocus = () => { this.showLabel(id); this.sentence(id); };
+      b.onblur = () => { this.showLabel(null); this.sentence(); };
+      b.onclick = (e) => { e.stopPropagation(); if (!this.engine.busy && !this.speechEl && !this.inCutscene) void this.actOnTarget(id); };
+      layer.append(b);
+    }
+    this.view.el.append(layer); this.a11yTargets = layer;
+  }
+
   private async onScenePointer(e: PointerEvent) {
     if (!this.view.room || this.engine.busy || this.speechEl || this.inCutscene) return;
     if ((e.target as HTMLElement).closest('.dim, .overlay, .skip, button')) return;
@@ -269,12 +365,7 @@ export class App implements Presenter {
     const id = this.view.hit(p);
     if (!id) { await this.engine.walkTo(this.view.clampFloor(p)); return; }
     if (e.pointerType !== 'mouse') { this.showLabel(id); setTimeout(() => this.showLabel(null), 900); }
-    const v = this.verb;
-    if (!v) { const ap = this.engine.approach(id); this.sentence(id); if (ap) await this.engine.walkTo(ap); return; }
-    if ((v === 'use' || v === 'give') && this.a) { const a = this.a; this.resetVerb(); await this.engine.act({ verb: v, a, b: id }); return; }
-    if (v === 'give') { this.say(this.game.hero, this.game.ui.giveWhat, {}); return; }
-    this.resetVerb();
-    await this.engine.act({ verb: v, a: id });
+    await this.actOnTarget(id);
   }
 
   private onHover(e: PointerEvent) {
@@ -347,6 +438,7 @@ export class App implements Presenter {
     if (this.engine.state && this.view.room) this.view.refreshVisibility();
     // The active character's button is hidden, the others show.
     for (const b of this.toolsEl.querySelectorAll<HTMLElement>('.tool.player')) b.hidden = b.dataset.player === this.engine.heroId();
+    this.renderA11yTargets();
   }
 
   // ================================================================== Presenter
@@ -359,12 +451,16 @@ export class App implements Presenter {
     await this.view.build(room);
     this.view.resize(this.u);
     this.scene.style.visibility = '';
+    this.renderA11yTargets();
+    this.live.textContent = room.name;
+    void this.warmAround(room.id);
   }
 
   say(who: Id, text: string, o: { shout?: boolean; fast?: boolean; voice?: Id }): Promise<void> {
     this.endSpeech();
     if (o.fast) return Promise.resolve();
     const char = this.game.characters[who];
+    this.live.textContent = `${char?.name ?? who}: ${text}`;
     const color = char?.color ?? '#fff';
     const inCall = !!this.call?.ids.includes(who);
     const head = char?.offscreen || inCall ? null : this.view.head(who);
@@ -454,8 +550,13 @@ export class App implements Presenter {
   inventory(items: Id[], used?: Id[]) {
     this.used = [...(used ?? [])];
     if (!this.view.room) { this.items = [...items]; return; }
+    const previous = new Set(this.items);
     const added = items.length > this.items.length;
     this.items = [...items];
+    if (added) {
+      const names = items.filter((id) => !previous.has(id)).map((id) => this.game.items[id]?.name ?? id);
+      if (names.length) this.live.textContent = names.join(', ');
+    }
     if (added) this.invPage = Math.max(0, Math.ceil((items.length - this.invCols * 2) / this.invCols));
     this.renderInv();
     this.view.refreshVisibility();
@@ -469,7 +570,7 @@ export class App implements Presenter {
     else if (c.stop) this.audio.stop();
     else if (c.once) this.audio.once(c.once);
   }
-  toast(text: string) { const t = el('div', 'toast', esc(text)); this.scene.append(t); setTimeout(() => t.remove(), 2400); }
+  toast(text: string) { this.live.textContent = text; const t = el('div', 'toast', esc(text)); this.scene.append(t); setTimeout(() => t.remove(), 2400); }
   shake(ms: number) { if (this.settings.reduceMotion) return; this.scene.classList.add('shake'); setTimeout(() => this.scene.classList.remove('shake'), ms); }
 
   guide(g: { verb: VerbId; target: Id } | null) {
@@ -812,14 +913,25 @@ export class App implements Presenter {
   private pauseMenu() {
     if (this.scene.querySelector('.dim')) return;
     const ui = this.game.ui;
+    const previousFocus = document.activeElement as HTMLElement | null;
     const d = el('div', 'dim'); const m = el('div', 'menu', `<h3>${esc(ui.pause.toUpperCase())}</h3>`);
+    m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-label', ui.pause);
+    const remove = d.remove.bind(d); d.remove = () => { remove(); previousFocus?.focus(); };
+    d.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      const focusable = [...m.querySelectorAll<HTMLElement>('button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])')];
+      if (!focusable.length) return;
+      const first = focusable[0], last = focusable.at(-1)!;
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
     const row = (t: string, v: string, cls = '') => { const b = el('button', cls, `<span>${esc(t)}</span><span>${esc(v)}</span>`); m.append(b); return b; };
     row(ui.resume, '▶').onclick = () => d.remove();
     const mu = row(ui.music, this.audio.musicOn ? ui.on : ui.off);
     mu.onclick = () => { this.audio.setMusic(!this.audio.musicOn); mu.lastElementChild!.textContent = this.audio.musicOn ? ui.on : ui.off; };
     const sf = row(ui.sfx, this.audio.sfxOn ? ui.on : ui.off);
     sf.onclick = () => { this.audio.setSfx(!this.audio.sfxOn); sf.lastElementChild!.textContent = this.audio.sfxOn ? ui.on : ui.off; };
-    row(ui.autosave, '✓');
+    row(ui.autosave, this.saveError ? '⚠' : '✓');
     const slots = this.game.saves?.slots ?? 0;
     if (slots > 0 && this.engine.state) {
       row(ui.save ?? 'Save', '💾').onclick = () => this.slotMenu(d, m, 'save', slots);
@@ -834,7 +946,7 @@ export class App implements Presenter {
       y.onclick = () => { d.remove(); this.engine.store.clear(); void this.engine.newGame(); };
       m.append(y, n);
     };
-    d.append(m); this.scene.append(d);
+    d.append(m); this.scene.append(d); queueMicrotask(() => m.querySelector<HTMLElement>('button')?.focus());
   }
 
   /** Applies the preferences: fonts, text size, volumes, motion. */
@@ -891,7 +1003,7 @@ export class App implements Presenter {
       const s = this.slots.get(n);
       const b = row((ui.slot ?? 'Slot {n}').replace('{n}', String(n)), label(s), mode === 'load' && !s ? 'off' : '');
       if (mode === 'save') b.onclick = () => {
-        const write = () => { this.slots.put(n, { meta: meta(), state: structuredClone(this.engine.state) }); d.remove(); this.toast(`${(ui.slot ?? 'Slot {n}').replace('{n}', String(n))} ✓`); };
+        const write = () => { if (!this.slots.put(n, { meta: meta(), state: structuredClone(this.engine.state) })) return; d.remove(); this.toast(`${(ui.slot ?? 'Slot {n}').replace('{n}', String(n))} ✓`); };
         if (!s) return write();
         m.innerHTML = `<h3>?</h3><p>${esc(ui.confirmOverwrite ?? 'Overwrite this save?')}</p>`;
         const y = el('button', 'warn', `<span>${esc(ui.yes)}</span><span>!</span>`), no = el('button', '', `<span>${esc(ui.no)}</span><span>▶</span>`);
@@ -900,7 +1012,7 @@ export class App implements Presenter {
       else if (s) b.onclick = () => { d.remove(); void this.engine.load(s.state).catch((e) => this.toast(String((e as Error).message))); };
     }
     if (mode === 'save') row(ui.exportSave ?? 'Export file', '⤓').onclick = () => {
-      const blob = new Blob([JSON.stringify({ meta: meta(), state: this.engine.state }, null, 1)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(saveEnvelope(this.game, this.engine.state), null, 1)], { type: 'application/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${this.game.id}-save.json`; a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 2000); d.remove();
     };
@@ -918,10 +1030,8 @@ export class App implements Presenter {
       inp.onchange = async () => {
         const f = inp.files?.[0]; if (!f) return;
         try {
-          const j = JSON.parse(await f.text()) as Slot | GameState;
-          const st = 'state' in j ? j.state : j;
-          if (!st || typeof st !== 'object' || typeof (st as GameState).v !== 'number' || !(st as GameState).room) throw new Error('not a save file');
-          d.remove(); await this.engine.load(st as GameState);
+          const st = parseSave(this.game, JSON.parse(await f.text()), { warn: (message) => this.reportSaveWarning(message) });
+          d.remove(); await this.engine.load(st);
         } catch (e) { this.toast(String((e as Error).message)); }
       };
       inp.click();
@@ -967,28 +1077,48 @@ export class App implements Presenter {
       m.append(y, n); d.append(m); ov.append(d);
     };
     cb.onclick = () => { startMusic(); void launch(false); };
-    void this.warmAll();
+    void this.warmAround(this.engine.store.load()?.room ?? this.game.start.room, true);
   }
 
   /**
-   * Background preload: every image (a few MB), sound effects,
-   * then music in the order it will likely be needed (save's room, unlocked rooms, rest).
+   * Background preload scoped to the current room and immediately reachable rooms. The room renderer itself still
+   * blocks on exactly what it needs; this only fills the runtime cache during idle time and respects constrained links.
    */
-  private async warmAll() {
+  private async warmAround(roomId: Id, initial = false) {
     const b = this.bank, a = this.game.audio ?? {};
-    await b.warm(Object.keys(b.manifest.videos ?? {}).map((f) => b.video(f)));
-    await b.warm(Object.keys(b.manifest.images).map((id) => b.img(id)));
-    await b.warm(Object.values(a.sfx ?? {}).map((f) => b.sfx(f)));
-    const save = this.engine.store.load();
     const rooms = new Map(this.game.rooms.map((r) => [r.id, r]));
-    const first: string[] = [];
-    const add = (id?: string) => { if (id && a.music?.[id] && !first.includes(id)) first.push(id); };
-    add(this.game.titleScreen?.music);
-    add(rooms.get(save?.room ?? this.game.start.room)?.music);
-    for (const p of save?.unlocked ?? this.game.start.unlocked ?? []) add(rooms.get(this.game.map?.places[p]?.room ?? '')?.music);
-    add(this.game.map?.music);
-    for (const id of Object.keys(a.music ?? {})) add(id);
-    await b.warm(first.map((id) => b.music(a.music![id])), 2);
+    const budget = this.game.assetBudgets ?? {};
+    const imageIds = new Set<Id>(); const sfxIds = new Set<Id>(); const voiceIds = new Set<Id>();
+    const scan = (v: unknown) => {
+      if (typeof v === 'string') {
+        if (b.manifest.images[v]) imageIds.add(v);
+        if (a.sfx?.[v]) sfxIds.add(v);
+        if (a.voices?.[v]) voiceIds.add(v);
+      } else if (Array.isArray(v)) v.forEach(scan);
+      else if (v && typeof v === 'object') Object.values(v).forEach(scan);
+    };
+    const current = rooms.get(roomId);
+    if (!current) return;
+    scan(current); scan(this.game.characters[this.engine.state?.active ?? this.game.hero]);
+    for (const actor of Object.values(current.actors ?? {})) scan(this.game.characters[actor.char]);
+    for (const item of this.engine.state?.inventory ?? []) scan(this.game.items[item]);
+    if (initial) { scan(this.game.titleScreen); scan(this.game.skin.icons); }
+    await b.warm([...imageIds].slice(0, budget.initialImages ?? 120).map((id) => b.img(id)));
+    const neighbors = new Set<Id>(Object.values(current.exits ?? {}).map((x) => x.to));
+    for (const [id, place] of Object.entries(this.game.map?.places ?? {})) if (this.engine.state?.unlocked.includes(id)) neighbors.add(place.room);
+    let count = 0;
+    for (const id of neighbors) {
+      if (count++ >= (budget.neighboringRooms ?? 3)) break;
+      const room = rooms.get(id); if (room) scan(room);
+    }
+    const imageLimit = budget.initialImages ?? 120;
+    const audioLimit = budget.audioFiles ?? 16;
+    await b.warm([...imageIds].slice(0, imageLimit).map((id) => b.img(id)));
+    await b.warm([...sfxIds].slice(0, audioLimit).map((id) => b.sfx(a.sfx![id])));
+    await b.warm([...voiceIds].slice(0, audioLimit).map((id) => b.voice(a.voices![id])));
+    const music = new Set<Id>([this.game.titleScreen?.music, current.music, ...[...neighbors].map((id) => rooms.get(id)?.music)].filter(Boolean) as Id[]);
+    await b.warm([...music].filter((id) => a.music?.[id]).slice(0, 4).map((id) => b.music(a.music![id])), 2);
+    if (initial && this.game.titleScreen?.video) await b.warm([b.video(this.game.titleScreen.video)], 1);
   }
 
   /** The title screen takes up the full width (no side column). */

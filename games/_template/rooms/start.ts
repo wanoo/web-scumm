@@ -19,15 +19,15 @@ export default defineRoom({
     gate: 'The gate. The world is behind it.',
   },
   on: [
-    { verb: 'take', a: 'bucket', if: '!bucket_taken', do: [{ set: 'bucket_taken' }, { hide: 'bucket' }, { gain: 'bucket' }, 'Mine now.'] },
-    { verb: 'use', a: 'gate', if: '!bucket_taken', do: ['Locked. Every adventure starts with a locked gate.'] },
-    { verb: 'use', a: 'bucket', b: 'gate', do: ['Bucket on head. Gate opened. Adventure started.', { lose: 'bucket' }, { set: 'ended' }, { end: true }] },
+    { id: 'start.take-bucket', verb: 'take', a: 'bucket', if: '!bucket_taken', do: [{ set: 'bucket_taken' }, { hide: 'bucket' }, { gain: 'bucket' }, 'Mine now.'] },
+    { id: 'start.locked-gate', verb: 'use', a: 'gate', if: '!bucket_taken', do: ['Locked. Every adventure starts with a locked gate.'] },
+    { id: 'start.open-gate', verb: 'use', a: 'bucket', b: 'gate', do: ['Bucket on head. Gate opened. Adventure started.', { lose: 'bucket' }, { set: 'ended' }, { end: true }] },
   ],
   hints: [
     { until: 'bucket_taken', lines: ['Try taking the bucket.'] },
     { until: 'ended', lines: ['The gate. With the bucket. Trust me.'] },
   ],
-  onEnter: [{ once: ['A garden. A quiet one. For now.'] }],
+  onEnter: [{ id: 'start.first-arrival', once: ['A garden. A quiet one. For now.'] }],
 });
 
 export const checkpoints = {
