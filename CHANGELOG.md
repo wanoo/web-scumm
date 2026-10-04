@@ -10,6 +10,10 @@
   `npm run e2e -- --axe` (axe-core on the title, a room, the pause menu, the ending) fails on any serious or critical
   violation, and found three fixed here: unnamed empty inventory slots, scene and confetti images without `alt`;
   the Chromium keyboard CI row (keyboard + axe + saves without IndexedDB) gates, a WebKit keyboard row runs.
+- Asset provenance: `games/<id>/provenance.json` (source, licence, author, prompt, final or placeholder, by asset key
+  with `*`); `npm run validate` checks coverage when the file exists, `--release` requires it and lists placeholders;
+  `npm run new-game` records the borrowed sample art as placeholders; the demo's file covers its 194 images, its
+  effects and its non-commercial music (the one placeholder).
 
 - Saves say what they did: `clear()` / `clearSlot()` return `false` when the browser refuses (the save stays, the
   failure is reported, `whenIdle()` rejects); "Restart" and a refused file import keep the current game; golden

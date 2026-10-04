@@ -1,7 +1,11 @@
 // npm run validate: checks the game content (references, text, geometry). --report: the content profiler (Markdown).
-// --release: a line without a stable id is reported (an error when the game has voices, else a warning).
+// --release: a line without a stable id is reported (an error when the game has voices, else a warning), and the
+//   asset provenance (games/<id>/provenance.json) is required: every asset covered, placeholders listed.
+// Without --release, a game that has provenance.json gets the same coverage check.
 // The game: GAME, otherwise package.json → config.game (see tools/game.ts).
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { provenanceReport, type Provenance } from '../src/engine/tools/provenance';
 import { validate } from '../src/engine/tools/validate';
 import { report, reportMarkdown } from '../src/engine/tools/report';
 import { loadAssets, loadLayouts, loadLocales } from '../src/engine/tools/load';
@@ -20,6 +24,14 @@ const minigameBindings = minigames ? Object.fromEntries(Object.entries(minigames
 
 if (process.argv.includes('--report')) { process.stdout.write(reportMarkdown(report(game, layouts, { locales: loadLocales(resolve(GAME_DIR, 'locales')) }))); process.exit(0); }
 const { errors, warnings } = validate(game, layouts, { assets, minigameIds, minigameParams, minigameBindings, commands: mod.commands, release });
+// Asset provenance: where every shipped image and sound comes from, and under which licence.
+const provFile = resolve(GAME_DIR, 'provenance.json');
+if (existsSync(provFile) && assets) {
+  const r = provenanceReport(game, { images: assets.images, videos: (JSON.parse(readFileSync(resolve(GAME_DIR, 'assets.gen.json'), 'utf8')) as { videos?: Record<string, unknown> }).videos }, JSON.parse(readFileSync(provFile, 'utf8')) as Provenance);
+  for (const k of r.uncovered) errors.push(`provenance.json › ${k}: no entry says where this asset comes from`);
+  for (const m of r.incomplete) errors.push(`provenance.json › ${m}: an entry needs match, source, licence and status (final | placeholder)`);
+  if (release && r.placeholders.length) warnings.push(`provenance.json › ${r.placeholders.length} placeholder asset(s) would ship: ${r.placeholders.slice(0, 8).join(', ')}${r.placeholders.length > 8 ? '…' : ''}`);
+} else if (release) errors.push('provenance.json › missing: a release says where every asset comes from (docs/en/TOOLS.md "Asset provenance")');
 const quiet = process.argv.includes('--errors');
 if (!quiet && warnings.length) {
   console.log(`\n⚠  ${warnings.length} warning(s)`);

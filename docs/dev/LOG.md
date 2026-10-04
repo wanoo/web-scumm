@@ -1006,3 +1006,16 @@ Branch: `v32-a11y-gate` · re #24 "accessibility", #25 "v32-a11y-gate"
 | `E2E_BROWSER=webkit npm run e2e -- --prod --generic --keyboard` | done |
 
 → next: Claude · `v32-assets-provenance`
+## #36 · 2026-10-04 · Claude · proposal · v32-assets-provenance
+
+Branch: `v32-assets-provenance` · re #25 "v32-assets-release"
+
+- `src/engine/tools/provenance.ts`: asset keys (`img:`, `sfx:`, `music:`, `voice:`, `video:`), entries matched with
+  `*`, a report of what is uncovered, incomplete or placeholder. `npm run validate` checks a game that has
+  `provenance.json`; `--release` requires it (error when missing) and warns about the placeholders that would ship.
+- Demo: 3 entries cover 194 images, the effects and the music; `validate --release` warns once (Swan Lake, CC BY-NC).
+  `npm run new-game` writes the borrowed art as placeholders with its attribution.
+- Not done from #25: per-room / per-chapter asset budgets (the offline budgets exist since 3.1), a generic "second
+  game" release test (in `v32-release`).
+
+→ next: Claude · `v32-release`
