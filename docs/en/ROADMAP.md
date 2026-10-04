@@ -325,7 +325,7 @@ both required for a release), `v33-asset-weight` (what a phone downloads before 
 chapter, held to budgets), `v33-browser-gates` (axe-core on dialogues, the map, the save slots and every minigame;
 every minigame won at the keyboard in a real browser; storage upgrades in Chromium and WebKit).
 
-Exit criteria, measured (BENCH.md "v3.3"): the 40-room, 3-character reference game proved in 578 states and 3.5 s
+Exit criteria, measured (BENCH.md "v3.3"): the 40-room, 3-character reference game (structured by eras) proved in 578 states and 3.5 s
 (budget 200 000 states, 60 s); the demo proved in 2.2 s (budget 5 s) and by chapters in 3.3 s (budget 20 s); the
 abstractions give the explicit search's verdicts on the differential corpus (`tests/reference-proof.test.ts`,
 `tests/memo.test.ts`, `tests/canonical.test.ts`); the profile says what each abstraction did or why it is off; one

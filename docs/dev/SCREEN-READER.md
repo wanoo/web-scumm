@@ -2,8 +2,9 @@
 
 Automation proves the keyboard and axe's rules (`npm run e2e:a11y`, `npm run e2e -- --keyboard --axe`); it does not
 prove what a screen-reader user hears. Once per release, a person plays the production build with VoiceOver (iOS
-Safari, landscape) or TalkBack (Android Chrome), and writes the result in `docs/dev/LOG.md` (device, OS and browser
-versions, reader, what failed).
+Safari, landscape) or TalkBack (Android Chrome), and writes the result in `docs/dev/passes/<version>.md` (from
+`docs/dev/passes/TEMPLATE.md`: device, OS and browser versions, reader, what failed). A release whose pass is not done
+says so in its notes (D12).
 
 Turn the reader on, open the game's URL, then check each line.
 

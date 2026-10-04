@@ -84,7 +84,12 @@ went combinatorial. Groups of two-valued dimensions whose combinations all show 
 with goals between them makes each chapter's search small. The heat map on the puzzle graph (Check tab) shows the same
 numbers on the rules and rooms; "why is this live?" on a card explains why the solver keeps a thing in its state.
 
-## Fewer orders: the partial-order reduction
+## Fewer orders: the partial-order reduction (historical, v2.3)
+
+> **Never use the partial-order reduction to certify that a game has no softlock.** Measured in proof mode in 3.3, it
+> reported a softlock that does not exist ([below](#after-v33-noop-memo-no-partial-order-reduction-in-proofs-a-no-op-memo-instead)).
+> `--por` only applies to witness searches: in proof mode the solver ignores it and says so. This section is the v2.3
+> measurement, kept as it was.
 
 Two actions that touch different things commute: taking the rope then the coin, or the coin then the rope, land on the
 same state. The solver already merges the states (one hash); what it still paid was the orders in between: k
@@ -104,8 +109,8 @@ back, what the puzzle graph says they need:
 `sleep` only skips engine runs (an action tried before an independent one is not tried again on the way back);
 `stubborn` explores one of several commuting actions at a time, so the states go too. On the chain-shaped stress game
 above nothing commutes and nothing changes; on a real game with optional side quests it is the difference between a
-proof and a time-out. The reduction is off by default: the plain search is the proof, and `tests/por.test.ts` checks
-that every fixture and the sample game give the same verdict in all three modes.
+proof and a time-out (in a witness search: see the banner). The reduction is off by default: the plain search is the
+proof.
 
 ## v3.1: schema 3 and the exhaustive proof (4 October 2026)
 
@@ -306,7 +311,9 @@ already there. A run that writes nothing the solver hashes is kept with the valu
 state with the same values is a no-op too, and is not run. It drops no edge (a no-op is a loop), so the proof is the
 same. It relies on the read trace being complete: one skip in 16 is run anyway and compared, and a difference is an
 error, never a silent skip. `tests/memo.test.ts` runs every skip anyway on twelve fixtures (witness and proof) and on
-the demo: same verdicts, states, softlocks, witnesses and reachability counts.
+the demo: same verdicts, states, softlocks, witnesses and reachability counts. This is an equivalence checked on that
+corpus, not a proof for every game: a future condition or command that forgets to declare a read would break it, and
+only a check that runs every skip would catch it.
 
 | Demo | Before | With the memo |
 |---|---|---|
@@ -317,7 +324,7 @@ the demo: same verdicts, states, softlocks, witnesses and reachability counts.
 `npm run solve -- --profile` now ends its header with what each abstraction did, or why it is off:
 
 ```
-Abstractions (each one exact, or turned off and why):
+Abstractions (what each one did, or why it is off):
   canonical character   3048 switches folded, 0 kept explicit
   mobility regions      off (no move of this game can be silent)
   no-op memo            95625 runs skipped (5976 of them run anyway and identical), 522 kept, 4728 refused
