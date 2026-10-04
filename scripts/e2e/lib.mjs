@@ -41,6 +41,8 @@ export async function launch(url, opts = {}) {
   const browser = await browserType.launch();
   const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
   const cdp = browserName === 'chromium' ? await page.context().newCDPSession(page) : null;
+  // E2E_CPU=4 slows the page's CPU like a shared CI runner (Chromium only), to reproduce timing failures locally.
+  if (cdp && process.env.E2E_CPU) await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.E2E_CPU) });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.stack ?? String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -153,6 +155,21 @@ export async function launch(url, opts = {}) {
 
   // ------------------------------------------------------------------ waiting for the engine
 
+  /** What the engine was doing when a step failed: busy, speech, choices, overlays, the side column's state, the
+   * last journal lines and the busy counter — printed by scripts/e2e.mjs so a CI log explains a timed-out tap. */
+  async function diagnose() {
+    return page.evaluate(() => {
+      const e = window.__game?.engine;
+      return {
+        busy: !!e?.busy, busyCount: e?.busyCount, room: e?.state?.room,
+        sideOff: !!document.querySelector('.side.off'), choosing: !!document.querySelector('.side .choices .choice'),
+        overlays: [...document.querySelectorAll('.overlay')].map((o) => o.className),
+        speech: document.querySelector('.scene > .speech, .scene > .narr')?.textContent?.slice(0, 80) ?? null,
+        trace: (e?.trace ?? []).slice(-6),
+      };
+    }).catch((err) => ({ error: String(err) }));
+  }
+
   async function state() {
     return page.evaluate(() => {
       const speechEl = document.querySelector('.scene > .speech, .scene > .narr');
@@ -168,8 +185,10 @@ export async function launch(url, opts = {}) {
 
   async function skip() {
     const b = page.locator('.overlay .mg-skip');
-    if (await b.count()) { await b.first().tap(); return true; }
-    return false;
+    if (!(await b.count())) return false;
+    // The overlay may be mid-transition (a minigame just won, its card fading): tap without waiting for the button
+    // to be stable, and treat one detached in the meantime as already gone (CI runners hit that race every time).
+    try { await b.first().tap({ force: true, timeout: 3000 }); return true; } catch { return false; }
   }
 
   /** A one-button overlay card (e.g. an incoming phone call's "pick up"): a single `.bigbtn` in a non-map
@@ -336,6 +355,6 @@ export async function launch(url, opts = {}) {
 
   return {
     page, errors, screenshot, tapXY, tapScene, drag, line, pointOn, tapTarget, verb, verbById,
-    itemSlot, item, inInventory, target, state, waitIdle, openMap, say, pick, answer, skip, act, play, walkthrough, close,
+    itemSlot, item, inInventory, target, state, diagnose, waitIdle, openMap, say, pick, answer, skip, act, play, walkthrough, close,
   };
 }

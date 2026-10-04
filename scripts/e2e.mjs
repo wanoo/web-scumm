@@ -51,6 +51,7 @@ try {
 } catch (e) {
   ok = false;
   console.error('e2e: FAILED —', e.message);
+  try { console.error('e2e: engine at failure:', JSON.stringify(await harness.diagnose())); } catch { /* page gone */ }
 } finally {
   await harness.close();
 }
