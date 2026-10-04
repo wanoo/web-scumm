@@ -15,6 +15,7 @@ export const scratch: Minigame = {
     const threshold = num(p.threshold, 0.55);
     const f = finisher(ctx.signal);
     const box = stage(ctx);
+    box.classList.add('mg-scratch');
     box.style.background = str(p.background, 'radial-gradient(ellipse at 50% 45%,#3b2352,#120b1c)');
     if (p.intro) ctx.instruct(str(p.intro, ''));
 
