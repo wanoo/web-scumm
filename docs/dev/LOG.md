@@ -1249,19 +1249,6 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
 
 → next: Claude · merge after `v33-provenance-lock`, on green CI; then the browser accessibility gates
 
-## #50 · 2026-10-04 · Claude · proposal · v33-proof-cache
-
-- The review's "persistent proof cache keyed by game hash, goal and checkpoint" (LOG #40): key = SHA-256 of the
-  engine's sources (src/engine), the game folder's sources (a custom command's function text does not show what it
-  imports), the game, its layouts and the normalised options (goal and start, so checkpoint and chapter boundary
-  states, are options). Atomic writes, the 300 newest kept, an engine error never kept.
-- Used by `npm run solve` (global, chapters, witness chapters), `npm run lint` and `npm run weight`: the lint and `npm run solve` now
-  share one result. Demo: global proof 2.4 s cold, 0.17 s warm; chapters 3.4 s cold, 1.1 s warm. A one-line edit to
-  `games/demo/rules.ts` misses the cache (checked).
-- Tests: key stability and sensitivity, identical results from the cache, `PROOF_CACHE=0`, the CLI's `cached` field
-  and `--no-cache`. Not done: sharing the cache between CI runs (actions/cache), left for when CI time matters.
-
-→ next: Claude · merge on green CI; then 3.3.0
 ## #50 · 2026-10-04 · Claude · proposal · v33-list-ids
 
 (Numbered #48: #47 is `v33-one-status`, not yet on `main` when this branch started.)
@@ -1279,3 +1266,17 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
   `verify:release` exit 0; proof unchanged (3 480 states). Tests: `tests/list-ids.test.ts` (5), suite 371 green.
 
 → next: Claude · merge on green CI
+
+## #51 · 2026-10-04 · Claude · proposal · v33-proof-cache
+
+- The review's "persistent proof cache keyed by game hash, goal and checkpoint" (LOG #40): key = SHA-256 of the
+  engine's sources (src/engine), the game folder's sources (a custom command's function text does not show what it
+  imports), the game, its layouts and the normalised options (goal and start, so checkpoint and chapter boundary
+  states, are options). Atomic writes, the 300 newest kept, an engine error never kept.
+- Used by `npm run solve` (global, chapters, witness chapters), `npm run lint` and `npm run weight`: the lint and `npm run solve` now
+  share one result. Demo: global proof 2.4 s cold, 0.17 s warm; chapters 3.4 s cold, 1.1 s warm. A one-line edit to
+  `games/demo/rules.ts` misses the cache (checked).
+- Tests: key stability and sensitivity, identical results from the cache, `PROOF_CACHE=0`, the CLI's `cached` field
+  and `--no-cache`. Not done: sharing the cache between CI runs (actions/cache), left for when CI time matters.
+
+→ next: Claude · merge on green CI; then 3.3.0
