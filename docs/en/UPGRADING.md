@@ -91,3 +91,52 @@ GAME=<id> npm run e2e -- http://127.0.0.1:5173/ --prod
 Load every representative v2 save and verify its room, active player, inventories, persistent choices and script step.
 Reorder one rule, topic, choice and script step in a test fixture; the same v3 save must retain its meaning. Finally,
 test the production PWA online, offline in cached rooms, and through an update. Unvisited rooms are not promised offline.
+
+## 7. At a glance
+
+**What migrates on its own.** The v2 autosave is imported into IndexedDB on the first v3 launch and verified before
+the old key goes. A save that names something the content no longer has is pruned with one toast (`ui.saveAdjusted`),
+never refused. Without an `id`, a `once` / `nth` / `cycle` / `random` block keeps its positional v2 key, so v2 counters
+survive. The solver's witness is unchanged (the private reference game: 59 actions, 355 states, 0.3 s on both).
+
+| v2 | v3 |
+|---|---|
+| `npm run dev` listens on the network | `npm run dev` listens on 127.0.0.1; `npm run dev:lan` / `studio:lan` print a one-session token URL for the phone |
+| `npm test` runs everything | `npm test` = Node tests; `npm run test:assets` = the Python-backed image tests; `npm run check` = tsc + Node tests |
+| `npm run build` = tsc + tests + vite | `npm run build` = `check` + `test:assets` + `verify:game` (validate, solve, `--chapters`, i18n status) + vite + spoilers + asset audit |
+| — | `npm run prove:game` = `--prove` and `--prove --chapters`, the exhaustive softlock gate, run by `release-check`, never by `build` |
+| `npm run audit` | `npm run audit` (assets, private names) + `npm run audit:deps` (npm audit, production deps) |
+| — | `npm run doctor`, `npm run e2e:smoke`, `npm run e2e:pwa`, `npm run release-check` |
+
+**Solver exit codes.** `0` solved and no broken invariant; `1` unsolved, softlocks, errors or a broken invariant;
+`2` truncated. `--json` gains `status`, `mode`, `softlocks`, `assumptions`; the human output gains one line after the
+verdict (`Witness status:` / `Proof status:`), everything else is unchanged.
+
+| Where | Field | Used by |
+|---|---|---|
+| a rule in `on` (room or game) | `id` | saves, the puzzle graph, the solver's heatmap (`rule:<id>`) |
+| a `choice` option | `id` | `once` choices in saves, translations, voice files |
+| a talk topic | `id` | `seen` topics in saves, translations |
+| a listener in `events` | `id` | `once` listeners in saves |
+| `once` / `nth` / `cycle` / `random` | `id` | their counters in saves (v2 `key` still read, deprecated) |
+| a script | `stepIds`, one per command of `do` | a save resumes at the named step after a reorder |
+
+**New `ui` keys** (English defaults when absent): `saveFailed`, `saveAdjusted`, `updateAvailable`, `updateNow`.
+
+## 8. A game that embeds the engine (a copy of `src/engine`)
+
+Besides copying `src/engine/`, update your own entry and config:
+
+- `src/main.ts`: open the store with `IndexedDbSaveStore.open(game, onError)` and pass it to `App` (the verified
+  `localStorage` adapter is the fallback when IndexedDB is unavailable); route errors to `app.reportStorageError`;
+  register the service worker yourself with `registerSW({ immediate: true, onNeedRefresh })` and `app.offerUpdate(...)`,
+  because the PWA plugin now uses `registerType: 'prompt'` and `injectRegister: false` (the update waits for a verified
+  save instead of reloading under the player); pass the minigames to `applyLocale(game, table, minigames)`.
+- `vite.config.ts`: `server.host` is `127.0.0.1` unless `WEB_SCUMM_LAN=1`; the layout writer and every `/__studio`
+  route go through `authorizeStudioRequest` (`tools/studio/security.ts`); the PWA options above.
+- `package.json`: the scripts of section 7 (`tools/doctor.ts`, `tools/serve.ts`, `scripts/e2e-pwa.mjs`).
+- Your e2e: `scripts/e2e/lib.mjs` takes `E2E_BROWSER=chromium|webkit|firefox` and `--prod`; a script that reads the
+  human output of `npm run solve` keeps working (one line was added, none changed).
+- `env.d.ts`: `/// <reference types="vite-plugin-pwa/client" />`.
+- The engine's `game` is a compiled clone (`compileGame`), frozen when `schemaVersion` is 3: a tool that mutated the
+  object it passed to `Engine` must go through the engine's API.

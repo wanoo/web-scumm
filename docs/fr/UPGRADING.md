@@ -97,3 +97,54 @@ Charger chaque sauvegarde v2 représentative et vérifier lieu, joueur actif, in
 script. Dans un fixture de test, réordonner une règle, un sujet, un choix et une étape de script : la même sauvegarde v3
 doit garder son sens. Enfin, tester la PWA de production en ligne, hors ligne dans les lieux en cache et pendant une
 mise à jour. Les lieux jamais visités ne sont pas garantis hors ligne.
+
+## 7. En un coup d'œil
+
+**Ce qui migre tout seul.** L'autosave v2 est importée dans IndexedDB au premier lancement v3 et vérifiée avant que
+l'ancienne clé disparaisse. Une sauvegarde qui cite quelque chose que le contenu n'a plus est élaguée avec un toast
+(`ui.saveAdjusted`), jamais refusée. Sans `id`, un bloc `once` / `nth` / `cycle` / `random` garde sa clé v2 par position,
+les compteurs v2 survivent. Le témoin du solveur est inchangé (le jeu privé de référence : 59 actions, 355 états, 0,3 s
+dans les deux versions).
+
+| v2 | v3 |
+|---|---|
+| `npm run dev` écoute le réseau | `npm run dev` écoute 127.0.0.1 ; `npm run dev:lan` / `studio:lan` impriment une URL à jeton de session pour le téléphone |
+| `npm test` lance tout | `npm test` = tests Node ; `npm run test:assets` = tests d'images (Python) ; `npm run check` = tsc + tests Node |
+| `npm run build` = tsc + tests + vite | `npm run build` = `check` + `test:assets` + `verify:game` (validate, solve, `--chapters`, i18n status) + vite + spoilers + audit des assets |
+| — | `npm run prove:game` = `--prove` et `--prove --chapters`, la porte exhaustive des softlocks, lancée par `release-check`, jamais par `build` |
+| `npm run audit` | `npm run audit` (assets, noms privés) + `npm run audit:deps` (npm audit, dépendances de production) |
+| — | `npm run doctor`, `npm run e2e:smoke`, `npm run e2e:pwa`, `npm run release-check` |
+
+**Codes de sortie du solveur.** `0` résolu sans invariant cassé ; `1` non résolu, softlocks, erreurs ou invariant
+cassé ; `2` tronqué. `--json` gagne `status`, `mode`, `softlocks`, `assumptions` ; la sortie humaine gagne une ligne
+après le verdict (`Witness status:` / `Proof status:`), rien d'autre ne change.
+
+| Où | Champ | Utilisé par |
+|---|---|---|
+| une règle de `on` (lieu ou jeu) | `id` | sauvegardes, graphe de puzzles, heatmap du solveur (`rule:<id>`) |
+| une option de `choice` | `id` | choix `once` dans les sauvegardes, traductions, fichiers de voix |
+| un sujet de dialogue | `id` | sujets `seen` dans les sauvegardes, traductions |
+| un écouteur de `events` | `id` | écouteurs `once` dans les sauvegardes |
+| `once` / `nth` / `cycle` / `random` | `id` | leurs compteurs dans les sauvegardes (`key` v2 encore lu, déprécié) |
+| un script | `stepIds`, un par commande de `do` | la sauvegarde reprend au pas nommé après un réordonnancement |
+
+**Nouvelles clés `ui`** (défaut anglais si absentes) : `saveFailed`, `saveAdjusted`, `updateAvailable`, `updateNow`.
+
+## 8. Un jeu qui embarque le moteur (une copie de `src/engine`)
+
+En plus de copier `src/engine/`, mettez à jour votre point d'entrée et votre config :
+
+- `src/main.ts` : ouvrir le stockage avec `IndexedDbSaveStore.open(game, onError)` et le passer à `App` (l'adaptateur
+  `localStorage` vérifié sert de repli quand IndexedDB manque) ; router les erreurs vers `app.reportStorageError` ;
+  enregistrer le service worker vous-même avec `registerSW({ immediate: true, onNeedRefresh })` et
+  `app.offerUpdate(...)`, car le plugin PWA passe en `registerType: 'prompt'` et `injectRegister: false` (la mise à jour
+  attend une sauvegarde vérifiée au lieu de recharger sous les pieds du joueur) ; passer les mini-jeux à
+  `applyLocale(game, table, minigames)`.
+- `vite.config.ts` : `server.host` vaut `127.0.0.1` sauf `WEB_SCUMM_LAN=1` ; l'écriture des layouts et chaque route
+  `/__studio` passent par `authorizeStudioRequest` (`tools/studio/security.ts`) ; les options PWA ci-dessus.
+- `package.json` : les scripts de la section 7 (`tools/doctor.ts`, `tools/serve.ts`, `scripts/e2e-pwa.mjs`).
+- Votre e2e : `scripts/e2e/lib.mjs` accepte `E2E_BROWSER=chromium|webkit|firefox` et `--prod` ; un script qui lit la
+  sortie humaine de `npm run solve` continue de marcher (une ligne ajoutée, aucune changée).
+- `env.d.ts` : `/// <reference types="vite-plugin-pwa/client" />`.
+- Le `game` du moteur est un clone compilé (`compileGame`), gelé quand `schemaVersion` vaut 3 : un outil qui modifiait
+  l'objet passé à `Engine` doit passer par l'API du moteur.
