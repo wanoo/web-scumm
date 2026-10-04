@@ -4,6 +4,9 @@
 
 ### Added
 
+- The whole game at the keyboard: verbs, scene targets, inventory, choices, the map, Space to advance a line, Escape
+  to close or pause, focus kept inside menus; `npm run e2e -- --generic --keyboard` (`docs/en/ENGINE.md`,
+  "Accessibility"); `ui.advance` names the continue marker.
 - `bootGame` (`src/engine/boot.ts`): the page's bootstrap is part of the engine; `src/main.ts` only says what is
   specific to its build (`docs/en/UPGRADING.md` §8).
 - `npm run ids`: stable ids (schema 3) written into a game's sources, its locale tables renamed to the id-based

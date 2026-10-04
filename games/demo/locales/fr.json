@@ -348,6 +348,7 @@
  "ui/importSave": "Importer un fichier",
  "ui/confirmOverwrite": "Écraser cet emplacement ?",
  "ui/saveFailed": "Échec de la sauvegarde",
+ "ui/advance": "Continuer",
  "ui/saveAdjusted": "Sauvegarde adaptée à cette version",
  "ui/updateAvailable": "Une nouvelle version est prête.",
  "ui/updateNow": "Sauvegarder et mettre à jour",

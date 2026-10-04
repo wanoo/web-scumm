@@ -51,6 +51,17 @@ them), the `App`, `window.__game`, the dev tools, the title, the service worker.
 embeds the engine calls it too (docs/en/UPGRADING.md §8). `pickLanguage`, `waitFonts` and `openStore` are exported
 for a page that needs another order.
 
+## Accessibility
+
+The whole game plays at the keyboard: Tab reaches the verbs (arrows move inside the grid, `aria-pressed` says which
+one is chosen), the scene's targets (one hidden button per visible hotspot, prop or actor, in the scene's order), the
+inventory and the tools; a conversation's choices and the map's places take the focus when they appear (arrows,
+Enter); Space or Enter advances a line of dialogue; Escape closes what is on top (a menu, the map, a transcript, a
+cutscene's or minigame's Skip) and otherwise opens the pause menu, whose focus stays inside. A live region announces
+the room, each line and each item gained. `ui.advance` names the "tap to continue" marker for screen readers.
+`npm run e2e -- --generic --keyboard` replays the solver's solution at the keyboard; the minigames themselves are
+skipped there (their Skip button takes the focus).
+
 ## Two layouts
 
 - **Phone (touchscreen), landscape**: the scene on the left; on the right, a column with the 9 verbs in a 3×3 grid, the
