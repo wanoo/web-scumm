@@ -176,7 +176,7 @@ npm run solve -- --profile         # what the states are made of and what the se
 npm run solve -- --por=stubborn    # partial-order reduction: commuting actions one at a time (fewer states, same proof)
 npm run replay -- session.json     # plays a session file on the real engine, prints the journal and the final state
 npm run ids [-- --write --map]     # stable ids (schema 3) written into the sources, locales renamed, the save migration step (docs/en/UPGRADING.md)
-npm run ids -- --lines [--write --map]   # an id on every say / toast / guide object (--lines=all: plain strings too): translations and voices keyed by it (UPGRADING §9)
+npm run ids -- --lines [--write --map]   # an id on every say / toast / guide object (--lines=all: plain strings too, required for a translated or voiced release): translations and voices keyed by it (UPGRADING §9)
 npm run i18n -- voices             # the lines with an id and no voice clip, the clips no line claims
 npm run validate -- --release      # also: a line without a stable id (error when the game has voices)
 npm run playtests [-- --strict --out=.cache/playtests]  # the sessions players shared (games/<id>/playtests) replayed and summed up: time per room, stalls, hints, heat map
@@ -245,7 +245,10 @@ prompt?, status: 'final' | 'placeholder', note? }`, where `match` covers asset k
 id>`, `sfx:<file>`, `music:<file>`, `voice:<file>`, `video:<file>`). `npm run validate` checks a game that has the
 file (every asset covered, every entry complete); `npm run validate -- --release` requires it and warns about every
 placeholder that would ship. `npm run new-game` writes one for the art it borrows from the sample game (all
-placeholders, CC BY 4.0); the sample game's own file marks its non-commercial music as the one placeholder.
+placeholders, CC BY 4.0); the sample game's own file marks its non-commercial music as the one placeholder. In a
+release a placeholder is an error, unless the file says why it may ship (`"allowPlaceholders": "reason"`).
+Translations: a text identical to the source fails `npm run i18n -- status` unless `i18n: { same: [paths] }` in
+`game.ts` lists it (a name, "OK", an arrow).
 `npm run audit` is a different check: it keeps names from a private project out of the public repository.
 
 ## The sealed ending

@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.2.1 — 2026-10-04
+
+### Fixed
+
+- `npm run solve -- --prove --chapters --json` exited 0 when a checkpoint matched no reachable state (only the text
+  output failed): the proof now has one status, `checkpoint_mismatch`, and one exit code (`chaptersExitCode`) for the
+  text output and `--json`, tested on a fixture game through the CLI.
+- A placeholder asset no longer passes `validate --release` with a warning: it is an error unless `provenance.json`
+  says why placeholders may ship (`allowPlaceholders`, set by the sample game for its non-commercial music).
+- A translated or voiced release requires a stable id on every line, plain strings included (`validate --release`);
+  `npm run ids -- --lines=all` now renames a converted line's translation to its `.say` path; the sample game's 45
+  plain lines carry ids, its translations followed them.
+- A text identical in two languages is untranslated unless `i18n.same` lists it: `npm run i18n -- status` fails on
+  the others (the sample game lists its twelve: names, OK, ▲ ▼).
+- CI runs on `v33-*` and `v34-*` branches; a measurement script committed by mistake (`probe40.mts`) is removed; a
+  golden save of 3.2.0 joins 3.0.0 and 3.1.0.
+
 ## 3.2.0 — 2026-10-04
 
 ### Added

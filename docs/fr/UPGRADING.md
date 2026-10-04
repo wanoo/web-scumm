@@ -182,5 +182,5 @@ n'en ont pas et renomme les clés de `locales/*.json` (une seconde passe renomme
 déjà consigné dans `ids.migration.json` / `ids.paths.json` n'est perdu) ; `--lines=all` transforme d'abord chaque
 ligne en chaîne nue en `{ say: ['hero', texte], id }` pour un jeu qui double ou traduit chaque ligne (verbeux : la démo
 garde ses chaînes nues, indexées par leur propriétaire et leur position). `audio.voices[<id de ligne>]` joue sans
-écrire `voice` sur la ligne. `npm run validate -- --release` signale une ligne sans id (une erreur quand le jeu a des
-voix) ; `npm run i18n -- voices` liste les lignes avec un id et sans clip, et les clips qu'aucune ligne ne réclame.
+écrire `voice` sur la ligne. `npm run validate -- --release` signale une ligne sans id (depuis la 3.2.1 une erreur, chaînes nues comprises, quand
+le jeu a plus d'une langue ou des voix : lancer `--lines=all` une fois) ; `npm run i18n -- voices` liste les lignes avec un id et sans clip, et les clips qu'aucune ligne ne réclame.

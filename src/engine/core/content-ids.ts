@@ -118,16 +118,18 @@ export function assignIds(source: GameDef, options: AssignOptions = {}): Assigne
   /** Walks a command list of the new game next to the same list of the old one, naming blocks and choices under `owner`. */
   const walk = (list: Cmd[] | undefined, oldList: Cmd[] | undefined, owner: string, oldPrefix: string, newPrefix: string, room: Id | undefined) => {
     list?.forEach((c, i) => {
+      let wasString = false;
       if (typeof c === 'string') {
         if (lines !== 'all') return;
-        c = { say: ['hero', c] }; list[i] = c;
+        c = { say: ['hero', c] }; list[i] = c; wasString = true;
       }
       const o = oldList?.[i];
       const text = lineText(c);
       if (text !== undefined) {
         const line = c as { id?: Id };
         if (lines && !line.id) line.id = give(lineIdFor(owner, text));
-        if (line.id) map.paths[`${oldPrefix}${linePathSeg(i, o ?? c)}`] = `${newPrefix}${linePathSeg(i, c)}`;
+        // A plain string's text was the path itself (`do[2]`); as a say object it lives under `.say`.
+        if (line.id) map.paths[`${oldPrefix}${linePathSeg(i, o ?? c)}`] = `${newPrefix}${linePathSeg(i, c)}${wasString ? '.say' : ''}`;
         return;
       }
       const was = `${oldPrefix}[${i}]`, here = `${newPrefix}[${i}]`;

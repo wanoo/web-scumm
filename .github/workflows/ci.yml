@@ -2,7 +2,7 @@ name: ci
 on:
   push:
     # main deploys to Pages; the v3 integration and topic branches only run the checks (docs/dev/CHARTER.md).
-    branches: [main, v3, 'v3-*', 'v32-*']
+    branches: [main, v3, 'v3-*', 'v32-*', 'v33-*', 'v34-*']
     tags: ['v*']
   pull_request:
 jobs:

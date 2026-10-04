@@ -94,6 +94,9 @@ describe('boundaries and the proof by chapters', () => {
     game.checkpoints = { armed: { room: 'room', flags: { armed: true, bogus: true }, goals: ['armed'] } };
     const p = await proveChapters(game, layouts, { mode: 'prove' });
     expect(p.chapters[0].checkpointUnreachable).toBe(true);
+    expect(p.status).toBe('checkpoint_mismatch');
+    const { chaptersExitCode } = await import('@engine/tools/chapters');
+    expect(chaptersExitCode(p)).toBe(1);
   });
 });
 

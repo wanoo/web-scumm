@@ -83,3 +83,17 @@ describe('exit codes of the content tools', () => {
     expect(strict.stderr).toContain('--strict');
   }, 90000);
 });
+
+describe('the proof by chapters has one verdict in every output', () => {
+  const { spawnSync } = require('node:child_process') as typeof import('node:child_process');
+  const run = (args: string[]) => spawnSync('npx', ['tsx', 'tools/solve.ts', ...args], { encoding: 'utf8', env: { ...process.env, GAME: '', GAME_DIR: 'tests/fixtures/mismatch-game' } });
+  it('an unreachable checkpoint fails the text output and --json alike, status checkpoint_mismatch', () => {
+    const json = run(['--prove', '--chapters', '--json']);
+    expect(json.status).toBe(1);
+    expect(JSON.parse(json.stdout.trim().split('\n').pop()!).status).toBe('checkpoint_mismatch');
+    const text = run(['--prove', '--chapters']);
+    expect(text.status).toBe(1);
+    expect(text.stdout).toContain('checkpoint_mismatch');
+  }, 60000);
+});
+

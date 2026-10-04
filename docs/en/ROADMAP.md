@@ -307,7 +307,7 @@ reductions measured and kept out of proof mode; BENCH.md says where the proof st
 passes every gate in CI). Out of 3.2, said in BENCH.md and ENGINE.md: proving a multi-character long game (the 3.3 solver track below), a
 screen-reader pass (manual), DNS pinning of custom providers.
 
-## v3.3 solver track (planned): prove multi-character games
+## v3.3 "Scale" (proposed, LOG #39): prove multi-character games, close the production contracts
 
 From an outside review (LOG #38), in order: profile the search; a proof-mode frontier (stack, parent pointers,
 numeric state ids); the active character out of the state; mobility regions and macro moves; chapter interfaces

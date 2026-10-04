@@ -10,7 +10,7 @@
 // The game: GAME, otherwise package.json → config.game (see tools/game.ts).
 import { resolve } from 'node:path';
 import { profileText, solve } from '../src/engine/tools/solve';
-import { MAX_STARTS, proveChapters } from '../src/engine/tools/chapters';
+import { chaptersExitCode, MAX_STARTS, proveChapters } from '../src/engine/tools/chapters';
 import { loadLayouts } from '../src/engine/tools/load';
 import { GAME_DIR, loadGameModule } from './game';
 
@@ -29,7 +29,7 @@ if (process.argv.includes('--chapters') && mode === 'prove') {
   const p = await proveChapters(game, layouts, { maxStates, commands, mode: 'prove' });
   // A game without chapters is proved by the global search (`--prove`): nothing more to do here, and not a failure.
   if (!p.chapters.length) { console.log('ℹ  No checkpoint declares `goals`: no chapter to prove (the global proof covers the game)'); process.exit(0); }
-  if (asJson) { console.log(JSON.stringify({ status: p.status, ms: p.ms, chapters: p.chapters.map(({ results, ...c }) => ({ ...c, softlockCauses: results.flatMap((r) => r.softlockCauses) })) })); process.exit(p.status === 'solved' ? 0 : p.status === 'truncated' ? 2 : 1); }
+  if (asJson) { console.log(JSON.stringify({ status: p.status, ms: p.ms, chapters: p.chapters.map(({ results, ...c }) => ({ ...c, softlockCauses: results.flatMap((r) => r.softlockCauses) })) })); process.exit(chaptersExitCode(p)); }
   for (const c of p.chapters) {
     const ok = c.status === 'solved' && !c.checkpointUnreachable;
     if (c.status === 'truncated' && !c.results.length) { console.log(`✖  chapter → ${c.id}: truncated, ${c.distinct} distinct boundary states exceed the budget of ${MAX_STARTS} starts (the proof stops here)`); continue; }
@@ -38,9 +38,8 @@ if (process.argv.includes('--chapters') && mode === 'prove') {
     for (const r of c.results) for (const cause of r.softlockCauses.slice(0, 5)) console.log(`   ✖ ${cause.count} softlock state(s) after "${cause.action}" in ${cause.room}: ${cause.sample.slice(-4).join(' › ')}`);
     for (const r of c.results) for (const e of r.errors) console.log('   ' + e);
   }
-  const unreachable = p.chapters.some((c) => c.checkpointUnreachable);
-  console.log(`${p.status === 'solved' && !unreachable ? '✔' : '✖'}  proof by chapters: ${p.status}${unreachable ? ', a checkpoint is unreachable' : ''} — ${(p.ms / 1000).toFixed(1)} s`);
-  process.exit(p.status === 'solved' && !unreachable ? 0 : p.status === 'truncated' ? 2 : 1);
+  console.log(`${chaptersExitCode(p) === 0 ? '✔' : '✖'}  proof by chapters: ${p.status} — ${(p.ms / 1000).toFixed(1)} s`);
+  process.exit(chaptersExitCode(p));
 }
 
 if (process.argv.includes('--chapters')) {

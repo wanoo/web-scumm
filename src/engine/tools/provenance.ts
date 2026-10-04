@@ -19,7 +19,11 @@ export interface ProvenanceEntry {
   note?: string;
 }
 
-export interface Provenance { assets: ProvenanceEntry[] }
+export interface Provenance {
+  assets: ProvenanceEntry[];
+  /** Placeholders may ship, and why (the engine's sample game: a demo, not a product). Absent: a placeholder fails `validate --release`. */
+  allowPlaceholders?: string;
+}
 
 export interface ProvenanceReport {
   keys: number;
@@ -54,3 +58,13 @@ export function provenanceReport(game: GameDef, manifest: { images: Record<strin
   const incomplete = (prov.assets ?? []).filter((e) => !e.match || !e.source?.trim() || !e.licence?.trim() || (e.status !== 'final' && e.status !== 'placeholder')).map((e) => e.match || '(no match)');
   return { keys: keys.length, uncovered, placeholders, incomplete };
 }
+
+/** What a release does with the placeholders: an error, unless the file says why they may ship (then a warning). */
+export function placeholderVerdict(prov: Provenance, r: ProvenanceReport): { errors: string[]; warnings: string[] } {
+  if (!r.placeholders.length) return { errors: [], warnings: [] };
+  const msg = `provenance.json › ${r.placeholders.length} placeholder asset(s) would ship: ${r.placeholders.slice(0, 8).join(', ')}${r.placeholders.length > 8 ? '…' : ''}`;
+  return prov.allowPlaceholders?.trim()
+    ? { errors: [], warnings: [`${msg} (allowed: ${prov.allowPlaceholders.trim()})`] }
+    : { errors: [`${msg}: replace them, or say why they may ship with "allowPlaceholders"`], warnings: [] };
+}
+

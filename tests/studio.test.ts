@@ -76,7 +76,7 @@ describe('texts of a room', () => {
     expect(by.get('props.pantry.name')?.value).toBe('pantry cupboard');
     expect(by.get('hotspots.door.name')?.value).toBe('hall door');
     expect(by.get('on[6].do[0].cutscene[12].say[1]')?.who).toBe('biscuit');
-    expect(by.get('onEnter[0].then[0].once[0]')?.kind).toBe('hero');
+    expect(by.get('onEnter[0].then[0].once[0].say[1]')?.who).toBe('hero'); // a plain line, now a say object with its id (3.2.1)
     expect(by.get('talk.grandma[0].do[1].then[1].toast')?.kind).toBe('toast');
     expect(by.get('talk.grandma[1].do[0].nth[2][0].say[1]')?.value).toBe('Pixel. Sardines. Go.');
     // ids, images, flags and conditions are not texts

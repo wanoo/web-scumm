@@ -15,6 +15,8 @@ export interface AssetIndex {
 export interface ValidateOptions {
   /** A release: every `say` / `toast` / `guide` object needs a stable `id` (translations and voices are keyed by it). */
   release?: boolean;
+  /** The game ships more than one language (or voices): in a release every line, plain strings included, needs a stable id. */
+  translated?: boolean;
   assets?: AssetIndex;
   /** Ids of the minigames known to the engine. Absent = no check. */
   minigameIds?: string[];
@@ -171,12 +173,20 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     for (const s of subLists(c)) nested(() => cmds(s.list, where + s.path, room));
   };
   const lineIds = new Map<string, string>();
+  let generated = false;
   const cmdChecks = (c: Cmd, where: string, room?: RoomDef) => {
-    if (typeof c === 'string') { text(c, where); return; }
+    // A translated or voiced release keys every line by id: a line keyed by position loses its translation or its
+    // clip as soon as a line is inserted before it.
+    const strict = opts.release && !generated && (opts.translated || !!game.audio?.voices);
+    if (typeof c === 'string') {
+      text(c, where);
+      if (strict) err(where, 'a plain line has no stable id in a translated or voiced release (`npm run ids -- --lines=all --write --map`)');
+      return;
+    }
     if ('say' in c || 'toast' in c || 'guide' in c) {
       const id = (c as { id?: Id }).id;
       if (id) { const first = lineIds.get(id); if (first) err(where, `line id "${id}" is already used at ${first}`); else lineIds.set(id, where); }
-      else if (opts.release) (game.audio?.voices ? err : warn)(where, 'this line has no stable id (`npm run ids -- --lines`): its translation and voice clip are keyed by position');
+      else if (opts.release) (strict ? err : warn)(where, 'this line has no stable id (`npm run ids -- --lines`): its translation and voice clip are keyed by position');
     }
     if ('say' in c) {
       if (!whoOk(c.say[0], room)) err(where, `unknown character: "${c.say[0]}"`);
@@ -376,7 +386,9 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     for (const b of ids(r.b)) if (!known(b)) err(where, `"${b}" is neither an item nor something in the room`);
     cond(r.if, where, room);
     if (!r.do?.length) warn(where, 'rule with no command');
-    cmds(r.do, where, room);
+    // An exit's generated rule says its `locked` line, translated under `exits.<id>.locked`: not a line of its own.
+    if (r.exit) { const was = generated; generated = true; cmds(r.do, where, room); generated = was; }
+    else cmds(r.do, where, room);
   };
 
   // ------------------------------------------------------------ skin and ending

@@ -59,12 +59,13 @@ if (cmd === 'status') {
   let bad = 0;
   for (const l of langs) {
     const st = localeStatus(game, read(l));
-    const ok = st.missing.length === 0 && st.stale.length === 0;
+    // Identical to the source without being listed in `i18n.same`: an untranslated line, not a choice.
+    const ok = st.missing.length === 0 && st.stale.length === 0 && (l === base || st.untranslated.length === 0);
     if (!ok) bad++;
-    console.log(`${ok ? '✔' : '…'}  ${l}: ${st.translated}/${st.total} translated${st.missing.length ? `, ${st.missing.length} missing` : ''}${st.stale.length ? `, ${st.stale.length} stale` : ''}${st.long.length ? `, ${st.long.length} long` : ''}${st.same.length && l !== base ? `, ${st.same.length} same as ${base}` : ''}`);
+    console.log(`${ok ? '✔' : '…'}  ${l}: ${st.translated}/${st.total} translated${st.missing.length ? `, ${st.missing.length} missing` : ''}${st.stale.length ? `, ${st.stale.length} stale` : ''}${st.long.length ? `, ${st.long.length} long` : ''}${st.same.length && l !== base ? `, ${st.same.length} same as ${base}${st.untranslated.length ? ` (${st.untranslated.length} not in i18n.same)` : ', all listed in i18n.same'}` : ''}`);
     for (const m of st.missing.slice(0, 10)) console.log(`     missing ${m}`);
     for (const m of st.stale.slice(0, 10)) console.log(`     stale   ${m}`);
-    if (l !== base) for (const m of st.same.slice(0, 10)) console.log(`     same    ${m}`);
+    if (l !== base) for (const m of st.untranslated.slice(0, 20)) console.log(`     same    ${m}   (translate it, or list it in i18n.same)`);
   }
   const fb = Object.keys(uiFallbacks(game.ui));
   if (fb.length) console.log(`ℹ  ${fb.length} ui key(s) left to the English defaults (a player sees them in English in every language): ${fb.join(', ')}`);
