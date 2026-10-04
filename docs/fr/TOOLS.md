@@ -168,6 +168,9 @@ npm run solve -- --profile         # de quoi les états sont faits et ce que la 
 npm run solve -- --por=stubborn    # réduction d'ordre partiel : les actions commutantes une à la fois (moins d'états, même preuve)
 npm run replay -- session.json     # rejoue un fichier de session sur le vrai moteur, imprime le journal et l'état final
 npm run ids [-- --write --map]     # ids stables (schéma 3) écrits dans les sources, locales renommées, l'étape de migration des sauvegardes (docs/fr/UPGRADING.md)
+npm run ids -- --lines [--write --map]   # un id sur chaque objet say / toast / guide (--lines=all : les chaînes nues aussi) : traductions et voix indexées par lui (UPGRADING §9)
+npm run i18n -- voices             # les lignes avec un id et sans clip de voix, les clips qu'aucune ligne ne réclame
+npm run validate -- --release      # en plus : une ligne sans id stable (erreur quand le jeu a des voix)
 npm run playtests [-- --strict --out=.cache/playtests]  # les sessions partagées par les joueurs (games/<id>/playtests) rejouées et cumulées : temps par lieu, blocages, indices, heatmap
 npm run e2e -- <url> --lang fr           # le jeu entier dans cette langue ; échoue sur tout texte anglais par défaut du moteur visible
 npm run lint [-- --prove | --static | --json]   # lint de contenu : conditions insatisfaisables, règles masquées, faux indices, indices bloqués, actions jamais jouées

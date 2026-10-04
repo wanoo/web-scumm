@@ -105,7 +105,7 @@ export default defineRoom({
     { id: 'nouer.corde', verb: 'use', a: 'corde', b: ['crochet', 'seau'], do: [
       { lose: 'corde' }, { set: 'attache' },
       'Attachée. Un bout au crochet, l’autre au seau.',
-      { say: ['grandmere', 'Fais attention avec ce seau, ma chérie.'] },
+      { id: 'maison.ouvrir-porte.l-fais-attention', say: ['grandmere', 'Fais attention avec ce seau, ma chérie.'] },   // l'id : traductions et clip de voix le suivent (UPGRADING §9)
     ] },
   ],
 

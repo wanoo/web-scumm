@@ -10,7 +10,7 @@ export interface Inserted { path: string; id: string; line: number }
 export interface Skipped { path: string; line: number; reason: string; expected?: string }
 export interface CodemodResult { code: string; inserted: Inserted[]; skipped: Skipped[] }
 
-type Edit = { pos: number; text: string };
+type Edit = { pos: number; text: string; end?: number };
 type Obj = ts.ObjectLiteralExpression;
 
 class Codemod {
@@ -73,7 +73,15 @@ class Codemod {
       if (c === undefined || typeof c === 'string') return;
       const here = `${path}[${i}]`;
       const e = unwrap(el);
+      const line = 'say' in c || 'toast' in c || 'guide' in c ? (c as { id?: string }) : null;
+      // `--lines=all`: the runtime turned this plain string into `{ say: ['hero', text], id }`; the source follows.
+      if (line?.id && ts.isStringLiteralLike(e) && 'say' in c) {
+        this.edits.push({ pos: e.getStart(this.sf), end: e.getEnd(), text: `{ say: [${encodeString(c.say[0], this.q)}, ${e.getText(this.sf)}], id: ${encodeString(line.id, this.q)} }` });
+        this.inserted.push({ path: here, id: line.id, line: this.line(e) });
+        return;
+      }
       if (!ts.isObjectLiteralExpression(e)) { if (!ts.isStringLiteralLike(e)) this.skip(el, here, 'command is not a literal', (c as { id?: string }).id); return; }
+      if (line) { this.idObj(e, line, here, 'line'); return; }
       const kind = (['once', 'nth', 'cycle', 'random'] as const).find((k) => k in c);
       if (kind) {
         this.idObj(e, c as { id?: string }, here, kind);
@@ -151,7 +159,7 @@ class Codemod {
 
   result(): CodemodResult {
     let code = this.sf.text;
-    for (const e of [...this.edits].sort((a, b) => b.pos - a.pos)) code = code.slice(0, e.pos) + e.text + code.slice(e.pos);
+    for (const e of [...this.edits].sort((a, b) => b.pos - a.pos)) code = code.slice(0, e.pos) + e.text + code.slice(e.end ?? e.pos);
     return { code, inserted: this.inserted, skipped: this.skipped };
   }
 }

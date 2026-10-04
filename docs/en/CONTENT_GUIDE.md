@@ -105,7 +105,7 @@ export default defineRoom({
     { id: 'tie.rope', verb: 'use', a: 'rope', b: ['hook', 'bucket'], do: [
       { lose: 'rope' }, { set: 'tied' },
       'Tied. One end on the hook, the other on the bucket.',
-      { say: ['grandma', 'Careful with that bucket, dear.'] },
+      { id: 'house.open-door.l-careful-with-that', say: ['grandma', 'Careful with that bucket, dear.'] },   // the id: translations and the voice clip follow it (UPGRADING §9)
     ] },
   ],
 

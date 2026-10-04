@@ -77,15 +77,15 @@ export default defineRoom({
         { used: 'key' }, { set: 'pantry_open' },
         'Open! Sardines! Hello, my little friends.',
         { pose: ['hero', 'eat'] }, { sfx: 'chips' }, { wait: 1400 },
-        { pose: ['biscuit', 'idle'] }, { say: ['biscuit', 'Mrrp? Did someone say sardines?'] },
+        { pose: ['biscuit', 'idle'] }, { id: 'house.use-key-pantry.l-mrrp-did-someone', say: ['biscuit', 'Mrrp? Did someone say sardines?'] },
         { face: 'biscuit', who: 'grandma' },
-        { say: ['grandma', 'Ha! Two cats, one tin. Share, you two.'] },
+        { id: 'house.use-key-pantry.l-ha-two-cats-one', say: ['grandma', 'Ha! Two cats, one tin. Share, you two.'] },
         { pose: ['hero', 'idle'] }, 'Fine. Half. Ish.',
         // A custom command of the game (index.ts `commands`): stars over the scene, no effect on the state.
         { custom: 'sparkle', args: { ms: 1400 } },
       ] },
       { ending: true, after: [
-        { say: ['grandma', 'Well done, Pixel. Best breakfast ever.'] },
+        { id: 'house.use-key-pantry.l-well-done-pixel', say: ['grandma', 'Well done, Pixel. Best breakfast ever.'] },
         'Best. Breakfast. Ever.',
       ] },
     ] },
@@ -102,26 +102,26 @@ export default defineRoom({
   talk: {
     grandma: [
       { id: 'house.grandma.where-is-the-key', topic: 'Where is the key?', do: [
-        { say: ['grandma', 'Grandpa had it last. He is in the garden, fixing the pipes.'] },
-        { if: { not: { unlocked: 'garden' } }, then: [{ unlock: 'garden' }, { toast: 'New on the map: the garden' }] },
-        { say: ['grandma', 'Go through the big window. Mind the roses.'] },
+        { id: 'house.grandma.where-is-the-key.l-grandpa-had-it', say: ['grandma', 'Grandpa had it last. He is in the garden, fixing the pipes.'] },
+        { if: { not: { unlocked: 'garden' } }, then: [{ unlock: 'garden' }, { id: 'house.grandma.where-is-the-key.l-new-on-the-map', toast: 'New on the map: the garden' }] },
+        { id: 'house.grandma.where-is-the-key.l-go-through-the', say: ['grandma', 'Go through the big window. Mind the roses.'] },
       ] },
       { id: 'house.grandma.what-is-for-dinner', topic: 'What is for dinner?', do: [
         { id: 'house.grandma.what-is-for-dinner.nth', nth: [
-          [{ say: ['grandma', 'Sardines. If we find the key.'] }],
-          [{ say: ['grandma', 'Still sardines.'] }],
-          [{ say: ['grandma', 'Pixel. Sardines. Go.'] }],
+          [{ id: 'house.grandma.what-is-for-dinner.nth.l-sardines-if-we', say: ['grandma', 'Sardines. If we find the key.'] }],
+          [{ id: 'house.grandma.what-is-for-dinner.nth.l-still-sardines', say: ['grandma', 'Still sardines.'] }],
+          [{ id: 'house.grandma.what-is-for-dinner.nth.l-pixel-sardines', say: ['grandma', 'Pixel. Sardines. Go.'] }],
         ] },
       ] },
       { id: 'house.grandma.why-lock-the-sardines', topic: 'Why lock the sardines?', do: [
-        { say: ['grandma', 'Because a certain cat opens cupboards. A certain grey cat.'] },
+        { id: 'house.grandma.why-lock-the-sardines.l-because-a', say: ['grandma', 'Because a certain cat opens cupboards. A certain grey cat.'] },
         'Biscuit. Definitely Biscuit.',
       ] },
-      { id: 'house.grandma.i-found-the-key', topic: 'I found the key!', if: { has: 'key' }, do: [{ say: ['grandma', 'Then what are you waiting for? Open the pantry!'] }] },
+      { id: 'house.grandma.i-found-the-key', topic: 'I found the key!', if: { has: 'key' }, do: [{ id: 'house.grandma.i-found-the-key.l-then-what-are', say: ['grandma', 'Then what are you waiting for? Open the pantry!'] }] },
     ],
     grandpa: [
-      { id: 'house.grandpa.why-are-you-home', topic: 'Why are you home?', do: [{ say: ['grandpa', 'A cat with a key. I had to see this.'] }, { pose: ['grandpa', 'laugh'] }, { wait: 700 }, { pose: ['grandpa', 'idle'] }] },
-      { id: 'house.grandpa.you-carried-the-armchair', topic: 'You carried the armchair back?', do: [{ say: ['grandpa', 'It walked. I only steered.'] }, 'Armchairs. Full of secrets.'] },
+      { id: 'house.grandpa.why-are-you-home', topic: 'Why are you home?', do: [{ id: 'house.grandpa.why-are-you-home.l-a-cat-with-a-key', say: ['grandpa', 'A cat with a key. I had to see this.'] }, { pose: ['grandpa', 'laugh'] }, { wait: 700 }, { pose: ['grandpa', 'idle'] }] },
+      { id: 'house.grandpa.you-carried-the-armchair', topic: 'You carried the armchair back?', do: [{ id: 'house.grandpa.you-carried-the-armchair.l-it-walked-i-only', say: ['grandpa', 'It walked. I only steered.'] }, 'Armchairs. Full of secrets.'] },
     ],
   },
 
@@ -137,7 +137,7 @@ export default defineRoom({
 
   onEnter: [
     { if: { has: 'key' }, then: [{ id: 'house.enter.once', once: ['Home! Pantry, here I come.'] }] },
-    { if: { actorIn: ['grandpa', 'house'] }, then: [{ id: 'house.enter.once-2', once: [{ say: ['grandpa', 'Pixel! I beat you home. The armchair is faster than it looks.'] }] }] },
+    { if: { actorIn: ['grandpa', 'house'] }, then: [{ id: 'house.enter.once-2', once: [{ id: 'house.enter.once-2.l-pixel-i-beat-you', say: ['grandpa', 'Pixel! I beat you home. The armchair is faster than it looks.'] }] }] },
   ],
 
   // Biscuit lives his own life: a stretch every so often, on its own, between the player's actions.

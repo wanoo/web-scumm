@@ -52,7 +52,7 @@ export const game = defineGame({
   rules,
   // The world reacts on its own: when the key is found (market), Grandpa goes home for the finale.
   events: [
-    { id: 'game.on-key-found', on: 'key_found', once: true, do: [{ moveActor: ['grandpa', 'house'] }, { toast: 'Grandpa went home. With the armchair.' }] },
+    { id: 'game.on-key-found', on: 'key_found', once: true, do: [{ moveActor: ['grandpa', 'house'] }, { id: 'game.on-key-found.l-grandpa-went', toast: 'Grandpa went home. With the armchair.' }] },
   ],
   globalTalk: { hug: 'Can I have a cuddle?', bye: 'Bye!', byeLine: 'Bye bye.' },
   start: {
@@ -60,22 +60,22 @@ export const game = defineGame({
     unlocked: ['house'],
     // Opening: the player's guess (judged on the sealed ending's card), then the guided tutorial.
     intro: [
-      { say: ['grandma', 'Pixel! Bad news. The sardines are locked in the pantry...'] },
-      { say: ['grandma', '...and I lost the key.'] },
+      { id: 'game.intro.l-pixel-bad-news', say: ['grandma', 'Pixel! Bad news. The sardines are locked in the pantry...'] },
+      { id: 'game.intro.l-and-i-lost-the', say: ['grandma', '...and I lost the key.'] },
       'Wait. What is really in that pantry?',
       { choice: [
         { id: 'game.intro.c-sardines-obvious', text: 'Sardines. Obviously.', do: [{ set: ['guess', 'sardines'] }] },
         { id: 'game.intro.c-a-mouse-a-big', text: 'A mouse. A big one.', do: [{ set: ['guess', 'mouse'] }] },
         { id: 'game.intro.c-nothing-at-all', text: 'Nothing at all. It is a trap.', do: [{ set: ['guess', 'nothing'] }] },
       ] },
-      { say: ['grandma', 'We will see when it is open, fluffball.'] },
-      { guide: { verb: 'look', target: 'pantry', say: 'First, LOOK AT the pantry cupboard.' } },
-      { guide: { verb: 'talk', target: 'grandma', say: 'Now TALK TO Grandma. Ask about the key.' } },
+      { id: 'game.intro.l-we-will-see-when', say: ['grandma', 'We will see when it is open, fluffball.'] },
+      { id: 'game.intro.l-first-look-at', guide: { verb: 'look', target: 'pantry', say: 'First, LOOK AT the pantry cupboard.' } },
+      { id: 'game.intro.l-now-talk-to', guide: { verb: 'talk', target: 'grandma', say: 'Now TALK TO Grandma. Ask about the key.' } },
       { if: { not: { unlocked: 'garden' } }, then: [
-        { say: ['grandma', 'Oh, and the key: Grandpa had it last. He is in the garden.'] }, { unlock: 'garden' },
+        { id: 'game.intro.l-oh-and-the-key', say: ['grandma', 'Oh, and the key: Grandpa had it last. He is in the garden.'] }, { unlock: 'garden' },
       ] },
-      { say: ['grandma', 'Take my shell phone. Talk into it if you get stuck.'] },
-      { guide: { verb: 'take', target: 'shell', say: 'PICK UP the shell phone on the table.' } },
+      { id: 'game.intro.l-take-my-shell', say: ['grandma', 'Take my shell phone. Talk into it if you get stuck.'] },
+      { id: 'game.intro.l-pick-up-the', guide: { verb: 'take', target: 'shell', say: 'PICK UP the shell phone on the table.' } },
       'Garden. Grandpa. Key. Sardines. Easy.',
     ],
   },

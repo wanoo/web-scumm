@@ -74,3 +74,33 @@ describe('the id codemod', () => {
     expect(g.code).toContain("events: [{ id: 'game.on-x', on: 'x', do: [] }]");
   });
 });
+
+describe('line ids in the sources', () => {
+  const SRC = `export default defineRoom({
+  id: 'b',
+  name: 'B',
+  decor: 'b',
+  on: [
+    { id: 'b.open-door', verb: 'open', a: 'door', do: ['Locked.', { say: ['hero', 'Really locked.'] }, { toast: 'Try the key' }] },
+  ],
+});
+`;
+  const runtime = (all: boolean): RoomDef => ({
+    id: 'b', name: 'B', decor: 'b',
+    on: [{ id: 'b.open-door', verb: 'open', a: 'door', do: [
+      all ? { say: ['hero', 'Locked.'], id: 'b.open-door.l-locked' } : 'Locked.',
+      { id: 'b.open-door.l-really-locked', say: ['hero', 'Really locked.'] },
+      { id: 'b.open-door.l-try-the-key', toast: 'Try the key' },
+    ] }],
+  });
+  it('writes the id of each say / toast object, leaving plain strings alone', () => {
+    const r = addIdsToRoomSource(SRC, runtime(false), 'b.ts');
+    expect(r.inserted.map((x) => x.id)).toEqual(['b.open-door.l-really-locked', 'b.open-door.l-try-the-key']);
+    expect(r.code).toContain("do: ['Locked.', { id: 'b.open-door.l-really-locked', say: ['hero', 'Really locked.'] }, { id: 'b.open-door.l-try-the-key', toast: 'Try the key' }]");
+  });
+  it('with `all`, turns a plain string into a say object carrying its id', () => {
+    const r = addIdsToRoomSource(SRC, runtime(true), 'b.ts');
+    expect(r.code).toContain("do: [{ say: ['hero', 'Locked.'], id: 'b.open-door.l-locked' }, { id: 'b.open-door.l-really-locked'");
+    expect(r.skipped).toEqual([]);
+  });
+});

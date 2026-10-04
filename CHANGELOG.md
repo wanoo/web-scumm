@@ -5,6 +5,12 @@
 
 ### Added
 
+- Line ids: `say`, `toast` and `guide` carry an optional stable `id`; translation paths follow it
+  (`do.<line id>.say` instead of `do[3].say`), `audio.voices[<line id>]` plays without writing `voice` on the line,
+  `npm run ids -- --lines` (or `--lines=all` for plain strings too) writes them and renames the locales from their
+  current paths, `npm run validate -- --release` reports a line without one, `npm run i18n -- voices` is the voice
+  production table. The sample game's 58 object lines carry ids. Duplicate line ids are an error.
+
 - One table of the engine's English interface defaults (`src/engine/dom/ui-defaults.ts`, `App.t()`): the verb bar's
   ARIA label and every menu text come from the game's `ui` or from it; `App.uiFallbacks()` lists the keys a game
   leaves to the defaults, `npm run i18n -- status` prints them, and `npm run e2e -- --lang <xx>` fails when one is

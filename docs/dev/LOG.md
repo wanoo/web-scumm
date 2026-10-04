@@ -930,3 +930,29 @@ Branch: `v32-bindings` · re #25 "3.2 / v32-bindings"
 | `npm run i18n -- status` | en 400/400, fr 400/400, no key left to the defaults |
 
 → next: Claude · `v32-line-ids`
+
+## #32 · 2026-10-04 · Claude · proposal · v32-line-ids
+
+Branch: `v32-line-ids` · re #25 "3.2 / v32-line-ids"
+
+- `{ say }`, `{ toast }`, `{ guide }` take `id?`; `assignIds(game, { lines: true | 'all' })` names a line by its owner
+  and the start of its text (`house.open-door.l-just-a-door`), keeps written ids, and with `'all'` turns plain strings
+  into `{ say: ['hero', text], id }` (the demo does **not**: its one-liners stay plain, keyed by owner and position, a
+  readability choice said in UPGRADING §9).
+- i18n paths: `do.<line id>.say` when the line has an id (`linePathSeg`), positional otherwise; a second `npm run ids`
+  pass renames from the **current** paths (the first version renamed from positions and lost 47 of the demo's 58
+  translations: caught by `i18n -- status`, fixed, tested); `ids.migration.json` / `ids.paths.json` are merged, never
+  overwritten (the first version wiped the 3.1 migration).
+- Engine: `voice` defaults to the line id when `audio.voices` has it. `validate --release`: a line without an id is a
+  warning, an error when the game has voices; a duplicate line id is always an error. `npm run i18n -- voices`.
+- Codemod: ids inserted on the line objects; with `all`, the string literal is replaced by the object (range edits).
+- Demo: 58 line ids written, 58 locale paths renamed, en/fr 400/400, `validate --release` clean.
+
+### Checks run
+| Command | Result |
+|---|---|
+| `tsc`, `npx vitest run` | see the commit (+6 tests: naming, second pass, insertion keeps paths, codemod, validator, locale + voice) |
+| `npm run ids -- --lines` after the write | 0 ids to assign |
+| `npm run i18n -- status` | en 400/400, fr 400/400 |
+
+→ next: Claude · `v32-save-results`

@@ -1,4 +1,4 @@
-// npm run i18n -- extract [--lang <xx>] | status
+// npm run i18n -- extract [--lang <xx>] | status | voices
 // extract: writes games/<id>/locales/<lang>.json with every text of the game (path → text). With no --lang, the base
 // language (game.lang, else "en"): the reference file. With --lang xx: creates or updates the translation file, keeping
 // what is translated, following texts that moved (a reordered list: same source text in the previous reference file),
@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { localeStatus, mergeLocale, textPaths } from '../src/engine/tools/i18n';
 import { GAME, GAME_DIR, loadGameModule } from './game';
 import { uiFallbacks } from '../src/engine/dom/ui-defaults';
+import { lineIds } from '../src/engine/core/content-ids';
 
 const { game } = await loadGameModule();
 const args = process.argv.slice(2);
@@ -39,6 +40,19 @@ if (cmd === 'extract') {
   process.exit(0);
 }
 
+if (cmd === 'voices') {
+  // The voice production table: every line with a stable id, whether `audio.voices` has a clip under it, and the
+  // clips no line claims. Lines without an id are not listed: `npm run ids -- --lines` first.
+  const lines = lineIds(game);
+  const clips = game.audio?.voices ?? {};
+  const missing = lines.filter((l) => !clips[l.id]);
+  const orphans = Object.keys(clips).filter((k) => !lines.some((l) => l.id === k));
+  console.log(`[${GAME}] ${lines.length} line(s) with an id, ${lines.length - missing.length} voiced, ${missing.length} without a clip, ${orphans.length} clip(s) no line claims`);
+  for (const l of missing.slice(0, 200)) console.log(`  ${l.id.padEnd(48)} ${l.who}: ${l.text.length > 60 ? l.text.slice(0, 60) + '…' : l.text}`);
+  for (const k of orphans) console.log(`  orphan clip ${k} → ${clips[k]}`);
+  process.exit(0);
+}
+
 if (cmd === 'status') {
   const langs = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5)) : [];
   if (!langs.length) { console.log(`[${GAME}] no locales (npm run i18n -- extract --lang <xx>)`); process.exit(0); }
@@ -56,5 +70,5 @@ if (cmd === 'status') {
   if (fb.length) console.log(`ℹ  ${fb.length} ui key(s) left to the English defaults (a player sees them in English in every language): ${fb.join(', ')}`);
   process.exit(bad ? 1 : 0);
 }
-console.log('usage: npm run i18n -- extract [--lang <xx>] | status');
+console.log('usage: npm run i18n -- extract [--lang <xx>] | status | voices');
 process.exit(1);

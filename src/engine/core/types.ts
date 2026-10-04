@@ -57,7 +57,11 @@ export type Cmd =
   | string
   // --- speech
   | { say: [Who, string]; shout?: boolean;
-      /** A voice clip (`audio.voices`): the line stays as long as the clip plays, then moves on. */
+      /** Stable id of the line (schema 3, `npm run ids -- --lines`): translations and voice clips are keyed by it, so
+       *  inserting or moving a line never shifts them. A plain string line stays keyed by its owner and position. */
+      id?: Id;
+      /** A voice clip (`audio.voices`): the line stays as long as the clip plays, then moves on. Defaults to the
+       *  line's `id` when `audio.voices` has a clip under it. */
       voice?: Id }
   // --- movement and poses
   | { walk: WalkTarget; who?: Who }
@@ -120,7 +124,7 @@ export type Cmd =
   // --- audio and effects
   | { sfx: Id }
   | { music: Id | { push: Id } | { pop: true } | { stop: true } | { once: Id } }
-  | { toast: string }
+  | { toast: string; id?: Id }
   | { shake: number }
   // --- logic
   | { if: Cond; then: Cmd[]; else?: Cmd[] }
@@ -134,7 +138,7 @@ export type Cmd =
   | { minigame: Id; params?: Record<string, unknown>; then?: Cmd[] }
   /** Incoming call. A list = several callers in the same call (shown side by side). */
   | { phone: Who | Who[]; do: Cmd[] }
-  | { guide: { verb: VerbId; target: Id; say: string } }
+  | { guide: { verb: VerbId; target: Id; say: string }; id?: Id }
   | { talk: Id }
   | { hint: true }
   /**

@@ -172,3 +172,15 @@ jour) ; `package.json` avec les scripts de la section 7 (`tools/doctor.ts`, `too
 marcher) ; `env.d.ts` avec `/// <reference types="vite-plugin-pwa/client" />`. Le `game` du moteur est un clone
 compilé (`compileGame`), gelé quand `schemaVersion` vaut 3 : un outil qui modifiait l'objet passé à `Engine` doit
 passer par l'API du moteur.
+
+## 9. Ids de lignes (3.2) : des traductions et des voix qui survivent à une insertion
+
+Chaque `say`, `toast` et `guide` peut porter un `id` stable (`house.open-door.l-just-a-door` : son propriétaire, puis
+le début de son texte). Une table de traduction et un clip de voix sont alors indexés par lui : insérer, déplacer ou
+supprimer une ligne ne décale jamais les autres. `npm run ids -- --lines --write --map` donne leurs ids aux objets qui
+n'en ont pas et renomme les clés de `locales/*.json` (une seconde passe renomme depuis les chemins courants ; rien de
+déjà consigné dans `ids.migration.json` / `ids.paths.json` n'est perdu) ; `--lines=all` transforme d'abord chaque
+ligne en chaîne nue en `{ say: ['hero', texte], id }` pour un jeu qui double ou traduit chaque ligne (verbeux : la démo
+garde ses chaînes nues, indexées par leur propriétaire et leur position). `audio.voices[<id de ligne>]` joue sans
+écrire `voice` sur la ligne. `npm run validate -- --release` signale une ligne sans id (une erreur quand le jeu a des
+voix) ; `npm run i18n -- voices` liste les lignes avec un id et sans clip, et les clips qu'aucune ligne ne réclame.

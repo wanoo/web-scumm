@@ -13,6 +13,8 @@ export interface AssetIndex {
 }
 
 export interface ValidateOptions {
+  /** A release: every `say` / `toast` / `guide` object needs a stable `id` (translations and voices are keyed by it). */
+  release?: boolean;
   assets?: AssetIndex;
   /** Ids of the minigames known to the engine. Absent = no check. */
   minigameIds?: string[];
@@ -168,8 +170,14 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     cmdChecks(c, where, room);
     for (const s of subLists(c)) nested(() => cmds(s.list, where + s.path, room));
   };
+  const lineIds = new Map<string, string>();
   const cmdChecks = (c: Cmd, where: string, room?: RoomDef) => {
     if (typeof c === 'string') { text(c, where); return; }
+    if ('say' in c || 'toast' in c || 'guide' in c) {
+      const id = (c as { id?: Id }).id;
+      if (id) { const first = lineIds.get(id); if (first) err(where, `line id "${id}" is already used at ${first}`); else lineIds.set(id, where); }
+      else if (opts.release) (game.audio?.voices ? err : warn)(where, 'this line has no stable id (`npm run ids -- --lines`): its translation and voice clip are keyed by position');
+    }
     if ('say' in c) {
       if (!whoOk(c.say[0], room)) err(where, `unknown character: "${c.say[0]}"`);
       text(c.say[1], where);
