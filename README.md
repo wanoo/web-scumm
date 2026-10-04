@@ -124,7 +124,8 @@ npm run page:world                 # the map of the world: exits, gotos, unreach
 The solver uses the real engine with a silent screen, so what it finds a player can do. It tries every reply of a
 choice, switches playable characters, lets scripts advance one wait at a time, and leaves out of the state whatever
 cannot change the outcome (a flag only its setter reads, a clock nobody looks at), so a world full of decoration costs
-nothing: a generated 100-room, 5-player game is proven in eight seconds (`docs/en/BENCH.md`). It reports dead ends,
+nothing: a generated 100-room, 5-player game is solved in three seconds, and the exhaustive proof is a bounded,
+honest `--prove` run (`docs/en/BENCH.md`). It reports dead ends,
 items never used, **invariants** that became true, and the path that got there.
 
 ## The art

@@ -385,13 +385,14 @@ export function createStudio(opts: StudioOptions = {}) {
     return { lint: r, markdown: lintMarkdown(r, s.mode), mode: s.mode, ms: Date.now() - t0 };
   }
 
-  async function solve(from?: string | null, maxStates = 20000): Promise<SolveData> {
+  async function solve(from?: string | null, maxStates = 20000, mode: 'witness' | 'prove' = 'witness'): Promise<SolveData> {
     const t0 = Date.now();
     const mod = await loadModule();
     if (from && !mod.game.checkpoints?.[from]) throw new StudioError(`unknown checkpoint: "${from}"`);
     const layouts = loadLayouts(join(dir, 'layout'));
-    const r = await solveGame(mod.game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands: mod.commands });
+    const r = await solveGame(mod.game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands: mod.commands, mode });
     return {
+      status: r.status, mode: r.mode, softlocks: r.softlocks,
       finished: r.finished, states: r.states, truncated: r.truncated, path: r.path,
       roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
       itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems,
@@ -493,5 +494,5 @@ export const editNote = (id: string, e: NoteEdit) => cur().editNote(id, e);
 export const deleteNote = (id: string) => cur().deleteNote(id);
 export const exportStoryboardMarkdown = () => cur().exportStoryboardMarkdown();
 export const validate = () => cur().validate();
-export const solve = (from?: string | null) => cur().solve(from);
+export const solve = (from?: string | null, mode?: 'witness' | 'prove') => cur().solve(from, undefined, mode);
 export const screenshot = (room: string, checkpoint: string | null | undefined, baseUrl: string) => cur().screenshot(room, checkpoint, baseUrl);

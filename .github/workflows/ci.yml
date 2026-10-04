@@ -20,6 +20,8 @@ jobs:
       - run: pip install -r requirements.txt
       - run: npm ci
       - run: npm run build
+      # The exhaustive proof of the sample game (seconds); a big game proves on the weekly prove workflow instead.
+      - run: npm run prove:game
       - run: npm run audit:deps
       # Rebuild with the Studio demo entry for Pages after the complete release checks passed.
       - run: npm run build:web
@@ -31,9 +33,9 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           path: dist
-  # The production bundle played by touch. Chromium runs the complete game-specific walkthrough and gates the
-  # deploy; WebKit runs the generic solver session as a cross-engine smoke test, experimental (non-blocking) until
-  # three consecutive green runs on main, then `experimental: false` (docs/dev/DECISIONS.md D7).
+  # The production bundle played by touch. Chromium runs the complete game-specific walkthrough and WebKit the
+  # generic solver session; both gate the deploy (WebKit after three consecutive green runs on main, D7). The keyboard
+  # row is experimental (non-blocking) until it has its own three green runs.
   e2e:
     runs-on: ubuntu-latest
     continue-on-error: ${{ matrix.experimental }}
@@ -46,7 +48,7 @@ jobs:
             experimental: false
           - browser: webkit
             mode: generic
-            experimental: true
+            experimental: false
           # The whole game at the keyboard (verbs, targets, choices, the map, Space to advance a line).
           - browser: chromium
             mode: keyboard

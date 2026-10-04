@@ -36,6 +36,9 @@ describe('the stress game', () => {
     expect(end.finished).toBe(true);
     const all = await solve(game, layouts, { maxStates: 5000 });
     expect(all.finished).toBe(true);
+    const proof = await solve(game, layouts, { maxStates: 20000, mode: 'prove' });
+    expect(proof.status).toBe('solved');
+    expect(proof.softlocks).toEqual([]);
     expect(all.broken).toEqual([]);
     expect(all.states).toBeLessThan(1000);
     expect(all.path.some((s) => s === 'Switch to p1')).toBe(true);

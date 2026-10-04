@@ -162,7 +162,7 @@ npm run solve -- --chapters        # une recherche bornée par checkpoint avec `
 npm run validate -- --report       # le profileur de contenu : lieux, objets, personnages, ce qui est mince (Markdown)
 npm run page:world                 # la carte du monde en page (sorties, gotos, lieux inaccessibles, source DOT)
 npm run page:puzzles               # le graphe de puzzles en page : ce que chaque règle exige et change, une fiche par objet / flag
-npm run bench -- --rooms=40        # un jeu généré de cette taille, chaque outil chronométré dessus (docs/fr/BENCH.md)
+npm run bench -- --rooms=40 [--prove --v3]   # un jeu généré de cette taille, chaque outil chronométré dessus ; --prove ajoute la preuve exhaustive, --v3 le génère avec des ids stables (docs/fr/BENCH.md)
 npm run i18n -- extract [--lang xx]   # tables de traduction (games/<id>/locales/<xx>.json) ; `status` pour la couverture
 npm run solve -- --profile         # de quoi les états sont faits et ce que la recherche a coûté (docs/fr/BENCH.md)
 npm run solve -- --por=stubborn    # réduction d'ordre partiel : les actions commutantes une à la fois (moins d'états, même preuve)
@@ -189,6 +189,15 @@ témoin, avertissements avec `--prove`). Chaque constat nomme son lieu et son ch
 stable et quoi faire. Code 1 seulement sur une erreur. `lint: { ignore: ['code', 'code:<id>', 'code:<lieu>/<chemin>'] }`
 dans `game.ts` garde un faux indice voulu. L'onglet Check du Studio montre la même liste avec des liens vers Rooms ;
 l'outil MCP `lint` la renvoie en Markdown. À lancer avant de demander une relecture.
+
+**Intégration continue.** Chaque push sur `main`, `v3` ou `v3-*` lance `npm run build` (vérifications, tests Node et
+Python, `verify:game`, le bundle, les audits de spoilers et d'assets), `npm run prove:game` sur le jeu d'exemple,
+`npm run audit:deps`, puis l'e2e de production en Chromium (le parcours propre à la démo) et WebKit (le rejeu
+générique), tous deux bloquants, et le rejeu au clavier (expérimental). `main` déploie Pages. Le workflow `prove`,
+hebdomadaire ou à la demande, lance la preuve et le bench sur un jeu de 100 lieux en schéma 3 dans un budget et
+dépose `bench.md`. Un tag `v3.x` lance `npm run release-check` et publie la release GitHub avec la section
+correspondante de `CHANGELOG.md` (`scripts/release-notes.mjs`). Dependabot propose chaque semaine les mises à jour
+npm et actions, chaque mois pip.
 
 **Playtests.** Sur un téléphone, **Partager la session** dans le menu pause envoie la session en fichier (Web Share,
 sinon un téléchargement) : des ids et des index seulement, aucun texte, aucun journal. Déposez-le dans

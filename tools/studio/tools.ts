@@ -21,7 +21,8 @@ export interface ToolBackend {
   notes(): Promise<NotesFile>;
   addNote(n: NewNote): Promise<unknown>;
   validate(): Promise<ValidateResult>;
-  solve(from?: string): Promise<SolveData>;
+  /** `prove`: the exhaustive search (softlocks), slow on a big game. */
+  solve(from?: string, prove?: boolean): Promise<SolveData>;
   /** The content profiler (rooms, items, characters: what is thin). */
   report?(): Promise<ReportData>;
   /** The world's map: rooms, exits, gotos, unreachable rooms. */
@@ -191,11 +192,12 @@ export const TOOLS: ToolDef[] = [
   {
     name: 'solve', title: 'Solve the game',
     description: 'Explores the game states to prove it can be finished, from New Game or from checkpoint `from`. ' +
-      'Result { finished, states, truncated, path, roomsReached, flagsReached, itemsNeverUsed, unusedItems, deadEnds, ' +
-      'errors, from, ms }. `finished: false` or dead ends are bugs to fix. `profile: true` adds why the search is slow or big.',
-    input: { from: z.string().optional().describe('Checkpoint id (list_rooms checkpoints).'), profile: z.boolean().optional().describe('Add the solver profile as text: what the states are made of, what the search cost, independent dimensions, monotonic things.') },
+      'Result { status, mode, finished, states, truncated, path, roomsReached, flagsReached, itemsNeverUsed, unusedItems, ' +
+      'deadEnds, softlocks, errors, from, ms }. `finished: false`, dead ends or softlocks are bugs to fix. `prove: true` runs the ' +
+      'exhaustive search (softlocks complete). `profile: true` adds why the search is slow or big.',
+    input: { from: z.string().optional().describe('Checkpoint id (list_rooms checkpoints).'), profile: z.boolean().optional().describe('Add the solver profile as text: what the states are made of, what the search cost, independent dimensions, monotonic things.'), prove: z.boolean().optional().describe('Exhaustive search: every reachable state and the softlocks (slow on a big game; default: the fast witness).') },
     annotations: { readOnlyHint: true },
-    run: ({ from, profile }, b) => op(async () => { const r = await b.solve(from); if (!profile) { const { profile: _p, ...rest } = r; return rest; } return { ...r, profile: r.profile ? profileText(r.profile) : undefined }; }),
+    run: ({ from, profile, prove }, b) => op(async () => { const r = await b.solve(from, prove); if (!profile) { const { profile: _p, ...rest } = r; return rest; } return { ...r, profile: r.profile ? profileText(r.profile) : undefined }; }),
   },
   {
     name: 'content_report', title: 'Content profiler',

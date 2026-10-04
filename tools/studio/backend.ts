@@ -34,7 +34,7 @@ export function coreBackend(studio: Studio, o: CoreBackendOptions): ToolBackend 
     coverage: () => studio.coverage(),
     playtests: () => studio.playtests(),
     lint: (prove) => studio.lint(prove),
-    solve: (from) => studio.solve(from),
+    solve: (from, prove) => studio.solve(from, undefined, prove ? 'prove' : 'witness'),
     author: o.author,
     readDoc: async (name) => readFileSync(join(o.root, 'docs', 'en', `${name}.md`), 'utf8'),
     assetPrompts: async (missing) => {

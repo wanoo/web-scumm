@@ -1,4 +1,6 @@
-// npm run bench [-- --rooms=40 --players=3 --items=30 --flags=100 --npcs=5 --scripts=10 --topics=40 --max=200000]
+// npm run bench [-- --rooms=40 --players=3 --items=30 --flags=100 --npcs=5 --scripts=10 --topics=40 --max=200000 --prove --v3]
+// --prove adds the exhaustive proof of the whole game (slow on a big one: the reduction is off in proof mode);
+// --v3 generates the game with stable ids (schemaVersion 3), as a real v3 game.
 // Generates a game of that size (src/engine/tools/stress.ts) and times every tool on it: validate, solve (global and
 // per chapter, plain and with the partial-order reduction), the content report, the world and puzzle graphs, text
 // extraction and translation, a save migration.
@@ -16,7 +18,9 @@ import { FakePresenter, MemoryStore } from '../src/engine/core/ports';
 const arg = (k: string, d: number) => { const m = process.argv.find((a) => a.startsWith(`--${k}=`)); return m ? Number(m.slice(k.length + 3)) : d; };
 const opts = { rooms: arg('rooms', 40), players: arg('players', 3), items: arg('items', 30), flags: arg('flags', 100), npcs: arg('npcs', 5), scripts: arg('scripts', 10), topics: arg('topics', 40) };
 const max = arg('max', 200000);
-const { game, layouts } = makeStressGame(opts);
+const prove = process.argv.includes('--prove');
+const v3 = process.argv.includes('--v3');
+const { game, layouts } = makeStressGame({ ...opts, ...(v3 ? { schemaVersion: 3 as const } : {}) });
 const rows: [string, string][] = [];
 const time = async <T>(label: string, fn: () => T | Promise<T>, note: (r: T) => string = () => '') => {
   const t0 = performance.now();
@@ -44,6 +48,7 @@ for (const cp of cps) {
 }
 await time(`solve from ${prev} to the end`, () => solve(game, layouts, { maxStates: max, start: { checkpoint: prev! } }), (r) => `${r.finished ? 'finished' : 'NOT finished'}, ${r.states} states, ${r.path.length} actions, ${r.profile.tries} runs${r.truncated ? ' (limit)' : ''}`);
 await time('solve global', () => solve(game, layouts, { maxStates: max }), (r) => `${r.finished ? 'finished' : 'NOT finished'}, ${r.states} states, ${r.path.length} actions, ${r.profile.tries} runs${r.truncated ? ' (limit)' : ''}${r.broken.length ? `, ${r.broken.length} invariant(s) broken` : ''}`);
+if (prove) await time('solve global, --prove', () => solve(game, layouts, { maxStates: max, mode: 'prove' }), (r) => `${r.status}, ${r.states} states, ${r.profile.tries} runs, ${r.softlocks.length} softlock sample(s)${r.truncated ? ' (limit)' : ''}`);
 await time('solve global, --por=stubborn', () => solve(game, layouts, { maxStates: max, por: 'stubborn' }), (r) => `${r.finished ? 'finished' : 'NOT finished'}, ${r.states} states, ${r.path.length} actions, ${r.profile.tries} runs, ${r.profile.postponed} postponed${r.truncated ? ' (limit)' : ''}`);
 console.log('');
 console.log('| Step | Result |', '\n|---|---|');

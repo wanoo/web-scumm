@@ -1,0 +1,34 @@
+name: prove
+# The exhaustive proof and the bench, weekly and on demand: too slow for every push on a big game, never a gate.
+on:
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      game:
+        description: 'GAME to prove (games/<id>)'
+        default: demo
+      rooms:
+        description: 'Stress game size for the bench'
+        default: '100'
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run prove:game
+        env:
+          GAME: ${{ github.event.inputs.game || 'demo' }}
+      # The exhaustive proof has no reduction: on a 40-room chain it is truncated at 50 000 states after seven minutes
+      # (docs/en/BENCH.md). The bench proves within a budget and reports `truncated` honestly.
+      - run: npm run bench -- --rooms=${{ github.event.inputs.rooms || '100' }} --players=5 --items=120 --flags=300 --npcs=10 --scripts=30 --topics=100 --max=20000 --prove --v3 | tee bench.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench
+          path: bench.md

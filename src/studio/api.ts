@@ -43,7 +43,7 @@ export interface Api {
   editNote(id: string, e: NoteEdit): Promise<Note>;
   deleteNote(id: string): Promise<{ ok: true }>;
   validate(): Promise<ValidateResult>;
-  solve(from?: string): Promise<SolveData>;
+  solve(from?: string, prove?: boolean): Promise<SolveData>;
   report(): Promise<ReportData>;
   graph(): Promise<GraphData>;
   puzzle(id?: string): Promise<PuzzleData>;
@@ -79,7 +79,7 @@ export const serverApi: Api = {
   coverage: () => call<CoverageData>('POST', 'coverage'),
   lint: (prove?: boolean) => call<LintData>('POST', 'lint', { prove: prove || undefined }),
   playtests: () => call<PlaytestsData>('POST', 'playtests'),
-  solve: (from?: string) => call<SolveData>('POST', 'solve', { from: from || undefined }),
+  solve: (from?: string, prove?: boolean) => call<SolveData>('POST', 'solve', { from: from || undefined, prove: prove || undefined }),
   screenshot: (room: string, checkpoint?: string) => call<Exclude<ScreenshotResult, { unavailable: true }>>('POST', 'screenshot', { room, checkpoint: checkpoint || undefined }),
   assets: () => call<AssetsListing>('GET', 'assets'),
 };

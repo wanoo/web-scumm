@@ -77,3 +77,18 @@ describe('what the reduction saves', () => {
     expect(r.path.length).toBe(6);
   });
 });
+
+describe('proof mode', () => {
+  it('reaches the same verdict as the plain search, with the reduction off', async () => {
+    const { pickups, pickupsLayouts } = await import('./fixtures/por');
+    const g = pickups(4, true);
+    const plain = await solve(g, pickupsLayouts, {});
+    const proof = await solve(g, pickupsLayouts, { mode: 'prove', por: 'stubborn' });
+    expect(proof.mode).toBe('prove');
+    expect(proof.finished).toBe(plain.finished);
+    expect(proof.broken).toEqual(plain.broken);
+    expect(proof.profile.postponed).toBe(0);
+    expect(proof.profile.slept).toBe(0);
+    expect(proof.states).toBeGreaterThanOrEqual(plain.states);
+  });
+});

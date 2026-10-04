@@ -301,12 +301,13 @@ export class BrowserApi implements Api {
     return { lint: r, markdown: lintMarkdown(r, s.mode), mode: s.mode, ms: Date.now() - t0 };
   }
 
-  async solve(from?: string, maxStates = 20000): Promise<SolveData> {
+  async solve(from?: string, prove = false, maxStates = 20000): Promise<SolveData> {
     const t0 = Date.now();
     const { mod, game, layouts } = await this.editedGame();
     if (from && !game.checkpoints?.[from]) throw new ApiError(`unknown checkpoint: "${from}"`, 400);
-    const r = await solveGame(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands: mod.commands });
+    const r = await solveGame(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands: mod.commands, mode: prove ? 'prove' : 'witness' });
     return {
+      status: r.status, mode: r.mode, softlocks: r.softlocks,
       finished: r.finished, states: r.states, truncated: r.truncated, path: r.path,
       roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
       itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems,
