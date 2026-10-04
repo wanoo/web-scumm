@@ -305,7 +305,8 @@ npm run i18n -- status               # coverage of every language, stale paths, 
 ```
 
 A path looks like `room:house/look.pantry[1]`, `item:key/name`, `char:grandma/refuse`, `ui/newGame`,
-`rules/fallbacks.look[2]`, `start/intro[0].say`; the file is `{ "<path>": "<text>" }`. The game ships the files it has
+`rules/fallbacks.look[2]`, `start/intro[0].say`; a line with an id is keyed by it (`room:house/look.pantry.<id>`,
+`rules/fallbacks.look.<id>`: lists take `{ id, text }` lines, UPGRADING §10); the file is `{ "<path>": "<text>" }`. The game ships the files it has
 (`locales` in `index.ts` picks them up); the player gets `?lang=fr`, their choice in Settings (`ui.language`), or their
 browser's language when a translation exists. Texts a file lacks stay as written. `npm run validate -- --report` and the
 Studio's Check tab show the coverage.

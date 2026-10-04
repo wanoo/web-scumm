@@ -84,9 +84,9 @@ export function lintContent(game: GameDef, _layouts: Record<Id, Layout>, opts: L
     });
     (r.events ?? []).forEach((ev, i) => { pathOf.set(listenerActionId(r.id, i, ev), { room: r.id, path: `events[${i}]`, id: ev.id }); for (const a of unsatisfiable(ev.if, r.id, produced)) add({ code: 'listener-dead', severity: 'warning', where: { room: r.id, path: `events[${i}]`, id: ev.id }, message: `on "${ev.on}" requires ${atomText(a)}, which nothing sets`, fix: 'set it somewhere, or drop the condition' }); });
     (r.hints ?? []).forEach((h, i) => {
-      for (const a of unsatisfiable(h.until, r.id, produced)) add({ code: 'hint-stuck', severity: 'error', where: { room: r.id, path: `hints[${i}]` }, message: `waits for ${atomText(a)}, which nothing sets: it is given forever`, fix: 'make `until` something the player can reach' });
+      for (const a of unsatisfiable(h.until, r.id, produced)) add({ code: 'hint-stuck', severity: 'error', where: { room: r.id, path: `hints[${i}]`, id: h.id }, message: `waits for ${atomText(a)}, which nothing sets: it is given forever`, fix: 'make `until` something the player can reach' });
       const twin = (r.hints ?? []).findIndex((x, j) => j < i && JSON.stringify(x.until) === JSON.stringify(h.until));
-      if (twin >= 0) add({ code: 'hint-never-fires', severity: 'warning', where: { room: r.id, path: `hints[${i}]` }, message: `has the same \`until\` as hints[${twin}], which is given first`, fix: 'give it its own `until`, or merge the lines' });
+      if (twin >= 0) add({ code: 'hint-never-fires', severity: 'warning', where: { room: r.id, path: `hints[${i}]`, id: h.id }, message: `has the same \`until\` as hints[${twin}], which is given first`, fix: 'give it its own `until`, or merge the lines' });
     });
     for (const [id, ex] of Object.entries(r.exits ?? {})) if (ex.if && !ex.locked) add({ code: 'exit-locked-silent', severity: 'info', where: { room: r.id, path: `exits.${id}` }, message: `"${ex.name}" has a condition but no \`locked\` line: the player gets the fallback`, fix: 'add a `locked` line that hints at what is missing' });
   }

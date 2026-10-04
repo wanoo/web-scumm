@@ -1208,3 +1208,21 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
 
 → next: Claude · merge on green CI; then the single status (JSON, text, Studio, MCP) and the production closure
 
+## #48 · 2026-10-04 · Claude · proposal · v33-list-ids
+
+(Numbered #48: #47 is `v33-one-status`, not yet on `main` when this branch started.)
+- Closes "looks, hints and fallbacks still positional" (#39). `ListLine = string | { id, text }` for look lists
+  (rooms, items), hint lines and `rules.fallbacks`; `id` on `HintDef` and `KindRule`. Translation paths use the id
+  (`listPathSeg`, the convention of `linePathSeg`); the engine speaks both shapes and voices a line by its id.
+- `assignIds({ lines })` names them (`<room>.look-<k>.l-…`, `<room>.hint`, `item.<id>.l-…`, `fallback.<verb>.l-…`,
+  `kind.<verb>-<target>`), records the path renames; the codemod writes them into rooms, `items.ts` (new
+  `addIdsToItemsSource`), `rules.ts` and inline `game.ts` rules/items. `validate --release`: error without an id in a
+  translated or voiced game, warning otherwise; duplicate ids are errors. Lint `hint-*` findings carry the hint id.
+- Studio: a `{ id, text }` line is listed, edited and deleted at its element path (`look.pantry[1]`), so set_text,
+  the browser backend and the room sheet keep one path per line.
+- Demo: `npm run ids -- --lines=all --write --map`: 109 ids (rooms 75, rules 28, items 6), 91 keys renamed in en.json
+  and fr.json, `i18n -- status` en 400/400, fr 400/400 (12 same, all listed); a second pass assigns 0;
+  `verify:release` exit 0; proof unchanged (3 480 states). Tests: `tests/list-ids.test.ts` (5), suite 371 green.
+
+→ next: Claude · merge on green CI
+

@@ -5,15 +5,17 @@
 //          keys of games/<id>/locales/*.json to the id-based paths.
 // --map:   writes games/<id>/ids.migration.json (the `renameSeen` / `renameCounter` step for `migrations`) and
 //          games/<id>/ids.paths.json (old translation path → new), and prints the three manual steps.
-// --lines: also give every `say` / `toast` / `guide` object a stable id (translations and voice clips follow it);
-//          --lines=all first turns every plain string line into `{ say: ['hero', text], id }` (verbose, for a game that
-//          voices or translates every line). Without it, lines stay keyed by their position inside their owner.
+// --lines: also give every `say` / `toast` / `guide` object, every `{ id, text }` line of a list (looks, hints,
+//          fallback answers), every hint and every reaction by kind a stable id (translations and voice clips follow
+//          it); --lines=all first turns every plain string line into `{ say: ['hero', text], id }` and every plain
+//          string of a list into `{ id, text }` (verbose, for a game that voices or translates every line). Without
+//          it, lines stay keyed by their position inside their owner.
 // The game: GAME, else package.json → config.game (tools/game.ts). Safe to run again: nothing is renamed twice.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { assignIds, renamePaths } from '../src/engine/core/content-ids';
 import { GAME, GAME_DIR, ROOT, loadGameModule } from './game';
-import { addIdsToGameSource, addIdsToRoomSource, addIdsToRulesSource, roomIdOf, type CodemodResult } from './ids/codemod';
+import { addIdsToGameSource, addIdsToItemsSource, addIdsToRoomSource, addIdsToRulesSource, roomIdOf, type CodemodResult } from './ids/codemod';
 
 const write = process.argv.includes('--write');
 const wantMap = process.argv.includes('--map');
@@ -35,6 +37,8 @@ for (const f of existsSync(roomsDir) ? readdirSync(roomsDir).filter((x) => x.end
 }
 const rulesFile = join(GAME_DIR, 'rules.ts');
 if (existsSync(rulesFile)) results.push({ file: rulesFile, r: addIdsToRulesSource(readFileSync(rulesFile, 'utf8'), assigned.rules, 'rules.ts') });
+const itemsFile = join(GAME_DIR, 'items.ts');
+if (existsSync(itemsFile)) results.push({ file: itemsFile, r: addIdsToItemsSource(readFileSync(itemsFile, 'utf8'), assigned.items, 'items.ts') });
 const gameFile = join(GAME_DIR, 'game.ts');
 if (existsSync(gameFile)) results.push({ file: gameFile, r: addIdsToGameSource(readFileSync(gameFile, 'utf8'), assigned, 'game.ts') });
 

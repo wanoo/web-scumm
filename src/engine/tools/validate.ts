@@ -1,11 +1,12 @@
 // Content validator: checks that everything referenced exists, and flags what's missing for a good experience.
 // Pure TypeScript (no DOM): runs in node (npm run validate) and in tests.
+import { listId, listText } from '../core/list-lines';
 import { condFlags } from '../core/cond';
 import { subLists } from '../core/cmds';
 import { normalizeExits } from '../core/define';
 import { worldGraph } from './graph';
 import { puzzleGraph, puzzleIssues } from './puzzle';
-import type { Cmd, Cond, EventRule, GameDef, Id, Layout, RoomDef, Rule, ScriptDef, VerbId } from '../core/types';
+import type { Cmd, Cond, EventRule, GameDef, Id, Layout, ListLine, RoomDef, Rule, ScriptDef, VerbId } from '../core/types';
 
 export interface AssetIndex {
   images: Record<string, [number, number]>;
@@ -104,10 +105,20 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     if (!t.trim()) err(where, 'empty text');
     else if (t.length > maxText) warn(where, `long text (${t.length} characters, ${maxText} recommended max): "${t.slice(0, 40)}…"`);
   };
-  const texts = (t: string | string[] | undefined, where: string) => {
+  // A list line (look list, hint, fallback answer, kind reaction) is keyed by position unless it has an id: in a
+  // translated or voiced release that is an error, as for `say` lines.
+  const strictLines = () => !!opts.release && (!!opts.translated || !!game.audio?.voices);
+  const listLineId = (id: string | undefined, where: string, what = 'this line') => {
+    if (id) { const first = lineIds.get(id); if (first) err(where, `line id "${id}" is already used at ${first}`); else lineIds.set(id, where); return; }
+    if (strictLines()) err(where, `${what} has no stable id in a translated or voiced release (\`npm run ids -- --lines=all --write --map\`)`);
+    else if (opts.release) warn(where, `${what} has no stable id (\`npm run ids -- --lines=all\`): its translation and voice clip are keyed by position`);
+  };
+  const texts = (t: string | ListLine[] | undefined, where: string) => {
     if (t === undefined) return;
-    if (Array.isArray(t)) { if (!t.length) err(where, 'empty text list'); t.forEach((x, i) => text(x, `${where}[${i}]`)); }
-    else text(t, where);
+    if (Array.isArray(t)) {
+      if (!t.length) err(where, 'empty text list');
+      t.forEach((x, i) => { const w = `${where}[${i}]`; text(listText(x), w); listLineId(listId(x), w); });
+    } else text(t, where);
   };
 
   // ------------------------------------------------------------ entities of a room
@@ -470,11 +481,12 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   for (const v of [...game.verbs.map((x) => x.id), 'use2'] as const) {
     const list = game.rules.fallbacks[v as VerbId];
     if (!list?.length) warn('rules.fallbacks', `no fallback response for "${v}"`);
-    else list.forEach((t, i) => text(t, `rules.fallbacks.${v}[${i}]`));
+    else texts(list, `rules.fallbacks.${v}`);
   }
   (game.rules.kinds ?? []).forEach((k, i) => {
     const w = `rules.kinds[${i}]`;
     text(k.say, w);
+    listLineId(k.id, w, 'this reaction by kind');
     if (!k.kind && !k.target) err(w, 'requires "kind" or "target"');
     for (const it of ids(k.item)) if (!items[it]) warn(w, `unknown item (reserved for later?): "${it}"`);
   });
@@ -572,7 +584,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       if (!topics.length) warn(tw, 'no topics');
       topics.forEach((t, i) => { const xw = `${tw}[${i}]`; stable(t.id, xw, 'talk topic'); text(t.topic, xw); cond(t.if, xw, r); cmds(t.do, xw, r); });
     }
-    (r.hints ?? []).forEach((h, i) => { cond(h.until, `${w}.hints[${i}]`, r); texts(h.lines, `${w}.hints[${i}]`); });
+    (r.hints ?? []).forEach((h, i) => { cond(h.until, `${w}.hints[${i}]`, r); texts(h.lines, `${w}.hints[${i}]`); if (!h.id && strictLines()) err(`${w}.hints[${i}]`, 'this hint has no stable id in a translated or voiced release (`npm run ids -- --lines=all --write --map`)'); });
     if ((r.on ?? []).length && !(r.hints ?? []).length) warn(w, 'has puzzles but no hints');
     cmds(r.onEnter, `${w}.onEnter`, r);
     scripts(r.scripts, `${w}.scripts`, r);

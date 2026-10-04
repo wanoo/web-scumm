@@ -2,8 +2,10 @@
 // of the game with a stable path, a translation table maps those paths to the translated texts, `applyLocale` returns
 // the game with the texts replaced. Nothing changes for whoever writes the content: no keys, no indirection.
 // Paths (v2 by position, v3 by stable id: `on.<id>`, `talk.<actor>.<id>`, `.choice.<id>`, `events.<id>`): `room:house/look.pantry[1]`, `item:key/name`, `char:grandma/refuse`, `ui/newGame`, `rules/fallbacks.look[2]`,
-// `start/intro[0]`, `credits[3]`, `map/places.house.name`…
-import type { Cmd, GameDef, RoomDef } from '../core/types';
+// `start/intro[0]`, `credits[3]`, `map/places.house.name`… A list line with an id (`{ id, text }`) is keyed by it:
+// `room:house/look.pantry.<id>`, `room:house/hints.<hintId>.lines.<id>`, `rules/fallbacks.look.<id>`, `rules/kinds.<id>.say`.
+import type { Cmd, GameDef, ListLine, RoomDef } from '../core/types';
+import { listPathSeg } from '../core/list-lines';
 import type { Minigame } from '../minigames/types';
 import { subLists } from '../core/cmds';
 import { choicePathSeg, eventPathSeg, rulePathSeg, topicPathSeg, linePathSeg } from '../core/content-ids';
@@ -53,10 +55,18 @@ function cmds(list: Cmd[] | undefined, path: string, fn: Fn, minigames: Minigame
   });
 }
 
-function strOrList(o: Record<string, string | string[]> | undefined, path: string, fn: Fn) {
+/** The lines of a list (`[i]` or `.<id>` after `path`); a replacement keeps the line's shape. */
+function lines(list: ListLine[], path: string, fn: Fn) {
+  list.forEach((l, i) => {
+    const r = fn(`${path}${listPathSeg(i, l)}`, typeof l === 'string' ? l : l.text);
+    if (r !== undefined) list[i] = typeof l === 'string' ? r : { ...l, text: r };
+  });
+}
+
+function strOrList(o: Record<string, string | ListLine[]> | undefined, path: string, fn: Fn) {
   for (const [k, v] of Object.entries(o ?? {})) {
     if (typeof v === 'string') { const r = fn(`${path}.${k}`, v); if (r !== undefined) o![k] = r; }
-    else v.forEach((t, i) => { const r = fn(`${path}.${k}[${i}]`, t); if (r !== undefined) v[i] = r; });
+    else lines(v, `${path}.${k}`, fn);
   }
 }
 
@@ -71,7 +81,7 @@ function room(r: RoomDef, fn: Fn, minigames: MinigameTexts) {
   strOrList(r.look, `${P}look`, fn);
   (r.on ?? []).forEach((x, i) => { if (!x.exit) cmds(x.do, `${P}${rulePathSeg(i, x)}.do`, fn, minigames); });
   for (const [actor, ts] of Object.entries(r.talk ?? {})) ts.forEach((t, i) => { one(`${topicPathSeg(actor, i, t)}.topic`, t.topic, (x) => { t.topic = x; }); cmds(t.do, `${P}${topicPathSeg(actor, i, t)}.do`, fn, minigames); });
-  (r.hints ?? []).forEach((h, i) => h.lines.forEach((l, j) => one(`hints[${i}].lines[${j}]`, l, (x) => { h.lines[j] = x; })));
+  (r.hints ?? []).forEach((h, i) => lines(h.lines, `${P}${h.id ? `hints.${h.id}` : `hints[${i}]`}.lines`, fn));
   cmds(r.onEnter, `${P}onEnter`, fn, minigames);
   (r.scripts ?? []).forEach((sc) => cmds(sc.do, `${P}scripts.${sc.id}.do`, fn, minigames));
   (r.events ?? []).forEach((ev, i) => cmds(ev.do, `${P}${eventPathSeg(i, ev)}.do`, fn, minigames));
@@ -87,11 +97,11 @@ export function walkTexts(game: GameDef, fn: Fn, minigames: MinigameTexts = {}):
   for (const [id, it] of Object.entries(game.items)) {
     one(`item:${id}/name`, it.name, (x) => { it.name = x; });
     if (typeof it.look === 'string') one(`item:${id}/look`, it.look, (x) => { it.look = x; });
-    else it.look?.forEach((t, i) => one(`item:${id}/look[${i}]`, t, (x) => { (it.look as string[])[i] = x; }));
+    else if (it.look) lines(it.look, `item:${id}/look`, fn);
   }
   for (const [id, c] of Object.entries(game.characters)) { one(`char:${id}/name`, c.name, (x) => { c.name = x; }); one(`char:${id}/refuse`, c.refuse, (x) => { c.refuse = x; }); one(`char:${id}/hug`, c.hug, (x) => { c.hug = x; }); }
-  for (const [v, list] of Object.entries(game.rules.fallbacks)) list?.forEach((t, i) => one(`rules/fallbacks.${v}[${i}]`, t, (x) => { list[i] = x; }));
-  (game.rules.kinds ?? []).forEach((k, i) => one(`rules/kinds[${i}].say`, k.say, (x) => { k.say = x; }));
+  for (const [v, list] of Object.entries(game.rules.fallbacks)) if (list) lines(list, `rules/fallbacks.${v}`, fn);
+  (game.rules.kinds ?? []).forEach((k, i) => one(`rules/${k.id ? `kinds.${k.id}` : `kinds[${i}]`}.say`, k.say, (x) => { k.say = x; }));
   (game.rules.on ?? []).forEach((r, i) => cmds(r.do, `rules/${rulePathSeg(i, r)}.do`, fn, minigames));
   (game.scripts ?? []).forEach((sc) => cmds(sc.do, `scripts.${sc.id}.do`, fn, minigames));
   (game.events ?? []).forEach((ev, i) => cmds(ev.do, `${eventPathSeg(i, ev)}.do`, fn, minigames));

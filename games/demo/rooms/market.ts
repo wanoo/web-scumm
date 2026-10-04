@@ -33,11 +33,11 @@ export default defineRoom({
   look: {
     stall: 'Spices, teapots, a lantern. No sardines. What kind of market is this?',
     lantern: 'The lantern Lou wants. Shiny. Not edible.',
-    oranges: ['Oranges. Round, orange, not sardines.', 'Still oranges.'],
+    oranges: [{ id: 'market.look-oranges.l-oranges-round', text: 'Oranges. Round, orange, not sardines.' }, { id: 'market.look-oranges.l-still-oranges', text: 'Still oranges.' }],
     bouquet: 'My bouquet! Freshly picked. By me. With paws.',
-    neighbor: ['Lou, the neighbour. Fixes everything. Borrows everything.', 'Lou smells of oil and socks.'],
-    seller: ['The seller. Big moustache. Bigger smile.', 'He keeps looking at the flowers. Suspicious.'],
-    far_stalls: ['More stalls, further down. Also no sardines.', 'A whole market and not one fish.'],
+    neighbor: [{ id: 'market.look-neighbor.l-lou-the-neighbou', text: 'Lou, the neighbour. Fixes everything. Borrows everything.' }, { id: 'market.look-neighbor.l-lou-smells-of', text: 'Lou smells of oil and socks.' }],
+    seller: [{ id: 'market.look-seller.l-the-seller-big', text: 'The seller. Big moustache. Bigger smile.' }, { id: 'market.look-seller.l-he-keeps-looking', text: 'He keeps looking at the flowers. Suspicious.' }],
+    far_stalls: [{ id: 'market.look-far-stalls.l-more-stalls', text: 'More stalls, further down. Also no sardines.' }, { id: 'market.look-far-stalls.l-a-whole-market', text: 'A whole market and not one fish.' }],
     blue_door: 'A big blue door. Locked. Everything is locked today.',
   },
 
@@ -116,12 +116,12 @@ export default defineRoom({
   },
 
   hints: [
-    { until: 'deposit_known', lines: ['Talk to Lou about the key, sweetie.'] },
-    { until: { any: [{ has: 'token' }, 'flowers_done'] }, lines: ['Did you search Grandpa\'s armchair at home? It eats tokens.'] },
-    { until: 'flowers_done', lines: ['Give your market token to the seller.'] },
-    { until: { any: [{ has: 'bouquet' }, 'bouquet_given'] }, lines: ['Your bouquet is on the stall. Take it.'] },
-    { until: { has: 'key' }, lines: ['Give the bouquet to the seller.'] },
-    { until: 'pantry_open', lines: ['You have the key! Come home and open the pantry.'] },
+    { id: 'market.hint', until: 'deposit_known', lines: [{ id: 'market.hint.l-talk-to-lou', text: 'Talk to Lou about the key, sweetie.' }] },
+    { id: 'market.hint-2', until: { any: [{ has: 'token' }, 'flowers_done'] }, lines: [{ id: 'market.hint-2.l-did-you-search', text: 'Did you search Grandpa\'s armchair at home? It eats tokens.' }] },
+    { id: 'market.hint-3', until: 'flowers_done', lines: [{ id: 'market.hint-3.l-give-your-market', text: 'Give your market token to the seller.' }] },
+    { id: 'market.hint-4', until: { any: [{ has: 'bouquet' }, 'bouquet_given'] }, lines: [{ id: 'market.hint-4.l-your-bouquet-is', text: 'Your bouquet is on the stall. Take it.' }] },
+    { id: 'market.hint-5', until: { has: 'key' }, lines: [{ id: 'market.hint-5.l-give-the-bouquet', text: 'Give the bouquet to the seller.' }] },
+    { id: 'market.hint-6', until: 'pantry_open', lines: [{ id: 'market.hint-6.l-you-have-the-key', text: 'You have the key! Come home and open the pantry.' }] },
   ],
 
   onEnter: [

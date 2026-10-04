@@ -6,6 +6,8 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { BrowserApi, type GameModuleLike } from '../src/studio/api-browser';
+import type { ListLine } from '@engine/core/types';
+import { listText } from '@engine/core/list-lines';
 import { patchGame, readPatches, storageKey, type KeyValue } from '../src/studio/demo-patch';
 import { applyPatches, parsePatchFile } from '../tools/studio/apply';
 import { createStudio, importInChild } from '../tools/studio/core';
@@ -71,7 +73,7 @@ describe('browser backend', () => {
     expect((await api.setText('house', 'look.pantry[0]', 'A cupboard. Sardines inside.')).changed).toBe(false);
     let room = await api.room('house');
     expect(room.texts.find((t) => t.path === 'look.pantry[0]')?.value).toBe('A cupboard. Sardines inside.');
-    expect((room.def.look!.pantry as string[])[0]).toBe('A cupboard. Sardines inside.');
+    expect(listText((room.def.look!.pantry as ListLine[])[0])).toBe('A cupboard. Sardines inside.');
 
     // Single look line → list.
     await api.setText('house', 'look.shell[+]', 'It smells of the sea.');
@@ -82,8 +84,8 @@ describe('browser backend', () => {
     // Deleting a line shifts the following ones.
     await api.setText('house', 'look.clock[0]', null);
     room = await api.room('house');
-    expect(room.def.look!.clock).toEqual((snapshot.rooms.house.def.look!.clock as string[]).slice(1));
-    expect(room.texts.find((t) => t.path === 'look.clock[0]')?.value).toBe((snapshot.rooms.house.def.look!.clock as string[])[1]);
+    expect(room.def.look!.clock).toEqual((snapshot.rooms.house.def.look!.clock as ListLine[]).slice(1));
+    expect(room.texts.find((t) => t.path === 'look.clock[0]')?.value).toBe(listText((snapshot.rooms.house.def.look!.clock as ListLine[])[1]));
     expect(room.texts.some((t) => t.path === 'look.clock[2]')).toBe(false);
 
     // A whole look entry; a hero line in a command list.

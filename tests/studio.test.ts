@@ -3,7 +3,8 @@
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
-import type { RoomDef } from '@engine/core/types';
+import type { ListLine, RoomDef } from '@engine/core/types';
+import { listText } from '@engine/core/list-lines';
 import { createStudio, importInChild, StudioError } from '../tools/studio/core';
 import { classify, formatPath, parsePath, type Seg } from '../tools/studio/source';
 
@@ -35,6 +36,8 @@ function textsOfDef(def: RoomDef): Map<string, string> {
   const out = new Map<string, string>();
   const walk = (v: unknown, segs: Seg[]) => {
     if (typeof v === 'string') { if (classify(segs)) out.set(formatPath(segs), v); return; }
+    // A list line with an id (`{ id, text }`) is a text at its own path.
+    if (typeof segs[segs.length - 1] === 'number' && v && typeof v === 'object' && typeof (v as { text?: unknown }).text === 'string' && classify(segs)) { out.set(formatPath(segs), (v as { text: string }).text); return; }
     // Hotspots and rules generated from declared exits are not in the source: their texts live under `exits`.
     if (v && typeof v === 'object' && !Array.isArray(v) && ((v as { exit?: unknown }).exit === true || (segs[0] === 'on' && typeof (v as { exit?: unknown }).exit === 'string'))) return;
     if (Array.isArray(v)) v.forEach((x, i) => walk(x, [...segs, i]));
@@ -44,6 +47,7 @@ function textsOfDef(def: RoomDef): Map<string, string> {
   return out;
 }
 
+const texts = (l: string | ListLine[] | undefined) => (Array.isArray(l) ? l.map(listText) : l);
 const roomFile = (dir: string, id: string) => join(dir, 'rooms', `${id}.ts`);
 const read = (f: string) => readFileSync(f, 'utf8');
 
@@ -125,20 +129,20 @@ describe('setText', () => {
     const before = read(f);
     await demo.setText('house', 'look.clock[+]', 'Cuckoo? No cuckoo.');
     let def = (await demo.getRoom('house')).def;
-    expect(def.look!.clock).toEqual(['Tick. Tock. Breakfast o\'clock.', 'Two hours past breakfast, actually.', 'The clock agrees with me: food.', 'Cuckoo? No cuckoo.']);
+    expect(texts(def.look!.clock)).toEqual(['Tick. Tock. Breakfast o\'clock.', 'Two hours past breakfast, actually.', 'The clock agrees with me: food.', 'Cuckoo? No cuckoo.']);
     await demo.setText('house', 'look.clock[3]', null);
     expect(read(f)).toBe(before);
 
     // a single line becomes a list, and back
     await demo.setText('house', 'look.door[+]', 'Still the hall.');
     def = (await demo.getRoom('house')).def;
-    expect(def.look!.door).toEqual(['The hall. Nothing to eat there. I checked. Twice.', 'Still the hall.']);
+    expect(texts(def.look!.door)).toEqual(['The hall. Nothing to eat there. I checked. Twice.', 'Still the hall.']);
     await demo.setText('house', 'look.door[1]', null);
-    expect((await demo.getRoom('house')).def.look!.door).toEqual(['The hall. Nothing to eat there. I checked. Twice.']);
+    expect(texts((await demo.getRoom('house')).def.look!.door)).toEqual(['The hall. Nothing to eat there. I checked. Twice.']);
 
     // deleting the first line, then a whole look entry
     await demo.setText('house', 'look.teacup[0]', null);
-    expect((await demo.getRoom('house')).def.look!.teacup).toEqual(['Not sardine-flavoured. Pass. Twice.']);
+    expect(texts((await demo.getRoom('house')).def.look!.teacup)).toEqual(['Not sardine-flavoured. Pass. Twice.']);
     await demo.setText('house', 'look.lamp', null);
     expect((await demo.getRoom('house')).def.look!.lamp).toBeUndefined();
     // creating an entry
