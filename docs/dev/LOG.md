@@ -103,50 +103,6 @@ Private reference game, engine of `v3-beta1` copied over, same solver options as
 
 → next: Codex · checked out: `v3`
 
-## #3 · 2026-10-04 · Claude · review · re #2 (Codex's answers 8fe7c65 … 3e4a2fe, no handoff entry was written)
-Branch: v3-beta1 · Commit: 3e4a2fe · merged into v3 as 4d92a0f
-Verdict: approve; one product decision left to the human (D5), two nits
-
-### What is good
-- All four blockers answered in five small commits, each with the `Agent: Codex` trailer: one naming function
-  (`src/engine/core/content-ids.ts`) shared by engine, solver and puzzle graph; stale save references pruned with a
-  visible `ui.saveAdjusted` toast, only corruption and an unknown current room or player rejected; the exhaustive proof
-  moved out of `build` into `prove:game` and `release-check`; WebKit kept visible but non-blocking.
-- Docs written in both languages: `UPGRADING.md`, the identity contract in CONTENT_GUIDE, LAN security in STUDIO,
-  commands and exit codes in TOOLS, ENGINE's cache section made honest.
-- Both of us wrote the upgrading docs at the same time (rule 2 was not applied: we ran in parallel). Codex's guide is
-  kept as the base; sections 7 and 8 of Claude's (the at-a-glance tables, the embedded-engine checklist) are appended;
-  `v3-upgrading` is deleted. `UPGRADING` is readable through the MCP `read_doc` tool.
-
-### Findings
-1. **decision-request (D5) · offline.** Finding #2.4 was answered by changing the promise (README, ENGINE: "cached
-   rooms work offline") rather than restoring a global preload after the room-scoped one. Consistent, but a family game
-   played without network loses what v2 had. Claude recommends the global background preload after the warm-around,
-   under `assetBudgets`, off on constrained links. The human decides; not a merge blocker.
-2. **nit · `scripts/check-spoilers.ts` line 39** flags every file when the checkout path contains `/private/` (a
-   worktree under `/private/tmp` fails the build with "232 leaks"). Match the path relative to `dist/`.
-3. **nit · rule 2.** No `#3` handoff entry was written after the answers; the ball stayed formally with Codex while the
-   tree was idle. Claude took it after confirming `git status` clean and no activity for several minutes.
-
-### Checks run
-| Command (at 3e4a2fe) | Result |
-|---|---|
-| `tsc --noEmit` | clean |
-| `npm test` | 186 passed |
-| `npm run test:assets` | 17 passed |
-| `npm run build` (real checkout) | green |
-| `npm run audit` | clean |
-| `npm run solve` / `-- --prove` (demo) | 35 states / 2 176 states, 1.3 s |
-| e2e demo, production build, Chromium | passed end to end |
-| `npm run e2e:pwa` | installed, opened offline |
-| private reference game on this engine | 101 tests, tsc clean, witness 59 / 355 / 0.3 s, its e2e parser unchanged |
-
-### Asks
-1. Codex: confirm or correct the transcription in #1 (ask #2.4 still open).
-2. Codex: next topic of your choice from ROADMAP v3, on a `v3-<topic>` branch from `v3`, with a proposal entry.
-3. Human: D5 (offline), in `DECISIONS.md` or in session.
-
-→ next: Codex · checked out: `v3`
 ## #3 · 2026-10-04 · Codex · answer + revised proposal · re #2
 Branch: v3-beta1 · Commits: 8fe7c65, e12e2a8, a549a47, 4ba62d9, 3e4a2fe
 Verdict: blockers addressed; ready for reproduction and review
@@ -193,3 +149,47 @@ ordinary build and the expected truncated proof. Dev-mode e2e could not be rerun
 3. Approve or return numbered findings; if approved, merge `v3-beta1` into `v3` with a merge commit.
 
 → next: Claude · checked out: `v3-beta1`
+
+## #4 · 2026-10-04 · Claude · review · re #2 and #3 (written in parallel with #3, merged after it)
+Branch: v3-beta1 · Commit: 3e4a2fe · merged into v3 as 4d92a0f
+Verdict: approve; one product decision left to the human (D5), two nits
+
+### What is good
+- All four blockers answered in five small commits, each with the `Agent: Codex` trailer: one naming function
+  (`src/engine/core/content-ids.ts`) shared by engine, solver and puzzle graph; stale save references pruned with a
+  visible `ui.saveAdjusted` toast, only corruption and an unknown current room or player rejected; the exhaustive proof
+  moved out of `build` into `prove:game` and `release-check`; WebKit kept visible but non-blocking.
+- Docs written in both languages: `UPGRADING.md`, the identity contract in CONTENT_GUIDE, LAN security in STUDIO,
+  commands and exit codes in TOOLS, ENGINE's cache section made honest.
+- Both of us wrote the upgrading docs at the same time (rule 2 was not applied: we ran in parallel). Codex's guide is
+  kept as the base; sections 7 and 8 of Claude's (the at-a-glance tables, the embedded-engine checklist) are appended;
+  `v3-upgrading` is deleted. `UPGRADING` is readable through the MCP `read_doc` tool.
+
+### Findings
+1. **decision-request (D5) · offline.** Finding #2.4 was answered by changing the promise (README, ENGINE: "cached
+   rooms work offline") rather than restoring a global preload after the room-scoped one. Consistent, but a family game
+   played without network loses what v2 had. Claude recommends the global background preload after the warm-around,
+   under `assetBudgets`, off on constrained links. The human decides; not a merge blocker.
+2. **nit · `scripts/check-spoilers.ts` line 39** flags every file when the checkout path contains `/private/` (a
+   worktree under `/private/tmp` fails the build with "232 leaks"). Match the path relative to `dist/`.
+3. **nit · rule 2.** Codex's #3 and this entry were written at the same time, in the same checkout: the ball must be handed before the other side starts, and one assistant runs at a time.
+
+### Checks run
+| Command (at 3e4a2fe) | Result |
+|---|---|
+| `tsc --noEmit` | clean |
+| `npm test` | 186 passed |
+| `npm run test:assets` | 17 passed |
+| `npm run build` (real checkout) | green |
+| `npm run audit` | clean |
+| `npm run solve` / `-- --prove` (demo) | 35 states / 2 176 states, 1.3 s |
+| e2e demo, production build, Chromium | passed end to end |
+| `npm run e2e:pwa` | installed, opened offline |
+| private reference game on this engine | 101 tests, tsc clean, witness 59 / 355 / 0.3 s, its e2e parser unchanged |
+
+### Asks
+1. Codex: confirm or correct the transcription in #1 (ask #2.4 still open).
+2. Codex: next topic of your choice from ROADMAP v3, on a `v3-<topic>` branch from `v3`, with a proposal entry.
+3. Human: D5 (offline), in `DECISIONS.md` or in session.
+
+→ next: Codex · checked out: `v3`
