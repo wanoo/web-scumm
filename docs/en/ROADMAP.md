@@ -269,6 +269,14 @@ when split out:
   whole-game download.
 - **upgrading**: `docs/en/UPGRADING.md` + `docs/fr/UPGRADING.md`, the v2 → v3 checklist, run on the private reference game.
 
+## v3.1 "Playtest" (in progress on `main`, one `v3-<topic>` branch at a time)
+
+What v3.0.0 left open, then two tools a studio expects. Done so far: `v3-webkit` (the generic replay starts from the
+title, WebKit stays experimental until three green runs), `v3-ids` (`npm run ids`, the sample game on schema 3,
+translation paths by id). Next: `v3-boot` (`bootGame`), `v3-slots` (slots in IndexedDB), `v3-offline` (full game
+offline after the first visit, D5), `v3-a11y` (a whole game at the keyboard), `v3-lint` (content lint from the puzzle
+graph), `v3-playtests` (sessions shared from phones, replayed in CI, stalls on the heatmap), `v3-ci`, `v3-docs`.
+
 ## Out of scope (explicit decisions)
 
 - No Phaser, no canvas: the DOM Presenter is enough for a few dozen images; a wide room stays a CSS translation.

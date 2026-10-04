@@ -174,6 +174,7 @@ npm run i18n -- extract [--lang xx]   # translation tables (games/<id>/locales/<
 npm run solve -- --profile         # what the states are made of and what the search cost (docs/en/BENCH.md)
 npm run solve -- --por=stubborn    # partial-order reduction: commuting actions one at a time (fewer states, same proof)
 npm run replay -- session.json     # plays a session file on the real engine, prints the journal and the final state
+npm run ids [-- --write --map]     # stable ids (schema 3) written into the sources, locales renamed, the save migration step (docs/en/UPGRADING.md)
 npm run doctor                     # checks Node, Python modules, ffmpeg and Playwright browsers
 npm run check                      # type-check and Node tests
 npm run verify:game                # validation, global/chapter witnesses and translation coverage

@@ -21,18 +21,22 @@ Ne jamais committer dans ce dépôt public le contenu du jeu privé ni les sauve
 Ajouter `schemaVersion: 3` à `defineGame({...})`. `compileGame` clone et normalise la source ; la valeur v3 compilée
 est figée. Une intégration ne doit donc plus dépendre de `engine.game === source` ni la modifier après construction.
 
-Lancer `GAME=<id> npm run validate`, puis corriger chaque erreur d'id stable :
+Laisser l'outil écrire les ids, puis les relire :
 
-- chaque `Rule` de lieu ou globale : `id` ;
-- chaque `TalkTopic` : `id` ;
-- chaque `Choice` : `id` (surtout les choix `once`) ;
-- chaque `EventRule` de lieu ou globale : `id` ;
-- chaque bloc persistant `{ once }`, `{ nth }`, `{ cycle }`, `{ random }` : `id` ;
-- chaque script : une valeur `stepIds` par commande de premier niveau, dans le même ordre.
+```bash
+npm run ids                  # simulation : ce qui serait écrit, ce qui reste à faire à la main
+npm run ids -- --write --map # écrit les ids dans rooms/*.ts, rules.ts, game.ts ; renomme les clés de locales/*.json ;
+                             # écrit ids.migration.json (renameSeen / renameCounter) et ids.paths.json
+```
 
-Choisir des ids sémantiques (`garde_manger.ouvrir`, `grandmere.demander_cle`, `horloge.attendre`), jamais des numéros
-ni du texte traduit. Ils sont uniques dans tout le jeu. Les règles de sortie générées reçoivent automatiquement des
-ids déterministes.
+Il nomme d'après le contenu (`house.open-pantry`, `house.grandma.where-is-the-key`, `house.open-pantry.once`,
+`clock.wait`), de façon unique dans le jeu et déterministe. Ce qu'il pose : un `id` sur chaque `Rule` de lieu ou
+globale, `TalkTopic`, `Choice`, `EventRule`, bloc `once` / `nth` / `cycle` / `random` ; sur chaque script, une entrée
+`stepIds` par commande de premier niveau. Les listes construites par du code (un spread, un `.map(...)`) sont sautées
+et rapportées avec l'id attendu par le moteur : ajoutez-le dans le générateur. Puis trois lignes à la main dans
+`game.ts` : `schemaVersion: 3`, `saveVersion` + 1, `migrations: [idsMigration]` avec `import idsMigration from
+'./ids.migration.json'`. `npm run validate` refuse un jeu v3 avec un id manquant ou en double ; `npm run ids` se
+relance à volonté (rien n'est renommé deux fois). Les règles de sortie générées reçoivent des ids déterministes.
 
 ## 3. Migrer les sauvegardes volontairement
 
@@ -65,7 +69,9 @@ actif inconnu sont refusés sans remplacer la session courante.
 
 ## 4. Mettre à jour traductions et mini-jeux
 
-Lancer `npm run i18n -- extract --lang <xx>` pour chaque langue livrée. La v3 extrait aussi les libellés/mots de liaison
+En v3 les chemins de traduction nomment par id (`room:house/on.house.open-pantry.do[1]`, `talk.grandma.<id>.topic`,
+`.choice.<id>.text`, `events.<id>.do`) ; `npm run ids -- --write` a renommé les tables existantes (`ids.paths.json`
+garde la correspondance). Lancer `npm run i18n -- extract --lang <xx>` pour chaque langue livrée. La v3 extrait aussi les libellés/mots de liaison
 des verbes et les chemins déclarés dans `textParams` par chaque mini-jeu. Lancer ensuite `npm run i18n -- status` et
 traduire toute nouvelle entrée.
 

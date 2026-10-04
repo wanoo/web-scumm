@@ -6,7 +6,7 @@ import type { Cmd, Cond, GameDef, Id, RoomDef } from '../core/types';
 import { condAtoms, type CondAtom } from '../core/cond';
 import { eachCmd } from '../core/cmds';
 import { normalizeExits } from '../core/define';
-import { ruleActionId } from '../core/content-ids';
+import { listenerActionId, ruleActionId, topicActionId } from '../core/content-ids';
 import { esc, layeredSvg, type SvgEdge, type SvgNode } from './svg';
 
 /** State nodes (what the world is) and action nodes (what changes it). */
@@ -94,12 +94,12 @@ export function puzzleGraph(gameIn: GameDef, opts: { commands?: Record<string, {
       effects(a, rule.do, r);
     });
     for (const [actor, topics] of Object.entries(r.talk ?? {})) topics.forEach((t, i) => {
-      const a = node('topic', `${r.id}/${actor}[${i}]`, `${actor}: "${t.topic}"`, r.id);
+      const a = node('topic', topicActionId(r.id, actor, i, t).slice('topic:'.length), `${actor}: "${t.topic}"`, r.id);
       requires(a, t.if, r);
       effects(a, t.do, r);
     });
     (r.scripts ?? []).forEach((sc) => { const a = node('script', sc.id, `script ${sc.id}`, r.id); requires(a, sc.while, r); effects(a, sc.do, r); });
-    (r.events ?? []).forEach((ev, i) => { const a = node('listener', `${r.id}/events[${i}]`, `on ${ev.on}`, r.id); edge(node('event', ev.on), a, 'requires'); requires(a, ev.if, r); effects(a, ev.do, r); });
+    (r.events ?? []).forEach((ev, i) => { const a = node('listener', listenerActionId(r.id, i, ev).slice('listener:'.length), `on ${ev.on}`, r.id); edge(node('event', ev.on), a, 'requires'); requires(a, ev.if, r); effects(a, ev.do, r); });
   }
   (game.rules.on ?? []).forEach((rule, i) => {
     const verb = asList(rule.verb).join('/');
@@ -110,7 +110,7 @@ export function puzzleGraph(gameIn: GameDef, opts: { commands?: Record<string, {
     effects(a, rule.do, undefined);
   });
   (game.scripts ?? []).forEach((sc) => { const a = node('script', sc.id, `script ${sc.id}`, 'game'); requires(a, sc.while, undefined); effects(a, sc.do, undefined); });
-  (game.events ?? []).forEach((ev, i) => { const a = node('listener', `game/events[${i}]`, `on ${ev.on}`, 'game'); edge(node('event', ev.on), a, 'requires'); requires(a, ev.if, undefined); effects(a, ev.do, undefined); });
+  (game.events ?? []).forEach((ev, i) => { const a = node('listener', listenerActionId('game', i, ev).slice('listener:'.length), `on ${ev.on}`, 'game'); edge(node('event', ev.on), a, 'requires'); requires(a, ev.if, undefined); effects(a, ev.do, undefined); });
   if (game.start.intro?.length || game.start.inventory?.length || game.start.flags) {
     const a = node('rule', 'game/start', 'start', 'game');
     (game.start.inventory ?? []).forEach((it) => edge(a, node('item', it, itemLabel(it)), 'produces'));

@@ -33,7 +33,8 @@ schemaVersion: 3,
 { id: 'horloge', stepIds: ['attendre', 'sonner'], do: [{ wait: 1000 }, { sfx: 'carillon' }] }
 ```
 
-`compileGame(source)` clone et normalise la source une seule fois ; sa sortie v3 est figée en développement. Moteur,
+`npm run ids -- --write --map` écrit ces ids dans un jeu existant et l'étape de migration que ses sauvegardes
+demandent (`docs/fr/UPGRADING.md` §2). `compileGame(source)` clone et normalise la source une seule fois ; sa sortie v3 est figée en développement. Moteur,
 validateur, solveur, replay et outils de puzzle consomment la même représentation compilée. Lire
 [UPGRADING.md](UPGRADING.md) avant de convertir un jeu existant.
 

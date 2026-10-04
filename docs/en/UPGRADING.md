@@ -20,17 +20,22 @@ Do not commit private game material or exported player saves to this public repo
 Add `schemaVersion: 3` to `defineGame({...})`. `compileGame` clones and normalises the source; the compiled v3 value is
 frozen, so integrations must not rely on `engine.game === source` or mutate it after construction.
 
-Run `GAME=<id> npm run validate`. Fix every stable-id error:
+Let the tool write the ids, then review them:
 
-- every room and game `Rule`: `id`;
-- every `TalkTopic`: `id`;
-- every `Choice`: `id` (especially `once` choices);
-- every room and game `EventRule`: `id`;
-- every persistent `{ once }`, `{ nth }`, `{ cycle }`, `{ random }` block: `id`;
-- every script: one `stepIds` value per top-level command, in the same order.
+```bash
+npm run ids                  # dry run: what would be written, what must be done by hand
+npm run ids -- --write --map # writes the ids into rooms/*.ts, rules.ts, game.ts; renames locales/*.json keys;
+                             # writes ids.migration.json (renameSeen / renameCounter) and ids.paths.json
+```
 
-Use semantic ids (`pantry.open`, `grandma.ask_key`, `clock.wait`) rather than numbers or translated text. They are
-unique across the game. Generated exit rules receive deterministic ids automatically.
+It names things after their content (`house.open-pantry`, `house.grandma.where-is-the-key`,
+`house.open-pantry.once`, `clock.wait`), uniquely across the game, deterministically. What it needs on every room
+and game `Rule`, `TalkTopic`, `Choice`, `EventRule`, `once` / `nth` / `cycle` / `random` block: an `id`; on every
+script: one `stepIds` entry per top-level command. Lists built by code (a spread, a `.map(...)`) are skipped and
+reported with the id the engine expects: add it in the generator. Then the three lines by hand in `game.ts`:
+`schemaVersion: 3`, `saveVersion` + 1, `migrations: [idsMigration]` with `import idsMigration from
+'./ids.migration.json'`. `npm run validate` refuses a v3 game with a missing or duplicate id; `npm run ids` can run
+again at any time (it never renames twice). Generated exit rules receive deterministic ids automatically.
 
 ## 3. Migrate saves deliberately
 
@@ -61,7 +66,9 @@ player is rejected without replacing the current session.
 
 ## 4. Update translations and minigames
 
-Run `npm run i18n -- extract --lang <xx>` for every shipped language. v3 also extracts verb labels/join words and the
+In v3 the translation paths name things by id (`room:house/on.house.open-pantry.do[1]`, `talk.grandma.<id>.topic`,
+`.choice.<id>.text`, `events.<id>.do`); `npm run ids -- --write` renamed the existing tables (`ids.paths.json` holds
+the map). Run `npm run i18n -- extract --lang <xx>` for every shipped language. v3 also extracts verb labels/join words and the
 text paths declared by each minigame's `textParams`. Then run `npm run i18n -- status` and translate every new entry.
 
 Custom minigames should declare `required` and `textParams` so validation and translation tools understand their

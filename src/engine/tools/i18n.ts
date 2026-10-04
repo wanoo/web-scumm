@@ -1,11 +1,12 @@
 // Localisation by extraction: the content stays written in one language (`GameDef.lang`); `textPaths` lists every text
 // of the game with a stable path, a translation table maps those paths to the translated texts, `applyLocale` returns
 // the game with the texts replaced. Nothing changes for whoever writes the content: no keys, no indirection.
-// Paths: `room:house/look.pantry[1]`, `item:key/name`, `char:grandma/refuse`, `ui/newGame`, `rules/fallbacks.look[2]`,
+// Paths (v2 by position, v3 by stable id: `on.<id>`, `talk.<actor>.<id>`, `.choice.<id>`, `events.<id>`): `room:house/look.pantry[1]`, `item:key/name`, `char:grandma/refuse`, `ui/newGame`, `rules/fallbacks.look[2]`,
 // `start/intro[0]`, `credits[3]`, `map/places.house.name`…
 import type { Cmd, GameDef, RoomDef } from '../core/types';
 import type { Minigame } from '../minigames/types';
 import { subLists } from '../core/cmds';
+import { choicePathSeg, eventPathSeg, rulePathSeg, topicPathSeg } from '../core/content-ids';
 
 type Fn = (path: string, text: string) => string | undefined;
 export type MinigameTexts = Record<string, Pick<Minigame, 'textParams'>>;
@@ -45,7 +46,7 @@ function cmds(list: Cmd[] | undefined, path: string, fn: Fn, minigames: Minigame
     if ('say' in c) { const r = fn(`${p}.say`, c.say[1]); if (r !== undefined) c.say[1] = r; }
     else if ('toast' in c) { const r = fn(`${p}.toast`, c.toast); if (r !== undefined) c.toast = r; }
     else if ('guide' in c) { const r = fn(`${p}.guide`, c.guide.say); if (r !== undefined) c.guide.say = r; }
-    else if ('choice' in c) { c.choice.forEach((o, j) => { const r = fn(`${p}.choice[${j}].text`, o.text); if (r !== undefined) o.text = r; cmds(o.do, `${p}.choice[${j}].do`, fn, minigames); }); return; }
+    else if ('choice' in c) { c.choice.forEach((o, j) => { const r = fn(`${p}${choicePathSeg(j, o)}.text`, o.text); if (r !== undefined) o.text = r; cmds(o.do, `${p}${choicePathSeg(j, o)}.do`, fn, minigames); }); return; }
     if ('minigame' in c) for (const q of minigames[c.minigame]?.textParams ?? BUILTIN_TEXT_PARAMS[c.minigame] ?? []) paramText(c.params, q.split('.'), `${p}.params`, fn);
     for (const s of subLists(c)) cmds(s.list, p + s.path, fn, minigames);
   });
@@ -67,12 +68,12 @@ function room(r: RoomDef, fn: Fn, minigames: MinigameTexts) {
   for (const [id, a] of Object.entries(r.actors ?? {})) one(`actors.${id}.name`, a.name, (x) => { a.name = x; });
   for (const [id, e] of Object.entries(r.exits ?? {})) { one(`exits.${id}.name`, e.name, (x) => { e.name = x; }); one(`exits.${id}.locked`, e.locked, (x) => { e.locked = x; }); }
   strOrList(r.look, `${P}look`, fn);
-  (r.on ?? []).forEach((x, i) => { if (!x.exit) cmds(x.do, `${P}on[${i}].do`, fn, minigames); });
-  for (const [actor, ts] of Object.entries(r.talk ?? {})) ts.forEach((t, i) => { one(`talk.${actor}[${i}].topic`, t.topic, (x) => { t.topic = x; }); cmds(t.do, `${P}talk.${actor}[${i}].do`, fn, minigames); });
+  (r.on ?? []).forEach((x, i) => { if (!x.exit) cmds(x.do, `${P}${rulePathSeg(i, x)}.do`, fn, minigames); });
+  for (const [actor, ts] of Object.entries(r.talk ?? {})) ts.forEach((t, i) => { one(`${topicPathSeg(actor, i, t)}.topic`, t.topic, (x) => { t.topic = x; }); cmds(t.do, `${P}${topicPathSeg(actor, i, t)}.do`, fn, minigames); });
   (r.hints ?? []).forEach((h, i) => h.lines.forEach((l, j) => one(`hints[${i}].lines[${j}]`, l, (x) => { h.lines[j] = x; })));
   cmds(r.onEnter, `${P}onEnter`, fn, minigames);
   (r.scripts ?? []).forEach((sc) => cmds(sc.do, `${P}scripts.${sc.id}.do`, fn, minigames));
-  (r.events ?? []).forEach((ev, i) => cmds(ev.do, `${P}events[${i}].do`, fn, minigames));
+  (r.events ?? []).forEach((ev, i) => cmds(ev.do, `${P}${eventPathSeg(i, ev)}.do`, fn, minigames));
   for (const [pid, p] of Object.entries(r.props ?? {})) for (const [an, a] of Object.entries(p.anims ?? {})) for (const [k, b] of Object.entries(a.at ?? {})) cmds(b, `${P}props.${pid}.anims.${an}.at[${k}]`, fn, minigames);
 }
 
@@ -90,9 +91,9 @@ export function walkTexts(game: GameDef, fn: Fn, minigames: MinigameTexts = {}):
   for (const [id, c] of Object.entries(game.characters)) { one(`char:${id}/name`, c.name, (x) => { c.name = x; }); one(`char:${id}/refuse`, c.refuse, (x) => { c.refuse = x; }); one(`char:${id}/hug`, c.hug, (x) => { c.hug = x; }); }
   for (const [v, list] of Object.entries(game.rules.fallbacks)) list?.forEach((t, i) => one(`rules/fallbacks.${v}[${i}]`, t, (x) => { list[i] = x; }));
   (game.rules.kinds ?? []).forEach((k, i) => one(`rules/kinds[${i}].say`, k.say, (x) => { k.say = x; }));
-  (game.rules.on ?? []).forEach((r, i) => cmds(r.do, `rules/on[${i}].do`, fn, minigames));
+  (game.rules.on ?? []).forEach((r, i) => cmds(r.do, `rules/${rulePathSeg(i, r)}.do`, fn, minigames));
   (game.scripts ?? []).forEach((sc) => cmds(sc.do, `scripts.${sc.id}.do`, fn, minigames));
-  (game.events ?? []).forEach((ev, i) => cmds(ev.do, `events[${i}].do`, fn, minigames));
+  (game.events ?? []).forEach((ev, i) => cmds(ev.do, `${eventPathSeg(i, ev)}.do`, fn, minigames));
   if (game.globalTalk) for (const k of ['hug', 'bye', 'byeLine'] as const) one(`globalTalk/${k}`, game.globalTalk[k], (x) => { game.globalTalk![k] = x; });
   if (game.players?.give) one('players/give', game.players.give, (x) => { game.players!.give = x; });
   cmds(game.start.intro, 'start/intro', fn, minigames);

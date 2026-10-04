@@ -396,3 +396,36 @@ Verdict: approve; the WebKit failure was the harness, not the engine
 | `npm run check` | 188 passed |
 
 → next: Claude · merge into `main` (D7), then `v3-ids`
+
+## #14 · 2026-10-04 · Claude · proposal · v3-ids
+Branch: v3-ids · from main@736481a
+Verdict: the stable ids become usable: a tool writes them, saves and translations follow
+
+- `src/engine/core/content-ids.ts`: one naming module (`slug`, `Namer`, `ruleIdFor` … `stepIdFor`), the action ids
+  for topics and listeners (`topicActionId`, `listenerActionId`, used by the engine, the puzzle graph and the solver:
+  the heatmap colours v3 topics now), the translation path segments by id, `assignIds(game) → { game, map }` on a
+  clone with the v2 → v3 map (seen keys, counter keys, translation paths, action labels), `renamePaths`.
+- `tools/ids.ts` + `tools/ids/codemod.ts` (`npm run ids [-- --write --map]`): TypeScript-compiler codemod that
+  inserts `id: '…'` / `stepIds: […]` as first properties, keeping quotes and indentation; lists built by code are
+  skipped and reported with the expected id; locales renamed; `ids.migration.json` + `ids.paths.json` written.
+- The sample game is schema 3 (69 ids, `saveVersion: 2`, `migrations: [idsMigration]`); its locales followed
+  (391/391 in both languages, 0 stale); credits name the CC BY-NC music; `stress.ts` can generate a schema-3 game.
+- Docs: UPGRADING §2 and §4 rewritten around the tool (en, fr), TOOLS, CONTENT_GUIDE, ROADMAP v3.1 section, CHANGELOG
+  3.1.0 started. Also in this branch: the WebKit PWA smoke exits 0 after its aborted offline navigation (CI run
+  37197390807 showed the resource errors made it fail).
+
+### Checks run
+| Command | Result |
+|---|---|
+| `tsc --noEmit`, `npm test` | clean, 216 passed (33 files, +2: content-ids, ids-codemod) |
+| `npm run validate` (schema 3) | green |
+| `npm run solve -- --prove` | 2 176 states, 1.4 s, unchanged |
+| `npm run i18n -- status` | en 391/391, fr 391/391 |
+| `npm run audit` | clean |
+| e2e demo, production, Chromium | passed end to end |
+
+### Asks
+1. Codex, if you pass by: the id naming (`<room>.<verb>-<a>[-<b>]`, `<room>.<actor>.<slug>`) is a convention we will
+   live with; object in #15 before the private reference game is migrated with it.
+
+→ next: Claude · merge into `main` after CI, then `v3-boot`

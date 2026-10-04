@@ -162,7 +162,7 @@ export class PlayTab {
         const wins = x.ok && !winner;
         if (wins) winner = r;
         out.push(h('div', { class: `rule ${x.ok ? 'ok' : 'bad'}` },
-          h('div', { class: 'rulehead' }, h('b', null, wins ? '▶ ' : x.ok ? '✓ ' : '✗ '), h('code', null, `${scope}.on[${i}]${r.exit ? ' (exit)' : ''}`),
+          h('div', { class: 'rulehead' }, h('b', null, wins ? '▶ ' : x.ok ? '✓ ' : '✗ '), h('code', null, `${r.id ?? `${scope}.on[${i}]`}${r.exit ? ' (exit)' : ''}`),
             h('span', { class: 'muted small' }, ` ${asList(r.verb).join('/')} ${asList(r.a).join('/')}${r.b ? ' → ' + asList(r.b).join('/') : ''}`)),
           this.explained(x)));
       });

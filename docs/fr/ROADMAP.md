@@ -223,6 +223,15 @@ La proposition d'ouverture est la beta de Codex (`v3-beta1`, journal #1), revue 
   mis en cache plutôt qu'un téléchargement illimité de tout le jeu.
 - **upgrading** : `docs/en/UPGRADING.md` + `docs/fr/UPGRADING.md`, la liste v2 → v3, exécutée sur le jeu privé de référence.
 
+## v3.1 « Playtest » (en cours sur `main`, une branche `v3-<sujet>` à la fois)
+
+Ce que la v3.0.0 a laissé ouvert, puis deux outils qu'un studio attend. Fait : `v3-webkit` (le rejeu générique part
+du titre, WebKit reste expérimental jusqu'à trois runs verts), `v3-ids` (`npm run ids`, la démo en schéma 3, chemins
+de traduction par id). À venir : `v3-boot` (`bootGame`), `v3-slots` (emplacements dans IndexedDB), `v3-offline` (jeu
+complet hors ligne après la première visite, D5), `v3-a11y` (une partie entière au clavier), `v3-lint` (lint de
+contenu depuis le graphe de puzzles), `v3-playtests` (sessions partagées depuis les téléphones, rejouées en CI,
+blocages sur la heatmap), `v3-ci`, `v3-docs`.
+
 ## Hors plan (décisions explicites)
 
 - Pas de Phaser ni de canvas : le Presenter DOM suffit pour quelques dizaines d'images ; une salle large reste une translation CSS.
