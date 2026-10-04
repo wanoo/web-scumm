@@ -201,6 +201,27 @@ fait : le moteur sait ce que chaque action a lu et changé.
 - Volontairement non fait : la musique adaptative (transitions à la iMUSE) ; Furnace est téléchargé par `setup`, pas
   embarqué ; la CI ne rend pas l'audio (les fichiers sont commités).
 
+## v3 (en cours sur la branche `v3`) : le moteur auquel confier un jeu long
+
+Co-développée par deux assistants selon `docs/dev/CHARTER.md` ; l'échange est `docs/dev/LOG.md`, les décisions
+`docs/dev/DECISIONS.md` (en anglais, dépôt public). La v3 peut casser la v2 (D1) : chaque rupture vient avec sa
+migration et un guide de mise à niveau, et le jeu privé de référence est migré sur une branche avant de taguer v3.0.0.
+`main` reste la v2.5.0 jusque-là.
+
+La proposition d'ouverture est la beta de Codex (`v3-beta1`, journal #1), revue au #2. Ses sujets, chacun une branche
+`v3-<sujet>` une fois découpé :
+
+- **saves** : enveloppe de sauvegarde validée, autosave IndexedDB relue après chaque écriture, erreurs de stockage
+  visibles, mise à jour PWA qui attend une sauvegarde vérifiée ; références périmées élaguées, pas rejetées.
+- **prove** : `solve -- --prove` avec un `status` honnête, softlocks par accessibilité inverse, `random` et choix
+  imbriqués explorés ; la preuve reste hors de `npm run build`, ou tourne avec la réduction et un budget.
+- **ids** : `schemaVersion: 3` avec des ids stables sur règles, choix, sujets, écouteurs, blocs persistants et pas de
+  script ; une seule fonction de nommage partagée par le moteur, le solveur et le graphe de puzzles.
+- **studio-security** : loopback par défaut, jeton LAN, écritures same-origin, clé en sessionStorage.
+- **ci** : e2e sur le build de production, fumée WebKit (non bloquante jusqu'à trois runs verts), `doctor`, `audit:deps`.
+- **offline** : préchargement par pièce d'abord, puis le préchargement global que promet le README, avec des budgets.
+- **upgrading** : `docs/en/UPGRADING.md` + `docs/fr/UPGRADING.md`, la liste v2 → v3, exécutée sur le jeu privé de référence.
+
 ## Hors plan (décisions explicites)
 
 - Pas de Phaser ni de canvas : le Presenter DOM suffit pour quelques dizaines d'images ; une salle large reste une translation CSS.
