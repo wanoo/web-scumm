@@ -599,3 +599,20 @@ Verdict: the proof measured honestly, the pipeline that a studio expects
 | `node scripts/release-notes.mjs v3.0.0` | the 3.0.0 section |
 
 → next: Claude · merge after CI, then `v3-docs`, then the private reference game
+
+## #22 · 2026-10-04 · Claude · v3-docs: the documentation sweep (chantier 10)
+
+- Fixed every stale sentence the v3.1 plan listed: the assistant key lives in `sessionStorage` (STUDIO fr), a real
+  phone needs `npm run dev:lan` (DESIGN en/fr), the branch model after v3.0.0 is D7's (ROADMAP en/fr, CHARTER rule 3,
+  AGENTS), `npm run page:world` (ROADMAP), ROADMAP's verification 6 points at the README's "Releases" table, the
+  attribution URL in LICENSE-ASSETS is `github.com/wanoo/web-scumm`.
+- README en/fr: rows "v3.0 Trust" and "v3.1 Playtest" in the releases table; the repository map lists AUDIO,
+  UPGRADING and `docs/dev`. ROADMAP en/fr: the v3.1 section lists the ten branches as shipped.
+- MCP: `read_doc` reads UPGRADING and CLASSICS (`DOCS` in `tools/studio/tools.ts`, its description names every page,
+  `tests/mcp.test.ts` reads CLASSICS); `docs/fr/MCP.md` is now the full translation of the English page (it was a
+  three-heading summary); the sample session runs `lint`.
+- AGENTS.md and CLAUDE.md command blocks: `lint`, `playtests`, `ids`, `prove:game`, `doctor`, `dev:lan`.
+- D2 and D7 keep their historical wording in DECISIONS.md: the grep of the plan is otherwise empty.
+- Checks: `tsc --noEmit` clean, mcp + studio-assistant tests 16/16, `audit-assets` clean.
+- → next: CI on `v3-docs`, merge into `main` after `v3-ci`; then chantier 11 (the private reference game) and the
+  3.1.0 release.

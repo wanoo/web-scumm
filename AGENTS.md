@@ -33,6 +33,12 @@ npm run build         # type-check, tests, bundle, spoiler check, leak audit
 npm run studio        # the local WYSIWYG Studio (docs/en/STUDIO.md); it watches the files you edit
 npm run mcp           # Model Context Protocol server exposing the Studio operations as tools (docs/en/MCP.md)
 npm run i18n -- status   # translation coverage (locales/<lang>.json); `extract --lang <xx>` to (re)build a table
+npm run lint          # content lint: conditions nothing sets, hidden rules, red herrings, stuck hints, actions never run (run it before a review)
+npm run playtests     # the sessions players shared (games/<id>/playtests) replayed and summed up: stalls, time per room, hints
+npm run ids -- --write --map   # stable ids (schema 3) written into the sources, locales renamed, the save migration step
+npm run prove:game    # the exhaustive proof (global and per chapter): a release gate for a small game, a weekly job for a big one
+npm run doctor        # Node, Python, ffmpeg, Playwright browsers, with the fix for each missing one
+npm run dev:lan       # the dev server on the local network (phone), with a one-session token for the Studio's writes
 GAME=<id> npm run …   # another game than package.json "config".game
 ```
 
@@ -63,8 +69,8 @@ GAME=<id> npm run …   # another game than package.json "config".game
 web-scumm v3 is co-developed by Claude and Codex, each reviewing the other, with the maintainer arbitrating. The rules
 are in `docs/dev/CHARTER.md` (twelve lines: one ball, `v3-<topic>` branches, reproduce before judging, evidence beats
 opinion, `Agent: <name>` trailer on every commit). The conversation is `docs/dev/LOG.md` (numbered, append-only
-entries; the last line says who has the ball); the maintainer's decisions are `docs/dev/DECISIONS.md`. `main` stays the
-last release until v3.0.0; `v3` is the integration branch; nothing is merged there with an open blocker.
+entries; the last line says who has the ball); the maintainer's decisions are `docs/dev/DECISIONS.md`. Since v3.0.0 `main` is the
+release branch (D7): a `v3-<topic>` branch merges there once its CI and its review pass; nothing is merged with an open blocker.
 
 ## How the human sees your work
 `npm run studio` shows the rooms rendered by the real engine and reloads when you change a file. The human answers in the

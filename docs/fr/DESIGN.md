@@ -250,7 +250,7 @@ autre sortie, alors on pose des tuyaux. Le vendeur veut des fleurs, alors on les
 | Résoudre | `npm run solve` | impasses, fin inatteignable, objets jamais utilisés |
 | Test de parcours | `npm test` (`tests/demo-walkthrough.test.ts`) | une partie complète scriptée sur le vrai moteur |
 | Captures | `npm run e2e` | ce que le solveur ne voit pas : un personnage sur une table, une réplique coupée par le bord |
-| Un vrai téléphone | `npm run dev`, en paysage | taille des pouces, lisibilité, son, l'écran « tournez le téléphone » |
+| Un vrai téléphone | `npm run dev:lan`, en paysage | taille des pouces, lisibilité, son, l'écran « tournez le téléphone » |
 | Fin scellée | `npm run seal`, `npm run build`, `npm run check:spoilers` | le texte de fin jamais en clair |
 
 Puis donner le téléphone à quelqu'un qui n'a jamais vu le jeu, et se taire. Chaque fois qu'il hésite plus d'une minute,

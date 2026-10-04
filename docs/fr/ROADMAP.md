@@ -57,7 +57,7 @@ Fichiers : `src/engine/core/{types,engine,state}.ts`, nouveau `src/engine/core/s
 Fichiers : `src/engine/tools/{validate,solve}.ts`, nouveau `src/engine/tools/graph.ts`, `src/engine/dom/app.ts` (menu), nouveau `src/engine/core/migrate.ts`, `tools/pages/review.ts` ou nouvelle page `world`.
 
 - **Sorties déclarées** : `RoomDef.exits: Record<id, { to: room; entry?: string; if?: Cond; walkTo?: Point; transition?: 'fade'|'cut' }>`. Un exit est rendu comme un hotspot (même layout), le moteur génère la règle `goto`. Les hotspots `goto` existants restent valides.
-- **Graphe du monde** : `graph.ts` construit salles/sorties/entrées ; `validate` signale salle inaccessible, entrée inexistante, sortie à sens unique non voulue (sauf `oneWay: true`). Page `npm run pages -- world` : graphe cliquable (export DOT/SVG), aussi dans le Studio Check.
+- **Graphe du monde** : `graph.ts` construit salles/sorties/entrées ; `validate` signale salle inaccessible, entrée inexistante, sortie à sens unique non voulue (sauf `oneWay: true`). Page `npm run page:world` : graphe cliquable (export DOT/SVG), aussi dans le Studio Check.
 - **Chapitres et objectifs** : `checkpoints[i].goals?: Cond[]` et `GameDef.invariants?: Cond[]` (« jamais vrai »). `solve` : par défaut, résout checkpoint à checkpoint (chaque segment borné), puis global si demandé ; échoue si un invariant devient vrai sur un chemin atteint. Sortie `--json` enrichie des segments (l'e2e rejoue déjà le chemin).
 - **Sauvegardes** : `GameDef.saves?: { slots: number }` (défaut 1 = comportement actuel). Menu pause : sauver/charger dans un slot avec salle, date, durée, miniature (capture `room` déjà possible côté Studio ; côté jeu, une capture CSS→canvas est hors budget : vignette = décor de la salle). Export/import JSON d'un slot. Clé `<id>.save.<n>`, `<id>.save` migré vers le slot 1.
 - **Migrations data-only** : `GameDef.migrations?: Array<{ from: number; renameFlag?; renameItem?; renameRoom?; renameActor?; drop? }>`, appliquées en chaîne dans `migrate.ts` avant `ensureProps`. `validate` : les renommages pointent sur des ids existants.
@@ -206,7 +206,8 @@ fait : le moteur sait ce que chaque action a lu et changé.
 Co-développée par deux assistants selon `docs/dev/CHARTER.md` ; l'échange est `docs/dev/LOG.md`, les décisions
 `docs/dev/DECISIONS.md` (en anglais, dépôt public). La v3 peut casser la v2 (D1) : chaque rupture vient avec sa
 migration et un guide de mise à niveau, et le jeu privé de référence est migré sur une branche avant de taguer v3.0.0.
-`main` reste la v2.5.0 jusque-là.
+Depuis la v3.0.0, `main` est la branche de release et chaque `v3-<sujet>` y est fusionnée dès qu'elle passe ses
+portes (D7).
 
 La proposition d'ouverture est la beta de Codex (`v3-beta1`, journal #1), revue au #2. Ses sujets, chacun une branche
 `v3-<sujet>` une fois découpé :
@@ -223,14 +224,16 @@ La proposition d'ouverture est la beta de Codex (`v3-beta1`, journal #1), revue 
   mis en cache plutôt qu'un téléchargement illimité de tout le jeu.
 - **upgrading** : `docs/en/UPGRADING.md` + `docs/fr/UPGRADING.md`, la liste v2 → v3, exécutée sur le jeu privé de référence.
 
-## v3.1 « Playtest » (en cours sur `main`, une branche `v3-<sujet>` à la fois)
+## v3.1 « Playtest » (livrée le 5 octobre 2026) : ce que la v3.0.0 a laissé ouvert, puis deux outils qu'un studio attend
 
-Ce que la v3.0.0 a laissé ouvert, puis deux outils qu'un studio attend. Fait : `v3-webkit` (le rejeu générique part
-du titre, WebKit reste expérimental jusqu'à trois runs verts), `v3-ids` (`npm run ids`, la démo en schéma 3, chemins
-de traduction par id). À venir : `v3-boot` (`bootGame`), `v3-slots` (emplacements dans IndexedDB), `v3-offline` (jeu
-complet hors ligne après la première visite, D5), `v3-a11y` (une partie entière au clavier), `v3-lint` (lint de
-contenu depuis le graphe de puzzles), `v3-playtests` (sessions partagées depuis les téléphones, rejouées en CI,
-blocages sur la heatmap), `v3-ci`, `v3-docs`.
+Une branche `v3-<sujet>` à la fois, chacune avec son entrée de journal, ses tests, ses docs dans les deux langues et
+une passe CI, fusionnée dans `main` au fur et à mesure : `v3-webkit` (le rejeu générique depuis le titre ; WebKit
+bloquant après ses trois runs verts), `v3-ids` (`npm run ids`, la démo en schéma 3, chemins de traduction par id),
+`v3-boot` (`bootGame` ; le correctif du précache du build à deux entrées), `v3-slots` (emplacements dans IndexedDB),
+`v3-offline` (le jeu entier hors ligne après la première visite, D5), `v3-a11y` (une partie entière au clavier),
+`v3-lint` (le lint de contenu), `v3-playtests` (sessions depuis les téléphones rejouées en CI, blocages sur la
+heatmap), `v3-ci` (la preuve mesurée honnêtement, workflows release et prove, Dependabot), `v3-docs` (ce balayage).
+Prochain pas du solveur : la réduction en mode preuve, avec `tests/por.test.ts` pour preuve (BENCH.md).
 
 ## Hors plan (décisions explicites)
 
@@ -245,4 +248,4 @@ blocages sur la heatmap), `v3-ci`, `v3-docs`.
 3. Une sauvegarde faite avec la version précédente de la démo se charge après migration (test unitaire sur un JSON figé par jalon).
 4. Copie de `src/engine` dans le dépôt privé : 37 tests, solveur 62 actions, e2e le jeu privé d'origine identiques.
 5. MCP : `npm run -s mcp` liste les outils mis à jour ; une session d'IA neuve ajoute un script/événement à la démo en suivant seulement CONTENT_GUIDE.
-6. Release taguée avec notes de version ; README « Status » mis à jour.
+6. Release taguée avec notes de version ; la table « Versions » du README mise à jour.

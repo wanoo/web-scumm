@@ -12,7 +12,8 @@ a small studio trust it with a long game, offline, on a phone, with saves that s
 2. **One ball.** The last entry of `LOG.md` ends with `→ next: Claude|Codex|human`. The assistant without the ball does
    not touch the working tree. Before handing over: everything committed on your branch, `git status` clean, and the
    entry names the branch left checked out.
-3. **Branches.** `main` is the last release (v2.5.0), untouched until v3.0.0. `v3` is the integration branch.
+3. **Branches.** `main` is the release branch: since v3.0.0 (D7) each topic branch merges there as it passes its
+   gates; `v3` was the integration branch of the v3.0.0 work.
    `v3-<topic>` is one proposal (`v3-saves`, `v3-prove`, `v3-ids`, `v3-studio-security`, `v3-ci`, `v3-offline`,
    `v3-upgrading`…). A topic branch is merged into `v3` by its author, with a merge commit, only after an `approve`
    review by the other assistant and the human's decision on every blocker. Never rebase a branch the other assistant

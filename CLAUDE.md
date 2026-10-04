@@ -13,7 +13,8 @@ game folder `games/<id>/` (TypeScript objects + JSON layouts + art). The sample 
   `layout/*.json` (geometry, written by the editor), `art/` (cut sprites, `<sheet>/r<row>c<col>.png`), `audio/`,
   `storyboard.json` (the script), `site.json` (title, description), `index.ts` (what the engine loads).
 - `docs/en/` — CONTENT_GUIDE (how to write a room), ENGINE, TOOLS, WORKFLOW (the method), PROMPTS (art generation),
-  PAGES (phone-friendly review pages), PRODUCTION.template (plan for sub-agents). `docs/fr/` mirrors it in French.
+  PAGES (phone-friendly review pages), PRODUCTION.template (plan for sub-agents), UPGRADING (v2 → v3), AUDIO,
+  CLASSICS, BENCH. `docs/fr/` mirrors it in French. `docs/dev/` is the exchange with the other assistant.
 - `tools/` — validate, solve, refs, assets.py, cut-sheet.py, talk-kit/apply/normalize, pages/, audit-assets.
 
 ## Commands
@@ -29,6 +30,10 @@ npm run assets              # games/<id>/art + audio → public/assets (webp, mp
 npm run build               # tsc + tests + vite build + spoiler check + leak audit
 GAME=<id> npm run …         # pick another game (default: package.json "config".game)
 npm run new-game <id>       # scaffold games/<id> from games/_template
+npm run lint                # content lint from the puzzle graph and a solver run (run it before asking for a review)
+npm run playtests           # the sessions players shared, replayed and summed up (stalls, time per room, hints)
+npm run ids -- --write --map   # stable ids (schema 3) into the sources, locales renamed, the save migration step
+npm run prove:game          # the exhaustive proof; npm run doctor checks the prerequisites; npm run dev:lan serves the phone
 ```
 
 ## Rules that keep a game healthy

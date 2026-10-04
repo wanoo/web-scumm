@@ -166,6 +166,8 @@ in demo mode at `studio.html`. Any static host works. `GAME=<id> npm run build` 
 
 | Version | What it added |
 |---|---|
+| v3.1 Playtest | `npm run ids` and the sample game on schema 3; `bootGame`; slots in IndexedDB; the whole game offline after the first visit; the whole game at the keyboard; the content lint (`npm run lint`, Check panel, MCP tool); the playtest recorder (sessions shared from phones, replayed in CI, stalls on the heat map); the proof measured honestly, release and prove workflows. |
+| v3.0 Trust | Stable ids (`schemaVersion: 3`); a validated save envelope with a verified IndexedDB autosave; `solve --prove` with softlocks and honest exit codes; Studio on loopback with a LAN token; accessibility targets; the upgrading guide. Co-developed with Codex (`docs/dev/`). |
 | v2.5 Sound | The Mega Drive audio pipeline (`npm run audio`): music arranged from a MIDI through `spec.json`, sound effects from `sfx.json`, one palette; the sample game gets a theme and chip-rendered effects. |
 | v2.4 Author | Storyboard coverage: badges on every board and panel, a Check panel and the `storyboard_coverage` tool; the cutscene timeline in the Rooms tab. |
 | v2.3 Replay | Sessions recorded and replayed (`npm run replay`, Play tab); the solver's solution replayed by CI in Chromium; the solver profile and "Solver health"; why a thing is live, the critical path and a heat map on the puzzle graph; partial-order reduction (`--por`); custom commands checked in dev. |
@@ -187,7 +189,7 @@ games/demo/      the sample game: game.ts, rooms/, layout/, art/, audio/, locale
 games/_template/ copied by npm run new-game
 tools/           CLIs (validate, solve, i18n, bench, prompts), pages/, studio/, mcp/, assets.py, cut-sheet.py
 scripts/         e2e harness, seal (sealed ending), gen-icons, new-game
-docs/en docs/fr  CONTENT_GUIDE, CLASSICS, DESIGN, ENGINE, TOOLS, STUDIO, MCP, PAGES, PROMPTS, WORKFLOW, BENCH, ROADMAP
+docs/en docs/fr  CONTENT_GUIDE, CLASSICS, DESIGN, ENGINE, TOOLS, STUDIO, MCP, PAGES, PROMPTS, WORKFLOW, BENCH, ROADMAP, AUDIO, UPGRADING; docs/dev: the exchange with the other assistant
 ```
 
 ## Licences

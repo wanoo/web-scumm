@@ -245,7 +245,7 @@ lay pipes. The seller wants flowers, so you pick them.
 | Solve | `npm run solve` | dead ends, unreachable ending, items never used |
 | Walkthrough test | `npm test` (`tests/demo-walkthrough.test.ts`) | a scripted full playthrough on the real engine |
 | Screenshots | `npm run e2e` | what the solver cannot see: a character on a table, a line cut by the edge |
-| A real phone | `npm run dev`, landscape | thumb size, readability, sound, the rotate screen |
+| A real phone | `npm run dev:lan`, landscape | thumb size, readability, sound, the rotate screen |
 | Sealed ending | `npm run seal`, `npm run build`, `npm run check:spoilers` | the ending text never in the clear |
 
 Then hand the phone to someone who has never seen the game, and stay silent. Every time they hesitate more than a
