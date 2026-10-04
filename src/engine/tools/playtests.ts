@@ -10,6 +10,7 @@ export interface PlaytestFile { name: string; file: SessionFile }
 
 export interface PlaytestSummary {
   name: string;
+  /** Inputs in the file: the `start` entry is not one (`played` counts against `entries`). */
   entries: number;
   played: number;
   ended: boolean;
@@ -61,13 +62,13 @@ export async function analyzePlaytests(game: GameDef, layouts: Record<Id, Layout
     const roomAt: Id[] = [file.session.base?.room ?? game.start.room];
     const digests: (string | undefined)[] = [];
     const r = await replay(game, layouts, file.session, { commands: opts.commands, onEntry: (i, e) => { roomAt[i + 1] = e.state.room; digests[i] = log[i].digest ?? e.session?.log.at(-1)?.digest; } });
-    const played = r.played;
+    const played = r.played, first = r.first;
     for (const en of log) if ('act' in en && en.aborted) report.aborts++;
     if (r.divergedAt !== undefined) report.divergences++;
     const timed = log.some((en) => en.t !== undefined);
     let duration = 0;
     let run: { key: string; room: Id; count: number; from: number; at: number } | null = null;
-    for (let i = 0; i < played; i++) {
+    for (let i = first; i < first + played; i++) {
       const en = log[i];
       const here = roomAt[i] ?? roomAt[0];
       const stat = room(here);
@@ -79,7 +80,7 @@ export async function analyzePlaytests(game: GameDef, layouts: Record<Id, Layout
         if (id.startsWith('hint:')) { bump(report.hints, id); stat.hints++; }
         if (id.startsWith('minigame:')) bump(report.minigames, id.slice('minigame:'.length));
       }
-      const changed = i === 0 ? true : digests[i] !== digests[i - 1];
+      const changed = i === first ? true : digests[i] !== digests[i - 1];
       if (changed) stat.effective++; else stat.noops++;
       // Time: this entry's duration is the gap to the next one, pauses excluded.
       let dt: number | undefined;
@@ -93,11 +94,11 @@ export async function analyzePlaytests(game: GameDef, layouts: Record<Id, Layout
         else if (run.count > stallRepeats) { const s = report.stalls[report.stalls.length - 1]; s.repeats = run.count; if (timed) s.ms = run.from; }
       } else run = null;
     }
-    const lastIndex = Math.max(0, played - 1);
+    const lastIndex = Math.max(first, first + played - 1);
     const abandon = { room: roomAt[lastIndex] ?? roomAt[0], label: log[lastIndex] ? labelOf(game, log[lastIndex]) : '(empty)', index: lastIndex };
     if (!r.ended) room(abandon.room).abandons++;
     report.total.ms += duration;
-    report.files.push({ name, entries: log.length, played, ended: r.ended, divergedAt: r.divergedAt, divergence: r.divergence, durationMs: timed ? duration : undefined, abandon });
+    report.files.push({ name, entries: log.length - first, played, ended: r.ended, divergedAt: r.divergedAt, divergence: r.divergence, durationMs: timed ? duration : undefined, abandon });
   }
   report.stalls.sort((a, b) => (b.ms ?? 0) - (a.ms ?? 0) || b.repeats - a.repeats);
   return report;

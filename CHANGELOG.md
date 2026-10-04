@@ -1,5 +1,24 @@
 # Changelog
 
+## 3.1.1 — unreleased
+
+### Fixed
+
+- A sealed ending (`ending` / `reveal`) now sets `state.done` like `end` does: the card was shown with the game
+  still "not done", which the new e2e check caught. The committed demo playtest's last digest is re-recorded
+  accordingly (`done` is part of the state).
+- The e2e scripts (generic and the demo's) fail when the solver's run is not `solved` (exit code, status and steps are
+  checked) and when the engine does not report the ending (`state.done`); they never replay "the best path anyway".
+- Playtests: the analysis started at the `start` entry and dropped the last action (24 entries, 23 played, read
+  0..22); `replay()` now returns `first`, the analysis reads `first..first+played-1`, and the table counts inputs
+  against the inputs, not the file's entries.
+- `npm run lint`: a truncated proof exits 2, says so, and keeps its "never run" / "never reached" findings as
+  information (`--json` carries `status` and `truncated`); reachability counts every action the solver attempted
+  (`profile.attempted`), not only those that changed the state, so a topic that only talks is no longer "unreachable";
+  new `rule-no-effect` info for a live action that ran without changing anything.
+- `verify:game` runs the lint; `npm run playtests -- --strict` makes a diverged session an error, used by
+  `release-check` and the weekly `prove` workflow.
+
 ## 3.1.0 — 2026-10-04
 
 ### Added

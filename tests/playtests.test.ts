@@ -77,3 +77,21 @@ describe('playtests', () => {
     expect(e.session?.at).toBeUndefined();
   });
 });
+
+describe('the committed demo playtest', () => {
+  it('counts its inputs from the first one after `start`, down to the last real action', async () => {
+    const { readFileSync } = await import('node:fs');
+    const file = parseSessionFile(readFileSync('games/demo/playtests/walkthrough-hesitant.session.json', 'utf8'));
+    expect(file.session.log.length).toBe(24);
+    const r = await analyzePlaytests(demo, demoLayouts, [{ name: 'hesitant', file }], { commands });
+    const f = r.files[0];
+    expect(f.played).toBe(23);
+    expect(f.entries).toBe(23);
+    expect(f.divergedAt).toBeUndefined();
+    expect(f.ended).toBe(true);
+    expect(f.abandon).toMatchObject({ index: 23, label: 'Use key with pantry', room: 'house' });
+    expect(r.total.entries).toBe(23);
+    expect(r.heat['rule:house.use-key-pantry']).toBe(1);
+    expect(playtestsMarkdown(r, demo)).toContain('| 23/23 | yes |');
+  });
+});

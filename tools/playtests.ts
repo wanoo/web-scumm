@@ -1,7 +1,8 @@
-// npm run playtests [-- --json] [--dir=games/<id>/playtests] [--out=.cache/playtests]
+// npm run playtests [-- --json] [--strict] [--dir=games/<id>/playtests] [--out=.cache/playtests]
 // Replays every playtest of the current game (sessions shared from phones: ids and indices only) and sums them up:
 // time per room, where players stall, hints shown, where they stopped, a heat map on the puzzle graph. A session the
 // content has outgrown (the replay diverges) is reported, not an error: re-record or delete it. No file: exit 0.
+// --strict (the release gate): a diverged session is an error (exit 1): re-record it or delete it.
 // --out writes report.md, report.json and heat.svg. --json prints the report on stdout, nothing else.
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
@@ -14,6 +15,7 @@ import { GAME, GAME_DIR, ROOT, loadGameModule } from './game';
 const args = process.argv.slice(2);
 const arg = (k: string) => args.find((a) => a.startsWith(`--${k}=`))?.split('=')[1];
 const asJson = args.includes('--json');
+const strict = args.includes('--strict');
 const dir = resolve(arg('dir') ?? join(GAME_DIR, 'playtests'));
 const { game, commands } = await loadGameModule();
 const layouts = loadLayouts(resolve(GAME_DIR, 'layout'));
@@ -43,6 +45,10 @@ if (asJson) console.log(JSON.stringify(report));
 else {
   console.log(markdown);
   console.log(`${files.length} session(s) replayed in ${((Date.now() - t0) / 1000).toFixed(1)} s${report.divergences ? ` · ${report.divergences} diverged (content changed since: re-record or delete)` : ''}`);
+}
+if (strict && report.divergences) {
+  console.error(`✖ --strict: ${report.divergences} session(s) no longer replay on this content: ${report.files.filter((f) => f.divergedAt !== undefined).map((f) => `${f.name} (#${f.divergedAt! + 1}: ${f.divergence})`).join(', ')}`);
+  process.exitCode = 1;
 }
 const out = arg('out');
 if (out) {

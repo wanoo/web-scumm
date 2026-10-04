@@ -175,7 +175,7 @@ npm run solve -- --profile         # what the states are made of and what the se
 npm run solve -- --por=stubborn    # partial-order reduction: commuting actions one at a time (fewer states, same proof)
 npm run replay -- session.json     # plays a session file on the real engine, prints the journal and the final state
 npm run ids [-- --write --map]     # stable ids (schema 3) written into the sources, locales renamed, the save migration step (docs/en/UPGRADING.md)
-npm run playtests [-- --out=.cache/playtests]  # the sessions players shared (games/<id>/playtests) replayed and summed up: time per room, stalls, hints, heat map
+npm run playtests [-- --strict --out=.cache/playtests]  # the sessions players shared (games/<id>/playtests) replayed and summed up: time per room, stalls, hints, heat map
 npm run lint [-- --prove | --static | --json]   # content lint: conditions nothing can satisfy, hidden rules, red herrings, stuck hints, actions never run
 npm run doctor                     # checks Node, Python modules, ffmpeg and Playwright browsers
 npm run check                      # type-check and Node tests
@@ -191,15 +191,21 @@ gives (`item-never-gained`), a hint that waits for something nothing sets (`hint
 `until` with an earlier hint (`hint-never-fires`), a dead topic, choice option or listener, a choice with one option,
 an exit with a condition and no `locked` line, an action that only changes what nothing live reads (`action-dead`,
 info); after a solver run, a live action the witness never ran and a room it never entered (`rule-never-run`,
-`room-never-reached`: info with the witness, warnings with `--prove`). Each finding names its room and path (the one
-the Rooms tab shows), its stable id, and what to do. Exit 1 only on an error. `lint: { ignore: ['code',
+`room-never-reached`: info with the witness, warnings with a completed `--prove`; a truncated proof keeps them as
+information and says so, it never calls anything unreachable), and a live action that ran without ever changing the
+state (`rule-no-effect`, info: a topic that only talks, or a `set` already true). Reachability counts every try the
+solver made, whether or not it changed the state. Each finding names its room and path (the one the Rooms tab shows),
+its stable id, and what to do. Exit codes: 0 clean, 1 an error that is not ignored, 2 the search was truncated
+(`--json` carries `status` and `truncated`). `lint: { ignore: ['code',
 'code:<id>', 'code:<room>/<path>'] }` in `game.ts` keeps a red herring on purpose. The Studio's Check tab shows the
-same list with links into Rooms; the `lint` MCP tool returns it as Markdown. Run it before asking for a review.
+same list with links into Rooms; the `lint` MCP tool returns it as Markdown. `verify:game` runs it (so does the CI).
 
 **Continuous integration.** Every push to `main`, `v3` or `v3-*` runs `npm run build` (checks, Node and Python tests,
 `verify:game`, the bundle, the spoiler and asset audits), `npm run prove:game` on the sample game, `npm run audit:deps`,
 then the production e2e in Chromium (the demo's own walkthrough) and WebKit (the generic replay), both gates, and the
-keyboard replay (experimental). `main` deploys to Pages. The weekly `prove` workflow (or `workflow_dispatch`) runs
+keyboard replay (experimental). An e2e only passes when the solver's run is `solved` (its exit code, status and steps
+are checked) and the engine itself reports the ending (`state.done`): a truncated or unsolved game is a failure, never
+"the best path replayed anyway". `main` deploys to Pages. The weekly `prove` workflow (or `workflow_dispatch`) runs
 the proof and the bench on a 100-room schema-3 game within a budget and uploads `bench.md`. A `v3.x` tag runs
 `npm run release-check` and publishes the GitHub release with the matching `CHANGELOG.md` section
 (`scripts/release-notes.mjs`). Dependabot proposes weekly npm and actions updates, monthly pip ones.
@@ -209,8 +215,9 @@ download): ids and indices only, no text, no journal. Drop it in `games/<id>/pla
 covers it). `npm run playtests` replays every file on the current content and sums them up: play time per room (gaps
 over a minute are pauses), where players stall (the same action three times without effect), hints shown, minigames
 played, where each player stopped, and a heat map keyed like the solver's (`--out` writes `report.md`, `report.json`,
-`heat.svg`). A session the content has outgrown is reported as diverged, never an error: re-record or delete it.
-`verify:game` runs it, so the CI replays every committed playtest. The Studio's Check tab shows the same report and
+`heat.svg`). A session the content has outgrown is reported as diverged; with `--strict` (the release gate:
+`release-check` and the weekly `prove` workflow) it is an error, exit 1: re-record or delete it. `verify:game` runs it
+without `--strict`, so the CI replays every committed playtest and a content change never blocks a push. The Studio's Check tab shows the same report and
 lets the puzzle graph's heat come from the players; the `playtests` MCP tool returns the Markdown.
 
 **Sessions.** The engine records every input since the game started or a save was loaded (actions, map, switches,

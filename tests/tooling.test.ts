@@ -42,3 +42,44 @@ describe('release notes', () => {
     expect(releaseNotes(log, 'v3.2.0')).toBeNull();
   });
 });
+
+describe('e2e: the solver verdict', () => {
+  it('accepts only an exit 0, solved, finished run with steps', async () => {
+    const { solverResultOk } = await import('../scripts/e2e/util.mjs');
+    const good = { status: 'solved', finished: true, steps: [{ start: 'new' }] };
+    expect(solverResultOk(good, 0)).toEqual({ ok: true, reason: '' });
+    expect(solverResultOk(good, 2).ok).toBe(false);
+    expect(solverResultOk(good, null).reason).toContain('without a status');
+    expect(solverResultOk({ ...good, status: 'truncated', truncated: true }, 0).reason).toContain('truncated');
+    expect(solverResultOk({ ...good, finished: false, status: 'unsolved' }, 0).ok).toBe(false);
+    expect(solverResultOk({ ...good, steps: [] }, 0).reason).toContain('no steps');
+    expect(solverResultOk(undefined, 0).ok).toBe(false);
+  });
+});
+
+describe('exit codes of the content tools', () => {
+  const { spawnSync } = require('node:child_process') as typeof import('node:child_process');
+  const run = (args: string[], env: Record<string, string> = {}) => spawnSync('npx', ['tsx', ...args], { encoding: 'utf8', env: { ...process.env, GAME: 'demo', ...env } });
+
+  it('lint exits 2 on a truncated proof and says so in its JSON', () => {
+    const r = run(['tools/lint.ts', '--prove', '--max=1', '--json']);
+    expect(r.status).toBe(2);
+    const out = JSON.parse(r.stdout.trim().split('\n').pop()!);
+    expect(out).toMatchObject({ mode: 'prove', status: 'truncated', truncated: true });
+    expect(out.findings.every((f: { severity: string }) => f.severity !== 'warning')).toBe(true);
+  }, 60000);
+
+  it('playtests --strict exits 1 on a session the content outgrew', async () => {
+    const { mkdtempSync, readFileSync, writeFileSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const dir = mkdtempSync(join(tmpdir(), 'playtests-'));
+    const file = JSON.parse(readFileSync('games/demo/playtests/walkthrough-hesitant.session.json', 'utf8'));
+    file.session.log[5].act = { verb: 'use', a: 'key', b: 'pantry' }; // no key yet: not what was recorded, the replay diverges there
+    writeFileSync(join(dir, 'diverged.session.json'), JSON.stringify(file));
+    expect(run(['tools/playtests.ts', `--dir=${dir}`]).status).toBe(0);
+    const strict = run(['tools/playtests.ts', `--dir=${dir}`, '--strict']);
+    expect(strict.status).toBe(1);
+    expect(strict.stderr).toContain('--strict');
+  }, 90000);
+});

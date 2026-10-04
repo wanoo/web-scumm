@@ -42,6 +42,8 @@ export interface SolveProfile {
   perRoom: Record<string, number>;
   /** Times each rule, topic, listener or script step answered a try that changed the state (puzzle graph ids). */
   perAction: Record<string, number>;
+  /** Times each one answered a try at all, whether or not the state changed: reachability reads this, not `perAction`. */
+  attempted: Record<string, number>;
   /** Flags never unset or lowered, items never lost: once gained, kept (what dominance pruning could use). */
   monotonic: { flags: string[]; items: string[] };
   /** Boolean dimensions that evolve independently: their combinations multiply the states (a checkpoint between them helps). */
@@ -315,7 +317,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   const t0 = Date.now();
   let tries_total = 0, skipped = 0, slept = 0, postponed = 0, noops = 0, hashHits = 0, maxQueue = 0, expansions = 0, triesSum = 0, triesMax = 0;
   let worst: SolveProfile['branching']['worst'];
-  const perRoom = new Map<string, number>(), perAction = new Map<string, number>();
+  const perRoom = new Map<string, number>(), perAction = new Map<string, number>(), attempted = new Map<string, number>();
   const fallbackByRoom = new Map<string, { candidates: number; rules: number; fallback: number }>();
 
   const randomBranchValues = [...new Set(cmdLists(game).flatMap(({ list }) => {
@@ -486,6 +488,8 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
       // Reported even when the state is not worth exploring (a flag nobody reads, a trinket no gate needs): it did happen.
       Object.entries(e.state.flags).forEach(([k, v]) => v && flags.add(k));
       e.state.inventory.forEach((i) => gained.add(i));
+      // What answered this try, even when nothing changed: a topic that only talks is reachable all the same.
+      for (const en of e.session?.log ?? []) for (const id of en.ran ?? []) attempted.set(id, (attempted.get(id) ?? 0) + 1);
       const dims = stateDims(e.state, keys);
       const h = JSON.stringify(dims);
       const hitGoal = reached(ui, e.state);
@@ -568,7 +572,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   const profile: SolveProfile = {
     ms: Date.now() - t0, states: seen.size, tries: tries_total, skipped, slept, postponed, noops, hashHits, maxQueue,
     branching: { avg: expansions ? triesSum / expansions : 0, max: triesMax, ...(worst ? { worst } : {}) },
-    fallbackByRoom: Object.fromEntries(fallbackByRoom), dims, perRoom: Object.fromEntries(perRoom), perAction: Object.fromEntries(perAction),
+    fallbackByRoom: Object.fromEntries(fallbackByRoom), dims, perRoom: Object.fromEntries(perRoom), perAction: Object.fromEntries(perAction), attempted: Object.fromEntries(attempted),
     monotonic: monotonicThings(game), independent: independentGroups(all, dims),
   };
 

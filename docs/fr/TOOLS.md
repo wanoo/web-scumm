@@ -168,7 +168,7 @@ npm run solve -- --profile         # de quoi les états sont faits et ce que la 
 npm run solve -- --por=stubborn    # réduction d'ordre partiel : les actions commutantes une à la fois (moins d'états, même preuve)
 npm run replay -- session.json     # rejoue un fichier de session sur le vrai moteur, imprime le journal et l'état final
 npm run ids [-- --write --map]     # ids stables (schéma 3) écrits dans les sources, locales renommées, l'étape de migration des sauvegardes (docs/fr/UPGRADING.md)
-npm run playtests [-- --out=.cache/playtests]  # les sessions partagées par les joueurs (games/<id>/playtests) rejouées et cumulées : temps par lieu, blocages, indices, heatmap
+npm run playtests [-- --strict --out=.cache/playtests]  # les sessions partagées par les joueurs (games/<id>/playtests) rejouées et cumulées : temps par lieu, blocages, indices, heatmap
 npm run lint [-- --prove | --static | --json]   # lint de contenu : conditions insatisfaisables, règles masquées, faux indices, indices bloqués, actions jamais jouées
 npm run doctor                     # vérifie Node, modules Python, ffmpeg et navigateurs Playwright
 npm run check                      # vérifie les types et lance les tests Node
@@ -185,15 +185,21 @@ n'exige (`item-red-herring`) ou que rien ne donne (`item-never-gained`), un indi
 de choix ou un écouteur morts, un choix à une seule option, une sortie conditionnée sans ligne `locked`, une action
 qui ne change que ce que rien de vivant ne lit (`action-dead`, info) ; après une passe du solveur, une action vivante
 que le témoin n'a jamais jouée et un lieu jamais atteint (`rule-never-run`, `room-never-reached` : info avec le
-témoin, avertissements avec `--prove`). Chaque constat nomme son lieu et son chemin (celui de l'onglet Rooms), son id
-stable et quoi faire. Code 1 seulement sur une erreur. `lint: { ignore: ['code', 'code:<id>', 'code:<lieu>/<chemin>'] }`
+témoin, avertissements avec un `--prove` mené à terme ; une preuve tronquée les garde en info et le dit, elle ne
+déclare jamais rien inatteignable), et une action vivante jouée sans jamais changer l'état (`rule-no-effect`, info :
+un sujet qui ne fait que parler, un `set` déjà vrai). L'atteignabilité compte chaque essai du solveur, qu'il ait changé
+l'état ou non. Chaque constat nomme son lieu et son chemin (celui de l'onglet Rooms), son id stable et quoi faire.
+Codes de sortie : 0 propre, 1 une erreur non ignorée, 2 la recherche a été tronquée (`--json` porte `status` et
+`truncated`). `lint: { ignore: ['code', 'code:<id>', 'code:<lieu>/<chemin>'] }`
 dans `game.ts` garde un faux indice voulu. L'onglet Check du Studio montre la même liste avec des liens vers Rooms ;
-l'outil MCP `lint` la renvoie en Markdown. À lancer avant de demander une relecture.
+l'outil MCP `lint` la renvoie en Markdown. `verify:game` le lance (la CI aussi).
 
 **Intégration continue.** Chaque push sur `main`, `v3` ou `v3-*` lance `npm run build` (vérifications, tests Node et
 Python, `verify:game`, le bundle, les audits de spoilers et d'assets), `npm run prove:game` sur le jeu d'exemple,
 `npm run audit:deps`, puis l'e2e de production en Chromium (le parcours propre à la démo) et WebKit (le rejeu
-générique), tous deux bloquants, et le rejeu au clavier (expérimental). `main` déploie Pages. Le workflow `prove`,
+générique), tous deux bloquants, et le rejeu au clavier (expérimental). Un e2e ne passe que si la passe du solveur
+est `solved` (code de sortie, statut et étapes vérifiés) et si le moteur lui-même annonce la fin (`state.done`) : un
+jeu tronqué ou non résolu est un échec, jamais « le meilleur chemin rejoué quand même ». `main` déploie Pages. Le workflow `prove`,
 hebdomadaire ou à la demande, lance la preuve et le bench sur un jeu de 100 lieux en schéma 3 dans un budget et
 dépose `bench.md`. Un tag `v3.x` lance `npm run release-check` et publie la release GitHub avec la section
 correspondante de `CHANGELOG.md` (`scripts/release-notes.mjs`). Dependabot propose chaque semaine les mises à jour
@@ -205,8 +211,9 @@ sinon un téléchargement) : des ids et des index seulement, aucun texte, aucun 
 courant et cumule : temps de jeu par lieu (un trou de plus d'une minute est une pause), où les joueurs bloquent (la
 même action trois fois sans effet), indices montrés, mini-jeux joués, où chacun s'est arrêté, et une heatmap avec les
 mêmes clés que celle du solveur (`--out` écrit `report.md`, `report.json`, `heat.svg`). Une session que le contenu a
-dépassée est signalée comme divergente, jamais en erreur : réenregistrer ou supprimer. `verify:game` le lance, donc
-la CI rejoue chaque playtest commité. L'onglet Check du Studio montre le même rapport et laisse la chaleur du graphe
+dépassée est signalée comme divergente ; avec `--strict` (la porte de release : `release-check` et le workflow
+hebdomadaire `prove`) c'est une erreur, code 1 : réenregistrer ou supprimer. `verify:game` le lance sans `--strict`,
+donc la CI rejoue chaque playtest commité sans qu'un changement de contenu bloque un push. L'onglet Check du Studio montre le même rapport et laisse la chaleur du graphe
 de puzzles venir des joueurs ; l'outil MCP `playtests` renvoie le Markdown.
 
 **Sessions.** Le moteur enregistre chaque entrée depuis le début de la partie ou le chargement d'une sauvegarde

@@ -1099,6 +1099,9 @@ export class Engine {
     if ('ending' in c || 'reveal' in c) {
       await this.ui.ending('open');
       await this.exec(c.after, { ...ctx, fast: false });
+      // The sealed ending ends the game as `end` does: `state.done` is the one truth an e2e or a replay reads, the
+      // card is only how it is shown.
+      s.done = true; this.save();
       return this.ui.ending('card');
     }
     if ('end' in c) { s.done = true; this.save(); this.ui.end(); return; }

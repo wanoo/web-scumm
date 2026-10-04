@@ -11,6 +11,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { launch } from './e2e/lib.mjs';
+import { solverResultOk } from './e2e/util.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 const args = process.argv.slice(2);
@@ -44,9 +45,12 @@ try {
     const stdout = (r.stdout ?? '').trim();
     if (!stdout) throw new Error(`npm run solve -- --json produced no output${r.stderr ? `: ${r.stderr}` : ''}`);
     const solved = JSON.parse(stdout.split('\n').pop());
-    if (!solved.finished) console.log('e2e: warning — the solver did not reach the end; replaying its best path anyway');
+    const verdict = solverResultOk(solved, r.status);
+    if (!verdict.ok) throw new Error(`the solver's path cannot prove the game: ${verdict.reason}`);
     console.log(`e2e: replaying ${solved.steps.length} step(s) from the solver`);
     await harness.walkthrough(solved.steps);
+    if (!(await harness.ended())) throw new Error('the solver\'s path was replayed but the game did not reach its ending (engine.state.done is false)');
+    console.log('e2e: the ending was reached');
   }
   console.log('e2e: done');
 } catch (e) {

@@ -422,10 +422,13 @@ export async function launch(url, opts = {}) {
     }
   }
 
+  /** The game reached an ending: the engine says so (`state.done`), not a screenshot of a card. */
+  async function ended() { return page.evaluate(() => !!window.__game?.engine?.state?.done).catch(() => false); }
+
   async function close() { await browser.close(); }
 
   return {
     page, errors, screenshot, tapXY, tapScene, drag, line, pointOn, tapTarget, verb, verbById,
-    itemSlot, item, inInventory, target, state, diagnose, waitIdle, openMap, say, pick, answer, skip, act, play, walkthrough, close,
+    itemSlot, item, inInventory, target, state, diagnose, waitIdle, openMap, say, pick, answer, skip, act, play, walkthrough, close, ended,
   };
 }
