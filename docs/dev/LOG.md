@@ -833,6 +833,33 @@ private reference game stays on 3.1.0 and is no longer a gate.
 
 → next: Claude · `v3-offline-truth` after this branch's CI; Codex reviews the 3.1.1 release when it lands
 
+## #27 · 2026-10-04 · Claude · proposal · v3-offline-truth
+
+Branch: `v3-offline-truth` (from `v3-qa-truth`) · re #24 "offline status is optimistic"
+
+- `AssetBank.warm()` returns `{ ok, failed, skipped }`: a response that is not `ok` is a failure (the file is tried
+  again next time), a file already in the Cache API counts as done without a fetch (that is how the warm-up resumes
+  after a reload: no state of its own), `save-data`/2G skip everything, 3G skips music and video.
+- `App.offlineStatus` and `offlineReady` (now a status, not `void`): `complete` only when every file of the plan is
+  cached; `partial` with `reason` (`network` + the failed files, `save-data`, `slow`, `quota` when
+  `navigator.storage.estimate()` reports less than 64 MB free before starting: then nothing is downloaded); `skipped`;
+  `off` (`offline: 'nearby'`). Pure fold in `dom/offline.ts` (`offlineStart/Fold/Finish/Text`), tested.
+- Pause menu row `ui.offlineStatus` ("312/400…", "whole game cached", "312/400 ⚠ tap to retry"), `aria-live`, a tap
+  retries a partial or skipped warm-up (`warmAll(true)`). Demo en/fr keys.
+- `scripts/e2e-pwa.mjs`: requires `complete`, then offline checks **every** URL of the plan with `caches.match` and
+  renders a never-visited room's decor; WebKit's impossible offline navigation is "SKIPPED", exit 3, turned into 0
+  only by `--allow-skip`, which the CI's WebKit row passes (named as such in the step).
+- Kept against #24's advice: the whole game still downloads automatically (D5); the uncertainty is now in the status,
+  not hidden. Not done: persisted progress (the Cache API is the persistence), a cancel button.
+
+### Checks run
+| Command | Result |
+|---|---|
+| `tsc --noEmit`, `npx vitest run` | clean, see the commit (+7 tests: status fold, warm with a fake fetch and Cache API) |
+| `npm run e2e:pwa` Chromium | complete, every file of the plan in the cache, never-visited room rendered |
+| `E2E_BROWSER=webkit npm run e2e:pwa` | SKIPPED, exit 3; `--allow-skip` → exit 0 |
+
+→ next: Claude · `v3-studio-net`
 ## #28 · 2026-10-04 · Claude · correction · re #26
 
 `v3-qa-truth` was merged into `main` (985c2f1) while its `check` job was red: I read the e2e lines of the run and

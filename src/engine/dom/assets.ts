@@ -5,6 +5,9 @@ export interface AssetManifest {
   videos?: Record<string, number>;
 }
 
+/** What a background warm-up did: files now in the cache (fetched or already there), files that failed, or why it was skipped. */
+export interface WarmResult { ok: number; failed: string[]; skipped: 'save-data' | 'slow' | null }
+
 export class AssetBank {
   private loaded = new Map<string, Promise<void>>();
   private warmed = new Set<string>();
@@ -22,27 +25,38 @@ export class AssetBank {
   video(file: string) { return this.v(`${this.base}/video/${file}`); }
 
   /**
-   * Downloads in the background (without disrupting the game) files the service worker keeps cached:
-   * those nearby assets then show up without waiting and remain available to the service worker. Does nothing in
-   * "save data" mode.
+   * Downloads in the background (without disrupting the game) files the service worker keeps cached: those nearby
+   * assets then show up without waiting and remain available to the service worker. Says what it did: a file already
+   * in the cache counts as done without a fetch (that is how a warm-up resumes after a reload), a response that is not
+   * `ok` or a network error is a failure (the file will be tried again), and nothing is fetched in "save data" mode or
+   * on a 2G link (`skipped`). Music and video also wait for better than 3G.
    */
-  async warm(urls: string[], parallel = 3, o: { heavy?: boolean } = {}): Promise<void> {
+  async warm(urls: string[], parallel = 3, o: { heavy?: boolean } = {}): Promise<WarmResult> {
     const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
-    if (conn?.saveData || conn?.effectiveType === 'slow-2g' || conn?.effectiveType === '2g') return;
+    if (conn?.saveData || conn?.effectiveType === 'slow-2g' || conn?.effectiveType === '2g') return { ok: 0, failed: [], skipped: 'save-data' };
     // Music and video wait for a decent link: a background download must never fight the room's own loads.
-    if (o.heavy && conn?.effectiveType === '3g') return;
+    if (o.heavy && conn?.effectiveType === '3g') return { ok: 0, failed: [], skipped: 'slow' };
+    const result: WarmResult = { ok: urls.filter((u) => this.warmed.has(u)).length, failed: [], skipped: null };
     const todo = urls.filter((u) => !this.warmed.has(u));
     todo.forEach((u) => this.warmed.add(u));
     const idle = () => new Promise<void>((r) => ('requestIdleCallback' in window ? (window as any).requestIdleCallback(() => r(), { timeout: 1500 }) : setTimeout(r, 50)));
+    const cached = async (u: string) => { try { return 'caches' in globalThis && !!(await caches.match(u)); } catch { return false; } };
     let i = 0;
     const worker = async () => {
       while (i < todo.length) {
         const u = todo[i++];
         await idle();
-        try { const res = await fetch(u, { priority: 'low' } as RequestInit); await res.arrayBuffer(); } catch { /* network down: we'll retry later */ this.warmed.delete(u); }
+        if (await cached(u)) { result.ok++; continue; }
+        try {
+          const res = await fetch(u, { priority: 'low' } as RequestInit);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          await res.arrayBuffer();
+          result.ok++;
+        } catch { /* network down or a missing file: tried again on the next warm-up */ this.warmed.delete(u); result.failed.push(u); }
       }
     };
     await Promise.all(Array.from({ length: parallel }, worker));
+    return result;
   }
 
   /** Preloads images (before entering a room), never failing. */

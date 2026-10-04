@@ -83,8 +83,16 @@ The choice is made automatically (`App.layout`), and redone whenever the window 
   better than 3G. `offline: 'nearby'` keeps only the room-scoped warm-up.
 - Every image or sound address carries `?v=<hash>`: the hash changes as soon as a file in `public/assets` changes, which
   bypasses the old cache. The sealed ending's file (`data/`) is always requested from the network first.
-- After the first visit the whole game plays offline (`npm run e2e:pwa` checks a room never visited from the cache).
-  With `offline: 'nearby'`, a room never visited or warmed may still need the network.
+- After the first visit the whole game plays offline, and the game says whether that is true: the warm-up returns a
+  status (`App.offlineStatus`, `offlineReady`): `complete` only when every file of the plan is in the cache; `partial`
+  with its reason (`network` and the failed files, `save-data`, `slow`, `quota` when the browser reports less than
+  64 MB free before starting), `skipped` when nothing was tried, `off` with `offline: 'nearby'`. The pause menu shows
+  it (`ui.offlineStatus`: "312/400", "whole game cached", "312/400 ⚠ tap to retry"); a tap retries a partial warm-up,
+  and a file already in the Cache API is never fetched twice, so the warm-up resumes across reloads with no state of
+  its own. `npm run e2e:pwa` requires `complete`, then checks every file of the plan against the cache offline and
+  renders a room never visited (Chromium; WebKit cannot navigate offline under automation and reports "skipped",
+  exit 3, accepted only by the CI's `--allow-skip`). With `offline: 'nearby'`, a room never visited or warmed may still
+  need the network.
 
 ## The action cycle
 

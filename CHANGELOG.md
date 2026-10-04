@@ -11,6 +11,14 @@
   remaining inputs) loads on the current engine and reaches the ending (ROADMAP verification 3, now a real test).
 - DECISIONS: D5 and D7 are decided, D8 (the private reference game stays on 3.1.0, no longer a gate) and D9 (merge
   on green CI, Codex reviews afterwards) recorded; the charter's truth commands no longer name the private game.
+### Added
+
+- The offline warm-up tells the truth: `AssetBank.warm()` returns what it did (a bad HTTP status is a failure, a file
+  already in the Cache API counts without a fetch), `App.offlineStatus` / `offlineReady` end `complete` only when every
+  file of the plan is cached, else `partial` (reason: network, save-data, slow, quota from `navigator.storage.estimate()`),
+  `skipped` or `off`; the pause menu shows it (`ui.offlineStatus`, `offlineComplete`, `offlineRetry`) and a tap retries;
+  `npm run e2e:pwa` requires `complete`, checks every file of the plan offline and renders a never-visited room; WebKit's
+  impossible offline navigation is "skipped" (exit 3), accepted only by the CI's `--allow-skip`.
 
 ### Fixed
 
