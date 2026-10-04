@@ -125,18 +125,33 @@ verdict (`Witness status:` / `Proof status:`), everything else is unchanged.
 
 ## 8. A game that embeds the engine (a copy of `src/engine`)
 
-Besides copying `src/engine/`, update your own entry and config:
+Your `src/main.ts` no longer copies the bootstrap: it calls `bootGame` (`src/engine/boot.ts`) and says only what is
+specific to your build:
 
-- `src/main.ts`: open the store with `IndexedDbSaveStore.open(game, onError)` and pass it to `App` (the verified
-  `localStorage` adapter is the fallback when IndexedDB is unavailable); route errors to `app.reportStorageError`;
-  register the service worker yourself with `registerSW({ immediate: true, onNeedRefresh })` and `app.offerUpdate(...)`,
-  because the PWA plugin now uses `registerType: 'prompt'` and `injectRegister: false` (the update waits for a verified
-  save instead of reloading under the player); pass the minigames to `applyLocale(game, table, minigames)`.
-- `vite.config.ts`: `server.host` is `127.0.0.1` unless `WEB_SCUMM_LAN=1`; the layout writer and every `/__studio`
-  route go through `authorizeStudioRequest` (`tools/studio/security.ts`); the PWA options above.
-- `package.json`: the scripts of section 7 (`tools/doctor.ts`, `tools/serve.ts`, `scripts/e2e-pwa.mjs`).
-- Your e2e: `scripts/e2e/lib.mjs` takes `E2E_BROWSER=chromium|webkit|firefox` and `--prod`; a script that reads the
-  human output of `npm run solve` keeps working (one line was added, none changed).
-- `env.d.ts`: `/// <reference types="vite-plugin-pwa/client" />`.
-- The engine's `game` is a compiled clone (`compileGame`), frozen when `schemaVersion` is 3: a tool that mutated the
-  object it passed to `Engine` must go through the engine's API.
+```ts
+import { bootGame } from '@engine/boot';
+import { game, layouts, manifest, minigames, commands, locales } from '@game';
+
+void bootGame({
+  game, layouts, manifest, minigames, commands, locales, version: __ASSETS_VERSION__,
+  dev: { enabled: (q) => import.meta.env.DEV && (q.has('dev') || q.has('edit')) },
+  sw: { register: () => import('virtual:pwa-register') },   // or `sw: false` without vite-plugin-pwa
+});
+```
+
+`bootGame` picks the language (`?lang=`, the player's saved choice, the browser), waits for the fonts, opens the
+verified IndexedDB store (its early errors reach the App once it exists; without IndexedDB the verified
+`localStorage` adapter takes over), builds the `App`, exposes `window.__game` for the e2e drivers, starts the dev
+tools when `dev.enabled` says so (`dev.patch` can replace the game, the layouts and the store first, as the Studio
+demo does), shows the title, and registers the service worker through the module you inject, with the update offered
+only after a verified save. The pieces are exported on their own (`pickLanguage`, `waitFonts`, `openStore`) when a
+game needs a different order.
+
+What else your build keeps: `vite.config.ts` with `server.host` on `127.0.0.1` unless `WEB_SCUMM_LAN=1`, the layout
+writer and every `/__studio` route behind `authorizeStudioRequest` (`tools/studio/security.ts`), and VitePWA with
+`registerType: 'prompt'`, `injectRegister: false`, `skipWaiting: false` (mandatory with the update prompt);
+`package.json` with the scripts of section 7 (`tools/doctor.ts`, `tools/serve.ts`, `scripts/e2e-pwa.mjs`);
+`scripts/e2e/lib.mjs` (`E2E_BROWSER`, `--prod`; a script that reads the human output of `npm run solve` keeps working);
+`env.d.ts` with `/// <reference types="vite-plugin-pwa/client" />`. The engine's `game` is a compiled clone
+(`compileGame`), frozen when `schemaVersion` is 3: a tool that mutated the object it passed to `Engine` must go
+through the engine's API.

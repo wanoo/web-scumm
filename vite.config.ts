@@ -105,8 +105,18 @@ function sitePlugin(): Plugin {
   };
 }
 
-/** A module only the Studio (src/studio, tools/) or the dev tools (src/engine/dev, tweakpane; zod: the Assistant's tools) load. */
-const isToolModule = (id: string) => /[\\/](src[\\/]studio|src[\\/]engine[\\/]dev|tools|node_modules[\\/](@tweakpane|tweakpane|zod))[\\/]/.test(id);
+/**
+ * A module only the Studio (src/studio, the repository's tools/) or the dev tools (src/engine/dev, tweakpane) load:
+ * its chunks go under assets/tools/, which the service worker does not precache. Everything the game itself can
+ * import must stay out of this set, or the game breaks offline: src/engine/tools/i18n (locales at runtime) and zod
+ * (the save envelope). A chunk shared by the game and the Studio is only moved when every module in it is a tool.
+ */
+const TOOLS_DIR = r('./tools/');
+const isToolModule = (id: string) => {
+  if (id.startsWith(TOOLS_DIR)) return true;
+  if (/[\\/]src[\\/]engine[\\/]tools[\\/](i18n|replay)\.ts$/.test(id)) return false; // the game's locales, the player's session export
+  return /[\\/](src[\\/]studio|src[\\/]engine[\\/]dev|src[\\/]engine[\\/]tools|node_modules[\\/](@tweakpane|tweakpane))[\\/]/.test(id);
+};
 
 /** Deploy under a sub-path (GitHub Pages: /<repo>/) with BASE_PATH=/<repo>/ ; default '/'. */
 const BASE = process.env.BASE_PATH ?? '/';

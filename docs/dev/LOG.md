@@ -396,3 +396,32 @@ Verdict: approve; the WebKit failure was the harness, not the engine
 | `npm run check` | 188 passed |
 
 → next: Claude · merge into `main` (D7), then `v3-ids`
+
+## #15 · 2026-10-04 · Claude · proposal · v3-boot
+Branch: v3-boot · from main@736481a
+Verdict: the page's bootstrap is part of the engine; a build bug that broke the game offline found on the way
+
+- `src/engine/boot.ts`: `bootGame({ game, layouts, manifest, minigames, commands, locales, version, dev, sw })`
+  with `pickLanguage`, `waitFonts`, `openStore` exported; `src/main.ts` is 40 lines that say only what is specific
+  to this build (the Studio demo's patches and memory store, the dev switch, `virtual:pwa-register` injected so the
+  engine never imports a virtual module). `tests/boot.test.ts` covers the language order, the fonts and the buffered
+  storage errors.
+- **Found by `npm run e2e:pwa` on the two-entry build (game + Studio demo, the shape Pages deploys):** `vite.config`'s
+  `isToolModule` matched `src/engine/tools/*` and zod, so a chunk shared by the game and the Studio made only of
+  `src/engine/tools/i18n` and zod went under `assets/tools/`, which the worker does not precache: offline, the game
+  requested `assets/tools/i18n-*.js` and `schemas-*.js` and died. Latent on v3.0.0 (there the modules were inlined in
+  the entry by chance); exposed by `boot.ts`. Fix: `src/engine/tools/i18n`, `src/engine/tools/replay` (the pause
+  menu's session export) and zod are game modules; the CI e2e job now builds with `STUDIO=1 VITE_STUDIO_DEMO=1` so
+  the smoke test sees the deployed shape.
+- Docs: UPGRADING §8 (en, fr) rewritten around `bootGame`, ENGINE "Bootstrap" (en, fr). CHANGELOG at merge time.
+
+### Checks run
+| Command | Result |
+|---|---|
+| `tsc --noEmit`, `npm test` | clean, 209 passed (+ boot.test.ts) |
+| `npm run build:web`, `npm run build:studio-demo` | green; no `assets/tools/` chunk imported by the game's entry |
+| e2e demo, production, Chromium | passed end to end |
+| `npm run e2e:pwa` on the two-entry build | opened offline (failed before the fix) |
+| `/?dev` on the demo build | game starts on the first checkpoint, no console error |
+
+→ next: Claude · merge after CI, then `v3-slots`

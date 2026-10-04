@@ -43,6 +43,14 @@ Verbs: ids are free (the game's `verbs`). Four of them have a meaning for the en
 (conversations, hints), `give` and `use` (two terms: inventory item then target; tapping an inventory item with no verb
 selected picks `use`).
 
+## Bootstrap
+
+`src/engine/boot.ts` `bootGame({ game, layouts, manifest, minigames, commands, locales, version, dev, sw })` is
+what a page does to start a game: language, fonts, the verified save store (early errors kept until the App can show
+them), the `App`, `window.__game`, the dev tools, the title, the service worker. `src/main.ts` calls it; a game that
+embeds the engine calls it too (docs/en/UPGRADING.md §8). `pickLanguage`, `waitFonts` and `openStore` are exported
+for a page that needs another order.
+
 ## Two layouts
 
 - **Phone (touchscreen), landscape**: the scene on the left; on the right, a column with the 9 verbs in a 3×3 grid, the

@@ -1,0 +1,122 @@
+// The game's bootstrap, so a game that embeds the engine does not copy `src/main.ts` by hand: language, fonts, the
+// verified save store (errors reported once the App exists), the App, the dev tools, the title screen, the service
+// worker. Each step is also exported on its own. `src/main.ts` is the reference caller (docs/en/UPGRADING.md §8).
+import { App } from './dom/app';
+import type { SaveStore } from './core/ports';
+import type { CustomCommands } from './core/custom';
+import type { GameDef, Id, Layout } from './core/types';
+import type { AssetManifest } from './dom/assets';
+import type { Minigame } from './minigames';
+import type { EditorOptions } from './dev/editor';
+import { FONT_PIXEL, FONT_UI } from './dom/fonts';
+import { applyLocale } from './tools/i18n';
+
+export type Locales = Record<string, Record<string, string>>;
+
+/** `registerSW` of `virtual:pwa-register` (vite-plugin-pwa), injected so the engine never imports a virtual module. */
+export interface SwModule { registerSW(o: { immediate?: boolean; onNeedRefresh?: () => void }): (reloadPage?: boolean) => Promise<void> }
+
+export interface BootOptions {
+  game: GameDef;
+  layouts: Record<Id, Layout>;
+  manifest: AssetManifest;
+  minigames?: Record<Id, Minigame>;
+  commands?: CustomCommands;
+  /** Translations the game ships (`locales/<lang>.json`); the settings menu offers them. */
+  locales?: Locales;
+  /** The element the game mounts in, or its id; default `#app`. */
+  root?: HTMLElement | string;
+  /** Asset version added to URLs (`__ASSETS_VERSION__` in a Vite build). */
+  version?: string;
+  /** A store to use instead of the verified IndexedDB one (tests, the Studio demo). */
+  store?: SaveStore;
+  /** Dev tools (`?dev`, `?edit=<room>`, `?at=<checkpoint>`): when they apply, and how to patch the game before it runs. */
+  dev?: {
+    enabled: (q: URLSearchParams) => boolean;
+    patch?: (game: GameDef, layouts: Record<Id, Layout>, q: URLSearchParams) => Promise<{ game: GameDef; layouts: Record<Id, Layout>; store?: SaveStore }>;
+    options?: EditorOptions;
+  };
+  /** The PWA service worker; `false` for a build without vite-plugin-pwa. */
+  sw?: { register: () => Promise<SwModule> } | false;
+  /** `window.__game = app` (console debugging, e2e drivers); default true. */
+  expose?: boolean;
+  /** The page's URL parameters; default `location.search`. */
+  query?: URLSearchParams;
+}
+
+/** `?lang=`, then the player's saved choice, then the browser's language when the game ships it. */
+export function pickLanguage(written: GameDef, locales: Locales | undefined, o: { query?: string | null; stored?: string | null; navigatorLang?: string } = {}): string | undefined {
+  if (o.query) return o.query;
+  if (o.stored) return o.stored;
+  const nav = o.navigatorLang?.toLowerCase();
+  if (nav && locales) return Object.keys(locales).find((l) => nav.startsWith(l.toLowerCase()));
+  return undefined;
+}
+
+/** The game's fonts loaded, so the first text measurements are right. Resolves anyway when the API is missing or a font fails. */
+export function waitFonts(game: GameDef, fonts: { load?: (spec: string) => Promise<unknown> } | undefined = (globalThis.document as unknown as { fonts?: { load?: (s: string) => Promise<unknown> } } | undefined)?.fonts): Promise<void> {
+  const families = [game.skin.fonts?.ui ?? FONT_UI, game.skin.fonts?.pixel ?? FONT_PIXEL];
+  if (!fonts?.load) return Promise.resolve();
+  return Promise.all(families.map((f) => fonts.load!(`12px "${f}"`))).then(() => undefined, () => undefined);
+}
+
+export type StoreOpener = (game: GameDef, fail: (e: Error) => void, warn: (m: string) => void) => Promise<SaveStore>;
+const defaultOpener: StoreOpener = async (game, fail, warn) => (await import('./dom/save-store')).IndexedDbSaveStore.open(game, fail, warn);
+
+/**
+ * Opens the verified store and keeps its early errors and warnings until an App can show them. Without IndexedDB the
+ * App's verified localStorage adapter is used (`store` undefined).
+ */
+export async function openStore(game: GameDef, open: StoreOpener = defaultOpener): Promise<{ store?: SaveStore; attach: (app: App) => void }> {
+  let app: App | undefined;
+  const errors: Error[] = [], warnings: string[] = [];
+  let store: SaveStore | undefined;
+  try {
+    store = await open(game, (e) => { if (app) app.reportStorageError(e); else errors.push(e); }, (m) => { if (app) app.reportSaveWarning(m); else warnings.push(m); });
+  } catch (e) {
+    console.warn('IndexedDB autosave unavailable; using localStorage fallback', e);
+  }
+  return { store, attach: (a) => { app = a; for (const e of errors.splice(0)) a.reportStorageError(e); for (const m of warnings.splice(0)) a.reportSaveWarning(m); } };
+}
+
+/** Boots the game in the page and returns the App (after the title screen is shown, or the dev tools started). */
+export async function bootGame(o: BootOptions): Promise<App> {
+  const q = o.query ?? new URLSearchParams(globalThis.location?.search ?? '');
+  const written = o.game;
+  let stored: string | null = null;
+  try { stored = localStorage.getItem(`${written.id}.lang`); } catch { /* no storage */ }
+  const lang = pickLanguage(written, o.locales, { query: q.get('lang'), stored, navigatorLang: globalThis.navigator?.language });
+  const localized = lang && o.locales?.[lang] ? applyLocale(written, o.locales[lang], o.minigames) : written;
+  document.documentElement.lang = lang ?? written.lang ?? 'en';
+  await waitFonts(localized);
+
+  const dev = !!o.dev?.enabled(q);
+  let game = localized, layouts = o.layouts, store = o.store;
+  if (dev && o.dev?.patch) ({ game, layouts, store = store } = await o.dev.patch(game, layouts, q));
+  const opened = store ? undefined : await openStore(game);
+  store ??= opened?.store;
+
+  const root = typeof o.root === 'string' ? document.querySelector<HTMLElement>(o.root) : o.root ?? document.getElementById('app');
+  if (!root) throw new Error(`bootGame: no element for root ${String(o.root ?? '#app')}`);
+  const base = written.lang ?? 'en';
+  const others = Object.keys(o.locales ?? {}).filter((l) => l !== base);
+  const app = new App({
+    root, game, layouts, manifest: o.manifest, minigames: o.minigames, commands: o.commands, store, version: o.version,
+    languages: others.length ? { current: lang ?? base, available: [base, ...others] } : undefined,
+  });
+  opened?.attach(app);
+  if (o.expose !== false) (globalThis as unknown as { __game?: App }).__game = app;
+
+  if (dev) {
+    app.engine.traceOn = true;
+    const { startDev } = await import('./dev');
+    await startDev(app, { edit: q.get('edit'), checkpoint: q.get('at'), ...(o.dev?.options ?? {}) });
+    return app;
+  }
+  await app.showTitle();
+  if (o.sw && 'serviceWorker' in navigator) {
+    const { registerSW } = await o.sw.register();
+    const updateSW = registerSW({ immediate: true, onNeedRefresh: () => app.offerUpdate(() => updateSW(true)) });
+  }
+  return app;
+}
