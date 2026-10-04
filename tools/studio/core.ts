@@ -360,6 +360,7 @@ export function createStudio(opts: StudioOptions = {}) {
       assets, commands: mod.commands,
       minigameIds: minigames ? Object.keys(minigames) : undefined,
       minigameParams: minigames ? Object.fromEntries(Object.entries(minigames).map(([k, m]) => [k, m.required ?? []])) : undefined,
+      minigameBindings: minigames ? Object.fromEntries(Object.entries(minigames).map(([k, m]) => [k, (m as { bindings?: { images?: string[]; sfx?: string[] } }).bindings ?? {}])) : undefined,
     });
     return { ok: errors.length === 0, errors, warnings, ms: Date.now() - t0 };
   }

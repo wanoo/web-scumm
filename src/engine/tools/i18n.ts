@@ -15,7 +15,7 @@ export type MinigameTexts = Record<string, Pick<Minigame, 'textParams'>>;
 const BUILTIN_TEXT_PARAMS: Record<string, string[]> = {
   pipes: ['intro', 'win'], pick: ['rounds.*.prompt', 'decoyLine', 'wrongLine', 'win'],
   hide: ['intro', 'win', 'spots.*.reply'], runner: ['intro', 'win', 'stumble'],
-  stroke: ['intro', 'win', 'tooFast'], cables: ['intro', 'win', 'windowsText'], scratch: [],
+  stroke: ['intro', 'win', 'tooFast'], cables: ['intro', 'win', 'windowsText'], scratch: ['intro'],
 };
 
 /** Visits a string at a dotted minigame-param path; `*` visits array items or object values. */

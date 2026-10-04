@@ -12,6 +12,7 @@ import { FONT_PIXEL, FONT_UI, fontStack } from './fonts';
 import { RoomView } from './room';
 import { isTyping, roving, trapFocus } from './a11y';
 import { offlinePlan, offlineFinish, offlineFold, offlineStart, offlineText, type OfflineStatus } from './offline';
+import { uiFallbacks, uiText, type UiKey } from './ui-defaults';
 import './style.css';
 import { parseSave, parseSlot, saveEnvelope, type SlotRecord } from '../core/save';
 
@@ -144,18 +145,23 @@ export class App implements Presenter {
   private a11yTargets: HTMLDivElement | null = null;
   private live!: HTMLDivElement;
 
+  /** An interface text: the game's `ui`, else the English default (`dom/ui-defaults.ts`). */
+  t(key: UiKey): string { return uiText(this.game.ui, key); }
+  /** The `ui` keys this game leaves to the English defaults (the release-language e2e fails when one is visible). */
+  uiFallbacks(): Record<string, string> { return uiFallbacks(this.game.ui); }
+
   /** Makes an asynchronous storage failure visible instead of silently claiming autosave success. */
   reportStorageError(error: Error) {
     if (this.saveError === error.message) return;
     this.saveError = error.message;
-    if (this.scene) this.toast(`${this.game.ui.saveFailed ?? 'Save failed'}: ${error.message}`);
+    if (this.scene) this.toast(`${this.t('saveFailed')}: ${error.message}`);
   }
 
   /** A content update may safely prune stale optional ids; tell the player without disabling Continue. */
   reportSaveWarning(message: string) {
     if (this.saveWarning === message) return;
     this.saveWarning = message;
-    if (this.scene) this.toast(`${this.game.ui.saveAdjusted ?? 'Save adjusted for this version'}: ${message}`);
+    if (this.scene) this.toast(`${this.t('saveAdjusted')}: ${message}`);
   }
 
   /** Offers a service-worker update and activates it only after a verified autosave. */
@@ -163,8 +169,8 @@ export class App implements Presenter {
     if (this.root.querySelector('.update-banner')) return;
     const box = el('div', 'update-banner');
     box.setAttribute('role', 'status');
-    const text = el('span', '', esc(this.game.ui.updateAvailable ?? 'A new version is ready.'));
-    const button = el('button', '', esc(this.game.ui.updateNow ?? 'Save and update'));
+    const text = el('span', '', esc(this.t('updateAvailable')));
+    const button = el('button', '', esc(this.t('updateNow')));
     button.onclick = async () => {
       button.disabled = true;
       this.saveError = null;
@@ -240,7 +246,7 @@ export class App implements Presenter {
     this.scol.append(this.scene);
     this.side = el('div', 'side');
     this.verbsEl = el('div', 'verbs');
-    this.verbsEl.setAttribute('role', 'group'); this.verbsEl.setAttribute('aria-label', 'Verbs');
+    this.verbsEl.setAttribute('role', 'group'); this.verbsEl.setAttribute('aria-label', this.t('verbs'));
     roving(this.verbsEl, '.verb');
     for (const v of this.game.verbs) {
       const b = el('button', 'verb', esc(v.label));
@@ -522,7 +528,7 @@ export class App implements Presenter {
       box.style.top = `${Math.max(head[1], 70) * this.u}px`;
       this.view.setTalking(who, text.length > 70);
     }
-    const next = el('button', 'tapnext', '▼'); next.setAttribute('aria-label', this.game.ui.advance ?? 'Continue'); next.tabIndex = -1;
+    const next = el('button', 'tapnext', '▼'); next.setAttribute('aria-label', this.t('advance')); next.tabIndex = -1;
     next.onclick = (e) => { e.stopPropagation(); this.endSpeech(); this.eatClick = performance.now(); };
     this.scene.append(box, next);
     this.speechEl = box;
@@ -925,7 +931,7 @@ export class App implements Presenter {
           frame.innerHTML = `<span class="who">${esc((voice?.name ?? '').toUpperCase())}</span>${esc(text)}`;
         },
         params, signal: ac.signal, fonts: { ui: this.game.skin.fonts?.ui ?? FONT_UI, pixel: this.game.skin.fonts?.pixel ?? FONT_PIXEL },
-        labels: { skip: this.game.ui.skip, jump: this.game.ui.jump ?? '▲', duck: this.game.ui.duck ?? '▼' },
+        labels: { skip: this.game.ui.skip, jump: this.t('jump'), duck: this.t('duck') },
       });
     } finally {
       ac.abort();
@@ -984,8 +990,8 @@ export class App implements Presenter {
     row(ui.autosave, this.saveError ? '⚠' : '✓');
     if (this.game.offline !== 'nearby') {
       // What is really in the cache: a tap retries a partial warm-up (files already cached are not fetched again).
-      const labels = { complete: ui.offlineComplete ?? 'complete', retry: ui.offlineRetry ?? 'retry' };
-      const off = row(ui.offlineStatus ?? 'Offline', offlineText(this.offlineStatus, labels));
+      const labels = { complete: this.t('offlineComplete'), retry: this.t('offlineRetry') };
+      const off = row(this.t('offlineStatus'), offlineText(this.offlineStatus, labels));
       off.setAttribute('aria-live', 'polite');
       const stop = this.onOffline((s) => { off.lastElementChild!.textContent = offlineText(s, labels); });
       const prevRemove = d.remove; d.remove = () => { stop(); prevRemove(); };
@@ -993,10 +999,10 @@ export class App implements Presenter {
     }
     const slots = this.game.saves?.slots ?? 0;
     if (slots > 0 && this.engine.state) {
-      row(ui.save ?? 'Save', '💾').onclick = () => void this.slotMenu(d, m, 'save', slots);
-      row(ui.load ?? 'Load', '📂').onclick = () => void this.slotMenu(d, m, 'load', slots);
+      row(this.t('save'), '💾').onclick = () => void this.slotMenu(d, m, 'save', slots);
+      row(this.t('load'), '📂').onclick = () => void this.slotMenu(d, m, 'load', slots);
     }
-    if (this.game.settings) row(ui.settings ?? 'Settings', '⚙').onclick = () => this.settingsMenu(d, m);
+    if (this.game.settings) row(this.t('settings'), '⚙').onclick = () => this.settingsMenu(d, m);
     row(ui.credits, '★').onclick = () => { d.remove(); this.credits(); };
     row(ui.restart, '!', 'warn').onclick = () => {
       m.innerHTML = `<h3>!</h3><p>${esc(ui.confirmErase)}</p>`;
@@ -1023,20 +1029,20 @@ export class App implements Presenter {
   private settingsMenu(d: HTMLElement, m: HTMLElement) {
     const ui = this.game.ui;
     const S = this.settings;
-    m.innerHTML = `<h3>${esc((ui.settings ?? 'Settings').toUpperCase())}</h3>`;
+    m.innerHTML = `<h3>${esc((this.t('settings')).toUpperCase())}</h3>`;
     const row = (t: string, v: () => string, onclick: () => void) => {
       const b = el('button', '', `<span>${esc(t)}</span><span>${esc(v())}</span>`);
       b.onclick = () => { onclick(); this.applySettings(); b.lastElementChild!.textContent = v(); };
       m.append(b); return b;
     };
-    const speeds: [number, string][] = [[0.7, ui.slow ?? 'slow'], [1, ui.normal ?? 'normal'], [1.6, ui.fast ?? 'fast']];
-    row(ui.textSpeed ?? 'Text speed', () => speeds.find(([k]) => k === S.textSpeed)?.[1] ?? String(S.textSpeed), () => { const i = speeds.findIndex(([k]) => k === S.textSpeed); S.textSpeed = speeds[(i + 1) % speeds.length][0]; });
-    row(ui.textSize ?? 'Text size', () => (S.textSize > 1 ? ui.large ?? 'large' : ui.normal ?? 'normal'), () => { S.textSize = S.textSize > 1 ? 1 : 1.3; });
-    row(ui.reduceMotion ?? 'Reduce motion', () => (S.reduceMotion ? ui.on : ui.off), () => { S.reduceMotion = !S.reduceMotion; });
-    if (this.game.skin?.fonts?.readable) row(ui.readableFont ?? 'Readable font', () => (S.readableFont ? ui.on : ui.off), () => { S.readableFont = !S.readableFont; });
+    const speeds: [number, string][] = [[0.7, this.t('slow')], [1, this.t('normal')], [1.6, this.t('fast')]];
+    row(this.t('textSpeed'), () => speeds.find(([k]) => k === S.textSpeed)?.[1] ?? String(S.textSpeed), () => { const i = speeds.findIndex(([k]) => k === S.textSpeed); S.textSpeed = speeds[(i + 1) % speeds.length][0]; });
+    row(this.t('textSize'), () => (S.textSize > 1 ? this.t('large') : this.t('normal')), () => { S.textSize = S.textSize > 1 ? 1 : 1.3; });
+    row(this.t('reduceMotion'), () => (S.reduceMotion ? ui.on : ui.off), () => { S.reduceMotion = !S.reduceMotion; });
+    if (this.game.skin?.fonts?.readable) row(this.t('readableFont'), () => (S.readableFont ? ui.on : ui.off), () => { S.readableFont = !S.readableFont; });
     const langs = this.o.languages;
     if (langs && langs.available.length > 1) {
-      const b = el('button', '', `<span>${esc(ui.language ?? 'Language')}</span><span>${esc(langs.current)}</span>`);
+      const b = el('button', '', `<span>${esc(this.t('language'))}</span><span>${esc(langs.current)}</span>`);
       b.onclick = () => {
         const next = langs.available[(langs.available.indexOf(langs.current) + 1) % langs.available.length];
         try { localStorage.setItem(`${this.game.id}.lang`, next); } catch { /* no storage */ }
@@ -1045,20 +1051,20 @@ export class App implements Presenter {
       m.append(b);
     }
     const vol = (t: string, k: 'musicVolume' | 'sfxVolume' | 'voiceVolume') => row(t, () => `${Math.round(S[k] * 100)} %`, () => { S[k] = Math.round(((S[k] * 4 + 1) % 5)) / 4; });
-    vol(ui.volumeMusic ?? 'Music volume', 'musicVolume');
-    vol(ui.volumeSfx ?? 'Sound volume', 'sfxVolume');
-    if (this.game.audio?.voices && Object.keys(this.game.audio.voices).length) vol(ui.volumeVoice ?? 'Voice volume', 'voiceVolume');
+    vol(this.t('volumeMusic'), 'musicVolume');
+    vol(this.t('volumeSfx'), 'sfxVolume');
+    if (this.game.audio?.voices && Object.keys(this.game.audio.voices).length) vol(this.t('volumeVoice'), 'voiceVolume');
     const back = el('button', '', `<span>${esc(ui.resume)}</span><span>▶</span>`); back.onclick = () => d.remove(); m.append(back);
   }
 
   /** The save / load menu: one row per slot, export and import as a JSON file. */
   private async slotMenu(d: HTMLElement, m: HTMLElement, mode: 'save' | 'load', count: number) {
     const ui = this.game.ui;
-    m.innerHTML = `<h3>${esc((mode === 'save' ? ui.save ?? 'Save' : ui.load ?? 'Load').toUpperCase())}</h3>`;
+    m.innerHTML = `<h3>${esc((mode === 'save' ? this.t('save') : this.t('load')).toUpperCase())}</h3>`;
     const row = (t: string, v: string, cls = '') => { const b = el('button', cls, `<span>${esc(t)}</span><span>${esc(v)}</span>`); m.append(b); return b; };
     const meta = (): SlotMeta => ({ at: Date.now(), room: this.engine.state.room, roomName: this.engine.room().name, v: this.engine.state.v });
-    const slotName = (n: number) => (ui.slot ?? 'Slot {n}').replace('{n}', String(n));
-    const label = (s: SlotMeta | null) => s ? `${s.roomName} · ${new Date(s.at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}` : (ui.emptySlot ?? 'empty');
+    const slotName = (n: number) => (this.t('slot')).replace('{n}', String(n));
+    const label = (s: SlotMeta | null) => s ? `${s.roomName} · ${new Date(s.at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}` : (this.t('emptySlot'));
     // The rows exist at once (the menu never jumps), disabled until the store has listed the slots.
     const rows = Array.from({ length: count }, (_, i) => { const b = row(slotName(i + 1), '…', 'off'); b.disabled = true; return b; });
     const metas = await this.slots.listSlots(count);
@@ -1071,22 +1077,22 @@ export class App implements Presenter {
       if (mode === 'save') b.onclick = () => {
         const write = async () => { if (!(await this.slots.putSlot(n, structuredClone(this.engine.state), meta()))) return; d.remove(); this.toast(`${slotName(n)} ✓`); };
         if (!s) return void write();
-        m.innerHTML = `<h3>?</h3><p>${esc(ui.confirmOverwrite ?? 'Overwrite this save?')}</p>`;
+        m.innerHTML = `<h3>?</h3><p>${esc(this.t('confirmOverwrite'))}</p>`;
         const y = el('button', 'warn', `<span>${esc(ui.yes)}</span><span>!</span>`), no = el('button', '', `<span>${esc(ui.no)}</span><span>▶</span>`);
         y.onclick = () => void write(); no.onclick = () => d.remove(); m.append(y, no);
       };
       else if (s) b.onclick = async () => {
         const state = await this.slots.getSlot(n);
-        if (!state) { this.toast(ui.saveFailed ?? 'Save failed'); return; }
+        if (!state) { this.toast(this.t('saveFailed')); return; }
         d.remove(); void this.engine.load(state).catch((e) => this.toast(String((e as Error).message)));
       };
     });
-    if (mode === 'save') row(ui.exportSave ?? 'Export file', '⤓').onclick = () => {
+    if (mode === 'save') row(this.t('exportSave'), '⤓').onclick = () => {
       const blob = new Blob([JSON.stringify(saveEnvelope(this.game, this.engine.state), null, 1)], { type: 'application/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${this.game.id}-save.json`; a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 2000); d.remove();
     };
-    if (mode === 'save') row(ui.shareSession ?? 'Share session', '⇪').onclick = () => {
+    if (mode === 'save') row(this.t('shareSession'), '⇪').onclick = () => {
       // A playtest: the inputs since the game started, ids only, for games/<id>/playtests/ (npm run playtests).
       void import('../tools/replay').then(async ({ sessionFile }) => {
         const json = JSON.stringify(sessionFile(this.game.id, this.engine, { playtest: true }));
@@ -1099,7 +1105,7 @@ export class App implements Presenter {
       });
       d.remove();
     };
-    if (mode === 'save') row(ui.exportSession ?? 'Export session', '⤓').onclick = () => {
+    if (mode === 'save') row(this.t('exportSession'), '⤓').onclick = () => {
       // The inputs since the game started or a save was loaded, with the journal: `npm run replay` plays it back.
       void import('../tools/replay').then(({ sessionFile }) => {
         const blob = new Blob([JSON.stringify(sessionFile(this.game.id, this.engine), null, 1)], { type: 'application/json' });
@@ -1108,7 +1114,7 @@ export class App implements Presenter {
       });
       d.remove();
     };
-    else row(ui.importSave ?? 'Import file', '⤒').onclick = () => {
+    else row(this.t('importSave'), '⤒').onclick = () => {
       const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'application/json,.json';
       inp.onchange = async () => {
         const f = inp.files?.[0]; if (!f) return;

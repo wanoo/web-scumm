@@ -262,6 +262,7 @@ export class BrowserApi implements Api {
       assets: mod.assets, commands: mod.commands,
       minigameIds: mg ? Object.keys(mg) : undefined,
       minigameParams: mg ? Object.fromEntries(Object.entries(mg).map(([k, m]) => [k, m.required ?? []])) : undefined,
+      minigameBindings: mg ? Object.fromEntries(Object.entries(mg).map(([k, m]) => [k, (m as { bindings?: { images?: string[]; sfx?: string[] } }).bindings ?? {}])) : undefined,
     });
     return { ok: errors.length === 0, errors, warnings, ms: Date.now() - t0 };
   }

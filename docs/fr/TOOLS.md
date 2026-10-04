@@ -169,6 +169,7 @@ npm run solve -- --por=stubborn    # réduction d'ordre partiel : les actions co
 npm run replay -- session.json     # rejoue un fichier de session sur le vrai moteur, imprime le journal et l'état final
 npm run ids [-- --write --map]     # ids stables (schéma 3) écrits dans les sources, locales renommées, l'étape de migration des sauvegardes (docs/fr/UPGRADING.md)
 npm run playtests [-- --strict --out=.cache/playtests]  # les sessions partagées par les joueurs (games/<id>/playtests) rejouées et cumulées : temps par lieu, blocages, indices, heatmap
+npm run e2e -- <url> --lang fr           # le jeu entier dans cette langue ; échoue sur tout texte anglais par défaut du moteur visible
 npm run lint [-- --prove | --static | --json]   # lint de contenu : conditions insatisfaisables, règles masquées, faux indices, indices bloqués, actions jamais jouées
 npm run doctor                     # vérifie Node, modules Python, ffmpeg et navigateurs Playwright
 npm run check                      # vérifie les types et lance les tests Node

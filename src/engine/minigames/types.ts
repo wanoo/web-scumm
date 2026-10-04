@@ -27,4 +27,6 @@ export interface Minigame {
   required?: string[];
   /** Dot paths of player-visible strings in params. `*` visits every array item or object value. */
   textParams?: string[];
+  /** Params that name an image id or a sound id: the validator checks they exist (images are also found by shape). */
+  bindings?: { images?: string[]; sfx?: string[] };
 }

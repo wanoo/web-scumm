@@ -637,7 +637,14 @@ skin: {
 },
 ```
 
-Interface texts are in `ui` (including `tapToContinue`, "▼ tap to continue", and `ok`, the password button).
+Interface texts are in `ui` (including `tapToContinue`, "▼ tap to continue", and `ok`, the password button). The
+keys the engine shows itself have an **English default** when the game leaves them out (`src/engine/dom/ui-defaults.ts`):
+`verbs` (the verb bar's ARIA label), `saveFailed`, `saveAdjusted`, `updateAvailable`, `updateNow`, `advance`, `jump`,
+`duck`, `offlineStatus`, `offlineComplete`, `offlineRetry`, `save`, `load`, `slot`, `emptySlot`, `confirmOverwrite`,
+`exportSave`, `importSave`, `exportSession`, `shareSession`, `settings`, `textSpeed`, `textSize`, `slow`, `normal`,
+`fast`, `large`, `reduceMotion`, `readableFont`, `language`, `volumeMusic`, `volumeSfx`, `volumeVoice`. A game in
+another language provides them all: `npm run i18n -- status` lists the keys left to the defaults, and
+`npm run e2e -- --lang <xx>` fails when one is visible.
 
 ## The layout (written by the editor, never typed by hand)
 
@@ -662,6 +669,10 @@ After the first visit the game caches every image and sound for offline play (`o
 keeps only the current room and its neighbours); `assetBudgets` sizes the batches. A 40 MB game is 40 MB on the phone.
 
 ## Available minigames
+
+Each minigame declares its contract: `required` params, `textParams` (the player-visible strings, extracted for
+translation) and `bindings` (the params that name an image or a sound: `validate` checks they exist, e.g. `stroke`'s
+`sfx`, `cables`' `sfx.ring` / `sfx.stamp`, `scratch`'s `ticket` and `sfx`).
 
 Every minigame accepts `intro` (a line from the hints voice at the start) and `win` (the closing line). None of them can
 be failed, and all have a "Skip" button (except `scratch`, which is the sealed ending itself).

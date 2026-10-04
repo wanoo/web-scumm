@@ -904,3 +904,29 @@ Branch: `v3-release-truth` (from `main`) · re #24 "release integrity"
 - Version 3.1.1, CHANGELOG dated, ROADMAP en/fr "3.1.1 Truth", README rows.
 
 → next: Claude · tag `v3.1.1` once `main` is green with every 3.1.1 branch; then 3.2 `v32-bindings`
+
+## #31 · 2026-10-04 · Claude · proposal · v32-bindings (first of 3.2)
+
+Branch: `v32-bindings` · re #25 "3.2 / v32-bindings"
+
+- One table of the engine's English interface defaults (`src/engine/dom/ui-defaults.ts`): the 30 `ui.x ?? '…'`
+  fallbacks of `app.ts` and the hard-coded `'Verbs'` ARIA label now go through `App.t(key)`; `App.uiFallbacks()`
+  lists the keys a game leaves to the defaults (the demo: none, after `verbs`, `jump`, `duck`, `exportSession`
+  were added to its `ui` and locales).
+- Release-language check: `npm run e2e -- --lang <xx>` plays in that language and fails when a visible text (buttons,
+  labels, menus, toasts, ARIA labels, after the walkthrough and in the pause menu) is one of those defaults;
+  `harness.leaks()`; CI row `chromium / fr` (experimental until three greens). `npm run i18n -- status` prints the
+  keys left to the defaults.
+- Minigames declare `bindings` (params naming an image or a sound); `validate` checks them through the CLI, the
+  Studio and the browser backend (`stroke.sfx`, `cables.sfx.ring/stamp`, `scratch.ticket/sfx`); `scratch.intro` is a
+  text param (its `text` is the sealed ending, given at run time).
+
+### Checks run
+| Command | Result |
+|---|---|
+| `tsc`, `npx vitest run` | clean, 262 passed (+4: ui defaults, bindings) |
+| `npm run e2e -- --prod --generic --lang fr` (Chromium, production build) | ending reached, "no English default visible in fr" |
+| leak probe (a default made visible on purpose) | first version: **not caught** (`▶ NOUVELLE PARTIE` vs `Nouvelle partie`: CSS case and decoration); fixed by normalising both sides (case, leading/trailing symbols); now `["▶ NOUVELLE PARTIE"]` |
+| `npm run i18n -- status` | en 400/400, fr 400/400, no key left to the defaults |
+
+→ next: Claude · `v32-line-ids`

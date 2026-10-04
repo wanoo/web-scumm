@@ -14,9 +14,10 @@ let minigames: Record<string, { required?: string[] }> | undefined;
 try { minigames = { ...(await import('../src/engine/minigames/index')).minigames, ...(mod.minigames ?? {}) }; } catch { minigames = undefined; }
 const minigameIds = minigames ? Object.keys(minigames) : undefined;
 const minigameParams = minigames ? Object.fromEntries(Object.entries(minigames).map(([k, m]) => [k, m.required ?? []])) : undefined;
+const minigameBindings = minigames ? Object.fromEntries(Object.entries(minigames).map(([k, m]) => [k, (m as { bindings?: { images?: string[]; sfx?: string[] } }).bindings ?? {}])) : undefined;
 
 if (process.argv.includes('--report')) { process.stdout.write(reportMarkdown(report(game, layouts, { locales: loadLocales(resolve(GAME_DIR, 'locales')) }))); process.exit(0); }
-const { errors, warnings } = validate(game, layouts, { assets, minigameIds, minigameParams, commands: mod.commands });
+const { errors, warnings } = validate(game, layouts, { assets, minigameIds, minigameParams, minigameBindings, commands: mod.commands });
 const quiet = process.argv.includes('--errors');
 if (!quiet && warnings.length) {
   console.log(`\n⚠  ${warnings.length} warning(s)`);

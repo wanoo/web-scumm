@@ -7,7 +7,9 @@ import { el, finisher, num, stage, str } from './util';
 
 export const scratch: Minigame = {
   required: ['ticket'],
-  textParams: [],
+  // `text` is the decrypted sealed ending, given at run time, never content to translate.
+  textParams: ['intro'],
+  bindings: { images: ['ticket'], sfx: ['sfx'] },
   run(ctx: MinigameCtx) {
     const p = ctx.params;
     const ticket = str(p.ticket, '');

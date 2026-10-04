@@ -707,6 +707,8 @@ export interface UiTexts {
   shareSession?: string;
   /** Label of the "tap to continue" marker for screen readers (Space / Enter advance a line). English default. */
   advance?: string;
+  /** ARIA label of the verb bar (English default "Verbs"). */
+  verbs?: string;
   /** Prefix shown when obsolete references were removed from an otherwise valid save. */
   saveAdjusted?: string;
   /** The pause menu's offline row: its label, the word for a complete cache, the word that invites a retry. English defaults. */

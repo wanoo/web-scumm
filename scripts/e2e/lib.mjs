@@ -55,6 +55,8 @@ export async function launch(url, opts = {}) {
   // ?dev&at=<checkpoint> : dev-server only (ignored in a production build, see docs/en/TOOLS.md), skips the title screen.
   if (opts.dev !== false) dest.searchParams.set('dev', '');
   if (opts.at) dest.searchParams.set('at', opts.at);
+  // opts.lang: the game's language (`?lang=`), for the release-language check (`leaks()`).
+  if (opts.lang) dest.searchParams.set('lang', opts.lang);
   await page.goto(dest.toString());
   await page.waitForFunction(() => !!window.__game, null, { timeout: 15000 });
   // The ?dev debug layer (hotspot boxes, labels, an SVG laid directly over .scene) defaults to visible: hide it
@@ -422,6 +424,30 @@ export async function launch(url, opts = {}) {
     }
   }
 
+  /**
+   * Visible texts that are an English default of the engine (`App.uiFallbacks()`: the `ui` keys this game left to
+   * the defaults): in a release language, each one is a leak of the source language. Buttons, labels, menus, toasts,
+   * ARIA labels of the whole page.
+   */
+  async function leaks() {
+    return page.evaluate(() => {
+      // Compared after the CSS case and the decorations (▶, icons) are stripped: "▶ NOUVELLE PARTIE" is "nouvelle partie".
+      const norm = (t) => (t ?? '').replace(/\s+/g, ' ').replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '').trim().toLowerCase();
+      const defaults = Object.values(window.__game.uiFallbacks()).map(norm).filter(Boolean);
+      const seen = new Set();
+      const out = [];
+      for (const el of document.querySelectorAll('button, .verb, .choice, .menu span, .menu p, .menu h3, .toast, .tool, [aria-label]')) {
+        for (const raw of [el.innerText, el.getAttribute('aria-label')]) {
+          const text = norm(raw);
+          if (!text || seen.has(text)) continue;
+          seen.add(text);
+          if (defaults.includes(text)) out.push((raw ?? '').trim());
+        }
+      }
+      return out;
+    }).catch(() => []);
+  }
+
   /** The game reached an ending: the engine says so (`state.done`), not a screenshot of a card. */
   async function ended() { return page.evaluate(() => !!window.__game?.engine?.state?.done).catch(() => false); }
 
@@ -429,6 +455,6 @@ export async function launch(url, opts = {}) {
 
   return {
     page, errors, screenshot, tapXY, tapScene, drag, line, pointOn, tapTarget, verb, verbById,
-    itemSlot, item, inInventory, target, state, diagnose, waitIdle, openMap, say, pick, answer, skip, act, play, walkthrough, close, ended,
+    itemSlot, item, inInventory, target, state, diagnose, waitIdle, openMap, say, pick, answer, skip, act, play, walkthrough, close, ended, leaks,
   };
 }

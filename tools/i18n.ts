@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { join } from 'node:path';
 import { localeStatus, mergeLocale, textPaths } from '../src/engine/tools/i18n';
 import { GAME, GAME_DIR, loadGameModule } from './game';
+import { uiFallbacks } from '../src/engine/dom/ui-defaults';
 
 const { game } = await loadGameModule();
 const args = process.argv.slice(2);
@@ -51,6 +52,8 @@ if (cmd === 'status') {
     for (const m of st.stale.slice(0, 10)) console.log(`     stale   ${m}`);
     if (l !== base) for (const m of st.same.slice(0, 10)) console.log(`     same    ${m}`);
   }
+  const fb = Object.keys(uiFallbacks(game.ui));
+  if (fb.length) console.log(`ℹ  ${fb.length} ui key(s) left to the English defaults (a player sees them in English in every language): ${fb.join(', ')}`);
   process.exit(bad ? 1 : 0);
 }
 console.log('usage: npm run i18n -- extract [--lang <xx>] | status');

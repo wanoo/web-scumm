@@ -176,6 +176,7 @@ npm run solve -- --por=stubborn    # partial-order reduction: commuting actions 
 npm run replay -- session.json     # plays a session file on the real engine, prints the journal and the final state
 npm run ids [-- --write --map]     # stable ids (schema 3) written into the sources, locales renamed, the save migration step (docs/en/UPGRADING.md)
 npm run playtests [-- --strict --out=.cache/playtests]  # the sessions players shared (games/<id>/playtests) replayed and summed up: time per room, stalls, hints, heat map
+npm run e2e -- <url> --lang fr           # the whole game in that language; fails on any visible English default of the engine
 npm run lint [-- --prove | --static | --json]   # content lint: conditions nothing can satisfy, hidden rules, red herrings, stuck hints, actions never run
 npm run doctor                     # checks Node, Python modules, ffmpeg and Playwright browsers
 npm run check                      # type-check and Node tests
