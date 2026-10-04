@@ -10,7 +10,7 @@ game can be finished, play it in landscape on any phone, offline after the first
 |---|---|
 | 🎮 **Play the sample game** | https://wanoo.github.io/web-scumm/ (phone in landscape, or desktop) |
 | 🛠 **Try the Studio** | https://wanoo.github.io/web-scumm/studio.html (demo mode: edits stay in your browser) |
-| 📦 **Source** | https://github.com/wanoo/web-scumm · release v2.5.0 · [release notes](docs/en/ROADMAP.md) |
+| 📦 **Source** | https://github.com/wanoo/web-scumm · preview v3.0.0-beta.1 · [changelog](CHANGELOG.md) |
 
 ![Three rooms of the sample game](docs/img/banner.jpg)
 
@@ -59,13 +59,16 @@ went through most turn red; a card says why the solver keeps a thing (critical, 
 
 ## Quick start
 
-Needs Node 22+. For the art tools: Python 3 with `pip install -r requirements.txt` (Pillow, NumPy, SciPy) and ffmpeg.
+Needs Node 22+. The complete test suite and art tools also need Python 3 with
+`pip install -r requirements.txt` (Pillow, NumPy, SciPy); audio rendering needs ffmpeg.
 
 ```bash
 npm install
-npm run dev          # the sample game; open the URL on your phone (same Wi-Fi), hold it in landscape
+npm run dev          # the sample game on this computer
+npm run dev:lan      # opt in to LAN access, then open the URL on your phone (same Wi-Fi)
 npm run studio       # the Studio at /__studio/: rooms, texts, storyboard, assets, checks, play, notes
-npm test             # 154 tests: engine, tools, the sample game's walkthrough
+npm test             # Node engine/tools tests and the sample game's walkthrough
+npm run test:assets  # Python-backed image and asset-pipeline tests
 ```
 
 Make your own game:

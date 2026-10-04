@@ -9,6 +9,7 @@ const SLOW_MIN = 25, SLOW_MAX = 260; // speed in logical units per second
 
 export const stroke: Minigame = {
   required: ['target', 'hand'],
+  textParams: ['intro', 'win', 'tooFast'],
   run(ctx: MinigameCtx) {
     const p = ctx.params;
     const target = str(p.target, '');

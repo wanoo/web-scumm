@@ -14,6 +14,10 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .spr { position: absolute; pointer-events: none; transform-origin: 50% 100%; transition: opacity .3s; }
 .spr.flip { transform: scaleX(-1); }
 .scene.pixel img { image-rendering: pixelated; } /* GameDef.skin.pixelArt */
+.sr-only { position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:nowrap!important; border:0!important }
+.a11y-targets { position:absolute; inset:0; z-index:35; pointer-events:none }
+.a11y-target { position:absolute; padding:0; border:2px solid transparent; color:transparent; background:transparent; opacity:.01; pointer-events:auto }
+.a11y-target:focus-visible { opacity:1; color:#fff; background:rgba(12,16,28,.82); border-color:#ffd84d; outline:3px solid #111; outline-offset:2px; font:10px var(--font-pixel); z-index:2 }
 .shadow { position: absolute; border-radius: 50%; background: rgba(25, 5, 35, .35); pointer-events: none; }
 .side { flex: 1; min-width: 0; background: #07070d; border-left: 2px solid #1e2a3a; display: flex; flex-direction: column; gap: 6px; padding: 8px; box-sizing: border-box; }
 .side.off { opacity: .35; pointer-events: none; }
@@ -49,6 +53,9 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .spark { position: absolute; transform: translate(-50%, -50%); pointer-events: none; z-index: 970; animation: spark 1s ease-in-out infinite; }
 @keyframes spark { 50% { transform: translate(-50%, -50%) scale(1.35) rotate(20deg); opacity: .6; } }
 .toast { position: absolute; left: 50%; top: 6%; transform: translateX(-50%); background: rgba(20, 12, 30, .9); border: 2px solid #ffd84d; color: #ffd84d; padding: .3em .8em; border-radius: 6px; z-index: 999; pointer-events: none; white-space: nowrap; }
+.update-banner { position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%); z-index: 6000; max-width: min(92vw, 36rem); display: flex; align-items: center; gap: .8rem; padding: .7rem .9rem; border: 2px solid #ffd84d; border-radius: 8px; background: #120d1c; color: #efe7d6; box-shadow: 0 6px 24px #0009; }
+.update-banner button { border: 2px solid #ffd84d; border-radius: 6px; padding: .45em .65em; background: #0b1220; color: #ffd84d; white-space: nowrap; cursor: pointer; }
+.update-banner button:disabled { opacity: .55; cursor: wait; }
 .hintbadge { position: absolute; left: 3%; top: 4%; width: 9%; z-index: 985; pointer-events: none; animation: bob 1s ease-in-out infinite; }
 .choices { display: flex; flex-direction: column; gap: 3px; overflow: auto; min-height: 0; }
 .choices .who { display: flex; align-items: center; gap: 6px; color: #fff; margin-bottom: 2px; }

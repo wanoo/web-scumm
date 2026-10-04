@@ -23,7 +23,7 @@
 //   play(steps)                   plays [{ verb, a, b? }, …] (verb ids, see src/engine/core/engine.ts Action) by tapping
 //   walkthrough(steps)            replays session entries (`npm run solve -- --json` steps, an exported session) by tapping
 //   close()                       closes the browser
-import { chromium } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 import { mkdirSync, readdirSync, rmSync } from 'node:fs';
 
 const VIEWPORT = { width: 844, height: 390 };
@@ -35,9 +35,12 @@ export async function launch(url, opts = {}) {
   mkdirSync(out, { recursive: true });
   for (const f of readdirSync(out)) if (f.endsWith('.png')) rmSync(`${out}/${f}`);
 
-  const browser = await chromium.launch();
+  const browserName = opts.browser ?? process.env.E2E_BROWSER ?? 'chromium';
+  const browserType = { chromium, firefox, webkit }[browserName];
+  if (!browserType) throw new Error(`unknown E2E browser "${browserName}" (expected chromium, webkit or firefox)`);
+  const browser = await browserType.launch();
   const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
-  const cdp = await page.context().newCDPSession(page);
+  const cdp = browserName === 'chromium' ? await page.context().newCDPSession(page) : null;
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.stack ?? String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
@@ -72,15 +75,21 @@ export async function launch(url, opts = {}) {
     await tapXY(r.x + (x / LOGICAL.width) * r.width, r.y + (y / LOGICAL.height) * r.height);
   }
 
-  /** A finger drag through touch events (CDP), from which the browser derives real pointer events. `points` are logical scene points. */
+  /** A finger drag through touch events in Chromium, with pointer-event fallback on the other browser engines. */
   async function drag(points, stepMs = 16) {
     const r = await sceneRect();
     const toPx = ([x, y]) => [r.x + (x / LOGICAL.width) * r.width, r.y + (y / LOGICAL.height) * r.height];
-    const send = (type, [x, y]) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
     const first = toPx(points[0]);
-    await send('touchStart', first);
-    for (const p of points.slice(1)) { await send('touchMove', toPx(p)); await page.waitForTimeout(stepMs); }
-    await send('touchEnd', toPx(points[points.length - 1]));
+    if (cdp) {
+      const send = (type, [x, y]) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
+      await send('touchStart', first);
+      for (const p of points.slice(1)) { await send('touchMove', toPx(p)); await page.waitForTimeout(stepMs); }
+      await send('touchEnd', toPx(points[points.length - 1]));
+    } else {
+      await page.mouse.move(first[0], first[1]); await page.mouse.down();
+      for (const p of points.slice(1)) { const [x, y] = toPx(p); await page.mouse.move(x, y); await page.waitForTimeout(stepMs); }
+      await page.mouse.up();
+    }
   }
   const line = (a, z, n) => Array.from({ length: n + 1 }, (_, i) => [a[0] + ((z[0] - a[0]) * i) / n, a[1] + ((z[1] - a[1]) * i) / n]);
 

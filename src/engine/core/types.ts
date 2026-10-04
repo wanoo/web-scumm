@@ -124,10 +124,10 @@ export type Cmd =
   | { shake: number }
   // --- logic
   | { if: Cond; then: Cmd[]; else?: Cmd[] }
-  | { once: Cmd[]; key?: string }
-  | { nth: Cmd[][]; key?: string }
-  | { cycle: Cmd[][]; key?: string }
-  | { random: Cmd[][]; key?: string }
+  | { once: Cmd[]; /** Stable persistence id (v3). */ id?: Id; /** @deprecated v2 alias. */ key?: string }
+  | { nth: Cmd[][]; /** Stable persistence id (v3). */ id?: Id; /** @deprecated v2 alias. */ key?: string }
+  | { cycle: Cmd[][]; /** Stable persistence id (v3). */ id?: Id; /** @deprecated v2 alias. */ key?: string }
+  | { random: Cmd[][]; /** Stable persistence id (v3). */ id?: Id; /** @deprecated v2 alias. */ key?: string }
   // --- sequences and screens
   | { cutscene: Cmd[] }
   | { choice: Choice[] }
@@ -146,6 +146,8 @@ export type Cmd =
   | { end: true };
 
 export interface Choice {
+  /** Stable id used by saves, translations and voice production (required by schema v3). */
+  id?: Id;
   text: string;
   if?: Cond;
   /** Disappears once chosen. */
@@ -180,6 +182,8 @@ export interface VerbDef {
  * for two inventory items (combining).
  */
 export interface Rule {
+  /** Stable id used by saves, diagnostics and the puzzle graph (required by schema v3). */
+  id?: Id;
   verb: VerbId | VerbId[];
   a: Id | Id[];
   b?: Id | Id[];
@@ -317,6 +321,8 @@ export interface HotspotDef {
 }
 
 export interface TalkTopic {
+  /** Stable id used by saves and translations (required by schema v3). */
+  id?: Id;
   topic: string;
   if?: Cond;
   do: Cmd[];
@@ -366,10 +372,14 @@ export interface ScriptDef {
   /** Starts again from the top when done. A loop needs a `wait`, `waitUntil` or `waitEvent`. */
   loop?: boolean;
   do: Cmd[];
+  /** Stable id of each command in `do`, at the matching position (required by schema v3). */
+  stepIds?: Id[];
 }
 
 /** A listener: when `on` is emitted (`{ emit }`) and the condition holds, `do` runs. `once`: only the first time. */
 export interface EventRule {
+  /** Stable id used by saves and diagnostics (required by schema v3). */
+  id?: Id;
   on: Id;
   if?: Cond;
   once?: boolean;
@@ -520,6 +530,8 @@ export interface SkinDef {
 }
 
 export interface GameDef {
+  /** Authoring schema. Version 3 requires stable ids and is compiled before use. Omitted means legacy v2 content. */
+  schemaVersion?: 2 | 3;
   id: Id;
   title: string;
   /** Language of the content as written (BCP 47, e.g. 'en', 'fr'). Translations: `locales/<lang>.json` (tools/i18n.ts). */
@@ -584,6 +596,8 @@ export interface GameDef {
    * readable font (`skin.fonts.readable`), music / sound / voice volumes. Kept in the browser, outside the save.
    */
   settings?: boolean;
+  /** Conservative background-preload budgets. They never affect assets required to render the current room. */
+  assetBudgets?: { initialImages?: number; neighboringRooms?: number; audioFiles?: number };
   /**
    * How to bring an older save up to date, one step per version, as data: renames and drops. A save whose version has
    * no migration starts a new game (as before). The chain must reach `saveVersion`.
@@ -612,8 +626,19 @@ export interface Migration {
   /** `room.actor` → `room.actor`. */
   renameActor?: Record<string, string>;
   renamePlace?: Record<Id, Id>;
+  /** Persistent v3 ids. */
+  renameCounter?: Record<Id, Id>;
+  renameSeen?: Record<Id, Id>;
+  renameScript?: Record<Id, Id>;
+  /** Script id → old step id → new step id. */
+  renameScriptStep?: Record<Id, Record<Id, Id>>;
+  renamePlayer?: Record<Id, Id>;
+  renameCharacter?: Record<Id, Id>;
   dropFlag?: Id[];
   dropItem?: Id[];
+  dropCounter?: Id[];
+  dropSeen?: Id[];
+  dropScript?: Id[];
 }
 
 export interface UiTexts {
@@ -667,6 +692,11 @@ export interface UiTexts {
   /** The session file (the inputs since the game started: a bug report `npm run replay` reproduces). */
   exportSession?: string;
   confirmOverwrite?: string;
+  /** Visible warning when the browser refuses or loses a save write. */
+  saveFailed?: string;
+  /** Prompt displayed when a new PWA build is ready. */
+  updateAvailable?: string;
+  updateNow?: string;
   // --- settings (`GameDef.settings`); English defaults when absent
   settings?: string;
   textSpeed?: string;
@@ -739,7 +769,7 @@ export interface GameState {
   /** Room of each moving character (`CharacterDef.room`, `moveActor`). Absent in old saves. */
   where?: Record<Id, Id>;
   /** Position of each script: next command, finished, stopped. Absent in old saves. */
-  scripts?: Record<Id, { pc: number; done?: boolean; off?: boolean }>;
+  scripts?: Record<Id, { pc: number; /** Stable next-step id in schema v3 saves. */ step?: Id; done?: boolean; off?: boolean }>;
   /** Camera of the current room: left edge x, or following the hero. */
   camera?: { x: number; follow: boolean };
   /** The character the player controls (`GameDef.players`; otherwise `hero`). */

@@ -25,4 +25,6 @@ export interface Minigame {
   run(ctx: MinigameCtx): Promise<void>;
   /** Required params: the validator flags a `{ minigame }` that doesn't provide them. */
   required?: string[];
+  /** Dot paths of player-visible strings in params. `*` visits every array item or object value. */
+  textParams?: string[];
 }

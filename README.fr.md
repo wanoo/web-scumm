@@ -11,7 +11,7 @@ après la première visite.
 |---|---|
 | 🎮 **Jouer au jeu d'exemple** | https://wanoo.github.io/web-scumm/ (téléphone en paysage, ou ordinateur) |
 | 🛠 **Essayer le Studio** | https://wanoo.github.io/web-scumm/studio.html (mode démo : les modifications restent dans ton navigateur) |
-| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v2.5.0 · [notes de version](docs/fr/ROADMAP.md) |
+| 📦 **Code source** | https://github.com/wanoo/web-scumm · préversion v3.0.0-beta.1 · [journal des changements](CHANGELOG.md) |
 
 ![Trois lieux du jeu d'exemple](docs/img/banner.jpg)
 
@@ -63,13 +63,16 @@ le solveur est le plus passé rougissent ; une fiche dit pourquoi le solveur gar
 
 ## Démarrer
 
-Node 22+. Pour les outils d'images : Python 3 avec `pip install -r requirements.txt` (Pillow, NumPy, SciPy) et ffmpeg.
+Node 22+. La suite de tests complète et les outils d'images demandent aussi Python 3 avec
+`pip install -r requirements.txt` (Pillow, NumPy, SciPy) ; le rendu audio demande ffmpeg.
 
 ```bash
 npm install
-npm run dev          # le jeu d'exemple ; ouvre l'URL sur ton téléphone (même Wi-Fi), tiens-le en paysage
+npm run dev          # le jeu d'exemple sur cet ordinateur
+npm run dev:lan      # autorise le réseau local, puis ouvre l'URL sur ton téléphone (même Wi-Fi)
 npm run studio       # le Studio sur /__studio/ : lieux, textes, storyboard, images, vérifications, jeu, notes
-npm test             # 154 tests : moteur, outils, parcours du jeu d'exemple
+npm test             # tests Node du moteur, des outils et parcours du jeu d'exemple
+npm run test:assets  # tests Python des images et du pipeline d'assets
 ```
 
 Faire son propre jeu :

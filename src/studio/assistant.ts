@@ -3,7 +3,7 @@
 // is selected. On the dev server the conversation goes through the relay (POST /__studio/api/assistant/chat, server-sent
 // events; tools/studio/assistant.ts); in demo mode the page runs the same loop itself (tools/studio/assistant-loop.ts)
 // against the browser backend. Without a key, "Send as a task" writes a note for an MCP-connected agent.
-// The key stays in this browser's localStorage and is sent with each request; the Studio never writes it to disk.
+// The key stays in this tab's sessionStorage and is sent with each request; the Studio never writes it to disk.
 import agentsMd from '../../AGENTS.md?raw';
 import type { AssistantContext, AssistantEvent, ChatTurn, Provider, ProviderKind } from '../../tools/studio/assistant-loop';
 import type { DocName, ToolBackend } from '../../tools/studio/tools';
@@ -24,12 +24,20 @@ const KIND_LABEL: [ProviderKind, string][] = [['openai', 'OpenAI-compatible'], [
 
 interface Settings { preset: PresetId; kind: ProviderKind; baseUrl: string; model: string; apiKey: string }
 const STORE = 'web-scumm.studio-assistant';
+const SESSION_KEY = `${STORE}.apiKey`;
 const DEFAULTS: Settings = { preset: 'anthropic', kind: 'anthropic', baseUrl: PRESETS.anthropic.baseUrl, model: 'claude-sonnet-5', apiKey: '' };
 
 function loadSettings(): Settings {
-  try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(STORE) ?? '{}') }; } catch { return { ...DEFAULTS }; }
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE) ?? '{}');
+    delete saved.apiKey;
+    return { ...DEFAULTS, ...saved, apiKey: sessionStorage.getItem(SESSION_KEY) ?? '' };
+  } catch { return { ...DEFAULTS }; }
 }
-function saveSettings(s: Settings) { try { localStorage.setItem(STORE, JSON.stringify(s)); } catch { /* private mode: this page only */ } }
+function saveSettings(s: Settings) {
+  try { const { apiKey: _secret, ...safe } = s; localStorage.setItem(STORE, JSON.stringify(safe)); } catch { /* private mode: this page only */ }
+  try { if (s.apiKey) sessionStorage.setItem(SESSION_KEY, s.apiKey); else sessionStorage.removeItem(SESSION_KEY); } catch { /* keep in memory */ }
+}
 
 /** What the Studio tells the Assistant. */
 export interface AssistantCtx {
@@ -182,7 +190,7 @@ export class AssistantPanel {
         h('label', null, 'Model'), h('div', null, model, h('datalist', { id: 'assistant-models' }, models.map((m) => h('option', { value: m }))),
           models.length ? h('div', { class: 'amodels' }, models.map((m) => h('button', { class: `chip${m === s.model ? ' on' : ''}`, onclick: () => { this.s.model = m; commit(); this.renderSettings(); } }, m))) : null),
         h('label', null, 'API key'), h('div', null, key, s.apiKey ? h('button', { class: 'link danger', onclick: () => { this.s.apiKey = ''; commit(); this.renderSettings(); } }, 'Forget the key') : null)),
-      h('p', { class: 'awarn' }, '⚠ The key is kept in this browser only (localStorage, readable by anything running on this page) and sent with each request ',
+      h('p', { class: 'awarn' }, '⚠ The key is kept only for this browser tab (sessionStorage) and sent with each request ',
         this.ctx.demo ? 'directly to the provider.' : 'to the Studio server, which passes it to the provider and never writes or logs it.',
         ' Use a key with a spending limit, and forget it on a shared computer.'),
       h('p', { class: 'muted small', hidden: s.kind !== 'ollama' }, 'Ollama runs on your machine: ', h('code', null, 'ollama pull ' + (s.model || 'llama3.1')), '. ',

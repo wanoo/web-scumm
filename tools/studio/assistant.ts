@@ -41,11 +41,22 @@ function sendJson(res: ServerResponse, status: number, data: unknown) {
   res.end(JSON.stringify(data));
 }
 
+const PROVIDER_ORIGINS = new Set(['https://api.openai.com', 'https://api.anthropic.com', 'https://api.mistral.ai']);
+const privateHost = (host: string) => host === 'localhost' || host === '::1' || /^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.endsWith('.local');
+
 /** The request's provider, checked (the key is kept as given, only in memory). */
-export function parseProvider(p: unknown): Provider {
+export function parseProvider(p: unknown, allowCustom = process.env.WEB_SCUMM_ALLOW_CUSTOM_PROVIDER === '1', allowPrivateForTests = false): Provider {
   const o = (p ?? {}) as Record<string, unknown>;
   if (typeof o.kind !== 'string' || !KINDS.has(o.kind)) throw new StudioError('`provider.kind` must be openai, anthropic or ollama');
   if (typeof o.baseUrl !== 'string' || !/^https?:\/\/[^\s]+$/.test(o.baseUrl.trim())) throw new StudioError('`provider.baseUrl` must be an http(s) URL');
+  let url: URL;
+  try { url = new URL(o.baseUrl.trim()); } catch { throw new StudioError('`provider.baseUrl` is not a valid URL'); }
+  if (url.username || url.password) throw new StudioError('provider URLs cannot contain credentials');
+  const ollama = o.kind === 'ollama' && ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
+  if (!PROVIDER_ORIGINS.has(url.origin) && !ollama) {
+    if (!allowCustom) throw new StudioError('custom provider URLs are disabled (set WEB_SCUMM_ALLOW_CUSTOM_PROVIDER=1 to opt in)');
+    if (!allowPrivateForTests && (url.protocol !== 'https:' || privateHost(url.hostname))) throw new StudioError('custom providers must use HTTPS and cannot target local or private network hosts');
+  }
   if (typeof o.model !== 'string' || !o.model.trim()) throw new StudioError('`provider.model` is required');
   if (o.apiKey !== undefined && typeof o.apiKey !== 'string') throw new StudioError('`provider.apiKey` must be a string');
   return { kind: o.kind as Provider['kind'], baseUrl: o.baseUrl.trim(), model: o.model.trim(), apiKey: (o.apiKey as string | undefined)?.trim() || undefined };
@@ -68,6 +79,10 @@ export interface AssistantOptions {
   /** The dev server's URL (screenshots). */
   devUrl: () => string;
   fetch?: typeof fetch;
+  /** Explicit opt-in for a non-preset public HTTPS endpoint. */
+  allowCustomProvider?: boolean;
+  /** Unit tests only: production callers must never set this. */
+  allowPrivateProviderForTests?: boolean;
 }
 
 /** Connect-style handler for /__studio/api/assistant/* (req.url relative to that prefix). */
@@ -88,7 +103,7 @@ export function assistantHandler(studio: Studio, o: AssistantOptions) {
     }
 
     let provider: Provider, messages: ChatTurn[];
-    try { provider = parseProvider(body.provider); messages = parseMessages(body.messages); } catch (e) {
+    try { provider = parseProvider(body.provider, o.allowCustomProvider, o.allowPrivateProviderForTests); messages = parseMessages(body.messages); } catch (e) {
       sendJson(res, 400, { error: (e as Error).message });
       return;
     }
@@ -117,6 +132,7 @@ export function registerAssistant(server: ViteDevServer, studio: Studio = create
   const handler = assistantHandler(studio, {
     root: studio.root,
     devUrl: () => server.resolvedUrls?.local[0] ?? `http://localhost:${server.config.server.port ?? 5173}${server.config.base}`,
+    allowCustomProvider: process.env.WEB_SCUMM_ALLOW_CUSTOM_PROVIDER === '1',
   });
   server.middlewares.use('/__studio/api/assistant', (req, res, next) => { void handler(req, res, next); });
 }

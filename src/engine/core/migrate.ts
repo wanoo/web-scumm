@@ -35,6 +35,21 @@ export function applyMigration(s: GameState, m: Migration): GameState {
   s.props = renameKeys(s.props, m.renameProp);
   s.actors = renameKeys(s.actors, m.renameActor);
   s.unlocked = renameList(s.unlocked, m.renamePlace) ?? [];
+  s.counters = renameKeys(s.counters, m.renameCounter);
+  for (const k of m.dropCounter ?? []) delete s.counters[k];
+  s.seen = renameKeys(s.seen, m.renameSeen);
+  for (const k of m.dropSeen ?? []) delete s.seen[k];
+  if (s.scripts) {
+    const scripts = renameKeys(s.scripts, m.renameScript);
+    for (const k of m.dropScript ?? []) delete scripts[k];
+    for (const [id, st] of Object.entries(scripts)) if (st.step) st.step = m.renameScriptStep?.[id]?.[st.step] ?? st.step;
+    s.scripts = scripts;
+  }
+  if (m.renameCharacter && s.where) s.where = renameKeys(s.where, m.renameCharacter);
+  if (m.renamePlayer) {
+    s.active = s.active ? (m.renamePlayer[s.active] ?? s.active) : s.active;
+    if (s.players) s.players = renameKeys(s.players, m.renamePlayer);
+  }
   s.v = m.from + 1;
   return s;
 }

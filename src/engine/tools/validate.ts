@@ -36,6 +36,14 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   const maxText = opts.maxText ?? 140;
   const err = (where: string, msg: string) => errors.push(`${where} › ${msg}`);
   const warn = (where: string, msg: string) => warnings.push(`${where} › ${msg}`);
+  const v3Ids = new Map<string, string>();
+  const stable = (id: string | undefined, where: string, kind: string) => {
+    if (game.schemaVersion !== 3) return;
+    if (!id) { err(where, `${kind} requires a stable "id" in schema v3`); return; }
+    const previous = v3Ids.get(id);
+    if (previous) err(where, `duplicate stable id "${id}" (also in ${previous})`);
+    else v3Ids.set(id, where);
+  };
 
   const roomIds = new Set<string>();
   for (const r of game.rooms) {
@@ -260,10 +268,11 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     if ('toast' in c) { text(c.toast, where); return; }
     if ('shake' in c) return;
     if ('if' in c) { cond(c.if, where, room); return; }
-    if ('once' in c || 'nth' in c || 'cycle' in c || 'random' in c || 'cutscene' in c) return;
+    if ('once' in c || 'nth' in c || 'cycle' in c || 'random' in c) { stable(c.id, where, 'persistent command block'); return; }
+    if ('cutscene' in c) return;
     if ('choice' in c) {
       if (!c.choice.length) err(where, 'choice with no option');
-      c.choice.forEach((o, j) => { text(o.text, `${where}.choice[${j}]`); cond(o.if, `${where}.choice[${j}]`, room); });
+      c.choice.forEach((o, j) => { const w = `${where}.choice[${j}]`; stable(o.id, w, 'choice'); text(o.text, w); cond(o.if, w, room); });
       return;
     }
     if ('minigame' in c) {
@@ -300,6 +309,10 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     list?.forEach((sc, i) => {
       const w = `${where}[${i}]`;
       if (!sc.id) err(w, 'script without id');
+      if (game.schemaVersion === 3) {
+        if (sc.stepIds?.length !== sc.do.length) err(w, `schema v3 script needs one stable step id per command (${sc.do.length} expected)`);
+        for (const [j, id] of (sc.stepIds ?? []).entries()) stable(id, `${w}.stepIds[${j}]`, 'script step');
+      }
       cond(sc.while, `${w}.while`, room);
       if (!sc.do?.length) { err(w, 'script with no command'); return; }
       const pauses = sc.do.some((c) => typeof c === 'object' && ('wait' in c || 'waitUntil' in c || 'waitEvent' in c));
@@ -312,6 +325,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   const events = (list: EventRule[] | undefined, where: string, room?: RoomDef) => {
     list?.forEach((ev, i) => {
       const w = `${where}[${i}]`;
+      stable(ev.id, w, 'event listener');
       if (!ev.on) err(w, 'listener without event id ("on")');
       else if (!listened.has(ev.on)) listened.set(ev.on, w);
       cond(ev.if, w, room);
@@ -341,6 +355,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   const ids = (x: Id | Id[] | undefined) => x === undefined ? [] : Array.isArray(x) ? x : [x];
   const verbIds = new Set(game.verbs.map((v) => v.id));
   const rule = (r: Rule, where: string, room?: RoomDef) => {
+    stable(r.id, where, 'rule');
     for (const v of ids(r.verb as Id | Id[])) if (!verbIds.has(v as VerbId)) err(where, `unknown verb: "${v}"`);
     const known = (id: Id) => !!items[id] || (room ? entities(room).has(id) : allEntities.has(id));
     for (const a of ids(r.a)) if (!known(a)) err(where, `"${a}" is neither an item nor something in the room`);
@@ -529,7 +544,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       const tw = `${w}.talk.${aid}`;
       if (!r.actors?.[aid]) err(tw, `"${aid}" is not an actor in the room`);
       if (!topics.length) warn(tw, 'no topics');
-      topics.forEach((t, i) => { text(t.topic, `${tw}[${i}]`); cond(t.if, `${tw}[${i}]`, r); cmds(t.do, `${tw}[${i}]`, r); });
+      topics.forEach((t, i) => { const xw = `${tw}[${i}]`; stable(t.id, xw, 'talk topic'); text(t.topic, xw); cond(t.if, xw, r); cmds(t.do, xw, r); });
     }
     (r.hints ?? []).forEach((h, i) => { cond(h.until, `${w}.hints[${i}]`, r); texts(h.lines, `${w}.hints[${i}]`); });
     if ((r.on ?? []).length && !(r.hints ?? []).length) warn(w, 'has puzzles but no hints');
@@ -571,6 +586,9 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     for (const v of Object.values(m.renameItem ?? {})) if (!items[v]) err(w, `renamed item does not exist: "${v}"`);
     for (const v of Object.values(m.renameRoom ?? {})) if (!rooms.has(v)) err(w, `renamed room does not exist: "${v}"`);
     for (const v of Object.values(m.renamePlace ?? {})) if (!places[v]) err(w, `renamed map place does not exist: "${v}"`);
+    for (const v of Object.values(m.renameScript ?? {})) if (!scriptIds.has(v)) err(w, `renamed script does not exist: "${v}"`);
+    for (const v of Object.values(m.renamePlayer ?? {})) if (!playerIds.includes(v)) err(w, `renamed player does not exist: "${v}"`);
+    for (const v of Object.values(m.renameCharacter ?? {})) if (!chars[v]) err(w, `renamed character does not exist: "${v}"`);
     for (const v of Object.values(m.renameProp ?? {})) { const [rid, pid] = v.split('.'); if (!rooms.get(rid)?.props?.[pid]) err(w, `renamed prop does not exist: "${v}"`); }
     for (const v of Object.values(m.renameActor ?? {})) { const [rid, aid] = v.split('.'); if (!rooms.get(rid)?.actors?.[aid]) err(w, `renamed actor does not exist: "${v}"`); }
   }

@@ -1,5 +1,18 @@
 import type { Cmd, GameDef, Layout, RoomDef, Rule, VerbId } from './types';
 
+export type GameSource = GameDef;
+export type CompiledGame = Readonly<GameDef>;
+
+const compiled = new WeakSet<object>();
+
+/** Recursively freezes authoring data so renderer or tooling mutations fail immediately in development and tests. */
+function deepFreeze<T>(value: T, seen = new WeakSet<object>()): T {
+  if (!value || typeof value !== 'object' || seen.has(value as object)) return value;
+  seen.add(value as object);
+  for (const child of Object.values(value as Record<string, unknown>)) deepFreeze(child, seen);
+  return Object.freeze(value);
+}
+
 /** Declares a room. Does nothing but type it: autocomplete guides the writing. */
 export function defineRoom(room: RoomDef): RoomDef {
   return room;
@@ -29,8 +42,8 @@ export function normalizeExits(game: GameDef): GameDef {
       if (r.on?.some((x) => x.exit === id)) continue;
       r.hotspots = { ...(r.hotspots ?? {}), [id]: r.hotspots?.[id] ?? { name: ex.name, kind: ['exit', ...(ex.kind ?? [])], visible: ex.visible, exit: true } };
       const verb: VerbId[] = ex.verbs ?? (defaults.length ? defaults : verbs.filter((v) => !['look', 'talk', 'give', 'take'].includes(v)));
-      rules.push({ verb, a: id, if: ex.if, do: [...(ex.sfx ? [{ sfx: ex.sfx }] : []), { goto: ex.to, at: ex.entry }], exit: id });
-      if (ex.locked) rules.push({ verb, a: id, do: [ex.locked], exit: id });
+      rules.push({ id: `exit.${r.id}.${id}.go`, verb, a: id, if: ex.if, do: [...(ex.sfx ? [{ sfx: ex.sfx }] : []), { goto: ex.to, at: ex.entry }], exit: id });
+      if (ex.locked) rules.push({ id: `exit.${r.id}.${id}.locked`, verb, a: id, do: [ex.locked], exit: id });
     }
     r.on = [...(r.on ?? []), ...rules];
   }
@@ -50,10 +63,10 @@ export function assignKeys(game: GameDef): GameDef {
       if (typeof c === 'string') return;
       const here = `${prefix}.${i}`;
       if ('anim' in c && c.at) { for (const [i, b] of Object.entries(c.at)) walk(b, `${here}.at${i}`); return; }
-      if ('once' in c) { c.key ??= here; walk(c.once, here); }
-      else if ('nth' in c) { c.key ??= here; c.nth.forEach((b, j) => walk(b, `${here}.${j}`)); }
-      else if ('cycle' in c) { c.key ??= here; c.cycle.forEach((b, j) => walk(b, `${here}.${j}`)); }
-      else if ('random' in c) { c.key ??= here; c.random.forEach((b, j) => walk(b, `${here}.${j}`)); }
+      if ('once' in c) { c.key ??= c.id ?? here; walk(c.once, here); }
+      else if ('nth' in c) { c.key ??= c.id ?? here; c.nth.forEach((b, j) => walk(b, `${here}.${j}`)); }
+      else if ('cycle' in c) { c.key ??= c.id ?? here; c.cycle.forEach((b, j) => walk(b, `${here}.${j}`)); }
+      else if ('random' in c) { c.key ??= c.id ?? here; c.random.forEach((b, j) => walk(b, `${here}.${j}`)); }
       else if ('if' in c) { walk(c.then, here + 't'); walk(c.else, here + 'e'); }
       else if ('parallel' in c) c.parallel.forEach((b, j) => walk(b, `${here}.p${j}`));
       else if ('cutscene' in c) walk(c.cutscene, here + 'c');
@@ -79,6 +92,19 @@ export function assignKeys(game: GameDef): GameDef {
   game.events?.forEach((ev, i) => walk(ev.do, `game:event${i}`));
   walk(game.start.intro, 'game:intro');
   return game;
+}
+
+/**
+ * Compiles authoring data once into the single normalised representation consumed by the engine and tools.
+ * The source is never mutated; generated exits and legacy persistence keys exist only on the frozen result.
+ */
+export function compileGame(source: GameSource): CompiledGame {
+  if (compiled.has(source)) return source;
+  const out = assignKeys(structuredClone(source));
+  compiled.add(out);
+  // Legacy v2 games historically mutate their normalised object in a few integrations. V3 makes immutability part
+  // of the contract; keeping the boundary here lets projects migrate deliberately instead of breaking by surprise.
+  return out.schemaVersion === 3 ? deepFreeze(out) : out;
 }
 
 /** Empty layout, when the room hasn't been placed in the editor yet. */

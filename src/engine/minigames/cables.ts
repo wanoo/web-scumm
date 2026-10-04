@@ -69,6 +69,7 @@ const strMap = (v: unknown): Record<string, string> => (v && typeof v === 'objec
 
 export const cables: Minigame = {
   required: ['board', 'knot', 'plugs'],
+  textParams: ['intro', 'win', 'windowsText'],
   run(ctx: MinigameCtx) {
     const p = ctx.params;
     const plugs = strMap(p.plugs);
