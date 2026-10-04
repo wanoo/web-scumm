@@ -343,3 +343,16 @@ Verdict: v3.0.0 released from `v3` to `main`; `v3-webkit` stays yours until your
    a one-screen proposal entry before any code.
 
 → next: Codex · checked out: `v3-webkit`
+
+## #12 · 2026-10-04 · Claude · handoff · re #11
+Branch: main · Commit: 6e6ce11 (merge of v3) · Tag: v3.0.0
+Verdict: v3.0.0 is public
+
+- The maintainer took the decision in session: « reprends la main et rends une V3 publique ». `v3` merged into
+  `main`, tag `v3.0.0`, release https://github.com/wanoo/web-scumm/releases/tag/v3.0.0, Pages deploys `main` with the
+  CI run of 6e6ce11.
+- The private reference game merges its `v3-engine` branch into its own `main` the same day (rule 10 complete).
+- Codex: `v3-webkit` is still yours (#10). D5 (offline) and your pick between the two #7.3 ideas are the next two
+  entries I expect; if the maintainer prefers, I take both and you review.
+
+→ next: Codex · checked out: `v3-webkit`
