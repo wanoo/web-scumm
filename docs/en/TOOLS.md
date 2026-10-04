@@ -207,6 +207,21 @@ its stable id, and what to do. Exit codes: 0 clean, 1 an error that is not ignor
 'code:<id>', 'code:<room>/<path>'] }` in `game.ts` keeps a red herring on purpose. The Studio's Check tab shows the
 same list with links into Rooms; the `lint` MCP tool returns it as Markdown. `verify:game` runs it (so does the CI).
 
+**One status.** A solver run and a proof by chapters carry one status, its exit code and its sentence
+(`src/engine/tools/status.ts`): `npm run solve` prints the sentence and exits with the code, `--json` carries
+`status`, `exit` and `headline`, the Studio's Check tab shows the sentence, the `solve` MCP tool returns all three.
+None of them words its own verdict.
+
+| Status | Exit | Meaning |
+|---|---|---|
+| `solved` | 0 | the ending (or a chapter's goal) is reached; with `--prove`, it stays reachable from every reachable state |
+| `softlocks` | 1 | reachable states from which it can no longer be reached (`softlockCount`, `softlockCauses`) |
+| `unsolved` | 1 | it is not reached from any state explored |
+| `truncated` | 2 | the search stopped at `--max` states: nothing is proved |
+| `broken` | 1 | an invariant is true on a reachable state (before 3.3: `solved` with exit 1) |
+| `error` | 1 | the engine failed while exploring |
+| `checkpoint_mismatch` | 1 | chapters only: every chapter proved, but a checkpoint is none of its reachable boundary states |
+
 **Continuous integration.** Every push to `main`, `v3` or `v3-*` runs `npm run build` (checks, Node and Python tests,
 `verify:game`, the bundle, the spoiler and asset audits), `npm run prove:game` on the sample game, `npm run audit:deps`,
 then the production e2e in Chromium (the demo's own walkthrough) and WebKit (the generic replay), both gates, and the
@@ -248,7 +263,19 @@ id>`, `sfx:<file>`, `music:<file>`, `voice:<file>`, `video:<file>`). `npm run va
 file (every asset covered by exactly one entry: two entries matching the same asset are an error, whatever their
 order; every entry complete); `npm run validate -- --release` requires the file, and a placeholder is an error unless
 a `releaseExceptions: [{ match, reason }]` entry names that asset (an exception never covers a placeholder added
-later). `npm run new-game` writes one for the art it borrows from the sample game (all placeholders, CC BY 4.0); the
+later). A release also needs a licence policy, `licences: { allow: ['CC BY 4.0', 'own work'] }` (any other licence
+fails unless an exception names the asset), and `provenance.lock.json`: `npm run provenance -- --lock` writes, after a
+review, each shipped file's SHA-256 and size with the claims its entry made (pattern, licence, status). `validate
+--release` then fails on a file that changed, an asset shipped since, a missing file or an entry edited since the
+review; a plain `validate` only warns. `npm run provenance` prints the assets by licence and what changed since the
+lock (exit 1 when something needs a review). The files are read from `public/assets` (`ASSETS_DIR` for a fixture).
+**Weight.** `npm run weight` adds up what a phone downloads, from the built files: before the first room is
+playable (title, column icons, the bag at the start, the first room), per room (the images the engine preloads when
+it builds the room: backdrop, props in every state, every character who can stand there with variants and mouths;
+plus its music and the sound effects its commands play), and per chapter (every room a player can be in during it,
+from the proof by chapters). `assetBudgets: { initialKB, roomKB, chapterKB }` in `game.ts` are the limits; over one,
+or a file missing, exits 1. `--release` (a step of `verify:release`) also fails when a budget is not set. `--json`.
+`npm run new-game` writes one for the art it borrows from the sample game (all placeholders, CC BY 4.0); the
 sample game's file excepts its non-commercial music by name. `npm run verify:release` (validate `--release`,
 `i18n -- status`, strict playtests) is a step of `npm run release-check`, so the release workflow runs it.
 Translations: a text identical to the source fails `npm run i18n -- status` unless `i18n: { same: [paths] }` in

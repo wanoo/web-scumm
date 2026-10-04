@@ -4,6 +4,15 @@
 
 ### Added
 
+- Weight budgets (`npm run weight`, `assetBudgets.initialKB / roomKB / chapterKB`): what a phone downloads before the
+  first room is playable, per room and per chapter (every room reachable in it, from the proof by chapters), from the
+  built files; over a budget fails, and `verify:release` requires the budgets. Demo: 2.0 MB initial, 2.4 MB at most
+  per room, 3.7 MB per chapter, budgets 2.5 / 3 / 4.5 MB.
+- Provenance tied to the files (`npm run provenance`, `provenance.lock.json`): `--lock` records each shipped file's
+  SHA-256 and size with the claims of its entry after a review; `validate --release` fails on a file changed or
+  shipped since, a missing file or an entry edited since, and on a licence outside the game's policy
+  (`licences: { allow }` in `provenance.json`, required for a release; an asset outside it ships only if a
+  `releaseExceptions` entry names it). The demo is locked (214 files, 4.6 MB); `new-game` writes a policy.
 - The solver measures itself: `profile.timing` (tries, engine, clone, run, hash, queue, other, classify, in ms) and
   `profile.positions` (distinct character positions among the states); `npm run bench -- --matrix` prints the
   3.3 reference table (20 / 40 rooms × 1 / 2 / 3 characters).
@@ -29,6 +38,11 @@
 
 ### Changed
 
+- One status for every tool (`src/engine/tools/status.ts`): `SolveResult` and `ChaptersProof` carry `status`,
+  `exit` and `headline`; `npm run solve` (text and `--json`), the Studio's Check tab and the `solve` MCP tool print
+  those. A broken invariant is now the status `broken` (it was `solved` with exit 1), and the Studio no longer says
+  "the game can be finished" over a truncated proof or one with softlocks. Witness chapters combine their statuses
+  by severity, not by the largest exit code.
 - The proof by chapters runs one search per chapter from all its boundary states at once (`start: { states }`),
   sharing its seen states: on the demo 5.7 s instead of 90–147 s, the same boundaries as the explicit search at every
   chapter. Mobility turns itself off, and says why, when no move of the game can be silent.

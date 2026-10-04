@@ -161,7 +161,10 @@ export function makeStressGame(o: StressOptions = {}): { game: GameDef; layouts:
     audio: { sfx: { click: 'click.mp3' } },
     start: { room: rid(0), flags: startFlags, intro: ['Go.'] },
     checkpoints, migrations: mig,
-    invariants: [{ all: [{ has: item(0) }, 'opened_1'] }, { all: [{ player: 'p0' }, 'got_0', { not: { any: [{ has: item(0) }, 'opened_1'] } }] }],
+    // Never true: door 1 consumes item 0, and opening it needs item 0 taken first. The second one reads `{ player }`
+    // on purpose (the canonical character stays explicit then). Before 3.3 it said "p0 lost item 0 before door 1",
+    // which giving the item to another character makes true: the old status hid it behind `solved`.
+    invariants: [{ all: [{ has: item(0) }, 'opened_1'] }, { all: [{ player: 'p0' }, 'opened_1', { not: 'got_0' }] }],
     saves: { slots: 3 },
     skin: { icons: { map: 'ui/map', pause: 'ui/pause', music: 'ui/music' } },
     ui: {} as GameDef['ui'],

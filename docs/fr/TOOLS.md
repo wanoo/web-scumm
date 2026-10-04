@@ -201,6 +201,21 @@ Codes de sortie : 0 propre, 1 une erreur non ignorée, 2 la recherche a été tr
 dans `game.ts` garde un faux indice voulu. L'onglet Check du Studio montre la même liste avec des liens vers Rooms ;
 l'outil MCP `lint` la renvoie en Markdown. `verify:game` le lance (la CI aussi).
 
+**Un seul statut.** Une exécution du solveur et une preuve par chapitres portent un statut, son code de sortie et sa
+phrase (`src/engine/tools/status.ts`) : `npm run solve` affiche la phrase et sort avec le code, `--json` porte
+`status`, `exit` et `headline`, l'onglet Check du Studio montre la phrase, l'outil MCP `solve` rend les trois. Aucun
+ne formule son propre verdict.
+
+| Statut | Sortie | Sens |
+|---|---|---|
+| `solved` | 0 | la fin (ou le but d'un chapitre) est atteinte ; avec `--prove`, elle reste atteignable depuis tout état atteignable |
+| `softlocks` | 1 | des états atteignables d'où on ne peut plus l'atteindre (`softlockCount`, `softlockCauses`) |
+| `unsolved` | 1 | elle n'est atteinte depuis aucun état exploré |
+| `truncated` | 2 | la recherche s'est arrêtée à `--max` états : rien n'est prouvé |
+| `broken` | 1 | un invariant est vrai sur un état atteignable (avant la 3.3 : `solved` avec la sortie 1) |
+| `error` | 1 | le moteur a échoué pendant l'exploration |
+| `checkpoint_mismatch` | 1 | chapitres seulement : chaque chapitre est prouvé, mais un checkpoint n'est aucun de ses états frontière atteignables |
+
 **Intégration continue.** Chaque push sur `main`, `v3` ou `v3-*` lance `npm run build` (vérifications, tests Node et
 Python, `verify:game`, le bundle, les audits de spoilers et d'assets), `npm run prove:game` sur le jeu d'exemple,
 `npm run audit:deps`, puis l'e2e de production en Chromium (le parcours propre à la démo) et WebKit (le rejeu
@@ -245,7 +260,21 @@ manifeste>`, `sfx:<fichier>`, `music:<fichier>`, `voice:<fichier>`, `video:<fich
 jeu qui a le fichier (chaque asset couvert par une seule entrée : deux entrées qui couvrent le même asset sont une
 erreur, quel que soit leur ordre ; chaque entrée complète) ; `npm run validate -- --release` exige le fichier, et un
 provisoire est une erreur sauf si une entrée `releaseExceptions: [{ match, reason }]` nomme cet asset (une exception
-ne couvre jamais un provisoire ajouté plus tard). `npm run new-game` en écrit un pour les images empruntées à la démo
+ne couvre jamais un provisoire ajouté plus tard). Une release exige aussi une politique de licences,
+`licences: { allow: ['CC BY 4.0', 'own work'] }` (toute autre licence échoue sauf si une exception nomme l'asset), et
+`provenance.lock.json` : `npm run provenance -- --lock` écrit, après une relecture, l'empreinte SHA-256 et la taille de
+chaque fichier livré avec ce que son entrée affirmait (motif, licence, statut). `validate --release` échoue ensuite sur
+un fichier modifié, un asset livré depuis, un fichier manquant ou une entrée modifiée depuis la relecture ; un
+`validate` simple ne fait qu'avertir. `npm run provenance` liste les assets par licence et ce qui a changé depuis le
+verrou (sortie 1 quand quelque chose est à relire). Les fichiers sont lus dans `public/assets` (`ASSETS_DIR` pour une
+fixture). **Poids.** `npm run weight` additionne ce qu'un téléphone télécharge, d'après les fichiers construits : avant que le
+premier lieu soit jouable (titre, icônes de la colonne, le sac au départ, le premier lieu), par lieu (les images que
+le moteur précharge en construisant le lieu : décor, accessoires dans tous leurs états, chaque personnage qui peut s'y
+tenir avec ses variantes et ses bouches ; plus sa musique et les bruitages que ses commandes jouent), et par chapitre
+(chaque lieu où un joueur peut se trouver pendant ce chapitre, d'après la preuve par chapitres). `assetBudgets: {
+initialKB, roomKB, chapterKB }` dans `game.ts` sont les limites ; en dépasser une, ou un fichier manquant, sort avec 1.
+`--release` (une étape de `verify:release`) échoue aussi quand un budget n'est pas fixé. `--json`.
+`npm run new-game` en écrit un pour les images empruntées à la démo
 (toutes provisoires, CC BY 4.0) ; celui de la démo excepte nommément sa musique non commerciale.
 `npm run verify:release` (validate `--release`, `i18n -- status`, playtests stricts) est une étape de
 `npm run release-check`, donc le workflow de release le lance. Traductions : un texte identique à la source fait échouer

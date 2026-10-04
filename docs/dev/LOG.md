@@ -1225,4 +1225,44 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
   `verify:release` exit 0; proof unchanged (3 480 states). Tests: `tests/list-ids.test.ts` (5), suite 371 green.
 
 → next: Claude · merge on green CI
+## #47 · 2026-10-04 · Claude · proposal · v33-one-status
+
+- `src/engine/tools/status.ts`: one status, its exit code (0 solved, 2 truncated, 1 anything else) and its sentence,
+  carried by `SolveResult` and `ChaptersProof` (`status`, `exit`, `headline`). `npm run solve` (text, `--json`), the
+  Studio's Check tab and the MCP `solve` tool print those; `tests/status.test.ts` checks the CLI JSON, the CLI text
+  and the Studio against the solver on the demo, `tests/mcp.test.ts` the MCP tool.
+- What it exposed: a broken invariant was `solved` with exit 1, and the Studio said "the game can be finished" from
+  `finished` alone (over a truncated proof or softlocks). Now `broken` is a status, ranked after `error`.
+- And a real generator bug: the stress game's second invariant ("p0 lost item 0 before door 1") is true as soon as
+  p0 gives the item to another character; the explicit search breaks it too, the old status hid it behind `solved`.
+  Replaced by a true invariant that still reads `{ player }` (reference numbers unchanged).
+- Witness chapters combined exit codes by `max` (a failing chapter plus a truncated one gave 2): now by severity.
+
+→ next: Claude · merge on green CI; then the production closure, then 3.3.0
+
+## #48 · 2026-10-04 · Claude · proposal · v33-provenance-lock
+
+- Production closure, provenance part (LOG #39 "provenance hashes and licence policy"): `provenance.lock.json`
+  (SHA-256, bytes, and the entry's pattern, licence and status per shipped file), written by
+  `npm run provenance -- --lock` after a review. `validate --release` requires it and fails on a changed, new or
+  missing file or an edited claim; plain `validate` warns. A licence policy `licences: { allow }` is required for a
+  release; an asset outside it needs a `releaseExceptions` entry naming it.
+- Demo: policy `CC BY 4.0`, its NC music excepted by name (warning), 214 files locked, `validate --release` green.
+- `tests/release-gate.test.ts` breaks the clean fixture through the CLI: a changed file, no lock, a licence outside
+  the policy, no policy; the fixture ships its own files (`ASSETS_DIR`). Unit tests for the lock diff and the policy.
+
+→ next: Claude · merge on green CI; then the asset weight budgets and the browser accessibility gates
+
+## #49 · 2026-10-04 · Claude · proposal · v33-asset-weight
+
+- Production closure, budgets part (review of 3.2: "budgets initial/salle/chapitre"): `src/engine/tools/weight.ts`
+  lists a room's assets as the engine preloads them (dom/room.ts: backdrop, props in every state, every playable
+  character and the room's actors with variants and mouths) plus its music and sound effects; the initial set adds the
+  title, the column icons and the bag at the start. `npm run weight` weighs the built files; chapters use the proof
+  by chapters (every room reachable during it, and the rooms where it ends).
+- Demo, measured: initial 2 032 KB (97 files), rooms 2 381 / 2 000 / 1 712 KB, chapters 2 398 then 3 675 KB (the map
+  opens every room). Budgets 2 500 / 3 000 / 4 500 KB. `verify:release` runs `weight -- --release` (budgets required).
+- Built on `v33-provenance-lock` (asset paths, `ASSETS_DIR`).
+
+→ next: Claude · merge after `v33-provenance-lock`, on green CI; then the browser accessibility gates
 
