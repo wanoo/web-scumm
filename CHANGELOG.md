@@ -4,6 +4,19 @@
 
 ### Added
 
+- `npm run verify:commercial` (`validate --commercial` after `verify:release`): a release that may be sold. It refuses
+  any `releaseExceptions` entry, any placeholder, any non-commercial or no-derivatives licence, and any provenance entry
+  without an author or a source that can be checked (a new `url` field, or a repository file named in `source`). The
+  sample game fails it on purpose: its music is CC BY-NC 4.0.
+
+### Changed
+
+- `verify:release` prints what a `releaseExceptions` entry lets through as named, accepted exceptions, not warnings;
+  the sample game's decorative `tea_drunk` flag is kept on purpose with `lint.ignore: ['flag-never-read:tea_drunk']`,
+  which `npm run validate` now honours. The sample game's release check has no warning left.
+
+### Added
+
 - `docs/dev/passes/`: one sheet per release for the checks automation cannot make (screen reader, Safari offline, a
   real phone, playtesters, voices, a signed tag); a release lists in its notes the ones not done (D12).
 

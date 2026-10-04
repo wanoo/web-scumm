@@ -748,6 +748,8 @@ faux indice) se fait taire dans `game.ts` :
 lint: { ignore: ['item-red-herring:poulet_en_caoutchouc', 'rule-shadowed:salon/on[4]'] },   // un code, `code:<id>` ou `code:<lieu>/<chemin>`
 ```
 
+La même liste garde un flag décoratif (posé, jamais lu) hors des avertissements de `npm run validate` : `flag-never-read:<flag>`.
+
 
 ```bash
 npm run validate   # tout ce qui est cité existe, chaque chose visible a un Regarder, textes non vides

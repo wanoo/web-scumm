@@ -181,6 +181,7 @@ npm run ids -- --lines [--write --map]   # an id on every say / toast / guide ob
 npm run i18n -- voices             # the lines with an id and no voice clip, the clips no line claims
 npm run validate -- --release      # also: provenance, placeholders, and a stable id on every line of a game shipped in another language than its own or voiced
 npm run verify:release             # validate --release + weight --release + i18n status + strict playtests: a step of release-check
+npm run verify:commercial          # verify:release, then no exception, no placeholder, no NC/ND licence, every source checkable (the sample game fails: its music)
 npm run provenance [-- --lock]     # the shipped assets by licence, what changed since the reviewed lock; --lock records the files after a review
 npm run weight [-- --release --json]   # what a phone downloads before the first room, per room and per chapter, against assetBudgets
 npm run playtests [-- --strict --out=.cache/playtests]  # the sessions players shared (games/<id>/playtests) replayed and summed up: time per room, stalls, hints, heat map
@@ -268,7 +269,7 @@ every `skin` id (manifest images, `audio` sounds) and `ending.scratch`.
 
 ## Asset provenance
 
-`games/<id>/provenance.json` says where every shipped asset comes from: entries `{ match, source, licence, author?,
+`games/<id>/provenance.json` says where every shipped asset comes from: entries `{ match, source, licence, author?, url?,
 prompt?, status: 'final' | 'placeholder', note? }`, where `match` covers asset keys with `*` (`img:<manifest image
 id>`, `sfx:<file>`, `music:<file>`, `voice:<file>`, `video:<file>`). `npm run validate` checks a game that has the
 file (every asset covered by exactly one entry: two entries matching the same asset are an error, whatever their
@@ -288,7 +289,14 @@ from the proof by chapters). `assetBudgets: { initialKB, roomKB, chapterKB }` in
 or a file missing, exits 1. `--release` (a step of `verify:release`) also fails when a budget is not set. `--json`.
 `npm run new-game` writes one for the art it borrows from the sample game (all placeholders, CC BY 4.0); the
 sample game's file excepts its non-commercial music by name. `npm run verify:release` (validate `--release`,
-`i18n -- status`, strict playtests) is a step of `npm run release-check`, so the release workflow runs it.
+`i18n -- status`, strict playtests) is a step of `npm run release-check`, so the release workflow runs it. What an
+exception lets through is printed by name as accepted, not as a warning to fix.
+**A commercial release.** A green `verify:release` does not mean every asset may be sold: an exception is a reason,
+not a licence. `npm run verify:commercial` (`verify:release`, then `validate --commercial`) refuses any
+`releaseExceptions` entry, any placeholder, any non-commercial or no-derivatives licence (`NC`, `ND`), and any entry
+without an `author` or a source that can be checked (a `url`, or a repository file named in `source`). It checks that
+the claims are complete and allow a sale, not that they are true. The sample game fails it on purpose (its music is
+CC BY-NC 4.0).
 Translations: a text identical to the source fails `npm run i18n -- status` unless `i18n: { same: [paths] }` in
 `game.ts` lists it (a name, "OK", an arrow).
 `npm run audit` is a different check: it keeps names from a private project out of the public repository.

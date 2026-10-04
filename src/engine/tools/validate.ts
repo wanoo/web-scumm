@@ -657,7 +657,9 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
 
   // Flags
   for (const [f, where] of flagsRead) if (!flagsSet.has(f)) warn(where, `flag "${f}" is read but never set`);
-  for (const [f, where] of flagsSet) if (!flagsRead.has(f)) warn(where, `(info) flag "${f}" is set but never read`);
+  // A decorative flag kept on purpose: `lint.ignore` names it (`flag-never-read` or `flag-never-read:<flag>`), like the lint's codes.
+  const ignored = new Set(game.lint?.ignore ?? []);
+  for (const [f, where] of flagsSet) if (!flagsRead.has(f) && !ignored.has('flag-never-read') && !ignored.has(`flag-never-read:${f}`)) warn(where, `(info) flag "${f}" is set but never read (flag-never-read)`);
   // The puzzle graph: a flag only set by actions that already need it can never become true.
   for (const n of puzzleIssues(puzzleGraph(game, { commands: opts.commands })).selfLocked) warn(flagsSet.get(n.label) ?? 'flags', `flag "${n.label}" is only set by actions that already require it: it can never become true`);
 

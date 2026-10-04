@@ -745,6 +745,8 @@ solver never ran. A finding you keep on purpose (a red herring) is silenced in `
 lint: { ignore: ['item-red-herring:rubber_chicken', 'rule-shadowed:house/on[4]'] },   // a code, `code:<id>` or `code:<room>/<path>`
 ```
 
+The same list keeps a decorative flag (set, never read) out of `npm run validate`'s warnings: `flag-never-read:<flag>`.
+
 
 ```bash
 npm run validate   # everything referenced exists, every visible thing has a Look, texts are not empty
