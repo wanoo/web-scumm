@@ -147,7 +147,7 @@ npm run solve -- --from=<checkpoint> --max=50000
 npm run solve -- --prove          # exhaustif : tous les états atteignables, les softlocks (états d'où la fin est inatteignable)
 npm test           # tests Node : moteur sur tests/fixture (cœur, mini-jeux, outils), puis ceux du jeu d'exemple
 npm run test:assets   # les tests d'images et de pipeline d'assets (Python)
-npm run check      # tsc + tests Node ;  npm run verify:game = validate, solve, --prove, --prove --chapters, i18n status
+npm run check      # tsc + tests Node ;  npm run verify:game = validate, solve, --chapters, i18n status ;  npm run prove:game = --prove, --prove --chapters
 npm run e2e        # parcours dans Chromium en paysage téléphone (serveur de dev lancé) ; --prod contre un build
 npm run doctor     # Node, Python, ffmpeg et navigateurs Playwright, avec la correction pour chaque manque
 ```

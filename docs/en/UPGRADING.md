@@ -26,7 +26,7 @@ what to do to be a v3 game, in the order that costs the least.
 |---|---|
 | `npm run dev` listens on the network | `npm run dev` listens on 127.0.0.1; `npm run dev:lan` / `studio:lan` for the phone, with a one-session token printed at start (`?token=…` on the Studio and editor URLs) |
 | `npm test` runs everything | `npm test` = Node tests; `npm run test:assets` = the Python-backed image tests; `npm run check` = tsc + Node tests |
-| `npm run build` = tsc + tests + vite | `npm run build` = `check` + `test:assets` + `verify:game` (validate, solve, `--prove`, `--prove --chapters`, i18n status) + vite + spoilers + asset audit |
+| `npm run build` = tsc + tests + vite | `npm run build` = `check` + `test:assets` + `verify:game` (validate, solve, `--chapters`, i18n status) + vite + spoilers + asset audit. The exhaustive proof is `npm run prove:game` (`--prove`, `--prove --chapters`), run by `release-check`, never by `build` |
 | `npm run audit` | `npm run audit` (assets and private names) + `npm run audit:deps` (npm audit, production deps) |
 | — | `npm run doctor`: Node, Python, ffmpeg, Playwright browsers, with the fix for each |
 | — | `npm run e2e:smoke` (generic solver walkthrough on a production build), `npm run e2e:pwa` (service worker installs, the game opens offline), `npm run release-check` |
@@ -91,8 +91,9 @@ Besides copying `src/engine/`, update your own entry and config:
 ```bash
 npm run doctor
 npm run check && npm run test:assets
-npm run verify:game            # validate, solve, prove, chapters, i18n status
+npm run verify:game            # validate, solve, chapters, i18n status
 npm run build                  # then: npm run preview, and npm run e2e -- http://127.0.0.1:4173/ --prod
+npm run prove:game             # the exhaustive proof, when you can afford it (release-check runs it)
 ```
 
 For a long game, run `--prove` on a chapter at a time (`--prove --chapters`) before running it on the whole game.

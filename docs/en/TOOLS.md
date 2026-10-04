@@ -154,7 +154,7 @@ npm run solve -- --from=<checkpoint> --max=50000
 npm run solve -- --prove          # exhaustive: every reachable state, the softlocks (states the ending cannot be reached from)
 npm test           # Node tests: engine on tests/fixture (core, minigames, tools), then the sample game's own tests
 npm run test:assets   # the Python-backed image and asset-pipeline tests
-npm run check      # tsc + the Node tests;  npm run verify:game = validate, solve, --prove, --prove --chapters, i18n status
+npm run check      # tsc + the Node tests;  npm run verify:game = validate, solve, --chapters, i18n status;  npm run prove:game = --prove, --prove --chapters
 npm run e2e        # a playthrough in Chromium, phone landscape (dev server already running); --prod against a build
 npm run doctor     # Node, Python, ffmpeg and Playwright browsers, with the fix for each missing one
 ```

@@ -29,7 +29,7 @@ le moins.
 |---|---|
 | `npm run dev` écoute le réseau | `npm run dev` écoute 127.0.0.1 ; `npm run dev:lan` / `studio:lan` pour le téléphone, avec un jeton de session imprimé au démarrage (`?token=…` sur les URL du Studio et de l'éditeur) |
 | `npm test` lance tout | `npm test` = tests Node ; `npm run test:assets` = les tests d'images (Python) ; `npm run check` = tsc + tests Node |
-| `npm run build` = tsc + tests + vite | `npm run build` = `check` + `test:assets` + `verify:game` (validate, solve, `--prove`, `--prove --chapters`, i18n status) + vite + spoilers + audit des assets |
+| `npm run build` = tsc + tests + vite | `npm run build` = `check` + `test:assets` + `verify:game` (validate, solve, `--chapters`, i18n status) + vite + spoilers + audit des assets. La preuve exhaustive est `npm run prove:game` (`--prove`, `--prove --chapters`), lancée par `release-check`, jamais par `build` |
 | `npm run audit` | `npm run audit` (assets et noms privés) + `npm run audit:deps` (npm audit, dépendances de production) |
 | — | `npm run doctor` : Node, Python, ffmpeg, navigateurs Playwright, avec la correction pour chacun |
 | — | `npm run e2e:smoke` (parcours générique du solveur sur un build de production), `npm run e2e:pwa` (le service worker s'installe, le jeu s'ouvre hors ligne), `npm run release-check` |
@@ -96,8 +96,9 @@ En plus de copier `src/engine/`, mettez à jour votre point d'entrée et votre c
 ```bash
 npm run doctor
 npm run check && npm run test:assets
-npm run verify:game            # validate, solve, prove, chapitres, i18n status
+npm run verify:game            # validate, solve, chapitres, i18n status
 npm run build                  # puis : npm run preview, et npm run e2e -- http://127.0.0.1:4173/ --prod
+npm run prove:game             # la preuve exhaustive, quand vous pouvez vous la permettre (release-check la lance)
 ```
 
 Sur un jeu long, lancez `--prove` chapitre par chapitre (`--prove --chapters`) avant de le lancer sur le jeu entier.
