@@ -107,7 +107,7 @@ export interface SolveOptions {
   /** `witness` stops at the first solution; `prove` explores the whole reachable graph and finds softlocks. */
   mode?: 'witness' | 'prove';
   /** Where the search starts: a new game, a checkpoint, or a state (a chapter's boundary state, `proveChapters`). */
-  start?: 'new' | { checkpoint: Id } | { state: GameState };
+  start?: 'new' | { checkpoint: Id } | { state: GameState } | { states: GameState[] };
   /** Stop when all these conditions hold (a chapter's goals), instead of at the ending. */
   goal?: Cond[];
   /** The game's custom commands: their `effects` apply (their `run` never does here). */
@@ -424,8 +424,10 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   const canonical = (opts.canonicalPlayers ?? mode === 'prove') && playerIds.length > 1 && !readsPlayer;
   const canonInfo: SolveProfile['canonical'] = { applied: canonical, folded: 0, explicit: 0, ...(playerIds.length > 1 && (opts.canonicalPlayers ?? mode === 'prove') && readsPlayer ? { reason: 'the goal reads { player }' } : {}) };
   const shared = !!game.players?.sharedInventory;
-  const model = (opts.mobility ?? mode === 'prove') ? mobilityModel(game, keys.visitedRead, opts.goal) : null;
-  const mobInfo: SolveProfile['mobility'] = { applied: !!model, moves: 0, largest: 0 };
+  const model0 = (opts.mobility ?? mode === 'prove') ? mobilityModel(game, keys.visitedRead, opts.goal) : null;
+  // A game where no move can ever be silent (every room has an onEnter, or is named by a condition): no regions.
+  const model = model0 && !model0.trivial ? model0 : null;
+  const mobInfo: SolveProfile['mobility'] = { applied: !!model, moves: 0, largest: model ? 0 : 1, ...(model0?.trivial ? { reason: 'no move of this game can be silent' } : {}) };
   const baseDims = (st: GameState): Dims => canonical ? canonicalDims(stateDims(st, keys), st, keys, game.hero, shared) : stateDims(st, keys);
   const dimsOf = (st: GameState): Dims => model ? regionDims(baseDims(st), st, model, game.hero, shared) : baseDims(st);
   const errors: string[] = [];
@@ -465,9 +467,14 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   // Starting state
   const { e: e0, ui: ui0 } = makeEngine();
   const startPath: string[] = [];
-  if (opts.start && typeof opts.start === 'object') { if ('checkpoint' in opts.start) await e0.checkpoint(opts.start.checkpoint); else await e0.load(structuredClone(opts.start.state)); }
+  // Several starts (a chapter's boundary states): one search from all of them, sharing what it has seen.
+  const extraStarts = opts.start && typeof opts.start === 'object' && 'states' in opts.start ? opts.start.states.slice(1) : [];
+  if (opts.start && typeof opts.start === 'object') { if ('checkpoint' in opts.start) await e0.checkpoint(opts.start.checkpoint); else await e0.load(structuredClone('states' in opts.start ? opts.start.states[0] : opts.start.state)); }
   else await drive(e0, e0.newGame(), (a) => startPath.push(`(tutorial) ${label(game, a)}`));
-  const reached = (ui: FakePresenter, s: GameState) => opts.goal ? opts.goal.every((c) => check(c, s)) : (s.done || ui.log.includes('ENDING'));
+  // A goal can read the active character's bag or room (`{ has }`, `{ room }`). With the canonical character, a state
+  // reaches the goal when any character, seen as active, meets it: switching to that one is silent.
+  const goalHolds = (s: GameState) => !!opts.goal && (opts.goal.every((c) => check(c, s)) || (canonical && playerIds.some((p) => p !== (s.active ?? game.hero) && opts.goal!.every((c) => check(c, viewOf(s, p, game.hero, shared))))));
+  const reached = (ui: FakePresenter, s: GameState) => opts.goal ? goalHolds(s) : (s.done || ui.log.includes('ENDING'));
   const broken: SolveResult['broken'] = [];
   const brokenSeen = new Set<number>();
   const checkInvariants = (s: GameState, path: () => string[]) => {
@@ -492,6 +499,17 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   let finish: Node | null = reached(ui0, e0.state) ? start : null;
   const startHash = JSON.stringify(start.dims);
   const goals = new Set<string>(finish ? [startHash] : []);
+  for (const [k, st0] of extraStarts.entries()) {
+    const { e } = makeEngine();
+    await e.load(structuredClone(st0));
+    const dims = dimsOf(e.state);
+    const h = JSON.stringify(dims);
+    if (seen.has(h)) continue;
+    const n: Node = { state: structuredClone(e.state), tail: [`(start ${k + 2} of ${extraStarts.length + 1})`], tailSteps: [], len: 1, dims, sleep: new Map(), expanded: false };
+    seen.set(h, n);
+    enqueue(n);
+    if (opts.goal ? goalHolds(e.state) : e.state.done) { goals.add(h); finish ??= n; }
+  }
   // A proof from "New game" branches over the intro's choices too (the silent presenter picks the last option by
   // default): each choice met during the start is varied one at a time, the others at their default. Without this,
   // a flag the intro sets from a choice would be "proved" on one value only.

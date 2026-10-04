@@ -28,3 +28,24 @@ describe('the 3.3 reference proof', () => {
     expect(r.profile.mobility.applied && r.profile.canonical.applied).toBe(true);
   }, 300000);
 });
+
+describe('chapter boundaries', () => {
+  it('the abstract shared search finds exactly the boundaries of the explicit search run from each start (demo, two chapters)', async () => {
+    const { projectState } = await import('@engine/tools/solve');
+    const { game: demo, layouts, commands } = await import('../games/demo');
+    const cps = Object.entries(demo.checkpoints!).filter(([, c]) => c.goals?.length);
+    const exp = { canonicalPlayers: false, mobility: false } as const;
+    let startsExp = (await solve(demo, layouts, { mode: 'prove', goal: cps[0][1].goals, commands, ...exp })).boundaries;
+    let startsAbs = (await solve(demo, layouts, { mode: 'prove', goal: cps[0][1].goals, commands })).boundaries;
+    for (let c = 1; c <= 2; c++) {
+      const goal = cps[c][1].goals, after = cps[c + 1]?.[1].goals;
+      const key = (b: Parameters<typeof projectState>[2]) => projectState(demo, layouts, b, { commands, goal: after });
+      const outExp = new Map<string, (typeof startsExp)[number]>();
+      for (const s of startsExp) (await solve(demo, layouts, { mode: 'prove', goal, commands, start: { state: s }, ...exp })).boundaries.forEach((b) => outExp.set(key(b), b));
+      const shared = await solve(demo, layouts, { mode: 'prove', goal, commands, start: { states: startsAbs }, maxStates: 200000 });
+      const outAbs = new Map(shared.boundaries.map((b) => [key(b), b]));
+      expect([...outAbs.keys()].sort()).toEqual([...outExp.keys()].sort());
+      startsExp = [...outExp.values()]; startsAbs = [...outAbs.values()];
+    }
+  }, 600000);
+});

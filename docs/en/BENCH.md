@@ -274,3 +274,21 @@ Exact reductions cannot remove those states; a game built that way is checked by
 and the playtests, or by bounding who can carry what. With one character the regions shrink the open chain too
 (40 rooms: 3 197 → 163 states).
 
+### After `v33-chapter-interfaces`: one search per chapter, from every boundary state at once
+
+A chapter is now proved by **one** search that starts from all its boundary states together and shares what it has
+seen (a state is safe or not whichever start reached it): it costs the union of what the starts reach, not the sum.
+Checking that against the explicit search run from each start found a real defect, older than 3.3: a chapter goal
+that reads the active character's bag (`{ has: 'token' }`) was evaluated on whichever character the merged state
+kept, so some boundary states were lost. A canonical state now reaches a goal when any character, seen as active,
+meets it. On the demo, the abstract shared search finds exactly the explicit search's boundaries at every chapter
+(`tests/reference-proof.test.ts`), with 15–36× fewer states.
+
+| Demo | Before 3.3 | Now | 3.3 target |
+|---|---|---|---|
+| Global proof | 6 528 states, 4.4 s | 3 480 states, 4.5 s | under 5 s |
+| Proof by chapters | 115 620 states, 90–147 s | 5.7 s | under 20 s |
+
+Mobility is off on the demo, and the profile says why (`no move of this game can be silent`: every room has an
+`onEnter` or is named by a condition), which also spares the region computation on every hash.
+

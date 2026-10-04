@@ -8,8 +8,17 @@
   `profile.positions` (distinct character positions among the states); `npm run bench -- --matrix` prints the
   3.3 reference table (20 / 40 rooms × 1 / 2 / 3 characters).
 
+### Fixed
+
+- A chapter goal that reads the active character (`{ has }`, `{ room }`) could lose boundary states once states that
+  differ only by the active character were merged: a canonical state now reaches a goal when any character, seen as
+  active, meets it. Found by comparing chapter boundaries with the explicit search run from each start.
+
 ### Changed
 
+- The proof by chapters runs one search per chapter from all its boundary states at once (`start: { states }`),
+  sharing its seen states: on the demo 5.7 s instead of 90–147 s, the same boundaries as the explicit search at every
+  chapter. Mobility turns itself off, and says why, when no move of the game can be silent.
 - Mobility regions (`mobility`, on in proof mode, `src/engine/tools/mobility.ts`): a character's exact room becomes
   the region of rooms it can walk between silently, actions of every room of the region are offered as
   `Go to <room> › action`, every hop is checked when played and a non-silent one restarts with exact rooms; witnesses

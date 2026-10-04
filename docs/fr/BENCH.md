@@ -292,3 +292,22 @@ Aucune réduction exacte ne peut retirer ces états ; un jeu construit ainsi se 
 chapitre et les playtests, ou en bornant qui peut porter quoi. Avec un seul personnage, les régions réduisent aussi la
 chaîne ouverte (40 lieux : 3 197 → 163 états).
 
+### Après `v33-chapter-interfaces` : une recherche par chapitre, depuis tous les états frontière à la fois
+
+Un chapitre se prouve désormais par **une seule** recherche qui part de tous ses états frontière ensemble et partage
+ce qu'elle a vu (un état est sûr ou non quel que soit le départ qui l'a atteint) : il coûte l'union de ce que les
+départs atteignent, pas la somme. En le comparant à la recherche explicite lancée depuis chaque départ, j'ai trouvé un
+vrai défaut, antérieur à la 3.3 : un but de chapitre qui lit le sac du personnage actif (`{ has: 'token' }`) était
+évalué sur le personnage que l'état fusionné avait gardé, et des états frontière se perdaient. Un état canonique
+atteint maintenant le but dès qu'un personnage, vu comme actif, le satisfait. Sur la démo, la recherche partagée
+abstraite trouve exactement les frontières de la recherche explicite à chaque chapitre
+(`tests/reference-proof.test.ts`), avec 15 à 36 fois moins d'états.
+
+| Démo | Avant la 3.3 | Maintenant | Objectif 3.3 |
+|---|---|---|---|
+| Preuve globale | 6 528 états, 4,4 s | 3 480 états, 4,5 s | moins de 5 s |
+| Preuve par chapitres | 115 620 états, 90 à 147 s | 5,7 s | moins de 20 s |
+
+La mobilité est coupée sur la démo, et le profil dit pourquoi (`no move of this game can be silent` : chaque lieu a
+un `onEnter` ou est nommé par une condition), ce qui épargne aussi le calcul des régions à chaque hachage.
+

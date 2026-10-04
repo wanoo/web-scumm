@@ -81,9 +81,13 @@ export async function proveChapters(game: GameDef, layouts: Record<string, Layou
       starts = [];
       return;
     }
-    for (const start of starts) {
+    // One search from every boundary state at once, sharing its seen states (a state is safe or not whichever start
+    // reached it): the chapter costs the union of what the starts reach, not the sum.
+    const groups: ({ state: GameState } | 'new' | { states: GameState[] })[] = mode === 'prove' && starts.length > 1 && starts.every((x) => x !== 'new')
+      ? [{ states: (starts as { state: GameState }[]).map((x) => x.state) }] : starts;
+    for (const start of groups) {
       if (spent >= budget) { st = worst(st, 'truncated'); break; }
-      const r = await solve(game, layouts, { maxStates: Math.min(opts.maxStates ?? 20000, budget - spent), start, goal, commands: opts.commands, por: opts.por, unsafeReduction: opts.unsafeReduction, mode });
+      const r = await solve(game, layouts, { maxStates: Math.min((opts.maxStates ?? 20000) * Math.max(1, typeof start === 'object' && 'states' in start ? 10 : 1), budget - spent), start, goal, commands: opts.commands, por: opts.por, unsafeReduction: opts.unsafeReduction, mode });
       spent += r.states;
       results.push(r);
       st = worst(st, r.status);
