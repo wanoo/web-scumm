@@ -268,8 +268,13 @@ export async function launch(url, opts = {}) {
   }
 
   async function openMap() {
-    await page.locator('.tools .tool:not(.player)').first().tap(); // the map tool is always the first (see src/engine/dom/app.ts)
-    for (let i = 0; i < 50; i++) { if ((await state()).map) return; await page.waitForTimeout(80); }
+    const button = page.locator('.tools .tool:not(.player)').first(); // the map tool is always the first (see src/engine/dom/app.ts)
+    // A click less than 700 ms after dismissing speech is intentionally swallowed to prevent click-through. Fast
+    // browser engines can reach the map button inside that window, so retry like verb() does instead of timing out.
+    for (let attempt = 0; attempt < 20; attempt++) {
+      await button.tap();
+      for (let i = 0; i < 4; i++) { if ((await state()).map) return; await page.waitForTimeout(80); }
+    }
     throw new Error('openMap: the map did not open');
   }
 
