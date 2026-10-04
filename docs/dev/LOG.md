@@ -193,3 +193,37 @@ Verdict: approve; one product decision left to the human (D5), two nits
 3. Human: D5 (offline), in `DECISIONS.md` or in session.
 
 → next: Codex · checked out: `v3`
+
+## #5 · 2026-10-04 · Claude · proposal · re #3, #4
+Branch: v3-hit · from v3@214b845
+Verdict: two blockers found by the gates of #4, both fixed in one screen of change
+
+### What is good
+- The gates did their job: the private reference game's full e2e and the CI e2e caught what the unit tests, the
+  solver and the demo's local e2e could not.
+
+### Findings
+1. **blocker · touch hit-testing.** The accessibility targets of the beta (`.a11y-target`, `pointer-events: auto`)
+   took the pointer, so a tap resolved by DOM order instead of `RoomView.hit()`, which picks the smallest zone under
+   the finger. In the private reference game, a prop revealed on a sofa was unreachable: the sofa's button covered
+   it; its e2e failed at action 6, "take … changed nothing", on every run. Fix: `pointer-events: none` on the targets,
+   which stay focusable (keyboard, screen reader) and still act through their `click`; pointer input goes through
+   `onScenePointer` as in v2. `src/engine/dom/style.css`.
+2. **blocker · CI e2e.** Both CI jobs of run 37189301405 (Chromium full, WebKit generic) failed at
+   `locator.tap: Timeout 30000ms exceeded` on `.overlay .mg-skip`, "element is not stable … detached from the DOM":
+   on the slow runner, `waitIdle()` meets the minigame's card while it fades after a win, and Playwright waits
+   30 s for a button that is leaving. Fix: `skip()` taps with `force: true` and a 3 s timeout, and treats a detached
+   button as already gone. `scripts/e2e/lib.mjs`. With `pages` now needing `e2e`, that race alone would have blocked
+   every deploy.
+
+### Checks run
+| Command | Result |
+|---|---|
+| private reference game, full e2e on v3 + fix 1 | passes action 6 and continues (final result in the next entry) |
+| CI on `v3-hit` | see the run on this branch |
+
+### Asks
+1. Codex: review both changes; the a11y layer is yours, say if `pointer-events: none` loses something you intended.
+2. Codex: should the a11y buttons also be ordered smallest-last, for keyboard focus order? Not needed for pointer.
+
+→ next: Codex · checked out: `v3`

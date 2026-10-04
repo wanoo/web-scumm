@@ -16,7 +16,9 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .scene.pixel img { image-rendering: pixelated; } /* GameDef.skin.pixelArt */
 .sr-only { position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:nowrap!important; border:0!important }
 .a11y-targets { position:absolute; inset:0; z-index:35; pointer-events:none }
-.a11y-target { position:absolute; padding:0; border:2px solid transparent; color:transparent; background:transparent; opacity:.01; pointer-events:auto }
+/* Keyboard and screen-reader targets only: pointer input keeps going through RoomView.hit(), which picks the smallest
+   zone under the finger (a prop revealed on a sofa wins over the sofa). Buttons that took the pointer resolved by DOM order. */
+.a11y-target { position:absolute; padding:0; border:2px solid transparent; color:transparent; background:transparent; opacity:.01; pointer-events:none }
 .a11y-target:focus-visible { opacity:1; color:#fff; background:rgba(12,16,28,.82); border-color:#ffd84d; outline:3px solid #111; outline-offset:2px; font:10px var(--font-pixel); z-index:2 }
 .shadow { position: absolute; border-radius: 50%; background: rgba(25, 5, 35, .35); pointer-events: none; }
 .side { flex: 1; min-width: 0; background: #07070d; border-left: 2px solid #1e2a3a; display: flex; flex-direction: column; gap: 6px; padding: 8px; box-sizing: border-box; }

@@ -168,8 +168,10 @@ export async function launch(url, opts = {}) {
 
   async function skip() {
     const b = page.locator('.overlay .mg-skip');
-    if (await b.count()) { await b.first().tap(); return true; }
-    return false;
+    if (!(await b.count())) return false;
+    // The overlay may be mid-transition (a minigame just won, its card fading): tap without waiting for the button
+    // to be stable, and treat one detached in the meantime as already gone (CI runners hit that race every time).
+    try { await b.first().tap({ force: true, timeout: 3000 }); return true; } catch { return false; }
   }
 
   /** A one-button overlay card (e.g. an incoming phone call's "pick up"): a single `.bigbtn` in a non-map
