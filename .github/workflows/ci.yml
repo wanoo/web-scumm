@@ -31,12 +31,11 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           path: dist
-  # The production bundle played by touch. Chromium runs the complete game-specific walkthrough; WebKit runs the
-  # generic solver session as a cross-engine smoke test. Both block deployment.
+  # The production bundle played by touch. Chromium runs the complete game-specific walkthrough and gates the
+  # deploy; WebKit runs the generic solver session as a cross-engine smoke test, experimental (non-blocking) until
+  # three consecutive green runs on main, then `experimental: false` (docs/dev/DECISIONS.md D7).
   e2e:
     runs-on: ubuntu-latest
-    # WebKit is a new cross-engine signal in beta 1. Keep it visible but non-blocking until three consecutive green
-    # runs; Chromium remains the deployment gate throughout.
     continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
