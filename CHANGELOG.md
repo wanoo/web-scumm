@@ -4,6 +4,8 @@
 
 ### Added
 
+- `bootGame` (`src/engine/boot.ts`): the page's bootstrap is part of the engine; `src/main.ts` only says what is
+  specific to its build (`docs/en/UPGRADING.md` §8).
 - `npm run ids`: stable ids (schema 3) written into a game's sources, its locale tables renamed to the id-based
   paths, and the `renameSeen` / `renameCounter` migration step generated for its v2 saves (`docs/en/UPGRADING.md` §2).
 
@@ -17,6 +19,9 @@
 
 ### Fixed
 
+- The two-entry build Pages deploys (game + Studio demo) could not open offline: the chunks of the game's locales,
+  its session export and the save envelope's schema went under `assets/tools/`, which the worker does not precache.
+  The CI e2e job now builds that shape.
 - `npm run e2e:pwa` on WebKit reports that offline navigation cannot be automated instead of failing on the
   resource errors of the aborted navigation.
 
