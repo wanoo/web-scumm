@@ -98,7 +98,9 @@ item by its name), an empty inventory slot is out of the accessibility tree. CI:
 (keyboard, axe, a save round trip without IndexedDB, `e2e:a11y`) gates, and so does `e2e:a11y` in the WebKit row;
 the whole game at the keyboard in WebKit runs, not yet gating. axe does not prove WCAG conformance: a screen-reader
 pass (VoiceOver on iOS, TalkBack on Android: the title, a conversation, an item, the map, a minigame) stays a manual
-check before a release, with the checklist in `docs/dev/SCREEN-READER.md`.
+check before a release, with the checklist in `docs/dev/SCREEN-READER.md` and the result in `docs/dev/passes/`. What
+the engine can claim is therefore "tested at the keyboard, no serious or critical axe violation on the screens
+checked", not "WCAG AA".
 
 ## Two layouts
 

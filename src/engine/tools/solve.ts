@@ -1003,7 +1003,7 @@ export function profileText(p: SolveProfile, game?: GameDef): string {
   out.push('SOLVER PROFILE', `  states explored       ${p.states}`, `  engine runs           ${p.tries}  (${p.noops} tries changed nothing${p.memo.hits > p.memo.verified ? `, ${p.memo.hits - p.memo.verified} of them not run: the no-op memo knew` : ''}; ${p.hashHits} landed on a known state)`,
     `  actions not run       ${p.skipped}  (no rule could answer them)${p.slept ? `, ${p.slept} asleep (an independent one came first)` : ''}${p.postponed ? `, ${p.postponed} states left to a commuting order` : ''}`, `  max queue             ${p.maxQueue}`, `  time                  ${(p.ms / 1000).toFixed(1)} s`,
     `  actions per state     ${p.branching.avg.toFixed(1)} on average, ${p.branching.max} at most${p.branching.worst ? ` (${p.branching.worst.room}, ${p.branching.worst.inventory.length} items in the bag: ${Object.entries(p.branching.worst.byVerb).map(([v, n]) => `${n} ${v}`).join(', ')} changed something)` : ''}`);
-  out.push('', 'Abstractions (each one exact, or turned off and why):', ...abstractionLines(p));
+  out.push('', 'Abstractions (what each one did, or why it is off):', ...abstractionLines(p));
   if (p.dims.length) {
     out.push('', 'What splits the states (states that would merge without it):');
     for (const d of p.dims.filter((x) => x.split > 0).slice(0, 15)) out.push(`  ${String(d.split).padStart(6)}  ${name(d.key)}  (${d.values} values)`);

@@ -92,7 +92,12 @@ apparaissent évoluent indépendamment : un checkpoint avec objectifs entre elle
 petite. La carte de chaleur du graphe de puzzles (onglet Check) montre les mêmes chiffres sur les règles et les lieux ;
 « why is this live? » sur une fiche explique pourquoi le solveur garde une chose dans son état.
 
-## Moins d'ordres : la réduction d'ordre partiel
+## Moins d'ordres : la réduction d'ordre partiel (historique, v2.3)
+
+> **Ne jamais utiliser la réduction d'ordre partiel pour certifier qu'un jeu n'a pas de softlock.** Mesurée en mode
+> preuve en 3.3, elle a signalé un softlock qui n'existe pas ([plus bas](#après-v33-noop-memo--pas-de-réduction-dordre-partiel-dans-les-preuves-une-mémoire-des-no-ops-à-la-place)).
+> `--por` ne s'applique qu'aux recherches de témoin : en mode preuve, le solveur l'ignore et le dit. Cette section est
+> la mesure de la v2.3, gardée telle quelle.
 
 Deux actions qui touchent des choses différentes commutent : prendre la corde puis la pièce, ou la pièce puis la
 corde, mène au même état. Le solveur fusionne déjà les états (un hash) ; ce qu'il payait encore, ce sont les ordres
@@ -112,9 +117,8 @@ l'état) et, pour les actions qu'une condition retient encore, ce que le graphe 
 `sleep` ne saute que des exécutions du moteur (une action essayée avant une action indépendante n'est pas réessayée
 au retour) ; `stubborn` n'explore qu'une action commutante à la fois, donc les états tombent aussi. Sur le jeu de
 charge en chaîne ci-dessus rien ne commute et rien ne change ; sur un vrai jeu avec des quêtes annexes facultatives,
-c'est la différence entre une preuve et un dépassement de temps. La réduction est désactivée par défaut : la recherche
-simple est la preuve, et `tests/por.test.ts` vérifie que chaque fixture et le jeu d'exemple donnent le même verdict
-dans les trois modes.
+c'est la différence entre une preuve et un dépassement de temps (dans une recherche de témoin : voir l'encadré). La
+réduction est désactivée par défaut : la recherche simple est la preuve.
 
 ## v3.1 : schéma 3 et preuve exhaustive (4 octobre 2026)
 
@@ -327,7 +331,9 @@ avec les valeurs qu'elle a lues ; la même action sur un état aux mêmes valeur
 lancée. Elle ne retire aucune arête (un no-op est une boucle), donc la preuve est la même. Elle suppose que la trace
 des lectures est complète : un saut sur 16 est lancé quand même et comparé, et une différence est une erreur, jamais
 un saut silencieux. `tests/memo.test.ts` lance chaque saut quand même sur douze fixtures (témoin et preuve) et sur la
-démo : mêmes verdicts, états, softlocks, témoins et compteurs d'atteignabilité.
+démo : mêmes verdicts, états, softlocks, témoins et compteurs d'atteignabilité. C'est une équivalence vérifiée sur ce
+corpus, pas une preuve pour tout jeu : une future condition ou commande qui oublierait de déclarer une lecture la
+casserait, et seule une vérification qui lance chaque saut le verrait.
 
 | Démo | Avant | Avec la mémoire |
 |---|---|---|
@@ -339,7 +345,7 @@ démo : mêmes verdicts, états, softlocks, témoins et compteurs d'atteignabili
 est coupée (la sortie reste en anglais) :
 
 ```
-Abstractions (each one exact, or turned off and why):
+Abstractions (what each one did, or why it is off):
   canonical character   3048 switches folded, 0 kept explicit
   mobility regions      off (no move of this game can be silent)
   no-op memo            95625 runs skipped (5976 of them run anyway and identical), 522 kept, 4728 refused

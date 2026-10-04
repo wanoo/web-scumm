@@ -283,7 +283,7 @@ et par chapitre, tenu à des budgets), `v33-browser-gates` (axe-core sur les dia
 sauvegarde et chaque mini-jeu ; chaque mini-jeu gagné au clavier dans un vrai navigateur ; mises à niveau du stockage
 dans Chromium et WebKit).
 
-Critères de sortie, mesurés (BENCH.md « v3.3 ») : le jeu de référence de 40 lieux et 3 personnages prouvé en 578
+Critères de sortie, mesurés (BENCH.md « v3.3 ») : le jeu de référence de 40 lieux et 3 personnages (structuré par époques) prouvé en 578
 états et 3,5 s (budget 200 000 états, 60 s) ; la démo prouvée en 2,2 s (budget 5 s) et par chapitres en 3,3 s (budget
 20 s) ; les abstractions donnent les verdicts de la recherche explicite sur le corpus différentiel
 (`tests/reference-proof.test.ts`, `tests/memo.test.ts`, `tests/canonical.test.ts`) ; le profil dit ce que chaque

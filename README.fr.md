@@ -18,8 +18,8 @@ vérifie, le prouve et le publie en jeu web jouable hors ligne. Il est né comme
 ![The Pantry Key : la maison de Grand-mère, neuf verbes, le sac](docs/img/v33-hero.webp)
 
 **Nouveau en v3.3 « Scale » :** les jeux à plusieurs personnages jouables sont prouvés, plus seulement joués. Une
-aventure de référence de 40 lieux à trois personnages, avec des sacs séparés et des objets qui passent d'une époque à
-l'autre, est vérifiée état par état en 3,5 secondes
+aventure de référence de 40 lieux à trois personnages, structurée par époques (chaque personnage reste dans la sienne,
+les objets passent de l'une à l'autre par des passages contrôlés), est vérifiée état par état en 3,5 secondes
 ([la mesure](docs/fr/BENCH.md#330-mesurée-sur-la-release-5-octobre-2026-cache-coupé)).
 
 ## Bien plus qu'un moteur
@@ -38,11 +38,11 @@ Mesuré sur la release, cache de preuve coupé ([BENCH.md](docs/fr/BENCH.md)) :
 
 | Quoi | Résultat |
 |---|---|
-| Jeu de référence, 40 lieux, 3 personnages jouables | prouvé en 578 états, 3,5 s |
+| Jeu de référence, 40 lieux × 3 personnages, structuré par époques | prouvé en 578 états, 3,5 s |
 | Le jeu d'exemple, chaque état atteignable | prouvé en 2,2 s, puis 0,17 s depuis le cache de preuve |
 | Le jeu d'exemple, chapitre par chapitre | prouvé en 3,3 s |
 | Les 7 mini-jeux fournis | chacun gagné au clavier seul, dans Chromium et WebKit |
-| Accessibilité | aucune violation axe-core grave ou critique sur les écrans contrôlés |
+| Accessibilité | testée au clavier, aucune violation axe-core grave ou critique sur les écrans contrôlés (pas une conformité WCAG) |
 | Assets livrés | empreinte et licence de chaque fichier verrouillées après relecture ; budgets de poids par lieu et par chapitre |
 
 La preuve explore le jeu comme le moteur le joue et suppose les mini-jeux réussis. Le jeu de référence garde chaque

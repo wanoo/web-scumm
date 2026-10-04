@@ -2,8 +2,18 @@
 
 ## Unreleased
 
+### Added
+
+- `docs/dev/passes/`: one sheet per release for the checks automation cannot make (screen reader, Safari offline, a
+  real phone, playtesters, voices, a signed tag); a release lists in its notes the ones not done (D12).
+
 ### Changed
 
+- Truthful wording (Codex's review of 3.3.0): the partial-order reduction section of BENCH is marked historical, with
+  a warning never to use it to certify the absence of softlocks, and `solve --prove --por=…` says it ignores the
+  flag; the no-op memo is "an equivalence checked on the differential corpus", not a proof for every game; the
+  40-room reference is "structured by eras" wherever it is quoted; accessibility is "tested at the keyboard, no
+  serious axe violation", not a WCAG claim. The profile's header reads "what each one did, or why it is off".
 - The README (en and fr) is a showcase: the promise, the v3.3 measurements with their limits, four player and four
   Studio images, a quick start that begins with `npm run doctor`, then links to the docs. The images come from the
   production bundle and the Studio through `npm run docs:screenshots` (`scripts/docs-screenshots.mjs`).

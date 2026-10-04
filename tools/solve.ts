@@ -25,6 +25,8 @@ const t0 = Date.now();
 const maxStates = Number(arg('max') ?? 20000);
 const por = arg('por') === 'sleep' ? 'sleep' as const : arg('por') === 'stubborn' ? 'stubborn' as const : false;
 const mode = process.argv.includes('--prove') ? 'prove' as const : 'witness' as const;
+// The reductions have no proof of equivalence for softlocks (BENCH.md, "Fewer orders"): the solver ignores them when proving.
+if (por && mode === 'prove' && !asJson) console.log(`ℹ  --por=${por} is ignored in proof mode: it can report a softlock that does not exist (BENCH.md)`);
 
 if (process.argv.includes('--chapters') && mode === 'prove') {
   const p = await proveChapters(game, layouts, { maxStates, commands, mode: 'prove', solver: cachedSolve });

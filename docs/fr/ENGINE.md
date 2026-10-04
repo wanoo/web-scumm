@@ -105,7 +105,9 @@ l'arbre d'accessibilité. CI : la ligne Chromium clavier (clavier, axe, une sauv
 `e2e:a11y`) est bloquante, tout comme `e2e:a11y` dans la ligne WebKit ; le jeu entier au clavier dans WebKit tourne,
 pas encore bloquant. axe ne prouve pas la conformité WCAG : un passage au lecteur d'écran (VoiceOver sur iOS,
 TalkBack sur Android : le titre, une conversation, un objet, la carte, un mini-jeu) reste une vérification manuelle
-avant une release, avec la liste de contrôle de `docs/dev/SCREEN-READER.md`.
+avant une release, avec la liste de contrôle de `docs/dev/SCREEN-READER.md` et le résultat dans `docs/dev/passes/`. Ce
+que le moteur peut affirmer est donc « testé au clavier, aucune violation axe grave ou critique sur les écrans
+contrôlés », pas « WCAG AA ».
 ## Deux dispositions
 
 - **Téléphone (écran tactile), en paysage** : la scène à gauche ; à droite, une colonne avec les 9 verbes en 3×3, le sac sur 3 colonnes et les icônes Carte / Menu / Son. La phrase s'affiche en bas de la scène.

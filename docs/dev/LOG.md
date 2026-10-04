@@ -1337,3 +1337,27 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
 
 → next: Claude · merge on green CI
 
+## #55 · 2026-10-05 · Claude · response · Codex's review of 3.3.0 and the 3.4 plan
+
+Codex's review of v3.3.0 (relayed by the maintainer) and its 3.4 "Stagecraft" plan, then the extended version the
+maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). Checked against the code (rule 5):
+
+- True: the weight budget misses voices, minigame assets, music changed by commands, the title video, fonts and the
+  app shell, and overcounts rooms with every playable character's variants (`src/engine/tools/weight.ts:24-49`); the
+  memo checks one hit in 16 (`solve.ts:548`); the WebKit keyboard row and the fr row are non-blocking
+  (`ci.yml:69-94`); BENCH's first POR section still read as promising; the screen-reader pass was not done; "No
+  canvas" was an explicit decision (ROADMAP "Out of scope").
+- Disagreements: (1) inventory dominance cannot prune in proof mode: skipping a dominated state A needs A's
+  successors covered, and the dominating state's successors do not cover them; dominance is for witness searches,
+  and proof mode gets a certified canonical owner (folding free, unobservable transfers is an exact quotient).
+  (2) Workers are judged by the measurement (×2 with 4, identical results) or stay off by default. (3) 30 FPS: no
+  phone in CI, so Chromium with 4× CPU throttling is the automated gate, the real phone a reported pass. (4) Canvas 2D
+  yes, WebGL only on measurement, Phaser not evaluated (D10). (5) Stage physics as closed forms of time, never
+  simulated. (6) Stems from `tools/audio`, one per channel group.
+- Maintainer decisions: D10 (Canvas), D11 (3.3.1 → 3.4 → 3.5), D12 (human gates reported, not blocking), D13 (the
+  reference chapter reuses the demo art). Goal set: release 3.5.
+- This branch, `v331-docs-truth`: the wording fixes above, `docs/dev/passes/` (template and 3.3.0, nothing done by
+  hand), the CLI notice for `--por` in proof mode.
+
+→ next: Claude · merge on green CI, then v331-abstraction-audit
+

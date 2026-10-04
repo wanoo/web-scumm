@@ -18,7 +18,8 @@ single day with an AI assistant.
 ![The Pantry Key: Grandma's house, nine verbs, the bag](docs/img/v33-hero.webp)
 
 **New in v3.3 "Scale":** games with several playable characters are proved, not just played. A 40-room reference
-adventure with three characters, separate bags and items passed between eras is checked state by state in 3.5 seconds
+adventure with three characters, structured by eras (each character keeps to their own, items pass between them through
+controlled passages), is checked state by state in 3.5 seconds
 ([how it is measured](docs/en/BENCH.md#330-measured-on-the-release-5-october-2026-cache-off)).
 
 ## More than an engine
@@ -37,11 +38,11 @@ Measured on the release, proof cache off ([BENCH.md](docs/en/BENCH.md)):
 
 | What | Result |
 |---|---|
-| Reference game, 40 rooms, 3 playable characters | proved in 578 states, 3.5 s |
+| Reference game, 40 rooms × 3 characters, structured by eras | proved in 578 states, 3.5 s |
 | The sample game, every reachable state | proved in 2.2 s, then 0.17 s from the proof cache |
 | The sample game, chapter by chapter | proved in 3.3 s |
 | The 7 bundled minigames | each one won with the keyboard alone, in Chromium and WebKit |
-| Accessibility | no serious or critical axe-core violation on any screen checked |
+| Accessibility | tested at the keyboard, no serious or critical axe-core violation on any screen checked (not a WCAG claim) |
 | Shipped assets | every file's hash and licence locked after review; weight budgets per room and chapter |
 
 The proof explores the game as the engine plays it and assumes the minigames are won. The reference game keeps each
