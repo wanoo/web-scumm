@@ -323,3 +323,17 @@ Abstractions (each one exact, or turned off and why):
   no-op memo            95625 runs skipped (5976 of them run anyway and identical), 522 kept, 4728 refused
 ```
 
+### 3.3.0, measured on the release (5 October 2026, cache off)
+
+| Game | Status | States | Engine runs | Time | 3.3 budget |
+|---|---|---|---|---|---|
+| Demo, global proof | solved | 3 480 | 40 191 | 2.2 s | 5 s |
+| Demo, proof by chapters | solved | 5 chapters | | 3.3 s | 20 s |
+| Reference, 40 rooms, 1 character | solved | 163 | 764 | 1.8 s | |
+| Reference, 40 rooms, 2 characters | solved | 678 | 11 348 | 5.6 s | |
+| Reference, 40 rooms, 3 characters | solved | 578 | 10 647 | 3.5 s | 200 000 states, 60 s |
+
+With the proof cache warm, the demo's global proof answers in 0.17 s and its chapters in 1.1 s. The open matrix
+(characters not confined to an era, items moving freely) still truncates with 2 and 3 characters: see
+"After `v33-mobility`".
+

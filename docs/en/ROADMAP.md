@@ -307,15 +307,34 @@ reductions measured and kept out of proof mode; BENCH.md says where the proof st
 passes every gate in CI). Out of 3.2, said in BENCH.md and ENGINE.md: proving a multi-character long game (the 3.3 solver track below), a
 screen-reader pass (manual), DNS pinning of custom providers.
 
-## v3.3 "Scale" (proposed, LOG #39): prove multi-character games, close the production contracts
+## v3.3 "Scale" (5 October 2026): prove multi-character games, close the production contracts
 
-From an outside review (LOG #38), in order: profile the search; a proof-mode frontier (stack, parent pointers,
-numeric state ids); the active character out of the state; mobility regions and macro moves; chapter interfaces
-projected on what the rest reads; a proof-safe reduction with a cycle proviso, validated differentially on thousands
-of generated games; parallel frontiers; a symbolic (BDD) backend only if real games still exceed the budgets. Exit:
-the 40-room stress game proved with 1, 2 and 3 characters (BENCH.md). Added by the review of 3.2.1 (LOG #40): states
-projected on the goal's dependency cone, boundary dedup and dominance, a persistent proof cache keyed by game hash,
-goal and checkpoint.
+From an outside review (LOG #38) and Codex's reviews of 3.2 (LOG #39, #40), one branch at a time, each merged on
+green CI (D9). The proof: `v33-proof-profile` (where the time goes, `npm run bench -- --matrix`), `v33-proof-core`
+(a heap frontier and parent pointers: the queue went from 89% of the time to nothing, same witnesses),
+`v33-player-canonical` (states that differ only by who is active are one state), `v33-mobility` (mobility regions:
+silent moves folded into the next action, an exact fallback when a move is not silent), `v33-chapter-interfaces`
+(one shared search per chapter from every boundary state, a goal checked on every character's view: a real bug
+found against the explicit search), `v33-noop-memo` (the partial-order reduction measured in proof mode and refused:
+it reported a softlock that does not exist; instead the engine's writes are traced and a try that wrote nothing is
+not run again on the same read values, every skip checkable), `v33-one-status` (one status, exit code and sentence
+for the CLI, its JSON, the Studio and the MCP tool), `v33-proof-cache` (a result keyed by the engine, the game and the
+options, given back when nothing changed). Production: `v33-list-ids` (look lists, hints, fallback answers and
+reactions by kind get stable ids), `v33-provenance-lock` (a reviewed lock of every shipped file and a licence policy,
+both required for a release), `v33-asset-weight` (what a phone downloads before the first room, per room and per
+chapter, held to budgets), `v33-browser-gates` (axe-core on dialogues, the map, the save slots and every minigame;
+every minigame won at the keyboard in a real browser; storage upgrades in Chromium and WebKit).
+
+Exit criteria, measured (BENCH.md "v3.3"): the 40-room, 3-character reference game proved in 578 states and 3.5 s
+(budget 200 000 states, 60 s); the demo proved in 2.2 s (budget 5 s) and by chapters in 3.3 s (budget 20 s); the
+abstractions give the explicit search's verdicts on the differential corpus (`tests/reference-proof.test.ts`,
+`tests/memo.test.ts`, `tests/canonical.test.ts`); the profile says what each abstraction did or why it is off; one
+status everywhere; CI on `v33-*`. Not done, said here: parallel workers (each chapter is one shared search and
+chapters follow each other: nothing independent is left to split, and every budget is met), dominance between
+boundary states and a symbolic backend (no game exceeds the budgets), a manual screen-reader pass (the maintainer's,
+checklist in `docs/dev/`), the open 3-character matrix where items move freely between characters (a true product
+of item placements, BENCH.md). Stagecraft (layers, walk topology, structured Studio editors, voice production) moves
+to 3.4.
 
 ## Out of scope (explicit decisions)
 
