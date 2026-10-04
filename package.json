@@ -52,8 +52,9 @@
     "i18n": "tsx --tsconfig tsconfig.json tools/i18n.ts",
     "bench": "tsx --tsconfig tsconfig.json tools/bench.ts",
     "import-layout": "tsx --tsconfig tsconfig.json tools/pages/import-layout.ts",
-    "verify:release": "npm run validate -- --release && npm run i18n -- status && npm run playtests -- --strict",
-    "provenance": "tsx tools/provenance.ts"
+    "verify:release": "npm run validate -- --release && npm run weight -- --release && npm run i18n -- status && npm run playtests -- --strict",
+    "provenance": "tsx tools/provenance.ts",
+    "weight": "tsx tools/weight.ts"
   },
   "config": {
     "game": "demo"

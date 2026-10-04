@@ -4,6 +4,10 @@
 
 ### Added
 
+- Weight budgets (`npm run weight`, `assetBudgets.initialKB / roomKB / chapterKB`): what a phone downloads before the
+  first room is playable, per room and per chapter (every room reachable in it, from the proof by chapters), from the
+  built files; over a budget fails, and `verify:release` requires the budgets. Demo: 2.0 MB initial, 2.4 MB at most
+  per room, 3.7 MB per chapter, budgets 2.5 / 3 / 4.5 MB.
 - Provenance tied to the files (`npm run provenance`, `provenance.lock.json`): `--lock` records each shipped file's
   SHA-256 and size with the claims of its entry after a review; `validate --release` fails on a file changed or
   shipped since, a missing file or an entry edited since, and on a licence outside the game's policy
