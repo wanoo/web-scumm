@@ -869,3 +869,22 @@ test), CI re-run on `main` recorded below. Rule kept from now on: read the whole
 prints `check` first.
 
 → next: Claude · `v3-offline-truth`
+
+## #29 · 2026-10-04 · Claude · proposal · v3-studio-net
+
+Branch: `v3-studio-net` (from `main`) · the addition of #26
+
+- `tools/studio/assistant.ts`: `hostOf()` strips IPv6 brackets and maps `::ffff:a.b.c.d`; `privateHost()` refuses
+  loopback, `0.0.0.0/8`, `::`, `10/8`, `172.16/12`, `192.168/16`, `169.254/16`, `100.64/10`, `fc00::/7`,
+  `fe80::/10`, `localhost`, `.localhost`, `.local`, `.internal`. Before: `new URL('https://[::1]/').hostname` is
+  `'[::1]'`, so `'::1'` never matched, `0.0.0.0` and mapped addresses passed. Ollama keeps `localhost`, `127.0.0.1`
+  and `[::1]`.
+- `tools/studio/assistant-loop.ts`: `providerFetch()` (`redirect: 'manual'`, a 3xx or an opaque redirect is refused;
+  `AbortSignal.timeout(60 s)` combined with the caller's signal), `readCapped()` and the SSE reader cap the answer at
+  8 MB; the error text is read up to 64 KB. Same code in the page (`src/studio/assistant.ts`) and in the relay.
+- Not done, said in SECURITY.md: DNS rebinding (a public name resolving to a private address) is not detected; a
+  resolve-and-pin step is 3.2 material if still wanted.
+- Tests: 20 private hosts refused in both families, 4 public accepted, Ollama with brackets, redirect, deadline, the
+  caller's abort passed through, the cap. Docs STUDIO en/fr, SECURITY.md, CHANGELOG.
+
+→ next: Claude · `v3-release-truth`

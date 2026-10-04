@@ -44,6 +44,8 @@ export interface LoopOptions {
   /** In a page: Anthropic needs its direct-browser-access header, and network errors get a CORS explanation. */
   browser?: boolean;
   fetch?: typeof fetch;
+  /** Deadline of one provider call (default 60 s). */
+  timeoutMs?: number;
 }
 
 export const MAX_ROUNDS = 12;
@@ -56,6 +58,44 @@ const cut = (s: string, n: number) => (s.length > n ? `${s.slice(0, n)}\n… [tr
 export { WRITING_TOOLS } from './tools';
 
 export class ProviderError extends Error {}
+
+/** A provider must answer within this time, and its answer is read up to this size: a relay never hangs or swells. */
+export const PROVIDER_TIMEOUT_MS = 60000;
+export const PROVIDER_MAX_BYTES = 8 * 1024 * 1024;
+
+/**
+ * `fetch` for a provider: redirects are not followed (a redirect could send the vetted request to another host), a
+ * deadline applies on top of the caller's signal. The caller reads the body through `readCapped` / `sse`.
+ */
+export async function providerFetch(f: typeof fetch, url: string, init: RequestInit, o: { timeoutMs?: number; signal?: AbortSignal } = {}): Promise<Response> {
+  const timeoutMs = o.timeoutMs ?? PROVIDER_TIMEOUT_MS;
+  const timeout = AbortSignal.timeout(timeoutMs);
+  const signal = o.signal ? AbortSignal.any([timeout, o.signal]) : timeout;
+  let res: Response;
+  try { res = await f(url, { ...init, redirect: 'manual', signal }); }
+  catch (e) {
+    if (timeout.aborted && !o.signal?.aborted) throw new ProviderError(`${url} did not answer within ${Math.round(timeoutMs / 1000)} s`);
+    throw e;
+  }
+  if ((res.status >= 300 && res.status < 400) || res.type === 'opaqueredirect') throw new ProviderError(`${url} answered with a redirect (${res.status || 'opaque'}): refused, a provider must answer at its own address`);
+  return res;
+}
+
+/** The body as text, at most `max` bytes: beyond, the answer is refused. */
+export async function readCapped(res: Response, max = PROVIDER_MAX_BYTES): Promise<string> {
+  if (!res.body) return '';
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let out = '', size = 0;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > max) { await reader.cancel().catch(() => {}); throw new ProviderError(`the provider's answer exceeds ${Math.round(max / 1024 / 1024)} MB`); }
+    out += dec.decode(value, { stream: true });
+  }
+  return out + dec.decode();
+}
 
 // ---------------------------------------------------------------------------------------------------- the prompt
 
@@ -122,10 +162,10 @@ const trim = (u: string) => u.trim().replace(/\/+$/, '');
 export const endpoint = (base: string, path: string) => { const b = trim(base); return /\/v1$/.test(b) ? `${b}/${path}` : `${b}/v1/${path}`; };
 
 /** Server-sent events of a response body: { event, data } per block. */
-async function* sse(body: ReadableStream<Uint8Array>): AsyncGenerator<{ event: string; data: string }> {
+async function* sse(body: ReadableStream<Uint8Array>, max = PROVIDER_MAX_BYTES): AsyncGenerator<{ event: string; data: string }> {
   const reader = body.getReader();
   const dec = new TextDecoder();
-  let buf = '';
+  let buf = '', size = 0;
   const parse = (block: string) => {
     let event = 'message';
     const data: string[] = [];
@@ -138,6 +178,8 @@ async function* sse(body: ReadableStream<Uint8Array>): AsyncGenerator<{ event: s
   for (;;) {
     const { value, done } = await reader.read();
     if (done) break;
+    size += value.byteLength;
+    if (size > max) { await reader.cancel().catch(() => {}); throw new ProviderError(`the provider's stream exceeds ${Math.round(max / 1024 / 1024)} MB`); }
     buf += dec.decode(value, { stream: true });
     let m: RegExpExecArray | null;
     while ((m = /\r?\n\r?\n/.exec(buf))) {
@@ -166,9 +208,9 @@ export async function runAssistant(o: LoopOptions): Promise<void> {
   const post = async (body: unknown, headers: Record<string, string>): Promise<Response> => {
     let res: Response;
     try {
-      res = await f(url, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body), signal: o.signal });
+      res = await providerFetch(f, url, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) }, { signal: o.signal, timeoutMs: o.timeoutMs });
     } catch (e) {
-      if (o.signal?.aborted) throw e;
+      if (o.signal?.aborted || e instanceof ProviderError) throw e;
       const why = e instanceof Error ? e.message : String(e);
       throw new ProviderError(o.browser
         ? `The browser could not reach ${url} (${why}). The provider may refuse calls from a web page (CORS): OpenAI does for some keys. ` +
@@ -176,7 +218,7 @@ export async function runAssistant(o: LoopOptions): Promise<void> {
         : `Could not reach ${url}: ${why}`);
     }
     if (!res.ok) {
-      const text = await res.text().catch(() => '');
+      const text = await readCapped(res, 64 * 1024).catch(() => '');
       let msg = text;
       try { const j = JSON.parse(text); msg = j.error?.message ?? j.error ?? j.message ?? text; } catch { /* not JSON */ }
       throw new ProviderError(`${o.provider.kind} ${res.status}${res.statusText ? ` ${res.statusText}` : ''}: ${String(typeof msg === 'string' ? msg : JSON.stringify(msg)).slice(0, 500)}`);
@@ -218,7 +260,7 @@ export async function runAssistant(o: LoopOptions): Promise<void> {
       }
       calls.push(...[...byIndex.entries()].sort((a, b) => a[0] - b[0]).map(([, c]) => c));
     } else {
-      const j: any = await res.json();
+      const j: any = JSON.parse(await readCapped(res));
       const m = j.choices?.[0]?.message ?? {};
       if (typeof m.content === 'string' && m.content) { text = m.content; o.emit({ type: 'text', delta: m.content }); }
       for (const tc of m.tool_calls ?? []) {
@@ -277,7 +319,7 @@ export async function runAssistant(o: LoopOptions): Promise<void> {
       }
       blocks = blocks.filter(Boolean);
     } else {
-      const j: any = await res.json();
+      const j: any = JSON.parse(await readCapped(res));
       blocks = j.content ?? [];
       for (const b of blocks) if (b.type === 'text' && b.text) o.emit({ type: 'text', delta: b.text });
       u.input = j.usage?.input_tokens ?? 0; u.output = j.usage?.output_tokens ?? 0;
