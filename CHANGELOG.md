@@ -1,7 +1,6 @@
 # Changelog
 
-## 3.1.1 — 2026-10-04
-## 3.2.0 — unreleased
+## 3.2.0 — 2026-10-04
 
 ### Added
 
@@ -44,7 +43,16 @@
 - Minigames declare `bindings` (params that name an image or a sound); `validate` checks them (`stroke`, `cables`,
   `scratch`); `scratch`'s `intro` is a translatable text param (its `text` is the sealed ending, given at run time).
 
-## 3.1.1 — unreleased
+### Fixed
+
+- A game made by `npm run new-game` failed `verify:game` and `prove:game`: `solve --chapters` exited 1 when no
+  checkpoint declares `goals` (now: nothing to prove by chapter, the global search covers the game), and the build's
+  spoiler check crashed on a game without a sealed ending (now: only the private-file check applies). Caught by the
+  new `second-game` CI job, which gates Pages: a new game passes check, verify, proof, build and the production e2e
+  (axe, saves) with no test written for it.
+
+
+## 3.1.1 — 2026-10-04
 
 ### Changed
 

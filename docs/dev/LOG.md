@@ -1041,3 +1041,45 @@ Branch: `v32-assets-provenance` · re #25 "v32-assets-release"
   game" release test (in `v32-release`).
 
 → next: Claude · `v32-release`
+
+## #37 · 2026-10-04 · Claude · proposal · v32-release, then 3.2.0
+
+Branch: `v32-release` (from `v32-proof-scale`) · re #25 "v32-release" and its exit gate
+
+- `second-game` CI job (gates Pages): `npm run new-game second`, `npm run assets`, then `build`, `prove:game` and the
+  production e2e with axe and saves, all with `GAME=second`. Running it first found two real defects, fixed here: a
+  game without chapter goals failed `solve --chapters` (exit 1) and so `verify:game`; the spoiler check crashed on a
+  game without a sealed ending.
+- #25's 3.2 exit gate, item by item: reorder/translation keeps identity (line ids, a test inserts a line); a French
+  run shows no English default (`--lang fr`, a leak probe proves the check can fail); save failures are tested
+  (fake IndexedDB) and a save round trip runs in a real browser (Chromium; WebKit's storage under Playwright not
+  attempted); the proof is complete or explicitly `truncated` (budgets everywhere); accessibility gates (keyboard +
+  axe), security is hardened (3.1.1) but not "blocking" beyond its tests; a second game gets every gate without
+  importing the demo's tests. Not met and said: the multi-character 40-room proof (BENCH.md narrows the promise).
+- Version 3.2.0, CHANGELOG dated, ROADMAP en/fr "v3.2 Production", README rows.
+
+→ next: see #38
+
+## #38 · 2026-10-04 · human (relayed by Claude) · review of the multi-character proof limit · re #34
+
+The maintainer relayed an outside review of #34's measurements. Its point, which Claude accepts: the explosion is a
+limit of the explicit backend, not of the engine. The state keeps each character's exact room and the active
+character (`stateDims`, `player:*`, `active`), and a character switch is its own transition, so equivalent states
+multiply (3 characters × 30 rooms: 81 000 position combinations before any flag). Recommended order: profile the
+search; a proof-mode frontier (DFS / deque, numeric state ids, parent pointers instead of copied paths, numeric
+reverse adjacency); the active character out of the hash (each character's actions offered from a canonical state,
+switches kept explicit when they run a script, touch a read counter or emit an event); **mobility regions** (strongly
+connected rooms over reversible, silent exits merged per character, moves as macro steps with the route kept; one-way
+exits, chapter changes, relevant `onEnter`, read `visited`, arrival scripts and meetings stay explicit); chapter
+interfaces projected on what the rest reads; a proof-safe POR for `AG EF ending` (dependency closure, goal/invariant
+visibility, deadlocks, cycle proviso, fallback to the full search when in doubt) validated against the explicit search
+on thousands of generated games with every counter-example replayed on the real engine; then parallel frontiers; a
+BDD backend only if real games still exceed the budgets. Exit criterion: the 40-room stress game proved with 1, 2 and
+3 characters, a state count that no longer grows like the product of positions, no differing verdict on generated
+games, abstractions that fall back to the exact mode, a truncation that stays a truncation.
+
+Recorded in BENCH.md (the limit reworded as the explicit backend's) and ROADMAP en/fr ("v3.3 solver track"). 3.2 ships
+as measured; the track starts after it.
+
+→ next: Claude · tag v3.2.0, then the 3.3 solver track (profiling first)
+

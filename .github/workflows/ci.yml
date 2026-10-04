@@ -33,9 +33,40 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           path: dist
+  # A second game, as `npm run new-game` makes it: every gate the sample game passes (check, verify:game, prove:game,
+  # the build, the production e2e with axe and saves), without a single test written for it. A gate since 3.2.
+  second-game:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run new-game second "Second Game"
+      - run: npm run assets
+      - run: npm run build
+        env:
+          GAME: second
+      - run: npm run prove:game
+        env:
+          GAME: second
+      - run: npm run preview -- --port 5174 &
+        env:
+          GAME: second
+      - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5174/ > /dev/null && break; sleep 1; done
+      - run: npm run e2e -- http://127.0.0.1:5174/ --game second --prod --generic --axe --save
+        env:
+          GAME: second
   # The production bundle played by touch. Chromium runs the complete game-specific walkthrough and WebKit the
   # generic solver session; both gate the deploy (WebKit after three consecutive green runs on main, D7). The keyboard
-  # row is experimental (non-blocking) until it has its own three green runs.
+  # row gates too since 3.2; WebKit at the keyboard and the French row are experimental.
   e2e:
     runs-on: ubuntu-latest
     continue-on-error: ${{ matrix.experimental }}
@@ -92,7 +123,7 @@ jobs:
           name: e2e-screenshots-${{ matrix.browser }}
           path: /tmp/e2e-${{ matrix.browser }}
   pages:
-    needs: [check, e2e]
+    needs: [check, e2e, second-game]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

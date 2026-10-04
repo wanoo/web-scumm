@@ -152,11 +152,23 @@ Same laptop; 12 items, 30 flags, 1 walker, 2 scripts, 8 topics; `maxStates` 20 0
 
 What this says, plainly: the exhaustive proof is complete and fast for a single-character chain of 40 rooms; with
 several playable characters the reachable states multiply (each one's room and bag) and both proofs stop at the
-budget and say so. Cutting the game into chapters does not change that, because the first chapter already holds the
+budget and say so. **This is a limit of the explicit search as written, not of the engine**: the state keeps every
+character's exact room and the active character, and a switch of character is a transition of its own, so equivalent
+states are explored thousands of times (three characters free in 30 rooms: 81 000 position combinations before any
+flag). The 3.3 solver track (ROADMAP) attacks exactly that. Cutting the game into chapters does not change that, because the first chapter already holds the
 product; it checks the checkpoints and proves each chapter from every way into it, which is what a long
 single-character game needs. Without a written equivalence argument, the reductions stay off in proof mode, and the
 differential suite (`tests/por.test.ts`) shows why: sleep sets invent softlocks on three of eight fixtures (dropped
 edges feed the reverse reachability that classifies them), stubborn sets agreed on all eight. A multi-character
 long game is proved per character (a checkpoint where the others wait) or relies on the witness, the chapter
-witnesses and the playtests. The solver's next step is the stubborn-set argument for proof mode.
+witnesses and the playtests. The solver's next steps, in order (an outside review, LOG #38): measure where the time goes (engine runs, clones,
+hashes, queue); a proof-mode frontier without best-first ordering or copied paths; the active character out of the
+state (each character's actions offered from one canonical state, a switch kept explicit only when it has an effect);
+**mobility regions** (rooms joined by reversible, silent exits merged into one region per character, moves as macro
+steps with the route kept for the walkthrough); chapter interfaces projected on what the rest reads; a proof-safe
+reduction (dependency closure, goal and invariant visibility, deadlocks, a cycle proviso, since the property is
+"from every reachable state the ending stays reachable"), validated against the explicit search on thousands of
+generated games with every counter-example replayed on the real engine; then parallel frontiers. Exit criterion: the
+40-room stress game proved with 1, 2 and 3 characters, a state count that no longer grows like the product of
+positions, no generated game where the reduced and explicit verdicts differ, and a truncation that stays a truncation.
 
