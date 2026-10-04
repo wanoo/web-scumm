@@ -3,6 +3,7 @@
 // ends and unused items. States only differ by what matters: props and counters that nothing reads
 // (a "2nd time" gag, opening/closing a cupboard with no consequence) don't create a new state.
 // Uses the real engine with a silent presenter: whatever the solver finds, the player can do.
+import { exitOf, solveHeadline, type ExitCode, type SolveStatus } from './status';
 import { Engine, type Action, type Source } from '../core/engine';
 import type { CustomCommands } from '../core/custom';
 import { FakePresenter, MemoryStore } from '../core/ports';
@@ -72,7 +73,10 @@ export interface SolveProfile {
 
 export interface SolveResult {
   /** Honest outcome of the requested search. `solved` in witness mode means that at least one path exists. */
-  status: 'solved' | 'unsolved' | 'softlocks' | 'truncated' | 'error';
+  status: SolveStatus;
+  /** The status as an exit code and a sentence (`src/engine/tools/status.ts`): what every tool prints. */
+  exit: ExitCode;
+  headline: string;
   /** Search contract used for this result. */
   mode: 'witness' | 'prove';
   /** The game reaches the sealed ending or the ending. */
@@ -940,7 +944,8 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   for (const { list } of cmdLists(game)) eachCmd(list, (c) => { if (typeof c !== 'string' && 'minigame' in c) assumptions.add(`minigame:${c.minigame}:success`); });
   const uniqueErrors = [...new Set(errors)].slice(0, 50);
   const status: SolveResult['status'] = uniqueErrors.length ? 'error'
-    : limitReached ? 'truncated'
+    : broken.length ? 'broken'
+      : limitReached ? 'truncated'
       : !finish ? 'unsolved'
         : softlocks.length ? 'softlocks'
           : 'solved';
@@ -948,6 +953,8 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   for (const n of seen.values()) n.state.inventory.forEach((i) => gained.add(i));
   return {
     status,
+    exit: exitOf(status),
+    headline: solveHeadline({ status, mode, states: seen.size, softlockCount: unsafe.length, broken, errors: uniqueErrors, goal: !!opts.goal }),
     mode,
     finished: !!finish,
     path: pathOf(finish ?? last),

@@ -5,6 +5,7 @@ import type { ContentReport } from '../../src/engine/tools/report';
 import type { WorldGraph } from '../../src/engine/tools/graph';
 import type { LiveClass, PuzzleGraph } from '../../src/engine/tools/puzzle';
 import type { SolveProfile } from '../../src/engine/tools/solve';
+import type { ExitCode, SolveStatus } from '../../src/engine/tools/status';
 import type { Coverage } from '../../src/engine/tools/coverage';
 import type { PlaytestReport } from '../../src/engine/tools/playtests';
 import type { LintResult } from '../../src/engine/tools/lint';
@@ -123,8 +124,10 @@ export interface PlaytestsData { report: PlaytestReport; markdown: string; files
 export interface LintData { lint: LintResult; markdown: string; mode: 'static' | 'witness' | 'prove'; ms: number }
 
 export interface SolveData {
-  /** Honest outcome of the search and the mode it ran in (`src/engine/tools/solve.ts`). */
-  status: 'solved' | 'unsolved' | 'softlocks' | 'truncated' | 'error';
+  /** Honest outcome of the search and the mode it ran in, with its exit code and sentence (`src/engine/tools/status.ts`): the same as `npm run solve`. */
+  status: SolveStatus;
+  exit: ExitCode;
+  headline: string;
   mode: 'witness' | 'prove';
   /** Reachable states the ending cannot be reached from (complete in `prove` mode). */
   softlocks: { path: string[]; room: string; inventory: string[] }[];

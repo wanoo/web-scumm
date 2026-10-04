@@ -201,6 +201,21 @@ Codes de sortie : 0 propre, 1 une erreur non ignorée, 2 la recherche a été tr
 dans `game.ts` garde un faux indice voulu. L'onglet Check du Studio montre la même liste avec des liens vers Rooms ;
 l'outil MCP `lint` la renvoie en Markdown. `verify:game` le lance (la CI aussi).
 
+**Un seul statut.** Une exécution du solveur et une preuve par chapitres portent un statut, son code de sortie et sa
+phrase (`src/engine/tools/status.ts`) : `npm run solve` affiche la phrase et sort avec le code, `--json` porte
+`status`, `exit` et `headline`, l'onglet Check du Studio montre la phrase, l'outil MCP `solve` rend les trois. Aucun
+ne formule son propre verdict.
+
+| Statut | Sortie | Sens |
+|---|---|---|
+| `solved` | 0 | la fin (ou le but d'un chapitre) est atteinte ; avec `--prove`, elle reste atteignable depuis tout état atteignable |
+| `softlocks` | 1 | des états atteignables d'où on ne peut plus l'atteindre (`softlockCount`, `softlockCauses`) |
+| `unsolved` | 1 | elle n'est atteinte depuis aucun état exploré |
+| `truncated` | 2 | la recherche s'est arrêtée à `--max` états : rien n'est prouvé |
+| `broken` | 1 | un invariant est vrai sur un état atteignable (avant la 3.3 : `solved` avec la sortie 1) |
+| `error` | 1 | le moteur a échoué pendant l'exploration |
+| `checkpoint_mismatch` | 1 | chapitres seulement : chaque chapitre est prouvé, mais un checkpoint n'est aucun de ses états frontière atteignables |
+
 **Intégration continue.** Chaque push sur `main`, `v3` ou `v3-*` lance `npm run build` (vérifications, tests Node et
 Python, `verify:game`, le bundle, les audits de spoilers et d'assets), `npm run prove:game` sur le jeu d'exemple,
 `npm run audit:deps`, puis l'e2e de production en Chromium (le parcours propre à la démo) et WebKit (le rejeu

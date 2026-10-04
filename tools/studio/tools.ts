@@ -192,8 +192,8 @@ export const TOOLS: ToolDef[] = [
   {
     name: 'solve', title: 'Solve the game',
     description: 'Explores the game states to prove it can be finished, from New Game or from checkpoint `from`. ' +
-      'Result { status, mode, finished, states, truncated, path, roomsReached, flagsReached, itemsNeverUsed, unusedItems, ' +
-      'deadEnds, softlocks, errors, from, ms }. `finished: false`, dead ends or softlocks are bugs to fix. `prove: true` runs the ' +
+      'Result { status, exit, headline, mode, finished, states, truncated, path, roomsReached, flagsReached, itemsNeverUsed, unusedItems, ' +
+      'deadEnds, softlocks, errors, from, ms }. `status`/`exit`/`headline` are exactly what `npm run solve` prints (0 solved, 2 truncated: nothing proved, 1 a bug to fix). `prove: true` runs the ' +
       'exhaustive search (softlocks complete). `profile: true` adds why the search is slow or big.',
     input: { from: z.string().optional().describe('Checkpoint id (list_rooms checkpoints).'), profile: z.boolean().optional().describe('Add the solver profile as text: what the states are made of, what the search cost, independent dimensions, monotonic things.'), prove: z.boolean().optional().describe('Exhaustive search: every reachable state and the softlocks (slow on a big game; default: the fast witness).') },
     annotations: { readOnlyHint: true },

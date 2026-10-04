@@ -89,7 +89,7 @@ export class CheckTab {
     const { v, s } = this;
     if (this.err) this.badge('error', '!');
     else if (v && s) {
-      const bad = v.errors.length + s.errors.length + (s.finished ? 0 : 1);
+      const bad = v.errors.length + s.errors.length + (s.exit === 0 ? 0 : 1);
       this.badge(bad ? 'error' : v.warnings.length ? 'warn' : 'ok', bad ? String(bad) : v.warnings.length ? String(v.warnings.length) : '✔');
     }
     if (!v && !s && !this.err) { this.out.replaceChildren(h('p', { class: 'muted' }, 'Not run yet.')); return; }
@@ -102,8 +102,8 @@ export class CheckTab {
         v.errors.length ? h('ul', { class: 'msgs errors' }, v.errors.map((e) => h('li', null, e))) : null,
         v.warnings.length ? h('ul', { class: 'msgs warnings' }, v.warnings.map((e) => h('li', null, e))) : null)] : []),
       ...(s ? [h('div', { class: 'panel' },
-        h('h3', null, 'Solver ', h('span', { class: s.finished ? 'ok' : 'bad' }, s.finished ? '✔ the game can be finished' : '✖ no ending reached'),
-          h('span', { class: 'muted small' }, ` from ${s.from ?? 'a new game'} · ${s.states} states · ${s.ms} ms${s.truncated ? ' · limit reached' : ''}`)),
+        h('h3', null, 'Solver ', h('span', { class: s.exit === 0 ? 'ok' : 'bad' }, `${s.exit === 0 ? '✔' : '✖'} ${s.headline}`),
+          h('span', { class: 'muted small' }, ` ${s.mode} · from ${s.from ?? 'a new game'} · ${s.ms} ms`)),
         s.errors.length ? h('ul', { class: 'msgs errors' }, s.errors.map((e) => h('li', null, e))) : null,
         s.broken?.length ? h('ul', { class: 'msgs errors' }, s.broken.map((b) => h('li', null, `invariant #${b.invariant} became true after: ${b.path.slice(-3).join(' › ') || 'the start'}`))) : null,
         h('ol', { class: 'path' }, s.path.map((p) => h('li', null, p))),
