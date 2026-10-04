@@ -122,3 +122,16 @@ describe('the proof by chapters has one state budget', () => {
     expect(p.chapters.reduce((n, c) => n + c.states, 0)).toBeLessThanOrEqual(50 + 20000);
   }, 60000);
 });
+
+describe('the solver measures itself', () => {
+  it('splits its time by phase and counts character positions', async () => {
+    const { makeStressGame } = await import('@engine/tools/stress');
+    const g = makeStressGame({ rooms: 6, players: 2, items: 4, flags: 6, npcs: 0, scripts: 0, topics: 2 });
+    const r = await solve(g.game, g.layouts, { mode: 'prove', maxStates: 400 });
+    expect(Object.keys(r.profile.timing).sort()).toEqual(['classify', 'clone', 'engine', 'hash', 'other', 'queue', 'run', 'tries']);
+    expect(Object.values(r.profile.timing).every((v) => v >= 0)).toBe(true);
+    expect(r.profile.timing.run).toBeGreaterThan(0);
+    expect(r.profile.positions).toBeGreaterThan(1);
+    expect(r.profile.positions).toBeLessThanOrEqual(r.states);
+  }, 60000);
+});

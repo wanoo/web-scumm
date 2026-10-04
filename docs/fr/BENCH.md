@@ -187,3 +187,64 @@ sortie : le jeu de stress de 40 lieux prouvé avec 1, 2 et 3 personnages, un nom
 produit des positions, aucun jeu généré où les verdicts réduit et explicite diffèrent, et une troncature qui reste une
 troncature.
 
+## v3.3 « Scale » : la matrice de référence (4 octobre 2026)
+
+`npm run bench -- --matrix --max=20000` : la preuve exhaustive sur des chaînes générées de 20 et 40 lieux avec 1, 2 et
+3 personnages jouables (12 objets, 30 flags, 1 marcheur, 2 scripts, 8 sujets). `Positions` compte les combinaisons
+distinctes (personnage actif, lieu de chaque personnage) parmi les états ; la répartition du temps vient du profil du
+solveur lui-même (`profile.timing`).
+
+| Game | Proof | States | Engine runs | Time | Positions | Time split (run / clone / hash / queue / tries / other) |
+|---|---|---|---|---|---|---|
+| 20 rooms, 1 character | solved | 797 | 3 295 | 0.2 s | 20 | 47% / 21% / 13% / 3% / 6% / 7% |
+| 20 rooms, 2 characters | truncated | 20 000 | 100 863 | 7.6 s | 800 | 45% / 23% / 9% / 15% / 2% / 4% |
+| 20 rooms, 3 characters | truncated | 20 000 | 49 538 | 22.6 s | 13 858 | 9% / 5% / 2% / 83% / 0% / 1% |
+| 40 rooms, 1 character | solved | 3 197 | 13 245 | 1.1 s | 40 | 46% / 25% / 13% / 6% / 3% / 5% |
+| 40 rooms, 2 characters | truncated | 20 000 | 92 475 | 19.0 s | 3 200 | 30% / 16% / 8% / 42% / 1% / 3% |
+| 40 rooms, 3 characters | truncated | 20 000 | 44 298 | 50.9 s | 18 796 | 6% / 3% / 1% / 89% / 0% / 1% |
+
+Deux causes, mesurées. **Les états sont des positions** : avec deux personnages sur 20 lieux, les 800 positions font
+exactement 20 × 20 × 2, toutes les combinaisons ; avec trois, les positions forment l'essentiel des états. **Le temps
+part dans la file** dès que les états s'accumulent : la file best-first insère en O(n) (`splice`), 83 à 89 % du temps
+avec trois personnages ; avec un seul, l'exécution du moteur (environ la moitié) et la copie des états (environ un
+quart) dominent. Les branches de la 3.3 s'y attaquent dans cet ordre : un cœur de preuve exact (frontière en O(1),
+pointeurs parents), puis le personnage canonique et les régions de mobilité pour les positions.
+
+### Après `v33-proof-core` (exact : mêmes témoins, mêmes preuves, même sortie imprimée sur la démo)
+
+La frontière est un tas binaire dans l'ordre de l'ancienne liste (score, puis arrivée), et un état garde un pointeur
+vers son parent et son dernier pas au lieu d'une copie de tout le chemin et de la session.
+
+| Jeu | Preuve | États | Exécutions | Temps | Positions | Répartition (moteur / copie / hachage / file / essais / reste) |
+|---|---|---|---|---|---|---|
+| 20 lieux, 1 personnage | résolue | 797 | 3 295 | 0.2 s | 20 | 48% / 22% / 13% / 1% / 7% / 7% |
+| 20 lieux, 2 personnages | tronquée | 20 000 | 100 863 | 6.6 s | 800 | 53% / 27% / 11% / 0% / 3% / 5% |
+| 20 lieux, 3 personnages | tronquée | 20 000 | 49 538 | 4.1 s | 13 858 | 53% / 29% / 10% / 0% / 2% / 5% |
+| 40 lieux, 1 personnage | résolue | 3 197 | 13 245 | 1.1 s | 40 | 49% / 26% / 14% / 0% / 3% / 6% |
+| 40 lieux, 2 personnages | tronquée | 20 000 | 92 475 | 11.4 s | 3 200 | 52% / 27% / 13% / 0% / 2% / 5% |
+| 40 lieux, 3 personnages | tronquée | 20 000 | 44 298 | 6.2 s | 18 796 | 50% / 29% / 13% / 0% / 1% / 5% |
+
+La file disparaît du profil (89 % → 0 %) et le cas le plus lourd va 8 fois plus vite pour les mêmes 20 000 états
+(50,9 s → 6,2 s). Le nombre d'états ne bouge pas, comme il se doit : restent le moteur (environ la moitié), les copies
+d'état (environ 30 %), et surtout le nombre d'états, auquel s'attaquent les branches suivantes.
+
+### Après `v33-player-canonical` (mêmes verdicts, vérifiés contre la recherche explicite)
+
+En mode preuve, des états qui ne diffèrent que par le personnage actif sont un seul état, et chaque état propose les
+actions de chaque personnage (`Switch to X › action`) quand le changement ne modifie rien de ce que lit le solveur ; un
+changement qui modifie quelque chose reste une étape explicite, et les invariants sont vérifiés du point de vue de
+chaque personnage. Preuve de la démo : 6 528 → 3 480 états, même verdict.
+
+| Jeu | Preuve | États | Exécutions | Temps | Positions |
+|---|---|---|---|---|---|
+| 20 lieux, 1 personnage | résolue | 797 | 3 295 | 0.2 s | 20 |
+| 20 lieux, 2 personnages | tronquée | 20 000 | 153 282 | 12.7 s | 757 |
+| 20 lieux, 3 personnages | tronquée | 20 000 | 79 081 | 5.5 s | 60 |
+| 40 lieux, 1 personnage | résolue | 3 197 | 13 245 | 1.0 s | 40 |
+| 40 lieux, 2 personnages | tronquée | 20 000 | 83 535 | 6.1 s | 44 |
+| 40 lieux, 3 personnages | tronquée | 20 000 | 65 577 | 6.4 s | 112 |
+
+Le personnage actif n'est plus un facteur (positions 18 796 → 112 à trois personnages), mais les chaînes de stress
+restent tronquées : le lieu exact et le sac de chaque personnage fragmentent maintenant les états. C'est le travail
+des régions de mobilité.
+

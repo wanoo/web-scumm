@@ -14,6 +14,7 @@ import { condAtoms } from '../core/cond';
 import type { Cond, GameDef, GameState, Id, Layout, SessionEntry, VerbId } from '../core/types';
 import { compileGame } from '../core/define';
 import { ruleActionId } from '../core/content-ids';
+import { Frontier } from './frontier';
 
 export interface Step { label: string }
 
@@ -48,6 +49,16 @@ export interface SolveProfile {
   monotonic: { flags: string[]; items: string[] };
   /** Boolean dimensions that evolve independently: their combinations multiply the states (a checkpoint between them helps). */
   independent: { dims: string[]; combos: number; product: number }[];
+  /**
+   * Where the search's time went, in ms: listing the tries of a state (`tries`), building engines (`engine`), copying
+   * states (`clone`), running the engine on a try (`run`), turning states into hashes (`hash`), the queue (`queue`),
+   * the rest of the loop (`other`), and after the loop the softlock classification (`classify`).
+   */
+  timing: Record<'tries' | 'engine' | 'clone' | 'run' | 'hash' | 'queue' | 'other' | 'classify', number>;
+  /** Positions of the playable characters among the states: distinct (active, room per character) combinations. */
+  positions: number;
+  /** The canonical character (`canonicalPlayers`): whether it applied, switches folded into the next action, switches kept explicit. */
+  canonical: { applied: boolean; folded: number; explicit: number; reason?: string };
 }
 
 export interface SolveResult {
@@ -109,10 +120,22 @@ export interface SolveOptions {
    * they drop feed the reverse reachability): only `tests/por.test.ts` (the differential suite) sets this.
    */
   unsafeReduction?: boolean;
+  /**
+   * Several playable characters: states that differ only by who is active are one state, and each state offers the
+   * actions of every character (`Switch to X › action`). Applies when switching changes nothing the solver reads
+   * (checked on every switch: a switch that does change something stays an explicit step) and no invariant or goal
+   * (the goal) reads `{ player }`; invariants are checked on every character's view. Default: on in proof mode, off for a witness (whose printed path then stays the same).
+   */
+  canonicalPlayers?: boolean;
 }
 
 interface Node {
-  state: GameState; path: string[]; steps: SessionEntry[]; dims: Dims;
+  state: GameState; dims: Dims;
+  /**
+   * The way here, kept as a pointer and the last step only (a copied path per state cost memory and time in the long
+   * proofs): `pathOf` / `stepsOf` rebuild it on demand. `len` is the path's length (the best-first score reads it).
+   */
+  prev?: Node; tail: string[]; tailSteps: SessionEntry[]; len: number;
   /** Sleep set: actions not to try here (an independent one was tried before them on the way), with what they read and wrote. */
   sleep: Map<string, RW>;
   expanded: boolean;
@@ -227,6 +250,31 @@ function stateDims(s: GameState, keys: ReturnType<typeof stateKeys>): Dims {
 
 function hashState(s: GameState, keys: ReturnType<typeof stateKeys>): string { return JSON.stringify(stateDims(s, keys)); }
 
+/**
+ * The same dimensions with nobody active: every playable character's room and bag (`pos:<id>`), whoever holds the
+ * controls. Two states that differ only by the active character get the same dimensions.
+ */
+function canonicalDims(d: Dims, s: GameState, keys: ReturnType<typeof stateKeys>, hero: Id, shared: boolean): Dims {
+  const live = (xs: Id[] | undefined) => (xs ?? []).filter((i) => keys.live.items.has(i)).sort().join(',');
+  const out = d.filter(([k]) => k !== 'active' && k !== 'room' && !k.startsWith('player:') && (shared || (!k.startsWith('item:') && !k.startsWith('used:'))));
+  out.push([`pos:${s.active ?? hero}`, shared ? s.room : `${s.room} ${live(s.inventory)} ${live(s.used)}`]);
+  for (const [k, p] of Object.entries(s.players ?? {})) out.push([`pos:${k}`, shared ? p.room : `${p.room} ${live(p.inventory)} ${live(p.used)}`]);
+  return out.sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
+}
+
+/** The labelled path to a node, rebuilt from its parents. */
+function pathOf(n: Node): string[] {
+  const parts: string[][] = [];
+  for (let x: Node | undefined = n; x; x = x.prev) parts.push(x.tail);
+  return parts.reverse().flat();
+}
+/** The session entries to a node, rebuilt from its parents. */
+function stepsOf(n: Node): SessionEntry[] {
+  const parts: SessionEntry[][] = [];
+  for (let x: Node | undefined = n; x; x = x.prev) parts.push(x.tailSteps);
+  return parts.reverse().flat();
+}
+
 /** Flags never unset or lowered, items never lost, transferred or used up: once gained, kept. */
 export function monotonicThings(game: GameDef): { flags: string[]; items: string[] } {
   const flagsSet = new Set<string>(), flagsDown = new Set<string>(), itemsGained = new Set<string>(), itemsLost = new Set<string>();
@@ -319,10 +367,14 @@ function label(game: GameDef, a: Action): string {
  * chapter (its rules, hints, scripts and goal read nothing else). `proveChapters` dedupes the previous chapter's
  * boundaries by it.
  */
-export function projectState(gameIn: GameDef, layouts: Record<string, Layout>, state: GameState, opts: Pick<SolveOptions, 'commands' | 'goal'> = {}): string {
+export function projectState(gameIn: GameDef, layouts: Record<string, Layout>, state: GameState, opts: Pick<SolveOptions, 'commands' | 'goal' | 'canonicalPlayers'> = {}): string {
   const game = compileGame(gameIn) as GameDef;
   const keyed = new Engine(game, layouts, new FakePresenter(), new MemoryStore(), { commands: opts.commands });
-  return JSON.stringify(stateDims(state, stateKeys(keyed.game, opts.commands, opts.goal)));
+  const keys = stateKeys(keyed.game, opts.commands, opts.goal);
+  const d = stateDims(state, keys);
+  // The same canonical character as the proof that starts from it: the active character does not split boundaries.
+  const canonical = (opts.canonicalPlayers ?? true) && (game.players?.ids.length ?? 1) > 1 && !JSON.stringify(opts.goal ?? []).includes('"player"');
+  return JSON.stringify(canonical ? canonicalDims(d, state, keys, game.hero, !!game.players?.sharedInventory) : d);
 }
 
 export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, opts: SolveOptions = {}): Promise<SolveResult> {
@@ -331,6 +383,14 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   const game = compileGame(gameIn) as GameDef;
   const keys0 = new Engine(game, layouts, new FakePresenter(), new MemoryStore(), { commands: opts.commands }); // assigns the keys
   const keys = stateKeys(keys0.game, opts.commands, opts.goal);
+  const playerIds = game.players?.ids ?? [game.hero];
+  // A goal that reads `{ player }` makes the active character part of the question: no canonical character then.
+  // Invariants are checked on every variant of a state instead (each one is a concrete state the player can reach).
+  const readsPlayer = JSON.stringify(opts.goal ?? []).includes('"player"');
+  const canonical = (opts.canonicalPlayers ?? mode === 'prove') && playerIds.length > 1 && !readsPlayer;
+  const canonInfo: SolveProfile['canonical'] = { applied: canonical, folded: 0, explicit: 0, ...(playerIds.length > 1 && (opts.canonicalPlayers ?? mode === 'prove') && readsPlayer ? { reason: 'the goal reads { player }' } : {}) };
+  const shared = !!game.players?.sharedInventory;
+  const dimsOf = (st: GameState): Dims => canonical ? canonicalDims(stateDims(st, keys), st, keys, game.hero, shared) : stateDims(st, keys);
   const errors: string[] = [];
   const itemsInRules = new Set<string>();
   const itemsSeen = new Set<string>();
@@ -345,6 +405,10 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   let worst: SolveProfile['branching']['worst'];
   const perRoom = new Map<string, number>(), perAction = new Map<string, number>(), attempted = new Map<string, number>();
   const fallbackByRoom = new Map<string, { candidates: number; rules: number; fallback: number }>();
+  const timing: SolveProfile['timing'] = { tries: 0, engine: 0, clone: 0, run: 0, hash: 0, queue: 0, other: 0, classify: 0 };
+  const now = () => performance.now();
+  const timed = <T>(k: keyof SolveProfile['timing'], f: () => T): T => { const t = now(); try { return f(); } finally { timing[k] += now() - t; } };
+  const loopStart = { t: 0 };
 
   const randomBranchValues = [...new Set(cmdLists(game).flatMap(({ list }) => {
     const sizes: number[] = [];
@@ -352,8 +416,10 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     return sizes.flatMap((n) => Array.from({ length: n }, (_, i) => (i + 0.5) / n));
   }))].sort((a, b) => a - b);
   const makeEngine = (rnd: number[] = []) => {
+    const t = now();
     const ui = new FakePresenter();
     const e = new Engine(game, layouts, ui, new MemoryStore(), { commands: opts.commands });
+    timing.engine += now() - t;
     const draws = [...rnd];
     e.random = () => draws.shift() ?? 0;
     return { e, ui };
@@ -367,8 +433,8 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   const reached = (ui: FakePresenter, s: GameState) => opts.goal ? opts.goal.every((c) => check(c, s)) : (s.done || ui.log.includes('ENDING'));
   const broken: SolveResult['broken'] = [];
   const brokenSeen = new Set<number>();
-  const checkInvariants = (s: GameState, path: string[]) => {
-    (game.invariants ?? []).forEach((c, i) => { if (!brokenSeen.has(i) && check(c, s)) { brokenSeen.add(i); broken.push({ invariant: i, path }); } });
+  const checkInvariants = (s: GameState, path: () => string[]) => {
+    (game.invariants ?? []).forEach((c, i) => { if (!brokenSeen.has(i) && check(c, s)) { brokenSeen.add(i); broken.push({ invariant: i, path: path() }); } });
   };
 
   const seen = new Map<string, Node>();
@@ -378,11 +444,13 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   const stx = por === 'stubborn' ? staticTransitions(puzzleGraph(game, { commands: opts.commands })) : null;
   // What the search looks for: an action that changes it is never postponed by the reduction.
   const goalDims = new Set<string>(['done', ...(opts.goal ?? []).flatMap((c) => condAtoms(c).map(atomDim))]);
-  const start: Node = { state: structuredClone(e0.state), path: startPath, steps: e0.session?.log ?? [], dims: stateDims(e0.state, keys), sleep: new Map(), expanded: false };
+  const start: Node = { state: structuredClone(e0.state), tail: startPath, tailSteps: e0.session?.log ?? [], len: startPath.length, dims: dimsOf(e0.state), sleep: new Map(), expanded: false };
   // Best-first: the more a state has progressed, the earlier it's explored. At equal progress, the shortest path first.
-  const score = (n: Node) => n.state.unlocked.length * 20 + Object.values(n.state.flags).filter(Boolean).length * 3 + n.state.inventory.length * 2 - n.path.length * 0.01;
-  const queue: Node[] = [start];
-  const enqueue = (n: Node) => { const sc = score(n); let i = queue.length; while (i > 0 && score(queue[i - 1]) < sc) i--; queue.splice(i, 0, n); };
+  const score = (n: Node) => n.state.unlocked.length * 20 + Object.values(n.state.flags).filter(Boolean).length * 3 + n.state.inventory.length * 2 - n.len * 0.01;
+  // A heap in the order of the old sorted list (score, then arrival): same witnesses, O(log n) instead of O(n).
+  const queue = new Frontier<Node>(score);
+  queue.push(start);
+  const enqueue = (n: Node) => queue.push(n);
   seen.set(JSON.stringify(start.dims), start);
   let finish: Node | null = reached(ui0, e0.state) ? start : null;
   const startHash = JSON.stringify(start.dims);
@@ -396,10 +464,10 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
       ui.picks = [...ui0.asked.slice(0, j).map((a) => a.n - 1), o];
       const path: string[] = [`New game › "${ui0.asked[j].texts[o]}"`];
       await drive(e, e.newGame(), (a) => path.push(`(tutorial) ${label(game, a)}`));
-      const dims = stateDims(e.state, keys);
+      const dims = dimsOf(e.state);
       const h = JSON.stringify(dims);
       if (seen.has(h)) continue;
-      const alt: Node = { state: structuredClone(e.state), path, steps: e.session?.log ?? [], dims, sleep: new Map(), expanded: false };
+      const alt: Node = { state: structuredClone(e.state), tail: path, tailSteps: e.session?.log ?? [], len: path.length, dims, sleep: new Map(), expanded: false };
       seen.set(h, alt);
       enqueue(alt);
       if (reached(ui, e.state)) { goals.add(h); finish ??= alt; }
@@ -408,11 +476,13 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   const edges = new Map<string, Set<string>>();
   let limitReached = false;
   let last: Node = start;
-  checkInvariants(start.state, start.path);
+  checkInvariants(start.state, () => pathOf(start));
 
-  while (queue.length && (mode === 'prove' || !finish)) {
+  loopStart.t = now();
+  while (queue.size && (mode === 'prove' || !finish)) {
     if (seen.size >= maxStates) { limitReached = true; break; }
-    const node = queue.shift()!;
+    const node = timed('queue', () => queue.pop()!);
+    const tTries = now(), engineBefore = timing.engine, cloneBefore = timing.clone;
     last = node;
     const s = node.state;
     roomsReached.add(s.room);
@@ -422,12 +492,6 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     s.inventory.forEach((i) => itemsSeen.add(i));
 
     // List of actions to try
-    const probe = makeEngine().e;
-    probe.state = structuredClone(s);
-    const room = probe.room();
-    const targets = probe.targets(room);
-    const inv = s.inventory;
-    const verbs = game.verbs.map((v) => v.id) as VerbId[];
     // `picks`: the answers given to the choices met on the way (a topic index first, then nested `choice` prompts);
     // whatever is not given defaults to the last option. After a run, every other option of a prompt is a new try.
     type Try = { label: string; run: (e: Engine) => Promise<Source | null | void>; items: string[]; picks: number[]; rnd: number[]; pair?: true; /** The content actions that could answer (puzzle graph ids). */ candidates: string[] };
@@ -435,49 +499,72 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     const tries: Try[] = [];
     const tryKeys = new Set<string>();
     const addTry = (t: Try) => { const k = keyOf(t); if (!tryKeys.has(k)) { tryKeys.add(k); tries.push(t); } };
-    // An action no written rule can answer (whatever the conditions) falls to a look line, a kind reaction or the
-    // fallback line: nothing changes, so the engine is not even run. The exceptions that do change something without
-    // a rule: talking to the hint item, giving to another playable character (the topics are tries of their own).
-    const rules = [...(room.on ?? []).map((r, i) => ({ r, id: ruleActionId(room.id, i, r) })), ...(game.rules.on ?? []).map((r, i) => ({ r, id: ruleActionId('game', i, r) }))];
-    const hasId = (x: Id | Id[] | undefined, v: Id | undefined) => x === undefined ? v === undefined : v !== undefined && (Array.isArray(x) ? x.includes(v) : x === v);
-    const answers = (v: VerbId, a: Id, b?: Id) => rules.filter(({ r }) => (Array.isArray(r.verb) ? r.verb.includes(v) : r.verb === v) &&
-      ((hasId(r.a, a) && hasId(r.b, b)) || (!!b && inv.includes(a) && inv.includes(b) && hasId(r.a, b) && hasId(r.b, a)))).map((x) => x.id);
-    const answered = (v: VerbId, a: Id, b?: Id) => answers(v, a, b).length > 0;
-    const fb = fallbackByRoom.get(s.room) ?? { candidates: 0, rules: 0, fallback: 0 };
-    fallbackByRoom.set(s.room, fb);
-    for (const t of [...targets, ...inv]) for (const v of verbs) {
-      if (v === 'talk' && room.talk?.[t]) continue; // handled by topics
-      if (!answered(v, t) && !(v === 'talk' && t === game.hintItem && inv.includes(t))) { skipped++; continue; }
-      addTry({ label: label(game, { verb: v, a: t }), run: (e) => e.act({ verb: v, a: t }), items: inv.includes(t) ? [t] : [], picks: [], rnd: [], candidates: answers(v, t) });
+    // The canonical character: the same state seen from each other character it can switch to without changing
+    // anything the solver reads (`canonicalPlayers`); their actions are tried from here, prefixed by the switch.
+    const h0 = JSON.stringify(node.dims);
+    const variants: { st: GameState; via?: Id }[] = [{ st: s }];
+    const explicitSwitch: Id[] = [];
+    if (canonical) for (const pid of playerIds) {
+      if (pid === (s.active ?? game.hero)) continue;
+      const { e } = makeEngine();
+      e.state = timed('clone', () => structuredClone(s));
+      try { await drive(e, e.switchTo(pid), () => {}); } catch { explicitSwitch.push(pid); continue; }
+      if (JSON.stringify(dimsOf(e.state)) === h0) { variants.push({ st: e.state, via: pid }); canonInfo.folded++; checkInvariants(e.state, () => [...pathOf(node), `Switch to ${pid}`]); }
+      else { explicitSwitch.push(pid); canonInfo.explicit++; }
     }
-    for (const it of inv) for (const t of [...targets, ...inv.filter((x) => x !== it)]) for (const v of ['use', 'give'] as VerbId[]) {
-      if (v === 'give' && inv.includes(t)) continue;
-      fb.candidates++;
-      if (!answered(v, it, t) && !(v === 'give' && probe.isPlayer(t) && t !== probe.heroId())) { fb.fallback++; skipped++; continue; }
-      addTry({ label: label(game, { verb: v, a: it, b: t }), run: (e) => e.act({ verb: v, a: it, b: t }), items: inv.includes(t) ? [it, t] : [it], picks: [], rnd: [], pair: true, candidates: answers(v, it, t) });
-    }
-    for (const [actor, topics] of Object.entries(room.talk ?? {})) {
-      if (!targets.includes(actor)) continue;
-      // the engine numbers visible topics: the label must follow the same list (otherwise the printed path would lie)
-      topics.map((tp, orig) => ({ tp, orig })).filter(({ tp }) => check(tp.if, s, room.id)).forEach(({ tp, orig }, i) => addTry({
-        label: `Talk ${actor}: "${tp.topic}"`, run: (e) => e.act({ verb: 'talk', a: actor }), items: [], picks: [i], rnd: [], candidates: [`topic:${tp.id ?? `${room.id}/${actor}[${orig}]`}`],
-      }));
-    }
-    for (const [pid, p] of Object.entries(game.map?.places ?? {})) {
-      if (!s.unlocked.includes(pid) || p.room === s.room || !game.rooms.some((r) => r.id === p.room)) continue;
-      addTry({ label: `Map → ${p.name}`, run: (e) => e.travel(pid), items: [], picks: [], rnd: [], candidates: [] });
-    }
-    // Several playable characters: taking control of another one.
-    for (const pid of probe.playerIds()) if (pid !== probe.heroId()) addTry({ label: `Switch to ${pid}`, run: (e) => e.switchTo(pid).then(() => undefined), items: [], picks: [], rnd: [], candidates: [] });
-    // The world's scripts: letting one run until its next wait (or its end) is something the player can do by waiting.
-    for (const sc of probe.scriptsHere()) {
-      const st = s.scripts?.[sc.id];
-      if (st?.done || st?.off || !keys.live.actions.has(sc.id)) continue;
-      addTry({ label: `Script ${sc.id}`, run: (e) => e.runScript(sc.id, true).then(() => undefined), items: [], picks: [], rnd: [], candidates: [`script:${sc.id}`] });
+    for (const variant of variants) {
+      const s = variant.st;
+      const add = (t: Try) => addTry(variant.via ? { ...t, label: `Switch to ${variant.via} › ${t.label}`, run: async (e) => { await e.switchTo(variant.via!); return t.run(e); } } : t);
+      const probe = makeEngine().e;
+      probe.state = timed('clone', () => structuredClone(s));
+      const room = probe.room();
+      const targets = probe.targets(room);
+      const inv = s.inventory;
+      const verbs = game.verbs.map((v) => v.id) as VerbId[];
+      // An action no written rule can answer (whatever the conditions) falls to a look line, a kind reaction or the
+      // fallback line: nothing changes, so the engine is not even run. The exceptions that do change something without
+      // a rule: talking to the hint item, giving to another playable character (the topics are tries of their own).
+      const rules = [...(room.on ?? []).map((r, i) => ({ r, id: ruleActionId(room.id, i, r) })), ...(game.rules.on ?? []).map((r, i) => ({ r, id: ruleActionId('game', i, r) }))];
+      const hasId = (x: Id | Id[] | undefined, v: Id | undefined) => x === undefined ? v === undefined : v !== undefined && (Array.isArray(x) ? x.includes(v) : x === v);
+      const answers = (v: VerbId, a: Id, b?: Id) => rules.filter(({ r }) => (Array.isArray(r.verb) ? r.verb.includes(v) : r.verb === v) &&
+        ((hasId(r.a, a) && hasId(r.b, b)) || (!!b && inv.includes(a) && inv.includes(b) && hasId(r.a, b) && hasId(r.b, a)))).map((x) => x.id);
+      const answered = (v: VerbId, a: Id, b?: Id) => answers(v, a, b).length > 0;
+      const fb = fallbackByRoom.get(s.room) ?? { candidates: 0, rules: 0, fallback: 0 };
+      fallbackByRoom.set(s.room, fb);
+      for (const t of [...targets, ...inv]) for (const v of verbs) {
+        if (v === 'talk' && room.talk?.[t]) continue; // handled by topics
+        if (!answered(v, t) && !(v === 'talk' && t === game.hintItem && inv.includes(t))) { skipped++; continue; }
+        add({ label: label(game, { verb: v, a: t }), run: (e) => e.act({ verb: v, a: t }), items: inv.includes(t) ? [t] : [], picks: [], rnd: [], candidates: answers(v, t) });
+      }
+      for (const it of inv) for (const t of [...targets, ...inv.filter((x) => x !== it)]) for (const v of ['use', 'give'] as VerbId[]) {
+        if (v === 'give' && inv.includes(t)) continue;
+        fb.candidates++;
+        if (!answered(v, it, t) && !(v === 'give' && probe.isPlayer(t) && t !== probe.heroId())) { fb.fallback++; skipped++; continue; }
+        add({ label: label(game, { verb: v, a: it, b: t }), run: (e) => e.act({ verb: v, a: it, b: t }), items: inv.includes(t) ? [it, t] : [it], picks: [], rnd: [], pair: true, candidates: answers(v, it, t) });
+      }
+      for (const [actor, topics] of Object.entries(room.talk ?? {})) {
+        if (!targets.includes(actor)) continue;
+        // the engine numbers visible topics: the label must follow the same list (otherwise the printed path would lie)
+        topics.map((tp, orig) => ({ tp, orig })).filter(({ tp }) => check(tp.if, s, room.id)).forEach(({ tp, orig }, i) => add({
+          label: `Talk ${actor}: "${tp.topic}"`, run: (e) => e.act({ verb: 'talk', a: actor }), items: [], picks: [i], rnd: [], candidates: [`topic:${tp.id ?? `${room.id}/${actor}[${orig}]`}`],
+        }));
+      }
+      for (const [pid, p] of Object.entries(game.map?.places ?? {})) {
+        if (!s.unlocked.includes(pid) || p.room === s.room || !game.rooms.some((r) => r.id === p.room)) continue;
+        add({ label: `Map → ${p.name}`, run: (e) => e.travel(pid), items: [], picks: [], rnd: [], candidates: [] });
+      }
+      // Several playable characters: taking control of another one.
+      for (const pid of probe.playerIds()) if (pid !== probe.heroId() && (!canonical || explicitSwitch.includes(pid))) add({ label: `Switch to ${pid}`, run: (e) => e.switchTo(pid).then(() => undefined), items: [], picks: [], rnd: [], candidates: [] });
+      // The world's scripts: letting one run until its next wait (or its end) is something the player can do by waiting.
+      for (const sc of probe.scriptsHere()) {
+        const st = s.scripts?.[sc.id];
+        if (st?.done || st?.off || !keys.live.actions.has(sc.id)) continue;
+        add({ label: `Script ${sc.id}`, run: (e) => e.runScript(sc.id, true).then(() => undefined), items: [], picks: [], rnd: [], candidates: [`script:${sc.id}`] });
+      }
     }
 
+    timing.tries += now() - tTries - (timing.engine - engineBefore) - (timing.clone - cloneBefore);
     let progressed = false;
-    const h0 = JSON.stringify(node.dims);
     const byVerb: Record<string, number> = {};
     let effective = 0;
     const only = node.only;
@@ -496,17 +583,18 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
       if (only && !only.has(key)) continue;
       tries_total++;
       const { e, ui } = makeEngine(t.rnd);
-      e.state = structuredClone(s);
+      e.state = timed('clone', () => structuredClone(s));
       if (por) e.reads = new Set();
       ui.picks = [...t.picks];
-      const path = [...node.path];
+      const path: string[] = []; // this step's tutorial moves, then its label
       let src: Source | null | void = null;
+      const tRun = now();
       try {
         await drive(e, t.run(e).then((r) => { src = r; }), (a) => path.push(`(tutorial) ${label(game, a)}`));
       } catch (err) {
         errors.push(`${t.label} (${s.room}): ${(err as Error).message}`);
         continue;
-      }
+      } finally { timing.run += now() - tRun; }
       // Other answers to every nested `choice` prompt. There is deliberately no hidden variant ceiling: maxStates is
       // the one explicit search budget, and reaching it returns `truncated`.
       for (let j = t.picks.length; j < ui.asked.length; j++) {
@@ -528,14 +616,16 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
         for (const value of randomBranchValues) if (value !== drawn[j]) addTry({ ...t, rnd: [...prefix, value] });
       }
       if (src === 'rule' || src === 'hint') t.items.forEach((i) => itemsInRules.add(i));
-      if (t.pair) { if (src === 'rule') fb.rules++; else if (src === 'fallback') fb.fallback++; }
+      if (t.pair) { const fb = fallbackByRoom.get(s.room); if (fb) { if (src === 'rule') fb.rules++; else if (src === 'fallback') fb.fallback++; } }
       // Reported even when the state is not worth exploring (a flag nobody reads, a trinket no gate needs): it did happen.
       Object.entries(e.state.flags).forEach(([k, v]) => v && flags.add(k));
       e.state.inventory.forEach((i) => gained.add(i));
       // What answered this try, even when nothing changed: a topic that only talks is reachable all the same.
       for (const en of e.session?.log ?? []) for (const id of en.ran ?? []) attempted.set(id, (attempted.get(id) ?? 0) + 1);
-      const dims = stateDims(e.state, keys);
+      const tHash = now();
+      const dims = dimsOf(e.state);
       const h = JSON.stringify(dims);
+      timing.hash += now() - tHash;
       const hitGoal = reached(ui, e.state);
       if (hitGoal) goals.add(h);
       const rw: RW | null = por ? { reads: readDims(e.reads!), writes: diffDims(node.dims, dims) } : null;
@@ -576,8 +666,10 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
         }
         continue;
       }
-      const next: Node = { state: structuredClone(e.state), path: [...path, t.label], steps: [...node.steps, ...(e.session?.log ?? [])], dims, sleep, expanded: false, parent: h0, via: t.label };
-      checkInvariants(next.state, next.path);
+      const tClone = now();
+      const next: Node = { state: structuredClone(e.state), prev: node, tail: [...path, t.label], tailSteps: e.session?.log ?? [], len: node.len + path.length + 1, dims, sleep, expanded: false, parent: h0, via: t.label };
+      timing.clone += now() - tClone;
+      checkInvariants(next.state, () => pathOf(next));
       if (hitGoal) {
         seen.set(h, next);
         finish ??= next;
@@ -600,26 +692,30 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
       for (const c of children) {
         if (keep && !keep.has(c.key)) continue;
         seen.set(c.h, c.next);
-        enqueue(c.next);
-        maxQueue = Math.max(maxQueue, queue.length);
-        if (seen.size >= maxStates) { if (queue.length) limitReached = true; break; }
+        timed('queue', () => enqueue(c.next));
+        maxQueue = Math.max(maxQueue, queue.size);
+        if (seen.size >= maxStates) { if (queue.size) limitReached = true; break; }
       }
     }
     node.expanded = true;
     expansions++;
     triesSum += tries.length;
     if (tries.length > triesMax) { triesMax = tries.length; worst = { room: s.room, inventory: [...s.inventory], tries: tries.length, effective, byVerb }; }
-    if (!progressed) deadEnds.push({ path: node.path, room: s.room, inventory: [...s.inventory] });
+    if (!progressed && deadEnds.length < 20) deadEnds.push({ path: pathOf(node), room: s.room, inventory: [...s.inventory] });
   }
+  const loopMs = now() - loopStart.t;
+  timing.other = Math.max(0, loopMs - timing.tries - timing.engine - timing.clone - timing.run - timing.hash - timing.queue);
   const all = seen.size <= 50000 ? [...seen.values()].map((n) => n.dims) : [];
   const dims = splits(all).slice(0, 30);
+  const positions = new Set([...seen.values()].map((n) => `${n.state.active ?? ''}|${n.state.room}|${Object.entries(n.state.players ?? {}).map(([k, p]) => `${k}:${p.room}`).sort().join(',')}`)).size;
   const profile: SolveProfile = {
     ms: Date.now() - t0, states: seen.size, tries: tries_total, skipped, slept, postponed, noops, hashHits, maxQueue,
     branching: { avg: expansions ? triesSum / expansions : 0, max: triesMax, ...(worst ? { worst } : {}) },
     fallbackByRoom: Object.fromEntries(fallbackByRoom), dims, perRoom: Object.fromEntries(perRoom), perAction: Object.fromEntries(perAction), attempted: Object.fromEntries(attempted),
-    monotonic: monotonicThings(game), independent: independentGroups(all, dims),
+    monotonic: monotonicThings(game), independent: independentGroups(all, dims), timing, positions, canonical: canonInfo,
   };
 
+  const tClassify = now();
   // In proof mode, a state is safe iff a goal is reachable from it. Reverse reachability classifies cycles as well as
   // immediate dead ends, which the old `progressed` test could not do.
   const canReachGoal = new Set<string>();
@@ -635,10 +731,9 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     }
   }
   const unsafe = mode === 'prove' && !limitReached && finish ? [...seen.entries()].filter(([h]) => !canReachGoal.has(h)) : [];
-  const softlocks = unsafe.map(([, n]) => ({ path: n.path, room: n.state.room, inventory: [...n.state.inventory] }))
-    .sort((a, b) => a.path.length - b.path.length).slice(0, 20);
+  const softlocks = [...unsafe].sort(([, a], [, b]) => a.len - b.len).slice(0, 20).map(([, n]) => ({ path: pathOf(n), room: n.state.room, inventory: [...n.state.inventory] }));
   // The step that lost the game: walk each unsafe state up to the first unsafe one whose parent is safe (or the start).
-  const causes = new Map<string, { action: string; room: Id; count: number; sample: string[] }>();
+  const causes = new Map<string, { action: string; room: Id; count: number; len: number; node: Node }>();
   for (const [, n] of unsafe) {
     let cur: Node = n;
     while (cur.parent && !canReachGoal.has(cur.parent) && seen.has(cur.parent)) cur = seen.get(cur.parent)!;
@@ -646,9 +741,10 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     const room = cur.parent ? seen.get(cur.parent)!.state.room : cur.state.room;
     const key = `${room}\u0000${action}`;
     const c = causes.get(key);
-    if (c) { c.count++; if (cur.path.length < c.sample.length) c.sample = cur.path; } else causes.set(key, { action, room, count: 1, sample: cur.path });
+    if (c) { c.count++; if (cur.len < c.len) { c.len = cur.len; c.node = cur; } } else causes.set(key, { action, room, count: 1, len: cur.len, node: cur });
   }
-  const softlockCauses = [...causes.values()].sort((a, b) => b.count - a.count || a.action.localeCompare(b.action));
+  const softlockCauses = [...causes.values()].sort((a, b) => b.count - a.count || a.action.localeCompare(b.action)).map(({ action, room, count, node }) => ({ action, room, count, sample: pathOf(node) }));
+  timing.classify = now() - tClassify;
   const boundaries = mode === 'prove' && opts.goal && !limitReached ? [...goals].map((h) => seen.get(h)!).filter(Boolean).map((n) => structuredClone(n.state)) : [];
   const assumptions = new Set<string>();
   for (const { list } of cmdLists(game)) eachCmd(list, (c) => { if (typeof c !== 'string' && 'minigame' in c) assumptions.add(`minigame:${c.minigame}:success`); });
@@ -664,8 +760,8 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     status,
     mode,
     finished: !!finish,
-    path: (finish ?? last).path,
-    steps: (finish ?? last).steps,
+    path: pathOf(finish ?? last),
+    steps: stepsOf(finish ?? last),
     states: seen.size,
     truncated: limitReached,
     flagsReached: [...flags].sort(),

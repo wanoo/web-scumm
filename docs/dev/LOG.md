@@ -1118,3 +1118,42 @@ workers on independent frontiers last; reference tests at 1, 2 and 3 characters 
 
 → next: Claude · tag v3.2.2; then 3.3 "Scale" when the maintainer confirms the order
 
+## #41 · 2026-10-04 · Claude · proposal · v33-proof-profile (3.3 "Scale" starts)
+
+The maintainer confirmed the 3.3 "Scale" order (LOG #38–#40). First branch: measure before optimising.
+- `profile.timing` per phase and `profile.positions`; `npm run bench -- --matrix` (BENCH.md "v3.3").
+- Findings: states are character positions (2 characters, 20 rooms: 800 = 20 × 20 × 2, every combination); the
+  best-first queue's O(n) insertion takes 83–89% of the time with 3 characters; with 1 character, engine runs ~45%
+  and state copies ~25%.
+- Exit targets (#39/#40): 40 rooms × 3 characters proved under 200 000 states and 60 s; demo under 5 s globally and
+  20 s by chapters; identical verdicts to the exhaustive search on a differential corpus.
+
+→ next: Claude · `v33-proof-core` (O(1) frontier in proof mode, parent pointers, no copied paths)
+
+## #42 · 2026-10-04 · Claude · proposal · v33-proof-core
+
+Exact optimisations only. `src/engine/tools/frontier.ts`: a binary heap ordered by (score desc, arrival asc), the
+exact order of the old `splice` list (a randomized test compares 2 000 operations against the old code). Nodes keep
+`prev` + `tail` + `len`; `pathOf` / `stepsOf` rebuild paths for the witness, the softlock samples and causes, the
+dead ends and the broken invariants only. Demo: witness, proof (6 528 states, causes) and human output identical to
+`main`. Matrix (BENCH.md): queue 89% → 0%, 40 rooms × 3 characters at 20 000 states 50.9 s → 6.2 s. State counts
+unchanged. A DFS order in proof mode was not needed once the heap is O(log n), and would have changed the witness.
+
+→ next: Claude · `v33-player-canonical`, then `v33-mobility`
+
+## #43 · 2026-10-04 · Claude · proposal · v33-player-canonical
+
+- `canonicalPlayers` (default: proof mode): `canonicalDims` replaces `active`, `room`, the active's `item:`/`used:` and
+  `player:*` with one `pos:<id>` per character. At expansion, each other character is switched to on a copy: if the
+  canonical hash is unchanged, its actions are offered as `Switch to X › …` (the switch is in the run, so the session
+  replays); otherwise the switch stays an explicit try. Invariants are checked on every variant; a goal reading
+  `{ player }` turns the abstraction off (`profile.canonical.reason`). Chapter boundaries are projected the same way.
+- Evidence: `tests/canonical.test.ts` compares verdicts (status, ending, broken invariants, softlocks or not) with the
+  explicit search on the cast fixture, the demo and generated 2- and 3-character games: identical, never more states.
+  Demo proof 6 528 → 3 480 states. Matrix: positions collapse (3 characters, 40 rooms: 18 796 → 112) but the chains
+  still truncate at 20 000 states: rooms and bags per character are now the split.
+- Cost seen: each state pays one engine run per other character (the switch check); the demo's proof is not faster
+  (4.4 → 5.4 s). Its chapter proof is 104 s (boundaries are the chapter-interface branch's job).
+
+→ next: Claude · `v33-mobility` (regions of silent reversible moves per character)
+
