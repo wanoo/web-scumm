@@ -123,6 +123,11 @@ export interface PlaytestsData { report: PlaytestReport; markdown: string; files
 export interface LintData { lint: LintResult; markdown: string; mode: 'static' | 'witness' | 'prove'; ms: number }
 
 export interface SolveData {
+  /** Honest outcome of the search and the mode it ran in (`src/engine/tools/solve.ts`). */
+  status: 'solved' | 'unsolved' | 'softlocks' | 'truncated' | 'error';
+  mode: 'witness' | 'prove';
+  /** Reachable states the ending cannot be reached from (complete in `prove` mode). */
+  softlocks: { path: string[]; room: string; inventory: string[] }[];
   finished: boolean;
   states: number;
   truncated: boolean;

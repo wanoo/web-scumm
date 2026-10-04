@@ -571,3 +571,31 @@ Verdict: the playtest recorder, the second "semi-pro" tool (#7.3)
 | `npm run verify:game`, `npm run audit`, `npm run i18n -- status` | green, clean, 393/393 |
 
 → next: Claude · merge after CI, then `v3-ci` and `v3-docs`
+
+## #21 · 2026-10-04 · Claude · proposal · v3-ci
+Branch: v3-ci · from main@e9a26b0 (merged)
+Verdict: the proof measured honestly, the pipeline that a studio expects
+
+- CI: `npm run prove:game` on every push (the sample game proves in 1.3 s); WebKit gates the deploy after its three
+  consecutive green runs on `main` (D7); the keyboard row stays experimental until its own three. A weekly `prove`
+  workflow (or on demand) proves and benches a 100-room schema-3 game within a budget and uploads `bench.md`; a
+  `release` workflow on `v3.*` tags runs `release-check` and publishes the GitHub release from the changelog
+  (`scripts/release-notes.mjs`, tested); Dependabot for npm, actions and pip.
+- `npm run bench -- --prove --v3`; `tests/por.test.ts` covers proof mode (same verdict, reduction off);
+  `tests/bench.test.ts` proves the 10-room game. The `solve` MCP tool, the Studio route and the browser backend take
+  `prove`; `SolveData` carries `status`, `mode`, `softlocks`. `doctor` and `serve` split into testable functions
+  (`tests/tooling.test.ts`).
+- **Measured** (BENCH.md, v3.1 section, en and fr): the witness is unchanged by the stable ids (40 rooms: 0.13 s,
+  624 states; 100 rooms: 3.0 s, 2 901 states), but the exhaustive proof of the 40-room chain is **truncated at
+  50 000 states after 408 s** (reduction off in proof mode). The README no longer says "proven in eight seconds"; it
+  says solved in three, proved within a budget. Bringing the reduction into proof mode is the solver's next step.
+
+### Checks run
+| Command | Result |
+|---|---|
+| `tsc --noEmit`, `npm test` | clean, 241 passed (+ tooling, proof-mode tests) |
+| `npm run bench -- --prove --v3 --max=50000` (40 rooms) | witness 133 ms, proof truncated at 50 000 states in 408 s |
+| `npm run bench -- --rooms=100 … --v3` | witness 3.0 s, 2 901 states |
+| `node scripts/release-notes.mjs v3.0.0` | the 3.0.0 section |
+
+→ next: Claude · merge after CI, then `v3-docs`, then the private reference game

@@ -129,7 +129,8 @@ npm run page:world                 # la carte du monde : sorties, gotos, lieux i
 Le solveur utilise le vrai moteur avec un écran muet : ce qu'il trouve, un joueur peut le faire. Il essaie chaque
 réponse d'un choix, change de personnage jouable, fait avancer les scripts un wait à la fois, et laisse hors de l'état
 ce qui ne peut pas changer l'issue (un flag que seul son poseur lit, une horloge que personne ne regarde) : un monde
-plein de décoration ne lui coûte rien, un jeu généré de 100 salles et 5 joueurs est prouvé en huit secondes
+plein de décoration ne lui coûte rien, un jeu généré de 100 salles et 5 joueurs est résolu en trois secondes, et la
+preuve exhaustive est une passe `--prove` bornée et honnête
 (`docs/fr/BENCH.md`). Il signale les impasses, les objets jamais utilisés, les **invariants** devenus vrais, et le chemin
 qui y mène.
 

@@ -4,6 +4,10 @@
 
 ### Added
 
+- CI: the sample game's exhaustive proof on every push, WebKit gating after its three green runs, a keyboard row; a
+  weekly `prove` workflow (proof + bench on a 100-room schema-3 game, within a budget); a `release` workflow on
+  `v3.*` tags (release checks, then the GitHub release from the changelog); Dependabot. `npm run bench -- --prove
+  --v3` with the v3.1 numbers in BENCH.md; the `solve` MCP tool takes `prove`; `doctor` and `serve` are unit-tested.
 - Playtests: the pause menu's "Share session" sends a session from a phone (ids only); `npm run playtests` replays the
   files of `games/<id>/playtests/` and sums them up (time per room, stalls, hints, where players stopped, a heat map);
   `verify:game` runs it, the Studio's Check tab shows it and can colour the puzzle graph by the players' sessions,

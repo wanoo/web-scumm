@@ -25,7 +25,7 @@ the human sees the result live in `npm run studio` (it watches the files).
 | `get_storyboard` / `set_storyboard` | `storyboard` | reads / writes `storyboard.json` (`{ boards: [...] }`) |
 | `get_notes` / `add_note` | `about?, author?, text` | the shared log `notes.json`; `author` defaults to the MCP client's name, else `ai`; notes with `task: true` are requests the human sent from the Studio's Assistant |
 | `validate` | | `{ ok, errors, warnings, ms }` |
-| `solve` | `from?, profile?` | proves the game can be finished (from New Game or a checkpoint); `profile: true` adds what the states are made of and what the search cost (independent dimensions, rooms with runaway branching, monotonic things) |
+| `solve` | `from?, profile?, prove?` | proves the game can be finished (from New Game or a checkpoint); `prove: true` runs the exhaustive search (every reachable state, the softlocks; slow on a big game); `profile: true` adds what the states are made of and what the search cost (independent dimensions, rooms with runaway branching, monotonic things) |
 | `content_report` | | the content profiler as Markdown: per room, item and character, what is thin; unreachable rooms |
 | `world_graph` | | the rooms and the ways between them as DOT, with unreachable rooms and exits with no way back |
 | `dialogue_tree` | `id, actor?` | a character's conversation in a room as an indented tree: topics with their conditions, lines, choices and their options, branches; derived from the topics |

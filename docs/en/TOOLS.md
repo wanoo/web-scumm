@@ -169,7 +169,7 @@ npm run solve -- --chapters        # one bounded search per checkpoint with `goa
 npm run validate -- --report       # the content profiler: rooms, items, characters, what is thin (Markdown)
 npm run page:world                 # the map of the world as a page (exits, gotos, unreachable rooms, DOT source)
 npm run page:puzzles               # the puzzle graph as a page: what every rule needs and changes, a card per item / flag
-npm run bench -- --rooms=40        # a generated game of that size, every tool timed on it (docs/en/BENCH.md)
+npm run bench -- --rooms=40 [--prove --v3]   # a generated game of that size, every tool timed on it; --prove adds the exhaustive proof, --v3 generates it with stable ids (docs/en/BENCH.md)
 npm run i18n -- extract [--lang xx]   # translation tables (games/<id>/locales/<xx>.json); `status` for the coverage
 npm run solve -- --profile         # what the states are made of and what the search cost (docs/en/BENCH.md)
 npm run solve -- --por=stubborn    # partial-order reduction: commuting actions one at a time (fewer states, same proof)
@@ -195,6 +195,14 @@ info); after a solver run, a live action the witness never ran and a room it nev
 the Rooms tab shows), its stable id, and what to do. Exit 1 only on an error. `lint: { ignore: ['code',
 'code:<id>', 'code:<room>/<path>'] }` in `game.ts` keeps a red herring on purpose. The Studio's Check tab shows the
 same list with links into Rooms; the `lint` MCP tool returns it as Markdown. Run it before asking for a review.
+
+**Continuous integration.** Every push to `main`, `v3` or `v3-*` runs `npm run build` (checks, Node and Python tests,
+`verify:game`, the bundle, the spoiler and asset audits), `npm run prove:game` on the sample game, `npm run audit:deps`,
+then the production e2e in Chromium (the demo's own walkthrough) and WebKit (the generic replay), both gates, and the
+keyboard replay (experimental). `main` deploys to Pages. The weekly `prove` workflow (or `workflow_dispatch`) runs
+the proof and the bench on a 100-room schema-3 game within a budget and uploads `bench.md`. A `v3.x` tag runs
+`npm run release-check` and publishes the GitHub release with the matching `CHANGELOG.md` section
+(`scripts/release-notes.mjs`). Dependabot proposes weekly npm and actions updates, monthly pip ones.
 
 **Playtests.** On a phone, the pause menu's **Share session** sends the session as a file (Web Share, else a
 download): ids and indices only, no text, no journal. Drop it in `games/<id>/playtests/` (committed; `npm run audit`

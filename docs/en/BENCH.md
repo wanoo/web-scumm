@@ -1,7 +1,7 @@
 # Benchmark: a generated game of any size
 
 *French version: [docs/fr/BENCH.md](../fr/BENCH.md). Numbers measured on 3 October 2026 (v2.3.0) on a laptop; they
-move with the machine, the ratios do not.*
+move with the machine, the ratios do not. The v3.1 numbers (4 October 2026, schema 3, the exhaustive proof) are at the end.*
 
 `npm run bench -- --rooms=40 --players=3 --items=30 --flags=100 --npcs=5 --scripts=10 --topics=40 --max=200000`
 generates a game of that size (`src/engine/tools/stress.ts`) and times every tool on it. The game is a chain: each
@@ -106,3 +106,24 @@ back, what the puzzle graph says they need:
 above nothing commutes and nothing changes; on a real game with optional side quests it is the difference between a
 proof and a time-out. The reduction is off by default: the plain search is the proof, and `tests/por.test.ts` checks
 that every fixture and the sample game give the same verdict in all three modes.
+
+## v3.1: schema 3 and the exhaustive proof (4 October 2026)
+
+`npm run bench -- --v3` generates the stress game with stable ids (`assignIds`), as a real v3 game; `--prove` adds the
+exhaustive search (`solve -- --prove`: every reachable state, the softlocks). Same laptop as above.
+
+| Step | 40 rooms, 3 players (v3) | 100 rooms, 5 players (v3) |
+|---|---|---|
+| validate | 11 ms, 0 errors | 41 ms, 0 errors |
+| solve, whole game (witness) | 0.13 s, 624 states, 123 actions, 1 110 runs | 3.0 s, 2 901 states, 309 actions, 4 640 runs |
+| solve, last chapter (witness) | 63 ms, 257 states | 4.5 s, 3 290 states |
+| solve, whole game, `--por=stubborn` | 0.16 s, 624 states, 0 postponed (a chain: nothing commutes) | 2.9 s, 2 901 states, 0 postponed |
+| solve, whole game, `--prove` | **truncated** at 50 000 states after 408 s, 119 411 runs | not attempted |
+
+The witness did not move between v2.3 and v3.1 (same states, same runs: the stable ids change nothing for the
+search). The exhaustive proof is another matter: it visits every reachable state, the partial-order reduction is off
+in that mode (a reduction must not drop a losing branch from a proof until it has its own equivalence proof), and a
+40-room game already exceeds a 50 000-state budget. So `npm run prove:game` is a release gate for a small game (the
+sample proves in 1.3 s) and a weekly job with a budget for a big one (`.github/workflows/prove.yml`); on a long game,
+prove chapter by chapter (`--prove --chapters`), where each search is bounded by its goals. Bringing the reduction into
+proof mode, with the equivalence tests of `tests/por.test.ts` as its proof, is the next step for the solver.

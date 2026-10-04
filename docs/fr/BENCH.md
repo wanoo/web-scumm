@@ -1,6 +1,6 @@
 # Banc d'essai : un jeu généré de n'importe quelle taille
 
-*Version anglaise : [docs/en/BENCH.md](../en/BENCH.md). Chiffres mesurés le 3 octobre 2026 (v2.3.0) sur un
+*Version anglaise : [docs/en/BENCH.md](../en/BENCH.md). Les mesures v3.1 (4 octobre 2026, schéma 3, preuve exhaustive) sont à la fin. Chiffres mesurés le 3 octobre 2026 (v2.3.0) sur un
 portable ; ils bougent avec la machine, les rapports non.*
 
 `npm run bench -- --rooms=40 --players=3 --items=30 --flags=100 --npcs=5 --scripts=10 --topics=40 --max=200000`
@@ -115,3 +115,25 @@ charge en chaîne ci-dessus rien ne commute et rien ne change ; sur un vrai jeu 
 c'est la différence entre une preuve et un dépassement de temps. La réduction est désactivée par défaut : la recherche
 simple est la preuve, et `tests/por.test.ts` vérifie que chaque fixture et le jeu d'exemple donnent le même verdict
 dans les trois modes.
+
+## v3.1 : schéma 3 et preuve exhaustive (4 octobre 2026)
+
+`npm run bench -- --v3` génère le jeu de stress avec des ids stables (`assignIds`), comme un vrai jeu v3 ; `--prove`
+ajoute la recherche exhaustive (`solve -- --prove` : tous les états atteignables, les softlocks). Même portable.
+
+| Étape | 40 lieux, 3 joueurs (v3) | 100 lieux, 5 joueurs (v3) |
+|---|---|---|
+| validate | 11 ms, 0 erreur | 41 ms, 0 erreur |
+| solve, jeu entier (témoin) | 0,13 s, 624 états, 123 actions, 1 110 exécutions | 3,0 s, 2 901 états, 309 actions, 4 640 exécutions |
+| solve, dernier chapitre (témoin) | 63 ms, 257 états | 4,5 s, 3 290 états |
+| solve, jeu entier, `--por=stubborn` | 0,16 s, 624 états, 0 différée (une chaîne : rien ne commute) | 2,9 s, 2 901 états, 0 différée |
+| solve, jeu entier, `--prove` | **tronquée** à 50 000 états après 408 s, 119 411 exécutions | non tentée |
+
+Le témoin n'a pas bougé entre v2.3 et v3.1 (mêmes états, mêmes exécutions : les ids stables ne changent rien à la
+recherche). La preuve exhaustive, c'est autre chose : elle visite chaque état atteignable, la réduction d'ordre
+partiel est coupée dans ce mode (une réduction ne doit pas retirer une branche perdante d'une preuve tant qu'elle n'a
+pas sa propre preuve d'équivalence), et un jeu de 40 lieux dépasse déjà un budget de 50 000 états. `npm run
+prove:game` est donc une porte de release pour un petit jeu (la démo se prouve en 1,3 s) et un travail hebdomadaire
+borné pour un grand (`.github/workflows/prove.yml`) ; sur un jeu long, prouver chapitre par chapitre
+(`--prove --chapters`), chaque recherche étant bornée par ses buts. Amener la réduction en mode preuve, avec les tests
+d'équivalence de `tests/por.test.ts` pour preuve, est le prochain pas du solveur.

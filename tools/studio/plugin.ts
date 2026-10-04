@@ -59,7 +59,7 @@ function routes(s: Studio): [string, RegExp, Handler][] {
     ['POST', /^\/coverage$/, () => s.coverage()],
     ['POST', /^\/playtests$/, () => s.playtests()],
     ['POST', /^\/lint$/, (_m, b) => s.lint(!!b.prove)],
-    ['POST', /^\/solve$/, (_m, b) => s.solve(typeof b.from === 'string' && b.from ? b.from : null)],
+    ['POST', /^\/solve$/, (_m, b) => s.solve(typeof b.from === 'string' && b.from ? b.from : null, undefined, b.prove ? 'prove' : 'witness')],
     ['POST', /^\/screenshot$/, async (_m, b, ctx) => {
       if (typeof b.room !== 'string') throw new StudioError('`room` is required');
       const r = await s.screenshot(b.room, typeof b.checkpoint === 'string' && b.checkpoint ? b.checkpoint : null, ctx.baseUrl);

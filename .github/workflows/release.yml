@@ -1,0 +1,29 @@
+name: release
+# A tag v3.x.y: the release checks (doctor, build, proof, dependency audit), then the GitHub release with the
+# matching CHANGELOG section as its notes.
+on:
+  push:
+    tags: ['v3.*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run release-check
+      - run: node scripts/release-notes.mjs "${GITHUB_REF_NAME}" > notes.md
+      - run: gh release create "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --notes-file notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}
