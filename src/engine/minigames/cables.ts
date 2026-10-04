@@ -1,5 +1,5 @@
 import type { Minigame, MinigameCtx } from './types';
-import { el, finisher, num, skipButton, sleep, stage, str } from './util';
+import { el, finisher, num, skipButton, sleep, stage, str, operable } from './util';
 
 // "The tangle of cables": four plugs on the left, a big knot in the middle, a panel of sockets on the right.
 // Touching a plug wiggles its cable through the knot: you can see where it comes out, near its socket.
@@ -276,6 +276,9 @@ export const cables: Minigame = {
       f.finish();
     };
 
+    let held: Cable | null = null;
+    const dropOn = new Map<Cable, (cb: Cable, hit: Color | null) => Promise<void>>();
+    const firstSocket = () => [...rings.values()][0];
     for (const cb of cablesList) {
       cb.plug.addEventListener('pointerdown', (e) => {
         if (busy || cb.done || f.finished) return;
@@ -296,6 +299,9 @@ export const cables: Minigame = {
         const at = toLogical(e);
         let hit: Color | null = null, best = SOCKET_TOL; // generous margin: aiming at a socket with a finger on a small screen
         for (const c of colors) { const s = socketOf(c); const d = Math.hypot(s[0] - at[0], s[1] - at[1]); if (d < best) { best = d; hit = c; } }
+        await drop(cb, hit);
+      };
+      const drop = async (cb: Cable, hit: Color | null) => {
         if (hit === cb.color) {
           cb.done = true; active = null;
           cb.pos = [cb.socket[0] - 4, cb.socket[1]]; placePlug(cb, true);
@@ -317,7 +323,28 @@ export const cables: Minigame = {
       };
       cb.plug.addEventListener('pointerup', release);
       cb.plug.addEventListener('pointercancel', release);
+      // At the keyboard: Enter on a plug picks it up (its cable lights up), Enter on a socket plugs it there.
+      operable(cb.plug, `${ctx.labels.plug ?? '⏚'} ${cb.color}`, () => {
+        if (busy || cb.done || f.finished) return;
+        if (held && held !== cb) { held.pos = [...held.rest] as P; placePlug(held, false); }
+        held = cb; active = cb;
+        cb.pos = [cb.rest[0] + 30, cb.rest[1]]; placePlug(cb, true);
+        firstSocket()?.focus?.({ preventScroll: true });
+      });
+      dropOn.set(cb, drop);
     }
+    for (const [c, ring] of rings) {
+      operable(ring, `${ctx.labels.socket ?? '◎'} ${c}`, async () => {
+        const cb = held;
+        if (!cb || busy || f.finished) return;
+        held = null;
+        await dropOn.get(cb)!(cb, c);
+        const next = cablesList.find((x) => !x.done);
+        next?.plug.focus?.({ preventScroll: true });
+      });
+      ring.style.pointerEvents = 'none';
+    }
+    queueMicrotask(() => cablesList[0]?.plug.focus?.({ preventScroll: true }));
 
     ctx.signal.addEventListener('abort', () => cancelAnimationFrame(raf), { once: true });
     skipButton(ctx, box, () => f.finish());

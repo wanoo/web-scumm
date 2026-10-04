@@ -1,5 +1,5 @@
 import type { Minigame, MinigameCtx } from './types';
-import { el, finisher, num, skipButton, stage, str, toast } from './util';
+import { el, finisher, num, skipButton, stage, str, toast, keys } from './util';
 
 // Stroke: slide a finger over the animal. Slowly, the happiness gauge rises; too fast, it drops back down.
 // After 5 s with no progress, a ghost hand shows the right speed.
@@ -59,6 +59,21 @@ export const stroke: Minigame = {
     box.addEventListener('pointerdown', (e) => { last = { ...pt(e), t: performance.now() }; box.setPointerCapture?.(e.pointerId); });
     box.addEventListener('pointerup', onUp);
     box.addEventListener('pointercancel', onUp);
+    // At the keyboard: ◀ / ▶ in turn, calmly (a press every 0.15–1 s strokes; faster, or holding the key, is too fast).
+    let lastKey = 0;
+    const strokeKey = (e: KeyboardEvent) => {
+      if (f.finished) return;
+      const t = performance.now(), dt = (t - lastKey) / 1000;
+      lastKey = t;
+      if (e.repeat || dt < 0.15) {
+        level = Math.max(0, level - 4);
+        pic.style.transform = 'scale(.97) rotate(-2deg)';
+        if (t - tooFastShown > 2500 && p.tooFast) { tooFastShown = t; toast(box, str(p.tooFast, ''), 1200); }
+      } else if (dt <= 1) { level = Math.min(goal, level + goal / 16); lastProgress = t; pic.style.transform = 'scale(1.02)'; }
+      fill.style.width = `${(Math.min(level, goal) / goal) * 100}%`;
+      if (level >= goal && !f.finished) { if (typeof p.sfx === 'string') ctx.sfx(p.sfx); if (p.win) ctx.instruct(str(p.win, '')); setTimeout(f.finish, 1200); level = goal + 1; }
+    };
+    const offKeys = keys(ctx, { ArrowLeft: strokeKey, ArrowRight: strokeKey });
 
     let raf = 0;
     const loop = (now: number) => {
@@ -74,6 +89,6 @@ export const stroke: Minigame = {
     raf = requestAnimationFrame(loop);
     ctx.signal.addEventListener('abort', () => cancelAnimationFrame(raf), { once: true });
     skipButton(ctx, box, f.finish);
-    return f.promise.then(() => { cancelAnimationFrame(raf); box.remove(); });
+    return f.promise.then(() => { cancelAnimationFrame(raf); offKeys(); box.remove(); });
   },
 };

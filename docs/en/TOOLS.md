@@ -238,6 +238,16 @@ rooms nothing leads to and declared exits with no way back.
 every `skin` id (manifest images, `audio` sounds) and `ending.scratch`.
 `games/demo/e2e.mjs` is the example of a game-specific `npm run e2e` script: it starts from the title screen, plays the pipes and pick minigames and the sealed ending's scratch ticket for real instead of skipping them, then checks the final card.
 
+## Asset provenance
+
+`games/<id>/provenance.json` says where every shipped asset comes from: entries `{ match, source, licence, author?,
+prompt?, status: 'final' | 'placeholder', note? }`, where `match` covers asset keys with `*` (`img:<manifest image
+id>`, `sfx:<file>`, `music:<file>`, `voice:<file>`, `video:<file>`). `npm run validate` checks a game that has the
+file (every asset covered, every entry complete); `npm run validate -- --release` requires it and warns about every
+placeholder that would ship. `npm run new-game` writes one for the art it borrows from the sample game (all
+placeholders, CC BY 4.0); the sample game's own file marks its non-commercial music as the one placeholder.
+`npm run audit` is a different check: it keeps names from a private project out of the public repository.
+
 ## The sealed ending
 
 ```bash

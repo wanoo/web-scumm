@@ -11,7 +11,8 @@ To work from a phone, use `npm run studio:lan` or `npm run dev:lan`; each comman
 Every Studio, asset, layout and assistant route then requires that token and a same-origin request. Do not expose the
 development port to the Internet. Provider keys stay in `sessionStorage`; arbitrary provider URLs are disabled unless
 `WEB_SCUMM_ALLOW_CUSTOM_PROVIDER=1`, and private/link-local destinations remain blocked except the explicit local
-Ollama preset. Game TypeScript and custom commands are trusted code, not sandboxed data. See `SECURITY.md`.
+Ollama preset (both IP families: `[::1]`, `0.0.0.0`, IPv4-mapped IPv6, `fc00::/7`, `fe80::/10`, `.local`, `.internal`).
+A provider call never follows a redirect, gives up after 60 s, and reads at most 8 MB of answer. Game TypeScript and custom commands are trusted code, not sandboxed data. See `SECURITY.md`.
 
 ## Layout of the Studio
 - **Rooms** (default tab): the room rendered by the engine with the placement editor on top (drag zones, feet, heights,

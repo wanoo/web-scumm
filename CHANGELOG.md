@@ -1,5 +1,6 @@
 # Changelog
 
+## 3.1.1 — 2026-10-04
 ## 3.2.0 — unreleased
 
 ### Added
@@ -14,6 +15,15 @@
 - The differential suite (`tests/por.test.ts`) compares the reductions with the plain proof on eight fixtures,
   including a softlock that commutes with everything: stubborn sets agree, sleep sets invent softlocks on three; the
   reductions stay off in proof mode (`unsafeReduction` is for the suite only).
+- Accessibility as a gate: the seven bundled minigames play to their end at the keyboard (keys(), operable(),
+  arrowFocus() in `minigames/util.ts`; Skip no longer takes the focus a minigame gave one of its controls);
+  `npm run e2e -- --axe` (axe-core on the title, a room, the pause menu, the ending) fails on any serious or critical
+  violation, and found three fixed here: unnamed empty inventory slots, scene and confetti images without `alt`;
+  the Chromium keyboard CI row (keyboard + axe + saves without IndexedDB) gates, a WebKit keyboard row runs.
+- Asset provenance: `games/<id>/provenance.json` (source, licence, author, prompt, final or placeholder, by asset key
+  with `*`); `npm run validate` checks coverage when the file exists, `--release` requires it and lists placeholders;
+  `npm run new-game` records the borrowed sample art as placeholders; the demo's file covers its 194 images, its
+  effects and its non-commercial music (the one placeholder).
 
 - Saves say what they did: `clear()` / `clearSlot()` return `false` when the browser refuses (the save stays, the
   failure is reported, `whenIdle()` rejects); "Restart" and a refused file import keep the current game; golden
@@ -53,6 +63,11 @@
   `skipped` or `off`; the pause menu shows it (`ui.offlineStatus`, `offlineComplete`, `offlineRetry`) and a tap retries;
   `npm run e2e:pwa` requires `complete`, checks every file of the plan offline and renders a never-visited room; WebKit's
   impossible offline navigation is "skipped" (exit 3), accepted only by the CI's `--allow-skip`.
+### Security
+
+- Studio assistant, custom providers: the private-host check reads `URL.hostname` as a host (IPv6 brackets, IPv4-mapped
+  addresses), and refuses `0.0.0.0/8`, `::`, `fc00::/7`, `fe80::/10`, `100.64/10`, `.localhost`, `.internal` as well;
+  a provider call never follows a redirect, times out after 60 s and reads at most 8 MB (`providerFetch`, `readCapped`).
 
 ### Fixed
 

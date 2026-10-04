@@ -72,8 +72,22 @@ inventory and the tools; a conversation's choices and the map's places take the 
 Enter); Space or Enter advances a line of dialogue; Escape closes what is on top (a menu, the map, a transcript, a
 cutscene's or minigame's Skip) and otherwise opens the pause menu, whose focus stays inside. A live region announces
 the room, each line and each item gained. `ui.advance` names the "tap to continue" marker for screen readers.
-`npm run e2e -- --generic --keyboard` replays the solver's solution at the keyboard; the minigames themselves are
-skipped there (their Skip button takes the focus).
+`npm run e2e -- --generic --keyboard` replays the solver's solution at the keyboard.
+
+The bundled minigames play to their end at the keyboard, not only skip: `pick` and `hide` (the options and the
+hiding spots are named buttons, the arrows move, Enter picks), `pipes` (the arrows walk the grid, Enter turns a
+tile), `runner` (▲ / W jumps, ▼ / S ducks), `stroke` (◀ ▶ in turn at a calm rhythm; holding a key is "too fast"),
+`scratch` (the arrows move a coin over the silver layer, the revealed text is announced) and `cables` (Enter on a
+plug picks it up, Enter on a socket plugs it in). The minigame takes the focus on its first control, Skip keeps it
+otherwise. `tests/dom/minigames-keyboard.test.ts` plays five of them to the end with key events.
+
+**What is checked, and what is not.** `npm run e2e -- --axe` runs axe-core on the title, a room, the pause menu and
+the ending: a `serious` or `critical` violation fails the run (`AXE_ACCEPTED` in `scripts/e2e/lib.mjs` lists the
+accepted rules: none today). Images are decorative unless named (the scene is reached through its targets, an
+item by its name), an empty inventory slot is out of the accessibility tree. CI: the Chromium keyboard row
+(keyboard, axe, a save round trip without IndexedDB) gates; WebKit at the keyboard runs, not yet gating. axe
+does not prove WCAG conformance: a screen-reader pass (VoiceOver on iOS, TalkBack on Android: the title, a
+conversation, an item, the map, a minigame) stays a manual check before a release.
 
 ## Two layouts
 

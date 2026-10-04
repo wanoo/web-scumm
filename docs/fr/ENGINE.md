@@ -77,6 +77,22 @@ le focus ne sort pas. Une région live annonce le lieu, chaque réplique et chaq
 repère « toucher pour continuer » pour les lecteurs d'écran. `npm run e2e -- --generic --keyboard` rejoue la solution
 du solveur au clavier ; les mini-jeux eux-mêmes y sont passés (leur bouton Passer prend le focus).
 
+Les mini-jeux livrés se jouent jusqu'au bout au clavier, pas seulement se passent : `pick` et `hide` (les options et
+les cachettes sont des boutons nommés, les flèches déplacent, Entrée choisit), `pipes` (les flèches parcourent la
+grille, Entrée tourne un tuyau), `runner` (▲ / W saute, ▼ / S se baisse), `stroke` (◀ ▶ en alternance, calmement ;
+garder la touche appuyée est « trop vite »), `scratch` (les flèches déplacent une pièce sur la couche argentée, le
+texte révélé est annoncé) et `cables` (Entrée sur une fiche la prend, Entrée sur une prise la branche). Le mini-jeu
+prend le focus sur sa première commande, sinon Passer le garde. `tests/dom/minigames-keyboard.test.ts` joue cinq
+d'entre eux jusqu'au bout avec des événements clavier.
+
+**Ce qui est vérifié, et ce qui ne l'est pas.** `npm run e2e -- --axe` lance axe-core sur le titre, un lieu, le menu
+pause et la fin : une violation `serious` ou `critical` fait échouer le passage (`AXE_ACCEPTED` dans
+`scripts/e2e/lib.mjs` liste les règles acceptées : aucune aujourd'hui). Les images sont décoratives sauf si elles
+sont nommées (la scène s'atteint par ses cibles, un objet par son nom), une case vide de l'inventaire sort de
+l'arbre d'accessibilité. CI : la ligne Chromium clavier (clavier, axe, une sauvegarde aller-retour sans IndexedDB)
+est bloquante ; WebKit au clavier tourne, pas encore bloquant. axe ne prouve pas la conformité WCAG : un passage au
+lecteur d'écran (VoiceOver sur iOS, TalkBack sur Android : le titre, une conversation, un objet, la carte, un
+mini-jeu) reste une vérification manuelle avant une release.
 ## Deux dispositions
 
 - **Téléphone (écran tactile), en paysage** : la scène à gauche ; à droite, une colonne avec les 9 verbes en 3×3, le sac sur 3 colonnes et les icônes Carte / Menu / Son. La phrase s'affiche en bas de la scène.

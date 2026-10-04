@@ -870,6 +870,24 @@ prints `check` first.
 
 → next: Claude · `v3-offline-truth`
 
+## #29 · 2026-10-04 · Claude · proposal · v3-studio-net
+
+Branch: `v3-studio-net` (from `main`) · the addition of #26
+
+- `tools/studio/assistant.ts`: `hostOf()` strips IPv6 brackets and maps `::ffff:a.b.c.d`; `privateHost()` refuses
+  loopback, `0.0.0.0/8`, `::`, `10/8`, `172.16/12`, `192.168/16`, `169.254/16`, `100.64/10`, `fc00::/7`,
+  `fe80::/10`, `localhost`, `.localhost`, `.local`, `.internal`. Before: `new URL('https://[::1]/').hostname` is
+  `'[::1]'`, so `'::1'` never matched, `0.0.0.0` and mapped addresses passed. Ollama keeps `localhost`, `127.0.0.1`
+  and `[::1]`.
+- `tools/studio/assistant-loop.ts`: `providerFetch()` (`redirect: 'manual'`, a 3xx or an opaque redirect is refused;
+  `AbortSignal.timeout(60 s)` combined with the caller's signal), `readCapped()` and the SSE reader cap the answer at
+  8 MB; the error text is read up to 64 KB. Same code in the page (`src/studio/assistant.ts`) and in the relay.
+- Not done, said in SECURITY.md: DNS rebinding (a public name resolving to a private address) is not detected; a
+  resolve-and-pin step is 3.2 material if still wanted.
+- Tests: 20 private hosts refused in both families, 4 public accepted, Ollama with brackets, redirect, deadline, the
+  caller's abort passed through, the cap. Docs STUDIO en/fr, SECURITY.md, CHANGELOG.
+
+→ next: Claude · `v3-release-truth`
 ## #30 · 2026-10-04 · Claude · proposal · v3-release-truth, then 3.1.1
 
 Branch: `v3-release-truth` (from `main`) · re #24 "release integrity"
@@ -986,3 +1004,40 @@ Branch: `v32-proof-scale` · re #24 "long-game proof", #25 "v32-proof-scale"
 
 → next: Claude · `v32-release`
 
+## #35 · 2026-10-04 · Claude · proposal · v32-a11y-gate
+
+Branch: `v32-a11y-gate` · re #24 "accessibility", #25 "v32-a11y-gate"
+
+- Minigames at the keyboard, to the end: `keys()` (page-level keys while the minigame runs, never Tab, never Enter /
+  Space on a focused button), `operable()` (a named, focusable role=button on an image), `arrowFocus()`; pick, hide,
+  pipes (focus + arrows), runner (▲ ▼ / W S), stroke (◀ ▶ at a calm rhythm, `repeat` = too fast), scratch (a coin moved
+  by the arrows scratches, the revealed text is `aria-live`), cables (Enter on a plug, Enter on a socket). Skip keeps
+  the focus only when the minigame gave none.
+- axe-core (`@axe-core/playwright`, a context per harness) in `npm run e2e -- --axe`: title, room, pause menu, ending.
+  First run: 3 real findings (empty `.slot` buttons without a name; 16 confetti images and app images without `alt`),
+  all fixed; `AXE_ACCEPTED` is empty.
+- CI: the Chromium keyboard row gates (`--keyboard --save --no-indexeddb --axe`), the full row adds `--axe`, a WebKit
+  keyboard row runs experimental. Not done: localized ARIA beyond `ui` (done in `v32-bindings`), a screen-reader pass
+  (documented as manual), keyboard e2e that plays the minigames in a browser (unit tests do).
+
+### Checks run
+| Command | Result |
+|---|---|
+| `tests/dom/minigames-keyboard.test.ts` | pick, hide, pipes, stroke, cables played to the end with key events |
+| `npm run e2e -- --prod --generic --keyboard --axe --save --no-indexeddb` (Chromium) | axe clean on 4 screens, save survived a reload (localStorage) |
+| `E2E_BROWSER=webkit npm run e2e -- --prod --generic --keyboard` | done |
+
+→ next: Claude · `v32-assets-provenance`
+## #36 · 2026-10-04 · Claude · proposal · v32-assets-provenance
+
+Branch: `v32-assets-provenance` · re #25 "v32-assets-release"
+
+- `src/engine/tools/provenance.ts`: asset keys (`img:`, `sfx:`, `music:`, `voice:`, `video:`), entries matched with
+  `*`, a report of what is uncovered, incomplete or placeholder. `npm run validate` checks a game that has
+  `provenance.json`; `--release` requires it (error when missing) and warns about the placeholders that would ship.
+- Demo: 3 entries cover 194 images, the effects and the music; `validate --release` warns once (Swan Lake, CC BY-NC).
+  `npm run new-game` writes the borrowed art as placeholders with its attribution.
+- Not done from #25: per-room / per-chapter asset budgets (the offline budgets exist since 3.1), a generic "second
+  game" release test (in `v32-release`).
+
+→ next: Claude · `v32-release`

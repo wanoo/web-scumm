@@ -235,6 +235,16 @@ lieux que rien n'atteint et des sorties déclarées sans retour.
 chaque id de `skin` (images du manifeste, sons de `audio`) et `ending.scratch`.
 `games/demo/e2e.mjs` est l'exemple d'un script `npm run e2e` propre à un jeu : il part de l'écran titre, joue pour de vrai les mini-jeux tuyaux et pioche ainsi que le ticket à gratter de la fin scellée au lieu de les passer, puis vérifie la carte finale.
 
+## Provenance des assets
+
+`games/<id>/provenance.json` dit d'où vient chaque asset livré : des entrées `{ match, source, licence, author?,
+prompt?, status: 'final' | 'placeholder', note? }`, où `match` couvre des clés d'assets avec `*` (`img:<id d'image du
+manifeste>`, `sfx:<fichier>`, `music:<fichier>`, `voice:<fichier>`, `video:<fichier>`). `npm run validate` vérifie un
+jeu qui a le fichier (chaque asset couvert, chaque entrée complète) ; `npm run validate -- --release` l'exige et
+signale chaque provisoire qui partirait en release. `npm run new-game` en écrit un pour les images empruntées à la
+démo (toutes provisoires, CC BY 4.0) ; celui de la démo marque sa musique non commerciale comme le seul provisoire.
+`npm run audit` est une autre vérification : il garde les noms d'un projet privé hors du dépôt public.
+
 ## La fin scellée
 
 ```bash
