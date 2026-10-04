@@ -2,6 +2,12 @@
 
 ## 3.1.1 — unreleased
 
+### Security
+
+- Studio assistant, custom providers: the private-host check reads `URL.hostname` as a host (IPv6 brackets, IPv4-mapped
+  addresses), and refuses `0.0.0.0/8`, `::`, `fc00::/7`, `fe80::/10`, `100.64/10`, `.localhost`, `.internal` as well;
+  a provider call never follows a redirect, times out after 60 s and reads at most 8 MB (`providerFetch`, `readCapped`).
+
 ### Fixed
 
 - A sealed ending (`ending` / `reveal`) now sets `state.done` like `end` does: the card was shown with the game

@@ -12,7 +12,9 @@ d'écriture. Pour travailler depuis un téléphone, utiliser `npm run studio:lan
 affiche une URL avec un nouveau jeton de capacité. Toutes les routes Studio, assets, layout et assistant exigent alors
 ce jeton et une requête de même origine. Ne pas exposer le port de développement à Internet. Les clés fournisseur
 restent dans `sessionStorage` ; les URL arbitraires sont désactivées sauf avec `WEB_SCUMM_ALLOW_CUSTOM_PROVIDER=1`,
-et les destinations privées/link-local restent bloquées hors préréglage Ollama local. Le TypeScript d'un jeu et les
+et les destinations privées/link-local restent bloquées hors préréglage Ollama local (dans les deux familles d'adresses :
+`[::1]`, `0.0.0.0`, IPv6 mappé IPv4, `fc00::/7`, `fe80::/10`, `.local`, `.internal`). Un appel au fournisseur ne suit
+jamais une redirection, abandonne après 60 s et lit au plus 8 Mo de réponse. Le TypeScript d'un jeu et les
 commandes personnalisées sont du code de confiance, pas des données isolées. Voir `SECURITY.md`.
 
 ## Organisation du Studio

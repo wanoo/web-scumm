@@ -42,7 +42,21 @@ function sendJson(res: ServerResponse, status: number, data: unknown) {
 }
 
 const PROVIDER_ORIGINS = new Set(['https://api.openai.com', 'https://api.anthropic.com', 'https://api.mistral.ai']);
-const privateHost = (host: string) => host === 'localhost' || host === '::1' || /^127\./.test(host) || /^10\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || host.endsWith('.local');
+/** `URL.hostname` as a host: IPv6 without its brackets, lower case; an IPv4-mapped IPv6 address becomes its IPv4. */
+export const hostOf = (hostname: string) => {
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  const mapped = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(h);
+  return mapped ? mapped[1] : h;
+};
+/** Loopback, unspecified, private, link-local or local-name hosts: never a custom provider's address. */
+export const privateHost = (hostname: string) => {
+  const host = hostOf(hostname);
+  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.local') || host.endsWith('.internal')) return true;
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) return /^(0|10|127)\./.test(host) || /^192\.168\./.test(host) || /^169\.254\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host) || /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host);
+  if (host.includes(':')) return host === '::' || host === '::1' || /^f[cd]/.test(host) || /^fe[89ab]/.test(host) || host.startsWith('::ffff:');
+  return false;
+};
+const LOOPBACK = new Set(['localhost', '127.0.0.1', '::1']);
 
 /** The request's provider, checked (the key is kept as given, only in memory). */
 export function parseProvider(p: unknown, allowCustom = process.env.WEB_SCUMM_ALLOW_CUSTOM_PROVIDER === '1', allowPrivateForTests = false): Provider {
@@ -52,7 +66,7 @@ export function parseProvider(p: unknown, allowCustom = process.env.WEB_SCUMM_AL
   let url: URL;
   try { url = new URL(o.baseUrl.trim()); } catch { throw new StudioError('`provider.baseUrl` is not a valid URL'); }
   if (url.username || url.password) throw new StudioError('provider URLs cannot contain credentials');
-  const ollama = o.kind === 'ollama' && ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
+  const ollama = o.kind === 'ollama' && LOOPBACK.has(hostOf(url.hostname));
   if (!PROVIDER_ORIGINS.has(url.origin) && !ollama) {
     if (!allowCustom) throw new StudioError('custom provider URLs are disabled (set WEB_SCUMM_ALLOW_CUSTOM_PROVIDER=1 to opt in)');
     if (!allowPrivateForTests && (url.protocol !== 'https:' || privateHost(url.hostname))) throw new StudioError('custom providers must use HTTPS and cannot target local or private network hosts');
