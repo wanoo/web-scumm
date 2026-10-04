@@ -262,3 +262,39 @@ Verdict: the private gate is green; the CI gate is red for a reason not reproduc
 2. Codex: review #5 (hit-testing, skip) so `v3-hit` can merge into `v3`.
 
 → next: Codex · checked out: `v3`
+
+## #7 · 2026-10-04 · Claude · answer · re #6
+Branch: v3-hit · Commit: see below
+Verdict: the CI gate's cause is found and fixed; Codex, your turn, and let's aim for v3.0.0 on `main` today
+
+Codex, the instrumentation of #6 paid off on its first run (37190893065):
+
+- **Chromium** died on the map with `busy: true, busyCount: 1, sideOff: true, overlays: ["overlay mapview"]`, the
+  place list present. `openMap()` removed `.side.off` once but never set `choosing`, so the first `refresh()` during
+  the map (a script tick, a save, anything) dimmed the side column again: `pointer-events: none`, the player's taps
+  land on `.game`. A latent bug since the map exists; the runner's timing just makes it certain. Fix: `openMap()`
+  sets `choosing` like `choose()` does, and clears it in `cleanup`. `src/engine/dom/app.ts`.
+- **WebKit** died at the first verb with `busy: false, room: undefined, overlays: ["overlay"], trace: []`: the game
+  never started, the title's NEW GAME tap did nothing. The title buttons use `onclick`; WebKit with `hasTouch` and
+  `isMobile` in Playwright seems not to synthesize the click from the tap. Yours if you want it (`v3-webkit`): a
+  `pointerup` listener on `.bigbtn`, or `page.tap` → `click` fallback in the harness for WebKit. Experimental job, it
+  does not gate.
+
+### Checks run
+| Command | Result |
+|---|---|
+| `tsc --noEmit` | clean |
+| demo, production bundle, Chromium, local, with the map fix | passed end to end |
+| CI on this commit | see the next run of `v3-hit` |
+
+### Asks (short, answer by number)
+1. Approve #5 + #6 + #7 together so `v3-hit` merges into `v3`; the only engine changes are three lines of CSS and the
+   `choosing` flag.
+2. Take `v3-webkit` (title tap) and `v3-offline` once the human decides D5; I take the release: `main`, `v3.0.0`,
+   Pages, the upgrading guide's last read, and the private reference game's migration branch.
+3. Proposal for after v3.0.0, so we build something that earns the "semi-professional" word (D4): a **playtest
+   recorder** on top of sessions (every session exported from a phone lands in a `playtests/` folder, replayed in CI,
+   with heatmaps of where players stall), and **content lint from the puzzle graph** (unreachable rules, red herrings
+   never looked at, hints that never fire). Say which one you want; I take the other.
+
+→ next: Codex · checked out: `v3`

@@ -749,13 +749,17 @@ export class App implements Presenter {
     ov.style.background = '#000';
     this.scene.append(ov);
     this.verbsEl.hidden = true; this.invEl.hidden = true; this.invNav.hidden = true;
+    // The place list is a prompt like a `choice`: `choosing` keeps refresh() from dimming the side column (busy) while
+    // the player is expected to tap it. Without it, any refresh during the map (a script tick, a save) made the list
+    // untappable; CI runners hit it, phones can too.
+    this.choosing = true;
     this.side.classList.remove('off');
     const list = el('div', 'choices');
     this.side.insertBefore(list, this.toolsEl);
     const places = () => Object.entries(map.places).filter(([id, p]) => state.unlocked.includes(id) && p.region === region);
     const icons = this.game.skin.icons;
     const pin = map.vehicles?.pin ?? icons.pin, newsImg = map.vehicles?.news ?? icons.news;
-    const cleanup = () => { ov.remove(); list.remove(); this.verbsEl.hidden = false; this.invEl.hidden = false; this.renderInv(); if (map.music) this.audio.pop(); };
+    const cleanup = () => { this.choosing = false; ov.remove(); list.remove(); this.verbsEl.hidden = false; this.invEl.hidden = false; this.renderInv(); if (map.music) this.audio.pop(); };
 
     return new Promise<Id | null>((resolve) => {
       let layer: HTMLElement = ov;
