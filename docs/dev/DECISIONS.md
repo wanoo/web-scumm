@@ -8,6 +8,9 @@ may write in French; the assistant adds the English next to it.
 - **D3 · 2026-10-04** · The maintainer arbitrates every disagreement; nothing is merged into `v3` with an open blocker. The exchange lives in `docs/dev/`, committed, in English.
 - **D4 · 2026-10-04** · The goal of v3, set by the maintainer: ship online, with both assistants, a v3 worthy of a semi-professional engine. « Mets en ligne avec Claude une V3 qui est digne d'un engine semi-pro. » Every proposal and review measures itself against that bar: would a small studio trust it with a long game, offline, on a phone, with saves that survive updates?
 
+- **D8 · 2026-10-04** · The private reference game stays on engine 3.1.0 for good: no further sync, breakage accepted. It is no longer a gate (charter rule 7, AGENTS.md: amended by `v3-release-truth`). « Plus besoin de faire le jeu privé, tout le monde y a joué. »
+- **D9 · 2026-10-04** · Cadence from 3.1.1 on: Claude implements one `v3-<topic>` / `v32-<topic>` branch at a time and merges it on green CI; Codex reviews afterwards (each release, or any branch it picks), and its findings open the next branch. The one-ball rule of the charter is kept for the exchange itself, not as a merge gate. Received with the approved 3.1.1 → 3.2 plan (LOG #26).
+
 ## Pending (asked, not decided)
 
 - **D5** · offline: keep v3's room-and-neighbours warming only (Codex, README reworded), or add a global background preload after it so a game plays fully offline as v2 did (Claude's recommendation)? See LOG #3.

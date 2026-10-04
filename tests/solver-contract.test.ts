@@ -48,6 +48,19 @@ describe('solver result contract', () => {
     expect(proof.flagsReached).toEqual(expect.arrayContaining(['safe', 'doomed']));
   });
 
+  it('records every attempted action, not only the ones that changed the state', async () => {
+    const game = base();
+    game.rooms[0].on = [
+      { verb: 'use', a: 'danger', do: ['Just trouble, nothing to do about it.'] },
+      { verb: 'use', a: 'exit', do: [{ end: true }] },
+    ];
+    const r = await solve(game, layouts, { mode: 'prove' });
+    const ran = Object.keys(r.profile.perAction), tried = Object.keys(r.profile.attempted);
+    expect(ran.every((id) => tried.includes(id))).toBe(true);
+    expect(tried).toContain('rule:room/on[0]'); // the line-only rule: tried, nothing changed
+    expect(ran).not.toContain('rule:room/on[0]');
+  });
+
   it('reports an exhaustive game with no ending as unsolved', async () => {
     expect((await solve(pickups(3, false), pickupsLayouts, { mode: 'prove' })).status).toBe('unsolved');
   });

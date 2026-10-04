@@ -145,17 +145,29 @@ export function lintContent(game: GameDef, _layouts: Record<Id, Layout>, opts: L
   const s = opts.solve;
   if (s) {
     const mode = s.mode;
-    // What the witness ran: the tries, and the start entry (the intro and its guided tutorial run inside it).
-    const ran = new Set(Object.keys(s.profile.perAction));
+    // A completed proof is the only run that can say "nothing reaches it"; a witness or a truncated proof only says
+    // "not seen", as information.
+    const proved = mode === 'prove' && !s.truncated;
+    const search = proved ? 'exhaustive search' : mode === 'prove' ? 'truncated search' : 'solver';
+    const sev = proved ? 'warning' : 'info';
+    const unreachableFix = (what: string) => proved ? `nothing reaches it: check ${what}` : mode === 'prove' ? 'the search hit its state budget: raise `--max` or prove by chapters' : 'run `npm run lint -- --prove` to know whether it is reachable';
+    // What answered a try at all (`attempted`), and the start entry (the intro and its guided tutorial run inside it).
+    // `perAction` only counts tries that changed the state: a topic that just talks would look unreachable.
+    const ran = new Set(Object.keys(s.profile.attempted ?? s.profile.perAction));
     for (const e of s.steps) for (const id of e.ran ?? []) ran.add(id);
+    const changed = new Set(Object.keys(s.profile.perAction));
+    for (const e of s.steps) for (const id of e.ran ?? []) changed.add(id);
     const live = new Set([...classes.entries()].filter(([, c]) => c !== 'dead').map(([id]) => id));
+    const noEffect = (id: string, where: Finding['where'], label: string) => {
+      if (live.has(id) && ran.has(id) && !changed.has(id)) add({ code: 'rule-no-effect', severity: 'info', where, message: `${label}: the ${search} ran it, it never changed anything`, fix: 'fine for lines only; otherwise its `set`/`gain` is always already true where it runs', solver: mode });
+    };
     for (const r of game.rooms) {
-      r.on?.forEach((rule, i) => { if (rule.exit) return; const id = ruleActionId(r.id, i, rule); if (live.has(id) && !ran.has(id)) add({ code: 'rule-never-run', severity: mode === 'prove' ? 'warning' : 'info', where: { room: r.id, path: `on[${i}]`, id: rule.id }, message: `the ${mode === 'prove' ? 'exhaustive search' : 'solver'} never ran it`, fix: mode === 'prove' ? 'nothing reaches it: check its condition and what gates it' : 'run `npm run lint -- --prove` to know whether it is reachable', solver: mode }); });
-      for (const [actor, topics] of Object.entries(r.talk ?? {})) topics.forEach((t, i) => { const id = topicActionId(r.id, actor, i, t); if (live.has(id) && !ran.has(id)) add({ code: 'rule-never-run', severity: mode === 'prove' ? 'warning' : 'info', where: { room: r.id, path: `talk.${actor}[${i}]`, id: t.id }, message: `"${t.topic}": the ${mode === 'prove' ? 'exhaustive search' : 'solver'} never picked it`, fix: mode === 'prove' ? 'nothing reaches it: check its condition' : 'run `npm run lint -- --prove` to know whether it is reachable', solver: mode }); });
-      r.events?.forEach((ev, i) => { const id = listenerActionId(r.id, i, ev); if (live.has(id) && !ran.has(id)) add({ code: 'rule-never-run', severity: mode === 'prove' ? 'warning' : 'info', where: { room: r.id, path: `events[${i}]`, id: ev.id }, message: `on "${ev.on}": never fired in the ${mode === 'prove' ? 'exhaustive search' : 'solver'}`, fix: 'check that something emits the event under its condition', solver: mode }); });
+      r.on?.forEach((rule, i) => { if (rule.exit) return; const id = ruleActionId(r.id, i, rule); const where = { room: r.id, path: `on[${i}]`, id: rule.id }; if (live.has(id) && !ran.has(id)) add({ code: 'rule-never-run', severity: sev, where, message: `the ${search} never ran it`, fix: unreachableFix('its condition and what gates it'), solver: mode }); noEffect(id, where, 'this rule'); });
+      for (const [actor, topics] of Object.entries(r.talk ?? {})) topics.forEach((t, i) => { const id = topicActionId(r.id, actor, i, t); const where = { room: r.id, path: `talk.${actor}[${i}]`, id: t.id }; if (live.has(id) && !ran.has(id)) add({ code: 'rule-never-run', severity: sev, where, message: `"${t.topic}": the ${search} never picked it`, fix: unreachableFix('its condition'), solver: mode }); noEffect(id, where, `"${t.topic}"`); });
+      r.events?.forEach((ev, i) => { const id = listenerActionId(r.id, i, ev); const where = { room: r.id, path: `events[${i}]`, id: ev.id }; if (live.has(id) && !ran.has(id)) add({ code: 'rule-never-run', severity: sev, where, message: `on "${ev.on}": never fired in the ${search}`, fix: proved ? 'check that something emits the event under its condition' : unreachableFix('what emits it'), solver: mode }); noEffect(id, where, `on "${ev.on}"`); });
     }
     const reached = new Set(s.roomsReached);
-    for (const r of game.rooms) if (!reached.has(r.id)) add({ code: 'room-never-reached', severity: mode === 'prove' ? 'warning' : 'info', where: { room: r.id, path: 'id' }, message: `the ${mode === 'prove' ? 'exhaustive search' : 'solver'} never entered it`, fix: 'an exit, a `goto` or a map place must lead there', solver: mode });
+    for (const r of game.rooms) if (!reached.has(r.id)) add({ code: 'room-never-reached', severity: sev, where: { room: r.id, path: 'id' }, message: `the ${search} never entered it`, fix: proved ? 'an exit, a `goto` or a map place must lead there' : unreachableFix('its exits'), solver: mode });
   }
 
   // ---- ignore list: `code`, `code:<id>`, `code:<room>/<path>`

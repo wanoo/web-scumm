@@ -16,6 +16,8 @@ export interface ReplayResult {
   session: Session;
   /** How many entries were played. */
   played: number;
+  /** The index of the first entry replayed: 1 when the log opens with a `start` entry, else 0. The entries played are `log[first .. first + played - 1]`. */
+  first: number;
   /** The ending was reached. */
   ended: boolean;
   /** The first entry whose outcome differed from the recording, and why. */
@@ -85,6 +87,7 @@ export async function replay(gameIn: GameDef, layouts: Record<Id, Layout>, sessi
     if (!session.base) throw new Error('a session that starts from a save needs its base state');
     await e.load(structuredClone(session.base));
   }
+  const first = i;
   const end = Math.min(log.length, opts.upTo ?? log.length);
   let divergedAt: number | undefined, divergence: string | undefined;
   let played = 0;
@@ -110,7 +113,7 @@ export async function replay(gameIn: GameDef, layouts: Record<Id, Layout>, sessi
     if ('act' in en && 'act' in mine && !!en.aborted !== !!mine.aborted) { divergedAt = i; divergence = `${labelOf(game, en)}: ${en.aborted ? 'was interrupted' : 'ran'} in the recording`; break; }
   }
   await Promise.race([Promise.all(pending), tick().then(tick)]);
-  return { state: e.state, trace: e.trace, session: e.session!, played, ended: !!e.state.done || ui.log.includes('ENDING'), ...(divergedAt !== undefined ? { divergedAt, divergence } : {}) };
+  return { state: e.state, trace: e.trace, session: e.session!, played, first, ended: !!e.state.done || ui.log.includes('ENDING'), ...(divergedAt !== undefined ? { divergedAt, divergence } : {}) };
 }
 
 /** The file a tester sends: the session, the journal, the game and its save version. */

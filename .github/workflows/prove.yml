@@ -23,6 +23,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run prove:game
+      # The committed playtests must still replay on this content: a diverged one fails here, not on every push.
+      - run: npm run playtests -- --strict
         env:
           GAME: ${{ github.event.inputs.game || 'demo' }}
       # The exhaustive proof has no reduction: on a 40-room chain it is truncated at 50 000 states after seven minutes

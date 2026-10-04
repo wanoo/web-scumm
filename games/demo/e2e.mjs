@@ -12,6 +12,7 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
+import { solverResultOk } from '../../scripts/e2e/util.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..', '..');
 
@@ -25,7 +26,8 @@ function solveSteps() {
   const out = (r.stdout ?? '').trim();
   if (!out) throw new Error(`games/demo/e2e.mjs: tools/solve.ts --json produced no output${r.stderr ? `: ${r.stderr}` : ''}`);
   const solved = JSON.parse(out.split('\n').pop());
-  if (!solved.finished) throw new Error('games/demo/e2e.mjs: the solver did not reach an ending from a new game');
+  const verdict = solverResultOk(solved, r.status);
+  if (!verdict.ok) throw new Error(`games/demo/e2e.mjs: ${verdict.reason}`);
   return solved.steps;
 }
 
@@ -284,4 +286,6 @@ export async function run(h) {
   if (!card.headline) throw new Error('games/demo/e2e.mjs: the final card has no headline (the ending\'s title)');
   console.log(`games/demo/e2e.mjs: final card verdict = "${card.verdict}"`);
   console.log(`games/demo/e2e.mjs: final card headline = "${card.headline}"`);
+  if (!(await h.ended())) throw new Error('games/demo/e2e.mjs: the final card is shown but engine.state.done is false');
+  console.log('games/demo/e2e.mjs: the engine confirms the ending (state.done)');
 }

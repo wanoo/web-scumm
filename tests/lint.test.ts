@@ -66,7 +66,27 @@ describe('content lint', () => {
     expect(r.findings.map((f) => `${f.code} ${f.where.room}/${f.where.path}`)).toEqual([
       'action-dead house/on[8]',
       'action-dead market/talk.neighbor[0]',
-      'rule-never-run house/talk.grandma[0]',
+      'rule-no-effect house/talk.grandma[0]',
     ]);
+  });
+
+  it('counts a topic the solver tried as reached, even when it changed nothing', async () => {
+    const s = await solve(demo, {}, { commands: demoCommands, mode: 'prove' });
+    expect(s.truncated).toBe(false);
+    expect(s.profile.attempted['topic:house.grandma.where-is-the-key']).toBeGreaterThan(0);
+    const r = lintContent(demo, {}, { solve: s, commands: demoCommands });
+    expect(r.findings.filter((f) => f.code === 'rule-never-run')).toEqual([]);
+    const noEffect = r.findings.find((f) => f.code === 'rule-no-effect');
+    expect(noEffect).toMatchObject({ severity: 'info', where: { room: 'house', path: 'talk.grandma[0]' } });
+  });
+
+  it('a truncated proof never calls anything unreachable', async () => {
+    const s = await solve(demo, {}, { commands: demoCommands, mode: 'prove', maxStates: 1 });
+    expect(s.truncated).toBe(true);
+    const r = lintContent(demo, {}, { solve: s, commands: demoCommands });
+    const reach = r.findings.filter((f) => f.code === 'rule-never-run' || f.code === 'room-never-reached');
+    expect(reach.length).toBeGreaterThan(0);
+    expect(reach.every((f) => f.severity === 'info' && f.message.includes('truncated search') && !f.fix.includes('nothing reaches'))).toBe(true);
+    expect(r.counts.warning).toBe(0);
   });
 });
