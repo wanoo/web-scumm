@@ -7,9 +7,16 @@
 - The solver measures itself: `profile.timing` (tries, engine, clone, run, hash, queue, other, classify, in ms) and
   `profile.positions` (distinct character positions among the states); `npm run bench -- --matrix` prints the
   3.3 reference table (20 / 40 rooms × 1 / 2 / 3 characters).
+- The no-op memo (`solve` option `memo`, on by default): a try that wrote nothing the solver hashes is not run again
+  on a state with the same read values. The engine records what a run writes (`Engine.writes`); one skip in 16 is run
+  anyway and compared (`memoVerify`). Demo proof 4.4 s → 2.2 s, proof by chapters 5.7 s → 3.3 s, identical results
+  (`tests/memo.test.ts`).
+- `npm run solve -- --profile` says what each abstraction did (canonical character, mobility regions, no-op memo) or
+  why it is off (`profile.memo`, `abstractionLines`).
 
 ### Fixed
 
+- Two engine checks escaped the read trace (the lock on a used item, the hint's `until`): they now go through it.
 - A chapter goal that reads the active character (`{ has }`, `{ room }`) could lose boundary states once states that
   differ only by the active character were merged: a canonical state now reaches a goal when any character, seen as
   active, meets it. Found by comparing chapter boundaries with the explicit search run from each start.

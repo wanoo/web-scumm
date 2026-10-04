@@ -292,3 +292,34 @@ meets it. On the demo, the abstract shared search finds exactly the explicit sea
 Mobility is off on the demo, and the profile says why (`no move of this game can be silent`: every room has an
 `onEnter` or is named by a condition), which also spares the region computation on every hash.
 
+### After `v33-noop-memo`: no partial-order reduction in proofs, a no-op memo instead
+
+**The reduction, measured in proof mode.** Sleep sets visit every state but skip edges: an action already tried in
+a commuting order is not run again. The proof classifies states by reverse reachability over those edges, so a
+skipped edge can hide the only way to the goal. On the era game it does: 20 rooms × 3 characters reports a softlock
+that the plain proof does not have (40 × 3 too), while skipping under 2% of the engine runs and taking 20–25% longer
+(`tests/por.test.ts`, "why proof mode keeps the reductions off"). Reductions stay off in proofs; the cost is
+elsewhere: 78% of the demo's engine runs (92% on the era game) change nothing.
+
+**The no-op memo.** The engine now records what a run writes (`Engine.writes`, beside `Engine.reads`), even a value
+already there. A run that writes nothing the solver hashes is kept with the values it read; the same action on a
+state with the same values is a no-op too, and is not run. It drops no edge (a no-op is a loop), so the proof is the
+same. It relies on the read trace being complete: one skip in 16 is run anyway and compared, and a difference is an
+error, never a silent skip. `tests/memo.test.ts` runs every skip anyway on twelve fixtures (witness and proof) and on
+the demo: same verdicts, states, softlocks, witnesses and reachability counts.
+
+| Demo | Before | With the memo |
+|---|---|---|
+| Global proof | 129 840 runs, 4.4 s | 40 191 runs, 2.2 s |
+| Proof by chapters | 5.7 s | 3.3 s |
+| Era game, 40 rooms × 3 characters | 21 886 runs, 4.5 s | 10 647 runs, 3.5 s |
+
+`npm run solve -- --profile` now ends its header with what each abstraction did, or why it is off:
+
+```
+Abstractions (each one exact, or turned off and why):
+  canonical character   3048 switches folded, 0 kept explicit
+  mobility regions      off (no move of this game can be silent)
+  no-op memo            95625 runs skipped (5976 of them run anyway and identical), 522 kept, 4728 refused
+```
+

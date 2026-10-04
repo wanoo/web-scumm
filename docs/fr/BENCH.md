@@ -311,3 +311,37 @@ abstraite trouve exactement les frontières de la recherche explicite à chaque 
 La mobilité est coupée sur la démo, et le profil dit pourquoi (`no move of this game can be silent` : chaque lieu a
 un `onEnter` ou est nommé par une condition), ce qui épargne aussi le calcul des régions à chaque hachage.
 
+### Après `v33-noop-memo` : pas de réduction d'ordre partiel dans les preuves, une mémoire des no-ops à la place
+
+**La réduction, mesurée en mode preuve.** Les ensembles de sommeil visitent tous les états mais sautent des arêtes :
+une action déjà essayée dans un ordre qui commute n'est pas relancée. La preuve classe les états par atteignabilité
+arrière sur ces arêtes, donc une arête sautée peut cacher le seul chemin vers le but. Sur le jeu par époques, c'est le
+cas : 20 lieux × 3 personnages signale un softlock que la preuve simple n'a pas (40 × 3 aussi), pour moins de 2 % des
+exécutions du moteur évitées et 20 à 25 % de temps en plus (`tests/por.test.ts`, « why proof mode keeps the reductions
+off »). Les réductions restent coupées en preuve ; le coût est ailleurs : 78 % des exécutions de la démo (92 % sur le
+jeu par époques) ne changent rien.
+
+**La mémoire des no-ops.** Le moteur enregistre désormais ce qu'une exécution écrit (`Engine.writes`, à côté
+d'`Engine.reads`), même une valeur déjà en place. Une exécution qui n'écrit rien de ce que le solveur hache est gardée
+avec les valeurs qu'elle a lues ; la même action sur un état aux mêmes valeurs est un no-op aussi, et n'est pas
+lancée. Elle ne retire aucune arête (un no-op est une boucle), donc la preuve est la même. Elle suppose que la trace
+des lectures est complète : un saut sur 16 est lancé quand même et comparé, et une différence est une erreur, jamais
+un saut silencieux. `tests/memo.test.ts` lance chaque saut quand même sur douze fixtures (témoin et preuve) et sur la
+démo : mêmes verdicts, états, softlocks, témoins et compteurs d'atteignabilité.
+
+| Démo | Avant | Avec la mémoire |
+|---|---|---|
+| Preuve globale | 129 840 exécutions, 4,4 s | 40 191 exécutions, 2,2 s |
+| Preuve par chapitres | 5,7 s | 3,3 s |
+| Jeu par époques, 40 lieux × 3 personnages | 21 886 exécutions, 4,5 s | 10 647 exécutions, 3,5 s |
+
+`npm run solve -- --profile` termine maintenant son en-tête par ce que chaque abstraction a fait, ou pourquoi elle
+est coupée (la sortie reste en anglais) :
+
+```
+Abstractions (each one exact, or turned off and why):
+  canonical character   3048 switches folded, 0 kept explicit
+  mobility regions      off (no move of this game can be silent)
+  no-op memo            95625 runs skipped (5976 of them run anyway and identical), 522 kept, 4728 refused
+```
+

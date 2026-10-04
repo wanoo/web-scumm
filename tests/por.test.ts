@@ -33,7 +33,7 @@ describe('sleep sets give the same answers', () => {
     ['demo', structuredClone(demo), demoLayouts, { commands }],
   ];
   for (const [name, game, layouts, o] of games) it(name, async () => {
-    const plain = await solve(structuredClone(game), layouts, { ...o, por: false });
+    const plain = await solve(structuredClone(game), layouts, { ...o, por: false, memo: false });
     const sleep = await solve(structuredClone(game), layouts, { ...o, por: 'sleep' });
     same(plain, sleep);
     expect(sleep.profile.tries).toBeLessThanOrEqual(plain.profile.tries);
@@ -49,7 +49,7 @@ describe('sleep sets give the same answers', () => {
 describe('what the reduction saves', () => {
   it('k independent pickups before a door that can never open: every subset is a state, but far fewer runs', async () => {
     const k = 6;
-    const plain = await solve(pickups(k, false), pickupsLayouts, { por: false });
+    const plain = await solve(pickups(k, false), pickupsLayouts, { por: false, memo: false });
     const sleep = await solve(pickups(k, false), pickupsLayouts, { por: 'sleep' });
     expect(plain.finished).toBe(false);
     expect(plain.states).toBe(2 ** k);
@@ -65,7 +65,7 @@ describe('what the reduction saves', () => {
     expect(stubborn.profile.tries).toBeLessThan(plain.profile.tries / 4);
   });
   it('the three trials: one order instead of six', async () => {
-    const plain = await solve(trials(), trialsLayouts, { por: false });
+    const plain = await solve(trials(), trialsLayouts, { por: false, memo: false });
     const stubborn = await solve(trials(), trialsLayouts, { por: 'stubborn' });
     expect(stubborn.finished).toBe(true);
     expect(stubborn.states).toBeLessThan(plain.states);
@@ -111,13 +111,13 @@ describe('proof mode: the differential suite', () => {
     && JSON.stringify(a.softlockCauses.map((c) => `${c.room}: ${c.action}`).sort()) === JSON.stringify(b.softlockCauses.map((c) => `${c.room}: ${c.action}`).sort());
   for (const [name, game, layouts, o] of games) {
     it(`${name}: stubborn sets reach the plain verdict`, async () => {
-      const plain = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', por: false });
+      const plain = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', por: false, memo: false });
       const reduced = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', por: 'stubborn', unsafeReduction: true });
       expect(plain.truncated).toBe(false);
       expect(agree(plain, reduced)).toBe(true);
     }, 60000);
     it(`${name}: sleep sets ${SLEEP_AGREES[name] ? 'agree' : 'invent softlocks'}`, async () => {
-      const plain = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', por: false });
+      const plain = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', por: false, memo: false });
       const reduced = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', por: 'sleep', unsafeReduction: true });
       expect(agree(plain, reduced)).toBe(SLEEP_AGREES[name]);
     }, 60000);
@@ -130,4 +130,17 @@ describe('proof mode: the differential suite', () => {
     expect(r.softlockCount).toBe(r.softlockCauses[0].count);
     expect(r.softlockCount).toBe(8); // 2^3 pickup subsets, each with the exit broken
   });
+});
+
+describe('why proof mode keeps the reductions off (BENCH.md "v3.3")', () => {
+  it('sleep sets drop edges the reverse reachability needs: a softlock the plain proof does not have', async () => {
+    const g = makeStressGame({ rooms: 20, players: 3, items: 12, flags: 30, npcs: 1, scripts: 2, topics: 8, schemaVersion: 3, eras: true });
+    const plain = await solve(structuredClone(g.game), g.layouts, { mode: 'prove', memo: false });
+    const sleep = await solve(structuredClone(g.game), g.layouts, { mode: 'prove', por: 'sleep', unsafeReduction: true });
+    expect(plain.status).toBe('solved');
+    expect(sleep.states).toBe(plain.states);
+    expect(sleep.status).toBe('softlocks');
+    // And it saves almost nothing: under 2% of the engine runs.
+    expect(sleep.profile.slept * 50).toBeLessThan(plain.profile.tries);
+  }, 120000);
 });
