@@ -66,7 +66,7 @@ jobs:
           GAME: second
   # The production bundle played by touch. Chromium runs the complete game-specific walkthrough and WebKit the
   # generic solver session; both gate the deploy (WebKit after three consecutive green runs on main, D7). The keyboard
-  # row gates too since 3.2; WebKit at the keyboard and the French row are experimental.
+  # row gates too since 3.2; WebKit at the keyboard and the French row since 3.3.1 (green on every run of 3.3, D7).
   e2e:
     runs-on: ubuntu-latest
     continue-on-error: ${{ matrix.experimental }}
@@ -87,11 +87,11 @@ jobs:
             experimental: false
           - browser: webkit
             mode: keyboard
-            experimental: true
+            experimental: false
           # The release language: the whole game in French, no English default of the engine visible.
           - browser: chromium
             mode: fr
-            experimental: true
+            experimental: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -121,7 +121,8 @@ jobs:
           E2E_BROWSER: ${{ matrix.browser }}
           E2E_OUT: /tmp/e2e-${{ matrix.browser }}/a11y
       # Chromium proves the offline game (every file of the plan in the cache). WebKit cannot navigate offline under
-      # Playwright: its run reports "skipped", accepted here, never counted as a proof.
+      # Playwright: its run reports "skipped", accepted here, never counted as a proof; a person checks Safari offline
+      # before each release (docs/dev/SAFARI-OFFLINE.md, the result in docs/dev/passes/).
       - run: npm run e2e:pwa -- http://127.0.0.1:5173/ ${{ matrix.browser == 'webkit' && '--allow-skip' || '' }}
         env:
           E2E_BROWSER: ${{ matrix.browser }}

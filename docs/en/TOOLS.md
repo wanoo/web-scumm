@@ -235,8 +235,8 @@ None of them words its own verdict.
 
 **Continuous integration.** Every push to `main`, `v3` or `v3-*` runs `npm run build` (checks, Node and Python tests,
 `verify:game`, the bundle, the spoiler and asset audits), `npm run prove:game` on the sample game, `npm run audit:deps`,
-then the production e2e in Chromium (the demo's own walkthrough) and WebKit (the generic replay), both gates, and the
-keyboard replay (experimental). An e2e only passes when the solver's run is `solved` (its exit code, status and steps
+then the production e2e in Chromium (the demo's own walkthrough) and WebKit (the generic replay), both gates, the
+whole game at the keyboard (Chromium and WebKit) and the whole game in French (Chromium), all gates since 3.3.1. An e2e only passes when the solver's run is `solved` (its exit code, status and steps
 are checked) and the engine itself reports the ending (`state.done`): a truncated or unsolved game is a failure, never
 "the best path replayed anyway". `main` deploys to Pages. The weekly `prove` workflow (or `workflow_dispatch`) runs
 the proof and the bench on a 100-room schema-3 game within a budget and uploads `bench.md`. A `v3.x` tag runs

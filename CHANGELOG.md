@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Changed
+
+- CI: the whole game at the keyboard in WebKit and the whole game in French in Chromium are gates (green on every run
+  of 3.3 on `main`, D7's rule). Safari offline, which Playwright cannot automate, gets a manual checklist
+  (`docs/dev/SAFARI-OFFLINE.md`), its result in `docs/dev/passes/`.
+
 ### Added
 
 - `docs/dev/passes/`: one sheet per release for the checks automation cannot make (screen reader, Safari offline, a

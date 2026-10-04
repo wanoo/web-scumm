@@ -231,7 +231,8 @@ ne formule son propre verdict.
 **Intégration continue.** Chaque push sur `main`, `v3` ou `v3-*` lance `npm run build` (vérifications, tests Node et
 Python, `verify:game`, le bundle, les audits de spoilers et d'assets), `npm run prove:game` sur le jeu d'exemple,
 `npm run audit:deps`, puis l'e2e de production en Chromium (le parcours propre à la démo) et WebKit (le rejeu
-générique), tous deux bloquants, et le rejeu au clavier (expérimental). Un e2e ne passe que si la passe du solveur
+générique), tous deux bloquants, le jeu entier au clavier (Chromium et WebKit) et le jeu entier en français (Chromium), tous
+bloquants depuis la 3.3.1. Un e2e ne passe que si la passe du solveur
 est `solved` (code de sortie, statut et étapes vérifiés) et si le moteur lui-même annonce la fin (`state.done`) : un
 jeu tronqué ou non résolu est un échec, jamais « le meilleur chemin rejoué quand même ». `main` déploie Pages. Le workflow `prove`,
 hebdomadaire ou à la demande, lance la preuve et le bench sur un jeu de 100 lieux en schéma 3 dans un budget et

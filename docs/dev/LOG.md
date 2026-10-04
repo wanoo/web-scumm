@@ -1361,3 +1361,12 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 
 → next: Claude · merge on green CI, then v331-abstraction-audit
 
+## #58 · 2026-10-05 · Claude · proposal · v331-ci-gates
+
+- D7's rule applied to the two experimental rows: `e2e (webkit, keyboard)` and `e2e (chromium, fr)` were green on the
+  last four `ci` runs of `main` (c7e66a2, 2d088a6, b52addc, d0a8951) and on every 3.3 branch: `experimental: false`.
+- WebKit offline stays "skipped" under Playwright; `docs/dev/SAFARI-OFFLINE.md` is the manual pass (first visit,
+  airplane mode, a room never visited, a reload), reported in `docs/dev/passes/<version>.md` (D12).
+
+→ next: Claude · merge on green CI, then v331-release
+

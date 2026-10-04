@@ -96,7 +96,7 @@ Option+Tab there. On each of these screens, a `serious` or `critical` violation 
 accepted rules: none today). Images are decorative unless named (the scene is reached through its targets, an
 item by its name), an empty inventory slot is out of the accessibility tree. CI: the Chromium keyboard row
 (keyboard, axe, a save round trip without IndexedDB, `e2e:a11y`) gates, and so does `e2e:a11y` in the WebKit row;
-the whole game at the keyboard in WebKit runs, not yet gating. axe does not prove WCAG conformance: a screen-reader
+the whole game at the keyboard in WebKit gates too (since 3.3.1). axe does not prove WCAG conformance: a screen-reader
 pass (VoiceOver on iOS, TalkBack on Android: the title, a conversation, an item, the map, a minigame) stays a manual
 check before a release, with the checklist in `docs/dev/SCREEN-READER.md` and the result in `docs/dev/passes/`. What
 the engine can claim is therefore "tested at the keyboard, no serious or critical axe violation on the screens
