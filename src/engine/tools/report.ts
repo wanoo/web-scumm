@@ -1,6 +1,7 @@
 // Content profiler: not CPU, game design. What each room, item and character amounts to, so an author (or an AI) sees
 // at a glance what is thin: hotspots with no look line, verbs that only get fallbacks, props that never change, items
 // obtained but never used, characters with unreachable topics, long lines. Pure: runs in node and in the Studio.
+import { asLines, listText } from '../core/list-lines';
 import type { Cmd, Cond, GameDef, Id, Layout, RoomDef } from '../core/types';
 import { eachCmd, someCmd } from '../core/cmds';
 import { normalizeExits } from '../core/define';
@@ -69,7 +70,7 @@ export function report(gameIn: GameDef, _layouts: Record<string, Layout> = {}, o
       !allCmds.some((l) => has(l, (o) => Array.isArray(o.prop) && (o.prop[0] === id || o.prop[0] === `${r.id}.${id}`)))).map(([id]) => id);
     const ls: { who: string; text: string }[] = [];
     roomCmds(r).forEach((l) => lines(l, ls));
-    Object.values(r.look ?? {}).forEach((t) => asList(t).forEach((x) => ls.push({ who: 'hero', text: x })));
+    Object.values(r.look ?? {}).forEach((t) => asLines(t).forEach((x) => ls.push({ who: 'hero', text: listText(x) })));
     return {
       id: r.id, name: r.name,
       hotspots: Object.values(r.hotspots ?? {}).filter((h) => !h.exit).length, props: Object.keys(r.props ?? {}).length,
@@ -109,7 +110,7 @@ export function report(gameIn: GameDef, _layouts: Record<string, Layout> = {}, o
 
   const all: { who: string; text: string }[] = [];
   allCmds.forEach((l) => lines(l, all));
-  for (const r of game.rooms) Object.values(r.look ?? {}).forEach((t) => asList(t).forEach((x) => all.push({ who: 'hero', text: x })));
+  for (const r of game.rooms) Object.values(r.look ?? {}).forEach((t) => asLines(t).forEach((x) => all.push({ who: 'hero', text: listText(x) })));
   const g = worldGraph(gameIn);
   return {
     rooms, items, characters,

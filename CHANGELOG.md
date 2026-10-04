@@ -26,6 +26,12 @@
   (`tests/memo.test.ts`).
 - `npm run solve -- --profile` says what each abstraction did (canonical character, mobility regions, no-op memo) or
   why it is off (`profile.memo`, `abstractionLines`).
+- Stable ids on list lines (`ListLine`: `string | { id, text }`): look lists (rooms and items), hint lines (and an
+  `id` on a hint), fallback answers, and an `id` on a reaction by kind. Translations are keyed by the id
+  (`look.pantry.<id>`, `hints.<id>.lines.<id>`, `rules/fallbacks.look.<id>`, `rules/kinds.<id>.say`), voices too
+  (`audio.voices[<id>]`); `npm run ids -- --lines[=all]` writes them into `rooms/*.ts`, `items.ts`, `rules.ts` and
+  `game.ts` and renames the locales; `validate --release` requires them in a translated or voiced game. The sample
+  game is converted (109 ids, French still 400/400). UPGRADING §10.
 
 ### Fixed
 

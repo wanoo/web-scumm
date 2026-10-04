@@ -184,3 +184,16 @@ ligne en chaîne nue en `{ say: ['hero', texte], id }` : exigé pour un jeu livr
 (`game.lang`, `en` par défaut) ou doublé ; la démo l'a fait en 3.2.1. `audio.voices[<id de ligne>]` joue sans écrire
 `voice` sur la ligne. `npm run validate -- --release` signale une ligne sans id (une erreur, chaînes nues comprises,
 dans un jeu traduit ou doublé : lancer `--lines=all` une fois ; un avertissement sinon) ; `npm run i18n -- voices` liste les lignes avec un id et sans clip, et les clips qu'aucune ligne ne réclame.
+
+## 10. Lignes de listes (3.3) : regards, indices, réponses par défaut et réactions par sorte
+
+Les lignes que le moteur tire d'une liste (une liste de regard, les lignes d'un indice, `rules.fallbacks.<verbe>`)
+peuvent être `{ id, text }` au lieu d'une chaîne nue, un indice peut porter un `id`, et une réaction par sorte aussi
+(`rules.kinds[i]`). Leurs traductions sont alors indexées par l'id (`room:house/look.pantry.<id>`,
+`room:house/hints.<id d'indice>.lines.<id>`, `item:key/look.<id>`, `rules/fallbacks.look.<id>`,
+`rules/kinds.<id>.say`), et `audio.voices[<id>]` les double. `npm run ids -- --lines=all --write --map` convertit les
+chaînes nues des listes dans `rooms/*.ts`, `items.ts`, `rules.ts` et `game.ts`, nomme indices et sortes, et renomme les
+clés de `locales/*.json` (`--lines` seul n'ajoute d'ids qu'aux objets qui n'en ont pas). Une ligne de regard unique
+(`look: { door: '…' }`) est déjà indexée par son propriétaire et reste une chaîne. Une release traduite ou doublée les
+exige, comme les lignes `say` (`validate -- --release`). Le Studio édite une ligne `{ id, text }` au même chemin qu'une
+ligne nue (`look.pantry[1]`). La démo : 109 ids, 91 clés de traduction renommées par langue, français toujours à 400/400.
