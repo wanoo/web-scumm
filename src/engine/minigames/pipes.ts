@@ -1,5 +1,5 @@
 import type { Minigame, MinigameCtx } from './types';
-import { el, finisher, num, skipButton, stage, str } from './util';
+import { arrowFocus, el, finisher, num, skipButton, stage, str } from './util';
 
 // Pipes: touching a tile rotates it a quarter turn. Water starts from the source (left of the middle row)
 // and must reach the sprinkler (right of the same row). Help: after `helpAfter` taps, the next wrong tile blinks.
@@ -138,6 +138,7 @@ export const pipes: Minigame = {
     for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
       const b = el('button', 'mg-tile') as HTMLButtonElement;
       b.type = 'button';
+      b.setAttribute?.('aria-label', `${r + 1}, ${c + 1}`);
       b.style.width = b.style.height = `${cell}px`;
       b.style.backgroundImage = `url("${ctx.img(DIRT)}")`;
       const im = el('img') as HTMLImageElement; im.alt = '';
@@ -152,11 +153,13 @@ export const pipes: Minigame = {
       tiles.push({ b, im, r, c });
     }
     paint();
+    const offArrows = arrowFocus(ctx, () => tiles.map((t) => t.b), cols);
+    queueMicrotask(() => tiles[0]?.b.focus?.({ preventScroll: true }));
     skipButton(ctx, box, () => {
       if (won) return f.finish();
       for (const line of grid) for (const g of line) { let k = 0; while (!fits(g) && k++ < 4) g.rot = (g.rot + 1) % 4; }
       win();
     });
-    return f.promise.then(() => box.remove());
+    return f.promise.then(() => { offArrows(); box.remove(); });
   },
 };

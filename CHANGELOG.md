@@ -5,6 +5,12 @@
 
 ### Added
 
+- Accessibility as a gate: the seven bundled minigames play to their end at the keyboard (keys(), operable(),
+  arrowFocus() in `minigames/util.ts`; Skip no longer takes the focus a minigame gave one of its controls);
+  `npm run e2e -- --axe` (axe-core on the title, a room, the pause menu, the ending) fails on any serious or critical
+  violation, and found three fixed here: unnamed empty inventory slots, scene and confetti images without `alt`;
+  the Chromium keyboard CI row (keyboard + axe + saves without IndexedDB) gates, a WebKit keyboard row runs.
+
 - Saves say what they did: `clear()` / `clearSlot()` return `false` when the browser refuses (the save stays, the
   failure is reported, `whenIdle()` rejects); "Restart" and a refused file import keep the current game; golden
   saves for 3.0.0 and 3.1.0 load, migrate and reach the ending; refused writes and deletions are tested with a fake

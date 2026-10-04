@@ -49,8 +49,12 @@ jobs:
           - browser: webkit
             mode: generic
             experimental: false
-          # The whole game at the keyboard (verbs, targets, choices, the map, Space to advance a line).
+          # The whole game at the keyboard (verbs, targets, choices, the map, Space to advance a line), axe-core on
+          # four screens: a gate since 3.2 (green on every run of 3.1.1 and 3.2, D7's rule).
           - browser: chromium
+            mode: keyboard
+            experimental: false
+          - browser: webkit
             mode: keyboard
             experimental: true
           # The release language: the whole game in French, no English default of the engine visible.
@@ -73,7 +77,7 @@ jobs:
           VITE_STUDIO_DEMO: '1'
       - run: npm run preview -- --port 5173 &
       - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5173/ > /dev/null && break; sleep 1; done
-      - run: npm run e2e -- http://127.0.0.1:5173/ --game demo --prod ${{ matrix.mode == 'generic' && '--generic' || matrix.mode == 'keyboard' && '--generic --keyboard --save --no-indexeddb' || matrix.mode == 'fr' && '--generic --lang fr' || '--save' }}
+      - run: npm run e2e -- http://127.0.0.1:5173/ --game demo --prod ${{ matrix.mode == 'generic' && '--generic' || matrix.mode == 'keyboard' && '--generic --keyboard --save --no-indexeddb --axe' || matrix.mode == 'fr' && '--generic --lang fr' || '--save --axe' }}
         env:
           E2E_BROWSER: ${{ matrix.browser }}
           E2E_OUT: /tmp/e2e-${{ matrix.browser }}

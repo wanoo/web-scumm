@@ -981,3 +981,28 @@ Branch: `v32-save-results` · re #24 "save hardening", #25 "v32-save-browser"
 | `npm run e2e -- --prod --save` and `--generic --keyboard --save --no-indexeddb` (Chromium, production build) | "a manual save survived a reload (IndexedDB)" and "(localStorage)"; the first version compared raw JSON and failed on key order after the envelope's validation: the comparison is canonical now |
 
 → next: Claude · `v32-proof-scale`
+
+## #35 · 2026-10-04 · Claude · proposal · v32-a11y-gate
+
+Branch: `v32-a11y-gate` · re #24 "accessibility", #25 "v32-a11y-gate"
+
+- Minigames at the keyboard, to the end: `keys()` (page-level keys while the minigame runs, never Tab, never Enter /
+  Space on a focused button), `operable()` (a named, focusable role=button on an image), `arrowFocus()`; pick, hide,
+  pipes (focus + arrows), runner (▲ ▼ / W S), stroke (◀ ▶ at a calm rhythm, `repeat` = too fast), scratch (a coin moved
+  by the arrows scratches, the revealed text is `aria-live`), cables (Enter on a plug, Enter on a socket). Skip keeps
+  the focus only when the minigame gave none.
+- axe-core (`@axe-core/playwright`, a context per harness) in `npm run e2e -- --axe`: title, room, pause menu, ending.
+  First run: 3 real findings (empty `.slot` buttons without a name; 16 confetti images and app images without `alt`),
+  all fixed; `AXE_ACCEPTED` is empty.
+- CI: the Chromium keyboard row gates (`--keyboard --save --no-indexeddb --axe`), the full row adds `--axe`, a WebKit
+  keyboard row runs experimental. Not done: localized ARIA beyond `ui` (done in `v32-bindings`), a screen-reader pass
+  (documented as manual), keyboard e2e that plays the minigames in a browser (unit tests do).
+
+### Checks run
+| Command | Result |
+|---|---|
+| `tests/dom/minigames-keyboard.test.ts` | pick, hide, pipes, stroke, cables played to the end with key events |
+| `npm run e2e -- --prod --generic --keyboard --axe --save --no-indexeddb` (Chromium) | axe clean on 4 screens, save survived a reload (localStorage) |
+| `E2E_BROWSER=webkit npm run e2e -- --prod --generic --keyboard` | done |
+
+→ next: Claude · `v32-assets-provenance`

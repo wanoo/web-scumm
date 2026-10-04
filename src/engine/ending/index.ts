@@ -78,7 +78,7 @@ export class Ending {
     const imgs = this.h.game.skin.icons.confetti ?? [];
     if (!imgs.length) return;
     for (let i = 0; i < 16; i++) {
-      const c = document.createElement('img');
+      const c = document.createElement('img'); c.alt = '';
       // two confetti out of three with the first image, the third with the following ones (round-robin)
       c.src = this.h.img(i % 3 || imgs.length < 2 ? imgs[0] : imgs[1 + (Math.floor(i / 3) % (imgs.length - 1))]);
       Object.assign(c.style, { position: 'absolute', left: `${10 + Math.random() * 80}%`, top: `${10 + Math.random() * 70}%`, width: `${12 + Math.random() * 14}%`, animation: `burst ${1 + Math.random()}s ease-out ${Math.random() * 1.2}s both`, zIndex: '1150', pointerEvents: 'none' });

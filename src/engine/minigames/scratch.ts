@@ -1,5 +1,5 @@
 import type { Minigame, MinigameCtx } from './types';
-import { el, finisher, num, stage, str } from './util';
+import { el, finisher, num, stage, str, keys } from './util';
 
 // Scratch ticket: a silver layer that rubs off under a finger. Ends when `threshold` of the surface is scratched off.
 // The hidden text comes from the params (the decrypted sealed ending): the engine never writes it itself.
@@ -36,6 +36,8 @@ export const scratch: Minigame = {
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center',
       font: `${Math.round(w * 0.045)}px ${pixel},monospace`, color: str(p.color, '#d4145a'), lineHeight: '1.4',
     });
+    hidden.setAttribute?.('aria-live', 'polite');
+    hidden.setAttribute?.('aria-hidden', 'true');
     wrap.append(hidden);
     const cv = el('canvas') as HTMLCanvasElement;
     cv.width = Math.round(w * area.width); cv.height = Math.round(h * area.height);
@@ -57,7 +59,10 @@ export const scratch: Minigame = {
     const scrape = (e: PointerEvent) => {
       if (!down || f.finished || revealed) return;
       const r = cv.getBoundingClientRect();
-      const x = ((e.clientX - r.left) / r.width) * cv.width, y = ((e.clientY - r.top) / r.height) * cv.height;
+      scrapeAt(((e.clientX - r.left) / r.width) * cv.width, ((e.clientY - r.top) / r.height) * cv.height);
+    };
+    const scrapeAt = (x: number, y: number) => {
+      if (f.finished || revealed) return;
       g.globalCompositeOperation = 'destination-out';
       g.beginPath(); g.arc(x, y, cv.height * 0.16, 0, Math.PI * 2); g.fill();
       const now = performance.now();
@@ -68,6 +73,7 @@ export const scratch: Minigame = {
       if (clear / total >= threshold && !revealed) {
         // The answer stays shown for a real moment: this is THE moment of the game.
         revealed = true;
+        hidden.setAttribute?.('aria-hidden', 'false');
         cv.style.transition = 'opacity .5s'; cv.style.opacity = '0';
         setTimeout(f.finish, num(p.hold, 3200));
       }
@@ -75,6 +81,19 @@ export const scratch: Minigame = {
     cv.addEventListener('pointerdown', (e) => { down = true; cv.setPointerCapture?.(e.pointerId); scrape(e); });
     cv.addEventListener('pointermove', scrape);
     const up = () => { down = false; };
+    // At the keyboard: the arrows move a coin over the silver layer, row by row, and every step scratches.
+    const coin = { x: cv.height * 0.16, y: cv.height * 0.16 };
+    const stepKey = (dx: number, dy: number) => () => {
+      const r = cv.height * 0.16;
+      coin.x = Math.max(r * 0.5, Math.min(cv.width - r * 0.5, coin.x + dx * r * 1.2));
+      coin.y = Math.max(r * 0.5, Math.min(cv.height - r * 0.5, coin.y + dy * r * 1.2));
+      scrapeAt(coin.x, coin.y);
+    };
+    const offKeys = keys(ctx, { ArrowRight: stepKey(1, 0), ArrowLeft: stepKey(-1, 0), ArrowDown: stepKey(0, 1), ArrowUp: stepKey(0, -1) });
+    cv.tabIndex = 0;
+    cv.setAttribute?.('role', 'img');
+    cv.setAttribute?.('aria-label', ctx.labels.scratch ?? '◀ ▶ ▲ ▼');
+    queueMicrotask(() => cv.focus?.({ preventScroll: true }));
     cv.addEventListener('pointerup', up);
     cv.addEventListener('pointercancel', up);
     // No "Skip" button here: scratching is the climax of the ending. The host can add one if it wants to.
@@ -84,6 +103,6 @@ export const scratch: Minigame = {
       b.addEventListener('click', () => { cv.style.opacity = '0'; setTimeout(f.finish, 400); });
       box.append(b);
     }
-    return f.promise.then(() => box.remove());
+    return f.promise.then(() => { offKeys(); box.remove(); });
   },
 };

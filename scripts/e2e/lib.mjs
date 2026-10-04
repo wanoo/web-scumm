@@ -26,10 +26,17 @@
 //   close()                       closes the browser
 import { chromium, firefox, webkit } from 'playwright';
 import { mkdirSync, readdirSync, rmSync } from 'node:fs';
+import { AxeBuilder } from '@axe-core/playwright';
 
 const VIEWPORT = { width: 844, height: 390 };
 // Logical scene coordinates (640 x 400): the same system as the placement editor (docs/en/TOOLS.md).
 const LOGICAL = { width: 640, height: 400 };
+
+/**
+ * axe rules the engine accepts, each for a stated reason (docs/en/ENGINE.md "Accessibility"); everything else that axe
+ * rates serious or critical fails `npm run e2e -- --axe`.
+ */
+export const AXE_ACCEPTED = [];
 
 export async function launch(url, opts = {}) {
   const out = opts.out ?? process.env.E2E_OUT ?? '/tmp/e2e';
@@ -43,7 +50,9 @@ export async function launch(url, opts = {}) {
   const browserType = { chromium, firefox, webkit }[browserName];
   if (!browserType) throw new Error(`unknown E2E browser "${browserName}" (expected chromium, webkit or firefox)`);
   const browser = await browserType.launch();
-  const page = await browser.newPage({ viewport: VIEWPORT, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+  // A context of its own (axe-core's Playwright runner needs one), then the page.
+  const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+  const page = await context.newPage();
   // opts.noIndexedDb: the browser offers no IndexedDB (a private window, a locked-down profile): the game must fall
   // back to its localStorage store and say so, never lose a save silently.
   if (opts.noIndexedDb) await page.addInitScript(() => { Object.defineProperty(window, 'indexedDB', { value: undefined, configurable: true }); });
@@ -475,6 +484,17 @@ export async function launch(url, opts = {}) {
     return { same: before.json === after.json, store: after.store };
   }
 
+  /**
+   * axe-core on the page as it is now: the `serious` and `critical` violations, minus the rules the engine documents as
+   * accepted (`AXE_ACCEPTED`, docs/en/ENGINE.md "Accessibility"). Returns `[]` when the screen passes.
+   */
+  async function axe(name) {
+    const r = await new AxeBuilder({ page }).include('#app').analyze();
+    return r.violations
+      .filter((v) => (v.impact === 'serious' || v.impact === 'critical') && !AXE_ACCEPTED.includes(v.id))
+      .map((v) => `${name}: ${v.id} (${v.impact}) ${v.nodes.length} node(s), e.g. ${v.nodes[0]?.target?.join(' ') ?? ''}`);
+  }
+
   /** The game reached an ending: the engine says so (`state.done`), not a screenshot of a card. */
   async function ended() { return page.evaluate(() => !!window.__game?.engine?.state?.done).catch(() => false); }
 
@@ -482,6 +502,6 @@ export async function launch(url, opts = {}) {
 
   return {
     page, errors, screenshot, tapXY, tapScene, drag, line, pointOn, tapTarget, verb, verbById,
-    itemSlot, item, inInventory, target, state, diagnose, waitIdle, openMap, say, pick, answer, skip, act, play, walkthrough, close, ended, leaks, saveRoundTrip,
+    itemSlot, item, inInventory, target, state, diagnose, waitIdle, openMap, say, pick, answer, skip, act, play, walkthrough, close, ended, leaks, saveRoundTrip, axe,
   };
 }

@@ -1,5 +1,5 @@
 import type { Minigame, MinigameCtx } from './types';
-import { el, finisher, sleep, skipButton, stage, str } from './util';
+import { arrowFocus, el, finisher, sleep, skipButton, stage, str } from './util';
 
 // Pick the right image (a color, a flag…), round after round.
 // Wrong pick: a little shake and try again. Trap image (`decoy`): a funny line (`decoyLine`).
@@ -21,6 +21,7 @@ export const pick: Minigame = {
     box.style.background = str(p.background, 'radial-gradient(ellipse at 50% 45%,#2a3a2a,#0c140c)');
     skipButton(ctx, box, f.finish);
     const u = ctx.u;
+    const offArrows = arrowFocus(ctx, () => [...grid.children] as HTMLElement[]);
 
     const grid = el('div');
     Object.assign(grid.style, { position: 'absolute', left: '6%', right: '6%', top: '28%', bottom: '8%', display: 'flex', flexWrap: 'wrap', gap: `${10 * u}px`, justifyContent: 'center', alignContent: 'center' });
@@ -39,9 +40,10 @@ export const pick: Minigame = {
       const n = opts.length;
       const size = Math.min(150 * u, (560 * u) / Math.min(n, 4) - 12 * u, 190 * u);
       const answered = new Promise<void>((resolve) => {
-        for (const o of opts) {
+        for (const [k, o] of opts.entries()) {
           const b = el('button', 'mg-opt') as HTMLButtonElement;
           b.type = 'button';
+          b.setAttribute?.('aria-label', `${k + 1} / ${n}`);
           Object.assign(b.style, { width: `${size}px`, height: `${size}px` });
           const im = el('img') as HTMLImageElement; im.src = ctx.img(o.id); im.alt = '';
           b.append(im);
@@ -62,12 +64,15 @@ export const pick: Minigame = {
           });
           grid.append(b);
         }
+        // The keyboard starts on the first option of each round (arrows move, Enter picks).
+        queueMicrotask(() => (grid.children[0] as HTMLElement | undefined)?.focus?.({ preventScroll: true }));
       });
       await Promise.race([answered, f.promise]);
       if (!f.finished) await sleep(ri === rounds.length - 1 ? 900 : 500, ctx.signal);
     }
     if (p.win && !ctx.signal.aborted) { ctx.instruct(str(p.win, '')); await sleep(1200, ctx.signal); }
     f.finish();
+    offArrows();
     box.remove();
   },
 };
