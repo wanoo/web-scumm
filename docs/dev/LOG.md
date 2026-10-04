@@ -632,4 +632,7 @@ Verdict: the proof measured honestly, the pipeline that a studio expects
   autosave resumed from IndexedDB, exit 0).
 - Release 3.1.0 "Playtest": version, CHANGELOG date, ROADMAP dates, README (22 tools, release row); the `release`
   workflow publishes from the tag.
-- → next: tag `v3.1.0` once the private e2e is green; the user's phone check (update prompt, offline room, v1 save).
+- Tag `v3.1.0` pushed; the `release` workflow failed at its first step: `npm run doctor` wants ffmpeg, absent on the
+  runner (CI never runs doctor). Fix: the workflow installs ffmpeg before `npm ci`. The 3.1.0 release itself was
+  published from a local `npm run release-check` on the tagged commit, with the CHANGELOG section as notes.
+- → next: the user's phone check (update prompt, offline room, v1 save); POR in proof mode for the solver.

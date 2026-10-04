@@ -20,6 +20,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r requirements.txt
+      # `npm run doctor` (first step of release-check) requires ffmpeg: the audio pipeline's prerequisite.
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - run: npm ci
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run release-check
