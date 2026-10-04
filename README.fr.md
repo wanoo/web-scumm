@@ -11,7 +11,7 @@ ligne après la première visite.
 |---|---|
 | 🎮 **Jouer au jeu d'exemple** | https://wanoo.github.io/web-scumm/ (téléphone en paysage, ou ordinateur) |
 | 🛠 **Essayer le Studio** | https://wanoo.github.io/web-scumm/studio.html (mode démo : les modifications restent dans ton navigateur) |
-| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v3.1.0 · [journal des changements](CHANGELOG.md) · [passer de la v2](docs/fr/UPGRADING.md) |
+| 📦 **Code source** | https://github.com/wanoo/web-scumm · version v3.1.1 · [journal des changements](CHANGELOG.md) · [passer de la v2](docs/fr/UPGRADING.md) |
 
 ![Trois lieux du jeu d'exemple](docs/img/banner.jpg)
 
@@ -175,6 +175,7 @@ construit un autre jeu.
 
 | Version | Ce qu'elle a ajouté |
 |---|---|
+| v3.1.1 Truth | Chaque commande verte dit ce qu'elle prouve : l'e2e exige une passe résolue et la fin du moteur, comptes de playtests et codes de sortie du lint honnêtes, un statut hors ligne vrai avec réessai, des appels au fournisseur sans redirection et avec délai, une release qui attend la CI de son tag, une sauvegarde figée par release. |
 | v3.1 Playtest | `npm run ids` et la démo en schéma 3 ; `bootGame` ; emplacements dans IndexedDB ; le jeu entier hors ligne après la première visite ; le jeu entier au clavier ; le lint de contenu (`npm run lint`, panneau Check, outil MCP) ; l'enregistreur de playtests (sessions partagées depuis les téléphones, rejouées en CI, blocages sur la heatmap) ; la preuve mesurée honnêtement, workflows release et prove. |
 | v3.0 Trust | Ids stables (`schemaVersion: 3`) ; une enveloppe de sauvegarde validée avec autosave IndexedDB vérifiée ; `solve --prove` avec softlocks et codes de sortie honnêtes ; Studio en loopback avec jeton LAN ; cibles d'accessibilité ; le guide de migration. Co-développée avec Codex (`docs/dev/`). |
 | v2.5 Sound | La chaîne audio Mega Drive (`npm run audio`) : musique arrangée depuis un MIDI via `spec.json`, bruitages depuis `sfx.json`, une seule palette ; le jeu d'exemple reçoit un thème et des bruitages rendus par les puces. |

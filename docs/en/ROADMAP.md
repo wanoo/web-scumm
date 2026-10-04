@@ -281,6 +281,18 @@ the first visit, D5), `v3-a11y` (a whole game at the keyboard), `v3-lint` (the c
 prove workflows, Dependabot), `v3-docs` (this sweep). Next for the solver: the reduction in proof mode, with
 `tests/por.test.ts` as its proof (BENCH.md).
 
+## v3.1.1 "Truth" (4 October 2026): every green command means exactly what it says
+
+Codex's audit of 3.1 (LOG #24) found tools that could report success without proving their wording; the maintainer
+chose to patch before building (LOG #25, #26). `v3-qa-truth`: the e2e requires a `solved` solver run and the engine's
+own `state.done` (a sealed ending now sets it), the playtest analysis counts from the first input, the lint exits 2 on a
+truncated search and reads every attempted action, `verify:game` lints, `playtests --strict` gates releases.
+`v3-offline-truth`: the warm-up returns what it did, the status is `complete` only when every file is cached, the
+pause menu shows it, the PWA smoke checks the whole plan and never counts WebKit's skip as a proof.
+`v3-studio-net`: private hosts refused in both IP families, no redirect, a deadline and a cap on provider calls.
+`v3-release-truth`: the release runs on the CI's success for the tag, a golden 3.1.0 save, the full dependency audit,
+D5/D7/D8/D9 recorded. The private reference game stays on 3.1.0 (D8).
+
 ## Out of scope (explicit decisions)
 
 - No Phaser, no canvas: the DOM Presenter is enough for a few dozen images; a wide room stays a CSS translation.

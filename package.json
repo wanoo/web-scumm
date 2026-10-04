@@ -1,7 +1,7 @@
 {
   "name": "web-scumm",
   "private": true,
-  "version": "3.1.0",
+  "version": "3.1.1",
   "type": "module",
   "scripts": {
     "dev": "tsx tools/select-game.ts && vite",
@@ -20,7 +20,7 @@
     "prove:game": "npm run solve -- --prove && npm run solve -- --prove --chapters",
     "e2e:smoke": "node scripts/e2e.mjs --generic --prod",
     "e2e:pwa": "node scripts/e2e-pwa.mjs",
-    "release-check": "npm run doctor && npm run build && npm run prove:game && npm run playtests -- --strict && npm run audit:deps",
+    "release-check": "npm run doctor && npm run build && npm run prove:game && npm run playtests -- --strict && npm run audit:deps && npm audit --audit-level=high",
     "e2e": "node scripts/e2e.mjs",
     "validate": "tsx tools/validate.ts",
     "solve": "tsx tools/solve.ts",
@@ -69,7 +69,7 @@
     "typescript": "^5.7.0",
     "vite": "^6.0.0",
     "vite-plugin-pwa": "^1.3.0",
-    "vitest": "^3.0.0"
+    "vitest": "^5.0.3"
   },
   "dependencies": {
     "earcut": "^3.2.3",

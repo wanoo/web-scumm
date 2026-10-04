@@ -2,6 +2,15 @@
 
 ## 3.1.1 — unreleased
 
+### Changed
+
+- The `release` workflow runs on the `ci` workflow's success for a `v3.*` tag (`workflow_run`), never on the tag push
+  alone: a release cannot publish while the check or a browser e2e row is pending or red. `release-check` adds the
+  full `npm audit --audit-level=high` and the strict playtests. `ci` also runs on `v32-*` branches.
+- A golden save: `tests/fixtures/saves/demo-3.1.0.json` (the demo's save eight inputs into the witness, with the
+  remaining inputs) loads on the current engine and reaches the ending (ROADMAP verification 3, now a real test).
+- DECISIONS: D5 and D7 are decided, D8 (the private reference game stays on 3.1.0, no longer a gate) and D9 (merge
+  on green CI, Codex reviews afterwards) recorded; the charter's truth commands no longer name the private game.
 ### Added
 
 - The offline warm-up tells the truth: `AssetBank.warm()` returns what it did (a bad HTTP status is a failure, a file

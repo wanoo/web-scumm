@@ -53,3 +53,18 @@ describe('save envelope v3', () => {
     expect(parseSave(game, engine.state).room).toBe('a');
   });
 });
+
+describe('golden saves', () => {
+  it('a save made by the demo at 3.1.0 loads on this engine and still reaches the ending', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { replay } = await import('@engine/tools/replay');
+    const { game: demo, layouts: demoLayouts, commands } = await import('../games/demo');
+    const golden = JSON.parse(readFileSync('tests/fixtures/saves/demo-3.1.0.json', 'utf8'));
+    const warnings: string[] = [];
+    const state = parseSave(demo, golden.envelope, { warn: (m) => warnings.push(m) });
+    expect(warnings).toEqual([]); // nothing pruned: the content this save names still exists
+    const p = await replay(demo, demoLayouts, { start: { kind: 'load' }, base: state, log: golden.remaining }, { commands });
+    expect(p.divergedAt).toBeUndefined();
+    expect(p.ended).toBe(true);
+  });
+});
