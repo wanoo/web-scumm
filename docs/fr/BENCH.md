@@ -187,3 +187,26 @@ sortie : le jeu de stress de 40 lieux prouvé avec 1, 2 et 3 personnages, un nom
 produit des positions, aucun jeu généré où les verdicts réduit et explicite diffèrent, et une troncature qui reste une
 troncature.
 
+## v3.3 « Scale » : la matrice de référence (4 octobre 2026)
+
+`npm run bench -- --matrix --max=20000` : la preuve exhaustive sur des chaînes générées de 20 et 40 lieux avec 1, 2 et
+3 personnages jouables (12 objets, 30 flags, 1 marcheur, 2 scripts, 8 sujets). `Positions` compte les combinaisons
+distinctes (personnage actif, lieu de chaque personnage) parmi les états ; la répartition du temps vient du profil du
+solveur lui-même (`profile.timing`).
+
+| Game | Proof | States | Engine runs | Time | Positions | Time split (run / clone / hash / queue / tries / other) |
+|---|---|---|---|---|---|---|
+| 20 rooms, 1 character | solved | 797 | 3 295 | 0.2 s | 20 | 47% / 21% / 13% / 3% / 6% / 7% |
+| 20 rooms, 2 characters | truncated | 20 000 | 100 863 | 7.6 s | 800 | 45% / 23% / 9% / 15% / 2% / 4% |
+| 20 rooms, 3 characters | truncated | 20 000 | 49 538 | 22.6 s | 13 858 | 9% / 5% / 2% / 83% / 0% / 1% |
+| 40 rooms, 1 character | solved | 3 197 | 13 245 | 1.1 s | 40 | 46% / 25% / 13% / 6% / 3% / 5% |
+| 40 rooms, 2 characters | truncated | 20 000 | 92 475 | 19.0 s | 3 200 | 30% / 16% / 8% / 42% / 1% / 3% |
+| 40 rooms, 3 characters | truncated | 20 000 | 44 298 | 50.9 s | 18 796 | 6% / 3% / 1% / 89% / 0% / 1% |
+
+Deux causes, mesurées. **Les états sont des positions** : avec deux personnages sur 20 lieux, les 800 positions font
+exactement 20 × 20 × 2, toutes les combinaisons ; avec trois, les positions forment l'essentiel des états. **Le temps
+part dans la file** dès que les états s'accumulent : la file best-first insère en O(n) (`splice`), 83 à 89 % du temps
+avec trois personnages ; avec un seul, l'exécution du moteur (environ la moitié) et la copie des états (environ un
+quart) dominent. Les branches de la 3.3 s'y attaquent dans cet ordre : un cœur de preuve exact (frontière en O(1),
+pointeurs parents), puis le personnage canonique et les régions de mobilité pour les positions.
+

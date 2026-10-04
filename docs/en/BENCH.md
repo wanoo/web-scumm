@@ -172,3 +172,26 @@ generated games with every counter-example replayed on the real engine; then par
 40-room stress game proved with 1, 2 and 3 characters, a state count that no longer grows like the product of
 positions, no generated game where the reduced and explicit verdicts differ, and a truncation that stays a truncation.
 
+## v3.3 "Scale": the reference matrix (4 October 2026)
+
+`npm run bench -- --matrix --max=20000`: the exhaustive proof on generated chains of 20 and 40 rooms with 1, 2 and 3
+playable characters (12 items, 30 flags, 1 walker, 2 scripts, 8 topics). `Positions` counts the distinct
+(active character, room of each character) combinations among the states; the time split comes from the solver's
+own profile (`profile.timing`).
+
+| Game | Proof | States | Engine runs | Time | Positions | Time split (run / clone / hash / queue / tries / other) |
+|---|---|---|---|---|---|---|
+| 20 rooms, 1 character | solved | 797 | 3 295 | 0.2 s | 20 | 47% / 21% / 13% / 3% / 6% / 7% |
+| 20 rooms, 2 characters | truncated | 20 000 | 100 863 | 7.6 s | 800 | 45% / 23% / 9% / 15% / 2% / 4% |
+| 20 rooms, 3 characters | truncated | 20 000 | 49 538 | 22.6 s | 13 858 | 9% / 5% / 2% / 83% / 0% / 1% |
+| 40 rooms, 1 character | solved | 3 197 | 13 245 | 1.1 s | 40 | 46% / 25% / 13% / 6% / 3% / 5% |
+| 40 rooms, 2 characters | truncated | 20 000 | 92 475 | 19.0 s | 3 200 | 30% / 16% / 8% / 42% / 1% / 3% |
+| 40 rooms, 3 characters | truncated | 20 000 | 44 298 | 50.9 s | 18 796 | 6% / 3% / 1% / 89% / 0% / 1% |
+
+Two causes, measured. **The states are positions**: with two characters on 20 rooms, the 800 positions are exactly
+20 × 20 × 2, every combination; with three, positions are most of the states. **The time goes to the queue** as soon
+as states pile up: the best-first queue inserts in O(n) (`splice`), 83–89% of the time with three characters; with one
+character, running the engine (about half) and copying states (about a quarter) dominate. The 3.3 branches attack
+them in that order: an exact proof core (O(1) frontier, parent pointers), then the canonical character and the
+mobility regions for the positions.
+

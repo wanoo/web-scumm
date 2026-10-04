@@ -48,6 +48,14 @@ export interface SolveProfile {
   monotonic: { flags: string[]; items: string[] };
   /** Boolean dimensions that evolve independently: their combinations multiply the states (a checkpoint between them helps). */
   independent: { dims: string[]; combos: number; product: number }[];
+  /**
+   * Where the search's time went, in ms: listing the tries of a state (`tries`), building engines (`engine`), copying
+   * states (`clone`), running the engine on a try (`run`), turning states into hashes (`hash`), the queue (`queue`),
+   * the rest of the loop (`other`), and after the loop the softlock classification (`classify`).
+   */
+  timing: Record<'tries' | 'engine' | 'clone' | 'run' | 'hash' | 'queue' | 'other' | 'classify', number>;
+  /** Positions of the playable characters among the states: distinct (active, room per character) combinations. */
+  positions: number;
 }
 
 export interface SolveResult {
@@ -345,6 +353,10 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   let worst: SolveProfile['branching']['worst'];
   const perRoom = new Map<string, number>(), perAction = new Map<string, number>(), attempted = new Map<string, number>();
   const fallbackByRoom = new Map<string, { candidates: number; rules: number; fallback: number }>();
+  const timing: SolveProfile['timing'] = { tries: 0, engine: 0, clone: 0, run: 0, hash: 0, queue: 0, other: 0, classify: 0 };
+  const now = () => performance.now();
+  const timed = <T>(k: keyof SolveProfile['timing'], f: () => T): T => { const t = now(); try { return f(); } finally { timing[k] += now() - t; } };
+  const loopStart = { t: 0 };
 
   const randomBranchValues = [...new Set(cmdLists(game).flatMap(({ list }) => {
     const sizes: number[] = [];
@@ -352,8 +364,10 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     return sizes.flatMap((n) => Array.from({ length: n }, (_, i) => (i + 0.5) / n));
   }))].sort((a, b) => a - b);
   const makeEngine = (rnd: number[] = []) => {
+    const t = now();
     const ui = new FakePresenter();
     const e = new Engine(game, layouts, ui, new MemoryStore(), { commands: opts.commands });
+    timing.engine += now() - t;
     const draws = [...rnd];
     e.random = () => draws.shift() ?? 0;
     return { e, ui };
@@ -410,9 +424,11 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   let last: Node = start;
   checkInvariants(start.state, start.path);
 
+  loopStart.t = now();
   while (queue.length && (mode === 'prove' || !finish)) {
     if (seen.size >= maxStates) { limitReached = true; break; }
-    const node = queue.shift()!;
+    const node = timed('queue', () => queue.shift()!);
+    const tTries = now(), engineBefore = timing.engine, cloneBefore = timing.clone;
     last = node;
     const s = node.state;
     roomsReached.add(s.room);
@@ -423,7 +439,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
 
     // List of actions to try
     const probe = makeEngine().e;
-    probe.state = structuredClone(s);
+    probe.state = timed('clone', () => structuredClone(s));
     const room = probe.room();
     const targets = probe.targets(room);
     const inv = s.inventory;
@@ -476,6 +492,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
       addTry({ label: `Script ${sc.id}`, run: (e) => e.runScript(sc.id, true).then(() => undefined), items: [], picks: [], rnd: [], candidates: [`script:${sc.id}`] });
     }
 
+    timing.tries += now() - tTries - (timing.engine - engineBefore) - (timing.clone - cloneBefore);
     let progressed = false;
     const h0 = JSON.stringify(node.dims);
     const byVerb: Record<string, number> = {};
@@ -496,17 +513,18 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
       if (only && !only.has(key)) continue;
       tries_total++;
       const { e, ui } = makeEngine(t.rnd);
-      e.state = structuredClone(s);
+      e.state = timed('clone', () => structuredClone(s));
       if (por) e.reads = new Set();
       ui.picks = [...t.picks];
       const path = [...node.path];
       let src: Source | null | void = null;
+      const tRun = now();
       try {
         await drive(e, t.run(e).then((r) => { src = r; }), (a) => path.push(`(tutorial) ${label(game, a)}`));
       } catch (err) {
         errors.push(`${t.label} (${s.room}): ${(err as Error).message}`);
         continue;
-      }
+      } finally { timing.run += now() - tRun; }
       // Other answers to every nested `choice` prompt. There is deliberately no hidden variant ceiling: maxStates is
       // the one explicit search budget, and reaching it returns `truncated`.
       for (let j = t.picks.length; j < ui.asked.length; j++) {
@@ -534,8 +552,10 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
       e.state.inventory.forEach((i) => gained.add(i));
       // What answered this try, even when nothing changed: a topic that only talks is reachable all the same.
       for (const en of e.session?.log ?? []) for (const id of en.ran ?? []) attempted.set(id, (attempted.get(id) ?? 0) + 1);
+      const tHash = now();
       const dims = stateDims(e.state, keys);
       const h = JSON.stringify(dims);
+      timing.hash += now() - tHash;
       const hitGoal = reached(ui, e.state);
       if (hitGoal) goals.add(h);
       const rw: RW | null = por ? { reads: readDims(e.reads!), writes: diffDims(node.dims, dims) } : null;
@@ -576,7 +596,9 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
         }
         continue;
       }
+      const tClone = now();
       const next: Node = { state: structuredClone(e.state), path: [...path, t.label], steps: [...node.steps, ...(e.session?.log ?? [])], dims, sleep, expanded: false, parent: h0, via: t.label };
+      timing.clone += now() - tClone;
       checkInvariants(next.state, next.path);
       if (hitGoal) {
         seen.set(h, next);
@@ -600,7 +622,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
       for (const c of children) {
         if (keep && !keep.has(c.key)) continue;
         seen.set(c.h, c.next);
-        enqueue(c.next);
+        timed('queue', () => enqueue(c.next));
         maxQueue = Math.max(maxQueue, queue.length);
         if (seen.size >= maxStates) { if (queue.length) limitReached = true; break; }
       }
@@ -611,15 +633,19 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     if (tries.length > triesMax) { triesMax = tries.length; worst = { room: s.room, inventory: [...s.inventory], tries: tries.length, effective, byVerb }; }
     if (!progressed) deadEnds.push({ path: node.path, room: s.room, inventory: [...s.inventory] });
   }
+  const loopMs = now() - loopStart.t;
+  timing.other = Math.max(0, loopMs - timing.tries - timing.engine - timing.clone - timing.run - timing.hash - timing.queue);
   const all = seen.size <= 50000 ? [...seen.values()].map((n) => n.dims) : [];
   const dims = splits(all).slice(0, 30);
+  const positions = new Set([...seen.values()].map((n) => `${n.state.active ?? ''}|${n.state.room}|${Object.entries(n.state.players ?? {}).map(([k, p]) => `${k}:${p.room}`).sort().join(',')}`)).size;
   const profile: SolveProfile = {
     ms: Date.now() - t0, states: seen.size, tries: tries_total, skipped, slept, postponed, noops, hashHits, maxQueue,
     branching: { avg: expansions ? triesSum / expansions : 0, max: triesMax, ...(worst ? { worst } : {}) },
     fallbackByRoom: Object.fromEntries(fallbackByRoom), dims, perRoom: Object.fromEntries(perRoom), perAction: Object.fromEntries(perAction), attempted: Object.fromEntries(attempted),
-    monotonic: monotonicThings(game), independent: independentGroups(all, dims),
+    monotonic: monotonicThings(game), independent: independentGroups(all, dims), timing, positions,
   };
 
+  const tClassify = now();
   // In proof mode, a state is safe iff a goal is reachable from it. Reverse reachability classifies cycles as well as
   // immediate dead ends, which the old `progressed` test could not do.
   const canReachGoal = new Set<string>();
@@ -649,6 +675,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     if (c) { c.count++; if (cur.path.length < c.sample.length) c.sample = cur.path; } else causes.set(key, { action, room, count: 1, sample: cur.path });
   }
   const softlockCauses = [...causes.values()].sort((a, b) => b.count - a.count || a.action.localeCompare(b.action));
+  timing.classify = now() - tClassify;
   const boundaries = mode === 'prove' && opts.goal && !limitReached ? [...goals].map((h) => seen.get(h)!).filter(Boolean).map((n) => structuredClone(n.state)) : [];
   const assumptions = new Set<string>();
   for (const { list } of cmdLists(game)) eachCmd(list, (c) => { if (typeof c !== 'string' && 'minigame' in c) assumptions.add(`minigame:${c.minigame}:success`); });

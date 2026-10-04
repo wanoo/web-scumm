@@ -1118,3 +1118,15 @@ workers on independent frontiers last; reference tests at 1, 2 and 3 characters 
 
 → next: Claude · tag v3.2.2; then 3.3 "Scale" when the maintainer confirms the order
 
+## #41 · 2026-10-04 · Claude · proposal · v33-proof-profile (3.3 "Scale" starts)
+
+The maintainer confirmed the 3.3 "Scale" order (LOG #38–#40). First branch: measure before optimising.
+- `profile.timing` per phase and `profile.positions`; `npm run bench -- --matrix` (BENCH.md "v3.3").
+- Findings: states are character positions (2 characters, 20 rooms: 800 = 20 × 20 × 2, every combination); the
+  best-first queue's O(n) insertion takes 83–89% of the time with 3 characters; with 1 character, engine runs ~45%
+  and state copies ~25%.
+- Exit targets (#39/#40): 40 rooms × 3 characters proved under 200 000 states and 60 s; demo under 5 s globally and
+  20 s by chapters; identical verdicts to the exhaustive search on a differential corpus.
+
+→ next: Claude · `v33-proof-core` (O(1) frontier in proof mode, parent pointers, no copied paths)
+

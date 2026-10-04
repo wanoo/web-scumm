@@ -163,6 +163,7 @@ npm run solve -- --prove --chapters   # la preuve par chapitres : chaque chapitr
 npm run validate -- --report       # le profileur de contenu : lieux, objets, personnages, ce qui est mince (Markdown)
 npm run page:world                 # la carte du monde en page (sorties, gotos, lieux inaccessibles, source DOT)
 npm run page:puzzles               # le graphe de puzzles en page : ce que chaque règle exige et change, une fiche par objet / flag
+npm run bench -- --matrix [--max=20000]   # la table de référence 3.3 : la preuve sur 20/40 lieux × 1/2/3 personnages, où part le temps (BENCH.md)
 npm run bench -- --rooms=40 [--prove --v3]   # un jeu généré de cette taille, chaque outil chronométré dessus ; --prove ajoute la preuve exhaustive, --v3 le génère avec des ids stables (docs/fr/BENCH.md)
 npm run i18n -- extract [--lang xx]   # tables de traduction (games/<id>/locales/<xx>.json) ; `status` pour la couverture
 npm run solve -- --profile         # de quoi les états sont faits et ce que la recherche a coûté (docs/fr/BENCH.md)

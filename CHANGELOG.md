@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.3.0 — unreleased
+
+### Added
+
+- The solver measures itself: `profile.timing` (tries, engine, clone, run, hash, queue, other, classify, in ms) and
+  `profile.positions` (distinct character positions among the states); `npm run bench -- --matrix` prints the
+  3.3 reference table (20 / 40 rooms × 1 / 2 / 3 characters).
+
 ## 3.2.2 — 2026-10-04
 
 ### Fixed
