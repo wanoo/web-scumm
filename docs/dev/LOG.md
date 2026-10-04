@@ -1401,3 +1401,17 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 
 → next: Claude · merge on green CI, then v331-release
 
+## #59 · 2026-10-05 · Claude · release · v3.3.1 "Truth"
+
+- Merged on green CI (D9): v331-docs-truth, v331-abstraction-audit, v331-commercial, v331-ci-gates; this branch adds
+  the release assets (`dist.tar.gz`, SHA-256, CycloneDX SBOM, build provenance attestation) and the manual passes in
+  the notes (`scripts/release-notes.mjs` → `manualPasses`).
+- Codex's nine points: (1) screen reader: a sheet per release, reported (D12), not done for 3.3.1; (2) the asset
+  graph against real bytes: 3.4's first branch; (3) the memo: worded as checked, and audited on any game; (4) "structured
+  by eras" everywhere; (5) `verify:commercial`; (6) WebKit keyboard and fr gate, Safari offline manual; (7) POR
+  historical; (8) the real chapter: 3.4 (`v34-reference`, demo art, D13); (9) SBOM, archive and attestation attached;
+  the signed tag is the maintainer's (a pass of the sheet).
+- Next: 3.4 "Stagecraft", starting with `v34-asset-graph`.
+
+→ next: Claude · tag v3.3.1 after green CI on main, then v34-asset-graph
+

@@ -295,9 +295,43 @@ d'indépendant à répartir, et chaque budget est tenu), la dominance entre éta
 d'objets, BENCH.md). Stagecraft (calques, topologie de marche, éditeurs structurés du Studio, production des voix)
 passe en 3.4.
 
+## v3.3.1 « Truth » (5 octobre 2026) : ce que la 3.3.0 promettait, rendu exact
+
+D'après la relecture de la 3.3.0 par Codex (LOG #55), une branche à la fois (D9) : `v331-docs-truth` (la réduction
+d'ordre partiel marquée historique et refusée en preuve, la mémoire « vérifiée, pas prouvée », la référence
+« structurée par époques », aucune revendication WCAG, les fiches de passages manuels), `v331-abstraction-audit`
+(`solve --audit-abstractions` sur n'importe quel jeu, 120 jeux aléatoires et un jeu par commande et par condition ; il
+a trouvé un défaut de la recherche de base, le masquage des règles absent de l'analyse de vivacité, corrigé),
+`v331-commercial` (`verify:commercial` ; les exceptions de release affichées par leur nom), `v331-ci-gates` (WebKit
+au clavier et le jeu en français bloquants ; une liste de contrôle Safari hors ligne), `v331-release` (le jeu
+construit, un SBOM et une attestation sur la release GitHub ; les notes listent les passages manuels, D12).
+
+## v3.4 « Stagecraft » (prévue) : image, scène et Studio
+
+Décidée avec le mainteneur (D10, D11, D13), d'après le plan 3.4 de Codex et son extension. Dans l'ordre des
+dépendances : un graphe d'assets unique partagé par le préchargement, le hors-ligne, la provenance et les budgets,
+vérifié contre les octets qu'un navigateur transfère vraiment ; un contrat de renderer avec le DOM comme référence ;
+le schéma de scène (calques, occulteurs, zones et liens de marche, en données, la logique restant dans le DSL) ; un
+renderer Canvas 2D avec la surcouche DOM pour l'interface et l'accessibilité ; calques, parallaxe, masques, lumières,
+particules et transitions ; topologie de marche (zones, escaliers, échelles, caméra à deux axes) ; physique de scène
+en formes closes du temps ; production des voix ; le Studio structuré ; un chapitre de référence de 8 à 12 lieux fait
+avec l'art de la démo. Bloquant : budgets contre les vrais octets, références visuelles, parité DOM/Canvas, sauvegardes
+3.x, une scène à 6 calques et 3 masques à 30 i/s sous un CPU ralenti 4×, le Studio qui édite une scène, le chapitre
+prouvé et joué au clavier dans Chromium et WebKit, en français. Signalé (D12) : lecteur d'écran, testeurs, un vrai
+téléphone, Safari, voix.
+
+## v3.5 « Score » (prévue) : musique, workers, inventaires
+
+Un directeur musical à stems synchronisés (cues, états, transitions quantifiées, stingers, ducking), des workers du
+solveur jugés à la mesure (résultats identiques, ×2 avec 4 workers, sinon coupés par défaut), et un propriétaire
+canonique des objets certifié pour les preuves (la dominance seulement pour les recherches de témoin : elle ne peut
+pas élaguer une preuve).
+
 ## Hors plan (décisions explicites)
 
-- Pas de Phaser ni de canvas : le Presenter DOM suffit pour quelques dizaines d'images ; une salle large reste une translation CSS.
+- Pas de Phaser ni de moteur physique général (D10). Canvas 2D est permis à partir de la 3.4 comme second renderer de
+  scène, le DOM restant la référence tant qu'ils ne concordent pas ; WebGL seulement pour un effet que Canvas 2D ne
+  tient pas, mesuré.
 - Pas de format de dialogue parallèle au DSL.
 - Pas de paquet npm avant qu'une seconde personne le demande (inchangé).
 

@@ -1,12 +1,8 @@
 # Changelog
 
-## Unreleased
+## 3.3.1 — 2026-10-05
 
-### Changed
-
-- CI: the whole game at the keyboard in WebKit and the whole game in French in Chromium are gates (green on every run
-  of 3.3 on `main`, D7's rule). Safari offline, which Playwright cannot automate, gets a manual checklist
-  (`docs/dev/SAFARI-OFFLINE.md`), its result in `docs/dev/passes/`.
+"Truth": what 3.3.0 promised, made exact (Codex's review of 3.3.0, LOG #55).
 
 ### Added
 
@@ -19,17 +15,11 @@
   any `releaseExceptions` entry, any placeholder, any non-commercial or no-derivatives licence, and any provenance entry
   without an author or a source that can be checked (a new `url` field, or a repository file named in `source`). The
   sample game fails it on purpose: its music is CC BY-NC 4.0.
-
-### Changed
-
-- `verify:release` prints what a `releaseExceptions` entry lets through as named, accepted exceptions, not warnings;
-  the sample game's decorative `tea_drunk` flag is kept on purpose with `lint.ignore: ['flag-never-read:tea_drunk']`,
-  which `npm run validate` now honours. The sample game's release check has no warning left.
-
-### Added
-
-- `docs/dev/passes/`: one sheet per release for the checks automation cannot make (screen reader, Safari offline, a
-  real phone, playtesters, voices, a signed tag); a release lists in its notes the ones not done (D12).
+- `docs/dev/passes/`: one sheet per release for the checks automation cannot make (screen reader, Safari offline
+  with its checklist `docs/dev/SAFARI-OFFLINE.md`, a real phone, playtesters, voices, a signed tag). The release notes
+  list them (D12: reported, not blocking).
+- The GitHub release carries the built game (`dist.tar.gz`), its SHA-256, an SBOM of the shipped dependencies
+  (CycloneDX) and a build provenance attestation (`gh attestation verify <file> -R wanoo/web-scumm`).
 
 ### Fixed
 
@@ -42,14 +32,21 @@
 
 ### Changed
 
-- Truthful wording (Codex's review of 3.3.0): the partial-order reduction section of BENCH is marked historical, with
-  a warning never to use it to certify the absence of softlocks, and `solve --prove --por=…` says it ignores the
-  flag; the no-op memo is "an equivalence checked on the differential corpus", not a proof for every game; the
-  40-room reference is "structured by eras" wherever it is quoted; accessibility is "tested at the keyboard, no
-  serious axe violation", not a WCAG claim. The profile's header reads "what each one did, or why it is off".
+- CI: the whole game at the keyboard in WebKit and the whole game in French in Chromium are gates (green on every run
+  of 3.3 on `main`, D7's rule).
+- `verify:release` prints what a `releaseExceptions` entry lets through as named, accepted exceptions, not warnings;
+  the sample game's decorative `tea_drunk` flag is kept on purpose with `lint.ignore: ['flag-never-read:tea_drunk']`,
+  which `npm run validate` now honours. The sample game's release check has no warning left.
+- Truthful wording: the partial-order reduction section of BENCH is marked historical, with a warning never to use it
+  to certify the absence of softlocks, and `solve --prove --por=…` says it ignores the flag; the no-op memo is "an
+  equivalence checked on the differential corpus", not a proof for every game; the 40-room reference is "structured by
+  eras" wherever it is quoted; accessibility is "tested at the keyboard, no serious axe violation", not a WCAG claim.
+  The profile's header reads "what each one did, or why it is off".
 - The README (en and fr) is a showcase: the promise, the v3.3 measurements with their limits, four player and four
   Studio images, a quick start that begins with `npm run doctor`, then links to the docs. The images come from the
   production bundle and the Studio through `npm run docs:screenshots` (`scripts/docs-screenshots.mjs`).
+- Decisions D10–D13: a Canvas 2D renderer allowed beside the DOM one (3.4), the plan 3.3.1 → 3.4 "Stagecraft" → 3.5
+  "Score", human gates reported rather than blocking, the 3.4 reference chapter made from the sample game's art.
 
 ## 3.3.0 — 2026-10-05
 
