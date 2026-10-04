@@ -23,7 +23,10 @@ its files directly (`tests/demo.test.ts`, `tests/walkthrough.test.ts`).
 ## Playing and debugging
 
 ```bash
-npm run dev        # dev server, also reachable from a phone on the local network
+npm run dev        # loopback-only dev server
+npm run dev:lan    # explicit LAN mode for a phone; prints a one-session capability-token URL
+npm run studio     # loopback-only Studio
+npm run studio:lan # token-protected Studio on the LAN
 ```
 
 URL parameters, dev server only (they are ignored in the production build):
@@ -149,13 +152,17 @@ An override's options: `keyed` (a flat background connected to the border made t
 
 ```bash
 npm run validate   # broken references, empty or too-long text, missing Look lines, flags never set or never read
-npm run solve      # proves the game can be finished; lists dead ends and items never used
+npm run solve      # fast witness: finds one path to the ending
+npm run solve -- --prove # exhaustive reachable-state proof: reports states with no path to the ending
 npm run solve -- --from=<checkpoint> --max=50000
-npm test           # engine tests on tests/fixture (core, minigames, tools), then the sample game's own tests
+npm test           # Node engine/tool tests and the selected game's tests
+npm run test:assets # Python-backed image and asset-pipeline tests
 npm run e2e        # a playthrough in Chromium, phone landscape (dev server already running)
 ```
 
-`validate` and `solve` exit with an error (code 1) when there is a blocking problem.
+`validate` and `solve` exit with code 1 for a blocking problem. `solve` exits 2 when its state budget is exhausted:
+that is `truncated`, never a proof. `npm run build` requires a winning witness; `npm run prove:game` is the explicit
+exhaustive softlock gate, and `npm run release-check` includes it.
 
 ```bash
 npm run solve -- --chapters        # one bounded search per checkpoint with `goals`, then from the last one to the ending
@@ -167,6 +174,11 @@ npm run i18n -- extract [--lang xx]   # translation tables (games/<id>/locales/<
 npm run solve -- --profile         # what the states are made of and what the search cost (docs/en/BENCH.md)
 npm run solve -- --por=stubborn    # partial-order reduction: commuting actions one at a time (fewer states, same proof)
 npm run replay -- session.json     # plays a session file on the real engine, prints the journal and the final state
+npm run doctor                     # checks Node, Python modules, ffmpeg and Playwright browsers
+npm run check                      # type-check and Node tests
+npm run verify:game                # validation, global/chapter witnesses and translation coverage
+npm run prove:game                 # global/chapter exhaustive proof; fails on softlocks or truncation
+npm run release-check              # prerequisites, build, proof and production dependency audit
 ```
 
 **Sessions.** The engine records every input since the game started or a save was loaded (actions, map, switches,

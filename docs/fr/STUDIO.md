@@ -5,6 +5,16 @@ changement est écrit dans des fichiers sous `games/<id>/`, les mêmes fichiers 
 modifie avec git. Le Studio affiche le vrai moteur (le lieu rendu par `src/engine/dom`), donc ce qu'on voit est ce
 que les joueurs auront.
 
+## Sécurité locale et réseau
+
+`npm run studio` et `npm run dev` écoutent sur `127.0.0.1` : une autre machine ne peut pas atteindre leurs routes
+d'écriture. Pour travailler depuis un téléphone, utiliser `npm run studio:lan` ou `npm run dev:lan` ; chaque commande
+affiche une URL avec un nouveau jeton de capacité. Toutes les routes Studio, assets, layout et assistant exigent alors
+ce jeton et une requête de même origine. Ne pas exposer le port de développement à Internet. Les clés fournisseur
+restent dans `sessionStorage` ; les URL arbitraires sont désactivées sauf avec `WEB_SCUMM_ALLOW_CUSTOM_PROVIDER=1`,
+et les destinations privées/link-local restent bloquées hors préréglage Ollama local. Le TypeScript d'un jeu et les
+commandes personnalisées sont du code de confiance, pas des données isolées. Voir `SECURITY.md`.
+
 ## Organisation du Studio
 - **Rooms** (onglet par défaut) : le lieu rendu par le moteur avec l'éditeur de placement par-dessus (glisser les
   zones, les pieds, les hauteurs, les points d'approche, la zone marchable, les lignes d'échelle, les entrées), la
