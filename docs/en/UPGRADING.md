@@ -35,7 +35,9 @@ unique across the game. Generated exit rules receive deterministic ids automatic
 ## 3. Migrate saves deliberately
 
 The browser stores a `web-scumm-save` envelope with schema 3 in IndexedDB. The first v3 run imports the legacy
-`<game>.save` localStorage autosave once and removes it only after a verified write. Manual slots remain importable.
+`<game>.save` localStorage autosave once and removes it only after a verified write. Manual slots (`saves.slots`) live
+in the same database, as envelopes, verified the same way; the v2 `<game>.slot.<n>` entries are imported once too. A
+file imported from the save menu also lands in the first free slot.
 
 Increase `saveVersion` for a state change and supply one `Migration` per integer step. Besides v2 fields, v3 supports:
 

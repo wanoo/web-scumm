@@ -79,7 +79,8 @@ The choice is made automatically (`App.layout`), and redone whenever the window 
 3. The engine walks the hero to the approach point (layout), turns them toward the target.
 4. `resolve` looks for the reaction: room rule → game rule → Look → Talk (hints, conversation) → kind → refusal → fallback.
 5. The commands run one by one; each calls the Presenter (speak, walk, change a prop, play a sound…).
-6. At the end, the state is saved (verified IndexedDB autosave, with localStorage compatibility fallback). All of the
+6. At the end, the state is saved (verified IndexedDB autosave; the manual slots live in the same database, as
+   envelopes, verified too; localStorage is the compatibility fallback). All of the
    state is JSON: `GameState` in `types.ts`.
 7. In the gaps between actions, the world's **scripts** advance one command each (`ScriptDef`, `Engine.advance`): NPC
    strolls, ambient gags, a character that `moveActor`s to another room when an `emit`ted event wakes its `waitEvent`.

@@ -425,3 +425,28 @@ Verdict: the page's bootstrap is part of the engine; a build bug that broke the 
 | `/?dev` on the demo build | game starts on the first checkpoint, no console error |
 
 → next: Claude · merge after CI, then `v3-slots`
+
+## #16 · 2026-10-04 · Claude · proposal · v3-slots
+Branch: v3-slots · from v3-boot@e76da3a
+Verdict: manual slots as durable and verified as the autosave
+
+- `SlotStore` port (`listSlots`, `getSlot`, `putSlot`, `clearSlot`, async) in `core/ports.ts`; `SlotRecord`
+  (`{ meta, envelope }`) + `parseSlot` (reads v2 `{ meta, state }` too) in `core/save.ts`.
+- `IndexedDbSaveStore` implements it in the same object store (`<game>:slot:<n>`), with the same write-then-read-back
+  verification, serialised on the autosave's queue; `open()` imports the v2 `localStorage` slots once, each removed
+  only after its verified copy. `LocalSlotStore` (verified localStorage) remains the fallback when IndexedDB is
+  unavailable. The App picks the store's slots when it has them (`AppOptions.slots` to override).
+- The save menu is asynchronous: rows exist at once, disabled until listed; "Import file" also fills the first free
+  slot. The demo e2e clears the IndexedDB database before a fresh game.
+- `fake-indexeddb` (dev) and `tests/save-store.test.ts`: write + verify + reopen, one-time import of autosave and
+  slots, slot round trip, a foreign game's record reported instead of loaded, `whenIdle` rejecting on a bad write.
+- Docs: UPGRADING §3, ENGINE action cycle, CONTENT_GUIDE saves (en, fr).
+
+### Checks run
+| Command | Result |
+|---|---|
+| `tsc --noEmit`, `npm test` | clean, 214 passed (+ save-store.test.ts) |
+| production build, e2e demo Chromium | passed end to end |
+| pause menu on the production build | Save → Slot 1 lands in IndexedDB with its meta, Load → Slot 1 restores the room |
+
+→ next: Claude · merge after CI, then `v3-offline`

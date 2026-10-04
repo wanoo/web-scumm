@@ -442,7 +442,8 @@ saves: { slots: 3 },   // le menu pause gagne Sauver / Charger avec trois emplac
 ui: { …, save: 'Sauver', load: 'Charger', slot: 'Emplacement {n}', emptySlot: 'vide', exportSave: 'Exporter en fichier', importSave: 'Importer un fichier', confirmOverwrite: 'Écraser cet emplacement ?' },
 ```
 
-L'autosauvegarde utilise une enveloppe v3 validée avant de toucher à la partie courante, avec une écriture IndexedDB
+Les emplacements manuels sont stockés comme l'autosauvegarde : dans IndexedDB, en enveloppes, relus après chaque
+écriture ; un fichier importé depuis le menu remplit aussi le premier emplacement libre. L'autosauvegarde utilise une enveloppe v3 validée avant de toucher à la partie courante, avec une écriture IndexedDB
 relue et un import de compatibilité localStorage. Quand le contenu change de façon incompatible, on incrémente
 `saveVersion` et on convertit l'état, en données, une étape par version :
 

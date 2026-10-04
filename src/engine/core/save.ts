@@ -25,6 +25,14 @@ export const SaveEnvelopeV3Schema = z.strictObject({
   gameSaveVersion: z.number().int().nonnegative(), savedAt: z.number().finite(), state: GameStateSchema,
 });
 
+/** A manual slot as stored: what the menu shows, and the envelope. v2 slots were `{ meta, state }`. */
+export const SlotRecordSchema = z.strictObject({
+  meta: z.looseObject({ at: z.number().finite(), room: id, roomName: z.string(), v: z.number().int().nonnegative() }),
+  envelope: z.lazy(() => SaveEnvelopeV3Schema),
+});
+export interface SlotRecord { meta: SlotMeta; envelope: SaveEnvelopeV3 }
+export interface SlotMeta { at: number; room: Id; roomName: string; v: number }
+
 export interface SaveEnvelopeV3 {
   format: 'web-scumm-save'; schema: 3; gameId: string; gameSaveVersion: number; savedAt: number; state: GameState;
 }
@@ -107,4 +115,13 @@ export function parseSave(game: GameDef, input: unknown, opts: ParseSaveOptions 
   }
   if (stale.length) (opts.warn ?? console.warn)(`save adjusted after a content update: ${stale.join(', ')}`);
   return state;
+}
+
+/** Reads a stored slot (v3 record, or a v2 `{ meta, state }`), validating the state like `parseSave`. */
+export function parseSlot(game: GameDef, input: unknown, opts: ParseSaveOptions = {}): { meta: SlotMeta; state: GameState } {
+  if (!input || typeof input !== 'object' || !('meta' in input)) throw new Error('not a save slot');
+  const raw = input as { meta: SlotMeta; envelope?: unknown; state?: unknown };
+  const state = parseSave(game, raw.envelope ?? raw.state, opts);
+  const meta: SlotMeta = { at: Number(raw.meta?.at) || 0, room: state.room, roomName: String(raw.meta?.roomName ?? state.room), v: state.v };
+  return { meta, state };
 }

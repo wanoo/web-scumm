@@ -73,7 +73,8 @@ Le choix se fait tout seul (`App.layout`), et se refait si la fenêtre change de
 3. Le moteur fait marcher le héros jusqu'au point d'approche (layout), le tourne vers la cible.
 4. `resolve` cherche la réaction : règle du lieu → règle du jeu → Regarder → Parler (indices, conversation) → sorte → refus → repli.
 5. Les commandes s'exécutent une à une ; chacune appelle le Presenter (dire, marcher, changer un accessoire, jouer un son…).
-6. À la fin, l'état est sauvegardé (autosauvegarde IndexedDB vérifiée, avec repli de compatibilité localStorage). Tout l'état est du JSON : `GameState` dans `types.ts`.
+6. À la fin, l'état est sauvegardé (autosauvegarde IndexedDB vérifiée ; les emplacements manuels vivent dans la même
+   base, en enveloppes, vérifiés aussi ; localStorage est le repli de compatibilité). Tout l'état est du JSON : `GameState` dans `types.ts`.
 7. Dans les creux entre deux actions, les **scripts** du monde avancent d'une commande chacun (`ScriptDef`,
    `Engine.advance`) : PNJ qui déambule, gag d'ambiance, personnage qui change de lieu (`moveActor`) quand un événement
    émis (`emit`) réveille son `waitEvent`. Leur position vit aussi dans l'état : une sauvegarde les reprend, et le solveur

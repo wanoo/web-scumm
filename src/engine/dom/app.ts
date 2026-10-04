@@ -1,7 +1,7 @@
 import { check } from '../core/cond';
 import { sayMs } from '../core/timing';
 import { Engine } from '../core/engine';
-import type { Presenter, SaveStore } from '../core/ports';
+import type { Presenter, SaveStore, SlotMeta, SlotStore } from '../core/ports';
 import type { GameDef, GameState, Id, Layout, Point, RoomDef, VerbId } from '../core/types';
 import { minigames as builtin, MINIGAME_CSS, type Minigame } from '../minigames';
 import { Ending } from '../ending';
@@ -11,7 +11,7 @@ import { Audio } from './audio';
 import { FONT_PIXEL, FONT_UI, fontStack } from './fonts';
 import { RoomView } from './room';
 import './style.css';
-import { parseSave, saveEnvelope } from '../core/save';
+import { parseSave, parseSlot, saveEnvelope, type SlotRecord } from '../core/save';
 
 export interface AppOptions {
   root: HTMLElement;
@@ -24,6 +24,8 @@ export interface AppOptions {
   /** Translations the game ships: the settings menu offers them (the page reloads with the choice). */
   languages?: { current: string; available: string[] };
   store?: SaveStore;
+  /** Manual slots; default: the store when it has them (IndexedDB), else verified localStorage. */
+  slots?: SlotStore;
   base?: string;
   /** Asset version (added to URLs to invalidate the cache). */
   version?: string;
@@ -51,23 +53,25 @@ class LocalStore implements SaveStore {
 export interface Settings { textSpeed: number; textSize: number; reduceMotion: boolean; readableFont: boolean; musicVolume: number; sfxVolume: number; voiceVolume: number }
 const DEFAULT_SETTINGS: Settings = { textSpeed: 1, textSize: 1, reduceMotion: false, readableFont: false, musicVolume: 1, sfxVolume: 1, voiceVolume: 1 };
 
-/** A manual save slot: the state plus what the menu shows. */
-export interface SlotMeta { at: number; room: Id; roomName: string; v: number }
-export interface Slot { meta: SlotMeta; state: GameState }
-
-/** Manual slots in localStorage (`<game>.slot.<n>`), next to the autosave. */
-export class SlotStore {
+/** Manual slots in localStorage (`<game>.slot.<n>`), the fallback when IndexedDB is unavailable; verified like the autosave. */
+export class LocalSlotStore implements SlotStore {
   constructor(private prefix: string, private game: GameDef, private fail: (error: Error) => void, private warn: (message: string) => void) {}
   private key(n: number) { return `${this.prefix}.slot.${n}`; }
-  get(n: number): Slot | null {
-    try { const v = localStorage.getItem(this.key(n)); if (!v) return null; const x = JSON.parse(v) as Slot; return { meta: x.meta, state: parseSave(this.game, x.state, { warn: this.warn }) }; }
+  private read(n: number): { meta: SlotMeta; state: GameState } | null {
+    try { const v = localStorage.getItem(this.key(n)); return v ? parseSlot(this.game, JSON.parse(v), { warn: this.warn }) : null; }
     catch (e) { this.fail(e as Error); return null; }
   }
-  put(n: number, slot: Slot): boolean {
-    try { const raw = JSON.stringify(slot); localStorage.setItem(this.key(n), raw); if (localStorage.getItem(this.key(n)) !== raw) throw new Error('the browser did not retain the save slot'); return true; }
-    catch (e) { this.fail(e as Error); return false; }
+  async listSlots(count: number) { return Array.from({ length: count }, (_, i) => this.read(i + 1)?.meta ?? null); }
+  async getSlot(n: number) { return this.read(n)?.state ?? null; }
+  async putSlot(n: number, state: GameState, meta: SlotMeta) {
+    try {
+      const record: SlotRecord = { meta, envelope: saveEnvelope(this.game, state) };
+      const raw = JSON.stringify(record); localStorage.setItem(this.key(n), raw);
+      if (localStorage.getItem(this.key(n)) !== raw) throw new Error('the browser did not retain the save slot');
+      return true;
+    } catch (e) { this.fail(e as Error); return false; }
   }
-  clear(n: number) { try { localStorage.removeItem(this.key(n)); } catch (e) { this.fail(e as Error); } }
+  async clearSlot(n: number) { try { localStorage.removeItem(this.key(n)); } catch (e) { this.fail(e as Error); } }
 }
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, html?: string) => {
@@ -181,7 +185,8 @@ export class App implements Presenter {
     const storageFailure = (error: Error) => queueMicrotask(() => this.reportStorageError(error));
     const storageWarning = (message: string) => queueMicrotask(() => this.reportSaveWarning(message));
     this.engine = new Engine(o.game, o.layouts, this, o.store ?? new LocalStore(`${o.game.id}.save`, o.game, storageFailure, storageWarning), { commands: o.commands, runCustom: true, scene: () => this.scene });
-    this.slots = new SlotStore(o.game.id, o.game, storageFailure, storageWarning);
+    const store = this.engine.store as SaveStore & Partial<SlotStore>;
+    this.slots = o.slots ?? (typeof store.listSlots === 'function' ? (store as SlotStore) : new LocalSlotStore(o.game.id, o.game, storageFailure, storageWarning));
     this.view = new RoomView(this.engine, this.bank);
     this.engine.autoScripts = true;
     this.engine.onChange = () => this.refresh();
@@ -938,8 +943,8 @@ export class App implements Presenter {
     row(ui.autosave, this.saveError ? '⚠' : '✓');
     const slots = this.game.saves?.slots ?? 0;
     if (slots > 0 && this.engine.state) {
-      row(ui.save ?? 'Save', '💾').onclick = () => this.slotMenu(d, m, 'save', slots);
-      row(ui.load ?? 'Load', '📂').onclick = () => this.slotMenu(d, m, 'load', slots);
+      row(ui.save ?? 'Save', '💾').onclick = () => void this.slotMenu(d, m, 'save', slots);
+      row(ui.load ?? 'Load', '📂').onclick = () => void this.slotMenu(d, m, 'load', slots);
     }
     if (this.game.settings) row(ui.settings ?? 'Settings', '⚙').onclick = () => this.settingsMenu(d, m);
     row(ui.credits, '★').onclick = () => { d.remove(); this.credits(); };
@@ -997,24 +1002,35 @@ export class App implements Presenter {
   }
 
   /** The save / load menu: one row per slot, export and import as a JSON file. */
-  private slotMenu(d: HTMLElement, m: HTMLElement, mode: 'save' | 'load', count: number) {
+  private async slotMenu(d: HTMLElement, m: HTMLElement, mode: 'save' | 'load', count: number) {
     const ui = this.game.ui;
     m.innerHTML = `<h3>${esc((mode === 'save' ? ui.save ?? 'Save' : ui.load ?? 'Load').toUpperCase())}</h3>`;
     const row = (t: string, v: string, cls = '') => { const b = el('button', cls, `<span>${esc(t)}</span><span>${esc(v)}</span>`); m.append(b); return b; };
     const meta = (): SlotMeta => ({ at: Date.now(), room: this.engine.state.room, roomName: this.engine.room().name, v: this.engine.state.v });
-    const label = (s: Slot | null) => s ? `${s.meta.roomName} · ${new Date(s.meta.at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}` : (ui.emptySlot ?? 'empty');
-    for (let n = 1; n <= count; n++) {
-      const s = this.slots.get(n);
-      const b = row((ui.slot ?? 'Slot {n}').replace('{n}', String(n)), label(s), mode === 'load' && !s ? 'off' : '');
+    const slotName = (n: number) => (ui.slot ?? 'Slot {n}').replace('{n}', String(n));
+    const label = (s: SlotMeta | null) => s ? `${s.roomName} · ${new Date(s.at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}` : (ui.emptySlot ?? 'empty');
+    // The rows exist at once (the menu never jumps), disabled until the store has listed the slots.
+    const rows = Array.from({ length: count }, (_, i) => { const b = row(slotName(i + 1), '…', 'off'); b.disabled = true; return b; });
+    const metas = await this.slots.listSlots(count);
+    if (!d.isConnected) return;
+    metas.forEach((s, i) => {
+      const n = i + 1, b = rows[i];
+      b.lastElementChild!.textContent = label(s);
+      b.disabled = mode === 'load' && !s;
+      b.classList.toggle('off', mode === 'load' && !s);
       if (mode === 'save') b.onclick = () => {
-        const write = () => { if (!this.slots.put(n, { meta: meta(), state: structuredClone(this.engine.state) })) return; d.remove(); this.toast(`${(ui.slot ?? 'Slot {n}').replace('{n}', String(n))} ✓`); };
-        if (!s) return write();
+        const write = async () => { if (!(await this.slots.putSlot(n, structuredClone(this.engine.state), meta()))) return; d.remove(); this.toast(`${slotName(n)} ✓`); };
+        if (!s) return void write();
         m.innerHTML = `<h3>?</h3><p>${esc(ui.confirmOverwrite ?? 'Overwrite this save?')}</p>`;
         const y = el('button', 'warn', `<span>${esc(ui.yes)}</span><span>!</span>`), no = el('button', '', `<span>${esc(ui.no)}</span><span>▶</span>`);
-        y.onclick = write; no.onclick = () => d.remove(); m.append(y, no);
+        y.onclick = () => void write(); no.onclick = () => d.remove(); m.append(y, no);
       };
-      else if (s) b.onclick = () => { d.remove(); void this.engine.load(s.state).catch((e) => this.toast(String((e as Error).message))); };
-    }
+      else if (s) b.onclick = async () => {
+        const state = await this.slots.getSlot(n);
+        if (!state) { this.toast(ui.saveFailed ?? 'Save failed'); return; }
+        d.remove(); void this.engine.load(state).catch((e) => this.toast(String((e as Error).message)));
+      };
+    });
     if (mode === 'save') row(ui.exportSave ?? 'Export file', '⤓').onclick = () => {
       const blob = new Blob([JSON.stringify(saveEnvelope(this.game, this.engine.state), null, 1)], { type: 'application/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${this.game.id}-save.json`; a.click();
@@ -1035,7 +1051,14 @@ export class App implements Presenter {
         const f = inp.files?.[0]; if (!f) return;
         try {
           const st = parseSave(this.game, JSON.parse(await f.text()), { warn: (message) => this.reportSaveWarning(message) });
-          d.remove(); await this.engine.load(st);
+          d.remove();
+          // The imported game also lands in the first free slot, so it survives the next autosave.
+          const free = metas.findIndex((x) => !x);
+          if (free >= 0) {
+            const roomName = this.game.rooms.find((r) => r.id === st.room)?.name ?? st.room;
+            if (await this.slots.putSlot(free + 1, structuredClone(st), { at: Date.now(), room: st.room, roomName, v: st.v })) this.toast(`${slotName(free + 1)} ✓`);
+          }
+          await this.engine.load(st);
         } catch (e) { this.toast(String((e as Error).message)); }
       };
       inp.click();
