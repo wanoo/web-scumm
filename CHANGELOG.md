@@ -20,6 +20,8 @@ First public v3 preview. The save envelope and authoring template are v3; existi
 - Development servers bind to loopback unless a `:lan` command is used.
 - Assistant keys use session storage; custom provider URLs are disabled by default.
 - Sample asset licensing now matches the actual generated effects and non-commercial music source.
+- Normal builds require a winning witness; exhaustive softlock proof is an explicit `prove:game` release gate, so a
+  large game's honest `truncated` proof cannot masquerade as failure to build its playable witness.
 
 ### Fixed
 
