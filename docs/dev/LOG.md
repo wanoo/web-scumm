@@ -860,3 +860,12 @@ Branch: `v3-offline-truth` (from `v3-qa-truth`) · re #24 "offline status is opt
 | `E2E_BROWSER=webkit npm run e2e:pwa` | SKIPPED, exit 3; `--allow-skip` → exit 0 |
 
 → next: Claude · `v3-studio-net`
+## #28 · 2026-10-04 · Claude · correction · re #26
+
+`v3-qa-truth` was merged into `main` (985c2f1) while its `check` job was red: I read the e2e lines of the run and
+not the first one. The failure was a 5 s vitest timeout on the demo's full proof in `tests/lint.test.ts` (1.5 s on
+this machine, slower on the runner), not a behaviour; fixed forward on `main` within minutes (30 s timeout on that
+test), CI re-run on `main` recorded below. Rule kept from now on: read the whole job list, and the CI watcher
+prints `check` first.
+
+→ next: Claude · `v3-offline-truth`

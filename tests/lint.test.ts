@@ -78,7 +78,7 @@ describe('content lint', () => {
     expect(r.findings.filter((f) => f.code === 'rule-never-run')).toEqual([]);
     const noEffect = r.findings.find((f) => f.code === 'rule-no-effect');
     expect(noEffect).toMatchObject({ severity: 'info', where: { room: 'house', path: 'talk.grandma[0]' } });
-  });
+  }, 30000); // the demo's full proof: 1.5 s here, slower on a CI runner
 
   it('a truncated proof never calls anything unreachable', async () => {
     const s = await solve(demo, {}, { commands: demoCommands, mode: 'prove', maxStates: 1 });
