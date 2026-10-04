@@ -1,0 +1,7 @@
+{
+  "assets": [
+    { "match": "img:*", "source": "Drawn for the sample game: image generation from the prompts in games/demo/prompts.md, sheets cut and cleaned by hand (npm run assets)", "author": "Wano", "licence": "CC BY 4.0", "status": "final", "note": "LICENSE-ASSETS: attribution \"Artwork by Wano, from the web-scumm project\"" },
+    { "match": "sfx:*", "source": "Mega Drive renders of the recipes in games/demo/audio/sfx.json (npm run audio, docs/en/AUDIO.md)", "author": "Wano", "licence": "CC BY 4.0", "status": "final" },
+    { "match": "music:swan_lake.mp3", "source": "Arrangement of the opening of Tchaikovsky's Swan Lake (public domain), games/demo/audio/projects/swan-lake, rendered by npm run audio", "author": "Wano", "licence": "CC BY-NC 4.0", "status": "placeholder", "note": "Non-commercial: replace it in a commercial game (LICENSE-ASSETS)" }
+  ]
+}

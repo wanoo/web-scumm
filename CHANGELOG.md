@@ -5,6 +5,11 @@
 
 ### Added
 
+- Asset provenance: `games/<id>/provenance.json` (source, licence, author, prompt, final or placeholder, by asset key
+  with `*`); `npm run validate` checks coverage when the file exists, `--release` requires it and lists placeholders;
+  `npm run new-game` records the borrowed sample art as placeholders; the demo's file covers its 194 images, its
+  effects and its non-commercial music (the one placeholder).
+
 - Saves say what they did: `clear()` / `clearSlot()` return `false` when the browser refuses (the save stays, the
   failure is reported, `whenIdle()` rejects); "Restart" and a refused file import keep the current game; golden
   saves for 3.0.0 and 3.1.0 load, migrate and reach the ending; refused writes and deletions are tested with a fake

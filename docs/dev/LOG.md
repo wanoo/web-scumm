@@ -981,3 +981,17 @@ Branch: `v32-save-results` · re #24 "save hardening", #25 "v32-save-browser"
 | `npm run e2e -- --prod --save` and `--generic --keyboard --save --no-indexeddb` (Chromium, production build) | "a manual save survived a reload (IndexedDB)" and "(localStorage)"; the first version compared raw JSON and failed on key order after the envelope's validation: the comparison is canonical now |
 
 → next: Claude · `v32-proof-scale`
+
+## #36 · 2026-10-04 · Claude · proposal · v32-assets-provenance
+
+Branch: `v32-assets-provenance` · re #25 "v32-assets-release"
+
+- `src/engine/tools/provenance.ts`: asset keys (`img:`, `sfx:`, `music:`, `voice:`, `video:`), entries matched with
+  `*`, a report of what is uncovered, incomplete or placeholder. `npm run validate` checks a game that has
+  `provenance.json`; `--release` requires it (error when missing) and warns about the placeholders that would ship.
+- Demo: 3 entries cover 194 images, the effects and the music; `validate --release` warns once (Swan Lake, CC BY-NC).
+  `npm run new-game` writes the borrowed art as placeholders with its attribution.
+- Not done from #25: per-room / per-chapter asset budgets (the offline budgets exist since 3.1), a generic "second
+  game" release test (in `v32-release`).
+
+→ next: Claude · `v32-release`
