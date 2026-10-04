@@ -175,6 +175,7 @@ npm run ids -- --lines [--write --map]   # un id sur chaque objet say / toast / 
 npm run i18n -- voices             # les lignes avec un id et sans clip de voix, les clips qu'aucune ligne ne réclame
 npm run validate -- --release      # en plus : provenance, provisoires, et un id stable sur chaque ligne d'un jeu livré dans une autre langue que la sienne ou doublé
 npm run verify:release             # validate --release + weight --release + statut i18n + playtests stricts : une étape de release-check
+npm run verify:commercial          # verify:release, puis aucune exception, aucun provisoire, aucune licence NC/ND, chaque source vérifiable (la démo échoue : sa musique)
 npm run provenance [-- --lock]     # les assets livrés par licence, ce qui a changé depuis le verrou relu ; --lock enregistre les fichiers après une relecture
 npm run weight [-- --release --json]   # ce qu'un téléphone télécharge avant le premier lieu, par lieu et par chapitre, face à assetBudgets
 npm run playtests [-- --strict --out=.cache/playtests]  # les sessions partagées par les joueurs (games/<id>/playtests) rejouées et cumulées : temps par lieu, blocages, indices, heatmap
@@ -267,7 +268,7 @@ chaque id de `skin` (images du manifeste, sons de `audio`) et `ending.scratch`.
 
 ## Provenance des assets
 
-`games/<id>/provenance.json` dit d'où vient chaque asset livré : des entrées `{ match, source, licence, author?,
+`games/<id>/provenance.json` dit d'où vient chaque asset livré : des entrées `{ match, source, licence, author?, url?,
 prompt?, status: 'final' | 'placeholder', note? }`, où `match` couvre des clés d'assets avec `*` (`img:<id d'image du
 manifeste>`, `sfx:<fichier>`, `music:<fichier>`, `voice:<fichier>`, `video:<fichier>`). `npm run validate` vérifie un
 jeu qui a le fichier (chaque asset couvert par une seule entrée : deux entrées qui couvrent le même asset sont une
@@ -290,7 +291,13 @@ initialKB, roomKB, chapterKB }` dans `game.ts` sont les limites ; en dépasser u
 `npm run new-game` en écrit un pour les images empruntées à la démo
 (toutes provisoires, CC BY 4.0) ; celui de la démo excepte nommément sa musique non commerciale.
 `npm run verify:release` (validate `--release`, `i18n -- status`, playtests stricts) est une étape de
-`npm run release-check`, donc le workflow de release le lance. Traductions : un texte identique à la source fait échouer
+`npm run release-check`, donc le workflow de release le lance. Ce qu'une exception laisse passer est affiché par son
+nom comme accepté, pas comme un avertissement à corriger. **Une release commerciale.** Un `verify:release` vert ne veut
+pas dire que chaque asset peut être vendu : une exception est une raison, pas une licence. `npm run verify:commercial`
+(`verify:release`, puis `validate --commercial`) refuse toute entrée `releaseExceptions`, tout provisoire, toute licence
+non commerciale ou sans modification (`NC`, `ND`), et toute entrée sans `author` ou sans source vérifiable (une `url`,
+ou un fichier du dépôt nommé dans `source`). Il vérifie que les affirmations sont complètes et permettent la vente,
+pas qu'elles sont vraies. La démo y échoue exprès (sa musique est en CC BY-NC 4.0). Traductions : un texte identique à la source fait échouer
 `npm run i18n -- status`, sauf si `i18n: { same: [chemins] }` dans `game.ts` le liste (un nom, « OK », une flèche).
 `npm run audit` est une autre vérification : il garde les noms d'un projet privé hors du dépôt public.
 

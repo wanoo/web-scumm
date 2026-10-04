@@ -1379,4 +1379,17 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
   character missed inactive characters' rooms.
 
 → next: Claude · merge on green CI, then v331-commercial
+## #57 · 2026-10-05 · Claude · proposal · v331-commercial
+
+- Codex's "a green `verify:release` is not a commercial release": `npm run verify:commercial` = `verify:release`, then
+  `validate --commercial` (`commercialVerdict` in `src/engine/tools/provenance.ts`): no `releaseExceptions` entry, no
+  placeholder, no `NC` / `ND` licence, every entry with an `author` and a checkable source (`url`, new optional field,
+  or a repository file named in `source` that exists). Demo: 3 errors, all `music:swan_lake.mp3`, exit 1 (expected).
+- The three release warnings: the two exception lines are now "accepted by name" (`placeholderVerdict` /
+  `licenceVerdict` return `accepted`, not `warnings`); `tea_drunk` is the puzzle tests' dead-flag example, kept with
+  `lint.ignore: ['flag-never-read:tea_drunk']`, which the content validator now honours. `validate --release` on the
+  demo: 0 warnings, 2 accepted exceptions.
+- It checks that the claims are complete and allow a sale, not that they are true (said in TOOLS).
+
+→ next: Claude · merge on green CI, then v331-ci-gates
 

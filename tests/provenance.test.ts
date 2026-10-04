@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { assetKeys, assetPath, licenceVerdict, lockDiff, lockMessages, makeLock, placeholderVerdict, provenanceReport } from '@engine/tools/provenance';
+import { assetKeys, assetPath, commercialVerdict, licenceVerdict, nonCommercial, lockDiff, lockMessages, makeLock, placeholderVerdict, provenanceReport } from '@engine/tools/provenance';
 import demoLock from '../games/demo/provenance.lock.json';
 import { fileFacts } from '../tools/provenance-files';
 import { game as demo } from '../games/demo/game';
@@ -45,10 +45,10 @@ describe('placeholders in a release', () => {
   it('fail it, unless the file says why they may ship', () => {
     expect(placeholderVerdict({ assets: [] }, r).errors).toHaveLength(1);
     const allowed = { assets: [], releaseExceptions: [{ match: 'music:theme.mp3', reason: 'a demo' }] };
-    expect(placeholderVerdict(allowed, r)).toEqual({ errors: [], warnings: [expect.stringContaining('release exception: a demo')] });
+    expect(placeholderVerdict(allowed, r)).toEqual({ errors: [], accepted: [expect.stringContaining('release exception: a demo')] });
     // an exception names its asset: a new placeholder is not covered by an older reason
     expect(placeholderVerdict(allowed, { ...r, placeholders: ['music:theme.mp3', 'img:new'] }).errors).toEqual([expect.stringContaining('img:new')]);
-    expect(placeholderVerdict({ assets: [] }, { ...r, placeholders: [] })).toEqual({ errors: [], warnings: [] });
+    expect(placeholderVerdict({ assets: [] }, { ...r, placeholders: [] })).toEqual({ errors: [], accepted: [] });
   });
 });
 
@@ -70,12 +70,41 @@ describe('the provenance lock', () => {
   });
   it('a licence outside the policy fails, unless the asset is excepted by name', () => {
     expect(licenceVerdict(keys, prov).errors).toEqual(['provenance.json › royalty-free: not in licences.allow (own work), used by 1 asset(s): music:t.mp3']);
-    expect(licenceVerdict(keys, { ...prov, releaseExceptions: [{ match: 'music:t.mp3', reason: 'licensed for this game' }] })).toEqual({ errors: [], warnings: [expect.stringContaining('licensed for this game')] });
+    expect(licenceVerdict(keys, { ...prov, releaseExceptions: [{ match: 'music:t.mp3', reason: 'licensed for this game' }] })).toEqual({ errors: [], accepted: [expect.stringContaining('licensed for this game')] });
     expect(licenceVerdict(keys, { assets: prov.assets }).errors).toEqual([expect.stringContaining('which licences may ship')]);
   });
   it('the sample game ships exactly the files it locked', () => {
     const k = assetKeys(demo, demoManifest as never);
     expect(lockMessages(lockDiff(k, demoProvenance as Provenance, fileFacts(k), demoLock as never))).toEqual([]);
-    expect(licenceVerdict(k, demoProvenance as Provenance)).toEqual({ errors: [], warnings: [expect.stringContaining('music:swan_lake.mp3')] });
+    expect(licenceVerdict(k, demoProvenance as Provenance)).toEqual({ errors: [], accepted: [expect.stringContaining('music:swan_lake.mp3')] });
   });
 });
+
+describe('a commercial release (verify:commercial)', () => {
+  const keys = ['img:a', 'music:t.mp3'];
+  const clean: Provenance = { licences: { allow: ['own work'] }, assets: [
+    { match: 'img:*', source: 'Drawn from games/demo/prompts.md', author: 'Wano', licence: 'own work', status: 'final' },
+    { match: 'music:*', source: 'Bought', url: 'https://example.org/licence/123', author: 'A composer', licence: 'royalty-free, commercial use', status: 'final' },
+  ] };
+  const exists = (p: string) => p === 'games/demo/prompts.md';
+  it('passes complete, sellable claims', () => expect(commercialVerdict(keys, clean, exists)).toEqual([]));
+  it('refuses exceptions, placeholders, non-commercial licences, no author, nothing to check', () => {
+    const bad: Provenance = { ...clean, releaseExceptions: [{ match: 'music:t.mp3', reason: 'a demo' }], assets: [
+      { match: 'img:*', source: 'Drawn somewhere', licence: 'own work', status: 'final' },
+      { match: 'music:*', source: 'An arrangement', url: 'https://example.org', author: 'A', licence: 'CC BY-NC-SA 4.0', status: 'placeholder' },
+    ] };
+    const e = commercialVerdict(keys, bad, exists).join('\n');
+    for (const x of ['ships no exception', 'a placeholder, not for sale', 'CC BY-NC-SA 4.0 does not allow commercial use', 'img:* (1 asset(s)): no author', 'img:* (1 asset(s)): nothing to check the source against']) expect(e).toContain(x);
+  });
+  it('knows a non-commercial or no-derivatives licence', () => {
+    expect(['CC BY-NC 4.0', 'CC BY-NC-ND 4.0', 'CC BY-ND', 'non-commercial use only'].every(nonCommercial)).toBe(true);
+    expect(['CC BY 4.0', 'CC0', 'own work', 'proprietary', 'SIL OFL 1.1', 'royalty-free, commercial use'].some(nonCommercial)).toBe(false);
+  });
+  it('the sample game is not for sale: its music is CC BY-NC and a placeholder, shipped as a named exception', () => {
+    const k = assetKeys(demo, { images: demoManifest.images, videos: (demoManifest as { videos?: Record<string, unknown> }).videos });
+    const e = commercialVerdict(k, demoProvenance as Provenance, (p) => require('node:fs').existsSync(p));
+    expect(e).toHaveLength(3);
+    expect(e.every((x) => x.includes('music:swan_lake.mp3'))).toBe(true);
+  });
+});
+

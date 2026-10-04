@@ -43,7 +43,7 @@ const lockMsgs = lock ? lockMessages(lockDiff(keys, prov, files, lock)) : ['prov
 const lic = licenceVerdict(keys, prov);
 const ph = placeholderVerdict(prov, r);
 const errs = [...problems.map((p) => `provenance.json › ${p}`), ...lockMsgs, ...lic.errors, ...ph.errors];
-for (const w of [...lic.warnings, ...ph.warnings]) console.log('  ⚠ ' + w);
+for (const a of [...lic.accepted, ...ph.accepted]) console.log('  ℹ accepted: ' + a);
 for (const e of errs) console.log('  ✖ ' + e);
 console.log(`${errs.length ? '✖' : '✔'}  [${GAME}] provenance ${errs.length ? `${errs.length} thing(s) to review` : 'clean: every file is the one reviewed'}`);
 process.exit(errs.length ? 1 : 0);

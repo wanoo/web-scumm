@@ -15,6 +15,8 @@ export interface ProvenanceEntry {
   /** The licence it ships under (`CC BY 4.0`, `proprietary`, `own work`…). */
   licence: string;
   author?: string;
+  /** Where the source can be checked (a shop page, a licence, a repository): `verify:commercial` wants it, or a repository file named in `source`. */
+  url?: string;
   /** The prompt or recipe that made it, when generated. */
   prompt?: string;
   /** `placeholder`: must be replaced before a release (a warning in `validate --release`). */
@@ -77,16 +79,16 @@ export function provenanceReport(game: GameDef, manifest: { images: Record<strin
   return { keys: keys.length, uncovered, placeholders, incomplete, ambiguous };
 }
 
-/** What a release does with each placeholder: an error, unless a `releaseExceptions` entry names it with a reason (then a warning). */
-export function placeholderVerdict(prov: Provenance, r: ProvenanceReport): { errors: string[]; warnings: string[] } {
+/** What a release does with each placeholder: an error, unless a `releaseExceptions` entry names it with a reason (then accepted, said by name). */
+export function placeholderVerdict(prov: Provenance, r: ProvenanceReport): { errors: string[]; accepted: string[] } {
   const ex = (prov.releaseExceptions ?? []).filter((x) => x.match && x.reason?.trim()).map((x) => ({ x, re: glob(x.match) }));
-  const errors: string[] = [], warnings: string[] = [];
+  const errors: string[] = [], accepted: string[] = [];
   for (const k of r.placeholders) {
     const hit = ex.find(({ re }) => re.test(k));
-    if (hit) warnings.push(`provenance.json › ${k}: a placeholder ships (release exception: ${hit.x.reason.trim()})`);
+    if (hit) accepted.push(`provenance.json › ${k}: a placeholder ships (release exception: ${hit.x.reason.trim()})`);
     else errors.push(`provenance.json › ${k}: a placeholder would ship; replace it, or add a releaseExceptions entry that names it and says why`);
   }
-  return { errors, warnings };
+  return { errors, accepted };
 }
 
 /** Where an asset key's file is, under the built assets folder (`public/assets`). */
@@ -157,20 +159,46 @@ export function lockMessages(d: LockDiff): string[] {
 }
 
 /** Licences in a release: one the policy does not allow is an error, unless a `releaseExceptions` entry names the asset. */
-export function licenceVerdict(keys: string[], prov: Provenance): { errors: string[]; warnings: string[] } {
-  const errors: string[] = [], warnings: string[] = [];
+export function licenceVerdict(keys: string[], prov: Provenance): { errors: string[]; accepted: string[] } {
+  const errors: string[] = [], accepted: string[] = [];
   const allow = (prov.licences?.allow ?? []).map((x) => x.trim()).filter(Boolean);
-  if (!allow.length) return { errors: ['provenance.json › licences: a release says which licences may ship (`licences: { allow: [...] }`)'], warnings };
+  if (!allow.length) return { errors: ['provenance.json › licences: a release says which licences may ship (`licences: { allow: [...] }`)'], accepted };
   const ex = (prov.releaseExceptions ?? []).filter((x) => x.match && x.reason?.trim()).map((x) => ({ x, re: glob(x.match) }));
   const bad = new Map<string, string[]>();
   for (const k of keys) {
     const e = entryOf(prov, k);
     if (!e || allow.includes(e.licence.trim())) continue;
     const hit = ex.find(({ re }) => re.test(k));
-    if (hit) warnings.push(`provenance.json › ${k}: ships under ${e.licence}, outside the policy (release exception: ${hit.x.reason.trim()})`);
+    if (hit) accepted.push(`provenance.json › ${k}: ships under ${e.licence}, outside the policy (release exception: ${hit.x.reason.trim()})`);
     else (bad.get(e.licence) ?? (bad.set(e.licence, []), bad.get(e.licence)!)).push(k);
   }
   for (const [lic, ks] of bad) errors.push(`provenance.json › ${lic}: not in licences.allow (${allow.join(', ')}), used by ${ks.length} asset(s): ${ks.slice(0, 5).join(', ')}${ks.length > 5 ? '…' : ''}`);
-  return { errors, warnings };
+  return { errors, accepted };
+}
+
+/** A non-commercial or no-derivatives licence (`CC BY-NC 4.0`, `CC BY-NC-SA`, `CC BY-ND`, "non-commercial"…). */
+export const nonCommercial = (licence: string) => /\b(NC|ND)\b|non[- ]?commercial|no[- ]?derivatives/i.test(licence);
+
+/**
+ * `validate -- --release --commercial` (`npm run verify:commercial`): what a commercial release needs beyond a release.
+ * No exception at all (a reason is not a licence), no placeholder, no non-commercial or no-derivatives licence, and
+ * every entry names its author and where it can be checked: a `url`, or a file of the repository its `source` names
+ * (`exists` says whether a path is in the repository). The provenance file says what is claimed; this only checks that
+ * the claims are complete and allow selling the game, not that they are true.
+ */
+export function commercialVerdict(keys: string[], prov: Provenance, exists: (path: string) => boolean): string[] {
+  const errors: string[] = [];
+  for (const x of prov.releaseExceptions ?? []) errors.push(`provenance.json › releaseExceptions › ${x.match}: a commercial release ships no exception (${x.reason?.trim() || 'no reason'})`);
+  const used = new Map<ProvenanceEntry, string[]>();
+  for (const k of keys) { const e = entryOf(prov, k); if (e) (used.get(e) ?? (used.set(e, []), used.get(e)!)).push(k); }
+  for (const [e, ks] of used) {
+    const which = `${e.match} (${ks.length} asset(s))`;
+    if (e.status === 'placeholder') errors.push(`provenance.json › ${which}: a placeholder, not for sale`);
+    if (nonCommercial(e.licence)) errors.push(`provenance.json › ${which}: ${e.licence} does not allow commercial use (or changes)`);
+    if (!e.author?.trim()) errors.push(`provenance.json › ${which}: no author`);
+    const paths = [...e.source.matchAll(/\b((?:games|tools|src|public|assets)\/[\w./-]+)/g)].map((m) => m[1].replace(/[.,;:)]+$/, ''));
+    if (!e.url?.trim() && !paths.some(exists)) errors.push(`provenance.json › ${which}: nothing to check the source against (add a url, or name the repository file it was made from)`);
+  }
+  return errors;
 }
 

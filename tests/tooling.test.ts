@@ -61,6 +61,16 @@ describe('exit codes of the content tools', () => {
   const { spawnSync } = require('node:child_process') as typeof import('node:child_process');
   const run = (args: string[], env: Record<string, string> = {}) => spawnSync('npx', ['tsx', ...args], { encoding: 'utf8', env: { ...process.env, GAME: 'demo', ...env } });
 
+  it('a release of the sample game has no warning left, only named exceptions; a commercial one fails on its music', () => {
+    const rel = run(['tools/validate.ts', '--release']);
+    expect(rel.status).toBe(0);
+    expect(rel.stdout).not.toContain('warning(s)');
+    expect(rel.stdout).toContain('2 release exception(s), accepted by name');
+    const com = run(['tools/validate.ts', '--commercial', '--errors']);
+    expect(com.status).toBe(1);
+    expect(com.stdout).toContain('CC BY-NC 4.0 does not allow commercial use');
+  }, 60000);
+
   it('lint exits 2 on a truncated proof and says so in its JSON', () => {
     const r = run(['tools/lint.ts', '--prove', '--max=1', '--json']);
     expect(r.status).toBe(2);

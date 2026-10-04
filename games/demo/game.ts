@@ -50,6 +50,9 @@ export const game = defineGame({
     vehicles: { car: 'ui/r2c2', plane: 'ui/r2c1', pin: 'ui/r1c6', news: 'ui/r2c4' },
   },
   rules,
+  // `tea_drunk` (Biscuit and the teacup) is a decorative flag on purpose: the puzzle graph's example of a dead flag
+  // (tests/puzzle.test.ts), set but never read.
+  lint: { ignore: ['flag-never-read:tea_drunk'] },
   // The world reacts on its own: when the key is found (market), Grandpa goes home for the finale.
   events: [
     { id: 'game.on-key-found', on: 'key_found', once: true, do: [{ moveActor: ['grandpa', 'house'] }, { id: 'game.on-key-found.l-grandpa-went', toast: 'Grandpa went home. With the armchair.' }] },
