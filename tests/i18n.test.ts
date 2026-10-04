@@ -1,7 +1,8 @@
 // Translation tables survive refactors: a reordered list keeps its translations, a removed text is parked, a text that
 // comes back finds its translation again (mergeLocale, used by `npm run i18n -- extract --lang xx`).
 import { describe, expect, it } from 'vitest';
-import { localeStatus, mergeLocale, textPaths } from '@engine/tools/i18n';
+import { applyLocale, localeStatus, mergeLocale, textPaths } from '@engine/tools/i18n';
+import { renamePaths } from '@engine/core/content-ids';
 import { mini } from './fixtures/mini';
 
 describe('mergeLocale', () => {
@@ -40,5 +41,29 @@ describe('mergeLocale', () => {
     const m = mergeLocale(textPaths(g), table, base0);
     expect(m.remapped).toBe(0);
     expect(m.table['room:a/look.cadenas[0]']).toBe('Une valise.');
+  });
+});
+
+describe('lines keyed by id', () => {
+  it('a line with an id is addressed by it, the table follows an insertion, and the voice defaults to the id', async () => {
+    const { assignIds } = await import('@engine/core/content-ids');
+    const { Engine } = await import('@engine/core/engine');
+    const { FakePresenter, MemoryStore } = await import('@engine/core/ports');
+    const { mini, miniLayouts } = await import('./fixtures/mini');
+    const g = mini();
+    g.rooms[0].on = [{ id: 'r.open-door', verb: 'open', a: 'door', do: ['Locked.', { say: ['hero', 'Really locked.'] }] }];
+    const { game: v3, map } = assignIds(g, { lines: true });
+    const table = { 'room:a/on.r.open-door.do[0]': 'Fermé.', 'room:a/on.r.open-door.do[1].say': 'Vraiment fermé.' };
+    const renamed = renamePaths(table, map.paths);
+    expect(renamed).toEqual({ 'room:a/on.r.open-door.do[0]': 'Fermé.', 'room:a/on.r.open-door.do.r.open-door.l-really-locked.say': 'Vraiment fermé.' });
+    const fr = applyLocale(v3, renamed);
+    expect((fr.rooms[0].on![0].do[1] as { say: [string, string] }).say[1]).toBe('Vraiment fermé.');
+    // the voice: `audio.voices` keyed by the line id, no `voice` written on the line
+    v3.audio = { voices: { 'r.open-door.l-really-locked': 'really.mp3' } };
+    const ui = new FakePresenter();
+    const e = new Engine(v3, miniLayouts, ui, new MemoryStore());
+    await e.newGame();
+    await e.act({ verb: 'open', a: 'door' });
+    expect(ui.voices).toEqual(['r.open-door.l-really-locked']);
   });
 });

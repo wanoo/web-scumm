@@ -166,3 +166,15 @@ writer and every `/__studio` route behind `authorizeStudioRequest` (`tools/studi
 `env.d.ts` with `/// <reference types="vite-plugin-pwa/client" />`. The engine's `game` is a compiled clone
 (`compileGame`), frozen when `schemaVersion` is 3: a tool that mutated the object it passed to `Engine` must go
 through the engine's API.
+
+## 9. Line ids (3.2): translations and voices that survive an insertion
+
+Every `say`, `toast` and `guide` can carry a stable `id` (`house.open-door.l-just-a-door`: its owner, then the
+start of its text). A translation table and a voice clip are then keyed by it: inserting, moving or deleting a line
+never shifts the others. `npm run ids -- --lines --write --map` gives the ids to the objects that lack them and renames
+the keys of `locales/*.json` (a second pass renames from the current paths, nothing already recorded in
+`ids.migration.json` / `ids.paths.json` is lost); `--lines=all` first turns every plain string line into
+`{ say: ['hero', text], id }` for a game that voices or translates every line (verbose: the sample game keeps its
+plain strings, which stay keyed by their owner and position). `audio.voices[<line id>]` plays without writing `voice`
+on the line. `npm run validate -- --release` reports a line without an id (an error when the game has voices);
+`npm run i18n -- voices` lists the lines with an id and no clip, and the clips no line claims.

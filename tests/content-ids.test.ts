@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { assignIds, listenerActionId, renamePaths, ruleActionId, slug, topicActionId, Namer } from '@engine/core/content-ids';
+import { assignIds, lineIdFor, lineIds, linePathSeg, listenerActionId, renamePaths, ruleActionId, slug, topicActionId, Namer } from '@engine/core/content-ids';
 import { Engine } from '@engine/core/engine';
 import { migrate } from '@engine/core/migrate';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import { textPaths } from '@engine/tools/i18n';
-import type { GameDef, GameState } from '@engine/core/types';
+import type { Cmd, GameDef, GameState } from '@engine/core/types';
 import { mini, miniLayouts } from './fixtures/mini';
 import { game as demo } from '../games/demo/game';
 import idsMigration from '../games/demo/ids.migration.json';
@@ -96,5 +96,41 @@ describe('the sample game on schema 3', () => {
     expect(m.v).toBe(2);
     expect(m.seen[topicNew]).toBe(1);
     expect(m.counters[counterNew]).toBe(3);
+  });
+});
+
+describe('line ids', () => {
+  const game = (): GameDef => {
+    const g = mini();
+    g.rooms[0].on = [{ id: 'r.open-door', verb: 'open', a: 'door', do: ['Locked.', { say: ['hero', 'Really locked.'] }, { toast: 'Try the key' }, { cutscene: [{ say: ['hero', 'Inside.'] }] }] }];
+    return g;
+  };
+  it('names a line by its owner and its text, keeps written ids, converts plain strings only with `all`', () => {
+    const a = assignIds(game(), { lines: true });
+    const rule = a.game.rooms[0].on![0];
+    expect(rule.do[0]).toBe('Locked.');
+    expect(rule.do[1]).toMatchObject({ id: 'r.open-door.l-really-locked' });
+    expect(rule.do[2]).toMatchObject({ id: 'r.open-door.l-try-the-key' });
+    expect((rule.do[3] as { cutscene: Cmd[] }).cutscene[0]).toMatchObject({ id: 'r.open-door.l-inside' });
+    expect(lineIdFor('x', 'Hello, world! How are you today?')).toBe('x.l-hello-world-how');
+    const all = assignIds(game(), { lines: 'all' });
+    expect(all.game.rooms[0].on![0].do[0]).toEqual({ say: ['hero', 'Locked.'], id: 'r.open-door.l-locked' });
+    const again = assignIds(a.game, { lines: true });
+    expect(again.added).toBe(0);
+    expect(lineIds(a.game).map((l) => l.id)).toEqual(['r.open-door.l-really-locked', 'r.open-door.l-try-the-key', 'r.open-door.l-inside']);
+  });
+  it('maps the translation paths from the current ones (a second pass on a schema-3 game), and an insertion keeps them', () => {
+    const a = assignIds(game(), { lines: true });
+    expect(a.map.paths['room:a/on.r.open-door.do[1]']).toBe('room:a/on.r.open-door.do.r.open-door.l-really-locked');
+    expect(a.map.paths['room:a/on.r.open-door.do[3].cutscene[0]']).toBe('room:a/on.r.open-door.do[3].cutscene.r.open-door.l-inside');
+    const paths = textPaths(a.game).map((p) => p.path);
+    expect(paths).toContain('room:a/on.r.open-door.do.r.open-door.l-really-locked.say');
+    expect(paths).toContain('room:a/on.r.open-door.do.r.open-door.l-try-the-key.toast');
+    // A line inserted before the others: the ids, and so the paths of the existing lines, do not move.
+    const g2 = structuredClone(a.game);
+    g2.rooms[0].on![0].do.unshift({ say: ['hero', 'Hmm.'] });
+    const b = assignIds(g2, { lines: true });
+    expect(textPaths(b.game).map((p) => p.path)).toContain('room:a/on.r.open-door.do.r.open-door.l-really-locked.say');
+    expect(linePathSeg(0, 'plain')).toBe('[0]');
   });
 });

@@ -848,7 +848,7 @@ export class Engine {
     const o = this.cur;
     if (o) { if (o.src?.skipAt === o.steps) this.skipping = true; o.steps++; }
     if (typeof c === 'string') return this.say(HERO, c, ctx);
-    if ('say' in c) return this.say(c.say[0], c.say[1], ctx, !!c.shout, c.voice);
+    if ('say' in c) return this.say(c.say[0], c.say[1], ctx, !!c.shout, c.voice ?? (c.id && this.game.audio?.voices?.[c.id] ? c.id : undefined));
     if ('walk' in c) {
       const who = this.who(c.who ?? HERO);
       const end = await this.ui.walk(who, this.point(c.walk, room), ctx.fast);

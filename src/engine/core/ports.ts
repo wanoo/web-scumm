@@ -79,7 +79,9 @@ export class FakePresenter implements Presenter {
   mapPicks: (Id | null)[] = [];
   heroAt: Point = [320, 360];
   async enterRoom(room: RoomDef) { this.log.push(`enter ${room.id}`); }
-  async say(who: Id, text: string) { this.log.push(`${who}: ${text}`); }
+  /** The voice clips the engine asked for, in order (`voice` of each line). */
+  voices: Id[] = [];
+  async say(who: Id, text: string, o?: { voice?: Id }) { this.log.push(`${who}: ${text}`); if (o?.voice) this.voices.push(o.voice); }
   async walk(who: Id, to: Point) { this.log.push(`walk ${who} ${to.join(',')}`); return to; }
   face() {}
   pose(who: Id, pose: string) { this.log.push(`pose ${who} ${pose}`); }

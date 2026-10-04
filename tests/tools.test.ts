@@ -39,3 +39,20 @@ describe('minigame bindings', () => {
     expect(validate(bad, layouts, { minigameBindings: bindings }).errors.some((e) => e.includes('unknown sound'))).toBe(false);
   });
 });
+
+describe('line ids at release time', () => {
+  const lines = (): GameDef => {
+    const g = structuredClone(game) as GameDef;
+    g.rooms[0].on!.push({ verb: 'use', a: 'lamp', do: [{ say: ['hero', 'No id here.'] }, { id: 'x.l-dup', say: ['hero', 'One'] }, { id: 'x.l-dup', toast: 'Two' }] });
+    return g;
+  };
+  it('a duplicate line id is always an error; a missing one only at --release, as a warning without voices', () => {
+    const plain = validate(lines(), layouts);
+    expect(plain.errors.some((e) => e.includes('line id "x.l-dup" is already used'))).toBe(true);
+    expect(plain.warnings.some((w) => w.includes('no stable id'))).toBe(false);
+    const release = validate(lines(), layouts, { release: true });
+    expect(release.warnings.some((w) => w.includes('no stable id'))).toBe(true);
+    const voiced = lines(); voiced.audio = { ...(voiced.audio ?? {}), voices: { 'x.l-dup': 'dup.mp3' } };
+    expect(validate(voiced, layouts, { release: true }).errors.some((e) => e.includes('no stable id'))).toBe(true);
+  });
+});

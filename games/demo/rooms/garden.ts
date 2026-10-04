@@ -56,7 +56,7 @@ export default defineRoom({
         { cutscene: [
           { prop: ['tank', 'draining'] }, { sfx: 'drop' }, { shake: 300 }, { set: 'tank_drained' },
           { pose: ['grandpa', 'surprised'] },
-          { say: ['grandpa', 'Look! Something at the bottom!'] },
+          { id: 'garden.use-pipe-tank.l-look-something', say: ['grandpa', 'Look! Something at the bottom!'] },
           { wait: 500 },
           'That is not a key. That is a sock.',
           { pose: ['grandpa', 'idle'] },
@@ -71,7 +71,7 @@ export default defineRoom({
     { id: 'garden.look-sock', verb: 'look', a: 'sock', do: [
       { if: '!lou_has_key', then: [
         { sfx: 'paper' }, 'A wet sock. With a note inside!', 'It says: "Borrowed the key to copy it. Lou."', { set: 'lou_has_key' },
-        { say: ['grandpa', 'Lou, the neighbour! Call Lou with the shell phone.'] },
+        { id: 'garden.look-sock.l-lou-the-neighbou', say: ['grandpa', 'Lou, the neighbour! Call Lou with the shell phone.'] },
       ], else: ['A sock. Lou leaves socks everywhere.'] },
     ] },
     { id: 'garden.take-sock', verb: 'take', a: 'sock', do: ['A wet sock. Cat rule number two: never touch wet things.'] },
@@ -86,17 +86,17 @@ export default defineRoom({
     grandpa: [
       { id: 'garden.grandpa.where-is-the-key', topic: 'Where is the key?', if: '!tank_drained', do: [
         { id: 'garden.grandpa.where-is-the-key.nth', nth: [
-          [{ say: ['grandpa', 'The key? It fell in the water tank. Plop.'] }, { say: ['grandpa', 'Drain it. But the tap is stuck.'] }],
-          [{ say: ['grandpa', 'Still stuck? Try a pipe. Pipes are good with water.'] }],
-          [{ pose: ['grandpa', 'laugh'] }, { say: ['grandpa', 'Ha! A cat doing plumbing. I love it.'] }, { pose: ['grandpa', 'idle'] }],
+          [{ id: 'garden.grandpa.where-is-the-key.nth.l-the-key-it-fell', say: ['grandpa', 'The key? It fell in the water tank. Plop.'] }, { id: 'garden.grandpa.where-is-the-key.nth.l-drain-it-but-the', say: ['grandpa', 'Drain it. But the tap is stuck.'] }],
+          [{ id: 'garden.grandpa.where-is-the-key.nth.l-still-stuck-try', say: ['grandpa', 'Still stuck? Try a pipe. Pipes are good with water.'] }],
+          [{ pose: ['grandpa', 'laugh'] }, { id: 'garden.grandpa.where-is-the-key.nth.l-ha-a-cat-doing', say: ['grandpa', 'Ha! A cat doing plumbing. I love it.'] }, { pose: ['grandpa', 'idle'] }],
         ] },
       ] },
       { id: 'garden.grandpa.there-was-no-key-in-the', topic: 'There was no key in the tank!', if: 'tank_drained', do: [
-        { say: ['grandpa', 'No? Only a sock? Read the sock. Socks always have something to say.'] },
+        { id: 'garden.grandpa.there-was-no-key-in-the.l-no-only-a-sock', say: ['grandpa', 'No? Only a sock? Read the sock. Socks always have something to say.'] },
       ] },
-      { id: 'garden.grandpa.why-is-your-armchair', topic: 'Why is your armchair outside?', do: [{ say: ['grandpa', 'It wanted some sun. Armchairs need vitamins too.'] }] },
+      { id: 'garden.grandpa.why-is-your-armchair', topic: 'Why is your armchair outside?', do: [{ id: 'garden.grandpa.why-is-your-armchair.l-it-wanted-some', say: ['grandpa', 'It wanted some sun. Armchairs need vitamins too.'] }] },
       { id: 'garden.grandpa.are-you-fixing-the-pipes', topic: 'Are you fixing the pipes?', do: [
-        { say: ['grandpa', 'Yes. With my eyes closed. I am an expert.'] },
+        { id: 'garden.grandpa.are-you-fixing-the-pipes.l-yes-with-my-eyes', say: ['grandpa', 'Yes. With my eyes closed. I am an expert.'] },
         { pose: ['grandpa', 'slumped'] }, { wait: 900 }, { pose: ['grandpa', 'idle'] },
       ] },
     ],
@@ -113,7 +113,7 @@ export default defineRoom({
 
   onEnter: [
     { id: 'garden.enter.once', once: [
-      { say: ['grandpa', 'Pixel! Did you come to help me fix the pipes?'] },
+      { id: 'garden.enter.once.l-pixel-did-you', say: ['grandpa', 'Pixel! Did you come to help me fix the pipes?'] },
       'I came for a key. And sardines.',
     ] },
   ],

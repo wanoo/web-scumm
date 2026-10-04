@@ -6,7 +6,7 @@
 import type { Cmd, GameDef, RoomDef } from '../core/types';
 import type { Minigame } from '../minigames/types';
 import { subLists } from '../core/cmds';
-import { choicePathSeg, eventPathSeg, rulePathSeg, topicPathSeg } from '../core/content-ids';
+import { choicePathSeg, eventPathSeg, rulePathSeg, topicPathSeg, linePathSeg } from '../core/content-ids';
 
 type Fn = (path: string, text: string) => string | undefined;
 export type MinigameTexts = Record<string, Pick<Minigame, 'textParams'>>;
@@ -41,7 +41,8 @@ function paramText(value: unknown, parts: string[], path: string, fn: Fn): void 
 /** Walks a command list; `fn` may replace a text (the list is changed in place). */
 function cmds(list: Cmd[] | undefined, path: string, fn: Fn, minigames: MinigameTexts) {
   list?.forEach((c, i) => {
-    const p = `${path}[${i}]`;
+    // A line with an id is keyed by it (`do.house.open-door.l-locked.say`), else by its position (`do[3]`).
+    const p = `${path}${linePathSeg(i, c)}`;
     if (typeof c === 'string') { const r = fn(p, c); if (r !== undefined) list[i] = r; return; }
     if ('say' in c) { const r = fn(`${p}.say`, c.say[1]); if (r !== undefined) c.say[1] = r; }
     else if ('toast' in c) { const r = fn(`${p}.toast`, c.toast); if (r !== undefined) c.toast = r; }

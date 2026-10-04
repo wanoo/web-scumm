@@ -175,6 +175,9 @@ npm run solve -- --profile         # what the states are made of and what the se
 npm run solve -- --por=stubborn    # partial-order reduction: commuting actions one at a time (fewer states, same proof)
 npm run replay -- session.json     # plays a session file on the real engine, prints the journal and the final state
 npm run ids [-- --write --map]     # stable ids (schema 3) written into the sources, locales renamed, the save migration step (docs/en/UPGRADING.md)
+npm run ids -- --lines [--write --map]   # an id on every say / toast / guide object (--lines=all: plain strings too): translations and voices keyed by it (UPGRADING §9)
+npm run i18n -- voices             # the lines with an id and no voice clip, the clips no line claims
+npm run validate -- --release      # also: a line without a stable id (error when the game has voices)
 npm run playtests [-- --strict --out=.cache/playtests]  # the sessions players shared (games/<id>/playtests) replayed and summed up: time per room, stalls, hints, heat map
 npm run e2e -- <url> --lang fr           # the whole game in that language; fails on any visible English default of the engine
 npm run lint [-- --prove | --static | --json]   # content lint: conditions nothing can satisfy, hidden rules, red herrings, stuck hints, actions never run

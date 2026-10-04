@@ -28,6 +28,8 @@ export const rulePathSeg = (index: number, rule: Rule) => (rule.id ? `on.${rule.
 export const topicPathSeg = (actor: Id, index: number, topic: TalkTopic) => (topic.id ? `talk.${actor}.${topic.id}` : `talk.${actor}[${index}]`);
 /** `.choice.<id>` in v3, `.choice[<j>]` in v2. */
 export const choicePathSeg = (index: number, option: Choice) => (option.id ? `.choice.${option.id}` : `.choice[${index}]`);
+/** A line command (`say`, `toast`, `guide`) with an id: `.<id>` replaces `[<i>]` in its translation path. */
+export const linePathSeg = (index: number, c: Cmd) => (typeof c !== 'string' && 'id' in c && c.id && ('say' in c || 'toast' in c || 'guide' in c) ? `.${c.id}` : `[${index}]`);
 /** `events.<id>` in v3, `events[<i>]` in v2. */
 export const eventPathSeg = (index: number, ev: EventRule) => (ev.id ? `events.${ev.id}` : `events[${index}]`);
 
@@ -69,6 +71,9 @@ export const listenerIdFor = (scope: string, ev: EventRule) => `${scope}.on-${sl
 export const choiceIdFor = (owner: string, option: Choice) => `${owner}.c-${slug(option.text, 16)}`;
 export const blockIdFor = (owner: string, kind: BlockKind) => `${owner}.${kind}`;
 export const stepIdFor = (script: Id, cmd: Cmd) => `${script}.${slug(cmdName(cmd), 12)}`;
+/** A line's id: its owner (rule, topic, block, choice, script) and the start of its text. */
+export const lineIdFor = (owner: string, text: string) => `${owner}.l-${slug(text, 16)}`;
+const lineText = (c: Cmd): string | undefined => typeof c === 'string' ? undefined : 'say' in c ? c.say[1] : 'toast' in c ? c.toast : 'guide' in c ? c.guide.say : undefined;
 
 // ------------------------------------------------------------------ assignment, with the map from v2 keys to v3 ids
 
@@ -86,13 +91,23 @@ export interface IdMap {
 
 export interface AssignedIds { game: GameDef; map: IdMap; added: number }
 
+export interface AssignOptions {
+  /**
+   * Also give the lines an id: `true` names the `say` / `toast` / `guide` objects that have none; `'all'` first turns
+   * every plain string line into `{ say: ['hero', text] }` so that it can carry one (verbose: for a game that voices
+   * or translates every line). Default: lines keep their position inside their owner.
+   */
+  lines?: boolean | 'all';
+}
+
 /**
  * Gives every rule, topic, listener, choice option, once/nth/cycle/random block and script step a stable id when it
  * has none, on a clone of the source (the source is never touched), and returns the map a v2 save or translation
  * table needs to follow. Deterministic: the same content yields the same ids. Does not set `schemaVersion`.
  */
-export function assignIds(source: GameDef): AssignedIds {
+export function assignIds(source: GameDef, options: AssignOptions = {}): AssignedIds {
   const game = structuredClone(source);
+  const lines = options.lines ?? false;
   // The v2 keys this content had: positional counters (`assignKeys` fills `key`), positional seen keys by convention.
   const old = assignKeys(structuredClone(source));
   const map: IdMap = { seen: {}, counters: {}, paths: {}, labels: {} };
@@ -103,8 +118,18 @@ export function assignIds(source: GameDef): AssignedIds {
   /** Walks a command list of the new game next to the same list of the old one, naming blocks and choices under `owner`. */
   const walk = (list: Cmd[] | undefined, oldList: Cmd[] | undefined, owner: string, oldPrefix: string, newPrefix: string, room: Id | undefined) => {
     list?.forEach((c, i) => {
-      if (typeof c === 'string') return;
+      if (typeof c === 'string') {
+        if (lines !== 'all') return;
+        c = { say: ['hero', c] }; list[i] = c;
+      }
       const o = oldList?.[i];
+      const text = lineText(c);
+      if (text !== undefined) {
+        const line = c as { id?: Id };
+        if (lines && !line.id) line.id = give(lineIdFor(owner, text));
+        if (line.id) map.paths[`${oldPrefix}${linePathSeg(i, o ?? c)}`] = `${newPrefix}${linePathSeg(i, c)}`;
+        return;
+      }
       const was = `${oldPrefix}[${i}]`, here = `${newPrefix}[${i}]`;
       const kind = blockKind(c);
       if (kind) {
@@ -121,7 +146,7 @@ export function assignIds(source: GameDef): AssignedIds {
       if ('choice' in c) {
         const oldChoice = o && typeof o !== 'string' && 'choice' in o ? o.choice : undefined;
         c.choice.forEach((opt, j) => {
-          const oldSeg = `${was}.choice[${j}]`;
+          const oldSeg = `${was}${choicePathSeg(j, oldChoice?.[j] ?? { text: opt.text, do: [] })}`;
           if (!opt.id) {
             opt.id = give(choiceIdFor(owner, opt));
             if (room) map.seen[`choice.${room}.${opt.text}`] = `choice.${opt.id}`;
@@ -151,8 +176,9 @@ export function assignIds(source: GameDef): AssignedIds {
         rule.id = give(ruleIdFor(scope, rule));
         map.labels[`rule:${scope}/on[${i}]`] = `rule:${rule.id}`;
       }
-      map.paths[`${pathBase}on[${i}]`] = `${pathBase}${rulePathSeg(i, rule)}`;
-      walk(rule.do, oldList?.[i]?.do, rule.id!, `${pathBase}on[${i}].do`, `${pathBase}${rulePathSeg(i, rule)}.do`, room);
+      const oldSeg = `${pathBase}${rulePathSeg(i, oldList?.[i] ?? rule)}`;
+      map.paths[oldSeg] = `${pathBase}${rulePathSeg(i, rule)}`;
+      walk(rule.do, oldList?.[i]?.do, rule.id!, `${oldSeg}.do`, `${pathBase}${rulePathSeg(i, rule)}.do`, room);
     });
   };
   const events = (list: EventRule[] | undefined, oldList: EventRule[] | undefined, scope: string, pathBase: string, room: Id | undefined) => {
@@ -162,8 +188,9 @@ export function assignIds(source: GameDef): AssignedIds {
         map.seen[`event.${scope}.${i}`] = `event.${ev.id}`;
         map.labels[`listener:${scope}/events[${i}]`] = `listener:${ev.id}`;
       }
-      map.paths[`${pathBase}events[${i}]`] = `${pathBase}${eventPathSeg(i, ev)}`;
-      walk(ev.do, oldList?.[i]?.do, ev.id!, `${pathBase}events[${i}].do`, `${pathBase}${eventPathSeg(i, ev)}.do`, room);
+      const oldSeg = `${pathBase}${eventPathSeg(i, oldList?.[i] ?? ev)}`;
+      map.paths[oldSeg] = `${pathBase}${eventPathSeg(i, ev)}`;
+      walk(ev.do, oldList?.[i]?.do, ev.id!, `${oldSeg}.do`, `${pathBase}${eventPathSeg(i, ev)}.do`, room);
     });
   };
   const scripts = (list: ScriptDef[] | undefined, oldList: ScriptDef[] | undefined, pathBase: string, room: Id | undefined) => {
@@ -186,8 +213,9 @@ export function assignIds(source: GameDef): AssignedIds {
         map.seen[`${r.id}.${actor}.${i}`] = `topic.${t.id}`;
         map.labels[`topic:${r.id}/${actor}[${i}]`] = `topic:${t.id}`;
       }
-      map.paths[`${P}talk.${actor}[${i}]`] = `${P}${topicPathSeg(actor, i, t)}`;
-      walk(t.do, o.talk?.[actor]?.[i]?.do, t.id!, `${P}talk.${actor}[${i}].do`, `${P}${topicPathSeg(actor, i, t)}.do`, r.id);
+      const oldSeg = `${P}${topicPathSeg(actor, i, o.talk?.[actor]?.[i] ?? t)}`;
+      map.paths[oldSeg] = `${P}${topicPathSeg(actor, i, t)}`;
+      walk(t.do, o.talk?.[actor]?.[i]?.do, t.id!, `${oldSeg}.do`, `${P}${topicPathSeg(actor, i, t)}.do`, r.id);
     });
     events(r.events, o.events, r.id, P, r.id);
     scripts(r.scripts, o.scripts, P, r.id);
@@ -201,11 +229,45 @@ export function assignIds(source: GameDef): AssignedIds {
   return { game, map, added };
 }
 
+/** Every line of the game that carries an id: who speaks, the text, and the id (`npm run i18n -- voices`). */
+export function lineIds(game: GameDef): { id: Id; who: Id; text: string }[] {
+  const out: { id: Id; who: Id; text: string }[] = [];
+  const walk = (list: Cmd[] | undefined) => list?.forEach((c) => {
+    if (typeof c === 'string') return;
+    const text = lineText(c);
+    if (text !== undefined) { const id = (c as { id?: Id }).id; if (id) out.push({ id, who: 'say' in c ? c.say[0] : 'hero', text }); return; }
+    const kind = blockKind(c);
+    if (kind) { blockLists(c, kind).forEach(walk); return; }
+    if ('choice' in c) { c.choice.forEach((o) => walk(o.do)); return; }
+    if ('parallel' in c) { c.parallel.forEach(walk); return; }
+    if ('if' in c) { walk(c.then); walk(c.else); }
+    else if ('cutscene' in c) walk(c.cutscene);
+    else if ('minigame' in c) walk(c.then);
+    else if ('phone' in c) walk(c.do);
+    else if ('anim' in c && c.at) Object.values(c.at).forEach(walk);
+    else if ('ending' in c || 'reveal' in c) walk((c as { after?: Cmd[] }).after);
+  });
+  for (const r of game.rooms) {
+    r.on?.forEach((x) => walk(x.do));
+    for (const topics of Object.values(r.talk ?? {})) topics.forEach((t) => walk(t.do));
+    r.events?.forEach((e) => walk(e.do));
+    r.scripts?.forEach((s) => walk(s.do));
+    walk(r.onEnter);
+    for (const p of Object.values(r.props ?? {})) for (const a of Object.values(p.anims ?? {})) Object.values(a.at ?? {}).forEach(walk);
+  }
+  game.rules.on?.forEach((x) => walk(x.do));
+  game.events?.forEach((e) => walk(e.do));
+  game.scripts?.forEach((s) => walk(s.do));
+  walk(game.start.intro);
+  return out;
+}
+
 /** Every id already written in the content (rules, topics, listeners, choices, blocks, step ids), so new ones never collide. */
 export function existingIds(game: GameDef): Set<string> {
   const out = new Set<string>();
   const walk = (list: Cmd[] | undefined) => list?.forEach((c) => {
     if (typeof c === 'string') return;
+    if (lineText(c) !== undefined) { const id = (c as { id?: Id }).id; if (id) out.add(id); return; }
     const kind = blockKind(c);
     if (kind) { if ((c as Block).id) out.add((c as Block).id!); blockLists(c, kind).forEach(walk); return; }
     if ('choice' in c) { c.choice.forEach((o) => { if (o.id) out.add(o.id); walk(o.do); }); return; }

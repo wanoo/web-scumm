@@ -1,10 +1,13 @@
-// npm run ids [-- --write] [--map]
+// npm run ids [-- --write] [--map] [--lines | --lines=all]
 // Gives the current game's rules, topics, listeners, choices, once/nth/cycle/random blocks and script steps their
 // stable ids (schema v3). Without flags: a dry run that prints what would be written and what must be done by hand.
 // --write: edits games/<id>/rooms/*.ts, rules.ts and game.ts in place (quotes and indentation kept), and renames the
 //          keys of games/<id>/locales/*.json to the id-based paths.
 // --map:   writes games/<id>/ids.migration.json (the `renameSeen` / `renameCounter` step for `migrations`) and
 //          games/<id>/ids.paths.json (old translation path → new), and prints the three manual steps.
+// --lines: also give every `say` / `toast` / `guide` object a stable id (translations and voice clips follow it);
+//          --lines=all first turns every plain string line into `{ say: ['hero', text], id }` (verbose, for a game that
+//          voices or translates every line). Without it, lines stay keyed by their position inside their owner.
 // The game: GAME, else package.json → config.game (tools/game.ts). Safe to run again: nothing is renamed twice.
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -14,8 +17,10 @@ import { addIdsToGameSource, addIdsToRoomSource, addIdsToRulesSource, roomIdOf, 
 
 const write = process.argv.includes('--write');
 const wantMap = process.argv.includes('--map');
+const linesArg = process.argv.find((a) => a === '--lines' || a.startsWith('--lines='));
+const lines = linesArg === '--lines=all' ? 'all' as const : linesArg ? true : false;
 const { game } = await loadGameModule();
-const { game: assigned, map, added } = assignIds(game);
+const { game: assigned, map, added } = assignIds(game, { lines });
 
 const rel = (f: string) => relative(ROOT, f);
 const results: { file: string; r: CodemodResult }[] = [];
@@ -57,13 +62,21 @@ if (write) {
 }
 
 if (wantMap) {
-  const migration = { from: game.saveVersion, renameSeen: map.seen, renameCounter: map.counters };
+  // A second pass (line ids on a schema-3 game) adds to the files of the first: nothing already recorded is lost.
+  const readJson = (f: string) => { try { return JSON.parse(readFileSync(f, 'utf8')) as Record<string, unknown>; } catch { return undefined; } };
+  const prev = readJson(join(GAME_DIR, 'ids.migration.json'));
+  const moved = Object.keys(map.seen).length + Object.keys(map.counters).length;
+  const migration = moved || !prev
+    ? { from: (prev?.from as number | undefined) ?? game.saveVersion, renameSeen: { ...((prev?.renameSeen as Record<string, string>) ?? {}), ...map.seen }, renameCounter: { ...((prev?.renameCounter as Record<string, string>) ?? {}), ...map.counters } }
+    : prev;
   writeFileSync(join(GAME_DIR, 'ids.migration.json'), JSON.stringify(migration, null, 2) + '\n');
-  writeFileSync(join(GAME_DIR, 'ids.paths.json'), JSON.stringify(map.paths, null, 2) + '\n');
+  const prevPaths = (readJson(join(GAME_DIR, 'ids.paths.json')) as Record<string, string> | undefined) ?? {};
+  writeFileSync(join(GAME_DIR, 'ids.paths.json'), JSON.stringify({ ...prevPaths, ...map.paths }, null, 2) + '\n');
   console.log(`\nWritten: ${rel(join(GAME_DIR, 'ids.migration.json'))} (${Object.keys(map.seen).length} seen, ${Object.keys(map.counters).length} counter keys), ${rel(join(GAME_DIR, 'ids.paths.json'))} (${Object.keys(map.paths).length} paths)`);
 }
 
-if (!write || !wantMap || game.schemaVersion !== 3) {
+const keysMoved = Object.keys(map.seen).length + Object.keys(map.counters).length > 0;
+if (!write || (wantMap && keysMoved) || game.schemaVersion !== 3) {
   console.log(`\nTo finish by hand in ${rel(gameFile)}:`);
   console.log(`  1. schemaVersion: 3`);
   console.log(`  2. saveVersion: ${game.saveVersion + 1}`);

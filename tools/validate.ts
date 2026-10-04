@@ -1,4 +1,5 @@
 // npm run validate: checks the game content (references, text, geometry). --report: the content profiler (Markdown).
+// --release: a line without a stable id is reported (an error when the game has voices, else a warning).
 // The game: GAME, otherwise package.json → config.game (see tools/game.ts).
 import { resolve } from 'node:path';
 import { validate } from '../src/engine/tools/validate';
@@ -8,6 +9,7 @@ import { GAME, GAME_DIR, loadGameModule } from './game';
 
 const mod = await loadGameModule();
 const game = mod.game;
+const release = process.argv.includes('--release');
 const layouts = loadLayouts(resolve(GAME_DIR, 'layout'));
 const assets = loadAssets(resolve(GAME_DIR, 'assets.gen.json'));
 let minigames: Record<string, { required?: string[] }> | undefined;
@@ -17,7 +19,7 @@ const minigameParams = minigames ? Object.fromEntries(Object.entries(minigames).
 const minigameBindings = minigames ? Object.fromEntries(Object.entries(minigames).map(([k, m]) => [k, (m as { bindings?: { images?: string[]; sfx?: string[] } }).bindings ?? {}])) : undefined;
 
 if (process.argv.includes('--report')) { process.stdout.write(reportMarkdown(report(game, layouts, { locales: loadLocales(resolve(GAME_DIR, 'locales')) }))); process.exit(0); }
-const { errors, warnings } = validate(game, layouts, { assets, minigameIds, minigameParams, minigameBindings, commands: mod.commands });
+const { errors, warnings } = validate(game, layouts, { assets, minigameIds, minigameParams, minigameBindings, commands: mod.commands, release });
 const quiet = process.argv.includes('--errors');
 if (!quiet && warnings.length) {
   console.log(`\n⚠  ${warnings.length} warning(s)`);

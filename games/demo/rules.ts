@@ -28,13 +28,13 @@ export const rules: GameRules = {
     { id: 'game.talk-shell-phone', verb: 'talk', a: 'shell_phone', if: { all: ['lou_has_key', { not: { unlocked: 'market' } }] }, do: [
       'Shell phone, call Lou!',
       { phone: ['neighbor', 'seller'], do: [
-        { say: ['neighbor', 'Lou speaking. Oh, hi Pixel!'] },
+        { id: 'game.talk-shell-phone.l-lou-speaking-oh', say: ['neighbor', 'Lou speaking. Oh, hi Pixel!'] },
         'Lou! You have Grandma\'s key!',
-        { say: ['neighbor', 'Had. I am at the market. Come and get it!'] },
-        { say: ['seller', 'LOU! Your lantern is ready!'], shout: true },
-        { say: ['neighbor', 'Hurry up, it is busy here. Bye!'] },
+        { id: 'game.talk-shell-phone.l-had-i-am-at-the', say: ['neighbor', 'Had. I am at the market. Come and get it!'] },
+        { id: 'game.talk-shell-phone.l-lou-your-lantern', say: ['seller', 'LOU! Your lantern is ready!'], shout: true },
+        { id: 'game.talk-shell-phone.l-hurry-up-it-is', say: ['neighbor', 'Hurry up, it is busy here. Bye!'] },
       ] },
-      { unlock: 'market' }, { sfx: 'bell' }, { toast: 'New on the map: the market' },
+      { unlock: 'market' }, { sfx: 'bell' }, { id: 'game.talk-shell-phone.l-new-on-the-map', toast: 'New on the map: the market' },
     ] },
   ],
 };
