@@ -27,7 +27,8 @@ const exitCode = (r: Awaited<ReturnType<typeof solve>>) => r.status === 'truncat
 
 if (process.argv.includes('--chapters') && mode === 'prove') {
   const p = await proveChapters(game, layouts, { maxStates, commands, mode: 'prove' });
-  if (!p.chapters.length) { console.log('✖  No checkpoint declares `goals`: nothing to prove by chapter'); process.exit(1); }
+  // A game without chapters is proved by the global search (`--prove`): nothing more to do here, and not a failure.
+  if (!p.chapters.length) { console.log('ℹ  No checkpoint declares `goals`: no chapter to prove (the global proof covers the game)'); process.exit(0); }
   if (asJson) { console.log(JSON.stringify({ status: p.status, ms: p.ms, chapters: p.chapters.map(({ results, ...c }) => ({ ...c, softlockCauses: results.flatMap((r) => r.softlockCauses) })) })); process.exit(p.status === 'solved' ? 0 : p.status === 'truncated' ? 2 : 1); }
   for (const c of p.chapters) {
     const ok = c.status === 'solved' && !c.checkpointUnreachable;
@@ -44,7 +45,7 @@ if (process.argv.includes('--chapters') && mode === 'prove') {
 
 if (process.argv.includes('--chapters')) {
   const cps = Object.entries(game.checkpoints ?? {}).filter(([, c]) => c.goals?.length);
-  if (!cps.length) { console.log('✖  No checkpoint declares `goals`: nothing to solve by chapter'); process.exit(1); }
+  if (!cps.length) { console.log('ℹ  No checkpoint declares `goals`: no chapter to solve (the global search covers the game)'); process.exit(0); }
   let prev: string | null = null;
   let bad = 0;
   for (const [id, c] of cps) {

@@ -17,15 +17,19 @@ async function* walk(dir: string): AsyncGenerator<string> {
 }
 
 async function main() {
-  let cfgPath = resolve(GAME_DIR, 'private/ending.config.ts');
-  try { await access(cfgPath); } catch { cfgPath = resolve(GAME_DIR, 'ending.config.example.ts'); }
-  const { config } = await import(cfgPath);
+  // A game without a sealed ending has no text to hide: only the private-file check below applies.
+  const exists = (p: string) => access(p).then(() => true, () => false);
+  const cfgPath = (await exists(resolve(GAME_DIR, 'private/ending.config.ts'))) ? resolve(GAME_DIR, 'private/ending.config.ts')
+    : (await exists(resolve(GAME_DIR, 'ending.config.example.ts'))) ? resolve(GAME_DIR, 'ending.config.example.ts') : null;
   const needles: string[] = [];
-  const strip = (h: string) => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-  for (const o of Object.values(config.outcomes) as { ticket: string; headline: string; lines?: string[] }[]) {
-    needles.push(o.headline, ...strip(o.ticket).split(' ').length > 2 ? [strip(o.ticket)] : [], ...(o.lines ?? []));
+  if (cfgPath) {
+    const { config } = await import(cfgPath);
+    const strip = (h: string) => h.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    for (const o of Object.values(config.outcomes) as { ticket: string; headline: string; lines?: string[] }[]) {
+      needles.push(o.headline, ...strip(o.ticket).split(' ').length > 2 ? [strip(o.ticket)] : [], ...(o.lines ?? []));
+    }
+    needles.push(config.message.split('\n')[0]);
   }
-  needles.push(config.message.split('\n')[0]);
   const dist = resolve(root, 'dist');
   try { await access(dist); } catch { console.error('dist/ not found: run npm run build first.'); process.exit(1); }
   let bad = 0;
@@ -43,8 +47,8 @@ async function main() {
   if (bin) {
     const s = bin.toString('latin1');
     if (s.includes('ticket') || s.includes('headline')) { console.error('✘ dossier.bin contains clear-text JSON.'); bad++; }
-  } else console.warn('⚠ dist/data/dossier.bin missing (npm run seal not run?)');
+  } else if (cfgPath) console.warn('⚠ dist/data/dossier.bin missing (npm run seal not run?)');
   if (bad) { console.error(`${bad} leak(s) found.`); process.exit(1); }
-  console.log('✔ No sealed-ending text in clear text in dist/.');
+  console.log(cfgPath ? '✔ No sealed-ending text in clear text in dist/.' : '✔ No sealed ending in this game; no private file in dist/.');
 }
 main();

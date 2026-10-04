@@ -248,6 +248,30 @@ dans les deux familles d'adresses, aucune redirection, un délai et un plafond s
 `v3-release-truth` : la release part du succès de la CI du tag, une sauvegarde figée 3.1.0, l'audit complet des
 dépendances, D5/D7/D8/D9 consignées. Le jeu de référence privé reste en 3.1.0 (D8).
 
+## v3.2 « Production » (4 octobre 2026) : identité, sauvegardes, preuve, accessibilité et assets sur lesquels une équipe peut compter
+
+La seconde moitié de l'horizon de Codex (LOG #25), une branche à la fois, chacune fusionnée sur CI verte (D9) :
+`v32-bindings` (une table des textes anglais du moteur, un e2e en langue de release qui échoue sur tout texte par
+défaut visible, liaisons des mini-jeux validées), `v32-line-ids` (un id stable par ligne : traductions et voix le
+suivent, `npm run ids -- --lines`), `v32-save-results` (effacer et importer disent ce qu'ils ont fait et ne perdent
+jamais la partie, sauvegardes figées 3.0.0 et 3.1.0, une sauvegarde aller-retour dans un vrai navigateur avec et sans
+IndexedDB), `v32-proof-scale` (chaque softlock compté et regroupé par cause, la preuve par chapitres depuis chaque
+état frontière atteignable, checkpoints vérifiés, un budget ; les réductions mesurées et tenues hors du mode preuve ;
+BENCH.md dit où la preuve s'arrête : les jeux à plusieurs personnages), `v32-a11y-gate` (chaque mini-jeu livré se joue
+au clavier, axe-core sur quatre écrans, la ligne clavier bloque), `v32-assets-provenance` (`provenance.json` pour
+chaque asset livré), `v32-release` (un second jeu fait par `new-game` passe toutes les portes en CI). Hors 3.2, dit
+dans BENCH.md et ENGINE.md : prouver un long jeu à plusieurs personnages (la piste solveur 3.3 ci-dessous), un
+passage au lecteur d'écran (manuel), l'épinglage DNS des fournisseurs personnalisés.
+
+## Piste solveur v3.3 (prévue) : prouver les jeux à plusieurs personnages
+
+D'après une relecture extérieure (LOG #38), dans l'ordre : profiler la recherche ; une frontière de preuve (pile,
+pointeurs parents, ids numériques d'états) ; le personnage actif hors de l'état ; régions de mobilité et
+macro-déplacements ; interfaces de chapitre projetées sur ce que la suite lit ; une réduction sûre pour la preuve avec
+condition de cycle, validée de façon différentielle sur des milliers de jeux générés ; frontières en parallèle ; un
+backend symbolique (BDD) seulement si de vrais jeux dépassent encore les budgets. Sortie : le jeu de stress de 40 lieux
+prouvé avec 1, 2 et 3 personnages (BENCH.md).
+
 ## Hors plan (décisions explicites)
 
 - Pas de Phaser ni de canvas : le Presenter DOM suffit pour quelques dizaines d'images ; une salle large reste une translation CSS.

@@ -163,12 +163,27 @@ Même portable ; 12 objets, 30 flags, 1 marcheur, 2 scripts, 8 sujets ; `maxStat
 
 Ce que cela dit, simplement : la preuve exhaustive est complète et rapide pour une chaîne de 40 lieux à un seul
 personnage ; avec plusieurs personnages jouables, les états atteignables se multiplient (le lieu et le sac de chacun)
-et les deux preuves s'arrêtent au budget en le disant. Découper en chapitres n'y change rien, car le premier chapitre
+et les deux preuves s'arrêtent au budget en le disant. **C'est une limite de la recherche explicite telle qu'elle est
+écrite, pas du moteur** : l'état garde le lieu exact de chaque personnage et le personnage actif, et un changement de
+personnage est une transition à part entière, si bien que des états équivalents sont explorés des milliers de fois
+(trois personnages libres dans 30 lieux : 81 000 combinaisons de positions avant le moindre flag). La piste solveur
+de la 3.3 (ROADMAP) s'attaque précisément à cela. Découper en chapitres n'y change rien, car le premier chapitre
 contient déjà le produit ; cela vérifie les checkpoints et prouve chaque chapitre depuis toutes ses entrées, ce dont
 un long jeu à un personnage a besoin. Sans argument d'équivalence écrit, les réductions restent éteintes en mode
 preuve, et la suite différentielle (`tests/por.test.ts`) montre pourquoi : les ensembles sleep inventent des
 softlocks sur trois fixtures sur huit (les arêtes retirées nourrissent l'atteignabilité inverse qui les classe), les
 ensembles stubborn s'accordent sur les huit. Un long jeu à plusieurs personnages se prouve personnage par personnage
-(un checkpoint où les autres attendent) ou s'appuie sur le témoin, les témoins par chapitre et les playtests. Le
-prochain pas du solveur : l'argument des ensembles stubborn en mode preuve.
+(un checkpoint où les autres attendent) ou s'appuie sur le témoin, les témoins par chapitre et les playtests. Les
+prochains pas du solveur, dans l'ordre (une relecture extérieure, LOG #38) : mesurer où part le temps (exécutions du
+moteur, clones, hachages, file) ; une frontière de preuve sans ordre best-first ni chemins copiés ; le personnage
+actif hors de l'état (les actions de chaque personnage proposées depuis un état canonique, un changement gardé
+explicite seulement s'il a un effet) ; les **régions de mobilité** (les lieux reliés par des sorties réversibles et
+silencieuses fusionnés en une région par personnage, les déplacements en macro-étapes dont le trajet est gardé pour la
+solution) ; des interfaces de chapitre projetées sur ce que la suite lit ; une réduction sûre pour la preuve
+(fermeture par dépendance, visibilité des objectifs et invariants, blocages, condition de cycle, puisque la propriété
+est « depuis tout état atteignable la fin reste atteignable »), validée contre la recherche explicite sur des milliers
+de jeux générés, chaque contre-exemple rejoué sur le vrai moteur ; puis des frontières en parallèle. Critère de
+sortie : le jeu de stress de 40 lieux prouvé avec 1, 2 et 3 personnages, un nombre d'états qui ne croît plus comme le
+produit des positions, aucun jeu généré où les verdicts réduit et explicite diffèrent, et une troncature qui reste une
+troncature.
 

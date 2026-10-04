@@ -293,6 +293,28 @@ pause menu shows it, the PWA smoke checks the whole plan and never counts WebKit
 `v3-release-truth`: the release runs on the CI's success for the tag, a golden 3.1.0 save, the full dependency audit,
 D5/D7/D8/D9 recorded. The private reference game stays on 3.1.0 (D8).
 
+## v3.2 "Production" (4 October 2026): identity, saves, proof, accessibility and assets a team can rely on
+
+The second half of Codex's horizon (LOG #25), one branch at a time, each merged on green CI (D9): `v32-bindings`
+(one table of the engine's English texts, a release-language e2e that fails on any visible default, minigame
+bindings validated), `v32-line-ids` (a stable id per line: translations and voices follow it, `npm run ids --
+--lines`), `v32-save-results` (clear and import say what they did and never lose the game, golden saves for 3.0.0
+and 3.1.0, a save round trip in a real browser with and without IndexedDB), `v32-proof-scale` (every softlock counted
+and grouped by cause, the proof by chapters from every reachable boundary state, checkpoints checked, one budget; the
+reductions measured and kept out of proof mode; BENCH.md says where the proof stops: multi-character games),
+`v32-a11y-gate` (every bundled minigame plays at the keyboard, axe-core on four screens, the keyboard row gates),
+`v32-assets-provenance` (`provenance.json` for every shipped asset), `v32-release` (a second game made by `new-game`
+passes every gate in CI). Out of 3.2, said in BENCH.md and ENGINE.md: proving a multi-character long game (the 3.3 solver track below), a
+screen-reader pass (manual), DNS pinning of custom providers.
+
+## v3.3 solver track (planned): prove multi-character games
+
+From an outside review (LOG #38), in order: profile the search; a proof-mode frontier (stack, parent pointers,
+numeric state ids); the active character out of the state; mobility regions and macro moves; chapter interfaces
+projected on what the rest reads; a proof-safe reduction with a cycle proviso, validated differentially on thousands
+of generated games; parallel frontiers; a symbolic (BDD) backend only if real games still exceed the budgets. Exit:
+the 40-room stress game proved with 1, 2 and 3 characters (BENCH.md).
+
 ## Out of scope (explicit decisions)
 
 - No Phaser, no canvas: the DOM Presenter is enough for a few dozen images; a wide room stays a CSS translation.
