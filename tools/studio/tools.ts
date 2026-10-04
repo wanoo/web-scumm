@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { profileText } from '../../src/engine/tools/solve';
 import { dialogueText, dialogueTree } from '../../src/engine/tools/dialogue';
 import type { Layout } from '../../src/engine/core/types';
-import type { AddEntity, CoverageData, GameInfo, GraphData, PuzzleData, NewNote, NotesFile, ReportData, RoomData, SolveData, ValidateResult } from './types';
+import type { AddEntity, CoverageData, GameInfo, LintData, GraphData, PuzzleData, NewNote, NotesFile, ReportData, RoomData, SolveData, ValidateResult } from './types';
 
 /** The operations the tools need. Same method names as the Studio's `Api` (src/studio/api.ts), so `BrowserApi` fits. */
 export interface ToolBackend {
@@ -30,6 +30,8 @@ export interface ToolBackend {
   puzzle?(id?: string): Promise<PuzzleData>;
   /** The storyboard checked against the content. */
   coverage?(): Promise<CoverageData>;
+  /** The content lint after a solver run (`prove`: the exhaustive search). */
+  lint?(prove?: boolean): Promise<LintData>;
   /** Optional abilities: a tool whose ability is missing is left out of `toolsFor(backend)`. */
   screenshot?(room: string, checkpoint?: string): Promise<ToolResult>;
   readDoc?(name: DocName): Promise<string>;
@@ -59,7 +61,7 @@ export interface ToolDef {
   /** It changes a game file (the Studio refreshes after it). */
   writes?: boolean;
   /** The optional backend ability it needs. */
-  needs?: 'screenshot' | 'readDoc' | 'runTests' | 'assetPrompts' | 'report' | 'graph' | 'puzzle' | 'coverage';
+  needs?: 'screenshot' | 'readDoc' | 'runTests' | 'assetPrompts' | 'report' | 'graph' | 'puzzle' | 'coverage' | 'lint';
   run(args: any, b: ToolBackend): Promise<ToolResult>;
 }
 
@@ -241,6 +243,17 @@ export const TOOLS: ToolDef[] = [
       'Read it to find what of the story is not implemented yet. Read-only.',
     input: {}, annotations: { readOnlyHint: true }, needs: 'coverage',
     run: (_a, b) => op(async () => (await b.coverage!()).markdown),
+  },
+  {
+    name: 'lint', title: 'Content lint',
+    description: 'What the validator cannot say and the solver does not say loudly, as Markdown: conditions nothing ' +
+      'can satisfy, rules another rule hides, items no rule needs or nothing gives, hints that cannot fire, choices ' +
+      'with a dead option, and, from a solver run, live actions never run and rooms never reached. Each finding names ' +
+      'its content path, its stable id and what to do. `prove: true` runs the exhaustive search first (slow on a big ' +
+      'game). Read it before asking a human for a review. Read-only.',
+    input: { prove: z.boolean().optional().describe('Run the exhaustive proof first (default: the fast witness).') },
+    annotations: { readOnlyHint: true }, needs: 'lint',
+    run: (a, b) => op(async () => (await b.lint!(!!a.prove)).markdown),
   },
   {
     name: 'screenshot', title: 'Screenshot a room',

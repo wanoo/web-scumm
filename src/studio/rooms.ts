@@ -126,6 +126,14 @@ export class RoomsTab {
     this.frame.src = this.frameUrl();
   }
 
+  /** Scrolls to and flashes the editor of a content path (`on[3]`, `talk.lou[1].do[0]`…), once the room is shown. */
+  focusPath(path: string, tries = 20) {
+    const el = this.el.querySelector<HTMLElement>(`[data-path="${CSS.escape(path)}"]`) ?? [...this.el.querySelectorAll<HTMLElement>('[data-path]')].find((x) => x.dataset.path?.startsWith(path));
+    if (!el) { if (tries > 0) setTimeout(() => this.focusPath(path, tries - 1), 150); return; }
+    el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200);
+    (el.querySelector('textarea, input') as HTMLElement | null)?.focus();
+  }
+
   openRoom(id: Id) {
     if (id === this.roomId) return;
     this.roomId = id;

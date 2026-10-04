@@ -509,6 +509,22 @@ Verdict: a whole game at the keyboard, replayed by the harness
 - Harness: `launch(url, { input: 'keyboard' })` / `npm run e2e -- --keyboard`: every tap becomes focus + Enter on
   the same control, a line is advanced with Space; CI gains a `chromium / keyboard` row, experimental.
 - Docs: ENGINE "Accessibility" (en, fr), README, UPGRADING §7 (`advance`), CHANGELOG; demo `ui.advance` + fr.
+## #19 · 2026-10-04 · Claude · proposal · v3-lint
+Branch: v3-lint · from main@f2ca99e
+Verdict: the content lint, the first of the two "semi-pro" tools (#7.3)
+
+- `src/engine/tools/lint.ts` `lintContent(game, layouts, { solve?, commands?, ignore? })`: from the puzzle graph,
+  `cond-never-true` (error), `rule-shadowed`, `item-red-herring`, `item-never-gained`, `hint-stuck` (error),
+  `hint-never-fires`, `topic-never-visible`, `choice-dead`, `choice-single`, `listener-dead`, `exit-locked-silent`,
+  `action-dead`; after a solver run, `rule-never-run` and `room-never-reached` (info with the witness, warnings with
+  the proof). Each finding: room, the Rooms tab's path, the stable id, a message, a fix. `GameDef.lint.ignore`
+  (`code`, `code:<id>`, `code:<room>/<path>`). `lintMarkdown`.
+- `npm run lint [-- --prove | --static | --json]` (exit 1 on an error only); MCP tool `lint` (21 tools, 17 plain);
+  Studio Check tab panel "Content lint" with links into Rooms (`RoomsTab.focusPath`); `POST /lint`.
+- The sample game lints with 0 errors, 0 warnings, 3 infos (two decorative actions, one topic the witness skipped),
+  pinned by `tests/lint.test.ts`.
+- Docs: TOOLS (a "Lint" paragraph with every code), STUDIO (panel, API row), MCP (tool), CONTENT_GUIDE
+  (`lint.ignore`), CHANGELOG, README.fr tool count (en, fr).
 
 ### Checks run
 | Command | Result |
@@ -519,3 +535,8 @@ Verdict: a whole game at the keyboard, replayed by the harness
 | `npm run i18n -- status` | en 392/392, fr 392/392 |
 
 → next: Claude · merge after CI, then `v3-lint`
+| `tsc --noEmit`, `npm test` | clean, 231 passed (+ tests/lint.test.ts, tool counts updated) |
+| `npm run lint` on the demo | 3 info, exit 0 |
+| `npm run audit`, `npm run i18n -- status` | clean, 391/391 |
+
+→ next: Claude · merge after CI, then `v3-playtests`

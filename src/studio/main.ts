@@ -99,7 +99,7 @@ async function start() {
   const ownWrite = () => { ownUntil = Date.now() + 2000; };
 
   const badge = h('span', { class: 'badge' });
-  const check = new CheckTab(info, (state, text) => { badge.className = `badge ${state}`; badge.textContent = text; });
+  const check = new CheckTab(info, (state, text) => { badge.className = `badge ${state}`; badge.textContent = text; }, (room, path) => { rooms.openRoom(room); show('rooms'); rooms.focusPath(path); });
   const [hashTab, hashRoom] = location.hash.slice(1).split('/');
   const store = new NotesStore(ownWrite);
   let show: (t: TabId) => void = () => undefined;

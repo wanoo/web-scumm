@@ -718,6 +718,15 @@ ending"). Right before it, the script plays whatever it wants (the family gather
 
 ## Checking your work
 
+`npm run lint` (docs/en/TOOLS.md, "Lint") reads the puzzle graph and a solver run for what the validator cannot see:
+a condition nothing sets, a rule another rule hides, an item no rule needs, a hint that cannot fire, an action the
+solver never ran. A finding you keep on purpose (a red herring) is silenced in `game.ts`:
+
+```ts
+lint: { ignore: ['item-red-herring:rubber_chicken', 'rule-shadowed:house/on[4]'] },   // a code, `code:<id>` or `code:<room>/<path>`
+```
+
+
 ```bash
 npm run validate   # everything referenced exists, every visible thing has a Look, texts are not empty
 npm run solve      # the game can be finished from "New game"; lists items that are never used

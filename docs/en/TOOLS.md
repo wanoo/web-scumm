@@ -175,12 +175,25 @@ npm run solve -- --profile         # what the states are made of and what the se
 npm run solve -- --por=stubborn    # partial-order reduction: commuting actions one at a time (fewer states, same proof)
 npm run replay -- session.json     # plays a session file on the real engine, prints the journal and the final state
 npm run ids [-- --write --map]     # stable ids (schema 3) written into the sources, locales renamed, the save migration step (docs/en/UPGRADING.md)
+npm run lint [-- --prove | --static | --json]   # content lint: conditions nothing can satisfy, hidden rules, red herrings, stuck hints, actions never run
 npm run doctor                     # checks Node, Python modules, ffmpeg and Playwright browsers
 npm run check                      # type-check and Node tests
 npm run verify:game                # validation, global/chapter witnesses and translation coverage
 npm run prove:game                 # global/chapter exhaustive proof; fails on softlocks or truncation
 npm run release-check              # prerequisites, build, proof and production dependency audit
 ```
+
+**Lint.** `npm run lint` says what `validate` cannot (it checks shapes and references) and what `solve` does not say
+loudly (it answers "can it be finished"): from the puzzle graph, a condition nothing sets (`cond-never-true`, an
+error), a rule another rule matches first (`rule-shadowed`), an item no rule needs (`item-red-herring`) or nothing
+gives (`item-never-gained`), a hint that waits for something nothing sets (`hint-stuck`, an error) or shares its
+`until` with an earlier hint (`hint-never-fires`), a dead topic, choice option or listener, a choice with one option,
+an exit with a condition and no `locked` line, an action that only changes what nothing live reads (`action-dead`,
+info); after a solver run, a live action the witness never ran and a room it never entered (`rule-never-run`,
+`room-never-reached`: info with the witness, warnings with `--prove`). Each finding names its room and path (the one
+the Rooms tab shows), its stable id, and what to do. Exit 1 only on an error. `lint: { ignore: ['code',
+'code:<id>', 'code:<room>/<path>'] }` in `game.ts` keeps a red herring on purpose. The Studio's Check tab shows the
+same list with links into Rooms; the `lint` MCP tool returns it as Markdown. Run it before asking for a review.
 
 **Sessions.** The engine records every input since the game started or a save was loaded (actions, map, switches,
 script steps) with the answers given on the way (choices, random draws). The game's save menu, the dev panel and the

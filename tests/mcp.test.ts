@@ -41,7 +41,7 @@ describe('MCP server on games/demo', () => {
     const { tools } = await demo.listTools();
     const names = tools.map((t) => t.name);
     for (const n of ['list_rooms', 'get_room', 'set_layout', 'set_text', 'add_entity', 'get_storyboard', 'set_storyboard',
-      'get_notes', 'add_note', 'validate', 'solve', 'screenshot', 'read_doc', 'run_tests', 'asset_prompts', 'content_report', 'world_graph', 'puzzle_graph', 'dialogue_tree', 'storyboard_coverage']) expect(names).toContain(n);
+      'get_notes', 'add_note', 'validate', 'solve', 'screenshot', 'read_doc', 'run_tests', 'asset_prompts', 'content_report', 'world_graph', 'puzzle_graph', 'dialogue_tree', 'storyboard_coverage', 'lint']) expect(names).toContain(n);
     const { resources } = await demo.listResources();
     expect(resources.map((r) => r.uri)).toEqual(expect.arrayContaining(['webscumm://game', 'webscumm://room/house']));
   }, 30000);

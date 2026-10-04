@@ -11,8 +11,9 @@ import { toDot, toSvg, worldGraph } from '@engine/tools/graph';
 import { extraReads, liveClasses, puzzleGraph, puzzleMarkdown, toPuzzleDot, toPuzzleSvg } from '@engine/tools/puzzle';
 import { normalizeStoryboard, storyboardMarkdown } from '../../tools/pages/storyboard-data';
 import { coverageMarkdown, storyboardCoverage } from '@engine/tools/coverage';
+import { lintContent, lintMarkdown } from '@engine/tools/lint';
 import { classify, formatPath, parsePath, SourceError, type Seg } from '../../tools/studio/paths';
-import type { CoverageData, GraphData, PuzzleData, ReportData,
+import type { CoverageData, GraphData, LintData, PuzzleData, ReportData,
   AddEntity, AssetsListing, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, SolveData, StudioPatch, StudioPatchFile,
   StudioSnapshot, TextRef, ValidateResult,
 } from '../../tools/studio/types';
@@ -290,6 +291,14 @@ export class BrowserApi implements Api {
     const { game } = await this.editedGame();
     const c = storyboardCoverage(game, normalizeStoryboard(await this.storyboardRaw()));
     return { coverage: c, markdown: coverageMarkdown(c), ms: Date.now() - t0 };
+  }
+
+  async lint(prove = false): Promise<LintData> {
+    const t0 = Date.now();
+    const { mod, game, layouts } = await this.editedGame();
+    const s = await solveGame(game, layouts, { commands: mod.commands, mode: prove ? 'prove' : 'witness' });
+    const r = lintContent(game, layouts, { solve: s, commands: mod.commands });
+    return { lint: r, markdown: lintMarkdown(r, s.mode), mode: s.mode, ms: Date.now() - t0 };
   }
 
   async solve(from?: string, maxStates = 20000): Promise<SolveData> {
