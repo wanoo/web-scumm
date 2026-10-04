@@ -138,19 +138,33 @@ après le verdict (`Witness status:` / `Proof status:`), rien d'autre ne change.
 
 ## 8. Un jeu qui embarque le moteur (une copie de `src/engine`)
 
-En plus de copier `src/engine/`, mettez à jour votre point d'entrée et votre config :
+Votre `src/main.ts` ne recopie plus l'amorçage : il appelle `bootGame` (`src/engine/boot.ts`) et ne dit que ce qui
+est propre à votre build :
 
-- `src/main.ts` : ouvrir le stockage avec `IndexedDbSaveStore.open(game, onError)` et le passer à `App` (l'adaptateur
-  `localStorage` vérifié sert de repli quand IndexedDB manque) ; router les erreurs vers `app.reportStorageError` ;
-  enregistrer le service worker vous-même avec `registerSW({ immediate: true, onNeedRefresh })` et
-  `app.offerUpdate(...)`, car le plugin PWA passe en `registerType: 'prompt'` et `injectRegister: false` (la mise à jour
-  attend une sauvegarde vérifiée au lieu de recharger sous les pieds du joueur) ; passer les mini-jeux à
-  `applyLocale(game, table, minigames)`.
-- `vite.config.ts` : `server.host` vaut `127.0.0.1` sauf `WEB_SCUMM_LAN=1` ; l'écriture des layouts et chaque route
-  `/__studio` passent par `authorizeStudioRequest` (`tools/studio/security.ts`) ; les options PWA ci-dessus.
-- `package.json` : les scripts de la section 7 (`tools/doctor.ts`, `tools/serve.ts`, `scripts/e2e-pwa.mjs`).
-- Votre e2e : `scripts/e2e/lib.mjs` accepte `E2E_BROWSER=chromium|webkit|firefox` et `--prod` ; un script qui lit la
-  sortie humaine de `npm run solve` continue de marcher (une ligne ajoutée, aucune changée).
-- `env.d.ts` : `/// <reference types="vite-plugin-pwa/client" />`.
-- Le `game` du moteur est un clone compilé (`compileGame`), gelé quand `schemaVersion` vaut 3 : un outil qui modifiait
-  l'objet passé à `Engine` doit passer par l'API du moteur.
+```ts
+import { bootGame } from '@engine/boot';
+import { game, layouts, manifest, minigames, commands, locales } from '@game';
+
+void bootGame({
+  game, layouts, manifest, minigames, commands, locales, version: __ASSETS_VERSION__,
+  dev: { enabled: (q) => import.meta.env.DEV && (q.has('dev') || q.has('edit')) },
+  sw: { register: () => import('virtual:pwa-register') },   // ou `sw: false` sans vite-plugin-pwa
+});
+```
+
+`bootGame` choisit la langue (`?lang=`, le choix sauvegardé du joueur, le navigateur), attend les polices, ouvre le
+stockage IndexedDB vérifié (ses premières erreurs atteignent l'App dès qu'elle existe ; sans IndexedDB, l'adaptateur
+`localStorage` vérifié prend le relais), construit l'`App`, expose `window.__game` pour les pilotes e2e, lance les
+outils de dev quand `dev.enabled` le dit (`dev.patch` peut remplacer le jeu, les layouts et le stockage avant, comme
+la démo du Studio), affiche le titre, et enregistre le service worker par le module que vous injectez, la mise à jour
+n'étant proposée qu'après une sauvegarde vérifiée. Les briques sont exportées séparément (`pickLanguage`,
+`waitFonts`, `openStore`) quand un jeu a besoin d'un autre ordre.
+
+Ce que votre build garde : `vite.config.ts` avec `server.host` sur `127.0.0.1` sauf `WEB_SCUMM_LAN=1`, l'écriture
+des layouts et chaque route `/__studio` derrière `authorizeStudioRequest` (`tools/studio/security.ts`), et VitePWA en
+`registerType: 'prompt'`, `injectRegister: false`, `skipWaiting: false` (obligatoire avec la proposition de mise à
+jour) ; `package.json` avec les scripts de la section 7 (`tools/doctor.ts`, `tools/serve.ts`, `scripts/e2e-pwa.mjs`) ;
+`scripts/e2e/lib.mjs` (`E2E_BROWSER`, `--prod` ; un script qui lit la sortie humaine de `npm run solve` continue de
+marcher) ; `env.d.ts` avec `/// <reference types="vite-plugin-pwa/client" />`. Le `game` du moteur est un clone
+compilé (`compileGame`), gelé quand `schemaVersion` vaut 3 : un outil qui modifiait l'objet passé à `Engine` doit
+passer par l'API du moteur.

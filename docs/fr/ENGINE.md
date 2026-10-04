@@ -42,6 +42,14 @@ un point d'approche enregistré à plus de 150 unités de sa cible (`NEAR`) est 
 Verbes : les ids sont libres (`verbs` du jeu). Quatre ont un sens pour le moteur : `look` (textes Regarder), `talk` (conversations, indices),
 `give` et `use` (deux termes : objet du sac puis cible ; toucher un objet du sac sans verbe choisit `use`).
 
+## Amorçage
+
+`src/engine/boot.ts` `bootGame({ game, layouts, manifest, minigames, commands, locales, version, dev, sw })` est ce
+qu'une page fait pour lancer un jeu : langue, polices, stockage de sauvegarde vérifié (premières erreurs gardées
+jusqu'à ce que l'App puisse les montrer), l'`App`, `window.__game`, les outils de dev, le titre, le service worker.
+`src/main.ts` l'appelle ; un jeu qui embarque le moteur aussi (docs/fr/UPGRADING.md §8). `pickLanguage`, `waitFonts`
+et `openStore` sont exportés pour une page qui a besoin d'un autre ordre.
+
 ## Deux dispositions
 
 - **Téléphone (écran tactile), en paysage** : la scène à gauche ; à droite, une colonne avec les 9 verbes en 3×3, le sac sur 3 colonnes et les icônes Carte / Menu / Son. La phrase s'affiche en bas de la scène.
