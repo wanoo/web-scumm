@@ -195,3 +195,21 @@ character, running the engine (about half) and copying states (about a quarter) 
 them in that order: an exact proof core (O(1) frontier, parent pointers), then the canonical character and the
 mobility regions for the positions.
 
+### After `v33-proof-core` (exact: same witnesses, same proofs, same printed output on the demo)
+
+The frontier is a binary heap in the old list's order (score, then arrival), and a state keeps a pointer to its
+parent and its last step instead of a copy of the whole path and session.
+
+| Game | Proof | States | Engine runs | Time | Positions | Time split (run / clone / hash / queue / tries / other) |
+|---|---|---|---|---|---|---|
+| 20 rooms, 1 character | solved | 797 | 3 295 | 0.2 s | 20 | 48% / 22% / 13% / 1% / 7% / 7% |
+| 20 rooms, 2 characters | truncated | 20 000 | 100 863 | 6.6 s | 800 | 53% / 27% / 11% / 0% / 3% / 5% |
+| 20 rooms, 3 characters | truncated | 20 000 | 49 538 | 4.1 s | 13 858 | 53% / 29% / 10% / 0% / 2% / 5% |
+| 40 rooms, 1 character | solved | 3 197 | 13 245 | 1.1 s | 40 | 49% / 26% / 14% / 0% / 3% / 6% |
+| 40 rooms, 2 characters | truncated | 20 000 | 92 475 | 11.4 s | 3 200 | 52% / 27% / 13% / 0% / 2% / 5% |
+| 40 rooms, 3 characters | truncated | 20 000 | 44 298 | 6.2 s | 18 796 | 50% / 29% / 13% / 0% / 1% / 5% |
+
+The queue is gone from the profile (89% → 0%) and the heaviest case runs 8× faster for the same 20 000 states
+(50.9 s → 6.2 s). The state counts are unchanged, as they must be: what remains is the engine (about half) and the
+state copies (about 30%), and above all the number of states, which the next branches attack.
+

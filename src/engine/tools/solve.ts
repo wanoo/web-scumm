@@ -14,6 +14,7 @@ import { condAtoms } from '../core/cond';
 import type { Cond, GameDef, GameState, Id, Layout, SessionEntry, VerbId } from '../core/types';
 import { compileGame } from '../core/define';
 import { ruleActionId } from '../core/content-ids';
+import { Frontier } from './frontier';
 
 export interface Step { label: string }
 
@@ -120,7 +121,12 @@ export interface SolveOptions {
 }
 
 interface Node {
-  state: GameState; path: string[]; steps: SessionEntry[]; dims: Dims;
+  state: GameState; dims: Dims;
+  /**
+   * The way here, kept as a pointer and the last step only (a copied path per state cost memory and time in the long
+   * proofs): `pathOf` / `stepsOf` rebuild it on demand. `len` is the path's length (the best-first score reads it).
+   */
+  prev?: Node; tail: string[]; tailSteps: SessionEntry[]; len: number;
   /** Sleep set: actions not to try here (an independent one was tried before them on the way), with what they read and wrote. */
   sleep: Map<string, RW>;
   expanded: boolean;
@@ -234,6 +240,19 @@ function stateDims(s: GameState, keys: ReturnType<typeof stateKeys>): Dims {
 }
 
 function hashState(s: GameState, keys: ReturnType<typeof stateKeys>): string { return JSON.stringify(stateDims(s, keys)); }
+
+/** The labelled path to a node, rebuilt from its parents. */
+function pathOf(n: Node): string[] {
+  const parts: string[][] = [];
+  for (let x: Node | undefined = n; x; x = x.prev) parts.push(x.tail);
+  return parts.reverse().flat();
+}
+/** The session entries to a node, rebuilt from its parents. */
+function stepsOf(n: Node): SessionEntry[] {
+  const parts: SessionEntry[][] = [];
+  for (let x: Node | undefined = n; x; x = x.prev) parts.push(x.tailSteps);
+  return parts.reverse().flat();
+}
 
 /** Flags never unset or lowered, items never lost, transferred or used up: once gained, kept. */
 export function monotonicThings(game: GameDef): { flags: string[]; items: string[] } {
@@ -381,8 +400,8 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   const reached = (ui: FakePresenter, s: GameState) => opts.goal ? opts.goal.every((c) => check(c, s)) : (s.done || ui.log.includes('ENDING'));
   const broken: SolveResult['broken'] = [];
   const brokenSeen = new Set<number>();
-  const checkInvariants = (s: GameState, path: string[]) => {
-    (game.invariants ?? []).forEach((c, i) => { if (!brokenSeen.has(i) && check(c, s)) { brokenSeen.add(i); broken.push({ invariant: i, path }); } });
+  const checkInvariants = (s: GameState, path: () => string[]) => {
+    (game.invariants ?? []).forEach((c, i) => { if (!brokenSeen.has(i) && check(c, s)) { brokenSeen.add(i); broken.push({ invariant: i, path: path() }); } });
   };
 
   const seen = new Map<string, Node>();
@@ -392,11 +411,13 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   const stx = por === 'stubborn' ? staticTransitions(puzzleGraph(game, { commands: opts.commands })) : null;
   // What the search looks for: an action that changes it is never postponed by the reduction.
   const goalDims = new Set<string>(['done', ...(opts.goal ?? []).flatMap((c) => condAtoms(c).map(atomDim))]);
-  const start: Node = { state: structuredClone(e0.state), path: startPath, steps: e0.session?.log ?? [], dims: stateDims(e0.state, keys), sleep: new Map(), expanded: false };
+  const start: Node = { state: structuredClone(e0.state), tail: startPath, tailSteps: e0.session?.log ?? [], len: startPath.length, dims: stateDims(e0.state, keys), sleep: new Map(), expanded: false };
   // Best-first: the more a state has progressed, the earlier it's explored. At equal progress, the shortest path first.
-  const score = (n: Node) => n.state.unlocked.length * 20 + Object.values(n.state.flags).filter(Boolean).length * 3 + n.state.inventory.length * 2 - n.path.length * 0.01;
-  const queue: Node[] = [start];
-  const enqueue = (n: Node) => { const sc = score(n); let i = queue.length; while (i > 0 && score(queue[i - 1]) < sc) i--; queue.splice(i, 0, n); };
+  const score = (n: Node) => n.state.unlocked.length * 20 + Object.values(n.state.flags).filter(Boolean).length * 3 + n.state.inventory.length * 2 - n.len * 0.01;
+  // A heap in the order of the old sorted list (score, then arrival): same witnesses, O(log n) instead of O(n).
+  const queue = new Frontier<Node>(score);
+  queue.push(start);
+  const enqueue = (n: Node) => queue.push(n);
   seen.set(JSON.stringify(start.dims), start);
   let finish: Node | null = reached(ui0, e0.state) ? start : null;
   const startHash = JSON.stringify(start.dims);
@@ -413,7 +434,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
       const dims = stateDims(e.state, keys);
       const h = JSON.stringify(dims);
       if (seen.has(h)) continue;
-      const alt: Node = { state: structuredClone(e.state), path, steps: e.session?.log ?? [], dims, sleep: new Map(), expanded: false };
+      const alt: Node = { state: structuredClone(e.state), tail: path, tailSteps: e.session?.log ?? [], len: path.length, dims, sleep: new Map(), expanded: false };
       seen.set(h, alt);
       enqueue(alt);
       if (reached(ui, e.state)) { goals.add(h); finish ??= alt; }
@@ -422,12 +443,12 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   const edges = new Map<string, Set<string>>();
   let limitReached = false;
   let last: Node = start;
-  checkInvariants(start.state, start.path);
+  checkInvariants(start.state, () => pathOf(start));
 
   loopStart.t = now();
-  while (queue.length && (mode === 'prove' || !finish)) {
+  while (queue.size && (mode === 'prove' || !finish)) {
     if (seen.size >= maxStates) { limitReached = true; break; }
-    const node = timed('queue', () => queue.shift()!);
+    const node = timed('queue', () => queue.pop()!);
     const tTries = now(), engineBefore = timing.engine, cloneBefore = timing.clone;
     last = node;
     const s = node.state;
@@ -516,7 +537,7 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
       e.state = timed('clone', () => structuredClone(s));
       if (por) e.reads = new Set();
       ui.picks = [...t.picks];
-      const path = [...node.path];
+      const path: string[] = []; // this step's tutorial moves, then its label
       let src: Source | null | void = null;
       const tRun = now();
       try {
@@ -597,9 +618,9 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
         continue;
       }
       const tClone = now();
-      const next: Node = { state: structuredClone(e.state), path: [...path, t.label], steps: [...node.steps, ...(e.session?.log ?? [])], dims, sleep, expanded: false, parent: h0, via: t.label };
+      const next: Node = { state: structuredClone(e.state), prev: node, tail: [...path, t.label], tailSteps: e.session?.log ?? [], len: node.len + path.length + 1, dims, sleep, expanded: false, parent: h0, via: t.label };
       timing.clone += now() - tClone;
-      checkInvariants(next.state, next.path);
+      checkInvariants(next.state, () => pathOf(next));
       if (hitGoal) {
         seen.set(h, next);
         finish ??= next;
@@ -623,15 +644,15 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
         if (keep && !keep.has(c.key)) continue;
         seen.set(c.h, c.next);
         timed('queue', () => enqueue(c.next));
-        maxQueue = Math.max(maxQueue, queue.length);
-        if (seen.size >= maxStates) { if (queue.length) limitReached = true; break; }
+        maxQueue = Math.max(maxQueue, queue.size);
+        if (seen.size >= maxStates) { if (queue.size) limitReached = true; break; }
       }
     }
     node.expanded = true;
     expansions++;
     triesSum += tries.length;
     if (tries.length > triesMax) { triesMax = tries.length; worst = { room: s.room, inventory: [...s.inventory], tries: tries.length, effective, byVerb }; }
-    if (!progressed) deadEnds.push({ path: node.path, room: s.room, inventory: [...s.inventory] });
+    if (!progressed && deadEnds.length < 20) deadEnds.push({ path: pathOf(node), room: s.room, inventory: [...s.inventory] });
   }
   const loopMs = now() - loopStart.t;
   timing.other = Math.max(0, loopMs - timing.tries - timing.engine - timing.clone - timing.run - timing.hash - timing.queue);
@@ -661,10 +682,9 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     }
   }
   const unsafe = mode === 'prove' && !limitReached && finish ? [...seen.entries()].filter(([h]) => !canReachGoal.has(h)) : [];
-  const softlocks = unsafe.map(([, n]) => ({ path: n.path, room: n.state.room, inventory: [...n.state.inventory] }))
-    .sort((a, b) => a.path.length - b.path.length).slice(0, 20);
+  const softlocks = [...unsafe].sort(([, a], [, b]) => a.len - b.len).slice(0, 20).map(([, n]) => ({ path: pathOf(n), room: n.state.room, inventory: [...n.state.inventory] }));
   // The step that lost the game: walk each unsafe state up to the first unsafe one whose parent is safe (or the start).
-  const causes = new Map<string, { action: string; room: Id; count: number; sample: string[] }>();
+  const causes = new Map<string, { action: string; room: Id; count: number; len: number; node: Node }>();
   for (const [, n] of unsafe) {
     let cur: Node = n;
     while (cur.parent && !canReachGoal.has(cur.parent) && seen.has(cur.parent)) cur = seen.get(cur.parent)!;
@@ -672,9 +692,9 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     const room = cur.parent ? seen.get(cur.parent)!.state.room : cur.state.room;
     const key = `${room}\u0000${action}`;
     const c = causes.get(key);
-    if (c) { c.count++; if (cur.path.length < c.sample.length) c.sample = cur.path; } else causes.set(key, { action, room, count: 1, sample: cur.path });
+    if (c) { c.count++; if (cur.len < c.len) { c.len = cur.len; c.node = cur; } } else causes.set(key, { action, room, count: 1, len: cur.len, node: cur });
   }
-  const softlockCauses = [...causes.values()].sort((a, b) => b.count - a.count || a.action.localeCompare(b.action));
+  const softlockCauses = [...causes.values()].sort((a, b) => b.count - a.count || a.action.localeCompare(b.action)).map(({ action, room, count, node }) => ({ action, room, count, sample: pathOf(node) }));
   timing.classify = now() - tClassify;
   const boundaries = mode === 'prove' && opts.goal && !limitReached ? [...goals].map((h) => seen.get(h)!).filter(Boolean).map((n) => structuredClone(n.state)) : [];
   const assumptions = new Set<string>();
@@ -691,8 +711,8 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
     status,
     mode,
     finished: !!finish,
-    path: (finish ?? last).path,
-    steps: (finish ?? last).steps,
+    path: pathOf(finish ?? last),
+    steps: stepsOf(finish ?? last),
     states: seen.size,
     truncated: limitReached,
     flagsReached: [...flags].sort(),

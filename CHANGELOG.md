@@ -8,6 +8,12 @@
   `profile.positions` (distinct character positions among the states); `npm run bench -- --matrix` prints the
   3.3 reference table (20 / 40 rooms × 1 / 2 / 3 characters).
 
+### Changed
+
+- The solver's frontier is a binary heap in the exact order of the sorted list it replaces, and states keep a parent
+  pointer instead of a copied path and session: same witnesses, proofs and printed output, 8× faster on the 40-room
+  3-character matrix case (the queue took 89% of the time).
+
 ## 3.2.2 — 2026-10-04
 
 ### Fixed

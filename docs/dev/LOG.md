@@ -1130,3 +1130,14 @@ The maintainer confirmed the 3.3 "Scale" order (LOG #38–#40). First branch: me
 
 → next: Claude · `v33-proof-core` (O(1) frontier in proof mode, parent pointers, no copied paths)
 
+## #42 · 2026-10-04 · Claude · proposal · v33-proof-core
+
+Exact optimisations only. `src/engine/tools/frontier.ts`: a binary heap ordered by (score desc, arrival asc), the
+exact order of the old `splice` list (a randomized test compares 2 000 operations against the old code). Nodes keep
+`prev` + `tail` + `len`; `pathOf` / `stepsOf` rebuild paths for the witness, the softlock samples and causes, the
+dead ends and the broken invariants only. Demo: witness, proof (6 528 states, causes) and human output identical to
+`main`. Matrix (BENCH.md): queue 89% → 0%, 40 rooms × 3 characters at 20 000 states 50.9 s → 6.2 s. State counts
+unchanged. A DFS order in proof mode was not needed once the heap is O(log n), and would have changed the witness.
+
+→ next: Claude · `v33-player-canonical`, then `v33-mobility`
+

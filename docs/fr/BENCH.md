@@ -210,3 +210,21 @@ avec trois personnages ; avec un seul, l'exécution du moteur (environ la moiti�
 quart) dominent. Les branches de la 3.3 s'y attaquent dans cet ordre : un cœur de preuve exact (frontière en O(1),
 pointeurs parents), puis le personnage canonique et les régions de mobilité pour les positions.
 
+### Après `v33-proof-core` (exact : mêmes témoins, mêmes preuves, même sortie imprimée sur la démo)
+
+La frontière est un tas binaire dans l'ordre de l'ancienne liste (score, puis arrivée), et un état garde un pointeur
+vers son parent et son dernier pas au lieu d'une copie de tout le chemin et de la session.
+
+| Jeu | Preuve | États | Exécutions | Temps | Positions | Répartition (moteur / copie / hachage / file / essais / reste) |
+|---|---|---|---|---|---|---|
+| 20 lieux, 1 personnage | résolue | 797 | 3 295 | 0.2 s | 20 | 48% / 22% / 13% / 1% / 7% / 7% |
+| 20 lieux, 2 personnages | tronquée | 20 000 | 100 863 | 6.6 s | 800 | 53% / 27% / 11% / 0% / 3% / 5% |
+| 20 lieux, 3 personnages | tronquée | 20 000 | 49 538 | 4.1 s | 13 858 | 53% / 29% / 10% / 0% / 2% / 5% |
+| 40 lieux, 1 personnage | résolue | 3 197 | 13 245 | 1.1 s | 40 | 49% / 26% / 14% / 0% / 3% / 6% |
+| 40 lieux, 2 personnages | tronquée | 20 000 | 92 475 | 11.4 s | 3 200 | 52% / 27% / 13% / 0% / 2% / 5% |
+| 40 lieux, 3 personnages | tronquée | 20 000 | 44 298 | 6.2 s | 18 796 | 50% / 29% / 13% / 0% / 1% / 5% |
+
+La file disparaît du profil (89 % → 0 %) et le cas le plus lourd va 8 fois plus vite pour les mêmes 20 000 états
+(50,9 s → 6,2 s). Le nombre d'états ne bouge pas, comme il se doit : restent le moteur (environ la moitié), les copies
+d'état (environ 30 %), et surtout le nombre d'états, auquel s'attaquent les branches suivantes.
+
