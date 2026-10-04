@@ -103,8 +103,9 @@ GAME=<id> npm run e2e -- http://127.0.0.1:5173/ --prod
 
 Charger chaque sauvegarde v2 représentative et vérifier lieu, joueur actif, inventaires, choix persistants et étape de
 script. Dans un fixture de test, réordonner une règle, un sujet, un choix et une étape de script : la même sauvegarde v3
-doit garder son sens. Enfin, tester la PWA de production en ligne, hors ligne dans les lieux en cache et pendant une
-mise à jour. Les lieux jamais visités ne sont pas garantis hors ligne.
+doit garder son sens. Enfin, tester la PWA de production en ligne, hors ligne dans un lieu jamais visité
+(`npm run e2e:pwa` le fait) et pendant une mise à jour. Le jeu entier est mis en cache après la première visite,
+sauf si le jeu dit `offline: 'nearby'` (décision D5).
 
 ## 7. En un coup d'œil
 

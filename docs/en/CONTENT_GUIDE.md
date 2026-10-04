@@ -658,6 +658,8 @@ re-encoded by `npm run assets`) loops silently behind the logo; the background i
 An image is designated by `folder/name`, the path of the cut file in `games/<id>/art/` without the extension:
 `grandma/r3c3` (grandma's sheet, row 3, column 3), `items/r1c2`, `house/armchair`. Backgrounds are named `decor/<room>`.
 `npm run assets` prepares only the images referenced by the content, and `npm run validate` flags any missing image.
+After the first visit the game caches every image and sound for offline play (`offline: 'full'`, the default; `'nearby'`
+keeps only the current room and its neighbours); `assetBudgets` sizes the batches. A 40 MB game is 40 MB on the phone.
 
 ## Available minigames
 

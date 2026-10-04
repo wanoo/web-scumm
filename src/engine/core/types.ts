@@ -596,7 +596,14 @@ export interface GameDef {
    * readable font (`skin.fonts.readable`), music / sound / voice volumes. Kept in the browser, outside the save.
    */
   settings?: boolean;
-  /** Conservative background-preload budgets. They never affect assets required to render the current room. */
+  /**
+   * What the game caches for offline play. `full` (default): after the current room and its neighbours, every image
+   * and sound of the game is fetched in the background, in batches, so the whole game plays offline after the first
+   * visit (skipped on a "save data" or 2G connection; music waits for better than 3G). `nearby`: only the current
+   * room and its neighbours, a room never visited may need the network.
+   */
+  offline?: 'full' | 'nearby';
+  /** Background-preload batch sizes (per step, not totals). They never affect assets required to render the current room. */
   assetBudgets?: { initialImages?: number; neighboringRooms?: number; audioFiles?: number };
   /**
    * How to bring an older save up to date, one step per version, as data: renames and drops. A save whose version has

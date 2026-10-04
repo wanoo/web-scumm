@@ -62,9 +62,9 @@ Le choix se fait tout seul (`App.layout`), et se refait si la fenêtre change de
 
 - Un **service worker** (vite-plugin-pwa / Workbox) garde l'application de base en cache dès la première visite. Les images et les sons sont gardés au premier usage, puis servis sans réseau.
   La musique est servie par morceaux (requêtes partielles) depuis le cache.
-- Dès l'écran titre puis après chaque changement de lieu, le moteur **réchauffe en tâche de fond** le lieu courant, les lieux directement accessibles et leur audio, dans les limites de `GameDef.assetBudgets`. Il ne le fait pas sur une connexion contrainte ou en mode « économie de données », et ne télécharge jamais automatiquement tout le catalogue d'un jeu long.
+- Dès l'écran titre puis après chaque changement de lieu, le moteur **réchauffe en tâche de fond** le lieu courant, les lieux directement accessibles et leur audio, par lots dimensionnés par `GameDef.assetBudgets`. Puis, une fois par page, **le reste du jeu** (`GameDef.offline`, défaut `full`) : chaque image, bruitage, voix, musique et vidéo, lot par lot pendant les temps morts, en pause quand la page est cachée ; rien en « économie de données » ou en 2G, musiques et vidéos attendent mieux que la 3G. `offline: 'nearby'` garde seulement le réchauffement par lieu.
 - Chaque adresse d'image ou de son porte `?v=<empreinte>` : l'empreinte change dès qu'un fichier de `public/assets` change, ce qui contourne l'ancien cache. Le fichier de la fin scellée (`data/`) est toujours redemandé au réseau d'abord.
-- L'application de base et les ressources déjà en cache fonctionnent hors ligne. Un lieu jamais visité ni préchargé peut encore demander le réseau.
+- Après la première visite, le jeu entier se joue hors ligne (`npm run e2e:pwa` vérifie un lieu jamais visité depuis le cache). Avec `offline: 'nearby'`, un lieu jamais visité ni préchargé peut encore demander le réseau.
 
 ## Cycle d'une action
 

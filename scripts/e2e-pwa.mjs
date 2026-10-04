@@ -1,10 +1,14 @@
 #!/usr/bin/env node
-// Smoke-test the production PWA shell: registration, one online reload, then an offline navigation.
-// The built app must already be served (normally with `npm run preview`).
+// Smoke-test the production PWA: registration, the whole game cached for offline play (`GameDef.offline`), one online
+// reload, then an offline navigation and the assets of a room never visited served from the cache.
+// The built app must already be served (normally with `npm run preview`). `--nearby`: the game caches only nearby
+// rooms, skip the room check. `--budget=<ms>`: how long the full warm-up may take (default 120000).
 import { chromium, firefox, webkit } from 'playwright';
 
 const url = process.argv.slice(2).find((a) => !a.startsWith('--')) ?? 'http://127.0.0.1:5173/';
 const name = process.env.E2E_BROWSER ?? 'chromium';
+const nearby = process.argv.includes('--nearby');
+const budget = Number(process.argv.find((a) => a.startsWith('--budget='))?.slice('--budget='.length) ?? 120000);
 const browserType = { chromium, firefox, webkit }[name];
 if (!browserType) throw new Error(`unknown E2E_BROWSER ${name}`);
 
@@ -20,6 +24,18 @@ try {
   const supported = await page.evaluate(() => 'serviceWorker' in navigator);
   if (!supported) throw new Error('service workers are not supported by this browser context');
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  // The whole game warmed (App.offlineReady), then a room the player never visited must come from the cache.
+  let probe = null;
+  if (!nearby) {
+    await page.waitForFunction(() => !!window.__game, null, { timeout: 30000 });
+    await page.evaluate((ms) => Promise.race([window.__game.offlineReady, new Promise((_, rej) => setTimeout(() => rej(new Error(`offline warm-up took more than ${ms} ms`)), ms))]), budget);
+    probe = await page.evaluate(() => {
+      const app = window.__game, g = app.game;
+      const room = g.rooms.find((r) => r.id !== g.start.room) ?? g.rooms[0];
+      const sfx = Object.values(g.audio?.sfx ?? {})[0];
+      return { room: room.id, decor: app.bank.img(room.decor), sfx: sfx ? app.bank.sfx(sfx) : null };
+    });
+  }
   await page.reload({ waitUntil: 'networkidle' });
   // The precache must exist before going offline: that is what serves the shell without the network.
   const cacheNames = await page.evaluate(() => caches.keys());
@@ -43,7 +59,11 @@ try {
   }
   await page.locator('#app').waitFor({ state: 'attached' });
   const title = await page.title();
-  console.log(`pwa: ${name} installed and opened offline (${title})`);
+  if (probe) {
+    const cached = await page.evaluate(async (p) => ({ decor: !!(await caches.match(p.decor, { ignoreSearch: false })), sfx: p.sfx ? !!(await caches.match(p.sfx)) : true }), probe);
+    if (!cached.decor || !cached.sfx) throw new Error(`offline: room "${probe.room}" is not in the cache (decor ${cached.decor}, sfx ${cached.sfx})`);
+    console.log(`pwa: ${name} installed, opened offline (${title}), room "${probe.room}" never visited served from the cache`);
+  } else console.log(`pwa: ${name} installed and opened offline (${title})`);
 } finally {
   await context.setOffline(false).catch(() => {});
   await browser.close();
