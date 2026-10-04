@@ -42,7 +42,9 @@ relance à volonté (rien n'est renommé deux fois). Les règles de sortie gén�
 
 Le navigateur stocke une enveloppe `web-scumm-save` de schéma 3 dans IndexedDB. Au premier lancement v3, l'ancienne
 autosauvegarde localStorage `<jeu>.save` est importée une fois et supprimée seulement après relecture de l'écriture.
-Les emplacements manuels restent importables.
+Les emplacements manuels (`saves.slots`) vivent dans la même base, en enveloppes, vérifiés de la même façon ; les
+entrées v2 `<jeu>.slot.<n>` sont importées une fois aussi. Un fichier importé depuis le menu de sauvegarde atterrit
+en plus dans le premier emplacement libre.
 
 Incrémenter `saveVersion` pour tout changement d'état et fournir une `Migration` par étape entière. En plus des champs
 v2, la v3 sait migrer :

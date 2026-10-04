@@ -1,6 +1,6 @@
-import type { SaveStore } from '../core/ports';
+import type { SaveStore, SlotMeta, SlotStore } from '../core/ports';
 import type { GameDef, GameState } from '../core/types';
-import { parseSave, saveEnvelope } from '../core/save';
+import { parseSave, parseSlot, saveEnvelope, type SlotRecord } from '../core/save';
 
 const DB = 'web-scumm-saves';
 const STORE = 'slots';
@@ -17,10 +17,11 @@ const canonical = (v: unknown): unknown => Array.isArray(v) ? v.map(canonical)
   : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).filter(([, x]) => x !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, canonical(x)])) : v;
 
 /**
- * IndexedDB-backed autosave with a synchronously readable cache for the deterministic core.
- * Writes are serialised and verified by reading the committed envelope back. Errors are never swallowed.
+ * IndexedDB-backed autosave with a synchronously readable cache for the deterministic core, and the manual slots
+ * (`<game>:slot:<n>`) in the same object store. Writes are serialised and verified by reading the committed envelope
+ * back. Errors are never swallowed.
  */
-export class IndexedDbSaveStore implements SaveStore {
+export class IndexedDbSaveStore implements SaveStore, SlotStore {
   private value: GameState | null = null;
   private pending: Promise<void> = Promise.resolve();
   private lastError: Error | null = null;
@@ -46,7 +47,72 @@ export class IndexedDbSaveStore implements SaveStore {
         try { localStorage.removeItem(`${game.id}.save`); } catch { /* the durable copy already exists */ }
       }
     }
+    // One-time import of the v2 localStorage slots, each removed only after IndexedDB verified its copy.
+    for (let n = 1; n <= (game.saves?.slots ?? 0); n++) {
+      let legacy: string | null = null;
+      try { legacy = localStorage.getItem(`${game.id}.slot.${n}`); } catch { break; }
+      if (!legacy) continue;
+      try {
+        const { meta, state } = parseSlot(game, JSON.parse(legacy), { warn });
+        await out.writeSlot(n, state, meta);
+        try { localStorage.removeItem(`${game.id}.slot.${n}`); } catch { /* the durable copy already exists */ }
+      } catch (e) { warn(`slot ${n} could not be imported: ${(e as Error).message}`); }
+    }
     return out;
+  }
+
+  // ------------------------------------------------------------------ manual slots
+
+  private slotKey(n: number) { return `${this.game.id}:slot:${n}`; }
+
+  async listSlots(count: number): Promise<(SlotMeta | null)[]> {
+    await this.pending.catch(() => undefined);
+    const tx = this.db.transaction(STORE, 'readonly');
+    const out: (SlotMeta | null)[] = [];
+    for (let n = 1; n <= count; n++) {
+      const raw = await request(tx.objectStore(STORE).get(this.slotKey(n)));
+      try { out.push(raw === undefined ? null : parseSlot(this.game, raw).meta); } catch (e) { this.fail(e as Error); out.push(null); }
+    }
+    await transaction(tx);
+    return out;
+  }
+
+  async getSlot(n: number): Promise<GameState | null> {
+    await this.pending.catch(() => undefined);
+    const tx = this.db.transaction(STORE, 'readonly');
+    const raw = await request(tx.objectStore(STORE).get(this.slotKey(n)));
+    await transaction(tx);
+    if (raw === undefined) return null;
+    try { return parseSlot(this.game, raw).state; } catch (e) { this.fail(e as Error); return null; }
+  }
+
+  putSlot(n: number, state: GameState, meta: SlotMeta): Promise<boolean> {
+    const snapshot = structuredClone(state);
+    const done = this.pending.then(() => this.writeSlot(n, snapshot, meta)).then(() => true, (e) => { this.fail(e instanceof Error ? e : new Error(String(e))); return false; });
+    this.pending = done.then(() => undefined);
+    return done;
+  }
+
+  clearSlot(n: number): Promise<void> {
+    const done = this.pending.then(async () => {
+      const tx = this.db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).delete(this.slotKey(n));
+      await transaction(tx);
+    }).catch((e) => this.fail(e instanceof Error ? e : new Error(String(e))));
+    this.pending = done;
+    return done;
+  }
+
+  private async writeSlot(n: number, state: GameState, meta: SlotMeta) {
+    const record: SlotRecord = { meta, envelope: saveEnvelope(this.game, state) };
+    const tx = this.db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(record, this.slotKey(n));
+    await transaction(tx);
+    const checkTx = this.db.transaction(STORE, 'readonly');
+    const committed = await request(checkTx.objectStore(STORE).get(this.slotKey(n)));
+    await transaction(checkTx);
+    const verified = parseSlot(this.game, committed).state;
+    if (JSON.stringify(canonical(verified)) !== JSON.stringify(canonical(state))) throw new Error(`IndexedDB slot ${n} verification failed`);
   }
 
   load(): GameState | null { return this.value ? structuredClone(this.value) : null; }

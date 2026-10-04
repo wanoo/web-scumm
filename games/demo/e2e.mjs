@@ -183,7 +183,11 @@ export async function run(h) {
   // screen, and leaves a save behind. Clear it and re-navigate the same page to the bare URL, so New Game is a
   // real tap straight into a fresh game (dismissEraseDialogIfAny below is a safety net in case the dev
   // checkpoint's own autosave write races this clear and a save slips through anyway).
-  await h.page.evaluate(() => { try { localStorage.clear(); } catch { /* ignore */ } });
+  await h.page.evaluate(async () => {
+    try { localStorage.clear(); } catch { /* ignore */ }
+    // The v3 autosave and slots live in IndexedDB.
+    await new Promise((r) => { const q = indexedDB.deleteDatabase('web-scumm-saves'); q.onsuccess = q.onerror = q.onblocked = () => r(undefined); });
+  });
   const bare = new URL(h.page.url());
   bare.search = '';
   await h.page.goto(bare.toString());

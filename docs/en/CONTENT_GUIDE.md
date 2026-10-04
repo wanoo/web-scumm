@@ -438,7 +438,8 @@ saves: { slots: 3 },   // the pause menu gets Save / Load with three slots, plus
 ui: { …, save: 'Save', load: 'Load', slot: 'Slot {n}', emptySlot: 'empty', exportSave: 'Export to a file', importSave: 'Import a file', confirmOverwrite: 'Overwrite this slot?' },
 ```
 
-Autosaves use a v3 envelope validated before the current game changes, with a verified IndexedDB write and a
+Manual slots are stored like the autosave: in IndexedDB, as envelopes, read back after each write; a file imported
+from the menu also fills the first free slot. Autosaves use a v3 envelope validated before the current game changes, with a verified IndexedDB write and a
 localStorage compatibility import. When the content changes incompatibly, bump `saveVersion` and carry the state over
 as data, one step per version:
 

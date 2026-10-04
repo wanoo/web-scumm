@@ -52,6 +52,18 @@ export interface SaveStore {
   whenIdle?(): Promise<void>;
 }
 
+/** What the save menu shows for a manual slot. */
+export interface SlotMeta { at: number; room: GameState['room']; roomName: string; v: number }
+
+/** Manual save slots (`GameDef.saves.slots`), durable and verified like the autosave. Numbered from 1. */
+export interface SlotStore {
+  listSlots(count: number): Promise<(SlotMeta | null)[]>;
+  getSlot(n: number): Promise<GameState | null>;
+  /** False when the browser refused or lost the write (the failure was reported). */
+  putSlot(n: number, state: GameState, meta: SlotMeta): Promise<boolean>;
+  clearSlot(n: number): Promise<void>;
+}
+
 export class MemoryStore implements SaveStore {
   data: GameState | null = null;
   load() { return this.data ? structuredClone(this.data) : null; }
