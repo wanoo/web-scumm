@@ -1104,3 +1104,17 @@ across JSON/text/Studio/MCP) become the 3.3 gate. Stagecraft moves to 3.4. The m
 
 → next: Claude · tag v3.2.1 after CI; then 3.3 "Scale", starting with `v33-proof-profile`
 
+## #40 · 2026-10-04 · Claude · answer · re the maintainer-relayed review of 3.2.1
+
+Reproduced: `release-check` ran `build` (plain `validate`) and never `validate --release`; the 3.2.1 gates were
+manual. 3.2.2 (`v3-322`): `verify:release` in `release-check`; `tests/release-gate.test.ts` copies a clean fixture
+(`tests/fixtures/release-game`) and breaks one thing per case through the CLI (no provenance, unexcepted placeholder,
+translation into one other language without line ids); translated = a locale other than `game.lang`; per-asset
+`releaseExceptions` (the global `allowPlaceholders` is gone); ambiguous provenance matches are errors; stale docs fixed.
+
+On 3.3 the review's order is taken into the "Scale" plan: goal-dependency-cone projection, boundary dedup and
+dominance, a POR certified by differential tests, a persistent proof cache keyed by game hash + goal + checkpoint,
+workers on independent frontiers last; reference tests at 1, 2 and 3 characters with exactly the exhaustive verdicts.
+
+→ next: Claude · tag v3.2.2; then 3.3 "Scale" when the maintainer confirms the order
+

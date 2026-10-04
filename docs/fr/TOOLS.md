@@ -171,7 +171,8 @@ npm run replay -- session.json     # rejoue un fichier de session sur le vrai mo
 npm run ids [-- --write --map]     # ids stables (schéma 3) écrits dans les sources, locales renommées, l'étape de migration des sauvegardes (docs/fr/UPGRADING.md)
 npm run ids -- --lines [--write --map]   # un id sur chaque objet say / toast / guide (--lines=all : les chaînes nues aussi, exigé pour une release traduite ou doublée) : traductions et voix indexées par lui (UPGRADING §9)
 npm run i18n -- voices             # les lignes avec un id et sans clip de voix, les clips qu'aucune ligne ne réclame
-npm run validate -- --release      # en plus : une ligne sans id stable (erreur quand le jeu a des voix)
+npm run validate -- --release      # en plus : provenance, provisoires, et un id stable sur chaque ligne d'un jeu livré dans une autre langue que la sienne ou doublé
+npm run verify:release             # validate --release + i18n status + playtests stricts : une étape de release-check
 npm run playtests [-- --strict --out=.cache/playtests]  # les sessions partagées par les joueurs (games/<id>/playtests) rejouées et cumulées : temps par lieu, blocages, indices, heatmap
 npm run e2e -- <url> --lang fr           # le jeu entier dans cette langue ; échoue sur tout texte anglais par défaut du moteur visible
 npm run lint [-- --prove | --static | --json]   # lint de contenu : conditions insatisfaisables, règles masquées, faux indices, indices bloqués, actions jamais jouées
@@ -240,11 +241,13 @@ chaque id de `skin` (images du manifeste, sons de `audio`) et `ending.scratch`.
 `games/<id>/provenance.json` dit d'où vient chaque asset livré : des entrées `{ match, source, licence, author?,
 prompt?, status: 'final' | 'placeholder', note? }`, où `match` couvre des clés d'assets avec `*` (`img:<id d'image du
 manifeste>`, `sfx:<fichier>`, `music:<fichier>`, `voice:<fichier>`, `video:<fichier>`). `npm run validate` vérifie un
-jeu qui a le fichier (chaque asset couvert, chaque entrée complète) ; `npm run validate -- --release` l'exige et
-signale chaque provisoire qui partirait en release. `npm run new-game` en écrit un pour les images empruntées à la
-démo (toutes provisoires, CC BY 4.0) ; celui de la démo marque sa musique non commerciale comme le seul provisoire.
-En release, un provisoire est une erreur, sauf si le fichier dit pourquoi il peut partir
-(`"allowPlaceholders": "raison"`). Traductions : un texte identique à la source fait échouer
+jeu qui a le fichier (chaque asset couvert par une seule entrée : deux entrées qui couvrent le même asset sont une
+erreur, quel que soit leur ordre ; chaque entrée complète) ; `npm run validate -- --release` exige le fichier, et un
+provisoire est une erreur sauf si une entrée `releaseExceptions: [{ match, reason }]` nomme cet asset (une exception
+ne couvre jamais un provisoire ajouté plus tard). `npm run new-game` en écrit un pour les images empruntées à la démo
+(toutes provisoires, CC BY 4.0) ; celui de la démo excepte nommément sa musique non commerciale.
+`npm run verify:release` (validate `--release`, `i18n -- status`, playtests stricts) est une étape de
+`npm run release-check`, donc le workflow de release le lance. Traductions : un texte identique à la source fait échouer
 `npm run i18n -- status`, sauf si `i18n: { same: [chemins] }` dans `game.ts` le liste (un nom, « OK », une flèche).
 `npm run audit` est une autre vérification : il garde les noms d'un projet privé hors du dépôt public.
 

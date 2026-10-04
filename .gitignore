@@ -16,3 +16,4 @@ games/*/audio/projects/*/reference.wav
 games/*/audio/projects/*/source_audio.*
 games/*/audio/projects/*/out/*.mp3
 games/*/audio/projects/*/analysis.json
+tests/fixtures/release-tmp-*/

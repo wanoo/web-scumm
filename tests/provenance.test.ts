@@ -21,6 +21,15 @@ describe('asset provenance', () => {
     expect(r.placeholders).toEqual(['music:theme.mp3']);
     expect(r.incomplete).toEqual(['sfx:*']);
   });
+  it('an asset two entries match is ambiguous, whatever their order', () => {
+    const r = provenanceReport(game, manifest, { assets: [
+      { match: 'img:*', source: 'a', licence: 'x', status: 'final' },
+      { match: 'img:hero/*', source: 'b', licence: 'y', status: 'placeholder' },
+      { match: 'music:*', source: 'c', licence: 'z', status: 'final' }, { match: 'sfx:*', source: 'd', licence: 'z', status: 'final' },
+    ] } as Provenance);
+    expect(r.ambiguous).toEqual(['img:hero/r1c1 (img:*, img:hero/*)']);
+    expect(r.placeholders).toEqual([]);
+  });
   it('the sample game covers every asset; its only placeholder is the non-commercial music', () => {
     const r = provenanceReport(demo, demoManifest as never, demoProvenance as Provenance);
     expect(r.uncovered).toEqual([]);
@@ -30,10 +39,13 @@ describe('asset provenance', () => {
 });
 
 describe('placeholders in a release', () => {
-  const r = { keys: 2, uncovered: [], placeholders: ['music:theme.mp3'], incomplete: [] };
+  const r = { keys: 2, uncovered: [], placeholders: ['music:theme.mp3'], incomplete: [], ambiguous: [] };
   it('fail it, unless the file says why they may ship', () => {
     expect(placeholderVerdict({ assets: [] }, r).errors).toHaveLength(1);
-    expect(placeholderVerdict({ assets: [], allowPlaceholders: 'a demo' }, r)).toEqual({ errors: [], warnings: [expect.stringContaining('allowed: a demo')] });
+    const allowed = { assets: [], releaseExceptions: [{ match: 'music:theme.mp3', reason: 'a demo' }] };
+    expect(placeholderVerdict(allowed, r)).toEqual({ errors: [], warnings: [expect.stringContaining('release exception: a demo')] });
+    // an exception names its asset: a new placeholder is not covered by an older reason
+    expect(placeholderVerdict(allowed, { ...r, placeholders: ['music:theme.mp3', 'img:new'] }).errors).toEqual([expect.stringContaining('img:new')]);
     expect(placeholderVerdict({ assets: [] }, { ...r, placeholders: [] })).toEqual({ errors: [], warnings: [] });
   });
 });

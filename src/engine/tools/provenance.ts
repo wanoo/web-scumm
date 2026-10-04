@@ -21,8 +21,11 @@ export interface ProvenanceEntry {
 
 export interface Provenance {
   assets: ProvenanceEntry[];
-  /** Placeholders may ship, and why (the engine's sample game: a demo, not a product). Absent: a placeholder fails `validate --release`. */
-  allowPlaceholders?: string;
+  /**
+   * The placeholders that may ship anyway, one by one, each with its reason (the engine's sample game: its
+   * non-commercial music). Any other placeholder fails `validate --release`; a new one is never covered by accident.
+   */
+  releaseExceptions?: { match: string; reason: string }[];
 }
 
 export interface ProvenanceReport {
@@ -30,6 +33,8 @@ export interface ProvenanceReport {
   uncovered: string[];
   placeholders: string[];
   incomplete: string[];
+  /** Assets more than one entry matches (`img:*` and `img:hero/*`): which one says the truth is not decided by order. */
+  ambiguous: string[];
 }
 
 const glob = (pattern: string) => new RegExp(`^${pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`);
@@ -49,22 +54,26 @@ export function assetKeys(game: GameDef, manifest: { images: Record<string, unkn
 export function provenanceReport(game: GameDef, manifest: { images: Record<string, unknown>; videos?: Record<string, unknown> }, prov: Provenance): ProvenanceReport {
   const entries = (prov.assets ?? []).map((e) => ({ e, re: glob(e.match) }));
   const keys = assetKeys(game, manifest);
-  const uncovered: string[] = [], placeholders: string[] = [];
+  const uncovered: string[] = [], placeholders: string[] = [], ambiguous: string[] = [];
   for (const k of keys) {
-    const hit = entries.find(({ re }) => re.test(k));
-    if (!hit) uncovered.push(k);
-    else if (hit.e.status === 'placeholder') placeholders.push(k);
+    const hits = entries.filter(({ re }) => re.test(k));
+    if (!hits.length) uncovered.push(k);
+    else if (hits.length > 1) ambiguous.push(`${k} (${hits.map((h) => h.e.match).join(', ')})`);
+    else if (hits[0].e.status === 'placeholder') placeholders.push(k);
   }
   const incomplete = (prov.assets ?? []).filter((e) => !e.match || !e.source?.trim() || !e.licence?.trim() || (e.status !== 'final' && e.status !== 'placeholder')).map((e) => e.match || '(no match)');
-  return { keys: keys.length, uncovered, placeholders, incomplete };
+  return { keys: keys.length, uncovered, placeholders, incomplete, ambiguous };
 }
 
-/** What a release does with the placeholders: an error, unless the file says why they may ship (then a warning). */
+/** What a release does with each placeholder: an error, unless a `releaseExceptions` entry names it with a reason (then a warning). */
 export function placeholderVerdict(prov: Provenance, r: ProvenanceReport): { errors: string[]; warnings: string[] } {
-  if (!r.placeholders.length) return { errors: [], warnings: [] };
-  const msg = `provenance.json › ${r.placeholders.length} placeholder asset(s) would ship: ${r.placeholders.slice(0, 8).join(', ')}${r.placeholders.length > 8 ? '…' : ''}`;
-  return prov.allowPlaceholders?.trim()
-    ? { errors: [], warnings: [`${msg} (allowed: ${prov.allowPlaceholders.trim()})`] }
-    : { errors: [`${msg}: replace them, or say why they may ship with "allowPlaceholders"`], warnings: [] };
+  const ex = (prov.releaseExceptions ?? []).filter((x) => x.match && x.reason?.trim()).map((x) => ({ x, re: glob(x.match) }));
+  const errors: string[] = [], warnings: string[] = [];
+  for (const k of r.placeholders) {
+    const hit = ex.find(({ re }) => re.test(k));
+    if (hit) warnings.push(`provenance.json › ${k}: a placeholder ships (release exception: ${hit.x.reason.trim()})`);
+    else errors.push(`provenance.json › ${k}: a placeholder would ship; replace it, or add a releaseExceptions entry that names it and says why`);
+  }
+  return { errors, warnings };
 }
 

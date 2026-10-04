@@ -270,7 +270,9 @@ pointeurs parents, ids numériques d'états) ; le personnage actif hors de l'ét
 macro-déplacements ; interfaces de chapitre projetées sur ce que la suite lit ; une réduction sûre pour la preuve avec
 condition de cycle, validée de façon différentielle sur des milliers de jeux générés ; frontières en parallèle ; un
 backend symbolique (BDD) seulement si de vrais jeux dépassent encore les budgets. Sortie : le jeu de stress de 40 lieux
-prouvé avec 1, 2 et 3 personnages (BENCH.md).
+prouvé avec 1, 2 et 3 personnages (BENCH.md). Ajouté par la relecture de la 3.2.1 (LOG #40) : états projetés sur le
+cône de dépendances du but, dédoublonnage et dominance des frontières, un cache de preuve persistant indexé par
+l'empreinte du jeu, le but et le checkpoint.
 
 ## Hors plan (décisions explicites)
 

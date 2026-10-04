@@ -313,7 +313,9 @@ From an outside review (LOG #38), in order: profile the search; a proof-mode fro
 numeric state ids); the active character out of the state; mobility regions and macro moves; chapter interfaces
 projected on what the rest reads; a proof-safe reduction with a cycle proviso, validated differentially on thousands
 of generated games; parallel frontiers; a symbolic (BDD) backend only if real games still exceed the budgets. Exit:
-the 40-room stress game proved with 1, 2 and 3 characters (BENCH.md).
+the 40-room stress game proved with 1, 2 and 3 characters (BENCH.md). Added by the review of 3.2.1 (LOG #40): states
+projected on the goal's dependency cone, boundary dedup and dominance, a persistent proof cache keyed by game hash,
+goal and checkpoint.
 
 ## Out of scope (explicit decisions)
 
