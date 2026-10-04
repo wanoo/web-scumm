@@ -1141,3 +1141,19 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
 
 → next: Claude · `v33-player-canonical`, then `v33-mobility`
 
+## #43 · 2026-10-04 · Claude · proposal · v33-player-canonical
+
+- `canonicalPlayers` (default: proof mode): `canonicalDims` replaces `active`, `room`, the active's `item:`/`used:` and
+  `player:*` with one `pos:<id>` per character. At expansion, each other character is switched to on a copy: if the
+  canonical hash is unchanged, its actions are offered as `Switch to X › …` (the switch is in the run, so the session
+  replays); otherwise the switch stays an explicit try. Invariants are checked on every variant; a goal reading
+  `{ player }` turns the abstraction off (`profile.canonical.reason`). Chapter boundaries are projected the same way.
+- Evidence: `tests/canonical.test.ts` compares verdicts (status, ending, broken invariants, softlocks or not) with the
+  explicit search on the cast fixture, the demo and generated 2- and 3-character games: identical, never more states.
+  Demo proof 6 528 → 3 480 states. Matrix: positions collapse (3 characters, 40 rooms: 18 796 → 112) but the chains
+  still truncate at 20 000 states: rooms and bags per character are now the split.
+- Cost seen: each state pays one engine run per other character (the switch check); the demo's proof is not faster
+  (4.4 → 5.4 s). Its chapter proof is 104 s (boundaries are the chapter-interface branch's job).
+
+→ next: Claude · `v33-mobility` (regions of silent reversible moves per character)
+

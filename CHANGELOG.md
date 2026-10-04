@@ -10,6 +10,11 @@
 
 ### Changed
 
+- The canonical character (`canonicalPlayers`, on in proof mode): states that differ only by the active character
+  are one, each state offers every character's actions when a switch changes nothing the solver reads; invariants
+  are checked from every character's view; off when the goal reads `{ player }`. Same verdicts as the explicit search
+  (`tests/canonical.test.ts`), the demo's proof 6 528 → 3 480 states; `profile.canonical` counts folded and explicit
+  switches.
 - The solver's frontier is a binary heap in the exact order of the sorted list it replaces, and states keep a parent
   pointer instead of a copied path and session: same witnesses, proofs and printed output, 8× faster on the 40-room
   3-character matrix case (the queue took 89% of the time).

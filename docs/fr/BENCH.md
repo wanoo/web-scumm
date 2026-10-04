@@ -228,3 +228,23 @@ La file disparaît du profil (89 % → 0 %) et le cas le plus lourd va 8 fois pl
 (50,9 s → 6,2 s). Le nombre d'états ne bouge pas, comme il se doit : restent le moteur (environ la moitié), les copies
 d'état (environ 30 %), et surtout le nombre d'états, auquel s'attaquent les branches suivantes.
 
+### Après `v33-player-canonical` (mêmes verdicts, vérifiés contre la recherche explicite)
+
+En mode preuve, des états qui ne diffèrent que par le personnage actif sont un seul état, et chaque état propose les
+actions de chaque personnage (`Switch to X › action`) quand le changement ne modifie rien de ce que lit le solveur ; un
+changement qui modifie quelque chose reste une étape explicite, et les invariants sont vérifiés du point de vue de
+chaque personnage. Preuve de la démo : 6 528 → 3 480 états, même verdict.
+
+| Jeu | Preuve | États | Exécutions | Temps | Positions |
+|---|---|---|---|---|---|
+| 20 lieux, 1 personnage | résolue | 797 | 3 295 | 0.2 s | 20 |
+| 20 lieux, 2 personnages | tronquée | 20 000 | 153 282 | 12.7 s | 757 |
+| 20 lieux, 3 personnages | tronquée | 20 000 | 79 081 | 5.5 s | 60 |
+| 40 lieux, 1 personnage | résolue | 3 197 | 13 245 | 1.0 s | 40 |
+| 40 lieux, 2 personnages | tronquée | 20 000 | 83 535 | 6.1 s | 44 |
+| 40 lieux, 3 personnages | tronquée | 20 000 | 65 577 | 6.4 s | 112 |
+
+Le personnage actif n'est plus un facteur (positions 18 796 → 112 à trois personnages), mais les chaînes de stress
+restent tronquées : le lieu exact et le sac de chaque personnage fragmentent maintenant les états. C'est le travail
+des régions de mobilité.
+

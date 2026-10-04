@@ -213,3 +213,22 @@ The queue is gone from the profile (89% → 0%) and the heaviest case runs 8× f
 (50.9 s → 6.2 s). The state counts are unchanged, as they must be: what remains is the engine (about half) and the
 state copies (about 30%), and above all the number of states, which the next branches attack.
 
+### After `v33-player-canonical` (same verdicts, checked against the explicit search)
+
+In proof mode, states that differ only by the active character are one state, and each state offers every
+character's actions (`Switch to X › action`) when the switch changes nothing the solver reads; a switch that does
+stays an explicit step, and invariants are checked on every character's view. The demo's proof: 6 528 → 3 480 states,
+same verdict.
+
+| Game | Proof | States | Engine runs | Time | Positions |
+|---|---|---|---|---|---|
+| 20 rooms, 1 character | solved | 797 | 3 295 | 0.2 s | 20 |
+| 20 rooms, 2 characters | truncated | 20 000 | 153 282 | 12.7 s | 757 |
+| 20 rooms, 3 characters | truncated | 20 000 | 79 081 | 5.5 s | 60 |
+| 40 rooms, 1 character | solved | 3 197 | 13 245 | 1.0 s | 40 |
+| 40 rooms, 2 characters | truncated | 20 000 | 83 535 | 6.1 s | 44 |
+| 40 rooms, 3 characters | truncated | 20 000 | 65 577 | 6.4 s | 112 |
+
+The active character is no longer a factor (positions 18 796 → 112 with three characters), but the stress chains
+still truncate: each character's exact room and bag now split the states. That is the mobility regions' job.
+
