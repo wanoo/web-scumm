@@ -248,7 +248,7 @@ what every action read and changed.
 - Not done, on purpose: adaptive music (iMUSE-like transitions); Furnace is downloaded by `setup`, not bundled; CI
   does not render audio (the files are committed).
 
-## v3 (in progress on branch `v3`): the engine you can trust a long game to
+## v3 "Trust" (shipped 4 October 2026): the engine you can trust a long game to
 
 Co-developed by two assistants under `docs/dev/CHARTER.md`; the exchange is `docs/dev/LOG.md`, the decisions
 `docs/dev/DECISIONS.md`. v3 may break v2 (D1): every break ships with its migration and an upgrading guide, and the

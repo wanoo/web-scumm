@@ -201,7 +201,7 @@ fait : le moteur sait ce que chaque action a lu et changé.
 - Volontairement non fait : la musique adaptative (transitions à la iMUSE) ; Furnace est téléchargé par `setup`, pas
   embarqué ; la CI ne rend pas l'audio (les fichiers sont commités).
 
-## v3 (en cours sur la branche `v3`) : le moteur auquel confier un jeu long
+## v3 « Trust » (livrée le 4 octobre 2026) : le moteur auquel confier un jeu long
 
 Co-développée par deux assistants selon `docs/dev/CHARTER.md` ; l'échange est `docs/dev/LOG.md`, les décisions
 `docs/dev/DECISIONS.md` (en anglais, dépôt public). La v3 peut casser la v2 (D1) : chaque rupture vient avec sa
