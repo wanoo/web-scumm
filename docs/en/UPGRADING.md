@@ -131,7 +131,7 @@ verdict (`Witness status:` / `Proof status:`), everything else is unchanged.
 | `once` / `nth` / `cycle` / `random` | `id` | their counters in saves (v2 `key` still read, deprecated) |
 | a script | `stepIds`, one per command of `do` | a save resumes at the named step after a reorder |
 
-**New `ui` keys** (English defaults when absent): `saveFailed`, `saveAdjusted`, `updateAvailable`, `updateNow`, `advance`
+**New `ui` keys** (English defaults when absent): `saveFailed`, `saveAdjusted`, `updateAvailable`, `updateNow`, `advance`, `offlineStatus`, `offlineComplete`, `offlineRetry` (3.1.1: the pause menu's offline row)
 (3.1, the "tap to continue" marker for screen readers), `shareSession` (3.1, the playtest row of the pause menu).
 
 ## 8. A game that embeds the engine (a copy of `src/engine`)

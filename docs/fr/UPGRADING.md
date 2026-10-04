@@ -137,7 +137,7 @@ après le verdict (`Witness status:` / `Proof status:`), rien d'autre ne change.
 | `once` / `nth` / `cycle` / `random` | `id` | leurs compteurs dans les sauvegardes (`key` v2 encore lu, déprécié) |
 | un script | `stepIds`, un par commande de `do` | la sauvegarde reprend au pas nommé après un réordonnancement |
 
-**Nouvelles clés `ui`** (défaut anglais si absentes) : `saveFailed`, `saveAdjusted`, `updateAvailable`, `updateNow`, `advance`
+**Nouvelles clés `ui`** (défaut anglais si absentes) : `saveFailed`, `saveAdjusted`, `updateAvailable`, `updateNow`, `advance`, `offlineStatus`, `offlineComplete`, `offlineRetry` (3.1.1 : la ligne « hors ligne » du menu pause)
 (3.1, le repère « toucher pour continuer » pour les lecteurs d'écran), `shareSession` (3.1, la ligne playtest du menu pause).
 
 ## 8. Un jeu qui embarque le moteur (une copie de `src/engine`)

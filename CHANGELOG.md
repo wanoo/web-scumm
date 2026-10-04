@@ -2,6 +2,15 @@
 
 ## 3.1.1 — unreleased
 
+### Added
+
+- The offline warm-up tells the truth: `AssetBank.warm()` returns what it did (a bad HTTP status is a failure, a file
+  already in the Cache API counts without a fetch), `App.offlineStatus` / `offlineReady` end `complete` only when every
+  file of the plan is cached, else `partial` (reason: network, save-data, slow, quota from `navigator.storage.estimate()`),
+  `skipped` or `off`; the pause menu shows it (`ui.offlineStatus`, `offlineComplete`, `offlineRetry`) and a tap retries;
+  `npm run e2e:pwa` requires `complete`, checks every file of the plan offline and renders a never-visited room; WebKit's
+  impossible offline navigation is "skipped" (exit 3), accepted only by the CI's `--allow-skip`.
+
 ### Fixed
 
 - A sealed ending (`ending` / `reveal`) now sets `state.done` like `end` does: the card was shown with the game
