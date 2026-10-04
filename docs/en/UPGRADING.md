@@ -97,7 +97,8 @@ GAME=<id> npm run e2e -- http://127.0.0.1:5173/ --prod
 
 Load every representative v2 save and verify its room, active player, inventories, persistent choices and script step.
 Reorder one rule, topic, choice and script step in a test fixture; the same v3 save must retain its meaning. Finally,
-test the production PWA online, offline in cached rooms, and through an update. Unvisited rooms are not promised offline.
+test the production PWA online, offline in a room never visited (`npm run e2e:pwa` does it), and through an update.
+The whole game is cached after the first visit unless the game says `offline: 'nearby'` (decision D5).
 
 ## 7. At a glance
 

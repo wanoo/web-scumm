@@ -26,9 +26,11 @@ export class AssetBank {
    * those nearby assets then show up without waiting and remain available to the service worker. Does nothing in
    * "save data" mode.
    */
-  async warm(urls: string[], parallel = 3): Promise<void> {
+  async warm(urls: string[], parallel = 3, o: { heavy?: boolean } = {}): Promise<void> {
     const conn = (navigator as unknown as { connection?: { saveData?: boolean; effectiveType?: string } }).connection;
     if (conn?.saveData || conn?.effectiveType === 'slow-2g' || conn?.effectiveType === '2g') return;
+    // Music and video wait for a decent link: a background download must never fight the room's own loads.
+    if (o.heavy && conn?.effectiveType === '3g') return;
     const todo = urls.filter((u) => !this.warmed.has(u));
     todo.forEach((u) => this.warmed.add(u));
     const idle = () => new Promise<void>((r) => ('requestIdleCallback' in window ? (window as any).requestIdleCallback(() => r(), { timeout: 1500 }) : setTimeout(r, 50)));

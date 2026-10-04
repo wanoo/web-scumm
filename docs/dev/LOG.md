@@ -453,3 +453,26 @@ Verdict: the page's bootstrap is part of the engine; a build bug that broke the 
 | `/?dev` on the demo build | game starts on the first checkpoint, no console error |
 
 → next: Claude · merge after CI, then `v3-slots`
+
+## #17 · 2026-10-04 · Claude · proposal · v3-offline (D5)
+Branch: v3-offline · from main@5c5a223
+Verdict: the whole game offline after the first visit, measured by the PWA smoke test
+
+- `GameDef.offline: 'full' | 'nearby'` (default `full`); `src/engine/dom/offline.ts` `offlinePlan(game, manifest,
+  budgets)`: every image of the manifest (sprites are addressed by sheet and cell, a content scan would miss them),
+  then effects, voices, music one track at a time, videos; batches sized by `assetBudgets`.
+- `App.warmAll()`: once per page after the room-scoped warm-up, batch by batch during idle time, paused while the page
+  is hidden; `AssetBank.warm` skips music and video on 3G (and everything on save-data / 2G as before);
+  `app.offlineReady` resolves when done. Workbox `jeu-sons` holds 600 entries.
+- `npm run e2e:pwa` waits for `offlineReady`, then, offline, checks that the decor and a sound of a room never visited
+  come from the cache (`--nearby` for a `nearby` game, `--budget=<ms>`).
+- Docs: README (the promise is back, en/fr), ENGINE cache section, UPGRADING §6, CONTENT_GUIDE images, CHANGELOG.
+
+### Checks run
+| Command | Result |
+|---|---|
+| `tsc --noEmit`, `npm test` | clean, 222 passed (+ offline.test.ts) |
+| `npm run e2e:pwa` (two-entry build) | garden, never visited, served from the cache; the demo warms in ~3 s |
+| e2e demo, production, Chromium | passed end to end |
+
+→ next: Claude · merge after CI, then `v3-a11y`

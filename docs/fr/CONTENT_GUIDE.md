@@ -655,6 +655,10 @@ Sur le lieu : `floor` (défaut 395) est le bas du sol ; un point d'approche calc
 
 ## Les images
 
+Après la première visite, le jeu met en cache chaque image et chaque son pour jouer hors ligne (`offline: 'full'`, le
+défaut ; `'nearby'` ne garde que le lieu courant et ses voisins) ; `assetBudgets` dimensionne les lots. Un jeu de 40 Mo
+pèse 40 Mo sur le téléphone.
+
 Une image se désigne par `dossier/nom`, le chemin du fichier découpé dans `games/<jeu>/art/` sans l'extension :
 `grandmere/r3c3` (planche de Grand-mère, ligne 3, colonne 3), `items/r1c2`, `maison/fauteuil`. Les décors s'appellent `decor/<lieu>`.
 `npm run assets` prépare uniquement les images citées par le contenu, et `npm run validate` signale toute image introuvable.

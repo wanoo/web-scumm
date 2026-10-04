@@ -2,8 +2,8 @@
 
 Un moteur de point-and-click à la SCUMM pour téléphones, avec les outils d'écriture et la méthode de travail avec une
 IA qui ont permis de livrer un jeu familial complet de 9 lieux en une journée. Écris ton histoire sous forme de données,
-place les choses en les glissant, prouve que le jeu se finit, joue en paysage sur n'importe quel téléphone et reprends
-hors ligne dans les lieux déjà mis en cache sur l'appareil.
+place les choses en les glissant, prouve que le jeu se finit, joue en paysage sur n'importe quel téléphone, hors
+ligne après la première visite.
 
 *[English version](README.md)*
 
@@ -22,7 +22,7 @@ par un personnage, une carte du monde avec véhicules, des cinématiques, des ap
 câbles emmêlés, choix, cache-cache, course, caresses, ticket à gratter), des lieux plus larges que l'écran, plusieurs
 personnages jouables, une fin scellée facultative (chiffrée AES, révélée en jouant), la sauvegarde automatique plus
 des emplacements avec export / import, des réglages, des traductions, tactile et souris, téléphone et ordinateur, et
-jeu hors ligne pour l'application et les lieux déjà mis en cache.
+le jeu entier hors ligne après la première visite.
 
 <table>
 <tr><td width="50%" valign="top"><img src="docs/img/title.jpg" alt="Écran titre, téléphone en paysage" width="100%"><br><sub>Écran titre, téléphone en paysage</sub></td><td width="50%" valign="top"><img src="docs/img/room-garden.jpg" alt="Un lieu : neuf verbes, le sac, la scène" width="100%"><br><sub>Un lieu : neuf verbes, le sac, la scène</sub></td></tr>

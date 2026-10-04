@@ -66,11 +66,14 @@ The choice is made automatically (`App.layout`), and redone whenever the window 
 - A **service worker** (vite-plugin-pwa / Workbox) keeps the app shell cached from the first visit. Images and sounds
   are kept on first use, then served without the network. Music is served in chunks (range requests) from the cache.
 - From the title screen and after each room change, the engine **warms in the background** the current room, directly
-  reachable rooms and their audio, within `GameDef.assetBudgets`. It does not warm assets on a constrained or
-  "save data" connection, and it never downloads a long game's entire asset catalogue automatically.
+  reachable rooms and their audio, in batches sized by `GameDef.assetBudgets`. Then, once per page, **the rest of the
+  game** (`GameDef.offline`, default `full`): every image, effect, voice, music track and video, batch by batch during
+  idle time, paused while the page is hidden; nothing on a "save data" or 2G connection, music and video wait for
+  better than 3G. `offline: 'nearby'` keeps only the room-scoped warm-up.
 - Every image or sound address carries `?v=<hash>`: the hash changes as soon as a file in `public/assets` changes, which
   bypasses the old cache. The sealed ending's file (`data/`) is always requested from the network first.
-- The app shell and assets already cached work offline. A room never visited or warmed may still need the network.
+- After the first visit the whole game plays offline (`npm run e2e:pwa` checks a room never visited from the cache).
+  With `offline: 'nearby'`, a room never visited or warmed may still need the network.
 
 ## The action cycle
 

@@ -10,6 +10,7 @@ import { AssetBank, type AssetManifest } from './assets';
 import { Audio } from './audio';
 import { FONT_PIXEL, FONT_UI, fontStack } from './fonts';
 import { RoomView } from './room';
+import { offlinePlan, planSize } from './offline';
 import './style.css';
 import { parseSave, saveEnvelope } from '../core/save';
 
@@ -127,6 +128,10 @@ export class App implements Presenter {
   private eatClick = -Infinity;
   private inCutscene = false;
   private saveError: string | null = null;
+  private warmedAll = false;
+  private offlineDone!: () => void;
+  /** Resolves once the whole game is cached for offline play (`GameDef.offline`), or at once when it is not asked. */
+  readonly offlineReady: Promise<void> = new Promise((r) => { this.offlineDone = r; });
   private saveWarning: string | null = null;
   private a11yTargets: HTMLDivElement | null = null;
   private live!: HTMLDivElement;
@@ -1081,7 +1086,7 @@ export class App implements Presenter {
       m.append(y, n); d.append(m); ov.append(d);
     };
     cb.onclick = () => { startMusic(); void launch(false); };
-    void this.warmAround(this.engine.store.load()?.room ?? this.game.start.room, true);
+    void this.warmAround(this.engine.store.load()?.room ?? this.game.start.room, true).then(() => this.warmAll());
   }
 
   /**
@@ -1123,6 +1128,28 @@ export class App implements Presenter {
     const music = new Set<Id>([this.game.titleScreen?.music, current.music, ...[...neighbors].map((id) => rooms.get(id)?.music)].filter(Boolean) as Id[]);
     await b.warm([...music].filter((id) => a.music?.[id]).slice(0, 4).map((id) => b.music(a.music![id])), 2);
     if (initial && this.game.titleScreen?.video) await b.warm([b.video(this.game.titleScreen.video)], 1);
+  }
+
+  /**
+   * The rest of the game, for offline play (`GameDef.offline`, default `full`): once per page, after the room-scoped
+   * warm-up, batch by batch during idle time, paused while the page is hidden. The room renderer never waits for it.
+   */
+  private async warmAll() {
+    if (this.warmedAll) return;
+    this.warmedAll = true;
+    try {
+      if (this.game.offline === 'nearby') return;
+      const b = this.bank;
+      const plan = offlinePlan(this.game, b.manifest);
+      const url = (kind: string, id: string) => kind === 'img' ? b.img(id) : kind === 'sfx' ? b.sfx(id) : kind === 'voice' ? b.voice(id) : kind === 'music' ? b.music(id) : b.video(id);
+      const visible = () => new Promise<void>((r) => { if (!document.hidden) return r(); const on = () => { if (!document.hidden) { document.removeEventListener('visibilitychange', on); r(); } }; document.addEventListener('visibilitychange', on); });
+      for (const batch of plan) {
+        await visible();
+        await b.warm(batch.ids.map((id) => url(batch.kind, id)), batch.kind === 'img' ? 3 : 1, { heavy: batch.kind === 'music' || batch.kind === 'video' });
+      }
+      const { files } = planSize(plan);
+      if (import.meta.env?.DEV) console.info(`offline: ${files} files warmed`);
+    } finally { this.offlineDone(); }
   }
 
   /** The title screen takes up the full width (no side column). */

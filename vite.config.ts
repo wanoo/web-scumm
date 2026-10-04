@@ -146,7 +146,7 @@ export default defineConfig({
           { urlPattern: /\/assets\/img\//, handler: 'CacheFirst',
             options: { cacheName: 'jeu-images', expiration: { maxEntries: 2000, maxAgeSeconds: 90 * 86400 }, cacheableResponse: { statuses: [0, 200] } } },
           { urlPattern: /\/assets\/audio\//, handler: 'CacheFirst',
-            options: { cacheName: 'jeu-sons', rangeRequests: true, expiration: { maxEntries: 120, maxAgeSeconds: 90 * 86400 }, cacheableResponse: { statuses: [200] } } },
+            options: { cacheName: 'jeu-sons', rangeRequests: true, expiration: { maxEntries: 600, maxAgeSeconds: 90 * 86400 }, cacheableResponse: { statuses: [200] } } },
           { urlPattern: /\/assets\/video\//, handler: 'CacheFirst',
             options: { cacheName: 'jeu-videos', rangeRequests: true, expiration: { maxEntries: 10 }, cacheableResponse: { statuses: [200] } } },
           { urlPattern: /\/data\//, handler: 'NetworkFirst', options: { cacheName: 'jeu-donnees', networkTimeoutSeconds: 4 } },
