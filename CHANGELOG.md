@@ -11,6 +11,8 @@
 
 ### Changed
 
+- Manual save slots live in IndexedDB next to the autosave, as envelopes read back after each write; the v2
+  localStorage slots are imported once; a file imported from the save menu also fills the first free slot.
 - The sample game is schema 3: every rule, topic, listener, choice and block has an id; its v1 saves migrate.
 - Translation paths name rules, topics, choices and listeners by id when they have one (`room:house/on.<id>.do[1]`);
   v2 content keeps the positional paths. The puzzle graph, the solver and the Play tab name topics and listeners by
