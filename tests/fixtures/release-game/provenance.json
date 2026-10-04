@@ -1,4 +1,9 @@
 {
+ "licences": {
+  "allow": [
+   "MIT"
+  ]
+ },
  "assets": [
   {
    "match": "img:*",

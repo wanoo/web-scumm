@@ -305,7 +305,9 @@ npm run i18n -- status               # couverture de chaque langue, chemins obso
 ```
 
 Un chemin ressemble à `room:maison/look.garde_manger[1]`, `item:cle/name`, `char:grandmere/refuse`, `ui/newGame`,
-`rules/fallbacks.look[2]`, `start/intro[0].say` ; le fichier est `{ "<chemin>": "<texte>" }`. Le jeu embarque les
+`rules/fallbacks.look[2]`, `start/intro[0].say` ; une ligne avec un id est indexée par lui (`room:house/look.pantry.<id>`,
+`rules/fallbacks.look.<id>` : les listes acceptent des lignes `{ id, text }`, UPGRADING §10) ; le fichier est
+`{ "<chemin>": "<texte>" }`. Le jeu embarque les
 fichiers qu'il a (`locales` dans `index.ts` les ramasse) ; le joueur a `?lang=en`, son choix dans Réglages
 (`ui.language`), ou la langue de son navigateur quand la traduction existe. Les textes absents d'un fichier restent
 comme écrits. `npm run validate -- --report` et l'onglet Check du Studio montrent la couverture.
@@ -670,6 +672,9 @@ Sur le lieu : `floor` (défaut 395) est le bas du sol ; un point d'approche calc
 Après la première visite, le jeu met en cache chaque image et chaque son pour jouer hors ligne (`offline: 'full'`, le
 défaut ; `'nearby'` ne garde que le lieu courant et ses voisins) ; `assetBudgets` dimensionne les lots. Un jeu de 40 Mo
 pèse 40 Mo sur le téléphone.
+`assetBudgets.initialKB`, `roomKB` et `chapterKB` disent combien le jeu peut demander à un téléphone de télécharger
+avant que le premier lieu soit jouable, par lieu et par chapitre : `npm run weight` les vérifie, et une release les exige
+(docs/fr/TOOLS.md).
 
 Une image se désigne par `dossier/nom`, le chemin du fichier découpé dans `games/<jeu>/art/` sans l'extension :
 `grandmere/r3c3` (planche de Grand-mère, ligne 3, colonne 3), `items/r1c2`, `maison/fauteuil`. Les décors s'appellent `decor/<lieu>`.

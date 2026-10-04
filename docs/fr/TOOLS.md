@@ -170,7 +170,7 @@ npm run solve -- --profile         # de quoi les états sont faits, ce que la re
 npm run solve -- --por=stubborn    # réduction d'ordre partiel : les actions commutantes une à la fois (moins d'états, même preuve)
 npm run replay -- session.json     # rejoue un fichier de session sur le vrai moteur, imprime le journal et l'état final
 npm run ids [-- --write --map]     # ids stables (schéma 3) écrits dans les sources, locales renommées, l'étape de migration des sauvegardes (docs/fr/UPGRADING.md)
-npm run ids -- --lines [--write --map]   # un id sur chaque objet say / toast / guide (--lines=all : les chaînes nues aussi, exigé pour une release traduite ou doublée) : traductions et voix indexées par lui (UPGRADING §9)
+npm run ids -- --lines [--write --map]   # un id sur chaque objet say / toast / guide, ligne de liste, indice et réaction par sorte (--lines=all : les chaînes nues aussi, exigé pour une release traduite ou doublée) : traductions et voix indexées par lui (UPGRADING §9, §10)
 npm run i18n -- voices             # les lignes avec un id et sans clip de voix, les clips qu'aucune ligne ne réclame
 npm run validate -- --release      # en plus : provenance, provisoires, et un id stable sur chaque ligne d'un jeu livré dans une autre langue que la sienne ou doublé
 npm run verify:release             # validate --release + i18n status + playtests stricts : une étape de release-check
@@ -201,6 +201,14 @@ Codes de sortie : 0 propre, 1 une erreur non ignorée, 2 la recherche a été tr
 `truncated`). `lint: { ignore: ['code', 'code:<id>', 'code:<lieu>/<chemin>'] }`
 dans `game.ts` garde un faux indice voulu. L'onglet Check du Studio montre la même liste avec des liens vers Rooms ;
 l'outil MCP `lint` la renvoie en Markdown. `verify:game` le lance (la CI aussi).
+
+**Cache de preuve.** Une exécution du solveur ne dépend que du code du moteur, du jeu (contenu, plans, commandes
+personnalisées, et les sources du dossier du jeu) et des options : `npm run solve` (tous modes), `--chapters` et
+`npm run lint` gardent chaque résultat dans `.cache/proofs/` et le rendent quand rien de cela n'a changé, en le disant
+(`(from the proof cache, key …)` ; `cached` dans `--json`). Le build, `verify:game`, `prove:game` et `release-check`
+posent plusieurs fois les mêmes questions ; sur la démo, une preuve en cache prend 0,2 s au lieu de 2,4 s.
+`--no-cache` ou `PROOF_CACHE=0` relance ; `PROOF_CACHE_DIR` le déplace ; une erreur du moteur n'est jamais gardée. Les
+tests appellent le solveur directement et ne s'en servent jamais.
 
 **Un seul statut.** Une exécution du solveur et une preuve par chapitres portent un statut, son code de sortie et sa
 phrase (`src/engine/tools/status.ts`) : `npm run solve` affiche la phrase et sort avec le code, `--json` porte
@@ -261,7 +269,21 @@ manifeste>`, `sfx:<fichier>`, `music:<fichier>`, `voice:<fichier>`, `video:<fich
 jeu qui a le fichier (chaque asset couvert par une seule entrée : deux entrées qui couvrent le même asset sont une
 erreur, quel que soit leur ordre ; chaque entrée complète) ; `npm run validate -- --release` exige le fichier, et un
 provisoire est une erreur sauf si une entrée `releaseExceptions: [{ match, reason }]` nomme cet asset (une exception
-ne couvre jamais un provisoire ajouté plus tard). `npm run new-game` en écrit un pour les images empruntées à la démo
+ne couvre jamais un provisoire ajouté plus tard). Une release exige aussi une politique de licences,
+`licences: { allow: ['CC BY 4.0', 'own work'] }` (toute autre licence échoue sauf si une exception nomme l'asset), et
+`provenance.lock.json` : `npm run provenance -- --lock` écrit, après une relecture, l'empreinte SHA-256 et la taille de
+chaque fichier livré avec ce que son entrée affirmait (motif, licence, statut). `validate --release` échoue ensuite sur
+un fichier modifié, un asset livré depuis, un fichier manquant ou une entrée modifiée depuis la relecture ; un
+`validate` simple ne fait qu'avertir. `npm run provenance` liste les assets par licence et ce qui a changé depuis le
+verrou (sortie 1 quand quelque chose est à relire). Les fichiers sont lus dans `public/assets` (`ASSETS_DIR` pour une
+fixture). **Poids.** `npm run weight` additionne ce qu'un téléphone télécharge, d'après les fichiers construits : avant que le
+premier lieu soit jouable (titre, icônes de la colonne, le sac au départ, le premier lieu), par lieu (les images que
+le moteur précharge en construisant le lieu : décor, accessoires dans tous leurs états, chaque personnage qui peut s'y
+tenir avec ses variantes et ses bouches ; plus sa musique et les bruitages que ses commandes jouent), et par chapitre
+(chaque lieu où un joueur peut se trouver pendant ce chapitre, d'après la preuve par chapitres). `assetBudgets: {
+initialKB, roomKB, chapterKB }` dans `game.ts` sont les limites ; en dépasser une, ou un fichier manquant, sort avec 1.
+`--release` (une étape de `verify:release`) échoue aussi quand un budget n'est pas fixé. `--json`.
+`npm run new-game` en écrit un pour les images empruntées à la démo
 (toutes provisoires, CC BY 4.0) ; celui de la démo excepte nommément sa musique non commerciale.
 `npm run verify:release` (validate `--release`, `i18n -- status`, playtests stricts) est une étape de
 `npm run release-check`, donc le workflow de release le lance. Traductions : un texte identique à la source fait échouer

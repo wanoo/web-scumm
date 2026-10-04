@@ -1,8 +1,13 @@
 {
+  "licences": {
+    "allow": [
+      "CC BY 4.0"
+    ]
+  },
   "releaseExceptions": [
     {
       "match": "music:swan_lake.mp3",
-      "reason": "The engine's sample game is a demo, not a product: its non-commercial music is said in LICENSE-ASSETS."
+      "reason": "The engine's sample game is a demo, not a product: its non-commercial music (CC BY-NC 4.0, outside the policy) is said in LICENSE-ASSETS."
     }
   ],
   "assets": [

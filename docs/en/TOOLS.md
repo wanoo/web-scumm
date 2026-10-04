@@ -177,7 +177,7 @@ npm run solve -- --profile         # what the states are made of, what the searc
 npm run solve -- --por=stubborn    # partial-order reduction: commuting actions one at a time (fewer states, same proof)
 npm run replay -- session.json     # plays a session file on the real engine, prints the journal and the final state
 npm run ids [-- --write --map]     # stable ids (schema 3) written into the sources, locales renamed, the save migration step (docs/en/UPGRADING.md)
-npm run ids -- --lines [--write --map]   # an id on every say / toast / guide object (--lines=all: plain strings too, required for a translated or voiced release): translations and voices keyed by it (UPGRADING §9)
+npm run ids -- --lines [--write --map]   # an id on every say / toast / guide object, list line, hint and kind reaction (--lines=all: plain strings too, required for a translated or voiced release): translations and voices keyed by it (UPGRADING §9, §10)
 npm run i18n -- voices             # the lines with an id and no voice clip, the clips no line claims
 npm run validate -- --release      # also: provenance, placeholders, and a stable id on every line of a game shipped in another language than its own or voiced
 npm run verify:release             # validate --release + i18n status + strict playtests: a step of release-check
@@ -207,6 +207,13 @@ its stable id, and what to do. Exit codes: 0 clean, 1 an error that is not ignor
 (`--json` carries `status` and `truncated`). `lint: { ignore: ['code',
 'code:<id>', 'code:<room>/<path>'] }` in `game.ts` keeps a red herring on purpose. The Studio's Check tab shows the
 same list with links into Rooms; the `lint` MCP tool returns it as Markdown. `verify:game` runs it (so does the CI).
+
+**Proof cache.** A solver run depends only on the engine's code, the game (content, layouts, custom commands, and
+the game folder's sources) and the options: `npm run solve` (every mode), `--chapters` and `npm run lint` keep each
+result in `.cache/proofs/` and give it back when none of that changed, saying so (`(from the proof cache, key …)`;
+`cached` in `--json`). The build, `verify:game`, `prove:game` and `release-check` ask the same questions several
+times; on the demo a warm proof takes 0.2 s instead of 2.4 s. `--no-cache` or `PROOF_CACHE=0` runs again;
+`PROOF_CACHE_DIR` moves it; an engine error is never kept. Tests call the solver directly and never use it.
 
 **One status.** A solver run and a proof by chapters carry one status, its exit code and its sentence
 (`src/engine/tools/status.ts`): `npm run solve` prints the sentence and exits with the code, `--json` carries
@@ -264,7 +271,19 @@ id>`, `sfx:<file>`, `music:<file>`, `voice:<file>`, `video:<file>`). `npm run va
 file (every asset covered by exactly one entry: two entries matching the same asset are an error, whatever their
 order; every entry complete); `npm run validate -- --release` requires the file, and a placeholder is an error unless
 a `releaseExceptions: [{ match, reason }]` entry names that asset (an exception never covers a placeholder added
-later). `npm run new-game` writes one for the art it borrows from the sample game (all placeholders, CC BY 4.0); the
+later). A release also needs a licence policy, `licences: { allow: ['CC BY 4.0', 'own work'] }` (any other licence
+fails unless an exception names the asset), and `provenance.lock.json`: `npm run provenance -- --lock` writes, after a
+review, each shipped file's SHA-256 and size with the claims its entry made (pattern, licence, status). `validate
+--release` then fails on a file that changed, an asset shipped since, a missing file or an entry edited since the
+review; a plain `validate` only warns. `npm run provenance` prints the assets by licence and what changed since the
+lock (exit 1 when something needs a review). The files are read from `public/assets` (`ASSETS_DIR` for a fixture).
+**Weight.** `npm run weight` adds up what a phone downloads, from the built files: before the first room is
+playable (title, column icons, the bag at the start, the first room), per room (the images the engine preloads when
+it builds the room: backdrop, props in every state, every character who can stand there with variants and mouths;
+plus its music and the sound effects its commands play), and per chapter (every room a player can be in during it,
+from the proof by chapters). `assetBudgets: { initialKB, roomKB, chapterKB }` in `game.ts` are the limits; over one,
+or a file missing, exits 1. `--release` (a step of `verify:release`) also fails when a budget is not set. `--json`.
+`npm run new-game` writes one for the art it borrows from the sample game (all placeholders, CC BY 4.0); the
 sample game's file excepts its non-commercial music by name. `npm run verify:release` (validate `--release`,
 `i18n -- status`, strict playtests) is a step of `npm run release-check`, so the release workflow runs it.
 Translations: a text identical to the source fails `npm run i18n -- status` unless `i18n: { same: [paths] }` in

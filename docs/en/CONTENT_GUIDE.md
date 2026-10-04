@@ -305,7 +305,8 @@ npm run i18n -- status               # coverage of every language, stale paths, 
 ```
 
 A path looks like `room:house/look.pantry[1]`, `item:key/name`, `char:grandma/refuse`, `ui/newGame`,
-`rules/fallbacks.look[2]`, `start/intro[0].say`; the file is `{ "<path>": "<text>" }`. The game ships the files it has
+`rules/fallbacks.look[2]`, `start/intro[0].say`; a line with an id is keyed by it (`room:house/look.pantry.<id>`,
+`rules/fallbacks.look.<id>`: lists take `{ id, text }` lines, UPGRADING §10); the file is `{ "<path>": "<text>" }`. The game ships the files it has
 (`locales` in `index.ts` picks them up); the player gets `?lang=fr`, their choice in Settings (`ui.language`), or their
 browser's language when a translation exists. Texts a file lacks stay as written. `npm run validate -- --report` and the
 Studio's Check tab show the coverage.
@@ -671,6 +672,8 @@ An image is designated by `folder/name`, the path of the cut file in `games/<id>
 `npm run assets` prepares only the images referenced by the content, and `npm run validate` flags any missing image.
 After the first visit the game caches every image and sound for offline play (`offline: 'full'`, the default; `'nearby'`
 keeps only the current room and its neighbours); `assetBudgets` sizes the batches. A 40 MB game is 40 MB on the phone.
+`assetBudgets.initialKB`, `roomKB` and `chapterKB` say how much the game may ask a phone to download before the first
+room is playable, per room and per chapter: `npm run weight` checks them, and a release requires them (docs/en/TOOLS.md).
 
 ## Available minigames
 

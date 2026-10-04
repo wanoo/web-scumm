@@ -10,6 +10,19 @@
   `mg-skip` event); an older save upgraded by the real build (the v2 localStorage autosave and slot moved into
   IndexedDB, a 3.1.0 IndexedDB envelope migrated and resumed, then a manual save round trip). A checklist for the
   manual screen-reader pass before a release: `docs/dev/SCREEN-READER.md`.
+- The persistent proof cache (`tools/proof-cache.ts`, `.cache/proofs/`): a solver run keyed by the engine's sources,
+  the game's sources and content, and the options (defaults normalised) is given back when none changed, and the
+  outputs say so (`cached` in `--json`). `npm run solve` (every mode), `--chapters` and `npm run lint` use it;
+  `--no-cache` / `PROOF_CACHE=0` turn it off. Demo: warm proof 0.17 s (cold 2.4 s), chapters 1.1 s (cold 3.4 s).
+- Weight budgets (`npm run weight`, `assetBudgets.initialKB / roomKB / chapterKB`): what a phone downloads before the
+  first room is playable, per room and per chapter (every room reachable in it, from the proof by chapters), from the
+  built files; over a budget fails, and `verify:release` requires the budgets. Demo: 2.0 MB initial, 2.4 MB at most
+  per room, 3.7 MB per chapter, budgets 2.5 / 3 / 4.5 MB.
+- Provenance tied to the files (`npm run provenance`, `provenance.lock.json`): `--lock` records each shipped file's
+  SHA-256 and size with the claims of its entry after a review; `validate --release` fails on a file changed or
+  shipped since, a missing file or an entry edited since, and on a licence outside the game's policy
+  (`licences: { allow }` in `provenance.json`, required for a release; an asset outside it ships only if a
+  `releaseExceptions` entry names it). The demo is locked (214 files, 4.6 MB); `new-game` writes a policy.
 - The solver measures itself: `profile.timing` (tries, engine, clone, run, hash, queue, other, classify, in ms) and
   `profile.positions` (distinct character positions among the states); `npm run bench -- --matrix` prints the
   3.3 reference table (20 / 40 rooms × 1 / 2 / 3 characters).
@@ -19,6 +32,12 @@
   (`tests/memo.test.ts`).
 - `npm run solve -- --profile` says what each abstraction did (canonical character, mobility regions, no-op memo) or
   why it is off (`profile.memo`, `abstractionLines`).
+- Stable ids on list lines (`ListLine`: `string | { id, text }`): look lists (rooms and items), hint lines (and an
+  `id` on a hint), fallback answers, and an `id` on a reaction by kind. Translations are keyed by the id
+  (`look.pantry.<id>`, `hints.<id>.lines.<id>`, `rules/fallbacks.look.<id>`, `rules/kinds.<id>.say`), voices too
+  (`audio.voices[<id>]`); `npm run ids -- --lines[=all]` writes them into `rooms/*.ts`, `items.ts`, `rules.ts` and
+  `game.ts` and renames the locales; `validate --release` requires them in a translated or voiced game. The sample
+  game is converted (109 ids, French still 400/400). UPGRADING §10.
 
 ### Fixed
 

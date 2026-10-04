@@ -1223,7 +1223,65 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
 
 → next: Claude · merge on green CI; then the production closure, then 3.3.0
 
-## #48 · 2026-10-05 · Claude · proposal · v33-browser-gates
+## #48 · 2026-10-04 · Claude · proposal · v33-provenance-lock
+
+- Production closure, provenance part (LOG #39 "provenance hashes and licence policy"): `provenance.lock.json`
+  (SHA-256, bytes, and the entry's pattern, licence and status per shipped file), written by
+  `npm run provenance -- --lock` after a review. `validate --release` requires it and fails on a changed, new or
+  missing file or an edited claim; plain `validate` warns. A licence policy `licences: { allow }` is required for a
+  release; an asset outside it needs a `releaseExceptions` entry naming it.
+- Demo: policy `CC BY 4.0`, its NC music excepted by name (warning), 214 files locked, `validate --release` green.
+- `tests/release-gate.test.ts` breaks the clean fixture through the CLI: a changed file, no lock, a licence outside
+  the policy, no policy; the fixture ships its own files (`ASSETS_DIR`). Unit tests for the lock diff and the policy.
+
+→ next: Claude · merge on green CI; then the asset weight budgets and the browser accessibility gates
+
+## #49 · 2026-10-04 · Claude · proposal · v33-asset-weight
+
+- Production closure, budgets part (review of 3.2: "budgets initial/salle/chapitre"): `src/engine/tools/weight.ts`
+  lists a room's assets as the engine preloads them (dom/room.ts: backdrop, props in every state, every playable
+  character and the room's actors with variants and mouths) plus its music and sound effects; the initial set adds the
+  title, the column icons and the bag at the start. `npm run weight` weighs the built files; chapters use the proof
+  by chapters (every room reachable during it, and the rooms where it ends).
+- Demo, measured: initial 2 032 KB (97 files), rooms 2 381 / 2 000 / 1 712 KB, chapters 2 398 then 3 675 KB (the map
+  opens every room). Budgets 2 500 / 3 000 / 4 500 KB. `verify:release` runs `weight -- --release` (budgets required).
+- Built on `v33-provenance-lock` (asset paths, `ASSETS_DIR`).
+
+→ next: Claude · merge after `v33-provenance-lock`, on green CI; then the browser accessibility gates
+
+## #50 · 2026-10-04 · Claude · proposal · v33-list-ids
+
+(Numbered #48: #47 is `v33-one-status`, not yet on `main` when this branch started.)
+- Closes "looks, hints and fallbacks still positional" (#39). `ListLine = string | { id, text }` for look lists
+  (rooms, items), hint lines and `rules.fallbacks`; `id` on `HintDef` and `KindRule`. Translation paths use the id
+  (`listPathSeg`, the convention of `linePathSeg`); the engine speaks both shapes and voices a line by its id.
+- `assignIds({ lines })` names them (`<room>.look-<k>.l-…`, `<room>.hint`, `item.<id>.l-…`, `fallback.<verb>.l-…`,
+  `kind.<verb>-<target>`), records the path renames; the codemod writes them into rooms, `items.ts` (new
+  `addIdsToItemsSource`), `rules.ts` and inline `game.ts` rules/items. `validate --release`: error without an id in a
+  translated or voiced game, warning otherwise; duplicate ids are errors. Lint `hint-*` findings carry the hint id.
+- Studio: a `{ id, text }` line is listed, edited and deleted at its element path (`look.pantry[1]`), so set_text,
+  the browser backend and the room sheet keep one path per line.
+- Demo: `npm run ids -- --lines=all --write --map`: 109 ids (rooms 75, rules 28, items 6), 91 keys renamed in en.json
+  and fr.json, `i18n -- status` en 400/400, fr 400/400 (12 same, all listed); a second pass assigns 0;
+  `verify:release` exit 0; proof unchanged (3 480 states). Tests: `tests/list-ids.test.ts` (5), suite 371 green.
+
+→ next: Claude · merge on green CI
+
+## #51 · 2026-10-04 · Claude · proposal · v33-proof-cache
+
+- The review's "persistent proof cache keyed by game hash, goal and checkpoint" (LOG #40): key = SHA-256 of the
+  engine's sources (src/engine), the game folder's sources (a custom command's function text does not show what it
+  imports), the game, its layouts and the normalised options (goal and start, so checkpoint and chapter boundary
+  states, are options). Atomic writes, the 300 newest kept, an engine error never kept.
+- Used by `npm run solve` (global, chapters, witness chapters), `npm run lint` and `npm run weight`: the lint and `npm run solve` now
+  share one result. Demo: global proof 2.4 s cold, 0.17 s warm; chapters 3.4 s cold, 1.1 s warm. A one-line edit to
+  `games/demo/rules.ts` misses the cache (checked).
+- Tests: key stability and sensitivity, identical results from the cache, `PROOF_CACHE=0`, the CLI's `cached` field
+  and `--no-cache`. Not done: sharing the cache between CI runs (actions/cache), left for when CI time matters.
+
+→ next: Claude · merge on green CI; then 3.3.0
+
+## #52 · 2026-10-05 · Claude · proposal · v33-browser-gates
 
 - Production closure, browser part (LOG #39): `scripts/e2e-a11y.mjs` (`npm run e2e:a11y`), against the production
   preview, in three parts. The minigames are opened with the engine's own `script()` hook, with params that use the
@@ -1246,4 +1304,3 @@ unchanged. A DFS order in proof mode was not needed once the heap is O(log n), a
   goes into this LOG.
 
 → next: Claude · merge on green CI
-

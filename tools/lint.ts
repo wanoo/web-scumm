@@ -5,9 +5,9 @@
 // solver at all. --json: { mode, status, truncated, findings, counts, ignored } on stdout, nothing else.
 // Exit codes: 0 clean, 1 an error that is not ignored, 2 the solver's search was truncated (its reachability findings
 // are then information, never verdicts).
+import { cachedSolve } from './proof-cache';
 import { resolve } from 'node:path';
 import { lintContent, lintMarkdown, whereText } from '../src/engine/tools/lint';
-import { solve } from '../src/engine/tools/solve';
 import { loadLayouts } from '../src/engine/tools/load';
 import { GAME, GAME_DIR, loadGameModule } from './game';
 
@@ -18,7 +18,7 @@ const mode = args.includes('--static') ? 'static' : args.includes('--prove') ? '
 const { game, commands } = await loadGameModule();
 const layouts = loadLayouts(resolve(GAME_DIR, 'layout'));
 const t0 = Date.now();
-const s = mode === 'static' ? undefined : await solve(game, layouts, { commands, mode, maxStates: Number(arg('max') ?? 20000) });
+const s = mode === 'static' ? undefined : await cachedSolve(game, layouts, { commands, mode, maxStates: Number(arg('max') ?? 20000) });
 const r = lintContent(game, layouts, { solve: s, commands });
 
 if (asJson) {

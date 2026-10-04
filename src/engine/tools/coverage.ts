@@ -4,6 +4,7 @@
 // ok (found), partial (the pieces exist but not the whole: the entities but no rule, a close line, a character not in
 // that room), missing (the game has nothing of it), unknown (prose the checker cannot read). Pure TypeScript: the
 // Studio (badges on the panels, a Check panel), the `storyboard_coverage` tool and `npm run page:storyboard` read it.
+import { listPathSeg, listText } from '../core/list-lines';
 import type { GameDef, Id, RoomDef, Rule, VerbId } from '../core/types';
 import { textPaths } from './i18n';
 import { cmdLists, eachCmd } from '../core/cmds';
@@ -164,7 +165,7 @@ export function storyboardCoverage(gameIn: GameDef, sb: CoverStoryboard): Covera
     const hints = (b.hints ?? []).map((t) => {
       const what = t;
       const n = norm(t);
-      const pool = (room?.hints ?? []).flatMap((hd, i) => asList(hd.lines).map((x, j) => ({ path: `room:${room!.id}/hints[${i}].lines[${j}]`, n: norm(x), text: x })));
+      const pool = (room?.hints ?? []).flatMap((hd, i) => hd.lines.map((l, j) => ({ path: `room:${room!.id}/${hd.id ? `hints.${hd.id}` : `hints[${i}]`}.lines${listPathSeg(j, l)}`, n: norm(listText(l)), text: listText(l) })));
       const exact = pool.find((x) => x.n === n);
       if (exact) return count({ what, status: 'ok', path: exact.path });
       const close = pool.find((x) => alike(x.text, t) >= 0.5);
