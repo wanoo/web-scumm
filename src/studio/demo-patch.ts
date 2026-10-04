@@ -84,7 +84,10 @@ export function editRoomText(def: RoomDef, path: string, value: string | null): 
     if (segs[0] === 'look' && segs.length === 2 && last in (parent as Obj)) { delete (parent as Obj)[last]; return true; }
     return false;
   }
-  if (typeof (parent as Obj)[last] !== 'string') return false;
+  const cur = (parent as Obj)[last];
+  // A list line with an id (`{ id, text }`): its text.
+  if (cur && typeof cur === 'object' && typeof (cur as Obj).text === 'string') { (cur as Obj).text = value; return true; }
+  if (typeof cur !== 'string') return false;
   (parent as Obj)[last] = value;
   return true;
 }

@@ -61,7 +61,14 @@ export function extractTexts(code: string, fileName?: string): FoundText[] {
     if (ts.isObjectLiteralExpression(e)) {
       for (const p of e.properties) { const k = propKey(p); if (k !== undefined) walk((p as ts.PropertyAssignment).initializer, [...segs, k]); }
     } else if (ts.isArrayLiteralExpression(e)) {
-      e.elements.forEach((el, i) => { if (!ts.isSpreadElement(el) && !ts.isOmittedExpression(el)) walk(el, [...segs, i]); });
+      e.elements.forEach((el, i) => {
+        if (ts.isSpreadElement(el) || ts.isOmittedExpression(el)) return;
+        // A list line with an id (`{ id, text }`) is a text at its own path, like the plain string it replaces.
+        const lo = lineText(unwrap(el));
+        const kind = lo && classify([...segs, i]);
+        if (lo && kind) { out.push({ segs: [...segs, i], path: formatPath([...segs, i]), value: lo.text, line: sf.getLineAndCharacterOfPosition(lo.getStart(sf)).line + 1, kind }); return; }
+        walk(el, [...segs, i]);
+      });
     } else if (isLit(e)) {
       const kind = classify(segs);
       if (!kind) return;
@@ -236,7 +243,7 @@ export function setTextInSource(code: string, path: string, value: string | null
     if (hit.parentArr) {
       // The last line of a look list: remove the whole entry rather than leave an empty list.
       if (hit.parentArr.elements.length === 1 && isLook && segs.length === 3) return deleteText(sf, root, segs.slice(0, 2), path);
-      if (!isLit(node) || !classify(segs)) throw new SourceError(`not a text: "${path}"`);
+      if (!(isLit(node) || lineText(node)) || !classify(segs)) throw new SourceError(`not a text: "${path}"`);
       const e = removeItem(sf, hit.node, hit.parentArr.elements, hit.parentArr);
       return { code: e.code, line: lineOf(e.code, e.at), changed: true };
     }
@@ -244,8 +251,21 @@ export function setTextInSource(code: string, path: string, value: string | null
     throw new SourceError(`cannot delete "${path}": only list lines and look entries can be deleted`);
   }
 
-  if (!isLit(node)) throw new SourceError(`not a string literal: "${path}"`);
+  const lit = isLit(node) ? node : lineText(node);
+  if (!lit) throw new SourceError(`not a string literal: "${path}"`);
   if (!classify(segs)) throw new SourceError(`not a text: "${path}" (ids, images and flags are not edited here)`);
+  return replaceLiteral(code, sf, lit, value);
+}
+
+/** The `text` literal of a list line with an id (`{ id, text }`), or null. */
+function lineText(node: ts.Expression): Lit | null {
+  if (!ts.isObjectLiteralExpression(node)) return null;
+  const p = node.properties.find((q) => propKey(q) === 'text' && ts.isPropertyAssignment(q)) as ts.PropertyAssignment | undefined;
+  const v = p && unwrap(p.initializer);
+  return v && isLit(v) ? v : null;
+}
+
+function replaceLiteral(code: string, sf: ts.SourceFile, node: Lit, value: string): SourceEdit {
   const start = node.getStart(sf);
   const line = lineOf(code, start);
   if (node.text === value) return { code, line, changed: false };

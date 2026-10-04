@@ -31,13 +31,13 @@ export default defineRoom({
   },
 
   look: {
-    tank: ['A big water tank. Full to the top.', 'Something is at the bottom. Something key-shaped?'],
+    tank: [{ id: 'garden.look-tank.l-a-big-water-tank', text: 'A big water tank. Full to the top.' }, { id: 'garden.look-tank.l-something-is-at', text: 'Something is at the bottom. Something key-shaped?' }],
     spare_pipe: 'A spare pipe, lying in the dirt.',
-    grandpa: ['Grandpa. He carried his armchair outside. For the sun.', 'He is "fixing the pipes". With his eyes closed.'],
+    grandpa: [{ id: 'garden.look-grandpa.l-grandpa-he', text: 'Grandpa. He carried his armchair outside. For the sun.' }, { id: 'garden.look-grandpa.l-he-is-fixing-the', text: 'He is "fixing the pipes". With his eyes closed.' }],
     back_door: 'Back to Grandma\'s house.',
     gate: 'The street. Full of dogs. No thanks.',
     bench: 'A bench. Nobody sits on it. Grandpa prefers his armchair.',
-    gnome: ['A garden gnome. He has seen things.', 'He never blinks. Respect.'],
+    gnome: [{ id: 'garden.look-gnome.l-a-garden-gnome', text: 'A garden gnome. He has seen things.' }, { id: 'garden.look-gnome.l-he-never-blinks', text: 'He never blinks. Respect.' }],
     tree: 'A cherry tree. Birds live up there. Birds! ...Focus, Pixel. Sardines.',
     can: 'A watering can. Empty. Like my food bowl.',
   },
@@ -103,12 +103,12 @@ export default defineRoom({
   },
 
   hints: [
-    { until: { any: ['pipe_taken', 'tank_drained'] }, lines: ['There is a spare pipe on the ground. Take it, sweetie.'] },
-    { until: 'tank_drained', lines: ['Use the pipe on the water tank.', 'Pipe. Tank. Together. Go!'] },
-    { until: 'lou_has_key', lines: ['Something came out of the tank. Look at it.'] },
-    { until: { unlocked: 'market' }, lines: ['Talk into my shell phone and call Lou.'] },
-    { until: { has: 'key' }, lines: ['Lou is at the market. Open the map.'] },
-    { until: 'pantry_open', lines: ['Come home with that key, sweetie!'] },
+    { id: 'garden.hint', until: { any: ['pipe_taken', 'tank_drained'] }, lines: [{ id: 'garden.hint.l-there-is-a-spare', text: 'There is a spare pipe on the ground. Take it, sweetie.' }] },
+    { id: 'garden.hint-2', until: 'tank_drained', lines: [{ id: 'garden.hint-2.l-use-the-pipe-on', text: 'Use the pipe on the water tank.' }, { id: 'garden.hint-2.l-pipe-tank', text: 'Pipe. Tank. Together. Go!' }] },
+    { id: 'garden.hint-3', until: 'lou_has_key', lines: [{ id: 'garden.hint-3.l-something-came', text: 'Something came out of the tank. Look at it.' }] },
+    { id: 'garden.hint-4', until: { unlocked: 'market' }, lines: [{ id: 'garden.hint-4.l-talk-into-my', text: 'Talk into my shell phone and call Lou.' }] },
+    { id: 'garden.hint-5', until: { has: 'key' }, lines: [{ id: 'garden.hint-5.l-lou-is-at-the', text: 'Lou is at the market. Open the map.' }] },
+    { id: 'garden.hint-6', until: 'pantry_open', lines: [{ id: 'garden.hint-6.l-come-home-with', text: 'Come home with that key, sweetie!' }] },
   ],
 
   onEnter: [

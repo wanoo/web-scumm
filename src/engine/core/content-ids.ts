@@ -1,6 +1,7 @@
 // Stable content ids (schema v3) and the single place that names things for the engine, the solver, the puzzle
 // graph, the translation tables and the migration of v2 saves. v2 content keeps its positional names.
-import type { Choice, Cmd, EventRule, GameDef, Id, Rule, ScriptDef, TalkTopic } from './types';
+import { listPathSeg, listText } from './list-lines';
+import type { Choice, Cmd, EventRule, GameDef, Id, ListLine, Rule, ScriptDef, TalkTopic } from './types';
 import { assignKeys } from './define';
 
 // ------------------------------------------------------------------ action ids (engine `ran`, puzzle graph, solver)
@@ -224,6 +225,38 @@ export function assignIds(source: GameDef, options: AssignOptions = {}): Assigne
     walk(r.onEnter, o.onEnter, `${r.id}.enter`, `${P}onEnter`, `${P}onEnter`, r.id);
     for (const [pid, p] of Object.entries(r.props ?? {})) for (const [an, a] of Object.entries(p.anims ?? {})) for (const [k, b] of Object.entries(a.at ?? {})) walk(b, (o.props?.[pid]?.anims?.[an]?.at as Record<string, Cmd[]> | undefined)?.[k], `${r.id}.${pid}.${an}.${k}`, `${P}props.${pid}.anims.${an}.at[${k}]`, `${P}props.${pid}.anims.${an}.at[${k}]`, r.id);
   }
+  // The lines of lists (looks, hints, fallback answers) and the reactions by kind: with `lines`, an id each; `all`
+  // also turns their plain strings into `{ id, text }`. A list that is a single string (`look: '…'`) is keyed by its
+  // owner already and stays as it is.
+  const list = (l: ListLine[], owner: string, oldPrefix: string, newPrefix: string) => {
+    if (!lines) return;
+    l.forEach((x, i) => {
+      const was = `${oldPrefix}${listPathSeg(i, x)}`;
+      if (typeof x === 'string') { if (lines !== 'all') return; l[i] = x = { id: '', text: x }; }
+      if (!x.id) x.id = give(lineIdFor(owner, listText(x)));
+      map.paths[was] = `${newPrefix}${listPathSeg(i, x)}`;
+    });
+  };
+  if (lines) {
+    for (const r of game.rooms) {
+      const P = `room:${r.id}/`;
+      for (const [k, v] of Object.entries(r.look ?? {})) if (typeof v !== 'string') list(v, `${r.id}.look-${slug(k)}`, `${P}look.${k}`, `${P}look.${k}`);
+      (r.hints ?? []).forEach((h, i) => {
+        const was = `${P}${h.id ? `hints.${h.id}` : `hints[${i}]`}`;
+        if (!h.id) h.id = give(`${r.id}.hint`);
+        const here = `${P}hints.${h.id}`;
+        map.paths[was] = here;
+        list(h.lines, h.id, `${was}.lines`, `${here}.lines`);
+      });
+    }
+    for (const [id, it] of Object.entries(game.items)) if (it.look && typeof it.look !== 'string') list(it.look, `item.${slug(id)}`, `item:${id}/look`, `item:${id}/look`);
+    for (const [v, l] of Object.entries(game.rules.fallbacks)) if (l) list(l, `fallback.${slug(v)}`, `rules/fallbacks.${v}`, `rules/fallbacks.${v}`);
+    (game.rules.kinds ?? []).forEach((k, i) => {
+      const was = `rules/${k.id ? `kinds.${k.id}` : `kinds[${i}]`}`;
+      if (!k.id) k.id = give(`kind.${slug(String(first(k.verb)))}-${slug(k.target ?? k.kind ?? 'x')}`);
+      map.paths[was] = `rules/kinds.${k.id}`;
+    });
+  }
   rules(game.rules.on, old.rules.on, 'game', 'rules/', undefined);
   events(game.events, old.events, 'game', '', undefined);
   scripts(game.scripts, old.scripts, '', undefined);
@@ -261,6 +294,20 @@ export function lineIds(game: GameDef): { id: Id; who: Id; text: string }[] {
   game.events?.forEach((e) => walk(e.do));
   game.scripts?.forEach((s) => walk(s.do));
   walk(game.start.intro);
+  return [...out, ...listLines(game)];
+}
+
+/** The lines of lists that carry an id (looks, hints, fallback answers, reactions by kind), as `lineIds` lists them. */
+export function listLines(game: GameDef): { id: Id; who: Id; text: string }[] {
+  const out: { id: Id; who: Id; text: string }[] = [];
+  const add = (l: ListLine[] | string | undefined, who: Id = 'hero') => { if (typeof l === 'object') for (const x of l) if (typeof x !== 'string' && x.id) out.push({ id: x.id, who, text: x.text }); };
+  for (const r of game.rooms) {
+    for (const v of Object.values(r.look ?? {})) add(v);
+    for (const h of r.hints ?? []) add(h.lines, game.hintVoice ?? 'hero');
+  }
+  for (const it of Object.values(game.items)) add(it.look);
+  for (const l of Object.values(game.rules.fallbacks)) add(l);
+  for (const k of game.rules.kinds ?? []) if (k.id) out.push({ id: k.id, who: 'hero', text: k.say });
   return out;
 }
 
@@ -291,6 +338,8 @@ export function existingIds(game: GameDef): Set<string> {
     for (const p of Object.values(r.props ?? {})) for (const a of Object.values(p.anims ?? {})) Object.values(a.at ?? {}).forEach(walk);
   }
   rules(game.rules.on); events(game.events); scripts(game.scripts); walk(game.start.intro);
+  for (const l of listLines(game)) out.add(l.id);
+  for (const r of game.rooms) for (const h of r.hints ?? []) if (h.id) out.add(h.id);
   return out;
 }
 

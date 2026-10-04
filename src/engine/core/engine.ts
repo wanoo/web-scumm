@@ -1,12 +1,13 @@
 import { check, condAtoms, type CondAtom } from './cond';
 import { compileGame, EMPTY_LAYOUT, FLOOR, NEAR } from './define';
 import { CHANGES, cmdKey } from './cmds';
+import { listId, listText } from './list-lines';
 import { listenerActionId, ruleActionId, topicActionId } from './content-ids';
 import { migrate } from './migrate';
 import { stateDiff, stateDigest } from './diff';
 import { ANIM_MS, CAMERA_MS, FPS } from './timing';
 import type { Presenter, SaveStore } from './ports';
-import type { Action, CharacterDef, Cmd, Cond, EventRule, GameDef, GameState, Id, Layout, Point, RoomDef, Rule, ScriptDef, Session, SessionEntry, Value, VerbId } from './types';
+import type { Action, CharacterDef, ListLine, Cmd, Cond, EventRule, GameDef, GameState, Id, Layout, Point, RoomDef, Rule, ScriptDef, Session, SessionEntry, Value, VerbId } from './types';
 import type { CustomCommands } from './custom';
 
 export type { Action } from './types';
@@ -578,14 +579,14 @@ export class Engine {
 
     if (verb === 'look' && !b) {
       const lines = room.look?.[a] ?? (this.state.inventory.includes(a) ? this.game.items[a]?.look : undefined);
-      if (lines) { await this.say(HERO, this.pickLine(`look.${room.id}.${a}`, lines), ctx); return 'look'; }
+      if (lines) { const l = this.pickLine(`look.${room.id}.${a}`, lines); await this.say(HERO, listText(l), ctx, false, this.voiceOf(l)); return 'look'; }
     }
     if (verb === 'talk' && !b) {
       if (a === this.game.hintItem && this.state.inventory.includes(a)) { await this.hint(ctx); return 'hint'; }
       if (room.talk?.[a]) { await this.talkLoop(a, ctx); return 'talk'; }
     }
     const kind = this.findKind(verb, a, b, room);
-    if (kind) { await this.say(HERO, kind, ctx); return 'kind'; }
+    if (kind) { await this.say(HERO, this.fill(kind.say, a, b), ctx, false, this.voiceOf(kind)); return 'kind'; }
     if (verb === 'give' && b) {
       // Another playable character takes the item into their own inventory.
       if (this.isPlayer(b) && b !== this.heroId() && this.state.inventory.includes(a) && !this.game.players?.sharedInventory) {
@@ -598,7 +599,7 @@ export class Engine {
       if (refuse) { await this.say(char!, this.fill(refuse, a, b), ctx); return 'refuse'; }
     }
     const key = verb === 'use' && b ? 'use2' : verb;
-    await this.say(HERO, this.fallback(key, a, b), ctx);
+    await this.sayFallback(HERO, key, ctx, a, b);
     return 'fallback';
   }
 
@@ -617,7 +618,7 @@ export class Engine {
     return null;
   }
 
-  private findKind(verb: VerbId, a: Id, b: Id | undefined, room: RoomDef): string | null {
+  private findKind(verb: VerbId, a: Id, b: Id | undefined, room: RoomDef): { id?: Id; say: string } | null {
     const target = b ?? a;
     const kinds = this.kindsOf(target, room);
     const rules = this.game.rules.kinds ?? [];
@@ -625,7 +626,7 @@ export class Engine {
     const itemOk = (it: Id | Id[] | undefined) => it === undefined || (b !== undefined && (Array.isArray(it) ? it.includes(a) : it === a));
     const hit = rules.find((k) => verbOk(k.verb) && k.target === target && itemOk(k.item))
       ?? rules.find((k) => verbOk(k.verb) && !k.target && k.kind && kinds.includes(k.kind) && itemOk(k.item));
-    return hit ? this.fill(hit.say, a, b) : null;
+    return hit ?? null;
   }
 
   private fill(text: string, a: Id, b?: Id): string {
@@ -634,15 +635,26 @@ export class Engine {
     return text.replaceAll('{objet}', this.nameOf(a, room)).replaceAll('{cible}', b ? this.nameOf(b, room) : '').replaceAll('{nom}', this.nameOf(target, room));
   }
 
-  private fallback(key: string, a: Id, b?: Id): string {
+  /** A line's voice clip: its id, when `audio.voices` has a clip under it (the rule of `say` lines). */
+  private voiceOf(l: ListLine | { id?: Id }): Id | undefined {
+    const id = typeof l === 'string' ? undefined : 'text' in l ? listId(l) : l.id;
+    return id && this.game.audio?.voices?.[id] ? id : undefined;
+  }
+
+  private async sayFallback(who: Id, key: string, ctx: Ctx, a: Id, b?: Id) {
+    const l = this.fallback(key);
+    await this.say(who, this.fill(listText(l), a, b), ctx, false, this.voiceOf(l));
+  }
+
+  private fallback(key: string): ListLine {
     const list = this.game.rules.fallbacks[key as VerbId] ?? this.game.rules.fallbacks.look ?? ['…'];
     let i = Math.floor(this.rand() * list.length);
     if (list.length > 1 && i === this.lastFallback[key]) i = (i + 1) % list.length;
     this.lastFallback[key] = i;
-    return this.fill(list[i], a, b);
+    return list[i];
   }
 
-  private pickLine(key: string, lines: string | string[]): string {
+  private pickLine(key: string, lines: string | ListLine[]): ListLine {
     if (typeof lines === 'string') return lines;
     const n = this.state.counters[key] ?? 0;
     this.state.counters[key] = n + 1;
@@ -655,8 +667,9 @@ export class Engine {
     const idx = hints.findIndex((h) => !this.cond(h.until, room.id));
     const voice = this.game.hintVoice ?? this.heroId();
     this.ran(`hint:${room.id}/${idx < 0 ? 'none' : idx}`);
-    if (idx < 0) { await this.say(voice, this.fallback('talk', this.game.hintItem!), ctx); return; }
-    await this.say(voice, this.pickLine(`hint.${room.id}.${idx}`, hints[idx].lines), ctx);
+    if (idx < 0) { await this.sayFallback(voice, 'talk', ctx, this.game.hintItem!); return; }
+    const l = this.pickLine(`hint.${room.id}.${idx}`, hints[idx].lines);
+    await this.say(voice, listText(l), ctx, false, this.voiceOf(l));
   }
 
   /** Conversation topic menu, until "Bye". */

@@ -40,19 +40,19 @@ export default defineRoom({
   },
 
   look: {
-    pantry: ['The pantry cupboard. The sardines live in there.', 'Locked. I can hear the sardines. (Sardines are silent. I hear them anyway.)',
-      'Still locked. Still sardines.', 'I could stare at it all day. I might.'],
-    armchair: ['Grandpa\'s armchair. It eats remotes, coins and socks.', 'Something shiny behind the cushion?'],
-    clock: ['Tick. Tock. Breakfast o\'clock.', 'Two hours past breakfast, actually.', 'The clock agrees with me: food.'],
+    pantry: [{ id: 'house.look-pantry.l-the-pantry', text: 'The pantry cupboard. The sardines live in there.' }, { id: 'house.look-pantry.l-locked-i-can', text: 'Locked. I can hear the sardines. (Sardines are silent. I hear them anyway.)' },
+      { id: 'house.look-pantry.l-still-locked', text: 'Still locked. Still sardines.' }, { id: 'house.look-pantry.l-i-could-stare-at', text: 'I could stare at it all day. I might.' }],
+    armchair: [{ id: 'house.look-armchair.l-grandpa-s', text: 'Grandpa\'s armchair. It eats remotes, coins and socks.' }, { id: 'house.look-armchair.l-something-shiny', text: 'Something shiny behind the cushion?' }],
+    clock: [{ id: 'house.look-clock.l-tick-tock', text: 'Tick. Tock. Breakfast o\'clock.' }, { id: 'house.look-clock.l-two-hours-past', text: 'Two hours past breakfast, actually.' }, { id: 'house.look-clock.l-the-clock-agrees', text: 'The clock agrees with me: food.' }],
     shell: 'Grandma\'s shell phone. Talk into it and Grandma answers. From anywhere.',
-    teacup: ['Grandma\'s tea. Lukewarm.', 'Not sardine-flavoured. Pass.'],
-    grandma: ['Grandma. Keeper of sardines. Loser of keys.', 'She smells of tea and biscuits. Not Biscuit the cat. The other kind.'],
-    biscuit: ['Biscuit. My big brother. Sleeps twenty hours a day.', 'The other four hours, he naps.'],
-    grandpa: ['Grandpa. He came home for the sardines. With his armchair.', 'He is "guarding the pantry". With his eyes closed.'],
-    hero: ['Pixel. Smaller than me. Faster than me. Fine.', 'My little brother. Still planning. Always planning.'],
-    window: ['The garden. Grandpa is out there somewhere.', 'Fresh air, birds, flowers. And Grandpa.'],
+    teacup: [{ id: 'house.look-teacup.l-grandma-s-tea', text: 'Grandma\'s tea. Lukewarm.' }, { id: 'house.look-teacup.l-not-sardine', text: 'Not sardine-flavoured. Pass.' }],
+    grandma: [{ id: 'house.look-grandma.l-grandma-keeper', text: 'Grandma. Keeper of sardines. Loser of keys.' }, { id: 'house.look-grandma.l-she-smells-of', text: 'She smells of tea and biscuits. Not Biscuit the cat. The other kind.' }],
+    biscuit: [{ id: 'house.look-biscuit.l-biscuit-my-big', text: 'Biscuit. My big brother. Sleeps twenty hours a day.' }, { id: 'house.look-biscuit.l-the-other-four', text: 'The other four hours, he naps.' }],
+    grandpa: [{ id: 'house.look-grandpa.l-grandpa-he-came', text: 'Grandpa. He came home for the sardines. With his armchair.' }, { id: 'house.look-grandpa.l-he-is-guarding', text: 'He is "guarding the pantry". With his eyes closed.' }],
+    hero: [{ id: 'house.look-hero.l-pixel-smaller', text: 'Pixel. Smaller than me. Faster than me. Fine.' }, { id: 'house.look-hero.l-my-little', text: 'My little brother. Still planning. Always planning.' }],
+    window: [{ id: 'house.look-window.l-the-garden', text: 'The garden. Grandpa is out there somewhere.' }, { id: 'house.look-window.l-fresh-air-birds', text: 'Fresh air, birds, flowers. And Grandpa.' }],
     door: 'The hall. Nothing to eat there. I checked. Twice.',
-    bookshelf: ['Books. Not one about sardines. Disappointing.', 'A cookbook! ...Vegetables. Never mind.'],
+    bookshelf: [{ id: 'house.look-bookshelf.l-books-not-one', text: 'Books. Not one about sardines. Disappointing.' }, { id: 'house.look-bookshelf.l-a-cookbook', text: 'A cookbook! ...Vegetables. Never mind.' }],
     lamp: 'A warm lamp. Good for naps. Everything is good for naps.',
   },
 
@@ -127,12 +127,12 @@ export default defineRoom({
 
   // Hints from the shell phone (Grandma's voice), in puzzle order.
   hints: [
-    { until: { unlocked: 'garden' }, lines: ['Ask me where the key is, sweetie.'] },
-    { until: { prop: ['armchair', 'searched'] }, lines: ['Grandpa\'s armchair eats everything. Look behind the cushion.', 'Open the armchair, sweetie. Or pull it.'] },
-    { until: 'tank_drained', lines: ['Grandpa is in the garden. Go through the big window.'] },
-    { until: { unlocked: 'market' }, lines: ['Something came out of the water tank, no? Read it, then call Lou.'] },
-    { until: { has: 'key' }, lines: ['The key is at the market. Open the map.'] },
-    { until: 'pantry_open', lines: ['You have the key! Use it on the pantry cupboard.'] },
+    { id: 'house.hint', until: { unlocked: 'garden' }, lines: [{ id: 'house.hint.l-ask-me-where-the', text: 'Ask me where the key is, sweetie.' }] },
+    { id: 'house.hint-2', until: { prop: ['armchair', 'searched'] }, lines: [{ id: 'house.hint-2.l-grandpa-s', text: 'Grandpa\'s armchair eats everything. Look behind the cushion.' }, { id: 'house.hint-2.l-open-the-armchai', text: 'Open the armchair, sweetie. Or pull it.' }] },
+    { id: 'house.hint-3', until: 'tank_drained', lines: [{ id: 'house.hint-3.l-grandpa-is-in', text: 'Grandpa is in the garden. Go through the big window.' }] },
+    { id: 'house.hint-4', until: { unlocked: 'market' }, lines: [{ id: 'house.hint-4.l-something-came', text: 'Something came out of the water tank, no? Read it, then call Lou.' }] },
+    { id: 'house.hint-5', until: { has: 'key' }, lines: [{ id: 'house.hint-5.l-the-key-is-at', text: 'The key is at the market. Open the map.' }] },
+    { id: 'house.hint-6', until: 'pantry_open', lines: [{ id: 'house.hint-6.l-you-have-the-key', text: 'You have the key! Use it on the pantry cupboard.' }] },
   ],
 
   onEnter: [

@@ -53,6 +53,13 @@ export type WalkTarget = Id | Point;
  * A command. A plain string = the hero says this line.
  * Command lists run in order, each one waiting for the previous one to finish.
  */
+/**
+ * One line of a list the engine draws from (a look list, a hint, the fallback answers): a plain string, keyed by its
+ * position in translations, or `{ id, text }` (schema 3, `npm run ids -- --lines=all`), keyed by its id so that
+ * inserting or moving a line never shifts its translation or voice clip (`audio.voices[id]` is its clip).
+ */
+export type ListLine = string | { id: Id; text: string };
+
 export type Cmd =
   | string
   // --- speech
@@ -203,6 +210,8 @@ export interface Rule {
  * `{nom}` is replaced by the target's name, `{objet}` by the item.
  */
 export interface KindRule {
+  /** Stable id (schema 3, `npm run ids -- --lines`): its translation (`kinds.<id>.say`) and voice clip follow it. */
+  id?: Id;
   verb: VerbId | VerbId[];
   kind?: string;
   target?: Id;
@@ -283,7 +292,7 @@ export interface ItemDef {
   name: string;
   icon: Id;
   /** Looking at the item in the inventory. A list = a different line each time (looped). */
-  look?: string | string[];
+  look?: string | ListLine[];
   kind?: string[];
 }
 
@@ -358,9 +367,11 @@ export interface ExitDef {
 }
 
 export interface HintDef {
+  /** Stable id (schema 3, `npm run ids -- --lines`): translations follow it (`hints.<id>.lines…`), not its position. */
+  id?: Id;
   /** The hint holds as long as this condition is false. The first unsatisfied hint is given. */
   until: Cond;
-  lines: string[];
+  lines: ListLine[];
 }
 
 /**
@@ -413,7 +424,7 @@ export interface RoomDef {
   /** Ways out (see ExitDef): hotspots with a goto rule, and the world's map for the tools. */
   exits?: Record<Id, ExitDef>;
   /** Look: a line, or a list (looped). Anything visible should have one. */
-  look?: Record<Id, string | string[]>;
+  look?: Record<Id, string | ListLine[]>;
   on?: Rule[];
   /** Conversation topics per actor (2 or 3). "Want a hug?" and "Bye" are added by the game. */
   talk?: Record<Id, TalkTopic[]>;
@@ -469,7 +480,7 @@ export interface MapDef {
 
 export interface GameRules {
   /** Fallback responses per verb (picked at random, never the same one twice in a row). `use2` = two items that don't go together. */
-  fallbacks: Partial<Record<VerbId | 'use2', string[]>>;
+  fallbacks: Partial<Record<VerbId | 'use2', ListLine[]>>;
   kinds?: KindRule[];
   /** Rules valid everywhere (e.g. combining two inventory items). */
   on?: Rule[];

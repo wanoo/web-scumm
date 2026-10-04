@@ -179,3 +179,16 @@ the keys of `locales/*.json` (a second pass renames from the current paths, noth
 line. `npm run validate -- --release` reports a line without an id (an error, plain strings included, in a translated
 or voiced game: run `--lines=all` once; a warning otherwise);
 `npm run i18n -- voices` lists the lines with an id and no clip, and the clips no line claims.
+
+## 10. List lines (3.3): looks, hints, fallback answers and reactions by kind
+
+The lines the engine draws from a list (a look list, a hint's lines, `rules.fallbacks.<verb>`) can be `{ id, text }`
+instead of a plain string, a hint can carry an `id`, and so can a reaction by kind (`rules.kinds[i]`). Their
+translations are then keyed by the id (`room:house/look.pantry.<id>`, `room:house/hints.<hint id>.lines.<id>`,
+`item:key/look.<id>`, `rules/fallbacks.look.<id>`, `rules/kinds.<id>.say`), and `audio.voices[<id>]` voices them.
+`npm run ids -- --lines=all --write --map` converts the plain strings of lists in `rooms/*.ts`, `items.ts`,
+`rules.ts` and `game.ts`, names hints and kinds, and renames the keys of `locales/*.json` (`--lines` alone only adds
+ids to the objects that have none). A single look line (`look: { door: '…' }`) is keyed by its owner already and
+stays a string. A translated or voiced release requires them, like `say` lines (`validate -- --release`). The Studio
+edits a `{ id, text }` line at the same path as a plain one (`look.pantry[1]`). The sample game: 109 ids, 91
+translation keys renamed per language, French still 400/400.

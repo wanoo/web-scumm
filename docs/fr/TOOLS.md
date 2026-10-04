@@ -170,7 +170,7 @@ npm run solve -- --profile         # de quoi les états sont faits, ce que la re
 npm run solve -- --por=stubborn    # réduction d'ordre partiel : les actions commutantes une à la fois (moins d'états, même preuve)
 npm run replay -- session.json     # rejoue un fichier de session sur le vrai moteur, imprime le journal et l'état final
 npm run ids [-- --write --map]     # ids stables (schéma 3) écrits dans les sources, locales renommées, l'étape de migration des sauvegardes (docs/fr/UPGRADING.md)
-npm run ids -- --lines [--write --map]   # un id sur chaque objet say / toast / guide (--lines=all : les chaînes nues aussi, exigé pour une release traduite ou doublée) : traductions et voix indexées par lui (UPGRADING §9)
+npm run ids -- --lines [--write --map]   # un id sur chaque objet say / toast / guide, ligne de liste, indice et réaction par sorte (--lines=all : les chaînes nues aussi, exigé pour une release traduite ou doublée) : traductions et voix indexées par lui (UPGRADING §9, §10)
 npm run i18n -- voices             # les lignes avec un id et sans clip de voix, les clips qu'aucune ligne ne réclame
 npm run validate -- --release      # en plus : provenance, provisoires, et un id stable sur chaque ligne d'un jeu livré dans une autre langue que la sienne ou doublé
 npm run verify:release             # validate --release + i18n status + playtests stricts : une étape de release-check
