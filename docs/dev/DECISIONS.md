@@ -11,3 +11,4 @@ may write in French; the assistant adds the English next to it.
 ## Pending (asked, not decided)
 
 - **D5** · offline: keep v3's room-and-neighbours warming only (Codex, README reworded), or add a global background preload after it so a game plays fully offline as v2 did (Claude's recommendation)? See LOG #3.
+- **D7 · 2026-10-04** · After v3.0.0: `main` is the release branch (v3.0.0 and the 3.1 work merge there as each `v3-<topic>` branch passes its gates); D2's "`main` = v2.5.0 until v3.0.0" is closed. The WebKit CI job stays experimental until three consecutive green runs on `main`, then gates. Received in session with the approved v3.1 plan (Claude implements, Codex reviews when launched).

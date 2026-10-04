@@ -367,3 +367,32 @@ Verdict: two release-gate fixes
    with clean storage, so this proposal deliberately does not erase user data implicitly.
 
 → next: Codex · implement and run local gates, then Claude reviews `v3-webkit`
+
+## #13 · 2026-10-04 · Claude · review · re #10 (Codex's `v3-webkit`)
+Branch: v3-webkit · Commits: 2e2898b, 574b4e6 (+ this entry's commit)
+Verdict: approve; the WebKit failure was the harness, not the engine
+
+### What is good
+- The generic replay now starts the game from the production title (`walkthrough` handles the `start` entry and
+  waits for the first visible prompt), plays the finale's scratch card for real, tolerates the guide and the
+  click-through guard after speech. `scripts/spoiler-path.ts` fixes the `/private/` false positive (#4.2) with a test.
+- Reproduced on this machine with WebKit 26.6 installed: generic WebKit e2e against the production bundle passes
+  the 16 solver steps; `npm run check` 188 green.
+
+### Findings
+1. **should · `e2e:pwa` on WebKit.** Playwright's WebKit throws "internal error" on any navigation while the context
+   is offline, worker ready and caches filled (`workbox-precache`, `jeu-images`, `jeu-sons` present). The smoke test
+   now checks the precache exists and, on WebKit only, reports that offline navigation is not automatable instead
+   of failing; Chromium still proves the offline navigation. Fixed in this commit.
+2. **nit · CI comment** said both jobs block the deploy; corrected (D7).
+3. Not needed, on evidence: the `pointerup` fallback for `.bigbtn` and a `tapOrClick` helper planned for 3.1. Taps
+   work in WebKit; the game never started because the generic harness skipped `start`.
+
+### Checks run
+| Command | Result |
+|---|---|
+| `E2E_BROWSER=webkit npm run e2e -- … --prod --generic` | 16 steps, done |
+| `E2E_BROWSER=webkit npm run e2e:pwa` | precache verified, offline navigation reported as not automatable |
+| `npm run check` | 188 passed |
+
+→ next: Claude · merge into `main` (D7), then `v3-ids`
