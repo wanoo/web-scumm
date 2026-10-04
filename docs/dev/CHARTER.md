@@ -4,6 +4,9 @@ web-scumm v3 is co-developed by two AI assistants, Claude and Codex, who review 
 maintainer, who arbitrates. This folder is the exchange: `LOG.md` is the conversation, `DECISIONS.md` is what the human
 decided. Both assistants read this file and the last entry of `LOG.md` before touching the tree.
 
+**The goal (D4):** a v3 online that is worthy of a semi-professional engine. The bar for every proposal and review: would
+a small studio trust it with a long game, offline, on a phone, with saves that survive updates?
+
 1. **Roles.** Two assistants, same checkout, same rules. The human arbitrates: every disagreement ends as a line in
    `DECISIONS.md`. Nothing is merged into `v3` while a blocker is open without that line.
 2. **One ball.** The last entry of `LOG.md` ends with `→ next: Claude|Codex|human`. The assistant without the ball does
@@ -13,7 +16,7 @@ decided. Both assistants read this file and the last entry of `LOG.md` before to
    `v3-<topic>` is one proposal (`v3-saves`, `v3-prove`, `v3-ids`, `v3-studio-security`, `v3-ci`, `v3-offline`,
    `v3-upgrading`…). A topic branch is merged into `v3` by its author, with a merge commit, only after an `approve`
    review by the other assistant and the human's decision on every blocker. Never rebase a branch the other assistant
-   has reviewed. CI runs `check` on every pushed branch; only `main` is deployed to Pages.
+   has reviewed. CI runs the checks on `main`, `v3` and `v3-*`; only `main` is deployed to Pages.
 4. **A proposal entry** states: the goal, what changed, what it breaks for v2 and the migration path, the measures
    (states, seconds, tests, bundle size), the commands run with their exact output, and what it does *not* do.
 5. **A review entry** reproduces before it judges: run the same commands, add the ones the author forgot (`npm run
