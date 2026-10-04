@@ -1,5 +1,5 @@
 import type { Minigame, MinigameCtx } from './types';
-import { el, finisher, move, num, put, skipButton, stage, str, toast } from './util';
+import { el, finisher, move, num, put, skipButton, stage, str, toast, keys } from './util';
 
 // Runner: top of the screen = jump (ground obstacles), bottom = duck (hanging obstacles).
 // A mistake makes the hero stumble and lets the chaser close in, though it never catches up. Ends after `seconds`.
@@ -69,6 +69,10 @@ export const runner: Minigame = {
     let act: 'jump' | 'duck' | null = null, actT = 0;
     zt.addEventListener('pointerdown', () => { if (!act) { act = 'jump'; actT = 0; } });
     zb.addEventListener('pointerdown', () => { if (!act) { act = 'duck'; actT = 0; } });
+    // At the keyboard: ▲ / W jumps, ▼ / S ducks (Space and Enter stay with the focused Skip button).
+    const jump = () => { if (!act) { act = 'jump'; actT = 0; } };
+    const duck = () => { if (!act) { act = 'duck'; actT = 0; } };
+    const offKeys = keys(ctx, { ArrowUp: jump, w: jump, W: jump, ArrowDown: duck, s: duck, S: duck });
 
     type Obs = { type: 'basket' | 'carpet'; x: number; hit: boolean; spr: ReturnType<typeof put> };
     let obs: Obs[] = [];
@@ -126,6 +130,6 @@ export const runner: Minigame = {
     raf = requestAnimationFrame(loop);
     ctx.signal.addEventListener('abort', () => cancelAnimationFrame(raf), { once: true });
     skipButton(ctx, box, () => { if (!done) t0 = performance.now() - (seconds + 1) * 1000; else f.finish(); });
-    return f.promise.then(() => { cancelAnimationFrame(raf); box.remove(); });
+    return f.promise.then(() => { cancelAnimationFrame(raf); offKeys(); box.remove(); });
   },
 };

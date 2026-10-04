@@ -79,6 +79,8 @@ export class LocalSlotStore implements SlotStore {
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, html?: string) => {
   const e = document.createElement(tag);
+  // Images are decorative unless a caller names them (the scene is reachable through the a11y targets, items by name).
+  if (tag === 'img') (e as HTMLImageElement).alt = '';
   if (cls) e.className = cls;
   if (html != null) e.innerHTML = html;
   return e;
@@ -461,6 +463,8 @@ export class App implements Presenter {
     for (let j = 0; j < per; j++) {
       const id = this.items[off + j];
       const b = el('button', 'slot');
+      // An empty slot is layout, not a control: out of the tab order and of the accessibility tree.
+      if (!id) { b.tabIndex = -1; b.setAttribute('aria-hidden', 'true'); }
       if (id) {
         const it = this.game.items[id];
         b.innerHTML = `<img src="${this.bank.img(it?.icon ?? id)}" alt="">`;

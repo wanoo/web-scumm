@@ -44,9 +44,59 @@ export function skipButton(ctx: MinigameCtx, parent: HTMLElement, onSkip: () => 
   b.style.fontSize = `${Math.max(12, 13 * ctx.u)}px`;
   b.addEventListener('click', (e) => { e.stopPropagation(); onSkip(); });
   parent.append(b);
+  // The focus goes to Skip unless the minigame already put it on one of its own controls (a keyboard-playable game).
   // Tests drive the minigames with bare element stubs: focus is optional there.
-  queueMicrotask(() => b.focus?.({ preventScroll: true }));
+  queueMicrotask(() => {
+    const active = (globalThis as { document?: Document }).document?.activeElement;
+    if (active && active !== b && (parent as { contains?: (n: Node) => boolean }).contains?.(active)) return;
+    b.focus?.({ preventScroll: true });
+  });
   return b;
+}
+
+/**
+ * Keys the minigame answers while it runs, on the page (removed when the minigame is cancelled; call the returned
+ * function when it ends). Never steals Tab, nor Enter / Space from a focused button (Skip): those stay the browser's.
+ */
+export function keys(ctx: MinigameCtx, map: Record<string, (e: KeyboardEvent) => void>): () => void {
+  const doc = (ctx.root as unknown as { ownerDocument?: Document }).ownerDocument ?? (globalThis as { document?: Document }).document;
+  if (!doc?.addEventListener) return () => {};
+  const on = (e: KeyboardEvent) => {
+    const f = map[e.key];
+    if (!f) return;
+    if ((e.key === 'Enter' || e.key === ' ') && (e.target as HTMLElement | null)?.tagName === 'BUTTON') return;
+    e.preventDefault();
+    f(e);
+  };
+  doc.addEventListener('keydown', on);
+  const off = () => doc.removeEventListener('keydown', on);
+  ctx.signal.addEventListener('abort', off, { once: true });
+  return off;
+}
+
+/** A non-button element (an image in the scenery, a plug) made operable at the keyboard: focusable, named, Enter / Space. */
+export function operable(target: HTMLElement, label: string, onActivate: () => void) {
+  target.tabIndex = 0;
+  target.setAttribute('role', 'button');
+  target.setAttribute('aria-label', label);
+  target.addEventListener('keydown', (e: Event) => {
+    const k = (e as KeyboardEvent).key;
+    if (k === 'Enter' || k === ' ') { e.preventDefault(); e.stopPropagation(); onActivate(); }
+  });
+}
+
+/** Arrow keys move the focus among `items` (a row, or a grid of `cols` columns). */
+export function arrowFocus(ctx: MinigameCtx, items: () => HTMLElement[], cols = 0): () => void {
+  const step = (d: number) => () => {
+    const list = items();
+    if (!list.length) return;
+    const doc = (globalThis as { document?: Document }).document;
+    const i = list.indexOf(doc?.activeElement as HTMLElement);
+    const next = i < 0 ? 0 : Math.max(0, Math.min(list.length - 1, i + d));
+    list[next].focus?.({ preventScroll: true });
+  };
+  const v = cols || 1;
+  return keys(ctx, { ArrowRight: step(1), ArrowLeft: step(-1), ArrowDown: step(cols ? v : 1), ArrowUp: step(cols ? -v : -1) });
 }
 
 export function toast(parent: HTMLElement, text: string, ms = 1400) {

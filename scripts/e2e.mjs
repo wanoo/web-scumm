@@ -32,14 +32,18 @@ const lang = flag('lang');
 // --save: after the walkthrough, a manual save must survive a reload; --no-indexeddb: with the browser offering no
 // IndexedDB, so the localStorage fallback is exercised.
 const saveCheck = args.includes('--save');
+// --axe: axe-core on the title, a room, the pause menu and the ending; a serious or critical violation fails the run.
+const axeCheck = args.includes('--axe');
 const noIndexedDb = args.includes('--no-indexeddb');
 // Same game resolution as tools/game.ts (env GAME, else package.json config.game, else "demo"); --game overrides both.
 const GAME = flag('game') ?? process.env.GAME ?? 'demo';
 
-console.log(`e2e: ${url} (game: ${GAME}, browser: ${process.env.E2E_BROWSER ?? 'chromium'}, ${prod ? 'production' : 'development'}${keyboard ? ', keyboard' : ''}${lang ? `, lang ${lang}` : ''}${saveCheck ? ', save round trip' : ''}${noIndexedDb ? ', no IndexedDB' : ''})`);
+console.log(`e2e: ${url} (game: ${GAME}, browser: ${process.env.E2E_BROWSER ?? 'chromium'}, ${prod ? 'production' : 'development'}${keyboard ? ', keyboard' : ''}${lang ? `, lang ${lang}` : ''}${saveCheck ? ', save round trip' : ''}${noIndexedDb ? ', no IndexedDB' : ''}${axeCheck ? ', axe' : ''})`);
 const harness = await launch(url, { at, dev: !prod, input: keyboard ? 'keyboard' : undefined, lang, noIndexedDb });
 let ok = true;
+const axeFound = [];
 try {
+  if (axeCheck) axeFound.push(...await harness.axe('title'));
   const gameScript = resolve(ROOT, 'games', GAME, 'e2e.mjs');
   if (!generic && existsSync(gameScript)) {
     console.log(`e2e: playing games/${GAME}/e2e.mjs`);
@@ -67,6 +71,18 @@ try {
     await harness.page.keyboard.press('Escape').catch(() => {});
     if (found.size) throw new Error(`language "${lang}": ${found.size} visible text(s) are the engine's English defaults: ${[...found].join(' | ')} (add the keys to the game's ui / locales)`);
     console.log(`e2e: no English default visible in "${lang}"`);
+  }
+  if (axeCheck) {
+    axeFound.push(...await harness.axe('ending'));
+    // A room and its pause menu: back to the first checkpoint (or the start room), then the menu.
+    await harness.page.evaluate(async () => { const g = window.__game; const cp = Object.keys(g.game.checkpoints ?? {})[0]; if (cp) await g.engine.checkpoint(cp); else await g.engine.teleport(g.game.start.room); });
+    await harness.page.waitForTimeout(800);
+    axeFound.push(...await harness.axe('room'));
+    await harness.page.evaluate(() => window.__game.pauseMenu());
+    axeFound.push(...await harness.axe('pause menu'));
+    await harness.page.keyboard.press('Escape').catch(() => {});
+    if (axeFound.length) throw new Error(`axe: ${axeFound.length} serious or critical violation(s):\n  ${axeFound.join('\n  ')}`);
+    console.log('e2e: axe found no serious or critical violation (title, room, pause menu, ending)');
   }
   if (saveCheck) {
     const r = await harness.saveRoundTrip();
