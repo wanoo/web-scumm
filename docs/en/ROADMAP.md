@@ -498,6 +498,8 @@ signed tag, GitHub's immutable releases setting.
 
 - The field passes, then what they find (D12).
 - Publishing `web-scumm` and `create-web-scumm` on npm; The Lighthouse in a public repository.
+- Vite 8 and TypeScript 7 (declined in 4.0: Vite 8's bundler breaks a CommonJS default import, TypeScript 7 drops
+  `baseUrl` and non-relative `paths`): a minor of their own, with the project template's `tsconfig.json`.
 - Translations loaded on demand (the second language is ~10% of the first visit's JavaScript): a change to the game
   module's contract, so a minor with a deprecation, not a patch.
 - The open matrix of three characters: exact dominance by the relevance of items and positions, audited against the
