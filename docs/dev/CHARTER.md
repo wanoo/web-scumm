@@ -18,6 +18,9 @@ a small studio trust it with a long game, offline, on a phone, with saves that s
    `v3-upgrading`…). A topic branch is merged into `v3` by its author, with a merge commit, only after an `approve`
    review by the other assistant and the human's decision on every blocker. Never rebase a branch the other assistant
    has reviewed. CI runs the checks on `main`, `v3` and `v3-*`; only `main` is deployed to Pages.
+   Since 3.7.1 a topic branch is named by its kind, not by a version: `feature/<topic>`, `fix/<topic>`,
+   `release/<version>`; CI runs on all of them, and a release is published from any SemVer tag `vX.Y.Z` (any major),
+   built from the commit CI tested, never over a release that already has files.
 4. **A proposal entry** states: the goal, what changed, what it breaks for v2 and the migration path, the measures
    (states, seconds, tests, bundle size), the commands run with their exact output, and what it does *not* do.
 5. **A review entry** reproduces before it judges: run the same commands, add the ones the author forgot (`npm run

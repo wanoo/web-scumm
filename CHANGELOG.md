@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed
+
+- The release workflow builds the commit CI tested (`workflow_run.head_sha`), checks that the tag still points there,
+  takes any SemVer tag (not only `v3.*`), and refuses a release that already has files (no `--clobber`): a published
+  release is never replaced. The archive's assets manifest is attached beside it.
+- CI runs on `feature/**`, `fix/**` and `release/**` branches, whatever the version (it stopped at `v37-*`).
+- The nightly's shards split any total exactly (501 seeds ran 504) and the merge fails on a gap or an overlap
+  (`audit:corpus --shard=i/n --total=N`, `--merge … --total=N`).
+
 ## 3.7.0 — 2026-10-05
 
 "Field Proof", the machine part (LOG #88–#90): what can be proved without a person. The human passes are still to
