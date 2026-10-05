@@ -152,6 +152,7 @@ npm run solve -- --prove --workers=4 [--batch=64] [--time=60]   # workers de pre
 npm run solve -- --prove --ownership=off   # sans le propriétaire canonique (qui porte un objet libre, mis en commun dans les preuves depuis la 3.5)
 npm run solve -- --dominance             # un témoin avec dominance (3.5 ; n'élague rien sur les jeux fournis, BENCH.md)
 npm test           # tests Node du moteur, des outils et du jeu sélectionné
+npm run quality:baseline -- --check [--dist]   # le comportement de la 4.0.0 conservé (4.1.0) : témoins, preuves, sauvegardes de référence, surface publique, première visite (tests/quality-baseline.json ; sans --check : l'écrit)
 npm run test:assets # tests Python des images et du pipeline d'assets
 npm run e2e        # parcours dans Chromium en paysage téléphone (serveur de dev lancé)
 ```

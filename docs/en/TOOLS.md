@@ -159,6 +159,7 @@ npm run solve -- --prove --workers=4 [--batch=64] [--time=60]   # proof workers 
 npm run solve -- --prove --ownership=off   # without the canonical owner (who holds a free item, pooled in proofs since 3.5)
 npm run solve -- --dominance             # a witness with dominance (3.5; prunes nothing on the bundled games, BENCH.md)
 npm test           # Node engine/tool tests and the selected game's tests
+npm run quality:baseline -- --check [--dist]   # the behaviour of 4.0.0 kept (4.1.0): witnesses, proofs, golden saves, public surface, first visit (tests/quality-baseline.json; without --check: write it)
 npm run test:assets # Python-backed image and asset-pipeline tests
 npm run e2e        # a playthrough in Chromium, phone landscape (dev server already running)
 ```

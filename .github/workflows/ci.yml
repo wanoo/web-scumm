@@ -25,6 +25,9 @@ jobs:
       - run: npm run build
       # The weight budget with the app shell of this fresh build (the Node test weighs the game's assets only).
       - run: npm run weight -- --release
+      # The behaviour of 4.0.0 frozen (4.1.0 "Clarity"): the same witnesses, proofs, golden saves, public surface, and a
+      # first visit no bigger, whatever a refactoring moved (tools/quality-baseline.ts).
+      - run: npm run quality:baseline -- --check --dist
       # The exhaustive proof of the sample game (seconds); a big game proves on the weekly prove workflow instead.
       - run: npm run prove:game
       - run: npm run audit:deps

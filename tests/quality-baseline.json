@@ -1,0 +1,276 @@
+{
+ "games": {
+  "demo": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 16,
+    "digests": "608d29dc5fd82d21"
+   },
+   "proof": {
+    "status": "solved",
+    "states": 3480,
+    "softlocks": 0
+   }
+  },
+  "reference": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 49,
+    "digests": "d3d29af7751673f1"
+   },
+   "proof": {
+    "status": "solved",
+    "states": 288,
+    "softlocks": 0
+   }
+  },
+  "classics.insults": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 4,
+    "digests": "8dbb6ab5d62afb1d"
+   },
+   "proof": {
+    "status": "solved",
+    "states": 4,
+    "softlocks": 0
+   }
+  },
+  "classics.grog": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 5,
+    "digests": "95621dc1e9cf6da0"
+   },
+   "proof": {
+    "status": "solved",
+    "states": 17,
+    "softlocks": 0
+   }
+  },
+  "classics.dott": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 7,
+    "digests": "56b83d8f8cad13f4"
+   },
+   "proof": {
+    "status": "solved",
+    "states": 5,
+    "softlocks": 0
+   }
+  },
+  "classics.mansion": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 13,
+    "digests": "f132b2db1164ed06"
+   },
+   "proof": {
+    "status": "solved",
+    "states": 16,
+    "softlocks": 0
+   }
+  },
+  "classics.stan": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 6,
+    "digests": "76ba58bd1ee12882"
+   },
+   "proof": {
+    "status": "solved",
+    "states": 6,
+    "softlocks": 0
+   }
+  },
+  "por.pickups-4": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 6,
+    "digests": "1a19ee4770d87e5b"
+   },
+   "proof": {
+    "status": "solved",
+    "states": 17,
+    "softlocks": 0
+   }
+  },
+  "por.trap-3": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 5,
+    "digests": "c74c29c688be39dc"
+   },
+   "proof": {
+    "status": "softlocks",
+    "states": 17,
+    "softlocks": 8
+   }
+  },
+  "por.trials": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 5,
+    "digests": "ad2e5733e77da8bb"
+   },
+   "proof": {
+    "status": "solved",
+    "states": 9,
+    "softlocks": 0
+   }
+  },
+  "world": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 5,
+    "digests": "40c6db426c018f54"
+   },
+   "proof": {
+    "status": "solved",
+    "states": 9,
+    "softlocks": 0
+   }
+  },
+  "cast": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 9,
+    "digests": "26669cd6a1e20051"
+   },
+   "proof": {
+    "status": "solved",
+    "states": 28,
+    "softlocks": 0
+   }
+  },
+  "scale": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 5,
+    "digests": "ba4083b506a06853"
+   },
+   "proof": {
+    "status": "solved",
+    "states": 5,
+    "softlocks": 0
+   }
+  },
+  "picture": {
+   "witness": {
+    "status": "solved",
+    "finished": true,
+    "inputs": 2,
+    "digests": "c07fd6bd45f9e69e"
+   },
+   "proof": {
+    "status": "solved",
+    "states": 2,
+    "softlocks": 0
+   }
+  },
+  "mini": {
+   "witness": {
+    "status": "unsolved",
+    "finished": false,
+    "inputs": 1,
+    "digests": "4240101ff829c19c"
+   },
+   "proof": {
+    "status": "unsolved",
+    "states": 1,
+    "softlocks": 0
+   }
+  }
+ },
+ "saves": {
+  "demo-3.0.0.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  },
+  "demo-3.1.0.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  },
+  "demo-3.2.0.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  },
+  "demo-3.3.0.json": {
+   "ended": true,
+   "inputs": 8,
+   "last": "23325ca7"
+  },
+  "demo-3.4.0.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  },
+  "demo-3.5.0.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  },
+  "demo-3.6.0.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  },
+  "demo-3.6.1.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  },
+  "demo-3.7.0.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  },
+  "demo-3.7.1.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  },
+  "demo-3.8.0.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  },
+  "demo-3.9.0.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  },
+  "demo-4.0.0.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  }
+ },
+ "surface": {
+  "api": "42dbfd40b6e99fe7"
+ },
+ "tests": {
+  "files": 75,
+  "declarations": 460
+ },
+ "bundle": {
+  "initialJsKB": 122
+ }
+}

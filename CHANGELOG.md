@@ -4,6 +4,11 @@
 
 - Codex's plans after 4.0 in `docs/dev/` (D14): "Clarity" ships as 4.1.0, "Reality Bridge" as 4.1.1, 4.2 will be
   the final version. CI runs on `docs/…`, `test/…` and `refactor/…` branches too.
+- `npm run quality:baseline -- --check [--dist]` (`tools/quality-baseline.ts`): the behaviour of 4.0.0 frozen in
+  `tests/quality-baseline.json` before any refactoring. For the demo, the reference game and 13 solver fixtures: the
+  witness (status, length, a hash of the digest after every input) and the proof (status, states, softlocks); the 13
+  golden saves played to their end; the hash of the public API and MCP surface; the number of test declarations (may
+  only grow); the first visit's JavaScript (may only shrink). Each difference is named. In the CI `check` job.
 
 ## 4.0.0 — 2026-10-05
 
