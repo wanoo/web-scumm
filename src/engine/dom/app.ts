@@ -1,3 +1,4 @@
+import type { MotionSpec } from '../core/motion';
 import { check } from '../core/cond';
 import { sayMs } from '../core/timing';
 import { Engine } from '../core/engine';
@@ -615,6 +616,7 @@ export class App implements Presenter {
     return this.view.setCamera(x, fast ? 0 : ms);
   }
   show(id: Id, visible: boolean, fade: number, fast: boolean) { return this.view.show(id, visible, fade, fast || this.settings.reduceMotion); }
+  motion(who: Id, m: MotionSpec, fast: boolean, leader?: Id) { return this.view.motion(who, m, fast || this.view.reduceMotion, leader); }
   inventory(items: Id[], used?: Id[]) {
     this.used = [...(used ?? [])];
     if (!this.view.room) { this.items = [...items]; return; }

@@ -64,6 +64,8 @@ const CMD_SAMPLES: Record<CmdKey, { cmd: Cmd; patch?: Partial<GameDef>; roomPatc
   say: { cmd: { say: ['ann', 'Hello.'] } }, walk: { cmd: { walk: [200, 350] } }, face: { cmd: { face: 'left' } }, pose: { cmd: { pose: ['ann', 'idle'] } },
   anim: { cmd: { anim: ['ann', 'idle'], ms: 10, at: { 0: [{ set: 'mid' }] } } }, place: { cmd: { place: ['ann', [100, 350]] } }, wait: { cmd: { wait: 10 } },
   parallel: { cmd: { parallel: [[{ set: 'x' }], [{ gain: 'coin' }]] } }, camera: { cmd: { camera: 'reset' } }, play: { cmd: { play: ['box', 'open'] } }, stopAnim: { cmd: { stopAnim: 'box' } },
+  launch: { cmd: { launch: { target: 'box', to: [420, 330], rotate: 360 } } }, spring: { cmd: { spring: { target: 'box', axis: 'rot' } } },
+  path: { cmd: { path: { target: 'ann', points: [[100, 360], [300, 340], [500, 360]] } } }, follow: { cmd: { follow: { target: 'cat', leader: 'ann', ms: 200 } } },
   prop: { cmd: { prop: ['box', 'open'] }, roomPatch: undefined }, show: { cmd: { show: 'cat' } }, hide: { cmd: { hide: 'cat' } }, gain: { cmd: { gain: 'coin' } }, lose: { cmd: { lose: 'key' } },
   used: { cmd: { used: 'key' } }, set: { cmd: { set: ['level', 2] } }, unset: { cmd: { unset: 'lever' } }, inc: { cmd: { if: { flag: 'n', lt: 2 }, then: [{ inc: 'n' }] } }, unlock: { cmd: { unlock: 'p1' } },
   goto: { cmd: { goto: 'room1' } }, map: { cmd: { map: true } }, moveActor: { cmd: { moveActor: ['cat', 'room1'] } }, emit: { cmd: { emit: 'bell' }, roomPatch: { events: [{ on: 'bell', once: true, do: [{ set: 'heard' }] }] } },

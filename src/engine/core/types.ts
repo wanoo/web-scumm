@@ -78,6 +78,17 @@ export type Cmd =
   | { anim: [Who, string]; ms?: number; at?: Record<number, Cmd[]> }
   | { place: [Who, Point]; face?: 'left' | 'right' }
   | { wait: number }
+  /** Stage physics (3.4, core/motion.ts): computed motions, presentation only. A ballistic flight from `from` (default
+   *  where the target is) to `to`, peaking `height` above the line (default a third of the distance), turning `rotate`
+   *  degrees. A character stays where it lands (like `place`), a prop until the room is entered again. */
+  | { launch: { target: Who; to: Id | Point; from?: Id | Point; height?: number; ms?: number; rotate?: number } }
+  /** A damped oscillation around the target's place: `axis` x, y or rot (degrees), `amplitude` (default 10),
+   *  `frequency` in hertz (default 3), `damping` 0–1 (default 0.25), `ms` (default 1200). A lamp swinging, a shelf shaking. */
+  | { spring: { target: Who; axis?: 'x' | 'y' | 'rot'; amplitude?: number; frequency?: number; damping?: number; ms?: number } }
+  /** Along a Catmull-Rom spline through `points` (eased), optionally turned along it (`orient`). */
+  | { path: { target: Who; points: Point[]; ms?: number; orient?: boolean } }
+  /** Keeps the target at `offset` from `leader` for `ms` (a parrot on a shoulder, a balloon on a string). */
+  | { follow: { target: Who; leader: Who; offset?: Point; ms: number } }
   | { parallel: Cmd[][] }
   /**
    * Camera of a wide room (`Layout.width` > 640): follow the hero again, pan to a left edge x (animated over `ms`),

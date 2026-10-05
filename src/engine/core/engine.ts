@@ -1,3 +1,4 @@
+import { motionEnd, type MotionSpec } from './motion';
 import { check, condAtoms, type CondAtom } from './cond';
 import { compileGame, EMPTY_LAYOUT, FLOOR, NEAR } from './define';
 import { CHANGES, cmdKey } from './cmds';
@@ -862,6 +863,18 @@ export class Engine {
 
   private actorKey(who: Id, room: RoomDef) { return `${room.id}.${who}`; }
 
+  /** Where a thing stands, for a motion's ends: a prop's or an actor's feet, a hotspot's centre, else its approach point. */
+  private spot(t: Id | Point, room: RoomDef): Point {
+    if (Array.isArray(t)) return t;
+    const L = this.layout(room.id);
+    const p = L.props?.[t]; if (p) return [p.x, p.y];
+    const a = this.state.actors[this.actorKey(t, room)], al = L.actors?.[t];
+    if (a?.x !== undefined && a.y !== undefined) return [a.x, a.y];
+    if (al) return [al.x, al.y];
+    const h = L.hotspots?.[t]; if (h?.rect) return [h.rect[0] + h.rect[2] / 2, h.rect[1] + h.rect[3] / 2];
+    return this.point(t, room);
+  }
+
   async exec(cmds: Cmd[] | undefined, ctx: Ctx): Promise<void> {
     if (!cmds) return;
     for (const c of cmds) {
@@ -886,6 +899,20 @@ export class Engine {
         if (who === this.heroId()) s.hero[room.id] = end;
         else s.actors[this.actorKey(who, room)] = { ...s.actors[this.actorKey(who, room)], x: end[0], y: end[1] };
       }
+      return;
+    }
+    // Stage physics (core/motion.ts): presentation only; a character keeps where its motion ends, like `place`.
+    if ('launch' in c || 'spring' in c || 'path' in c || 'follow' in c) {
+      const L = 'launch' in c ? c.launch : 'spring' in c ? c.spring : 'path' in c ? c.path : c.follow;
+      const who = this.who(L.target);
+      const m: MotionSpec = 'launch' in c ? { kind: 'launch', to: this.spot(c.launch.to, room), ...(c.launch.from !== undefined ? { from: this.spot(c.launch.from, room) } : {}), ...(c.launch.height !== undefined ? { height: c.launch.height } : {}), ms: c.launch.ms ?? 900, rotate: c.launch.rotate ?? 0 }
+        : 'spring' in c ? { kind: 'spring', axis: c.spring.axis ?? 'rot', amplitude: c.spring.amplitude ?? 10, frequency: c.spring.frequency ?? 3, damping: c.spring.damping ?? 0.25, ms: c.spring.ms ?? 1200 }
+        : 'path' in c ? { kind: 'path', points: c.path.points, ms: c.path.ms ?? 1500, orient: !!c.path.orient }
+        : { kind: 'follow', offset: c.follow.offset ?? [0, -40], ms: c.follow.ms };
+      await this.ui.motion(who, m, ctx.fast, 'follow' in c ? this.who(c.follow.leader) : undefined);
+      const end = motionEnd(m);
+      if (end && who === this.heroId()) s.hero[room.id] = end;
+      else if (end && (room.actors?.[who] || Object.values(room.actors ?? {}).some((a) => a.char === who))) s.actors[this.actorKey(who, room)] = { ...s.actors[this.actorKey(who, room)], x: end[0], y: end[1] };
       return;
     }
     if ('place' in c) {

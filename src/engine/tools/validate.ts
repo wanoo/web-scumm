@@ -215,6 +215,18 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       return;
     }
     if ('place' in c) { if (!whoOk(c.place[0], room)) err(where, `unknown character: "${c.place[0]}"`); return; }
+    if ('launch' in c || 'spring' in c || 'path' in c || 'follow' in c) {
+      const m = 'launch' in c ? c.launch : 'spring' in c ? c.spring : 'path' in c ? c.path : c.follow;
+      const known = (t: string) => whoOk(t, room) || (!!room && !!room.props?.[t]);
+      if (!known(m.target)) err(where, `unknown motion target: "${m.target}" (a character or a prop of the room)`);
+      if ('launch' in c) for (const end of [c.launch.to, c.launch.from]) if (typeof end === 'string' && room && !entities(room).has(end)) err(where, `unknown point: "${end}"`);
+      if ('path' in c && c.path.points.length < 2) err(where, 'a path needs two points at least');
+      if ('follow' in c && !known(c.follow.leader)) err(where, `unknown leader: "${c.follow.leader}"`);
+      if ('spring' in c && c.spring.damping !== undefined && (c.spring.damping < 0 || c.spring.damping > 1)) err(where, 'damping is between 0 and 1');
+      const ms = 'follow' in c ? c.follow.ms : m.ms;
+      if (ms !== undefined && !(ms > 0)) err(where, 'a motion lasts more than 0 ms');
+      return;
+    }
     if ('face' in c) {
       if (c.who && !whoOk(c.who, room)) err(where, `unknown character: "${c.who}"`);
       if (c.face !== 'left' && c.face !== 'right' && room && !entities(room).has(c.face) && !whoOk(c.face, room)) err(where, `unknown target: "${c.face}"`);

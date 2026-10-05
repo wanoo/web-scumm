@@ -206,6 +206,10 @@ Une réplique reste à l'écran le temps de la lire, ou jusqu'à un tap.
 | `{ pose: ['chat', 'sleep'] }` | Pose durable (jusqu'à la prochaine). Poses du personnage : voir sa fiche `sprites`. |
 | `{ anim: ['hero', 'use'], ms: 600 }` | Pose le temps indiqué, puis retour à la normale. Marche pour tout acteur du lieu, y compris un acteur en `pose: 'front'` : `{ anim: ['grandpere', 'surprise'], ms: 900 }` joue la pose `surprise` de sa fiche (`sprites: { …, surprise: ['grandpere_assis/r2c3'] }`), puis il revient en `front`. |
 | `{ place: ['grandpere', [420, 360]], face: 'left' }` | Téléporte un personnage. |
+| `{ launch: { target: 'vase', to: [420, 310], height: 60, rotate: 360, ms: 900 } }` | Physique de scène (3.4) : un vol balistique d'un accessoire ou d'un personnage depuis là où il est (ou `from`) jusqu'à `to`, un point ou une chose. Calculé, jamais simulé : le même vol sur tous les appareils. Un personnage reste où il atterrit ; un accessoire jusqu'à ce qu'on entre de nouveau dans le lieu : faites suivre ce que cela signifie (`{ hide: 'vase' }`, `{ prop: ['vase', 'casse'] }`). |
+| `{ spring: { target: 'lampe', axis: 'rot', amplitude: 12, frequency: 3, damping: 0.25 } }` | Un balancement ou une secousse amortis autour de sa place (`axis` x, y ou rot). |
+| `{ path: { target: 'chauve_souris', points: [[80, 120], [300, 60], [560, 140]], orient: true } }` | Le long d'une courbe lisse passant par les points, tourné selon elle. |
+| `{ follow: { target: 'perroquet', leader: 'hero', offset: [10, -70], ms: 3000 } }` | Garde l'un à un décalage d'un autre pendant un temps. En mouvement réduit, chaque mouvement saute à sa fin. |
 | `{ wait: 500 }` | Pause, en millisecondes. |
 | `{ parallel: [[…], […]] }` | Joue plusieurs listes en même temps (ex. deux personnes qui marchent). |
 

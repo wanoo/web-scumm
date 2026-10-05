@@ -207,6 +207,10 @@ A line stays on screen for as long as it takes to read, or until a tap.
 | `{ pose: ['cat', 'sleep'] }` | A lasting pose (until the next one). Character poses: see their `sprites` sheet. |
 | `{ anim: ['hero', 'use'], ms: 600 }` | Hold the pose for the given time, then return to normal. Works for any actor in the room, even one in `pose: 'front'`: `{ anim: ['grandpa', 'surprise'], ms: 900 }` plays the `surprise` pose from their sheet (`sprites: { …, surprise: ['grandpa_seated/r2c3'] }`), then they go back to `front`. |
 | `{ place: ['grandpa', [420, 360]], face: 'left' }` | Teleport a character. |
+| `{ launch: { target: 'vase', to: [420, 310], height: 60, rotate: 360, ms: 900 } }` | Stage physics (3.4): a ballistic flight of a prop or a character from where it stands (or `from`) to `to`, a point or a thing. Computed, never simulated: the same flight on every device. A character stays where it lands; a prop until the room is entered again: follow it with what it means (`{ hide: 'vase' }`, `{ prop: ['vase', 'broken'] }`). |
+| `{ spring: { target: 'lamp', axis: 'rot', amplitude: 12, frequency: 3, damping: 0.25 } }` | A damped swing or shake around its place (`axis` x, y or rot). |
+| `{ path: { target: 'bat', points: [[80, 120], [300, 60], [560, 140]], orient: true } }` | Along a smooth curve through the points, turned along it. |
+| `{ follow: { target: 'parrot', leader: 'hero', offset: [10, -70], ms: 3000 } }` | Keeps one at an offset from another for a while. With reduced motion, every motion jumps to its end. |
 | `{ wait: 500 }` | Pause, in milliseconds. |
 | `{ parallel: [[…], […]] }` | Play several lists at the same time (e.g. two characters walking). |
 
