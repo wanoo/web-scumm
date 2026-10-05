@@ -11,6 +11,11 @@
 - `docs/en/SUPPORT.md`: semantic versioning on that API, supported versions, the deprecation policy (deprecated in a
   minor, removed at the next major), save compatibility. `docs/en/UPGRADING.md` § 10: from 3.x to 4.0.
 
+### Fixed
+
+- `verify:commercial` found the files a source names only under `games/`, `tools/`, `src/`, `public/`: a game in its
+  own project (`art-src/draw.py`) failed it. Any relative path counts now, resolved in the project; a URL never does.
+
 ### Deprecated
 
 - `RevealDef`: use `EndingDef`; removed in 5.0.

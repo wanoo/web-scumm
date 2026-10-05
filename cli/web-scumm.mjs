@@ -56,6 +56,7 @@ const COMMANDS = {
   provenance: ['where every asset comes from (--lock after a review)', () => tool('provenance', rest)],
   playtests: ['the sessions players shared, replayed and summed up', () => tool('playtests', rest)],
   voices: ['recorded lines: check, apply', () => tool('voices', rest)],
+  ids: ['stable ids for rules, topics and lines (--write: into the sources)', () => tool('ids', rest)],
   prompts: ['image prompts for the sheets the game names', () => tool('prompts', rest)],
   verify: ['validate, solve, i18n status, lint, playtests', verifyGame],
   build: ['assets, verify, the production build in dist/, every file of it accounted for', () => all(assets, verifyGame, () => vite(['build', ...rest]), () => tool('dist'))],

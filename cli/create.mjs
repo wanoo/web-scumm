@@ -18,7 +18,8 @@ const id = basename(dir).toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^[^
 const title = words.join(' ') || id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 if (existsSync(dir) && readdirSync(dir).length) { console.error(`${folder} exists and is not empty`); process.exit(1); }
 
-cpSync(join(PKG, 'games', '_template'), join(dir, 'game'), { recursive: true });
+// The template's tests/ is this repository's (vitest, `npm run check`); a project checks its game with `web-scumm verify`.
+cpSync(join(PKG, 'games', '_template'), join(dir, 'game'), { recursive: true, filter: (src) => !src.includes(`${join('_template', 'tests')}`) });
 const walk = (d) => { for (const e of readdirSync(d)) { const p = join(d, e); if (statSync(p).isDirectory()) walk(p); else if (/\.(ts|json|md)$/.test(e)) writeFileSync(p, readFileSync(p, 'utf8').replace(/__ID__/g, id).replace(/__TITLE__/g, title)); } };
 walk(join(dir, 'game'));
 // The template's art is a placeholder drawn from shapes (tools/placeholder-art.py): provenance says so, and a release
