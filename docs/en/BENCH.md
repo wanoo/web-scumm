@@ -534,7 +534,8 @@ Checked against the explicit search:
   hand-overs);
 - 40 random three-character games (`tests/audit.test.ts`);
 - `npm run audit:corpus -- --seeds=300`: 900 games, 549 compared to the end, 196 of them with hand-overs played. No
-  divergence (599 s). It runs every night on 500 seeds (`.github/workflows/nightly.yml`).
+  divergence (599 s). It runs every night on 500 seeds (`.github/workflows/nightly.yml`); 351 of the 900 stopped
+  partial (the explicit search hit its 3 000 states) and were not compared: a claim reads "900 tried, 549 compared".
 
 The first corpus reported three divergences, all in unsolvable games: every flag is dead there, so it is not in the
 states, and which flags show as reached depends on which merged state was kept. The audit now compares the live flags

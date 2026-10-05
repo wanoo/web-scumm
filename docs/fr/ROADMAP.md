@@ -393,8 +393,26 @@ enregistrées, un tag signé.
 
 Critères de sortie, mesurés (BENCH.md « 3.6 ») : chaque nouveau budget fixé et tenu sur les deux jeux ; la sonde des
 stems verte sur la démo et rouge sur des fichiers incohérents ; transitions et phase à l'échantillon ; 900 jeux
-aléatoires sans divergence. **Encore manqué, non bloquant :** la matrice ouverte à 20 lieux × 3 personnages reste tronquée, désormais à 600 000 états (40 minutes, 7,6 Go) : la mise en commun par groupe prouve 12 et 14 lieux, pas 20. Signalé, pas fait à la main (D12, `docs/dev/passes/3.6.0.md`) : le lecteur
+aléatoires essayés, 549 verdicts comparés à la recherche explicite sans divergence (351 arrêtés partiels, non
+comparés). **Encore manqué, non bloquant :** la matrice ouverte à 20 lieux × 3 personnages reste tronquée, désormais à 600 000 états (40 minutes, 7,6 Go) : la mise en commun par groupe prouve 12 et 14 lieux, pas 20. Signalé, pas fait à la main (D12, `docs/dev/passes/3.6.0.md`) : le lecteur
 d'écran, des testeurs, un vrai téléphone, Safari hors ligne, des voix enregistrées, un tag signé, une écoute.
+
+## v3.6.1 « Audio truth » (5 octobre 2026) : les correctifs de la revue de la 3.6.0
+
+- `v361-director-lifecycle` : le directeur possède ce qu'il programme. Une transition pas encore arrivée est un plan
+  qu'un arrêt, une restauration ou une nouvelle demande annule (aucun pont après eux) ; `restore()` ; un seul bus de
+  ducking sous tout ce qu'il joue ; chaque buffer sous le plafond (un pont qui ne tient pas est abandonné, deux
+  partitions qui ne tiennent pas coupent, les stingers sont évincés).
+- `v361-audio-intents` : `play`, `restore`, `stop`. Charger une sauvegarde restaure sa musique à son point, même quand
+  c'est celle qui joue, jamais par une transition ; un repli sur le mix garde le point.
+- `v361-budgets-peak` : `transitionPeakMB` (deux partitions, un pont et un stinger décodés à la fois) ; `validate`
+  refuse une règle qu'une précédente couvre et un marqueur depuis `'*'` qu'une partition n'a pas.
+- `v361-release` : le nightly garde ses comptes (essayés, comparés, partiels, divergents) en artefact ; captures du
+  README en 3.6 ; les chiffres du corpus disent « essayés » et « comparés ».
+
+Critères de sortie, mesurés : les 9 cas du cycle de vie échouent sur 3.6.0 et passent ; `npm run e2e:music` charge une
+sauvegarde pendant que sa partition continue et revient à moins de 0,1 s du point sauvegardé. Signalé (D12,
+`docs/dev/passes/3.6.1.md`) : les mêmes passes humaines, et un tag signé (pas de clé sur cette machine).
 
 ## Ensuite (pas encore planifié)
 

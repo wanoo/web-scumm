@@ -15,7 +15,7 @@ single day with an AI assistant.
 | 🚀 **Start** | [Make your own game](#make-your-own-game) in a few commands |
 | 📚 **Docs** | [The method](docs/en/WORKFLOW.md) · [the content format](docs/en/CONTENT_GUIDE.md) · [all the docs](#documentation) |
 
-![The Pantry Key: Grandma's house, nine verbs, the bag](docs/img/v33-hero.webp)
+![The Pantry Key: Grandma's house, nine verbs, the bag](docs/img/v36-hero.webp)
 
 **New in v3.6 "Production":** the music director is held to budgets of its own (stems, offline, decoded audio, a
 cap on what it keeps), its stem files are measured before a release, and one score hands over to another on a beat,
@@ -43,7 +43,7 @@ Market".
 | **Prove** | A path to the ending, every state where the ending is lost and why, saves that load across versions, real browsers. |
 | **Ship** | A static web game that installs on a phone, plays offline, on touch, mouse or keyboard. |
 
-## v3.5 in numbers
+## v3.6 in numbers
 
 Measured on the release, proof cache off ([BENCH.md](docs/en/BENCH.md)):
 
@@ -51,6 +51,8 @@ Measured on the release, proof cache off ([BENCH.md](docs/en/BENCH.md)):
 |---|---|
 | "The Night Market", 8 rooms, 2 playable characters | proved in 288 states, 1.2 s; the abstractions audited against 83 672 explicit states |
 | An open chain of 20 rooms, 2 characters, 12 items moving freely | proved in 14 002 states, 19 s (out of reach before 3.5) |
+| An open chain of 14 rooms, 3 characters, items moving freely | proved in 93 480 states, 166 s (out of reach before 3.6) |
+| 900 random games, abstractions against the explicit search | 549 verdicts compared, no divergence (351 stopped partial) |
 | A 40 000-state proof on 4 worker threads | ×2.54 faster, the same result as on 1 |
 | The music director, rendered offline for 30 minutes | 0 samples of drift; 100 changes of mix without a click; 0.02 ms jitter live |
 | Its staged market: 6 layers, parallax, 3 masks, two floors | 50 frames per second with the CPU slowed 4× (Canvas) |
@@ -69,8 +71,8 @@ end, and BENCH.md says so.
 ## What the player gets
 
 <table>
-<tr><td width="50%" valign="top"><img src="docs/img/v33-player-scene.webp" alt="Talking to Grandma: her topics in the side column" width="100%"><br><sub>Conversations with topics, choices and a transcript</sub></td><td width="50%" valign="top"><img src="docs/img/v33-player-minigame.webp" alt="The pipes minigame: bring the water to the mushrooms" width="100%"><br><sub>Minigames, playable by touch or keyboard</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/v33-player-map.webp" alt="The world map with characters pinned on it" width="100%"><br><sub>A world map, characters who move between places</sub></td><td width="50%" valign="top"><img src="docs/img/v33-player-ending.webp" alt="The final card: Pixel found the sardines" width="100%"><br><sub>An ending that remembers what the player guessed</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/v36-player-scene.webp" alt="Talking to Grandma: her topics in the side column" width="100%"><br><sub>Conversations with topics, choices and a transcript</sub></td><td width="50%" valign="top"><img src="docs/img/v36-player-minigame.webp" alt="The pipes minigame: bring the water to the mushrooms" width="100%"><br><sub>Minigames, playable by touch or keyboard</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/v36-player-map.webp" alt="The world map with characters pinned on it" width="100%"><br><sub>A world map, characters who move between places</sub></td><td width="50%" valign="top"><img src="docs/img/v36-player-ending.webp" alt="The final card: Pixel found the sardines" width="100%"><br><sub>An ending that remembers what the player guessed</sub></td></tr>
 </table>
 
 Nine classic verbs and a bag, dialogue, hints from a character, cutscenes and phone calls, rooms wider than the screen,
@@ -81,11 +83,11 @@ visit.
 ## What the author gets
 
 <table>
-<tr><td width="50%" valign="top"><img src="docs/img/v33-studio-rooms.webp" alt="Studio, Rooms tab: the pantry selected, its look lines and reactions editable" width="100%"><br><sub><b>Rooms</b>: the real engine, a placement editor on top, every line editable in place</sub></td><td width="50%" valign="top"><img src="docs/img/v33-studio-storyboard.webp" alt="Studio, Storyboard tab: boards and panels, 100% implemented" width="100%"><br><sub><b>Storyboard</b>: the story panel by panel, checked against the game</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/v33-studio-assets.webp" alt="Studio, Assets tab: Pixel's sprite sheet, cell by cell, with where each cell is used" width="100%"><br><sub><b>Assets</b>: every sheet and cell, where it is used, the prompt to make it</sub></td><td width="50%" valign="top"><img src="docs/img/v33-studio-check.webp" alt="Studio, Check tab: validator, solver path and solver health" width="100%"><br><sub><b>Check</b>: the validator and the solver, run again after every save</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/v36-studio-rooms.webp" alt="Studio, Rooms tab: the pantry selected, its look lines and reactions editable" width="100%"><br><sub><b>Rooms</b>: the real engine, a placement editor on top, every line editable in place</sub></td><td width="50%" valign="top"><img src="docs/img/v36-studio-storyboard.webp" alt="Studio, Storyboard tab: boards and panels, 100% implemented" width="100%"><br><sub><b>Storyboard</b>: the story panel by panel, checked against the game</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/v36-studio-assets.webp" alt="Studio, Assets tab: Pixel's sprite sheet, cell by cell, with where each cell is used" width="100%"><br><sub><b>Assets</b>: every sheet and cell, where it is used, the prompt to make it</sub></td><td width="50%" valign="top"><img src="docs/img/v36-studio-check.webp" alt="Studio, Check tab: validator, solver path and solver health" width="100%"><br><sub><b>Check</b>: the validator and the solver, run again after every save</sub></td></tr>
 </table>
 
-<img src="docs/img/v33-proof-graph.webp" alt="The puzzle graph with the critical path and the solver's heat" width="420" align="right">
+<img src="docs/img/v36-proof-graph.webp" alt="The puzzle graph with the critical path and the solver's heat" width="420" align="right">
 
 The puzzle graph shows what each item, flag and room leads to. With **Critical path** on, what does not lead to the
 end fades. With **Heat**, the rules the solver went through most turn red. The Studio also has a Play tab with a rule

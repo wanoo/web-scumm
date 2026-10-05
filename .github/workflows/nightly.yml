@@ -20,4 +20,19 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run audit:corpus -- --seeds=${{ github.event.inputs.seeds || '500' }}
+      # bash -o pipefail: a divergence still fails the run through tee.
+      - shell: bash
+        run: npm run audit:corpus -- --seeds=${{ github.event.inputs.seeds || '500' }} --json=corpus.json | tee corpus.txt
+      # The counts (tried, compared, partial, diverged per kind) kept with the run, and shown on its page (3.6.1).
+      - if: always()
+        shell: bash
+        run: |
+          if [ -f corpus.txt ]; then { echo '```'; cat corpus.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"; fi
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus
+          path: |
+            corpus.json
+            corpus.txt
+          if-no-files-found: ignore
