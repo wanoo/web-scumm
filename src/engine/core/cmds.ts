@@ -5,7 +5,7 @@ import type { Cmd, GameDef, RoomDef } from './types';
 
 /** The discriminant key of every `Cmd` variant (a plain string is the hero's line). */
 export const CMD_KEYS = [
-  'say', 'walk', 'face', 'pose', 'anim', 'place', 'wait', 'parallel', 'camera', 'play', 'stopAnim',
+  'say', 'walk', 'face', 'pose', 'anim', 'place', 'wait', 'parallel', 'camera', 'play', 'stopAnim', 'launch', 'spring', 'path', 'follow',
   'prop', 'show', 'hide', 'gain', 'lose', 'used', 'set', 'unset', 'inc', 'unlock', 'goto', 'map', 'moveActor',
   'emit', 'waitUntil', 'waitEvent', 'switchPlayer', 'transfer', 'custom', 'startScript', 'stopScript',
   'sfx', 'music', 'toast', 'shake',

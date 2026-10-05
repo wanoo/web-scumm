@@ -70,6 +70,11 @@ export function timeline(cmds: Cmd[] | undefined, o: TimelineOptions): Timeline 
         t = push({ start: t, end: t + ms, label: `${who} walks to ${Array.isArray(c.walk) ? c.walk.join(',') : c.walk}`, path: p, kind: 'walk', lane, who, estimated: d === null });
         return;
       }
+      if ('launch' in c || 'spring' in c || 'path' in c || 'follow' in c) {
+        const [name, m, d] = 'launch' in c ? ['launch', c.launch, 900] as const : 'spring' in c ? ['spring', c.spring, 1200] as const : 'path' in c ? ['path', c.path, 1500] as const : ['follow', c.follow, c.follow.ms] as const;
+        t = push({ start: t, end: t + (m.ms ?? d), label: `${m.target} ${name}`, path: p, kind: 'anim', lane, who: m.target });
+        return;
+      }
       if ('anim' in c) {
         const ms = c.ms ?? ANIM_MS;
         const end = push({ start: t, end: t + ms, label: `${c.anim[0]} ${c.anim[1]}`, path: p, kind: 'anim', lane, who: c.anim[0] });

@@ -38,6 +38,8 @@ const instances: Record<CmdKey, Cmd> = {
   moveActor: { moveActor: ['uncle', 'b'] }, emit: { emit: 'ping' }, waitUntil: { waitUntil: { has: 'cle' } }, waitEvent: { waitEvent: 'ping' },
   switchPlayer: { switchPlayer: 'uncle' }, transfer: { transfer: ['cle', 'uncle'] }, custom: { custom: 'zap' },
   startScript: { startScript: 'tick' }, stopScript: { stopScript: 'tick' },
+  launch: { launch: { target: 'valise', to: [300, 320] } }, spring: { spring: { target: 'valise' } }, path: { path: { target: 'hero', points: [[100, 300], [200, 280], [300, 320]] } },
+  follow: { follow: { target: 'uncle', leader: 'hero', ms: 100 } },
   sfx: { sfx: 'ding' }, music: { music: 'tune' }, toast: { toast: 'Done.' }, shake: { shake: 2 },
   if: { if: 'seen_it', then: ['Yes.'], else: ['No.'] }, once: { once: ['Once.'] }, nth: { nth: [['First.'], ['Then.']] }, cycle: { cycle: [['A.'], ['B.']] }, random: { random: [['A.'], ['B.']] },
   cutscene: { cutscene: ['Scene.'] }, choice: { choice: [{ text: 'Ok', do: ['Fine.'] }] }, minigame: { minigame: 'pipes', then: ['Won.'] },

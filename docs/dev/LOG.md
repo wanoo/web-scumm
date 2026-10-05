@@ -1515,3 +1515,16 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 
 → next: Claude · merge on green CI, then v34-stage-physics
 
+## #66 · 2026-10-05 · Claude · proposal · v34-stage-physics
+
+- `core/motion.ts`: `arc` (y − 4h·t(1 − t)), `spring` (A·e^(−ζωt)·cos(ω√(1−ζ²)t)), `spline` (Catmull-Rom, eased),
+  `motionAt`, `motionEnd`. Commands `launch`, `spring`, `path`, `follow` (CMD_KEYS: the compile-time checks of
+  `tests/cmds.test.ts` and `tests/audit.test.ts` asked for their samples), not in `CHANGES`.
+- Engine: resolves the ends (`spot`: a prop's or an actor's feet, a hotspot's centre, else the approach point), calls
+  `Presenter.motion`, stores a character's landing like `place`. `RoomView.motion` animates the closed form over its
+  duration; `fast` and reduced motion jump to the end.
+- Validator (targets, points, leader, damping, duration), timeline (durations), docs. `tests/motion.test.ts`: the
+  forms, the engine's state, and the fixture proved with a spring before every rule: same states.
+
+→ next: Claude · merge on green CI, then v34-voice-production
+

@@ -1,3 +1,4 @@
+import type { MotionSpec } from './motion';
 import type { GameState, Id, Point, RoomDef, VerbId } from './types';
 
 /**
@@ -14,6 +15,8 @@ export interface Presenter {
   pose(who: Id, pose: string): void;
   anim(who: Id, pose: string, ms: number, fast: boolean): Promise<void>;
   place(who: Id, at: Point, face?: 'left' | 'right'): void;
+  /** A computed motion of a character or a prop (core/motion.ts); `leader` for `follow`. Resolves when it ends. */
+  motion(who: Id, m: MotionSpec, fast: boolean, leader?: Id): Promise<void>;
   wait(ms: number, fast: boolean): Promise<void>;
   prop(id: Id, state: string): void;
   /** A frame of a prop animation (null: back to the state image). */
@@ -88,6 +91,7 @@ export class FakePresenter implements Presenter {
   face() {}
   pose(who: Id, pose: string) { this.log.push(`pose ${who} ${pose}`); }
   async anim() {}
+  async motion(who: Id, m: MotionSpec) { this.log.push(`motion ${who} ${m.kind}`); }
   place() {}
   async wait() {}
   prop(id: Id, state: string) { this.log.push(`prop ${id} ${state}`); }

@@ -1,3 +1,4 @@
+import { motionAt, type MotionSpec } from '../core/motion';
 import { characterImages, roomImages } from '../core/asset-graph';
 import type { Engine } from '../core/engine';
 import { WALK_SPEED } from '../core/timing';
@@ -637,6 +638,33 @@ export class RoomView {
         if (k < 1) requestAnimationFrame(step2); else res(true);
       };
       requestAnimationFrame(step2);
+    });
+  }
+
+  /**
+   * A computed motion (core/motion.ts) of a character or a prop: its position (and turn) follow the motion's closed
+   * form for its duration; at the end a flight leaves it where it lands, a spring at rest, a follower where its
+   * leader's offset puts it. `fast` (skipping, reduced motion): the end at once.
+   */
+  async motion(id: Id, m: MotionSpec, fast: boolean, leader?: Id): Promise<void> {
+    const e = this.ents.get(id);
+    if (!e) return;
+    const base = { x: e.x, y: e.y, rot: e.rot ?? 0 };
+    const spec: MotionSpec = m.kind === 'launch' && !m.from ? { ...m, from: [e.x, e.y] } : m;
+    const lead = leader ? this.ents.get(leader) : undefined;
+    const apply = (k: number) => {
+      const f = motionAt(spec, k);
+      if (spec.kind === 'follow' && lead) { e.x = lead.x + (f.dx ?? 0); e.y = lead.y + (f.dy ?? 0); }
+      else if (f.at) [e.x, e.y] = f.at;
+      else { e.x = base.x + (f.dx ?? 0); e.y = base.y + (f.dy ?? 0); }
+      e.rot = base.rot + f.rot;
+      this.draw(e);
+    };
+    if (fast || m.ms <= 0) { apply(1); return; }
+    const t0 = performance.now();
+    await new Promise<void>((done) => {
+      const step = (t: number) => { const k = Math.min(1, (t - t0) / m.ms); apply(k); if (k < 1) requestAnimationFrame(step); else done(); };
+      requestAnimationFrame(step);
     });
   }
 

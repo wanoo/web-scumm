@@ -4,6 +4,11 @@
 
 ### Added
 
+- Stage physics (3.4, `core/motion.ts`): `launch` (a ballistic flight), `spring` (a damped swing), `path` (a smooth
+  curve through points), `follow` (an offset from a leader). Closed forms of time, never a simulation; presentation
+  only (a character keeps where it lands, like `place`); validated, laid on the timeline, jumped to their end with
+  reduced motion. The solver proves a game the same with motions everywhere.
+
 - Walk topology (3.4): several walk zones joined by links (walk, stairs, ladder, jump, teleport, with their duration,
   animation and facing), the fewest links between two points, a depth scale per zone, a camera that zooms per zone
   (1–2) and moves vertically when zoomed. A closed link stops the walk at its foot and says its `locked` line, never
