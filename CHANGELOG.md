@@ -23,6 +23,14 @@ deprecation policy of `docs/en/SUPPORT.md`. Human passes: 0 of 7 (D12, `docs/dev
 - The independent game, "The Lighthouse", moved from 3.9.0 to 4.0.0 by installing the new tarball: nothing to
   migrate, `release --commercial` green, its 3.9.0 save loaded and played to the end (LOG #94).
 
+### Added (asked for 4.0)
+
+- **A double tap acts with the verb a player means** (`core/default-verb.ts`): through an exit, talk to a character,
+  look at anything else; a single tap still only walks. A prop, a hotspot, an actor or an exit can name its own with
+  `defaultVerb` (a cupboard: `open`). An item picked from the bag without a verb is **given** to a character and
+  **used** on anything else, and the sentence line says which before the tap. Checked in Chromium and WebKit
+  (`npm run e2e:taps`, in the reference job).
+
 ### Dependencies
 
 - The open Dependabot pull requests are settled: taken, earcut 3.2.4 and the GitHub Actions majors (`setup-node` 7,

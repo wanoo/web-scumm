@@ -30,7 +30,7 @@ Dans un projet de jeu, les entrées sont `web-scumm/content`, `web-scumm/player`
 | `Action` | une action du joueur : verbe, a, b |
 | `CharacterDef` · `SpriteSet` · `MouthSet` | un personnage, ses poses, ses bouches |
 | `ItemDef` | un objet d'inventaire |
-| `PropDef` · `PropAnim` · `ActorDef` · `HotspotDef` · `ExitDef` | ce qu'un lieu contient |
+| `PropDef` · `PropAnim` · `ActorDef` · `HotspotDef` · `ExitDef` | ce qu'un lieu contient (chacun peut nommer le `defaultVerb` d'un double tap, 4.0) |
 | `HintDef` · `ScriptDef` | les indices d'un lieu, un script du monde |
 | `StageDef` · `StageLayer` · `LightDef` · `EmitterDef` · `TransitionKind` | le lieu mis en scène (calques, lumières, particules, transitions) |
 | `MapDef` · `MapRegion` · `PlaceDef` | la carte de voyage |

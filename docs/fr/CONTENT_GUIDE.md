@@ -182,6 +182,14 @@ export const rules = {
 };
 ```
 
+### Un double tap : le verbe que le joueur veut dire (4.0)
+
+Un tap marche jusqu'à une chose ; un double tap agit dessus sans choisir de verbe : une sortie est franchie (son premier
+verbe), un personnage reçoit la parole, tout le reste est regardé. Quand ce n'est pas le bon, la chose nomme le sien :
+`hotspots: { cupboard: { name: 'placard', defaultVerb: 'open' } }` (aussi sur un accessoire, un acteur, une sortie). Un
+objet pris dans le sac sans verbe est donné à un personnage et utilisé sur tout le reste ; la ligne de phrase dit lequel
+avant le tap. Un verbe que le jeu n'a pas n'est jamais choisi (`src/engine/core/default-verb.ts`).
+
 ## Les commandes
 
 Une commande seule, sous forme de texte, fait parler le héros : `'Et voilà. Un marchepied.'`.

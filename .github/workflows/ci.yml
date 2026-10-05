@@ -249,6 +249,8 @@ jobs:
       # Two scores and two bridges (3.7): a transition planned, restored, stopped, under transitionPeakMB; in WebKit
       # too since 3.8.
       - run: npm run e2e:music -- http://127.0.0.1:5175/ --only=reference --browser=${{ matrix.browser }}
+      # The default verb (4.0): a double tap goes through a door, talks to a character; an item from the bag is given or used.
+      - run: npm run e2e:taps -- http://127.0.0.1:5175/ --browser=${{ matrix.browser }}
       - uses: actions/upload-artifact@v7
         if: failure()
         with:

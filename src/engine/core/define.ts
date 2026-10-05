@@ -23,7 +23,7 @@ export function defineGame(game: GameDef): GameDef {
   return game;
 }
 
-const EXIT_VERBS = ['use', 'open', 'walk', 'go', 'enter', 'push', 'pull'];
+export const EXIT_VERBS = ['use', 'open', 'walk', 'go', 'enter', 'push', 'pull'];
 
 /**
  * Turns every declared exit (`RoomDef.exits`) into what the engine plays: a hotspot of kind `exit`, and rules appended

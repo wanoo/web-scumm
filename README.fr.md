@@ -24,7 +24,9 @@ entrées (`web-scumm/content`, `/player`, `/minigames`, `/testing`), et passe à
 sauvegarde jusqu'à la fin. Ce qu'une release livre, ce sont exactement ses fichiers et leurs licences, construits depuis
 le commit testé par la CI et jamais remplacés ([API](docs/fr/API.md), [SUPPORT](docs/fr/SUPPORT.md),
 [PACKAGE](docs/fr/PACKAGE.md)). En chemin : la 3.7 a rendu la démo vendable, la 3.8 a écrit les passes terrain que des
-gens doivent encore faire ([FIELD](docs/fr/FIELD.md)), la 3.9 a fait le premier jeu hors du dépôt, « Le Phare ».
+gens doivent encore faire ([FIELD](docs/fr/FIELD.md)), la 3.9 a fait le premier jeu hors du dépôt, « Le Phare ». Et pour les joueurs : un double tap agit avec le verbe
+qu'ils veulent dire (franchir une porte, parler à quelqu'un, regarder le reste), et un objet du sac est donné ou
+utilisé, selon ce qui convient.
 
 **v3.6 « Production » :** le directeur musical a ses propres budgets (stems, hors ligne, audio décodé, un
 plafond sur ce qu'il garde), ses stems sont mesurés avant une release, et une partition passe la main à une autre sur

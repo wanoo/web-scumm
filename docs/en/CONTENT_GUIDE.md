@@ -183,6 +183,14 @@ export const rules = {
 };
 ```
 
+### A double tap: the verb a player means (4.0)
+
+A single tap walks to a thing; a double tap acts on it without choosing a verb: an exit is gone through (its first
+verb), a character is talked to, anything else is looked at. When that is not right, the thing names its own:
+`hotspots: { cupboard: { name: 'cupboard', defaultVerb: 'open' } }` (also on a prop, an actor, an exit). An item
+picked from the bag without a verb is given to a character and used on anything else; the sentence line says which
+before the tap. A verb the game does not have is never chosen (`src/engine/core/default-verb.ts`).
+
 ## The commands
 
 A single command, as plain text, makes the hero speak: `'There. A step up.'`.

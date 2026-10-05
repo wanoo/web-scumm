@@ -24,7 +24,8 @@ creates a game on the previous release, saves in it, upgrades it and plays the o
 ships is exactly its files and their licences, built from the commit CI tested and never replaced
 ([API](docs/en/API.md), [SUPPORT](docs/en/SUPPORT.md), [PACKAGE](docs/en/PACKAGE.md)). On the way: 3.7 made the sample
 game sellable, 3.8 wrote down the field passes people still have to make ([FIELD](docs/en/FIELD.md)), 3.9 made the
-first game outside the repository, "The Lighthouse".
+first game outside the repository, "The Lighthouse". And for players: a double tap acts with the verb they mean
+(through a door, talk to someone, look at the rest), and an item from the bag is given or used, whichever fits.
 
 **v3.6 "Production":** the music director is held to budgets of its own (stems, offline, decoded audio, a
 cap on what it keeps), its stem files are measured before a release, and one score hands over to another on a beat,
