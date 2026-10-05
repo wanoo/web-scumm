@@ -114,6 +114,11 @@ export interface SolveResult {
   states: number;
   truncated: boolean;
   flagsReached: string[];
+  /**
+   * The flags the search keys its states on (3.6): those that can still matter to the goal. A dead flag is left out of
+   * the states, so whether it shows in `flagsReached` depends on which of two merged states was kept.
+   */
+  liveFlags: string[];
   unlockedReached: string[];
   roomsReached: string[];
   /** Game items that never trigger a written reaction (neither gained nor used). */
@@ -352,15 +357,19 @@ class MobilityError extends Error {}
 export const mobilityError = (m: string): Error => new MobilityError(m);
 export const isMobilityError = (e: unknown): boolean => e instanceof MobilityError;
 
-function canonicalDims(d: Dims, s: GameState, keys: ReturnType<typeof stateKeys>, hero: Id, shared: boolean, pool?: Set<Id> | null): Dims {
+function canonicalDims(d: Dims, s: GameState, keys: ReturnType<typeof stateKeys>, hero: Id, shared: boolean, pool?: Set<Id> | null, groups: Id[][] = []): Dims {
   const live = (xs: Id[] | undefined) => (xs ?? []).filter((i) => keys.live.items.has(i)).sort().join(',');
-  // The bags without the pooled items (the `used` marks stay each character's own).
-  const bag = (xs: Id[] | undefined) => live((xs ?? []).filter((i) => !pool?.has(i)));
+  const pooling = new Set(groups.flat());
+  // The bags without the pooled items of a character in a pooling group (the `used` marks stay each character's own).
+  const bag = (who: Id, xs: Id[] | undefined) => live((xs ?? []).filter((i) => !(pool?.has(i) && pooling.has(who))));
   const out = d.filter(([k]) => k !== 'active' && k !== 'room' && !k.startsWith('player:') && (shared || (!k.startsWith('item:') && !k.startsWith('used:'))));
-  out.push([`pos:${s.active ?? hero}`, shared ? s.room : `${s.room} ${bag(s.inventory)} ${live(s.used)}`]);
-  for (const [k, p] of Object.entries(s.players ?? {})) out.push([`pos:${k}`, shared ? p.room : `${p.room} ${bag(p.inventory)} ${live(p.used)}`]);
-  // The canonical owner (3.5): the pooled items whoever holds them (a multiset: a copy gained twice stays two).
-  if (pool) out.push(['pool', [s.inventory, ...Object.values(s.players ?? {}).map((p) => p.inventory)].flat().filter((i) => pool.has(i) && keys.live.items.has(i)).sort().join(',')]);
+  const me = s.active ?? hero;
+  out.push([`pos:${me}`, shared ? s.room : `${s.room} ${bag(me, s.inventory)} ${live(s.used)}`]);
+  for (const [k, p] of Object.entries(s.players ?? {})) out.push([`pos:${k}`, shared ? p.room : `${p.room} ${bag(k, p.inventory)} ${live(p.used)}`]);
+  // The canonical owner (3.5; by group since 3.6): the pooled items a group of characters who can meet holds, whoever
+  // of them holds each (a multiset: a copy gained twice stays two).
+  const inv = (who: Id) => (who === me ? s.inventory : s.players?.[who]?.inventory ?? []);
+  if (pool) for (const g of groups) out.push([`pool:${g.join('+')}`, g.flatMap(inv).filter((i) => pool.has(i) && keys.live.items.has(i)).sort().join(',')]);
   return out.sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
 }
 
@@ -556,7 +565,15 @@ function independentGroups(all: Dims[], dims: { key: string; values: number }[])
   return groups.map((g) => ({ dims: g, combos: combos(g), product: 2 ** g.length }));
 }
 
-const tick = () => new Promise<void>((r) => setTimeout(r, 0));
+/**
+ * The engine's promise or the next turn of the event loop, whichever comes first; the timer is cleared when the
+ * engine wins (3.6). A search runs in microtasks and never reaches the timers' phase: before this, every uncleared
+ * tick stayed queued, with its promise, until the process went idle (15 MB per audit, out of memory over a corpus).
+ */
+const raceTick = async (settled: Promise<unknown>) => {
+  let t: ReturnType<typeof setTimeout> | undefined;
+  try { await Promise.race([settled, new Promise<void>((r) => { t = setTimeout(r, 0); })]); } finally { clearTimeout(t); }
+};
 
 /**
  * Waits for an engine promise to settle, playing the guided-tutorial steps whenever one is pending.
@@ -568,7 +585,7 @@ async function drive(engine: Engine, p: Promise<unknown>, onGuide: (a: Action) =
   const settled = p.then(() => { done = true; }, (e) => { done = true; error = e; });
   for (let guard = 0; !done && guard < 500; guard++) {
     // The silent presenter resolves everything in microtasks: without a tutorial, we never wait on the timer.
-    await Promise.race([settled, tick()]);
+    await raceTick(settled);
     const g = engine.guiding;
     if (g && !done) {
       const act: Action = { verb: g.verb, a: g.target };
@@ -715,8 +732,21 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
     const a = model!.region(viewOf(st, p, game.hero, shared)).rooms, b = new Set(model!.region(viewOf(st, q, game.hero, shared)).rooms);
     return a.find((r) => b.has(r));
   };
-  const together = (st: GameState) => !!pool && !!model && playerIds.every((p, i) => playerIds.every((q, j) => j <= i || meeting(st, p, q) !== undefined));
-  const baseDims = (st: GameState): Dims => canonical ? canonicalDims(stateDims(st, keys), st, keys, game.hero, shared, together(st) ? pool : null) : stateDims(st, keys);
+  /**
+   * The pooling groups (3.6): the characters split by who can meet whom, a group kept only when every two of its
+   * members can (then any of them can hand a pooled item to any other). 3.5 pooled only when all of them could.
+   */
+  const groupsOf = (st: GameState): Id[][] => {
+    if (!pool || !model) return [];
+    const left = [...playerIds], out: Id[][] = [];
+    while (left.length) {
+      const g = [left.shift()!];
+      for (let i = 0; i < g.length; i++) for (let j = left.length - 1; j >= 0; j--) if (meeting(st, g[i], left[j]) !== undefined) g.push(...left.splice(j, 1));
+      if (g.length > 1 && g.every((p, i) => g.every((q, j) => j <= i || meeting(st, p, q) !== undefined))) out.push(g.sort());
+    }
+    return out.sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  };
+  const baseDims = (st: GameState): Dims => canonical ? canonicalDims(stateDims(st, keys), st, keys, game.hero, shared, pool, groupsOf(st)) : stateDims(st, keys);
   const dimsOf = (st: GameState): Dims => model ? regionDims(baseDims(st), st, model, game.hero, shared) : baseDims(st);
   const stats: ExpandStats = {
     itemsInRules: new Set(), itemsSeen: new Set(), flags: new Set(), gained: new Set(), roomsReached: new Set(),
@@ -827,10 +857,12 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
     // meet (here when the holder can walk here, else a room both regions share, the character going there and coming
     // back), the holder switches in, walks there, hands its pooled items over, and the controls come back. Every step is
     // played on the engine and must leave the state as the search sees it.
-    if (pool && together(s)) for (let vi = 0; vi < placed.length; vi++) {
+    if (pool) for (let vi = 0; vi < placed.length; vi++) {
       const v = placed[vi];
       const me = v.st.active ?? game.hero;
-      const holders = playerIds.filter((q) => q !== me && viewOf(v.st, q, game.hero, shared).inventory.some((i) => pool.has(i)));
+      const mine = groupsOf(v.st).find((g) => g.includes(me));
+      if (!mine) continue;
+      const holders = mine.filter((q) => q !== me && viewOf(v.st, q, game.hero, shared).inventory.some((i) => pool.has(i)));
       if (!holders.length) continue;
       const { e } = makeEngine();
       e.state = timed('clone', () => structuredClone(v.st));
@@ -1325,6 +1357,7 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     states: seen.size,
     truncated: limitReached,
     flagsReached: [...flags].sort(),
+    liveFlags: [...X.keys.live.flags].sort(),
     unlockedReached: [...unlocked].sort(),
     roomsReached: [...roomsReached].sort(),
     unusedItems: Object.keys(game.items).filter((i) => !gained.has(i)).sort(),

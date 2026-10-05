@@ -177,6 +177,7 @@ npm run bench -- --matrix [--eras] [--max=20000]   # the 3.3 reference table (--
 npm run bench -- --rooms=40 [--prove --v3]   # a generated game of that size, every tool timed on it; --prove adds the exhaustive proof, --v3 generates it with stable ids (docs/en/BENCH.md)
 npm run i18n -- extract [--lang xx]   # translation tables (games/<id>/locales/<xx>.json); `status` for the coverage
 npm run solve -- --audit-abstractions   # the proof with the abstractions against the explicit search, every memo hit run anyway: 0 same, 1 diverged, 2 the explicit search did not fit --max (BENCH.md "3.3.1")
+npm run audit:corpus -- --seeds=500     # the same on random games (plain, free items, three characters), every night in CI (3.6): exit 1 on a divergence
 npm run solve -- --profile         # what the states are made of, what the search cost, what each abstraction did (docs/en/BENCH.md)
 npm run solve -- --por=stubborn    # partial-order reduction: commuting actions one at a time (fewer states, same proof)
 npm run replay -- session.json     # plays a session file on the real engine, prints the journal and the final state

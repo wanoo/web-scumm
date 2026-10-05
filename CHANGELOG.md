@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed
+
+- The solver leaked about 15 MB a search. Each action raced a zero-delay timer that was never cleared, and a search runs
+  in microtasks, so the timers waited for the process to go idle. A corpus of audits ran out of memory. Measured after
+  60 audits: 918 MB before, 9 MB after.
+- The abstraction audit compared reached flags that the search does not track: those that cannot matter to the goal,
+  every flag in an unsolvable game. It reported three false divergences on 900 games. It now compares the live flags
+  (`SolveResult.liveFlags`).
+
 ### Added
 
 - Weight budgets for what the playable ones leave out (3.6): `backgroundScoreKB` (the scores' stems, downloaded where
@@ -17,6 +26,12 @@
 - Transitions between scores (3.6): `audio.transitions` rules (`from`, `to`, `at`: beat, bar, phrase or a marker of
   the old score, `bridge`, `fadeBeats`), `ScoreDef.markers` and `phraseBars`. The new score starts on the old one's
   grid, after the bridge; `npm run e2e:music` measures both to the sample in Chromium. Without a rule, as in 3.5.
+- The canonical owner pools by group (3.6): the characters who can meet, every two of them, share a pool of the free
+  items they hold, and the others keep their own. In 3.5 the pool applied only when all of them could meet, which with
+  three characters was seldom. Open chain, 3 characters: 8 rooms 29 909 → 12 613 states, 10 rooms 64 957 → 14 528,
+  12 and 14 rooms proved (66 189 and 93 480) where 3.5 stopped at 120 000.
+- `npm run audit:corpus` and a nightly workflow: the abstractions against the explicit search on 500 random games of
+  each kind (plain, free items, three characters). The random game generator makes three characters.
 - A save keeps the music's phase (`state.music`: the track and the position in its file, written by the app, ignored
   by the engine and the tools); loading it resumes the music there (the director's `offset`, the mix's `seek`).
 

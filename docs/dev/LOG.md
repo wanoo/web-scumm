@@ -1865,3 +1865,29 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 - `e2e-music.mjs`, in the game: saved at 1.50 s, resumed at 1.50 s.
 
 → next: Claude · v36-solver-structure
+
+## #84 · 2026-10-05 · Claude · proposal · v36-solver-structure
+
+- Profile of 20 × 3 open: `pos:<id>` takes about 400 values per character. The bags held the free items, because
+  `together()` needed every pair to meet, and with three characters behind doors it seldom held (709 hand-overs in
+  30 000 states).
+- `groupsOf(state)`: connected components of `meeting`, kept only when they are cliques. `canonicalDims` writes one
+  `pool:<members>` per group and leaves the pooled items out of those members' bags. The hand-over loop works within
+  the active character's group. For two characters nothing changes: 14 002 states, as in 3.5.
+- Measured: 8, 10, 12 and 14 rooms (BENCH.md "3.6"). Audits:
+  - the 7-room stress chain with and without a softlock;
+  - 40 random three-character games;
+  - the corpus.
+- `tools/audit-corpus.ts`, `npm run audit:corpus`, and `nightly.yml` (500 seeds, 03:17 UTC). `randomGame` takes
+  `players: 3`.
+- The corpus found two things:
+  - Three "divergences" on `flagsReached`, all in unsolvable games. Every flag is dead there (liveness against the
+    goal), so it is out of the key, and which merged state was kept decides what is "reached". The explicit prove
+    itself explores 40 states where a witness explores 197. `SolveResult.liveFlags` now exists; `verdictOf` compares
+    the live flags.
+  - Out of memory: heap snapshots showed 371 000 `Timeout` objects. `drive` raced a `setTimeout(0)` that was never
+    cleared, and the search never reached the timers' phase. `raceTick` clears it (`solve.ts`, `replay.ts`): 918 MB
+    after 60 audits before, 9 MB after.
+- Not done: item liveness and the count of traffic between workers. Said in BENCH.
+
+→ next: Claude · v36-release (20 × 3 measured with the fix)

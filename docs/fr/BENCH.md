@@ -545,3 +545,33 @@ Un worker qui s'arrête en pleine recherche quitte maintenant le pool pour de bo
 thread s'il n'en reste aucun. `stats()` n'interroge que les workers vivants, 2 s au plus chacun.
 `tests/workers.test.ts` arrête un worker sur quatre après 5 expansions, puis les trois sur trois, par sortie comme par
 erreur non rattrapée : la preuve est la même.
+
+## 3.6 : la mise en commun par groupe, une fuite, et un corpus (5 octobre 2026)
+
+**La mise en commun par groupe.** La 3.5 ne mettait les objets libres en commun que si chaque paire de personnages
+jouables pouvait se rejoindre. À trois dans la chaîne ouverte, c'était rarement le cas : qui portait chaque clé
+multipliait les états. La 3.6 répartit les personnages selon qui peut rejoindre qui. Un groupe dont chaque paire peut
+se rejoindre partage un seul fonds des objets libres que portent ses membres ; un personnage hors de tout groupe garde
+son sac. Les remises avant qu'un personnage agisse ne se jouent que dans son groupe, vérifiées comme en 3.5.
+
+| Chaîne ouverte, 3 personnages, 12 objets | 3.5 | 3.6 |
+|---|---|---|
+| 8 lieux | 29 909 états, 24 s | 12 613 états, 11 s |
+| 10 lieux | 64 957 états, 63 s | 14 528 états, 18 s |
+| 12 lieux | tronquée à 120 000 | **prouvée**, 66 189 états, 93 s |
+| 14 lieux | tronquée à 120 000 | **prouvée**, 93 480 états, 166 s |
+
+Vérifié contre la recherche explicite :
+- la chaîne de 7 lieux à trois personnages, avec et sans softlock : `same` (4 909 états contre 97 257, 2 599 remises) ;
+- 40 jeux aléatoires à trois personnages (`tests/audit.test.ts`) ;
+- `npm run audit:corpus -- --seeds=300` : 900 jeux, 549 comparés jusqu'au bout, dont 196 avec des remises jouées.
+  Aucune divergence (599 s). Il tourne chaque nuit sur 500 graines (`.github/workflows/nightly.yml`).
+
+Le premier corpus a signalé trois divergences, toutes dans des jeux insolubles : chaque flag y est mort, donc absent
+des états, et les flags affichés comme atteints dépendent de l'état gardé à la fusion. L'audit ne compare plus que les
+flags vivants (`SolveResult.liveFlags`). Le corpus a aussi manqué de mémoire. Le solveur laissait un minuteur à délai
+nul en file à chaque action, environ 15 Mo par recherche, jusqu'à ce que le processus soit inactif. Corrigé : 918 Mo
+après 60 audits avant, 9 Mo après.
+
+Pas fait du plan 3.6 : retirer les objets qu'aucune condition restante ne lit (le groupe était le levier que le profil
+désignait), et compter le trafic entre workers.

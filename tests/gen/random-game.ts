@@ -13,7 +13,7 @@ export function rng(seed: number) {
 }
 
 export interface RandomGameOptions {
-  rooms?: number; items?: number; flags?: number; players?: 1 | 2; rules?: number;
+  rooms?: number; items?: number; flags?: number; players?: 1 | 2 | 3; rules?: number;
   /**
    * Free items (the canonical owner's audit, 3.5): two characters, and every other item in no condition and lost or
    * moved only by an action on it, so a proof may pool who holds it (solve.ts `poolableItems`).
@@ -23,11 +23,11 @@ export interface RandomGameOptions {
 
 export function randomGame(seed: number, o: RandomGameOptions = {}): { game: GameDef; layouts: Record<string, Layout> } {
   const r = rng(seed);
-  const R = o.rooms ?? 2 + r.int(3), I = o.items ?? 2 + r.int(3), F = o.flags ?? 2 + r.int(3), P = o.free ? 2 : o.players ?? (r.chance(0.5) ? 2 : 1);
+  const R = o.rooms ?? 2 + r.int(3), I = o.items ?? 2 + r.int(3), F = o.flags ?? 2 + r.int(3), P = o.free ? (o.players ?? 2) : o.players ?? (r.chance(0.5) ? 2 : 1);
   const rooms = [...Array(R).keys()].map((i) => `room${i}`);
   const items = [...Array(I).keys()].map((i) => `item${i}`);
   const flags = [...Array(F).keys()].map((i) => `f${i}`);
-  const players = ['ann', 'bob'].slice(0, P);
+  const players = ['ann', 'bob', 'cid'].slice(0, P);
   const spots = (i: number) => [`spot${i}a`, `spot${i}b`];
   // With `free`: the odd items are free (no condition reads them), the even ones stay as before.
   const isFree = (it: string) => !!o.free && Number(it.slice(4)) % 2 === 1;
@@ -92,7 +92,7 @@ export function randomGame(seed: number, o: RandomGameOptions = {}): { game: Gam
   });
   const game: GameDef = {
     id: `gen${seed}`, title: `Generated ${seed}`, saveVersion: 1, hero: 'ann',
-    ...(P > 1 ? { players: { ids: players, start: { bob: { room: rooms[R - 1] } } } } : {}),
+    ...(P > 1 ? { players: { ids: players, start: { bob: { room: rooms[R - 1] }, ...(P > 2 ? { cid: { room: rooms[Math.floor(R / 2)] } } : {}) } } } : {}),
     verbs: [{ id: 'look', label: 'Look', color: '#fff' }, { id: 'take', label: 'Take', color: '#fff' }, { id: 'use', label: 'Use', color: '#fff', join: 'with' }, { id: 'give', label: 'Give', color: '#fff', join: 'to' }],
     characters: Object.fromEntries(players.map((p) => [p, { name: p, color: '#fff', sprites: { idle: [`${p}/1`] } }])),
     items: Object.fromEntries(items.map((it) => [it, { name: it, icon: `i/${it}`, look: `A ${it}.` }])),

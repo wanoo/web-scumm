@@ -513,3 +513,33 @@ also shows that more workers will not reach 20 × 3: that needs fewer states (3.
 A worker that stops mid-search now leaves the pool for good: its node goes back to the others, or to this thread when
 none is left. `stats()` asks only the live workers, 2 s at most each. `tests/workers.test.ts` stops one worker of
 four after 5 expansions, then all three of three, both by exit and by an uncaught error: the proof is the same.
+
+## 3.6: pooling by group, a leak, and a corpus (5 October 2026)
+
+**Pooling by group.** 3.5 pooled the free items only while every two playable characters could meet. With three
+characters in the open chain they seldom all could, so who held each key multiplied the states. 3.6 splits the
+characters by who can meet whom. A group where every two can meet shares one pool of the free items its members hold;
+a character outside any group keeps its own bag. The hand-overs before a character acts are played within its group
+only, checked as in 3.5.
+
+| Open chain, 3 characters, 12 items | 3.5 | 3.6 |
+|---|---|---|
+| 8 rooms | 29 909 states, 24 s | 12 613 states, 11 s |
+| 10 rooms | 64 957 states, 63 s | 14 528 states, 18 s |
+| 12 rooms | truncated at 120 000 | **solved**, 66 189 states, 93 s |
+| 14 rooms | truncated at 120 000 | **solved**, 93 480 states, 166 s |
+
+Checked against the explicit search:
+- the 7-room chain with three characters, with and without a softlock: `same` (4 909 states against 97 257, 2 599
+  hand-overs);
+- 40 random three-character games (`tests/audit.test.ts`);
+- `npm run audit:corpus -- --seeds=300`: 900 games, 549 compared to the end, 196 of them with hand-overs played. No
+  divergence (599 s). It runs every night on 500 seeds (`.github/workflows/nightly.yml`).
+
+The first corpus reported three divergences, all in unsolvable games: every flag is dead there, so it is not in the
+states, and which flags show as reached depends on which merged state was kept. The audit now compares the live flags
+only (`SolveResult.liveFlags`). The corpus also ran out of memory. The solver left a zero-delay timer queued on every
+action, about 15 MB a search, until the process went idle. Fixed: 918 MB after 60 audits before, 9 MB after.
+
+Not done from the 3.6 plan: removing items no remaining condition reads (the group was the lever that the profile
+pointed to), and counting the traffic between workers.
