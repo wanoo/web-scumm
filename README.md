@@ -178,8 +178,9 @@ Every page also exists in French under `docs/fr/`. `docs/dev/` holds the log of 
 
 ## Releases
 
-Current release: [v3.5.0 "Score"](https://github.com/wanoo/web-scumm/releases/tag/v3.5.0): a music director with
-stems in sync, proof workers, and a canonical owner for items in proofs. The story from v1.3 to v3.5 is in the
+Current release: [v3.7.0 "Field Proof"](https://github.com/wanoo/web-scumm/releases/tag/v3.7.0): a sample game with
+no non-commercial asset left, two scores and their bridges proved in the browser, the solver audited on a sharded
+corpus. The story from v1.3 to v3.7 is in the
 [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map

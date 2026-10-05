@@ -185,9 +185,9 @@ assistant.
 
 ## Releases
 
-Release actuelle : [v3.5.0 « Score »](https://github.com/wanoo/web-scumm/releases/tag/v3.5.0) : un directeur musical
-aux stems calés, des workers de preuve, et un propriétaire canonique des objets dans les preuves. L'histoire de la v1.3
-à la v3.5 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
+Release actuelle : [v3.7.0 « Field Proof »](https://github.com/wanoo/web-scumm/releases/tag/v3.7.0) : une démo sans
+plus aucun asset non commercial, deux partitions et leurs ponts prouvés dans le navigateur, le solveur audité sur un
+corpus en tranches. L'histoire de la v1.3 à la v3.7 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt
 

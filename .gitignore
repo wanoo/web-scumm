@@ -18,3 +18,5 @@ games/*/audio/projects/*/out/*.mp3
 games/*/audio/projects/*/analysis.json
 tests/fixtures/release-tmp-*/
 tests/visual/**/*.actual.png
+__pycache__/
+*.pyc
