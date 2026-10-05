@@ -400,6 +400,38 @@ jeu en fournit une (`skin.fonts.readable`), volumes musique / sons / voix. Les p
 hors sauvegarde. Textes : `ui.settings`, `ui.textSpeed`, `ui.textSize`, `ui.reduceMotion`, `ui.readableFont`,
 `ui.volumeMusic`, `ui.volumeSfx`, `ui.volumeVoice`, `ui.slow`, `ui.normal`, `ui.fast`, `ui.large` (défauts anglais si absents).
 
+## La scène (3.4) : calques, masques, lumières, particules, sols
+
+Un lieu peut montrer plus que son décor. Le contenu dit ce qui existe et quand (`stage` dans le lieu) ; le layout dit
+où (écrit par les éditeurs du Studio) ; le peintre le dessine. Rien sur la scène n'est un état du jeu : un calque, une
+lumière ou une particule ne change jamais ce que voit le solveur (tests/stage.test.ts prouve la démo avec une scène sur
+chaque lieu : mêmes états).
+
+```ts
+stage: {
+  layers: [
+    { id: 'ciel', image: 'quai/ciel', role: 'backdrop' },               // derrière tout (sinon `decor` est le fond)
+    { id: 'comptoir', image: 'quai/comptoir', role: 'scenery' },        // parmi les personnages, selon le `z` du layout
+    { id: 'lanterne', image: 'quai/lanterne', role: 'foreground', visible: 'lanterne_allumee' },  // devant tout le monde
+    { id: 'brume', image: 'quai/brume', role: 'effect' },               // au-dessus de tout
+  ],
+  lights: [{ id: 'lampe', kind: 'radial', color: '#ffd28a', intensity: 0.7, visible: 'lanterne_allumee' }],
+  emitters: [{ id: 'embruns', kind: 'rain', rate: 40 }],
+  transition: 'fade',                                                    // cut (défaut), fade, wipe
+  links: { escalier: { if: 'grille_ouverte', locked: 'La grille est fermée.' } }, // la logique d'un lien de marche
+},
+```
+
+Dans le layout : `layers.<id> { x, y, z, parallax: [x, y], blend, opacity }`, `occluders.<id> { polygon | mask | layer,
+z, feather?, invert? }` (ce qui cache un personnage plus profond que `z` : un pilier, un comptoir, un cadre de fenêtre),
+`walkZones.<id> { area, holes?, scale?, zoom? }` (plusieurs sols ; elles remplacent `walk`), `walkLinks.<id> { from: {
+zone, at }, to: { zone, at }, mode: walk | stairs | ladder | jump | teleport, ms?, facing?, oneWay? }`,
+`lights.<id> { at, radius }`, `emitters.<id> { area }`. Un lien fermé ne se marche pas ; quand il garde une énigme,
+l'énigme est une règle (le lien ne fait qu'arrêter la marche). `renderer: 'canvas'` (sur le lieu ou le jeu) choisit le
+peintre Canvas : masques d'image ou de calque, lumières, particules et modes de fusion ne sont dessinés que par lui
+(`npm run validate` le dit sur un lieu peint en DOM). Un ancien lieu est une scène d'un fond (`decor`) et d'une zone
+(`walk`, nommée `main`) : rien à réécrire.
+
 ## Sorties, chapitres, sauvegardes
 
 ### Les sorties déclarées

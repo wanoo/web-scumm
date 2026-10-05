@@ -401,6 +401,58 @@ export interface EventRule {
   do: Cmd[];
 }
 
+// ---------------------------------------------------------------------------
+// Stagecraft (3.4): what a room shows beyond its backdrop. The content says what exists and when (ids, images,
+// conditions); the layout says where (geometry); the painter draws it. Nothing here changes the game's state: a layer,
+// a light or a link is never a puzzle by itself (a gated link is a way to walk, its puzzle is a rule).
+// ---------------------------------------------------------------------------
+
+/** A picture of the room: `backdrop` behind everything, `scenery` among the characters (depth from its layout `z`),
+ *  `foreground` in front of them, `effect` above all (fog, a vignette). */
+export interface StageLayer {
+  /** Stable id: its geometry is `layout.layers[id]`, a mask can be its alpha (`occluders[].layer`). */
+  id: Id;
+  image: Id;
+  role: 'backdrop' | 'scenery' | 'foreground' | 'effect';
+  /** Shown only while this holds (a window lit at night, a curtain drawn). */
+  visible?: Cond;
+}
+
+export interface LightDef {
+  id: Id;
+  /** `radial`: a pool of light at `layout.lights[id]`; `ambient`: a colour over the whole room. */
+  kind: 'radial' | 'ambient';
+  color: string;
+  /** 0–1 (default 0.6). */
+  intensity?: number;
+  /** `screen` brightens (a lamp), `multiply` darkens (night, a shadow). Default: `screen` for radial, `multiply` for ambient. */
+  blend?: 'screen' | 'multiply';
+  visible?: Cond;
+}
+
+export interface EmitterDef {
+  id: Id;
+  kind: 'dust' | 'rain' | 'snow' | 'sparks' | 'smoke' | 'leaves';
+  /** A particle image (a manifest id); default a small dot of `color`. */
+  image?: Id;
+  color?: string;
+  /** Particles per second (default by kind). */
+  rate?: number;
+  visible?: Cond;
+}
+
+export type TransitionKind = 'cut' | 'fade' | 'wipe';
+
+export interface StageDef {
+  layers?: StageLayer[];
+  lights?: LightDef[];
+  emitters?: EmitterDef[];
+  /** How the room appears when entered (default `cut`). `reduceMotion` makes every transition a cut. */
+  transition?: TransitionKind | { kind: TransitionKind; ms?: number };
+  /** The logic of walk links (`layout.walkLinks`): a link whose `if` does not hold cannot be walked. */
+  links?: Record<Id, { if?: Cond; /** Said when the hero tries it while it is closed. */ locked?: string }>;
+}
+
 export interface RoomDef {
   id: Id;
   name: string;
@@ -436,6 +488,10 @@ export interface RoomDef {
   events?: EventRule[];
   /** Is the hero present? (no for a pure cutscene) */
   hero?: boolean;
+  /** Layers, lights, particles, the room's transition and the logic of its walk links (3.4, `StageDef`). */
+  stage?: StageDef;
+  /** Which painter draws this room (D10): `dom` (the reference) or `canvas`; default `GameDef.renderer`, else `dom`. */
+  renderer?: 'dom' | 'canvas';
   /** Narrator voice for the room, for offscreen comments. */
 }
 
@@ -553,6 +609,8 @@ export interface GameDef {
   lang?: string;
   /** Save format version. Bump it if the content changes incompatibly. */
   saveVersion: number;
+  /** The painter of every room without its own `renderer` (D10): `dom` (default, the reference) or `canvas`. */
+  renderer?: 'dom' | 'canvas';
   hero: Id;
   /**
    * Several playable characters (Day of the Tentacle style). `hero` is the one controlled first. Each has their own
@@ -790,6 +848,21 @@ export interface Layout {
     states?: Record<string, { x: number; y: number; h?: number; z?: number; rot?: number; flip?: boolean; flipV?: boolean; approach?: Point }> }>;
   /** `z` forces the actor's layer (like a prop) instead of following their feet. */
   actors?: Record<Id, { x: number; y: number; h?: number; z?: number; flip?: boolean; approach?: Point }>;
+  /** Stage layers' geometry (`RoomDef.stage.layers`): top-left corner, depth line, parallax factor per axis (1: moves
+   *  with the room, 0.5: half as fast, behind; 1.2: faster, in front), blend mode and opacity. */
+  layers?: Record<Id, { x?: number; y?: number; z?: number; parallax?: [number, number]; blend?: 'normal' | 'multiply' | 'screen' | 'overlay'; opacity?: number }>;
+  /** What hides a character standing behind it (a pillar, a counter, a window frame): a polygon, a black-and-white
+   *  mask image, or a stage layer's alpha, drawn over whatever stands deeper than `z` (canvas painter). */
+  occluders?: Record<Id, { polygon?: Point[]; mask?: Id; layer?: Id; z: number; feather?: number; invert?: boolean }>;
+  /** Several walkable floors (3.4): replaces `walk` when present. Each zone has its own depth scale and camera zoom. */
+  walkZones?: Record<Id, { area: Point[]; holes?: Point[][]; scale?: [[number, number], [number, number]]; elevation?: number; zoom?: number }>;
+  /** How to go from one zone to another: walking, stairs, a ladder, a jump, a teleport; its logic is in
+   *  `RoomDef.stage.links[id]`. */
+  walkLinks?: Record<Id, { from: { zone: Id; at: Point }; to: { zone: Id; at: Point }; mode: 'walk' | 'stairs' | 'ladder' | 'jump' | 'teleport'; anim?: string; ms?: number; facing?: 'left' | 'right'; oneWay?: boolean }>;
+  /** Where the radial lights are (`RoomDef.stage.lights`). */
+  lights?: Record<Id, { at: Point; radius: number }>;
+  /** Where particles appear (`RoomDef.stage.emitters`): a rectangle [x, y, w, h]. */
+  emitters?: Record<Id, { area: [number, number, number, number] }>;
 }
 
 // ---------------------------------------------------------------------------

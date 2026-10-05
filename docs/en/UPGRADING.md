@@ -192,3 +192,11 @@ ids to the objects that have none). A single look line (`look: { door: '…' }`)
 stays a string. A translated or voiced release requires them, like `say` lines (`validate -- --release`). The Studio
 edits a `{ id, text }` line at the same path as a plain one (`look.pantry[1]`). The sample game: 109 ids, 91
 translation keys renamed per language, French still 400/400.
+
+## 11. The stage (3.4): nothing to rewrite
+
+A room's `decor` is its backdrop layer and its layout's `walk` is the walk zone `main` (`stageOf`, src/engine/core/
+stage.ts): an old room keeps its picture (`npm run e2e:visual`) and its saves (a stage adds nothing to the state).
+Layers, occluders, lights, particles, several walk zones and their links are added when a room needs them (CONTENT_GUIDE
+"The stage"). A layout with both `walk` and `walkZones` keeps the zones (`validate` warns).
+

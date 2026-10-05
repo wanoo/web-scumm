@@ -23,7 +23,7 @@ let bindings: Record<string, { images?: string[]; sfx?: string[] }> = {};
 try { bindings = Object.fromEntries(Object.entries({ ...(await import('../src/engine/minigames/index')).minigames, ...(mod.minigames ?? {}) }).map(([k, m]) => [k, (m as { bindings?: { images?: string[]; sfx?: string[] } }).bindings ?? {}])); } catch { /* no minigames */ }
 const manifestFile = resolve(GAME_DIR, 'assets.gen.json');
 const manifest = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, 'utf8')) as { images: Record<string, [number, number]>; videos?: Record<string, number> } : undefined;
-const graph = assetGraph(game, { manifest, bindings });
+const graph = assetGraph(game, { manifest, bindings, layouts });
 
 // The app shell: what the service worker precaches (its list in dist/sw.js), plus the worker and its runtime.
 const DIST = resolve(process.env.DIST_DIR ?? 'dist');
@@ -68,7 +68,7 @@ if (Object.values(game.checkpoints ?? {}).some((c) => c.goals?.length)) {
 // images and sounds as they are (already compressed).
 const net: Record<string, number | null> = { ...sizes, ...gzip };
 for (const k of twice) { net[`${k}#again`] = net[k]; sizes[`${k}#again`] = sizes[k]; if (gzip[k] !== undefined) gzip[`${k}#again`] = gzip[k]; }
-const rep = weightReport(game, net, chapters, game.assetBudgets ?? {}, { bindings, shell: [...shell, ...twice.map((k) => `${k}#again`)] });
+const rep = weightReport(game, net, chapters, game.assetBudgets ?? {}, { bindings, layouts, shell: [...shell, ...twice.map((k) => `${k}#again`)] });
 const kb = (b: number) => `${Math.round(b / 1024)} KB`;
 const b = game.assetBudgets ?? {};
 const missing = [...new Set([rep.initial, ...rep.rooms, ...rep.chapters].flatMap((w) => w.missing))];

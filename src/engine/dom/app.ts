@@ -1208,7 +1208,7 @@ export class App implements Presenter {
     const budget = this.game.assetBudgets ?? {};
     // The asset graph's scopes (core/asset-graph.ts): the current room, the title at boot, then the rooms one exit or
     // one unlocked map place away. The same keys the weight budgets count and the offline plan caches.
-    const g = this.assets ??= assetGraph(this.game, { manifest: b.manifest, bindings: Object.fromEntries(Object.entries(this.mg).map(([k, m]) => [k, m.bindings ?? {}])) });
+    const g = this.assets ??= assetGraph(this.game, { manifest: b.manifest, bindings: Object.fromEntries(Object.entries(this.mg).map(([k, m]) => [k, m.bindings ?? {}])), layouts: Object.fromEntries(this.game.rooms.map((r) => [r.id, this.engine.layout(r.id)])) });
     const rooms = new Map(this.game.rooms.map((r) => [r.id, r]));
     const current = rooms.get(roomId);
     if (!current) return;

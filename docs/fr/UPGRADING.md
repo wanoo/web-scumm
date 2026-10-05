@@ -197,3 +197,12 @@ clés de `locales/*.json` (`--lines` seul n'ajoute d'ids qu'aux objets qui n'en 
 (`look: { door: '…' }`) est déjà indexée par son propriétaire et reste une chaîne. Une release traduite ou doublée les
 exige, comme les lignes `say` (`validate -- --release`). Le Studio édite une ligne `{ id, text }` au même chemin qu'une
 ligne nue (`look.pantry[1]`). La démo : 109 ids, 91 clés de traduction renommées par langue, français toujours à 400/400.
+
+## 11. La scène (3.4) : rien à réécrire
+
+Le `decor` d'un lieu est son calque de fond, et le `walk` de son layout est la zone de marche `main` (`stageOf`,
+src/engine/core/stage.ts) : un ancien lieu garde son image (`npm run e2e:visual`) et ses sauvegardes (une scène
+n'ajoute rien à l'état). Calques, occulteurs, lumières, particules, plusieurs zones de marche et leurs liens s'ajoutent
+quand un lieu en a besoin (CONTENT_GUIDE « La scène »). Un layout qui a `walk` et `walkZones` garde les zones
+(`validate` avertit).
+
