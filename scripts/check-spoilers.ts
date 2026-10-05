@@ -83,4 +83,4 @@ async function main() {
       : '✔ No sealed ending in this game; no private file in dist/.',
   );
 }
-main();
+await main();

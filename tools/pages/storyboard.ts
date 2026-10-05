@@ -46,7 +46,6 @@ interface Speaker {
   color: string;
   img?: string;
 }
-const STAGE = new Set(['action', 'stage']);
 
 function speaker(game: GameDef, who: string): Speaker {
   const id = who === 'hero' ? game.hero : who;

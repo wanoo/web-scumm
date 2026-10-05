@@ -46,7 +46,55 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": false
+      "recommended": false,
+      "suspicious": {
+        "noExplicitAny": "error",
+        "noFallthroughSwitchClause": "error",
+        "noDoubleEquals": "error",
+        "noDuplicateCase": "error",
+        "noDuplicateObjectKeys": "error",
+        "noSelfCompare": "error",
+        "noRedeclare": "error",
+        "noShadowRestrictedNames": "error",
+        "noAsyncPromiseExecutor": "error",
+        "noDebugger": "error"
+      },
+      "correctness": {
+        "noConstantCondition": "error",
+        "noUnreachable": "error",
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error",
+        "noSwitchDeclarations": "error",
+        "noUnsafeFinally": "error",
+        "noInvalidUseBeforeDeclaration": "error",
+        "useIsNan": "error",
+        "noSelfAssign": "error"
+      },
+      "nursery": {
+        "noFloatingPromises": "error"
+      }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["tests/**", "scripts/**", "tools/**", "vite.config.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/studio/storyboard.ts", "src/studio/ui.ts", "src/engine/dom/assets.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    }
+  ]
 }

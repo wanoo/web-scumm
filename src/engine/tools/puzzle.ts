@@ -7,7 +7,7 @@ import { condAtoms, type CondAtom } from '../core/cond';
 import { eachCmd } from '../core/cmds';
 import { normalizeExits } from '../core/define';
 import { listenerActionId, ruleActionId, topicActionId } from '../core/content-ids';
-import { esc, layeredSvg, type SvgEdge, type SvgNode } from './svg';
+import { layeredSvg, type SvgEdge, type SvgNode } from './svg';
 
 /** State nodes (what the world is) and action nodes (what changes it). */
 export type PuzzleKind =

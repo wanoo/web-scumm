@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import { check } from '@engine/core/cond';
-import type { GameDef, GameState, Layout } from '@engine/core/types';
+import type { GameDef, GameState } from '@engine/core/types';
 import { validate } from '@engine/tools/validate';
 import { solve } from '@engine/tools/solve';
 import { migrate } from '@engine/core/migrate';

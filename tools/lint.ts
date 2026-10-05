@@ -8,7 +8,7 @@
 import { flushExit } from './flush';
 import { cachedSolve } from './proof-cache';
 import { resolve } from 'node:path';
-import { lintContent, lintMarkdown, whereText } from '../src/engine/tools/lint';
+import { lintContent, whereText } from '../src/engine/tools/lint';
 import { loadLayouts } from '../src/engine/tools/load';
 import { GAME, GAME_DIR, loadGameModule } from './game';
 

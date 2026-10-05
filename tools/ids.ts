@@ -14,7 +14,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { assignIds, renamePaths } from '../src/engine/core/content-ids';
-import { GAME, GAME_DIR, ROOT, WORK, loadGameModule } from './game';
+import { GAME, GAME_DIR, WORK, loadGameModule } from './game';
 import {
   addIdsToGameSource,
   addIdsToItemsSource,

@@ -50,7 +50,7 @@ export class CheckTab {
   private stamp = h('span', { class: 'muted small' });
 
   constructor(
-    private info: GameInfo,
+    info: GameInfo,
     private badge: (state: 'ok' | 'warn' | 'error' | 'busy', text: string) => void,
     private open?: (room: string, path: string) => void,
   ) {

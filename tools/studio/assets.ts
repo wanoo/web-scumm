@@ -27,7 +27,6 @@ import type {
   AssetPrompt,
   AssetSheet,
   AssetSheetKind,
-  AssetSound,
   AssetsListing,
   CellReplace,
   CellReplaceResult,
@@ -461,7 +460,7 @@ export function createAssets(studio: Studio) {
       const has = (f: string) => files.includes(f);
       const provider = (req: string) =>
         has(req) ? req : req.endsWith('.mp3') && has(`${req.slice(0, -4)}.ogg`) ? `${req.slice(0, -4)}.ogg` : undefined;
-      for (const [id, req] of Object.entries(table))
+      for (const req of Object.values(table))
         if (!provider(req) && !existsSync(join(pub, 'audio', kind, req))) missing.push(`audio/${kind}/${req}`);
       for (const f of files) {
         const ids = Object.entries(table).filter(([, req]) => provider(req) === f);

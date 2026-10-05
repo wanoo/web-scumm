@@ -83,7 +83,7 @@ describe('IndexedDbSaveStore', () => {
 
   it('reports a slot of another game instead of loading it', async () => {
     const { game, state } = await played();
-    const store = await IndexedDbSaveStore.open(game, () => undefined);
+    await IndexedDbSaveStore.open(game, () => undefined);
     // A record written by another game under this game's key (a corrupted or copied database).
     const foreign = {
       meta: { at: 1, room: state.room, roomName: 'x', v: state.v },

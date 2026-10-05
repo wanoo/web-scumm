@@ -1,7 +1,7 @@
 // The dialogue tree of a character, derived from its talk topics: topics, lines, choices and their options, branches
 // (`if`), nested conversations. Read-only and purely derived: the DSL (topics + choice + if) is the dialogue graph,
 // this only lays it out for the Studio and the `dialogue_tree` tool. No second format, nothing to keep in sync.
-import type { Cmd, Cond, TalkTopic } from '../core/types';
+import type { Cmd, TalkTopic } from '../core/types';
 import { condText } from './condtext';
 
 export interface DialogueNode {

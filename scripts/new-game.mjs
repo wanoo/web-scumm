@@ -1,6 +1,6 @@
 // Scaffolds games/<id> from games/_template and makes it the current game.
 // Usage: npm run new-game <id> ["Working title"]
-import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
+import { cpSync, existsSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const [id, ...rest] = process.argv.slice(2);

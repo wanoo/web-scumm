@@ -12,11 +12,11 @@ import { changesState, cmdLists, eachCmd } from '../core/cmds';
 import { extraReads, liveness, puzzleGraph } from './puzzle';
 import { atomDim, diffDims, independent, readDims, staticTransitions, stubbornKeys, type RW, type Tx } from './por';
 import { condAtoms } from '../core/cond';
-import type { Cmd, Cond, GameDef, GameState, Id, Layout, SessionEntry, VerbId } from '../core/types';
+import type { Cond, GameDef, GameState, Id, Layout, SessionEntry, VerbId } from '../core/types';
 import { compileGame } from '../core/define';
 import { ruleActionId } from '../core/content-ids';
 import { Frontier } from './frontier';
-import { mobilityModel, viewOf, type Hop, type MobilityModel } from './mobility';
+import { mobilityModel, viewOf, type MobilityModel } from './mobility';
 import type { ExpandPool } from './solve-pool';
 
 /**
@@ -393,10 +393,6 @@ function stateDims(s: GameState, keys: ReturnType<typeof stateKeys>): Dims {
         .join(',')}`,
     ]);
   return d.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-}
-
-function hashState(s: GameState, keys: ReturnType<typeof stateKeys>): string {
-  return JSON.stringify(stateDims(s, keys));
 }
 
 /**

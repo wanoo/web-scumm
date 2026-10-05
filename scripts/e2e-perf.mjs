@@ -44,7 +44,7 @@ for (const r of rooms) {
       hero = g.engine.heroId();
     const at = v.pos(hero) ?? [320, 360];
     let walking = true;
-    (async () => {
+    void (async () => {
       for (let i = 0; walking; i++) await v.walkTo(hero, i % 2 ? at : [Math.max(60, at[0] - 220), at[1]], false);
     })();
     const paints0 = v.r.paints ?? 0;

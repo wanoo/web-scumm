@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import { dialogueText, dialogueTree } from '@engine/tools/dialogue';
-import { insults, insultsLayouts } from './fixtures/classics';
+import { insults } from './fixtures/classics';
 import { world, worldLayouts } from './fixtures/world';
 
 describe('dialogueTree', () => {

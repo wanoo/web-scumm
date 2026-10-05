@@ -52,7 +52,7 @@ export interface BootOptions {
 
 /** `?lang=`, then the player's saved choice, then the browser's language when the game ships it. */
 export function pickLanguage(
-  written: GameDef,
+  _written: GameDef,
   locales: Locales | undefined,
   o: { query?: string | null; stored?: string | null; navigatorLang?: string } = {},
 ): string | undefined {

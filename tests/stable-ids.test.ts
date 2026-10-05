@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { applyMigration } from '@engine/core/migrate';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
-import type { Cmd, GameState } from '@engine/core/types';
+import type { GameState } from '@engine/core/types';
 import { mini, miniLayouts } from './fixtures/mini';
 import { puzzleGraph } from '@engine/tools/puzzle';
 import { solve } from '@engine/tools/solve';
