@@ -451,7 +451,7 @@ sorte (910 comparées, 0 divergence).
 - **3.8 « Human Proof »** (sortie le 5 octobre 2026), la part machine : le scénario à deux partitions sous WebKit, le kit terrain
   (`docs/fr/FIELD.md`, tapes manquées, `?fps`). Les sept passes humaines restent au mainteneur (D12). Aucune grosse
   primitive moteur.
-- **3.9 « Independence »** : le moteur en paquet (`web-scumm`, `create-web-scumm`, la commande `web-scumm`), un jeu
+- **3.9 « Independence »** (sortie le 5 octobre 2026) : le moteur en paquet (`web-scumm`, `create-web-scumm`, la commande `web-scumm`), un jeu
   hors du dépôt fait depuis le modèle empaqueté (Le Phare), `npm run fresh-install` en CI.
 - **4.0 « Stable Platform »** : l'API publique en quatre entrées et sa surface tenue par un test, une politique de suivi
   et de dépréciation, la lignée des sauvegardes 3.x chargée en 4.x, le jeu indépendant passé de la 3.9 à la 4.0.

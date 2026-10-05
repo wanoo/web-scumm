@@ -1,4 +1,4 @@
-import type { GameRules } from '@engine/core/types';
+import type { GameRules } from 'web-scumm/content';
 
 // Fallback answers per verb (drawn at random, never twice in a row) and reactions by kind.
 export const rules: GameRules = {

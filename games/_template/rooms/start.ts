@@ -1,13 +1,13 @@
-import { defineRoom } from '@engine/core/define';
+import { defineRoom } from 'web-scumm/content';
 
 // One room to start from. Logic lives here; geometry lives in layout/start.json (placement editor: ?edit=start).
 export default defineRoom({
   id: 'start',
   name: 'The garden',
-  decor: 'decor/backyard',
+  decor: 'starter/decor/backyard',
   description: 'A quiet garden in the afternoon. Left: a wooden bench under a tree. Right: a closed garden gate in a low wall. A sandy path as floor. Warm, calm, inviting',
   props: {
-    bucket: { name: 'bucket', img: 'home2/r4c2' },
+    bucket: { name: 'bucket', img: 'starter/items/bucket' },
   },
   hotspots: {
     bench: { name: 'bench' },

@@ -4,7 +4,8 @@ name: release
 # commit ci tested (`head_sha`), and refuses a tag that no longer points there (moved since). It then re-runs the
 # release checks (doctor, build, proof, strict playtests, dependency audits, the dist inventory) and creates the
 # release with the matching CHANGELOG section and the manual passes of docs/dev/passes/. Attached: the built game
-# (dist, its licences inside), its assets manifest, SHA-256 sums, an SBOM of the shipped dependencies (CycloneDX) and
+# (dist, its licences inside), its assets manifest, the engine's npm packages (web-scumm, create-web-scumm, 3.9),
+# SHA-256 sums, an SBOM of the shipped dependencies (CycloneDX) and
 # a build provenance attestation (`gh attestation verify <file> -R wanoo/web-scumm`). A release that already has
 # files is never overwritten (3.7.1): a new version is a new tag.
 on:
@@ -60,12 +61,18 @@ jobs:
           tar -czf "web-scumm-$TAG-dist.tar.gz" -C dist .
           cp dist/licenses/assets-manifest.json "web-scumm-$TAG-assets-manifest.json"
           npm sbom --sbom-format cyclonedx --omit dev > "web-scumm-$TAG-sbom.cdx.json"
-          sha256sum "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" > "web-scumm-$TAG-SHA256SUMS"
+          # The engine as packages (3.9): what `npm install <tarball>` and `npx create-web-scumm` take.
+          node scripts/pack.mjs --out=pack
+          cp pack/web-scumm-*.tgz pack/create-web-scumm-*.tgz .
+          sha256sum "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz > "web-scumm-$TAG-SHA256SUMS"
       - uses: actions/attest-build-provenance@v2
         with:
-          subject-path: web-scumm-${{ env.TAG }}-dist.tar.gz
+          subject-path: |
+            web-scumm-${{ env.TAG }}-dist.tar.gz
+            web-scumm-[0-9]*.tgz
+            create-web-scumm-*.tgz
       - run: |
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes-file notes.md
-          gh release upload "$TAG" "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-$TAG-SHA256SUMS"
+          gh release upload "$TAG" "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz "web-scumm-$TAG-SHA256SUMS"
         env:
           GH_TOKEN: ${{ github.token }}

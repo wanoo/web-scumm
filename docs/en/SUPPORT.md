@@ -1,0 +1,41 @@
+# Support and stability
+
+What web-scumm promises from 4.0 on, and how it changes.
+
+## What is stable
+
+The public API (`docs/en/API.md`): the four entries `web-scumm/content`, `/player`, `/minigames`, `/testing`, the
+authoring schema (`schemaVersion: 3`), the save envelope, the Studio/MCP tools' schemas and the `web-scumm` command.
+Everything else under `src/engine` is internal: it may change in any release, and a game that reaches it through the
+`@engine/*` alias takes that risk.
+
+## Versions
+
+Semantic versioning on the public API:
+
+- a **patch** (4.0.x) fixes; it never changes a public name or a format;
+- a **minor** (4.x) adds; it may deprecate, never remove;
+- a **major** (5.0) may remove what a minor deprecated, and says how to move in `docs/en/UPGRADING.md`.
+
+Supported: the current major's last minor gets fixes; the previous minor gets security fixes for three months after
+the next one. The 3.x line ended with 3.9; its games move to 4.0 with `web-scumm migrate` (nothing to rewrite for a
+game already on schema 3).
+
+## Deprecation
+
+A name or an option to be removed is first **deprecated** in a minor: marked `@deprecated` in its type (editors show
+it struck through), listed in `docs/en/API.md` with its replacement, and named in the CHANGELOG's "Deprecated"
+section. It keeps working for the rest of that major, and is removed in the next one. Deprecated in 4.0: `RevealDef`
+(use `EndingDef`).
+
+## Saves
+
+A save written by any release of the 3.x or 4.x line loads in every later 4.x: the envelope is versioned (schema 3),
+the game's own `migrations` carry its ids, and `tests/save-v3.test.ts` loads one frozen save of each release. A save
+newer than the game it is loaded into is refused, never half read.
+
+## Releases
+
+Each release is built from the commit CI tested, carries its licences inside the archive, attaches an assets manifest,
+an SBOM, SHA-256 sums and a provenance attestation, and is never replaced once published (`docs/en/TOOLS.md`). What
+only people and real devices can check is reported in its notes (`docs/en/FIELD.md`).

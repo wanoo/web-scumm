@@ -105,6 +105,18 @@ explainer and session replay, shared notes with the AI, and an Assistant that wo
 
 Needs Node 22+, Python 3 for the art tools (`pip install -r requirements.txt`) and ffmpeg for sound.
 
+**In its own project** (3.9, [PACKAGE](docs/en/PACKAGE.md)): the engine installs from a release's tarball (npm
+publishing to come, then `npx create-web-scumm my-game`):
+
+```bash
+T=https://github.com/wanoo/web-scumm/releases/download/v3.9.0/web-scumm-3.9.0.tgz
+npx --package=$T web-scumm create my-game "My Game" --engine=$T
+cd my-game && npm install
+npm run assets && npm run dev        # then npm run verify, npm run build, npm run release
+```
+
+**In this repository**, beside the sample games:
+
 ```bash
 npm install
 npm run doctor                       # checks Node, Python modules, ffmpeg and the test browsers
@@ -172,15 +184,16 @@ furniture, all in one style. `npm run assets` cuts the generated sheets into spr
 | [STUDIO](docs/en/STUDIO.md) · [TOOLS](docs/en/TOOLS.md) · [MCP](docs/en/MCP.md) | the Studio, every command, the AI tools |
 | [ENGINE](docs/en/ENGINE.md) · [BENCH](docs/en/BENCH.md) · [FIELD](docs/en/FIELD.md) | how the engine works, what the proof can and cannot do, what only people and real devices check |
 | [PROMPTS](docs/en/PROMPTS.md) · [AUDIO](docs/en/AUDIO.md) · [PAGES](docs/en/PAGES.md) | images, sound, the review pages |
+| [PACKAGE](docs/en/PACKAGE.md) · [API](docs/en/API.md) · [SUPPORT](docs/en/SUPPORT.md) | a game in its own project (`npx create-web-scumm`), the public API, what stays stable |
 | [ROADMAP](docs/en/ROADMAP.md) · [CHANGELOG](CHANGELOG.md) · [UPGRADING](docs/en/UPGRADING.md) | where it comes from, every release, moving to a new version |
 
 Every page also exists in French under `docs/fr/`. `docs/dev/` holds the log of the work with the other assistant.
 
 ## Releases
 
-Current release: [v3.8.0 "Human Proof"](https://github.com/wanoo/web-scumm/releases/tag/v3.8.0): the field kit (the
-seven passes written down, near misses in playtests, a frame counter) and the two-score scenario in WebKit; the
-passes themselves are people's (`docs/en/FIELD.md`). The story from v1.3 to v3.8 is in the
+Current release: [v3.9.0 "Independence"](https://github.com/wanoo/web-scumm/releases/tag/v3.9.0): the engine as a
+package (`web-scumm`, `create-web-scumm`), a game made outside the repository verified, built and played in CI, and
+the public API that 4.0 will hold stable. The story from v1.3 to v3.9 is in the
 [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map

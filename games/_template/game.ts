@@ -1,4 +1,4 @@
-import { defineGame } from '@engine/core/define';
+import { defineGame } from 'web-scumm/content';
 import { characters } from './cast';
 import { items } from './items';
 import { rules } from './rules';
@@ -33,10 +33,10 @@ export const game = defineGame({
   audio: { music: {}, sfx: {} },
   // Interface icons and engine sounds come from the game (see docs/en/CONTENT_GUIDE.md, "skin").
   skin: {
-    icons: { map: 'ui/r1c5', pause: 'ui/r3c5', music: 'ui/r3c6', spark: 'ui/r3c4', pin: 'ui/r1c6', news: 'ui/r2c4', plane: 'ui/r2c1', car: 'ui/r2c2', confetti: ['ui/r4c1', 'ui/r4c2'] },
+    icons: { map: 'starter/ui/map', pause: 'starter/ui/pause', music: 'starter/ui/music', spark: 'starter/ui/spark', pin: 'starter/ui/pin', news: 'starter/ui/news', plane: 'starter/ui/plane', car: 'starter/ui/car', confetti: ['starter/ui/confetti1', 'starter/ui/confetti2'] },
     sounds: {},
   },
-  titleScreen: { decor: 'decor/backyard', footer: '__TITLE__' },
+  titleScreen: { decor: 'starter/decor/backyard', footer: '__TITLE__' },
   credits: ['__TITLE__', '', 'Made with web-scumm'],
   ui: {
     walkTo: 'Walk to', newGame: 'New game', continue: 'Continue', confirmErase: 'Erase the saved game?', yes: 'Yes', no: 'No',

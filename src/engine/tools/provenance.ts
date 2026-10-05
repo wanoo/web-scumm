@@ -191,7 +191,8 @@ export function commercialVerdict(keys: string[], prov: Provenance, exists: (pat
     if (e.status === 'placeholder') errors.push(`provenance.json › ${which}: a placeholder, not for sale`);
     if (nonCommercial(e.licence)) errors.push(`provenance.json › ${which}: ${e.licence} does not allow commercial use (or changes)`);
     if (!e.author?.trim()) errors.push(`provenance.json › ${which}: no author`);
-    const paths = [...e.source.matchAll(/\b((?:games|tools|src|public|assets)\/[\w./-]+)/g)].map((m) => m[1].replace(/[.,;:)]+$/, ''));
+    // Any relative path the source names (games/…, art-src/draw.py in a game's own project, 3.9), never a URL's.
+    const paths = [...e.source.replace(/\b\w+:\/\/\S+/g, '').matchAll(/(?<![\w/.-])((?:[\w-]+\/)+[\w.-]+)/g)].map((m) => m[1].replace(/[.,;:)]+$/, ''));
     if (!e.url?.trim() && !paths.some(exists)) errors.push(`provenance.json › ${which}: nothing to check the source against (add a url, or name the repository file it was made from)`);
   }
   return errors;

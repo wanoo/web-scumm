@@ -200,3 +200,18 @@ stage.ts): an old room keeps its picture (`npm run e2e:visual`) and its saves (a
 Layers, occluders, lights, particles, several walk zones and their links are added when a room needs them (CONTENT_GUIDE
 "The stage"). A layout with both `walk` and `walkZones` keeps the zones (`validate` warns).
 
+
+## 10. From 3.x to 4.0
+
+4.0 changes no format: the authoring schema stays 3, the save envelope stays schema 3, and every 3.x save loads.
+What changes is what is promised (`docs/en/SUPPORT.md`):
+
+1. **Import from the public API.** `web-scumm/content` (`defineGame`, `defineRoom`, every content type),
+   `web-scumm/player` (`bootGame`, `AssetManifest`), `web-scumm/minigames` (`Minigame`), `web-scumm/testing` (`Engine`,
+   `solve`, `parseSave`…). The `@engine/*` paths keep working but are internal. In a game of this repository:
+   `sed -i.bak -E "s#'@engine/core/(types|define|custom)'#'web-scumm/content'#" games/<id>/*.ts games/<id>/rooms/*.ts`, then the others by
+   hand (`docs/en/API.md` says which name is in which entry).
+2. **A game in its own project** (`docs/en/PACKAGE.md`): `npx create-web-scumm`, move `games/<id>/*` into `game/`,
+   `npm install`, `npx web-scumm verify`.
+3. **`RevealDef`** is deprecated: use `EndingDef` (removed in 5.0).
+4. `npx web-scumm migrate --check` (or `npm run migrate -- --check` here) says whether anything is due.

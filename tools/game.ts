@@ -20,12 +20,23 @@ export function gameId(): string {
   return 'demo';
 }
 
+/**
+ * A game project outside this repository (3.9, the `web-scumm` command, WEB_SCUMM_PROJECT): its folder holds game/
+ * (the game's sources), public/, dist/ and .cache/; the engine (ROOT) is the installed package and is never written.
+ */
+export const PROJECT = process.env.WEB_SCUMM_PROJECT?.trim() ? resolve(process.env.WEB_SCUMM_PROJECT.trim()) : null;
+/** Where public/, dist/ and .cache/ are: the project's folder, else this repository. */
+export const WORK = PROJECT ?? ROOT;
+function projectName(): string {
+  try { const p = JSON.parse(readFileSync(resolve(PROJECT!, 'package.json'), 'utf8')); return String(p.config?.game ?? p.name ?? basename(PROJECT!)).replace(/^@.*\//, ''); } catch { return basename(PROJECT!); }
+}
+
 // GAME_DIR (environment) points the tools at a game folder outside games/, e.g. tests/fixture.
 const DIR_ENV = process.env.GAME_DIR?.trim();
-export const GAME = DIR_ENV && !process.env.GAME?.trim() ? basename(resolve(DIR_ENV)) : gameId();
-export const GAME_DIR = DIR_ENV ? resolve(DIR_ENV) : resolve(ROOT, 'games', GAME);
+export const GAME = PROJECT && !process.env.GAME?.trim() ? projectName() : DIR_ENV && !process.env.GAME?.trim() ? basename(resolve(DIR_ENV)) : gameId();
+export const GAME_DIR = DIR_ENV ? resolve(DIR_ENV) : PROJECT ? resolve(PROJECT, 'game') : resolve(ROOT, 'games', GAME);
 /** The built assets that ship (`npm run assets` writes them): public/assets, or ASSETS_DIR (a test fixture's own files). */
-export const ASSETS_DIR = process.env.ASSETS_DIR?.trim() ? resolve(process.env.ASSETS_DIR.trim()) : resolve(ROOT, 'public', 'assets');
+export const ASSETS_DIR = process.env.ASSETS_DIR?.trim() ? resolve(process.env.ASSETS_DIR.trim()) : resolve(WORK, 'public', 'assets');
 
 /** What games/<id>/index.ts exports. Outside Vite, `layouts` is empty: the tools read layout/*.json from disk. */
 export interface GameModule {
