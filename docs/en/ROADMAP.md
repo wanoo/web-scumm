@@ -424,9 +424,25 @@ reader, testers, a real phone, Safari offline, recorded voices, a signed tag.
   search fixed; the audit compares live flags; `npm run audit:corpus`, nightly on 500 seeds.
 
 Exit criteria, as measured (BENCH.md "3.6"): every new budget set and held on both games; the stem probe green on
-the demo and red on inconsistent files; transitions and the phase to the sample; 900 random games without a
-divergence. **Missed again, not blocking:** the open matrix of 20 rooms × 3 characters stays truncated, now at 600 000 states (40 minutes, 7.6 GB): pooling by group proves 12 and 14 rooms, not 20. Reported, not done by hand (D12, `docs/dev/passes/3.6.0.md`): the screen reader, testers, a
+the demo and red on inconsistent files; transitions and the phase to the sample; 900 random games tried, 549 verdicts compared to
+the explicit search without a divergence (351 stopped partial, not compared). **Missed again, not blocking:** the open matrix of 20 rooms × 3 characters stays truncated, now at 600 000 states (40 minutes, 7.6 GB): pooling by group proves 12 and 14 rooms, not 20. Reported, not done by hand (D12, `docs/dev/passes/3.6.0.md`): the screen reader, testers, a
 real phone, Safari offline, recorded voices, a signed tag, a listening pass.
+
+## v3.6.1 "Audio truth" (5 October 2026): the 3.6.0 review's fixes
+
+- `v361-director-lifecycle`: the director owns what it schedules. A transition not landed yet is a plan that a stop,
+  a restore or a new request cancels (no bridge after them); `restore()`; one duck bus under everything it plays;
+  every buffer under the cap (a bridge that does not fit is dropped, two scores that do not fit cut, stingers evict).
+- `v361-audio-intents`: `play`, `restore`, `stop`. Loading a save restores its music at its point, even when it is the
+  one playing, never through a transition; a fallback to the mix keeps the point.
+- `v361-budgets-peak`: `transitionPeakMB` (two scores, a bridge and a stinger decoded at once); `validate` refuses a
+  rule an earlier one covers and a marker from `'*'` a score lacks.
+- `v361-release`: the nightly keeps its counts (tried, compared, partial, diverged) as an artifact; README screenshots
+  of 3.6; the corpus claims say "tried" and "compared".
+
+Exit criteria, as measured: the 9 lifecycle cases fail on 3.6.0 and pass; `npm run e2e:music` loads a save while its
+score plays on and comes back to within 0.1 s of the saved point. Reported (D12, `docs/dev/passes/3.6.1.md`): the
+same human passes, and a signed tag (no key on this machine).
 
 ## Next (not planned yet)
 

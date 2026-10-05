@@ -58,7 +58,7 @@ async function game() {
     // The scene: the start of the game, then a conversation open in the side column.
     await h.walkthrough(solved.steps.slice(0, 1));
     await h.waitIdle(); await settle();
-    await shot('v33-hero');
+    await shot('v36-hero');
     // The tutorial guides the first actions: follow the solver's path until it lets go.
     for (let i = 1; i < solved.steps.length && await page.evaluate(() => !!window.__game.engine.guiding); i++) await h.walkthrough([solved.steps[i]]);
     await h.waitIdle(); await settle();
@@ -68,7 +68,7 @@ async function game() {
     await h.verbById('talk'); await h.target(talker);
     await page.waitForSelector('.choices .choice', { timeout: 15000 });
     await settle(1500);
-    await shot('v33-player-scene');
+    await shot('v36-player-scene');
     await page.locator('.choices .choice').last().click(); await h.waitIdle(); await settle();
     // A minigame: the sample game's own pipes command, run by the engine.
     await page.evaluate(() => {
@@ -80,13 +80,13 @@ async function game() {
       void g.engine.script([{ minigame: 'pipes', params: found.params }]);
     });
     await page.waitForSelector('.overlay .mg-skip', { timeout: 10000 }); await settle(1500);
-    await shot('v33-player-minigame');
+    await shot('v36-player-minigame');
     await page.locator('.overlay .mg-skip').click({ force: true }); await h.waitIdle();
     // The map, late in the game (more places open).
     await page.evaluate(async () => { const g = window.__game; const cps = Object.keys(g.game.checkpoints ?? {}); await g.engine.checkpoint(cps[cps.length - 1]); });
     await h.waitIdle(); await settle();
     await h.openMap(); await settle();
-    await shot('v33-player-map');
+    await shot('v36-player-map');
     await page.keyboard.press('Escape').catch(() => {});
   } finally { await h.close(); }
 
@@ -96,8 +96,8 @@ async function game() {
     await e.walkthrough(solved.steps);
     if (!(await e.ended())) throw new Error('the walkthrough did not reach the ending');
     await e.page.waitForTimeout(4000);
-    const f = `${RAW}/v33-player-ending.png`;
-    await e.page.screenshot({ path: f }); webp(f, 'v33-player-ending');
+    const f = `${RAW}/v36-player-ending.png`;
+    await e.page.screenshot({ path: f }); webp(f, 'v36-player-ending');
   } finally { await e.close(); }
 }
 
@@ -112,14 +112,14 @@ async function studio() {
     await page.goto(`${base}#rooms/house`);
     await page.waitForSelector('.entities .ent', { timeout: 60000 }); await page.waitForTimeout(2500);
     await page.locator('.entities .ent', { hasText: 'pantry' }).first().click(); await page.waitForTimeout(1500);
-    await shot('v33-studio-rooms');
+    await shot('v36-studio-rooms');
     await page.goto(`${base}#storyboard`); await page.reload(); await page.waitForTimeout(4000);
-    await shot('v33-studio-storyboard');
+    await shot('v36-studio-storyboard');
     await page.goto(`${base}#assets`); await page.reload(); await page.waitForTimeout(4000);
-    await shot('v33-studio-assets');
+    await shot('v36-studio-assets');
     await page.goto(`${base}#check`); await page.reload();
     await page.waitForSelector('.badge.ok, .badge.warn', { timeout: 120000 }); await page.waitForTimeout(1500);
-    await shot('v33-studio-check');
+    await shot('v36-studio-check');
     // The proof: the puzzle graph with the critical path and the solver's heat.
     await page.locator('label', { hasText: 'Critical path' }).locator('input').check();
     await page.locator('label', { hasText: 'Heat' }).locator('select').selectOption('solver');
@@ -128,8 +128,8 @@ async function studio() {
     await page.locator('label', { hasText: 'Critical path' }).evaluate((el) => el.closest('.panel')?.scrollIntoView({ block: 'start' }));
     await page.waitForTimeout(800);
     const box = await page.locator('label', { hasText: 'Critical path' }).evaluate((el) => { const r = el.closest('.panel').getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: Math.min(r.height, innerHeight - r.y) }; });
-    const f = `${RAW}/v33-proof-graph.png`;
-    await page.screenshot({ path: f, clip: box }); webp(f, 'v33-proof-graph');
+    const f = `${RAW}/v36-proof-graph.png`;
+    await page.screenshot({ path: f, clip: box }); webp(f, 'v36-proof-graph');
   } finally { await browser.close(); }
 }
 

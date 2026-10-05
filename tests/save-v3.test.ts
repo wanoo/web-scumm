@@ -57,7 +57,7 @@ describe('save envelope v3', () => {
 describe('golden saves', () => {
   // One save per release, made by the demo of that release eight inputs into the witness: it must load on the
   // current engine (migrated when its save version is older) and still reach the ending with the remaining inputs.
-  it.each(['3.0.0', '3.1.0', '3.2.0', '3.3.0', '3.4.0', '3.5.0', '3.6.0'])('a save made by the demo at %s loads on this engine and still reaches the ending', async (version) => {
+  it.each(['3.0.0', '3.1.0', '3.2.0', '3.3.0', '3.4.0', '3.5.0', '3.6.0', '3.6.1'])('a save made by the demo at %s loads on this engine and still reaches the ending', async (version) => {
     const { readFileSync } = await import('node:fs');
     const { replay } = await import('@engine/tools/replay');
     const { game: demo, layouts: demoLayouts, commands } = await import('../games/demo');

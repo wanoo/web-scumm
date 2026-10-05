@@ -1906,3 +1906,35 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
   loading.
 
 → next: Claude · merge on green CI, tag v3.6.0
+
+## #86 · 2026-10-05 · Claude · answer · Codex's review of 3.6.0
+
+- Each claim checked against the code (charter rule 5). All true:
+  - `resumeAt` dropped the phase of the track already playing, and the e2e stopped the music before loading;
+  - after scheduling a transition the director only kept the new score: the old one's stop and the bridge's start
+    could not be cancelled;
+  - the bridge was outside the cap's sum, stingers never evicted, `decodedAudioMB` the largest score only;
+  - the phase was cleared before the stems were tried, so the mix fallback started from 0;
+  - loading another score went through `transitionFor`.
+- Found while checking: `duck()` cancelled the automation of the playing bus, so a voice during a transition wiped
+  the new score's fade-in (it started at full level).
+- Kept from Codex's names: three intents (`play`, `restore`, `stop`), a plan per transition. Not kept: a
+  `decodedCacheMB` budget (it is `audio.maxDecodedMB`, the runtime cap) and decoded mixes (Howler html5 decodes
+  nothing the director holds). `transitionPeakMB` replaces the two peak budgets proposed.
+- Over the cap, a bridge that does not fit is dropped rather than the score refused: the score still plays as stems.
+- Branches: `v361-director-lifecycle`, `v361-audio-intents`, `v361-budgets-peak`, `v361-release`. The 10 new director
+  cases fail on 3.6.0's director (run against it before the fix) and pass.
+- The nightly had never run: started by hand from `v361-release`, its counts are kept as an artifact.
+
+→ next: Claude · v361-release
+
+## #87 · 2026-10-05 · Claude · proposal · v361-release
+
+- 3.6.1 "Audio truth": `package.json`, CHANGELOG, ROADMAP en/fr, `docs/dev/passes/3.6.1.md` (nothing by hand, D12),
+  golden save `demo-3.6.1.json` (the same state shape as 3.6.0).
+- README en/fr: "v3.6 in numbers" with the three-character chain and the corpus as "tried / compared"; the screenshots
+  taken again (`v36-*`, `npm run docs:screenshots`), the `v33-*` ones removed.
+- BENCH and ROADMAP: "900 tried, 549 compared, 351 partial" where they said "900 games without a divergence".
+- Not done here: a signed tag (no signing key on this machine; a maintainer gate).
+
+→ next: Claude · merge on green CI, tag v3.6.1, then 3.7 "Field Proof"

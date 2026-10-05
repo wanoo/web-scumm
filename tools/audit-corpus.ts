@@ -1,8 +1,10 @@
-// npm run audit:corpus [-- --seeds=500 --from=1 --max=3000]: the abstractions against the explicit search on many
+// npm run audit:corpus [-- --seeds=500 --from=1 --max=3000 --json=corpus.json]: the abstractions against the explicit search on many
 // random games (3.6, the nightly workflow): for each seed, the generator's three kinds of game (tests/gen/random-game.ts):
 // plain, with free items (the canonical owner), and with three characters and free items (pooling by group). Prints a
 // count per verdict and every divergence; exit 1 on a divergence. `partial` (the explicit search hit --max) is not a
-// failure: those verdicts are just not compared.
+// failure: those verdicts are just not compared, and the counts say so (3.6.1: tried, compared, partial). `--json`:
+// the same counts in a file (the nightly's artifact).
+import { writeFileSync } from 'node:fs';
 import { auditAbstractions } from '../src/engine/tools/audit';
 import { randomGame } from '../tests/gen/random-game';
 
@@ -21,8 +23,11 @@ for (let seed = from; seed < from + seeds; seed++) {
     if (a.status === 'diverged') diverged.push(`seed ${seed} (${k.name}): ${a.divergences.join('; ')}`);
   }
 }
-console.log(`audit corpus: seeds ${from}–${from + seeds - 1}, ${max} states at most each, ${((Date.now() - t0) / 1000).toFixed(0)} s`);
-for (const [k, c] of Object.entries(count)) console.log(`  ${k.padEnd(17)} ${c.same} same, ${c.partial} partial, ${c.diverged} diverged (${c.handovers} with hand-overs)`);
+const seconds = Math.round((Date.now() - t0) / 1000);
+console.log(`audit corpus: seeds ${from}–${from + seeds - 1}, ${max} states at most each, ${seconds} s`);
+for (const [k, c] of Object.entries(count)) console.log(`  ${k.padEnd(17)} ${seeds} tried, ${c.same + c.diverged} compared (${c.same} same, ${c.diverged} diverged), ${c.partial} partial (${c.handovers} with hand-overs)`);
+const json = process.argv.find((a) => a.startsWith('--json='))?.slice(7);
+if (json) writeFileSync(json, JSON.stringify({ from, seeds, max, seconds, kinds: Object.fromEntries(Object.entries(count).map(([k, c]) => [k, { tried: seeds, compared: c.same + c.diverged, same: c.same, partial: c.partial, diverged: c.diverged, handovers: c.handovers }])), divergences: diverged }, null, 1) + '\n');
 for (const d of diverged) console.log(`  ✖ ${d}`);
 console.log(`${diverged.length ? '✖' : '✔'}  ${diverged.length ? `${diverged.length} divergence(s)` : 'no divergence'}`);
 process.exit(diverged.length ? 1 : 0);

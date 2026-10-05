@@ -565,7 +565,9 @@ Vérifié contre la recherche explicite :
 - la chaîne de 7 lieux à trois personnages, avec et sans softlock : `same` (4 909 états contre 97 257, 2 599 remises) ;
 - 40 jeux aléatoires à trois personnages (`tests/audit.test.ts`) ;
 - `npm run audit:corpus -- --seeds=300` : 900 jeux, 549 comparés jusqu'au bout, dont 196 avec des remises jouées.
-  Aucune divergence (599 s). Il tourne chaque nuit sur 500 graines (`.github/workflows/nightly.yml`).
+  Aucune divergence (599 s). Il tourne chaque nuit sur 500 graines (`.github/workflows/nightly.yml`) ; 351 des 900 se sont
+  arrêtés partiels (la recherche explicite a atteint ses 3 000 états) et n'ont pas été comparés : une affirmation dit
+  « 900 essayés, 549 comparés ».
 
 Le premier corpus a signalé trois divergences, toutes dans des jeux insolubles : chaque flag y est mort, donc absent
 des états, et les flags affichés comme atteints dépendent de l'état gardé à la fusion. L'audit ne compare plus que les

@@ -2,6 +2,38 @@
 
 ## Unreleased
 
+## 3.6.1 — 2026-10-05
+
+"Audio truth": the 3.6.0 review's fixes (LOG #86–#87). The music now has three intents, `play`, `restore` and `stop`,
+and the director owns everything it schedules.
+
+### Fixed
+
+- Loading a save while its own score played kept the current position: the saved phase was dropped when the track was
+  already the current one. Loading is now a restore: the saved track starts at its point, even when it is playing.
+- Loading a save with another score went through the story's transition (a marker, a bridge). A restore cuts.
+- A stop, a restore or a new request during a scheduled transition left the old score and the bridge playing: the
+  director only knew the new score. A transition is now a plan it cancels; the old score is stopped by a timer, not a
+  stop scheduled up front.
+- A score that fell back to its single mix started it from the top: the phase was cleared before the attempt. It is
+  kept until something plays.
+- A voice during a transition cancelled the new score's fade-in, and a bridge was not ducked. Voices duck one bus
+  under everything the director plays.
+- The bridge was not counted against `maxDecodedMB`, and stingers were never evicted. A bridge that does not fit is
+  dropped, two scores that do not fit become a cut, stingers evict like scores.
+
+### Added
+
+- `assetBudgets.transitionPeakMB`: the worst transition's two scores and bridge plus the largest stinger decoded,
+  bridges and stingers measured with ffprobe; required by a release with transitions.
+- `validate` refuses a transition rule an earlier one covers, and a marker from `'*'` that a score it can leave lacks;
+  it warns when a transition is over `maxDecodedMB`.
+- The nightly corpus writes its counts (tried, compared, partial, diverged) as an artifact and on the run's page.
+
+### Changed
+
+- README: the 3.6 screenshots and numbers; corpus figures read "900 tried, 549 compared".
+
 ## 3.6.0 — 2026-10-05
 
 "Production": the rest of the 3.5.0 review (LOG #80–#85). A save now keeps the music's phase (`state.music`, optional:

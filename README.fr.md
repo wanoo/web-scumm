@@ -15,7 +15,7 @@ vérifie, le prouve et le publie en jeu web jouable hors ligne. Il est né comme
 | 🚀 **Démarrer** | [Créer son jeu](#créer-son-jeu) en quelques commandes |
 | 📚 **Docs** | [La méthode](docs/fr/WORKFLOW.md) · [le format du contenu](docs/fr/CONTENT_GUIDE.md) · [toute la documentation](#documentation) |
 
-![The Pantry Key : la maison de Grand-mère, neuf verbes, le sac](docs/img/v33-hero.webp)
+![The Pantry Key : la maison de Grand-mère, neuf verbes, le sac](docs/img/v36-hero.webp)
 
 **Nouveau en v3.6 « Production » :** le directeur musical a ses propres budgets (stems, hors ligne, audio décodé, un
 plafond sur ce qu'il garde), ses stems sont mesurés avant une release, et une partition passe la main à une autre sur
@@ -44,7 +44,7 @@ et un deuxième jeu, « Le Marché de nuit ».
 | **Prouver** | Un chemin jusqu'à la fin, chaque état où la fin est perdue et pourquoi, des sauvegardes qui passent d'une version à l'autre, de vrais navigateurs. |
 | **Livrer** | Un jeu web statique qui s'installe sur un téléphone, joue hors ligne, au toucher, à la souris ou au clavier. |
 
-## La v3.5 en chiffres
+## La v3.6 en chiffres
 
 Mesuré sur la release, cache de preuve coupé ([BENCH.md](docs/fr/BENCH.md)) :
 
@@ -52,6 +52,8 @@ Mesuré sur la release, cache de preuve coupé ([BENCH.md](docs/fr/BENCH.md)) :
 |---|---|
 | « Le Marché de nuit », 8 lieux, 2 personnages jouables | prouvé en 288 états, 1,2 s ; les abstractions auditées contre 83 672 états explicites |
 | Une chaîne ouverte de 20 lieux, 2 personnages, 12 objets qui circulent | prouvée en 14 002 états, 19 s (hors de portée avant la 3.5) |
+| Une chaîne ouverte de 14 lieux, 3 personnages, des objets qui circulent | prouvée en 93 480 états, 166 s (hors de portée avant la 3.6) |
+| 900 jeux aléatoires, abstractions contre la recherche explicite | 549 verdicts comparés, aucune divergence (351 arrêtés partiels) |
 | Une preuve de 40 000 états sur 4 threads | ×2,54 plus rapide, le même résultat que sur 1 |
 | Le directeur musical, rendu hors ligne 30 minutes | 0 échantillon de dérive ; 100 changements de mix sans clic ; 0,02 ms de gigue en direct |
 | Son marché mis en scène : 6 calques, parallaxe, 3 masques, deux sols | 50 images par seconde avec le CPU ralenti 4× (Canvas) |
@@ -70,8 +72,8 @@ avant la fin, et BENCH.md le dit.
 ## Ce que reçoit le joueur
 
 <table>
-<tr><td width="50%" valign="top"><img src="docs/img/v33-player-scene.webp" alt="Parler à Grand-mère : ses sujets dans la colonne de droite" width="100%"><br><sub>Des conversations à sujets et à choix, avec leur transcription</sub></td><td width="50%" valign="top"><img src="docs/img/v33-player-minigame.webp" alt="Le mini-jeu des tuyaux : amener l'eau aux champignons" width="100%"><br><sub>Des mini-jeux, au toucher ou au clavier</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/v33-player-map.webp" alt="La carte du monde, des personnages épinglés dessus" width="100%"><br><sub>Une carte du monde, des personnages qui changent de lieu</sub></td><td width="50%" valign="top"><img src="docs/img/v33-player-ending.webp" alt="La carte finale : Pixel a trouvé les sardines" width="100%"><br><sub>Une fin qui se souvient de ce que le joueur a deviné</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/v36-player-scene.webp" alt="Parler à Grand-mère : ses sujets dans la colonne de droite" width="100%"><br><sub>Des conversations à sujets et à choix, avec leur transcription</sub></td><td width="50%" valign="top"><img src="docs/img/v36-player-minigame.webp" alt="Le mini-jeu des tuyaux : amener l'eau aux champignons" width="100%"><br><sub>Des mini-jeux, au toucher ou au clavier</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/v36-player-map.webp" alt="La carte du monde, des personnages épinglés dessus" width="100%"><br><sub>Une carte du monde, des personnages qui changent de lieu</sub></td><td width="50%" valign="top"><img src="docs/img/v36-player-ending.webp" alt="La carte finale : Pixel a trouvé les sardines" width="100%"><br><sub>Une fin qui se souvient de ce que le joueur a deviné</sub></td></tr>
 </table>
 
 Neuf verbes classiques et un sac, des dialogues, des indices donnés par un personnage, des cinématiques et des appels
@@ -82,11 +84,11 @@ réglages, toucher, souris et clavier, et le jeu entier hors ligne après la pre
 ## Ce que reçoit l'auteur
 
 <table>
-<tr><td width="50%" valign="top"><img src="docs/img/v33-studio-rooms.webp" alt="Studio, onglet Rooms : le garde-manger sélectionné, ses regards et réactions modifiables" width="100%"><br><sub><b>Rooms</b> : le vrai moteur, un éditeur de placement par-dessus, chaque réplique modifiable sur place</sub></td><td width="50%" valign="top"><img src="docs/img/v33-studio-storyboard.webp" alt="Studio, onglet Storyboard : planches et cases, implémenté à 100 %" width="100%"><br><sub><b>Storyboard</b> : l'histoire case par case, comparée au jeu</sub></td></tr>
-<tr><td width="50%" valign="top"><img src="docs/img/v33-studio-assets.webp" alt="Studio, onglet Assets : la planche de Pixel, case par case, avec l'usage de chacune" width="100%"><br><sub><b>Assets</b> : chaque planche et chaque case, où elle sert, le prompt qui la fabrique</sub></td><td width="50%" valign="top"><img src="docs/img/v33-studio-check.webp" alt="Studio, onglet Check : validateur, chemin du solveur et santé du solveur" width="100%"><br><sub><b>Check</b> : le validateur et le solveur, relancés à chaque sauvegarde</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/v36-studio-rooms.webp" alt="Studio, onglet Rooms : le garde-manger sélectionné, ses regards et réactions modifiables" width="100%"><br><sub><b>Rooms</b> : le vrai moteur, un éditeur de placement par-dessus, chaque réplique modifiable sur place</sub></td><td width="50%" valign="top"><img src="docs/img/v36-studio-storyboard.webp" alt="Studio, onglet Storyboard : planches et cases, implémenté à 100 %" width="100%"><br><sub><b>Storyboard</b> : l'histoire case par case, comparée au jeu</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/v36-studio-assets.webp" alt="Studio, onglet Assets : la planche de Pixel, case par case, avec l'usage de chacune" width="100%"><br><sub><b>Assets</b> : chaque planche et chaque case, où elle sert, le prompt qui la fabrique</sub></td><td width="50%" valign="top"><img src="docs/img/v36-studio-check.webp" alt="Studio, onglet Check : validateur, chemin du solveur et santé du solveur" width="100%"><br><sub><b>Check</b> : le validateur et le solveur, relancés à chaque sauvegarde</sub></td></tr>
 </table>
 
-<img src="docs/img/v33-proof-graph.webp" alt="Le graphe des énigmes avec le chemin critique et la chaleur du solveur" width="420" align="right">
+<img src="docs/img/v36-proof-graph.webp" alt="Le graphe des énigmes avec le chemin critique et la chaleur du solveur" width="420" align="right">
 
 Le graphe des énigmes montre à quoi mène chaque objet, chaque drapeau et chaque lieu. Avec **Critical path**, ce qui
 ne mène pas à la fin s'estompe. Avec **Heat**, les règles par lesquelles le solveur est le plus passé rougissent. Le
