@@ -12,11 +12,10 @@ published under names that are not theirs.
 ## Music and sound effects (games/demo/audio)
 Rendered for the project with the Mega Drive audio pipeline in `tools/audio` (docs/en/AUDIO.md), which drives
 [Furnace](https://github.com/tildearrow/furnace) (GPL-2.0, downloaded by `npm run audio -- setup`, not bundled).
-- Music: the opening of *Swan Lake*, Scene (Pyotr Ilyich Tchaikovsky, 1876, public domain), arranged for YM2612 + SN76489
-  from the MIDI transcription published by [classicals.de](https://www.classicals.de) under CC BY-NC 4.0. The
-  arrangement (`audio/projects/swan-lake/spec.json`) and the render are therefore **CC BY-NC 4.0** (non-commercial),
-  attribution "classicals.de (transcription), Wano (arrangement)". A commercial game must replace this theme
-  (`audio/projects/swan-lake/SOURCE.md`).
+- Music: the oboe theme of *Swan Lake* (Pyotr Ilyich Tchaikovsky, 1876, public domain), its notes, harmony and
+  arrangement written for the project (`audio/projects/swan-theme/compose.py`, then `spec.json`) and rendered for
+  YM2612 + SN76489. No third-party transcription: CC BY 4.0, attribution "Wano" (`audio/projects/swan-theme/SOURCE.md`).
+  Since 3.7; the earlier theme, arranged from a CC BY-NC transcription, is gone.
 - Sound effects: synthesised from `audio/sfx.json` and the shared palette (`tools/audio/palette.json`). CC BY 4.0,
   attribution "Wano".
 

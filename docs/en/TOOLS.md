@@ -322,8 +322,8 @@ exception lets through is printed by name as accepted, not as a warning to fix.
 not a licence. `npm run verify:commercial` (`verify:release`, then `validate --commercial`) refuses any
 `releaseExceptions` entry, any placeholder, any non-commercial or no-derivatives licence (`NC`, `ND`), and any entry
 without an `author` or a source that can be checked (a `url`, or a repository file named in `source`). It checks that
-the claims are complete and allow a sale, not that they are true. The sample game fails it on purpose (its music is
-CC BY-NC 4.0).
+the claims are complete and allow a sale, not that they are true. The sample game passes it since 3.7 (its theme is
+written for the project); `tests/fixtures/release-game` fails it on purpose.
 Translations: a text identical to the source fails `npm run i18n -- status` unless `i18n: { same: [paths] }` in
 `game.ts` lists it (a name, "OK", an arrow).
 `npm run audit` is a different check: it keeps names from a private project out of the public repository.

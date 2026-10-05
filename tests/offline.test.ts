@@ -22,7 +22,7 @@ describe('offlinePlan', () => {
     expect(files).toBe(expected);
     expect(plan.filter((b) => b.kind === 'img').every((b) => b.ids.length <= 120)).toBe(true);
     // The single mix and the theme's stems: which ones a device plays is decided there (dom/director.ts).
-    expect(plan.filter((b) => b.kind === 'music').flatMap((b) => b.ids).sort()).toEqual(['swan-lake-stems/bass.mp3', 'swan-lake-stems/harp.mp3', 'swan-lake-stems/melody.mp3', 'swan-lake-stems/strings.mp3', 'swan_lake.mp3']);
+    expect(plan.filter((b) => b.kind === 'music').flatMap((b) => b.ids).sort()).toEqual(['swan-theme-stems/bass.mp3', 'swan-theme-stems/harp.mp3', 'swan-theme-stems/melody.mp3', 'swan-theme-stems/strings.mp3', 'swan_theme.mp3']);
   });
 });
 

@@ -32,11 +32,11 @@ describe('asset provenance', () => {
     expect(r.ambiguous).toEqual(['img:hero/r1c1 (img:*, img:hero/*)']);
     expect(r.placeholders).toEqual([]);
   });
-  it('the sample game covers every asset; its only placeholder is the non-commercial music (the theme and its stems)', () => {
+  it('the sample game covers every asset, with no placeholder left (3.7: its theme is written for the project)', () => {
     const r = provenanceReport(demo, demoManifest as never, demoProvenance as Provenance);
     expect(r.uncovered).toEqual([]);
     expect(r.incomplete).toEqual([]);
-    expect(r.placeholders.sort()).toEqual(['music:swan-lake-stems/bass.mp3', 'music:swan-lake-stems/harp.mp3', 'music:swan-lake-stems/melody.mp3', 'music:swan-lake-stems/strings.mp3', 'music:swan_lake.mp3']);
+    expect(r.placeholders).toEqual([]);
   });
 });
 
@@ -78,8 +78,7 @@ describe('the provenance lock', () => {
     expect(lockMessages(lockDiff(k, demoProvenance as Provenance, fileFacts(k), demoLock as never))).toEqual([]);
     const v = licenceVerdict(k, demoProvenance as Provenance);
     expect(v.errors).toEqual([]);
-    expect(v.accepted).toHaveLength(5);
-    expect(v.accepted.every((x) => x.includes('music:swan_lake.mp3') || x.includes('music:swan-lake-stems/'))).toBe(true);
+    expect(v.accepted).toEqual([]);
   });
 });
 
@@ -103,12 +102,9 @@ describe('a commercial release (verify:commercial)', () => {
     expect(['CC BY-NC 4.0', 'CC BY-NC-ND 4.0', 'CC BY-ND', 'non-commercial use only'].every(nonCommercial)).toBe(true);
     expect(['CC BY 4.0', 'CC0', 'own work', 'proprietary', 'SIL OFL 1.1', 'royalty-free, commercial use'].some(nonCommercial)).toBe(false);
   });
-  it('the sample game is not for sale: its music is CC BY-NC and a placeholder, shipped as a named exception', () => {
+  it('the sample game may be sold (3.7): no exception, no placeholder, every licence commercial', () => {
     const k = assetKeys(demo, { images: demoManifest.images, videos: (demoManifest as { videos?: Record<string, unknown> }).videos });
-    const e = commercialVerdict(k, demoProvenance as Provenance, (p) => require('node:fs').existsSync(p));
-    // Per exception, the licence, the placeholder and the exception itself: the theme's and its stems'.
-    expect(e).toHaveLength(6);
-    expect(e.every((x) => x.includes('music:swan_lake.mp3') || x.includes('music:swan-lake-stems/'))).toBe(true);
+    expect(commercialVerdict(k, demoProvenance as Provenance, (p) => require('node:fs').existsSync(p))).toEqual([]);
   });
 });
 

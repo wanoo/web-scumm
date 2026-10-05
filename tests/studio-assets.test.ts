@@ -85,7 +85,7 @@ describe('assets listing on games/demo', () => {
     const bell = l.sounds.sfx.find((s) => s.id === 'bell.mp3')!;
     expect(bell.used[0]).toBe('audio.sfx.bell');
     expect(bell.asset).toBe('audio/sfx/bell.mp3');
-    expect(l.sounds.music.map((m) => m.id)).toEqual(['swan_lake.mp3']);
+    expect(l.sounds.music.map((m) => m.id)).toEqual(['swan_theme.mp3']);
     expect(l.sounds.music[0].used).toContain('audio.music.theme');
   });
 

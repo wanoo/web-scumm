@@ -26,9 +26,10 @@ Il faut Python 3 avec numpy, `ffmpeg` et `fluidsynth` (`brew install ffmpeg flui
 1. **Les sources.** La source d'un morceau doit être à toi, dans le domaine public, ou sous une licence qui autorise
    une œuvre dérivée (un MIDI d'une pièce du XIXᵉ siècle, oui ; un thème de film, non). Dis d'où elle vient dans
    `spec.json` (`author`, `comment`), dans un `SOURCE.md` à côté de `source.mid`, et dans `CREDITS.md`. Une
-   transcription a sa propre licence, et l'arrangement en hérite : le thème du jeu d'exemple est le *Lac des cygnes* de
-   Tchaïkovski (domaine public) depuis un MIDI de [classicals.de](https://www.classicals.de) en CC BY-NC 4.0, donc non
-   commercial, à remplacer dans un jeu vendu.
+   transcription a sa propre licence, et l'arrangement en hérite. Le thème du jeu d'exemple est le *Lac des cygnes* de
+   Tchaïkovski (domaine public), ses notes écrites pour le projet par un script
+   (`games/demo/audio/projects/swan-theme/compose.py` écrit `source.mid`) : aucune transcription dont hériter, donc CC
+   BY 4.0, et un jeu peut être vendu avec (3.7 ; le thème d'avant venait d'un MIDI en CC BY-NC).
 2. **Une seule palette.** `tools/audio/palette.json` contient les patches FM, les enveloppes PSG, le kit de batterie
    DAC et les cibles de mix. Chaque projet et chaque bruitage s'y construisent. Un son manquant est un nouveau patch
    dans la palette (avec un `desc`), jamais un patch ad hoc dans un spec ; un patch dont dépendent des morceaux livrés
@@ -73,7 +74,7 @@ Il faut Python 3 avec numpy, `ffmpeg` et `fluidsynth` (`brew install ffmpeg flui
    `muted_pluck` ; basse → `slap_bass` (chargée) ou `finger_bass` (tenue) ; lead synthé → `synth_lead` ; coups
    d'orchestre → `orch_hit`.
 
-   Référence du spec (`games/demo/audio/projects/swan-lake/spec.json` est un exemple complet) :
+   Référence du spec (`games/demo/audio/projects/swan-theme/spec.json` est un exemple complet) :
    - haut niveau : `title`, `author`, `comment`, `slug`, `source`, `bars` (combien de mesures construire),
      `rows_per_beat` (8 = lignes de triple croche), `pattern_rows` (64), `hz` (60), `extra_bars` (résonance),
      `stop_at_end`, `sections` `{ nom: [première, dernière] }`, `bpm` (forçage) ;

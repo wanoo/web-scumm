@@ -812,10 +812,10 @@ mix suivant le jeu. `npm run audio -- stems` les fabrique (docs/fr/AUDIO.md).
 
 ```ts
 audio: {
-  music: { theme: 'swan_lake.mp3' },            // le mix unique : Save-Data, appareils modestes, sans Web Audio
+  music: { theme: 'swan_theme.mp3' },            // le mix unique : Save-Data, appareils modestes, sans Web Audio
   scores: {
     theme: {
-      stems: { melody: 'swan-lake-stems/melody.mp3', strings: 'swan-lake-stems/strings.mp3', harp: 'swan-lake-stems/harp.mp3', bass: 'swan-lake-stems/bass.mp3' },
+      stems: { melody: 'swan-theme-stems/melody.mp3', strings: 'swan-theme-stems/strings.mp3', harp: 'swan-theme-stems/harp.mp3', bass: 'swan-theme-stems/bass.mp3' },
       bpm: 80, beatsPerBar: 4,                  // depuis score.json
       states: [                                 // le premier qui tient fixe le mix ; aucun : tous les stems
         { if: { player: 'biscuit' }, stems: ['harp', 'bass'] },

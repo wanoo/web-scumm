@@ -133,7 +133,7 @@ if (!only || only === 'live') {
       const t0 = ctx.currentTime; await new Promise((r) => setTimeout(r, 400));
       if (ctx.currentTime <= t0) return { clock: false };
       // The game's stems: they decode, all of one length.
-      const files = ['melody', 'strings', 'harp', 'bass'].map((s) => `assets/audio/music/swan-lake-stems/${s}.mp3`);
+      const files = ['melody', 'strings', 'harp', 'bass'].map((s) => `assets/audio/music/swan-theme-stems/${s}.mp3`);
       const d0 = new WS.MusicDirector(ctx);
       const lens = await Promise.all(files.map((f) => d0.buffer(new URL(f, location.href).href).then((b) => b.length, () => -1)));
       // Jitter: a constant stem; its level is the mix's gain, seen at the sample by a ScriptProcessor.

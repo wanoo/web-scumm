@@ -197,6 +197,6 @@ Les images de cette page viennent du bundle de production et du Studio, prises p
 
 ## Licences
 
-Code : MIT. Images et bruitages d'exemple : CC BY 4.0 (attribution « Wano »). Le thème d'exemple (*Le Lac des cygnes*
-de Tchaïkovski, domaine public) est arrangé d'après une transcription de [classicals.de](https://www.classicals.de),
-CC BY-NC 4.0 : non commercial, à remplacer dans un jeu commercial. Polices : SIL OFL. Voir `CREDITS.md`.
+Code : MIT. Images, bruitages et thème d'exemple : CC BY 4.0 (attribution « Wano ») ; le thème est *Le Lac des
+cygnes* de Tchaïkovski (domaine public), écrit et arrangé pour le projet, si bien que le jeu d'exemple passe
+`npm run verify:commercial` (3.7). Polices : SIL OFL. Voir `CREDITS.md`.

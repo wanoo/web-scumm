@@ -779,11 +779,11 @@
  },
  "audio": {
   "music": {
-   "theme": "music/swan_lake.mp3",
-   "theme.melody": "music/swan-lake-stems/melody.mp3",
-   "theme.strings": "music/swan-lake-stems/strings.mp3",
-   "theme.harp": "music/swan-lake-stems/harp.mp3",
-   "theme.bass": "music/swan-lake-stems/bass.mp3"
+   "theme": "music/swan_theme.mp3",
+   "theme.melody": "music/swan-theme-stems/melody.mp3",
+   "theme.strings": "music/swan-theme-stems/strings.mp3",
+   "theme.harp": "music/swan-theme-stems/harp.mp3",
+   "theme.bass": "music/swan-theme-stems/bass.mp3"
   },
   "sfx": {
    "door_open": "sfx/door_open.mp3",
