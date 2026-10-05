@@ -151,17 +151,45 @@ export class Audio {
     return at === null || at === undefined ? null : { id: c.id, at };
   }
 
-  /** The next time this track starts, it starts there (a loaded save's phase). */
-  resumeAt(phase: { id: string; at: number } | null) { this.resume = phase && this.current?.id !== phase.id ? phase : null; }
+  /**
+   * A loaded save's music (3.6.1), the third intent besides `play` (the story's, with its transitions) and `stop`:
+   * whatever plays or is scheduled stops at once, then the saved track starts at its saved point, even when it is the
+   * one playing. No transition and no bridge until `restored()`, which the app calls once the save is in place (the
+   * room it enters then asks for this same track: only its mix follows). `null`: a save without music, only the cut.
+   */
+  restore(phase: { id: string; at: number } | null) {
+    this.restoring = true;
+    this.resume = phase;
+    const c = this.current;
+    // The same track as a single mix: only its position moves.
+    if (phase && c?.howl && c.id === phase.id && this.unlocked) { c.howl.seek(phase.at); this.resume = null; return; }
+    this.current = null;
+    this.pending = null;
+    if (c?.howl) { const h = c.howl; h.fade(h.volume(), 0, 150); setTimeout(() => h.stop(), 200); }
+    if (!phase) { this.director?.stop(150); return; }
+    if (!this.unlocked) { this.director?.stop(150); this.pending = phase.id; return; }
+    this.start(phase.id, phase.at, 'restore');
+  }
+  /** The save is in place: `play` takes transitions again. */
+  restored() { this.restoring = false; }
+  private restoring = false;
   /** What a save made now should keep: a phase not resumed yet, else where the music is. */
   phaseToSave(): { id: string; at: number } | null { return this.resume ?? this.musicPhase(); }
+  /** A saved phase not started yet (before the first gesture, or while the director decodes): kept until it plays. */
   private resume: { id: string; at: number } | null = null;
 
   play(id: string) {
     if (this.current?.id === id) { this.remix(); return; }
     if (!this.unlocked) { this.pending = id; return; }
-    const offset = this.resume?.id === id ? this.resume.at : 0;
-    this.resume = null;
+    this.start(id, this.resume?.id === id ? this.resume.at : 0, this.restoring ? 'restore' : 'play');
+  }
+
+  /**
+   * The only way a track starts. `play`: from a score the director plays, the game's transition rule if one names both
+   * (3.6). `restore`: at `offset` at once, no transition. A score that fails falls back to its single mix at the same
+   * `offset` (3.6.1: the phase is kept until something actually plays).
+   */
+  private start(id: string, offset: number, mode: 'play' | 'restore') {
     const prev = this.current;
     this.current = null;
     if (prev?.howl) { const ph = prev.howl; ph.fade(ph.volume(), 0, 600); setTimeout(() => ph.stop(), 650); }
@@ -169,22 +197,28 @@ export class Audio {
     const d = score && !this.mixOnly.has(id) ? this.directorFor() : null;
     if (score && d) {
       this.current = { id };
-      // From a score the director plays to this one: the game's transition rule, if one names both (3.6).
-      const rule = prev && !prev.howl && d.current === prev.id ? transitionFor(this.files.transitions, prev.id, id) : undefined;
-      const bridge = rule?.bridge && this.files.music?.[rule.bridge] ? this.bank.music(this.files.music[rule.bridge]) : undefined;
-      const transition = rule ? { at: rule.at, fadeBeats: rule.fadeBeats, bridge } : undefined;
-      void d.play(id, score, this.stemUrls(score), stemsFor(score, this.holds), { offset, transition }).catch((e) => {
+      const urls = this.stemUrls(score), stems = stemsFor(score, this.holds);
+      let done: Promise<void>;
+      if (mode === 'restore') done = d.restore(id, score, urls, stems, offset);
+      else {
+        const rule = prev && !prev.howl && d.current === prev.id ? transitionFor(this.files.transitions, prev.id, id) : undefined;
+        const bridge = rule?.bridge && this.files.music?.[rule.bridge] ? this.bank.music(this.files.music[rule.bridge]) : undefined;
+        const transition = rule ? { at: rule.at, fadeBeats: rule.fadeBeats, bridge } : undefined;
+        done = d.play(id, score, urls, stems, { offset, transition });
+      }
+      void done.then(() => { if (this.resume?.id === id && d.current === id) this.resume = null; }, (e) => {
         // A score too large for the director's memory: its single mix from now on (the others keep their stems). A
-        // stem that does not load: the single mix instead, for every score.
+        // stem that does not load: the single mix instead, for every score. Either way from the same point.
         if (e instanceof ScoreTooLarge) this.mixOnly.add(id); else this.stemsWanted = false;
-        if (this.current?.id === id && !this.current.howl) { this.current = null; this.play(id); }
+        if (this.current?.id === id && !this.current.howl) { this.current = null; this.start(id, offset, 'restore'); }
       });
       return;
     }
-    this.director?.stop(600);
+    this.director?.stop(mode === 'restore' ? 150 : 600);
     const h = this.howl('music', id, true);
     if (!h) return;
     this.current = { id, howl: h };
+    if (this.resume?.id === id) this.resume = null;
     if (!this.musicOn) return;
     h.off('playerror'); h.once('playerror', () => this.retryOnGesture(h));
     h.volume(0); h.play(); if (offset) h.seek(offset); this.fadeIn(h);

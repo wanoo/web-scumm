@@ -225,7 +225,8 @@ export class App implements Presenter {
     const saveRaw = store.save.bind(store);
     store.save = (s) => saveRaw(this.withMusic(s));
     const loadRaw = this.engine.load.bind(this.engine);
-    this.engine.load = (s) => { this.audio.resumeAt(s.music ?? null); return loadRaw(s); };
+    // Loading is a restore, not a scene change (3.6.1): the saved music at its point, with no transition or bridge.
+    this.engine.load = async (s) => { this.audio.restore(s.music ?? null); try { return await loadRaw(s); } finally { this.audio.restored(); } };
     this.slots = o.slots ?? (typeof store.listSlots === 'function' ? (store as SlotStore) : new LocalSlotStore(o.game.id, o.game, storageFailure, storageWarning));
     this.view = new RoomView(this.engine, this.bank);
     // `?renderer=canvas|dom` forces a painter for every room (the visual parity check, the Studio's comparison).
