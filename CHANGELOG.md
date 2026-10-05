@@ -8,6 +8,9 @@
   the director plays them), `offlineTotalKB` (the full warm-up, app shell included), `decodedAudioMB` (the largest
   score decoded, from `pcmBytes`). A release requires them; the demo and the reference set them (3.0 MB, 7.6 MB, 97 MB
   measured).
+- `validate --release` measures each score's stem files with ffprobe (3.6): the same rate, channels and exact number
+  of samples, the loop ending inside them, `pcmBytes` within 1% of what they decode to. Hand-made stems that would
+  drift apart no longer pass a release (`src/engine/tools/stems.ts`, `tests/stems.test.ts`).
 
 ## 3.5.1 — 2026-10-05
 

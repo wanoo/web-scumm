@@ -121,6 +121,9 @@ seul gain, le même pour chaque stem, amène la somme à −14 LUFS (jamais une 
 celui de l'arrangement). La commande écrit `games/<id>/audio/music/<slug>-stems/<stem>.mp3` et un `score.json` à
 coller sous `audio.scores`, sous l'id du mix unique (le tempo est mesuré sur le rendu : mesures × temps sur sa durée ;
 `pcmBytes` est le poids décodé des stems à 48 kHz, sur lequel décide un navigateur qui ne donne pas sa mémoire, 3.5.1).
+Des stems faits à la main sont bienvenus, mais `npm run validate -- --release` les mesure avec ffprobe (3.6). Chaque stem
+doit avoir la même fréquence, les mêmes canaux et le même nombre d'échantillons, la boucle doit finir dans les fichiers,
+et `pcmBytes` doit être leur poids décodé.
 
 Regrouper les canaux selon ce que le jeu allumera ou éteindra : le thème du jeu d'exemple a mélodie, cordes, harpe et
 basse, et ne joue que la harpe et la basse quand Biscuit est actif. Un stem presque muet (le seul canal de bruit du

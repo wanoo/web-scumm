@@ -1794,3 +1794,15 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 - Test: the three lines over budget, and an unknown decoded weight.
 
 → next: Claude · v36-stem-probe
+
+## #81 · 2026-10-05 · Claude · proposal · v36-stem-probe
+
+- `src/engine/tools/stems.ts`: `stemErrors(id, score, facts)` (pure) and `pcmOf`. `tools/stem-facts.ts` uses ffprobe
+  (`duration_ts` × `time_base` × rate gives the exact samples).
+- `tools/validate.ts --release` measures the built files (`ASSETS_DIR`, `assetPath`). The demo's theme passes: 4 stems
+  of 2 910 601 samples at 44.1 kHz in stereo, `pcmBytes` 101 376 032, as decoded.
+- `tests/stems.test.ts` covers the rules on measured facts (rate, channels, a frame of 1 152 samples more, a missing
+  file, a loop past the end, pcmBytes off and within 1%), then WAV files made by ffmpeg (a short one, a mono one, one
+  at 48 kHz). It skips the files part without ffmpeg, as `voices.test.ts` does.
+
+→ next: Claude · v36-pcm-cache
