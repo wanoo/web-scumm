@@ -1674,3 +1674,22 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
   proof 2.5 → 1.7 s with 4; its chapters 3.6 → 3.8 s (starting workers per small chapter costs more): off by default.
 
 → next: Claude · merge on green CI, then v35-inventory-ownership
+
+## #73 · 2026-10-05 · Claude · proposal · v35-inventory-ownership
+
+- `poolableItems` (static) and `together` (per state: every two characters' mobility regions share a room, read from
+  the regions only so a silent move never changes it); `canonicalDims` puts the pooled live items in one `pool`
+  multiset; the expansion plays the hand-overs before each character's tries (walk to a shared room if the holder
+  cannot reach, give, switch back, walk back), checking the dims at every step; `OwnershipError` restarts without it.
+- Three mistakes the checks caught on the way: comparing region keys (the two characters of the reference never have
+  the same region: Biscuit's adds the backlot), pooling decided on exact rooms (a silent move then changed the dims:
+  mobility threw and the proof truncated without regions), and the pool listing dead items (3 of 60 random games
+  diverged on the flags reached). `used` marks stay each character's own.
+- The random generator's items were all read by `not has` (the finding rules), so the 120 audited seeds never
+  exercised the owner (counted: 0 applied); `free: true` makes half the items free; 60 such seeds are now audited.
+- Dominance: compared at creation and at pop; prunes 0 on the demo, the reference and the stress games, for a
+  structural reason (BENCH.md "3.5"). Kept opt-in with the rerun-without safety, not a default.
+- Open 20 × 3: truncated at 200 000 states (154 s, 4 workers; the runs without workers ran out of memory at that
+  budget). Said in BENCH and the CHANGELOG; not blocking (D11).
+
+→ next: Claude · merge on green CI, then v35-release

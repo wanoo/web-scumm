@@ -3,7 +3,7 @@
 // Nothing here knows the search: no `seen`, no frontier. Started by solve-worker.mjs (tsx).
 import { parentPort, workerData } from 'node:worker_threads';
 import { pathToFileURL } from 'node:url';
-import { isMobilityError, makeExpander, type NodeInput } from './solve';
+import { isMobilityError, isOwnershipError, makeExpander, type NodeInput } from './solve';
 
 const init = workerData as { game: unknown; layouts: Record<string, unknown>; opts: Record<string, unknown>; module?: string };
 let X: ReturnType<typeof makeExpander>;
@@ -19,5 +19,5 @@ parentPort!.on('message', async (m: { type: 'expand'; id: number; input: NodeInp
   if (m.type === 'stats') { parentPort!.postMessage({ type: 'stats', stats: X.stats }); return; }
   if (Date.now() > m.deadline) { parentPort!.postMessage({ type: 'expanded', id: m.id, exp: null }); return; }
   try { parentPort!.postMessage({ type: 'expanded', id: m.id, exp: await X.expandNode(m.input) }); }
-  catch (e) { parentPort!.postMessage({ type: 'error', id: m.id, message: (e as Error).message, mobility: isMobilityError(e) }); }
+  catch (e) { parentPort!.postMessage({ type: 'error', id: m.id, message: (e as Error).message, mobility: isMobilityError(e), ownership: isOwnershipError(e) }); }
 });

@@ -4,6 +4,15 @@
 
 ### Added
 
+- The canonical owner (3.5, proofs): items no condition reads, in no invariant or goal, lost only by an action on them
+  and given by no rule (`poolableItems`) are pooled while the playable characters can meet; the hand-overs that give a
+  character the pool are played and checked before its actions are tried (`profile.ownership`, `--ownership=off`).
+  The reference chapter: 904 → 288 states; the open chain of 20 rooms × 2 characters, truncated before, proved in
+  14 002 states. The 20 × 3 open matrix stays truncated at 200 000 states: the 3.5 target is not met (BENCH.md).
+  Audited against the explicit search on 60 random games with free items (`randomGame(seed, { free: true })`).
+- Witness dominance (`--dominance`, witnesses only), with a run again without it when nothing is found; it prunes
+  nothing on the bundled and stress games (BENCH.md "3.5"), so it stays off.
+
 - Proof workers (3.5, `src/engine/tools/solve-pool.ts`): `npm run solve -- --prove --workers=N|auto [--batch=64]`
   expands the frontier a batch at a time on worker threads and merges in the batch's order: the same result for 1, 2,
   4 or 8 workers (`tests/workers.test.ts`), ×2.54 with 4 on a 40 000-state proof, ×2.01 on the 40-room era reference

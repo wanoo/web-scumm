@@ -471,3 +471,42 @@ l'échelle : la fusion (les états passent d'un fil à l'autre, le fil de la rec
 des workers (environ 0,3 s) : une petite preuve, comme chacun des chapitres du jeu d'exemple, n'est pas plus rapide.
 Les workers restent donc éteints sauf demande ; `--workers=auto` (les cœurs moins un, 8 au plus) est le réglage d'un
 gros jeu.
+
+## 3.5 : qui porte quoi (5 octobre 2026)
+
+**Le propriétaire canonique** (preuves, actif par défaut avec le personnage canonique et les régions de mobilité ;
+`--ownership=off`). Avec plusieurs personnages jouables, lequel porte un objet multiplie les états : trois personnages et
+douze objets qui circulent librement, c'est la matrice ouverte que la 3.3 ne prouvait pas. Un objet qu'aucune condition
+ne lit (son absence ne décide donc de rien : pas de `else`, pas de règle masquée par une qui l'exige), dans aucun
+invariant ni but, perdu ou déplacé seulement par une action sur lui, et donné par aucune règle ni réaction par type
+(`poolableItems`), est mis en commun tant que deux personnages quelconques peuvent se rejoindre : l'état garde combien
+de chaque objet commun existent, pas qui les porte. Avant d'essayer les actions d'un personnage, les remises qui lui
+donnent le pot commun sont jouées sur le moteur : l'autre porteur prend la main, les deux marchent jusqu'à un lieu que
+leurs régions partagent, les objets sont donnés, la main revient, et chaque pas doit laisser l'état tel que la recherche
+le voit. Un pas qui ne le fait pas relance la preuve sans mise en commun (`profile.ownership.reason`), comme la mobilité.
+
+Vérifié contre la recherche explicite (`--audit-abstractions`, `tests/audit.test.ts`) : le chapitre de référence `same`,
+288 états contre 83 672 ; 60 jeux aléatoires à objets libres, aucune divergence (32 comparés sous 3 000 états, dont 10
+avec des remises jouées ; 44 comparés sous 20 000, dont 14 avec des remises, aucun divergent). La première version
+divergeait sur 3 des 60 : le pot commun listait des objets que la recherche ignore par ailleurs (morts), et l'audit l'a
+attrapé.
+
+| Jeu | Sans le propriétaire | Avec |
+|---|---|---|
+| Le Marché de nuit (2 personnages) | 904 états, 1,9 s | 288 états, 1 559 remises, 1,0 s |
+| Le jeu d'exemple | 3 480 états | les mêmes : pas de région de mobilité, donc pas de propriétaire |
+| Chaîne ouverte, 20 lieux × 2 personnages, 12 objets | tronquée à 40 000 états (58 s) | **résolue**, 14 002 états, 19,4 s |
+| Chaîne ouverte, 20 lieux × 3 personnages | tronquée | **toujours tronquée** à 200 000 états (154 s avec 4 workers) |
+
+L'objectif de la 3.5, la matrice ouverte 20 × 3 dans le budget, **n'est pas atteint**. Le propriétaire ne s'applique
+que tant que deux personnages quelconques peuvent se rejoindre, et dans la chaîne ouverte des portes fermées les
+séparent la plupart du temps (1 817 remises sur 200 000 états). Comme décidé, cela ne bloque pas la 3.5 ; c'est la
+question ouverte pour la suite.
+
+**La dominance pour un témoin** (`--dominance`, témoins seulement : elle ne peut élaguer une preuve). Un état qui n'a
+pas plus de progrès qu'un état déjà vu (tout le reste égal ; ses objets et flags booléens monotones, ceux dont rien ne
+lit l'absence, un sous-ensemble) n'est pas exploré. Une recherche de témoin qui ne trouve rien avec elle est relancée
+sans, elle ne rend donc jamais `unsolved` d'elle-même. Mesuré : elle n'élague rien sur le jeu d'exemple, le chapitre de
+référence ni les jeux de stress. La recherche « le meilleur d'abord » atteint un témoin avant qu'un état dominé ne
+sorte, et un état dominé ne sort qu'une fois les meilleurs épuisés, ce qui (quand l'absence n'est jamais lue) veut dire
+que la recherche échoue de toute façon. Elle reste une option, éteinte par défaut.

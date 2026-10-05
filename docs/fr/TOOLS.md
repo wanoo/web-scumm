@@ -149,6 +149,8 @@ npm run solve      # témoin rapide : trouve un chemin jusqu'à la fin
 npm run solve -- --prove # preuve exhaustive : signale les états accessibles sans chemin vers la fin
 npm run solve -- --from=<checkpoint> --max=50000
 npm run solve -- --prove --workers=4 [--batch=64] [--time=60]   # workers de preuve (3.5) : le même résultat quel que soit leur nombre ; une grosse preuve ×2,5 avec 4 (BENCH.md « 3.5 »)
+npm run solve -- --prove --ownership=off   # sans le propriétaire canonique (qui porte un objet libre, mis en commun dans les preuves depuis la 3.5)
+npm run solve -- --dominance             # un témoin avec dominance (3.5 ; n'élague rien sur les jeux fournis, BENCH.md)
 npm test           # tests Node du moteur, des outils et du jeu sélectionné
 npm run test:assets # tests Python des images et du pipeline d'assets
 npm run e2e        # parcours dans Chromium en paysage téléphone (serveur de dev lancé)

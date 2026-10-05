@@ -8,7 +8,7 @@
 import { Worker } from 'node:worker_threads';
 import { cpus } from 'node:os';
 import type { GameDef, Layout } from '../core/types';
-import { mergeStats, mobilityError, registerPool, threadPool, type Expansion, type ExpandStats, type NodeInput, type SolveOptions, type makeExpander } from './solve';
+import { mergeStats, mobilityError, ownershipError, registerPool, threadPool, type Expansion, type ExpandStats, type NodeInput, type SolveOptions, type makeExpander } from './solve';
 
 export interface ExpandPool {
   size: number;
@@ -27,8 +27,8 @@ export function workerCount(w: number | 'auto' | undefined): number {
 
 /** Options a worker needs (functions do not cross: custom commands come from the game's module). */
 function workerOpts(opts: SolveOptions) {
-  const { mode, goal, canonicalPlayers, mobility, memo, memoVerify, por, unsafeReduction } = opts;
-  return { mode, goal, canonicalPlayers, mobility, memo, memoVerify, por, unsafeReduction };
+  const { mode, goal, canonicalPlayers, mobility, ownership, memo, memoVerify, por, unsafeReduction } = opts;
+  return { mode, goal, canonicalPlayers, mobility, ownership, memo, memoVerify, por, unsafeReduction };
 }
 
 export async function openPool(n: number | 'auto', gameIn: GameDef, layouts: Record<string, Layout>, opts: SolveOptions, X: ReturnType<typeof makeExpander>): Promise<ExpandPool> {
@@ -74,10 +74,10 @@ export async function openPool(n: number | 'auto', gameIn: GameDef, layouts: Rec
     for (const k of ids) { const p = pending.get(k)!; pending.delete(k); X.expandNode(p.input).then(p.resolve, p.reject); }
   };
   for (const w of workers) {
-    w.on('message', (m: { type: string; id: number; exp?: Expansion | null; message?: string; mobility?: boolean }) => {
+    w.on('message', (m: { type: string; id: number; exp?: Expansion | null; message?: string; mobility?: boolean; ownership?: boolean }) => {
       if (m.type !== 'expanded' && m.type !== 'error') return;
       const p = pending.get(m.id); pending.delete(m.id); busy.delete(w);
-      if (p) { if (m.type === 'error') p.reject(m.mobility ? mobilityError(m.message!) : new Error(m.message)); else p.resolve(m.exp ?? null); }
+      if (p) { if (m.type === 'error') p.reject(m.mobility ? mobilityError(m.message!) : m.ownership ? ownershipError(m.message!) : new Error(m.message)); else p.resolve(m.exp ?? null); }
       idle.push(w); if (broken) { fail(w, 'stopped'); return; }
       dispatch();
     });

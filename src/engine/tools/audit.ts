@@ -19,7 +19,7 @@ export interface AuditResult {
   headline: string;
   /** What differs, one line each. */
   divergences: string[];
-  abstract: { status: string; states: number; softlockCount: number; memo: SolveResult['profile']['memo']; canonical: boolean; mobility: boolean };
+  abstract: { status: string; states: number; softlockCount: number; memo: SolveResult['profile']['memo']; canonical: boolean; mobility: boolean; ownership: boolean; handovers: number };
   explicit: { status: string; states: number; softlockCount: number; truncated: boolean };
   ms: number;
 }
@@ -39,7 +39,7 @@ export async function auditAbstractions(game: GameDef, layouts: Record<string, L
   const run = opts.solver ?? solve;
   const base: SolveOptions = { mode: 'prove', maxStates: opts.maxStates ?? 20000, commands: opts.commands };
   const abs = await run(structuredClone(game), layouts, { ...base, memoVerify: 1 });
-  const exp = await run(structuredClone(game), layouts, { ...base, memo: false, canonicalPlayers: false, mobility: false });
+  const exp = await run(structuredClone(game), layouts, { ...base, memo: false, canonicalPlayers: false, mobility: false, ownership: false });
   const divergences: string[] = [];
   // A memo hit that differs is an engine error of the abstract run (solve never skips silently).
   // Errors are labelled by the path that met them, which the abstractions spell differently ("Switch to bob › Go to
@@ -62,7 +62,7 @@ export async function auditAbstractions(game: GameDef, layouts: Record<string, L
       : `diverged: ${divergences.length} difference(s) between the abstractions and the explicit search`;
   return {
     status, exit: status === 'same' ? 0 : status === 'partial' ? 2 : 1, headline, divergences,
-    abstract: { status: abs.status, states: abs.states, softlockCount: abs.softlockCount, memo: abs.profile.memo, canonical: abs.profile.canonical.applied, mobility: abs.profile.mobility.applied },
+    abstract: { status: abs.status, states: abs.states, softlockCount: abs.softlockCount, memo: abs.profile.memo, canonical: abs.profile.canonical.applied, mobility: abs.profile.mobility.applied, ownership: !!abs.profile.ownership?.applied, handovers: abs.profile.ownership?.handovers ?? 0 },
     explicit: { status: exp.status, states: exp.states, softlockCount: exp.softlockCount, truncated: exp.truncated },
     ms: Date.now() - t0,
   };

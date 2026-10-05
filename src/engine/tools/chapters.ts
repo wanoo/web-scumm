@@ -60,7 +60,7 @@ async function checkpointState(game: GameDef, layouts: Record<string, Layout>, i
 /** Default cap on the boundary states a chapter is proved from: past it, the chapter is `truncated` (never green). */
 export const MAX_STARTS = 1000;
 
-export async function proveChapters(game: GameDef, layouts: Record<string, Layout>, opts: Pick<SolveOptions, 'maxStates' | 'commands' | 'por' | 'unsafeReduction' | 'workers' | 'batch' | 'gameModule' | 'timeLimitMs'> & { mode?: 'witness' | 'prove'; maxStarts?: number; budget?: number; /** The search to run (the tools pass the persistent proof cache's). */ solver?: typeof solve } = {}): Promise<ChaptersProof> {
+export async function proveChapters(game: GameDef, layouts: Record<string, Layout>, opts: Pick<SolveOptions, 'maxStates' | 'commands' | 'por' | 'unsafeReduction' | 'workers' | 'batch' | 'gameModule' | 'timeLimitMs' | 'ownership'> & { mode?: 'witness' | 'prove'; maxStarts?: number; budget?: number; /** The search to run (the tools pass the persistent proof cache's). */ solver?: typeof solve } = {}): Promise<ChaptersProof> {
   const run1 = opts.solver ?? solve;
   const maxStarts = opts.maxStarts ?? MAX_STARTS;
   // The whole proof's state budget, every chapter and every start together: past it, the proof is `truncated`.
@@ -92,7 +92,7 @@ export async function proveChapters(game: GameDef, layouts: Record<string, Layou
     for (const start of groups) {
       if (spent >= budget) { st = worst(st, 'truncated'); break; }
       const r = await run1(game, layouts, { maxStates: Math.min((opts.maxStates ?? 20000) * Math.max(1, typeof start === 'object' && 'states' in start ? 10 : 1), budget - spent), start, goal, commands: opts.commands, por: opts.por, unsafeReduction: opts.unsafeReduction, mode,
-        ...(opts.workers !== undefined ? { workers: opts.workers, batch: opts.batch, gameModule: opts.gameModule } : {}), ...(opts.timeLimitMs ? { timeLimitMs: Math.max(1, opts.timeLimitMs - (Date.now() - t0)) } : {}) });
+        ...(opts.workers !== undefined ? { workers: opts.workers, batch: opts.batch, gameModule: opts.gameModule } : {}), ...(opts.ownership === false ? { ownership: false } : {}), ...(opts.timeLimitMs ? { timeLimitMs: Math.max(1, opts.timeLimitMs - (Date.now() - t0)) } : {}) });
       spent += r.states;
       results.push(r);
       st = worst(st, r.status);
