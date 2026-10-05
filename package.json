@@ -79,6 +79,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@biomejs/biome": "^2.5.15",
     "@modelcontextprotocol/sdk": "^1.32.0",
     "@tweakpane/core": "^2.0.5",
     "@types/howler": "^2.2.13",
