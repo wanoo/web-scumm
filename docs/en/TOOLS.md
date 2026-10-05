@@ -317,6 +317,9 @@ They count each track's single mix, what every device plays. Since 3.6 the rest 
   scores and its bridge, plus the largest stinger (`{ music: { stinger } }`). Bridges and stingers are measured with
   ffprobe; unmeasured is over. The director holds the runtime side: `audio.maxDecodedMB` caps every buffer it keeps,
   and a transition over it cuts without its bridge (docs/en/AUDIO.md).
+- `initialJsKB` (3.9): the gzipped JavaScript a first visit runs (the entry and its static imports), measured on the
+  build by `npm run verify:dist`, not by `weight`: the minigames, the dev panel and the Studio load on demand
+  (`src/engine/BOUNDARIES.md`). The sample game runs 122 KB, the reference chapter 124 KB, both held to 140.
 `--release` (a step of `verify:release`) also fails when a budget is not set. `--json`. `npm run e2e:weight -- <url>`
 (a CI gate since 3.4) checks the prediction against a real first visit in Chromium, the warm-ups off: every request
 inside the predicted initial scope, the bytes within 10% of it or below.

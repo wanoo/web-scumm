@@ -116,7 +116,7 @@ export const game = defineGame({
   // 3.7 MB for a chapter since the map opens every room), with about 20% of headroom. Since 3.6: the theme's stems
   // downloaded in the background (2.5 MB since 3.7's own theme), the full offline warm-up (6.9 MB), the theme decoded
   // (79 MB).
-  assetBudgets: { initialKB: 2500, roomKB: 3000, chapterKB: 4500, backgroundScoreKB: 3500, offlineTotalKB: 9000, decodedAudioMB: 128 },
+  assetBudgets: { initialKB: 2500, roomKB: 3000, chapterKB: 4500, backgroundScoreKB: 3500, offlineTotalKB: 9000, decodedAudioMB: 128, initialJsKB: 140 },
   // Texts that stay the same in French on purpose: names, ▲ ▼, OK, words French borrowed (`npm run i18n -- status`).
   i18n: { same: ['room:market/props.oranges.name', 'room:market/props.bouquet.name', 'item:bouquet/name', 'char:hero/name', 'char:biscuit/name', 'char:neighbor/name', 'ui/pause', 'ui/zoomIn', 'ui/ok', 'ui/jump', 'ui/duck', 'ui/normal'] },
   settings: true,

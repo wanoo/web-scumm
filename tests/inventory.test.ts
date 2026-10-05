@@ -1,7 +1,7 @@
 // What a build ships (3.7.1): every file of dist/ is the engine's code, a locked asset of the game, a data file it
 // names, a font, an icon or a notice; another game's asset or a stray file is refused, a locked file missing too.
 import { describe, expect, it } from 'vitest';
-import { assetsManifest, inventory, manifestMatches, NOTICES, strayAssets } from '../src/engine/tools/inventory';
+import { assetsManifest, initialChunks, inventory, manifestMatches, NOTICES, staticImports, strayAssets } from '../src/engine/tools/inventory';
 import type { ProvenanceLock } from '../src/engine/tools/provenance';
 
 const lock: ProvenanceLock = { version: 1, assets: {
@@ -48,5 +48,15 @@ describe('the files of a build', () => {
     expect(m[0]).toEqual({ key: 'img:hall/bg', path: 'assets/img/hall/bg.webp', sha256: 'a1', bytes: 10, licence: 'CC BY 4.0', status: 'final', author: 'Wano', source: 'drawn' });
     expect(manifestMatches(m, lock)).toBe(true);
     expect(manifestMatches(m.slice(1), lock)).toBe(false);
+  });
+
+  it('the first visit\'s scripts: the entry and its static imports, never a minigame loaded on demand (3.9)', () => {
+    const html = '<script type="module" crossorigin src="/game/assets/index-AAAAAAAA.js"></script><link rel="modulepreload" crossorigin href="/game/assets/save-BBBBBBBB.js">';
+    const files: Record<string, string> = {
+      'assets/index-AAAAAAAA.js': 'import{a as b}from"./util-CCCCCCCC.js";import"./side-DDDDDDDD.js";const m=()=>import("./pipes-EEEEEEEE.js");',
+      'assets/util-CCCCCCCC.js': 'export const a=1;', 'assets/side-DDDDDDDD.js': '', 'assets/save-BBBBBBBB.js': 'export{x}from"./util-CCCCCCCC.js";',
+    };
+    expect(staticImports(files['assets/index-AAAAAAAA.js'])).toEqual(['util-CCCCCCCC.js', 'side-DDDDDDDD.js']);
+    expect(initialChunks(html, (p) => files[p] ?? null).sort()).toEqual(['assets/index-AAAAAAAA.js', 'assets/save-BBBBBBBB.js', 'assets/side-DDDDDDDD.js', 'assets/util-CCCCCCCC.js']);
   });
 });

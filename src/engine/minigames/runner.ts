@@ -1,3 +1,4 @@
+import { MINIGAME_META } from './meta';
 import type { Minigame, MinigameCtx } from './types';
 import { el, finisher, move, num, put, skipButton, stage, str, toast, keys } from './util';
 
@@ -25,8 +26,7 @@ function sprites(v: unknown, h: number, slideH: number): RunnerSprites | null {
 }
 
 export const runner: Minigame = {
-  required: ['hero', 'chaser', 'obstacles', 'bg'],
-  textParams: ['intro', 'win', 'stumble'],
+  ...MINIGAME_META.runner,
   run(ctx: MinigameCtx) {
     const p = ctx.params;
     const seconds = num(p.seconds, 20);

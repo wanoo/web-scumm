@@ -1,3 +1,4 @@
+import { MINIGAME_META } from './meta';
 import type { Minigame, MinigameCtx } from './types';
 import { el, finisher, num, stage, str, keys, skipped } from './util';
 
@@ -6,10 +7,7 @@ import { el, finisher, num, stage, str, keys, skipped } from './util';
 // Params: ticket (image) required; text, color?, cover?, sfx? (sound while scratching), threshold?, hold?, background?, skippable?
 
 export const scratch: Minigame = {
-  required: ['ticket'],
-  // `text` is the decrypted sealed ending, given at run time, never content to translate.
-  textParams: ['intro'],
-  bindings: { images: ['ticket'], sfx: ['sfx'] },
+  ...MINIGAME_META.scratch,
   run(ctx: MinigameCtx) {
     const p = ctx.params;
     const ticket = str(p.ticket, '');

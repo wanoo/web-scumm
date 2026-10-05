@@ -8,6 +8,13 @@
   for none), and `npm run verify:field` (`verify:commercial`, then 5 sessions, 3 played to the end, 2 device families).
   `--strict` alone still only refuses a diverged session, and now says when it checked none. A shared session says its
   device family (`ios`, `android`, `desktop`), nothing finer.
+### Changed
+
+- The player's first visit runs 122 KB of gzipped JavaScript (153 before): the save envelope's schemas use
+  `zod/mini` (same checks, tree-shaken), and each built-in minigame loads when one starts
+  (`src/engine/minigames/meta.ts` keeps what the tools read). New budget `assetBudgets.initialJsKB`, checked on the
+  build by `npm run verify:dist`. The engine's layers are written down (`src/engine/BOUNDARIES.md`) and checked by
+  `tests/boundaries.test.ts`: the core imports no DOM or tool, the player never the solver, the validator or the Studio.
 
 ### Fixed
 

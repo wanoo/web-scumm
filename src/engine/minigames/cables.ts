@@ -1,3 +1,4 @@
+import { MINIGAME_META } from './meta';
 import type { Minigame, MinigameCtx } from './types';
 import { el, finisher, num, skipButton, sleep, stage, str, operable } from './util';
 
@@ -68,9 +69,7 @@ function shuffle<T>(a: T[]): T[] {
 const strMap = (v: unknown): Record<string, string> => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, String(x)])) : {});
 
 export const cables: Minigame = {
-  bindings: { sfx: ['sfx.ring', 'sfx.stamp'] },
-  required: ['board', 'knot', 'plugs'],
-  textParams: ['intro', 'win', 'windowsText'],
+  ...MINIGAME_META.cables,
   run(ctx: MinigameCtx) {
     const p = ctx.params;
     const plugs = strMap(p.plugs);

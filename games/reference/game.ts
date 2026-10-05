@@ -93,7 +93,7 @@ export const game = defineGame({
   // Measured with `npm run weight` and `npm run e2e:weight` once built: see BENCH.md "3.4".
   // 3.7: two scores' stems (3.9 MB), the full warm-up (9.2 MB), the most decoded at once during a transition (128 MB:
   // both scores and a bridge).
-  assetBudgets: { initialKB: 3000, roomKB: 3000, chapterKB: 6000, backgroundScoreKB: 4800, offlineTotalKB: 11000, decodedAudioMB: 128, transitionPeakMB: 150 },
+  assetBudgets: { initialKB: 3000, roomKB: 3000, chapterKB: 6000, backgroundScoreKB: 4800, offlineTotalKB: 11000, decodedAudioMB: 128, transitionPeakMB: 150, initialJsKB: 140 },
   i18n: { same: demo.i18n?.same?.filter((p) => p.startsWith('ui/') || p === 'char:hero/name' || p === 'char:biscuit/name' || p === 'char:neighbor/name').concat(['room:kitchen/props.radio.name']) },
   ui: demo.ui,
 });

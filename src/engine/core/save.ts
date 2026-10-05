@@ -1,34 +1,39 @@
-import { z } from 'zod';
+// zod/mini (3.9): the same checks as zod's classic API, as functions the bundle keeps only when used (the player
+// carried ~250 kB of zod for these few schemas).
+import * as z from 'zod/mini';
 import type { GameDef, GameState, Id } from './types';
 import { migrate } from './migrate';
 
-const id = z.string().min(1);
-const value = z.union([z.boolean(), z.number().finite(), z.string()]);
-const point = z.tuple([z.number().finite(), z.number().finite()]);
+const id = z.string().check(z.minLength(1));
+const num = () => z.number();
+const count = () => z.int().check(z.nonnegative());
+const opt = <T extends z.core.SomeType>(t: T) => z.optional(t);
+const value = z.union([z.boolean(), num(), z.string()]);
+const point = z.tuple([num(), num()]);
 
 /** Runtime schema for every persisted GameState field. Unknown fields are retained for forward-compatible imports. */
 export const GameStateSchema = z.looseObject({
-  v: z.number().int().nonnegative(), room: id, inventory: z.array(id), flags: z.record(id, value),
+  v: count(), room: id, inventory: z.array(id), flags: z.record(id, value),
   props: z.record(id, z.string()),
-  actors: z.record(id, z.looseObject({ x: z.number().finite().optional(), y: z.number().finite().optional(), pose: id.optional(), facing: z.enum(['left', 'right']).optional(), visible: z.boolean().optional() })),
-  hero: z.record(id, point), unlocked: z.array(id), visited: z.record(id, z.number().int().nonnegative()),
-  counters: z.record(id, z.number().int().nonnegative()), seen: z.record(id, z.literal(1)), used: z.array(id).optional(),
-  where: z.record(id, id).optional(),
-  scripts: z.record(id, z.looseObject({ pc: z.number().int().nonnegative(), step: id.optional(), done: z.boolean().optional(), off: z.boolean().optional() })).optional(),
-  camera: z.looseObject({ x: z.number().finite(), follow: z.boolean() }).optional(), active: id.optional(),
-  players: z.record(id, z.looseObject({ room: id, inventory: z.array(id), hero: z.record(id, point), used: z.array(id).optional() })).optional(),
-  started: z.number().finite(), done: z.boolean().optional(),
-  music: z.looseObject({ id, at: z.number().finite().nonnegative() }).optional(),
+  actors: z.record(id, z.looseObject({ x: opt(num()), y: opt(num()), pose: opt(id), facing: opt(z.enum(['left', 'right'])), visible: opt(z.boolean()) })),
+  hero: z.record(id, point), unlocked: z.array(id), visited: z.record(id, count()),
+  counters: z.record(id, count()), seen: z.record(id, z.literal(1)), used: opt(z.array(id)),
+  where: opt(z.record(id, id)),
+  scripts: opt(z.record(id, z.looseObject({ pc: count(), step: opt(id), done: opt(z.boolean()), off: opt(z.boolean()) }))),
+  camera: opt(z.looseObject({ x: num(), follow: z.boolean() })), active: opt(id),
+  players: opt(z.record(id, z.looseObject({ room: id, inventory: z.array(id), hero: z.record(id, point), used: opt(z.array(id)) }))),
+  started: num(), done: opt(z.boolean()),
+  music: opt(z.looseObject({ id, at: num().check(z.nonnegative()) })),
 });
 
 export const SaveEnvelopeV3Schema = z.strictObject({
   format: z.literal('web-scumm-save'), schema: z.literal(3), gameId: id,
-  gameSaveVersion: z.number().int().nonnegative(), savedAt: z.number().finite(), state: GameStateSchema,
+  gameSaveVersion: count(), savedAt: num(), state: GameStateSchema,
 });
 
 /** A manual slot as stored: what the menu shows, and the envelope. v2 slots were `{ meta, state }`. */
 export const SlotRecordSchema = z.strictObject({
-  meta: z.looseObject({ at: z.number().finite(), room: id, roomName: z.string(), v: z.number().int().nonnegative() }),
+  meta: z.looseObject({ at: num(), room: id, roomName: z.string(), v: count() }),
   envelope: z.lazy(() => SaveEnvelopeV3Schema),
 });
 export interface SlotRecord { meta: SlotMeta; envelope: SaveEnvelopeV3 }

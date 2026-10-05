@@ -721,7 +721,8 @@ pèse 40 Mo sur le téléphone.
 `assetBudgets.initialKB`, `roomKB` et `chapterKB` disent combien le jeu peut demander à un téléphone de télécharger
 avant que le premier lieu soit jouable, par lieu et par chapitre. Avec une partition, `backgroundScoreKB` (ses stems),
 `decodedAudioMB` (décodée), et pour tout jeu `offlineTotalKB` (le préchargement complet) tiennent le reste (3.6) ; avec
-des transitions, `transitionPeakMB` (deux partitions, un pont et un stinger décodés à la fois, 3.6.1).
+des transitions, `transitionPeakMB` (deux partitions, un pont et un stinger décodés à la fois, 3.6.1) ; `initialJsKB`
+le JavaScript d'une première visite (3.9, vérifié sur le build par `npm run verify:dist`).
 `npm run weight` les vérifie, et une release les exige (docs/fr/TOOLS.md).
 
 Une image se désigne par `dossier/nom`, le chemin du fichier découpé dans `games/<jeu>/art/` sans l'extension :
