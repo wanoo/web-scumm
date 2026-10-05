@@ -206,7 +206,7 @@ export class App implements Presenter {
     this.bank = new AssetBank(o.manifest, o.base ?? `${import.meta.env?.BASE_URL ?? '/'}assets`, o.version ?? '');
     // `?music=mix|stems` forces the single mix or the director's stems (tests, the Studio); else the device decides.
     const musicMode = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('music') : null;
-    this.audio = new Audio(this.bank, { music: o.game.audio?.music, sfx: o.game.audio?.sfx, voice: o.game.audio?.voices, scores: o.game.audio?.scores }, musicMode === 'mix' ? { stems: false } : musicMode === 'stems' ? { stems: true } : {});
+    this.audio = new Audio(this.bank, { music: o.game.audio?.music, sfx: o.game.audio?.sfx, voice: o.game.audio?.voices, scores: o.game.audio?.scores, maxDecodedMB: o.game.audio?.maxDecodedMB }, musicMode === 'mix' ? { stems: false } : musicMode === 'stems' ? { stems: true } : {});
     this.audio.holds = (c) => !!this.engine?.state && check(c, this.engine.state);
     this.mg = { ...builtin, ...(o.minigames ?? {}) };
     const storageFailure = (error: Error) => queueMicrotask(() => this.reportStorageError(error));

@@ -190,7 +190,9 @@ voix et les morceaux ponctuels baissent la partition comme le mix. `npm run e2e:
 (0 échantillon de dérive), 100 changements de mix (aucun clic ; une bascule sèche est détectée), et mesure la gigue en
 temps réel dans Chromium et WebKit (0,02 ms), le tout en CI. Seule la dernière demande joue (3.5.1) : une partition
 dont les stems finissent de se décoder après qu'une autre a été demandée, ou après un arrêt, est abandonnée
-(`tests/director.test.ts`).
+(`tests/director.test.ts`). L'audio décodé qu'il garde est plafonné (3.6, `audio.maxDecodedMB`, 160 par défaut) : au-delà,
+les partitions jouées le moins récemment sont libérées, et une partition plus grosse à elle seule joue son mix unique
+(d'après son `pcmBytes`, avant tout téléchargement).
 
 ## Cache et fluidité
 

@@ -178,7 +178,9 @@ not tell its memory, Safari, only when the scores decode to 128 MB at most, `pcm
 `npm run e2e:music` renders thirty minutes offline (0 samples of drift), 100 changes of mix (no click; a hard switch
 is caught), and measures the real-time jitter in Chromium and WebKit (0.02 ms), all in CI. Only the latest request
 plays (3.5.1): a score whose stems finish decoding after another score was asked for, or after a stop, is dropped
-(`tests/director.test.ts`).
+(`tests/director.test.ts`). The decoded audio it keeps is capped (3.6, `audio.maxDecodedMB`, default 160): past it, the
+scores least recently played are let go, and a score that alone is larger plays as its single mix (by its
+`pcmBytes`, before any download).
 
 ## Cache and responsiveness
 

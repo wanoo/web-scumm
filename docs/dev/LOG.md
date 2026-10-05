@@ -1806,3 +1806,22 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
   at 48 kHz). It skips the files part without ffmpeg, as `voices.test.ts` does.
 
 → next: Claude · v36-pcm-cache
+
+## #82 · 2026-10-05 · Claude · proposal · v36-pcm-cache
+
+- `MusicDirector`: `buffers` is an LRU (a Map re-inserted on use). `sizes` counts each file once decoded, as
+  frames × channels × 4. After a score's stems decode and the request is still the latest, `evict(mine)` lets go of
+  the oldest files that are not this score's until `maxDecodedBytes` holds.
+  - A score that alone is over the cap throws `ScoreTooLarge`. It is checked before any download when `pcmBytes` says
+    so, else once decoded; then its files leave the cache.
+  - The score being replaced may be let go: its sources keep their buffers until their fade ends.
+- `audio.ts`: `ScoreTooLarge` puts that score in `mixOnly` (its single mix from then on). A stem that fails still
+  turns the stems off for every score, as in 3.5.
+- `audio.maxDecodedMB` (validated > 0). `validate` warns about a score whose `pcmBytes` is over it.
+- Tests (`tests/director.test.ts`):
+  - A, B and C with a cap of two scores: A goes;
+  - B played again comes from the cache and becomes the most recent;
+  - A comes back from the network and C goes;
+  - refused by `pcmBytes` (no fetch), and by measure (nothing plays, nothing kept).
+
+→ next: Claude · v36-transitions

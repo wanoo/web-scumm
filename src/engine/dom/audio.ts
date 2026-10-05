@@ -2,7 +2,7 @@ import { Howl, Howler } from 'howler';
 import type { AssetBank } from './assets';
 import type { Cond, Id, ScoreDef } from '../core/types';
 import { stemsFor } from '../core/score';
-import { MusicDirector, directorFits } from './director';
+import { MusicDirector, ScoreTooLarge, directorFits } from './director';
 
 /**
  * Music (one track at a time, crossfade, a stack for minigames, a one-off track on top)
@@ -28,7 +28,7 @@ export class Audio {
   private unlocked = false;
   private pending: string | null = null;
 
-  constructor(private bank: AssetBank, private files: { music?: Record<string, string>; sfx?: Record<string, string>; voice?: Record<string, string>; scores?: Record<Id, ScoreDef> }, opts: { stems?: boolean } = {}) {
+  constructor(private bank: AssetBank, private files: { music?: Record<string, string>; sfx?: Record<string, string>; voice?: Record<string, string>; scores?: Record<Id, ScoreDef>; maxDecodedMB?: number }, opts: { stems?: boolean } = {}) {
     const pcm = Object.values(files.scores ?? {}).map((s) => s.pcmBytes);
     if (opts.stems ?? directorFits(pcm.includes(undefined) ? undefined : Math.max(0, ...(pcm as number[])))) this.stemsWanted = true;
     const unlock = () => {
@@ -99,6 +99,8 @@ export class Audio {
   }
 
   private stemsWanted = false;
+  /** Scores the director cannot keep in memory (dom/director.ts `ScoreTooLarge`): played as their single mix. */
+  private mixOnly = new Set<string>();
   /** Whether a score plays as stems here (the asset graph's preload follows it). */
   get stemsOn() { return this.stemsWanted; }
   /** The director, made on the first score played after a gesture (an AudioContext needs one). */
@@ -107,6 +109,7 @@ export class Audio {
     if (!this.director) {
       const ctx = Howler.usingWebAudio && Howler.ctx ? Howler.ctx : new AudioContext();
       this.director = new MusicDirector(ctx);
+      if (this.files.maxDecodedMB) this.director.maxDecodedBytes = this.files.maxDecodedMB * 1024 * 1024;
       this.director.volume(this.musicOn ? this.volume * this.vol.music : 0);
     }
     return this.director;
@@ -146,12 +149,14 @@ export class Audio {
     this.current = null;
     if (prev?.howl) { const ph = prev.howl; ph.fade(ph.volume(), 0, 600); setTimeout(() => ph.stop(), 650); }
     const score = this.files.scores?.[id];
-    const d = score ? this.directorFor() : null;
+    const d = score && !this.mixOnly.has(id) ? this.directorFor() : null;
     if (score && d) {
       this.current = { id };
-      void d.play(id, score, this.stemUrls(score), stemsFor(score, this.holds)).catch(() => {
-        // A stem that does not load: the single mix instead.
-        if (this.current?.id === id && !this.current.howl) { this.current = null; this.stemsWanted = false; this.play(id); }
+      void d.play(id, score, this.stemUrls(score), stemsFor(score, this.holds)).catch((e) => {
+        // A score too large for the director's memory: its single mix from now on (the others keep their stems). A
+        // stem that does not load: the single mix instead, for every score.
+        if (e instanceof ScoreTooLarge) this.mixOnly.add(id); else this.stemsWanted = false;
+        if (this.current?.id === id && !this.current.howl) { this.current = null; this.play(id); }
       });
       return;
     }

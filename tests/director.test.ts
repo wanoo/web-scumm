@@ -2,7 +2,7 @@
 // order; a stop while a score loads; a stem that fails. Only the latest request plays. A fake audio context records
 // what starts (the real Web Audio is scripts/e2e-music.mjs's).
 import { describe, expect, it } from 'vitest';
-import { MusicDirector, directorFits, UNKNOWN_MEMORY_PCM } from '../src/engine/dom/director';
+import { MusicDirector, ScoreTooLarge, directorFits, UNKNOWN_MEMORY_PCM } from '../src/engine/dom/director';
 import type { ScoreDef } from '../src/engine/core/types';
 
 const param = () => ({ value: 1, setValueAtTime() {}, linearRampToValueAtTime() {}, cancelScheduledValues() {} });
@@ -16,7 +16,7 @@ function fakeCtx() {
       const src = { buffer: null as null | { name: string }, loop: false, loopStart: 0, loopEnd: 0, connect() {}, stop() {}, start() { started.push(src.buffer!.name); } };
       return src;
     },
-    decodeAudioData: async (b: ArrayBuffer & { name?: string }) => ({ name: (b as unknown as { name: string }).name, duration: 8 }),
+    decodeAudioData: async (b: ArrayBuffer & { name?: string }) => ({ name: (b as unknown as { name: string }).name, duration: 8, length: 1000, numberOfChannels: 2 }),
   };
   return { ctx: ctx as unknown as BaseAudioContext, started };
 }
@@ -117,5 +117,45 @@ describe('where the director plays stems', () => {
       expect(directorFits(40 * MB, nav({ deviceMemory: 8, connection: { saveData: true } }))).toBe(false);
     } finally { g.AudioContext = had; }
     expect(directorFits(40 * MB, nav({ deviceMemory: 8 }))).toBe(false); // no Web Audio
+  });
+});
+
+describe('the decoded audio the director keeps (3.6)', () => {
+  // Every fake stem decodes to 1000 frames × 2 channels × 4 bytes: 8 000 bytes, 16 000 a score of two stems.
+  const loadAll = async (d: MusicDirector, f: ReturnType<typeof files>, n: string) => { const p = d.play(n, score(n), urls(n), ['a']); f.load(`${n}-a`); f.load(`${n}-b`); await p; };
+
+  it('the scores least recently played are let go past the cap; the playing one stays', async () => {
+    const { ctx } = fakeCtx(), f = files();
+    let fetched = 0;
+    const d = new MusicDirector(ctx, (u) => { fetched++; return f.fetch(u); });
+    d.maxDecodedBytes = 32000;
+    await loadAll(d, f, 'A'); await loadAll(d, f, 'B');
+    expect(d.decodedBytes).toBe(32000);
+    await loadAll(d, f, 'C');
+    expect(d.cached).toEqual(['B-a', 'B-b', 'C-a', 'C-b']);
+    expect(d.decodedBytes).toBe(32000);
+    // B again: from the cache, and now the most recent; then A comes back from the network and C goes.
+    await d.play('B', score('B'), urls('B'), ['a']);
+    expect(fetched).toBe(6);
+    await loadAll(d, f, 'A');
+    expect(fetched).toBe(8);
+    expect(d.cached).toEqual(['B-a', 'B-b', 'A-a', 'A-b']);
+    expect(d.current).toBe('A');
+  });
+
+  it('a score larger than the cap is refused: by its declared weight before any download, else once decoded', async () => {
+    const { ctx, started } = fakeCtx(), f = files();
+    let fetched = 0;
+    const d = new MusicDirector(ctx, (u) => { fetched++; return f.fetch(u); });
+    d.maxDecodedBytes = 10000;
+    await expect(d.play('A', { ...score('A'), pcmBytes: 16000 }, urls('A'), ['a'])).rejects.toBeInstanceOf(ScoreTooLarge);
+    expect(fetched).toBe(0);
+    const b = d.play('B', score('B'), urls('B'), ['a']);
+    const refused = expect(b).rejects.toThrow(/decodes to 0 MB, over the 0 MB/);
+    f.load('B-a'); f.load('B-b');
+    await refused;
+    expect(d.current).toBeNull();
+    expect(d.cached).toEqual([]);
+    expect(started).toEqual([]);
   });
 });
