@@ -34,7 +34,7 @@ jobs:
           BASE_PATH: /${{ github.event.repository.name }}/
           STUDIO: '1'
           VITE_STUDIO_DEMO: '1'
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         if: github.ref == 'refs/heads/main'
         with:
           path: dist
