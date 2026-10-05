@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 3.4.0 — 2026-10-05
+
+"Stagecraft": picture, scene and Studio (Codex's 3.4 plan, D10–D13; `docs/en/ROADMAP.md`, `docs/en/BENCH.md` 3.4).
+
 ### Added
 
 - The reference chapter (3.4, `games/reference`, "The Night Market", D13): the engine's second real game, built from
@@ -41,12 +45,6 @@
   again when one changes; reduced motion (the setting or `prefers-reduced-motion`) turns off parallax, particles and
   transitions.
 
-### Changed
-
-- The Canvas painter draws the viewport only, over a background pre-rendered once per room: 59 frames per second in
-  the sample game's wide market with the CPU slowed 12× (31.5 on the CI runner at 4× before), its rooms still within
-  0.28% of the DOM references.
-
 - The Canvas 2D painter (`dom/render-canvas.ts`, D10): `renderer: 'canvas'` on a room or the game, `?renderer=` to
   force one. The sample game's rooms within 0.31% of the DOM references, the whole game played by it in CI (a new
   `chromium / canvas` row), and `npm run e2e:perf` (frames per second while the hero walks, CPU slowed 4×: 60 with
@@ -62,6 +60,7 @@
 - The renderer contract (D10): `RoomView` is the scene model (positions, poses, depth, walking, fades, the camera, the
   hit test) and hands finished sprites to a painter (`SceneRenderer` / `SpriteSpec`, `dom/renderer.ts`); the DOM
   painter (`dom/render-dom.ts`) is the reference. The rooms render pixel for pixel as before.
+
 - Visual baselines: `RoomView.still()` freezes the scene; `npm run e2e:visual` (a CI gate) compares every room of the
   sample game with `tests/visual/demo/*.png`.
 
@@ -70,6 +69,7 @@
   `npm run weight` all read it. It counts what the old budget missed (voice clips, minigame images and sounds, music
   changed by commands, the title video, gained items' icons, phone callers, prop animations) and no longer counts a
   playable character in a room it cannot reach.
+
 - `npm run weight` counts the app shell the service worker precaches (from `dist/sw.js`, compressed, with what a first
   visit downloads twice) in `initial`, and the decoded memory of the images. `npm run e2e:weight` (a CI gate in the
   Chromium row) checks the prediction against a real first visit: on the sample game 2 416 KB transferred for 2 486 KB
@@ -77,11 +77,14 @@
 
 ### Changed
 
+- The Canvas painter draws the viewport only, over a background pre-rendered once per room: 59 frames per second in
+  the sample game's wide market with the CPU slowed 12× (31.5 on the CI runner at 4× before), its rooms still within
+  0.28% of the DOM references.
+
 - A first visit to the sample game drops from 6.6 MB to 2.4 MB: the interface font is a Latin subset (DotGothic16,
   2 MB → 118 KB, `tools/subset-font.py`) with the full font as a `unicode-range` fallback outside the precache, the
   default fonts go through the bundler (the service worker's precache no longer downloads them a second time), and
   VT323, precached but never used, is gone.
-
 
 ### Fixed
 

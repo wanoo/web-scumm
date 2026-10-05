@@ -414,3 +414,16 @@ M-series, cache coupé.
 
 Joué jusqu'au bout par la CI : au clavier dans Chromium et WebKit, en français sans défaut anglais visible, et par le
 harnais générique avec axe et un aller-retour de sauvegarde.
+
+### 3.4.0, mesurée sur la release (5 octobre 2026, cache coupé)
+
+| Jeu | Statut | États | Temps | Face à la 3.3.0 |
+|---|---|---|---|---|
+| Démo, preuve globale | résolue | 3 480 | 2,3 s | mêmes états (2,2 s) |
+| Démo, preuve par chapitres | résolue | 5 chapitres | 3,6 s | mêmes chapitres (3,3 s) |
+| Référence par époques, 40 lieux × 3 personnages | résolue | 578 (10 647 exécutions du moteur) | 3,9 s | mêmes états (3,5 s) |
+| Le Marché de nuit, preuve globale | résolue | 904 | 1,9 s | nouveau |
+| Le Marché de nuit, par chapitres | résolue | 2 chapitres | 2,0 s | nouveau |
+
+La 3.4 a changé l'image, pas la logique : chaque nombre d'états est celui que la 3.3.0 mesurait ; les temps bougent
+dans le bruit d'un portable.

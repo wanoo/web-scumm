@@ -346,17 +346,39 @@ analysis, fixed), `v331-commercial` (`verify:commercial`; release exceptions pri
 (WebKit at the keyboard and the French game gate; a Safari offline checklist), `v331-release` (the built game, an SBOM
 and an attestation on the GitHub release; the notes list the manual passes, D12).
 
-## v3.4 "Stagecraft" (planned): picture, scene and Studio
+## v3.4 "Stagecraft" (5 October 2026): picture, scene and Studio
 
-Decided with the maintainer (D10, D11, D13), from Codex's 3.4 plan and its extension. In dependency order: one asset
-graph shared by preloading, offline, provenance and budgets, checked against the bytes a browser really transfers;
-a renderer contract with the DOM as the reference; the stage schema (layers, occluders, walk zones and links, as data,
-the logic staying in the DSL); a Canvas 2D renderer with the DOM overlay for UI and accessibility; layers, parallax,
-masks, lights, particles and transitions; walk topology (zones, stairs, ladders, a 2-axis camera); stage physics as
-closed forms of time; voice production; the structured Studio; a reference chapter of 8–12 rooms made from the sample
-game's art. Blocking: budgets against real bytes, visual baselines, DOM/Canvas parity, 3.x saves, a 6-layer scene with
-3 masks at 30 FPS under 4× CPU throttling, the Studio editing a stage scene, the chapter proved and played at the
-keyboard in Chromium and WebKit, in French. Reported (D12): screen reader, testers, a real phone, Safari, voices.
+Decided with the maintainer (D10, D11, D13), from Codex's 3.4 plan and its extension, one branch at a time (D9), in
+dependency order:
+
+- `v34-asset-graph`: one graph of the files each part of the game needs (title, rooms, map, offline), read by
+  preloading, the offline plan, provenance and `npm run weight`; `npm run e2e:weight` checks it against the bytes a
+  browser really transfers (a CI gate). Fonts through the bundler, a Latin subset.
+- `v34-renderer-contract`: the scene model (`RoomView`) and its painters; the DOM painter is the reference; visual
+  baselines for every room (`npm run e2e:visual`).
+- `v34-stage-schema`: `RoomDef.stage` (layers, lights, emitters, transition, links' conditions) and the layout's
+  geometry; old rooms normalised, nothing to rewrite (UPGRADING §11); 3.x saves unchanged.
+- `v34-canvas`: the Canvas 2D painter (D10), the DOM overlay for the interface and accessibility; parity with the DOM
+  references; `npm run e2e:perf` (CPU slowed 4×, a CI gate).
+- `v34-layers-masks`: parallax, occluders (polygon, mask image, a layer's alpha, feathered or inverted), lights,
+  seeded particles, transitions; reduced motion honoured.
+- `v34-walk-topology`: walk zones and links (walk, stairs, ladder, jump, teleport), a depth scale and a camera zoom
+  per zone; a closed link stops the walk, never the action (lint `walk-link-gate`).
+- `v34-stage-physics`: `launch`, `spring`, `path`, `follow`, closed forms of time, presentation only.
+- `v34-voice-production`: `npm run voices` (the table per language, CSV out and back, every clip checked with ffmpeg),
+  music ducked under voices, captions for the sounds that matter.
+- `v34-studio`: structured editing (forms for reactions, conditions, commands and stages, a diff preview, validated
+  atomic writes, undo / redo), the stage's geometry in the editor, the Voices tab, `set_value` for AIs.
+- `v34-reference`: "The Night Market" (`games/reference`), the second real game, the exit gate.
+
+Exit criteria, as measured (BENCH 3.4): the first visit inside the weight prediction; the sample game's rooms and the
+reference's against their baselines; the whole game played by the Canvas painter; 3.0–3.3 golden saves resumed to the
+end; the market with 6 layers, parallax and 3 masks at 50 fps with the CPU slowed 4× (47 at 8×); a character crossing
+two zones by stairs and two planes by a ladder and a jump; the Studio creating and undoing a stage in a browser; no
+layer or link carrying logic (lint and test); the reference proved whole and by chapters and played to the end at the
+keyboard in Chromium and WebKit, and in French. Reported, not done by hand (D12, `docs/dev/passes/3.4.0.md`): the
+screen reader, testers, a real phone, Safari offline, recorded voices, a signed tag. Left for later: lip-sync markers
+in the voice table.
 
 ## v3.5 "Score" (planned): music, workers, inventories
 

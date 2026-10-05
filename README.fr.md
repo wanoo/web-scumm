@@ -17,10 +17,11 @@ vérifie, le prouve et le publie en jeu web jouable hors ligne. Il est né comme
 
 ![The Pantry Key : la maison de Grand-mère, neuf verbes, le sac](docs/img/v33-hero.webp)
 
-**Nouveau en v3.3 « Scale » :** les jeux à plusieurs personnages jouables sont prouvés, plus seulement joués. Une
-aventure de référence de 40 lieux à trois personnages, structurée par époques (chaque personnage reste dans la sienne,
-les objets passent de l'une à l'autre par des passages contrôlés), est vérifiée état par état en 3,5 secondes
-([la mesure](docs/fr/BENCH.md#330-mesurée-sur-la-release-5-octobre-2026-cache-coupé)).
+**Nouveau en v3.4 « Stagecraft » :** des scènes en profondeur. Un peintre Canvas dessine des calques avec parallaxe,
+des masques qui cachent un personnage derrière un pilier, des lumières et des particules ; les personnages montent
+escaliers et échelles entre des zones de marche ; le Studio édite tout cela en formulaires, sans toucher un fichier à
+la main. Un deuxième jeu, « Le Marché de nuit », utilise chaque pièce, est prouvé, et joué jusqu'au bout par la CI au
+clavier dans deux navigateurs ([la mesure](docs/fr/BENCH.md#34--le-chapitre-de-référence-5-octobre-2026)).
 
 ## Bien plus qu'un moteur
 
@@ -32,15 +33,18 @@ les objets passent de l'une à l'autre par des passages contrôlés), est vérif
 | **Prouver** | Un chemin jusqu'à la fin, chaque état où la fin est perdue et pourquoi, des sauvegardes qui passent d'une version à l'autre, de vrais navigateurs. |
 | **Livrer** | Un jeu web statique qui s'installe sur un téléphone, joue hors ligne, au toucher, à la souris ou au clavier. |
 
-## La v3.3 en chiffres
+## La v3.4 en chiffres
 
 Mesuré sur la release, cache de preuve coupé ([BENCH.md](docs/fr/BENCH.md)) :
 
 | Quoi | Résultat |
 |---|---|
-| Jeu de référence, 40 lieux × 3 personnages, structuré par époques | prouvé en 578 états, 3,5 s |
-| Le jeu d'exemple, chaque état atteignable | prouvé en 2,2 s, puis 0,17 s depuis le cache de preuve |
-| Le jeu d'exemple, chapitre par chapitre | prouvé en 3,3 s |
+| « Le Marché de nuit », 8 lieux, 2 personnages jouables | prouvé en 904 états, 1,9 s ; les abstractions auditées contre 83 672 états explicites |
+| Son marché mis en scène : 6 calques, parallaxe, 3 masques, deux sols | 50 images par seconde avec le CPU ralenti 4× (Canvas) |
+| Une première visite | chaque octet récupéré par le navigateur était prédit par le graphe d'assets |
+| Jeu de référence, 40 lieux × 3 personnages, structuré par époques | prouvé en 578 états, 3,9 s |
+| Le jeu d'exemple, chaque état atteignable | prouvé en 2,3 s, puis 0,17 s depuis le cache de preuve |
+| Le jeu d'exemple, chapitre par chapitre | prouvé en 3,6 s |
 | Les 7 mini-jeux fournis | chacun gagné au clavier seul, dans Chromium et WebKit |
 | Accessibilité | testée au clavier, aucune violation axe-core grave ou critique sur les écrans contrôlés (pas une conformité WCAG) |
 | Assets livrés | empreinte et licence de chaque fichier verrouillées après relecture ; budgets de poids par lieu et par chapitre |
@@ -158,8 +162,11 @@ assistant.
 
 ## Releases
 
-Release actuelle : [v3.3.1 « Truth »](https://github.com/wanoo/web-scumm/releases/tag/v3.3.1), un correctif de la v3.3
-« Scale ». L'histoire de la v1.3 à la v3.3 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
+Release actuelle : [v3.4.0 « Stagecraft »](https://github.com/wanoo/web-scumm/releases/tag/v3.4.0) : un peintre Canvas
+avec calques, masques, lumières et particules, des zones de marche et des escaliers, une physique de scène, le Studio
+structuré, la production des voix, un seul graphe d'assets vérifié contre les vrais octets, et un deuxième jeu,
+« Le Marché de nuit ». L'histoire de la v1.3 à la v3.4 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement
+dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt
 

@@ -306,19 +306,42 @@ a trouvé un défaut de la recherche de base, le masquage des règles absent de 
 au clavier et le jeu en français bloquants ; une liste de contrôle Safari hors ligne), `v331-release` (le jeu
 construit, un SBOM et une attestation sur la release GitHub ; les notes listent les passages manuels, D12).
 
-## v3.4 « Stagecraft » (prévue) : image, scène et Studio
+## v3.4 « Stagecraft » (5 octobre 2026) : image, scène et Studio
 
-Décidée avec le mainteneur (D10, D11, D13), d'après le plan 3.4 de Codex et son extension. Dans l'ordre des
-dépendances : un graphe d'assets unique partagé par le préchargement, le hors-ligne, la provenance et les budgets,
-vérifié contre les octets qu'un navigateur transfère vraiment ; un contrat de renderer avec le DOM comme référence ;
-le schéma de scène (calques, occulteurs, zones et liens de marche, en données, la logique restant dans le DSL) ; un
-renderer Canvas 2D avec la surcouche DOM pour l'interface et l'accessibilité ; calques, parallaxe, masques, lumières,
-particules et transitions ; topologie de marche (zones, escaliers, échelles, caméra à deux axes) ; physique de scène
-en formes closes du temps ; production des voix ; le Studio structuré ; un chapitre de référence de 8 à 12 lieux fait
-avec l'art de la démo. Bloquant : budgets contre les vrais octets, références visuelles, parité DOM/Canvas, sauvegardes
-3.x, une scène à 6 calques et 3 masques à 30 i/s sous un CPU ralenti 4×, le Studio qui édite une scène, le chapitre
-prouvé et joué au clavier dans Chromium et WebKit, en français. Signalé (D12) : lecteur d'écran, testeurs, un vrai
-téléphone, Safari, voix.
+Décidée avec le mainteneur (D10, D11, D13), d'après le plan 3.4 de Codex et son extension, une branche à la fois (D9),
+dans l'ordre des dépendances :
+
+- `v34-asset-graph` : un seul graphe des fichiers dont chaque partie du jeu a besoin (titre, lieux, carte,
+  hors-ligne), lu par le préchargement, le plan hors-ligne, la provenance et `npm run weight` ; `npm run e2e:weight`
+  le vérifie contre les octets qu'un navigateur transfère vraiment (une porte de la CI). Les polices passent par le
+  bundler, un sous-ensemble latin.
+- `v34-renderer-contract` : le modèle de scène (`RoomView`) et ses peintres ; le peintre DOM est la référence ; des
+  références visuelles pour chaque lieu (`npm run e2e:visual`).
+- `v34-stage-schema` : `RoomDef.stage` (calques, lumières, émetteurs, transition, conditions des liens) et la géométrie
+  de la disposition ; les anciens lieux normalisés, rien à réécrire (UPGRADING §11) ; les sauvegardes 3.x inchangées.
+- `v34-canvas` : le peintre Canvas 2D (D10), la surcouche DOM pour l'interface et l'accessibilité ; la parité avec les
+  références DOM ; `npm run e2e:perf` (CPU ralenti 4×, une porte de la CI).
+- `v34-layers-masks` : parallaxe, occultants (polygone, image de masque, alpha d'un calque, adoucis ou inversés),
+  lumières, particules à graine, transitions ; le mouvement réduit respecté.
+- `v34-walk-topology` : zones et liens de marche (marche, escalier, échelle, saut, téléportation), une échelle de
+  profondeur et un zoom de caméra par zone ; un lien fermé arrête la marche, jamais l'action (lint `walk-link-gate`).
+- `v34-stage-physics` : `launch`, `spring`, `path`, `follow`, formes closes du temps, présentation seulement.
+- `v34-voice-production` : `npm run voices` (la table par langue, aller-retour CSV, chaque clip vérifié avec ffmpeg),
+  la musique baissée sous les voix, des sous-titres pour les sons qui comptent.
+- `v34-studio` : l'édition structurée (formulaires pour les réactions, conditions, commandes et scènes, aperçu du
+  diff, écritures atomiques validées, annuler / rétablir), la géométrie de la scène dans l'éditeur, l'onglet Voix,
+  `set_value` pour les IA.
+- `v34-reference` : « Le Marché de nuit » (`games/reference`), le deuxième vrai jeu, la porte de sortie.
+
+Critères de sortie, mesurés (BENCH 3.4) : la première visite dans la prédiction de poids ; les lieux du jeu d'exemple
+et de la référence contre leurs références ; le jeu entier joué par le peintre Canvas ; les sauvegardes dorées 3.0 à
+3.3 reprises jusqu'au bout ; le marché à 6 calques, parallaxe et 3 masques à 50 i/s avec le CPU ralenti 4× (47 à 8×) ;
+un personnage qui traverse deux zones par un escalier et deux plans par une échelle et un saut ; le Studio qui crée
+puis annule une scène dans un navigateur ; aucun calque ni lien porteur de logique (lint et test) ; la référence
+prouvée en entier et par chapitres, jouée jusqu'au bout au clavier dans Chromium et WebKit, et en français. Signalé,
+non fait à la main (D12, `docs/dev/passes/3.4.0.md`) : le lecteur d'écran, des testeurs, un vrai téléphone, Safari
+hors ligne, des voix enregistrées, un tag signé. Laissé pour plus tard : les repères de synchronisation labiale dans
+la table des voix.
 
 ## v3.5 « Score » (prévue) : musique, workers, inventaires
 

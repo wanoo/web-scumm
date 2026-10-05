@@ -17,10 +17,11 @@ single day with an AI assistant.
 
 ![The Pantry Key: Grandma's house, nine verbs, the bag](docs/img/v33-hero.webp)
 
-**New in v3.3 "Scale":** games with several playable characters are proved, not just played. A 40-room reference
-adventure with three characters, structured by eras (each character keeps to their own, items pass between them through
-controlled passages), is checked state by state in 3.5 seconds
-([how it is measured](docs/en/BENCH.md#330-measured-on-the-release-5-october-2026-cache-off)).
+**New in v3.4 "Stagecraft":** scenes with depth. A Canvas painter draws layers with parallax, masks that hide a
+character behind a pillar, lights and particles; characters climb stairs and ladders between walk zones; the Studio
+edits all of it as forms, without touching a file by hand. A second game, "The Night Market", uses every piece, is
+proved, and is played to its end in CI at the keyboard in two browsers
+([how it is measured](docs/en/BENCH.md#34-the-reference-chapter-5-october-2026)).
 
 ## More than an engine
 
@@ -32,15 +33,18 @@ controlled passages), is checked state by state in 3.5 seconds
 | **Prove** | A path to the ending, every state where the ending is lost and why, saves that load across versions, real browsers. |
 | **Ship** | A static web game that installs on a phone, plays offline, on touch, mouse or keyboard. |
 
-## v3.3 in numbers
+## v3.4 in numbers
 
 Measured on the release, proof cache off ([BENCH.md](docs/en/BENCH.md)):
 
 | What | Result |
 |---|---|
-| Reference game, 40 rooms × 3 characters, structured by eras | proved in 578 states, 3.5 s |
-| The sample game, every reachable state | proved in 2.2 s, then 0.17 s from the proof cache |
-| The sample game, chapter by chapter | proved in 3.3 s |
+| "The Night Market", 8 rooms, 2 playable characters | proved in 904 states, 1.9 s; the abstractions audited against 83 672 explicit states |
+| Its staged market: 6 layers, parallax, 3 masks, two floors | 50 frames per second with the CPU slowed 4× (Canvas) |
+| A first visit | every byte the browser fetched was predicted by the asset graph |
+| Reference game, 40 rooms × 3 characters, structured by eras | proved in 578 states, 3.9 s |
+| The sample game, every reachable state | proved in 2.3 s, then 0.17 s from the proof cache |
+| The sample game, chapter by chapter | proved in 3.6 s |
 | The 7 bundled minigames | each one won with the keyboard alone, in Chromium and WebKit |
 | Accessibility | tested at the keyboard, no serious or critical axe-core violation on any screen checked (not a WCAG claim) |
 | Shipped assets | every file's hash and licence locked after review; weight budgets per room and chapter |
@@ -153,8 +157,10 @@ Every page also exists in French under `docs/fr/`. `docs/dev/` holds the log of 
 
 ## Releases
 
-Current release: [v3.3.1 "Truth"](https://github.com/wanoo/web-scumm/releases/tag/v3.3.1), a patch of v3.3 "Scale". The
-story from v1.3 to v3.3 is in the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
+Current release: [v3.4.0 "Stagecraft"](https://github.com/wanoo/web-scumm/releases/tag/v3.4.0): a Canvas painter with
+layers, masks, lights and particles, walk zones and stairs, stage physics, the structured Studio, voice production,
+one asset graph checked against real bytes, and a second game, "The Night Market". The story from v1.3 to v3.4 is in
+the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map
 

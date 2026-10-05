@@ -1597,3 +1597,18 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
   occluders, stairs; two planes, ladder flag, jump for Biscuit only; links and layers carry no logic but a condition).
 
 → next: Claude · merge on green CI, then v34-release
+
+## #70 · 2026-10-05 · Claude · proposal · v34-release
+
+- 3.4.0 "Stagecraft": `package.json` 3.4.0; CHANGELOG dated (the unreleased section had two "Changed" headings, the
+  first holding additions: regrouped, nothing reworded); ROADMAP en / fr (what shipped by branch, the exit criteria as
+  measured, the manual passes reported, lip-sync markers left for later); README en / fr ("New in v3.4", the numbers
+  re-measured); ENGINE en / fr "Walking and motions"; BENCH en / fr "3.4.0, measured on the release".
+- Measured, cache off: demo proof 3 480 states 2.3 s, by chapters 3.6 s; era reference 40 × 3 578 states 3.9 s; the
+  Night Market 904 states 1.9 s, by chapters 2.0 s. Same state counts as 3.3.0 everywhere: 3.4 moved the picture, not
+  the logic.
+- `tests/fixtures/saves/demo-3.4.0.json` (from `tools/golden-save.ts`, kept for the next releases), in the golden saves
+  test: loads, reaches the ending.
+- `docs/dev/passes/3.4.0.md`: nothing done by hand at the tag (D12); the release notes say so.
+
+→ next: Claude · merge on green CI, tag v3.4.0, then v35-music-director
