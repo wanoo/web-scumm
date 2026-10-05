@@ -313,6 +313,8 @@ export interface ItemDef {
 export interface PropAnim { frames: Id[]; fps?: number; loop?: boolean; at?: Record<number, Cmd[]> }
 
 export interface PropDef {
+  /** The verb a double tap uses on it (4.0), when the logical one is not right: see core/default-verb.ts. */
+  defaultVerb?: VerbId;
   /** A single image, or one image per state. */
   img?: Id;
   states?: Record<string, Id>;
@@ -327,6 +329,8 @@ export interface PropDef {
 }
 
 export interface ActorDef {
+  /** The verb a double tap uses on it (4.0), when the logical one is not right: see core/default-verb.ts. */
+  defaultVerb?: VerbId;
   char: Id;
   /** false: living scenery, neither clickable nor named (e.g. an apparition). */
   interactive?: boolean;
@@ -338,6 +342,8 @@ export interface ActorDef {
 }
 
 export interface HotspotDef {
+  /** The verb a double tap uses on it (4.0), when the logical one is not right: see core/default-verb.ts. */
+  defaultVerb?: VerbId;
   name: string;
   kind?: string[];
   visible?: Cond;
@@ -360,6 +366,8 @@ export interface TalkTopic {
  * Declared exits also give the tools the map of the world (unreachable rooms, one-way passages).
  */
 export interface ExitDef {
+  /** The verb a double tap uses on it (4.0), when the logical one is not right: see core/default-verb.ts. */
+  defaultVerb?: VerbId;
   name: string;
   to: Id;
   /** Entry point (layout `entries`) or point in the target room. */

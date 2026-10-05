@@ -17,11 +17,15 @@ single day with an AI assistant.
 
 ![The Pantry Key: Grandma's house, nine verbs, the bag](docs/img/v36-hero.webp)
 
-**New in v3.7 "Field Proof":** the sample game may be sold: its theme, Tchaikovsky's *Swan Lake* written out and
-arranged for the project, replaces an arrangement under a non-commercial licence, so `npm run verify:commercial`
-passes. The reference chapter plays two scores joined by bridges, and the browser checks that a transition can be
-cancelled, restored from a save, or stopped without leaving a sound behind (3.6.1 "Audio truth" gave the music its
-three intents: play, restore, stop). The nightly corpus runs in four shards and keeps its counts.
+**New in v4.0 "Stable Platform":** the engine is a package with a public API it promises to keep. A game lives in
+its own project (`web-scumm create`, then `npm run dev`, `verify`, `build`, `release`), imports four entries
+(`web-scumm/content`, `/player`, `/minigames`, `/testing`), and moves to a new release with `web-scumm migrate`: CI
+creates a game on the previous release, saves in it, upgrades it and plays the old save to the end. What a release
+ships is exactly its files and their licences, built from the commit CI tested and never replaced
+([API](docs/en/API.md), [SUPPORT](docs/en/SUPPORT.md), [PACKAGE](docs/en/PACKAGE.md)). On the way: 3.7 made the sample
+game sellable, 3.8 wrote down the field passes people still have to make ([FIELD](docs/en/FIELD.md)), 3.9 made the
+first game outside the repository, "The Lighthouse". And for players: a double tap acts with the verb they mean
+(through a door, talk to someone, look at the rest), and an item from the bag is given or used, whichever fits.
 
 **v3.6 "Production":** the music director is held to budgets of its own (stems, offline, decoded audio, a
 cap on what it keeps), its stem files are measured before a release, and one score hands over to another on a beat,
@@ -48,6 +52,19 @@ Market".
 | **Check** | Broken references, untranslated lines, the licence of every shipped file, what a phone has to download. |
 | **Prove** | A path to the ending, every state where the ending is lost and why, saves that load across versions, real browsers. |
 | **Ship** | A static web game that installs on a phone, plays offline, on touch, mouse or keyboard. |
+
+## v4.0 in numbers
+
+| What | Result |
+|---|---|
+| A new game outside the repository: packed, created, installed, verified, built, played to its end | a CI job on every push (`npm run fresh-install`) |
+| A game made on the previous release, upgraded, its save played to the end on 4.0 | a CI job on every push (`npm run upgrade-check`) |
+| "The Lighthouse", the independent game: 5 places, English and French | `release --commercial` green: proof over 85 states, 202 texts per language, 62 locked files |
+| The public API | 92 names in 4 entries, 23 Studio/MCP tools, held by `tests/api-surface.test.ts` |
+| Saves | one per release from 3.0.0 to 4.0.0 loads and reaches the ending |
+| The player's first visit | 122 KB of JavaScript, gzipped (153 in 3.7.0), held by `initialJsKB` |
+| The archive | every file accounted for: code, locked assets, fonts, icons, `licenses/` |
+| The nightly corpus | 1 503 random games in four shards, 910 compared to the explicit search, 0 divergences |
 
 ## v3.6 in numbers
 
@@ -109,7 +126,7 @@ Needs Node 22+, Python 3 for the art tools (`pip install -r requirements.txt`) a
 publishing to come, then `npx create-web-scumm my-game`):
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v3.9.0/web-scumm-3.9.0.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.0.0/web-scumm-4.0.0.tgz
 npx --package=$T web-scumm create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # then npm run verify, npm run build, npm run release
@@ -191,10 +208,9 @@ Every page also exists in French under `docs/fr/`. `docs/dev/` holds the log of 
 
 ## Releases
 
-Current release: [v3.9.0 "Independence"](https://github.com/wanoo/web-scumm/releases/tag/v3.9.0): the engine as a
-package (`web-scumm`, `create-web-scumm`), a game made outside the repository verified, built and played in CI, and
-the public API that 4.0 will hold stable. The story from v1.3 to v3.9 is in the
-[ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
+Current release: [v4.0.0 "Stable Platform"](https://github.com/wanoo/web-scumm/releases/tag/v4.0.0): a package with a
+public API it keeps (`docs/en/SUPPORT.md`), games in their own projects, upgrades proved in CI. The story from v1.3 to
+v4.0 is in the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map
 

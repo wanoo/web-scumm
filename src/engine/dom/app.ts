@@ -6,6 +6,7 @@ import { Engine } from '../core/engine';
 import type { Presenter, SaveStore, SlotMeta, SlotStore } from '../core/ports';
 import type { GameDef, GameState, Id, Layout, Point, RoomDef, VerbId } from '../core/types';
 import { minigames as builtin, MINIGAME_CSS, type Minigame } from '../minigames';
+import { defaultVerb } from '../core/default-verb';
 import { Ending } from '../ending';
 import type { CustomCommands } from '../core/custom';
 import { AssetBank, type AssetManifest } from './assets';
@@ -96,6 +97,8 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, html?: 
 };
 /** How far from a target (logical px of the 640×400 scene) a tap on nothing counts as a near miss (3.8). */
 const NEAR_MISS = 24;
+/** Two taps on the same target within this many ms are a double tap: it acts with the default verb (4.0). */
+const DOUBLE_TAP_MS = 400;
 /** A frame counter fixed in the top-left corner: frames in the last second, and the lowest second since it started. */
 function fpsMeter() {
   const box = document.createElement('div');
@@ -160,6 +163,10 @@ export class App implements Presenter {
   private speechDone: (() => void) | null = null;
   private speechTimer = 0;
   private eatClick = -Infinity;
+  /** The item was picked from the bag without a verb (4.0): the target decides, give to a character, use on the rest. */
+  private implicit = false;
+  /** The last target tapped and when: a second tap on it soon after is a double tap (4.0, `defaultVerb`). */
+  private lastTap: { id: Id; t: number } | null = null;
   /** Taps on nothing next to a target, by `room/target` (3.8, `nearMiss`). */
   private misses: Record<string, number> = {};
   private inCutscene = false;
@@ -414,11 +421,11 @@ export class App implements Presenter {
   private pickVerb(v: VerbId) {
     if (this.engine.busy) return;
     this.verb = this.verb === v ? null : v;
-    this.a = null;
+    this.a = null; this.implicit = false;
     this.renderVerbs(); this.renderInv(); this.sentence();
   }
 
-  private resetVerb() { this.verb = null; this.a = null; this.renderVerbs(); this.renderInv(); this.sentence(); }
+  private resetVerb() { this.verb = null; this.a = null; this.implicit = false; this.renderVerbs(); this.renderInv(); this.sentence(); }
 
   private async onItem(id: Id) {
     if (this.engine.busy) return;
@@ -427,14 +434,29 @@ export class App implements Presenter {
     if ((!v || v === 'use' || v === 'give') && this.engine.usedLocked(id)) return;
     if ((v === 'use' || v === 'give') && !this.a) { this.a = id; this.renderInv(); this.sentence(); return; }
     if ((v === 'use' || v === 'give') && this.a && this.a !== id) { const a = this.a; this.resetVerb(); await this.engine.act({ verb: v, a, b: id }); return; }
-    if (!v) { this.verb = 'use'; this.a = id; this.renderVerbs(); this.renderInv(); this.sentence(); return; }
+    if (!v) { this.verb = 'use'; this.a = id; this.implicit = true; this.renderVerbs(); this.renderInv(); this.sentence(); return; }
     this.resetVerb();
     await this.engine.act({ verb: v, a: id });
   }
 
+  /** The verb a tap on this target means now: the chosen one, or (an item picked without a verb) give or use (4.0). */
+  private verbFor(target: Id): VerbId | null {
+    const room = this.view.room;
+    if (this.implicit && this.a && room) return defaultVerb(this.game, room, target, this.a) ?? this.verb;
+    return this.verb;
+  }
+
   private async actOnTarget(id: Id) {
-    const v = this.verb;
-    if (!v) { const ap = this.engine.approach(id); this.sentence(id); if (ap) await this.engine.walkTo(ap); return; }
+    const now = performance.now();
+    const double = !!this.lastTap && this.lastTap.id === id && now - this.lastTap.t < DOUBLE_TAP_MS;
+    this.lastTap = double ? null : { id, t: now };
+    const v = this.verbFor(id);
+    if (!v) {
+      // A double tap acts with the verb the player means (4.0): through the door, talk to someone, look at the rest.
+      const dv = double && this.view.room ? defaultVerb(this.game, this.view.room, id) : null;
+      if (dv) { this.resetVerb(); await this.engine.act({ verb: dv, a: id }); return; }
+      const ap = this.engine.approach(id); this.sentence(id); if (ap) await this.engine.walkTo(ap); return;
+    }
     if ((v === 'use' || v === 'give') && this.a) { const a = this.a; this.resetVerb(); await this.engine.act({ verb: v, a, b: id }); return; }
     if (v === 'give') { void this.say(this.game.hero, this.game.ui.giveWhat, {}); return; }
     this.resetVerb();
@@ -494,7 +516,7 @@ export class App implements Presenter {
   }
 
   private sentence(target?: Id) {
-    const V = this.game.verbs.find((x) => x.id === this.verb);
+    const V = this.game.verbs.find((x) => x.id === (target ? this.verbFor(target) : this.verb));
     const n = (id: Id) => `<b>${esc(this.engine.nameOf(id))}</b>`;
     let s: string;
     if (!V) s = esc(this.game.ui.walkTo) + (target ? ' ' + n(target) : '');

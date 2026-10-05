@@ -30,7 +30,7 @@ In a game project the entries are `web-scumm/content`, `web-scumm/player`, `web-
 | `Action` | a player action: verb, a, b |
 | `CharacterDef` · `SpriteSet` · `MouthSet` | a character, its poses, its mouths |
 | `ItemDef` | an inventory item |
-| `PropDef` · `PropAnim` · `ActorDef` · `HotspotDef` · `ExitDef` | what a room holds |
+| `PropDef` · `PropAnim` · `ActorDef` · `HotspotDef` · `ExitDef` | what a room holds (each may name the `defaultVerb` of a double tap, 4.0) |
 | `HintDef` · `ScriptDef` | a room's hints, a script of the world |
 | `StageDef` · `StageLayer` · `LightDef` · `EmitterDef` · `TransitionKind` | the staged room (layers, lights, particles, transitions) |
 | `MapDef` · `MapRegion` · `PlaceDef` | the travel map |

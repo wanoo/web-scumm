@@ -2047,3 +2047,34 @@ Platform"; human gates reported, not blocking (D12).
   are the maintainer's.
 
 → next: Claude · merge on green CI, tag v3.9.0, then 4.0 (the Lighthouse moved from 3.9.0 to 4.0.0)
+
+## #94 · 2026-10-05 · Claude · proposal · 4.0.0 "Stable Platform"
+
+- `feature/contracts` (shipped in 3.9 as a preview) becomes the promise: `docs/en/SUPPORT.md` (semver on the four
+  public entries, the authoring schema, the save envelope, the MCP tools' arguments, the command; deprecation in a
+  minor, removal at the next major; `RevealDef` deprecated), `tests/api-surface.json` (92 names, 23 tools).
+- `feature/upgrade-proof`: `npm run upgrade-check -- --from=previous`, a CI job: a game created on the previous
+  release's tarball, a save made by that engine, the new engine installed, `migrate --check`, `verify`, `build`, the
+  old save played to the end. Locally 3.9.0 → 4.0.0: green.
+- **The Lighthouse moved for real**: on the 3.9.0 package, `release --commercial` green and a save made mid-game
+  (boathouse, key, matches, oil) kept in `saves/made-on-3.9.0.json`; then `npm install` of the 4.0.0 package:
+  `migrate --check` has nothing to do, `release --commercial` green again (proof over 85 states), the 3.9.0 save loads
+  in the boathouse and reaches the ending in 7 steps, and the game plays to its end in the browser in French.
+- Asked by the maintainer during 4.0: **a double tap acts with the verb a player means** (`core/default-verb.ts`:
+  through an exit, talk to a character, look at the rest, or the content's `defaultVerb`), and an item picked from the
+  bag without a verb is given to a character or used on anything else. `npm run e2e:taps` in Chromium and WebKit, in
+  the reference job.
+- Also asked: **the open pull requests closed**. All eleven were Dependabot's. Taken (their commits merged, so GitHub
+  marks them merged with 4.0): earcut 3.2.4, `setup-node` 7, `setup-python` 7, `upload-artifact` 7,
+  `upload-pages-artifact` 5, `deploy-pages` 5. Closed with the reason: Vite 8 (its bundler breaks a CommonJS default
+  import, the game does not start), TypeScript 7 (no `baseUrl`, no non-relative `paths`), and the raised pip
+  minimums (installing NumPy 2.5 broke numba in a shared Python on the maintainer's machine; put back at 2.4.6).
+- Found by CI on the way (3.9.0): the template's own placeholder art had the same names as the demo's (`hero/`,
+  `ui/`, `decor/backyard`), so CI's second game overwrote the demo's files in the shared `public/assets` and broke its
+  provenance lock. The placeholders live under `starter/` now.
+- GitHub Actions had a major outage during the 3.9.0 tag (jobs "not acquired by a hosted runner"): re-run, not a
+  failure of the code.
+- Not done (D12): the seven field passes, a game made by someone else, npm publishing, a signed tag, GitHub's
+  immutable releases setting; The Lighthouse stays a local repository until the maintainer says where to push it.
+
+→ next: Claude · merge on green CI, tag v4.0.0

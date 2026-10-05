@@ -11,11 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - run: pip install -r requirements.txt
@@ -34,7 +34,7 @@ jobs:
           BASE_PATH: /${{ github.event.repository.name }}/
           STUDIO: '1'
           VITE_STUDIO_DEMO: '1'
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         if: github.ref == 'refs/heads/main'
         with:
           path: dist
@@ -44,11 +44,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - run: pip install -r requirements.txt
@@ -106,7 +106,7 @@ jobs:
             experimental: false
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -161,7 +161,7 @@ jobs:
       - run: npm run e2e:pwa -- http://127.0.0.1:5173/ ${{ matrix.browser == 'webkit' && '--allow-skip' || '' }}
         env:
           E2E_BROWSER: ${{ matrix.browser }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: e2e-screenshots-${{ matrix.browser }}-${{ matrix.mode }}
@@ -174,17 +174,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - run: pip install -r requirements.txt
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run fresh-install
+
+  # A game made on the previous release moved to this engine (4.0): created with that release's tarball, a save made by
+  # it, then this engine installed, migrate --check, verify, build, and the old save played to the end.
+  upgrade:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: npm ci
+      - run: npm run upgrade-check -- --from=previous
 
   # The reference chapter (games/reference, since 3.4): the second real game, the 3.4 exit gate. Built, proved whole and
   # chapter by chapter, played to the end at the keyboard in Chromium and WebKit, in French with no English default
@@ -200,11 +219,11 @@ jobs:
       GAME: reference
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
       - run: pip install -r requirements.txt
@@ -230,7 +249,9 @@ jobs:
       # Two scores and two bridges (3.7): a transition planned, restored, stopped, under transitionPeakMB; in WebKit
       # too since 3.8.
       - run: npm run e2e:music -- http://127.0.0.1:5175/ --only=reference --browser=${{ matrix.browser }}
-      - uses: actions/upload-artifact@v4
+      # The default verb (4.0): a double tap goes through a door, talks to a character; an item from the bag is given or used.
+      - run: npm run e2e:taps -- http://127.0.0.1:5175/ --browser=${{ matrix.browser }}
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: e2e-reference-${{ matrix.browser }}
@@ -247,4 +268,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

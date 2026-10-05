@@ -477,17 +477,34 @@ demo (242 files) and the reference (225); the four-shard nightly on 501 seeds of
   misses, `?fps`). The seven human passes stay the maintainer's (D12). No large engine primitive.
 - **3.9 "Independence"** (shipped 5 October 2026): the engine as a package (`web-scumm`, `create-web-scumm`, the `web-scumm` command), a game
   outside the repository built from the packed template (The Lighthouse), `npm run fresh-install` in CI.
-- **4.0 "Stable Platform"**: the public API in four entries with its surface held by a test, a support and
+- **4.0 "Stable Platform"** (shipped 5 October 2026): the public API in four entries with its surface held by a test, a support and
   deprecation policy, the save line of 3.x loaded in 4.x, the independent game moved from 3.9 to 4.0.
 - Left to research, not a 4.0 gate: exact dominance on relevant items, the 20 × 3 matrix (a criterion only if a real
   game needs it).
 
-## Next (not planned yet)
+## v4.0 "Stable Platform" (5 October 2026)
 
+- `feature/contracts` (in 3.9): the public API in four entries, its surface and the MCP tools' arguments held by a
+  test, `docs/en/API.md`, `docs/en/SUPPORT.md`.
+- `feature/upgrade-proof`: `npm run upgrade-check`, a game moved from the previous release with its save, in CI.
+- The Lighthouse, moved from 3.9.0 to 4.0.0.
+
+Exit criteria, as measured: `fresh-install` and `upgrade` green in CI; the Lighthouse's `release --commercial` green
+on 4.0.0 and its 3.9.0 save played to the end; one save per release from 3.0.0 to 4.0.0 reaching the ending.
+Reported, not done (D12): the seven field passes (`docs/en/FIELD.md`), a game by someone else, publishing to npm, a
+signed tag, GitHub's immutable releases setting.
+
+## After 4.0 (not planned yet)
+
+- The field passes, then what they find (D12).
+- Publishing `web-scumm` and `create-web-scumm` on npm; The Lighthouse in a public repository.
+- Vite 8 and TypeScript 7 (declined in 4.0: Vite 8's bundler breaks a CommonJS default import, TypeScript 7 drops
+  `baseUrl` and non-relative `paths`): a minor of their own, with the project template's `tsconfig.json`.
+- Translations loaded on demand (the second language is ~10% of the first visit's JavaScript): a change to the game
+  module's contract, so a minor with a deprecation, not a patch.
 - The open matrix of three characters: exact dominance by the relevance of items and positions, audited against the
-  explicit search on the corpus (more workers do not help: the number of states is the limit).
+  explicit search on the corpus.
 - Lip-sync markers in the voice table (left from 3.4).
-- The manual passes of `docs/dev/passes/` (D12).
 
 ## Out of scope (explicit decisions)
 

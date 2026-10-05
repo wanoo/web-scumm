@@ -1,7 +1,7 @@
 {
   "name": "web-scumm",
   "private": true,
-  "version": "3.9.0",
+  "version": "4.0.0",
   "type": "module",
   "scripts": {
     "dev": "tsx tools/select-game.ts && vite",
@@ -25,6 +25,7 @@
     "e2e:perf": "node scripts/e2e-perf.mjs",
     "e2e:studio": "node scripts/e2e-studio.mjs",
     "e2e:music": "node scripts/e2e-music.mjs",
+    "e2e:taps": "node scripts/e2e-taps.mjs",
     "release-check": "npm run doctor && npm run build && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run audit:deps && npm audit --audit-level=high",
     "e2e": "node scripts/e2e.mjs",
     "validate": "tsx tools/validate.ts",
@@ -53,6 +54,7 @@
     "new-game": "node scripts/new-game.mjs",
     "pack": "node scripts/pack.mjs",
     "fresh-install": "node scripts/fresh-install.mjs",
+    "upgrade-check": "node scripts/upgrade-check.mjs",
     "page:storyboard": "tsx --tsconfig tsconfig.json tools/pages/storyboard.ts",
     "page:review": "tsx --tsconfig tsconfig.json tools/pages/review.ts",
     "page:placement": "tsx --tsconfig tsconfig.json tools/pages/placement.ts",
@@ -91,7 +93,7 @@
     "vitest": "^5.0.3"
   },
   "dependencies": {
-    "earcut": "^3.2.3",
+    "earcut": "^3.2.4",
     "howler": "^2.2.4",
     "navmesh": "^2.3.1",
     "sirv-cli": "^3.0.1",
