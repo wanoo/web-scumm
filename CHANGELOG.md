@@ -4,6 +4,14 @@
 
 ### Added
 
+- `docs/{en,fr}/FIELD.md`: the seven field passes (screen reader, Safari offline, a real phone, playtesters, recorded
+  voices, listening, signed tag), how to make each and what to bring back; the passes template has the listening row.
+- Near misses in playtests: a tap on nothing within 24 px of a target counts for that room and target; the shared
+  session carries the counts (ids only) and `npm run playtests` lists them.
+- `?fps`: a frame counter (now and the lowest second) for the real-phone pass.
+
+### Added
+
 - Field quotas for playtests: `--require=N`, `--require-completed=N`, `--require-devices=N` (a diverged session counts
   for none), and `npm run verify:field` (`verify:commercial`, then 5 sessions, 3 played to the end, 2 device families).
   `--strict` alone still only refuses a diverged session, and now says when it checked none. A shared session says its

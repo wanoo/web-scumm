@@ -132,14 +132,16 @@ export function deviceFamily(ua: string, touchPoints = 0): DeviceFamily {
 }
 
 /** The file a tester sends: the session, the journal, the game and its save version, its device family (3.7.1). */
-export interface SessionFile { kind: 'web-scumm-session'; game: Id; v: number; at: number; session: Session; trace: TraceEntry[]; device?: DeviceFamily }
+export interface SessionFile { kind: 'web-scumm-session'; game: Id; v: number; at: number; session: Session; trace: TraceEntry[]; device?: DeviceFamily;
+  /** Taps on nothing next to a target, by `room/target` (3.8): the hotspots players aim at and miss. */
+  misses?: Record<string, number> }
 
-export function sessionFile(gameId: Id, e: Engine, o: { playtest?: boolean; device?: DeviceFamily } = {}): SessionFile {
+export function sessionFile(gameId: Id, e: Engine, o: { playtest?: boolean; device?: DeviceFamily; misses?: Record<string, number> } = {}): SessionFile {
   if (!e.session) throw new Error('no session yet: start or load a game first');
   const session = structuredClone(e.session);
   // A playtest leaves the device with ids and indices only: no journal (its lines carry text), no dev-panel scripts.
   if (o.playtest) for (const en of session.log) if ('script' in en) en.script = [];
-  return { kind: 'web-scumm-session', game: gameId, v: e.game.saveVersion, at: session.at ?? Date.now(), session, trace: o.playtest ? [] : [...e.trace], ...(o.device ? { device: o.device } : {}) };
+  return { kind: 'web-scumm-session', game: gameId, v: e.game.saveVersion, at: session.at ?? Date.now(), session, trace: o.playtest ? [] : [...e.trace], ...(o.device ? { device: o.device } : {}), ...(o.misses && Object.keys(o.misses).length ? { misses: { ...o.misses } } : {}) };
 }
 
 /** Reads a session file (or a bare session) and checks its shape. */
@@ -148,5 +150,6 @@ export function parseSessionFile(text: string): SessionFile {
   const session = (j.session ?? (j.log ? j : undefined)) as Session | undefined;
   if (!session || !Array.isArray(session.log) || !session.start?.kind) throw new Error('not a session file');
   const device = j.device === 'ios' || j.device === 'android' || j.device === 'desktop' ? j.device : undefined;
-  return { kind: 'web-scumm-session', game: j.game ?? '', v: j.v ?? session.v, at: j.at ?? 0, session, trace: j.trace ?? [], ...(device ? { device } : {}) };
+  const misses = j.misses && typeof j.misses === 'object' ? Object.fromEntries(Object.entries(j.misses).filter(([k, n]) => /^[\w-]+\/[\w-]+$/.test(k) && Number.isInteger(n) && n > 0)) : {};
+  return { kind: 'web-scumm-session', game: j.game ?? '', v: j.v ?? session.v, at: j.at ?? 0, session, trace: j.trace ?? [], ...(device ? { device } : {}), ...(Object.keys(misses).length ? { misses } : {}) };
 }

@@ -1,0 +1,39 @@
+# Preuve terrain : ce que seuls des gens et de vrais appareils vérifient
+
+La machine vérifie une release à chaque push : le solveur, les navigateurs en CI, l'archive, les budgets. Sept
+vérifications demandent une personne ou un vrai appareil. Elles sont rapportées dans les notes de chaque release, pas
+bloquantes (D12) : une release dit combien ont été faites (`docs/dev/passes/<version>.md`, depuis
+`docs/dev/passes/TEMPLATE.md`). Cette page dit comment faire chacune et quoi rapporter.
+
+| # | Passe | Comment | À rapporter |
+|---|---|---|---|
+| 1 | Lecteur d'écran | `docs/dev/SCREEN-READER.md` : VoiceOver sur iOS ou TalkBack sur Android, une partie de l'écran titre à la première énigme résolue | la ligne de la fiche : appareil, OS, ce qui n'a pas pu être atteint ou n'a pas été lu |
+| 2 | Safari hors ligne | `docs/dev/SAFARI-OFFLINE.md` : première visite en ligne, mode avion, un lieu jamais visité, un rechargement | la ligne : versions d'iOS et de Safari, l'étape qui a échoué |
+| 3 | Un vrai téléphone | la scène la plus lourde (le marché de référence, le jardin de la démo) sur un téléphone moyen de gamme, avec le compteur (`?fps`) | le FPS le plus bas vu (≥ 30 voulu), le téléphone |
+| 4 | Testeurs | cinq personnes qui ne connaissent pas les énigmes, chacune sur son téléphone, sans aide | leurs fichiers de session (ci-dessous), puis `npm run verify:field` |
+| 5 | Voix enregistrées | `npm run voices -- check --release` après l'enregistrement : répliques validées sur répliques avec un id | le compte, les répliques restantes |
+| 6 | Écoute | chaque partition sur le haut-parleur d'un téléphone et au casque : les stems suivent le jeu, chaque pont une fois, rien de coupé, rien qui reste après le chargement d'une sauvegarde, une voix pendant un pont | la ligne, et chaque défaut avec son lieu et ce qui a été entendu |
+| 7 | Tag signé | `git tag -s vX.Y.Z` avec la clé du mainteneur, `git tag -v` le montre | la ligne |
+
+## Testeurs (passe 4)
+
+1. Envoyer l'URL du jeu. Dire seulement : « joue comme tu veux ; quand tu t'arrêtes, fini ou pas, ouvre le menu pause
+   et touche *Partager la session* ». N'expliquer aucune énigme, même sur demande : noter la question.
+2. *Partager la session* fait un fichier avec les entrées depuis le début de la partie (ids et indices seulement, pas
+   de texte du journal, pas de nom), la famille d'appareil (`ios`, `android` ou `desktop`, rien de plus fin) et les
+   tapes manquées (une tape sur rien à côté d'une cible, par lieu et cible). Le testeur l'envoie comme il veut.
+3. Déposer les fichiers dans `games/<id>/playtests/` (commité ; `npm run audit` le couvre), puis :
+   - `npm run playtests -- --out=.cache/playtests` : temps de jeu par lieu, où les joueurs bloquent, indices montrés,
+     où ils se sont arrêtés, tapes manquées, une heatmap sur le graphe d'énigmes ;
+   - `npm run verify:field` : `verify:commercial`, puis cinq sessions qui se rejouent encore, trois jouées jusqu'au
+     bout, deux familles d'appareils. Ces nombres sont les quotas d'une release testée par des joueurs ; un jeu peut en
+     demander plus avec `npm run playtests -- --strict --require=N --require-completed=N --require-devices=N`.
+4. Ce que montre le rapport devient du travail : un blocage est une énigme à mieux indiquer, une tape manquée une zone
+   à élargir, un abandon un endroit à regarder. Les sessions restent : quand le contenu change elles peuvent ne plus se
+   rejouer, et `--strict` dit lesquelles (les réenregistrer ou les supprimer).
+
+## La fiche
+
+Copier `docs/dev/passes/TEMPLATE.md` en `docs/dev/passes/<version>.md` avant le tag, remplir ce qui a été fait,
+laisser « not done » là où rien ne l'a été. `scripts/release-notes.mjs` met le tableau dans les notes de release avec
+« n of 7 done ».

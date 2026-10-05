@@ -94,6 +94,17 @@ describe('the committed demo playtest', () => {
     expect(r.heat['rule:house.use-key-pantry']).toBe(1);
     expect(playtestsMarkdown(r, demo)).toContain('| 23/23 | yes |');
   });
+
+  it('near misses (3.8): summed over the sessions by room and target, ids only, a malformed key dropped', async () => {
+    const { readFileSync } = await import('node:fs');
+    const raw = JSON.parse(readFileSync('games/demo/playtests/walkthrough-hesitant.session.json', 'utf8'));
+    const a = parseSessionFile(JSON.stringify({ ...raw, misses: { 'house/pantry': 2, 'house/armchair': 1, 'bad key': 4 } }));
+    const b = parseSessionFile(JSON.stringify({ ...raw, misses: { 'house/pantry': 3 } }));
+    expect(a.misses).toEqual({ 'house/pantry': 2, 'house/armchair': 1 });
+    const r = await analyzePlaytests(demo, demoLayouts, [{ name: 'a', file: a }, { name: 'b', file: b }], { commands });
+    expect(r.misses).toEqual({ 'house/pantry': 5, 'house/armchair': 1 });
+    expect(playtestsMarkdown(r, demo)).toMatch(/## Near misses[\s\S]*\| pantry \| 5 \|/);
+  });
 });
 
 describe('the field quotas (3.7.1)', () => {
