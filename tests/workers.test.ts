@@ -47,6 +47,20 @@ describe('proof workers', () => {
     expect(por.profile.workers?.reason).toContain('partial-order');
   }, 60000);
 
+  for (const how of ['exit', 'throw'] as const) it(`a worker that stops mid-search (${how}) leaves the pool: the same proof, and the profile says so`, async () => {
+    const g = makeStressGame({ rooms: 12, players: 2, items: 10, flags: 10, npcs: 1, scripts: 2, topics: 4, schemaVersion: 3, eras: true, softlock: true });
+    const one = await solve(structuredClone(g.game), g.layouts, { mode: 'prove', maxStates: 60000, workers: 1, batch: 16 });
+    const t = Date.now();
+    const crashed = await solve(structuredClone(g.game), g.layouts, { mode: 'prove', maxStates: 60000, workers: 4, batch: 16, workerCrash: { worker: 1, after: 5, how } });
+    expect(sig(crashed)).toEqual(sig(one));
+    expect(crashed.profile.workers?.reason).toMatch(/1 worker\(s\) stopped .*3 went on/);
+    // Every worker stops: this thread finishes the search.
+    const all = await solve(structuredClone(g.game), g.layouts, { mode: 'prove', maxStates: 60000, workers: 3, batch: 16, workerCrash: { worker: 'all', after: 2, how } });
+    expect(sig(all)).toEqual(sig(one));
+    expect(all.profile.workers?.reason).toMatch(/3 worker\(s\) stopped .*this thread expanded the rest/);
+    expect(Date.now() - t).toBeLessThan(60000);
+  }, 120000);
+
   it('the clock stops a search: truncated, and the profile says why', async () => {
     const g = makeStressGame({ rooms: 20, players: 2, items: 12, flags: 30, npcs: 1, scripts: 2, topics: 8, schemaVersion: 3 });
     const r = await solve(structuredClone(g.game), g.layouts, { mode: 'prove', maxStates: 200000, workers: 2, timeLimitMs: 400 });

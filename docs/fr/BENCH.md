@@ -520,3 +520,28 @@ que la recherche échoue de toute façon. Elle reste une option, éteinte par d�
 | Référence par époques, 40 lieux × 3 personnages | résolue | 578 (10 647 exécutions du moteur) | 4,1 s | mêmes états (des personnages dans leurs époques ne se rejoignent jamais) |
 | Le Marché de nuit, preuve globale | résolue | 288 | 1,2 s | 904 → 288 (le propriétaire canonique) |
 | Le Marché de nuit, par chapitres | résolue | 2 chapitres | 1,2 s | 2,0 → 1,2 s |
+
+## 3.5.1 : ce que les workers coûtent en mémoire (5 octobre 2026)
+
+`NODE_OPTIONS=--expose-gc npm run bench -- --workers-table --max=20000` (la chaîne ouverte de 20 lieux × 2
+personnages, lots de 64). La table a une colonne de RSS maximale depuis la 3.5.1 : tout le processus, threads des
+workers compris, échantillonné toutes les 20 ms, avec un ramasse-miettes avant chaque ligne. La mémoire qu'une passe
+libère n'est pas toujours rendue au système, donc les lignes suivantes sont une borne haute.
+
+| Workers | Preuve | États | Temps | Accélération | RSS max |
+|---|---|---|---|---|---|
+| aucun (un nœud à la fois) | solved | 14002 | 18,3 s | ×1,00 | 534 Mo |
+| 1 | solved | 14002 | 18,8 s | ×0,97 | 866 Mo |
+| 2 | solved | 14002 | 11,0 s | ×1,65 | 1026 Mo |
+| 4 | solved | 14002 | 7,0 s | ×2,62 | 1211 Mo |
+| 8 | solved | 14002 | 6,1 s | ×3,01 | 1496 Mo |
+
+Chaque worker charge son propre moteur et son jeu : environ 150 à 350 Mo de plus par worker. Quatre workers coûtent
+plus du double de la mémoire d'une recherche seule, pour ×2,6 de vitesse. C'est une raison de plus pour qu'ils restent
+éteints sauf demande. Cela montre aussi que davantage de workers n'atteindront pas 20 × 3 : il faut moins d'états
+(3.6).
+
+Un worker qui s'arrête en pleine recherche quitte maintenant le pool pour de bon : son nœud repart aux autres, ou à ce
+thread s'il n'en reste aucun. `stats()` n'interroge que les workers vivants, 2 s au plus chacun.
+`tests/workers.test.ts` arrête un worker sur quatre après 5 expansions, puis les trois sur trois, par sortie comme par
+erreur non rattrapée : la preuve est la même.
