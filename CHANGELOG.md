@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+
+- A stinger that does not fit in the decoded audio beside the playing score is no longer played over the cap: the
+  director lets it go (`stinger()` returns null, `lastStinger.skipped`) and it is streamed instead. The cap holds after
+  every operation, which `tests/director.test.ts` now checks after every lifecycle case.
+
 ## 3.7.0 — 2026-10-05
 
 "Field Proof", the machine part (LOG #88–#90): what can be proved without a person. The human passes are still to

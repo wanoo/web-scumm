@@ -7,6 +7,7 @@ import type { ScoreDef } from '../src/engine/core/types';
 
 const log: unknown[][] = [];
 let refuse: 'large' | 'stem' | null = null;
+let stingerFits = true;
 
 vi.mock('howler', () => {
   class Howl {
@@ -34,6 +35,7 @@ vi.mock('../src/engine/dom/director', async (orig) => {
       if (refuse === 'stem') throw new Error('404');
       this.current = id;
     }
+    async stinger(url: string) { log.push(['stinger', url]); return stingerFits ? 0 : null; }
     mix() { return null; }
     stop() { log.push(['stop']); this.current = null; }
     volume() {} duck() { return () => {}; }
@@ -46,14 +48,14 @@ const { Audio } = await import('../src/engine/dom/audio');
 const score = (n: string): ScoreDef => ({ stems: { a: `${n}-a.mp3` }, bpm: 120 });
 const bank = { music: (f: string) => f, sfx: (f: string) => f, voice: (f: string) => f } as never;
 const make = () => new Audio(bank, {
-  music: { A: 'A.mp3', B: 'B.mp3', C: 'C.mp3', bridge: 'bridge.mp3', plain: 'plain.mp3' },
+  music: { A: 'A.mp3', B: 'B.mp3', C: 'C.mp3', bridge: 'bridge.mp3', plain: 'plain.mp3', sting: 'sting.mp3' },
   scores: { A: score('A'), B: score('B'), C: score('C') },
   transitions: [{ from: '*', to: '*', at: 'bar', bridge: 'bridge' }],
 });
 const flush = () => new Promise((r) => setTimeout(r, 0));
 const gesture = () => document.dispatchEvent(new Event('pointerdown'));
 
-beforeEach(() => { log.length = 0; refuse = null; (globalThis as { AudioContext?: unknown }).AudioContext = class {}; });
+beforeEach(() => { log.length = 0; refuse = null; stingerFits = true; (globalThis as { AudioContext?: unknown }).AudioContext = class {}; });
 
 describe('the music\'s intents (3.6.1)', () => {
   it('a save loaded while its own score plays starts it again at the saved point', async () => {
@@ -113,5 +115,16 @@ describe('the music\'s intents (3.6.1)', () => {
     log.length = 0;
     a.restore(null); a.play('B'); a.restored(); await flush();
     expect(log).toEqual([['stop'], ['restore', 'B', 0]]);
+  });
+
+  it('a stinger the decoded audio cannot hold beside the score is streamed instead (3.7.1)', async () => {
+    const a = make(); gesture();
+    a.play('A'); await flush();
+    log.length = 0;
+    a.stinger('sting'); await flush();
+    expect(log).toEqual([['stinger', 'sting.mp3']]);
+    log.length = 0; stingerFits = false;
+    a.stinger('sting'); await flush();
+    expect(log).toEqual([['stinger', 'sting.mp3'], ['howl.seek', 'sting.mp3', 0], ['howl.play', 'sting.mp3']]);
   });
 });

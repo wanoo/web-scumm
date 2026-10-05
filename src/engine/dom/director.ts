@@ -84,6 +84,8 @@ export class MusicDirector {
    * the decoded audio could not hold both, so the old one stopped at once; `bridge: false`: the bridge did not fit.
    */
   lastTransition: { from: Id; to: Id; at: number; start: number; cut?: true; bridge?: false } | null = null;
+  /** The last stinger asked (tests, the Studio): when it starts, or `skipped: 'cap'` when it did not fit (3.7.1). */
+  lastStinger: { url: string; at?: number; skipped?: 'cap' } | null = null;
   /** A transition scheduled that has not landed yet: from, to, and when (tests, the Studio). */
   get pending(): { from: Id; to: Id; at: number } | null {
     this.settle();
@@ -324,17 +326,25 @@ export class MusicDirector {
   }
 
   /**
-   * A one-off cue on the next beat of the playing score (at once without one). Returns when it starts. It counts in
-   * the decoded audio like the rest: past the cap, the least recently used files not in use go (3.6.1).
+   * A one-off cue on the next beat of the playing score (at once without one). Returns when it starts, or null when
+   * it was not played. It counts in the decoded audio like the rest: past the cap, the least recently used files not
+   * in use go (3.6.1); one that still does not fit beside the score is let go unplayed (3.7.1: the caller streams it,
+   * dom/audio.ts), so the cap holds after every stinger.
    */
-  async stinger(url: string, now = this.ctx.currentTime, gain = 0.9): Promise<number> {
+  async stinger(url: string, now = this.ctx.currentTime, gain = 0.9): Promise<number | null> {
     const g0 = this.gen;
     const buf = await this.buffer(url);
     this.evict(new Set([...this.inUse(), url]));
+    if (this.decodedBytes > this.maxDecodedBytes && !this.inUse().has(url)) {
+      this.buffers.delete(url); this.sizes.delete(url);
+      this.lastStinger = { url, skipped: 'cap' };
+      return null;
+    }
     const p = this.playing;
     const at = p ? nextBoundary(p.score, p.start, Math.max(now, this.ctx.currentTime), 'beat', this.lead, p.duration) : Math.max(now, this.ctx.currentTime) + this.lead;
     // Asked before a stop or a restore: it does not sound after it.
-    if (g0 !== this.gen) return at;
+    if (g0 !== this.gen) return null;
+    this.lastStinger = { url, at };
     const bus = this.ctx.createGain(); bus.gain.value = gain; bus.connect(this.duckBus);
     const src = this.ctx.createBufferSource(); src.buffer = buf; src.connect(bus); src.start(at);
     this.track({ urls: [url], sources: [src], bus });

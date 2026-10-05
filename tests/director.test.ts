@@ -1,7 +1,7 @@
 // The music director's requests (3.5.1): a score asked for, then another, whose stems finish decoding in the other
 // order; a stop while a score loads; a stem that fails. Only the latest request plays. A fake audio context records
 // what starts (the real Web Audio is scripts/e2e-music.mjs's).
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { MusicDirector, ScoreTooLarge, directorFits, UNKNOWN_MEMORY_PCM } from '../src/engine/dom/director';
 import type { ScoreDef } from '../src/engine/core/types';
 
@@ -233,8 +233,12 @@ describe('the director\'s lifecycle (3.6.1)', () => {
     await Promise.resolve();
     for (const u of files_) { try { f.load(u); } catch { /* cached */ } }
     await p;
+    expect(d.decodedBytes).toBeLessThanOrEqual(d.maxDecodedBytes);
   };
-  const setup = () => { const r = recorder(), f = files(); const d = new MusicDirector(r.ctx, f.fetch); d.lead = 0; return { ...r, f, d }; };
+  // The cap holds after every case (3.7.1), whatever the case did last.
+  let last: MusicDirector | null = null;
+  afterEach(() => { if (last) expect(last.decodedBytes).toBeLessThanOrEqual(last.maxDecodedBytes); last = null; });
+  const setup = () => { const r = recorder(), f = files(); const d = new MusicDirector(r.ctx, f.fetch); d.lead = 0; last = d; return { ...r, f, d }; };
 
   it('restore() of the score playing starts it again at the saved point', async () => {
     const { d, f, raw, sources } = setup();
@@ -345,6 +349,20 @@ describe('the director\'s lifecycle (3.6.1)', () => {
       await Promise.resolve(); f.load(`sting-${i}`); await p;
       expect(d.decodedBytes).toBeLessThanOrEqual(40000);
     }
+    expect(d.cached).toContain('A-a');
+  });
+
+  it('a stinger that does not fit beside the score is not decoded into the cap: it is let go unplayed (3.7.1)', async () => {
+    const { d, f, heard } = setup();
+    d.maxDecodedBytes = 32000;
+    await at(d, f, 'A'); // 16,000 bytes
+    const p = d.stinger('long-sting'); // 24,000 bytes: both would be 40,000
+    await Promise.resolve(); f.load('long-sting');
+    expect(await p).toBeNull();
+    expect(d.decodedBytes).toBeLessThanOrEqual(32000);
+    expect(d.cached).not.toContain('long-sting');
+    expect(d.lastStinger).toEqual({ url: 'long-sting', skipped: 'cap' });
+    expect(heard('long-sting')).toBe(false);
     expect(d.cached).toContain('A-a');
   });
 

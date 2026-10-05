@@ -135,8 +135,10 @@ export class Audio {
     const track = this.files.music?.[id], sound = this.files.sfx?.[id];
     const d = this.director;
     if (d?.current && !this.current?.howl && this.musicOn && (track || sound)) {
-      // On the music's bus: a stinger is part of the score (its level follows the music volume).
-      void d.stinger(track ? this.bank.music(track) : this.bank.sfx(sound!)).catch(() => {});
+      // On the music's bus: a stinger is part of the score (its level follows the music volume). One that does not fit
+      // in the decoded audio beside the score (null, 3.7.1) is streamed instead: not decoded, so the cap holds.
+      void d.stinger(track ? this.bank.music(track) : this.bank.sfx(sound!))
+        .then((at) => { if (at === null) { if (track) this.once(id); else this.sfx(id); } }).catch(() => {});
       return;
     }
     if (track) this.once(id); else if (sound) this.sfx(id);
