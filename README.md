@@ -17,12 +17,18 @@ single day with an AI assistant.
 
 ![The Pantry Key: Grandma's house, nine verbs, the bag](docs/img/v36-hero.webp)
 
-**New in v3.6 "Production":** the music director is held to budgets of its own (stems, offline, decoded audio, a
+**New in v3.7 "Field Proof":** the sample game may be sold: its theme, Tchaikovsky's *Swan Lake* written out and
+arranged for the project, replaces an arrangement under a non-commercial licence, so `npm run verify:commercial`
+passes. The reference chapter plays two scores joined by bridges, and the browser checks that a transition can be
+cancelled, restored from a save, or stopped without leaving a sound behind (3.6.1 "Audio truth" gave the music its
+three intents: play, restore, stop). The nightly corpus runs in four shards and keeps its counts.
+
+**v3.6 "Production":** the music director is held to budgets of its own (stems, offline, decoded audio, a
 cap on what it keeps), its stem files are measured before a release, and one score hands over to another on a beat,
 a bar, a phrase or a marker, through a bridge; a save keeps where the music was. The proof pools items per group of
 characters who can meet, so open chains with three characters are proved where 3.5 gave up
-([the measures](docs/en/BENCH.md#36-pooling-by-group-a-leak-and-a-corpus-5-october-2026)), and 1 500 random games
-are checked against the explicit search every night.
+([the measures](docs/en/BENCH.md#36-pooling-by-group-a-leak-and-a-corpus-5-october-2026)), and random games of three
+kinds are checked against the explicit search every night (counted as tried, compared and partial).
 
 **v3.5 "Score":** music that follows the game. A track is cut into stems that play in sync; the mix changes
 with the room, the active character or a flag, on the next bar, without a click. The proof runs on several cores

@@ -414,12 +414,27 @@ Critères de sortie, mesurés : les 9 cas du cycle de vie échouent sur 3.6.0 et
 sauvegarde pendant que sa partition continue et revient à moins de 0,1 s du point sauvegardé. Signalé (D12,
 `docs/dev/passes/3.6.1.md`) : les mêmes passes humaines, et un tag signé (pas de clé sur cette machine).
 
+## v3.7 « Field Proof » (5 octobre 2026) : ce qui se prouve sans une personne
+
+- `v37-own-theme` : le thème du jeu d'exemple écrit pour le projet (le thème du hautbois du Lac des cygnes, domaine
+  public, avec son harmonie et son arrangement propres) : plus aucune exception de release, `verify:commercial` vert
+  sur les deux jeux.
+- `v37-reference-scores` : la partition propre du marché de référence et deux ponts ; `e2e:music --only=reference` en
+  CI (passage de main, restauration avant une arrivée, arrêt pendant l'attente, le pic décodé sous `transitionPeakMB`).
+- `v37-corpus-shards` : le corpus de nuit en quatre jobs, additionnés par un cinquième.
+
+Critères de sortie, mesurés : `npm run verify:commercial` vert sur la démo et la référence ; le scénario de référence
+vert dans Chromium (pont de 5,47 s, restauration à moins de 0,1 s, pic de 130 Mo pour un budget de 150). Pas fait, la
+part humaine de « Field Proof » (D12, `docs/dev/passes/3.7.0.md`) : un passage iPhone/Safari et Android/Chrome,
+VoiceOver ou TalkBack, cinq joueurs extérieurs, Safari hors ligne, des voix enregistrées sur un dialogue complet, une
+écoute des deux partitions et de leurs ponts, un tag signé.
+
 ## Ensuite (pas encore planifié)
 
-- La matrice ouverte à trois personnages : une abstraction pour des personnages qui ne peuvent pas se rejoindre (ce que
-  chacun peut encore apporter aux autres), ou une borne dite dans BENCH.
+- La matrice ouverte à trois personnages : une dominance exacte par la pertinence des objets et des positions, auditée
+  contre la recherche explicite sur le corpus (plus de workers n'aident pas : le nombre d'états est la limite).
 - Les repères de synchronisation labiale dans la table des voix (restés de la 3.4).
-- Les passes manuelles de `docs/dev/passes/` (D12), et les captures de la 3.4–3.5 (le marché, l'onglet Musique).
+- Les passes manuelles de `docs/dev/passes/` (D12).
 
 ## Hors plan (décisions explicites)
 
