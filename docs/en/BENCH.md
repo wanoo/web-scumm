@@ -541,5 +541,10 @@ states, and which flags show as reached depends on which merged state was kept. 
 only (`SolveResult.liveFlags`). The corpus also ran out of memory. The solver left a zero-delay timer queued on every
 action, about 15 MB a search, until the process went idle. Fixed: 918 MB after 60 audits before, 9 MB after.
 
+**20 rooms × 3 characters: still truncated**, at 600 000 states in 2 375 s, 7.6 GB at the peak (1 879 041
+hand-overs, 2 407 distinct positions). Pooling by group moves the limit from 10 to 14 rooms, not to 20. What is left
+is where the characters stand: three of them in regions apart, with the doors each has opened. That needs an
+abstraction of characters who cannot meet, the open question since 3.3.
+
 Not done from the 3.6 plan: removing items no remaining condition reads (the group was the lever that the profile
 pointed to), and counting the traffic between workers.

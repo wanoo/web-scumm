@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 3.6.0 — 2026-10-05
+
+"Production": the rest of the 3.5.0 review (LOG #80–#85). A save now keeps the music's phase (`state.music`, optional:
+the 3.5 saves load as they are). The open matrix of 20 rooms × 3 characters stays truncated (600 000 states): the
+target is missed again, as allowed (BENCH.md "3.6").
+
 ### Fixed
 
 - The solver leaked about 15 MB a search. Each action raced a zero-delay timer that was never cleared, and a search runs

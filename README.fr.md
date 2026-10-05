@@ -17,12 +17,20 @@ vérifie, le prouve et le publie en jeu web jouable hors ligne. Il est né comme
 
 ![The Pantry Key : la maison de Grand-mère, neuf verbes, le sac](docs/img/v33-hero.webp)
 
-**Nouveau en v3.5 « Score » :** une musique qui suit le jeu. Un morceau est découpé en stems qui jouent calés ; le
+**Nouveau en v3.6 « Production » :** le directeur musical a ses propres budgets (stems, hors ligne, audio décodé, un
+plafond sur ce qu'il garde), ses stems sont mesurés avant une release, et une partition passe la main à une autre sur
+un temps, une mesure, une phrase ou un marqueur, par un pont ; une sauvegarde garde où en était la musique. La preuve
+met les objets en commun par groupe de personnages qui peuvent se rejoindre : des chaînes ouvertes à trois
+personnages sont prouvées là où la 3.5 abandonnait
+([les mesures](docs/fr/BENCH.md#36--la-mise-en-commun-par-groupe-une-fuite-et-un-corpus-5-octobre-2026)), et 1 500 jeux
+aléatoires sont comparés à la recherche explicite chaque nuit.
+
+**v3.5 « Score » :** une musique qui suit le jeu. Un morceau est découpé en stems qui jouent calés ; le
 mix change avec le lieu, le personnage actif ou un flag, à la mesure suivante, sans clic. La preuve tourne sur
 plusieurs cœurs avec le même résultat, et met en commun les objets que les personnages peuvent se passer : les jeux à
 deux personnages où les objets circulent librement sont prouvés
-([la mesure](docs/fr/BENCH.md#35--les-workers-de-preuve-5-octobre-2026)). C'est un mixeur adaptatif à stems, pas
-iMUSE : pas encore de transitions entre morceaux, de marqueurs ni de ponts (3.6). La 3.4 « Stagecraft » avait apporté des
+([la mesure](docs/fr/BENCH.md#35--les-workers-de-preuve-5-octobre-2026)). C'est un mixeur adaptatif à stems avec
+transitions, pas iMUSE : pas de changement de tempo, pas de branches à l'intérieur d'une partition. La 3.4 « Stagecraft » avait apporté des
 scènes en profondeur : un peintre Canvas, calques, masques, lumières, zones de marche et escaliers, le Studio structuré,
 et un deuxième jeu, « Le Marché de nuit ».
 
