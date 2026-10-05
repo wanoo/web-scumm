@@ -9,6 +9,10 @@
   generation, `tests/director.test.ts`).
 - The weight test no longer reads the `dist` an earlier build left: it weighs the game's assets with an empty
   `DIST_DIR`, and CI weighs the app shell of a fresh build (`npm run weight -- --release` after `npm run build`).
+- A proof worker that stopped mid-search stayed in the pool: `stats()` asked it with no timeout and could wait for
+  ever. It now leaves the pool for good, its node going to the others (or to this thread when none is left), and
+  `stats()` asks only the live ones, 2 s at most each (tests: one of four stops, then all, by exit or by an error).
+- `bench --workers-table` reports the peak RSS: 4 workers take 1.2 GB where one search takes 0.5 GB (BENCH.md "3.5.1").
 
 ## 3.5.0 — 2026-10-05
 

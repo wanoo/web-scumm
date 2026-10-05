@@ -490,3 +490,26 @@ option, off by default.
 | Era reference, 40 rooms × 3 characters | solved | 578 (10 647 engine runs) | 4.1 s | same states (characters in their eras never meet) |
 | The Night Market, global proof | solved | 288 | 1.2 s | 904 → 288 (the canonical owner) |
 | The Night Market, by chapters | solved | 2 chapters | 1.2 s | 2.0 → 1.2 s |
+
+## 3.5.1: what the workers cost in memory (5 October 2026)
+
+`NODE_OPTIONS=--expose-gc npm run bench -- --workers-table --max=20000` (the open chain of 20 rooms × 2 characters,
+batches of 64). The table has a peak RSS column since 3.5.1: the whole process, worker threads included, sampled every
+20 ms, collected before each row. Memory a run frees is not always given back to the system, so later rows are an
+upper bound.
+
+| Workers | Proof | States | Time | Speed-up | Peak RSS |
+|---|---|---|---|---|---|
+| none (one node at a time) | solved | 14002 | 18.3 s | ×1.00 | 534 MB |
+| 1 | solved | 14002 | 18.8 s | ×0.97 | 866 MB |
+| 2 | solved | 14002 | 11.0 s | ×1.65 | 1026 MB |
+| 4 | solved | 14002 | 7.0 s | ×2.62 | 1211 MB |
+| 8 | solved | 14002 | 6.1 s | ×3.01 | 1496 MB |
+
+Each worker loads its own engine and game: about 150 to 350 MB more per worker. Four workers cost more than
+twice the memory of one search for ×2.6 of speed. This is one more reason the workers stay off unless asked for. It
+also shows that more workers will not reach 20 × 3: that needs fewer states (3.6).
+
+A worker that stops mid-search now leaves the pool for good: its node goes back to the others, or to this thread when
+none is left. `stats()` asks only the live workers, 2 s at most each. `tests/workers.test.ts` stops one worker of
+four after 5 expansions, then all three of three, both by exit and by an uncaught error: the proof is the same.

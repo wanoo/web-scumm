@@ -32,16 +32,21 @@ if (process.argv.includes('--workers-table')) {
   const g = makeStressGame({ rooms: arg('rooms', 20), players: arg('players', 2), items: 12, flags: 30, npcs: 1, scripts: 2, topics: 8, schemaVersion: 3, eras: process.argv.includes('--eras') });
   const cap = arg('max', 40000);
   const sig = (r: Awaited<ReturnType<typeof solve>>) => createHash('sha1').update(JSON.stringify([r.status, r.states, r.finished, r.path, r.softlockCount, r.softlockCauses, r.softlocks, r.flagsReached, r.roomsReached, r.broken, r.deadEnds, r.errors])).digest('hex').slice(0, 10);
-  console.log(`| Workers | Proof | States | Time | Speed-up | Result |`);
-  console.log('|---|---|---|---|---|---|');
+  // Peak memory of the process (its worker threads included: they share it), sampled every 20 ms during each run.
+  console.log(`| Workers | Proof | States | Time | Speed-up | Peak RSS | Result |`);
+  console.log('|---|---|---|---|---|---|---|');
   let base = 0, one = '';
   for (const workers of [undefined, 1, 2, 4, 8]) {
+    (globalThis as { gc?: () => void }).gc?.();
+    let peak = process.memoryUsage().rss;
+    const sample = setInterval(() => { peak = Math.max(peak, process.memoryUsage().rss); }, 20);
     const t = performance.now();
     const r = await solve(structuredClone(g.game), g.layouts, { mode: 'prove', maxStates: cap, ...(workers ? { workers } : {}) });
     const s = (performance.now() - t) / 1000;
+    clearInterval(sample); peak = Math.max(peak, process.memoryUsage().rss);
     if (!workers) base = s;
     if (workers === 1) one = sig(r);
-    console.log(`| ${workers ?? 'none (one node at a time)'} | ${r.status} | ${r.states} | ${s.toFixed(1)} s | ×${(base / s).toFixed(2)} | ${!workers ? `\`${sig(r)}\`` : sig(r) === one ? `\`${sig(r)}\`, the same as 1` : `\`${sig(r)}\`, DIFFERENT`}${r.profile.workers?.reason ? ` (${r.profile.workers.reason})` : ''} |`);
+    console.log(`| ${workers ?? 'none (one node at a time)'} | ${r.status} | ${r.states} | ${s.toFixed(1)} s | ×${(base / s).toFixed(2)} | ${Math.round(peak / 1048576)} MB | ${!workers ? `\`${sig(r)}\`` : sig(r) === one ? `\`${sig(r)}\`, the same as 1` : `\`${sig(r)}\`, DIFFERENT`}${r.profile.workers?.reason ? ` (${r.profile.workers.reason})` : ''} |`);
   }
   process.exit(0);
 }

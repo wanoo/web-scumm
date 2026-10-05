@@ -207,6 +207,8 @@ export interface SolveOptions {
   gameModule?: string;
   /** Stop after this long (milliseconds): the result is `truncated`, `profile.stoppedBy` says why. */
   timeLimitMs?: number;
+  /** Tests only: worker `worker` (or every one) stops after `after` expansions, by exiting or by an uncaught error (tests/workers.test.ts). */
+  workerCrash?: { worker: number | 'all'; after: number; how: 'exit' | 'throw' };
 }
 
 interface Node {

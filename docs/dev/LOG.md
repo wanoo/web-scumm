@@ -1736,3 +1736,19 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 - Checked: `rm -rf dist && npm run check`, then `npm run build:studio-demo && npm run check`, give the same verdict.
 
 → next: Claude · v351-worker-crash
+
+## #77 · 2026-10-05 · Claude · proposal · v351-worker-crash
+
+- `solve-pool.ts`: a `dead` set. A worker that emits `error` or `exit` leaves the pool for good: its node goes back
+  first in the queue, and the others go on. With none left, this thread expands the rest. `close()` sets `closing`,
+  so its own `terminate` is not counted as a crash. `stats()` asks the live workers, with 2 s each and `exit` treated
+  as no answer.
+- Before this, after one crash every worker handed its next node back to this thread, and `stats()` posted to the
+  dead worker and waited for it with no timeout.
+- `SolveOptions.workerCrash` (tests only) makes one worker, or all, stop after n expansions, by `process.exit` or by
+  an uncaught error. `tests/workers.test.ts`: 1 of 4 after 5, then 3 of 3 after 2. Both give the same signature as
+  1 worker, and the reason names the crash.
+- `bench --workers-table` reports the peak RSS (BENCH.md "3.5.1"): 534 MB without workers, 1.2 GB with 4, 1.5 GB
+  with 8, for the same 14 002 states.
+
+→ next: Claude · v351-fits-unknown
