@@ -22,6 +22,7 @@ et l'humain voit le résultat en direct dans `npm run studio` (qui surveille les
 | `get_room` | `id` | `{ def, layout, texts, file }` : chaque texte modifiable avec son chemin JSON |
 | `set_layout` | `id, layout` | écrit `layout/<id>.json` (le Layout entier) |
 | `set_text` | `id, path, value \| null` | remplace un texte littéral dans `rooms/<id>.ts` ; `null` supprime une ligne ; un chemin finissant par `[+]` ajoute (`look.piano[+]`, `on[3].do[+]`) |
+| `set_value` | `id, path, value \| null, dry?` | écrit une valeur structurée en code dans `rooms/<id>.ts` (3.4) : une réaction (`on[3]`, `on[<longueur>]` en ajoute une), une condition (`on[3].if`), une liste de commandes (`on[3].do`), la `stage` ou le `renderer` du lieu ; `null` supprime ; `dry` ne rend que le diff ; le jeu est validé après l'écriture et une modification qui ajoute une erreur est reprise |
 | `add_entity` | `id, kind, entityId, name?, img?, char?, at?, look?` | ajoute un prop / point chaud / personnage au fichier du lieu et au layout (`at` vaut `[320, 300]` par défaut) |
 | `get_storyboard` / `set_storyboard` | `storyboard` | lit / écrit `storyboard.json` (`{ boards: [...] }`) |
 | `get_notes` / `add_note` | `about?, author?, text` | le journal partagé `notes.json` ; `author` vaut par défaut le nom du client MCP, sinon `ai` ; les notes avec `task: true` sont des demandes envoyées par l'humain depuis l'Assistant du Studio |

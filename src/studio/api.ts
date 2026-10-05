@@ -56,7 +56,19 @@ export interface Api {
   screenshot(room: string, checkpoint?: string): Promise<Exclude<ScreenshotResult, { unavailable: true }>>;
   /** Every image and sound, where it is used, and the art prompts (the Assets tab; uploads: src/studio/assets.ts). */
   assets(): Promise<AssetsListing>;
+  /** 3.4, dev server only: a structured value written at `path` of a room file (`dry`: the diff only), validated. */
+  setValue?(id: string, path: string, value: unknown, dry?: boolean): Promise<EditResult & { diff: string; dry?: true }>;
+  /** 3.4, dev server only: the last write taken back or done again (409 when the file changed since). */
+  undo?(): Promise<{ ok: boolean; what?: string; reason?: string }>;
+  redo?(): Promise<{ ok: boolean; what?: string; reason?: string }>;
+  history?(): Promise<{ undo: string[]; redo: string[] }>;
+  /** 3.4, dev server only: the voice production table. */
+  voices?(lang?: string): Promise<VoicesData>;
+  setVoice?(lang: string, id: string, patch: { status?: string; note?: string; actor?: string }): Promise<{ ok: true }>;
+  voicesCsv?(lang: string): Promise<{ lang: string; csv: string }>;
 }
+
+export interface VoicesData { lang: string; langs: string[]; statuses: string[]; rows: { id: string; who: string; text: string; status: string; file?: string; note?: string; actor?: string }[] }
 
 export const serverApi: Api = {
   mode: 'server',
@@ -82,6 +94,13 @@ export const serverApi: Api = {
   solve: (from?: string, prove?: boolean) => call<SolveData>('POST', 'solve', { from: from || undefined, prove: prove || undefined }),
   screenshot: (room: string, checkpoint?: string) => call<Exclude<ScreenshotResult, { unavailable: true }>>('POST', 'screenshot', { room, checkpoint: checkpoint || undefined }),
   assets: () => call<AssetsListing>('GET', 'assets'),
+  setValue: (id: string, path: string, value: unknown, dry?: boolean) => call<EditResult & { diff: string; dry?: true }>('PUT', `room/${id}/value`, { path, value, dry: dry || undefined }),
+  undo: () => call<{ ok: boolean; what?: string; reason?: string }>('POST', 'undo'),
+  redo: () => call<{ ok: boolean; what?: string; reason?: string }>('POST', 'redo'),
+  history: () => call<{ undo: string[]; redo: string[] }>('GET', 'history'),
+  voices: (lang?: string) => call<VoicesData>('GET', lang ? `voices/${lang}` : 'voices'),
+  setVoice: (lang: string, id: string, patch: { status?: string; note?: string; actor?: string }) => call<{ ok: true }>('PUT', `voices/${lang}/${encodeURIComponent(id)}`, patch),
+  voicesCsv: (lang: string) => call<{ lang: string; csv: string }>('GET', `voices/${lang}/csv`),
 };
 
 /** The backend in use (a live binding: the tabs read it at call time). Set once at start by main.ts. */

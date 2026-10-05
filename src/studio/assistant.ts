@@ -357,6 +357,8 @@ export class AssistantPanel {
     const { runAssistant, systemPrompt, contextDetails } = await import('../../tools/studio/assistant-loop');
     const backend: ToolBackend = {
       game: () => demo.game(), room: (id) => demo.room(id), setLayout: (id, l) => demo.setLayout(id, l), setText: (id, p, v) => demo.setText(id, p, v),
+      // Structured writes edit the room's code through the TypeScript parser on the dev server: not in the demo.
+      setValue: async () => { throw new Error('set_value needs the dev server (npm run studio): the demo only edits texts and layouts'); },
       add: (id, e) => demo.add(id, e), storyboardRaw: () => demo.storyboardRaw(), setStoryboard: (sb) => demo.setStoryboard(sb),
       notes: () => demo.notes(), addNote: (n) => demo.addNote(n), validate: () => demo.validate(), solve: (from) => demo.solve(from),
       author: () => provider.model,

@@ -22,6 +22,7 @@ export function coreBackend(studio: Studio, o: CoreBackendOptions): ToolBackend 
     room: (id) => studio.getRoom(id),
     setLayout: (id, layout) => studio.setLayout(id, layout),
     setText: (id, path, value) => studio.setText(id, path, value),
+    setValue: (id, path, value, dry) => studio.setValue(id, path, value, { dry }),
     add: (id, e) => studio.addEntity(id, e),
     storyboardRaw: async () => studio.getStoryboard(),
     setStoryboard: (sb) => studio.setStoryboard(sb),

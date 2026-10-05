@@ -15,6 +15,8 @@ export interface ToolBackend {
   room(id: string): Promise<RoomData>;
   setLayout(id: string, layout: Layout): Promise<unknown>;
   setText(id: string, path: string, value: string | null): Promise<unknown>;
+  /** 3.4: a structured value at a path of the room file (`dry`: the diff only), validated after the write. */
+  setValue(id: string, path: string, value: unknown, dry: boolean): Promise<unknown>;
   add(id: string, e: AddEntity): Promise<unknown>;
   storyboardRaw(): Promise<unknown>;
   setStoryboard(sb: unknown): Promise<unknown>;
@@ -126,6 +128,23 @@ export const TOOLS: ToolDef[] = [
     },
     annotations: { destructiveHint: true }, writes: true,
     run: ({ id, path, value }, b) => op(() => b.setText(id, path, value)),
+  },
+  {
+    name: 'set_value', title: 'Write a structured value in a room',
+    description: 'Writes a structured value (3.4) at a path of rooms/<id>.ts, as code in the file\'s style: a reaction ' +
+      '("on[3]", or "on[<length>]" to add one), a condition ("on[3].if"), a command list ("on[3].do", "onEnter"), the ' +
+      'room\'s stage ("stage": layers, lights, emitters, transition, links; CONTENT_GUIDE "The stage"), its painter ' +
+      '("renderer": "dom" | "canvas"). `value` is the JSON of it; omit it (null) to remove the path. `dry: true` returns ' +
+      'the diff only. Otherwise the game is reloaded and validated after the write: an edit that adds a validation ' +
+      'error is taken back and refused with the errors. Result { ok, line, changed, diff }.',
+    input: {
+      id: roomId,
+      path: z.string().describe('Path under defineRoom({...}): "stage", "renderer", "on[3]", "on[3].if", "on[3].do", "onEnter".'),
+      value: z.unknown().nullable().describe('The value as JSON (a condition, a command list, a stage…); null removes the path.'),
+      dry: z.boolean().optional().describe('Only return the diff, write nothing.'),
+    },
+    annotations: { destructiveHint: true }, writes: true,
+    run: ({ id, path, value, dry }, b) => op(() => b.setValue(id, path, value === null ? undefined : value, !!dry)),
   },
   {
     name: 'add_entity', title: 'Add a prop, hotspot or actor',

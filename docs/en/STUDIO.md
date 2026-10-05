@@ -81,6 +81,33 @@ A provider call never follows a redirect, gives up after 60 s, and reads at most
   and **Delete**. Notes about a room or one of its entities also appear at the bottom of that room's section in the
   Rooms tab ("Notes (n)", with a box to add one). The log follows changes on disk (an AI writing a note shows up).
 
+### Structured editing (3.4)
+
+- **Forms instead of code.** In the Rooms tab, each reaction has **Edit…** (verb, targets, condition, commands as a
+  form) and the list ends with **+ Reaction**; the room sheet has **Stage…** (layers with their image, role and
+  condition; lights; particle emitters; the transition; the logic of walk links) and the **painter** (game, DOM or
+  canvas). The forms come from one table of every condition and command (`src/studio/schema.ts`, checked against the
+  types at compile time): a new command without a form does not compile. What has no simple field (a minigame's params,
+  an animation's frame events) is a JSON box.
+- **Preview, then apply.** "Preview the change" shows the diff the server would write (a dry run); "Apply" writes it
+  as code in the file's style (`set_value`, through the TypeScript parser: comments and the rest of the file stay), then
+  the game is reloaded and validated: an edit that adds a validation error is taken back and the errors are shown.
+- **Undo / Redo** in the header (Ctrl/Cmd+Z, with Shift to redo), over every write of the session (texts, values,
+  layouts, voices). An undo refuses when the file changed since (an AI, an editor, git). Writes are atomic (a
+  temporary file renamed).
+- **Geometry in the view.** The placement editor's **Walk zones** folder makes the single walk polygon a zone, adds
+  zones (holes, zoom) and links between them (mode, duration, one way); its **Stage** folder sets each layer's depth,
+  parallax, blend and opacity, draws occluders as polygons (depth, feather, invert) and places lights and particle
+  areas. Handles: drag; double-click a zone edge to add a vertex; Alt-click one to remove it.
+- **Timeline.** Double-click a bar to change a wait's, an animation's or a motion's duration.
+- **Play.** The painter of every room (as the game says, DOM or canvas) and how fast it draws (frames per second, the
+  canvas painter's repaints).
+- **Voices.** The voice production table per language (`npm run voices`): status, actor and note per line, saved at
+  once; Export CSV for the actors.
+
+`npm run e2e:studio -- <studio url>` (a CI gate) creates a stage with the form, checks the diff, applies, sees it in
+the game, and undoes it.
+
 ## The API (`/__studio/api/*`, JSON, dev server only)
 All paths are relative to the current game (`GAME`). Errors return `{ error }` with a 4xx/5xx status (400 bad input,
 404 unknown room / path / endpoint, 405 wrong method, 409 already exists, 422 no `defineRoom({...})` in the file,
@@ -112,6 +139,9 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 | POST `assets/decor` | `{ name, data }` (PNG or JPEG) → `art/decor/<name>.<ext>`, the old picture kept as `<name>_v<N>.<ext>`; `{ ok, file, backup? }` |
 | POST `assets/sound` | `{ kind: 'music' \| 'sfx', file, data }` → `audio/<kind>/<file>` (any format ffmpeg reads), the old file kept as a backup; `{ ok, file, backup? }` |
 | POST `assets/prepare` | runs `npm run assets` → `{ ok, code, output }`; with `?stream=1`, the output as plain text while it runs, ending with `[exit <code>]` |
+| PUT `room/:id/value` | `{ path, value, dry? }` → `{ ok, line, changed, diff, dry? }`: a structured value written as code at `path` (3.4; `value` absent removes it); 422 `{ error, errors, diff }` when the write adds validation errors (it is taken back) |
+| POST `undo`, POST `redo`, GET `history` | → `{ ok, file, what }` or `{ ok: false, reason }`; 409 when the file changed since; `history` → `{ undo: [what], redo: [what] }` |
+| GET `voices[/:lang]`, PUT `voices/:lang/:id`, GET `voices/:lang/csv` | the voice table `{ lang, langs, statuses, rows }`; `{ status?, note?, actor? }` → `{ ok }` (into `voices.json`); `{ lang, csv }` |
 | GET `events` | server-sent events: `{ type: 'hello', game }` on connection, then `{ type: 'changed', file }` when a file of the game folder changes on disk (`file` relative to it, e.g. `rooms/house.ts`; dotfiles and `private/` are ignored; 150 ms debounce per file) |
 
 The same operations exist as plain functions in `tools/studio/core.ts`, used by the Vite plugin, by the tests and by

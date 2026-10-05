@@ -308,7 +308,7 @@ function appendText(sf: ts.SourceFile, root: ts.ObjectLiteralExpression, segs: S
 }
 
 /** Canonical order of a room's sections, to place a new one. */
-const SECTION_ORDER = ['id', 'name', 'decor', 'music', 'hero', 'props', 'actors', 'hotspots', 'look', 'on', 'talk', 'hints', 'onEnter'];
+const SECTION_ORDER = ['id', 'name', 'decor', 'music', 'hero', 'renderer', 'stage', 'props', 'actors', 'hotspots', 'look', 'on', 'talk', 'hints', 'onEnter'];
 
 /**
  * Adds `key: valueText` to the object at `objPath` (['props'], ['look']…), creating that object in the room if
@@ -354,3 +354,88 @@ export function objectText(code: string, fields: Record<string, string | undefin
 }
 
 export function quoteOf(code: string, fileName?: string): string { return fileQuote(parseRoom(code, fileName).sf); }
+
+// ---------------------------------------------------------------------------
+// Structured values (3.4): a condition, a command list, a stage, written as code
+// ---------------------------------------------------------------------------
+
+/**
+ * A plain value as TypeScript source in the file's style: identifier keys bare, the file's quotes, short values on one
+ * line, longer ones one item per line at `indent` + `unit`. `undefined` members are left out.
+ */
+export function valueText(v: unknown, q: string, indent = '', unit = '  ', width = 100): string {
+  if (v === null) return 'null';
+  if (typeof v === 'string') return encodeString(v, q);
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  const inner = indent + unit;
+  if (Array.isArray(v)) {
+    const items = v.map((x) => valueText(x, q, inner, unit, width));
+    const flat = `[${items.join(', ')}]`;
+    return flat.length + indent.length <= width && !flat.includes('\n') ? flat : `[\n${items.map((x) => inner + x).join(',\n')},\n${indent}]`;
+  }
+  if (typeof v === 'object') {
+    const entries = Object.entries(v as Record<string, unknown>).filter(([, x]) => x !== undefined);
+    if (!entries.length) return '{}';
+    const items = entries.map(([k, x]) => `${keyText(k)}: ${valueText(x, q, inner, unit, width)}`);
+    const flat = `{ ${items.join(', ')} }`;
+    return flat.length + indent.length <= width && !flat.includes('\n') ? flat : `{\n${items.map((x) => inner + x).join(',\n')},\n${indent}}`;
+  }
+  throw new SourceError(`cannot write a ${typeof v} into a room file`);
+}
+
+/**
+ * Writes `value` at `path` in the room object (`stage`, `on[3].if`, `on[3].do`, `renderer`): the expression there is
+ * replaced, a missing property is added to its object (a missing section at its usual place), an index equal to a
+ * list's length appends, and `undefined` removes the property or the list item. Comments and the rest of the file stay.
+ */
+export function setValueInSource(code: string, path: string, value: unknown, fileName?: string): SourceEdit {
+  const { sf, root } = parseRoom(code, fileName);
+  const segs = parsePath(path);
+  if (!segs.length) throw new SourceError('a path is required');
+  const q = fileQuote(sf);
+  const hit = resolve(root, segs);
+  const unitOf = () => { const r0 = indentAt(code, root.getStart(sf)); const p0 = root.properties[0]; return p0 ? indentAt(code, p0.getStart(sf)).slice(r0.length) || '  ' : '  '; };
+  if (hit) {
+    if (value === undefined) {
+      const e = hit.prop && hit.parentObj ? removeItem(sf, hit.prop, hit.parentObj.properties, hit.parentObj) : hit.parentArr ? removeItem(sf, hit.node, hit.parentArr.elements, hit.parentArr) : null;
+      if (!e) throw new SourceError(`cannot remove "${path}"`);
+      return { code: e.code, line: lineOf(e.code, e.at), changed: true };
+    }
+    const start = hit.node.getStart(sf);
+    const text = valueText(value, q, indentAt(code, start), unitOf());
+    if (sf.text.slice(start, hit.node.end) === text) return { code, line: lineOf(code, start), changed: false };
+    return { code: code.slice(0, start) + text + code.slice(hit.node.end), line: lineOf(code, start), changed: true };
+  }
+  if (value === undefined) return { code, line: 1, changed: false };
+  const parentSegs = segs.slice(0, -1), last = segs[segs.length - 1];
+  if (typeof last === 'string') {
+    const parent = resolve(root, parentSegs);
+    const ind = parent ? indentAt(code, unwrap(parent.node).getStart(sf)) + unitOf() : indentAt(code, root.getStart(sf)) + unitOf();
+    return addProperty(sf, root, parentSegs, last, valueText(value, q, ind, unitOf()));
+  }
+  const parent = resolve(root, parentSegs);
+  const arr = parent && unwrap(parent.node);
+  if (!arr || !ts.isArrayLiteralExpression(arr) || last !== arr.elements.length) throw new SourceError(`path not found: "${path}"`, 404);
+  const e = insertItem(sf, arr.elements, arr, valueText(value, q, indentAt(code, arr.getStart(sf)) + unitOf(), unitOf()));
+  return { code: e.code, line: lineOf(e.code, e.at), changed: true };
+}
+
+/** A line diff of two texts (longest common subsequence), as unified lines `-`, `+`, ` ` with the context around. */
+export function lineDiff(before: string, after: string, context = 2): string {
+  const a = before.split('\n'), b = after.split('\n');
+  // Common head and tail first: an edit touches a few lines of a long file.
+  let h = 0; while (h < a.length && h < b.length && a[h] === b[h]) h++;
+  let t = 0; while (t < a.length - h && t < b.length - h && a[a.length - 1 - t] === b[b.length - 1 - t]) t++;
+  const A = a.slice(h, a.length - t), B = b.slice(h, b.length - t);
+  const L = Array.from({ length: A.length + 1 }, () => new Array<number>(B.length + 1).fill(0));
+  for (let i = A.length - 1; i >= 0; i--) for (let j = B.length - 1; j >= 0; j--) L[i][j] = A[i] === B[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  const mid: string[] = [];
+  for (let i = 0, j = 0; i < A.length || j < B.length;) {
+    if (i < A.length && j < B.length && A[i] === B[j]) { mid.push(` ${A[i]}`); i++; j++; }
+    else if (i < A.length && (j >= B.length || L[i + 1][j] >= L[i][j + 1])) { mid.push(`-${A[i]}`); i++; }
+    else { mid.push(`+${B[j]}`); j++; }
+  }
+  const head = a.slice(Math.max(0, h - context), h).map((x) => ` ${x}`), tail = a.slice(a.length - t, a.length - t + context).map((x) => ` ${x}`);
+  return [`@@ line ${Math.max(1, h - context + 1)} @@`, ...head, ...mid, ...tail].join('\n');
+}
+
