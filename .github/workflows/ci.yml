@@ -19,6 +19,8 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt
       - run: npm ci
+      # validate --release measures the stems with ffprobe (3.6).
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - run: npm run build
       # The weight budget with the app shell of this fresh build (the Node test weighs the game's assets only).
       - run: npm run weight -- --release
@@ -53,6 +55,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run new-game second "Second Game"
       - run: npm run assets
+      # validate --release measures the stems with ffprobe (3.6).
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - run: npm run build
         env:
           GAME: second
@@ -187,6 +191,8 @@ jobs:
       - run: pip install -r requirements.txt
       - run: npm ci
       - run: npx playwright install --with-deps ${{ matrix.browser }}
+      # validate --release measures the stems with ffprobe (3.6).
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - run: npm run build
       - run: npm run prove:game
         if: matrix.browser == 'chromium'
