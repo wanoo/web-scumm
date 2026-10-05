@@ -470,6 +470,26 @@ Critères de sortie, mesurés : `fresh-install` et `upgrade` verts en CI ; le `r
 fin. Rapporté, pas fait (D12) : les sept passes terrain (`docs/fr/FIELD.md`), un jeu fait par quelqu'un d'autre, la
 publication sur npm, un tag signé, le réglage « immutable releases » de GitHub.
 
+## v4.1.0 « Clarity » (planifiée, D14) : plus facile à lire, relire et contribuer
+
+Le plan de Codex `docs/dev/PLAN-4.1.1-CLARITY.md` : aucun changement de gameplay, ni de l'API publique, du contenu ou
+des sauvegardes. D'abord une référence de comportement (digests, verdicts du solveur, surface de l'API), puis Biome et
+un TypeScript plus strict, les quatre fichiers de plus de 1 000 lignes découpés par responsabilité (moteur, types,
+joueur, solveur), des frontières de données typées, couverture et mutation testing, `ARCHITECTURE.md`,
+`CODE_TOUR.md`, des ADR et un guide de contribution. Reporté (D12) : la relecture par une personne qui n'a pas
+construit le moteur.
+
+## v4.1.1 « Reality Bridge » (planifiée, D14) : un jeu réagit au monde extérieur
+
+Le plan de Codex `docs/dev/PLAN-4.1-REALITY-BRIDGE.md`, sur le code clarifié : un jeu déclare un alphabet fini de
+signaux ; un Bridge séparé (appairage, capacités Biscuit, événements signés, journal) les livre au moins une fois ; le
+moteur applique chacun au plus une fois, sauvegarde, puis accuse réception ; une session les rejoue hors ligne ; le
+solveur prouve un jeu fermé, sous un scénario, ou face aux absences et aux doublons. Un spike tranche d'abord
+l'enveloppe, le transport et Biscuit. Un jeu sans `reality` ne paie ni code ni requête. Reporté (D12) : un Bridge
+déployé, un vrai webhook.
+
+Le projet reste un moment en 4.1.x ; la 4.2 sera la version finale.
+
 ## Après la 4.0 (pas encore planifié)
 
 - Les passes terrain, puis ce qu'elles trouvent (D12).

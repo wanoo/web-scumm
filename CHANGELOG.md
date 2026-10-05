@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Codex's plans after 4.0 in `docs/dev/` (D14): "Clarity" ships as 4.1.0, "Reality Bridge" as 4.1.1, 4.2 will be
+  the final version. CI runs on `docs/…`, `test/…` and `refactor/…` branches too.
+
 ## 4.0.0 — 2026-10-05
 
 "Stable Platform" (LOG #94): fewer new things, more promises. Nothing in the content format or the save format

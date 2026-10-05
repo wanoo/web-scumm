@@ -494,6 +494,24 @@ on 4.0.0 and its 3.9.0 save played to the end; one save per release from 3.0.0 t
 Reported, not done (D12): the seven field passes (`docs/en/FIELD.md`), a game by someone else, publishing to npm, a
 signed tag, GitHub's immutable releases setting.
 
+## v4.1.0 "Clarity" (planned, D14): easier to read, review and contribute to
+
+Codex's plan `docs/dev/PLAN-4.1.1-CLARITY.md`: no gameplay change, no change to the public API, the content or the
+saves. A behaviour baseline first (digests, solver verdicts, API surface), then Biome and stricter TypeScript, the four
+files over 1,000 lines split by responsibility (engine, types, player, solver), typed data boundaries, coverage and
+mutation testing, `ARCHITECTURE.md`, `CODE_TOUR.md`, ADRs and a contribution guide. Reported (D12): a review by
+someone who did not build the engine.
+
+## v4.1.1 "Reality Bridge" (planned, D14): a game reacts to the world outside
+
+Codex's plan `docs/dev/PLAN-4.1-REALITY-BRIDGE.md`, on the clarified code: a game declares a finite alphabet of
+signals; a separate Bridge (pairing, Biscuit capabilities, signed events, a journal) delivers them at least once; the
+engine applies each at most once, saves, then acknowledges; a session replays them offline; the solver proves a game
+closed, under a scenario, or against absences and duplicates. A spike settles the envelope, transport and Biscuit
+first. A game without `reality` pays no code and no request. Reported (D12): a deployed Bridge, a real webhook.
+
+The project stays on 4.1.x for a while; 4.2 will be the final version.
+
 ## After 4.0 (not planned yet)
 
 - The field passes, then what they find (D12).

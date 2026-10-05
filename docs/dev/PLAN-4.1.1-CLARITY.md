@@ -1,5 +1,21 @@
 # web-scumm 4.1.1 — Clarity
 
+> **Adopted as 4.1.0 "Clarity" (D14).** The maintainer stays on the 4.1.x line for a while, 4.2 being the final
+> version: Clarity ships first, as 4.1.0, on top of 4.0.0; Reality Bridge (PLAN-4.1-REALITY-BRIDGE.md) follows as
+> 4.1.1 on the clarified code. Codex's text below is kept as written; what was adapted:
+>
+> - **The baseline (§2), measured on `v4.0.0` (`5d635c0`)**: 87 TypeScript files under `src/engine` (as said); **70**
+>   test files and 459 `it`/`test` declarations (570 tests once parametrised), not 75 and ~490; the four files over
+>   1,000 lines as said; `noUnusedLocals` + `noUnusedParameters` give 16 errors, `noUncheckedIndexedAccess` 933 (396 in
+>   `src/engine`, 29 of them in `core`, the rest in tests and tools); **11** `any` in production code, 8 of them in
+>   `src/studio/storyboard.ts`, none in `core`.
+> - **Moved to 4.1.1 with Reality**: `core/types/reality.ts`, `dom/reality-client.ts`, `tools/solve/scenarios.ts`, the
+>   Biscuit and envelope tests, the signal golden tests, the Biscuit ADR, `CODE_TOUR.md` step 7 (a signal).
+> - **Branch names**: CI runs on `docs/**`, `test/**` and `refactor/**` too.
+> - **`noUncheckedIndexedAccess`** is held on `src/engine` and `src/studio` (`tsconfig.strictest.json`); tests and
+>   `tools/` stay outside, documented.
+> - **The outside review (§13)** is a human gate: reported, not blocking (D12).
+
 > **Statut : proposition de maintenance pour la première correction de la 4.1.**  
 > Branche de préparation : `feature/4.1-reality-bridge`  
 > Nature : refactoring interne, documentation et garanties de qualité ; aucune nouvelle fonctionnalité de jeu.

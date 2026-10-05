@@ -1,5 +1,14 @@
 # web-scumm 4.1 — Reality Bridge
 
+> **Adopted as 4.1.1 "Reality Bridge" (D14)**, after 4.1.0 "Clarity", on the clarified code (`core/types/`,
+> `dom/input.ts`, `dom/storage.ts`, `tools/solve/`). It starts with its spike (§10, lot A), whose measures settle §15
+> in `docs/dev/DECISIONS.md`. Defaults to measure, not to assume: a compact JWS (EdDSA) on WebCrypto Ed25519 with no
+> library in the player; SSE plus HTTP fetch by cursor; Biscuit on the Bridge only (`@biscuit-auth/biscuit-wasm`),
+> cross-checked by the Rust crate in CI; a JSONL journal behind a store interface; the Bridge in `bridge/`, packed as
+> an optional `web-scumm-bridge`; a required signal allowed in a commercial release only with a proved fallback.
+> Entry requirements from Clarity: the boundaries of `src/engine/BOUNDARIES.md`, no `any` at a data boundary,
+> coverage and mutation testing from the first commit.
+
 > **Statut : proposition d'architecture, pas engagement de release.**  
 > Branche : `feature/4.1-reality-bridge`  
 > Base : web-scumm 4.0 « Stable Platform »  
