@@ -458,6 +458,30 @@ green in Chromium (bridge 5.47 s, restore within 0.1 s, peak 130 MB for a budget
 five external players, Safari offline, recorded voices on a full dialogue, a listening pass on both scores and their
 bridges, a signed tag.
 
+## v3.7.1 "Artifact Truth" (5 October 2026): the review of 3.7.0
+
+- `fix/stinger-cap`: a stinger that does not fit beside the score is streamed, never decoded over the cap.
+- `fix/dist-inventory`: the build holds this game's files only, with `licenses/`; `npm run verify:dist` accounts for
+  every file.
+- `fix/playtest-quotas`: `--strict` honest about zero sessions; `verify:field` with its quotas.
+- `fix/workflows`: topic branches by kind, releases from the tested SHA and never replaced, exact nightly shards.
+- `fix/repo-hygiene`: the README's release line held to `package.json`; no tracked bytecode.
+- `feature/player-split` (merged early): zod/mini, minigames on demand, `initialJsKB`, the engine's layers checked.
+
+Exit criterion, as measured: `inventory(dist)` = code + locked assets + named data + fonts + icons + licences, on the
+demo (242 files) and the reference (225); the four-shard nightly on 501 seeds of each kind (910 compared, 0 diverged).
+
+## The way to 4.0 (planned with the 3.7.0 review, LOG #91)
+
+- **3.8 "Human Proof"**, the machine part: the two-score scenario in WebKit, the field kit (`docs/en/FIELD.md`, near
+  misses, `?fps`). The seven human passes stay the maintainer's (D12). No large engine primitive.
+- **3.9 "Independence"**: the engine as a package (`web-scumm`, `create-web-scumm`, the `web-scumm` command), a game
+  outside the repository built from the packed template (The Lighthouse), `npm run fresh-install` in CI.
+- **4.0 "Stable Platform"**: the public API in four entries with its surface held by a test, a support and
+  deprecation policy, the save line of 3.x loaded in 4.x, the independent game moved from 3.9 to 4.0.
+- Left to research, not a 4.0 gate: exact dominance on relevant items, the 20 × 3 matrix (a criterion only if a real
+  game needs it).
+
 ## Next (not planned yet)
 
 - The open matrix of three characters: exact dominance by the relevance of items and positions, audited against the

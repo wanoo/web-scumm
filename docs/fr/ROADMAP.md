@@ -429,6 +429,35 @@ part humaine de « Field Proof » (D12, `docs/dev/passes/3.7.0.md`) : un passage
 VoiceOver ou TalkBack, cinq joueurs extérieurs, Safari hors ligne, des voix enregistrées sur un dialogue complet, une
 écoute des deux partitions et de leurs ponts, un tag signé.
 
+## v3.7.1 « Artifact Truth » (5 octobre 2026) : la revue de la 3.7.0
+
+- `fix/stinger-cap` : un stinger qui ne tient pas à côté de la partition est joué en flux, jamais décodé au-delà du
+  plafond.
+- `fix/dist-inventory` : le build ne contient que les fichiers de ce jeu, avec `licenses/` ; `npm run verify:dist`
+  justifie chaque fichier.
+- `fix/playtest-quotas` : `--strict` honnête sur zéro session ; `verify:field` et ses quotas.
+- `fix/workflows` : branches nommées par sorte, releases construites depuis le SHA testé et jamais remplacées, tranches
+  du nightly exactes.
+- `fix/repo-hygiene` : la ligne de release du README tenue à `package.json` ; plus de bytecode suivi.
+- `feature/player-split` (fusionnée tôt) : zod/mini, mini-jeux à la demande, `initialJsKB`, les couches du moteur
+  vérifiées.
+
+Critère de sortie, mesuré : `inventaire(dist)` = code + assets verrouillés + données nommées + polices + icônes +
+licences, sur la démo (242 fichiers) et la référence (225) ; le nightly en quatre tranches sur 501 graines de chaque
+sorte (910 comparées, 0 divergence).
+
+## La route vers la 4.0 (planifiée avec la revue de la 3.7.0, LOG #91)
+
+- **3.8 « Human Proof »**, la part machine : le scénario à deux partitions sous WebKit, le kit terrain
+  (`docs/fr/FIELD.md`, tapes manquées, `?fps`). Les sept passes humaines restent au mainteneur (D12). Aucune grosse
+  primitive moteur.
+- **3.9 « Independence »** : le moteur en paquet (`web-scumm`, `create-web-scumm`, la commande `web-scumm`), un jeu
+  hors du dépôt fait depuis le modèle empaqueté (Le Phare), `npm run fresh-install` en CI.
+- **4.0 « Stable Platform »** : l'API publique en quatre entrées et sa surface tenue par un test, une politique de suivi
+  et de dépréciation, la lignée des sauvegardes 3.x chargée en 4.x, le jeu indépendant passé de la 3.9 à la 4.0.
+- Laissé à la recherche, pas une porte de la 4.0 : la dominance exacte sur les objets pertinents, la matrice 20 × 3 (un
+  critère seulement si un vrai jeu en a besoin).
+
 ## Ensuite (pas encore planifié)
 
 - La matrice ouverte à trois personnages : une dominance exacte par la pertinence des objets et des positions, auditée

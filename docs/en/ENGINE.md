@@ -189,7 +189,8 @@ until the save is in place) and `stop`. The director owns what it schedules: a t
 (the old score, the bridge, the new score) that a stop, a restore or a new request cancels, so no bridge sounds after
 them; the old score is stopped by a timer, never by a stop scheduled up front. Voices duck one bus under everything it
 plays (bridges and stingers too), never the fades. The cap counts every buffer: a bridge that does not fit is dropped,
-two scores that do not fit become a cut, stingers evict like scores. A score that falls back to its mix keeps the
+two scores that do not fit become a cut, stingers evict like scores; a stinger that does not fit beside the score is
+streamed, not decoded (3.7.1), so the cap holds after every operation. A score that falls back to its mix keeps the
 saved point.
 
 ## Cache and responsiveness

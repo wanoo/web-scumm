@@ -185,9 +185,9 @@ assistant.
 
 ## Releases
 
-Release actuelle : [v3.7.0 « Field Proof »](https://github.com/wanoo/web-scumm/releases/tag/v3.7.0) : une démo sans
-plus aucun asset non commercial, deux partitions et leurs ponts prouvés dans le navigateur, le solveur audité sur un
-corpus en tranches. L'histoire de la v1.3 à la v3.7 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
+Release actuelle : [v3.7.1 « Artifact Truth »](https://github.com/wanoo/web-scumm/releases/tag/v3.7.1) : l'archive
+contient les fichiers du jeu et leurs licences, chacun justifié ; les releases sont construites depuis le commit testé
+et jamais remplacées. L'histoire de la v1.3 à la v3.7 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt
 

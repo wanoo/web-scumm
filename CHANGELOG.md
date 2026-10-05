@@ -2,12 +2,41 @@
 
 ## Unreleased
 
+## 3.7.1 — 2026-10-05
+
+"Artifact Truth": what is tested, what is declared and what is shipped are the same files (the review of 3.7.0, LOG
+#91). `inventory(dist) = code + locked assets + named data + fonts + icons + licences`, checked on every build.
+
+### Fixed
+
+- The archive held what Vite copies from `public/`, shared by the games: the sample game's shipped the reference
+  chapter's score and bridges, files its provenance lock never named. Every build now ends with `tools/dist.ts seal`:
+  the files that are not the game's are removed and `dist/licenses/` is written (the engine's `LICENSE`,
+  `LICENSE-ASSETS`, `CREDITS.md` from the provenance, `THIRD_PARTY_NOTICES.txt` with the licence of every bundled
+  package and the fonts' OFL, `assets-manifest.json`). `npm run verify:dist`, a step of `build` and of
+  `verify:commercial`, refuses any file of `dist/` that is not code, a locked asset with its reviewed bytes, a data
+  file the game names, a font, an icon or a notice.
+- A stinger that does not fit in the decoded audio beside the playing score is no longer played over the cap: the
+  director lets it go (`stinger()` returns null, `lastStinger.skipped`) and it is streamed instead. The cap holds after
+  every operation, which `tests/director.test.ts` now checks after every lifecycle case.
+- `playtests --strict` passed with no session at all. It still only refuses a diverged session, and says when it
+  checked none; the field quotas are new options (below).
+- The release workflow builds the commit CI tested (`workflow_run.head_sha`), checks that the tag still points there,
+  takes any SemVer tag (not only `v3.*`), and refuses a release that already has files (no `--clobber`): a published
+  release is never replaced. The archive's assets manifest is attached beside it.
+- CI runs on `feature/**`, `fix/**` and `release/**` branches, whatever the version (it stopped at `v37-*`).
+- The nightly's shards split any total exactly (501 seeds ran 504) and the merge fails on a gap or an overlap
+  (`audit:corpus --shard=i/n --total=N`, `--merge … --total=N`). The four-shard nightly ran on `main` (501 seeds of
+  each kind: 910 compared, 593 partial, no divergence).
+- The README's "Releases" section named v3.5 two releases later; `tests/readme-release.test.ts` now holds it to
+  `package.json`'s version. Python bytecode (`__pycache__/`, `*.pyc`) is no longer tracked.
+
 ### Added
 
 - Field quotas for playtests: `--require=N`, `--require-completed=N`, `--require-devices=N` (a diverged session counts
-  for none), and `npm run verify:field` (`verify:commercial`, then 5 sessions, 3 played to the end, 2 device families).
-  `--strict` alone still only refuses a diverged session, and now says when it checked none. A shared session says its
-  device family (`ios`, `android`, `desktop`), nothing finer.
+  for none), and `npm run verify:field` (`verify:commercial`, then 5 sessions, 3 played to the end, 2 device families;
+  not a release gate, D12). A shared session says its device family (`ios`, `android`, `desktop`), nothing finer.
+
 ### Changed
 
 - The player's first visit runs 122 KB of gzipped JavaScript (153 before): the save envelope's schemas use
@@ -15,26 +44,6 @@
   (`src/engine/minigames/meta.ts` keeps what the tools read). New budget `assetBudgets.initialJsKB`, checked on the
   build by `npm run verify:dist`. The engine's layers are written down (`src/engine/BOUNDARIES.md`) and checked by
   `tests/boundaries.test.ts`: the core imports no DOM or tool, the player never the solver, the validator or the Studio.
-
-### Fixed
-
-- The archive held what Vite copies from `public/`, shared by the games: the sample game's shipped the reference
-  chapter's score and bridges, files its provenance lock never named. Every build now ends with `tools/dist.ts seal`:
-  the files that are not the game's are removed and `dist/licenses/` is written (engine and asset licences, credits,
-  the notices of the bundled packages and fonts, an assets manifest). `npm run verify:dist`, a step of `build` and of
-  `verify:commercial`, refuses any file of `dist/` that is not code, a locked asset with its reviewed bytes, a data
-  file the game names, a font, an icon or a notice.
-- The README's "Releases" section named v3.5 two releases later; `tests/readme-release.test.ts` now holds it to
-  `package.json`'s version. Python bytecode (`__pycache__/`, `*.pyc`) is no longer tracked.
-
-### Fixed
-
-- The release workflow builds the commit CI tested (`workflow_run.head_sha`), checks that the tag still points there,
-  takes any SemVer tag (not only `v3.*`), and refuses a release that already has files (no `--clobber`): a published
-  release is never replaced. The archive's assets manifest is attached beside it.
-- CI runs on `feature/**`, `fix/**` and `release/**` branches, whatever the version (it stopped at `v37-*`).
-- The nightly's shards split any total exactly (501 seeds ran 504) and the merge fails on a gap or an overlap
-  (`audit:corpus --shard=i/n --total=N`, `--merge … --total=N`).
 
 ## 3.7.0 — 2026-10-05
 
