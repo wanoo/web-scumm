@@ -66,6 +66,7 @@
     "import-layout": "tsx --tsconfig tsconfig.json tools/pages/import-layout.ts",
     "verify:release": "npm run validate -- --release && npm run weight -- --release && npm run i18n -- status && npm run voices -- check --release && npm run playtests -- --strict",
     "verify:commercial": "npm run verify:release && npm run validate -- --commercial --errors && npm run verify:dist",
+    "quality:baseline": "tsx tools/quality-baseline.ts",
     "verify:dist": "tsx tools/dist.ts",
     "verify:field": "npm run verify:commercial && npm run playtests -- --strict --require=5 --require-completed=3 --require-devices=2",
     "provenance": "tsx tools/provenance.ts",
