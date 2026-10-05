@@ -208,6 +208,9 @@ jobs:
           E2E_OUT: /tmp/e2e-reference-fr
       - run: npm run e2e:visual -- http://127.0.0.1:5175/ && npm run e2e:perf -- http://127.0.0.1:5175/ && npm run e2e:weight -- http://127.0.0.1:5175/
         if: matrix.browser == 'chromium'
+      # Two scores and two bridges (3.7): a transition planned, restored, stopped, under transitionPeakMB.
+      - run: npm run e2e:music -- http://127.0.0.1:5175/ --only=reference
+        if: matrix.browser == 'chromium'
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

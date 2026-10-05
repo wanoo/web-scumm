@@ -63,16 +63,37 @@ export const game = defineGame({
   saves: { slots: 3 },
   settings: true,
   // The demo's sounds, and its theme in stems with this chapter's own mixes (3.5): Biscuit's harp and bass, the night
-  // without the melody until the lights come back, then the whole orchestra for the festival.
-  audio: { ...demo.audio, scores: { theme: { ...demo.audio!.scores!.theme, states: [
-    { if: { player: 'biscuit' }, stems: ['harp', 'bass'] },
-    { if: '!lights_on', stems: ['strings', 'harp', 'bass'] },
-  ] } } },
+  // without the melody until the lights come back, then the whole orchestra for the festival. Since 3.7 the market has
+  // a score of its own (written for the project, games/demo/audio/projects/night-market): the theme lets it in on its
+  // next phrase after a bridge, and it hands back on its "home" bar after the other bridge, fading over two beats.
+  audio: {
+    ...demo.audio,
+    music: { ...demo.audio!.music, market: 'night_market.mp3', bridge_to_market: 'bridge_to_market.mp3', bridge_to_theme: 'bridge_to_theme.mp3' },
+    scores: {
+      theme: { ...demo.audio!.scores!.theme, phraseBars: 4, states: [
+        { if: { player: 'biscuit' }, stems: ['harp', 'bass'] },
+        { if: '!lights_on', stems: ['strings', 'harp', 'bass'] },
+      ] },
+      market: {
+        stems: { melody: 'night-market-stems/melody.mp3', chords: 'night-market-stems/chords.mp3', bass: 'night-market-stems/bass.mp3' },
+        bpm: 96, beatsPerBar: 4, loop: [0, 16], phraseBars: 4, markers: { home: 8 },
+        // 42.5 s × 48 kHz × 2 channels × 4 bytes × 3 stems, decoded (npm run audio -- stems).
+        pcmBytes: 48960024,
+        states: [{ if: '!lights_on', stems: ['chords', 'bass'] }],
+      },
+    },
+    transitions: [
+      { from: 'theme', to: 'market', at: 'phrase', bridge: 'bridge_to_market' },
+      { from: 'market', to: 'theme', at: 'home', bridge: 'bridge_to_theme', fadeBeats: 2 },
+    ],
+  },
   skin: { ...demo.skin, icons: { ...demo.skin.icons } },
   titleScreen: { decor: 'decor/market_wide', music: 'theme', footer: 'The reference chapter of web-scumm. Turn your phone sideways.' },
   credits: ['THE NIGHT MARKET', '', 'The reference chapter of web-scumm (3.4)', '', 'Art and sound: the sample game\'s (CC BY 4.0)', 'Music: Swan Lake theme, arranged (CC BY 4.0)', '', 'Thanks for playing!'],
   // Measured with `npm run weight` and `npm run e2e:weight` once built: see BENCH.md "3.4".
-  assetBudgets: { initialKB: 3000, roomKB: 3000, chapterKB: 6000, backgroundScoreKB: 3500, offlineTotalKB: 9000, decodedAudioMB: 128 },
+  // 3.7: two scores' stems (3.9 MB), the full warm-up (9.2 MB), the most decoded at once during a transition (128 MB:
+  // both scores and a bridge).
+  assetBudgets: { initialKB: 3000, roomKB: 3000, chapterKB: 6000, backgroundScoreKB: 4800, offlineTotalKB: 11000, decodedAudioMB: 128, transitionPeakMB: 150 },
   i18n: { same: demo.i18n?.same?.filter((p) => p.startsWith('ui/') || p === 'char:hero/name' || p === 'char:biscuit/name' || p === 'char:neighbor/name').concat(['room:kitchen/props.radio.name']) },
   ui: demo.ui,
 });

@@ -33,6 +33,27 @@
       "author": "Wano",
       "licence": "CC BY 4.0",
       "status": "final"
+    },
+    {
+      "match": "music:night_market.mp3",
+      "source": "The reference chapter's market score, written for the project: games/demo/audio/projects/night-market (compose.py, spec.json), rendered by npm run audio",
+      "author": "Wano",
+      "licence": "CC BY 4.0",
+      "status": "final"
+    },
+    {
+      "match": "music:night-market-stems/*",
+      "source": "The market score rendered channel by channel and grouped into stems (games/demo/audio/projects/night-market, npm run audio -- stems)",
+      "author": "Wano",
+      "licence": "CC BY 4.0",
+      "status": "final"
+    },
+    {
+      "match": "music:bridge_to_*.mp3",
+      "source": "The bridges between the theme and the market score, written for the project: games/demo/audio/projects/bridge-to-market and bridge-to-theme (night-market/compose.py)",
+      "author": "Wano",
+      "licence": "CC BY 4.0",
+      "status": "final"
     }
   ]
 }

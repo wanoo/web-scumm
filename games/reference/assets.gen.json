@@ -692,10 +692,16 @@
  "audio": {
   "music": {
    "theme": "music/swan_theme.mp3",
+   "market": "music/night_market.mp3",
+   "bridge_to_market": "music/bridge_to_market.mp3",
+   "bridge_to_theme": "music/bridge_to_theme.mp3",
    "theme.melody": "music/swan-theme-stems/melody.mp3",
    "theme.strings": "music/swan-theme-stems/strings.mp3",
    "theme.harp": "music/swan-theme-stems/harp.mp3",
-   "theme.bass": "music/swan-theme-stems/bass.mp3"
+   "theme.bass": "music/swan-theme-stems/bass.mp3",
+   "market.melody": "music/night-market-stems/melody.mp3",
+   "market.chords": "music/night-market-stems/chords.mp3",
+   "market.bass": "music/night-market-stems/bass.mp3"
   },
   "sfx": {
    "door_open": "sfx/door_open.mp3",

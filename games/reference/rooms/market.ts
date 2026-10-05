@@ -8,7 +8,8 @@ export default defineRoom({
   id: 'market',
   name: 'The night market',
   decor: 'decor/market_wide',
-  music: 'theme',
+  // Its own score since 3.7 (game.ts `audio.transitions`): the theme hands over on its next phrase, after a bridge.
+  music: 'market',
   description: 'The market street seen down its length at night, the stalls, the tiled booth with its little stage',
   renderer: 'canvas',
   stage: {
