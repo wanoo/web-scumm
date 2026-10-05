@@ -1974,6 +1974,8 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 - 3.7.0: `package.json`, CHANGELOG, ROADMAP en/fr, README "New in v3.7" (and "1 500 random games every night"
   reworded: they are counted as tried, compared and partial), `docs/dev/passes/3.7.0.md`, golden save
   `demo-3.7.0.json`.
+- The first nightly (run 37322219281, by hand on `v361-release`, one job, 1 896 s): 1 500 tried, 909 compared, no
+  divergence (plain 400 of 500, free items 304, three characters 205), 591 partial.
 - Not done (D12): every human pass of "Field Proof", and a signed tag.
 
-→ next: Claude · merge on green CI, tag v3.6.1 then v3.7.0
+→ next: Claude · merge on green CI, tag v3.7.0 (v3.6.1 is tagged)
