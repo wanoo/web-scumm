@@ -60,6 +60,6 @@ guess, checkpoints per room, used items greyed.
 ## Sounds (`audio/sfx`, built from `audio/sfx.json` by `npm run audio -- sfx`)
 door_open, door_close, latch, coins, cloth, paper, click, success, error, ring, drop, bell, glass, metal, shuffle, chips, pluck, select, bong:
 Mega Drive renders (YM2612 + SN76489) from the shared palette, so they sound like the music.
-Music: `audio/music/swan_lake.mp3`, the opening of Tchaikovsky's *Swan Lake* (public domain) arranged for the Mega Drive
-chips by `npm run audio` from `audio/projects/swan-lake/spec.json`; played on the title screen and in every room.
-The MIDI transcription comes from classicals.de (CC BY-NC 4.0), so the theme is non-commercial (`audio/projects/swan-lake/SOURCE.md`).
+Music: `audio/music/swan_theme.mp3`, the oboe theme of Tchaikovsky's *Swan Lake* (public domain), written out and
+arranged for the project (`audio/projects/swan-theme/compose.py`, `spec.json`) and rendered for the Mega Drive chips by
+`npm run audio`; played on the title screen and in every room. CC BY 4.0 (`audio/projects/swan-theme/SOURCE.md`).

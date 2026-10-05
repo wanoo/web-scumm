@@ -191,6 +191,6 @@ The images of this page come from the production bundle and the Studio, taken by
 
 ## Licences
 
-Code: MIT. Sample artwork and sound effects: CC BY 4.0 (attribution "Wano"). The sample theme (Tchaikovsky's *Swan
-Lake*, public domain) is arranged from a [classicals.de](https://www.classicals.de) transcription, CC BY-NC 4.0:
-non-commercial, to replace in a commercial game. Fonts: SIL OFL. See `CREDITS.md`.
+Code: MIT. Sample artwork, sound effects and theme: CC BY 4.0 (attribution "Wano"); the theme is Tchaikovsky's *Swan
+Lake* (public domain), written out and arranged for the project, so the sample game passes `npm run verify:commercial`
+(3.7). Fonts: SIL OFL. See `CREDITS.md`.

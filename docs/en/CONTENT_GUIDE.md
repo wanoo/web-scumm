@@ -808,10 +808,10 @@ the game. `npm run audio -- stems` makes them (docs/en/AUDIO.md).
 
 ```ts
 audio: {
-  music: { theme: 'swan_lake.mp3' },            // the single mix: Save-Data, low-end devices, no Web Audio
+  music: { theme: 'swan_theme.mp3' },            // the single mix: Save-Data, low-end devices, no Web Audio
   scores: {
     theme: {
-      stems: { melody: 'swan-lake-stems/melody.mp3', strings: 'swan-lake-stems/strings.mp3', harp: 'swan-lake-stems/harp.mp3', bass: 'swan-lake-stems/bass.mp3' },
+      stems: { melody: 'swan-theme-stems/melody.mp3', strings: 'swan-theme-stems/strings.mp3', harp: 'swan-theme-stems/harp.mp3', bass: 'swan-theme-stems/bass.mp3' },
       bpm: 80, beatsPerBar: 4,                  // from score.json
       states: [                                 // the first that holds sets the mix; none: every stem
         { if: { player: 'biscuit' }, stems: ['harp', 'bass'] },

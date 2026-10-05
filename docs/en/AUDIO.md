@@ -26,9 +26,10 @@ Needs Python 3 with numpy, `ffmpeg` and `fluidsynth` (`brew install ffmpeg fluid
 1. **Sources.** The source of a track must be yours, in the public domain, or under a licence that allows a derived
    work (a MIDI of a 19th-century piece is fine; a film theme is not). Say where it comes from in `spec.json`
    (`author`, `comment`), in a `SOURCE.md` next to `source.mid`, and in `CREDITS.md`. A transcription has a licence
-   of its own, and the arrangement inherits it: the sample game's theme is Tchaikovsky's *Swan Lake* (public
-   domain) from a [classicals.de](https://www.classicals.de) MIDI under CC BY-NC 4.0, so it is non-commercial, to
-   replace in a game that is sold.
+   of its own, and the arrangement inherits it. The sample game's theme is Tchaikovsky's *Swan Lake* (public
+   domain), its notes written out for the project by a script (`games/demo/audio/projects/swan-theme/compose.py`
+   writes `source.mid`): no transcription to inherit from, so it is CC BY 4.0 and a game may be sold with it (3.7;
+   the theme before it came from a CC BY-NC MIDI).
 2. **One palette.** `tools/audio/palette.json` holds the FM patches, PSG envelopes, DAC drum kit and mix targets.
    Every project and every sound effect builds from it. A missing sound is a new patch in the palette (with a `desc`),
    never an ad-hoc patch in one spec; a patch that shipped tracks rely on is not edited (add one, or bump `version`).
@@ -68,7 +69,7 @@ Needs Python 3 with numpy, `ffmpeg` and `fluidsynth` (`brew install ffmpeg fluid
    `power_guitar` (feed it the low octave: it adds the octave and the fifth); clean guitar → `muted_pluck`; bass →
    `slap_bass` (busy) or `finger_bass` (sustained); synth lead → `synth_lead`; orchestra hits → `orch_hit`.
 
-   Spec reference (`games/demo/audio/projects/swan-lake/spec.json` is a complete example):
+   Spec reference (`games/demo/audio/projects/swan-theme/spec.json` is a complete example):
    - top level: `title`, `author`, `comment`, `slug`, `source`, `bars` (how many bars to build), `rows_per_beat`
      (8 = 32nd-note rows), `pattern_rows` (64), `hz` (60), `extra_bars` (ring-out), `stop_at_end`, `sections`
      `{ name: [first, last] }`, `bpm` (override);
@@ -117,7 +118,7 @@ Stems made by hand are welcome, but `npm run validate -- --release` measures the
 the same rate, channels and number of samples, the loop must end inside them, and `pcmBytes` must be what they decode to.
 
 Group channels by what the game will switch on and off: the sample game's theme has melody, strings, harp and bass,
-and plays only the harp and the bass while Biscuit is active. A stem that is nearly silent (the swan-lake noise
+and plays only the harp and the bass while Biscuit is active. A stem that is nearly silent (a noise
 channel alone, −54 LUFS) is a wasted download: fold it into another one. The single mix stays: it is what plays under
 Save-Data, on a low-end device, or without Web Audio.
 

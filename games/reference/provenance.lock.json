@@ -1205,40 +1205,40 @@
    "licence": "CC BY 4.0",
    "status": "final"
   },
-  "music:swan-lake-stems/bass.mp3": {
-   "sha256": "f2627dab91aaea239db7b1dc465223f2a5d5050b69a7b5a0b8cbc070553bb2e9",
-   "bytes": 792857,
-   "match": "music:swan-lake-stems/*",
-   "licence": "CC BY-NC 4.0",
-   "status": "placeholder"
+  "music:swan-theme-stems/bass.mp3": {
+   "sha256": "505104ca0ef614b14aa3162bc1eb879845dec7196fb565435e4d654384af9e55",
+   "bytes": 648974,
+   "match": "music:swan-theme-stems/*",
+   "licence": "CC BY 4.0",
+   "status": "final"
   },
-  "music:swan-lake-stems/harp.mp3": {
-   "sha256": "bd448e45a2b995ed9dde39ace9c27b977b1fa419bf5372a5a967fc39290c3afb",
-   "bytes": 792857,
-   "match": "music:swan-lake-stems/*",
-   "licence": "CC BY-NC 4.0",
-   "status": "placeholder"
+  "music:swan-theme-stems/harp.mp3": {
+   "sha256": "a19e093e551b4eb86df08d8bc61a110345d808a0bb98343f971d91849d448200",
+   "bytes": 648974,
+   "match": "music:swan-theme-stems/*",
+   "licence": "CC BY 4.0",
+   "status": "final"
   },
-  "music:swan-lake-stems/melody.mp3": {
-   "sha256": "d838183d307d8fa7bb6b1c39e7ed26af611ac45d53474ba5ee8d5ad6960da812",
-   "bytes": 792859,
-   "match": "music:swan-lake-stems/*",
-   "licence": "CC BY-NC 4.0",
-   "status": "placeholder"
+  "music:swan-theme-stems/melody.mp3": {
+   "sha256": "f52ca08ed3da8c35e031c35bf6502979e3941406c73f65f98ee81ed311477340",
+   "bytes": 648976,
+   "match": "music:swan-theme-stems/*",
+   "licence": "CC BY 4.0",
+   "status": "final"
   },
-  "music:swan-lake-stems/strings.mp3": {
-   "sha256": "1f0984dae2266d24a53d5c3e6d006c53717a6e8bb72379d9ea961a82b8543d49",
-   "bytes": 792860,
-   "match": "music:swan-lake-stems/*",
-   "licence": "CC BY-NC 4.0",
-   "status": "placeholder"
+  "music:swan-theme-stems/strings.mp3": {
+   "sha256": "a9ff62a1f62ca67d3e751f8b692803d96985e5d2d6a9c61e594185301a9e026a",
+   "bytes": 648977,
+   "match": "music:swan-theme-stems/*",
+   "licence": "CC BY 4.0",
+   "status": "final"
   },
-  "music:swan_lake.mp3": {
-   "sha256": "7ac57332c2c888e8f4ec007b542fbf9646a58094c7a36d2427b6a0751181cf8f",
-   "bytes": 792863,
-   "match": "music:swan_lake.mp3",
-   "licence": "CC BY-NC 4.0",
-   "status": "placeholder"
+  "music:swan_theme.mp3": {
+   "sha256": "16aae72706ccd94d0ce3add6e4b49e77a5fd197820219fb11bb9b1d6d02fcc6f",
+   "bytes": 648980,
+   "match": "music:swan_theme.mp3",
+   "licence": "CC BY 4.0",
+   "status": "final"
   },
   "sfx:bell.mp3": {
    "sha256": "4ded92ba9ed502c88f27a3cf9ed4967348c8e7acb1d9ae100af28348d963ef69",

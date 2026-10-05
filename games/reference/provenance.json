@@ -4,16 +4,6 @@
       "CC BY 4.0"
     ]
   },
-  "releaseExceptions": [
-    {
-      "match": "music:swan_lake.mp3",
-      "reason": "The engine's reference chapter is a test bench, not a product: it reuses the sample game's non-commercial music (CC BY-NC 4.0, outside the policy), said in LICENSE-ASSETS."
-    },
-    {
-      "match": "music:swan-lake-stems/*",
-      "reason": "The sample game's theme in stems for the music director (3.5), the same non-commercial arrangement: said in LICENSE-ASSETS with it."
-    }
-  ],
   "assets": [
     {
       "match": "img:*",
@@ -31,20 +21,18 @@
       "status": "final"
     },
     {
-      "match": "music:swan_lake.mp3",
-      "source": "Arrangement of the opening of Tchaikovsky's Swan Lake (public domain), games/demo/audio/projects/swan-lake, rendered by npm run audio",
+      "match": "music:swan_theme.mp3",
+      "source": "The oboe theme of Tchaikovsky's Swan Lake (public domain), written out and arranged for the project: games/demo/audio/projects/swan-theme (compose.py, spec.json), rendered by npm run audio",
       "author": "Wano",
-      "licence": "CC BY-NC 4.0",
-      "status": "placeholder",
-      "note": "Non-commercial: replace it in a commercial game (LICENSE-ASSETS)"
+      "licence": "CC BY 4.0",
+      "status": "final"
     },
     {
-      "match": "music:swan-lake-stems/*",
-      "source": "The sample game's theme rendered channel by channel and grouped into stems (games/demo/audio/projects/swan-lake, npm run audio -- stems)",
+      "match": "music:swan-theme-stems/*",
+      "source": "The theme's arrangement rendered channel by channel and grouped into stems (games/demo/audio/projects/swan-theme, npm run audio -- stems)",
       "author": "Wano",
-      "licence": "CC BY-NC 4.0",
-      "status": "placeholder",
-      "note": "Non-commercial, like the theme"
+      "licence": "CC BY 4.0",
+      "status": "final"
     }
   ]
 }

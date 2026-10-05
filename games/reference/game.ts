@@ -70,7 +70,7 @@ export const game = defineGame({
   ] } } },
   skin: { ...demo.skin, icons: { ...demo.skin.icons } },
   titleScreen: { decor: 'decor/market_wide', music: 'theme', footer: 'The reference chapter of web-scumm. Turn your phone sideways.' },
-  credits: ['THE NIGHT MARKET', '', 'The reference chapter of web-scumm (3.4)', '', 'Art and sound: the sample game\'s (CC BY 4.0)', 'Music: Swan Lake, arranged (CC BY-NC 4.0)', '', 'Thanks for playing!'],
+  credits: ['THE NIGHT MARKET', '', 'The reference chapter of web-scumm (3.4)', '', 'Art and sound: the sample game\'s (CC BY 4.0)', 'Music: Swan Lake theme, arranged (CC BY 4.0)', '', 'Thanks for playing!'],
   // Measured with `npm run weight` and `npm run e2e:weight` once built: see BENCH.md "3.4".
   assetBudgets: { initialKB: 3000, roomKB: 3000, chapterKB: 6000, backgroundScoreKB: 3500, offlineTotalKB: 9000, decodedAudioMB: 128 },
   i18n: { same: demo.i18n?.same?.filter((p) => p.startsWith('ui/') || p === 'char:hero/name' || p === 'char:biscuit/name' || p === 'char:neighbor/name').concat(['room:kitchen/props.radio.name']) },

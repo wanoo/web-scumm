@@ -1,13 +1,9 @@
-Sample game artwork (everything under games/demo/art) and the generated sound effects under
-games/demo/audio/sfx are licensed under Creative Commons Attribution 4.0 International (CC BY 4.0).
+Sample game artwork (everything under games/demo/art), the generated sound effects under games/demo/audio/sfx, and
+the theme (games/demo/audio/projects/swan-theme, its renders under games/demo/audio/music) are licensed under
+Creative Commons Attribution 4.0 International (CC BY 4.0).
 https://creativecommons.org/licenses/by/4.0/
 
 Attribution: "Artwork by Wano, from the web-scumm project (https://github.com/wanoo/web-scumm)".
-
-The Swan Lake transcription, arrangement and renders under games/demo/audio/projects/swan-lake and
-games/demo/audio/music are licensed under Creative Commons Attribution-NonCommercial 4.0 International
-(CC BY-NC 4.0). They must be replaced in a commercial game.
-https://creativecommons.org/licenses/by-nc/4.0/
 
 The fonts under public/fonts are under the SIL Open Font License 1.1 (see CREDITS.md).
 

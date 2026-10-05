@@ -327,7 +327,8 @@ pas dire que chaque asset peut être vendu : une exception est une raison, pas u
 (`verify:release`, puis `validate --commercial`) refuse toute entrée `releaseExceptions`, tout provisoire, toute licence
 non commerciale ou sans modification (`NC`, `ND`), et toute entrée sans `author` ou sans source vérifiable (une `url`,
 ou un fichier du dépôt nommé dans `source`). Il vérifie que les affirmations sont complètes et permettent la vente,
-pas qu'elles sont vraies. La démo y échoue exprès (sa musique est en CC BY-NC 4.0). Traductions : un texte identique à la source fait échouer
+pas qu'elles sont vraies. La démo le passe depuis la 3.7 (son thème est écrit pour le projet) ;
+`tests/fixtures/release-game` y échoue exprès. Traductions : un texte identique à la source fait échouer
 `npm run i18n -- status`, sauf si `i18n: { same: [chemins] }` dans `game.ts` le liste (un nom, « OK », une flèche).
 `npm run audit` est une autre vérification : il garde les noms d'un projet privé hors du dépôt public.
 
