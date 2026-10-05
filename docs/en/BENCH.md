@@ -389,3 +389,16 @@ Biscuit only), an autonomous script, a minigame, a timeline finale. Measured on 
 
 Played to the end by CI: at the keyboard in Chromium and WebKit, in French with no English default visible, and by
 the generic harness with axe and a save round trip.
+
+### 3.4.0, measured on the release (5 October 2026, cache off)
+
+| Game | Status | States | Time | Against 3.3.0 |
+|---|---|---|---|---|
+| Demo, global proof | solved | 3 480 | 2.3 s | same states (2.2 s) |
+| Demo, proof by chapters | solved | 5 chapters | 3.6 s | same chapters (3.3 s) |
+| Era reference, 40 rooms × 3 characters | solved | 578 (10 647 engine runs) | 3.9 s | same states (3.5 s) |
+| The Night Market, global proof | solved | 904 | 1.9 s | new |
+| The Night Market, by chapters | solved | 2 chapters | 2.0 s | new |
+
+3.4 changed the picture, not the logic: every state count is the one 3.3.0 measured; the times move within the
+noise of a laptop.

@@ -139,6 +139,17 @@ forces one for every room. The UI, the dialogue and every accessible target stay
 on the sample game: its rooms within 0.31% of the DOM references, the whole game played to the end by it, 60 frames
 per second with the CPU slowed 4× (`npm run e2e:perf`), all in the CI's `chromium / canvas` row.
 
+## Walking and motions
+
+`dom/walk.ts` walks a character over its room's walk zones (`walkZones`, one polygon with holes each, its own depth
+scale and camera zoom) and the links between them (`walkLinks`: walk, stairs, ladder, jump, teleport, with a duration,
+an animation and a facing): the fewest links first, then the shortest path inside each zone. A link's condition is DSL
+(`RoomDef.stage.links[id].if`), read when the walk is planned; a closed link stops the walk at its foot with its
+`locked` line, and the action that asked for the walk still runs (`npm run lint` warns, `walk-link-gate`, when a rule
+behind such a walk does not check the condition itself). `core/motion.ts` gives `launch`, `spring`, `path` and
+`follow` as closed forms of time: the same flight at any frame rate, nothing simulated, nothing logical inside; a
+character keeps where its motion ends, like `place`.
+
 ## Assets: one graph
 
 `src/engine/core/asset-graph.ts` says which files each part of the game needs, from the content: the title (backdrop,

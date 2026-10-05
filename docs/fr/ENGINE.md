@@ -147,6 +147,18 @@ accessible restent dans le DOM, au-dessus du canvas. Mesuré sur la démo : ses 
 DOM, le jeu entier joué jusqu'à la fin avec lui, 60 images par seconde avec le CPU ralenti 4× (`npm run e2e:perf`),
 tout cela dans la ligne CI `chromium / canvas`.
 
+## Marche et mouvements
+
+`dom/walk.ts` fait marcher un personnage sur les zones de marche de son lieu (`walkZones`, chacune un polygone avec
+ses trous, sa propre échelle de profondeur et son zoom de caméra) et les liens entre elles (`walkLinks` : marche,
+escalier, échelle, saut, téléportation, avec une durée, une animation et une orientation) : le moins de liens d'abord,
+puis le plus court chemin dans chaque zone. La condition d'un lien est du DSL (`RoomDef.stage.links[id].if`), lue quand
+la marche est planifiée ; un lien fermé arrête la marche à son pied avec sa réplique `locked`, et l'action qui avait
+demandé la marche s'exécute quand même (`npm run lint` avertit, `walk-link-gate`, quand une règle derrière une telle
+marche ne vérifie pas elle-même la condition). `core/motion.ts` donne `launch`, `spring`, `path` et `follow` en formes
+closes du temps : le même vol à toute cadence d'images, rien de simulé, rien de logique dedans ; un personnage
+reste là où son mouvement s'arrête, comme avec `place`.
+
 ## Assets : un seul graphe
 
 `src/engine/core/asset-graph.ts` dit quels fichiers chaque partie du jeu demande, d'après le contenu : le titre (décor,
