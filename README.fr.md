@@ -200,7 +200,9 @@ assistant.
 
 Release actuelle : [v3.9.0 « Independence »](https://github.com/wanoo/web-scumm/releases/tag/v3.9.0) : le moteur en
 paquet (`web-scumm`, `create-web-scumm`), un jeu fait hors du dépôt vérifié, construit et joué en CI, et l'API
-publique que la 4.0 tiendra stable. L'histoire de la v1.3 à la v3.7 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
+publique que la 4.0 tiendra stable.
+L'histoire de la v1.3 à la v3.9 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le
+[CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt
 
