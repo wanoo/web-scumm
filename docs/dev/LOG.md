@@ -1726,3 +1726,13 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
   Without the fix, 4 of the 5 fail.
 
 → next: Claude · v351-weight-hermetic
+
+## #76 · 2026-10-05 · Claude · proposal · v351-weight-hermetic
+
+- `tests/weight.test.ts` ran `tools/weight.ts` against whatever `dist` was there, so a Studio build (a whole font)
+  made `npm run check` fail on a clean tree (Codex: 520/521). It now passes an empty `DIST_DIR`, and only the game's
+  assets are weighed. The `check` job weighs the app shell after `npm run build`, with `npm run weight -- --release`.
+  `release-check` already did (`build`, then `verify:release`).
+- Checked: `rm -rf dist && npm run check`, then `npm run build:studio-demo && npm run check`, give the same verdict.
+
+→ next: Claude · v351-worker-crash

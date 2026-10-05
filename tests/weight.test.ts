@@ -1,6 +1,9 @@
 // What a player downloads (src/engine/tools/weight.ts, npm run weight): the images the engine preloads for a room,
 // its music and sound effects; the title, the column's icons and the first room before play; budgets in KB.
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { GameDef, RoomDef } from '@engine/core/types';
 import { initialAssets, roomAssets, weigh, weightReport } from '@engine/tools/weight';
@@ -41,7 +44,11 @@ describe('weight', () => {
     expect(r.over).toEqual(['initial download 1700 KB > initialKB 1000', 'room hall 1100 KB > roomKB 1000', 'chapter one 1100 KB > chapterKB 1000']);
   });
   it('the demo stays within its budgets, chapter by chapter', () => {
-    const r = spawnSync('npx', ['tsx', 'tools/weight.ts', '--release', '--json'], { encoding: 'utf8', env: { ...process.env, GAME: 'demo' } });
+    // An empty DIST_DIR: the verdict never depends on a `dist` left by an earlier build (a Studio build carries a
+    // whole font). The app shell is weighed on a fresh build in CI (`npm run weight -- --release` after `npm run build`).
+    const dist = mkdtempSync(join(tmpdir(), 'weight-dist-'));
+    const r = spawnSync('npx', ['tsx', 'tools/weight.ts', '--release', '--json'], { encoding: 'utf8', env: { ...process.env, GAME: 'demo', DIST_DIR: dist } });
+    rmSync(dist, { recursive: true, force: true });
     expect(r.status).toBe(0);
     const j = JSON.parse(r.stdout);
     expect(j.over).toEqual([]);
