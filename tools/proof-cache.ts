@@ -8,10 +8,10 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync,
 import { join, resolve } from 'node:path';
 import type { GameDef, Layout } from '../src/engine/core/types';
 import { solve, type SolveOptions, type SolveResult } from '../src/engine/tools/solve';
-import { GAME_DIR, ROOT } from './game';
+import { GAME_DIR, ROOT, WORK } from './game';
 
 /** Where the results go (`PROOF_CACHE_DIR` to put them elsewhere). */
-export const cacheDir = () => (process.env.PROOF_CACHE_DIR?.trim() ? resolve(process.env.PROOF_CACHE_DIR.trim()) : resolve(ROOT, '.cache', 'proofs'));
+export const cacheDir = () => (process.env.PROOF_CACHE_DIR?.trim() ? resolve(process.env.PROOF_CACHE_DIR.trim()) : resolve(WORK, '.cache', 'proofs'));
 /** Files kept: the oldest go first. */
 const KEEP = 300;
 

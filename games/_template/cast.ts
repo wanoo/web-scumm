@@ -1,4 +1,4 @@
-import type { CharacterDef, MouthSet, SpriteSet } from '@engine/core/types';
+import type { CharacterDef, MouthSet, SpriteSet } from 'web-scumm/content';
 
 // Standard 6 × 4 sheet (see docs/en/PROMPTS.md): portraits row 1, walk row 2, poses row 3, front/back walks row 4.
 export function human(id: string, extra: SpriteSet = {}): SpriteSet {
@@ -26,7 +26,7 @@ export function mouths(folder: string, poses: Record<string, string>): Record<st
 }
 
 export const characters: Record<string, CharacterDef> = {
-  // The placeholder hero is the sample cat; replace it with your own sheet (docs/en/PROMPTS.md).
+  // The placeholder hero is a cat drawn from shapes (tools/placeholder-art.py); replace it with your own sheet (docs/en/PROMPTS.md).
   hero: {
     name: 'Hero', color: '#ffffff', height: 34, kind: ['cat'], portrait: 'hero/r1c2', sprites: cat('hero'),
     // What the hero looks like, for `npm run prompts` (the CHARACTER line of every sprite prompt). Replace it with yours.

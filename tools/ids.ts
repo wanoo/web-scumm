@@ -14,7 +14,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { assignIds, renamePaths } from '../src/engine/core/content-ids';
-import { GAME, GAME_DIR, ROOT, loadGameModule } from './game';
+import { GAME, GAME_DIR, ROOT, WORK, loadGameModule } from './game';
 import { addIdsToGameSource, addIdsToItemsSource, addIdsToRoomSource, addIdsToRulesSource, roomIdOf, type CodemodResult } from './ids/codemod';
 
 const write = process.argv.includes('--write');
@@ -24,7 +24,7 @@ const lines = linesArg === '--lines=all' ? 'all' as const : linesArg ? true : fa
 const { game } = await loadGameModule();
 const { game: assigned, map, added } = assignIds(game, { lines });
 
-const rel = (f: string) => relative(ROOT, f);
+const rel = (f: string) => relative(WORK, f);
 const results: { file: string; r: CodemodResult }[] = [];
 const roomsDir = join(GAME_DIR, 'rooms');
 for (const f of existsSync(roomsDir) ? readdirSync(roomsDir).filter((x) => x.endsWith('.ts')).sort() : []) {

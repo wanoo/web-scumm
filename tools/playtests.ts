@@ -13,7 +13,7 @@ import { analyzePlaytests, playtestsMarkdown, quotaShortfalls, type PlaytestFile
 import { parseSessionFile } from '../src/engine/tools/replay';
 import { puzzleGraph, toPuzzleSvg } from '../src/engine/tools/puzzle';
 import { loadLayouts } from '../src/engine/tools/load';
-import { GAME, GAME_DIR, ROOT, loadGameModule } from './game';
+import { GAME, GAME_DIR, WORK, loadGameModule } from './game';
 
 const args = process.argv.slice(2);
 const arg = (k: string) => args.find((a) => a.startsWith(`--${k}=`))?.split('=')[1];
@@ -34,7 +34,7 @@ const shortfall = (files: Parameters<typeof quotaShortfalls>[0]) => {
 const names = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.session.json')).sort() : [];
 if (!names.length) {
   if (asJson) console.log(JSON.stringify({ files: [], total: { files: 0, entries: 0, ms: 0 } }));
-  else console.log(`[${GAME}] no playtests in ${relative(ROOT, dir)} (play on a phone, "Share session" in the pause menu, drop the file there)${strict && !asked ? ': --strict asks for none, 0 sessions checked' : ''}`);
+  else console.log(`[${GAME}] no playtests in ${relative(WORK, dir)} (play on a phone, "Share session" in the pause menu, drop the file there)${strict && !asked ? ': --strict asks for none, 0 sessions checked' : ''}`);
   shortfall([]);
   process.exit(process.exitCode ?? 0);
 }
@@ -69,5 +69,5 @@ if (out) {
   writeFileSync(join(out, 'report.md'), markdown);
   writeFileSync(join(out, 'report.json'), JSON.stringify(report, null, 1));
   writeFileSync(join(out, 'heat.svg'), toPuzzleSvg(puzzleGraph(game, { commands }), { heat: report.heat }));
-  if (!asJson) console.log(`written: ${relative(ROOT, out)}/report.md, report.json, heat.svg`);
+  if (!asJson) console.log(`written: ${relative(WORK, out)}/report.md, report.json, heat.svg`);
 }

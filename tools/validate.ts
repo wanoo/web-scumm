@@ -15,7 +15,7 @@ import { fileFacts, LOCK, readJson, shippedKeys } from './provenance-files';
 import { validate } from '../src/engine/tools/validate';
 import { report, reportMarkdown } from '../src/engine/tools/report';
 import { loadAssets, loadLayouts, loadLocales } from '../src/engine/tools/load';
-import { ASSETS_DIR, GAME, GAME_DIR, loadGameModule } from './game';
+import { ASSETS_DIR, GAME, GAME_DIR, WORK, loadGameModule } from './game';
 import { assetPath } from '../src/engine/tools/provenance';
 import { stemErrors } from '../src/engine/tools/stems';
 import { hasFfprobe, stemFacts } from './stem-facts';
@@ -51,7 +51,7 @@ if (existsSync(provFile) && assets) {
   if (lock) (release ? errors : warnings).push(...lockMessages(lockDiff(keys, prov, fileFacts(keys), lock)));
   else if (release) errors.push('provenance.lock.json › missing: a release ships the files that were reviewed (npm run provenance -- --lock)');
   if (release) { const l = licenceVerdict(keys, prov); errors.push(...l.errors); accepted.push(...l.accepted); }
-  if (commercial) errors.push(...commercialVerdict(keys, prov, (p) => existsSync(resolve(p))));
+  if (commercial) errors.push(...commercialVerdict(keys, prov, (p) => existsSync(resolve(WORK, p))));
 } else if (release) errors.push('provenance.json › missing: a release says where every asset comes from (docs/en/TOOLS.md "Asset provenance")');
 // The scores' stem files (3.6): the same rate, channels and samples, the loop inside them, pcmBytes as decoded. The
 // built files (npm run assets), measured with ffprobe.

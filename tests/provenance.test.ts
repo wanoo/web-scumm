@@ -90,6 +90,11 @@ describe('a commercial release (verify:commercial)', () => {
   ] };
   const exists = (p: string) => p === 'games/demo/prompts.md';
   it('passes complete, sellable claims', () => expect(commercialVerdict(keys, clean, exists)).toEqual([]));
+  it('a game in its own project names its own files (3.9); a URL is not a file', () => {
+    const own: Provenance = { ...clean, assets: [{ match: '*', source: 'Drawn by art-src/draw.py, see https://example.org/a/b.py', author: 'Us', licence: 'own work', status: 'final' }] };
+    expect(commercialVerdict(keys, own, (p) => p === 'art-src/draw.py')).toEqual([]);
+    expect(commercialVerdict(keys, own, (p) => p === 'example.org/a/b.py').join('\n')).toContain('nothing to check the source against');
+  });
   it('refuses exceptions, placeholders, non-commercial licences, no author, nothing to check', () => {
     const bad: Provenance = { ...clean, releaseExceptions: [{ match: 'music:t.mp3', reason: 'a demo' }], assets: [
       { match: 'img:*', source: 'Drawn somewhere', licence: 'own work', status: 'final' },

@@ -17,6 +17,9 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
+      "web-scumm/*": [
+        "src/engine/api/*"
+      ],
       "@engine/*": [
         "src/engine/*"
       ],

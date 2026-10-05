@@ -206,3 +206,18 @@ n'ajoute rien à l'état). Calques, occulteurs, lumières, particules, plusieurs
 quand un lieu en a besoin (CONTENT_GUIDE « La scène »). Un layout qui a `walk` et `walkZones` garde les zones
 (`validate` avertit).
 
+
+## 10. De la 3.x à la 4.0
+
+La 4.0 ne change aucun format : le schéma d'écriture reste 3, l'enveloppe des sauvegardes reste en schéma 3, et toute
+sauvegarde 3.x se charge. Ce qui change, c'est ce qui est promis (`docs/fr/SUPPORT.md`) :
+
+1. **Importer depuis l'API publique.** `web-scumm/content` (`defineGame`, `defineRoom`, chaque type de contenu),
+   `web-scumm/player` (`bootGame`, `AssetManifest`), `web-scumm/minigames` (`Minigame`), `web-scumm/testing`
+   (`Engine`, `solve`, `parseSave`…). Les chemins `@engine/*` marchent toujours mais sont internes. Dans un jeu de ce
+   dépôt : `sed -i.bak -E "s#'@engine/core/(types|define|custom)'#'web-scumm/content'#" games/<id>/*.ts games/<id>/rooms/*.ts`, puis les
+   autres à la main (`docs/fr/API.md` dit quel nom est dans quelle entrée).
+2. **Un jeu dans son propre projet** (`docs/fr/PACKAGE.md`) : `npx create-web-scumm`, déplacer `games/<id>/*` dans
+   `game/`, `npm install`, `npx web-scumm verify`.
+3. **`RevealDef`** est déprécié : utiliser `EndingDef` (retiré en 5.0).
+4. `npx web-scumm migrate --check` (ou `npm run migrate -- --check` ici) dit si quelque chose est dû.

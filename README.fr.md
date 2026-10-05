@@ -178,6 +178,7 @@ tous dans un même style. `npm run assets` découpe les planches générées en 
 | [STUDIO](docs/fr/STUDIO.md) · [TOOLS](docs/fr/TOOLS.md) · [MCP](docs/fr/MCP.md) | le Studio, chaque commande, les outils pour l'IA |
 | [ENGINE](docs/fr/ENGINE.md) · [BENCH](docs/fr/BENCH.md) · [FIELD](docs/fr/FIELD.md) | le fonctionnement du moteur, ce que la preuve sait faire et ne sait pas faire, ce que seuls des gens et de vrais appareils vérifient |
 | [PROMPTS](docs/fr/PROMPTS.md) · [AUDIO](docs/fr/AUDIO.md) · [PAGES](docs/fr/PAGES.md) | les images, le son, les pages de relecture |
+| [PACKAGE](docs/fr/PACKAGE.md) · [API](docs/fr/API.md) · [SUPPORT](docs/fr/SUPPORT.md) | un jeu dans son propre projet (`npx create-web-scumm`), l'API publique, ce qui reste stable |
 | [ROADMAP](docs/fr/ROADMAP.md) · [CHANGELOG](CHANGELOG.md) · [UPGRADING](docs/fr/UPGRADING.md) | d'où il vient, chaque release, passer à une nouvelle version |
 
 Chaque page existe aussi en anglais sous `docs/en/`. `docs/dev/` contient le journal du travail avec l'autre

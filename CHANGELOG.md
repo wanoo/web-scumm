@@ -53,6 +53,34 @@ is checked in Safari's engine too. The seven passes themselves are people's and 
 - Field quotas for playtests: `--require=N`, `--require-completed=N`, `--require-devices=N` (a diverged session counts
   for none), and `npm run verify:field` (`verify:commercial`, then 5 sessions, 3 played to the end, 2 device families;
   not a release gate, D12). A shared session says its device family (`ios`, `android`, `desktop`), nothing finer.
+### API
+
+- The public API (`docs/en/API.md`): `web-scumm/content`, `web-scumm/player`, `web-scumm/minigames`,
+  `web-scumm/testing` (`src/engine/api/`, the package's `exports`). `tests/api-surface.json` holds their names and the
+  Studio/MCP tools' arguments; `tests/api-surface.test.ts` fails on a change this page does not document. The template
+  imports from them only.
+- `docs/en/SUPPORT.md`: semantic versioning on that API, supported versions, the deprecation policy (deprecated in a
+  minor, removed at the next major), save compatibility. `docs/en/UPGRADING.md` § 10: from 3.x to 4.0.
+
+### Fixed
+
+- `verify:commercial` found the files a source names only under `games/`, `tools/`, `src/`, `public/`: a game in its
+  own project (`art-src/draw.py`) failed it. Any relative path counts now, resolved in the project; a URL never does.
+
+### Deprecated
+
+- `RevealDef`: use `EndingDef`; removed in 5.0.
+
+### Added
+
+- The engine as a package (`docs/en/PACKAGE.md`): `npm run pack` makes `web-scumm` (the engine, its pages, its tools,
+  the template, the `web-scumm` command) and `create-web-scumm`. `npx create-web-scumm my-game` makes a project with
+  `game/`, `public/`, a `package.json` calling `web-scumm dev|studio|assets|verify|build|release`, and a `tsconfig.json`
+  pointing `@engine` into the package; the tools run on the project (`WEB_SCUMM_PROJECT`) and never write into the
+  package. `npm run fresh-install`, a CI job, packs, creates, installs, verifies, builds and plays such a game to its
+  end outside the repository.
+- The template has its own placeholder art, drawn from shapes (`tools/placeholder-art.py`): a new game no longer
+  borrows the sample game's.
 
 ### Changed
 

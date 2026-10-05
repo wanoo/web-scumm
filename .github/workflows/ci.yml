@@ -168,6 +168,24 @@ jobs:
           path: |
             /tmp/e2e-${{ matrix.browser }}
             tests/visual
+  # The engine as another project uses it (3.9): packed, a game created from the template outside the repository,
+  # installed from the tarball, verified, built and played to its ending (scripts/fresh-install.mjs).
+  fresh-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run fresh-install
+
   # The reference chapter (games/reference, since 3.4): the second real game, the 3.4 exit gate. Built, proved whole and
   # chapter by chapter, played to the end at the keyboard in Chromium and WebKit, in French with no English default
   # visible; its rooms against their references, its staged market at 30 fps or more with the CPU slowed 4×, its first

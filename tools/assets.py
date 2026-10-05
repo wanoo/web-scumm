@@ -15,7 +15,9 @@ import glob, json, os, re, subprocess, sys
 from PIL import Image
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-os.chdir(ROOT)
+# A game project outside the repository (3.9, the `web-scumm` command): its folder holds game/, public/ and .cache/.
+PROJECT = os.environ.get('WEB_SCUMM_PROJECT', '').strip()
+os.chdir(PROJECT or ROOT)
 
 def game_id():
     g = os.environ.get('GAME', '').strip()
@@ -27,7 +29,7 @@ def game_id():
     return 'demo'
 
 GAME = game_id()
-GAME_DIR = f'games/{GAME}'
+GAME_DIR = os.path.relpath(os.environ['GAME_DIR']) if os.environ.get('GAME_DIR', '').strip() else 'game' if PROJECT else f'games/{GAME}'
 
 def art_style():
     try: return 'pixel' if json.load(open(f'{GAME_DIR}/site.json')).get('artStyle') == 'pixel' else 'cel'
