@@ -407,7 +407,7 @@ M-series, cache coupé.
 | Preuve globale | résolue, 904 états, 1,9 s | aucun softlock |
 | Preuve par chapitres (`lights`, `ending`) | 848 + 72 états, 16 états frontière, 2,0 s | chaque chapitre depuis chaque état frontière |
 | `--audit-abstractions` | `same` : 904 états contre 83 672 en explicite, 36 144 succès du memo identiques, 40,8 s | aucune divergence |
-| Images par seconde, CPU ÷4, Canvas | marché 49,6 i/s, jardin / ruelle / rue 60,2 i/s | ≥ 30 i/s |
+| Images par seconde, CPU ÷4, Canvas | marché 50,2 i/s (47,3 à ÷8), jardin / ruelle / rue 60,2 i/s | ≥ 30 i/s |
 | Première visite | 1 989 Ko transférés, 2 198 Ko prédits, rien hors de la prédiction | à 10 % près, rien hors |
 | Lieux | 541 à 718 Ko chacun ; le chapitre entier 4 249 Ko | 3 000 Ko par lieu, 6 000 Ko par chapitre |
 | Références visuelles | 8 / 8 lieux, 0,00 % | ≤ 0,5 % |

@@ -85,6 +85,11 @@
 
 ### Fixed
 
+- The Canvas painter rebuilt its background and occluders (a blur over the whole room) each time a character's next
+  frame finished loading, and copied a whole viewport per occluder each frame: only a backdrop, layer or mask image
+  makes the caches stale now, and an occluder keeps only the pixels that hide. The reference market, CPU ÷8: 20 → 47
+  frames per second, the same pixels.
+
 - The e2e harness switches characters until the engine has switched (the button ignores a press while a line is on
   screen: at the keyboard's pace, a hand-over's line); `e2e:weight` waits for a Canvas room as for a DOM one;
   `npm run assets` prepares a stage's layer, mask and particle images; `solve`, `replay` and `lint` no longer cut their

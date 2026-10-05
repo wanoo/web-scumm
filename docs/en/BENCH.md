@@ -382,7 +382,7 @@ Biscuit only), an autonomous script, a minigame, a timeline finale. Measured on 
 | Global proof | solved, 904 states, 1.9 s | no softlock |
 | Proof by chapters (`lights`, `ending`) | 848 + 72 states, 16 boundary states, 2.0 s | every chapter from every boundary state |
 | `--audit-abstractions` | `same`: 904 states against 83 672 explicit, 36 144 memo hits identical, 40.8 s | no divergence |
-| Frame rate, CPU ÷4, Canvas | market 49.6 fps, yard / alley / street 60.2 fps | ≥ 30 fps |
+| Frame rate, CPU ÷4, Canvas | market 50.2 fps (47.3 at ÷8), yard / alley / street 60.2 fps | ≥ 30 fps |
 | First visit | 1 989 KB transferred, 2 198 KB predicted, nothing outside the prediction | within 10%, nothing outside |
 | Rooms | 541–718 KB each; the whole chapter 4 249 KB | 3 000 KB a room, 6 000 KB a chapter |
 | Visual baselines | 8 / 8 rooms, 0.00% | ≤ 0.5% |

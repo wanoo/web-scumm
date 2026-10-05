@@ -30,7 +30,10 @@ export class CanvasRenderer implements SceneRenderer {
   /** Each occluder's alpha mask, in device pixels over the room (rebuilt on resize or when its image arrives). */
   private masks = new Map<Id, HTMLCanvasElement>();
   /** Each occluder's hiding pixels (its source through its mask), composited once. */
-  private cuts = new Map<Id, HTMLCanvasElement>();
+  private cuts = new Map<Id, { c: HTMLCanvasElement; x: number; y: number }>();
+  /** The images the background and occluder caches are drawn from. */
+  private cached = new Set<string>();
+  private backdropUrl = '';
   /** Particles: a seeded generator and the live particles of each emitter. */
   private parts = new Map<Id, { seed: number; acc: number; live: { x: number; y: number; vx: number; vy: number; life: number; age: number; r: number }[]; last: number }>();
   private animating = 0;
@@ -51,7 +54,9 @@ export class CanvasRenderer implements SceneRenderer {
     if (!im) {
       im = new Image();
       im.decoding = 'async';
-      im.onload = () => { this.bgCache = null; this.cuts.clear(); this.masks.clear(); this.invalidate(); };
+      // Only a picture the caches are made of (the backdrop, a layer, a mask) makes them stale: a character's next
+      // frame arriving must not rebuild the occluders (a blur over the whole room) mid-walk.
+      im.onload = () => { if (this.cached.has(url)) { this.bgCache = null; this.cuts.clear(); this.masks.clear(); } this.invalidate(); };
       im.src = url;
       this.images.set(url, im);
     }
@@ -63,6 +68,7 @@ export class CanvasRenderer implements SceneRenderer {
     this.st = null; this.bgCache = null; this.masks.clear(); this.cuts.clear(); this.parts.clear();
     this.order = 0;
     this.width = width;
+    this.cached = new Set([backdrop]); this.backdropUrl = backdrop;
     this.backdrop = this.image(backdrop);
     this.size();
     this.invalidate();
@@ -97,6 +103,7 @@ export class CanvasRenderer implements SceneRenderer {
   stage(s: StageSpec) {
     this.st = s;
     this.bgCache = null; this.masks.clear(); this.cuts.clear();
+    this.cached = new Set([this.backdropUrl, ...s.layers.map((l) => l.url), ...s.occluders.flatMap((o) => (o.mask ? [o.mask] : []))]);
     for (const l of s.layers) this.image(l.url);
     for (const o of s.occluders) if (o.mask) this.image(o.mask);
     for (const e of s.emitters) if (e.url) this.image(e.url);
@@ -255,14 +262,47 @@ export class CanvasRenderer implements SceneRenderer {
       if (!mask || !src?.complete || !src.naturalWidth) return;
       const box = layer ? { x: layer.x, y: layer.y, w: layer.w, h: layer.h } : st.backdrop;
       const [m, t] = this.roomCanvas();
-      cut = m;
       t.drawImage(src, box.x, box.y, box.w, box.h);
       t.setTransform(1, 0, 0, 1, 0, 0);
       t.globalCompositeOperation = 'destination-in';
       t.drawImage(mask, 0, 0);
+      // Kept to the pixels that hide: an occluder is usually a small part of the room, and copying the whole viewport
+      // for each one every frame was most of a staged room's frame (BENCH 3.4).
+      const b = this.opaqueBox(o, m, t);
+      if (!b) { this.cuts.set(o.id, (cut = { c: document.createElement('canvas'), x: 0, y: 0 })); return; }
+      const c = document.createElement('canvas');
+      c.width = b.w; c.height = b.h;
+      c.getContext('2d')!.drawImage(m, b.x, b.y, b.w, b.h, 0, 0, b.w, b.h);
+      cut = { c, x: b.x, y: b.y };
       this.cuts.set(o.id, cut);
     }
-    this.blit(cut);
+    if (!cut.c.width) return;
+    // The same mapping as `blit`, for a part of the room canvas that starts at (x, y).
+    const ctx = this.ctx, z = this.zoom, sx = this.cam * this.k, sy = this.camY * this.k;
+    const dx = (cut.x - sx) * z, dy = (cut.y - sy) * z, dw = cut.c.width * z, dh = cut.c.height * z;
+    if (dx >= this.canvas.width || dy >= this.canvas.height || dx + dw <= 0 || dy + dh <= 0) return;
+    ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(cut.c, dx, dy, dw, dh);
+    ctx.restore();
+  }
+
+  /** The device-pixel box of what an occluder hides: its polygon's bounds widened by the feather, else read from the
+   * composited pixels (a mask image, a layer's alpha, an inverted mask). Null when nothing shows. */
+  private opaqueBox(o: OccluderSpec, m: HTMLCanvasElement, t: CanvasRenderingContext2D): { x: number; y: number; w: number; h: number } | null {
+    const clamp = (x0: number, y0: number, x1: number, y1: number) => {
+      const x = Math.max(0, Math.floor(x0)), y = Math.max(0, Math.floor(y0));
+      const w = Math.min(m.width, Math.ceil(x1)) - x, h = Math.min(m.height, Math.ceil(y1)) - y;
+      return w > 0 && h > 0 ? { x, y, w, h } : null;
+    };
+    if (o.polygon && !o.invert) {
+      const k = this.k, pad = Math.ceil(3 * o.feather * k) + 2;
+      const xs = o.polygon.map((p) => p[0] * k), ys = o.polygon.map((p) => p[1] * k);
+      return clamp(Math.min(...xs) - pad, Math.min(...ys) - pad, Math.max(...xs) + pad, Math.max(...ys) + pad);
+    }
+    const d = t.getImageData(0, 0, m.width, m.height).data;
+    let x0 = m.width, y0 = m.height, x1 = -1, y1 = -1;
+    for (let y = 0; y < m.height; y++) for (let x = 0, i = y * m.width * 4 + 3; x < m.width; x++, i += 4) if (d[i]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    return x1 < 0 ? null : clamp(x0, y0, x1 + 1, y1 + 1);
   }
 
   /** The occluder's alpha mask over the whole room, in device pixels: built once per size, or null until its image loads. */

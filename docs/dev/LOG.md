@@ -1587,6 +1587,10 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
     targets (`onScreen`, `pointOn`, a target's button as fallback); the character switch was pressed while a line was
     still up at the keyboard's pace (`switchTo` retries until the engine switched); `e2e:weight` waited for a DOM
     backdrop only.
+- **CI's first run: market 29.6 fps at CPU ÷4** (49.6 here). At ÷8 here it was 20 fps; timing each draw showed
+  `drawOccluder` at 16 ms a frame: every image load (a character's next walk frame) cleared the occluder cache, and
+  each rebuild blurs a room-wide canvas. Only the backdrop, a layer or a mask clears it now, and an occluder's pixels are
+  cropped to its box (no more full-viewport copy per occluder). ÷8: 20 → 47 fps; baselines 8 / 8 at 0.00%.
 - CI: job `reference` (Chromium, WebKit): build, `prove:game`, keyboard, fr, generic + axe + save, visual, perf,
   weight; `pages` needs it.
 - `tests/reference-chapter.test.ts`: validates, proves, and pins the stage criteria (≥ 6 layers, parallax, ≥ 3
