@@ -33,7 +33,7 @@ export const game = defineGame({
   audio: { music: {}, sfx: {} },
   // Interface icons and engine sounds come from the game (see docs/en/CONTENT_GUIDE.md, "skin").
   skin: {
-    icons: { map: 'ui/r1c5', pause: 'ui/r3c5', music: 'ui/r3c6', spark: 'ui/r3c4', pin: 'ui/r1c6', news: 'ui/r2c4', plane: 'ui/r2c1', car: 'ui/r2c2', confetti: ['ui/r4c1', 'ui/r4c2'] },
+    icons: { map: 'ui/map', pause: 'ui/pause', music: 'ui/music', spark: 'ui/spark', pin: 'ui/pin', news: 'ui/news', plane: 'ui/plane', car: 'ui/car', confetti: ['ui/confetti1', 'ui/confetti2'] },
     sounds: {},
   },
   titleScreen: { decor: 'decor/backyard', footer: '__TITLE__' },

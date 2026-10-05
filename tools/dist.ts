@@ -8,13 +8,13 @@ import { gzipSync } from 'node:zlib';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
 import { assetsManifest, initialChunks, inventory, manifestMatches, strayAssets, type ManifestEntry } from '../src/engine/tools/inventory';
-import { GAME, GAME_DIR, ROOT, loadGameModule } from './game';
+import { GAME, GAME_DIR, PROJECT, ROOT, WORK, loadGameModule } from './game';
 import { LOCK, PROVENANCE, readJson, shippedKeys, type Provenance, type ProvenanceLock } from './provenance-files';
 
 const args = process.argv.slice(2);
 const arg = (k: string) => args.find((a) => a.startsWith(`--${k}=`))?.split('=').slice(1).join('=');
 const seal = args[0] === 'seal';
-const dir = resolve(seal ? (args[1] ?? 'dist') : (arg('dir') ?? 'dist'));
+const dir = resolve(WORK, seal ? (args[1] ?? 'dist') : (arg('dir') ?? 'dist'));
 
 function walk(d: string, out: string[] = []): string[] {
   for (const e of readdirSync(d)) { const p = join(d, e); if (statSync(p).isDirectory()) walk(p, out); else out.push(p); }
@@ -23,7 +23,7 @@ function walk(d: string, out: string[] = []): string[] {
 const rel = (p: string) => relative(dir, p).split('\\').join('/');
 const sha = (p: string) => createHash('sha256').update(readFileSync(p)).digest('hex');
 
-if (!existsSync(dir)) { console.error(`✖  [${GAME}] ${relative(ROOT, dir)}: no build (npm run build first)`); process.exit(1); }
+if (!existsSync(dir)) { console.error(`✖  [${GAME}] ${relative(WORK, dir)}: no build (npm run build first)`); process.exit(1); }
 const prov = readJson<Provenance>(PROVENANCE) ?? { assets: [] };
 const { game } = await loadGameModule();
 // A game not locked yet (a new one): its asset graph says what ships, without hashes to compare.
@@ -31,24 +31,29 @@ const locked = readJson<ProvenanceLock>(LOCK);
 const lock: ProvenanceLock = locked ?? { version: 1, assets: Object.fromEntries(shippedKeys(game).map((k) => [k, { sha256: '', bytes: 0, match: '', licence: '', status: 'placeholder' as const }])) };
 const data = game.ending?.file ? [game.ending.file.replace(/^\//, '')] : [];
 
+/** A package's folder: the project's node_modules first (an installed engine's dependencies are hoisted there). */
+const moduleDir = (p: string) => [resolve(WORK, 'node_modules', p), resolve(ROOT, 'node_modules', p), resolve(ROOT, '..', p)].find((d) => existsSync(join(d, 'package.json'))) ?? resolve(ROOT, 'node_modules', p);
+const modulesRoot = () => [resolve(WORK, 'node_modules'), resolve(ROOT, 'node_modules')].find(existsSync)!;
+
 /** The packages the bundle took code from (vite.config.ts writes the list during the build), plus the service worker's. */
 function bundlePackages(): string[] {
-  const listed = readJson<string[]>(resolve(ROOT, '.cache', `bundle-packages-${GAME}.json`)) ?? [];
+  const listed = readJson<string[]>(resolve(WORK, '.cache', `bundle-packages-${GAME}.json`)) ?? [];
   // The service worker is generated after the bundle (vite-plugin-pwa): its runtime is Workbox's packages.
-  const workbox = readdirSync(resolve(ROOT, 'node_modules')).filter((n) => n.startsWith('workbox-') && !/build|cli|webpack|recipes|streams|google-analytics|broadcast|background-sync|navigation-preload/.test(n));
+  const workbox = readdirSync(modulesRoot()).filter((n) => n.startsWith('workbox-') && !/build|cli|webpack|recipes|streams|google-analytics|broadcast|background-sync|navigation-preload/.test(n));
   // And what they depend on: a package's own build may hold its dependencies' code (navmesh holds javascript-astar).
   const all = new Set<string>();
   const add = (p: string) => {
-    if (all.has(p) || !existsSync(resolve(ROOT, 'node_modules', p, 'package.json'))) return;
+    if (all.has(p) || !existsSync(join(moduleDir(p), 'package.json'))) return;
     all.add(p);
-    for (const d of Object.keys(readJson<{ dependencies?: Record<string, string> }>(resolve(ROOT, 'node_modules', p, 'package.json'))?.dependencies ?? {})) add(d);
+    for (const d of Object.keys(readJson<{ dependencies?: Record<string, string> }>(join(moduleDir(p), 'package.json'))?.dependencies ?? {})) add(d);
   };
-  for (const p of [...listed, ...workbox]) add(p);
+  // The engine itself (an installed web-scumm) is LICENSE; its tools' dependencies never reach the bundle.
+  for (const p of [...listed, ...workbox]) if (p !== 'web-scumm') add(p);
   return [...all].sort();
 }
 
 function licenceText(pkg: string): { version: string; licence: string; text: string } {
-  const base = resolve(ROOT, 'node_modules', pkg);
+  const base = moduleDir(pkg);
   const meta = readJson<{ version?: string; license?: string }>(join(base, 'package.json')) ?? {};
   const file = existsSync(base) ? readdirSync(base).find((f) => /^(licen[cs]e|copying)(\.(md|txt))?$/i.test(f)) : undefined;
   return { version: meta.version ?? '?', licence: meta.license ?? '?', text: file ? readFileSync(join(base, file), 'utf8').trim() : `(${meta.license ?? 'licence'}: no licence file in the package)` };
@@ -76,8 +81,10 @@ if (seal) {
   const out = resolve(dir, 'licenses');
   mkdirSync(out, { recursive: true });
   writeFileSync(join(out, 'LICENSE'), readFileSync(resolve(ROOT, 'LICENSE')));
-  const assetsLicence = [resolve(GAME_DIR, 'LICENSE-ASSETS'), resolve(ROOT, 'LICENSE-ASSETS')].find(existsSync)!;
-  writeFileSync(join(out, 'LICENSE-ASSETS'), readFileSync(assetsLicence));
+  // The game's own LICENSE-ASSETS; in this repository, the sample games'; else one written from the provenance.
+  const assetsLicence = [resolve(GAME_DIR, 'LICENSE-ASSETS'), ...(PROJECT ? [] : [resolve(ROOT, 'LICENSE-ASSETS')])].find(existsSync);
+  const licences = [...new Set(Object.values(lock.assets).map((l) => l.licence).filter(Boolean))];
+  writeFileSync(join(out, 'LICENSE-ASSETS'), assetsLicence ? readFileSync(assetsLicence) : `The assets of ${game.title ?? GAME} (images, sounds, music, videos) are under the licences their entries name:\n${licences.map((l) => `- ${l}`).join('\n') || '- (none reviewed yet)'}\n\nFile by file, with the author and the source: CREDITS.md and assets-manifest.json. The engine's code is under LICENSE.\n`);
   writeFileSync(join(out, 'CREDITS.md'), credits());
   const pkgs = bundlePackages();
   const notices = [
@@ -87,7 +94,7 @@ if (seal) {
   ];
   writeFileSync(join(out, 'THIRD_PARTY_NOTICES.txt'), notices.join('\n'));
   writeFileSync(join(out, 'assets-manifest.json'), JSON.stringify({ game: game.id, assets: assetsManifest(lock, prov.assets ?? []) }, null, 1) + '\n');
-  console.log(`[${GAME}] sealed ${relative(ROOT, dir)}: ${stray.length} file(s) of other games removed, licenses/ written (${pkgs.length} packages)`);
+  console.log(`[${GAME}] sealed ${relative(WORK, dir)}: ${stray.length} file(s) of other games removed, licenses/ written (${pkgs.length} packages)`);
   process.exit(0);
 }
 
@@ -109,7 +116,7 @@ const problems = [
 ];
 if (args.includes('--json')) console.log(JSON.stringify({ ...r, initialJsKB, problems }));
 else {
-  console.log(`[${GAME}] ${relative(ROOT, dir)}: ${Object.keys(files).length} files · ${Object.entries(r.kinds).map(([k, n]) => `${n} ${k}`).join(', ')} · first visit's JavaScript ${initialJsKB} KB gzipped${jsBudget !== undefined ? ` (initialJsKB ${jsBudget})` : ''}`);
+  console.log(`[${GAME}] ${relative(WORK, dir)}: ${Object.keys(files).length} files · ${Object.entries(r.kinds).map(([k, n]) => `${n} ${k}`).join(', ')} · first visit's JavaScript ${initialJsKB} KB gzipped${jsBudget !== undefined ? ` (initialJsKB ${jsBudget})` : ''}`);
   for (const p of problems.slice(0, 40)) console.log('  ✖ ' + p);
   if (problems.length > 40) console.log(`  … and ${problems.length - 40} more`);
   if (!locked) console.log(`  ℹ no provenance.lock.json: the files are not compared to a review (npm run provenance -- --lock)`);

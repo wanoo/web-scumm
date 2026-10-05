@@ -1,12 +1,13 @@
 import { defineConfig, type Plugin } from 'vite';
 import { fileURLToPath } from 'node:url';
 import { writeFile } from 'node:fs/promises';
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { VitePWA } from 'vite-plugin-pwa';
-import { GAME, GAME_DIR } from './tools/game';
+import { GAME, GAME_DIR, PROJECT, WORK } from './tools/game';
 import { studioPlugin } from './tools/studio/plugin';
 import { writeSnapshot } from './tools/studio/snapshot';
 import { authorizeStudioRequest } from './tools/studio/security';
@@ -33,7 +34,7 @@ function layoutWriter(): Plugin {
           if (tooLarge) return;
           try {
             const json = JSON.parse(body);
-            await writeFile(r(`./games/${GAME}/layout/${room}.json`), JSON.stringify(json, null, 2) + '\n');
+            await writeFile(resolve(GAME_DIR, 'layout', `${room}.json`), JSON.stringify(json, null, 2) + '\n');
             res.end('ok');
           } catch (e) { res.statusCode = 500; res.end(String(e)); }
         });
@@ -88,9 +89,9 @@ function sealBuild(): Plugin {
       }
     },
     closeBundle() {
-      mkdirSync(r('./.cache'), { recursive: true });
-      writeFileSync(r(`./.cache/bundle-packages-${GAME}.json`), JSON.stringify([...packages].sort()));
-      execFileSync(r('./node_modules/.bin/tsx'), ['--tsconfig', r('./tsconfig.json'), r('./tools/dist.ts'), 'seal', outDir], { stdio: 'inherit' });
+      mkdirSync(resolve(WORK, '.cache'), { recursive: true });
+      writeFileSync(resolve(WORK, '.cache', `bundle-packages-${GAME}.json`), JSON.stringify([...packages].sort()));
+      execFileSync(process.execPath, [tsxCli(), '--tsconfig', tsconfig(), r('./tools/dist.ts'), 'seal', outDir], { stdio: 'inherit' });
     },
   };
 }
@@ -104,7 +105,7 @@ function assetsVersion(): string {
       if (e.isDirectory()) walk(p); else { h.update(e.name); h.update(readFileSync(p)); }
     }
   };
-  try { walk(r('./public/assets')); } catch { /* no assets yet */ }
+  try { walk(resolve(WORK, 'public', 'assets')); } catch { /* no assets yet */ }
   return h.digest('hex').slice(0, 10);
 }
 
@@ -150,10 +151,17 @@ const isToolModule = (id: string) => {
   return /[\\/](src[\\/]studio|src[\\/]engine[\\/]dev|src[\\/]engine[\\/]tools|node_modules[\\/](@tweakpane|tweakpane))[\\/]/.test(id);
 };
 
+/** tsx's command line, wherever npm put it (this repository, or a game project that installed the engine). */
+const tsxCli = () => createRequire(import.meta.url).resolve('tsx/cli');
+/** The tsconfig the tools run with: the project's (its `@engine` paths point into the package), else this repository's. */
+const tsconfig = () => (PROJECT && existsSync(resolve(PROJECT, 'tsconfig.json')) ? resolve(PROJECT, 'tsconfig.json') : r('./tsconfig.json'));
+
 /** Deploy under a sub-path (GitHub Pages: /<repo>/) with BASE_PATH=/<repo>/ ; default '/'. */
 const BASE = process.env.BASE_PATH ?? '/';
 
 export default defineConfig({
+  // The engine's pages (index.html, studio.html) are next to this file, wherever it is installed.
+  root: r('.'),
   base: BASE,
   define: { __ASSETS_VERSION__: JSON.stringify(assetsVersion()), __GAME__: JSON.stringify(GAME) },
   plugins: [
@@ -195,11 +203,13 @@ export default defineConfig({
   // The current game (GAME, otherwise package.json → config.game, otherwise demo): `@game` → games/<GAME>/index.ts.
   resolve: { alias: [
     { find: '@engine', replacement: r('./src/engine') },
-    { find: /^@game$/, replacement: r(`./games/${GAME}/index.ts`) },
-    { find: /^@game\//, replacement: r(`./games/${GAME}/`) },
+    { find: /^@game$/, replacement: resolve(GAME_DIR, 'index.ts') },
+    { find: /^@game\//, replacement: GAME_DIR + '/' },
   ] },
+  // A game project (3.9): its public/ and dist/, the engine's pages and code from the installed package.
+  ...(PROJECT ? { publicDir: resolve(PROJECT, 'public'), cacheDir: resolve(PROJECT, 'node_modules', '.vite'), server: { port: 5173, host: process.env.WEB_SCUMM_LAN === '1' ? true : '127.0.0.1', fs: { allow: [r('.'), PROJECT] } } } : {}),
   // The Studio page (studio.html, dev server: /__studio/) only enters a build with STUDIO=1.
-  build: { target: 'es2020', assetsInlineLimit: 0,
+  build: { target: 'es2020', assetsInlineLimit: 0, ...(PROJECT ? { outDir: resolve(PROJECT, 'dist'), emptyOutDir: true } : {}),
     rollupOptions: {
       input: { index: r('./index.html'), ...(process.env.STUDIO === '1' ? { studio: r('./studio.html') } : {}) },
       // Code only the Studio or the dev tools use goes to assets/tools/ (left out of the service worker's precache).

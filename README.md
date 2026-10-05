@@ -172,6 +172,7 @@ furniture, all in one style. `npm run assets` cuts the generated sheets into spr
 | [STUDIO](docs/en/STUDIO.md) · [TOOLS](docs/en/TOOLS.md) · [MCP](docs/en/MCP.md) | the Studio, every command, the AI tools |
 | [ENGINE](docs/en/ENGINE.md) · [BENCH](docs/en/BENCH.md) | how the engine works, what the proof can and cannot do |
 | [PROMPTS](docs/en/PROMPTS.md) · [AUDIO](docs/en/AUDIO.md) · [PAGES](docs/en/PAGES.md) | images, sound, the review pages |
+| [PACKAGE](docs/en/PACKAGE.md) | a game in its own project: `npx create-web-scumm`, the `web-scumm` command |
 | [ROADMAP](docs/en/ROADMAP.md) · [CHANGELOG](CHANGELOG.md) · [UPGRADING](docs/en/UPGRADING.md) | where it comes from, every release, moving to a new version |
 
 Every page also exists in French under `docs/fr/`. `docs/dev/` holds the log of the work with the other assistant.

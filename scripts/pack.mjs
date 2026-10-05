@@ -1,0 +1,45 @@
+// node scripts/pack.mjs [--out=.cache/pack] (3.9): the engine as npm packages, from the files git tracks.
+// `web-scumm`: the engine (src/), its pages, its tools and the `web-scumm` command, the game template; never a game
+// of this repository, a test, a doc page or a build. `create-web-scumm`: `npx create-web-scumm <folder>`, which runs
+// `web-scumm create`. Both are packed (`npm pack`) into <out>/, ready for `npm install <tarball>` or `npm publish`.
+import { execFileSync } from 'node:child_process';
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+
+const ROOT = resolve(import.meta.dirname, '..');
+const out = resolve(ROOT, process.argv.find((a) => a.startsWith('--out='))?.slice(6) ?? '.cache/pack');
+const root = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8'));
+
+/** What the package ships, by tracked path. */
+const SHIP = [/^src\//, /^tools\//, /^cli\//, /^games\/_template\//, /^public\/(icons|fonts)\//, /^public\/og\.png$/,
+  /^(index|studio)\.html$/, /^vite\.config\.ts$/, /^tsconfig\.json$/, /^requirements\.txt$/, /^LICENSE$/];
+const SKIP = [/__pycache__|\.pyc$/, /^tools\/audit-assets\.ts$/];
+const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter((f) => f && SHIP.some((r) => r.test(f)) && !SKIP.some((r) => r.test(f)));
+
+// The tools, the dev server and the build run in the game project: what the repository has as devDependencies for
+// them is a dependency of the package (tests, Playwright and the MCP SDK stay out).
+const RUNTIME_DEV = ['vite', 'vite-plugin-pwa', 'tsx', 'typescript', '@types/node', '@types/howler', 'tweakpane', '@tweakpane/core', '@modelcontextprotocol/sdk'];
+const pick = (names) => Object.fromEntries(names.filter((n) => root.devDependencies?.[n]).map((n) => [n, root.devDependencies[n]]));
+
+rmSync(out, { recursive: true, force: true });
+const engine = join(out, 'web-scumm');
+for (const f of files) { mkdirSync(dirname(join(engine, f)), { recursive: true }); cpSync(join(ROOT, f), join(engine, f)); }
+writeFileSync(join(engine, 'package.json'), JSON.stringify({
+  name: 'web-scumm', version: root.version, description: 'An engine for point-and-click adventure games in the browser: content as typed data, a solver that proves the game can be finished, a Studio.',
+  license: 'MIT', type: 'module', engines: root.engines, repository: { type: 'git', url: 'git+https://github.com/wanoo/web-scumm.git' },
+  bin: { 'web-scumm': 'cli/web-scumm.mjs' },
+  dependencies: { ...Object.fromEntries(Object.entries(root.dependencies).filter(([n]) => n !== 'sirv-cli')), ...pick(RUNTIME_DEV) },
+}, null, 2) + '\n');
+writeFileSync(join(engine, 'README.md'), `# web-scumm\n\nAn engine for point-and-click adventure games in the browser. Start a game:\n\n\`\`\`bash\nnpx create-web-scumm my-game\ncd my-game && npm install\nnpm run assets && npm run dev\n\`\`\`\n\nThen \`npx web-scumm help\`. Documentation: https://github.com/wanoo/web-scumm (docs/en/PACKAGE.md).\n`);
+
+const create = join(out, 'create-web-scumm');
+mkdirSync(create, { recursive: true });
+writeFileSync(join(create, 'index.mjs'), `#!/usr/bin/env node\n// npx create-web-scumm <folder> ["Title"]: runs \`web-scumm create\` from the engine this package depends on.\nimport 'web-scumm/cli/create.mjs';\n`);
+writeFileSync(join(create, 'package.json'), JSON.stringify({
+  name: 'create-web-scumm', version: root.version, description: 'Creates a web-scumm game project: npx create-web-scumm my-game', license: 'MIT', type: 'module',
+  bin: { 'create-web-scumm': 'index.mjs' }, dependencies: { 'web-scumm': root.version },
+}, null, 2) + '\n');
+cpSync(join(ROOT, 'LICENSE'), join(create, 'LICENSE'));
+
+for (const d of [engine, create]) execFileSync('npm', ['pack', '--pack-destination', out, '--silent'], { cwd: d, stdio: ['ignore', 'inherit', 'inherit'] });
+console.log(`packed into ${out}: web-scumm ${root.version} (${files.length} files), create-web-scumm`);

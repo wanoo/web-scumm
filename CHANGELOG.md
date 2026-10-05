@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Added
+
+- The engine as a package (`docs/en/PACKAGE.md`): `npm run pack` makes `web-scumm` (the engine, its pages, its tools,
+  the template, the `web-scumm` command) and `create-web-scumm`. `npx create-web-scumm my-game` makes a project with
+  `game/`, `public/`, a `package.json` calling `web-scumm dev|studio|assets|verify|build|release`, and a `tsconfig.json`
+  pointing `@engine` into the package; the tools run on the project (`WEB_SCUMM_PROJECT`) and never write into the
+  package. `npm run fresh-install`, a CI job, packs, creates, installs, verifies, builds and plays such a game to its
+  end outside the repository.
+- The template has its own placeholder art, drawn from shapes (`tools/placeholder-art.py`): a new game no longer
+  borrows the sample game's.
+
 ### Changed
 
 - The player's first visit runs 122 KB of gzipped JavaScript (153 before): the save envelope's schemas use
