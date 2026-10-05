@@ -183,6 +183,14 @@ scores least recently played are let go, and a score that alone is larger plays 
 `pcmBytes`, before any download). From one score to another, `audio.transitions` lands the new one on the old one's
 beat, bar, phrase or marker, after a bridge if any (3.6, `core/score.ts` `landing`); `npm run e2e:music` checks both to
 the sample, and a save's phase (`state.music`, written by the app, never read by the engine) resumes where it was.
+The music has three intents (3.6.1): `play` (the story's, with its transitions), `restore` (a loaded save: whatever
+plays stops at once and the saved track starts at its point, even when it is the one playing; no transition or bridge
+until the save is in place) and `stop`. The director owns what it schedules: a transition not landed yet is a plan
+(the old score, the bridge, the new score) that a stop, a restore or a new request cancels, so no bridge sounds after
+them; the old score is stopped by a timer, never by a stop scheduled up front. Voices duck one bus under everything it
+plays (bridges and stingers too), never the fades. The cap counts every buffer: a bridge that does not fit is dropped,
+two scores that do not fit become a cut, stingers evict like scores. A score that falls back to its mix keeps the
+saved point.
 
 ## Cache and responsiveness
 

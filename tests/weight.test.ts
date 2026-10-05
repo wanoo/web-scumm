@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { GameDef, RoomDef } from '@engine/core/types';
-import { initialAssets, roomAssets, weigh, weightReport } from '@engine/tools/weight';
+import { initialAssets, roomAssets, stingerAssets, transitionPeak, weigh, weightReport } from '@engine/tools/weight';
 
 const room = (id: string, extra: Partial<RoomDef> = {}): RoomDef => ({ id, name: id, decor: `decor/${id}`, ...extra } as RoomDef);
 const game = {
@@ -68,4 +68,32 @@ describe('weight', () => {
     expect(j.chapters.map((c: { id: string }) => c.id)).toContain('ending');
     expect(j.initial.bytes).toBeGreaterThan(0);
   }, 120000);
+});
+
+describe('the most decoded audio at once (3.6.1)', () => {
+  const MB = 1048576;
+  const g = {
+    audio: {
+      music: { a: 'a.mp3', b: 'b.mp3', c: 'c.mp3', link: 'link.mp3', hit: 'hit.mp3' },
+      scores: { a: { stems: { x: 'a-x.mp3' }, bpm: 120, pcmBytes: 40 * MB }, b: { stems: { x: 'b-x.mp3' }, bpm: 120, pcmBytes: 30 * MB }, c: { stems: { x: 'c-x.mp3' }, bpm: 120, pcmBytes: 50 * MB } },
+      transitions: [{ from: 'a', to: 'b', bridge: 'link' }, { from: '*', to: 'a' }],
+    },
+    rooms: [{ id: 'r', on: [{ do: [{ music: { stinger: 'hit' } }] }] }],
+  } as unknown as GameDef;
+  const pcm = (k: string) => ({ 'music:link.mp3': 10 * MB, 'music:hit.mp3': 2 * MB } as Record<string, number>)[k] ?? null;
+
+  it('the worst transition (two scores and its bridge), a stinger on top', () => {
+    expect(stingerAssets(g)).toEqual(['music:hit.mp3']);
+    // c → a: 50 + 40; a → b: 40 + 30 + 10; plus the stinger's 2.
+    expect(transitionPeak(g, pcm)).toBe(92 * MB);
+    expect(transitionPeak(g, (k) => (k === 'music:link.mp3' ? null : pcm(k)))).toBeNull();
+  });
+
+  it('a budget the peak goes over, or cannot be measured against', () => {
+    const full = { ...game, audio: g.audio, rooms: [...game.rooms, ...g.rooms.map((r) => ({ ...r, name: 'r', decor: 'decor/r' }))] } as GameDef;
+    const r = weightReport(full, {}, [], { transitionPeakMB: 90 }, { pcm });
+    expect(r.transitionPeak).toBe(92 * MB);
+    expect(r.over).toEqual(['decoded peak 92 MB > transitionPeakMB 90']);
+    expect(weightReport(full, {}, [], { transitionPeakMB: 90 }).over).toEqual([expect.stringContaining('decoded peak unknown')]);
+  });
 });

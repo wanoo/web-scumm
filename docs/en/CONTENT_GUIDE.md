@@ -718,7 +718,8 @@ After the first visit the game caches every image and sound for offline play (`o
 keeps only the current room and its neighbours); `assetBudgets` sizes the batches. A 40 MB game is 40 MB on the phone.
 `assetBudgets.initialKB`, `roomKB` and `chapterKB` say how much the game may ask a phone to download before the first
 room is playable, per room and per chapter. With a score, `backgroundScoreKB` (its stems), `decodedAudioMB` (decoded),
-and for every game `offlineTotalKB` (the full warm-up) hold the rest (3.6). `npm run weight` checks them, and a release
+and for every game `offlineTotalKB` (the full warm-up) hold the rest (3.6); with transitions, `transitionPeakMB` (two
+scores, a bridge and a stinger decoded at once, 3.6.1). `npm run weight` checks them, and a release
 requires them (docs/en/TOOLS.md).
 
 ## Available minigames
@@ -841,5 +842,7 @@ audio: {
 ```
 
 `at` is `beat`, `bar` (default), `phrase` or a marker of the old score, counted through its loop. Without a rule, a
-score replaces another at once, faded, as in 3.5. A save keeps where the music is, and loading it resumes there.
+score replaces another at once, faded, as in 3.5. A save keeps where the music is, and loading it resumes there,
+cut, never through a transition (3.6.1). The first rule naming both scores applies: `validate` refuses a rule an
+earlier one covers, and a marker from `'*'` that a score it can leave lacks.
 This is an adaptive stem mixer with transitions, not iMUSE: no tempo changes, no branches inside a score.

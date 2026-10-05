@@ -309,7 +309,11 @@ manquant, sort avec 1. Elles comptent le mix unique de chaque morceau, ce que jo
 reste a aussi ses budgets :
 - `backgroundScoreKB` : les stems des partitions, téléchargés une fois le lieu jouable là où le directeur les joue ;
 - `offlineTotalKB` : tout ce que garde le préchargement complet, application de base comprise ;
-- `decodedAudioMB` : la plus grosse partition décodée en mémoire (son `pcmBytes` ; inconnu compte comme dépassé).
+- `decodedAudioMB` : la plus grosse partition décodée en mémoire (son `pcmBytes` ; inconnu compte comme dépassé) ;
+- `transitionPeakMB` (3.6.1, exigé avec `audio.transitions`) : le plus de décodé à la fois, les deux partitions de la
+  pire transition et son pont, plus le plus gros stinger (`{ music: { stinger } }`). Ponts et stingers sont mesurés
+  par ffprobe ; non mesuré compte comme dépassé. Le directeur tient le côté exécution : `audio.maxDecodedMB` plafonne
+  chaque buffer qu'il garde, et une transition qui le dépasse coupe, sans son pont (docs/fr/AUDIO.md).
  `--release` (une étape de `verify:release`) échoue aussi quand un budget n'est pas fixé.
 `--json`. `npm run e2e:weight -- <url>` (bloquant en CI depuis la 3.4) vérifie la prédiction contre une vraie première
 visite dans Chromium, préchargements coupés : chaque requête dans la portée initiale prédite, les octets à 10 % près ou
