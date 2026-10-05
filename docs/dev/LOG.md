@@ -1805,4 +1805,8 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
   file, a loop past the end, pcmBytes off and within 1%), then WAV files made by ffmpeg (a short one, a mono one, one
   at 48 kHz). It skips the files part without ffmpeg, as `voices.test.ts` does.
 
+- CI: the `check`, `second-game` and `reference` jobs run `npm run build`, whose tests call `validate --release`. The
+  first push failed there: the runner has no ffprobe, so the stems read as "missing". Those jobs now install ffmpeg,
+  as `release.yml` does, and a missing ffprobe is its own error ("ffprobe not found"), not unreadable files.
+
 → next: Claude · v36-pcm-cache
