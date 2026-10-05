@@ -108,6 +108,18 @@ un Assistant qui fonctionne avec n'importe quel modèle.
 
 Il faut Node 22+, Python 3 pour les outils d'image (`pip install -r requirements.txt`) et ffmpeg pour le son.
 
+**Dans son propre projet** (3.9, [PACKAGE](docs/fr/PACKAGE.md)) : le moteur s'installe depuis l'archive d'une release
+(la publication sur npm viendra, puis `npx create-web-scumm mon-jeu`) :
+
+```bash
+T=https://github.com/wanoo/web-scumm/releases/download/v3.9.0/web-scumm-3.9.0.tgz
+npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
+cd mon-jeu && npm install
+npm run assets && npm run dev        # puis npm run verify, npm run build, npm run release
+```
+
+**Dans ce dépôt**, à côté des jeux d'exemple :
+
 ```bash
 npm install
 npm run doctor                       # vérifie Node, les modules Python, ffmpeg et les navigateurs de test
@@ -186,9 +198,9 @@ assistant.
 
 ## Releases
 
-Release actuelle : [v3.8.0 « Human Proof »](https://github.com/wanoo/web-scumm/releases/tag/v3.8.0) : le kit terrain
-(les sept passes écrites, les tapes manquées dans les playtests, un compteur d'images) et le scénario à deux partitions
-sous WebKit ; les passes elles-mêmes reviennent à des gens (`docs/fr/FIELD.md`). L'histoire de la v1.3 à la v3.7 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
+Release actuelle : [v3.9.0 « Independence »](https://github.com/wanoo/web-scumm/releases/tag/v3.9.0) : le moteur en
+paquet (`web-scumm`, `create-web-scumm`), un jeu fait hors du dépôt vérifié, construit et joué en CI, et l'API
+publique que la 4.0 tiendra stable. L'histoire de la v1.3 à la v3.7 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt
 

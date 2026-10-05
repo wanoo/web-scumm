@@ -2022,3 +2022,28 @@ Platform"; human gates reported, not blocking (D12).
 - No large engine primitive, as the review asked. Human passes: 0 of 7 (D12).
 
 → next: Claude · merge on green CI, tag v3.8.0
+
+## #93 · 2026-10-05 · Claude · proposal · 3.9.0 "Independence"
+
+- `feature/player-split` (in 3.7.1): what the player carried was measured, not guessed. No solver or tool reached it;
+  zod (the save envelope) and the seven minigames did. `zod/mini`, minigames on demand: 153 → 122 KB gzipped, held by
+  `initialJsKB`; `tests/boundaries.test.ts` keeps the layers apart.
+- `feature/package`: `npm run pack` stages the tracked engine files into `web-scumm` (with `bin`, `exports`, the tools'
+  runtime dependencies) and `create-web-scumm`. The tools take a project folder (`WEB_SCUMM_PROJECT`: `game/`,
+  `public/`, `dist/`, `.cache/`) and never write the package; Vite's root stays the package, its public and out dirs
+  the project's. `npm run fresh-install` (a CI job) creates, installs, verifies, builds and plays a game in a folder
+  outside the repository; a project file naming the repository fails it.
+- `feature/contracts` (shipped here as a preview): the four public entries and their surface test; the template uses
+  them only. 4.0 makes the promise.
+- **The Lighthouse**, an independent game, in its own local repository (`web-scumm-lighthouse`, beside this one):
+  created by `web-scumm create` from the packed template, the engine from `vendor/`, five places, a keeper, the
+  polishing minigame, English and French (202 texts), art by `art-src/draw.py`, music by `audio-src/theme/compose.py`
+  rendered by the engine's pipeline. `web-scumm release --commercial` is green (proof over 85 states, budgets,
+  provenance lock, dist accounted for); played to its end in Chromium in both languages, axe clean. It found two
+  engine bugs, fixed here: a source named in a project (`art-src/draw.py`) did not count for `verify:commercial`, and
+  `ids` was not a command.
+- Not done: the reference chapter keeps its links to the demo's art (the leak they caused is closed by the sealed
+  build; independence is proved by The Lighthouse instead). Publishing to npm and pushing The Lighthouse to GitHub
+  are the maintainer's.
+
+→ next: Claude · merge on green CI, tag v3.9.0, then 4.0 (the Lighthouse moved from 3.9.0 to 4.0.0)

@@ -5,6 +5,9 @@ pages, its tools and the `web-scumm` command, the game template) and `create-web
 
 ## A new game
 
+Until the packages are on npm, take the tarball a release attaches (`T=https://github.com/wanoo/web-scumm/releases/download/v<version>/web-scumm-<version>.tgz`):
+`npx --package=$T web-scumm create my-game "My Game" --engine=$T`. Once published:
+
 ```bash
 npx create-web-scumm my-game "My Game"     # or: npx web-scumm create my-game "My Game"
 cd my-game

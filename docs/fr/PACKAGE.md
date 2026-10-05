@@ -5,6 +5,9 @@ ses outils et la commande `web-scumm`, le modèle de jeu) et `create-web-scumm` 
 
 ## Un nouveau jeu
 
+Tant que les paquets ne sont pas sur npm, prendre l'archive jointe à une release (`T=https://github.com/wanoo/web-scumm/releases/download/v<version>/web-scumm-<version>.tgz`) :
+`npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T`. Une fois publiés :
+
 ```bash
 npx create-web-scumm mon-jeu "Mon jeu"     # ou : npx web-scumm create mon-jeu "Mon jeu"
 cd mon-jeu
