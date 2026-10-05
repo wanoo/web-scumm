@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Added
+
+- The reference chapter's two-score scenario (a plan on the phrase, the bridge, a save restored before the landing, a
+  stop while a transition waits, the decoded peak under `transitionPeakMB`) runs in WebKit as well as Chromium, in CI
+  (`npm run e2e:music -- --only=reference --browser=webkit`).
+
 ### Fixed
 
 - The release workflow builds the commit CI tested (`workflow_run.head_sha`), checks that the tag still points there,

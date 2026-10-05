@@ -192,6 +192,7 @@ npm run weight [-- --release --json --stems]   # ce qu'un téléphone téléchar
 npm run playtests [-- --strict --out=.cache/playtests]  # les sessions partagées par les joueurs (games/<id>/playtests) rejouées et cumulées : temps par lieu, blocages, indices, heatmap
 npm run e2e:perf -- <url> [--renderer=canvas|dom --cpu=4 --min=30 --room=<id>]   # images par seconde pendant que le héros marche, CPU ralenti (le substitut du téléphone)
 npm run e2e:music -- <url> [--only=offline|live|game --live=chromium|webkit]   # le directeur musical : 30 min hors ligne sans dérive, 100 changements sans clic, gigue en temps réel, les stems du thème dans le jeu
+npm run e2e:music -- <url> --only=reference [--browser=webkit]   # GAME=reference : deux partitions, des ponts, une restauration et un arrêt en pleine transition, le pic décodé (Chromium et WebKit, 3.8)
 npm run e2e -- <url> --renderer canvas  # le jeu entier dessiné par le peintre Canvas
 npm run e2e:visual -- <url> [--update] # chaque lieu, figé, contre tests/visual/<jeu>/*.png (0,5 % des pixels au plus)
 npm run e2e -- <url> --lang fr           # le jeu entier dans cette langue ; échoue sur tout texte anglais par défaut du moteur visible
