@@ -12,6 +12,10 @@
 - A proof worker that stopped mid-search stayed in the pool: `stats()` asked it with no timeout and could wait for
   ever. It now leaves the pool for good, its node going to the others (or to this thread when none is left), and
   `stats()` asks only the live ones, 2 s at most each (tests: one of four stops, then all, by exit or by an error).
+- A browser that does not tell its memory (Safari, iOS included) was taken for an 8 GB device and got the stems. It
+  now gets them only when the scores' decoded weight is known and at most 128 MB (`ScoreDef.pcmBytes`, written by
+  `npm run audio -- stems`; the demo's theme is 101 MB); otherwise the single mix. `validate` warns about a score
+  without it.
 - `bench --workers-table` reports the peak RSS: 4 workers take 1.2 GB where one search takes 0.5 GB (BENCH.md "3.5.1").
 
 ## 3.5.0 — 2026-10-05

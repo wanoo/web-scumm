@@ -167,14 +167,20 @@ export class MusicDirector {
   }
 }
 
+/** Decoded stems a device of unknown memory is trusted with (3.5.1): the demo's theme is 101 MB. */
+export const UNKNOWN_MEMORY_PCM = 128 * 1024 * 1024;
+
 /**
- * Whether the director plays stems here, or the single mix does: Web Audio present, no Save-Data, not a low-end
- * device (2 GB of memory or less, or 2 cores or less). The mix is the same music in one file.
+ * Whether the director plays stems here, or the single mix does (the same music in one file): Web Audio present, no
+ * Save-Data, not a low-end device (2 GB of memory or less, or 2 cores or less). A browser that does not tell its
+ * memory (Safari, iOS included) gets the stems only when the scores' decoded weight is known (`ScoreDef.pcmBytes`,
+ * the largest) and at most `UNKNOWN_MEMORY_PCM`.
  */
-export function directorFits(): boolean {
-  const n = navigator as Navigator & { connection?: { saveData?: boolean }; deviceMemory?: number };
+export function directorFits(pcmBytes?: number, nav: Navigator = navigator): boolean {
+  const n = nav as Navigator & { connection?: { saveData?: boolean }; deviceMemory?: number };
   if (typeof AudioContext === 'undefined') return false;
   if (n.connection?.saveData) return false;
-  if ((n.deviceMemory ?? 8) <= 2 || (n.hardwareConcurrency ?? 8) <= 2) return false;
-  return true;
+  if ((n.hardwareConcurrency ?? 8) <= 2) return false;
+  if (n.deviceMemory === undefined) return pcmBytes !== undefined && pcmBytes <= UNKNOWN_MEMORY_PCM;
+  return n.deviceMemory > 2;
 }

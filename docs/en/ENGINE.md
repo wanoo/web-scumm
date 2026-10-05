@@ -173,8 +173,8 @@ fetches it, and caches it, only for a character outside the subset.
 instant of the audio clock and loops over the same window, so they stay sample-locked; a change of the game's state
 moves stem gains on the next bar (or beat), crossfaded, scheduled ahead on the audio thread. `core/score.ts` decides
 what and when, without a sound card: the mix per state, the grid through the loop, the ramps. `dom/audio.ts` hands a
-scored track to the director where it fits (Web Audio, no Save-Data, more than 2 GB and 2 cores; `?music=mix|stems`
-forces one) and plays the single mix with Howler elsewhere; voices and one-off tracks duck the score like the mix.
+scored track to the director where it fits (Web Audio, no Save-Data, more than 2 GB and 2 cores; a browser that does
+not tell its memory, Safari, only when the scores decode to 128 MB at most, `pcmBytes`; `?music=mix|stems` forces one) and plays the single mix with Howler elsewhere; voices and one-off tracks duck the score like the mix.
 `npm run e2e:music` renders thirty minutes offline (0 samples of drift), 100 changes of mix (no click; a hard switch
 is caught), and measures the real-time jitter in Chromium and WebKit (0.02 ms), all in CI. Only the latest request
 plays (3.5.1): a score whose stems finish decoding after another score was asked for, or after a stop, is dropped

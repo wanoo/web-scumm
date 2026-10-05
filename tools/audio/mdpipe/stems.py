@@ -84,7 +84,9 @@ def run(spec_path, fur, out, lufs=-14, true_peak=-1.0, bitrate='128k'):
     bars = spec.get('bars', 0) + spec.get('extra_bars', 0)
     duration = n / sr
     bpm = round(bars * beats * 60 / duration, 3) if bars else spec.get('bpm')
-    score = {'stems': stems, 'bpm': bpm, 'beatsPerBar': beats}
+    # Decoded weight, what a device of unknown memory is judged on (dom/director.ts): every stem at 48 kHz, float32.
+    pcm = int(round(duration * 48000)) * x.shape[1] * 4 * len(mixes)
+    score = {'stems': stems, 'bpm': bpm, 'beatsPerBar': beats, 'pcmBytes': pcm}
     json.dump(score, open(os.path.join(out, 'score.json'), 'w'), indent=1)
     shutil.rmtree(work, ignore_errors=True)
     print(f'stems: {", ".join(f"{k} ({"+".join(v)})" for k, v in groups.items())}')

@@ -433,6 +433,8 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     if (sc.beatsPerBar !== undefined && !(Number.isInteger(sc.beatsPerBar) && sc.beatsPerBar > 0)) err(`${w}.beatsPerBar`, 'a whole number of beats above 0');
     if (sc.loop && !(sc.loop[0] >= 0 && sc.loop[1] > sc.loop[0])) err(`${w}.loop`, `[first bar, end bar) with end > first (got ${JSON.stringify(sc.loop)})`);
     if (sc.fadeBeats !== undefined && !(sc.fadeBeats >= 0)) err(`${w}.fadeBeats`, 'a number of beats, 0 or more');
+    if (sc.pcmBytes !== undefined && !(Number.isInteger(sc.pcmBytes) && sc.pcmBytes > 0)) err(`${w}.pcmBytes`, `a whole number of bytes above 0 (got ${String(sc.pcmBytes)})`);
+    else if (sc.pcmBytes === undefined) warn(w, 'no "pcmBytes" (npm run audio -- stems writes it): a browser that does not tell its memory (Safari) plays the single mix');
     (sc.states ?? []).forEach((st, i) => {
       for (const x of st.stems) if (!stems.includes(x)) err(`${w}.states[${i}]`, `unknown stem "${x}" (stems: ${stems.join(', ')})`);
       if (st.if !== undefined) cond(st.if, `${w}.states[${i}].if`);

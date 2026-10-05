@@ -129,6 +129,8 @@ export const game = defineGame({
       theme: {
         stems: { melody: 'swan-lake-stems/melody.mp3', strings: 'swan-lake-stems/strings.mp3', harp: 'swan-lake-stems/harp.mp3', bass: 'swan-lake-stems/bass.mp3' },
         bpm: 80, beatsPerBar: 4,
+        // 66 s × 48 kHz × 2 channels × 4 bytes × 4 stems, decoded (npm run audio -- stems).
+        pcmBytes: 101376032,
         states: [
           { if: { player: 'biscuit' }, stems: ['harp', 'bass'] },
           { if: { room: 'garden' }, stems: ['strings', 'harp', 'bass'] },

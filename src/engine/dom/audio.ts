@@ -29,7 +29,8 @@ export class Audio {
   private pending: string | null = null;
 
   constructor(private bank: AssetBank, private files: { music?: Record<string, string>; sfx?: Record<string, string>; voice?: Record<string, string>; scores?: Record<Id, ScoreDef> }, opts: { stems?: boolean } = {}) {
-    if (opts.stems ?? directorFits()) this.stemsWanted = true;
+    const pcm = Object.values(files.scores ?? {}).map((s) => s.pcmBytes);
+    if (opts.stems ?? directorFits(pcm.includes(undefined) ? undefined : Math.max(0, ...(pcm as number[])))) this.stemsWanted = true;
     const unlock = () => {
       if (this.unlocked) return;
       this.unlocked = true;

@@ -1752,3 +1752,20 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
   with 8, for the same 14 002 states.
 
 → next: Claude · v351-fits-unknown
+
+## #78 · 2026-10-05 · Claude · proposal · v351-fits-unknown
+
+- The maintainer's decision: a device of unknown memory is judged on the decoded weight. The plan said 64 MB with the
+  demo's theme "about 40 MB". That was wrong: measured, 4 stems × 66 s × 48 kHz × 2 channels × 4 bytes = 101 MB. The
+  threshold is 128 MB, so the demo keeps its stems on Safari, and a longer score falls back to the mix. Reported to
+  the maintainer.
+- `directorFits(pcmBytes, nav)`:
+  - known memory: unchanged;
+  - no `deviceMemory`: stems only if every score has a `pcmBytes` and the largest is ≤ `UNKNOWN_MEMORY_PCM`.
+- `ScoreDef.pcmBytes`: written by `stems.py` (48 kHz, the usual rate of an AudioContext; at 44.1 kHz it is lighter),
+  and set on the demo (the reference inherits it). `validate` refuses a value that is not a positive integer and warns
+  when it is absent. Whether it matches the files is checked by ffprobe in 3.6 (`v36-stem-probe`).
+- Test (`tests/director.test.ts`): no memory with 40 MB and with the theme gives stems; 128 MB + 1 and no `pcmBytes`
+  give the mix; 4 GB, 2 GB, 2 cores and Save-Data behave as in 3.5; no Web Audio gives the mix.
+
+→ next: Claude · v351-release
