@@ -187,7 +187,9 @@ les rampes. `dom/audio.ts` confie un morceau à partition au directeur là où i
 plus de 2 Go et 2 cœurs ; `?music=mix|stems` force l'un ou l'autre) et joue le mix unique avec Howler ailleurs ; les
 voix et les morceaux ponctuels baissent la partition comme le mix. `npm run e2e:music` rend trente minutes hors ligne
 (0 échantillon de dérive), 100 changements de mix (aucun clic ; une bascule sèche est détectée), et mesure la gigue en
-temps réel dans Chromium et WebKit (0,02 ms), le tout en CI.
+temps réel dans Chromium et WebKit (0,02 ms), le tout en CI. Seule la dernière demande joue (3.5.1) : une partition
+dont les stems finissent de se décoder après qu'une autre a été demandée, ou après un arrêt, est abandonnée
+(`tests/director.test.ts`).
 
 ## Cache et fluidité
 

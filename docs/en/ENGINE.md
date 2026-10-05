@@ -176,7 +176,9 @@ what and when, without a sound card: the mix per state, the grid through the loo
 scored track to the director where it fits (Web Audio, no Save-Data, more than 2 GB and 2 cores; `?music=mix|stems`
 forces one) and plays the single mix with Howler elsewhere; voices and one-off tracks duck the score like the mix.
 `npm run e2e:music` renders thirty minutes offline (0 samples of drift), 100 changes of mix (no click; a hard switch
-is caught), and measures the real-time jitter in Chromium and WebKit (0.02 ms), all in CI.
+is caught), and measures the real-time jitter in Chromium and WebKit (0.02 ms), all in CI. Only the latest request
+plays (3.5.1): a score whose stems finish decoding after another score was asked for, or after a stop, is dropped
+(`tests/director.test.ts`).
 
 ## Cache and responsiveness
 

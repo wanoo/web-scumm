@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fixed
+
+- The music director plays only the latest request: a score whose stems finished decoding after another score was
+  asked for replaced it, and a stop while a score loaded did not cancel it (found by the review of 3.5.0; a request
+  generation, `tests/director.test.ts`).
+
 ## 3.5.0 — 2026-10-05
 
 "Score": music, workers, inventories (the plan of D11; `docs/en/ROADMAP.md`, `docs/en/BENCH.md` 3.5). The open matrix

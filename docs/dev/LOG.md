@@ -1705,3 +1705,24 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 - `docs/dev/passes/3.5.0.md`: nothing done by hand at the tag (D12); a listening pass for the director is suggested.
 
 → next: Claude · merge on green CI, tag v3.5.0; the maintainer: the manual passes, the screenshots, the signed tag
+
+## #75 · 2026-10-05 · Claude · proposal · v351-director-race
+
+- Codex's review of 3.5.0, checked against the code (charter rule 5): all its claims hold. Four go to 3.5.1:
+  - the director's request race (`dom/director.ts` checked only the id after the `await`);
+  - the weight test reading the ambient `dist`;
+  - `stats()` asking a dead worker without a timeout;
+  - `deviceMemory ?? 8`.
+  Three go to 3.6, decided by the maintainer: separate stem, offline and PCM budgets; ffprobe on stems; an LRU PCM cache.
+- `MusicDirector` counts its requests (`play`, `stop`). After the stems decode, a stale request returns without
+  touching anything; a failure of a stale request is swallowed, of the latest rethrown (the single mix fallback in
+  `audio.ts` stays as it was). The playing score asked again also cancels a load. `loading` names a score still decoding.
+- `tests/director.test.ts`, with a fake context and files loaded by hand, covers 5 scenarios:
+  - A then B, with B decoded first;
+  - a stop during a load;
+  - a stale failure, then a failure of the latest request;
+  - the same score asked twice;
+  - the playing score asked again while another loads.
+  Without the fix, 4 of the 5 fail.
+
+→ next: Claude · v351-weight-hermetic

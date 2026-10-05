@@ -29,6 +29,12 @@ export class MusicDirector {
   readonly master: GainNode;
   private buffers = new Map<string, Promise<AudioBuffer>>();
   private playing: Playing | null = null;
+  /**
+   * Counts the requests (`play`, `stop`): a score whose stems finish decoding after a later request is dropped, so a
+   * slow score asked first never replaces one asked after it, and `stop()` also cancels a score still loading.
+   */
+  private gen = 0;
+  private want: Id | null = null;
   /** How far ahead a change is scheduled at the least (the audio thread takes it from there). */
   lead = 0.05;
 
@@ -38,6 +44,8 @@ export class MusicDirector {
   }
 
   get current(): Id | null { return this.playing?.id ?? null; }
+  /** The score asked for whose stems are still decoding (null: none). */
+  get loading(): Id | null { return this.want; }
   /** When the playing score started, on the audio clock (tests, the Studio's mixer). */
   get startedAt(): number | null { return this.playing?.start ?? null; }
   get stems(): Id[] { return this.playing?.stems ?? []; }
@@ -54,13 +62,25 @@ export class MusicDirector {
   /**
    * Plays a score with these stems sounding. The same score already playing: only the mix changes (on its grid).
    * `at`: when it starts on the audio clock (default: as soon as its stems are decoded); `fadeMs`: its fade-in.
-   * Resolves once it is scheduled.
+   * Resolves once it is scheduled, or once a later request has made it stale (then nothing is played). Rejects when a
+   * stem does not load and this request is still the latest.
    */
   async play(id: Id, score: ScoreDef, urls: Record<Id, string>, stems: Id[], opts: { at?: number; fadeMs?: number } = {}): Promise<void> {
+    const g = ++this.gen;
+    if (this.playing?.id === id) { this.want = null; this.mix(stems); return; }
+    this.want = id;
+    let buffers: (readonly [string, AudioBuffer])[];
+    try {
+      buffers = await Promise.all(Object.keys(score.stems).map(async (s) => [s, await this.buffer(urls[s])] as const));
+    } catch (e) {
+      if (g !== this.gen) return;
+      this.want = null;
+      throw e;
+    }
+    if (g !== this.gen) return;
+    this.want = null;
     if (this.playing?.id === id) { this.mix(stems); return; }
-    const buffers = await Promise.all(Object.keys(score.stems).map(async (s) => [s, await this.buffer(urls[s])] as const));
-    if (this.playing?.id === id) { this.mix(stems); return; }
-    this.stop(600);
+    this.fadeOut(600);
     const ctx = this.ctx;
     const start = opts.at ?? ctx.currentTime + this.lead;
     const bus = ctx.createGain();
@@ -124,8 +144,14 @@ export class MusicDirector {
     return () => { if (this.playing !== p) return; const u = this.ctx.currentTime; p.bus.gain.cancelScheduledValues(u); p.bus.gain.setValueAtTime(p.bus.gain.value, u); p.bus.gain.linearRampToValueAtTime(1, u + 0.4); };
   }
 
-  /** Fades the score out and releases it. */
+  /** Fades the score out and releases it; a score still loading will not start. */
   stop(ms = 500) {
+    this.gen++;
+    this.want = null;
+    this.fadeOut(ms);
+  }
+
+  private fadeOut(ms: number) {
     const p = this.playing;
     if (!p) return;
     this.playing = null;
