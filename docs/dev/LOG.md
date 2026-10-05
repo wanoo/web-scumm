@@ -1448,3 +1448,20 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 
 → next: Claude · merge on green CI, then v34-stage-schema
 
+## #62 · 2026-10-05 · Claude · proposal · v34-stage-schema
+
+- Types (`types.ts`): `StageLayer`, `LightDef`, `EmitterDef`, `StageDef` on `RoomDef.stage`, `renderer` on rooms and
+  the game; layout `layers`, `occluders`, `walkZones`, `walkLinks`, `lights`, `emitters`. Logic in the content (layer
+  `visible`, link `if` / `locked`), geometry in the layout, as Codex proposed.
+- `src/engine/core/stage.ts`: `stageOf` (normalized layers in depth bands, zones, links with their logic, lights,
+  emitters, occluders, transition, `canvasOnly`), `rendererOf`, `stageImages`, `inPolygon`. Old rooms: backdrop `decor`
+  + zone `main`.
+- Validator: duplicate ids, images, geometry for unknown ids, shapeless occluders, unknown zones, zones unreachable from
+  the default entry's zone with every link open (error), radial lights without a place, emitters without an area,
+  canvas-only features on a DOM room (warning); stage conditions count as reads. i18n: `stage.links.<id>.locked`.
+  Asset graph: stage images per room (layouts passed through).
+- `tests/stage.test.ts`: normalization, validation, and the proof of the demo with a stage on every room: same status,
+  states and softlocks (no layer or link is game state).
+
+→ next: Claude · merge on green CI, then v34-canvas
+

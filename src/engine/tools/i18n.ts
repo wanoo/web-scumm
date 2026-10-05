@@ -78,6 +78,7 @@ function room(r: RoomDef, fn: Fn, minigames: MinigameTexts) {
   for (const [id, p] of Object.entries(r.props ?? {})) one(`props.${id}.name`, p.name, (x) => { p.name = x; });
   for (const [id, a] of Object.entries(r.actors ?? {})) one(`actors.${id}.name`, a.name, (x) => { a.name = x; });
   for (const [id, e] of Object.entries(r.exits ?? {})) { one(`exits.${id}.name`, e.name, (x) => { e.name = x; }); one(`exits.${id}.locked`, e.locked, (x) => { e.locked = x; }); }
+  for (const [id, k] of Object.entries(r.stage?.links ?? {})) one(`stage.links.${id}.locked`, k.locked, (x) => { k.locked = x; });
   strOrList(r.look, `${P}look`, fn);
   (r.on ?? []).forEach((x, i) => { if (!x.exit) cmds(x.do, `${P}${rulePathSeg(i, x)}.do`, fn, minigames); });
   for (const [actor, ts] of Object.entries(r.talk ?? {})) ts.forEach((t, i) => { one(`${topicPathSeg(actor, i, t)}.topic`, t.topic, (x) => { t.topic = x; }); cmds(t.do, `${P}${topicPathSeg(actor, i, t)}.do`, fn, minigames); });

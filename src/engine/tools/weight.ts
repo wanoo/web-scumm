@@ -5,7 +5,7 @@
 // really transfers.
 // `npm run weight` prints it against `assetBudgets` (`initialKB`, `roomKB`, `chapterKB`); docs/en/TOOLS.md "Weight".
 import { assetGraph, initialScope, type AssetGraph, type MinigameBindings } from '../core/asset-graph';
-import type { GameDef, Id, RoomDef } from '../core/types';
+import type { GameDef, Id, Layout, RoomDef } from '../core/types';
 
 export interface WeightBudgets { initialKB?: number; roomKB?: number; chapterKB?: number }
 
@@ -37,8 +37,8 @@ export interface WeightReport {
 
 const kb = (b: number) => Math.round(b / 1024);
 
-export function weightReport(game: GameDef, sizes: Record<string, number | null>, chapters: { id: string; rooms: Id[] }[] = [], budgets: WeightBudgets = game.assetBudgets ?? {}, opts: { bindings?: MinigameBindings; shell?: string[] } = {}): WeightReport {
-  const graph = assetGraph(game, { bindings: opts.bindings });
+export function weightReport(game: GameDef, sizes: Record<string, number | null>, chapters: { id: string; rooms: Id[] }[] = [], budgets: WeightBudgets = game.assetBudgets ?? {}, opts: { bindings?: MinigameBindings; layouts?: Record<Id, Layout>; shell?: string[] } = {}): WeightReport {
+  const graph = assetGraph(game, { bindings: opts.bindings, layouts: opts.layouts });
   const byRoom = new Map(game.rooms.map((r) => [r.id, roomAssets(game, r, graph)]));
   // The first visit: the app shell (what the service worker precaches, when the build is there) and the initial scope.
   const initial = weigh([...(opts.shell ?? []), ...initialAssets(game, graph)], sizes);

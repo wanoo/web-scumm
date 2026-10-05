@@ -122,7 +122,7 @@ export class RoomView {
     this.ents.clear();
     const s = this.engine.state;
     // The room's part of the asset graph (core/asset-graph.ts) for who is actually here: never a file outside its scope.
-    const ids = new Set<Id>(roomImages(room));
+    const ids = new Set<Id>(roomImages(room, this.layout));
     const chars = new Set<Id>([this.heroId, ...Object.values(room.actors ?? {}).map((a) => a.char), ...Object.keys(this.engine.guests(room))]);
     for (const c of chars) characterImages(this.engine.game, c).forEach((f) => ids.add(f));
     await this.bank.preload(ids);

@@ -395,6 +395,37 @@ music / sound / voice volumes. Preferences stay in the browser, outside the save
 `ui.textSize`, `ui.reduceMotion`, `ui.readableFont`, `ui.volumeMusic`, `ui.volumeSfx`, `ui.volumeVoice`, `ui.slow`,
 `ui.normal`, `ui.fast`, `ui.large` (English defaults when absent).
 
+## The stage (3.4): layers, masks, lights, particles, floors
+
+A room can show more than its backdrop. The content says what exists and when (`stage` in the room); the layout says
+where (written by the Studio's editors); the painter draws it. Nothing on the stage is game state: a layer, a light or
+a particle never changes what the solver sees (tests/stage.test.ts proves the sample game with a stage on every room:
+same states).
+
+```ts
+stage: {
+  layers: [
+    { id: 'sky', image: 'pier/sky', role: 'backdrop' },               // behind everything (else `decor` is the backdrop)
+    { id: 'counter', image: 'pier/counter', role: 'scenery' },        // among the characters, by its layout `z`
+    { id: 'lantern', image: 'pier/lantern', role: 'foreground', visible: 'lantern_lit' },  // in front of everyone
+    { id: 'fog', image: 'pier/fog', role: 'effect' },                 // above all
+  ],
+  lights: [{ id: 'lamp', kind: 'radial', color: '#ffd28a', intensity: 0.7, visible: 'lantern_lit' }],
+  emitters: [{ id: 'spray', kind: 'rain', rate: 40 }],
+  transition: 'fade',                                                  // cut (default), fade, wipe
+  links: { stairs: { if: 'gate_open', locked: 'The gate is shut.' } }, // the logic of a walk link
+},
+```
+
+In the layout: `layers.<id> { x, y, z, parallax: [x, y], blend, opacity }`, `occluders.<id> { polygon | mask | layer,
+z, feather?, invert? }` (what hides a character standing deeper than `z`: a pillar, a counter, a window frame),
+`walkZones.<id> { area, holes?, scale?, zoom? }` (several floors; they replace `walk`), `walkLinks.<id> { from: { zone,
+at }, to: { zone, at }, mode: walk | stairs | ladder | jump | teleport, ms?, facing?, oneWay? }`, `lights.<id> { at,
+radius }`, `emitters.<id> { area }`. A link that is closed cannot be walked; when it gates a puzzle, the puzzle is a
+rule (the link only stops the walk). `renderer: 'canvas'` (on the room or the game) chooses the Canvas painter: masks
+from images or layers, lights, particles and blend modes are drawn only by it (`npm run validate` says so on a DOM
+room). An old room is a stage of one backdrop (`decor`) and one zone (`walk`, named `main`): nothing to rewrite.
+
 ## Exits, chapters, saves
 
 ### Declared exits

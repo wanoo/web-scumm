@@ -4,6 +4,13 @@
 
 ### Added
 
+- The stage schema (3.4): `RoomDef.stage` (layers with roles and conditions, lights, particle emitters, the room's
+  transition, the logic of walk links) and its geometry in the layout (`layers`, `occluders`, `walkZones`, `walkLinks`,
+  `lights`, `emitters`); `renderer: 'dom' | 'canvas'` on a room or the game. `stageOf` normalizes any room (an old one
+  is one backdrop and one zone). `npm run validate` checks ids, images, geometry, zones joined by their links, and what
+  only the canvas painter draws; the asset graph counts the stage images; link refusals are translatable. A stage is
+  never game state: the sample game with a stage on every room proves state for state the same.
+
 - The renderer contract (D10): `RoomView` is the scene model (positions, poses, depth, walking, fades, the camera, the
   hit test) and hands finished sprites to a painter (`SceneRenderer` / `SpriteSpec`, `dom/renderer.ts`); the DOM
   painter (`dom/render-dom.ts`) is the reference. The rooms render pixel for pixel as before.

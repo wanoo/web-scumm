@@ -16,7 +16,8 @@
 // A room's scope over-approximates what one visit loads (all the variants, every character who could be there): the
 // renderer loads a subset of it, never anything outside it.
 import { eachCmd } from './cmds';
-import type { Cmd, GameDef, Id, RoomDef } from './types';
+import type { Cmd, GameDef, Id, Layout, RoomDef } from './types';
+import { stageImages } from './stage';
 
 export type AssetKind = 'img' | 'sfx' | 'music' | 'voice' | 'video';
 export interface AssetManifestLike { images: Record<string, unknown>; videos?: Record<string, unknown> }
@@ -46,9 +47,10 @@ export function characterImages(game: GameDef, c: Id): string[] {
   return [...out];
 }
 
-/** The images of a room's backdrop and props (every state and animation frame): what the renderer draws for the place itself. */
-export function roomImages(room: RoomDef): string[] {
-  const out = new Set<string>([room.decor]);
+/** The images of a room's stage (backdrop, layers, masks, particles) and props (every state and animation frame):
+ *  what the renderer draws for the place itself. */
+export function roomImages(room: RoomDef, layout?: Layout): string[] {
+  const out = new Set<string>([room.decor, ...stageImages(room, layout)]);
   for (const p of Object.values(room.props ?? {})) {
     if (p.img) out.add(p.img);
     Object.values(p.states ?? {}).forEach((x) => out.add(x));
@@ -112,7 +114,7 @@ export function playerRooms(game: GameDef): Map<Id, Set<Id>> {
   return out;
 }
 
-export function assetGraph(game: GameDef, opts: { manifest?: AssetManifestLike; bindings?: MinigameBindings } = {}): AssetGraph {
+export function assetGraph(game: GameDef, opts: { manifest?: AssetManifestLike; bindings?: MinigameBindings; layouts?: Record<Id, Layout> } = {}): AssetGraph {
   const a = game.audio ?? {};
   const bindings = opts.bindings ?? {};
   const reach = playerRooms(game);
@@ -123,7 +125,7 @@ export function assetGraph(game: GameDef, opts: { manifest?: AssetManifestLike; 
 
   const rooms: Record<Id, string[]> = {};
   for (const r of game.rooms) {
-    const out = new Set<string>(roomImages(r).map((f) => `img:${f}`));
+    const out = new Set<string>(roomImages(r, opts.layouts?.[r.id]).map((f) => `img:${f}`));
     const chars = new Set<Id>([...Object.values(r.actors ?? {}).map((x) => x.char), ...(movedTo.get(r.id) ?? [])]);
     for (const [p, rs] of reach) if (rs.has(r.id)) chars.add(p);
     for (const [id, c] of Object.entries(game.characters)) if (c.room === r.id) chars.add(id);

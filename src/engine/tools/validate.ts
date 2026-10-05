@@ -1,5 +1,6 @@
 // Content validator: checks that everything referenced exists, and flags what's missing for a good experience.
 // Pure TypeScript (no DOM): runs in node (npm run validate) and in tests.
+import { inPolygon, rendererOf, stageOf } from '../core/stage';
 import { listId, listText } from '../core/list-lines';
 import { condFlags } from '../core/cond';
 import { subLists } from '../core/cmds';
@@ -514,6 +515,48 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   }
 
   // Rooms
+  // The stage (3.4): ids, images, geometry for every id and nothing else, walk zones joined by their links, what
+  // only the canvas painter can draw on a room the DOM paints. Its conditions are read (a layer's flag is not dead).
+  const stageChecks = (r: RoomDef, L: Layout | undefined, w: string) => {
+    const st = r.stage;
+    const ids = new Map<string, string>();
+    const own = (id: string, kind: string, where: string) => { if (ids.has(id)) err(where, `stage id "${id}" is used twice (${ids.get(id)} and ${kind})`); else ids.set(id, kind); };
+    for (const [i, l] of (st?.layers ?? []).entries()) {
+      const lw = `${w}.stage.layers[${i}]`;
+      own(l.id, 'layer', lw); img(l.image, lw); read(l.visible, lw);
+      if (!['backdrop', 'scenery', 'foreground', 'effect'].includes(l.role)) err(lw, `unknown layer role: "${l.role}"`);
+    }
+    if ((st?.layers ?? []).filter((l) => l.role === 'backdrop').length > 1) warn(`${w}.stage.layers`, 'more than one backdrop layer: they are drawn in order, the first one behind');
+    for (const [i, l] of (st?.lights ?? []).entries()) { const lw = `${w}.stage.lights[${i}]`; own(l.id, 'light', lw); read(l.visible, lw); if (l.kind === 'radial' && !L?.lights?.[l.id]) err(lw, `radial light "${l.id}" has no place: layout.lights.${l.id} { at, radius }`); }
+    for (const [i, e] of (st?.emitters ?? []).entries()) { const ew = `${w}.stage.emitters[${i}]`; own(e.id, 'emitter', ew); read(e.visible, ew); img(e.image, ew); if (!L?.emitters?.[e.id]) err(ew, `emitter "${e.id}" has no area: layout.emitters.${e.id} { area }`); }
+    for (const [id, link] of Object.entries(st?.links ?? {})) { const kw = `${w}.stage.links.${id}`; read(link.if, kw); text(link.locked, `${kw}.locked`); if (!L?.walkLinks?.[id]) err(kw, `no walk link "${id}" in the layout`); }
+    if (!L) return;
+    const layerIds = new Set(['decor', ...(st?.layers ?? []).map((l) => l.id)]);
+    for (const id of Object.keys(L.layers ?? {})) if (!layerIds.has(id)) err(`layout ${w}.layers.${id}`, `no stage layer "${id}" in the room`);
+    for (const [id, o] of Object.entries(L.occluders ?? {})) {
+      const ow = `layout ${w}.occluders.${id}`;
+      if (!o.polygon && !o.mask && !o.layer) err(ow, 'an occluder needs a polygon, a mask image or a layer');
+      if (o.layer && !layerIds.has(o.layer)) err(ow, `no stage layer "${o.layer}"`);
+      if (o.polygon && o.polygon.length < 3) err(ow, 'a polygon needs three points');
+      img(o.mask, ow);
+    }
+    for (const id of Object.keys(L.lights ?? {})) if (!(st?.lights ?? []).some((l) => l.id === id)) warn(`layout ${w}.lights.${id}`, `no stage light "${id}" in the room`);
+    for (const id of Object.keys(L.emitters ?? {})) if (!(st?.emitters ?? []).some((e) => e.id === id)) warn(`layout ${w}.emitters.${id}`, `no stage emitter "${id}" in the room`);
+    if (L.walkZones && L.walk) warn(`layout ${w}`, 'both walk and walkZones: walkZones replace walk, which is ignored');
+    const zones = new Set(Object.keys(L.walkZones ?? {}));
+    for (const [id, k] of Object.entries(L.walkLinks ?? {})) for (const end of [k.from, k.to]) if (!zones.has(end.zone)) err(`layout ${w}.walkLinks.${id}`, `unknown walk zone "${end.zone}"`);
+    // Every zone reachable from the zone of the default entry, all links open (a closed link is a puzzle, not a wall).
+    if (L.walkZones && zones.size > 1) {
+      const S = stageOf(r, L);
+      const start = S.zones.find((z) => L.entries?.default && inPolygon(L.entries.default, z.area))?.id ?? S.zones[0].id;
+      const seen = new Set([start]);
+      for (let grew = true; grew;) { grew = false; for (const k of S.links) for (const [a, b] of [[k.from.zone, k.to.zone], ...(k.oneWay ? [] : [[k.to.zone, k.from.zone]])]) if (seen.has(a) && !seen.has(b)) { seen.add(b); grew = true; } }
+      for (const z of zones) if (!seen.has(z)) err(`layout ${w}.walkZones.${z}`, `walk zone "${z}" cannot be reached from "${start}" (the zone of the default entry), even with every link open`);
+    }
+    const S = stageOf(r, L);
+    if (S.canvasOnly.length && rendererOf(r, game) === 'dom') warn(`${w}.stage`, `only the canvas painter draws ${S.canvasOnly.join(', ')}: the DOM painter leaves them out (renderer: 'canvas' on the room or the game)`);
+  };
+
   for (const r of game.rooms) {
     const w = r.id;
     const L = layouts[r.id];
@@ -532,6 +575,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     }
     if (images) img(r.decor, `${w}.decor`);
     if (r.music && !music[r.music]) err(w, `unknown music: "${r.music}"`);
+    stageChecks(r, L, w);
     if (!L) warn(w, 'no layout: nothing will be clickable (place the room in the editor)');
 
     for (const [pid, p] of Object.entries(r.props ?? {})) {
