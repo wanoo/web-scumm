@@ -161,7 +161,7 @@ jobs:
       - run: npm run e2e:pwa -- http://127.0.0.1:5173/ ${{ matrix.browser == 'webkit' && '--allow-skip' || '' }}
         env:
           E2E_BROWSER: ${{ matrix.browser }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: e2e-screenshots-${{ matrix.browser }}-${{ matrix.mode }}
@@ -212,7 +212,7 @@ jobs:
       # Two scores and two bridges (3.7): a transition planned, restored, stopped, under transitionPeakMB; in WebKit
       # too since 3.8.
       - run: npm run e2e:music -- http://127.0.0.1:5175/ --only=reference --browser=${{ matrix.browser }}
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: e2e-reference-${{ matrix.browser }}
