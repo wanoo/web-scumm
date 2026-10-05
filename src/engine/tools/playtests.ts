@@ -39,6 +39,8 @@ export interface PlaytestReport {
   hints: Record<string, number>;
   minigames: Record<Id, number>;
   aborts: number;
+  /** Taps on nothing next to a target, by `room/target`, summed over the sessions (3.8). */
+  misses: Record<string, number>;
   divergences: number;
   total: { files: number; entries: number; ms: number };
 }
@@ -55,7 +57,7 @@ const actionKey = (en: SessionEntry) => 'act' in en ? `${en.act.verb} ${en.act.a
 
 export async function analyzePlaytests(game: GameDef, layouts: Record<Id, Layout>, files: PlaytestFile[], opts: PlaytestOptions = {}): Promise<PlaytestReport> {
   const stallRepeats = opts.stallRepeats ?? 3, pauseMs = opts.pauseMs ?? 60000;
-  const report: PlaytestReport = { files: [], rooms: {}, heat: {}, stalls: [], hints: {}, minigames: {}, aborts: 0, divergences: 0, total: { files: files.length, entries: 0, ms: 0 } };
+  const report: PlaytestReport = { files: [], rooms: {}, heat: {}, stalls: [], hints: {}, minigames: {}, aborts: 0, misses: {}, divergences: 0, total: { files: files.length, entries: 0, ms: 0 } };
   const room = (id: Id): RoomStat => (report.rooms[id] ??= { ms: 0, entries: 0, effective: 0, noops: 0, hints: 0, abandons: 0 });
   const bump = (map: Record<string, number>, key: string, n = 1) => { map[key] = (map[key] ?? 0) + n; };
 
@@ -66,6 +68,7 @@ export async function analyzePlaytests(game: GameDef, layouts: Record<Id, Layout
     const r = await replay(game, layouts, file.session, { commands: opts.commands, onEntry: (i, e) => { roomAt[i + 1] = e.state.room; digests[i] = log[i].digest ?? e.session?.log.at(-1)?.digest; } });
     const played = r.played, first = r.first;
     for (const en of log) if ('act' in en && en.aborted) report.aborts++;
+    for (const [k, n] of Object.entries(file.misses ?? {})) report.misses[k] = (report.misses[k] ?? 0) + n;
     if (r.divergedAt !== undefined) report.divergences++;
     const timed = log.some((en) => en.t !== undefined);
     let duration = 0;
@@ -127,6 +130,8 @@ export function playtestsMarkdown(r: PlaytestReport, game: GameDef): string {
   out.push('');
   const hints = Object.entries(r.hints).sort((a, b) => b[1] - a[1]);
   if (hints.length) { out.push('## Hints shown', '', ...hints.map(([k, n]) => `- ${k.slice('hint:'.length)}: ${n}`), ''); }
+  const misses = Object.entries(r.misses).sort((a, b) => b[1] - a[1]);
+  if (misses.length) out.push('## Near misses (a tap on nothing next to it)', '', '| Room | target | taps |', '|---|---|---|', ...misses.map(([k, n]) => { const [room, t] = k.split('/'); return `| ${roomName(room)} | ${t} | ${n} |`; }), '');
   if (Object.keys(r.minigames).length) out.push('## Minigames played', '', ...Object.entries(r.minigames).map(([k, n]) => `- ${k}: ${n}`), '');
   if (r.aborts) out.push(`${r.aborts} interrupted walk(s).`, '');
   const diverged = r.files.filter((f) => f.divergedAt !== undefined);

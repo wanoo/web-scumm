@@ -176,7 +176,7 @@ tous dans un même style. `npm run assets` découpe les planches générées en 
 | [WORKFLOW](docs/fr/WORKFLOW.md) | la méthode, de la première idée à la release |
 | [CONTENT_GUIDE](docs/fr/CONTENT_GUIDE.md) · [CLASSICS](docs/fr/CLASSICS.md) · [DESIGN](docs/fr/DESIGN.md) | écrire le contenu, les mécaniques célèbres, en faire un bon jeu |
 | [STUDIO](docs/fr/STUDIO.md) · [TOOLS](docs/fr/TOOLS.md) · [MCP](docs/fr/MCP.md) | le Studio, chaque commande, les outils pour l'IA |
-| [ENGINE](docs/fr/ENGINE.md) · [BENCH](docs/fr/BENCH.md) | le fonctionnement du moteur, ce que la preuve sait faire et ne sait pas faire |
+| [ENGINE](docs/fr/ENGINE.md) · [BENCH](docs/fr/BENCH.md) · [FIELD](docs/fr/FIELD.md) | le fonctionnement du moteur, ce que la preuve sait faire et ne sait pas faire, ce que seuls des gens et de vrais appareils vérifient |
 | [PROMPTS](docs/fr/PROMPTS.md) · [AUDIO](docs/fr/AUDIO.md) · [PAGES](docs/fr/PAGES.md) | les images, le son, les pages de relecture |
 | [ROADMAP](docs/fr/ROADMAP.md) · [CHANGELOG](CHANGELOG.md) · [UPGRADING](docs/fr/UPGRADING.md) | d'où il vient, chaque release, passer à une nouvelle version |
 

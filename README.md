@@ -170,7 +170,7 @@ furniture, all in one style. `npm run assets` cuts the generated sheets into spr
 | [WORKFLOW](docs/en/WORKFLOW.md) | the method, from the first idea to the release |
 | [CONTENT_GUIDE](docs/en/CONTENT_GUIDE.md) · [CLASSICS](docs/en/CLASSICS.md) · [DESIGN](docs/en/DESIGN.md) | writing content, famous mechanics, making it a good game |
 | [STUDIO](docs/en/STUDIO.md) · [TOOLS](docs/en/TOOLS.md) · [MCP](docs/en/MCP.md) | the Studio, every command, the AI tools |
-| [ENGINE](docs/en/ENGINE.md) · [BENCH](docs/en/BENCH.md) | how the engine works, what the proof can and cannot do |
+| [ENGINE](docs/en/ENGINE.md) · [BENCH](docs/en/BENCH.md) · [FIELD](docs/en/FIELD.md) | how the engine works, what the proof can and cannot do, what only people and real devices check |
 | [PROMPTS](docs/en/PROMPTS.md) · [AUDIO](docs/en/AUDIO.md) · [PAGES](docs/en/PAGES.md) | images, sound, the review pages |
 | [ROADMAP](docs/en/ROADMAP.md) · [CHANGELOG](CHANGELOG.md) · [UPGRADING](docs/en/UPGRADING.md) | where it comes from, every release, moving to a new version |
 
