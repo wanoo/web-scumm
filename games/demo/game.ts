@@ -172,7 +172,7 @@ export const game = defineGame({
     updateAvailable: 'A new version is ready.', updateNow: 'Save and update',
     offlineStatus: 'Offline', offlineComplete: 'whole game cached', offlineRetry: 'tap to retry',
     verbs: 'Verbs', jump: '▲', duck: '▼', exportSession: 'Export session',
-    settings: 'Settings', textSpeed: 'Text speed', textSize: 'Text size', reduceMotion: 'Reduce motion', readableFont: 'Readable font',
+    settings: 'Settings', textSpeed: 'Text speed', textSize: 'Text size', reduceMotion: 'Reduce motion', readableFont: 'Readable font', captions: 'Sound captions',
     volumeMusic: 'Music volume', volumeSfx: 'Sound volume', volumeVoice: 'Voice volume', slow: 'slow', normal: 'normal', fast: 'fast', large: 'large',
     language: 'Language',
   },

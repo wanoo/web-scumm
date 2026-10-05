@@ -365,6 +365,7 @@
  "ui/textSize": "Taille du texte",
  "ui/reduceMotion": "Réduire les animations",
  "ui/readableFont": "Police lisible",
+ "ui/captions": "Sous-titres des sons",
  "ui/volumeMusic": "Volume musique",
  "ui/volumeSfx": "Volume sons",
  "ui/volumeVoice": "Volume voix",

@@ -823,6 +823,8 @@ export interface UiTexts {
   textSize?: string;
   reduceMotion?: string;
   readableFont?: string;
+  /** The settings row of the sound captions (shown only in a game that captions a sound). */
+  captions?: string;
   volumeMusic?: string;
   volumeSfx?: string;
   volumeVoice?: string;
