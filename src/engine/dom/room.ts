@@ -7,8 +7,9 @@ import { PaletteCache } from './palette';
 import { depthScale, WalkArea } from './walk';
 import { DomRenderer } from './render-dom';
 import { CanvasRenderer } from './render-canvas';
-import { rendererOf } from '../core/stage';
-import type { SceneRenderer, SpriteSpec } from './renderer';
+import { rendererOf, stageOf } from '../core/stage';
+import { check } from '../core/cond';
+import type { SceneRenderer, SpriteSpec, StageSpec } from './renderer';
 
 /** Something drawn in the scene: prop, actor or hero. */
 interface Ent {
@@ -94,6 +95,41 @@ export class RoomView {
   }
   /** A painter given by the caller (tests): kept for every room. */
   private custom = false;
+  /** The stage last handed to the painter: given again only when a condition changes it. */
+  private stageKey = '';
+
+  /** Particles per second when an emitter does not say (`EmitterDef.rate`). */
+  private static RATES: Record<string, number> = { dust: 6, rain: 60, snow: 20, sparks: 15, smoke: 8, leaves: 4 };
+
+  /**
+   * The room's stage for the painter: `stageOf` (core/stage.ts) with its conditions evaluated on the state and its
+   * images placed on the backdrop's box (`object-fit: cover` over the room), so a layer cut from the full-size art
+   * lies exactly over it.
+   */
+  stageSpec(): StageSpec {
+    const S = stageOf(this.room, this.layout);
+    const s = this.engine.state;
+    const shown = (c: Parameters<typeof check>[0]) => !s || check(c, s, this.room.id);
+    const [back, ...layers] = S.layers;
+    const [bw, bh] = this.bank.size(back.image);
+    const k = Math.max(this.width / bw, 400 / bh);
+    const bx = (this.width - bw * k) / 2, by = (400 - bh * k) / 2;
+    return {
+      backdrop: { url: this.bank.img(back.image), x: bx, y: by, w: bw * k, h: bh * k },
+      layers: layers.map((l) => { const [iw, ih] = this.bank.size(l.image); return { id: l.id, url: this.bank.img(l.image), role: l.role, x: bx + l.x, y: by + l.y, w: iw * k, h: ih * k, z: l.z, parallax: l.parallax, blend: l.blend, opacity: l.opacity, visible: shown(l.visible) }; }),
+      occluders: S.occluders.map((o) => ({ id: o.id, z: o.z, ...(o.polygon ? { polygon: o.polygon } : {}), ...(o.mask ? { mask: this.bank.img(o.mask) } : {}), ...(o.layer ? { layer: o.layer } : {}), feather: o.feather, invert: o.invert })),
+      lights: S.lights.map((l) => ({ id: l.id, kind: l.kind, color: l.color, intensity: l.intensity ?? 0.6, blend: l.blend ?? (l.kind === 'radial' ? 'screen' : 'multiply'), ...(l.at ? { at: l.at } : {}), ...(l.radius ? { radius: l.radius } : {}), visible: shown(l.visible) })),
+      emitters: S.emitters.map((e) => ({ id: e.id, kind: e.kind, ...(e.image ? { url: this.bank.img(e.image) } : {}), color: e.color ?? '#ffffff', rate: e.rate ?? RoomView.RATES[e.kind] ?? 8, area: e.area ?? [0, 0, this.width, 400], visible: shown(e.visible) })),
+      reduceMotion: this.reduceMotion,
+    };
+  }
+
+  /** How the room appears (`stage.transition`): a fade or a wipe of the painter's surface, a cut with reduced motion. */
+  private enterTransition() {
+    const t = stageOf(this.room, this.layout).transition;
+    if (t.kind === 'cut' || this.reduceMotion || !this.r.el.animate) return;
+    this.r.el.animate(t.kind === 'fade' ? [{ opacity: 0 }, { opacity: 1 }] : [{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: t.ms, easing: 'ease-out' });
+  }
 
   /** The painter this room asks for, swapped in when it differs from the current one. */
   private usePainter(room: RoomDef) {
@@ -166,7 +202,10 @@ export class RoomView {
     await Promise.all(swaps);
 
     this.width = Math.max(640, this.layout.width ?? 640);
-    this.r.reset(this.bank.img(room.decor), this.width);
+    const stage = this.stageSpec();
+    this.r.reset(stage.backdrop.url, this.width);
+    this.r.stage(stage);
+    this.stageKey = JSON.stringify(stage);
 
     for (const [id, def] of Object.entries(room.props ?? {})) {
       const L = this.layout.props?.[id];
@@ -197,6 +236,7 @@ export class RoomView {
       this.add({ id: this.heroId, kind: 'hero', x, y, h: char?.height ?? this.engine.game.skin?.heights?.hero ?? 84, flip: false, charId: this.heroId, pose: 'idle', scaleWithDepth: true, visible: true });
     }
     for (const e of this.ents.values()) this.draw(e);
+    this.enterTransition();
     // The camera: as saved (a pan left it somewhere), or on the hero.
     const c = s.camera;
     this.pan = null;
@@ -429,6 +469,8 @@ export class RoomView {
   }
 
   refreshVisibility() {
+    // The stage's conditions (a lit window, a light switched on) are read again with the entities'.
+    if (this.room) { const st = this.stageSpec(); const key = JSON.stringify(st); if (key !== this.stageKey) { this.stageKey = key; this.r.stage(st); } }
     for (const e of this.ents.values()) {
       if (e.kind === 'hero') continue;
       const v = this.engine.visible(e.id, this.room);

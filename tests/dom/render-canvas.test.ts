@@ -31,14 +31,44 @@ describe('the canvas painter', () => {
     r.sprite(spec('ghost', { visible: false }));
     r.sprite(spec('mirror', { z: 250, flip: true, fx: 100.3 }));
     r.paint();
-    const draws = calls.filter((c) => c[0] === 'drawImage').map((c) => (c[1] as HTMLImageElement).src.split('/').pop());
-    expect(draws).toEqual(['bg', 'back', 'mirror', 'front']);
-    expect(calls.findIndex((c) => c[0] === 'ellipse')).toBeLessThan(calls.findIndex((c) => c[0] === 'drawImage' && (c[1] as HTMLImageElement).src.endsWith('/back')));
+    const name = (x: unknown) => (x instanceof HTMLCanvasElement ? 'blit' : (x as HTMLImageElement).src.split('/').pop());
+    const draws = calls.filter((c) => c[0] === 'drawImage').map((c) => name(c[1]));
+    // The backdrop is drawn once into the room's background cache, then copied onto the viewport.
+    expect(draws).toEqual(['bg', 'blit', 'back', 'mirror', 'front']);
+    expect(calls.findIndex((c) => c[0] === 'ellipse')).toBeLessThan(calls.findIndex((c) => c[0] === 'drawImage' && (c[1] as HTMLImageElement).src?.endsWith('/back')));
     // Upright: snapped to device pixels; mirrored: flipped about its own box.
-    const front = calls.find((c) => c[0] === 'drawImage' && (c[1] as HTMLImageElement).src.endsWith('/front'))!;
+    const front = calls.find((c) => c[0] === 'drawImage' && (c[1] as HTMLImageElement).src?.endsWith('/front'))!;
     expect(front.slice(2)).toEqual([80, 220, 40, 80]);
     expect(calls.some((c) => c[0] === 'scale' && c[1] === -1)).toBe(true);
     expect(r.paints).toBe(1);
+    loaded.mockRestore(); w.mockRestore(); h.mockRestore();
+  });
+});
+
+describe('the canvas painter draws the stage', () => {
+  it('backdrop layers first, scenery among sprites by depth, occluders at theirs, the foreground, then lights (they fall on it too), then effects', () => {
+    const { calls, ctx } = recorder();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as never);
+    const loaded = vi.spyOn(HTMLImageElement.prototype, 'complete', 'get').mockReturnValue(true);
+    const w = vi.spyOn(HTMLImageElement.prototype, 'naturalWidth', 'get').mockReturnValue(100);
+    const h = vi.spyOn(HTMLImageElement.prototype, 'naturalHeight', 'get').mockReturnValue(100);
+    const r = new CanvasRenderer();
+    r.reset('img/bg', 640);
+    r.resize(1);
+    const layer = (id: string, role: 'backdrop' | 'scenery' | 'foreground' | 'effect', z: number) => ({ id, url: `img/${id}`, role, x: 0, y: 0, w: 640, h: 400, z, parallax: [1, 1] as [number, number], blend: 'normal' as const, opacity: 1, visible: true });
+    r.stage({
+      backdrop: { url: 'img/bg', x: 0, y: 0, w: 640, h: 400 },
+      layers: [layer('sky', 'backdrop', -1000), layer('counter', 'scenery', 320), layer('plant', 'foreground', 10000), layer('fog', 'effect', 20000), { ...layer('hidden', 'scenery', 1), visible: false }],
+      occluders: [{ id: 'pillar', z: 330, layer: 'counter', feather: 0, invert: false }],
+      lights: [{ id: 'sun', kind: 'ambient', color: '#fff', intensity: 0.5, blend: 'multiply', visible: true }],
+      emitters: [], reduceMotion: false,
+    });
+    r.sprite(spec('ann', { z: 310 }));
+    r.sprite(spec('bob', { z: 340 }));
+    r.paint();
+    const seq = calls.filter((c) => c[0] === 'drawImage' || c[0] === 'fillRect').map((c) => (c[0] === 'fillRect' ? 'light' : c[1] instanceof HTMLCanvasElement ? 'blit' : (c[1] as HTMLImageElement).src.split('/').pop()));
+    // The backdrop and the still backdrop layer go into the background cache, copied once.
+    expect(seq).toEqual(['bg', 'sky', 'blit', 'ann', 'counter', 'counter', 'bob', 'plant', 'light', 'fog']);
     loaded.mockRestore(); w.mockRestore(); h.mockRestore();
   });
 });

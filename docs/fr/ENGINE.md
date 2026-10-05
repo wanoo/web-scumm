@@ -128,10 +128,20 @@ la référence (D10) : une `<img>` par sprite, le z-index pour la profondeur, un
 `npm run e2e:visual` compare chaque lieu de la démo, figé, avec sa référence dans `tests/visual/demo/` (bloquant en
 CI ; `--update` les réécrit après un changement voulu).
 
-`dom/render-canvas.ts` est le peintre Canvas 2D : un `<canvas>` par lieu, aussi large que le lieu et déplacé par la
-caméra comme le lieu du peintre DOM, repeint à l'image suivante après un changement ; la profondeur est l'ordre de
-dessin, un sprite pivote sur ses pieds, un sprite droit est calé sur les pixels de l'écran comme le fait la mise en
-page du DOM, le fond couvre le lieu comme `object-fit: cover`. Un lieu le choisit avec `renderer: 'canvas'` (ou le jeu
+`dom/render-canvas.ts` est le peintre Canvas 2D : un `<canvas>` de la taille de la fenêtre, tenu en place pendant que le
+lieu dessous suit la caméra, repeint à l'image suivante après un changement ; le fond et les calques de fond immobiles
+sont rendus une fois sur tout le lieu puis copiés à chaque image ; la profondeur est l'ordre de dessin, un sprite pivote
+sur ses pieds, un sprite droit est calé sur les pixels de l'écran dans le lieu comme le fait la mise en page du DOM (la
+translation de la caméra garde ses fractions, comme celle du lieu DOM), les sprites hors champ sont sautés, le fond
+couvre le lieu comme `object-fit: cover`. Il dessine toute la scène (`RoomDef.stage`) : les calques à leur profondeur
+avec leur parallaxe, leur fusion et leur opacité ; les occulteurs (les pixels du fond, ou d'un calque, à travers un
+polygone, un masque noir et blanc ou l'alpha d'un calque, adoucis ou inversés, composés une fois) à la leur ; le
+premier plan ; les lumières (radiales et ambiantes, `screen` ou `multiply`, qui tombent aussi sur le premier plan) ; les
+particules (une graine par émetteur, sur l'horloge de présentation, jamais les dés du moteur) ; les calques d'effet. Le
+peintre DOM dessine les calques, la parallaxe et les occulteurs en polygone (le fond découpé à la profondeur de
+l'occulteur). Le modèle évalue chaque condition de la scène et la redonne quand l'une change ; la `transition` d'un
+lieu fond ou balaie la surface du peintre ; le mouvement réduit (le réglage ou celui du système) coupe la parallaxe,
+les particules et les transitions. Un lieu le choisit avec `renderer: 'canvas'` (ou le jeu
 pour tous les lieux) ; `?renderer=canvas|dom` en impose un à tous les lieux. L'interface, les dialogues et chaque cible
 accessible restent dans le DOM, au-dessus du canvas. Mesuré sur la démo : ses lieux à 0,31 % au plus des références
 DOM, le jeu entier joué jusqu'à la fin avec lui, 60 images par seconde avec le CPU ralenti 4× (`npm run e2e:perf`),

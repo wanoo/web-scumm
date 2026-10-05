@@ -4,6 +4,18 @@
 
 ### Added
 
+- The stage, painted (3.4): layers at their depth with parallax, blend and opacity; occluders through a polygon (both
+  painters), a black-and-white mask, a layer's alpha, feathered or inverted (canvas); radial and ambient lights;
+  seeded particles; the room's fade or wipe transition. The model evaluates the stage's conditions and gives the stage
+  again when one changes; reduced motion (the setting or `prefers-reduced-motion`) turns off parallax, particles and
+  transitions.
+
+### Changed
+
+- The Canvas painter draws the viewport only, over a background pre-rendered once per room: 59 frames per second in
+  the sample game's wide market with the CPU slowed 12× (31.5 on the CI runner at 4× before), its rooms still within
+  0.28% of the DOM references.
+
 - The Canvas 2D painter (`dom/render-canvas.ts`, D10): `renderer: 'canvas'` on a room or the game, `?renderer=` to
   force one. The sample game's rooms within 0.31% of the DOM references, the whole game played by it in CI (a new
   `chromium / canvas` row), and `npm run e2e:perf` (frames per second while the hero walks, CPU slowed 4×: 60 with

@@ -1479,3 +1479,21 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 
 → next: Claude · merge on green CI, then v34-layers-masks
 
+## #64 · 2026-10-05 · Claude · proposal · v34-layers-masks
+
+- Contract: `SceneRenderer.stage(StageSpec)` (backdrop box, layers, occluders, lights, emitters, reduceMotion);
+  `RoomView.stageSpec()` evaluates the conditions, places layer images on the backdrop's cover box, resends on change
+  (`refreshVisibility`); transitions animate the painter's surface (`el.animate`), off with reduced motion, which now
+  also follows `prefers-reduced-motion`.
+- DOM painter: layers (`img.layer`, z-index, parallax offset `cam × (1 − p)`), polygon occluders (the backdrop as a
+  clipped background at the occluder's depth). Canvas painter: everything, occluders composited once per size.
+- Performance: the CI's canvas perf showed the wide market at 31.5 fps (÷4). The canvas is now the viewport, the
+  background (backdrop + still backdrop layers) pre-rendered per room and copied each frame, sprites off screen
+  skipped: 59 fps at ÷12 locally. Parity kept by snapping sprites in room space and keeping the camera's fractions,
+  as Chrome's layout does: 0.04–0.28% against the DOM references.
+- Checked by eye on a temporary staged market (two layers, a feathered occluder, a radial and an ambient light, rain),
+  both painters: same layer places; the canvas adds the lights and the rain. Not committed: the reference chapter
+  (`v34-reference`) carries the demanding scene and its perf gate.
+
+→ next: Claude · merge on green CI, then v34-walk-topology
+
