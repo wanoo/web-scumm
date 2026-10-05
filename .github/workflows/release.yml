@@ -1,9 +1,12 @@
 name: release
-# A tag v3.x.y publishes the GitHub release only once the `ci` workflow of that tag is green (check, the browser e2e
-# rows): this workflow runs on ci's completion, not on the tag push. It then re-runs the release checks (doctor,
-# build, proof, strict playtests, dependency audits) and creates the release with the matching CHANGELOG section and
-# the manual passes of docs/dev/passes/. Attached: the built game (dist), its SHA-256, an SBOM of the shipped
-# dependencies (CycloneDX) and a build provenance attestation (`gh attestation verify <file> -R wanoo/web-scumm`).
+# A SemVer tag (vMAJOR.MINOR.PATCH, any major) publishes the GitHub release only once the `ci` workflow of that tag is
+# green (check, the browser e2e rows): this workflow runs on ci's completion, not on the tag push. It builds the very
+# commit ci tested (`head_sha`), and refuses a tag that no longer points there (moved since). It then re-runs the
+# release checks (doctor, build, proof, strict playtests, dependency audits, the dist inventory) and creates the
+# release with the matching CHANGELOG section and the manual passes of docs/dev/passes/. Attached: the built game
+# (dist, its licences inside), its assets manifest, SHA-256 sums, an SBOM of the shipped dependencies (CycloneDX) and
+# a build provenance attestation (`gh attestation verify <file> -R wanoo/web-scumm`). A release that already has
+# files is never overwritten (3.7.1): a new version is a new tag.
 on:
   workflow_run:
     workflows: [ci]
@@ -14,15 +17,30 @@ permissions:
   attestations: write
 jobs:
   release:
-    if: github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'v3.')
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && startsWith(github.event.workflow_run.head_branch, 'v') && contains(github.event.workflow_run.head_branch, '.')
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
       TAG: ${{ github.event.workflow_run.head_branch }}
+      SHA: ${{ github.event.workflow_run.head_sha }}
     steps:
+      - name: A SemVer tag
+        run: |
+          echo "$TAG" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$' || { echo "::notice::$TAG is not a release tag"; exit 1; }
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_branch }}
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+      - name: The tag is the commit ci tested
+        run: |
+          git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
+          test "$(git rev-parse "refs/tags/$TAG^{commit}")" = "$SHA" || { echo "::error::$TAG points to $(git rev-parse "refs/tags/$TAG^{commit}"), ci tested $SHA"; exit 1; }
+      - name: Not published yet
+        run: |
+          n=$(gh release view "$TAG" --json assets --jq '.assets | length' 2>/dev/null || echo 0)
+          test "$n" = 0 || { echo "::error::$TAG already has $n file(s): a published release is never replaced"; exit 1; }
+        env:
+          GH_TOKEN: ${{ github.token }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -40,13 +58,14 @@ jobs:
       - name: Build archive, checksum and SBOM
         run: |
           tar -czf "web-scumm-$TAG-dist.tar.gz" -C dist .
+          cp dist/licenses/assets-manifest.json "web-scumm-$TAG-assets-manifest.json"
           npm sbom --sbom-format cyclonedx --omit dev > "web-scumm-$TAG-sbom.cdx.json"
-          sha256sum "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-sbom.cdx.json" > "web-scumm-$TAG-SHA256SUMS"
+          sha256sum "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" > "web-scumm-$TAG-SHA256SUMS"
       - uses: actions/attest-build-provenance@v2
         with:
           subject-path: web-scumm-${{ env.TAG }}-dist.tar.gz
       - run: |
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes-file notes.md
-          gh release upload "$TAG" --clobber "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-$TAG-SHA256SUMS"
+          gh release upload "$TAG" "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-$TAG-SHA256SUMS"
         env:
           GH_TOKEN: ${{ github.token }}

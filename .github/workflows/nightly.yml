@@ -29,17 +29,16 @@ jobs:
       # bash -o pipefail: a divergence still fails the job through tee.
       - shell: bash
         run: |
-          total=${{ github.event.inputs.seeds || '500' }}
-          size=$(( (total + 3) / 4 ))
-          from=$(( 1 + ${{ matrix.shard }} * size ))
-          npm run audit:corpus -- --seeds=$size --from=$from --json=corpus-${{ matrix.shard }}.json | tee corpus-${{ matrix.shard }}.txt
+          # The seeds of this shard: tools/audit-corpus.ts splits the total evenly, never past it (3.7.1).
+          npm run audit:corpus -- --shard=${{ matrix.shard }}/4 --total=${{ github.event.inputs.seeds || '500' }} --json=corpus-${{ matrix.shard }}.json | tee corpus-${{ matrix.shard }}.txt
       - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: corpus-${{ matrix.shard }}
           path: corpus-${{ matrix.shard }}.*
           if-no-files-found: ignore
-  # The shards added up: tried, compared, partial and diverged per kind, kept as an artifact and on the run's page.
+  # The shards added up: tried, compared, partial and diverged per kind, kept as an artifact and on the run's page. A
+  # missing shard, or seeds run twice, fails it (3.7.1).
   merge:
     needs: corpus
     if: always()
@@ -56,7 +55,7 @@ jobs:
           pattern: corpus-*
           merge-multiple: true
       - shell: bash
-        run: npx tsx tools/audit-corpus.ts --merge corpus-*.json --json=corpus.json | tee corpus.txt
+        run: npx tsx tools/audit-corpus.ts --merge corpus-*.json --total=${{ github.event.inputs.seeds || '500' }} --json=corpus.json | tee corpus.txt
       - if: always()
         shell: bash
         run: |
