@@ -1083,7 +1083,7 @@ export class Engine {
       }
       return;
     }
-    if ('sfx' in c) { if (!ctx.fast) this.ui.sfx(c.sfx); return; }
+    if ('sfx' in c) { if (!ctx.fast) this.ui.sfx(c.sfx, c.caption); return; }
     if ('music' in c) { this.ui.music(typeof c.music === 'string' ? { play: c.music } : c.music); return; }
     if ('toast' in c) { this.ui.toast(c.toast); return; }
     if ('shake' in c) { if (!ctx.fast) this.ui.shake(c.shake); return; }

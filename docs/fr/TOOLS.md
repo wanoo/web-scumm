@@ -173,6 +173,10 @@ npm run replay -- session.json     # rejoue un fichier de session sur le vrai mo
 npm run ids [-- --write --map]     # ids stables (schéma 3) écrits dans les sources, locales renommées, l'étape de migration des sauvegardes (docs/fr/UPGRADING.md)
 npm run ids -- --lines [--write --map]   # un id sur chaque objet say / toast / guide, ligne de liste, indice et réaction par sorte (--lines=all : les chaînes nues aussi, exigé pour une release traduite ou doublée) : traductions et voix indexées par lui (UPGRADING §9, §10)
 npm run i18n -- voices             # les lignes avec un id et sans clip de voix, les clips qu'aucune ligne ne réclame
+npm run voices -- status [--lang xx]                 # par langue : les lignes avec un id par statut (draft, record, recorded, approved), les clips, les orphelins
+npm run voices -- export --lang xx [--json] > t.csv  # le tableau des comédiens : id, qui, le texte dans cette langue, statut, fichier, comédien, note
+npm run voices -- import t.csv --lang xx             # leurs statuts, comédiens et notes reviennent dans games/<id>/voices.json (lignes inconnues refusées)
+npm run voices -- check [--lang xx] [--release]      # chaque clip mesuré avec ffmpeg : codec, fréquence, durée pour son texte, niveau (≈ −16 LUFS), crête ; --release : une ligne approuvée exige son clip
 npm run validate -- --release      # en plus : provenance, provisoires, et un id stable sur chaque ligne d'un jeu livré dans une autre langue que la sienne ou doublé
 npm run verify:release             # validate --release + weight --release + statut i18n + playtests stricts : une étape de release-check
 npm run verify:commercial          # verify:release, puis aucune exception, aucun provisoire, aucune licence NC/ND, chaque source vérifiable (la démo échoue : sa musique)

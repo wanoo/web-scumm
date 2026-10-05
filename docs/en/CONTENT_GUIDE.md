@@ -389,7 +389,12 @@ audio: { voices: { grandma_01: 'grandma-01.mp3' } },   // files in games/<id>/au
 ```
 
 The line stays on screen as long as the clip plays (a tap still skips it); without a clip, the reading time applies.
-The voice volume is a setting of its own.
+The voice volume is a setting of its own, and the music steps back while someone speaks. A line with a stable id
+plays the clip under its id (`audio.voices[id]`); the other languages have their own clips,
+`audio.voicesByLang: { fr: { <line id>: 'fr/…mp3' } }`, chosen with the language. Production: `npm run voices`
+(TOOLS). A sound that matters gets a caption, shown in writing with the captions setting (on by default, offered in
+the settings only when the game captions something) and translated like any line:
+`{ sfx: 'door_slam', caption: '[A door slams upstairs]' }`.
 
 ### Settings
 

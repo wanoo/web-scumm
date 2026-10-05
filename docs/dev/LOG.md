@@ -1528,3 +1528,19 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 
 → next: Claude · merge on green CI, then v34-voice-production
 
+## #67 · 2026-10-05 · Claude · proposal · v34-voice-production
+
+- `src/engine/tools/voices.ts` (pure): `voiceTable` per language (texts from the localized game, ids shared), statuses
+  draft / record / recorded / approved in `voices.json` (a line with a clip and no status: recorded), `orphanClips`,
+  CSV (RFC 4180: quotes, commas, line breaks) out and back, `mergeSheet` (unknown lines and statuses refused),
+  `clipVerdict` (approved without a clip: error in a release; codec; rate < 22 050 Hz, < 300 ms, > 3× the reading
+  time, outside −23…−12 LUFS, peak > −1 dBFS: warnings). `tools/voices.ts` + `tools/voice-facts.ts` (ffprobe, ebur128).
+- Engine and runtime: `audio.voicesByLang` chosen at boot with the language; the asset graph's offline scope counts
+  every language's clips; music ducked to 35% while a voice plays; `{ sfx, caption }` through the presenter, the
+  validator, i18n (`….caption`) and a captions setting (row shown only when the game captions something, so no new
+  text in the demo's settings).
+- Demo: 194 lines with an id, all draft (no clip): `voices check --release` passes. Lip-sync markers (optional in the
+  plan): not done, said here and in the 3.4 notes.
+
+→ next: Claude · merge on green CI, then v34-studio
+

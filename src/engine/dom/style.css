@@ -145,3 +145,5 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .tool.player[hidden] { display: none; }
 .tool.player img { border-radius: 50%; object-fit: cover; }
 .tool.player span { font-family: var(--font-pixel); font-size: .9em; color: #ffd640; }
+/* `{ sfx, caption }` with the captions setting on: a sound that matters, in writing (3.4). */
+.caption { position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%); z-index: 60; padding: .2em .6em; border-radius: 6px; background: rgba(10, 6, 20, .78); color: #ffe9a8; font-size: .8em; pointer-events: none; white-space: nowrap; }

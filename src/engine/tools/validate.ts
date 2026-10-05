@@ -302,7 +302,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       if (!playerIds.includes(c.transfer[1])) err(where, `"${c.transfer[1]}" is not a playable character (players.ids)`);
       return;
     }
-    if ('sfx' in c) { if (!sfx[c.sfx]) err(where, `unknown sound effect: "${c.sfx}"`); return; }
+    if ('sfx' in c) { if (!sfx[c.sfx]) err(where, `unknown sound effect: "${c.sfx}"`); if (c.caption !== undefined) text(c.caption, `${where}.caption`); return; }
     if ('music' in c) {
       const m = c.music;
       const id = typeof m === 'string' ? m : 'push' in m ? m.push : 'once' in m ? m.once : undefined;

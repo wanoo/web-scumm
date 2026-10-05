@@ -4,6 +4,12 @@
 
 ### Added
 
+- Voice production (3.4): `npm run voices` (`status`, `export` to CSV or JSON for the actors, `import` their statuses,
+  actors and notes into `games/<id>/voices.json`, `check` every clip with ffmpeg: codec, rate, length for its text,
+  loudness, peak; in `verify:release`). Clips per language (`audio.voicesByLang`), chosen with the language and
+  counted by the offline plan. The music steps back while someone speaks. Captions for the sounds that matter
+  (`{ sfx, caption }`, translated, a captions setting on by default, offered only in a game that captions something).
+
 - Stage physics (3.4, `core/motion.ts`): `launch` (a ballistic flight), `spring` (a damped swing), `path` (a smooth
   curve through points), `follow` (an offset from a leader). Closed forms of time, never a simulation; presentation
   only (a character keeps where it lands, like `place`); validated, laid on the timeline, jumped to their end with

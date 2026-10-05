@@ -86,7 +86,10 @@ export async function bootGame(o: BootOptions): Promise<App> {
   let stored: string | null = null;
   try { stored = localStorage.getItem(`${written.id}.lang`); } catch { /* no storage */ }
   const lang = pickLanguage(written, o.locales, { query: q.get('lang'), stored, navigatorLang: globalThis.navigator?.language });
-  const localized = lang && o.locales?.[lang] ? applyLocale(written, o.locales[lang], o.minigames) : written;
+  const translated = lang && o.locales?.[lang] ? applyLocale(written, o.locales[lang], o.minigames) : written;
+  // The voices of the chosen language (`audio.voicesByLang`), else the game's own: a translated line keeps its id.
+  const byLang = lang && lang !== (written.lang ?? 'en') ? written.audio?.voicesByLang?.[lang] : undefined;
+  const localized = byLang ? { ...translated, audio: { ...translated.audio, voices: byLang } } : translated;
   document.documentElement.lang = lang ?? written.lang ?? 'en';
   await waitFonts(localized);
 

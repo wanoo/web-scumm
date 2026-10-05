@@ -29,7 +29,8 @@ export interface Presenter {
   show(id: Id, visible: boolean, fade: number, fast: boolean): Promise<void>;
   /** Inventory contents; `used` = greyed-out items (already used). */
   inventory(items: Id[], used?: Id[]): void;
-  sfx(id: Id): void;
+  /** A sound effect; `caption` is said in writing when the player wants captions. */
+  sfx(id: Id, caption?: string): void;
   music(cmd: { play?: Id; push?: Id; pop?: true; stop?: true; once?: Id }): void;
   toast(text: string): void;
   shake(ms: number): void;
@@ -100,7 +101,7 @@ export class FakePresenter implements Presenter {
   async camera(x: number | null, follow: boolean) { this.log.push(`camera ${follow ? 'follow' : x}`); }
   async show(id: Id, v: boolean) { this.log.push(`${v ? 'show' : 'hide'} ${id}`); }
   inventory(items: Id[]) { this.log.push(`inv ${items.join(',')}`); }
-  sfx(id: Id) { this.log.push(`sfx ${id}`); }
+  sfx(id: Id, caption?: string) { this.log.push(`sfx ${id}${caption ? ` [${caption}]` : ''}`); }
   music() {}
   toast(t: string) { this.log.push(`toast ${t}`); }
   shake() {}

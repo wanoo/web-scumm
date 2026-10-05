@@ -394,7 +394,12 @@ audio: { voices: { grandmere_01: 'grandmere-01.mp3' } },   // fichiers dans game
 ```
 
 La réplique reste à l'écran tant que le clip joue (un tap la passe toujours) ; sans clip, le temps de lecture
-s'applique. Le volume des voix est un réglage à part.
+s'applique. Le volume des voix est un réglage à part, et la musique s'efface pendant qu'on parle. Une ligne qui a un id
+stable joue le clip rangé sous cet id (`audio.voices[id]`) ; les autres langues ont leurs propres clips,
+`audio.voicesByLang: { fr: { <id de ligne>: 'fr/…mp3' } }`, choisis avec la langue. Production : `npm run voices`
+(TOOLS). Un son qui compte reçoit un sous-titre, montré par écrit avec le réglage des sous-titres (actif par défaut,
+proposé dans les réglages seulement quand le jeu sous-titre quelque chose) et traduit comme toute ligne :
+`{ sfx: 'porte_claque', caption: '[Une porte claque à l\'étage]' }`.
 
 ### Réglages
 
