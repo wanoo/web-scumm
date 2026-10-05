@@ -282,13 +282,19 @@ chaque fichier livré avec ce que son entrée affirmait (motif, licence, statut)
 un fichier modifié, un asset livré depuis, un fichier manquant ou une entrée modifiée depuis la relecture ; un
 `validate` simple ne fait qu'avertir. `npm run provenance` liste les assets par licence et ce qui a changé depuis le
 verrou (sortie 1 quand quelque chose est à relire). Les fichiers sont lus dans `public/assets` (`ASSETS_DIR` pour une
-fixture). **Poids.** `npm run weight` additionne ce qu'un téléphone télécharge, d'après les fichiers construits : avant que le
-premier lieu soit jouable (titre, icônes de la colonne, le sac au départ, le premier lieu), par lieu (les images que
-le moteur précharge en construisant le lieu : décor, accessoires dans tous leurs états, chaque personnage qui peut s'y
-tenir avec ses variantes et ses bouches ; plus sa musique et les bruitages que ses commandes jouent), et par chapitre
-(chaque lieu où un joueur peut se trouver pendant ce chapitre, d'après la preuve par chapitres). `assetBudgets: {
-initialKB, roomKB, chapterKB }` dans `game.ts` sont les limites ; en dépasser une, ou un fichier manquant, sort avec 1.
-`--release` (une étape de `verify:release`) échoue aussi quand un budget n'est pas fixé. `--json`.
+fixture). **Poids.** `npm run weight` additionne ce qu'un téléphone télécharge, d'après les fichiers construits et le graphe
+d'assets (ENGINE « Assets ») : avant que le premier lieu soit jouable (le shell que le service worker précache, lu dans
+`dist/sw.js`, compressé comme l'envoie un hébergeur statique, avec les fichiers qu'une première visite paie deux fois ;
+le titre, les icônes de la colonne, le sac au départ, le premier lieu), par lieu (décor, accessoires dans tous leurs
+états et images d'animation, chaque personnage qui peut s'y tenir avec ses variantes, ses bouches et son portrait, sa
+musique, et ce que ses commandes jouent ou montrent : bruitages, changements de musique, voix, icônes des objets
+gagnés, correspondants au téléphone, images et sons d'un mini-jeu), et par chapitre (chaque lieu où un joueur peut se
+trouver pendant ce chapitre, d'après la preuve par chapitres), avec la mémoire décodée des images (largeur × hauteur ×
+4). `assetBudgets: { initialKB, roomKB, chapterKB }` dans `game.ts` sont les limites ; en dépasser une, ou un fichier
+manquant, sort avec 1. `--release` (une étape de `verify:release`) échoue aussi quand un budget n'est pas fixé.
+`--json`. `npm run e2e:weight -- <url>` (bloquant en CI depuis la 3.4) vérifie la prédiction contre une vraie première
+visite dans Chromium, préchargements coupés : chaque requête dans la portée initiale prédite, les octets à 10 % près ou
+en dessous.
 `npm run new-game` en écrit un pour les images empruntées à la démo
 (toutes provisoires, CC BY 4.0) ; celui de la démo excepte nommément sa musique non commerciale.
 `npm run verify:release` (validate `--release`, `i18n -- status`, playtests stricts) est une étape de

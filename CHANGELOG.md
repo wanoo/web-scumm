@@ -1,5 +1,27 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- One asset graph (`src/engine/core/asset-graph.ts`): the title, each room, the map, the game-wide rules and the whole
+  game, from the content. The renderer's room preload, the background warm-up, the offline plan, provenance and
+  `npm run weight` all read it. It counts what the old budget missed (voice clips, minigame images and sounds, music
+  changed by commands, the title video, gained items' icons, phone callers, prop animations) and no longer counts a
+  playable character in a room it cannot reach.
+- `npm run weight` counts the app shell the service worker precaches (from `dist/sw.js`, compressed, with what a first
+  visit downloads twice) in `initial`, and the decoded memory of the images. `npm run e2e:weight` (a CI gate in the
+  Chromium row) checks the prediction against a real first visit: on the sample game 2 416 KB transferred for 2 486 KB
+  predicted, nothing outside the prediction.
+
+### Changed
+
+- A first visit to the sample game drops from 6.6 MB to 2.4 MB: the interface font is a Latin subset (DotGothic16,
+  2 MB → 118 KB, `tools/subset-font.py`) with the full font as a `unicode-range` fallback outside the precache, the
+  default fonts go through the bundler (the service worker's precache no longer downloads them a second time), and
+  VT323, precached but never used, is gone.
+
+
 ## 3.3.1 — 2026-10-05
 
 "Truth": what 3.3.0 promised, made exact (Codex's review of 3.3.0, LOG #55).

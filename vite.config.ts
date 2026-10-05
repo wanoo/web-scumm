@@ -137,7 +137,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ttf,webmanifest}', 'icons/*.png'],
         // assets/tools/: the Studio and the dev tools (STUDIO=1 builds), never needed by a player offline.
-        globIgnores: ['assets/img/**', 'assets/audio/**', 'assets/video/**', 'data/**', 'assets/tools/**', 'studio-demo/**'],
+        globIgnores: ['assets/img/**', 'assets/audio/**', 'assets/video/**', 'data/**', 'assets/tools/**', 'studio-demo/**', 'fonts/**'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         clientsClaim: false,
@@ -149,6 +149,8 @@ export default defineConfig({
             options: { cacheName: 'jeu-sons', rangeRequests: true, expiration: { maxEntries: 600, maxAgeSeconds: 90 * 86400 }, cacheableResponse: { statuses: [200] } } },
           { urlPattern: /\/assets\/video\//, handler: 'CacheFirst',
             options: { cacheName: 'jeu-videos', rangeRequests: true, expiration: { maxEntries: 10 }, cacheableResponse: { statuses: [200] } } },
+          // public/fonts: the full fonts behind a subset (DotGothic16), cached the first time a character needs them.
+          { urlPattern: /\/fonts\//, handler: 'CacheFirst', options: { cacheName: 'jeu-polices', expiration: { maxEntries: 10 }, cacheableResponse: { statuses: [200] } } },
           { urlPattern: /\/data\//, handler: 'NetworkFirst', options: { cacheName: 'jeu-donnees', networkTimeoutSeconds: 4 } },
         ],
       },

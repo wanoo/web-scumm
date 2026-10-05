@@ -1415,3 +1415,21 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 
 → next: Claude · tag v3.3.1 after green CI on main, then v34-asset-graph
 
+## #60 · 2026-10-05 · Claude · proposal · v34-asset-graph
+
+- 3.4 starts (D11). `src/engine/core/asset-graph.ts`: scopes `title`, `rooms[id]`, `map`, `game`, `offline`, from the
+  content (typed walk, no string scan), `playerRooms` (reach from each playable character's start through exits, map,
+  `goto`, checkpoints), `characterImages` / `roomImages` shared with `dom/room.ts`. Consumers: `weight.ts` (a view),
+  `offlinePlan`, `assetKeys` (provenance), `App.warmAround`, the renderer's room preload.
+- `npm run weight`: app shell from `dist/sw.js` (gzip for text), revisioned precache entries the page also loads
+  counted twice (Workbox fetches them with `cache: 'reload'`), decoded memory. `scripts/e2e-weight.mjs`
+  (`npm run e2e:weight`, CI Chromium full row): first visit with Save-Data (warm-ups off), New Game, first room drawn,
+  service worker installed; requests mapped to keys.
+- What the measurement found on the sample game: 6 607 KB on a first visit, 46% over the old model; DotGothic16 (2 MB,
+  9 362 glyphs) downloaded twice, uncompressed; VT323 precached and never used. Fixed: Latin subset (118 KB, every
+  character of the en/fr texts covered), full font as a non-overlapping `unicode-range` face outside the precache
+  (Chrome downloads every face whose range meets the text), fonts through Vite (hashed: precache revision null, HTTP
+  cache reused), VT323 removed. Now 2 416 KB transferred for 2 486 KB predicted (3% under), nothing outside.
+
+→ next: Claude · merge on green CI, then v34-renderer-contract
+

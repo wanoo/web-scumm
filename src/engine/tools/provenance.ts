@@ -6,6 +6,7 @@
 // about it when it was reviewed. A file that changed, a new asset, a claim edited since, or a licence the policy does
 // not allow is an error, unless a `releaseExceptions` entry names that asset and says why.
 import type { GameDef } from '../core/types';
+import { assetGraph } from '../core/asset-graph';
 
 export interface ProvenanceEntry {
   /** Asset keys this entry covers, `*` matching anything (`img:hero/*`, `music:swan_lake.mp3`). */
@@ -55,14 +56,8 @@ const glob = (pattern: string) => new RegExp(`^${pattern.replace(/[.+?^${}()|[\]
 
 /** Every asset key a game ships: the manifest's images, the files its audio and videos name. */
 export function assetKeys(game: GameDef, manifest: { images: Record<string, unknown>; videos?: Record<string, unknown> }): string[] {
-  const a = game.audio ?? {};
-  return [
-    ...Object.keys(manifest.images).map((id) => `img:${id}`),
-    ...Object.values(a.sfx ?? {}).map((f) => `sfx:${f}`),
-    ...Object.values(a.music ?? {}).map((f) => `music:${f}`),
-    ...Object.values(a.voices ?? {}).map((f) => `voice:${f}`),
-    ...Object.keys(manifest.videos ?? {}).map((f) => `video:${f}`),
-  ].filter((k, i, all) => all.indexOf(k) === i).sort();
+  // The asset graph's `offline` scope: what the full warm-up caches is what provenance covers.
+  return assetGraph(game, { manifest }).offline;
 }
 
 export function provenanceReport(game: GameDef, manifest: { images: Record<string, unknown>; videos?: Record<string, unknown> }, prov: Provenance): ProvenanceReport {

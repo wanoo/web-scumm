@@ -112,6 +112,10 @@ jobs:
         env:
           E2E_BROWSER: ${{ matrix.browser }}
           E2E_OUT: /tmp/e2e-${{ matrix.browser }}
+      # The weight budget against the bytes really transferred (since 3.4): a first visit with the warm-ups off, every
+      # request inside the asset graph's prediction, the total within 10% of it.
+      - run: npm run e2e:weight -- http://127.0.0.1:5173/
+        if: matrix.browser == 'chromium' && matrix.mode == 'full'
       # The accessibility and storage gates (since 3.3): axe on the conversation menu, the map, the save / load slots,
       # the confirmations and every built-in minigame; every minigame won at the keyboard; an older save (v2
       # localStorage, a 3.1.0 IndexedDB record) upgraded and resumed. Blocking in Chromium (keyboard row) and WebKit.

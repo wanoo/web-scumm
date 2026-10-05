@@ -116,6 +116,24 @@ contrôlés », pas « WCAG AA ».
 
 Le choix se fait tout seul (`App.layout`), et se refait si la fenêtre change de taille.
 
+## Assets : un seul graphe
+
+`src/engine/core/asset-graph.ts` dit quels fichiers chaque partie du jeu demande, d'après le contenu : le titre (décor,
+logo, musique, vidéo, icônes de la colonne, le sac au départ), chaque lieu (décor ; accessoires dans tous leurs états et
+images d'animation ; chaque personnage qui peut s'y tenir, ses acteurs, les personnages jouables qui l'atteignent depuis
+leur départ par les sorties, la carte ou les commandes, ceux qu'on y déplace, avec variantes, bouches et portrait ; sa
+musique ; ce que ses commandes peuvent jouer ou montrer), la carte, ce que les règles globales peuvent jouer, et
+`offline` (chaque fichier que le jeu livre). Le renderer précharge la part d'un lieu pour qui s'y trouve vraiment, le
+préchargement de fond lit les portées du lieu courant et des voisins, le plan hors ligne complet est la portée
+`offline`, la provenance la couvre, et `npm run weight` la budgète ; un fichier que l'un connaît ne peut échapper aux
+autres. La portée d'un lieu sur-approxime une visite (toutes les variantes, chaque personnage qui pourrait s'y trouver),
+jamais l'inverse : `npm run e2e:weight` échoue sur une requête hors prédiction.
+
+Les polices par défaut passent par le bundler, avec des noms hachés : le précache du service worker les prend dans le
+cache HTTP au lieu de les télécharger une seconde fois. La police d'interface est un sous-ensemble latin (118 Ko,
+`tools/subset-font.py`) ; DotGothic16 complète (2 Mo, surtout du japonais) est une seconde face dont le `unicode-range`
+ne couvre que le reste : un navigateur ne la télécharge, et ne la garde, que pour un caractère hors du sous-ensemble.
+
 ## Cache et fluidité
 
 - Un **service worker** (vite-plugin-pwa / Workbox) garde l'application de base en cache dès la première visite. Les images et les sons sont gardés au premier usage, puis servis sans réseau.

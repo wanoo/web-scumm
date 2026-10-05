@@ -1,6 +1,7 @@
 // The plan of a full offline warm-up: every asset the game can ever show or play, in the order a player benefits from
 // it, in batches the budgets size. Pure: the App runs it through the asset bank after the room-scoped warm-up.
 import type { GameDef } from '../core/types';
+import { assetGraph, splitKey } from '../core/asset-graph';
 import type { AssetManifest, WarmResult } from './assets';
 
 export type BatchKind = 'img' | 'sfx' | 'voice' | 'music' | 'video';
@@ -19,15 +20,11 @@ export function offlinePlan(game: GameDef, manifest: AssetManifest, budgets: Off
     for (let i = 0; i < ids.length; i += n) out.push({ kind, ids: ids.slice(i, i + n) });
     return out;
   };
-  const a = game.audio ?? {};
   const imgN = Math.max(1, budgets.initialImages ?? 120), audioN = Math.max(1, budgets.audioFiles ?? 16);
-  return [
-    ...chunk(Object.keys(manifest.images).sort(), imgN, 'img'),
-    ...chunk(Object.values(a.sfx ?? {}).sort(), audioN, 'sfx'),
-    ...chunk(Object.values(a.voices ?? {}).sort(), audioN, 'voice'),
-    ...chunk(Object.values(a.music ?? {}).sort(), 1, 'music'),
-    ...chunk(Object.keys(manifest.videos ?? {}).sort(), 1, 'video'),
-  ];
+  // The asset graph's `offline` scope (src/engine/core/asset-graph.ts): the same keys provenance and the budgets use.
+  const by: Record<BatchKind, string[]> = { img: [], sfx: [], voice: [], music: [], video: [] };
+  for (const k of assetGraph(game, { manifest }).offline) { const [kind, id] = splitKey(k); by[kind].push(id); }
+  return [...chunk(by.img, imgN, 'img'), ...chunk(by.sfx, audioN, 'sfx'), ...chunk(by.voice, audioN, 'voice'), ...chunk(by.music, 1, 'music'), ...chunk(by.video, 1, 'video')];
 }
 
 /** How many files and batches a plan holds, for a log line. */

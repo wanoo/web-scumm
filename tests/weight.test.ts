@@ -22,7 +22,10 @@ const game = {
 describe('weight', () => {
   it('a room needs its backdrop, props in every state, every character who can stand there, its music and sounds', () => {
     expect(roomAssets(game, game.rooms[0])).toEqual(['img:ann/idle', 'img:ann/m0', 'img:ann/m1', 'img:bob/idle', 'img:cat/idle', 'img:cat/wet', 'img:decor/hall', 'img:props/lamp', 'img:props/lamp_on', 'music:calm.mp3', 'sfx:ding.mp3']);
-    expect(roomAssets(game, game.rooms[1])).toEqual(['img:ann/idle', 'img:ann/m0', 'img:ann/m1', 'img:bob/idle', 'img:decor/attic']);
+    // No exit, map place or command leads to the attic: nobody can stand in it, only its backdrop counts.
+    expect(roomAssets(game, game.rooms[1])).toEqual(['img:decor/attic']);
+    const linked = { ...game, rooms: [{ ...game.rooms[0], exits: { up: { name: 'stairs', to: 'attic' } } }, game.rooms[1]] } as GameDef;
+    expect(roomAssets(linked, linked.rooms[1])).toEqual(['img:ann/idle', 'img:ann/m0', 'img:ann/m1', 'img:bob/idle', 'img:decor/attic']);
   });
   it('before play: the first room, the title, the column icons, the bag at the start', () => {
     const i = initialAssets(game);

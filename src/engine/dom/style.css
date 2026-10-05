@@ -1,3 +1,13 @@
+/* The default fonts, through the bundler (hashed names: the service worker's precache takes them from the HTTP cache
+   instead of downloading them a second time). DotGothic16: the Latin subset (tools/subset-font.py) answers every
+   character it has; the full font (public/fonts, 2 MB of mostly Japanese glyphs, not precached) covers exactly the
+   rest, so a browser fetches it only for a character outside the subset (a face whose range meets the text is
+   downloaded even when another face wins: the two ranges must not overlap). */
+@font-face { font-family: 'DotGothic16'; src: url('/fonts/DotGothic16.ttf'); font-display: swap;
+  unicode-range: U+0000-001F, U+007F-009F, U+0180-200F, U+2028-202F, U+203B-20AB, U+20AD-2121, U+2123-218F, U+2200-24FF, U+27C0-10FFFF; }
+@font-face { font-family: 'DotGothic16'; src: url('./fonts/DotGothic16-latin.ttf'); font-display: swap;
+  unicode-range: U+0020-007E, U+00A0-017F, U+2010-2027, U+2030-203A, U+20AC, U+2122, U+2190-21FF, U+2500-25FF, U+2600-26FF, U+2700-27BF; }
+@font-face { font-family: 'Press Start 2P'; src: url('./fonts/PressStart2P.ttf'); font-display: swap; }
 /* Engine UI: validated against the UX mockups (landscape, right-hand column, floating text). */
 :root { --font-ui: 'DotGothic16', 'Courier New', monospace; --font-pixel: 'Press Start 2P', 'Courier New', monospace; } /* GameDef.skin.fonts replaces these */
 html, body { margin: 0; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none; }

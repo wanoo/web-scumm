@@ -282,12 +282,17 @@ review, each shipped file's SHA-256 and size with the claims its entry made (pat
 --release` then fails on a file that changed, an asset shipped since, a missing file or an entry edited since the
 review; a plain `validate` only warns. `npm run provenance` prints the assets by licence and what changed since the
 lock (exit 1 when something needs a review). The files are read from `public/assets` (`ASSETS_DIR` for a fixture).
-**Weight.** `npm run weight` adds up what a phone downloads, from the built files: before the first room is
-playable (title, column icons, the bag at the start, the first room), per room (the images the engine preloads when
-it builds the room: backdrop, props in every state, every character who can stand there with variants and mouths;
-plus its music and the sound effects its commands play), and per chapter (every room a player can be in during it,
-from the proof by chapters). `assetBudgets: { initialKB, roomKB, chapterKB }` in `game.ts` are the limits; over one,
-or a file missing, exits 1. `--release` (a step of `verify:release`) also fails when a budget is not set. `--json`.
+**Weight.** `npm run weight` adds up what a phone downloads, from the built files and the asset graph (ENGINE
+"Assets"): before the first room is playable (the app shell the service worker precaches, read from `dist/sw.js`,
+compressed as a static host sends it, with the files a first visit pays twice; the title, the column icons, the bag at
+the start, the first room), per room (backdrop, props in every state and animation frame, every character who can
+stand there with variants, mouths and portrait, its music, and what its commands play or show: effects, music changes,
+voice clips, gained items' icons, phone callers, a minigame's images and sounds), and per chapter (every room a player
+can be in during it, from the proof by chapters), with the decoded memory of the images (width × height × 4).
+`assetBudgets: { initialKB, roomKB, chapterKB }` in `game.ts` are the limits; over one, or a file missing, exits 1.
+`--release` (a step of `verify:release`) also fails when a budget is not set. `--json`. `npm run e2e:weight -- <url>`
+(a CI gate since 3.4) checks the prediction against a real first visit in Chromium, the warm-ups off: every request
+inside the predicted initial scope, the bytes within 10% of it or below.
 `npm run new-game` writes one for the art it borrows from the sample game (all placeholders, CC BY 4.0); the
 sample game's file excepts its non-commercial music by name. `npm run verify:release` (validate `--release`,
 `i18n -- status`, strict playtests) is a step of `npm run release-check`, so the release workflow runs it. What an
