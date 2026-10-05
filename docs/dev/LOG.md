@@ -1497,3 +1497,21 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 
 → next: Claude · merge on green CI, then v34-walk-topology
 
+## #65 · 2026-10-05 · Claude · proposal · v34-walk-topology
+
+- `WalkTopology` (dom/walk.ts): one `WalkArea` (navmesh) per zone from `stageOf`; `route` = breadth-first over open
+  links (one-way respected), walking to each link's start, crossing it, walking on; an unreachable target walks to
+  the foot of the closed link in the way (in any reachable zone) and reports it; `scaleAt` per zone; `zoneAt` picks the
+  highest elevation among zones containing the point.
+- `RoomView.walkTo` follows the steps: `stride` (as before) and `cross` (stairs/ladder linear over `ms` with `anim`,
+  else `climb`/walk; jump on an arc; teleport at once; reduced motion: every crossing at once).
+- Decision (rule: a link is never game logic): a blocked walk still returns where it stopped, so the engine runs the
+  action as before; the lint's `walk-link-gate` asks the rules behind a gated link to check its condition. The App
+  shows the link's `locked` line.
+- Camera: `zoom` (zone's, bounded 1–2, smoothed) and a vertical edge when zoomed, in both painters (DOM: translate +
+  scale; canvas: the room transformed, the canvas pinned by the inverse); `toScreen` / `toLogical` replace the App's
+  `(x - cam) × u` mappings (taps, speech, labels, sparks, the dev overlay). Zoom 1: identical transforms, so the visual
+  references match 3/3 with both painters; the demo played to its ending.
+
+→ next: Claude · merge on green CI, then v34-stage-physics
+

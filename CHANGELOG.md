@@ -4,6 +4,12 @@
 
 ### Added
 
+- Walk topology (3.4): several walk zones joined by links (walk, stairs, ladder, jump, teleport, with their duration,
+  animation and facing), the fewest links between two points, a depth scale per zone, a camera that zooms per zone
+  (1–2) and moves vertically when zoomed. A closed link stops the walk at its foot and says its `locked` line, never
+  the action: `npm run lint` warns when a rule behind it does not check the link's condition (`walk-link-gate`). The
+  dev overlay and the Studio's spot view draw the zones and links. Old rooms: one zone, the same pictures.
+
 - The stage, painted (3.4): layers at their depth with parallax, blend and opacity; occluders through a polygon (both
   painters), a black-and-white mask, a layer's alpha, feathered or inverted (canvas); radial and ambient lights;
   seeded particles; the room's fade or wipe transition. The model evaluates the stage's conditions and gives the stage

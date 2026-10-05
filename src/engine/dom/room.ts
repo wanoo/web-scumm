@@ -4,7 +4,8 @@ import { WALK_SPEED } from '../core/timing';
 import type { CharacterDef, Id, Layout, Point, RoomDef } from '../core/types';
 import type { AssetBank } from './assets';
 import { PaletteCache } from './palette';
-import { depthScale, WalkArea } from './walk';
+import { WalkTopology, type WalkStep } from './walk';
+import type { NormalLink } from '../core/stage';
 import { DomRenderer } from './render-dom';
 import { CanvasRenderer } from './render-canvas';
 import { rendererOf, stageOf } from '../core/stage';
@@ -71,7 +72,9 @@ export class RoomView {
   room!: RoomDef;
   layout!: Layout;
   private ents = new Map<Id, Ent>();
-  private walk!: WalkArea;
+  private walk!: WalkTopology;
+  /** A walk stopped before a closed link (`stage.links[id].locked` is what the App says then). */
+  onBlocked: ((link: NormalLink) => void) | null = null;
   private raf = 0;
   private last = 0;
   private acc = 0;
@@ -154,15 +157,34 @@ export class RoomView {
 
   // ------------------------------------------------------------ camera
 
-  private clampCam(x: number) { return Math.max(0, Math.min(this.width - 640, x)); }
+  /** The camera's zoom (a walk zone's `zoom`, bounded 1–2) and top edge: 1 and 0 on every room without zones that zoom. */
+  zoom = 1;
+  camY = 0;
+  private clampCam(x: number) { return Math.max(0, Math.min(this.width - 640 / this.zoom, x)); }
+  private clampCamY(y: number) { return Math.max(0, Math.min(400 - 400 / this.zoom, y)); }
   private applyCam() {
-    this.r.camera(this.cam, this.width);
+    this.r.camera(this.cam, this.width, this.camY, this.zoom);
     this.onCamera?.(this.cam);
+  }
+  /** A logical point on the screen, in pixels of the scene (speech, labels, sparks). */
+  toScreen(p: Point): Point { return [(p[0] - this.cam) * this.zoom * this.u, (p[1] - this.camY) * this.zoom * this.u]; }
+  /** A point of the scene (fractions of its width and height) in the room's logical units: what a tap touches. */
+  toLogical(fx: number, fy: number): Point { return [this.cam + (fx * 640) / this.zoom, this.camY + (fy * 400) / this.zoom]; }
+  /** The zoom the hero's zone asks for. */
+  private zoomTarget(): number {
+    const h = this.ents.get(this.heroId);
+    const z = h ? this.walk?.zoneAt([h.x, h.y])?.zoom ?? 1 : 1;
+    return Math.max(1, Math.min(2, z));
+  }
+  /** The top edge that keeps the hero's feet in the lower part of a zoomed view. */
+  private heroCamY(): number {
+    const h = this.ents.get(this.heroId);
+    return this.clampCamY((h?.y ?? 360) - (400 / this.zoom) * 0.8);
   }
   /** The camera the hero would have at this instant (centred on them, clamped). */
   private heroCam(): number {
     const h = this.ents.get(this.heroId);
-    return this.clampCam((h?.x ?? 320) - 320);
+    return this.clampCam((h?.x ?? 320) - 320 / this.zoom);
   }
   followHero() { this.follow = true; this.pan = null; }
   /** Moves the camera to left edge `x` (follow off), animated over `ms`. */
@@ -179,7 +201,7 @@ export class RoomView {
     this.usePainter(room);
     this.room = room;
     this.layout = this.engine.layout(room.id);
-    this.walk = new WalkArea(this.layout);
+    this.walk = new WalkTopology(this.layout, room);
     this.ents.clear();
     const s = this.engine.state;
     // The room's part of the asset graph (core/asset-graph.ts) for who is actually here: never a file outside its scope.
@@ -240,6 +262,8 @@ export class RoomView {
     // The camera: as saved (a pan left it somewhere), or on the hero.
     const c = s.camera;
     this.pan = null;
+    this.zoom = this.zoomTarget();
+    this.camY = this.zoom === 1 ? 0 : this.heroCamY();
     this.follow = c?.follow ?? true;
     this.cam = this.follow ? this.heroCam() : this.clampCam(c?.x ?? 0);
     this.applyCam();
@@ -316,7 +340,7 @@ export class RoomView {
       const idle = this.char(e)?.sprites?.idle?.[0];
       // same scale for all of a character's poses: a crouching pose stays smaller
       const ref = idle ? this.bank.size(idle)[1] : 0;
-      const scale = e.scaleWithDepth ? depthScale(this.layout, e.y) : 1;
+      const scale = e.scaleWithDepth ? this.walk.scaleAt([e.x, e.y]) : 1;
       if (img && ref) h = (this.bank.size(img)[1] / ref) * e.h * scale; else h = e.h * scale;
     }
     const base = { id: e.id, fx: e.x, fy: e.y, bob: e.bob, z: e.z ?? e.y, flip: e.flip, flipV: !!e.flipV, rot: e.rot ?? 0, visible: e.visible, opacity: e.opacity };
@@ -348,6 +372,16 @@ export class RoomView {
   private tick(t: number) {
     const dt = Math.min(0.05, (t - this.last) / 1000);
     this.last = t;
+    // Zoom: toward what the hero's zone asks, smoothed (at once with reduced motion); the top edge follows.
+    const zt = this.zoomTarget();
+    if (Math.abs(zt - this.zoom) > 0.002 || this.zoom !== 1) {
+      this.zoom = Math.abs(zt - this.zoom) < 0.002 ? zt : this.zoom + (zt - this.zoom) * Math.min(1, dt * (this.reduceMotion ? 60 : 3));
+      const ty = this.heroCamY();
+      this.camY += (ty - this.camY) * Math.min(1, dt * (this.reduceMotion ? 60 : 5));
+      if (!this.pan && this.follow) this.cam = this.cam + (this.heroCam() - this.cam) * Math.min(1, dt * (this.reduceMotion ? 60 : 5));
+      this.cam = this.clampCam(this.cam);
+      this.applyCam();
+    }
     // Camera: a pan in progress, or following the hero (smoothed).
     if (this.width > 640) {
       if (this.pan) {
@@ -401,7 +435,7 @@ export class RoomView {
   head(id: Id): Point | null {
     const e = this.ents.get(id);
     if (!e || !e.visible || e.kind === 'prop') return null;
-    const scale = e.scaleWithDepth ? depthScale(this.layout, e.y) : 1;
+    const scale = e.scaleWithDepth ? this.walk.scaleAt([e.x, e.y]) : 1;
     return [e.x, e.y - e.h * scale - 6];
   }
 
@@ -539,36 +573,71 @@ export class RoomView {
     if (!e) return to;
     const tok = (this.walkTokens.get(id) ?? 0) + 1;
     this.walkTokens.set(id, tok);
-    const pts = this.walk.path([e.x, e.y], to);
-    if (fast) { const end = pts[pts.length - 1] ?? to; [e.x, e.y] = end; this.draw(e); return end; }
-    const sp = this.char(e)?.sprites ?? {};
+    const st = this.engine.state;
+    const { steps, blocked } = this.walk.route([e.x, e.y], to, (l) => !l.if || !st || check(l.if, st, this.room.id));
+    // A closed link stops the walk, never the action: the engine goes on from where the walk ended, and the rule of
+    // the target (gated by the same condition, lint `walk-link-gate`) answers. A link is never game logic by itself.
+    if (fast) { const end = steps[steps.length - 1]?.to ?? to; [e.x, e.y] = end; this.draw(e); if (blocked) this.onBlocked?.(blocked); return end; }
     // Actors and the hero already follow depth (as in the placement page): nothing to convert.
     const wasDepth = e.scaleWithDepth;
-    if (e.kind === 'actor' && !wasDepth) { e.h = e.h / depthScale(this.layout, e.y); e.scaleWithDepth = true; }
-    for (const p of pts) {
-      const ok = await new Promise<boolean>((res) => {
-        let last = performance.now();
-        const step = (now: number) => {
-          if (this.walkTokens.get(id) !== tok) return res(false);
-          const dt = Math.min(0.05, (now - last) / 1000); last = now;
-          const dx = p[0] - e.x, dy = p[1] - e.y, d = Math.hypot(dx, dy);
-          if (d < 1.5) { e.x = p[0]; e.y = p[1]; this.draw(e); return res(true); }
-          const k = Math.min(1, (WALK_SPEED * dt) / d);
-          e.x += dx * k; e.y += dy * k;
-          if (Math.abs(dx) > 1) e.flip = dx < 0;
-          const vertical = Math.abs(dy) > Math.abs(dx) * 1.5;
-          e.over = vertical ? (dy < 0 ? (sp.walk_back ? 'walk_back' : 'walk') : (sp.walk_front ? 'walk_front' : 'walk')) : (sp.walk ? 'walk' : undefined);
-          this.draw(e);
-          requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-      });
+    if (e.kind === 'actor' && !wasDepth) { e.h = e.h / this.walk.scaleAt([e.x, e.y]); e.scaleWithDepth = true; }
+    for (const step of steps) {
+      const ok = step.via && step.via.mode !== 'walk' ? await this.cross(e, step, tok) : await this.stride(e, step.to, tok);
       if (!ok) return null;
     }
     e.over = undefined;
-    if (e.kind === 'actor' && !wasDepth) { e.h = e.h * depthScale(this.layout, e.y); e.scaleWithDepth = false; }
+    if (e.kind === 'actor' && !wasDepth) { e.h = e.h * this.walk.scaleAt([e.x, e.y]); e.scaleWithDepth = false; }
     this.draw(e);
+    if (blocked) this.onBlocked?.(blocked);
     return [e.x, e.y];
+  }
+
+  /** Walks one straight segment at the walking speed, with the walk pose of its direction. */
+  private stride(e: Ent, p: Point, tok: number): Promise<boolean> {
+    const sp = this.char(e)?.sprites ?? {};
+    return new Promise<boolean>((res) => {
+      let last = performance.now();
+      const step = (now: number) => {
+        if (this.walkTokens.get(e.id) !== tok) return res(false);
+        const dt = Math.min(0.05, (now - last) / 1000); last = now;
+        const dx = p[0] - e.x, dy = p[1] - e.y, d = Math.hypot(dx, dy);
+        if (d < 1.5) { e.x = p[0]; e.y = p[1]; this.draw(e); return res(true); }
+        const k = Math.min(1, (WALK_SPEED * dt) / d);
+        e.x += dx * k; e.y += dy * k;
+        if (Math.abs(dx) > 1) e.flip = dx < 0;
+        const vertical = Math.abs(dy) > Math.abs(dx) * 1.5;
+        e.over = vertical ? (dy < 0 ? (sp.walk_back ? 'walk_back' : 'walk') : (sp.walk_front ? 'walk_front' : 'walk')) : (sp.walk ? 'walk' : undefined);
+        this.draw(e);
+        requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+
+  /**
+   * Crosses a walk link: stairs and ladders at a steady pace over the link's duration (its animation, else `climb` or
+   * the walk pose), a jump along an arc, a teleport out and back in. Reduced motion: a teleport for every mode.
+   */
+  private cross(e: Ent, step: WalkStep, tok: number): Promise<boolean> {
+    const l = step.via!;
+    const from: Point = [e.x, e.y], to = step.to, sp = this.char(e)?.sprites ?? {};
+    if (l.facing) e.flip = l.facing === 'left';
+    else if (Math.abs(to[0] - from[0]) > 1) e.flip = to[0] < from[0];
+    const pose = l.anim ?? (l.mode === 'ladder' ? (sp.climb ? 'climb' : undefined) : sp.walk ? 'walk' : undefined);
+    if (l.mode === 'teleport' || this.reduceMotion || l.ms <= 0) { [e.x, e.y] = to; this.draw(e); return Promise.resolve(this.walkTokens.get(e.id) === tok); }
+    return new Promise<boolean>((res) => {
+      const t0 = performance.now();
+      const step2 = (now: number) => {
+        if (this.walkTokens.get(e.id) !== tok) return res(false);
+        const k = Math.min(1, (now - t0) / l.ms);
+        e.x = from[0] + (to[0] - from[0]) * k;
+        e.y = from[1] + (to[1] - from[1]) * k - (l.mode === 'jump' ? Math.sin(Math.PI * k) * 30 : 0);
+        e.over = pose;
+        this.draw(e);
+        if (k < 1) requestAnimationFrame(step2); else res(true);
+      };
+      requestAnimationFrame(step2);
+    });
   }
 
   clampFloor(p: Point): Point { return this.walk.clamp(p); }

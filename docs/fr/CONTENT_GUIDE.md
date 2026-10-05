@@ -426,8 +426,12 @@ Dans le layout : `layers.<id> { x, y, z, parallax: [x, y], blend, opacity }`, `o
 z, feather?, invert? }` (ce qui cache un personnage plus profond que `z` : un pilier, un comptoir, un cadre de fenêtre),
 `walkZones.<id> { area, holes?, scale?, zoom? }` (plusieurs sols ; elles remplacent `walk`), `walkLinks.<id> { from: {
 zone, at }, to: { zone, at }, mode: walk | stairs | ladder | jump | teleport, ms?, facing?, oneWay? }`,
-`lights.<id> { at, radius }`, `emitters.<id> { area }`. Un lien fermé ne se marche pas ; quand il garde une énigme,
-l'énigme est une règle (le lien ne fait qu'arrêter la marche). `renderer: 'canvas'` (sur le lieu ou le jeu) choisit le
+`lights.<id> { at, radius }`, `emitters.<id> { area }`. Un lien fermé ne se marche pas : le héros va jusqu'à son pied,
+dit sa ligne `locked`, et l'action continue de là ; les règles de ce qui se trouve derrière doivent donc vérifier la
+même condition (`npm run lint` avertit, `walk-link-gate`) : l'énigme est la règle, le lien ne fait qu'arrêter la
+marche. Chaque zone met les personnages à l'échelle selon sa propre ligne de profondeur (`scale`) et peut zoomer la
+caméra (`zoom`, de 1 à 2 : un balcon vu de plus près) ; une caméra zoomée monte et descend aussi pour garder le héros
+en vue. `renderer: 'canvas'` (sur le lieu ou le jeu) choisit le
 peintre Canvas : masques d'image ou de calque, lumières, particules et modes de fusion ne sont dessinés que par lui
 (`npm run validate` le dit sur un lieu peint en DOM). Un ancien lieu est une scène d'un fond (`decor`) et d'une zone
 (`walk`, nommée `main`) : rien à réécrire.
