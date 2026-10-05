@@ -1,0 +1,23 @@
+name: nightly
+# The abstractions against the explicit search on 500 random games of each kind (3.6, tools/audit-corpus.ts): too
+# slow for every push. A divergence fails the run; it is a solver bug to fix before the next release.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      seeds:
+        description: 'How many seeds'
+        default: '500'
+jobs:
+  corpus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run audit:corpus -- --seeds=${{ github.event.inputs.seeds || '500' }}

@@ -9,6 +9,7 @@ import type { CmdKey } from '@engine/core/cmds';
 import type { CustomCommands } from '@engine/core/custom';
 import { auditAbstractions, type AuditResult } from '@engine/tools/audit';
 import { solve } from '@engine/tools/solve';
+import { makeStressGame } from '@engine/tools/stress';
 import { randomGame } from './gen/random-game';
 
 describe('random games: the abstractions give the explicit search verdict', () => {
@@ -45,6 +46,31 @@ describe('random games: the abstractions give the explicit search verdict', () =
     expect(pooled).toBeGreaterThan(30);
     expect(compared).toBeGreaterThanOrEqual(8);
   }, 600000);
+
+  it('40 seeds with three characters and free items: pooling by group never diverges (3.6)', async () => {
+    const diverged: string[] = [];
+    let same = 0, handed = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const { game, layouts } = randomGame(seed, { free: true, players: 3 });
+      const a = await auditAbstractions(game, layouts, { maxStates: 4000 });
+      if (a.status === 'diverged') diverged.push(`seed ${seed}: ${a.divergences.join('; ')}`);
+      if (a.status === 'same') { same++; if (a.abstract.handovers) handed++; }
+    }
+    console.log(`three characters: ${same} same, ${handed} with hand-overs`);
+    expect(diverged).toEqual([]);
+    // The rest are `partial` (three characters: the explicit search needs more than 4 000 states).
+    expect(same).toBeGreaterThanOrEqual(12);
+    expect(handed).toBeGreaterThanOrEqual(2);
+  }, 900000);
+
+  for (const softlock of [false, true]) it(`the stress chain with three characters${softlock ? ' and a softlock' : ''}: pooling by group gives the explicit verdict (3.6)`, async () => {
+    // Characters spread over regions apart (rooms with a walker or a script cut them): some pairs meet, others not.
+    // 7 rooms: the smallest chain with regions (6 has no silent move). Measured: 4 909 states against 97 257.
+    const g = makeStressGame({ rooms: 7, players: 3, items: 12, flags: 30, npcs: 1, scripts: 2, topics: 8, schemaVersion: 3, softlock });
+    const a = await auditAbstractions(g.game, g.layouts, { maxStates: 200000 });
+    expect(a.status, a.divergences.join('; ')).toBe('same');
+    expect(a.abstract.handovers).toBeGreaterThan(0);
+  }, 900000);
 
   it('the same seed gives the same game', () => {
     expect(JSON.stringify(randomGame(7))).toBe(JSON.stringify(randomGame(7)));
@@ -150,7 +176,8 @@ describe('what the audit found', () => {
 
   it('a divergence fails the audit, and a truncated explicit search is partial, not a pass', async () => {
     const { game, layouts } = harness({ rules: [] });
-    const lying = async (...args: Parameters<typeof solve>) => { const r = await solve(...args); if (args[2]?.memo !== false) r.flagsReached = [...r.flagsReached, 'ghost']; return r; };
+    // A live flag only the abstractions reach (a dead one is not compared: whether it shows depends on the merges).
+    const lying = async (...args: Parameters<typeof solve>) => { const r = await solve(...args); r.liveFlags = [...r.liveFlags, 'ghost']; if (args[2]?.memo !== false) r.flagsReached = [...r.flagsReached, 'ghost']; return r; };
     const bad = await auditAbstractions(game, layouts, { solver: lying });
     expect(bad).toMatchObject({ status: 'diverged', exit: 1 });
     expect(bad.divergences.join()).toContain('ghost');

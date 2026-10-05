@@ -42,6 +42,7 @@
     "audit": "npm run audit:assets",
     "audit:assets": "tsx tools/audit-assets.ts",
     "audit:deps": "npm audit --omit=dev",
+    "audit:corpus": "tsx tools/audit-corpus.ts",
     "prompts": "tsx --tsconfig tsconfig.json tools/prompts.ts",
     "audio": "python3 tools/audio.py",
     "build:web": "vite build",

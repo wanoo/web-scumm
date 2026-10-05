@@ -30,7 +30,9 @@ type Solver = (game: GameDef, layouts: Record<string, Layout>, opts: SolveOption
 export function verdictOf(r: SolveResult) {
   return {
     status: r.status, finished: r.finished, broken: r.broken.map((b) => b.invariant).sort(), softlocks: r.softlockCount > 0,
-    flagsReached: [...r.flagsReached].sort(), roomsReached: [...r.roomsReached].sort(), unlockedReached: [...r.unlockedReached].sort(),
+    // Only the live flags: a dead one is out of the states, so reaching it depends on which merged state was kept (the
+    // nightly corpus found three such "divergences" in unsolvable games, where every flag is dead).
+    flagsReached: r.flagsReached.filter((f) => (r.liveFlags ?? r.flagsReached).includes(f)).sort(), roomsReached: [...r.roomsReached].sort(), unlockedReached: [...r.unlockedReached].sort(),
   };
 }
 

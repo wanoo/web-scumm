@@ -34,13 +34,18 @@ export interface ReplayOptions {
 }
 
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
+/** `p` or the next turn of the event loop, the timer cleared when `p` wins (a replay of many steps runs in microtasks). */
+const raceTick = async (p: Promise<unknown>) => {
+  let t: ReturnType<typeof setTimeout> | undefined;
+  try { await Promise.race([p, new Promise<void>((r) => { t = setTimeout(r, 0); })]); } finally { clearTimeout(t); }
+};
 
 /** Waits for an engine call, unless it pauses on a tutorial step: the next input of the log is that step. */
 async function settle(e: Engine, p: Promise<unknown>, pending: Promise<unknown>[]): Promise<void> {
   let done = false;
   const q = p.then(() => { done = true; }, () => { done = true; });
   for (let guard = 0; guard < 500; guard++) {
-    await Promise.race([q, tick()]);
+    await raceTick(q);
     if (done) return;
     if (e.guiding) { pending.push(q); return; }
   }
