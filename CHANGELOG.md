@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 3.5.1 — 2026-10-05
+
+"Cue": the fixes found by the review of 3.5.0 (LOG #75–#78). No change to the game state: the 3.5.0 saves load as
+they are.
+
 ### Fixed
 
 - The music director plays only the latest request: a score whose stems finished decoding after another score was

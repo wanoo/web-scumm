@@ -401,6 +401,25 @@ and ×2 with 4; the owner never diverging from the explicit search. **Missed, no
 meet, and locked doors keep them apart. Reported, not done by hand (D12, `docs/dev/passes/3.5.0.md`): the screen
 reader, testers, a real phone, Safari offline, recorded voices, a signed tag.
 
+## v3.5.1 "Cue" (5 October 2026): the review's fixes
+
+- The music director plays only the latest request (a slow score no longer replaces the one asked after it; a stop
+  cancels a score still loading).
+- A browser that does not tell its memory gets stems only for scores of 128 MB decoded at most (`pcmBytes`).
+- A proof worker that stops mid-search leaves the pool, and `stats()` has a timeout. The workers table reports the
+  peak RSS: 1.2 GB with 4 workers.
+- The weight test no longer depends on an earlier `dist`.
+
+## v3.6 "Production" (planned)
+
+The rest of the 3.5.0 review:
+- separate budgets for stems, offline and decoded audio;
+- ffprobe on the stems;
+- an LRU of decoded audio with a cap;
+- transitions between scores (markers, bridges, the phase kept in a save);
+- fewer states for the solver (item liveness, a quotient local to a puzzle), aiming at 20 × 3;
+- a nightly corpus of random games.
+
 ## Next (not planned yet)
 
 - The open matrix of three characters: an abstraction for characters who cannot meet (what each can still bring to

@@ -1769,3 +1769,13 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
   give the mix; 4 GB, 2 GB, 2 cores and Save-Data behave as in 3.5; no Web Audio gives the mix.
 
 → next: Claude · v351-release
+
+## #79 · 2026-10-05 · Claude · proposal · v351-release
+
+- 3.5.1 "Cue": `package.json` 3.5.1; CHANGELOG dated. ROADMAP en/fr: a 3.5.1 section, and 3.6 "Production" planned
+  (the rest of the review, decided by the maintainer). README en/fr: "an adaptive stem mixer, not iMUSE".
+- `docs/dev/passes/3.5.1.md`: nothing done by hand (D12). The listening pass names Safari, the browser 3.5.1 decides
+  on by decoded weight.
+- No new frozen save: the state did not change (`demo-3.5.0.json` stays the last one).
+
+→ next: Claude · merge on green CI, tag v3.5.1, then v36-budgets
