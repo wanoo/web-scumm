@@ -444,3 +444,39 @@ has another signature: the order of a batched search differs (the same states an
 thread checks each one), and starting the workers (about 0.3 s): a small proof, like each of the sample game's
 chapters, is not faster. So workers stay off unless asked for; `--workers=auto` (the cores but one, at most 8) is the
 setting for a large game.
+
+## 3.5: who holds what (5 October 2026)
+
+**The canonical owner** (proofs, on by default with the canonical character and mobility regions; `--ownership=off`).
+With several playable characters, which one holds an item multiplies the states: three characters and twelve items
+that move freely is the open matrix that 3.3 could not prove. An item no condition reads (so lacking it decides
+nothing: no `else`, no rule shadowed by one that needs it), in no invariant or goal, lost or moved only by an action on
+it, and given by no rule or reaction by kind (`poolableItems`), is pooled while every two characters can meet: the
+state keeps how many of each pooled item exist, not who holds them. Before a character's actions are tried, the
+hand-overs that give it the pool are played on the engine: the other holder switches in, both walk to a room their
+regions share, the items are given, the controls come back, and every step must leave the state as the search sees
+it. One that does not restarts the proof without pooling (`profile.ownership.reason`), like mobility.
+
+Checked against the explicit search (`--audit-abstractions`, `tests/audit.test.ts`): the reference chapter `same`,
+288 states against 83 672; 60 random games with free items, no divergence (32 compared within 3 000 states, 10 of them
+with hand-overs played; 44 compared within 20 000, 14 with hand-overs, none diverged). The first version diverged on
+3 of the 60: the pool listed items the search otherwise ignores (dead ones), and the audit caught it.
+
+| Game | Without the owner | With it |
+|---|---|---|
+| The Night Market (2 characters) | 904 states, 2.0 s | 288 states, 1 559 hand-overs, 1.2 s |
+| The sample game | 3 480 states | the same: no mobility region, so no owner |
+| Open chain, 20 rooms × 2 characters, 12 items | truncated at 40 000 states (58 s) | **solved**, 14 002 states, 19.4 s |
+| Open chain, 20 rooms × 3 characters | truncated | **still truncated** at 200 000 states (154 s with 4 workers) |
+
+The 3.5 target, the 20 × 3 open matrix within budget, is **not met**. The owner applies only while every two
+characters can meet, and in the open chain locked doors keep them apart most of the time (1 817 hand-overs in
+200 000 states). As decided, this does not block 3.5; it is the open question for what follows.
+
+**Witness dominance** (`--dominance`, witnesses only: it cannot prune a proof). A state with no more progress than one
+already seen (the same everything else; its monotonic items and boolean flags, those nothing reads for their absence,
+a subset) is not explored. A witness search that finds nothing with it runs again without it, so it never reports
+`unsolved` by itself. Measured: it prunes nothing on the sample game, the reference chapter or the stress games. The
+best-first search reaches a witness before a dominated state comes up, and a dominated state only comes up once the
+better ones are exhausted, which (when absence is never read) means the search is failing anyway. It stays an
+option, off by default.

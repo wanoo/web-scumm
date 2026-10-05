@@ -12,7 +12,7 @@ import { changesState, cmdLists, eachCmd } from '../core/cmds';
 import { extraReads, liveness, puzzleGraph } from './puzzle';
 import { atomDim, diffDims, independent, readDims, staticTransitions, stubbornKeys, type RW, type Tx } from './por';
 import { condAtoms } from '../core/cond';
-import type { Cond, GameDef, GameState, Id, Layout, SessionEntry, VerbId } from '../core/types';
+import type { Cmd, Cond, GameDef, GameState, Id, Layout, SessionEntry, VerbId } from '../core/types';
 import { compileGame } from '../core/define';
 import { ruleActionId } from '../core/content-ids';
 import { Frontier } from './frontier';
@@ -87,6 +87,10 @@ export interface SolveProfile {
    * no-op runs not kept because they wrote something back or read something the memo cannot value (`refused`).
    */
   memo: { applied: boolean; stored: number; hits: number; verified: number; refused: number; reason?: string };
+  /** Witness dominance: states not explored because one already seen had as much progress. */
+  dominance?: { applied: boolean; pruned: number; reason?: string };
+  /** The canonical owner: the items pooled, the hand-overs played, why it is off. */
+  ownership?: { applied: boolean; items: Id[]; handovers: number; reason?: string };
   /** Proof workers (`workers`): how many expanded, the batch, and why this thread expanded instead when it did. */
   workers?: { workers: number; batch: number; reason?: string };
   /** Why the search stopped early: the state budget (`maxStates`) or the time (`timeLimitMs`). */
@@ -178,6 +182,19 @@ export interface SolveOptions {
    * (`profile.mobility.reason`). Default: on in proof mode, off for a witness.
    */
   mobility?: boolean;
+  /**
+   * The canonical owner (3.5): items no condition reads (`poolableItems`) are one pool, whoever holds them, while every
+   * playable character is in one mobility region (they can meet without changing anything); before a character's
+   * actions are tried, the hand-overs that give it the pool are played and checked. Default: on in proof mode with the
+   * canonical character and mobility regions; a hand-over that changes something restarts the search without it.
+   */
+  ownership?: boolean;
+  /**
+   * Witness dominance (3.5, witness searches only: it cannot prune a proof): a new state with no more progress than one
+   * already seen (`dominanceThings`: the same everything else, its monotonic items and flags a subset) is not explored.
+   * A witness search that finds nothing with it is run again without it, so it never reports `unsolved` by itself.
+   */
+  dominance?: boolean;
   /**
    * Proof workers (3.5, solve-pool.ts): the frontier expanded a batch at a time by this many worker threads (`auto`:
    * the cores but one, at most 8). The result depends on `batch`, never on the number of workers; without this option
@@ -333,13 +350,62 @@ class MobilityError extends Error {}
 export const mobilityError = (m: string): Error => new MobilityError(m);
 export const isMobilityError = (e: unknown): boolean => e instanceof MobilityError;
 
-function canonicalDims(d: Dims, s: GameState, keys: ReturnType<typeof stateKeys>, hero: Id, shared: boolean): Dims {
+function canonicalDims(d: Dims, s: GameState, keys: ReturnType<typeof stateKeys>, hero: Id, shared: boolean, pool?: Set<Id> | null): Dims {
   const live = (xs: Id[] | undefined) => (xs ?? []).filter((i) => keys.live.items.has(i)).sort().join(',');
+  // The bags without the pooled items (the `used` marks stay each character's own).
+  const bag = (xs: Id[] | undefined) => live((xs ?? []).filter((i) => !pool?.has(i)));
   const out = d.filter(([k]) => k !== 'active' && k !== 'room' && !k.startsWith('player:') && (shared || (!k.startsWith('item:') && !k.startsWith('used:'))));
-  out.push([`pos:${s.active ?? hero}`, shared ? s.room : `${s.room} ${live(s.inventory)} ${live(s.used)}`]);
-  for (const [k, p] of Object.entries(s.players ?? {})) out.push([`pos:${k}`, shared ? p.room : `${p.room} ${live(p.inventory)} ${live(p.used)}`]);
+  out.push([`pos:${s.active ?? hero}`, shared ? s.room : `${s.room} ${bag(s.inventory)} ${live(s.used)}`]);
+  for (const [k, p] of Object.entries(s.players ?? {})) out.push([`pos:${k}`, shared ? p.room : `${p.room} ${bag(p.inventory)} ${live(p.used)}`]);
+  // The canonical owner (3.5): the pooled items whoever holds them (a multiset: a copy gained twice stays two).
+  if (pool) out.push(['pool', [s.inventory, ...Object.values(s.players ?? {}).map((p) => p.inventory)].flat().filter((i) => pool.has(i) && keys.live.items.has(i)).sort().join(',')]);
   return out.sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
 }
+
+/**
+ * The items a proof may pool (the canonical owner, 3.5): which playable character holds one of them changes nothing
+ * the search can tell, as long as the characters can meet and hand it over. Certified from the content: the item is
+ * in no condition (so its absence decides nothing: no `else`, no rule shadowed by one that needs it), in no invariant
+ * and no goal, is lost or moved only by an action on it (a `lose` elsewhere would remove it from whoever holds the
+ * pool), and no rule or reaction by kind answers giving it (the engine's hand-over does). The hand-overs themselves
+ * are played and checked during the search (`OwnershipError` otherwise).
+ */
+export function poolableItems(game: GameDef, goal?: Cond[]): { items: Set<Id>; reason?: string } {
+  const none = (reason: string) => ({ items: new Set<Id>(), reason });
+  if ((game.players?.ids.length ?? 1) < 2) return none('one playable character');
+  if (game.players?.sharedInventory) return none('the characters share one bag');
+  if ((game.rules.kinds ?? []).some((k) => (Array.isArray(k.verb) ? k.verb : [k.verb]).includes('give') && k.item === undefined)) return none('a reaction by kind answers giving any item');
+  const out = new Set(Object.keys(game.items));
+  const drop = (i: Id) => out.delete(i);
+  // In a condition anywhere (the game, the invariants, the goal).
+  const conds = (v: unknown) => {
+    if (!v || typeof v !== 'object') return;
+    if (Array.isArray(v)) { v.forEach(conds); return; }
+    const o = v as Record<string, unknown>;
+    if (typeof o.has === 'string') drop(o.has);
+    Object.values(o).forEach(conds);
+  };
+  conds(game); conds(goal ?? []);
+  for (const k of game.rules.kinds ?? []) if ((Array.isArray(k.verb) ? k.verb : [k.verb]).includes('give')) (Array.isArray(k.item) ? k.item : [k.item!]).forEach(drop);
+  const ids = (x: Id | Id[] | undefined) => (x === undefined ? [] : Array.isArray(x) ? x : [x]);
+  const rules = [...game.rooms.flatMap((r) => r.on ?? []), ...(game.rules.on ?? [])];
+  for (const r of rules) if ((Array.isArray(r.verb) ? r.verb : [r.verb]).includes('give')) [...ids(r.a), ...ids(r.b)].forEach(drop);
+  // `lose` / `transfer` only inside a rule acting on that item.
+  for (const { list } of cmdLists(game)) {
+    const actingOn = rules.find((r) => r.do === list);
+    eachCmd(list, (c) => {
+      if (typeof c === 'string') return;
+      const it = 'lose' in c ? c.lose : 'transfer' in c ? c.transfer[0] : undefined;
+      if (it && !(actingOn && [...ids(actingOn.a), ...ids(actingOn.b)].includes(it))) drop(it);
+    });
+  }
+  return out.size ? { items: out } : none('every item is read by a condition, lost elsewhere or given by a rule');
+}
+
+/** A hand-over of the canonical owner did not do what it was certified to: the search restarts without pooling. */
+class OwnershipError extends Error {}
+export const ownershipError = (m: string): Error => new OwnershipError(m);
+export const isOwnershipError = (e: unknown): boolean => e instanceof OwnershipError;
 
 /**
  * The value of one thing a run read (`Engine.reads`: condition atoms and the engine's own keys), in the raw state.
@@ -409,6 +475,43 @@ export function monotonicThings(game: GameDef): { flags: string[]; items: string
   for (const k of Object.keys(game.start.flags ?? {})) flagsSet.add(k);
   for (const i of game.start.inventory ?? []) itemsGained.add(i);
   return { flags: [...flagsSet].filter((k) => !flagsDown.has(k)).sort(), items: [...itemsGained].filter((i) => !itemsLost.has(i)).sort() };
+}
+
+/**
+ * What witness dominance compares (3.5): monotonic items and boolean flags (gained or set, never lost or unset) whose
+ * absence nothing reads: not under `!` or `not`, not in an `if` with an `else`, not in the condition of a rule that
+ * would shadow a later one on the same action (then lacking it is what lets the later one answer).
+ */
+export function dominanceThings(game: GameDef): { flags: Set<string>; items: Set<string> } {
+  const mono = monotonicThings(game);
+  const flags = new Set(mono.flags), items = new Set(mono.items);
+  const atomsOf = (c: unknown, out: { f: Set<string>; i: Set<string> } = { f: new Set(), i: new Set() }) => {
+    if (typeof c === 'string') out.f.add(c.replace(/^!/, ''));
+    else if (Array.isArray(c)) c.forEach((x) => atomsOf(x, out));
+    else if (c && typeof c === 'object') {
+      const o = c as Record<string, unknown>;
+      if (typeof o.has === 'string') out.i.add(o.has);
+      if (typeof o.flag === 'string') out.f.add(o.flag);
+      for (const [k, v] of Object.entries(o)) if (k !== 'has' && k !== 'flag') atomsOf(v, out);
+    }
+    return out;
+  };
+  const drop = (c: unknown) => { const a = atomsOf(c); a.f.forEach((x) => flags.delete(x)); a.i.forEach((x) => items.delete(x)); };
+  const walk = (v: unknown) => {
+    if (typeof v === 'string') { if (v.startsWith('!')) flags.delete(v.slice(1)); return; }
+    if (!v || typeof v !== 'object') return;
+    if (Array.isArray(v)) { v.forEach(walk); return; }
+    const o = v as Record<string, unknown>;
+    if ('not' in o) drop(o.not);
+    if ('if' in o && 'else' in o) drop(o.if);
+    Object.values(o).forEach(walk);
+  };
+  walk(game);
+  const same = (x: unknown, y: unknown) => JSON.stringify(x) === JSON.stringify(y);
+  for (const list of [...game.rooms.map((r) => r.on ?? []), game.rules.on ?? []]) list.forEach((r, i) => {
+    if (r.if !== undefined && list.slice(i + 1).some((l) => same(l.verb, r.verb) && same(l.a, r.a) && same(l.b, r.b))) drop(r.if);
+  });
+  return { flags, items };
 }
 
 /** A 32-bit hash of a string. */
@@ -496,8 +599,26 @@ export function projectState(gameIn: GameDef, layouts: Record<string, Layout>, s
 }
 
 export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, opts: SolveOptions = {}): Promise<SolveResult> {
+  const r = await solveAbstracted(gameIn, layouts, opts);
+  // Dominance prunes on what the content says of absence, a heuristic: a witness search that found nothing after
+  // pruning is run again without it, so `unsolved` and `truncated` are never its doing.
+  if (r.profile.dominance?.applied && r.profile.dominance.pruned && !r.finished) {
+    const again = await solveAbstracted(gameIn, layouts, { ...opts, dominance: false });
+    again.profile.dominance = { applied: false, pruned: r.profile.dominance.pruned, reason: `no witness with it (${r.profile.dominance.pruned} pruned): run again without` };
+    return again;
+  }
+  return r;
+}
+
+async function solveAbstracted(gameIn: GameDef, layouts: Record<string, Layout>, opts: SolveOptions): Promise<SolveResult> {
   try { return await solveOnce(gameIn, layouts, opts); }
   catch (e) {
+    if (e instanceof OwnershipError) {
+      // A hand-over the content certified did something else: no pooling for this game.
+      const r = await solveAbstracted(gameIn, layouts, { ...opts, ownership: false });
+      r.profile.ownership = { applied: false, items: [], handovers: 0, reason: e.message };
+      return r;
+    }
     if (!(e instanceof MobilityError)) throw e;
     // A hop the model called silent changed something: the regions are not sound for this game, exact rooms then.
     const r = await solveOnce(gameIn, layouts, { ...opts, mobility: false });
@@ -542,6 +663,7 @@ export interface ExpandStats {
   timing: SolveProfile['timing'];
   canon: { folded: number; explicit: number };
   mob: { moves: number; largest: number };
+  own: { handovers: number };
 }
 
 /** Adds `b` into `a` (the coordinator's stats and a worker's). */
@@ -553,6 +675,7 @@ export function mergeStats(a: ExpandStats, b: ExpandStats) {
   for (const k of Object.keys(a.timing) as (keyof SolveProfile['timing'])[]) a.timing[k] += b.timing[k];
   a.canon.folded += b.canon.folded; a.canon.explicit += b.canon.explicit;
   a.mob.moves += b.mob.moves; a.mob.largest = Math.max(a.mob.largest, b.mob.largest);
+  a.own.handovers += b.own.handovers;
 }
 
 /**
@@ -576,14 +699,29 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
   // A game where no move can ever be silent (every room has an onEnter, or is named by a condition): no regions.
   const model = model0 && !model0.trivial ? model0 : null;
   const mobInfo: SolveProfile['mobility'] = { applied: !!model, moves: 0, largest: model ? 0 : 1, ...(model0?.trivial ? { reason: 'no move of this game can be silent' } : {}) };
-  const baseDims = (st: GameState): Dims => canonical ? canonicalDims(stateDims(st, keys), st, keys, game.hero, shared) : stateDims(st, keys);
+  // The canonical owner: needs the canonical character (the pool replaces who holds what) and the regions (meeting).
+  const poolable = (opts.ownership ?? mode === 'prove') && canonical && model ? poolableItems(game, opts.goal) : null;
+  const pool = poolable?.items.size ? poolable.items : null;
+  const ownInfo: NonNullable<SolveProfile['ownership']> = { applied: !!pool, items: [...(pool ?? [])].sort(), handovers: 0,
+    ...(pool ? {} : { reason: opts.ownership === false ? 'turned off' : !canonical ? 'no canonical character' : !model ? 'no mobility regions' : poolable?.reason ?? 'off for a witness' }) };
+  /**
+   * Every two playable characters can meet without changing anything (their regions share a room): whoever holds a
+   * pooled item can bring it to whoever needs it. Read from the regions only, never the exact rooms, so a silent move
+   * inside a region does not change it (mobility checks that). A state where two cannot meet keeps who holds what.
+   */
+  const meeting = (st: GameState, p: Id, q: Id): Id | undefined => {
+    const a = model!.region(viewOf(st, p, game.hero, shared)).rooms, b = new Set(model!.region(viewOf(st, q, game.hero, shared)).rooms);
+    return a.find((r) => b.has(r));
+  };
+  const together = (st: GameState) => !!pool && !!model && playerIds.every((p, i) => playerIds.every((q, j) => j <= i || meeting(st, p, q) !== undefined));
+  const baseDims = (st: GameState): Dims => canonical ? canonicalDims(stateDims(st, keys), st, keys, game.hero, shared, together(st) ? pool : null) : stateDims(st, keys);
   const dimsOf = (st: GameState): Dims => model ? regionDims(baseDims(st), st, model, game.hero, shared) : baseDims(st);
   const stats: ExpandStats = {
     itemsInRules: new Set(), itemsSeen: new Set(), flags: new Set(), gained: new Set(), roomsReached: new Set(),
     attempted: new Map(), perAction: new Map(), fallbackByRoom: new Map(),
     n: { memoHits: 0, memoStored: 0, memoVerified: 0, memoRefused: 0, tries: 0, skipped: 0, slept: 0, noops: 0 },
     timing: { tries: 0, engine: 0, clone: 0, run: 0, hash: 0, queue: 0, other: 0, classify: 0 },
-    canon: { folded: 0, explicit: 0 }, mob: { moves: 0, largest: model ? 0 : 1 },
+    canon: { folded: 0, explicit: 0 }, mob: { moves: 0, largest: model ? 0 : 1 }, own: { handovers: 0 },
   };
   const { timing, n: cnt, attempted, perAction, fallbackByRoom, itemsInRules, flags, gained, roomsReached, itemsSeen } = stats;
   const now = () => performance.now();
@@ -682,6 +820,50 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
         placed.push({ st: e.state, via: v.via, pre: [...(v.pre ?? []), ...(e.session?.log ?? [])], prefix: `${v.prefix ?? ''}Go to ${r} › `, region: R.rooms });
         stats.mob.moves++;
       }
+    }
+    // The canonical owner: the character whose actions are tried gets the pool first. For each other holder: where they
+    // meet (here when the holder can walk here, else a room both regions share, the character going there and coming
+    // back), the holder switches in, walks there, hands its pooled items over, and the controls come back. Every step is
+    // played on the engine and must leave the state as the search sees it.
+    if (pool && together(s)) for (let vi = 0; vi < placed.length; vi++) {
+      const v = placed[vi];
+      const me = v.st.active ?? game.hero;
+      const holders = playerIds.filter((q) => q !== me && viewOf(v.st, q, game.hero, shared).inventory.some((i) => pool.has(i)));
+      if (!holders.length) continue;
+      const { e } = makeEngine();
+      e.state = timed('clone', () => structuredClone(v.st));
+      const same = (what: string) => { if (JSON.stringify(dimsOf(e.state)) !== h0) throw new OwnershipError(`${what} changed something the solver reads`); };
+      const walk = async (who: Id, to: Id) => {
+        for (const h of model!.region(e.state).route(to)) {
+          await drive(e, h.kind === 'exit' ? e.act({ verb: h.verb, a: h.a }) : e.travel(h.place), () => {});
+          if (e.state.room !== h.to) throw new OwnershipError(`${who} walking to ${to} did not arrive (in ${e.state.room})`);
+          same(`${who} walking from ${h.from} to ${h.to}`);
+        }
+      };
+      const tRun = now();
+      try {
+        for (const q of holders) {
+          const here = model!.region(viewOf(e.state, q, game.hero, shared)).rooms.includes(v.st.room);
+          const at = here ? v.st.room : meeting(e.state, me, q)!;
+          if (at !== e.state.room) await walk(me, at);
+          await drive(e, e.switchTo(q), () => {});
+          if ((e.state.active ?? game.hero) !== q) throw new OwnershipError(`switching to ${q} did not happen`);
+          same(`switching to ${q}`);
+          await walk(q, at);
+          for (const it of e.state.inventory.filter((i) => pool.has(i))) {
+            const before = viewOf(e.state, me, game.hero, shared).inventory.filter((i) => i === it).length;
+            await drive(e, e.act({ verb: 'give', a: it, b: me }), () => {});
+            if (viewOf(e.state, me, game.hero, shared).inventory.filter((i) => i === it).length !== before + 1) throw new OwnershipError(`${q} giving ${it} to ${me} did not hand it over`);
+            same(`${q} giving ${it} to ${me}`);
+          }
+          await drive(e, e.switchTo(me), () => {});
+          same(`switching back to ${me}`);
+          if (e.state.room !== v.st.room) await walk(me, v.st.room);
+        }
+      } finally { timing.run += now() - tRun; }
+      if (e.state.room !== v.st.room || (e.state.active ?? game.hero) !== me) throw new OwnershipError(`the hand-overs did not leave ${me} where it was`);
+      placed[vi] = { ...v, st: e.state, pre: [...(v.pre ?? []), ...(e.session?.log ?? [])], prefix: `${v.prefix ?? ''}Pool to ${me} › ` };
+      stats.own.handovers++;
     }
     for (const variant of placed) {
       const s = variant.st;
@@ -862,13 +1044,13 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
 
   // What the search looks for: an action that changes it is never postponed by the reduction.
   const goalDims = new Set<string>(['done', ...(opts.goal ?? []).flatMap((c) => condAtoms(c).map(atomDim))]);
-  return { game, mode, keys, playerIds, canonical, canonInfo, model, mobInfo, dimsOf, makeEngine, reached, goalHolds, por, memoOn, stx, stats, timed, now, expandNode };
+  return { game, mode, keys, playerIds, canonical, canonInfo, model, mobInfo, ownInfo, dimsOf, makeEngine, reached, goalHolds, por, memoOn, stx, stats, timed, now, expandNode };
 }
 
 async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts: SolveOptions = {}): Promise<SolveResult> {
   const maxStates = opts.maxStates ?? 20000;
   const X = makeExpander(gameIn, layouts, opts);
-  const { game, mode, canonInfo, mobInfo, dimsOf, makeEngine, reached, goalHolds, por, memoOn, stx, stats, timed, now } = X;
+  const { game, mode, canonInfo, mobInfo, ownInfo, dimsOf, makeEngine, reached, goalHolds, por, memoOn, stx, stats, timed, now } = X;
   const { timing } = stats;
   const errors: string[] = [];
   const unlocked = new Set<string>();
@@ -941,6 +1123,20 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     }
   }
   const edges = new Map<string, Set<string>>();
+  // Witness dominance: states indexed by everything but their dominance things; a new one whose things are a subset of
+  // a seen one's, with the rest equal, has nothing more to offer a witness.
+  const dom = opts.dominance && mode === 'witness' ? dominanceThings(game) : null;
+  const domIndex = new Map<string, Set<string>[]>();
+  let pruned = 0;
+  const domSplit = (d: Dims) => {
+    const mono = new Set<string>(); const rest: Dims = [];
+    for (const [k, v] of d) (k.startsWith('flag:') && v === 'true' && dom!.flags.has(k.slice(5))) || (k.startsWith('item:') && dom!.items.has(k.slice(5))) ? mono.add(k) : rest.push([k, v]);
+    return { key: JSON.stringify(rest), mono };
+  };
+  /** Some state seen has all of this one's progress (`strict`: and more), everything else equal. */
+  const dominated = (d: Dims, strict = false) => { const { key, mono } = domSplit(d); return !!domIndex.get(key)?.some((m) => m.size >= mono.size + (strict ? 1 : 0) && [...mono].every((x) => m.has(x))); };
+  const remember = (d: Dims) => { const { key, mono } = domSplit(d); (domIndex.get(key) ?? (domIndex.set(key, []), domIndex.get(key)!)).push(mono); };
+  if (dom) for (const n of seen.values()) remember(n.dims);
   let limitReached = false;
   let last: Node = start;
   checkInvariants(start.state, () => pathOf(start));
@@ -993,6 +1189,7 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
         // The ending is terminal. Keep trying the other actions from the source state, but do not expand past it.
         continue;
       }
+      if (dom) { if (dominated(next.dims)) { pruned++; continue; } remember(next.dims); }
       children.push({ key: r.key, next, h });
     }
     if (mode === 'prove' || !finish) {
@@ -1032,7 +1229,13 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       if (seen.size >= maxStates) { limitReached = true; stoppedBy = 'states'; break; }
       if (Date.now() > deadline) { limitReached = true; stoppedBy = 'time'; break; }
       const nodes: Node[] = [];
-      while (nodes.length < batch && queue.size) nodes.push(timed('queue', () => queue.pop()!));
+      while (nodes.length < batch && queue.size) {
+        const n = timed('queue', () => queue.pop()!);
+        // Witness dominance: a state that a better one (more progress, the rest equal) has overtaken since it was queued.
+        if (dom && dominated(n.dims, true)) { pruned++; continue; }
+        nodes.push(n);
+      }
+      if (!nodes.length) continue;
       const exps = pool ? await pool.expand(nodes.map(input), deadline) : [await X.expandNode(input(nodes[0]))];
       for (let k = 0; k < nodes.length; k++) {
         // The batch is taken from the frontier at once; the rest of it is dropped as the one-at-a-time search would
@@ -1052,6 +1255,7 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   void itemsSeen;
   canonInfo.folded = stats.canon.folded; canonInfo.explicit = stats.canon.explicit;
   if (mobInfo.applied) { mobInfo.moves = stats.mob.moves; mobInfo.largest = stats.mob.largest; }
+  ownInfo.handovers = stats.own.handovers;
   const loopMs = now() - loopStart.t;
   timing.other = Math.max(0, loopMs - timing.tries - timing.engine - timing.clone - timing.run - timing.hash - timing.queue);
   const all = seen.size <= 50000 ? [...seen.values()].map((n) => n.dims) : [];
@@ -1061,7 +1265,7 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     ms: Date.now() - t0, states: seen.size, tries: cnt.tries, skipped: cnt.skipped, slept: cnt.slept, postponed, noops: cnt.noops, hashHits, maxQueue,
     branching: { avg: expansions ? triesSum / expansions : 0, max: triesMax, ...(worst ? { worst } : {}) },
     fallbackByRoom: Object.fromEntries(fallbackByRoom), dims, perRoom: Object.fromEntries(perRoom), perAction: Object.fromEntries(perAction), attempted: Object.fromEntries(attempted),
-    monotonic: monotonicThings(game), independent: independentGroups(all, dims), timing, positions, canonical: canonInfo, mobility: mobInfo, memo: { applied: memoOn, stored: cnt.memoStored, hits: cnt.memoHits, verified: cnt.memoVerified, refused: cnt.memoRefused, ...(memoOn ? {} : { reason: opts.memo === false ? 'turned off' : 'off with a partial-order reduction' }) },
+    monotonic: monotonicThings(game), independent: independentGroups(all, dims), timing, positions, canonical: canonInfo, mobility: mobInfo, ownership: ownInfo, dominance: { applied: !!dom, pruned, ...(dom ? {} : { reason: mode === 'prove' ? 'a proof cannot prune by dominance' : 'not asked for (--dominance)' }) }, memo: { applied: memoOn, stored: cnt.memoStored, hits: cnt.memoHits, verified: cnt.memoVerified, refused: cnt.memoRefused, ...(memoOn ? {} : { reason: opts.memo === false ? 'turned off' : 'off with a partial-order reduction' }) },
     workers: pool ? { workers: pool.size, batch, ...(pool.reason ? { reason: pool.reason } : {}) } : { workers: 1, batch: 1 },
     ...(stoppedBy ? { stoppedBy } : {}),
   };
@@ -1142,6 +1346,8 @@ export function abstractionLines(p: SolveProfile): string[] {
     `  canonical character   ${p.canonical.applied ? `${p.canonical.folded} switches folded, ${p.canonical.explicit} kept explicit` : off(p.canonical.reason)}`,
     `  mobility regions      ${p.mobility.applied ? `${p.mobility.moves} macro moves, largest region ${p.mobility.largest} rooms` : off(p.mobility.reason)}`,
     `  no-op memo            ${p.memo.applied ? `${p.memo.hits} runs skipped (${p.memo.verified} of them run anyway and identical), ${p.memo.stored} kept, ${p.memo.refused} refused` : off(p.memo.reason)}`,
+    ...(p.dominance?.applied || p.dominance?.pruned ? [`  witness dominance     ${p.dominance.applied ? `${p.dominance.pruned} states not explored` : off(p.dominance.reason)}`] : []),
+    ...(p.ownership ? [`  canonical owner       ${p.ownership.applied ? `${p.ownership.items.length} item(s) pooled, ${p.ownership.handovers} hand-overs played` : off(p.ownership.reason)}`] : []),
     ...(p.workers && p.workers.batch > 1 ? [`  workers               ${p.workers.workers} expanding batches of ${p.workers.batch}${p.workers.reason ? ` (${p.workers.reason})` : ''}; times below are summed over them`] : []),
     ...(p.stoppedBy ? [`  stopped by            ${p.stoppedBy === 'time' ? 'the time limit (--time)' : 'the state budget (--max)'}`] : []),
   ];

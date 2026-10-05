@@ -12,23 +12,35 @@ export function rng(seed: number) {
   return { next, int: (n: number) => Math.floor(next() * n), pick: <T>(xs: readonly T[]): T => xs[Math.floor(next() * xs.length)], chance: (p: number) => next() < p };
 }
 
-export interface RandomGameOptions { rooms?: number; items?: number; flags?: number; players?: 1 | 2; rules?: number }
+export interface RandomGameOptions {
+  rooms?: number; items?: number; flags?: number; players?: 1 | 2; rules?: number;
+  /**
+   * Free items (the canonical owner's audit, 3.5): two characters, and every other item in no condition and lost or
+   * moved only by an action on it, so a proof may pool who holds it (solve.ts `poolableItems`).
+   */
+  free?: boolean;
+}
 
 export function randomGame(seed: number, o: RandomGameOptions = {}): { game: GameDef; layouts: Record<string, Layout> } {
   const r = rng(seed);
-  const R = o.rooms ?? 2 + r.int(3), I = o.items ?? 2 + r.int(3), F = o.flags ?? 2 + r.int(3), P = o.players ?? (r.chance(0.5) ? 2 : 1);
+  const R = o.rooms ?? 2 + r.int(3), I = o.items ?? 2 + r.int(3), F = o.flags ?? 2 + r.int(3), P = o.free ? 2 : o.players ?? (r.chance(0.5) ? 2 : 1);
   const rooms = [...Array(R).keys()].map((i) => `room${i}`);
   const items = [...Array(I).keys()].map((i) => `item${i}`);
   const flags = [...Array(F).keys()].map((i) => `f${i}`);
   const players = ['ann', 'bob'].slice(0, P);
   const spots = (i: number) => [`spot${i}a`, `spot${i}b`];
+  // With `free`: the odd items are free (no condition reads them), the even ones stay as before.
+  const isFree = (it: string) => !!o.free && Number(it.slice(4)) % 2 === 1;
+  const bound = items.filter((it) => !isFree(it));
+  const anyItem = () => r.pick(items);
+  const boundItem = () => (bound.length ? r.pick(bound) : r.pick(items));
 
   const atom = (room: number): Cond => {
     switch (r.int(9)) {
       case 0: return r.pick(flags);
       case 1: return `!${r.pick(flags)}`;
-      case 2: return { has: r.pick(items) };
-      case 3: return { not: { has: r.pick(items) } };
+      case 2: return o.free && !bound.length ? r.pick(flags) : { has: o.free ? boundItem() : r.pick(items) };
+      case 3: return o.free && !bound.length ? `!${r.pick(flags)}` : { not: { has: o.free ? boundItem() : r.pick(items) } };
       case 4: return { prop: [spots(room)[0], r.pick(['open', 'shut'])] };
       case 5: return { flag: 'n', lt: 2 };
       case 6: return { visited: r.pick(rooms) };
@@ -44,21 +56,21 @@ export function randomGame(seed: number, o: RandomGameOptions = {}): { game: Gam
     return atom(room);
   };
   let onceId = 0;
-  const cmd = (room: number, depth = 0): Cmd => {
+  const cmd = (room: number, depth = 0, acting?: string): Cmd => {
     switch (r.int(depth ? 9 : 13)) {
-      case 0: return { gain: r.pick(items) };
-      case 1: return { lose: r.pick(items) };
+      case 0: return { gain: anyItem() };
+      case 1: return { lose: o.free ? (acting && isFree(acting) && r.chance(0.5) ? acting : boundItem()) : r.pick(items) };
       case 2: return { set: r.pick(flags) };
       case 3: return { unset: r.pick(flags) };
       case 4: return { prop: [spots(room)[0], r.pick(['open', 'shut'])] };
       case 5: return { used: r.pick(items) };
-      case 6: return P > 1 ? { transfer: [r.pick(items), r.pick(players)] } : { set: r.pick(flags) };
+      case 6: return P > 1 ? { transfer: [o.free ? boundItem() : r.pick(items), r.pick(players)] } : { set: r.pick(flags) };
       case 7: return { if: { flag: 'n', lt: 2 }, then: [{ inc: 'n' }] };
       case 8: return `A line in room ${room}.`;
-      case 9: return { if: atom(room), then: [cmd(room, 1)], else: [cmd(room, 1)] };
-      case 10: return { once: [cmd(room, 1), cmd(room, 1)], id: `once${onceId++}` };
-      case 11: return { nth: [[cmd(room, 1)], [cmd(room, 1)]], id: `nth${onceId++}` };
-      default: return { cycle: [[cmd(room, 1)], [cmd(room, 1)]], id: `cycle${onceId++}` };
+      case 9: return { if: atom(room), then: [cmd(room, 1, acting)], else: [cmd(room, 1, acting)] };
+      case 10: return { once: [cmd(room, 1, acting), cmd(room, 1, acting)], id: `once${onceId++}` };
+      case 11: return { nth: [[cmd(room, 1, acting)], [cmd(room, 1, acting)]], id: `nth${onceId++}` };
+      default: return { cycle: [[cmd(room, 1, acting)], [cmd(room, 1, acting)]], id: `cycle${onceId++}` };
     }
   };
   const roomDefs: RoomDef[] = rooms.map((id, i) => {
@@ -66,11 +78,12 @@ export function randomGame(seed: number, o: RandomGameOptions = {}): { game: Gam
     const on: NonNullable<RoomDef['on']> = [];
     const n = o.rules ?? 2 + r.int(3);
     for (let k = 0; k < n; k++) {
-      const useItem = r.chance(0.4);
-      on.push({ verb: useItem ? 'use' : r.pick(['take', 'look'] as const), a: useItem ? r.pick(items) : r.pick([a, b]), ...(useItem ? { b: r.pick([a, b]) } : {}), if: cond(i), do: [cmd(i), ...(r.chance(0.5) ? [cmd(i)] : [])] });
+      const useItem = r.chance(o.free ? 0.6 : 0.4);
+      const it = useItem ? r.pick(items) : undefined;
+      on.push({ verb: useItem ? 'use' : r.pick(['take', 'look'] as const), a: it ?? r.pick([a, b]), ...(useItem ? { b: r.pick([a, b]) } : {}), if: cond(i), do: [cmd(i, 0, it), ...(r.chance(0.5) ? [cmd(i, 0, it)] : [])] });
     }
     // Every item can be found somewhere, once.
-    items.forEach((it, j) => { if (j % R === i) on.push({ verb: 'take', a: b, if: { all: [`!took_${it}`, { not: { has: it } }] }, do: [{ gain: it }, { set: `took_${it}` }] }); });
+    items.forEach((it, j) => { if (j % R === i) on.push({ verb: 'take', a: b, if: isFree(it) ? `!took_${it}` : { all: [`!took_${it}`, { not: { has: it } }] }, do: [{ gain: it }, { set: `took_${it}` }] }); });
     if (i === R - 1) on.push({ verb: 'use', a: a, if: cond(i) ?? r.pick(flags), do: [{ end: true }] });
     const exits: NonNullable<RoomDef['exits']> = {};
     if (i + 1 < R) exits.next = { name: 'next', to: rooms[i + 1], ...(r.chance(0.5) ? { if: atom(i) } : {}) };

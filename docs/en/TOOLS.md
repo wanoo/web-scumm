@@ -156,6 +156,8 @@ npm run solve      # fast witness: finds one path to the ending
 npm run solve -- --prove # exhaustive reachable-state proof: reports states with no path to the ending
 npm run solve -- --from=<checkpoint> --max=50000
 npm run solve -- --prove --workers=4 [--batch=64] [--time=60]   # proof workers (3.5): the same result for any number of workers; a large proof ×2.5 with 4 (BENCH.md "3.5")
+npm run solve -- --prove --ownership=off   # without the canonical owner (who holds a free item, pooled in proofs since 3.5)
+npm run solve -- --dominance             # a witness with dominance (3.5; prunes nothing on the bundled games, BENCH.md)
 npm test           # Node engine/tool tests and the selected game's tests
 npm run test:assets # Python-backed image and asset-pipeline tests
 npm run e2e        # a playthrough in Chromium, phone landscape (dev server already running)

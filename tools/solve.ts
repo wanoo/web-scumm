@@ -2,7 +2,7 @@
 // graph and report every reachable state from which the goal is no longer reachable.
 // Options: --max=20000 (number of states), --from=<checkpoint>, --json (JSON output for scripts/e2e.mjs: the labelled
 // path and the session entries `steps` on stdout, no other text; the default output, meant for humans, doesn't change:
-// other scripts read it), --profile (what the states are made of, what the search cost), --por=sleep|stubborn (partial-order reduction: fewer engine runs, or fewer states too), --audit-abstractions (the proof with the abstractions against the explicit search, every memo hit run: 0 same, 1 diverged, 2 explicit search truncated), --workers=N|auto [--batch=64] (proof workers: the same result for any N), --time=<s> (stop there), --chapters (one bounded search
+// other scripts read it), --profile (what the states are made of, what the search cost), --por=sleep|stubborn (partial-order reduction: fewer engine runs, or fewer states too), --audit-abstractions (the proof with the abstractions against the explicit search, every memo hit run: 0 same, 1 diverged, 2 explicit search truncated), --workers=N|auto [--batch=64] (proof workers: the same result for any N), --time=<s> (stop there), --ownership=off (no canonical owner), --dominance (witness dominance), --chapters (one bounded search
 // per checkpoint that declares `goals`: from the previous checkpoint until its goals hold, then from the last one to the
 // ending; each chapter must be solvable on its own). With --prove, --chapters proves each chapter from every reachable
 // boundary state of the previous one (deduped by what the chapter reads), not from the hand-written checkpoint, which
@@ -33,6 +33,8 @@ const mode = process.argv.includes('--prove') ? 'prove' as const : 'witness' as 
 const workersArg = arg('workers');
 const work = workersArg ? { workers: workersArg === 'auto' ? 'auto' as const : Number(workersArg), gameModule: resolve(GAME_DIR, 'index.ts'), ...(arg('batch') ? { batch: Number(arg('batch')) } : {}) } : {};
 const timeLimit = arg('time') ? { timeLimitMs: Number(arg('time')) * 1000 } : {};
+// --ownership=off: no canonical owner in a proof; --dominance: witness dominance (3.5, witnesses only).
+const abstractions = { ...(arg('ownership') === 'off' ? { ownership: false } : {}), ...(process.argv.includes('--dominance') ? { dominance: true } : {}) };
 // The reductions have no proof of equivalence for softlocks (BENCH.md, "Fewer orders"): the solver ignores them when proving.
 if (por && mode === 'prove' && !asJson) console.log(`ℹ  --por=${por} is ignored in proof mode: it can report a softlock that does not exist (BENCH.md)`);
 
@@ -47,7 +49,7 @@ if (process.argv.includes('--audit-abstractions')) {
 }
 
 if (process.argv.includes('--chapters') && mode === 'prove') {
-  const p = await proveChapters(game, layouts, { maxStates, commands, mode: 'prove', solver: cachedSolve, ...work, ...timeLimit });
+  const p = await proveChapters(game, layouts, { maxStates, commands, mode: 'prove', solver: cachedSolve, ...work, ...timeLimit, ...abstractions });
   // A game without chapters is proved by the global search (`--prove`): nothing more to do here, and not a failure.
   if (!p.chapters.length) { console.log('ℹ  No checkpoint declares `goals`: no chapter to prove (the global proof covers the game)'); process.exit(0); }
   if (asJson) { console.log(JSON.stringify({ status: p.status, exit: p.exit, headline: p.headline, ms: p.ms, chapters: p.chapters.map(({ results, ...c }) => ({ ...c, softlockCauses: results.flatMap((r) => r.softlockCauses) })) })); await flushExit(p.exit); }
@@ -71,7 +73,7 @@ if (process.argv.includes('--chapters')) {
   let worst: SolveStatus = 'solved';
   for (const [id, c] of cps) {
     const t = Date.now();
-    const r = await cachedSolve(game, layouts, { maxStates, start: prev ? { checkpoint: prev } : 'new', goal: c.goals, commands, por, mode, ...work, ...timeLimit });
+    const r = await cachedSolve(game, layouts, { maxStates, start: prev ? { checkpoint: prev } : 'new', goal: c.goals, commands, por, mode, ...work, ...timeLimit, ...abstractions });
     worst = worstStatus(worst, r.status);
     const ok = r.exit === 0;
     console.log(`${ok ? '✔' : '✖'}  chapter → ${id} (from ${prev ?? 'new game'}): ${r.finished ? `${r.path.length} actions` : 'goals not reached'}, ${r.states} states, ${((Date.now() - t) / 1000).toFixed(1)} s${r.truncated ? ' (limit reached)' : ''}${r.softlocks.length ? ` (${r.softlocks.length} softlock samples)` : ''}`);
@@ -81,7 +83,7 @@ if (process.argv.includes('--chapters')) {
     prev = id;
   }
   const t = Date.now();
-  const r = await cachedSolve(game, layouts, { maxStates, start: { checkpoint: prev! }, commands, por, mode, ...work, ...timeLimit });
+  const r = await cachedSolve(game, layouts, { maxStates, start: { checkpoint: prev! }, commands, por, mode, ...work, ...timeLimit, ...abstractions });
   worst = worstStatus(worst, r.status);
   const ok = r.exit === 0;
   console.log(`${ok ? '✔' : '✖'}  chapter → ending (from ${prev}): ${r.finished ? `${r.path.length} actions` : 'no ending reached'}, ${r.states} states, ${((Date.now() - t) / 1000).toFixed(1)} s`);
@@ -89,7 +91,7 @@ if (process.argv.includes('--chapters')) {
   process.exit(exitOf(worst));
 }
 
-const r = await cachedSolve(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands, por, mode, ...work, ...timeLimit });
+const r = await cachedSolve(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands, por, mode, ...work, ...timeLimit, ...abstractions });
 
 if (asJson) {
   // `path` labels each step for humans; `steps` are the session entries ({ act, picks… }) the e2e harness replays.

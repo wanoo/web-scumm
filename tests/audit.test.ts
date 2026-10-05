@@ -27,6 +27,25 @@ describe('random games: the abstractions give the explicit search verdict', () =
     for (const s of ['solved', 'softlocks', 'unsolved']) expect(seen[`explicit ${s}`], s).toBeGreaterThan(5);
   }, 600000);
 
+  it('60 seeds with free items: the canonical owner pools them and never diverges', async () => {
+    const diverged: string[] = [];
+    let pooled = 0, compared = 0, same = 0;
+    for (let seed = 1; seed <= 60; seed++) {
+      const { game, layouts } = randomGame(seed, { free: true });
+      const a = await auditAbstractions(game, layouts, { maxStates: 3000 });
+      if (a.status === 'diverged') diverged.push(`seed ${seed}: ${a.divergences.join('; ')}`);
+      if (a.status === 'same') same++;
+      if (a.abstract.ownership) pooled++;
+      if (a.abstract.handovers && a.status === 'same') compared++;
+    }
+    expect(diverged).toEqual([]);
+    // The rest are `partial`: the explicit search needs more than 3 000 states (at 20 000: 44 same, none diverged).
+    expect(same).toBeGreaterThan(25);
+    // The owner must really be exercised: pooled in most games, and hand-overs played where the verdicts are compared.
+    expect(pooled).toBeGreaterThan(30);
+    expect(compared).toBeGreaterThanOrEqual(8);
+  }, 600000);
+
   it('the same seed gives the same game', () => {
     expect(JSON.stringify(randomGame(7))).toBe(JSON.stringify(randomGame(7)));
     expect(JSON.stringify(randomGame(7))).not.toBe(JSON.stringify(randomGame(8)));
