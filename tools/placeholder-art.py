@@ -1,12 +1,13 @@
 """Placeholder art for a new game (3.9): drawn here, from shapes, so a game made from the template owes nothing to the
-sample game. A backdrop (decor/backyard), a cat-shaped hero sheet (hero/r1c1…r4c6, the `cat()` layout of cast.ts),
-interface icons (ui/*), two items (items/note, items/bucket). Every file is a placeholder: provenance says so, and a
+sample game. Under starter/ (so they never share a name with a game's own art in public/assets): a backdrop
+(starter/decor/backyard), a cat-shaped hero sheet (starter/hero/r1c1…r4c6, the `cat()` layout of cast.ts), interface
+icons (starter/ui/*), two items (starter/items/note, starter/items/bucket). Every file is a placeholder: provenance says so, and a
 release refuses it until it is replaced. Usage: python3 tools/placeholder-art.py <game>/art
 """
 import math, os, sys
 from PIL import Image, ImageDraw
 
-out = sys.argv[1] if len(sys.argv) > 1 else 'games/_template/art'
+out = os.path.join(sys.argv[1] if len(sys.argv) > 1 else 'games/_template/art', 'starter')
 
 def save(img, rel):
     p = os.path.join(out, rel + '.png'); os.makedirs(os.path.dirname(p), exist_ok=True); img.save(p, optimize=True)

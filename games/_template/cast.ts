@@ -28,7 +28,7 @@ export function mouths(folder: string, poses: Record<string, string>): Record<st
 export const characters: Record<string, CharacterDef> = {
   // The placeholder hero is a cat drawn from shapes (tools/placeholder-art.py); replace it with your own sheet (docs/en/PROMPTS.md).
   hero: {
-    name: 'Hero', color: '#ffffff', height: 34, kind: ['cat'], portrait: 'hero/r1c2', sprites: cat('hero'),
+    name: 'Hero', color: '#ffffff', height: 34, kind: ['cat'], portrait: 'starter/hero/r1c2', sprites: cat('starter/hero'),
     // What the hero looks like, for `npm run prompts` (the CHARACTER line of every sprite prompt). Replace it with yours.
     description: 'a small fluffy kitten: cream fur, brown ears, mask and tail, big round blue eyes, long white whiskers; curious and cheeky',
   },
