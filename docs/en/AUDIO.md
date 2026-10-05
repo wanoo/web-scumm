@@ -103,6 +103,21 @@ Furnace plays SN76489 tone channels two octaves above the written note; the buil
 pitches (keep PSG notes ≥ A2). The DAC has no volume: dynamics are separate samples (`snare` / `ghost`). One note per
 channel, four effects per cell, 32nd-note rows at 60 Hz with a groove for the tempo.
 
+## Stems for the music director (3.5)
+
+`npm run audio -- stems <project>/spec.json` renders the arrangement channel by channel (Furnace's per-channel
+output) and sums the channels into stems: the spec's `"stems": { "<name>": ["FM1", "PSG1"], … }`, or by channel role
+when it has none (melody: lead and echo; harmony: double, harmony, counter, accent, arp; bass; drums: the DAC and the
+noise). Every stem comes from the same render, so all have the same length and start, and their sum is the mix. One
+gain, the same for every stem, brings the sum to −14 LUFS (never a per-stem normalisation: the balance is the
+arrangement's). It writes `games/<id>/audio/music/<slug>-stems/<stem>.mp3` and a `score.json` to paste under
+`audio.scores`, by the id of the single mix (the tempo is measured from the render: bars × beats over its length).
+
+Group channels by what the game will switch on and off: the sample game's theme has melody, strings, harp and bass,
+and plays only the harp and the bass while Biscuit is active. A stem that is nearly silent (the swan-lake noise
+channel alone, −54 LUFS) is a wasted download: fold it into another one. The single mix stays: it is what plays under
+Save-Data, on a low-end device, or without Web Audio.
+
 ## Sound effects
 
 `games/<id>/audio/sfx.json` holds one recipe per effect id of `audio.sfx`; `npm run audio -- sfx <file>` renders

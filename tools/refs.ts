@@ -73,7 +73,9 @@ export function collectRefs({ game, extraImages, layouts }: Pick<GameModule, 'ga
   // Images the game asks to keep even if nothing cites them.
   (extraImages ?? []).forEach(add);
 
-  return { images: [...images].sort(), audio: { music: game.audio?.music ?? {}, sfx: game.audio?.sfx ?? {}, voices: game.audio?.voices ?? {} } };
+  // A score's stems are music files too (3.5), keyed `<score>.<stem>`.
+  const stems = Object.fromEntries(Object.entries(game.audio?.scores ?? {}).flatMap(([id, sc]) => Object.entries(sc.stems).map(([k, f]) => [`${id}.${k}`, f])));
+  return { images: [...images].sort(), audio: { music: { ...(game.audio?.music ?? {}), ...stems }, sfx: game.audio?.sfx ?? {}, voices: game.audio?.voices ?? {} } };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

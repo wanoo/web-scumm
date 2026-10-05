@@ -60,3 +60,21 @@ describe('the asset graph', () => {
     for (const r of demo.rooms) for (const f of characterImages(demo, demo.hero)) expect(d.rooms[r.id]).toContain(`img:${f}`);
   });
 });
+
+describe('asset graph: scores in stems (3.5)', () => {
+  const scored = structuredClone(game);
+  scored.audio!.scores = { calm: { stems: { a: 'calm/a.mp3', b: 'calm/b.mp3' }, bpm: 90 } };
+  scored.rooms[1].on = [{ verb: 'use', a: 'down', do: [{ music: { stinger: 'ding' } }, { music: 'calm' }] }] as never;
+  it('where the director plays them, a scored track is its stems; elsewhere its single mix', () => {
+    const withStems = assetGraph(scored);
+    expect(withStems.title).toEqual(expect.arrayContaining(['music:calm/a.mp3', 'music:calm/b.mp3']));
+    expect(withStems.title).not.toContain('music:calm.mp3');
+    expect(withStems.rooms.attic).toEqual(expect.arrayContaining(['music:calm/a.mp3', 'sfx:ding.mp3']));
+    const mixOnly = assetGraph(scored, { stems: false });
+    expect(mixOnly.title).toContain('music:calm.mp3');
+    expect(mixOnly.title.some((k) => k.startsWith('music:calm/'))).toBe(false);
+  });
+  it('offline keeps both: which one a device plays is decided there', () => {
+    expect(assetGraph(scored, { stems: false }).offline).toEqual(expect.arrayContaining(['music:calm.mp3', 'music:calm/a.mp3', 'music:calm/b.mp3']));
+  });
+});

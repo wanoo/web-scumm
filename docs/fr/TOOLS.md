@@ -181,9 +181,10 @@ npm run validate -- --release      # en plus : provenance, provisoires, et un id
 npm run verify:release             # validate --release + weight --release + statut i18n + playtests stricts : une étape de release-check
 npm run verify:commercial          # verify:release, puis aucune exception, aucun provisoire, aucune licence NC/ND, chaque source vérifiable (la démo échoue : sa musique)
 npm run provenance [-- --lock]     # les assets livrés par licence, ce qui a changé depuis le verrou relu ; --lock enregistre les fichiers après une relecture
-npm run weight [-- --release --json]   # ce qu'un téléphone télécharge avant le premier lieu, par lieu et par chapitre, face à assetBudgets
+npm run weight [-- --release --json --stems]   # ce qu'un téléphone télécharge avant le premier lieu, par lieu et par chapitre, face à assetBudgets (les mix uniques ; les stems des partitions sur leur ligne, --stems les compte)
 npm run playtests [-- --strict --out=.cache/playtests]  # les sessions partagées par les joueurs (games/<id>/playtests) rejouées et cumulées : temps par lieu, blocages, indices, heatmap
 npm run e2e:perf -- <url> [--renderer=canvas|dom --cpu=4 --min=30 --room=<id>]   # images par seconde pendant que le héros marche, CPU ralenti (le substitut du téléphone)
+npm run e2e:music -- <url> [--only=offline|live|game --live=chromium|webkit]   # le directeur musical : 30 min hors ligne sans dérive, 100 changements sans clic, gigue en temps réel, les stems du thème dans le jeu
 npm run e2e -- <url> --renderer canvas  # le jeu entier dessiné par le peintre Canvas
 npm run e2e:visual -- <url> [--update] # chaque lieu, figé, contre tests/visual/<jeu>/*.png (0,5 % des pixels au plus)
 npm run e2e -- <url> --lang fr           # le jeu entier dans cette langue ; échoue sur tout texte anglais par défaut du moteur visible

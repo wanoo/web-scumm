@@ -17,10 +17,12 @@ describe('offlinePlan', () => {
   it('covers every image and sound of the sample game, with the default batch sizes', () => {
     const plan = offlinePlan(demo, demoManifest);
     const { files } = planSize(plan);
-    const expected = Object.keys(demoManifest.images).length + Object.keys(demo.audio?.sfx ?? {}).length + Object.keys(demo.audio?.music ?? {}).length + Object.keys(demoManifest.videos ?? {}).length;
+    const stems = Object.values(demo.audio?.scores ?? {}).flatMap((s) => Object.values(s.stems));
+    const expected = Object.keys(demoManifest.images).length + Object.keys(demo.audio?.sfx ?? {}).length + Object.keys(demo.audio?.music ?? {}).length + stems.length + Object.keys(demoManifest.videos ?? {}).length;
     expect(files).toBe(expected);
     expect(plan.filter((b) => b.kind === 'img').every((b) => b.ids.length <= 120)).toBe(true);
-    expect(plan.find((b) => b.kind === 'music')?.ids).toEqual(['swan_lake.mp3']);
+    // The single mix and the theme's stems: which ones a device plays is decided there (dom/director.ts).
+    expect(plan.filter((b) => b.kind === 'music').flatMap((b) => b.ids).sort()).toEqual(['swan-lake-stems/bass.mp3', 'swan-lake-stems/harp.mp3', 'swan-lake-stems/melody.mp3', 'swan-lake-stems/strings.mp3', 'swan_lake.mp3']);
   });
 });
 

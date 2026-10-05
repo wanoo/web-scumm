@@ -177,6 +177,18 @@ cache HTTP au lieu de les télécharger une seconde fois. La police d'interface 
 `tools/subset-font.py`) ; DotGothic16 complète (2 Mo, surtout du japonais) est une seconde face dont le `unicode-range`
 ne couvre que le reste : un navigateur ne la télécharge, et ne la garde, que pour un caractère hors du sous-ensemble.
 
+## Musique : un directeur et ses stems
+
+`dom/director.ts` joue une partition (`audio.scores`, 3.5) sur Web Audio depuis des tampons décodés : chaque stem part
+au même instant de l'horloge audio et boucle sur la même fenêtre, ils restent donc calés à l'échantillon ; un
+changement d'état du jeu déplace les gains des stems à la mesure (ou au temps) suivante, en fondu, programmé à l'avance
+sur le fil audio. `core/score.ts` décide quoi et quand, sans carte son : le mix par état, la grille à travers la boucle,
+les rampes. `dom/audio.ts` confie un morceau à partition au directeur là où il convient (Web Audio, pas de Save-Data,
+plus de 2 Go et 2 cœurs ; `?music=mix|stems` force l'un ou l'autre) et joue le mix unique avec Howler ailleurs ; les
+voix et les morceaux ponctuels baissent la partition comme le mix. `npm run e2e:music` rend trente minutes hors ligne
+(0 échantillon de dérive), 100 changements de mix (aucun clic ; une bascule sèche est détectée), et mesure la gigue en
+temps réel dans Chromium et WebKit (0,02 ms), le tout en CI.
+
 ## Cache et fluidité
 
 - Un **service worker** (vite-plugin-pwa / Workbox) garde l'application de base en cache dès la première visite. Les images et les sons sont gardés au premier usage, puis servis sans réseau.

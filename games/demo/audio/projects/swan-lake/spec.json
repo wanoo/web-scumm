@@ -266,6 +266,26 @@
       "role": "noise"
     }
   },
+  "stems": {
+    "melody": [
+      "FM1",
+      "PSG1"
+    ],
+    "strings": [
+      "FM2",
+      "FM4",
+      "FM6",
+      "PSG3"
+    ],
+    "harp": [
+      "FM5",
+      "PSG2"
+    ],
+    "bass": [
+      "FM3",
+      "NOISE"
+    ]
+  },
   "drums": null,
   "extras": []
 }

@@ -17,7 +17,7 @@ const original = readFileSync(file, 'utf8');
 const hash = (s) => createHash('sha256').update(s).digest('hex').slice(0, 12);
 const api = (path, init) => fetch(new URL(`../__studio/api/${path}`, url), init).then((r) => r.json());
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
 const page = await (await browser.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
@@ -60,6 +60,19 @@ try {
   await page.getByRole('tab', { name: 'Voices' }).click();
   await page.locator('table.vtable tbody tr').first().waitFor({ timeout: 30000 });
   console.log(`✔  the voice table: ${await page.locator('table.vtable tbody tr').count()} lines shown`);
+  // The Music tab (3.5): the score's stems and states, played through the game's director, a state heard.
+  await page.getByRole('tab', { name: 'Music' }).click();
+  const music = page.locator('section.music');
+  await music.locator('table.vtable').first().locator('tbody tr').first().waitFor({ timeout: 10000 });
+  const stemRows = await music.locator('table.vtable').first().locator('tbody tr').count();
+  await music.getByRole('button', { name: 'Play' }).click();
+  await music.getByRole('button', { name: 'Stop' }).waitFor({ timeout: 15000 });
+  await page.waitForFunction(() => /bar \d+ · beat \d+/.test(document.querySelector('section.music .mono')?.textContent ?? ''), null, { timeout: 15000 });
+  await music.locator('table.vtable').nth(1).getByRole('button', { name: 'Hear' }).first().click();
+  const checked = await music.locator('table.vtable').first().locator('input[type=checkbox]:checked').count();
+  await music.getByRole('button', { name: 'Stop' }).click();
+  if (stemRows < 2 || checked >= stemRows) throw new Error(`the Music tab: ${stemRows} stems, ${checked} still on after hearing a state`);
+  console.log(`✔  the Music tab: ${stemRows} stems played, a state heard (${checked} on), the position shown`);
   if (errors.length) throw new Error(`page errors: ${errors.join(' | ')}`);
   ok = true;
 } catch (e) {

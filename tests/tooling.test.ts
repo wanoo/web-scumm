@@ -70,7 +70,8 @@ describe('exit codes of the content tools', () => {
     const rel = run(['tools/validate.ts', '--release']);
     expect(rel.status).toBe(0);
     expect(rel.stdout).not.toContain('warning(s)');
-    expect(rel.stdout).toContain('2 release exception(s), accepted by name');
+    // A placeholder and a licence outside the policy, for the theme and each of its 4 stems.
+    expect(rel.stdout).toContain('10 release exception(s), accepted by name');
     const com = run(['tools/validate.ts', '--commercial', '--errors']);
     expect(com.status).toBe(1);
     expect(com.stdout).toContain('CC BY-NC 4.0 does not allow commercial use');

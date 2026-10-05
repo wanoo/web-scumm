@@ -1,6 +1,6 @@
 // Shared types of the Studio: the core functions (tools/studio/core.ts), the dev-server API (tools/studio/plugin.ts),
 // the Studio UI (src/studio/) and the MCP server all speak these shapes. Type-only: safe to import from the browser.
-import type { CharacterDef, GameDef, Id, ItemDef, Layout, Point, RoomDef, VerbDef } from '../../src/engine/core/types';
+import type { CharacterDef, GameDef, Id, ItemDef, Layout, Point, RoomDef, ScoreDef, VerbDef } from '../../src/engine/core/types';
 import type { ContentReport } from '../../src/engine/tools/report';
 import type { WorldGraph } from '../../src/engine/tools/graph';
 import type { LiveClass, PuzzleGraph } from '../../src/engine/tools/puzzle';
@@ -49,6 +49,8 @@ export interface GameInfo {
   images: Record<Id, [number, number]>;
   /** Sound effect ids of `audio.sfx` (sounds at `/assets/audio/<file>`). */
   sfx?: Id[];
+  /** The scores in stems (`audio.scores`, 3.5): the Music tab plays them. */
+  scores?: Record<Id, ScoreDef>;
 }
 
 export interface RoomData {

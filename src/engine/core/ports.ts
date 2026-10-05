@@ -31,7 +31,7 @@ export interface Presenter {
   inventory(items: Id[], used?: Id[]): void;
   /** A sound effect; `caption` is said in writing when the player wants captions. */
   sfx(id: Id, caption?: string): void;
-  music(cmd: { play?: Id; push?: Id; pop?: true; stop?: true; once?: Id }): void;
+  music(cmd: { play?: Id; push?: Id; pop?: true; stop?: true; once?: Id; stinger?: Id }): void;
   toast(text: string): void;
   shake(ms: number): void;
   /** Opens the map. Returns the chosen room (after the travel animation), or null if closed. */

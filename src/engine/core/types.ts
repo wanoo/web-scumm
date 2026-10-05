@@ -142,7 +142,7 @@ export type Cmd =
   // --- audio and effects
   /** `caption`: what the sound means, written for whoever cannot hear it (shown with the captions setting, translated). */
   | { sfx: Id; caption?: string }
-  | { music: Id | { push: Id } | { pop: true } | { stop: true } | { once: Id } }
+  | { music: Id | { push: Id } | { pop: true } | { stop: true } | { once: Id } | { stinger: Id } }
   | { toast: string; id?: Id }
   | { shake: number }
   // --- logic
@@ -561,7 +561,32 @@ export interface AudioDef {
   voices?: Record<Id, string>;
   /** The clips of the other languages (3.4), by language: a translated game plays these instead (`npm run voices`). */
   voicesByLang?: Record<string, Record<Id, string>>;
+  /**
+   * Music in stems (3.5), by the same id as its single mix in `music`: the music director plays the stems
+   * sample-locked and changes the mix with the game's state; the mix plays where the director does not (Save-Data,
+   * a low-end device, no Web Audio). `npm run audio -- stems` renders them from the arrangement.
+   */
+  scores?: Record<Id, ScoreDef>;
 }
+
+/** Which stems sound in a given state: the first entry whose condition holds wins (`if` absent: always). */
+export interface ScoreState { if?: Cond; stems: Id[] }
+
+export interface ScoreDef {
+  /** Stem id → file under `audio/music/` (the same length and rate: `npm run audio -- stems` renders them). */
+  stems: Record<Id, string>;
+  /** Tempo of the arrangement, and the bar's length in beats (default 4). */
+  bpm: number;
+  beatsPerBar?: number;
+  /** The loop in bars, `[first, end)` counted from 0 (default: the whole file). */
+  loop?: [number, number];
+  /** The mix per game state, in order. Absent, or no entry matching: every stem. */
+  states?: ScoreState[];
+  /** Where a change of mix lands (default `bar`), and how long its crossfade lasts in beats (default 2). */
+  quantize?: 'beat' | 'bar';
+  fadeBeats?: number;
+}
+
 
 /** Sealed ending (`ending` module): encrypted content, decrypted at the end of the game and shown on a card. */
 export interface EndingDef {

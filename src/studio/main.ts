@@ -2,6 +2,7 @@
 // build-time snapshot with the edits kept in this browser (demo mode: studio.html in a STUDIO=1 build, e.g. on GitHub
 // Pages; see docs/en/STUDIO.md, "Demo mode").
 import { VoicesTab } from './voices';
+import { MusicTab } from './music';
 import { undoButtons } from './structured';
 import './style.css';
 import { BASE, serverApi, useApi, type GameInfo, type StudioEvent, type StudioSnapshot } from './api';
@@ -15,8 +16,8 @@ import { RoomsTab } from './rooms';
 import { StoryboardTab } from './storyboard';
 import { download, h, toast } from './ui';
 
-type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'check' | 'play' | 'notes';
-const TABS: [TabId, string][] = [['rooms', 'Rooms'], ['storyboard', 'Storyboard'], ['assets', 'Assets'], ['voices', 'Voices'], ['check', 'Check'], ['play', 'Play'], ['notes', 'Notes']];
+type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'music' | 'check' | 'play' | 'notes';
+const TABS: [TabId, string][] = [['rooms', 'Rooms'], ['storyboard', 'Storyboard'], ['assets', 'Assets'], ['voices', 'Voices'], ['music', 'Music'], ['check', 'Check'], ['play', 'Play'], ['notes', 'Notes']];
 
 // Vite tells every page to reload when a game file changes (the engine view needs it). The Studio page doesn't:
 // it follows changes through its own event feed, and keeps what is being typed.
@@ -119,7 +120,8 @@ async function start() {
   const assets = new AssetsTab({ info, ownWrite, openRoom, prepared: () => rooms.reloadFrame() });
   const play = new PlayTab(info);
   const voices = new VoicesTab();
-  const panes: Record<TabId, HTMLElement> = { rooms: rooms.el, storyboard: storyboard.el, assets: assets.el, voices: voices.el, check: check.el, play: play.el, notes: notes.el };
+  const music = new MusicTab(info);
+  const panes: Record<TabId, HTMLElement> = { rooms: rooms.el, storyboard: storyboard.el, assets: assets.el, voices: voices.el, music: music.el, check: check.el, play: play.el, notes: notes.el };
 
   const nav = h('nav', { class: 'tabs', role: 'tablist' });
   let current: TabId = (TABS.some(([t]) => t === hashTab) ? hashTab : 'rooms') as TabId;
@@ -132,6 +134,7 @@ async function start() {
     if (t === 'notes') void notes.load();
     if (t === 'assets') void assets.load();
     if (t === 'voices') void voices.load();
+    if (t === 'music') music.load();
   };
   for (const [id, label] of TABS) {
     nav.append(h('button', { role: 'tab', dataset: { tab: id }, onclick: () => show(id) }, label, id === 'check' ? badge : null));
