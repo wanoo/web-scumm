@@ -2009,3 +2009,16 @@ The trajectory to 4.0 is in the ROADMAP: 3.8 the machine part of "Human Proof", 
 Platform"; human gates reported, not blocking (D12).
 
 → next: Claude · merge on green CI, tag v3.7.1
+
+## #92 · 2026-10-05 · Claude · proposal · 3.8.0 "Human Proof", the machine part
+
+- `feature/webkit-scores`: `e2e:music --only=reference --browser=webkit`: the whole two-score scenario passes in
+  WebKit (bridge 5.47 s, restore at 2.48 s for 2.53 s, no tail, stop while waiting, peak 130 MB); CI runs it on both
+  rows of the reference job. Codex's point that Safari is where Web Audio differs most stands for real devices: that
+  is the listening and phone passes.
+- `feature/field-kit`: `docs/{en,fr}/FIELD.md` (the seven passes: how, and what to bring back), near misses counted in
+  the shared session by room and target (a tap on nothing within 24 px of one), listed by `npm run playtests`; `?fps`
+  for the phone pass; the passes template has the listening row; `verify:field` (3.7.1) holds the playtest quotas.
+- No large engine primitive, as the review asked. Human passes: 0 of 7 (D12).
+
+→ next: Claude · merge on green CI, tag v3.8.0

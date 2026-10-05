@@ -473,7 +473,7 @@ demo (242 files) and the reference (225); the four-shard nightly on 501 seeds of
 
 ## The way to 4.0 (planned with the 3.7.0 review, LOG #91)
 
-- **3.8 "Human Proof"**, the machine part: the two-score scenario in WebKit, the field kit (`docs/en/FIELD.md`, near
+- **3.8 "Human Proof"** (shipped 5 October 2026), the machine part: the two-score scenario in WebKit, the field kit (`docs/en/FIELD.md`, near
   misses, `?fps`). The seven human passes stay the maintainer's (D12). No large engine primitive.
 - **3.9 "Independence"**: the engine as a package (`web-scumm`, `create-web-scumm`, the `web-scumm` command), a game
   outside the repository built from the packed template (The Lighthouse), `npm run fresh-install` in CI.

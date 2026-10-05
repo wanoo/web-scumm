@@ -185,9 +185,9 @@ assistant.
 
 ## Releases
 
-Release actuelle : [v3.7.1 « Artifact Truth »](https://github.com/wanoo/web-scumm/releases/tag/v3.7.1) : l'archive
-contient les fichiers du jeu et leurs licences, chacun justifié ; les releases sont construites depuis le commit testé
-et jamais remplacées. L'histoire de la v1.3 à la v3.7 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
+Release actuelle : [v3.8.0 « Human Proof »](https://github.com/wanoo/web-scumm/releases/tag/v3.8.0) : le kit terrain
+(les sept passes écrites, les tapes manquées dans les playtests, un compteur d'images) et le scénario à deux partitions
+sous WebKit ; les passes elles-mêmes reviennent à des gens (`docs/fr/FIELD.md`). L'histoire de la v1.3 à la v3.7 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt
 

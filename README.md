@@ -178,9 +178,9 @@ Every page also exists in French under `docs/fr/`. `docs/dev/` holds the log of 
 
 ## Releases
 
-Current release: [v3.7.1 "Artifact Truth"](https://github.com/wanoo/web-scumm/releases/tag/v3.7.1): the archive holds
-the game's own files and their licences, every one accounted for; releases are built from the tested commit and never
-replaced. The story from v1.3 to v3.7 is in the
+Current release: [v3.8.0 "Human Proof"](https://github.com/wanoo/web-scumm/releases/tag/v3.8.0): the field kit (the
+seven passes written down, near misses in playtests, a frame counter) and the two-score scenario in WebKit; the
+passes themselves are people's (`docs/en/FIELD.md`). The story from v1.3 to v3.7 is in the
 [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map

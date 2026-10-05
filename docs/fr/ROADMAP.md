@@ -448,7 +448,7 @@ sorte (910 comparées, 0 divergence).
 
 ## La route vers la 4.0 (planifiée avec la revue de la 3.7.0, LOG #91)
 
-- **3.8 « Human Proof »**, la part machine : le scénario à deux partitions sous WebKit, le kit terrain
+- **3.8 « Human Proof »** (sortie le 5 octobre 2026), la part machine : le scénario à deux partitions sous WebKit, le kit terrain
   (`docs/fr/FIELD.md`, tapes manquées, `?fps`). Les sept passes humaines restent au mainteneur (D12). Aucune grosse
   primitive moteur.
 - **3.9 « Independence »** : le moteur en paquet (`web-scumm`, `create-web-scumm`, la commande `web-scumm`), un jeu

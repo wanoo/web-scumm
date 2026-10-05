@@ -2,10 +2,12 @@
 
 ## Unreleased
 
-## 3.7.1 — 2026-10-05
+## 3.8.0 — 2026-10-05
 
-"Artifact Truth": what is tested, what is declared and what is shipped are the same files (the review of 3.7.0, LOG
-#91). `inventory(dist) = code + locked assets + named data + fonts + icons + licences`, checked on every build.
+"Human Proof", the machine part (LOG #92): everything the field passes need is ready, and what a browser can check
+is checked in Safari's engine too. The seven passes themselves are people's and devices' (D12, `docs/en/FIELD.md`):
+0 of 7 done for this release.
+
 ### Added
 
 - The reference chapter's two-score scenario (a plan on the phrase, the bridge, a save restored before the landing, a
@@ -17,12 +19,10 @@
   session carries the counts (ids only) and `npm run playtests` lists them.
 - `?fps`: a frame counter (now and the lowest second) for the real-phone pass.
 
-### Added
+## 3.7.1 — 2026-10-05
 
-- Field quotas for playtests: `--require=N`, `--require-completed=N`, `--require-devices=N` (a diverged session counts
-  for none), and `npm run verify:field` (`verify:commercial`, then 5 sessions, 3 played to the end, 2 device families).
-  `--strict` alone still only refuses a diverged session, and now says when it checked none. A shared session says its
-  device family (`ios`, `android`, `desktop`), nothing finer.
+"Artifact Truth": what is tested, what is declared and what is shipped are the same files (the review of 3.7.0, LOG
+#91). `inventory(dist) = code + locked assets + named data + fonts + icons + licences`, checked on every build.
 
 ### Fixed
 
