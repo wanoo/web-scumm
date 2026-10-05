@@ -113,6 +113,8 @@ gain, the same for every stem, brings the sum to −14 LUFS (never a per-stem no
 arrangement's). It writes `games/<id>/audio/music/<slug>-stems/<stem>.mp3` and a `score.json` to paste under
 `audio.scores`, by the id of the single mix (the tempo is measured from the render: bars × beats over its length;
 `pcmBytes` is the stems' decoded weight at 48 kHz, on which a browser that does not tell its memory decides, 3.5.1).
+Stems made by hand are welcome, but `npm run validate -- --release` measures them with ffprobe (3.6). Every stem must have
+the same rate, channels and number of samples, the loop must end inside them, and `pcmBytes` must be what they decode to.
 
 Group channels by what the game will switch on and off: the sample game's theme has melody, strings, harp and bass,
 and plays only the harp and the bass while Biscuit is active. A stem that is nearly silent (the swan-lake noise

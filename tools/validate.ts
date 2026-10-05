@@ -3,6 +3,7 @@
 //   asset provenance (games/<id>/provenance.json) is required: every asset covered by exactly one entry, and a
 //   placeholder is an error unless a releaseExceptions entry names it. A game that ships a language other than its own
 //   (`game.lang`, default en) or voices needs a stable id on every line.
+//   The scores' stem files are measured (ffprobe): same rate, channels and samples, the loop inside, pcmBytes right.
 // --commercial (npm run verify:commercial): a release that may be sold: no exception, no placeholder, no non-commercial
 //   licence, every entry with an author and a source that can be checked (commercialVerdict).
 // Without --release, a game that has provenance.json gets the same coverage check.
@@ -14,7 +15,10 @@ import { fileFacts, LOCK, readJson, shippedKeys } from './provenance-files';
 import { validate } from '../src/engine/tools/validate';
 import { report, reportMarkdown } from '../src/engine/tools/report';
 import { loadAssets, loadLayouts, loadLocales } from '../src/engine/tools/load';
-import { GAME, GAME_DIR, loadGameModule } from './game';
+import { ASSETS_DIR, GAME, GAME_DIR, loadGameModule } from './game';
+import { assetPath } from '../src/engine/tools/provenance';
+import { stemErrors } from '../src/engine/tools/stems';
+import { hasFfprobe, stemFacts } from './stem-facts';
 
 const mod = await loadGameModule();
 const game = mod.game;
@@ -49,6 +53,12 @@ if (existsSync(provFile) && assets) {
   if (release) { const l = licenceVerdict(keys, prov); errors.push(...l.errors); accepted.push(...l.accepted); }
   if (commercial) errors.push(...commercialVerdict(keys, prov, (p) => existsSync(resolve(p))));
 } else if (release) errors.push('provenance.json › missing: a release says where every asset comes from (docs/en/TOOLS.md "Asset provenance")');
+// The scores' stem files (3.6): the same rate, channels and samples, the loop inside them, pcmBytes as decoded. The
+// built files (npm run assets), measured with ffprobe.
+if (release && game.audio?.scores && !hasFfprobe()) errors.push('audio.scores › ffprobe not found: a release measures the stem files (install ffmpeg, npm run doctor)');
+else if (release) for (const [id, sc] of Object.entries(game.audio?.scores ?? {})) {
+  errors.push(...stemErrors(id, sc, Object.fromEntries(Object.entries(sc.stems).map(([s, f]) => [s, stemFacts(resolve(ASSETS_DIR, assetPath(`music:${f}`)!))]))));
+}
 const quiet = process.argv.includes('--errors');
 if (!quiet && accepted.length && !commercial) {
   console.log(`\nℹ  ${accepted.length} release exception(s), accepted by name in provenance.json (verify:commercial refuses them)`);
