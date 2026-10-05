@@ -10,6 +10,12 @@
   the notices of the bundled packages and fonts, an assets manifest). `npm run verify:dist`, a step of `build` and of
   `verify:commercial`, refuses any file of `dist/` that is not code, a locked asset with its reviewed bytes, a data
   file the game names, a font, an icon or a notice.
+- The release workflow builds the commit CI tested (`workflow_run.head_sha`), checks that the tag still points there,
+  takes any SemVer tag (not only `v3.*`), and refuses a release that already has files (no `--clobber`): a published
+  release is never replaced. The archive's assets manifest is attached beside it.
+- CI runs on `feature/**`, `fix/**` and `release/**` branches, whatever the version (it stopped at `v37-*`).
+- The nightly's shards split any total exactly (501 seeds ran 504) and the merge fails on a gap or an overlap
+  (`audit:corpus --shard=i/n --total=N`, `--merge … --total=N`).
 
 ## 3.7.0 — 2026-10-05
 
