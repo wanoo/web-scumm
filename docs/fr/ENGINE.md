@@ -203,7 +203,8 @@ n'est pas en place) et `stop`. Le directeur possède ce qu'il programme : une tr
 qu'aucun pont ne sonne après eux ; l'ancienne partition est arrêtée par une minuterie, jamais par un arrêt programmé
 d'avance. Les voix baissent un bus sous tout ce qu'il joue (ponts et stingers compris), jamais les fondus. Le plafond
 compte chaque buffer : un pont qui ne tient pas est abandonné, deux partitions qui ne tiennent pas deviennent une
-coupe, les stingers sont évincés comme les partitions. Une partition qui se replie sur son mix garde le point
+coupe, les stingers sont évincés comme les partitions ; un stinger qui ne tient pas à côté de la partition est joué
+en flux, sans être décodé (3.7.1), si bien que le plafond tient après chaque opération. Une partition qui se replie sur son mix garde le point
 sauvegardé.
 
 ## Cache et fluidité

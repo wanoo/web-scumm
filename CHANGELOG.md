@@ -21,6 +21,9 @@
   every operation, which `tests/director.test.ts` now checks after every lifecycle case.
 - `playtests --strict` passed with no session at all. It still only refuses a diverged session, and says when it
   checked none; the field quotas are new options (below).
+- A stinger that does not fit in the decoded audio beside the playing score is no longer played over the cap: the
+  director lets it go (`stinger()` returns null, `lastStinger.skipped`) and it is streamed instead. The cap holds after
+  every operation, which `tests/director.test.ts` now checks after every lifecycle case.
 - The release workflow builds the commit CI tested (`workflow_run.head_sha`), checks that the tag still points there,
   takes any SemVer tag (not only `v3.*`), and refuses a release that already has files (no `--clobber`): a published
   release is never replaced. The archive's assets manifest is attached beside it.
