@@ -1,7 +1,8 @@
 import { defineConfig, type Plugin } from 'vite';
 import { fileURLToPath } from 'node:url';
 import { writeFile } from 'node:fs/promises';
-import { readdirSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { join, resolve } from 'node:path';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -59,6 +60,37 @@ function studioDemo(): Plugin {
     },
     closeBundle() {
       if (process.env.STUDIO !== '1') rmSync(join(outDir, 'studio-demo'), { recursive: true, force: true });
+    },
+  };
+}
+
+/**
+ * After every build (3.7.1): dist/ holds this game's files only, with their notices. public/ is shared by the games of
+ * the repository, so Vite copies the other games' assets too: `tools/dist.ts seal` removes them and writes
+ * dist/licenses/ (the engine and asset licences, the credits, the notices of the packages the bundle took code from,
+ * listed here from the chunks' modules, and the assets manifest). `npm run verify:dist` then checks every file.
+ */
+function sealBuild(): Plugin {
+  let outDir = 'dist';
+  const packages = new Set<string>();
+  return {
+    name: 'seal-build',
+    apply: 'build',
+    configResolved(c) { outDir = resolve(c.root, c.build.outDir); },
+    generateBundle(_o, bundle) {
+      for (const chunk of Object.values(bundle)) {
+        if (chunk.type !== 'chunk') continue;
+        for (const id of chunk.moduleIds) {
+          const m = id.split('\\').join('/').match(/\/node_modules\/((?:@[^/]+\/)?[^/]+)\//g);
+          const last = m?.at(-1);
+          if (last) packages.add(last.slice('/node_modules/'.length, -1));
+        }
+      }
+    },
+    closeBundle() {
+      mkdirSync(r('./.cache'), { recursive: true });
+      writeFileSync(r(`./.cache/bundle-packages-${GAME}.json`), JSON.stringify([...packages].sort()));
+      execFileSync(r('./node_modules/.bin/tsx'), ['--tsconfig', r('./tsconfig.json'), r('./tools/dist.ts'), 'seal', outDir], { stdio: 'inherit' });
     },
   };
 }
@@ -129,6 +161,7 @@ export default defineConfig({
     layoutWriter(),
     studioPlugin(),
     studioDemo(),
+    sealBuild(),
     // Service worker: the app is cached on install, images and sounds on first use (then served without network).
     VitePWA({
       registerType: 'prompt',
