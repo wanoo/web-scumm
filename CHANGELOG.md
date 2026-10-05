@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+## 3.9.0 — 2026-10-05
+
+"Independence" (LOG #93): a game no longer has to live in this repository. The engine is a package, a game made from
+its packed template outside the repository is verified, built and played to its end in CI, and an independent game,
+"The Lighthouse", passes the commercial release gate on the packed engine.
+
+### Added
+
+- The engine as a package (`docs/en/PACKAGE.md`): `npm run pack` makes `web-scumm` (the engine, its pages, its tools,
+  the template, the `web-scumm` command) and `create-web-scumm`. `npx create-web-scumm my-game` makes a project with
+  `game/`, `public/`, a `package.json` calling `web-scumm dev|studio|assets|verify|build|release`, and a `tsconfig.json`
+  pointing into the package; the tools run on the project (`WEB_SCUMM_PROJECT`) and never write into the package.
+  Releases attach both tarballs, attested and summed.
+- `npm run fresh-install`, a CI job: packs, creates a game in an empty folder outside the repository, installs the
+  tarball, runs `assets`, `verify` and `build`, and plays the game to its end in Chromium. A file of the project that
+  names the repository fails it.
+- The template has its own placeholder art, drawn from shapes (`tools/placeholder-art.py`): a new game no longer
+  borrows the sample game's. `web-scumm migrate [--check]` brings a game to the current authoring schema (3), and
+  `web-scumm ids` gives it its stable ids.
+- The public API, as a preview of 4.0's contract (`docs/en/API.md`): `web-scumm/content`, `web-scumm/player`,
+  `web-scumm/minigames`, `web-scumm/testing` (`src/engine/api/`, the package's `exports`). `tests/api-surface.json`
+  holds their names and the Studio/MCP tools' arguments; `tests/api-surface.test.ts` fails on a change `API.md` does
+  not document. The template imports from them only. `docs/en/SUPPORT.md` says what 4.0 will promise.
+
+### Fixed
+
+- `verify:commercial` found the files a source names only under `games/`, `tools/`, `src/`, `public/`: a game in its
+  own project (`art-src/draw.py`) failed it. Any relative path counts now, resolved in the project; a URL never does.
+
+### Deprecated
+
+- `RevealDef`: use `EndingDef`; removed in 5.0.
+
 ## 3.8.0 — 2026-10-05
 
 "Human Proof", the machine part (LOG #92): everything the field passes need is ready, and what a browser can check
@@ -53,34 +86,6 @@ is checked in Safari's engine too. The seven passes themselves are people's and 
 - Field quotas for playtests: `--require=N`, `--require-completed=N`, `--require-devices=N` (a diverged session counts
   for none), and `npm run verify:field` (`verify:commercial`, then 5 sessions, 3 played to the end, 2 device families;
   not a release gate, D12). A shared session says its device family (`ios`, `android`, `desktop`), nothing finer.
-### API
-
-- The public API (`docs/en/API.md`): `web-scumm/content`, `web-scumm/player`, `web-scumm/minigames`,
-  `web-scumm/testing` (`src/engine/api/`, the package's `exports`). `tests/api-surface.json` holds their names and the
-  Studio/MCP tools' arguments; `tests/api-surface.test.ts` fails on a change this page does not document. The template
-  imports from them only.
-- `docs/en/SUPPORT.md`: semantic versioning on that API, supported versions, the deprecation policy (deprecated in a
-  minor, removed at the next major), save compatibility. `docs/en/UPGRADING.md` § 10: from 3.x to 4.0.
-
-### Fixed
-
-- `verify:commercial` found the files a source names only under `games/`, `tools/`, `src/`, `public/`: a game in its
-  own project (`art-src/draw.py`) failed it. Any relative path counts now, resolved in the project; a URL never does.
-
-### Deprecated
-
-- `RevealDef`: use `EndingDef`; removed in 5.0.
-
-### Added
-
-- The engine as a package (`docs/en/PACKAGE.md`): `npm run pack` makes `web-scumm` (the engine, its pages, its tools,
-  the template, the `web-scumm` command) and `create-web-scumm`. `npx create-web-scumm my-game` makes a project with
-  `game/`, `public/`, a `package.json` calling `web-scumm dev|studio|assets|verify|build|release`, and a `tsconfig.json`
-  pointing `@engine` into the package; the tools run on the project (`WEB_SCUMM_PROJECT`) and never write into the
-  package. `npm run fresh-install`, a CI job, packs, creates, installs, verifies, builds and plays such a game to its
-  end outside the repository.
-- The template has its own placeholder art, drawn from shapes (`tools/placeholder-art.py`): a new game no longer
-  borrows the sample game's.
 
 ### Changed
 
