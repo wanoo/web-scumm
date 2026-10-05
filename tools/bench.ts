@@ -1,6 +1,8 @@
 // npm run bench [-- --rooms=40 --players=3 --items=30 --flags=100 --npcs=5 --scripts=10 --topics=40 --max=200000 --prove --v3]
 // --prove adds the exhaustive proof of the whole game (slow on a big one: the reduction is off in proof mode);
 // --v3 generates the game with stable ids (schemaVersion 3), as a real v3 game.
+// --workers-table [--rooms --players --max --eras]: the proof workers' table (3.5, BENCH.md): the time with 0, 1, 2, 4
+//   and 8 workers, and whether each result is the same as with one.
 // --matrix [--eras]: the 3.3 "Scale" reference table instead: the exhaustive proof on 20 and 40 rooms × 1, 2 and 3 playable
 //   characters (12 items, 30 flags, 1 walker, 2 scripts, 8 topics; --max states each), with where the time goes and
 //   how many distinct character positions the states hold. Markdown on stdout (docs/en/BENCH.md "v3.3").
@@ -8,6 +10,7 @@
 // per chapter, plain and with the partial-order reduction), the content report, the world and puzzle graphs, text
 // extraction and translation, a save migration.
 import { validate } from '../src/engine/tools/validate';
+import '../src/engine/tools/solve-pool';
 import { solve } from '../src/engine/tools/solve';
 import { proveChapters } from '../src/engine/tools/chapters';
 import { report, reportMarkdown } from '../src/engine/tools/report';
@@ -22,6 +25,26 @@ import { FakePresenter, MemoryStore } from '../src/engine/core/ports';
 const arg = (k: string, d: number) => { const m = process.argv.find((a) => a.startsWith(`--${k}=`)); return m ? Number(m.slice(k.length + 3)) : d; };
 const opts = { rooms: arg('rooms', 40), players: arg('players', 3), items: arg('items', 30), flags: arg('flags', 100), npcs: arg('npcs', 5), scripts: arg('scripts', 10), topics: arg('topics', 40) };
 const max = arg('max', 200000);
+if (process.argv.includes('--workers-table')) {
+  // --workers-table (3.5): one proof with no workers, then with 1, 2, 4 and 8 (batches of 64): the time of each, and
+  // whether the result is the same as with one worker (it must be). The game: --rooms, --players, --max, --eras.
+  const { createHash } = await import('node:crypto');
+  const g = makeStressGame({ rooms: arg('rooms', 20), players: arg('players', 2), items: 12, flags: 30, npcs: 1, scripts: 2, topics: 8, schemaVersion: 3, eras: process.argv.includes('--eras') });
+  const cap = arg('max', 40000);
+  const sig = (r: Awaited<ReturnType<typeof solve>>) => createHash('sha1').update(JSON.stringify([r.status, r.states, r.finished, r.path, r.softlockCount, r.softlockCauses, r.softlocks, r.flagsReached, r.roomsReached, r.broken, r.deadEnds, r.errors])).digest('hex').slice(0, 10);
+  console.log(`| Workers | Proof | States | Time | Speed-up | Result |`);
+  console.log('|---|---|---|---|---|---|');
+  let base = 0, one = '';
+  for (const workers of [undefined, 1, 2, 4, 8]) {
+    const t = performance.now();
+    const r = await solve(structuredClone(g.game), g.layouts, { mode: 'prove', maxStates: cap, ...(workers ? { workers } : {}) });
+    const s = (performance.now() - t) / 1000;
+    if (!workers) base = s;
+    if (workers === 1) one = sig(r);
+    console.log(`| ${workers ?? 'none (one node at a time)'} | ${r.status} | ${r.states} | ${s.toFixed(1)} s | ×${(base / s).toFixed(2)} | ${!workers ? `\`${sig(r)}\`` : sig(r) === one ? `\`${sig(r)}\`, the same as 1` : `\`${sig(r)}\`, DIFFERENT`}${r.profile.workers?.reason ? ` (${r.profile.workers.reason})` : ''} |`);
+  }
+  process.exit(0);
+}
 if (process.argv.includes('--matrix')) {
   const cap = arg('max', 20000);
   // --eras: the 3.3 reference (each character confined to its era, items crossing through time chutes); without it,

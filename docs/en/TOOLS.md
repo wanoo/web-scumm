@@ -155,6 +155,7 @@ npm run validate   # broken references, empty or too-long text, missing Look lin
 npm run solve      # fast witness: finds one path to the ending
 npm run solve -- --prove # exhaustive reachable-state proof: reports states with no path to the ending
 npm run solve -- --from=<checkpoint> --max=50000
+npm run solve -- --prove --workers=4 [--batch=64] [--time=60]   # proof workers (3.5): the same result for any number of workers; a large proof ×2.5 with 4 (BENCH.md "3.5")
 npm test           # Node engine/tool tests and the selected game's tests
 npm run test:assets # Python-backed image and asset-pipeline tests
 npm run e2e        # a playthrough in Chromium, phone landscape (dev server already running)

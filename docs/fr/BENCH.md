@@ -427,3 +427,47 @@ harnais générique avec axe et un aller-retour de sauvegarde.
 
 La 3.4 a changé l'image, pas la logique : chaque nombre d'états est celui que la 3.3.0 mesurait ; les temps bougent
 dans le bruit d'un portable.
+
+## 3.5 : les workers de preuve (5 octobre 2026)
+
+`npm run solve -- --prove --workers=N` (`src/engine/tools/solve-pool.ts`) : la recherche prend un lot de nœuds dans sa
+frontière (64 par défaut, les meilleurs d'abord), chaque nœud part vers le worker libre, et les expansions reviennent
+être fusionnées dans l'ordre du lot. Une expansion ne lit rien de la recherche (ni `seen`, ni la frontière) : ce sont
+les essais du nœud joués sur le moteur, construits depuis le jeu et les options seuls (`makeExpander`), les mêmes dans
+chaque fil. La fusion, dans le fil de la recherche, est l'endroit où `seen`, les buts, les arêtes et la frontière
+changent. Le résultat dépend donc du lot et jamais du nombre de workers ; un seul worker, c'est la même recherche par
+lots dans le fil de la recherche. Sans `--workers`, rien ne change : un nœud à la fois, les mêmes témoins et preuves
+qu'en 3.4 (vérifié octet pour octet sur la démo et le chapitre de référence, témoin et preuve). Un worker qui ne
+démarre pas, ou s'arrête, laisse ses nœuds au fil de la recherche (le résultat ne change pas ; `profile.workers.reason`
+le dit) ; les commandes sur mesure arrivent aux workers par le module du jeu ; la réduction d'ordre partiel les tient
+éteints. `--time` arrête une recherche, avec ou sans workers.
+
+Mesuré avec `npm run bench -- --workers-table` sur un portable à 10 cœurs, cache coupé :
+
+La chaîne ouverte, 20 lieux × 2 personnages, objets libres, arrêtée à 40 000 états :
+
+| Workers | Preuve | États | Temps | Accélération | Résultat |
+|---|---|---|---|---|---|
+| aucun (un nœud à la fois) | tronquée | 40000 | 58,1 s | ×1,00 | `9806965f9b` |
+| 1 | tronquée | 40000 | 55,0 s | ×1,06 | `530cfb4002` |
+| 2 | tronquée | 40000 | 32,3 s | ×1,80 | `530cfb4002`, le même qu'avec 1 |
+| 4 | tronquée | 40000 | 22,8 s | ×2,54 | `530cfb4002`, le même qu'avec 1 |
+| 8 | tronquée | 40000 | 16,9 s | ×3,43 | `530cfb4002`, le même qu'avec 1 |
+
+La référence par époques, 40 lieux × 3 personnages (résolue) :
+
+| Workers | Preuve | États | Temps | Accélération | Résultat |
+|---|---|---|---|---|---|
+| aucun (un nœud à la fois) | résolue | 578 | 3,8 s | ×1,00 | `2717e116b8` |
+| 1 | résolue | 578 | 3,9 s | ×0,99 | `17cf8b1721` |
+| 2 | résolue | 578 | 2,4 s | ×1,59 | `17cf8b1721`, le même qu'avec 1 |
+| 4 | résolue | 578 | 1,9 s | ×2,01 | `17cf8b1721`, le même qu'avec 1 |
+| 8 | résolue | 578 | 1,7 s | ×2,20 | `17cf8b1721`, le même qu'avec 1 |
+
+La porte de la 3.5 (×2 avec 4 workers sur une grosse preuve, le même résultat pour 1, 2, 4 et 8) est passée. Le
+résultat sans workers a une autre signature : l'ordre d'une recherche par lots diffère (les mêmes états et le même
+verdict, d'autres premiers chemins trouvés) ; `tests/workers.test.ts` vérifie les deux. Ce qui ne passe pas à
+l'échelle : la fusion (les états passent d'un fil à l'autre, le fil de la recherche vérifie chacun), et le démarrage
+des workers (environ 0,3 s) : une petite preuve, comme chacun des chapitres du jeu d'exemple, n'est pas plus rapide.
+Les workers restent donc éteints sauf demande ; `--workers=auto` (les cœurs moins un, 8 au plus) est le réglage d'un
+gros jeu.

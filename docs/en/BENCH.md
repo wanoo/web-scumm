@@ -402,3 +402,45 @@ the generic harness with axe and a save round trip.
 
 3.4 changed the picture, not the logic: every state count is the one 3.3.0 measured; the times move within the
 noise of a laptop.
+
+## 3.5: proof workers (5 October 2026)
+
+`npm run solve -- --prove --workers=N` (`src/engine/tools/solve-pool.ts`): the search takes a batch of nodes from its
+frontier (64 by default, best first), each node goes to whichever worker thread is free, and the expansions come back
+to be merged in the batch's order. An expansion reads nothing of the search (no `seen`, no frontier): it is the node's
+tries run on the engine, built from the game and the options alone (`makeExpander`), the same in every thread. The
+merge, in the search's thread, is where `seen`, the goals, the edges and the frontier change. So the result depends on
+the batch and never on the number of workers; one worker is the same batched search in the search's thread. Without
+`--workers` nothing changes: one node at a time, the same witnesses and proofs as 3.4 (checked byte for byte on the
+demo and the reference chapter, witness and proof). A worker that cannot start, or stops, leaves its nodes to the
+search's thread (the result does not change; `profile.workers.reason` says it); the custom commands reach the workers
+from the game's module; the partial-order reduction keeps them off. `--time` stops a search, workers or not.
+
+Measured with `npm run bench -- --workers-table` on a 10-core laptop, cache off:
+
+The open chain, 20 rooms × 2 characters, items moving freely, stopped at 40 000 states:
+
+| Workers | Proof | States | Time | Speed-up | Result |
+|---|---|---|---|---|---|
+| none (one node at a time) | truncated | 40000 | 58.1 s | ×1.00 | `9806965f9b` |
+| 1 | truncated | 40000 | 55.0 s | ×1.06 | `530cfb4002` |
+| 2 | truncated | 40000 | 32.3 s | ×1.80 | `530cfb4002`, the same as 1 |
+| 4 | truncated | 40000 | 22.8 s | ×2.54 | `530cfb4002`, the same as 1 |
+| 8 | truncated | 40000 | 16.9 s | ×3.43 | `530cfb4002`, the same as 1 |
+
+The era reference, 40 rooms × 3 characters (solved):
+
+| Workers | Proof | States | Time | Speed-up | Result |
+|---|---|---|---|---|---|
+| none (one node at a time) | solved | 578 | 3.8 s | ×1.00 | `2717e116b8` |
+| 1 | solved | 578 | 3.9 s | ×0.99 | `17cf8b1721` |
+| 2 | solved | 578 | 2.4 s | ×1.59 | `17cf8b1721`, the same as 1 |
+| 4 | solved | 578 | 1.9 s | ×2.01 | `17cf8b1721`, the same as 1 |
+| 8 | solved | 578 | 1.7 s | ×2.20 | `17cf8b1721`, the same as 1 |
+
+The 3.5 gate (×2 with 4 workers on a large proof, the same result for 1, 2, 4 and 8) is met. The result without workers
+has another signature: the order of a batched search differs (the same states and verdict, other first-found paths);
+`tests/workers.test.ts` checks both. What does not scale: the merge (the states cross between threads, the search's
+thread checks each one), and starting the workers (about 0.3 s): a small proof, like each of the sample game's
+chapters, is not faster. So workers stay off unless asked for; `--workers=auto` (the cores but one, at most 8) is the
+setting for a large game.
