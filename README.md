@@ -193,7 +193,7 @@ Every page also exists in French under `docs/fr/`. `docs/dev/` holds the log of 
 
 Current release: [v3.9.0 "Independence"](https://github.com/wanoo/web-scumm/releases/tag/v3.9.0): the engine as a
 package (`web-scumm`, `create-web-scumm`), a game made outside the repository verified, built and played in CI, and
-the public API that 4.0 will hold stable. The story from v1.3 to v3.7 is in the
+the public API that 4.0 will hold stable. The story from v1.3 to v3.9 is in the
 [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map
