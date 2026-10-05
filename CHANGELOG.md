@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 3.5.0 — 2026-10-05
+
+"Score": music, workers, inventories (the plan of D11; `docs/en/ROADMAP.md`, `docs/en/BENCH.md` 3.5). The open matrix
+of 20 rooms × 3 characters stays truncated: the 3.5 target is missed, as allowed (D11).
+
 ### Added
 
 - The canonical owner (3.5, proofs): items no condition reads, in no invariant or goal, lost only by an action on them

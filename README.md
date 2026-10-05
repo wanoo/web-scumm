@@ -17,11 +17,13 @@ single day with an AI assistant.
 
 ![The Pantry Key: Grandma's house, nine verbs, the bag](docs/img/v33-hero.webp)
 
-**New in v3.4 "Stagecraft":** scenes with depth. A Canvas painter draws layers with parallax, masks that hide a
-character behind a pillar, lights and particles; characters climb stairs and ladders between walk zones; the Studio
-edits all of it as forms, without touching a file by hand. A second game, "The Night Market", uses every piece, is
-proved, and is played to its end in CI at the keyboard in two browsers
-([how it is measured](docs/en/BENCH.md#34-the-reference-chapter-5-october-2026)).
+**New in v3.5 "Score":** music that follows the game. A track is cut into stems that play in sync; the mix changes
+with the room, the active character or a flag, on the next bar, without a click. The proof runs on several cores
+with the same result, and pools the items the characters can hand each other, so two-character games with items
+moving freely are proved
+([how it is measured](docs/en/BENCH.md#35-proof-workers-5-october-2026)). 3.4 "Stagecraft" brought scenes with depth:
+a Canvas painter, layers, masks, lights, walk zones and stairs, the structured Studio, and a second game, "The Night
+Market".
 
 ## More than an engine
 
@@ -33,18 +35,21 @@ proved, and is played to its end in CI at the keyboard in two browsers
 | **Prove** | A path to the ending, every state where the ending is lost and why, saves that load across versions, real browsers. |
 | **Ship** | A static web game that installs on a phone, plays offline, on touch, mouse or keyboard. |
 
-## v3.4 in numbers
+## v3.5 in numbers
 
 Measured on the release, proof cache off ([BENCH.md](docs/en/BENCH.md)):
 
 | What | Result |
 |---|---|
-| "The Night Market", 8 rooms, 2 playable characters | proved in 904 states, 1.9 s; the abstractions audited against 83 672 explicit states |
+| "The Night Market", 8 rooms, 2 playable characters | proved in 288 states, 1.2 s; the abstractions audited against 83 672 explicit states |
+| An open chain of 20 rooms, 2 characters, 12 items moving freely | proved in 14 002 states, 19 s (out of reach before 3.5) |
+| A 40 000-state proof on 4 worker threads | ×2.54 faster, the same result as on 1 |
+| The music director, rendered offline for 30 minutes | 0 samples of drift; 100 changes of mix without a click; 0.02 ms jitter live |
 | Its staged market: 6 layers, parallax, 3 masks, two floors | 50 frames per second with the CPU slowed 4× (Canvas) |
 | A first visit | every byte the browser fetched was predicted by the asset graph |
-| Reference game, 40 rooms × 3 characters, structured by eras | proved in 578 states, 3.9 s |
-| The sample game, every reachable state | proved in 2.3 s, then 0.17 s from the proof cache |
-| The sample game, chapter by chapter | proved in 3.6 s |
+| Reference game, 40 rooms × 3 characters, structured by eras | proved in 578 states, 4.1 s |
+| The sample game, every reachable state | proved in 2.5 s, then 0.17 s from the proof cache |
+| The sample game, chapter by chapter | proved in 3.7 s |
 | The 7 bundled minigames | each one won with the keyboard alone, in Chromium and WebKit |
 | Accessibility | tested at the keyboard, no serious or critical axe-core violation on any screen checked (not a WCAG claim) |
 | Shipped assets | every file's hash and licence locked after review; weight budgets per room and chapter |
@@ -157,10 +162,9 @@ Every page also exists in French under `docs/fr/`. `docs/dev/` holds the log of 
 
 ## Releases
 
-Current release: [v3.4.0 "Stagecraft"](https://github.com/wanoo/web-scumm/releases/tag/v3.4.0): a Canvas painter with
-layers, masks, lights and particles, walk zones and stairs, stage physics, the structured Studio, voice production,
-one asset graph checked against real bytes, and a second game, "The Night Market". The story from v1.3 to v3.4 is in
-the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
+Current release: [v3.5.0 "Score"](https://github.com/wanoo/web-scumm/releases/tag/v3.5.0): a music director with
+stems in sync, proof workers, and a canonical owner for items in proofs. The story from v1.3 to v3.5 is in the
+[ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map
 

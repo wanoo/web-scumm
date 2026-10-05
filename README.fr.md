@@ -17,11 +17,13 @@ vérifie, le prouve et le publie en jeu web jouable hors ligne. Il est né comme
 
 ![The Pantry Key : la maison de Grand-mère, neuf verbes, le sac](docs/img/v33-hero.webp)
 
-**Nouveau en v3.4 « Stagecraft » :** des scènes en profondeur. Un peintre Canvas dessine des calques avec parallaxe,
-des masques qui cachent un personnage derrière un pilier, des lumières et des particules ; les personnages montent
-escaliers et échelles entre des zones de marche ; le Studio édite tout cela en formulaires, sans toucher un fichier à
-la main. Un deuxième jeu, « Le Marché de nuit », utilise chaque pièce, est prouvé, et joué jusqu'au bout par la CI au
-clavier dans deux navigateurs ([la mesure](docs/fr/BENCH.md#34--le-chapitre-de-référence-5-octobre-2026)).
+**Nouveau en v3.5 « Score » :** une musique qui suit le jeu. Un morceau est découpé en stems qui jouent calés ; le
+mix change avec le lieu, le personnage actif ou un flag, à la mesure suivante, sans clic. La preuve tourne sur
+plusieurs cœurs avec le même résultat, et met en commun les objets que les personnages peuvent se passer : les jeux à
+deux personnages où les objets circulent librement sont prouvés
+([la mesure](docs/fr/BENCH.md#35--les-workers-de-preuve-5-octobre-2026)). La 3.4 « Stagecraft » avait apporté des
+scènes en profondeur : un peintre Canvas, calques, masques, lumières, zones de marche et escaliers, le Studio structuré,
+et un deuxième jeu, « Le Marché de nuit ».
 
 ## Bien plus qu'un moteur
 
@@ -33,18 +35,21 @@ clavier dans deux navigateurs ([la mesure](docs/fr/BENCH.md#34--le-chapitre-de-r
 | **Prouver** | Un chemin jusqu'à la fin, chaque état où la fin est perdue et pourquoi, des sauvegardes qui passent d'une version à l'autre, de vrais navigateurs. |
 | **Livrer** | Un jeu web statique qui s'installe sur un téléphone, joue hors ligne, au toucher, à la souris ou au clavier. |
 
-## La v3.4 en chiffres
+## La v3.5 en chiffres
 
 Mesuré sur la release, cache de preuve coupé ([BENCH.md](docs/fr/BENCH.md)) :
 
 | Quoi | Résultat |
 |---|---|
-| « Le Marché de nuit », 8 lieux, 2 personnages jouables | prouvé en 904 états, 1,9 s ; les abstractions auditées contre 83 672 états explicites |
+| « Le Marché de nuit », 8 lieux, 2 personnages jouables | prouvé en 288 états, 1,2 s ; les abstractions auditées contre 83 672 états explicites |
+| Une chaîne ouverte de 20 lieux, 2 personnages, 12 objets qui circulent | prouvée en 14 002 états, 19 s (hors de portée avant la 3.5) |
+| Une preuve de 40 000 états sur 4 threads | ×2,54 plus rapide, le même résultat que sur 1 |
+| Le directeur musical, rendu hors ligne 30 minutes | 0 échantillon de dérive ; 100 changements de mix sans clic ; 0,02 ms de gigue en direct |
 | Son marché mis en scène : 6 calques, parallaxe, 3 masques, deux sols | 50 images par seconde avec le CPU ralenti 4× (Canvas) |
 | Une première visite | chaque octet récupéré par le navigateur était prédit par le graphe d'assets |
-| Jeu de référence, 40 lieux × 3 personnages, structuré par époques | prouvé en 578 états, 3,9 s |
-| Le jeu d'exemple, chaque état atteignable | prouvé en 2,3 s, puis 0,17 s depuis le cache de preuve |
-| Le jeu d'exemple, chapitre par chapitre | prouvé en 3,6 s |
+| Jeu de référence, 40 lieux × 3 personnages, structuré par époques | prouvé en 578 états, 4,1 s |
+| Le jeu d'exemple, chaque état atteignable | prouvé en 2,5 s, puis 0,17 s depuis le cache de preuve |
+| Le jeu d'exemple, chapitre par chapitre | prouvé en 3,7 s |
 | Les 7 mini-jeux fournis | chacun gagné au clavier seul, dans Chromium et WebKit |
 | Accessibilité | testée au clavier, aucune violation axe-core grave ou critique sur les écrans contrôlés (pas une conformité WCAG) |
 | Assets livrés | empreinte et licence de chaque fichier verrouillées après relecture ; budgets de poids par lieu et par chapitre |
@@ -162,11 +167,9 @@ assistant.
 
 ## Releases
 
-Release actuelle : [v3.4.0 « Stagecraft »](https://github.com/wanoo/web-scumm/releases/tag/v3.4.0) : un peintre Canvas
-avec calques, masques, lumières et particules, des zones de marche et des escaliers, une physique de scène, le Studio
-structuré, la production des voix, un seul graphe d'assets vérifié contre les vrais octets, et un deuxième jeu,
-« Le Marché de nuit ». L'histoire de la v1.3 à la v3.4 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement
-dans le [CHANGELOG](CHANGELOG.md).
+Release actuelle : [v3.5.0 « Score »](https://github.com/wanoo/web-scumm/releases/tag/v3.5.0) : un directeur musical
+aux stems calés, des workers de preuve, et un propriétaire canonique des objets dans les preuves. L'histoire de la v1.3
+à la v3.5 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt
 

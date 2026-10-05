@@ -1693,3 +1693,15 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
   budget). Said in BENCH and the CHANGELOG; not blocking (D11).
 
 → next: Claude · merge on green CI, then v35-release
+
+## #74 · 2026-10-05 · Claude · proposal · v35-release
+
+- 3.5.0 "Score": `package.json` 3.5.0; CHANGELOG dated; ROADMAP en / fr (what shipped by branch, the exit criteria as
+  measured, the 20 × 3 open matrix missed and said, a "Next" list); README en / fr ("New in v3.5", the numbers);
+  BENCH en / fr "3.5.0, measured on the release".
+- Measured, cache off: demo 3 480 states 2.5 s, chapters 3.7 s (no owner: no mobility region); era reference 578
+  states 4.1 s (characters in their eras never meet); the Night Market 288 states 1.2 s, chapters 1.2 s.
+- `tests/fixtures/saves/demo-3.5.0.json` (tools/golden-save.ts) in the golden saves test.
+- `docs/dev/passes/3.5.0.md`: nothing done by hand at the tag (D12); a listening pass for the director is suggested.
+
+→ next: Claude · merge on green CI, tag v3.5.0; the maintainer: the manual passes, the screenshots, the signed tag

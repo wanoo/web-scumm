@@ -343,12 +343,36 @@ non fait à la main (D12, `docs/dev/passes/3.4.0.md`) : le lecteur d'écran, des
 hors ligne, des voix enregistrées, un tag signé. Laissé pour plus tard : les repères de synchronisation labiale dans
 la table des voix.
 
-## v3.5 « Score » (prévue) : musique, workers, inventaires
+## v3.5 « Score » (5 octobre 2026) : musique, workers, inventaires
 
-Un directeur musical à stems synchronisés (cues, états, transitions quantifiées, stingers, ducking), des workers du
-solveur jugés à la mesure (résultats identiques, ×2 avec 4 workers, sinon coupés par défaut), et un propriétaire
-canonique des objets certifié pour les preuves (la dominance seulement pour les recherches de témoin : elle ne peut
-pas élaguer une preuve).
+D'après le plan décidé avec le mainteneur (D11), une branche à la fois (D9) :
+
+- `v35-music-director` : un morceau peut avoir une partition (`audio.scores`), ses stems rendus depuis l'arrangement
+  (`npm run audio -- stems`), joués calés à l'échantillon sur Web Audio ; le mix suit l'état du jeu (un flag, le lieu,
+  le personnage actif) à la mesure suivante, en fondu ; des ponctuations sur le temps ; le mix unique là où le
+  directeur ne convient pas (Save-Data, un appareil modeste). L'onglet Musique du Studio. `npm run e2e:music` (CI) :
+  30 minutes sans un échantillon de dérive, 100 changements sans clic, gigue en temps réel 0,02 ms dans Chromium et
+  WebKit.
+- `v35-proof-workers` : la frontière développée par lots par des threads, fusionnée dans l'ordre du lot : le même
+  résultat pour 1, 2, 4 et 8 workers, ×2,54 avec 4 sur une preuve de 40 000 états. Éteints sauf demande (`--workers`).
+- `v35-inventory-ownership` : le propriétaire canonique met en commun les objets qu'aucune condition ne lit tant que
+  les personnages peuvent se rejoindre, les remises jouées et vérifiées ; audité contre la recherche explicite. Le
+  chapitre de référence 904 → 288 états, la matrice ouverte 20 × 2 prouvée. La dominance pour un témoin en option
+  (elle n'élague rien sur les jeux fournis).
+
+Critères de sortie, mesurés (BENCH.md « 3.5 ») : les trois portes du directeur vertes en CI ; les workers identiques
+pour 1, 2, 4, 8 et ×2 avec 4 ; le propriétaire jamais en désaccord avec la recherche explicite. **Manqué, non bloquant
+(D11) :** la matrice ouverte de 20 lieux × 3 personnages reste tronquée à 200 000 états : le propriétaire ne s'applique
+que tant que deux personnages peuvent se rejoindre, et des portes fermées les séparent. Signalé, non fait à la main
+(D12, `docs/dev/passes/3.5.0.md`) : le lecteur d'écran, des testeurs, un vrai téléphone, Safari hors ligne, des voix
+enregistrées, un tag signé.
+
+## Ensuite (pas encore planifié)
+
+- La matrice ouverte à trois personnages : une abstraction pour des personnages qui ne peuvent pas se rejoindre (ce que
+  chacun peut encore apporter aux autres), ou une borne dite dans BENCH.
+- Les repères de synchronisation labiale dans la table des voix (restés de la 3.4).
+- Les passes manuelles de `docs/dev/passes/` (D12), et les captures de la 3.4–3.5 (le marché, l'onglet Musique).
 
 ## Hors plan (décisions explicites)
 
