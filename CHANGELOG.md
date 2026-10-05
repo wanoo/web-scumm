@@ -4,6 +4,11 @@
 
 ### Fixed
 
+- The README's "Releases" section named v3.5 two releases later; `tests/readme-release.test.ts` now holds it to
+  `package.json`'s version. Python bytecode (`__pycache__/`, `*.pyc`) is no longer tracked.
+
+### Fixed
+
 - The release workflow builds the commit CI tested (`workflow_run.head_sha`), checks that the tag still points there,
   takes any SemVer tag (not only `v3.*`), and refuses a release that already has files (no `--clobber`): a published
   release is never replaced. The archive's assets manifest is attached beside it.
