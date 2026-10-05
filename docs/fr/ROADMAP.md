@@ -453,17 +453,32 @@ sorte (910 comparées, 0 divergence).
   primitive moteur.
 - **3.9 « Independence »** (sortie le 5 octobre 2026) : le moteur en paquet (`web-scumm`, `create-web-scumm`, la commande `web-scumm`), un jeu
   hors du dépôt fait depuis le modèle empaqueté (Le Phare), `npm run fresh-install` en CI.
-- **4.0 « Stable Platform »** : l'API publique en quatre entrées et sa surface tenue par un test, une politique de suivi
+- **4.0 « Stable Platform »** (sortie le 5 octobre 2026) : l'API publique en quatre entrées et sa surface tenue par un test, une politique de suivi
   et de dépréciation, la lignée des sauvegardes 3.x chargée en 4.x, le jeu indépendant passé de la 3.9 à la 4.0.
 - Laissé à la recherche, pas une porte de la 4.0 : la dominance exacte sur les objets pertinents, la matrice 20 × 3 (un
   critère seulement si un vrai jeu en a besoin).
 
-## Ensuite (pas encore planifié)
+## v4.0 « Stable Platform » (5 octobre 2026)
 
+- `feature/contracts` (dans la 3.9) : l'API publique en quatre entrées, sa surface et les arguments des outils MCP
+  tenus par un test, `docs/fr/API.md`, `docs/fr/SUPPORT.md`.
+- `feature/upgrade-proof` : `npm run upgrade-check`, un jeu passé de la release précédente avec sa sauvegarde, en CI.
+- Le Phare, passé de la 3.9.0 à la 4.0.0.
+
+Critères de sortie, mesurés : `fresh-install` et `upgrade` verts en CI ; le `release --commercial` du Phare vert en
+4.0.0 et sa sauvegarde 3.9.0 jouée jusqu'à la fin ; une sauvegarde par release de la 3.0.0 à la 4.0.0 qui atteint la
+fin. Rapporté, pas fait (D12) : les sept passes terrain (`docs/fr/FIELD.md`), un jeu fait par quelqu'un d'autre, la
+publication sur npm, un tag signé, le réglage « immutable releases » de GitHub.
+
+## Après la 4.0 (pas encore planifié)
+
+- Les passes terrain, puis ce qu'elles trouvent (D12).
+- Publier `web-scumm` et `create-web-scumm` sur npm ; Le Phare dans un dépôt public.
+- Les traductions chargées à la demande (la seconde langue pèse ~10 % du JavaScript de la première visite) : un
+  changement du contrat du module de jeu, donc une mineure avec une dépréciation, pas un correctif.
 - La matrice ouverte à trois personnages : une dominance exacte par la pertinence des objets et des positions, auditée
-  contre la recherche explicite sur le corpus (plus de workers n'aident pas : le nombre d'états est la limite).
+  contre la recherche explicite sur le corpus.
 - Les repères de synchronisation labiale dans la table des voix (restés de la 3.4).
-- Les passes manuelles de `docs/dev/passes/` (D12).
 
 ## Hors plan (décisions explicites)
 

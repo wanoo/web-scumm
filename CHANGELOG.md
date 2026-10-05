@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+## 4.0.0 — 2026-10-05
+
+"Stable Platform" (LOG #94): fewer new things, more promises. Nothing in the content format or the save format
+changes: a 3.x game on schema 3 moves without a rewrite (`docs/en/UPGRADING.md` § 10), and every save of the 3.x line
+loads. What changes is what is kept: the public API (`docs/en/API.md`) follows semantic versioning and the
+deprecation policy of `docs/en/SUPPORT.md`. Human passes: 0 of 7 (D12, `docs/dev/passes/4.0.0.md`).
+
+### API
+
+- Stable from this release: `web-scumm/content`, `web-scumm/player`, `web-scumm/minigames`, `web-scumm/testing`, the
+  authoring schema 3, the save envelope (schema 3), the Studio/MCP tools' arguments and the `web-scumm` command. Any
+  other path into `src/engine` is internal.
+
+### Added
+
+- `npm run upgrade-check -- --from=<version | previous>`, a CI job: a game created with the previous release's
+  package, a save made by that engine, then this engine installed, `migrate --check`, `verify`, `build`, and the old
+  save loaded and played to the end.
+- The independent game, "The Lighthouse", moved from 3.9.0 to 4.0.0 by installing the new tarball: nothing to
+  migrate, `release --commercial` green, its 3.9.0 save loaded and played to the end (LOG #94).
+
+### Migration
+
+- From 3.x: import from the four public entries instead of `@engine/*` (which keeps working, without the promise);
+  use `EndingDef` instead of `RevealDef`; `npx web-scumm migrate --check` says whether anything else is due.
+
 ## 3.9.0 — 2026-10-05
 
 "Independence" (LOG #93): a game no longer has to live in this repository. The engine is a package, a game made from

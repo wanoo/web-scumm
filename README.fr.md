@@ -17,12 +17,14 @@ vérifie, le prouve et le publie en jeu web jouable hors ligne. Il est né comme
 
 ![The Pantry Key : la maison de Grand-mère, neuf verbes, le sac](docs/img/v36-hero.webp)
 
-**Nouveau en v3.7 « Field Proof » :** le jeu d'exemple peut être vendu : son thème, *Le Lac des cygnes* de
-Tchaïkovski écrit et arrangé pour le projet, remplace un arrangement sous licence non commerciale, si bien que
-`npm run verify:commercial` passe. Le chapitre de référence joue deux partitions reliées par des ponts, et le
-navigateur vérifie qu'une transition peut être annulée, restaurée depuis une sauvegarde ou arrêtée sans laisser de son
-derrière elle (la 3.6.1 « Audio truth » a donné à la musique ses trois intentions : jouer, restaurer, arrêter). Le
-corpus de nuit tourne en quatre tranches et garde ses comptes.
+**Nouveau en v4.0 « Stable Platform » :** le moteur est un paquet avec une API publique qu'il promet de garder. Un jeu
+vit dans son propre projet (`web-scumm create`, puis `npm run dev`, `verify`, `build`, `release`), importe quatre
+entrées (`web-scumm/content`, `/player`, `/minigames`, `/testing`), et passe à une nouvelle release avec
+`web-scumm migrate` : la CI crée un jeu sur la release précédente, y sauvegarde, le met à jour et joue l'ancienne
+sauvegarde jusqu'à la fin. Ce qu'une release livre, ce sont exactement ses fichiers et leurs licences, construits depuis
+le commit testé par la CI et jamais remplacés ([API](docs/fr/API.md), [SUPPORT](docs/fr/SUPPORT.md),
+[PACKAGE](docs/fr/PACKAGE.md)). En chemin : la 3.7 a rendu la démo vendable, la 3.8 a écrit les passes terrain que des
+gens doivent encore faire ([FIELD](docs/fr/FIELD.md)), la 3.9 a fait le premier jeu hors du dépôt, « Le Phare ».
 
 **v3.6 « Production » :** le directeur musical a ses propres budgets (stems, hors ligne, audio décodé, un
 plafond sur ce qu'il garde), ses stems sont mesurés avant une release, et une partition passe la main à une autre sur
@@ -50,6 +52,19 @@ et un deuxième jeu, « Le Marché de nuit ».
 | **Vérifier** | Les références cassées, les répliques non traduites, la licence de chaque fichier livré, ce qu'un téléphone doit télécharger. |
 | **Prouver** | Un chemin jusqu'à la fin, chaque état où la fin est perdue et pourquoi, des sauvegardes qui passent d'une version à l'autre, de vrais navigateurs. |
 | **Livrer** | Un jeu web statique qui s'installe sur un téléphone, joue hors ligne, au toucher, à la souris ou au clavier. |
+
+## La v4.0 en chiffres
+
+| Quoi | Résultat |
+|---|---|
+| Un nouveau jeu hors du dépôt : empaqueté, créé, installé, vérifié, construit, joué jusqu'à la fin | un job de CI à chaque push (`npm run fresh-install`) |
+| Un jeu fait sur la release précédente, mis à jour, sa sauvegarde jouée jusqu'à la fin en 4.0 | un job de CI à chaque push (`npm run upgrade-check`) |
+| « Le Phare », le jeu indépendant : 5 lieux, anglais et français | `release --commercial` vert : preuve sur 85 états, 202 textes par langue, 62 fichiers verrouillés |
+| L'API publique | 92 noms dans 4 entrées, 23 outils Studio/MCP, tenus par `tests/api-surface.test.ts` |
+| Les sauvegardes | une par release de la 3.0.0 à la 4.0.0 se charge et atteint la fin |
+| La première visite du joueur | 122 Ko de JavaScript compressé (153 en 3.7.0), tenus par `initialJsKB` |
+| L'archive | chaque fichier justifié : code, assets verrouillés, polices, icônes, `licenses/` |
+| Le corpus de nuit | 1 503 jeux aléatoires en quatre tranches, 910 comparés à la recherche explicite, 0 divergence |
 
 ## La v3.6 en chiffres
 
@@ -112,7 +127,7 @@ Il faut Node 22+, Python 3 pour les outils d'image (`pip install -r requirements
 (la publication sur npm viendra, puis `npx create-web-scumm mon-jeu`) :
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v3.9.0/web-scumm-3.9.0.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.0.0/web-scumm-4.0.0.tgz
 npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # puis npm run verify, npm run build, npm run release
@@ -198,11 +213,10 @@ assistant.
 
 ## Releases
 
-Release actuelle : [v3.9.0 « Independence »](https://github.com/wanoo/web-scumm/releases/tag/v3.9.0) : le moteur en
-paquet (`web-scumm`, `create-web-scumm`), un jeu fait hors du dépôt vérifié, construit et joué en CI, et l'API
-publique que la 4.0 tiendra stable.
-L'histoire de la v1.3 à la v3.9 est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le
-[CHANGELOG](CHANGELOG.md).
+Release actuelle : [v4.0.0 « Stable Platform »](https://github.com/wanoo/web-scumm/releases/tag/v4.0.0) : un paquet
+avec une API publique qu'il garde (`docs/fr/SUPPORT.md`), des jeux dans leurs propres projets, des mises à jour
+prouvées en CI. L'histoire de la v1.3 à la v4.0 est dans la
+[ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt
 

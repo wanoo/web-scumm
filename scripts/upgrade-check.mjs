@@ -1,4 +1,4 @@
-// npm run upgrade-check -- --from=<version | path to a web-scumm tarball> (4.0): a game moved from one release of the
+// npm run upgrade-check -- --from=<version | previous | path to a web-scumm tarball> (4.0): a game moved from one release of the
 // engine to this one, the way a team would. The game is created with the older package (its template, its command),
 // verified, and a save is made in it by that engine (the witness's first half, through `web-scumm/testing`). Then the
 // project installs this repository's package (scripts/pack.mjs), runs `web-scumm migrate --check`, `verify` and
@@ -10,13 +10,22 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '..');
-const from = process.argv.find((a) => a.startsWith('--from='))?.slice(7);
+let from = process.argv.find((a) => a.startsWith('--from='))?.slice(7);
 if (!from) { console.error('usage: npm run upgrade-check -- --from=<version | web-scumm-x.y.z.tgz>'); process.exit(2); }
 const base = mkdtempSync(join(tmpdir(), 'web-scumm-upgrade-'));
 const env = { ...process.env, GAME: '', GAME_DIR: '', WEB_SCUMM_PROJECT: '' };
 const run = (title, cmd, args, cwd) => { console.log(`\n▶ ${title}`); return execFileSync(cmd, args, { cwd, stdio: ['ignore', 'pipe', 'inherit'], env, encoding: 'utf8', maxBuffer: 1 << 26 }); };
 const show = (title, cmd, args, cwd) => { console.log(`\n▶ ${title}`); execFileSync(cmd, args, { cwd, stdio: 'inherit', env }); };
 
+// `--from=previous`: the newest published release older than this one (its tarball attached since 3.9).
+const cmp = (a, b) => { const x = a.split('.').map(Number), y = b.split('.').map(Number); for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i]; return 0; };
+if (from === 'previous') {
+  const here = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
+  const tags = JSON.parse(execFileSync('gh', ['release', 'list', '-R', 'wanoo/web-scumm', '--exclude-drafts', '--limit', '50', '--json', 'tagName'], { encoding: 'utf8' })).map((r) => r.tagName.replace(/^v/, '')).filter((v) => /^\d+\.\d+\.\d+$/.test(v) && cmp(v, here) < 0 && cmp(v, '3.9.0') >= 0).sort(cmp);
+  if (!tags.length) { console.error('no published release with a package tarball before', here); process.exit(1); }
+  from = tags.at(-1);
+  console.log(`upgrade from the previous release: ${from}`);
+}
 let oldTgz = resolve(from);
 if (!existsSync(oldTgz)) {
   show(`download web-scumm ${from}`, 'gh', ['release', 'download', `v${from}`, '-R', 'wanoo/web-scumm', '-p', `web-scumm-${from}.tgz`, '-D', base], base);
