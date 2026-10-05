@@ -204,11 +204,18 @@ if ((!only || only === 'game') && !process.argv.includes('--no-game')) {
     await g.engine.load(saved);
     await wait(() => d.current === 'theme');
     const resumed = d.position;
-    return { director: true, first, garden, sameStart, room, saved: saved.music, resumed };
+    // 3.6.1: the same save loaded while its own score plays on: the music goes back to the saved point.
+    await new Promise((r) => setTimeout(r, 2500));
+    const drifted = d.position;
+    await g.engine.load(saved);
+    await wait(() => d.current === 'theme' && d.position !== null && Math.abs(d.position - saved.music.at) < 1);
+    const reloaded = d.position;
+    return { director: true, first, garden, sameStart, room, saved: saved.music, resumed, drifted, reloaded };
   });
   say(g.director && g.first.id === 'theme' && g.first.stems.length === 4, `the theme as stems in the house: ${g.director ? g.first.stems.join(', ') : 'no director'}`);
   say(g.director && g.garden.join() === 'strings,harp,bass' && g.sameStart, `the garden: ${g.garden?.join(', ')}, the same music going on (started once)`);
   say(g.saved?.id === 'theme' && g.saved.at > 1 && Math.abs(g.resumed - g.saved.at) < 1, `a save keeps the music's phase (${g.saved?.at?.toFixed(2)} s), and loading it resumes there (${g.resumed?.toFixed(2)} s)`);
+  say(g.saved && Math.abs(g.drifted - g.saved.at) > 1.5 && Math.abs(g.reloaded - g.saved.at) < 1, `loading that save while the theme plays on (${g.drifted?.toFixed(2)} s) brings it back to the saved point (${g.reloaded?.toFixed(2)} s)`);
   await play('./?music=mix');
   const m = await p.evaluate(() => ({ director: !!window.__game.audio.director?.current }));
   say(!m.director, '?music=mix: the single mix, no director');
