@@ -8,6 +8,7 @@
   python -m mdpipe qa projects/NAME/spec.json     objective checks (levels, pitch, peak)
   python -m mdpipe all projects/NAME/spec.json    build + render (wav, vgm, mp3) + qa  <- main iteration loop
   python -m mdpipe sfx games/ID/audio/sfx.json    the sound effects of a game, from the palette -> audio/sfx/*.mp3
+  python -m mdpipe stems projects/NAME/spec.json [--out DIR]   the channels grouped into stems for the music director
 """
 import argparse, json, os, shutil, sys
 from . import analyze as an, arrange, render, qa
@@ -135,6 +136,7 @@ def main(argv=None):
     for c in ('build', 'qa', 'all'):
         s = sub.add_parser(c); s.add_argument('spec')
     s = sub.add_parser('sfx'); s.add_argument('spec'); s.add_argument('--out'); s.add_argument('--only', nargs='*')
+    s = sub.add_parser('stems'); s.add_argument('spec'); s.add_argument('--out')
     a = p.parse_args(argv)
     try:
         if a.cmd == 'setup': render.setup()
@@ -150,6 +152,15 @@ def main(argv=None):
         elif a.cmd == 'build': cmd_build(a.spec)
         elif a.cmd == 'qa': cmd_qa(a.spec)
         elif a.cmd == 'all': cmd_all(a.spec)
+        elif a.cmd == 'stems':
+            from . import stems
+            proj, out, name = out_paths(a.spec)
+            fur = os.path.join(out, name + '.fur')
+            if not os.path.exists(fur):
+                fur = cmd_build(a.spec)
+            # Default: games/<id>/audio/music/<slug>-stems/, next to the single mix.
+            dest = a.out or os.path.join(os.path.dirname(os.path.dirname(proj)), 'music', name + '-stems')
+            stems.run(a.spec, fur, dest)
         elif a.cmd == 'sfx':
             from . import sfx
             sfx.run(a.spec, a.out, a.only)

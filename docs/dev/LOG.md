@@ -1612,3 +1612,38 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 - `docs/dev/passes/3.4.0.md`: nothing done by hand at the tag (D12); the release notes say so.
 
 → next: Claude · merge on green CI, tag v3.4.0, then v35-music-director
+
+## #71 · 2026-10-05 · Claude · proposal · v35-music-director
+
+- `core/score.ts` (pure): `stemsFor` (first state that holds), `nextBoundary` (the next beat or bar, counted in the
+  file so through the loop: a file that is not a whole number of bars restarts the count with the music), `crossfade`,
+  `loopWindow`, `positionAt`. `dom/director.ts`: decoded buffers, every stem started at one instant with the same loop
+  window, a gain per stem, ramps scheduled at the boundary from where the last ramp left the gain; `stinger` on the
+  next beat, `duck`, `stop`, `volume`; works on an OfflineAudioContext. `dom/audio.ts`: a scored track goes to the
+  director where `directorFits()` (Web Audio, no Save-Data, > 2 GB, > 2 cores), else Howler plays the mix; voices and
+  `once` duck either; the app calls `remix()` on every state change. Types: `ScoreDef`, `ScoreState`, the `stinger`
+  variant of `music`; validation of scores and stingers.
+- Stems: `tools/audio/mdpipe/stems.py` (`npm run audio -- stems`): Furnace's per-channel render, channels summed by
+  the spec's `stems` or by role, one gain for all to −14 LUFS (sum −14.5, peak −3.1 dBFS here), `score.json` with the
+  tempo measured on the render (80 BPM, 66.000 s). Swan Lake by role gave a "drums" stem of the noise channel alone at
+  −54 LUFS: regrouped as melody / strings / harp / bass in the spec.
+- Weight: four stems are 3.1 MB against 0.8 MB for the mix, and broke every demo budget. Music never holds a room
+  back (the warm-up is background), so the budgets count the mix, what every device needs to have sound, and the
+  stems are printed on their own line (`--stems` counts them instead). The graph has a `stems` option (the app passes
+  what it will play); offline keeps both. `e2e:weight` (Save-Data) predicts the mix and gets it.
+- `scripts/e2e-music.mjs`, the director bundled with esbuild into the page:
+  - drift: 186 loops of two impulse stems in 30 min at 8 kHz, 0 samples off the plan;
+  - clicks: sines with 70- and 47-sample periods (the buffer holds whole periods of both, a bar never does) — the
+    first try at 110 / 165 Hz could not catch anything, both cross zero on every bar; 100 changes, steepest step
+    0.1005 for a bound of 0.1008; the same with `fadeBeats: 0` gives 95 steps over the bound;
+  - jitter: a constant stem tapped by a ScriptProcessor; every change heard 42.7 ms late, the tap's own two buffers
+    (2 × 1024 frames at 48 kHz), so the gate is the spread around that latency: 0.02 ms in Chromium and WebKit. Two
+    requests within one beat land on the same boundary and the last wins, by design: the test spaces them.
+  - in the game: the theme as 4 stems in the house, 3 in the garden without restarting, `?music=mix` without director.
+  - Found on the way: two stale preview servers from earlier sessions held ports 5398 / 5399 and served old builds;
+    check what listens before trusting a run.
+- Studio: the Music tab (play a score, hear a state, mute / solo, bar and beat); `e2e:studio` plays and hears a state.
+- Tests: `tests/score.test.ts` (8), the asset graph's scores; counts updated for the 4 new files (offline plan, provenance,
+  10 named release exceptions instead of 2). Demo proof 3 480 states, reference 904: unchanged.
+
+→ next: Claude · merge on green CI, then v35-proof-workers

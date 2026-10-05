@@ -2,7 +2,7 @@
 // preload, the background warm-up, the full offline plan, the provenance keys and the weight budgets all read it, so
 // a file one of them knows about cannot escape the others (docs/en/ENGINE.md "Assets").
 //
-// Keys: `img:<manifest image id>`, `sfx:<file>`, `music:<file>`, `voice:<file>`, `video:<file>`. Scopes:
+// Keys: `img:<manifest image id>`, `sfx:<file>`, `music:<file>` (a score's stem files too), `voice:<file>`, `video:<file>`. Scopes:
 // - `title`: the title screen (backdrop, logo, music, video), the column's and the map button's icons, the bag at the
 //   start, the interface's sounds;
 // - `room:<id>`: what showing and playing that room can ask for: its backdrop, props in every state and animation,
@@ -65,14 +65,31 @@ function roomCmds(room: RoomDef): (Cmd[] | undefined)[] {
     ...(room.scripts ?? []).map((s) => s.do), ...(room.events ?? []).map((e) => e.do)];
 }
 
+/**
+ * A track's files: its single mix, or the stems of its score where the music director plays them (3.5). With
+ * `stems` off (Save-Data, a low-end device: the director steps aside), the mix only.
+ */
+function addMusic(game: GameDef, out: Set<string>, id: Id | undefined, stems: boolean) {
+  if (!id) return;
+  const a = game.audio ?? {};
+  const score = stems ? a.scores?.[id] : undefined;
+  if (score) for (const f of Object.values(score.stems)) add(out, 'music', f);
+  else add(out, 'music', a.music?.[id]);
+}
+
 /** What commands can play or show: sounds, music, voice clips, gained items' icons, phone callers, minigame assets. */
-function cmdAssets(game: GameDef, lists: (Cmd[] | undefined)[], out: Set<string>, bindings: MinigameBindings) {
+function cmdAssets(game: GameDef, lists: (Cmd[] | undefined)[], out: Set<string>, bindings: MinigameBindings, stems = true) {
   const a = game.audio ?? {};
   const voice = (id?: Id, explicit?: Id) => { const v = explicit ?? id; if (v && a.voices?.[v]) add(out, 'voice', a.voices[v]); };
   for (const list of lists) eachCmd(list, (c) => {
     if (typeof c === 'string') return;
     if ('sfx' in c) add(out, 'sfx', a.sfx?.[c.sfx]);
-    else if ('music' in c) { const m = c.music; const id = typeof m === 'string' ? m : 'push' in m ? m.push : 'once' in m ? m.once : undefined; if (id) add(out, 'music', a.music?.[id]); }
+    else if ('music' in c) {
+      const m = c.music;
+      if (typeof m === 'string' || 'push' in m) addMusic(game, out, typeof m === 'string' ? m : m.push, stems);
+      else if ('once' in m) add(out, 'music', a.music?.[m.once]);
+      else if ('stinger' in m) { add(out, 'music', a.music?.[m.stinger]); if (!a.music?.[m.stinger]) add(out, 'sfx', a.sfx?.[m.stinger]); }
+    }
     else if ('say' in c) voice(c.id, (c as { voice?: Id }).voice);
     else if ('toast' in c || 'guide' in c) voice(c.id);
     else if ('choice' in c) c.choice.forEach((o) => voice(o.id));
@@ -114,8 +131,10 @@ export function playerRooms(game: GameDef): Map<Id, Set<Id>> {
   return out;
 }
 
-export function assetGraph(game: GameDef, opts: { manifest?: AssetManifestLike; bindings?: MinigameBindings; layouts?: Record<Id, Layout> } = {}): AssetGraph {
+export function assetGraph(game: GameDef, opts: { manifest?: AssetManifestLike; bindings?: MinigameBindings; layouts?: Record<Id, Layout>; stems?: boolean } = {}): AssetGraph {
   const a = game.audio ?? {};
+  // The music director's stems where a score has them (the default), else the single mixes.
+  const stems = opts.stems ?? true;
   const bindings = opts.bindings ?? {};
   const reach = playerRooms(game);
   // Characters moved into a room by a command, wherever the command is.
@@ -130,32 +149,32 @@ export function assetGraph(game: GameDef, opts: { manifest?: AssetManifestLike; 
     for (const [p, rs] of reach) if (rs.has(r.id)) chars.add(p);
     for (const [id, c] of Object.entries(game.characters)) if (c.room === r.id) chars.add(id);
     for (const c of chars) characterImages(game, c).forEach((f) => out.add(`img:${f}`));
-    add(out, 'music', r.music ? a.music?.[r.music] : undefined);
-    cmdAssets(game, roomCmds(r), out, bindings);
+    addMusic(game, out, r.music, stems);
+    cmdAssets(game, roomCmds(r), out, bindings, stems);
     rooms[r.id] = [...out].sort();
   }
 
   const title = new Set<string>();
   const T = game.titleScreen;
   add(title, 'img', T?.decor); add(title, 'img', T?.logo);
-  add(title, 'music', T?.music ? a.music?.[T.music] : undefined);
+  addMusic(game, title, T?.music, stems);
   add(title, 'video', T?.video);
   const icons = game.skin?.icons;
   for (const x of [icons?.map, icons?.pause, icons?.music]) add(title, 'img', x);
   for (const it of game.start.inventory ?? []) add(title, 'img', game.items[it]?.icon);
-  cmdAssets(game, [game.start.intro], title, bindings);
+  cmdAssets(game, [game.start.intro], title, bindings, stems);
 
   const map = new Set<string>();
   const M = game.map;
   for (const reg of Object.values(M?.regions ?? {})) add(map, 'img', reg.image);
   for (const p of Object.values(M?.places ?? {})) add(map, 'img', p.portrait);
   for (const v of Object.values(M?.vehicles ?? {})) add(map, 'img', v);
-  add(map, 'music', M?.music ? a.music?.[M.music] : undefined);
+  addMusic(game, map, M?.music, stems);
   for (const x of [icons?.pin, icons?.news, icons?.plane, icons?.car]) add(map, 'img', x);
   add(map, 'sfx', game.skin?.sounds?.plane ? a.sfx?.[game.skin.sounds.plane] : undefined);
 
   const g = new Set<string>();
-  cmdAssets(game, [...(game.rules?.on ?? []).map((x) => x.do), ...(game.events ?? []).map((e) => e.do), ...(game.scripts ?? []).map((s) => s.do)], g, bindings);
+  cmdAssets(game, [...(game.rules?.on ?? []).map((x) => x.do), ...(game.events ?? []).map((e) => e.do), ...(game.scripts ?? []).map((s) => s.do)], g, bindings, stems);
   // Answers by kind (`rules.kinds`) speak with their id's voice clip, in any room.
   for (const k of game.rules?.kinds ?? []) { const id = (k as { id?: Id }).id; if (id && a.voices?.[id]) add(g, 'voice', a.voices[id]); }
   for (const x of Object.values(icons ?? {})) for (const f of asList(x as string | string[] | undefined)) add(g, 'img', f);
@@ -169,6 +188,8 @@ export function assetGraph(game: GameDef, opts: { manifest?: AssetManifestLike; 
   if (opts.manifest) { Object.keys(opts.manifest.images).forEach((id) => offline.add(`img:${id}`)); Object.keys(opts.manifest.videos ?? {}).forEach((f) => offline.add(`video:${f}`)); }
   for (const f of Object.values(a.sfx ?? {})) offline.add(`sfx:${f}`);
   for (const f of Object.values(a.music ?? {})) offline.add(`music:${f}`);
+  // Both the stems and the mix: which one a device plays is decided there (dom/director.ts `directorFits`).
+  for (const sc of Object.values(a.scores ?? {})) for (const f of Object.values(sc.stems)) offline.add(`music:${f}`);
   for (const f of Object.values(a.voices ?? {})) offline.add(`voice:${f}`);
   for (const m of Object.values(a.voicesByLang ?? {})) for (const f of Object.values(m)) offline.add(`voice:${f}`);
   return { title: [...title].sort(), map: [...map].sort(), game: [...g].sort(), rooms, offline: [...offline].sort() };

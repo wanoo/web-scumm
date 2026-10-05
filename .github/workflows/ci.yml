@@ -121,6 +121,12 @@ jobs:
       # request inside the asset graph's prediction, the total within 10% of it.
       - run: npm run e2e:weight -- http://127.0.0.1:5173/
         if: matrix.browser == 'chromium' && matrix.mode == 'full'
+      # The music director (since 3.5): thirty minutes rendered offline without a sample of drift, 100 changes of mix
+      # without a click, the theme's stems in the game; then each browser's real-time jitter (< 20 ms).
+      - run: npm run e2e:music -- http://127.0.0.1:5173/ --only=offline && npm run e2e:music -- http://127.0.0.1:5173/ --only=game && npm run e2e:music -- http://127.0.0.1:5173/ --only=live --live=chromium
+        if: matrix.browser == 'chromium' && matrix.mode == 'full'
+      - run: npm run e2e:music -- http://127.0.0.1:5173/ --only=live --live=webkit
+        if: matrix.browser == 'webkit' && matrix.mode == 'generic'
       # Visual baselines (since 3.4): every room of the sample game, still, against tests/visual/demo/*.png.
       - run: npm run e2e:visual -- http://127.0.0.1:5173/
         if: matrix.browser == 'chromium' && matrix.mode == 'full'

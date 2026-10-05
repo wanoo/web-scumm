@@ -229,6 +229,7 @@ export function createStudio(opts: StudioOptions = {}) {
       checkpoints: g.checkpoints ?? {},
       images: manifest.images ?? {},
       sfx: Object.keys(g.audio?.sfx ?? {}),
+      scores: g.audio?.scores ?? {},
     };
   }
 

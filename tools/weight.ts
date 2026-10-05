@@ -23,7 +23,12 @@ let bindings: Record<string, { images?: string[]; sfx?: string[] }> = {};
 try { bindings = Object.fromEntries(Object.entries({ ...(await import('../src/engine/minigames/index')).minigames, ...(mod.minigames ?? {}) }).map(([k, m]) => [k, (m as { bindings?: { images?: string[]; sfx?: string[] } }).bindings ?? {}])); } catch { /* no minigames */ }
 const manifestFile = resolve(GAME_DIR, 'assets.gen.json');
 const manifest = existsSync(manifestFile) ? JSON.parse(readFileSync(manifestFile, 'utf8')) as { images: Record<string, [number, number]>; videos?: Record<string, number> } : undefined;
-const graph = assetGraph(game, { manifest, bindings, layouts });
+// The budgets count each track's single mix: what every device needs for the game to sound, Save-Data and low-end
+// devices included. A score's stems (3.5) come on top where the music director plays them, after the room is already
+// playable (music never holds a room back): their bytes are reported on their own line below, and `--stems` counts
+// them in every scope instead of the mixes.
+const stems = process.argv.includes('--stems');
+const graph = assetGraph(game, { manifest, bindings, layouts, stems });
 
 // The app shell: what the service worker precaches (its list in dist/sw.js), plus the worker and its runtime.
 const DIST = resolve(process.env.DIST_DIR ?? 'dist');
@@ -68,7 +73,7 @@ if (Object.values(game.checkpoints ?? {}).some((c) => c.goals?.length)) {
 // images and sounds as they are (already compressed).
 const net: Record<string, number | null> = { ...sizes, ...gzip };
 for (const k of twice) { net[`${k}#again`] = net[k]; sizes[`${k}#again`] = sizes[k]; if (gzip[k] !== undefined) gzip[`${k}#again`] = gzip[k]; }
-const rep = weightReport(game, net, chapters, game.assetBudgets ?? {}, { bindings, layouts, shell: [...shell, ...twice.map((k) => `${k}#again`)] });
+const rep = weightReport(game, net, chapters, game.assetBudgets ?? {}, { bindings, layouts, stems, shell: [...shell, ...twice.map((k) => `${k}#again`)] });
 const kb = (b: number) => `${Math.round(b / 1024)} KB`;
 const b = game.assetBudgets ?? {};
 const missing = [...new Set([rep.initial, ...rep.rooms, ...rep.chapters].flatMap((w) => w.missing))];
@@ -87,6 +92,12 @@ else console.log('  app shell  not counted: no built bundle (npm run build:web) 
 console.log(`  initial    ${kb(rep.initial.bytes).padStart(9)}  ${rep.initial.files} files, ${Math.round(decoded(initialKeys) / 1048576)} MB decoded${b.initialKB !== undefined ? `  (budget ${b.initialKB} KB)` : ''}`);
 for (const r of rep.rooms) console.log(`  room       ${kb(r.bytes).padStart(9)}  ${r.id}, ${Math.round(decoded(graph.rooms[r.id] ?? []) / 1048576)} MB decoded${b.roomKB !== undefined ? `  (budget ${b.roomKB} KB)` : ''}`);
 for (const c of rep.chapters) console.log(`  chapter    ${kb(c.bytes).padStart(9)}  ${c.id}: ${c.rooms.join(', ')}${b.chapterKB !== undefined ? `  (budget ${b.chapterKB} KB)` : ''}`);
+// The scores' stems, where the director plays them: on top of the mix, after the room is playable.
+for (const [id, sc] of Object.entries(game.audio?.scores ?? {})) {
+  const files = Object.values(sc.stems).map((f) => `music:${f}`);
+  const bytes = files.reduce((n, k) => { const p = assetPath(k); const f = p ? resolve(ASSETS_DIR, p) : null; return n + (f && existsSync(f) ? statSync(f).size : 0); }, 0);
+  console.log(`  stems      ${kb(bytes).padStart(9)}  score ${id}: ${files.length} stems${stems ? ', counted in every scope above (--stems)' : ' where the music director plays them, after the room is playable (not in the budgets; --stems counts them)'}`);
+}
 for (const m of missing) console.log(`  ✖ ${m}: no built file (${m.startsWith('shell:') ? 'npm run build:web' : 'npm run assets'})`);
 for (const o of rep.over) console.log(`  ✖ ${o}`);
 const release = process.argv.includes('--release');

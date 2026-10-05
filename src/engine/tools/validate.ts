@@ -307,6 +307,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       const m = c.music;
       const id = typeof m === 'string' ? m : 'push' in m ? m.push : 'once' in m ? m.once : undefined;
       if (id && !music[id]) err(where, `unknown music: "${id}"`);
+      if (typeof m !== 'string' && 'stinger' in m && !music[m.stinger] && !sfx[m.stinger]) err(where, `unknown stinger: "${m.stinger}" (audio.music or audio.sfx)`);
       return;
     }
     if ('toast' in c) { text(c.toast, where); return; }
@@ -421,6 +422,21 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   else {
     for (const k of ['map', 'pause', 'music'] as const) if (!sk.icons[k]) err('skin.icons', `missing required icon: "${k}"`);
     for (const [k, v] of Object.entries(sk.icons)) for (const id of Array.isArray(v) ? v : [v]) img(id, `skin.icons.${k}`);
+  }
+  // Scores (3.5): the stems of a track that exists, a tempo, mixes that name its stems, a loop inside the file.
+  for (const [id, sc] of Object.entries(game.audio?.scores ?? {})) {
+    const w = `audio.scores.${id}`;
+    if (!music[id]) err(w, `no single mix "${id}" in audio.music: the score's fallback (Save-Data, a low-end device) is missing`);
+    const stems = Object.keys(sc.stems ?? {});
+    if (!stems.length) err(w, 'no stems');
+    if (!(sc.bpm > 0)) err(`${w}.bpm`, `a tempo above 0 is required (got ${String(sc.bpm)})`);
+    if (sc.beatsPerBar !== undefined && !(Number.isInteger(sc.beatsPerBar) && sc.beatsPerBar > 0)) err(`${w}.beatsPerBar`, 'a whole number of beats above 0');
+    if (sc.loop && !(sc.loop[0] >= 0 && sc.loop[1] > sc.loop[0])) err(`${w}.loop`, `[first bar, end bar) with end > first (got ${JSON.stringify(sc.loop)})`);
+    if (sc.fadeBeats !== undefined && !(sc.fadeBeats >= 0)) err(`${w}.fadeBeats`, 'a number of beats, 0 or more');
+    (sc.states ?? []).forEach((st, i) => {
+      for (const x of st.stems) if (!stems.includes(x)) err(`${w}.states[${i}]`, `unknown stem "${x}" (stems: ${stems.join(', ')})`);
+      if (st.if !== undefined) cond(st.if, `${w}.states[${i}].if`);
+    });
   }
   for (const [k, id] of Object.entries(sk?.sounds ?? {})) {
     if (!id) continue;

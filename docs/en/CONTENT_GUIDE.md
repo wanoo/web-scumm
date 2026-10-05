@@ -237,6 +237,7 @@ A line stays on screen for as long as it takes to read, or until a tap.
 | `{ music: 'market' }` | Change the music (crossfade). |
 | `{ music: { push: 'minigame' } }` then `{ music: { pop: true } }` | Temporary music, then back to the previous track. |
 | `{ music: { once: 'jingle' } }` | Play a track once on top, then the music resumes. |
+| `{ music: { stinger: 'success' } }` | A short cue (a track of `audio.music` or a sound of `audio.sfx`) on the next beat of the score that plays (3.5); at once with a single mix. |
 | `{ toast: 'New place: Market' }` | A small message at the top of the screen. |
 | `{ shake: 400 }` | The screen shakes. |
 
@@ -796,3 +797,30 @@ npm run validate   # everything referenced exists, every visible thing has a Loo
 npm run solve      # the game can be finished from "New game"; lists items that are never used
 npm run dev        # then ?dev to jump to a checkpoint, ?edit=house to place things
 ```
+
+## Music in stems (3.5)
+
+A track of `audio.music` can also have a score: its stems, played together by the music director, the mix following
+the game. `npm run audio -- stems` makes them (docs/en/AUDIO.md).
+
+```ts
+audio: {
+  music: { theme: 'swan_lake.mp3' },            // the single mix: Save-Data, low-end devices, no Web Audio
+  scores: {
+    theme: {
+      stems: { melody: 'swan-lake-stems/melody.mp3', strings: 'swan-lake-stems/strings.mp3', harp: 'swan-lake-stems/harp.mp3', bass: 'swan-lake-stems/bass.mp3' },
+      bpm: 80, beatsPerBar: 4,                  // from score.json
+      states: [                                 // the first that holds sets the mix; none: every stem
+        { if: { player: 'biscuit' }, stems: ['harp', 'bass'] },
+        { if: { room: 'garden' }, stems: ['strings', 'harp', 'bass'] },
+      ],
+      // quantize: 'bar' (default) or 'beat'; fadeBeats: 2; loop: [first bar, end bar)
+    },
+  },
+}
+```
+
+A state is any condition of the DSL (a flag, the room, the active character). A change of state takes effect on the
+next bar, crossfaded; another room with the same track keeps the music going and only changes the mix. `npm run
+validate` checks the stems, the tempo, the states' stems and conditions, and that the single mix exists. The Studio's
+Music tab plays a score and each state's mix.

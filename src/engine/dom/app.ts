@@ -204,7 +204,10 @@ export class App implements Presenter {
     this.game = o.game;
     this.root = o.root;
     this.bank = new AssetBank(o.manifest, o.base ?? `${import.meta.env?.BASE_URL ?? '/'}assets`, o.version ?? '');
-    this.audio = new Audio(this.bank, { music: o.game.audio?.music, sfx: o.game.audio?.sfx, voice: o.game.audio?.voices });
+    // `?music=mix|stems` forces the single mix or the director's stems (tests, the Studio); else the device decides.
+    const musicMode = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('music') : null;
+    this.audio = new Audio(this.bank, { music: o.game.audio?.music, sfx: o.game.audio?.sfx, voice: o.game.audio?.voices, scores: o.game.audio?.scores }, musicMode === 'mix' ? { stems: false } : musicMode === 'stems' ? { stems: true } : {});
+    this.audio.holds = (c) => !!this.engine?.state && check(c, this.engine.state);
     this.mg = { ...builtin, ...(o.minigames ?? {}) };
     const storageFailure = (error: Error) => queueMicrotask(() => this.reportStorageError(error));
     const storageWarning = (message: string) => queueMicrotask(() => this.reportSaveWarning(message));
@@ -506,6 +509,7 @@ export class App implements Presenter {
     // The active character's button is hidden, the others show.
     for (const b of this.toolsEl.querySelectorAll<HTMLElement>('.tool.player')) b.hidden = b.dataset.player === this.engine.heroId();
     this.renderA11yTargets();
+    this.audio.remix();
   }
 
   // ================================================================== Presenter
@@ -643,12 +647,13 @@ export class App implements Presenter {
       setTimeout(() => c.remove(), Math.max(1800, caption.length * 70));
     }
   }
-  music(c: { play?: Id; push?: Id; pop?: true; stop?: true; once?: Id }) {
+  music(c: { play?: Id; push?: Id; pop?: true; stop?: true; once?: Id; stinger?: Id }) {
     if (c.play) this.audio.play(c.play);
     else if (c.push) this.audio.push(c.push);
     else if (c.pop) this.audio.pop();
     else if (c.stop) this.audio.stop();
     else if (c.once) this.audio.once(c.once);
+    else if (c.stinger) this.audio.stinger(c.stinger);
   }
   toast(text: string) { this.live.textContent = text; const t = el('div', 'toast', esc(text)); this.scene.append(t); setTimeout(() => t.remove(), 2400); }
   shake(ms: number) { if (this.settings.reduceMotion) return; this.scene.classList.add('shake'); setTimeout(() => this.scene.classList.remove('shake'), ms); }
@@ -1233,7 +1238,7 @@ export class App implements Presenter {
     const budget = this.game.assetBudgets ?? {};
     // The asset graph's scopes (core/asset-graph.ts): the current room, the title at boot, then the rooms one exit or
     // one unlocked map place away. The same keys the weight budgets count and the offline plan caches.
-    const g = this.assets ??= assetGraph(this.game, { manifest: b.manifest, bindings: Object.fromEntries(Object.entries(this.mg).map(([k, m]) => [k, m.bindings ?? {}])), layouts: Object.fromEntries(this.game.rooms.map((r) => [r.id, this.engine.layout(r.id)])) });
+    const g = this.assets ??= assetGraph(this.game, { stems: this.audio.stemsOn, manifest: b.manifest, bindings: Object.fromEntries(Object.entries(this.mg).map(([k, m]) => [k, m.bindings ?? {}])), layouts: Object.fromEntries(this.game.rooms.map((r) => [r.id, this.engine.layout(r.id)])) });
     const rooms = new Map(this.game.rooms.map((r) => [r.id, r]));
     const current = rooms.get(roomId);
     if (!current) return;

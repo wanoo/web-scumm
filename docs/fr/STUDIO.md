@@ -121,6 +121,9 @@ commandes personnalisées sont du code de confiance, pas des données isolées. 
   repeints du peintre canvas).
 - **Voix.** Le tableau de production des voix par langue (`npm run voices`) : statut, comédien et note par ligne,
   enregistrés aussitôt ; Export CSV pour les comédiens.
+- **Musique** (3.5). Les partitions du jeu par son propre directeur musical : en jouer une, entendre le mix de chaque
+  état à la mesure suivante, couper ou isoler un stem, la mesure et le temps affichés pendant la lecture. Rien n'est
+  écrit : les états sont du contenu dans `game.ts`.
 
 `npm run e2e:studio -- <url du Studio>` (bloquant en CI) crée une scène par le formulaire, vérifie le diff, l'applique,
 la voit dans le jeu, et l'annule.

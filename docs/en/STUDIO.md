@@ -104,6 +104,8 @@ A provider call never follows a redirect, gives up after 60 s, and reads at most
   canvas painter's repaints).
 - **Voices.** The voice production table per language (`npm run voices`): status, actor and note per line, saved at
   once; Export CSV for the actors.
+- **Music** (3.5). The game's scores through its own music director: play one, hear each state's mix on the next bar,
+  mute or solo a stem, the bar and beat shown as it plays. Nothing is written: the states are content in `game.ts`.
 
 `npm run e2e:studio -- <studio url>` (a CI gate) creates a stage with the form, checks the diff, applies, sees it in
 the game, and undoes it.

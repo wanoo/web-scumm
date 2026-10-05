@@ -13,6 +13,7 @@ import { spawnSync } from 'node:child_process';
 
 const url = process.argv.slice(2).find((a) => !a.startsWith('--')) ?? 'http://127.0.0.1:5173/';
 const tolerance = Number(process.argv.find((a) => a.startsWith('--tolerance='))?.split('=')[1] ?? 0.1);
+// Save-Data below: the music director steps aside, the single mixes play: the prediction's default.
 const w = spawnSync('npx', ['tsx', 'tools/weight.ts', '--json'], { encoding: 'utf8', env: process.env });
 const pred = JSON.parse(w.stdout.trim().split('\n').pop());
 const predicted = new Set(pred.initialKeys);

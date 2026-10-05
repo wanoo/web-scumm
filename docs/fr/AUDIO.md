@@ -111,6 +111,21 @@ utilisent donc les vraies hauteurs (garder les notes PSG ≥ A2). Le DAC n'a pas
 échantillons séparés (`snare` / `ghost`). Une note par canal, quatre effets par cellule, des lignes de triple croche à
 60 Hz avec un groove pour le tempo.
 
+## Des stems pour le directeur musical (3.5)
+
+`npm run audio -- stems <projet>/spec.json` rend l'arrangement canal par canal (la sortie par canal de Furnace) et
+additionne les canaux en stems : les `"stems": { "<nom>": ["FM1", "PSG1"], … }` de la spec, ou par rôle de canal s'il
+n'y en a pas (melody : lead et echo ; harmony : double, harmony, counter, accent, arp ; bass ; drums : le DAC et le
+bruit). Chaque stem vient du même rendu : tous ont la même longueur et le même départ, et leur somme est le mix. Un
+seul gain, le même pour chaque stem, amène la somme à −14 LUFS (jamais une normalisation par stem : l'équilibre est
+celui de l'arrangement). La commande écrit `games/<id>/audio/music/<slug>-stems/<stem>.mp3` et un `score.json` à
+coller sous `audio.scores`, sous l'id du mix unique (le tempo est mesuré sur le rendu : mesures × temps sur sa durée).
+
+Regrouper les canaux selon ce que le jeu allumera ou éteindra : le thème du jeu d'exemple a mélodie, cordes, harpe et
+basse, et ne joue que la harpe et la basse quand Biscuit est actif. Un stem presque muet (le seul canal de bruit du
+Lac des cygnes, −54 LUFS) est un téléchargement perdu : le fondre dans un autre. Le mix unique reste : c'est lui qui
+joue avec Save-Data, sur un appareil modeste, ou sans Web Audio.
+
 ## Bruitages
 
 `games/<id>/audio/sfx.json` contient une recette par id de `audio.sfx` ; `npm run audio -- sfx <fichier>` les rend

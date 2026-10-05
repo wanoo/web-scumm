@@ -8,6 +8,10 @@
     {
       "match": "music:swan_lake.mp3",
       "reason": "The engine's sample game is a demo, not a product: its non-commercial music (CC BY-NC 4.0, outside the policy) is said in LICENSE-ASSETS."
+    },
+    {
+      "match": "music:swan-lake-stems/*",
+      "reason": "The same non-commercial arrangement as the theme, cut into stems for the music director (3.5): said in LICENSE-ASSETS with it."
     }
   ],
   "assets": [
@@ -33,6 +37,14 @@
       "licence": "CC BY-NC 4.0",
       "status": "placeholder",
       "note": "Non-commercial: replace it in a commercial game (LICENSE-ASSETS)"
+    },
+    {
+      "match": "music:swan-lake-stems/*",
+      "source": "The theme's arrangement rendered channel by channel and grouped into stems (games/demo/audio/projects/swan-lake, npm run audio -- stems)",
+      "author": "Wano",
+      "licence": "CC BY-NC 4.0",
+      "status": "placeholder",
+      "note": "Non-commercial, like the theme: replace both in a commercial game (LICENSE-ASSETS)"
     }
   ]
 }

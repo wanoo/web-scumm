@@ -1205,6 +1205,34 @@
    "licence": "CC BY 4.0",
    "status": "final"
   },
+  "music:swan-lake-stems/bass.mp3": {
+   "sha256": "f2627dab91aaea239db7b1dc465223f2a5d5050b69a7b5a0b8cbc070553bb2e9",
+   "bytes": 792857,
+   "match": "music:swan-lake-stems/*",
+   "licence": "CC BY-NC 4.0",
+   "status": "placeholder"
+  },
+  "music:swan-lake-stems/harp.mp3": {
+   "sha256": "bd448e45a2b995ed9dde39ace9c27b977b1fa419bf5372a5a967fc39290c3afb",
+   "bytes": 792857,
+   "match": "music:swan-lake-stems/*",
+   "licence": "CC BY-NC 4.0",
+   "status": "placeholder"
+  },
+  "music:swan-lake-stems/melody.mp3": {
+   "sha256": "d838183d307d8fa7bb6b1c39e7ed26af611ac45d53474ba5ee8d5ad6960da812",
+   "bytes": 792859,
+   "match": "music:swan-lake-stems/*",
+   "licence": "CC BY-NC 4.0",
+   "status": "placeholder"
+  },
+  "music:swan-lake-stems/strings.mp3": {
+   "sha256": "1f0984dae2266d24a53d5c3e6d006c53717a6e8bb72379d9ea961a82b8543d49",
+   "bytes": 792860,
+   "match": "music:swan-lake-stems/*",
+   "licence": "CC BY-NC 4.0",
+   "status": "placeholder"
+  },
   "music:swan_lake.mp3": {
    "sha256": "7ac57332c2c888e8f4ec007b542fbf9646a58094c7a36d2427b6a0751181cf8f",
    "bytes": 792863,

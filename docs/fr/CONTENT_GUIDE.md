@@ -236,6 +236,7 @@ Une réplique reste à l'écran le temps de la lire, ou jusqu'à un tap.
 | `{ music: 'marche' }` | Change de musique (fondu enchaîné). |
 | `{ music: { push: 'minigame' } }` puis `{ music: { pop: true } }` | Musique temporaire, puis retour à la précédente. |
 | `{ music: { once: 'jingle' } }` | Joue un morceau une fois par-dessus, puis la musique reprend. |
+| `{ music: { stinger: 'success' } }` | Une courte ponctuation (un morceau de `audio.music` ou un son de `audio.sfx`) sur le prochain temps de la partition qui joue (3.5) ; tout de suite avec un mix unique. |
 | `{ toast: 'Nouveau lieu : Marché' }` | Petit message en haut de l'écran. |
 | `{ shake: 400 }` | L'écran tremble. |
 
@@ -801,3 +802,30 @@ npm run validate   # tout ce qui est cité existe, chaque chose visible a un Reg
 npm run solve      # le jeu se finit depuis « Nouvelle partie » ; liste les objets jamais utilisés
 npm run dev        # puis ?dev pour sauter à un checkpoint, ?edit=maison pour placer les choses
 ```
+
+## Musique en stems (3.5)
+
+Un morceau de `audio.music` peut aussi avoir une partition : ses stems, joués ensemble par le directeur musical, le
+mix suivant le jeu. `npm run audio -- stems` les fabrique (docs/fr/AUDIO.md).
+
+```ts
+audio: {
+  music: { theme: 'swan_lake.mp3' },            // le mix unique : Save-Data, appareils modestes, sans Web Audio
+  scores: {
+    theme: {
+      stems: { melody: 'swan-lake-stems/melody.mp3', strings: 'swan-lake-stems/strings.mp3', harp: 'swan-lake-stems/harp.mp3', bass: 'swan-lake-stems/bass.mp3' },
+      bpm: 80, beatsPerBar: 4,                  // depuis score.json
+      states: [                                 // le premier qui tient fixe le mix ; aucun : tous les stems
+        { if: { player: 'biscuit' }, stems: ['harp', 'bass'] },
+        { if: { room: 'garden' }, stems: ['strings', 'harp', 'bass'] },
+      ],
+      // quantize: 'bar' (défaut) ou 'beat' ; fadeBeats: 2 ; loop: [première mesure, mesure de fin)
+    },
+  },
+}
+```
+
+Un état est n'importe quelle condition du DSL (un flag, le lieu, le personnage actif). Un changement d'état prend
+effet à la mesure suivante, en fondu ; un autre lieu avec le même morceau garde la musique et ne change que le mix.
+`npm run validate` vérifie les stems, le tempo, les stems et conditions des états, et que le mix unique existe.
+L'onglet Musique du Studio joue une partition et le mix de chaque état.

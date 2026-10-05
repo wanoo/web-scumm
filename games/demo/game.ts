@@ -122,6 +122,19 @@ export const game = defineGame({
   // the opening of Tchaikovsky's Swan Lake (public domain), the effects come from games/demo/audio/sfx.json.
   audio: {
     music: { theme: 'swan_lake.mp3' },
+    // The theme in stems for the music director (3.5, `npm run audio -- stems`): the whole orchestra in the house and
+    // the market, no melody in the garden, only the harp and the bass while Biscuit tiptoes about. The mix changes on
+    // the next bar; the single mix plays where the director does not (Save-Data, a low-end device).
+    scores: {
+      theme: {
+        stems: { melody: 'swan-lake-stems/melody.mp3', strings: 'swan-lake-stems/strings.mp3', harp: 'swan-lake-stems/harp.mp3', bass: 'swan-lake-stems/bass.mp3' },
+        bpm: 80, beatsPerBar: 4,
+        states: [
+          { if: { player: 'biscuit' }, stems: ['harp', 'bass'] },
+          { if: { room: 'garden' }, stems: ['strings', 'harp', 'bass'] },
+        ],
+      },
+    },
     sfx: {
       door_open: 'door_open.mp3', door_close: 'door_close.mp3', latch: 'latch.mp3', coins: 'coins.mp3', cloth: 'cloth.mp3',
       paper: 'paper.mp3', click: 'click.mp3', success: 'success.mp3', error: 'error.mp3', ring: 'ring.mp3', drop: 'drop.mp3',

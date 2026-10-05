@@ -37,8 +37,8 @@ export interface WeightReport {
 
 const kb = (b: number) => Math.round(b / 1024);
 
-export function weightReport(game: GameDef, sizes: Record<string, number | null>, chapters: { id: string; rooms: Id[] }[] = [], budgets: WeightBudgets = game.assetBudgets ?? {}, opts: { bindings?: MinigameBindings; layouts?: Record<Id, Layout>; shell?: string[] } = {}): WeightReport {
-  const graph = assetGraph(game, { bindings: opts.bindings, layouts: opts.layouts });
+export function weightReport(game: GameDef, sizes: Record<string, number | null>, chapters: { id: string; rooms: Id[] }[] = [], budgets: WeightBudgets = game.assetBudgets ?? {}, opts: { bindings?: MinigameBindings; layouts?: Record<Id, Layout>; shell?: string[]; stems?: boolean } = {}): WeightReport {
+  const graph = assetGraph(game, { bindings: opts.bindings, layouts: opts.layouts, stems: opts.stems });
   const byRoom = new Map(game.rooms.map((r) => [r.id, roomAssets(game, r, graph)]));
   // The first visit: the app shell (what the service worker precaches, when the build is there) and the initial scope.
   const initial = weigh([...(opts.shell ?? []), ...initialAssets(game, graph)], sizes);

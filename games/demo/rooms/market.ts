@@ -57,7 +57,7 @@ export default defineRoom({
         decoy: 'minigame/r1c6', decoyLine: 'Ouch! A nettle. Not romantic at all.', wrongLine: 'Not that one. Look again.',
         win: 'A perfect bouquet!',
       }, then: [
-        { lose: 'token' }, { set: 'flowers_done' }, { sfx: 'success' },
+        { lose: 'token' }, { set: 'flowers_done' }, { music: { stinger: 'success' } },
         { id: 'market.give-token-seller.l-beautiful-i-put', say: ['seller', 'Beautiful! I put it on the stall for you.'] },
       ] },
     ] },

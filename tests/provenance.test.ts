@@ -32,11 +32,11 @@ describe('asset provenance', () => {
     expect(r.ambiguous).toEqual(['img:hero/r1c1 (img:*, img:hero/*)']);
     expect(r.placeholders).toEqual([]);
   });
-  it('the sample game covers every asset; its only placeholder is the non-commercial music', () => {
+  it('the sample game covers every asset; its only placeholder is the non-commercial music (the theme and its stems)', () => {
     const r = provenanceReport(demo, demoManifest as never, demoProvenance as Provenance);
     expect(r.uncovered).toEqual([]);
     expect(r.incomplete).toEqual([]);
-    expect(r.placeholders).toEqual(['music:swan_lake.mp3']);
+    expect(r.placeholders.sort()).toEqual(['music:swan-lake-stems/bass.mp3', 'music:swan-lake-stems/harp.mp3', 'music:swan-lake-stems/melody.mp3', 'music:swan-lake-stems/strings.mp3', 'music:swan_lake.mp3']);
   });
 });
 
@@ -76,7 +76,10 @@ describe('the provenance lock', () => {
   it('the sample game ships exactly the files it locked', () => {
     const k = assetKeys(demo, demoManifest as never);
     expect(lockMessages(lockDiff(k, demoProvenance as Provenance, fileFacts(k), demoLock as never))).toEqual([]);
-    expect(licenceVerdict(k, demoProvenance as Provenance)).toEqual({ errors: [], accepted: [expect.stringContaining('music:swan_lake.mp3')] });
+    const v = licenceVerdict(k, demoProvenance as Provenance);
+    expect(v.errors).toEqual([]);
+    expect(v.accepted).toHaveLength(5);
+    expect(v.accepted.every((x) => x.includes('music:swan_lake.mp3') || x.includes('music:swan-lake-stems/'))).toBe(true);
   });
 });
 
@@ -103,8 +106,9 @@ describe('a commercial release (verify:commercial)', () => {
   it('the sample game is not for sale: its music is CC BY-NC and a placeholder, shipped as a named exception', () => {
     const k = assetKeys(demo, { images: demoManifest.images, videos: (demoManifest as { videos?: Record<string, unknown> }).videos });
     const e = commercialVerdict(k, demoProvenance as Provenance, (p) => require('node:fs').existsSync(p));
-    expect(e).toHaveLength(3);
-    expect(e.every((x) => x.includes('music:swan_lake.mp3'))).toBe(true);
+    // Per exception, the licence, the placeholder and the exception itself: the theme's and its stems'.
+    expect(e).toHaveLength(6);
+    expect(e.every((x) => x.includes('music:swan_lake.mp3') || x.includes('music:swan-lake-stems/'))).toBe(true);
   });
 });
 

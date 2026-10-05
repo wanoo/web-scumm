@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Added
+
+- The music director (3.5, `dom/director.ts`, `core/score.ts`): a track of `audio.music` can have a score
+  (`audio.scores`: stems, tempo, the mix per game state). Its stems play sample-locked on Web Audio; a change of state
+  (a flag, the room, the active character) moves stem gains on the next bar or beat, crossfaded; another room with the
+  same track keeps the music going. `{ music: { stinger } }` plays a cue on the next beat. The single mix plays under
+  Save-Data, on a low-end device or without Web Audio (`?music=mix|stems` forces one). `npm run audio -- stems` renders
+  the stems from the arrangement (one gain for all: their sum is the mix). The sample game's theme in four stems (the
+  harp and the bass alone while Biscuit plays, no melody in the garden), the reference chapter's (no melody until the
+  lights come back). `npm run e2e:music` (CI): thirty minutes rendered offline with 0 samples of drift, 100 changes of
+  mix without a click (a hard switch is caught), real-time jitter 0.02 ms in Chromium and WebKit, the stems in the
+  game. The Studio's Music tab plays a score and each state's mix. The asset graph, the offline plan, provenance and
+  `npm run weight` count the stems (the budgets count the single mix, the stems on their own line; `--stems`).
+
 ## 3.4.0 — 2026-10-05
 
 "Stagecraft": picture, scene and Studio (Codex's 3.4 plan, D10–D13; `docs/en/ROADMAP.md`, `docs/en/BENCH.md` 3.4).

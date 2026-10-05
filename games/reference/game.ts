@@ -62,7 +62,12 @@ export const game = defineGame({
   },
   saves: { slots: 3 },
   settings: true,
-  audio: demo.audio,
+  // The demo's sounds, and its theme in stems with this chapter's own mixes (3.5): Biscuit's harp and bass, the night
+  // without the melody until the lights come back, then the whole orchestra for the festival.
+  audio: { ...demo.audio, scores: { theme: { ...demo.audio!.scores!.theme, states: [
+    { if: { player: 'biscuit' }, stems: ['harp', 'bass'] },
+    { if: '!lights_on', stems: ['strings', 'harp', 'bass'] },
+  ] } } },
   skin: { ...demo.skin, icons: { ...demo.skin.icons } },
   titleScreen: { decor: 'decor/market_wide', music: 'theme', footer: 'The reference chapter of web-scumm. Turn your phone sideways.' },
   credits: ['THE NIGHT MARKET', '', 'The reference chapter of web-scumm (3.4)', '', 'Art and sound: the sample game\'s (CC BY 4.0)', 'Music: Swan Lake, arranged (CC BY-NC 4.0)', '', 'Thanks for playing!'],

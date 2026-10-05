@@ -167,6 +167,17 @@ cache instead of downloading them again. The interface font is a Latin subset (1
 full DotGothic16 (2 MB, mostly Japanese) is a second face whose `unicode-range` covers only the rest, so a browser
 fetches it, and caches it, only for a character outside the subset.
 
+## Music: a director and its stems
+
+`dom/director.ts` plays a score (`audio.scores`, 3.5) on Web Audio from decoded buffers: every stem starts at the same
+instant of the audio clock and loops over the same window, so they stay sample-locked; a change of the game's state
+moves stem gains on the next bar (or beat), crossfaded, scheduled ahead on the audio thread. `core/score.ts` decides
+what and when, without a sound card: the mix per state, the grid through the loop, the ramps. `dom/audio.ts` hands a
+scored track to the director where it fits (Web Audio, no Save-Data, more than 2 GB and 2 cores; `?music=mix|stems`
+forces one) and plays the single mix with Howler elsewhere; voices and one-off tracks duck the score like the mix.
+`npm run e2e:music` renders thirty minutes offline (0 samples of drift), 100 changes of mix (no click; a hard switch
+is caught), and measures the real-time jitter in Chromium and WebKit (0.02 ms), all in CI.
+
 ## Cache and responsiveness
 
 - A **service worker** (vite-plugin-pwa / Workbox) keeps the app shell cached from the first visit. Images and sounds
