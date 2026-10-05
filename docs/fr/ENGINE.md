@@ -128,6 +128,15 @@ la référence (D10) : une `<img>` par sprite, le z-index pour la profondeur, un
 `npm run e2e:visual` compare chaque lieu de la démo, figé, avec sa référence dans `tests/visual/demo/` (bloquant en
 CI ; `--update` les réécrit après un changement voulu).
 
+`dom/render-canvas.ts` est le peintre Canvas 2D : un `<canvas>` par lieu, aussi large que le lieu et déplacé par la
+caméra comme le lieu du peintre DOM, repeint à l'image suivante après un changement ; la profondeur est l'ordre de
+dessin, un sprite pivote sur ses pieds, un sprite droit est calé sur les pixels de l'écran comme le fait la mise en
+page du DOM, le fond couvre le lieu comme `object-fit: cover`. Un lieu le choisit avec `renderer: 'canvas'` (ou le jeu
+pour tous les lieux) ; `?renderer=canvas|dom` en impose un à tous les lieux. L'interface, les dialogues et chaque cible
+accessible restent dans le DOM, au-dessus du canvas. Mesuré sur la démo : ses lieux à 0,31 % au plus des références
+DOM, le jeu entier joué jusqu'à la fin avec lui, 60 images par seconde avec le CPU ralenti 4× (`npm run e2e:perf`),
+tout cela dans la ligne CI `chromium / canvas`.
+
 ## Assets : un seul graphe
 
 `src/engine/core/asset-graph.ts` dit quels fichiers chaque partie du jeu demande, d'après le contenu : le titre (décor,

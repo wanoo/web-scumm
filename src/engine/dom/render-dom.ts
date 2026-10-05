@@ -67,4 +67,6 @@ export class DomRenderer implements SceneRenderer {
   }
 
   dispose() { this.el.innerHTML = ''; this.sprites.clear(); }
+  /** Paints done (the DOM paints as it goes: always 0). */
+  paints = 0;
 }

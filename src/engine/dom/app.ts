@@ -210,6 +210,10 @@ export class App implements Presenter {
     const store = this.engine.store as SaveStore & Partial<SlotStore>;
     this.slots = o.slots ?? (typeof store.listSlots === 'function' ? (store as SlotStore) : new LocalSlotStore(o.game.id, o.game, storageFailure, storageWarning));
     this.view = new RoomView(this.engine, this.bank);
+    // `?renderer=canvas|dom` forces a painter for every room (the visual parity check, the Studio's comparison).
+    const forced = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('renderer') : null;
+    if (forced === 'canvas' || forced === 'dom') this.view.forced = forced;
+    this.view.onSurface = (el, old) => { if (old.parentElement) old.replaceWith(el); else this.scene?.prepend(el); };
     this.engine.autoScripts = true;
     this.engine.clock = () => performance.now();
     this.engine.onChange = () => this.refresh();

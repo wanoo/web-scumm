@@ -69,6 +69,8 @@ export async function launch(url, opts = {}) {
   if (opts.at) dest.searchParams.set('at', opts.at);
   // opts.lang: the game's language (`?lang=`), for the release-language check (`leaks()`).
   if (opts.lang) dest.searchParams.set('lang', opts.lang);
+  // opts.renderer: the painter of every room (`?renderer=canvas|dom`, D10).
+  if (opts.renderer) dest.searchParams.set('renderer', opts.renderer);
   await page.goto(dest.toString());
   await page.waitForFunction(() => !!window.__game, null, { timeout: 15000 });
   // The ?dev debug layer (hotspot boxes, labels, an SVG laid directly over .scene) defaults to visible: hide it

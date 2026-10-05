@@ -186,6 +186,8 @@ npm run verify:commercial          # verify:release, then no exception, no place
 npm run provenance [-- --lock]     # the shipped assets by licence, what changed since the reviewed lock; --lock records the files after a review
 npm run weight [-- --release --json]   # what a phone downloads before the first room, per room and per chapter, against assetBudgets
 npm run playtests [-- --strict --out=.cache/playtests]  # the sessions players shared (games/<id>/playtests) replayed and summed up: time per room, stalls, hints, heat map
+npm run e2e:perf -- <url> [--renderer=canvas|dom --cpu=4 --min=30 --room=<id>]   # frames per second while the hero walks, CPU slowed (the phone stand-in)
+npm run e2e -- <url> --renderer canvas  # the whole game drawn by the Canvas painter
 npm run e2e:visual -- <url> [--update] # every room, still, against tests/visual/<game>/*.png (0.5% of the pixels at most)
 npm run e2e -- <url> --lang fr           # the whole game in that language; fails on any visible English default of the engine
 npm run e2e:a11y -- <url> [--only=axe,keys,storage] [--allow-skip]   # axe on the conversation, map, slots, confirmations, every minigame; every minigame won at the keyboard; an older save upgraded (E2E_BROWSER=chromium|webkit; exit 3: a check the browser cannot automate)

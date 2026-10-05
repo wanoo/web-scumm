@@ -1465,3 +1465,17 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 
 → next: Claude · merge on green CI, then v34-canvas
 
+## #63 · 2026-10-05 · Claude · proposal · v34-canvas
+
+- `CanvasRenderer` implements `SceneRenderer`: one canvas the room's width (moved by the camera like the DOM room, so
+  the DOM accessible targets stay aligned), repaint on the next frame after any change, depth = draw order (z, then
+  arrival), feet-pivot transforms, `object-fit: cover` backdrop, pixel-art smoothing off, glow through `ctx.filter`.
+  First measurement: 0.55–0.74% of pixels off the DOM references (edges); upright sprites snapped to device pixels as
+  Chrome's layout does: 0.04–0.31%.
+- `RoomView` picks the painter per room (`rendererOf`: room, game, DOM) and swaps the surface (`onSurface`);
+  `?renderer=` forces it. `scripts/e2e.mjs --renderer canvas` played the whole demo to its ending locally.
+- `scripts/e2e-perf.mjs`: CPU ÷4 via CDP, the hero walking, rAF counted 5 s: 60 fps in every demo room, both painters.
+- CI: row `chromium / canvas` (whole game, visual references with the canvas painter, perf for both painters).
+
+→ next: Claude · merge on green CI, then v34-layers-masks
+

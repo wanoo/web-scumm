@@ -4,6 +4,11 @@
 
 ### Added
 
+- The Canvas 2D painter (`dom/render-canvas.ts`, D10): `renderer: 'canvas'` on a room or the game, `?renderer=` to
+  force one. The sample game's rooms within 0.31% of the DOM references, the whole game played by it in CI (a new
+  `chromium / canvas` row), and `npm run e2e:perf` (frames per second while the hero walks, CPU slowed 4×: 60 with
+  either painter on the sample game).
+
 - The stage schema (3.4): `RoomDef.stage` (layers with roles and conditions, lights, particle emitters, the room's
   transition, the logic of walk links) and its geometry in the layout (`layers`, `occluders`, `walkZones`, `walkLinks`,
   `lights`, `emitters`); `renderer: 'dom' | 'canvas'` on a room or the game. `stageOf` normalizes any room (an old one
