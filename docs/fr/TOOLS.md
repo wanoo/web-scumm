@@ -185,7 +185,8 @@ npm run voices -- import t.csv --lang xx             # leurs statuts, comédiens
 npm run voices -- check [--lang xx] [--release]      # chaque clip mesuré avec ffmpeg : codec, fréquence, durée pour son texte, niveau (≈ −16 LUFS), crête ; --release : une ligne approuvée exige son clip
 npm run validate -- --release      # en plus : provenance, provisoires, et un id stable sur chaque ligne d'un jeu livré dans une autre langue que la sienne ou doublé
 npm run verify:release             # validate --release + weight --release + statut i18n + playtests stricts : une étape de release-check
-npm run verify:commercial          # verify:release, puis aucune exception, aucun provisoire, aucune licence NC/ND, chaque source vérifiable (la démo échoue : sa musique)
+npm run verify:commercial          # verify:release, puis aucune exception, aucun provisoire, aucune licence NC/ND, chaque source vérifiable, puis verify:dist
+npm run verify:dist                # chaque fichier de dist/ justifié : code, assets verrouillés (leurs octets revus), données nommées, polices, icônes, licenses/ (3.7.1)
 npm run provenance [-- --lock]     # les assets livrés par licence, ce qui a changé depuis le verrou relu ; --lock enregistre les fichiers après une relecture
 npm run weight [-- --release --json --stems]   # ce qu'un téléphone télécharge avant le premier lieu, par lieu et par chapitre, face à assetBudgets (les mix uniques ; les stems des partitions sur leur ligne, --stems les compte)
 npm run playtests [-- --strict --out=.cache/playtests]  # les sessions partagées par les joueurs (games/<id>/playtests) rejouées et cumulées : temps par lieu, blocages, indices, heatmap
@@ -330,7 +331,16 @@ pas dire que chaque asset peut être vendu : une exception est une raison, pas u
 non commerciale ou sans modification (`NC`, `ND`), et toute entrée sans `author` ou sans source vérifiable (une `url`,
 ou un fichier du dépôt nommé dans `source`). Il vérifie que les affirmations sont complètes et permettent la vente,
 pas qu'elles sont vraies. La démo le passe depuis la 3.7 (son thème est écrit pour le projet) ;
-`tests/fixtures/release-game` y échoue exprès. Traductions : un texte identique à la source fait échouer
+`tests/fixtures/release-game` y échoue exprès. **Ce que l'archive contient (3.7.1).** Les vérifications ci-dessus
+lisent le graphe d'assets du jeu ; l'archive, c'est ce que Vite copie dans `dist/`, et `public/` est partagé par les
+jeux du dépôt. Chaque build se termine donc par `tools/dist.ts seal` (un plugin Vite) : les assets qui ne sont pas
+ceux du jeu sont retirés, et `dist/licenses/` est écrit : la `LICENSE` du moteur, `LICENSE-ASSETS` (celle du jeu s'il
+en a une), `CREDITS.md` tiré de sa provenance, `THIRD_PARTY_NOTICES.txt` (la licence de chaque paquet dont le bundle a
+pris du code, celle de Workbox pour le service worker, l'OFL des polices) et `assets-manifest.json` (chaque fichier :
+chemin, auteur, source, licence, SHA-256, statut). Puis `npm run verify:dist` (une étape de `npm run build`, donc de la
+release) classe chaque fichier de `dist/` : code, asset verrouillé dont les octets sont ceux revus, fichier de données
+nommé par le jeu (`ending.file`), police, icône, notice. Tout le reste échoue, comme un fichier verrouillé ou une notice
+manquants. La release joint le manifeste des assets à côté de l'archive. Traductions : un texte identique à la source fait échouer
 `npm run i18n -- status`, sauf si `i18n: { same: [chemins] }` dans `game.ts` le liste (un nom, « OK », une flèche).
 `npm run audit` est une autre vérification : il garde les noms d'un projet privé hors du dépôt public.
 

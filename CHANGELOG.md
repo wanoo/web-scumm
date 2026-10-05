@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed
+
+- The archive held what Vite copies from `public/`, shared by the games: the sample game's shipped the reference
+  chapter's score and bridges, files its provenance lock never named. Every build now ends with `tools/dist.ts seal`:
+  the files that are not the game's are removed and `dist/licenses/` is written (engine and asset licences, credits,
+  the notices of the bundled packages and fonts, an assets manifest). `npm run verify:dist`, a step of `build` and of
+  `verify:commercial`, refuses any file of `dist/` that is not code, a locked asset with its reviewed bytes, a data
+  file the game names, a font, an icon or a notice.
+
 ## 3.7.0 — 2026-10-05
 
 "Field Proof", the machine part (LOG #88–#90): what can be proved without a person. The human passes are still to

@@ -5,6 +5,7 @@ https://creativecommons.org/licenses/by/4.0/
 
 Attribution: "Artwork by Wano, from the web-scumm project (https://github.com/wanoo/web-scumm)".
 
-The fonts under public/fonts are under the SIL Open Font License 1.1 (see CREDITS.md).
+The fonts under public/fonts and src/engine/dom/fonts are under the SIL Open Font License 1.1 (see CREDITS.md; full
+text with their copyright notices: src/engine/dom/fonts/OFL.txt, and licenses/THIRD_PARTY_NOTICES.txt in a build).
 
 The engine source code is covered by the MIT License in LICENSE.
