@@ -826,3 +826,20 @@ A state is any condition of the DSL (a flag, the room, the active character). A 
 next bar, crossfaded; another room with the same track keeps the music going and only changes the mix. `npm run
 validate` checks the stems, the tempo, the states' stems and conditions, and that the single mix exists. The Studio's
 Music tab plays a score and each state's mix.
+
+From one score to another (3.6), a rule says where the old one lets the new one in, on its own grid:
+
+```ts
+audio: {
+  scores: { day: { …, markers: { calm: 8 }, phraseBars: 4 }, night: { … } },
+  transitions: [
+    { from: 'day', to: 'night', at: 'calm', bridge: 'dusk_sting' },  // on bar 8 of "day", then the bridge, then "night"
+    { from: '*', to: 'day', at: 'phrase', fadeBeats: 2 },             // on the next phrase, crossfaded over 2 beats
+  ],
+  maxDecodedMB: 160,                                                  // decoded audio kept (default 160)
+}
+```
+
+`at` is `beat`, `bar` (default), `phrase` or a marker of the old score, counted through its loop. Without a rule, a
+score replaces another at once, faded, as in 3.5. A save keeps where the music is, and loading it resumes there.
+This is an adaptive stem mixer with transitions, not iMUSE: no tempo changes, no branches inside a score.

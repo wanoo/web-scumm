@@ -5,7 +5,7 @@
 // with the same score changes nothing but the mix: the music goes on. A stinger plays on the next beat. Works on an
 // OfflineAudioContext too (scripts/e2e-music.mjs renders thirty minutes of it and counts the samples).
 import type { Id } from '../core/types';
-import { crossfade, loopWindow, nextBoundary, type GainStep, type ScoreDef } from '../core/score';
+import { beatSec, crossfade, landing, loopWindow, nextBoundary, positionAt, type GainStep, type Landing, type ScoreDef } from '../core/score';
 
 interface Playing {
   id: Id;
@@ -53,6 +53,16 @@ export class MusicDirector {
   }
 
   get current(): Id | null { return this.playing?.id ?? null; }
+  /** The last transition scheduled (tests, the Studio): when the old score let go, and when the new one starts. */
+  lastTransition: { from: Id; to: Id; at: number; start: number } | null = null;
+
+  /** Where the playing score is in its file, in seconds (a save keeps it, 3.6), or null. */
+  get position(): number | null {
+    const p = this.playing;
+    if (!p) return null;
+    return positionAt(Math.max(0, this.ctx.currentTime - p.start), loopWindow(p.score, p.duration));
+  }
+
   /** The score asked for whose stems are still decoding (null: none). */
   get loading(): Id | null { return this.want; }
   /** When the playing score started, on the audio clock (tests, the Studio's mixer). */
@@ -91,18 +101,24 @@ export class MusicDirector {
   /**
    * Plays a score with these stems sounding. The same score already playing: only the mix changes (on its grid).
    * `at`: when it starts on the audio clock (default: as soon as its stems are decoded); `fadeMs`: its fade-in.
+   * `offset`: where in the file it starts (seconds; a save's phase, 3.6). `transition` (3.6): with a score playing,
+   * the new one starts where the old reaches `at` on its grid, after `bridge` (a file played once) if any, the old
+   * fading out over `fadeBeats` of its beats (0: cut on the downbeat).
    * Resolves once it is scheduled, or once a later request has made it stale (then nothing is played). Rejects when a
    * stem does not load and this request is still the latest.
    */
-  async play(id: Id, score: ScoreDef, urls: Record<Id, string>, stems: Id[], opts: { at?: number; fadeMs?: number } = {}): Promise<void> {
+  async play(id: Id, score: ScoreDef, urls: Record<Id, string>, stems: Id[], opts: { at?: number; fadeMs?: number; offset?: number; transition?: { at?: Landing; bridge?: string; fadeBeats?: number } } = {}): Promise<void> {
     const g = ++this.gen;
     if (this.playing?.id === id) { this.want = null; this.mix(stems); return; }
     // Too large to keep, by its declared weight: not even downloaded.
     if (score.pcmBytes !== undefined && score.pcmBytes > this.maxDecodedBytes) { this.want = null; throw new ScoreTooLarge(id, score.pcmBytes, this.maxDecodedBytes); }
     this.want = id;
-    let buffers: (readonly [string, AudioBuffer])[];
+    let buffers: (readonly [string, AudioBuffer])[], bridge: AudioBuffer | null;
     try {
-      buffers = await Promise.all(Object.keys(score.stems).map(async (s) => [s, await this.buffer(urls[s])] as const));
+      [buffers, bridge] = await Promise.all([
+        Promise.all(Object.keys(score.stems).map(async (s) => [s, await this.buffer(urls[s])] as const)),
+        opts.transition?.bridge ? this.buffer(opts.transition.bridge) : Promise.resolve(null),
+      ]);
     } catch (e) {
       if (g !== this.gen) return;
       this.want = null;
@@ -112,16 +128,32 @@ export class MusicDirector {
     this.want = null;
     if (this.playing?.id === id) { this.mix(stems); return; }
     // The other scores make room; a score that alone is over the cap plays as its mix.
-    const mine = new Set(Object.keys(score.stems).map((s) => urls[s]));
+    const mine = new Set([...Object.keys(score.stems).map((s) => urls[s]), ...(opts.transition?.bridge ? [opts.transition.bridge] : [])]);
     this.evict(mine);
     const bytes = buffers.reduce((n, [, b]) => n + b.length * b.numberOfChannels * 4, 0);
     if (bytes > this.maxDecodedBytes) { for (const u of mine) { this.buffers.delete(u); this.sizes.delete(u); } throw new ScoreTooLarge(id, bytes, this.maxDecodedBytes); }
-    this.fadeOut(600);
     const ctx = this.ctx;
-    const start = opts.at ?? ctx.currentTime + this.lead;
+    const prev = this.playing;
+    let start = opts.at ?? ctx.currentTime + this.lead;
+    let fade = (opts.fadeMs ?? 600) / 1000;
+    if (prev && opts.transition) {
+      // On the old score's grid: it plays on to the landing, then fades (or stops on the downbeat), and the bridge then
+      // the new score take over from there.
+      const t = landing(prev.score, prev.start, ctx.currentTime, opts.transition.at ?? 'bar', this.lead, prev.duration);
+      const out = Math.max((opts.transition.fadeBeats ?? 0) * beatSec(prev.score), 0.02);
+      this.playing = null;
+      const now = ctx.currentTime;
+      prev.bus.gain.cancelScheduledValues(now); prev.bus.gain.setValueAtTime(prev.bus.gain.value, now);
+      prev.bus.gain.setValueAtTime(prev.bus.gain.value, t); prev.bus.gain.linearRampToValueAtTime(0, t + out);
+      for (const s of prev.sources) { try { s.stop(t + out + 0.02); } catch { /* not started */ } }
+      if (bridge) { const b = ctx.createBufferSource(); b.buffer = bridge; b.connect(this.master); b.start(t); }
+      start = t + (bridge?.duration ?? 0);
+      fade = bridge ? 0 : out > 0.02 ? out : 0;
+      this.lastTransition = { from: prev.id, to: id, at: t, start };
+    } else this.fadeOut(600);
+    const offset = opts.offset ?? 0;
     const bus = ctx.createGain();
     bus.connect(this.master);
-    const fade = (opts.fadeMs ?? 600) / 1000;
     if (fade > 0) { bus.gain.setValueAtTime(0, start); bus.gain.linearRampToValueAtTime(1, start + fade); }
     const gains = new Map<Id, GainNode>(), sources: AudioBufferSourceNode[] = [];
     for (const [stem, buf] of buffers) {
@@ -133,10 +165,11 @@ export class MusicDirector {
       const [a, b] = loopWindow(score, buf.duration);
       src.loop = true; src.loopStart = a; src.loopEnd = b;
       src.connect(g);
-      src.start(start, 0);
+      src.start(start, Math.min(offset, buf.duration));
       gains.set(stem, g); sources.push(src);
     }
-    this.playing = { id, score, start, duration: Math.min(...buffers.map(([, b]) => b.duration)), sources, gains, bus, stems: [...stems], ramps: new Map() };
+    // The grid counts from where the file's 0 would have been: an offset inside the first pass keeps the bars in place.
+    this.playing = { id, score, start: start - offset, duration: Math.min(...buffers.map(([, b]) => b.duration)), sources, gains, bus, stems: [...stems], ramps: new Map() };
   }
 
   /**

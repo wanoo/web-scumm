@@ -14,6 +14,11 @@
 - The music director's decoded audio is capped (3.6): `audio.maxDecodedMB` (default 160), the scores least recently
   played let go first. A score larger than the cap plays as its single mix, alone (the others keep their stems), and
   is not even downloaded when its `pcmBytes` says so. Before, every decoded stem stayed until the game closed.
+- Transitions between scores (3.6): `audio.transitions` rules (`from`, `to`, `at`: beat, bar, phrase or a marker of
+  the old score, `bridge`, `fadeBeats`), `ScoreDef.markers` and `phraseBars`. The new score starts on the old one's
+  grid, after the bridge; `npm run e2e:music` measures both to the sample in Chromium. Without a rule, as in 3.5.
+- A save keeps the music's phase (`state.music`: the track and the position in its file, written by the app, ignored
+  by the engine and the tools); loading it resumes the music there (the director's `offset`, the mix's `seek`).
 
 ## 3.5.1 — 2026-10-05
 

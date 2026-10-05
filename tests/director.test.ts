@@ -8,17 +8,18 @@ import type { ScoreDef } from '../src/engine/core/types';
 const param = () => ({ value: 1, setValueAtTime() {}, linearRampToValueAtTime() {}, cancelScheduledValues() {} });
 function fakeCtx() {
   const started: string[] = [];
+  const starts: { name: string; when: number; offset: number }[] = [];
   const ctx = {
     currentTime: 0,
     destination: {},
     createGain: () => ({ gain: param(), connect() {} }),
     createBufferSource: () => {
-      const src = { buffer: null as null | { name: string }, loop: false, loopStart: 0, loopEnd: 0, connect() {}, stop() {}, start() { started.push(src.buffer!.name); } };
+      const src = { buffer: null as null | { name: string }, loop: false, loopStart: 0, loopEnd: 0, connect() {}, stop() {}, start(when = 0, offset = 0) { started.push(src.buffer!.name); starts.push({ name: src.buffer!.name, when, offset }); } };
       return src;
     },
     decodeAudioData: async (b: ArrayBuffer & { name?: string }) => ({ name: (b as unknown as { name: string }).name, duration: 8, length: 1000, numberOfChannels: 2 }),
   };
-  return { ctx: ctx as unknown as BaseAudioContext, started };
+  return { ctx: ctx as unknown as BaseAudioContext, started, starts, raw: ctx };
 }
 
 /** Files that load when the test says so. */
@@ -157,5 +158,40 @@ describe('the decoded audio the director keeps (3.6)', () => {
     expect(d.current).toBeNull();
     expect(d.cached).toEqual([]);
     expect(started).toEqual([]);
+  });
+});
+
+describe('from one score to another (3.6)', () => {
+  // 120 BPM: a beat is 0.5 s, a bar 2 s. Each fake file lasts 8 s.
+  it('the new score starts on the old one\'s landing, after its bridge', async () => {
+    const { ctx, starts, raw } = fakeCtx(), f = files();
+    const d = new MusicDirector(ctx, f.fetch);
+    d.lead = 0;
+    const a = d.play('A', score('A'), urls('A'), ['a']); f.load('A-a'); f.load('A-b'); await a;
+    raw.currentTime = 0.7;
+    const b = d.play('B', score('B'), urls('B'), ['a'], { transition: { at: 'bar' } }); f.load('B-a'); f.load('B-b'); await b;
+    expect(d.lastTransition).toEqual({ from: 'A', to: 'B', at: 2, start: 2 });
+    expect(starts.filter((s) => s.name.startsWith('B')).map((s) => s.when)).toEqual([2, 2]);
+    raw.currentTime = 2.3;
+    const c = d.play('C', score('C'), urls('C'), ['a'], { transition: { at: 'beat', bridge: 'jingle' } });
+    f.load('C-a'); f.load('C-b'); f.load('jingle'); await c;
+    // B started at 2: its next beat after 2.3 is 2.5; the bridge (8 s) plays there, then C.
+    expect(d.lastTransition).toEqual({ from: 'B', to: 'C', at: 2.5, start: 10.5 });
+    expect(starts.find((s) => s.name === 'jingle')?.when).toBe(2.5);
+    expect(starts.filter((s) => s.name.startsWith('C')).map((s) => s.when)).toEqual([10.5, 10.5]);
+  });
+
+  it('a save\'s phase: every stem starts at that point of the file, and the grid stays the file\'s', async () => {
+    const { ctx, starts, raw } = fakeCtx(), f = files();
+    const d = new MusicDirector(ctx, f.fetch);
+    d.lead = 0;
+    raw.currentTime = 100;
+    const a = d.play('A', score('A'), urls('A'), ['a'], { offset: 3 }); f.load('A-a'); f.load('A-b'); await a;
+    expect(starts.map((s) => [s.when, s.offset])).toEqual([[100, 3], [100, 3]]);
+    expect(d.startedAt).toBe(97);
+    raw.currentTime = 101.5;
+    expect(d.position).toBeCloseTo(4.5);
+    // The next bar of the file is at 6 s of it: 103 on the clock.
+    expect(d.mix(['a', 'b'])).toBe(103);
   });
 });

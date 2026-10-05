@@ -18,6 +18,7 @@ export const GameStateSchema = z.looseObject({
   camera: z.looseObject({ x: z.number().finite(), follow: z.boolean() }).optional(), active: id.optional(),
   players: z.record(id, z.looseObject({ room: id, inventory: z.array(id), hero: z.record(id, point), used: z.array(id).optional() })).optional(),
   started: z.number().finite(), done: z.boolean().optional(),
+  music: z.looseObject({ id, at: z.number().finite().nonnegative() }).optional(),
 });
 
 export const SaveEnvelopeV3Schema = z.strictObject({

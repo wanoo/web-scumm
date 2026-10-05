@@ -425,6 +425,15 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   }
   if (game.audio?.maxDecodedMB !== undefined && !(game.audio.maxDecodedMB > 0)) err('audio.maxDecodedMB', `a number of MB above 0 (got ${String(game.audio.maxDecodedMB)})`);
   for (const [id, sc] of Object.entries(game.audio?.scores ?? {})) if (sc.pcmBytes !== undefined && sc.pcmBytes > (game.audio?.maxDecodedMB ?? 160) * 1048576) warn(`audio.scores.${id}`, `decodes to ${Math.round(sc.pcmBytes / 1048576)} MB, over audio.maxDecodedMB (${game.audio?.maxDecodedMB ?? 160}): it will always play as its single mix`);
+  // Transitions between scores (3.6): scores that exist, a landing their grid has, a bridge that is a track.
+  (game.audio?.transitions ?? []).forEach((t, i) => {
+    const w = `audio.transitions[${i}]`;
+    for (const k of ['from', 'to'] as const) if (t[k] !== '*' && !game.audio?.scores?.[t[k]]) err(`${w}.${k}`, `unknown score "${t[k]}" (audio.scores, or "*")`);
+    const from = t.from === '*' ? undefined : game.audio?.scores?.[t.from];
+    if (t.at !== undefined && !['beat', 'bar', 'phrase'].includes(t.at) && from && from.markers?.[t.at] === undefined) err(`${w}.at`, `"${t.at}" is not beat, bar, phrase or a marker of "${t.from}" (markers: ${Object.keys(from.markers ?? {}).join(', ') || 'none'})`);
+    if (t.bridge !== undefined && !music[t.bridge]) err(`${w}.bridge`, `unknown track "${t.bridge}" (audio.music)`);
+    if (t.fadeBeats !== undefined && !(t.fadeBeats >= 0)) err(`${w}.fadeBeats`, 'a number of beats, 0 or more');
+  });
   // Scores (3.5): the stems of a track that exists, a tempo, mixes that name its stems, a loop inside the file.
   for (const [id, sc] of Object.entries(game.audio?.scores ?? {})) {
     const w = `audio.scores.${id}`;
@@ -435,6 +444,8 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     if (sc.beatsPerBar !== undefined && !(Number.isInteger(sc.beatsPerBar) && sc.beatsPerBar > 0)) err(`${w}.beatsPerBar`, 'a whole number of beats above 0');
     if (sc.loop && !(sc.loop[0] >= 0 && sc.loop[1] > sc.loop[0])) err(`${w}.loop`, `[first bar, end bar) with end > first (got ${JSON.stringify(sc.loop)})`);
     if (sc.fadeBeats !== undefined && !(sc.fadeBeats >= 0)) err(`${w}.fadeBeats`, 'a number of beats, 0 or more');
+    for (const [m, bar] of Object.entries(sc.markers ?? {})) if (!(Number.isInteger(bar) && bar >= 0)) err(`${w}.markers.${m}`, `a bar counted from 0 (got ${String(bar)})`);
+    if (sc.phraseBars !== undefined && !(Number.isInteger(sc.phraseBars) && sc.phraseBars > 0)) err(`${w}.phraseBars`, 'a whole number of bars above 0');
     if (sc.pcmBytes !== undefined && !(Number.isInteger(sc.pcmBytes) && sc.pcmBytes > 0)) err(`${w}.pcmBytes`, `a whole number of bytes above 0 (got ${String(sc.pcmBytes)})`);
     else if (sc.pcmBytes === undefined) warn(w, 'no "pcmBytes" (npm run audio -- stems writes it): a browser that does not tell its memory (Safari) plays the single mix');
     (sc.states ?? []).forEach((st, i) => {
