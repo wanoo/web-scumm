@@ -25,9 +25,18 @@ interface Playing {
 const gainAt = (r: GainStep | undefined, fallback: number, t: number) =>
   !r ? fallback : t <= r.at ? r.from : t >= r.until ? r.to : r.from + ((r.to - r.from) * (t - r.at)) / (r.until - r.at);
 
+/** A score whose stems decode to more than the director's cap: it plays as its single mix (dom/audio.ts). */
+export class ScoreTooLarge extends Error {
+  constructor(readonly id: Id, readonly bytes: number, readonly cap: number) { super(`score "${id}" decodes to ${Math.round(bytes / 1048576)} MB, over the ${Math.round(cap / 1048576)} MB the director keeps`); }
+}
+
 export class MusicDirector {
   readonly master: GainNode;
+  /** Decoded files, least recently used first (3.6): over `maxDecodedBytes`, the oldest not playing are let go. */
   private buffers = new Map<string, Promise<AudioBuffer>>();
+  private sizes = new Map<string, number>();
+  /** The most decoded audio kept (default 160 MB: the demo's theme is 97 MB). */
+  maxDecodedBytes = 160 * 1024 * 1024;
   private playing: Playing | null = null;
   /**
    * Counts the requests (`play`, `stop`): a score whose stems finish decoding after a later request is dropped, so a
@@ -52,11 +61,31 @@ export class MusicDirector {
   /** The playing score's file length (its stems'), in seconds. */
   get duration(): number | null { return this.playing?.duration ?? null; }
 
-  /** Decodes a file once (the same promise for every caller). */
+  /** The decoded audio kept, in bytes (frames × channels × 4). */
+  get decodedBytes(): number { let n = 0; for (const b of this.sizes.values()) n += b; return n; }
+  /** The files kept, least recently used first. */
+  get cached(): string[] { return [...this.buffers.keys()]; }
+
+  /** Decodes a file once (the same promise for every caller), and marks it as the most recently used. */
   buffer(url: string): Promise<AudioBuffer> {
     let p = this.buffers.get(url);
-    if (!p) { p = this.fetchBuffer(url).then((b) => this.ctx.decodeAudioData(b)); this.buffers.set(url, p); this.buffers.get(url)!.catch(() => this.buffers.delete(url)); }
+    if (p) { this.buffers.delete(url); this.buffers.set(url, p); return p; }
+    p = this.fetchBuffer(url).then((b) => this.ctx.decodeAudioData(b)).then((buf) => {
+      if (this.buffers.get(url) === p) this.sizes.set(url, buf.length * buf.numberOfChannels * 4);
+      return buf;
+    });
+    this.buffers.set(url, p);
+    p.catch(() => { if (this.buffers.get(url) === p) { this.buffers.delete(url); this.sizes.delete(url); } });
     return p;
+  }
+
+  /** Lets go of the least recently used files, never `keep`'s, until the cap holds (or nothing else is left). */
+  private evict(keep: Set<string>) {
+    for (const url of [...this.buffers.keys()]) {
+      if (this.decodedBytes <= this.maxDecodedBytes) return;
+      if (keep.has(url) || !this.sizes.has(url)) continue;
+      this.buffers.delete(url); this.sizes.delete(url);
+    }
   }
 
   /**
@@ -68,6 +97,8 @@ export class MusicDirector {
   async play(id: Id, score: ScoreDef, urls: Record<Id, string>, stems: Id[], opts: { at?: number; fadeMs?: number } = {}): Promise<void> {
     const g = ++this.gen;
     if (this.playing?.id === id) { this.want = null; this.mix(stems); return; }
+    // Too large to keep, by its declared weight: not even downloaded.
+    if (score.pcmBytes !== undefined && score.pcmBytes > this.maxDecodedBytes) { this.want = null; throw new ScoreTooLarge(id, score.pcmBytes, this.maxDecodedBytes); }
     this.want = id;
     let buffers: (readonly [string, AudioBuffer])[];
     try {
@@ -80,6 +111,11 @@ export class MusicDirector {
     if (g !== this.gen) return;
     this.want = null;
     if (this.playing?.id === id) { this.mix(stems); return; }
+    // The other scores make room; a score that alone is over the cap plays as its mix.
+    const mine = new Set(Object.keys(score.stems).map((s) => urls[s]));
+    this.evict(mine);
+    const bytes = buffers.reduce((n, [, b]) => n + b.length * b.numberOfChannels * 4, 0);
+    if (bytes > this.maxDecodedBytes) { for (const u of mine) { this.buffers.delete(u); this.sizes.delete(u); } throw new ScoreTooLarge(id, bytes, this.maxDecodedBytes); }
     this.fadeOut(600);
     const ctx = this.ctx;
     const start = opts.at ?? ctx.currentTime + this.lead;

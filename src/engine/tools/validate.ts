@@ -423,6 +423,8 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     for (const k of ['map', 'pause', 'music'] as const) if (!sk.icons[k]) err('skin.icons', `missing required icon: "${k}"`);
     for (const [k, v] of Object.entries(sk.icons)) for (const id of Array.isArray(v) ? v : [v]) img(id, `skin.icons.${k}`);
   }
+  if (game.audio?.maxDecodedMB !== undefined && !(game.audio.maxDecodedMB > 0)) err('audio.maxDecodedMB', `a number of MB above 0 (got ${String(game.audio.maxDecodedMB)})`);
+  for (const [id, sc] of Object.entries(game.audio?.scores ?? {})) if (sc.pcmBytes !== undefined && sc.pcmBytes > (game.audio?.maxDecodedMB ?? 160) * 1048576) warn(`audio.scores.${id}`, `decodes to ${Math.round(sc.pcmBytes / 1048576)} MB, over audio.maxDecodedMB (${game.audio?.maxDecodedMB ?? 160}): it will always play as its single mix`);
   // Scores (3.5): the stems of a track that exists, a tempo, mixes that name its stems, a loop inside the file.
   for (const [id, sc] of Object.entries(game.audio?.scores ?? {})) {
     const w = `audio.scores.${id}`;

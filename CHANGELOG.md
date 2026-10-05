@@ -11,6 +11,9 @@
 - `validate --release` measures each score's stem files with ffprobe (3.6): the same rate, channels and exact number
   of samples, the loop ending inside them, `pcmBytes` within 1% of what they decode to. Hand-made stems that would
   drift apart no longer pass a release (`src/engine/tools/stems.ts`, `tests/stems.test.ts`).
+- The music director's decoded audio is capped (3.6): `audio.maxDecodedMB` (default 160), the scores least recently
+  played let go first. A score larger than the cap plays as its single mix, alone (the others keep their stems), and
+  is not even downloaded when its `pcmBytes` says so. Before, every decoded stem stayed until the game closed.
 
 ## 3.5.1 — 2026-10-05
 

@@ -567,6 +567,11 @@ export interface AudioDef {
    * a low-end device, no Web Audio). `npm run audio -- stems` renders them from the arrangement.
    */
   scores?: Record<Id, ScoreDef>;
+  /**
+   * The most decoded audio the director keeps, in MB (3.6, default 160): past it, the scores least recently played are
+   * let go, and a score that alone is larger plays as its single mix.
+   */
+  maxDecodedMB?: number;
 }
 
 /** Which stems sound in a given state: the first entry whose condition holds wins (`if` absent: always). */
