@@ -85,8 +85,10 @@ describe('assets listing on games/demo', () => {
     const bell = l.sounds.sfx.find((s) => s.id === 'bell.mp3')!;
     expect(bell.used[0]).toBe('audio.sfx.bell');
     expect(bell.asset).toBe('audio/sfx/bell.mp3');
-    expect(l.sounds.music.map((m) => m.id)).toEqual(['swan_theme.mp3']);
-    expect(l.sounds.music[0].used).toContain('audio.music.theme');
+    // The audio folder is shared with the reference chapter (3.7): its market score and bridges are listed, unused here.
+    expect(l.sounds.music.map((m) => m.id)).toEqual(['bridge_to_market.mp3', 'bridge_to_theme.mp3', 'night_market.mp3', 'swan_theme.mp3']);
+    expect(l.sounds.music.find((m) => m.id === 'swan_theme.mp3')!.used).toContain('audio.music.theme');
+    expect(l.sounds.music.find((m) => m.id === 'night_market.mp3')!.used).toEqual([]);
   });
 
   it('carries the prompt of each sheet and the shared style block', async () => {
