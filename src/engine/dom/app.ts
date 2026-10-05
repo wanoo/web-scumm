@@ -37,6 +37,12 @@ export interface AppOptions {
   version?: string;
 }
 
+/** A state with the music's phase, as a save keeps it (3.6). */
+const withPhase = (s: GameState, phase: { id: string; at: number } | null): GameState => {
+  if (!phase) { if (!s.music) return s; const { music: _, ...rest } = s; return rest as GameState; }
+  return { ...s, music: { id: phase.id, at: Math.round(phase.at * 1000) / 1000 } };
+};
+
 class LocalStore implements SaveStore {
   constructor(private key: string, private game: GameDef, private fail: (error: Error) => void, private warn: (message: string) => void) {}
   load(): GameState | null {
@@ -200,19 +206,26 @@ export class App implements Presenter {
     this.root.append(box);
   }
 
+  private withMusic(s: GameState): GameState { return withPhase(s, this.audio.phaseToSave()); }
+
   constructor(private o: AppOptions) {
     this.game = o.game;
     this.root = o.root;
     this.bank = new AssetBank(o.manifest, o.base ?? `${import.meta.env?.BASE_URL ?? '/'}assets`, o.version ?? '');
     // `?music=mix|stems` forces the single mix or the director's stems (tests, the Studio); else the device decides.
     const musicMode = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('music') : null;
-    this.audio = new Audio(this.bank, { music: o.game.audio?.music, sfx: o.game.audio?.sfx, voice: o.game.audio?.voices, scores: o.game.audio?.scores, maxDecodedMB: o.game.audio?.maxDecodedMB }, musicMode === 'mix' ? { stems: false } : musicMode === 'stems' ? { stems: true } : {});
+    this.audio = new Audio(this.bank, { music: o.game.audio?.music, sfx: o.game.audio?.sfx, voice: o.game.audio?.voices, scores: o.game.audio?.scores, maxDecodedMB: o.game.audio?.maxDecodedMB, transitions: o.game.audio?.transitions }, musicMode === 'mix' ? { stems: false } : musicMode === 'stems' ? { stems: true } : {});
     this.audio.holds = (c) => !!this.engine?.state && check(c, this.engine.state);
     this.mg = { ...builtin, ...(o.minigames ?? {}) };
     const storageFailure = (error: Error) => queueMicrotask(() => this.reportStorageError(error));
     const storageWarning = (message: string) => queueMicrotask(() => this.reportSaveWarning(message));
     this.engine = new Engine(o.game, o.layouts, this, o.store ?? new LocalStore(`${o.game.id}.save`, o.game, storageFailure, storageWarning), { commands: o.commands, runCustom: true, scene: () => this.scene });
+    // The music's phase (3.6): every save keeps where the music is, and a loaded save resumes it there.
     const store = this.engine.store as SaveStore & Partial<SlotStore>;
+    const saveRaw = store.save.bind(store);
+    store.save = (s) => saveRaw(this.withMusic(s));
+    const loadRaw = this.engine.load.bind(this.engine);
+    this.engine.load = (s) => { this.audio.resumeAt(s.music ?? null); return loadRaw(s); };
     this.slots = o.slots ?? (typeof store.listSlots === 'function' ? (store as SlotStore) : new LocalSlotStore(o.game.id, o.game, storageFailure, storageWarning));
     this.view = new RoomView(this.engine, this.bank);
     // `?renderer=canvas|dom` forces a painter for every room (the visual parity check, the Studio's comparison).
@@ -1119,7 +1132,7 @@ export class App implements Presenter {
       b.disabled = mode === 'load' && !s;
       b.classList.toggle('off', mode === 'load' && !s);
       if (mode === 'save') b.onclick = () => {
-        const write = async () => { if (!(await this.slots.putSlot(n, structuredClone(this.engine.state), meta()))) return; d.remove(); this.toast(`${slotName(n)} ✓`); };
+        const write = async () => { if (!(await this.slots.putSlot(n, this.withMusic(structuredClone(this.engine.state)), meta()))) return; d.remove(); this.toast(`${slotName(n)} ✓`); };
         if (!s) return void write();
         m.innerHTML = `<h3>?</h3><p>${esc(this.t('confirmOverwrite'))}</p>`;
         const y = el('button', 'warn', `<span>${esc(ui.yes)}</span><span>!</span>`), no = el('button', '', `<span>${esc(ui.no)}</span><span>▶</span>`);
@@ -1132,7 +1145,7 @@ export class App implements Presenter {
       };
     });
     if (mode === 'save') row(this.t('exportSave'), '⤓').onclick = () => {
-      const blob = new Blob([JSON.stringify(saveEnvelope(this.game, this.engine.state), null, 1)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify(saveEnvelope(this.game, this.withMusic(this.engine.state)), null, 1)], { type: 'application/json' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${this.game.id}-save.json`; a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 2000); d.remove();
     };

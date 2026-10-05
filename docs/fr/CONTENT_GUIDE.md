@@ -830,3 +830,21 @@ Un état est n'importe quelle condition du DSL (un flag, le lieu, le personnage 
 effet à la mesure suivante, en fondu ; un autre lieu avec le même morceau garde la musique et ne change que le mix.
 `npm run validate` vérifie les stems, le tempo, les stems et conditions des états, et que le mix unique existe.
 L'onglet Musique du Studio joue une partition et le mix de chaque état.
+
+D'une partition à une autre (3.6), une règle dit où l'ancienne laisse entrer la nouvelle, sur sa propre grille :
+
+```ts
+audio: {
+  scores: { day: { …, markers: { calm: 8 }, phraseBars: 4 }, night: { … } },
+  transitions: [
+    { from: 'day', to: 'night', at: 'calm', bridge: 'dusk_sting' },  // à la mesure 8 de « day », puis le pont, puis « night »
+    { from: '*', to: 'day', at: 'phrase', fadeBeats: 2 },             // à la phrase suivante, en fondu sur 2 temps
+  ],
+  maxDecodedMB: 160,                                                  // audio décodé gardé (160 par défaut)
+}
+```
+
+`at` vaut `beat`, `bar` (défaut), `phrase` ou un marqueur de l'ancienne partition, compté à travers sa boucle. Sans
+règle, une partition en remplace une autre aussitôt, en fondu, comme en 3.5. Une sauvegarde garde où en est la
+musique, et la charger la reprend là. C'est un mixeur adaptatif à stems avec transitions, pas iMUSE : pas de
+changement de tempo, pas de branches à l'intérieur d'une partition.

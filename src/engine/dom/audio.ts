@@ -1,7 +1,7 @@
 import { Howl, Howler } from 'howler';
 import type { AssetBank } from './assets';
 import type { Cond, Id, ScoreDef } from '../core/types';
-import { stemsFor } from '../core/score';
+import { stemsFor, transitionFor, type TransitionRule } from '../core/score';
 import { MusicDirector, ScoreTooLarge, directorFits } from './director';
 
 /**
@@ -28,7 +28,7 @@ export class Audio {
   private unlocked = false;
   private pending: string | null = null;
 
-  constructor(private bank: AssetBank, private files: { music?: Record<string, string>; sfx?: Record<string, string>; voice?: Record<string, string>; scores?: Record<Id, ScoreDef>; maxDecodedMB?: number }, opts: { stems?: boolean } = {}) {
+  constructor(private bank: AssetBank, private files: { music?: Record<string, string>; sfx?: Record<string, string>; voice?: Record<string, string>; scores?: Record<Id, ScoreDef>; maxDecodedMB?: number; transitions?: TransitionRule[] }, opts: { stems?: boolean } = {}) {
     const pcm = Object.values(files.scores ?? {}).map((s) => s.pcmBytes);
     if (opts.stems ?? directorFits(pcm.includes(undefined) ? undefined : Math.max(0, ...(pcm as number[])))) this.stemsWanted = true;
     const unlock = () => {
@@ -142,9 +142,26 @@ export class Audio {
     if (track) this.once(id); else if (sound) this.sfx(id);
   }
 
+  /** Where the music is (3.6): its id and its position in the file, in seconds (a save keeps it). */
+  musicPhase(): { id: string; at: number } | null {
+    const c = this.current;
+    if (!c) return null;
+    if (c.howl) { const at = c.howl.seek(); return { id: c.id, at: typeof at === 'number' ? at : 0 }; }
+    const at = this.director?.current === c.id ? this.director.position : null;
+    return at === null || at === undefined ? null : { id: c.id, at };
+  }
+
+  /** The next time this track starts, it starts there (a loaded save's phase). */
+  resumeAt(phase: { id: string; at: number } | null) { this.resume = phase && this.current?.id !== phase.id ? phase : null; }
+  /** What a save made now should keep: a phase not resumed yet, else where the music is. */
+  phaseToSave(): { id: string; at: number } | null { return this.resume ?? this.musicPhase(); }
+  private resume: { id: string; at: number } | null = null;
+
   play(id: string) {
     if (this.current?.id === id) { this.remix(); return; }
     if (!this.unlocked) { this.pending = id; return; }
+    const offset = this.resume?.id === id ? this.resume.at : 0;
+    this.resume = null;
     const prev = this.current;
     this.current = null;
     if (prev?.howl) { const ph = prev.howl; ph.fade(ph.volume(), 0, 600); setTimeout(() => ph.stop(), 650); }
@@ -152,7 +169,11 @@ export class Audio {
     const d = score && !this.mixOnly.has(id) ? this.directorFor() : null;
     if (score && d) {
       this.current = { id };
-      void d.play(id, score, this.stemUrls(score), stemsFor(score, this.holds)).catch((e) => {
+      // From a score the director plays to this one: the game's transition rule, if one names both (3.6).
+      const rule = prev && !prev.howl && d.current === prev.id ? transitionFor(this.files.transitions, prev.id, id) : undefined;
+      const bridge = rule?.bridge && this.files.music?.[rule.bridge] ? this.bank.music(this.files.music[rule.bridge]) : undefined;
+      const transition = rule ? { at: rule.at, fadeBeats: rule.fadeBeats, bridge } : undefined;
+      void d.play(id, score, this.stemUrls(score), stemsFor(score, this.holds), { offset, transition }).catch((e) => {
         // A score too large for the director's memory: its single mix from now on (the others keep their stems). A
         // stem that does not load: the single mix instead, for every score.
         if (e instanceof ScoreTooLarge) this.mixOnly.add(id); else this.stemsWanted = false;
@@ -166,7 +187,7 @@ export class Audio {
     this.current = { id, howl: h };
     if (!this.musicOn) return;
     h.off('playerror'); h.once('playerror', () => this.retryOnGesture(h));
-    h.volume(0); h.play(); this.fadeIn(h);
+    h.volume(0); h.play(); if (offset) h.seek(offset); this.fadeIn(h);
     // If playback had to wait on loading, make sure the volume is right once it has actually started.
     h.once('play', () => { if (this.current?.howl === h && this.musicOn && h.volume() < this.volume * 0.5) this.fadeIn(h, 300); });
   }
@@ -174,7 +195,7 @@ export class Audio {
   push(id: string) { const cur = this.current?.id ?? this.pending; if (cur) this.stack.push(cur); this.play(id); }
   pop() { const id = this.stack.pop(); if (id) this.play(id); else this.stop(); }
   stop() {
-    this.pending = null; const c = this.current; this.current = null;
+    this.pending = null; this.resume = null; const c = this.current; this.current = null;
     if (c?.howl) { const h = c.howl; h.fade(h.volume(), 0, 500); setTimeout(() => h.stop(), 550); }
     this.director?.stop(500);
   }

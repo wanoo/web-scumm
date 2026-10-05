@@ -72,3 +72,40 @@ export function crossfade(s: ScoreDef, prev: Id[], next: Id[], at: number): Gain
   }
   return out;
 }
+
+/** A transition's landing (3.6): the next beat, bar, phrase (`phraseBars`, default 4) or named marker (`markers`). */
+export type Landing = 'beat' | 'bar' | 'phrase' | string;
+
+/**
+ * The instant (audio clock) where the score playing since `start` lets the next one in: the first point of its grid at
+ * or after `t + lead` that is a beat, a bar, the first bar of a phrase, or the bar of a marker. Counted in the file,
+ * through the loop (a phrase or a marker past the loop's end comes round on the loop's own bars). A marker the loop
+ * never reaches again, after the first pass, falls back to the next bar.
+ */
+export function landing(s: ScoreDef, start: number, t: number, at: Landing, lead = 0, duration = Infinity): number {
+  if (at === 'beat' || at === 'bar') return nextBoundary(s, start, t, at, lead, duration);
+  const bar = barSec(s);
+  const win = loopWindow(s, duration);
+  const want = at === 'phrase' ? null : s.markers?.[at];
+  if (at !== 'phrase' && want === undefined) return nextBoundary(s, start, t, 'bar', lead, duration);
+  const fits = (b: number) => {
+    const k = Math.round(positionAt(b - start, win) / bar);
+    return want === null ? k % (s.phraseBars ?? 4) === 0 : k === want;
+  };
+  let b = nextBoundary(s, start, t, 'bar', lead, duration);
+  const first = b;
+  // At most two passes of the file in bars: a point of the grid that never comes is a bar.
+  const limit = 2 * Math.ceil((Number.isFinite(duration) ? duration : (s.loop?.[1] ?? 64) * bar) / bar) + 2;
+  for (let i = 0; i < limit; i++) {
+    if (fits(b)) return b;
+    b = nextBoundary(s, start, b + 1e-6, 'bar', 0, duration);
+  }
+  return first;
+}
+
+/** One rule of `audio.transitions`: the first that names both scores (or `*`) applies. */
+export interface TransitionRule { from: Id | '*'; to: Id | '*'; at?: Landing; bridge?: Id; fadeBeats?: number }
+
+export function transitionFor(rules: TransitionRule[] | undefined, from: Id, to: Id): TransitionRule | undefined {
+  return rules?.find((r) => (r.from === '*' || r.from === from) && (r.to === '*' || r.to === to));
+}

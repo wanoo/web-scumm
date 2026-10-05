@@ -180,7 +180,9 @@ is caught), and measures the real-time jitter in Chromium and WebKit (0.02 ms), 
 plays (3.5.1): a score whose stems finish decoding after another score was asked for, or after a stop, is dropped
 (`tests/director.test.ts`). The decoded audio it keeps is capped (3.6, `audio.maxDecodedMB`, default 160): past it, the
 scores least recently played are let go, and a score that alone is larger plays as its single mix (by its
-`pcmBytes`, before any download).
+`pcmBytes`, before any download). From one score to another, `audio.transitions` lands the new one on the old one's
+beat, bar, phrase or marker, after a bridge if any (3.6, `core/score.ts` `landing`); `npm run e2e:music` checks both to
+the sample, and a save's phase (`state.music`, written by the app, never read by the engine) resumes where it was.
 
 ## Cache and responsiveness
 

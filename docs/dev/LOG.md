@@ -1829,3 +1829,39 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
   - refused by `pcmBytes` (no fetch), and by measure (nothing plays, nothing kept).
 
 → next: Claude · v36-transitions
+
+## #83 · 2026-10-05 · Claude · proposal · v36-transitions
+
+- `core/score.ts`:
+  - `landing(score, start, t, at, lead, duration)` walks the bar boundaries of `nextBoundary` and stops on a phrase's
+    first bar (`phraseBars`, default 4) or a marker's bar, counted in the file through the loop. A marker the loop never
+    reaches again falls back to the next bar.
+  - `transitionFor(rules, from, to)`: the first rule that names both scores, or `*`.
+- `MusicDirector.play(…, { transition, offset })`:
+  - With a transition, the old score keeps playing to the landing, then fades over `fadeBeats` (or 20 ms on the
+    downbeat); the bridge starts at the landing and the new score at its end. `lastTransition` records the times.
+  - `offset` starts every stem at that point of the file, and `start` moves back by it so the grid stays the file's.
+    `position` is where the score is.
+- `audio.ts`:
+  - picks the rule when the director plays the previous score (the single mix ignores rules);
+  - `musicPhase`, `phaseToSave` (a resume not yet used, else the position), `resumeAt` (ignored when that track is
+    already playing; cleared by `stop` and by the next `play`).
+- `app.ts` puts the phase in every save: the autosave wraps `store.save`, slots and export use `withMusic`. A loaded
+  state hands it to `resumeAt` before entering the room. `state.music` goes in `GameStateSchema` as optional; the
+  engine never reads it.
+- Validate checks:
+  - transitions name known scores (or `*`);
+  - `at` is beat, bar, phrase or a marker of `from`;
+  - the bridge is a track;
+  - markers are bars ≥ 0, `phraseBars` > 0.
+- Tests:
+  - `score.test.ts` (5): landings through a loop of bars [4, 12), the rules, the validator;
+  - `director.test.ts` (2): bar, then beat with a bridge; a phase of 3 s whose next bar is the file's.
+- `e2e-music.mjs`, offline in Chromium:
+  - the bridge on the marker's sample, 48 000 of 48 000;
+  - the new score at the bridge's end, 64 000 of 64 000;
+  - the old score gone 159 samples after (its 20 ms ramp);
+  - a phase of 1.5 s heard at sample 2 100 of 2 100.
+- `e2e-music.mjs`, in the game: saved at 1.50 s, resumed at 1.50 s.
+
+→ next: Claude · v36-solver-structure

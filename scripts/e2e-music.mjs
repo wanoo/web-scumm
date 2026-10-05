@@ -5,6 +5,9 @@
 //   2. clicks (Chromium, offline): 100 changes of mix over thirty minutes of sine stems; no step between two samples
 //      may exceed what the sines themselves can do (a hard cut would), and each change lands on a bar. The same
 //      render with a hard switch (fadeBeats 0) must be caught: the check sees clicks when there are some.
+//   2b. transitions (Chromium, offline, 3.6): a score to another on a marker of the first, through a bridge; the
+//      bridge must sound on the marker's sample and the new score on the bridge's end, to the sample; a score started
+//      at a save's phase must sound from that point of its file.
 //   3. jitter (Chromium and WebKit, real time): a constant stem through the director on the device's AudioContext,
 //      20 changes of mix, the moment each one is heard measured at the sample (ScriptProcessor `playbackTime`). The
 //      tap itself adds a constant delay (its buffers): the jitter is how far each change strays from that latency,
@@ -88,6 +91,34 @@ if (!only || only === 'offline') {
   say(smooth.over === 0 && smooth.changes === 100 && smooth.offGrid === 0, `clicks: ${smooth.changes} changes, ${smooth.offGrid} off the bar, steepest step ${smooth.worst.toFixed(4)} for a bound of ${smooth.bound.toFixed(4)} (${smooth.over} over)`);
   const hard = await clicks(0);
   say(hard.over > 0, `the same with a hard switch is caught: ${hard.over} step(s) over the bound, steepest ${hard.worst.toFixed(3)}`);
+
+  // 2b. Transitions: A a constant on the left; at A's marker (bar 3: 6 s), a bridge of one bar (an impulse of 0.6 on
+  // the right at its first sample), then B (an impulse of 0.9 on the right at its first sample): 6 s and 8 s, to the
+  // sample. Then C from a save's phase (1.5 s into its file, an impulse 100 samples later).
+  const tr = await p.evaluate(async () => {
+    const sr = 8000, ctx = new OfflineAudioContext(2, sr * 20, sr);
+    const buf = (len, ch, at, v) => { const b = ctx.createBuffer(2, len, sr); if (ch === 'dc') b.getChannelData(0).fill(0.3); else b.getChannelData(ch)[at] = v; return b; };
+    const bufs = { a: buf(sr * 16, 'dc'), bridge: buf(sr * 2, 1, 0, 0.6), b: buf(sr * 16, 1, 0, 0.9) };
+    const d = new WS.MusicDirector(ctx, async (u) => u);
+    d.buffer = async (u) => bufs[u];
+    d.lead = 0;
+    await d.play('A', { stems: { a: 'a' }, bpm: 120, markers: { m: 3 } }, { a: 'a' }, ['a'], { at: 0, fadeMs: 0 });
+    await d.play('B', { stems: { b: 'b' }, bpm: 120 }, { b: 'b' }, ['b'], { transition: { at: 'm', bridge: 'bridge' } });
+    const out = await ctx.startRendering();
+    const L = out.getChannelData(0), R = out.getChannelData(1);
+    const near = (v) => { for (let i = 0; i < R.length; i++) if (Math.abs(R[i] - v) < 0.01) return i; return -1; };
+    let lastA = -1; for (let i = 0; i < L.length; i++) if (L[i] > 1e-4) lastA = i;
+    // C: a save's phase.
+    const ctx2 = new OfflineAudioContext(1, sr * 4, sr);
+    const c = ctx2.createBuffer(1, sr * 8, sr); c.getChannelData(0)[1.5 * sr + 100] = 1;
+    const d2 = new WS.MusicDirector(ctx2, async (u) => u); d2.buffer = async () => c; d2.lead = 0;
+    await d2.play('C', { stems: { c: 'c' }, bpm: 120 }, { c: 'c' }, ['c'], { at: 0.25, fadeMs: 0, offset: 1.5 });
+    const C = (await ctx2.startRendering()).getChannelData(0);
+    let hit = -1; for (let i = 0; i < C.length; i++) if (C[i] > 0.5) { hit = i; break; }
+    return { bridge: near(0.6), b: near(0.9), lastA, want: [6 * sr, 8 * sr], phase: hit, wantPhase: 0.25 * sr + 100, plan: d.lastTransition };
+  });
+  say(tr.bridge === tr.want[0] && tr.b === tr.want[1] && tr.lastA < tr.want[0] + 0.05 * 8000 && tr.lastA >= tr.want[0], `transition: the bridge on the marker's sample (${tr.bridge}, want ${tr.want[0]}), the new score on the bridge's end (${tr.b}, want ${tr.want[1]}), the old one gone ${tr.lastA - tr.want[0]} samples after`);
+  say(tr.phase === tr.wantPhase, `a save's phase: the score sounds from 1.5 s into its file (sample ${tr.phase}, want ${tr.wantPhase})`);
   await browser.close();
 }
 
@@ -163,10 +194,21 @@ if ((!only || only === 'game') && !process.argv.includes('--no-game')) {
     const g = window.__game;
     await g.engine.teleport('garden');
     await wait(() => d.stems.length === 3);
-    return { director: true, first, garden: [...d.stems], sameStart: d.startedAt === first.start, room: g.engine.state.room };
+    const garden = [...d.stems], sameStart = d.startedAt === first.start, room = g.engine.state.room;
+    // A save keeps the music's phase (3.6); loading it after the music stopped resumes there.
+    await new Promise((r) => setTimeout(r, 1500));
+    g.engine.save();
+    const saved = g.engine.store.load();
+    a.stop();
+    await wait(() => !d.current);
+    await g.engine.load(saved);
+    await wait(() => d.current === 'theme');
+    const resumed = d.position;
+    return { director: true, first, garden, sameStart, room, saved: saved.music, resumed };
   });
   say(g.director && g.first.id === 'theme' && g.first.stems.length === 4, `the theme as stems in the house: ${g.director ? g.first.stems.join(', ') : 'no director'}`);
   say(g.director && g.garden.join() === 'strings,harp,bass' && g.sameStart, `the garden: ${g.garden?.join(', ')}, the same music going on (started once)`);
+  say(g.saved?.id === 'theme' && g.saved.at > 1 && Math.abs(g.resumed - g.saved.at) < 1, `a save keeps the music's phase (${g.saved?.at?.toFixed(2)} s), and loading it resumes there (${g.resumed?.toFixed(2)} s)`);
   await play('./?music=mix');
   const m = await p.evaluate(() => ({ director: !!window.__game.audio.director?.current }));
   say(!m.director, '?music=mix: the single mix, no director');

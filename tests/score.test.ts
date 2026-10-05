@@ -2,7 +2,7 @@
 // the loop), and the ramps between two mixes. The browser side (sample-locked stems, no clicks over thirty minutes)
 // is scripts/e2e-music.mjs.
 import { describe, expect, it } from 'vitest';
-import { barSec, beatSec, crossfade, loopWindow, nextBoundary, positionAt, stemsFor } from '@engine/core/score';
+import { barSec, beatSec, crossfade, landing, loopWindow, nextBoundary, positionAt, stemsFor, transitionFor } from '@engine/core/score';
 import type { ScoreDef } from '@engine/core/types';
 import { validate } from '@engine/tools/validate';
 import { game as demo } from '../games/demo/game';
@@ -75,5 +75,46 @@ describe('score: validation', () => {
     expect(errs.some((e) => e.includes('no single mix'))).toBe(true);
     expect(errs.some((e) => e.includes('tempo'))).toBe(true);
     expect(errs.some((e) => e.includes('unknown stem "zz"'))).toBe(true);
+  });
+});
+
+describe('score: transitions between scores (3.6)', () => {
+  // 120 BPM in 4/4: a bar is 2 s. A file of 16 bars (32 s) looping over bars [4, 12) (8 s to 24 s).
+  const s: ScoreDef = { ...score, loop: [4, 12], phraseBars: 4, markers: { bridge: 6, intro: 1 } };
+  it('beat and bar land as a change of mix does', () => {
+    expect(landing(s, 0, 0.7, 'beat')).toBe(1);
+    expect(landing(s, 0, 0.7, 'bar')).toBe(2);
+  });
+  it('a phrase lands on its first bar, through the loop', () => {
+    expect(landing(s, 0, 0.7, 'phrase', 0, 32)).toBe(8); // bar 4
+    expect(landing(s, 0, 8.5, 'phrase', 0, 32)).toBe(16); // bar 8
+    // Past bar 12 the file is back at bar 4 (24 s on the clock): a phrase starts there.
+    expect(landing(s, 0, 16.5, 'phrase', 0, 32)).toBe(24);
+  });
+  it('a marker lands on its bar, each time round the loop; one the loop never reaches again falls back to a bar', () => {
+    expect(landing(s, 0, 0.7, 'bridge', 0, 32)).toBe(12); // bar 6
+    expect(landing(s, 0, 12.5, 'bridge', 0, 32)).toBe(28); // the loop's next pass: 24 s is bar 4, 28 s is bar 6
+    expect(landing(s, 0, 0.7, 'intro', 0, 32)).toBe(2);
+    expect(landing(s, 0, 2.5, 'intro', 0, 32)).toBe(4); // bar 1 is gone for good: the next bar
+    expect(landing(s, 0, 0.7, 'nowhere', 0, 32)).toBe(2);
+  });
+  it('the first rule naming both scores applies, * for any', () => {
+    const rules = [{ from: 'a', to: 'b', at: 'phrase' }, { from: '*', to: 'b', at: 'beat' }, { from: 'a', to: '*', at: 'bar' }];
+    expect(transitionFor(rules, 'a', 'b')?.at).toBe('phrase');
+    expect(transitionFor(rules, 'c', 'b')?.at).toBe('beat');
+    expect(transitionFor(rules, 'a', 'c')?.at).toBe('bar');
+    expect(transitionFor(rules, 'c', 'd')).toBeUndefined();
+  });
+  it('validate checks the rules', () => {
+    const g = structuredClone(demo);
+    g.audio!.scores!.theme.markers = { bridge: 2, bad: -1 };
+    g.audio!.transitions = [{ from: 'theme', to: 'nope', at: 'bridge' }, { from: 'theme', to: 'theme', at: 'coda', bridge: 'jingle?' }];
+    const { errors } = validate(g, {});
+    expect(errors.filter((e) => /transitions|markers/.test(e))).toEqual([
+      expect.stringContaining('audio.transitions[0].to'),
+      expect.stringContaining('audio.transitions[1].at'),
+      expect.stringContaining('audio.transitions[1].bridge'),
+      expect.stringContaining('audio.scores.theme.markers.bad'),
+    ]);
   });
 });
