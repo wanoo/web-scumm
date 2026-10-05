@@ -302,6 +302,10 @@ stand there with variants, mouths and portrait, its music, and what its commands
 voice clips, gained items' icons, phone callers, a minigame's images and sounds), and per chapter (every room a player
 can be in during it, from the proof by chapters), with the decoded memory of the images (width × height × 4).
 `assetBudgets: { initialKB, roomKB, chapterKB }` in `game.ts` are the limits; over one, or a file missing, exits 1.
+They count each track's single mix, what every device plays. Since 3.6 the rest has budgets too:
+- `backgroundScoreKB`: the scores' stems, downloaded after the room is playable where the director plays them;
+- `offlineTotalKB`: everything the full warm-up stores, app shell included;
+- `decodedAudioMB`: the largest score decoded in memory (its `pcmBytes`; unknown is over).
 `--release` (a step of `verify:release`) also fails when a budget is not set. `--json`. `npm run e2e:weight -- <url>`
 (a CI gate since 3.4) checks the prediction against a real first visit in Chromium, the warm-ups off: every request
 inside the predicted initial scope, the bytes within 10% of it or below.

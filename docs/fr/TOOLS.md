@@ -304,7 +304,12 @@ musique, et ce que ses commandes jouent ou montrent : bruitages, changements de 
 gagnés, correspondants au téléphone, images et sons d'un mini-jeu), et par chapitre (chaque lieu où un joueur peut se
 trouver pendant ce chapitre, d'après la preuve par chapitres), avec la mémoire décodée des images (largeur × hauteur ×
 4). `assetBudgets: { initialKB, roomKB, chapterKB }` dans `game.ts` sont les limites ; en dépasser une, ou un fichier
-manquant, sort avec 1. `--release` (une étape de `verify:release`) échoue aussi quand un budget n'est pas fixé.
+manquant, sort avec 1. Elles comptent le mix unique de chaque morceau, ce que joue tout appareil. Depuis la 3.6, le
+reste a aussi ses budgets :
+- `backgroundScoreKB` : les stems des partitions, téléchargés une fois le lieu jouable là où le directeur les joue ;
+- `offlineTotalKB` : tout ce que garde le préchargement complet, application de base comprise ;
+- `decodedAudioMB` : la plus grosse partition décodée en mémoire (son `pcmBytes` ; inconnu compte comme dépassé).
+ `--release` (une étape de `verify:release`) échoue aussi quand un budget n'est pas fixé.
 `--json`. `npm run e2e:weight -- <url>` (bloquant en CI depuis la 3.4) vérifie la prédiction contre une vraie première
 visite dans Chromium, préchargements coupés : chaque requête dans la portée initiale prédite, les octets à 10 % près ou
 en dessous.

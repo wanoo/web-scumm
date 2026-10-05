@@ -4,10 +4,24 @@
 // warm-up and the offline plan read too; `scripts/e2e-weight.mjs` checks the prediction against the bytes a browser
 // really transfers.
 // `npm run weight` prints it against `assetBudgets` (`initialKB`, `roomKB`, `chapterKB`); docs/en/TOOLS.md "Weight".
-import { assetGraph, initialScope, type AssetGraph, type MinigameBindings } from '../core/asset-graph';
+import { assetGraph, initialScope, type AssetGraph, type AssetManifestLike, type MinigameBindings } from '../core/asset-graph';
 import type { GameDef, Id, Layout, RoomDef } from '../core/types';
 
-export interface WeightBudgets { initialKB?: number; roomKB?: number; chapterKB?: number }
+export interface WeightBudgets { initialKB?: number; roomKB?: number; chapterKB?: number; backgroundScoreKB?: number; offlineTotalKB?: number; decodedAudioMB?: number }
+
+/** Every budget a release must set (`npm run weight -- --release`). */
+export const RELEASE_BUDGETS = ['initialKB', 'roomKB', 'chapterKB', 'backgroundScoreKB', 'offlineTotalKB', 'decodedAudioMB'] as const;
+
+/** The stem files of every score (`music:<file>` keys): what the director downloads in the background. */
+export function stemAssets(game: GameDef): string[] {
+  return [...new Set(Object.values(game.audio?.scores ?? {}).flatMap((s) => Object.values(s.stems).map((f) => `music:${f}`)))].sort();
+}
+
+/** The largest score decoded, in bytes (its declared `pcmBytes`; 0 without scores, null when one does not say). */
+export function decodedAudio(game: GameDef): number | null {
+  const pcm = Object.values(game.audio?.scores ?? {}).map((s) => s.pcmBytes);
+  return pcm.includes(undefined) ? null : Math.max(0, ...(pcm as number[]));
+}
 
 /** The asset keys a room can need (`room:<id>` of the asset graph, src/engine/core/asset-graph.ts). */
 export function roomAssets(game: GameDef, room: RoomDef, graph: AssetGraph = assetGraph(game)): string[] {
@@ -31,14 +45,18 @@ export interface WeightReport {
   initial: Weighed;
   rooms: ({ id: Id } & Weighed)[];
   chapters: ({ id: string; rooms: Id[] } & Weighed)[];
+  /** The scores' stems (3.6), every file the offline warm-up stores (app shell included), the largest score decoded. */
+  background: Weighed;
+  offline: Weighed;
+  decodedAudio: number | null;
   /** One line per budget exceeded. */
   over: string[];
 }
 
 const kb = (b: number) => Math.round(b / 1024);
 
-export function weightReport(game: GameDef, sizes: Record<string, number | null>, chapters: { id: string; rooms: Id[] }[] = [], budgets: WeightBudgets = game.assetBudgets ?? {}, opts: { bindings?: MinigameBindings; layouts?: Record<Id, Layout>; shell?: string[]; stems?: boolean } = {}): WeightReport {
-  const graph = assetGraph(game, { bindings: opts.bindings, layouts: opts.layouts, stems: opts.stems });
+export function weightReport(game: GameDef, sizes: Record<string, number | null>, chapters: { id: string; rooms: Id[] }[] = [], budgets: WeightBudgets = game.assetBudgets ?? {}, opts: { bindings?: MinigameBindings; layouts?: Record<Id, Layout>; shell?: string[]; stems?: boolean; manifest?: AssetManifestLike } = {}): WeightReport {
+  const graph = assetGraph(game, { bindings: opts.bindings, layouts: opts.layouts, stems: opts.stems, manifest: opts.manifest });
   const byRoom = new Map(game.rooms.map((r) => [r.id, roomAssets(game, r, graph)]));
   // The first visit: the app shell (what the service worker precaches, when the build is there) and the initial scope.
   const initial = weigh([...(opts.shell ?? []), ...initialAssets(game, graph)], sizes);
@@ -48,5 +66,14 @@ export function weightReport(game: GameDef, sizes: Record<string, number | null>
   if (budgets.initialKB !== undefined && kb(initial.bytes) > budgets.initialKB) over.push(`initial download ${kb(initial.bytes)} KB > initialKB ${budgets.initialKB}`);
   if (budgets.roomKB !== undefined) for (const r of rooms) if (kb(r.bytes) > budgets.roomKB) over.push(`room ${r.id} ${kb(r.bytes)} KB > roomKB ${budgets.roomKB}`);
   if (budgets.chapterKB !== undefined) for (const c of ch) if (kb(c.bytes) > budgets.chapterKB) over.push(`chapter ${c.id} ${kb(c.bytes)} KB > chapterKB ${budgets.chapterKB}`);
-  return { initial, rooms, chapters: ch, over };
+  const background = weigh(stemAssets(game), sizes);
+  const offline = weigh([...new Set([...(opts.shell ?? []), ...graph.offline])], sizes);
+  const pcm = decodedAudio(game);
+  if (budgets.backgroundScoreKB !== undefined && kb(background.bytes) > budgets.backgroundScoreKB) over.push(`stems ${kb(background.bytes)} KB > backgroundScoreKB ${budgets.backgroundScoreKB}`);
+  if (budgets.offlineTotalKB !== undefined && kb(offline.bytes) > budgets.offlineTotalKB) over.push(`offline total ${kb(offline.bytes)} KB > offlineTotalKB ${budgets.offlineTotalKB}`);
+  if (budgets.decodedAudioMB !== undefined) {
+    if (pcm === null) over.push(`decoded audio unknown: a score has no pcmBytes (npm run audio -- stems), decodedAudioMB ${budgets.decodedAudioMB}`);
+    else if (Math.round(pcm / 1048576) > budgets.decodedAudioMB) over.push(`decoded audio ${Math.round(pcm / 1048576)} MB > decodedAudioMB ${budgets.decodedAudioMB}`);
+  }
+  return { initial, rooms, chapters: ch, background, offline, decodedAudio: pcm, over };
 }

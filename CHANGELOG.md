@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- Weight budgets for what the playable ones leave out (3.6): `backgroundScoreKB` (the scores' stems, downloaded where
+  the director plays them), `offlineTotalKB` (the full warm-up, app shell included), `decodedAudioMB` (the largest
+  score decoded, from `pcmBytes`). A release requires them; the demo and the reference set them (3.0 MB, 7.6 MB, 97 MB
+  measured).
+
 ## 3.5.1 — 2026-10-05
 
 "Cue": the fixes found by the review of 3.5.0 (LOG #75–#78). No change to the game state: the 3.5.0 saves load as

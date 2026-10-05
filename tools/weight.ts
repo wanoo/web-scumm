@@ -12,7 +12,7 @@ import { resolve } from 'node:path';
 import { assetPath } from '../src/engine/tools/provenance';
 import { proveChapters } from '../src/engine/tools/chapters';
 import { assetGraph, initialScope, splitKey } from '../src/engine/core/asset-graph';
-import { weightReport } from '../src/engine/tools/weight';
+import { RELEASE_BUDGETS, stemAssets, weightReport } from '../src/engine/tools/weight';
 import { loadLayouts } from '../src/engine/tools/load';
 import { ASSETS_DIR, GAME, GAME_DIR, loadGameModule } from './game';
 
@@ -56,7 +56,7 @@ if (existsSync(resolve(DIST, 'sw.js'))) {
     if (/\.(js|css|html|webmanifest|ttf|json|svg)$/.test(f)) gzip[k] = gzipSync(b, { level: 9 }).length;
   }
 }
-const keys = new Set<string>([...initialScope(graph, game), ...Object.values(graph.rooms).flat()]);
+const keys = new Set<string>([...initialScope(graph, game), ...Object.values(graph.rooms).flat(), ...graph.offline, ...stemAssets(game)]);
 for (const k of keys) { const p = assetPath(k); const f = p ? resolve(ASSETS_DIR, p) : null; sizes[k] = f && existsSync(f) ? statSync(f).size : null; }
 /** Decoded memory of the images (width × height × 4), from the manifest: what a room costs once on screen. */
 const decoded = (ks: string[]) => ks.reduce((n, k) => { const [kind, id] = splitKey(k); const wh = kind === 'img' ? manifest?.images[id] : undefined; return n + (wh ? wh[0] * wh[1] * 4 : 0); }, 0);
@@ -73,10 +73,10 @@ if (Object.values(game.checkpoints ?? {}).some((c) => c.goals?.length)) {
 // images and sounds as they are (already compressed).
 const net: Record<string, number | null> = { ...sizes, ...gzip };
 for (const k of twice) { net[`${k}#again`] = net[k]; sizes[`${k}#again`] = sizes[k]; if (gzip[k] !== undefined) gzip[`${k}#again`] = gzip[k]; }
-const rep = weightReport(game, net, chapters, game.assetBudgets ?? {}, { bindings, layouts, stems, shell: [...shell, ...twice.map((k) => `${k}#again`)] });
+const rep = weightReport(game, net, chapters, game.assetBudgets ?? {}, { bindings, layouts, stems, manifest, shell: [...shell, ...twice.map((k) => `${k}#again`)] });
 const kb = (b: number) => `${Math.round(b / 1024)} KB`;
 const b = game.assetBudgets ?? {};
-const missing = [...new Set([rep.initial, ...rep.rooms, ...rep.chapters].flatMap((w) => w.missing))];
+const missing = [...new Set([rep.initial, ...rep.rooms, ...rep.chapters, rep.background, rep.offline].flatMap((w) => w.missing))];
 const shellBytes = shell.reduce((n, k) => n + (sizes[k] ?? 0), 0); // raw
 const shellGzip = shell.reduce((n, k) => n + (gzip[k] ?? sizes[k] ?? 0), 0);
 const initialKeys = [...shell, ...twice.map((k) => `${k}#again`), ...initialScope(graph, game)];
@@ -92,16 +92,15 @@ else console.log('  app shell  not counted: no built bundle (npm run build:web) 
 console.log(`  initial    ${kb(rep.initial.bytes).padStart(9)}  ${rep.initial.files} files, ${Math.round(decoded(initialKeys) / 1048576)} MB decoded${b.initialKB !== undefined ? `  (budget ${b.initialKB} KB)` : ''}`);
 for (const r of rep.rooms) console.log(`  room       ${kb(r.bytes).padStart(9)}  ${r.id}, ${Math.round(decoded(graph.rooms[r.id] ?? []) / 1048576)} MB decoded${b.roomKB !== undefined ? `  (budget ${b.roomKB} KB)` : ''}`);
 for (const c of rep.chapters) console.log(`  chapter    ${kb(c.bytes).padStart(9)}  ${c.id}: ${c.rooms.join(', ')}${b.chapterKB !== undefined ? `  (budget ${b.chapterKB} KB)` : ''}`);
-// The scores' stems, where the director plays them: on top of the mix, after the room is playable.
-for (const [id, sc] of Object.entries(game.audio?.scores ?? {})) {
-  const files = Object.values(sc.stems).map((f) => `music:${f}`);
-  const bytes = files.reduce((n, k) => { const p = assetPath(k); const f = p ? resolve(ASSETS_DIR, p) : null; return n + (f && existsSync(f) ? statSync(f).size : 0); }, 0);
-  console.log(`  stems      ${kb(bytes).padStart(9)}  score ${id}: ${files.length} stems${stems ? ', counted in every scope above (--stems)' : ' where the music director plays them, after the room is playable (not in the budgets; --stems counts them)'}`);
-}
+// The scores' stems, where the director plays them: on top of the mix, after the room is playable (3.6: a budget of
+// their own); everything the full warm-up stores; the largest score decoded in memory.
+if (rep.background.files) console.log(`  stems      ${kb(rep.background.bytes).padStart(9)}  ${rep.background.files} files, downloaded in the background where the music director plays them${stems ? ' (--stems: also in every scope above)' : ''}${b.backgroundScoreKB !== undefined ? `  (budget ${b.backgroundScoreKB} KB)` : ''}`);
+console.log(`  offline    ${kb(rep.offline.bytes).padStart(9)}  ${rep.offline.files} files, the full warm-up (app shell${shell.length ? '' : ' not built'}, every image, sound and video)${b.offlineTotalKB !== undefined ? `  (budget ${b.offlineTotalKB} KB)` : ''}`);
+if (game.audio?.scores) console.log(`  decoded    ${rep.decodedAudio === null ? '?'.padStart(9) : `${Math.round(rep.decodedAudio / 1048576)} MB`.padStart(9)}  the largest score's stems in memory${rep.decodedAudio === null ? ' (a score has no pcmBytes)' : ''}${b.decodedAudioMB !== undefined ? `  (budget ${b.decodedAudioMB} MB)` : ''}`);
 for (const m of missing) console.log(`  ✖ ${m}: no built file (${m.startsWith('shell:') ? 'npm run build:web' : 'npm run assets'})`);
 for (const o of rep.over) console.log(`  ✖ ${o}`);
 const release = process.argv.includes('--release');
-const unset = (['initialKB', 'roomKB', 'chapterKB'] as const).filter((k) => b[k] === undefined);
+const unset = RELEASE_BUDGETS.filter((k) => b[k] === undefined && (k !== 'backgroundScoreKB' && k !== 'decodedAudioMB' || !!game.audio?.scores));
 if (unset.length) console.log(`  ${release ? '✖' : 'ℹ'} no ${unset.join(', ')}: set assetBudgets.${unset[0]} (and the others) in game.ts${release ? ': a release says how much it asks a phone to download' : ' to hold the game to them'}`);
 const failed = rep.over.length + missing.length + (release ? unset.length : 0);
 console.log(`${failed ? '✖' : '✔'}  [${GAME}] ${rep.over.length ? `${rep.over.length} budget(s) exceeded` : missing.length ? `${missing.length} file(s) missing` : release && unset.length ? 'no weight budget' : 'within budget'}`);
