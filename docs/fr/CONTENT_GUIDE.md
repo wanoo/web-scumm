@@ -719,8 +719,9 @@ Après la première visite, le jeu met en cache chaque image et chaque son pour 
 défaut ; `'nearby'` ne garde que le lieu courant et ses voisins) ; `assetBudgets` dimensionne les lots. Un jeu de 40 Mo
 pèse 40 Mo sur le téléphone.
 `assetBudgets.initialKB`, `roomKB` et `chapterKB` disent combien le jeu peut demander à un téléphone de télécharger
-avant que le premier lieu soit jouable, par lieu et par chapitre : `npm run weight` les vérifie, et une release les exige
-(docs/fr/TOOLS.md).
+avant que le premier lieu soit jouable, par lieu et par chapitre. Avec une partition, `backgroundScoreKB` (ses stems),
+`decodedAudioMB` (décodée), et pour tout jeu `offlineTotalKB` (le préchargement complet) tiennent le reste (3.6).
+`npm run weight` les vérifie, et une release les exige (docs/fr/TOOLS.md).
 
 Une image se désigne par `dossier/nom`, le chemin du fichier découpé dans `games/<jeu>/art/` sans l'extension :
 `grandmere/r3c3` (planche de Grand-mère, ligne 3, colonne 3), `items/r1c2`, `maison/fauteuil`. Les décors s'appellent `decor/<lieu>`.

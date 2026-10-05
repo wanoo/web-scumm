@@ -1779,3 +1779,18 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 - No new frozen save: the state did not change (`demo-3.5.0.json` stays the last one).
 
 → next: Claude · merge on green CI, tag v3.5.1, then v36-budgets
+
+## #80 · 2026-10-05 · Claude · proposal · v36-budgets
+
+- `WeightReport` gains `background` (the stems of every score), `offline` (the shell plus the graph's `offline` scope,
+  read with the manifest) and `decodedAudio` (the largest `pcmBytes`; null when one score lacks it, which is over a
+  `decodedAudioMB` budget). `missing` covers these too.
+- `--release` requires every budget in `RELEASE_BUDGETS`; `backgroundScoreKB` and `decodedAudioMB` only for a game with
+  scores. `initialKB`, `roomKB` and `chapterKB` still count the single mix: what "playable" means does not change.
+- Measured, with a fresh non-Studio build:
+  - demo: stems 3 097 KB, offline 7 800 KB (235 files), decoded 97 MB;
+  - reference: stems 3 097 KB, offline 7 948 KB, decoded 97 MB.
+  Budgets on both: 3 500 KB, 9 000 KB, 128 MB.
+- Test: the three lines over budget, and an unknown decoded weight.
+
+→ next: Claude · v36-stem-probe

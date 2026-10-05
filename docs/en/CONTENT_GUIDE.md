@@ -717,7 +717,9 @@ An image is designated by `folder/name`, the path of the cut file in `games/<id>
 After the first visit the game caches every image and sound for offline play (`offline: 'full'`, the default; `'nearby'`
 keeps only the current room and its neighbours); `assetBudgets` sizes the batches. A 40 MB game is 40 MB on the phone.
 `assetBudgets.initialKB`, `roomKB` and `chapterKB` say how much the game may ask a phone to download before the first
-room is playable, per room and per chapter: `npm run weight` checks them, and a release requires them (docs/en/TOOLS.md).
+room is playable, per room and per chapter. With a score, `backgroundScoreKB` (its stems), `decodedAudioMB` (decoded),
+and for every game `offlineTotalKB` (the full warm-up) hold the rest (3.6). `npm run weight` checks them, and a release
+requires them (docs/en/TOOLS.md).
 
 ## Available minigames
 

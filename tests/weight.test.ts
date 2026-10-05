@@ -43,6 +43,18 @@ describe('weight', () => {
     expect(r.rooms[0]).toMatchObject({ id: 'hall', bytes: 11 * 100 * 1024 });
     expect(r.over).toEqual(['initial download 1700 KB > initialKB 1000', 'room hall 1100 KB > roomKB 1000', 'chapter one 1100 KB > chapterKB 1000']);
   });
+  it('the stems, the offline total and the decoded score have budgets of their own (3.6)', () => {
+    const scored = { ...game, audio: { ...game.audio, scores: { calm: { stems: { a: 'calm-stems/a.mp3', b: 'calm-stems/b.mp3' }, bpm: 90, pcmBytes: 200 * 1048576 } } } } as unknown as GameDef;
+    const sizes: Record<string, number | null> = { 'music:calm-stems/a.mp3': 300 * 1024, 'music:calm-stems/b.mp3': 300 * 1024, 'music:calm.mp3': 100 * 1024, 'sfx:ding.mp3': 1024, 'shell:app.js': 50 * 1024 };
+    const r = weightReport(scored, sizes, [], { backgroundScoreKB: 500, offlineTotalKB: 600, decodedAudioMB: 128 }, { shell: ['shell:app.js'] });
+    expect(r.background).toEqual({ bytes: 600 * 1024, files: 2, missing: [] });
+    // The offline warm-up: the shell, both the mix and the stems, every sound (no manifest here: the images the scopes name, none built).
+    expect(r.offline.bytes).toBe((50 + 300 + 300 + 100 + 1) * 1024);
+    expect(r.decodedAudio).toBe(200 * 1048576);
+    expect(r.over).toEqual(['stems 600 KB > backgroundScoreKB 500', 'offline total 751 KB > offlineTotalKB 600', 'decoded audio 200 MB > decodedAudioMB 128']);
+    const unknown = { ...scored, audio: { ...scored.audio, scores: { calm: { ...scored.audio!.scores!.calm, pcmBytes: undefined } } } } as GameDef;
+    expect(weightReport(unknown, sizes, [], { decodedAudioMB: 128 }).over).toEqual([expect.stringContaining('decoded audio unknown')]);
+  });
   it('the demo stays within its budgets, chapter by chapter', () => {
     // An empty DIST_DIR: the verdict never depends on a `dist` left by an earlier build (a Studio build carries a
     // whole font). The app shell is weighed on a fresh build in CI (`npm run weight -- --release` after `npm run build`).
