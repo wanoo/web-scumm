@@ -7,6 +7,8 @@
 - The music director plays only the latest request: a score whose stems finished decoding after another score was
   asked for replaced it, and a stop while a score loaded did not cancel it (found by the review of 3.5.0; a request
   generation, `tests/director.test.ts`).
+- The weight test no longer reads the `dist` an earlier build left: it weighs the game's assets with an empty
+  `DIST_DIR`, and CI weighs the app shell of a fresh build (`npm run weight -- --release` after `npm run build`).
 
 ## 3.5.0 — 2026-10-05
 

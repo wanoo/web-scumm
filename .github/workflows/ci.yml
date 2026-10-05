@@ -20,6 +20,8 @@ jobs:
       - run: pip install -r requirements.txt
       - run: npm ci
       - run: npm run build
+      # The weight budget with the app shell of this fresh build (the Node test weighs the game's assets only).
+      - run: npm run weight -- --release
       # The exhaustive proof of the sample game (seconds); a big game proves on the weekly prove workflow instead.
       - run: npm run prove:game
       - run: npm run audit:deps
