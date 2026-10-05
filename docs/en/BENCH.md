@@ -464,7 +464,7 @@ with hand-overs played; 44 compared within 20 000, 14 with hand-overs, none dive
 
 | Game | Without the owner | With it |
 |---|---|---|
-| The Night Market (2 characters) | 904 states, 1.9 s | 288 states, 1 559 hand-overs, 1.0 s |
+| The Night Market (2 characters) | 904 states, 2.0 s | 288 states, 1 559 hand-overs, 1.2 s |
 | The sample game | 3 480 states | the same: no mobility region, so no owner |
 | Open chain, 20 rooms × 2 characters, 12 items | truncated at 40 000 states (58 s) | **solved**, 14 002 states, 19.4 s |
 | Open chain, 20 rooms × 3 characters | truncated | **still truncated** at 200 000 states (154 s with 4 workers) |

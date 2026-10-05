@@ -493,7 +493,7 @@ attrapé.
 
 | Jeu | Sans le propriétaire | Avec |
 |---|---|---|
-| Le Marché de nuit (2 personnages) | 904 états, 1,9 s | 288 états, 1 559 remises, 1,0 s |
+| Le Marché de nuit (2 personnages) | 904 états, 2,0 s | 288 états, 1 559 remises, 1,2 s |
 | Le jeu d'exemple | 3 480 états | les mêmes : pas de région de mobilité, donc pas de propriétaire |
 | Chaîne ouverte, 20 lieux × 2 personnages, 12 objets | tronquée à 40 000 états (58 s) | **résolue**, 14 002 états, 19,4 s |
 | Chaîne ouverte, 20 lieux × 3 personnages | tronquée | **toujours tronquée** à 200 000 états (154 s avec 4 workers) |
