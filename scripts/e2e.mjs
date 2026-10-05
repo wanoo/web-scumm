@@ -29,6 +29,8 @@ const generic = args.includes('--generic');
 const keyboard = args.includes('--keyboard');
 // --lang <xx>: play in that language and fail on any visible English default of the engine (`harness.leaks()`).
 const lang = flag('lang');
+// --renderer canvas|dom: every room drawn by that painter (D10: the canvas painter must play the same game).
+const renderer = flag('renderer');
 // --save: after the walkthrough, a manual save must survive a reload; --no-indexeddb: with the browser offering no
 // IndexedDB, so the localStorage fallback is exercised.
 const saveCheck = args.includes('--save');
@@ -38,8 +40,8 @@ const noIndexedDb = args.includes('--no-indexeddb');
 // Same game resolution as tools/game.ts (env GAME, else package.json config.game, else "demo"); --game overrides both.
 const GAME = flag('game') ?? process.env.GAME ?? 'demo';
 
-console.log(`e2e: ${url} (game: ${GAME}, browser: ${process.env.E2E_BROWSER ?? 'chromium'}, ${prod ? 'production' : 'development'}${keyboard ? ', keyboard' : ''}${lang ? `, lang ${lang}` : ''}${saveCheck ? ', save round trip' : ''}${noIndexedDb ? ', no IndexedDB' : ''}${axeCheck ? ', axe' : ''})`);
-const harness = await launch(url, { at, dev: !prod, input: keyboard ? 'keyboard' : undefined, lang, noIndexedDb });
+console.log(`e2e: ${url} (game: ${GAME}, browser: ${process.env.E2E_BROWSER ?? 'chromium'}, ${prod ? 'production' : 'development'}${keyboard ? ', keyboard' : ''}${lang ? `, lang ${lang}` : ''}${renderer ? `, ${renderer} painter` : ''}${saveCheck ? ', save round trip' : ''}${noIndexedDb ? ', no IndexedDB' : ''}${axeCheck ? ', axe' : ''})`);
+const harness = await launch(url, { at, dev: !prod, input: keyboard ? 'keyboard' : undefined, lang, noIndexedDb, renderer });
 let ok = true;
 const axeFound = [];
 try {

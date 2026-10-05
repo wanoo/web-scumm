@@ -6,6 +6,8 @@ import type { AssetBank } from './assets';
 import { PaletteCache } from './palette';
 import { depthScale, WalkArea } from './walk';
 import { DomRenderer } from './render-dom';
+import { CanvasRenderer } from './render-canvas';
+import { rendererOf } from '../core/stage';
 import type { SceneRenderer, SpriteSpec } from './renderer';
 
 /** Something drawn in the scene: prop, actor or hero. */
@@ -57,7 +59,13 @@ interface Ent {
 export class RoomView {
   /** The painter's surface (moves with the camera; the accessible targets go in it). */
   get el(): HTMLElement { return this.r.el; }
-  readonly r: SceneRenderer;
+  r: SceneRenderer;
+  /** Which painter draws the current room (`RoomDef.renderer`, else `GameDef.renderer`, else the DOM reference). */
+  painter: 'dom' | 'canvas' = 'dom';
+  /** Forces a painter for every room (`?renderer=canvas|dom`: the visual parity check, the Studio's comparison). */
+  forced: 'dom' | 'canvas' | null = null;
+  /** Called with the new surface when a room changes painter: the App puts it where the old one was. */
+  onSurface: ((el: HTMLElement, old: HTMLElement) => void) | null = null;
   u = 1;
   room!: RoomDef;
   layout!: Layout;
@@ -82,6 +90,22 @@ export class RoomView {
 
   constructor(private engine: Engine, private bank: AssetBank, renderer?: SceneRenderer) {
     this.r = renderer ?? new DomRenderer();
+    this.custom = !!renderer;
+  }
+  /** A painter given by the caller (tests): kept for every room. */
+  private custom = false;
+
+  /** The painter this room asks for, swapped in when it differs from the current one. */
+  private usePainter(room: RoomDef) {
+    if (this.custom) return;
+    const want = this.forced ?? rendererOf(room, this.engine.game);
+    if (want === this.painter) return;
+    const old = this.r.el;
+    this.r.dispose();
+    this.r = want === 'canvas' ? new CanvasRenderer() : new DomRenderer();
+    this.painter = want;
+    this.r.resize(this.u);
+    this.onSurface?.(this.r.el, old);
   }
 
   get heroId() { return this.engine.heroId(); }
@@ -116,6 +140,7 @@ export class RoomView {
   /** Builds the room from the game state. */
   async build(room: RoomDef) {
     cancelAnimationFrame(this.raf);
+    this.usePainter(room);
     this.room = room;
     this.layout = this.engine.layout(room.id);
     this.walk = new WalkArea(this.layout);

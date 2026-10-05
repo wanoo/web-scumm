@@ -92,6 +92,11 @@ jobs:
           - browser: chromium
             mode: fr
             experimental: false
+          # The Canvas painter (D10, since 3.4): the whole game drawn by it, its rooms against the DOM references, the
+          # frame rate with the CPU slowed 4×.
+          - browser: chromium
+            mode: canvas
+            experimental: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -108,7 +113,7 @@ jobs:
           VITE_STUDIO_DEMO: '1'
       - run: npm run preview -- --port 5173 &
       - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5173/ > /dev/null && break; sleep 1; done
-      - run: npm run e2e -- http://127.0.0.1:5173/ --game demo --prod ${{ matrix.mode == 'generic' && '--generic' || matrix.mode == 'keyboard' && '--generic --keyboard --save --no-indexeddb --axe' || matrix.mode == 'fr' && '--generic --lang fr' || '--save --axe' }}
+      - run: npm run e2e -- http://127.0.0.1:5173/ --game demo --prod ${{ matrix.mode == 'generic' && '--generic' || matrix.mode == 'keyboard' && '--generic --keyboard --save --no-indexeddb --axe' || matrix.mode == 'fr' && '--generic --lang fr' || matrix.mode == 'canvas' && '--generic --renderer canvas' || '--save --axe' }}
         env:
           E2E_BROWSER: ${{ matrix.browser }}
           E2E_OUT: /tmp/e2e-${{ matrix.browser }}
@@ -119,6 +124,10 @@ jobs:
       # Visual baselines (since 3.4): every room of the sample game, still, against tests/visual/demo/*.png.
       - run: npm run e2e:visual -- http://127.0.0.1:5173/
         if: matrix.browser == 'chromium' && matrix.mode == 'full'
+      - run: npm run e2e:visual -- http://127.0.0.1:5173/ --renderer=canvas
+        if: matrix.mode == 'canvas'
+      - run: npm run e2e:perf -- http://127.0.0.1:5173/ --renderer=canvas && npm run e2e:perf -- http://127.0.0.1:5173/ --renderer=dom
+        if: matrix.mode == 'canvas'
       # The accessibility and storage gates (since 3.3): axe on the conversation menu, the map, the save / load slots,
       # the confirmations and every built-in minigame; every minigame won at the keyboard; an older save (v2
       # localStorage, a 3.1.0 IndexedDB record) upgraded and resumed. Blocking in Chromium (keyboard row) and WebKit.
