@@ -5,12 +5,17 @@ import type { CharacterDef, Id, Layout, Point, RoomDef } from '../core/types';
 import type { AssetBank } from './assets';
 import { PaletteCache } from './palette';
 import { depthScale, WalkArea } from './walk';
+import { DomRenderer } from './render-dom';
+import type { SceneRenderer, SpriteSpec } from './renderer';
 
 /** Something drawn in the scene: prop, actor or hero. */
 interface Ent {
   id: Id;
   kind: 'prop' | 'actor' | 'hero';
-  el: HTMLImageElement;
+  /** Drawn at least once with an image (its `bbox` is then up to date). */
+  drawn: boolean;
+  /** 0–1 during a fade (`show`), 1 otherwise. */
+  opacity: number;
   x: number; y: number;
   /** Reference height (idle pose), in logical units. */
   h: number;
@@ -37,18 +42,22 @@ interface Ent {
   frameImg?: Id;
   loop?: { frames: Id[]; fps: number; i: number; acc: number; onFrame?: (i: number) => void };
   visible: boolean;
-  shadow?: HTMLDivElement;
+  /** Characters stand on a shadow; props do not. */
+  hasShadow: boolean;
   /** Character that keeps its size (placed) or follows depth (hero, walking actor). */
   scaleWithDepth: boolean;
 }
 
 
 /**
- * View of a room: backdrop, props, characters, depth sort, walking, poses.
- * Positions in logical units (640 × 400), converted to pixels by `u`.
+ * The scene model of a room: backdrop, props, characters, depth sort, walking, poses, the camera and the hit test, in
+ * logical units (640 × 400 per screen). What paints it is a `SceneRenderer` (dom/renderer.ts): the DOM painter by
+ * default, the reference (D10). Everything a tap, a walk or a line depends on is decided here, never by the painter.
  */
 export class RoomView {
-  readonly el: HTMLDivElement;
+  /** The painter's surface (moves with the camera; the accessible targets go in it). */
+  get el(): HTMLElement { return this.r.el; }
+  readonly r: SceneRenderer;
   u = 1;
   room!: RoomDef;
   layout!: Layout;
@@ -65,25 +74,21 @@ export class RoomView {
   width = 640;
   cam = 0;
   follow = true;
-  private bg: HTMLImageElement | null = null;
   private pan: { from: number; to: number; t0: number; ms: number; done: () => void } | null = null;
   /** Called whenever the camera moves (the dev overlay pans with it). */
   onCamera: ((cam: number) => void) | null = null;
   /** Reduced motion (settings): instant camera moves. */
   reduceMotion = false;
 
-  constructor(private engine: Engine, private bank: AssetBank) {
-    this.el = document.createElement('div');
-    this.el.className = 'room';
-    Object.assign(this.el.style, { position: 'absolute', inset: '0' });
+  constructor(private engine: Engine, private bank: AssetBank, renderer?: SceneRenderer) {
+    this.r = renderer ?? new DomRenderer();
   }
 
   get heroId() { return this.engine.heroId(); }
 
   resize(u: number) {
     this.u = u;
-    if (this.bg) this.bg.style.width = `${this.width * u}px`;
-    for (const e of this.ents.values()) this.draw(e);
+    this.r.resize(u);
     this.applyCam();
   }
 
@@ -91,7 +96,7 @@ export class RoomView {
 
   private clampCam(x: number) { return Math.max(0, Math.min(this.width - 640, x)); }
   private applyCam() {
-    this.el.style.transform = this.width > 640 ? `translateX(${-this.cam * this.u}px)` : '';
+    this.r.camera(this.cam, this.width);
     this.onCamera?.(this.cam);
   }
   /** The camera the hero would have at this instant (centred on them, clamped). */
@@ -115,7 +120,6 @@ export class RoomView {
     this.layout = this.engine.layout(room.id);
     this.walk = new WalkArea(this.layout);
     this.ents.clear();
-    this.el.innerHTML = '';
     const s = this.engine.state;
     // The room's part of the asset graph (core/asset-graph.ts) for who is actually here: never a file outside its scope.
     const ids = new Set<Id>(roomImages(room));
@@ -136,12 +140,8 @@ export class RoomView {
     }
     await Promise.all(swaps);
 
-    const bg = document.createElement('img');
-    bg.className = 'bg'; bg.alt = ''; bg.draggable = false; bg.src = this.bank.img(room.decor);
     this.width = Math.max(640, this.layout.width ?? 640);
-    bg.style.width = `${this.width * this.u}px`;
-    this.el.append(bg);
-    this.bg = bg;
+    this.r.reset(this.bank.img(room.decor), this.width);
 
     for (const [id, def] of Object.entries(room.props ?? {})) {
       const L = this.layout.props?.[id];
@@ -183,16 +183,27 @@ export class RoomView {
     this.raf = requestAnimationFrame(tick);
   }
 
-  destroy() { cancelAnimationFrame(this.raf); }
+  destroy() { cancelAnimationFrame(this.raf); this.r.dispose(); }
+
+  /**
+   * Stops every animation on a fixed picture: first frame of each pose and loop, mouths closed, no bob, no walk pose,
+   * the camera where it rests. For the visual baselines (scripts/e2e-visual.mjs) and the Studio's painter comparison;
+   * the next `build` starts the clock again.
+   */
+  still() {
+    cancelAnimationFrame(this.raf);
+    for (const e of this.ents.values()) {
+      e.frame = 0; e.mouth = undefined; e.bob = 0; e.over = undefined;
+      if (e.loop) { e.loop.i = 0; e.frameImg = e.loop.frames[0]; e.loop = undefined; }
+      this.draw(e);
+    }
+    this.pan = null;
+    if (this.follow) this.cam = this.heroCam();
+    this.applyCam();
+  }
 
   private add(p: Partial<Ent> & Pick<Ent, 'id' | 'kind' | 'x' | 'y' | 'h' | 'flip' | 'pose' | 'scaleWithDepth'>): Ent {
-    const el = document.createElement('img');
-    el.className = 'spr'; el.alt = ''; el.draggable = false;
-    const e: Ent = { frame: 0, visible: true, mouthAt: 0, blinkAt: performance.now() + 2000 + Math.random() * 4000, bob: 0, ...p, el };
-    if (e.kind !== 'prop') { e.shadow = document.createElement('div'); e.shadow.className = 'shadow'; this.el.append(e.shadow); }
-    const glow = e.charId ? this.engine.game.characters[e.charId]?.glow : undefined;
-    if (glow) el.style.filter = `drop-shadow(0 0 6px ${glow}) drop-shadow(0 0 14px ${glow})`;
-    this.el.append(el);
+    const e: Ent = { frame: 0, visible: true, mouthAt: 0, blinkAt: performance.now() + 2000 + Math.random() * 4000, bob: 0, drawn: false, opacity: 1, hasShadow: p.kind !== 'prop', ...p };
     this.ents.set(e.id, e);
     return e;
   }
@@ -232,7 +243,6 @@ export class RoomView {
   }
 
   private draw(e: Ent) {
-    const u = this.u;
     let img: Id | undefined, h = e.h;
     if (e.kind === 'prop') img = e.frameImg ?? e.img;
     else {
@@ -244,35 +254,30 @@ export class RoomView {
       const scale = e.scaleWithDepth ? depthScale(this.layout, e.y) : 1;
       if (img && ref) h = (this.bank.size(img)[1] / ref) * e.h * scale; else h = e.h * scale;
     }
-    if (!img) { e.el.style.display = 'none'; if (e.shadow) e.shadow.style.display = 'none'; return; }
+    const base = { id: e.id, fx: e.x, fy: e.y, bob: e.bob, z: e.z ?? e.y, flip: e.flip, flipV: !!e.flipV, rot: e.rot ?? 0, visible: e.visible, opacity: e.opacity };
+    if (!img) { e.drawn = false; this.r.sprite({ ...base, url: null, w: 0, h: 0 }); return; }
     const w = this.bank.widthFor(img, h);
     const c = e.kind === 'prop' ? undefined : this.char(e);
     const pal = c?.palette && Object.keys(c.palette).length ? c.palette : undefined;
-    const key = pal ? `${img}|${JSON.stringify(pal)}|${c?.paletteTolerance ?? 0}` : img;
-    if (e.el.dataset.img !== key) {
-      const url = this.bank.img(img);
-      e.el.src = (pal && this.palettes.get(url, pal, c?.paletteTolerance ?? 0)) || url;
-      e.el.dataset.img = key;
-    }
-    Object.assign(e.el.style, {
-      display: '', left: `${(e.x - w / 2) * u}px`, top: `${(e.y - h - e.bob) * u}px`, width: `${w * u}px`, height: `${h * u}px`,
-      zIndex: String(Math.round(e.z ?? e.y)), opacity: e.visible ? '' : '0', visibility: e.visible ? '' : 'hidden',
-    });
-    e.el.classList.toggle('flip', e.flip);
-    // Rotation and vertical mirror (props): same rendering as the placement page, pivot at the feet.
+    const url = this.bank.img(img);
+    const glow = e.charId ? this.engine.game.characters[e.charId]?.glow : undefined;
+    const sw = Math.min(w * 0.7, 46);
+    const spec: SpriteSpec = {
+      ...base, url: (pal && this.palettes.get(url, pal, c?.paletteTolerance ?? 0)) || url, w, h,
+      ...(glow ? { filter: `drop-shadow(0 0 6px ${glow}) drop-shadow(0 0 14px ${glow})` } : {}),
+      ...(e.hasShadow ? { shadow: { x: e.x - sw / 2, y: e.y - 4, w: sw, h: 8, z: Math.round(e.y) - 1, visible: e.visible } } : {}),
+    };
+    this.r.sprite(spec);
+    e.drawn = true;
+    // The box a tap is tested against (rotation included): the model's, whatever paints it.
     const rot = e.rot ?? 0;
-    e.el.style.transform = rot || e.flipV ? `rotate(${rot}deg) scale(${e.flip ? -1 : 1}, ${e.flipV ? -1 : 1})` : '';
     const y0 = e.flipV ? 0 : -h, y1 = e.flipV ? h : 0;
     if (rot) {
-      const a = (rot * Math.PI) / 180, c = Math.cos(a), sn = Math.sin(a);
-      const pts = [[-w / 2, y0], [w / 2, y0], [-w / 2, y1], [w / 2, y1]].map(([px, py]) => [e.x + px * c - py * sn, e.y + px * sn + py * c]);
+      const a = (rot * Math.PI) / 180, co = Math.cos(a), sn = Math.sin(a);
+      const pts = [[-w / 2, y0], [w / 2, y0], [-w / 2, y1], [w / 2, y1]].map(([px, py]) => [e.x + px * co - py * sn, e.y + px * sn + py * co]);
       const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
       e.bbox = [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
     } else e.bbox = [e.x - w / 2, e.y + y0 - e.bob, w, h];
-    if (e.shadow) {
-      const sw = Math.min(w * 0.7, 46);
-      Object.assign(e.shadow.style, { display: e.visible ? '' : 'none', left: `${(e.x - sw / 2) * u}px`, top: `${(e.y - 4) * u}px`, width: `${sw * u}px`, height: `${8 * u}px`, zIndex: String(Math.round(e.y) - 1) });
-    }
   }
 
   private tick(t: number) {
@@ -340,11 +345,7 @@ export class RoomView {
   /** Box of an entity or hotspot, in logical units [x, y, w, h]. */
   box(id: Id): [number, number, number, number] | null {
     const e = this.ents.get(id);
-    if (e && e.el.style.display !== 'none') {
-      if (e.bbox) return e.bbox;
-      const u = this.u;
-      return [parseFloat(e.el.style.left) / u, parseFloat(e.el.style.top) / u, parseFloat(e.el.style.width) / u, parseFloat(e.el.style.height) / u];
-    }
+    if (e?.drawn && e.bbox) return e.bbox;
     const h = this.layout.hotspots?.[id];
     if (h?.rect) return h.rect;
     if (h?.poly) { const xs = h.poly.map((p) => p[0]), ys = h.poly.map((p) => p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)]; }
@@ -413,16 +414,15 @@ export class RoomView {
   async show(id: Id, visible: boolean, fade: number, fast: boolean) {
     const e = this.ents.get(id);
     if (!e) return;
+    if (fast || !fade) { e.visible = visible; e.opacity = 1; this.draw(e); return; }
+    // The fade is the model's (an opacity the painter is given each frame), so every painter fades the same way.
     e.visible = true;
-    this.draw(e);
-    if (fast || !fade) { e.visible = visible; this.draw(e); return; }
-    e.el.style.transition = `opacity ${fade}ms`;
-    e.el.style.opacity = visible ? '0' : '1';
-    void e.el.offsetWidth;
-    e.el.style.opacity = visible ? '1' : '0';
-    await new Promise((r) => setTimeout(r, fade));
-    e.el.style.transition = '';
-    e.visible = visible;
+    const from = visible ? 0 : 1, to = visible ? 1 : 0, t0 = performance.now();
+    await new Promise<void>((done) => {
+      const step = (t: number) => { const k = Math.min(1, (t - t0) / fade); e.opacity = from + (to - from) * k; this.draw(e); if (k < 1) requestAnimationFrame(step); else done(); };
+      requestAnimationFrame(step);
+    });
+    e.visible = visible; e.opacity = 1;
     this.draw(e);
   }
 

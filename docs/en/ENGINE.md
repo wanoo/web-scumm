@@ -112,6 +112,17 @@ checked", not "WCAG AA".
 
 The choice is made automatically (`App.layout`), and redone whenever the window is resized.
 
+## The scene: a model and a painter
+
+`dom/room.ts` (`RoomView`) is the scene model of a room: who is where, which image of which pose, depth, walking,
+mouths and blinks, fades, the camera, and the hit test (the smallest visible target under the finger). It hands each
+entity to a painter as a finished sprite (`SpriteSpec` in `dom/renderer.ts`: image, feet position, size, depth,
+mirror, rotation, opacity, glow, shadow) and never asks the painter anything back, so two painters cannot disagree on
+what a tap touches. `dom/render-dom.ts` is the DOM painter, the reference (D10): an `<img>` per sprite, the z-index for
+depth, a CSS translation for the camera. `RoomView.still()` stops every animation on a fixed picture (first frames,
+mouths closed, the camera at rest): `npm run e2e:visual` compares each room of the sample game, still, with its
+reference in `tests/visual/demo/` (a CI gate; `--update` rewrites them after a wanted change).
+
 ## Assets: one graph
 
 `src/engine/core/asset-graph.ts` says which files each part of the game needs, from the content: the title (backdrop,
