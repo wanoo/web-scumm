@@ -23,6 +23,14 @@ deprecation policy of `docs/en/SUPPORT.md`. Human passes: 0 of 7 (D12, `docs/dev
 - The independent game, "The Lighthouse", moved from 3.9.0 to 4.0.0 by installing the new tarball: nothing to
   migrate, `release --commercial` green, its 3.9.0 save loaded and played to the end (LOG #94).
 
+### Dependencies
+
+- The open Dependabot pull requests are settled: taken, earcut 3.2.4 and the GitHub Actions majors (`setup-node` 7,
+  `setup-python` 7, `upload-artifact` 7, `upload-pages-artifact` 5, `deploy-pages` 5); not taken, Vite 8 (its new
+  bundler breaks a CommonJS default import: the game does not start) and TypeScript 7 (it drops `baseUrl` and
+  non-relative `paths`): toolchain migrations for a minor of their own; nor the raised minimums of Pillow, NumPy and
+  SciPy (a minimum is what the tools need, not the latest: NumPy 2.5 breaks other packages of a shared Python).
+
 ### Migration
 
 - From 3.x: import from the four public entries instead of `@engine/*` (which keeps working, without the promise);

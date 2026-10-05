@@ -474,6 +474,8 @@ publication sur npm, un tag signé, le réglage « immutable releases » de GitH
 
 - Les passes terrain, puis ce qu'elles trouvent (D12).
 - Publier `web-scumm` et `create-web-scumm` sur npm ; Le Phare dans un dépôt public.
+- Vite 8 et TypeScript 7 (écartés en 4.0 : le bundler de Vite 8 casse un import par défaut CommonJS, TypeScript 7
+  retire `baseUrl` et les `paths` non relatifs) : une mineure à part, avec le `tsconfig.json` du modèle de projet.
 - Les traductions chargées à la demande (la seconde langue pèse ~10 % du JavaScript de la première visite) : un
   changement du contrat du module de jeu, donc une mineure avec une dépréciation, pas un correctif.
 - La matrice ouverte à trois personnages : une dominance exacte par la pertinence des objets et des positions, auditée
