@@ -123,10 +123,18 @@ depth, a CSS translation for the camera. `RoomView.still()` stops every animatio
 mouths closed, the camera at rest): `npm run e2e:visual` compares each room of the sample game, still, with its
 reference in `tests/visual/demo/` (a CI gate; `--update` rewrites them after a wanted change).
 
-`dom/render-canvas.ts` is the Canvas 2D painter: one `<canvas>` per room, as wide as the room and moved by the camera
-like the DOM painter's room, repainted on the next frame after a change; depth is the draw order, a sprite pivots on
-its feet, an upright sprite is snapped to device pixels as the DOM's layout does, the backdrop covers the room like
-`object-fit: cover`. A room chooses it with `renderer: 'canvas'` (or the game for every room); `?renderer=canvas|dom`
+`dom/render-canvas.ts` is the Canvas 2D painter: one `<canvas>` the size of the viewport, held in place while the room
+under it moves with the camera, repainted on the next frame after a change; the backdrop and the still backdrop layers
+are pre-rendered once over the whole room and copied each frame; depth is the draw order, a sprite pivots on its feet,
+an upright sprite is snapped to device pixels in the room as the DOM's layout does (the camera's translation keeps its
+fractions, like the DOM room's), sprites off screen are skipped, the backdrop covers the room like `object-fit: cover`.
+It draws the whole stage (`RoomDef.stage`): layers at their depth with their parallax, blend and opacity; occluders
+(the backdrop's pixels, or a layer's, through a polygon, a black-and-white mask or a layer's alpha, feathered or
+inverted, composited once) at theirs; the foreground; lights (radial and ambient, `screen` or `multiply`, falling on
+the foreground too); particles (seeded per emitter, on the presentation clock, never the engine's dice); effect layers.
+The DOM painter draws layers, parallax and polygon occluders (the backdrop clipped at the occluder's depth). The model
+evaluates every stage condition and gives the stage again when one changes; a room's `transition` fades or wipes the
+painter's surface; reduced motion (the setting or the system's) turns off parallax, particles and transitions. A room chooses it with `renderer: 'canvas'` (or the game for every room); `?renderer=canvas|dom`
 forces one for every room. The UI, the dialogue and every accessible target stay in the DOM, above the canvas. Measured
 on the sample game: its rooms within 0.31% of the DOM references, the whole game played to the end by it, 60 frames
 per second with the CPU slowed 4× (`npm run e2e:perf`), all in the CI's `chromium / canvas` row.

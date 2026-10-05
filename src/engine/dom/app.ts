@@ -1039,7 +1039,9 @@ export class App implements Presenter {
     document.documentElement.style.setProperty('--font-ui', fontStack(S.readableFont && F?.readable ? F.readable : (F?.ui ?? FONT_UI)));
     this.scene.style.setProperty('--text-scale', String(S.textSize));
     this.audio.setVolumes(S.musicVolume, S.sfxVolume, S.voiceVolume);
-    this.view.reduceMotion = S.reduceMotion;
+    // The setting, or the system's `prefers-reduced-motion`: no camera glide, no parallax, no particles, no room transition.
+    this.view.reduceMotion = S.reduceMotion || !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (this.view.room && this.engine.state) this.view.refreshVisibility();
     try { localStorage.setItem(`${this.game.id}.settings`, JSON.stringify(S)); } catch { /* no storage */ }
   }
 
