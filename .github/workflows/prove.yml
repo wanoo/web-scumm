@@ -30,7 +30,7 @@ jobs:
       # The exhaustive proof has no reduction: on a 40-room chain it is truncated at 50 000 states after seven minutes
       # (docs/en/BENCH.md). The bench proves within a budget and reports `truncated` honestly.
       - run: npm run bench -- --rooms=${{ github.event.inputs.rooms || '100' }} --players=5 --items=120 --flags=300 --npcs=10 --scripts=30 --topics=100 --max=20000 --prove --v3 | tee bench.md
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: bench
           path: bench.md
