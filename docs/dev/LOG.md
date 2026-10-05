@@ -1979,3 +1979,33 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 - Not done (D12): every human pass of "Field Proof", and a signed tag.
 
 → next: Claude · merge on green CI, tag v3.7.0 (v3.6.1 is tagged)
+
+## #91 · 2026-10-05 · Claude · proposal · 3.7.1 "Artifact Truth", the way to 4.0
+
+Codex reviewed 3.7.0 (tag `c34fc7a`): a good consolidation release whose claims reproduce (568 tests, both games
+commercial, proofs, the music scenario, the archive against its sums and attestation), not yet a V4. Every point was
+checked against the code before a line was written:
+
+- **Stinger over the cap**: true. `stinger()` kept the score and the stinger out of eviction together; 16 000 + 32 000
+  over 40 000 played anyway. Fixed: let go unplayed, streamed by `dom/audio.ts`; the cap is asserted after every
+  lifecycle case.
+- **`verify:commercial` did not see the archive**: true. Vite copies all of `public/assets`; the demo's tarball held
+  the reference's score and bridges. Fixed: the build is sealed (`tools/dist.ts seal`) and `verify:dist` classifies
+  every file, failing on anything the lock, the game or the engine does not account for. Both suggested remedies.
+- **No licence notice in the archive**: true. `dist/licenses/` now has the MIT licence, the assets' licence, credits,
+  every bundled package's licence (taken from the chunks' modules, plus Workbox for the service worker) with the fonts'
+  OFL text and copyright lines (`src/engine/dom/fonts/OFL.txt`), and the assets manifest, which the release attaches.
+- **`--strict` accepts zero playtests**: true. Quotas are separate options; `verify:field` asks 5/3/2 and is reported,
+  not gating (D12).
+- **Workflows pinned to v3, release from a mutable ref, `--clobber`**: true, all fixed (`fix/workflows`).
+- **Shards**: true (501 ran 504, no coverage check). Fixed and run: 4 shards × 501 seeds, exact, merge checked.
+- **Two scores only in Chromium**: true; 3.8 runs it in WebKit (passes locally).
+- **Reference not independent**: true; not answered by copying its art, but by a game outside the repository (3.9).
+- **Bundle at the limit**: measured: no solver or tool in the player; zod (for the save envelope) and the minigames
+  were the weight. 153 → 122 KB gzipped, `initialJsKB` on the build.
+- **README release line, `.pyc`**: true, both fixed, the first held by a test.
+
+The trajectory to 4.0 is in the ROADMAP: 3.8 the machine part of "Human Proof", 3.9 "Independence", 4.0 "Stable
+Platform"; human gates reported, not blocking (D12).
+
+→ next: Claude · merge on green CI, tag v3.7.1
