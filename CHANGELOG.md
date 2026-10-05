@@ -4,6 +4,12 @@
 
 ### Added
 
+- The reference chapter (3.4, `games/reference`, "The Night Market", D13): the engine's second real game, built from
+  the sample game's art. Two playable characters who need each other, 8 rooms, a staged market (6 layers, parallax, 3
+  masks, stairs between two zones), a yard on two planes, an autonomous script, a minigame, a timeline finale, en and
+  fr. A CI job builds it, proves it whole and by chapters, plays it to the end at the keyboard in Chromium and WebKit
+  and in French, and checks its rooms, its frame rate (CPU ÷4) and its first visit's bytes (`docs/en/BENCH.md` 3.4).
+
 - The Studio's structured editing (3.4): reactions, conditions, commands and a room's stage as forms (from one table
   of every condition and command, checked against the types at compile time), a diff preview, a write as code in the
   file's style validated after it is made (an edit that adds an error is taken back), atomic writes, Undo / Redo over
@@ -76,6 +82,18 @@
   default fonts go through the bundler (the service worker's precache no longer downloads them a second time), and
   VT323, precached but never used, is gone.
 
+
+### Fixed
+
+- The Canvas painter rebuilt its background and occluders (a blur over the whole room) each time a character's next
+  frame finished loading, and copied a whole viewport per occluder each frame: only a backdrop, layer or mask image
+  makes the caches stale now, and an occluder keeps only the pixels that hide. The reference market, CPU ÷8: 20 → 47
+  frames per second, the same pixels.
+
+- The e2e harness switches characters until the engine has switched (the button ignores a press while a line is on
+  screen: at the keyboard's pace, a hand-over's line); `e2e:weight` waits for a Canvas room as for a DOM one;
+  `npm run assets` prepares a stage's layer, mask and particle images; `solve`, `replay` and `lint` no longer cut their
+  JSON output at 8 KB in a pipe (`tools/flush.ts`).
 
 ## 3.3.1 — 2026-10-05
 

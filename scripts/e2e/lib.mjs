@@ -95,12 +95,15 @@ export async function launch(url, opts = {}) {
     await page.keyboard.press('Enter');
   }
   async function sceneRect() { return page.locator('.scene').boundingBox(); }
+  /** Where a logical point is on the scene, in its pixels (the camera's offset and zoom included: RoomView.toScreen). */
+  async function onScreen(x, y) {
+    return page.evaluate(([x, y]) => { const v = window.__game?.view; return v?.toScreen ? v.toScreen([x, y]) : [(x - (v?.cam ?? 0)) * (v?.u ?? 1), y * (v?.u ?? 1)]; }, [x, y]);
+  }
   async function tapScene(x, y) {
-    // Wide rooms: logical coordinates are world coordinates; the scene shows them shifted by the camera.
-    x -= await page.evaluate(() => window.__game?.view?.cam ?? 0);
     const r = await sceneRect();
     if (!r) throw new Error('tapScene: .scene is not visible');
-    await tapXY(r.x + (x / LOGICAL.width) * r.width, r.y + (y / LOGICAL.height) * r.height);
+    const [px, py] = await onScreen(x, y);
+    await tapXY(r.x + px, r.y + py);
   }
 
   /** A finger drag through touch events in Chromium, with pointer-event fallback on the other browser engines. */
@@ -128,6 +131,10 @@ export async function launch(url, opts = {}) {
       if (!box) return null;
       const [x, y, w, h] = box;
       const tries = [[0.5, 0.5], [0.5, 0.3], [0.5, 0.7], [0.3, 0.5], [0.7, 0.5], [0.3, 0.3], [0.7, 0.3], [0.3, 0.7], [0.7, 0.7], [0.5, 0.15], [0.5, 0.85], [0.15, 0.5], [0.85, 0.5]];
+      // A point the hit test gives to `id`, on screen first (a wide room or a zoomed camera shows part of the box).
+      const seen = (q) => { if (!v.toScreen) return true; const [px, py] = v.toScreen(q); return px > 4 && py > 4 && px < 640 * v.u - 4 && py < 400 * v.u - 4; };
+      for (const [kx, ky] of tries) { const q = [x + w * kx, y + h * ky]; if (v.hit(q) === id && seen(q)) return q; }
+      for (let gx = 0.05; gx < 1; gx += 0.1) for (let gy = 0.1; gy < 1; gy += 0.2) { const q = [x + w * gx, y + h * gy]; if (v.hit(q) === id && seen(q)) return q; }
       for (const [kx, ky] of tries) { const q = [x + w * kx, y + h * ky]; if (v.hit(q) === id) return q; }
       return [x + w / 2, y + h / 2];
     }, id);
@@ -136,6 +143,12 @@ export async function launch(url, opts = {}) {
     if (keyboard) { await activate(page.locator(`.a11y-target[data-target="${id}"]`).first()); return; }
     const q = await pointOn(id);
     if (!q) throw new Error(`tapTarget: no box for ${id}`);
+    // Off screen (a wide room's far end, a zoomed camera): reached the way a keyboard player reaches it, its target.
+    const r = await sceneRect(), [px, py] = await onScreen(q[0], q[1]);
+    if (r && (px < 0 || py < 0 || px > r.width || py > r.height)) {
+      const t = page.locator(`.a11y-target[data-target="${id}"]`).first();
+      if (await t.count()) { await t.focus(); await page.keyboard.press('Enter'); return; }
+    }
     await tapScene(q[0], q[1]);
   }
 
@@ -178,6 +191,17 @@ export async function launch(url, opts = {}) {
   }
   async function item(id) { await activate(await itemSlot(id)); }
   const inInventory = (id) => page.evaluate((id) => window.__game.engine.state.inventory.includes(id), id);
+  /** Switches the playable character by its button, again until the engine has switched: the button ignores a
+   * press while a line is still on screen or the engine is busy (the end of a hand-over, at the keyboard's pace). */
+  async function switchTo(pid) {
+    for (let k = 0; k < 20; k++) {
+      await waitIdle();
+      if (await page.evaluate((p) => window.__game.engine.heroId() === p, pid)) return;
+      await activate(page.locator(`.tools .tool.player[data-player="${pid}"]`));
+      await page.waitForTimeout(150);
+    }
+    throw new Error(`switchTo: still not playing ${pid}`);
+  }
   async function target(id) { if (await inInventory(id)) await item(id); else await tapTarget(id); }
 
   // ------------------------------------------------------------------ waiting for the engine
@@ -431,7 +455,7 @@ export async function launch(url, opts = {}) {
       } else if ('travel' in en) { await openMap(); await say(await placeName(en.travel)); }
       else if ('map' in en) { await openMap(); if (en.maps?.[0]) await say(await placeName(en.maps[0])); else { await page.keyboard.press('Escape').catch(() => {}); await waitIdle(); } }
       else if ('step' in en) { await waitScript(en.step); }
-      else if ('switch' in en) { await page.locator(`.tools .tool.player[data-player="${en.switch}"]`).tap(); await waitIdle(); }
+      else if ('switch' in en) await switchTo(en.switch);
       else if ('script' in en) { await page.evaluate((c) => window.__game.engine.script(c), en.script); await waitIdle(); }
       else if ('enter' in en) { await page.evaluate((r) => window.__game.engine.teleport(r), en.enter); await waitIdle(); }
       await screenshot(`walk-${String(i + 1).padStart(3, '0')}`).catch(() => {});

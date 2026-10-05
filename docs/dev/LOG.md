@@ -1564,3 +1564,36 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 
 → next: Claude · merge on green CI, then v34-reference
 
+
+## #69 · 2026-10-05 · Claude · proposal · v34-reference
+
+- `games/reference`, "The Night Market" (D13: `art` and `audio` link to the demo's): 8 rooms, hero + biscuit, 11 linked
+  puzzles (STORY.md), the market staged for the 3.4 exit criteria, the yard on two planes, `seller_rounds` script,
+  the `lights` event, the cables minigame, the finale on the timeline (parallel, spring, launch, moveActor). en / fr
+  (332 texts; the audit's blocked words kept out of the French), provenance and its lock (192 files), checkpoints
+  per staged room and the chapter boundary `lights` (a boundary state the proof by chapters reaches).
+- Measured (BENCH 3.4): witness 1 450 states / 49 steps; proof 904 states, 1.9 s; by chapters 848 + 72; audit `same`
+  (904 vs 83 672 explicit); Canvas market 49.6 fps at CPU ÷4; first visit 1 989 KB for 2 198 KB predicted; 8 / 8
+  visual baselines. e2e: keyboard Chromium and WebKit, fr, generic + axe + save: all to the ending.
+- Found on the way:
+  - **Kind before give.** A `kinds` reaction (the cat kind: "use anything on a cat") answers before the engine's
+    hand-over between playable characters, so a key could not be given to Biscuit. Fixed in the content (the kind
+    narrowed to `use`), not in the engine: changing the order would change the demo's proof and its invariants.
+    Worth a lint rule later ("a kind shadows the give between players").
+  - **A wandering seller diverged the replay**: the solver's witness pays a token to a seller its script moved away in
+    the browser. The trade went to a fixed honesty box; the seller's patrol stays as decoration.
+  - `npm run assets` ignored a stage's layer, mask and particle images (`tools/refs.ts`); `solve --json`, `replay` and
+    `lint` lost output past 8 KB in a pipe (`tools/flush.ts`); the harness's taps ignored the zoom and off-screen
+    targets (`onScreen`, `pointOn`, a target's button as fallback); the character switch was pressed while a line was
+    still up at the keyboard's pace (`switchTo` retries until the engine switched); `e2e:weight` waited for a DOM
+    backdrop only.
+- **CI's first run: market 29.6 fps at CPU ÷4** (49.6 here). At ÷8 here it was 20 fps; timing each draw showed
+  `drawOccluder` at 16 ms a frame: every image load (a character's next walk frame) cleared the occluder cache, and
+  each rebuild blurs a room-wide canvas. Only the backdrop, a layer or a mask clears it now, and an occluder's pixels are
+  cropped to its box (no more full-viewport copy per occluder). ÷8: 20 → 47 fps; baselines 8 / 8 at 0.00%.
+- CI: job `reference` (Chromium, WebKit): build, `prove:game`, keyboard, fr, generic + axe + save, visual, perf,
+  weight; `pages` needs it.
+- `tests/reference-chapter.test.ts`: validates, proves, and pins the stage criteria (≥ 6 layers, parallax, ≥ 3
+  occluders, stairs; two planes, ladder flag, jump for Biscuit only; links and layers carry no logic but a condition).
+
+→ next: Claude · merge on green CI, then v34-release
