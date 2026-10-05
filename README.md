@@ -17,12 +17,19 @@ single day with an AI assistant.
 
 ![The Pantry Key: Grandma's house, nine verbs, the bag](docs/img/v33-hero.webp)
 
-**New in v3.5 "Score":** music that follows the game. A track is cut into stems that play in sync; the mix changes
+**New in v3.6 "Production":** the music director is held to budgets of its own (stems, offline, decoded audio, a
+cap on what it keeps), its stem files are measured before a release, and one score hands over to another on a beat,
+a bar, a phrase or a marker, through a bridge; a save keeps where the music was. The proof pools items per group of
+characters who can meet, so open chains with three characters are proved where 3.5 gave up
+([the measures](docs/en/BENCH.md#36-pooling-by-group-a-leak-and-a-corpus-5-october-2026)), and 1 500 random games
+are checked against the explicit search every night.
+
+**v3.5 "Score":** music that follows the game. A track is cut into stems that play in sync; the mix changes
 with the room, the active character or a flag, on the next bar, without a click. The proof runs on several cores
 with the same result, and pools the items the characters can hand each other, so two-character games with items
 moving freely are proved
-([how it is measured](docs/en/BENCH.md#35-proof-workers-5-october-2026)). It is an adaptive stem mixer, not iMUSE:
-no transitions between tracks, no markers or bridges yet (3.6). 3.4 "Stagecraft" brought scenes with depth:
+([how it is measured](docs/en/BENCH.md#35-proof-workers-5-october-2026)). It is an adaptive stem mixer with
+transitions, not iMUSE: no tempo changes, no branches inside a score. 3.4 "Stagecraft" brought scenes with depth:
 a Canvas painter, layers, masks, lights, walk zones and stairs, the structured Studio, and a second game, "The Night
 Market".
 

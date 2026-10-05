@@ -410,15 +410,23 @@ reader, testers, a real phone, Safari offline, recorded voices, a signed tag.
   peak RSS: 1.2 GB with 4 workers.
 - The weight test no longer depends on an earlier `dist`.
 
-## v3.6 "Production" (planned)
+## v3.6 "Production" (5 October 2026): the rest of the 3.5.0 review
 
-The rest of the 3.5.0 review:
-- separate budgets for stems, offline and decoded audio;
-- ffprobe on the stems;
-- an LRU of decoded audio with a cap;
-- transitions between scores (markers, bridges, the phase kept in a save);
-- fewer states for the solver (item liveness, a quotient local to a puzzle), aiming at 20 × 3;
-- a nightly corpus of random games.
+- `v36-budgets`: weight budgets for the stems (`backgroundScoreKB`), the full offline warm-up (`offlineTotalKB`) and
+  the largest score decoded (`decodedAudioMB`), required by a release.
+- `v36-stem-probe`: `validate --release` measures the stem files with ffprobe: rate, channels, exact samples, the loop
+  inside, `pcmBytes` right.
+- `v36-pcm-cache`: the director keeps at most `audio.maxDecodedMB` of decoded audio, least recently played let go; a
+  score larger than that plays as its single mix.
+- `v36-transitions`: `audio.transitions` (beat, bar, phrase or a marker, a bridge, a crossfade), measured to the
+  sample; a save keeps the music's phase and loading resumes there.
+- `v36-solver-structure`: the canonical owner pools by group of characters who can meet; a timer leak of 15 MB a
+  search fixed; the audit compares live flags; `npm run audit:corpus`, nightly on 500 seeds.
+
+Exit criteria, as measured (BENCH.md "3.6"): every new budget set and held on both games; the stem probe green on
+the demo and red on inconsistent files; transitions and the phase to the sample; 900 random games without a
+divergence. **Missed again, not blocking:** the open matrix of 20 rooms × 3 characters stays truncated, now at 600 000 states (40 minutes, 7.6 GB): pooling by group proves 12 and 14 rooms, not 20. Reported, not done by hand (D12, `docs/dev/passes/3.6.0.md`): the screen reader, testers, a
+real phone, Safari offline, recorded voices, a signed tag, a listening pass.
 
 ## Next (not planned yet)
 

@@ -377,15 +377,24 @@ enregistrées, un tag signé.
   donne la RSS maximale : 1,2 Go avec 4 workers.
 - Le test de poids ne dépend plus d'un `dist` antérieur.
 
-## v3.6 « Production » (planifiée)
+## v3.6 « Production » (5 octobre 2026) : le reste de la revue de la 3.5.0
 
-Le reste de la revue de la 3.5.0 :
-- des budgets séparés pour les stems, le hors-ligne et l'audio décodé ;
-- ffprobe sur les stems ;
-- un LRU de l'audio décodé avec un plafond ;
-- des transitions entre partitions (marqueurs, ponts, la phase gardée dans une sauvegarde) ;
-- moins d'états pour le solveur (vivacité des objets, quotient local à un puzzle), en visant 20 × 3 ;
-- un corpus nocturne de jeux aléatoires.
+- `v36-budgets` : des budgets de poids pour les stems (`backgroundScoreKB`), le préchargement hors ligne complet
+  (`offlineTotalKB`) et la plus grosse partition décodée (`decodedAudioMB`), exigés par une release.
+- `v36-stem-probe` : `validate --release` mesure les stems avec ffprobe : fréquence, canaux, échantillons exacts, la
+  boucle dedans, `pcmBytes` juste.
+- `v36-pcm-cache` : le directeur garde au plus `audio.maxDecodedMB` d'audio décodé, le moins récemment joué libéré
+  d'abord ; une partition plus grosse joue son mix unique.
+- `v36-transitions` : `audio.transitions` (temps, mesure, phrase ou marqueur, un pont, un fondu), mesuré à
+  l'échantillon ; une sauvegarde garde la phase de la musique et la charger la reprend là.
+- `v36-solver-structure` : le propriétaire canonique met en commun par groupe de personnages qui peuvent se rejoindre ;
+  une fuite de minuteurs de 15 Mo par recherche corrigée ; l'audit compare les flags vivants ; `npm run audit:corpus`,
+  chaque nuit sur 500 graines.
+
+Critères de sortie, mesurés (BENCH.md « 3.6 ») : chaque nouveau budget fixé et tenu sur les deux jeux ; la sonde des
+stems verte sur la démo et rouge sur des fichiers incohérents ; transitions et phase à l'échantillon ; 900 jeux
+aléatoires sans divergence. **Encore manqué, non bloquant :** la matrice ouverte à 20 lieux × 3 personnages reste tronquée, désormais à 600 000 états (40 minutes, 7,6 Go) : la mise en commun par groupe prouve 12 et 14 lieux, pas 20. Signalé, pas fait à la main (D12, `docs/dev/passes/3.6.0.md`) : le lecteur
+d'écran, des testeurs, un vrai téléphone, Safari hors ligne, des voix enregistrées, un tag signé, une écoute.
 
 ## Ensuite (pas encore planifié)
 

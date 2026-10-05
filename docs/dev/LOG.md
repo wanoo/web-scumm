@@ -1891,3 +1891,18 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 - Not done: item liveness and the count of traffic between workers. Said in BENCH.
 
 → next: Claude · v36-release (20 × 3 measured with the fix)
+
+## #85 · 2026-10-05 · Claude · proposal · v36-release
+
+- 20 × 3 open, with the leak fixed and a 14 GB heap: truncated at 600 000 states in 2 375 s, peak RSS 7.6 GB, 1 879 041
+  hand-overs, 2 407 positions. The target is missed again (as allowed, D11); BENCH and ROADMAP say so.
+- 3.6.0 "Production":
+  - `package.json` 3.6.0, CHANGELOG dated;
+  - ROADMAP en/fr: the branches and the exit criteria as measured;
+  - README en/fr: "New in v3.6", "with transitions, not iMUSE".
+- `tests/fixtures/saves/demo-3.6.0.json` (`tools/golden-save.ts`). Its state carries a `music` phase, as the player's
+  app writes it; the golden saves test loads it.
+- `docs/dev/passes/3.6.0.md`: nothing done by hand (D12). The listening pass includes saving while the theme plays and
+  loading.
+
+→ next: Claude · merge on green CI, tag v3.6.0

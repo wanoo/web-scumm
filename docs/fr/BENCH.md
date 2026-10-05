@@ -573,5 +573,10 @@ flags vivants (`SolveResult.liveFlags`). Le corpus a aussi manqué de mémoire. 
 nul en file à chaque action, environ 15 Mo par recherche, jusqu'à ce que le processus soit inactif. Corrigé : 918 Mo
 après 60 audits avant, 9 Mo après.
 
+**20 lieux × 3 personnages : toujours tronquée**, à 600 000 états en 2 375 s, 7,6 Go au maximum (1 879 041 remises,
+2 407 positions distinctes). La mise en commun par groupe repousse la limite de 10 à 14 lieux, pas jusqu'à 20. Ce qui
+reste, c'est où se tiennent les personnages : trois dans des régions séparées, avec les portes que chacun a ouvertes.
+Il faut une abstraction des personnages qui ne peuvent pas se rejoindre, la question ouverte depuis la 3.3.
+
 Pas fait du plan 3.6 : retirer les objets qu'aucune condition restante ne lit (le groupe était le levier que le profil
 désignait), et compter le trafic entre workers.
