@@ -463,3 +463,29 @@ button.danger { border-color: #a33a44; color: #ffb3b3; }
 .sb .card .covlist { font-size: 11px; color: var(--muted); margin: 2px 0 0; padding-left: 16px; }
 .sb .card .covlist li.missing { color: #f88; }
 .sb .card .covlist li.partial { color: #ec6; }
+
+/* 3.4: structured forms (src/studio/forms.ts), the diff preview, the voice table */
+.modal:has(.structured) { width: min(900px, 100%); }
+.structured { display: flex; flex-direction: column; gap: .6em; max-height: 78vh; overflow: auto; }
+.f-object { display: flex; flex-direction: column; gap: .35em; }
+.f-field { display: grid; grid-template-columns: 9em 1fr; gap: .5em; align-items: start; }
+.f-key { font-family: var(--mono, monospace); font-size: .85em; color: var(--muted, #8a8399); display: flex; gap: .3em; align-items: center; }
+.f-list { display: flex; flex-direction: column; gap: .3em; border-left: 2px solid rgba(160, 140, 220, .3); padding-left: .5em; }
+.f-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .4em; align-items: start; }
+.f-body { min-width: 0; }
+.f-body select, .f-body input[type=text], .f-body textarea { max-width: 100%; box-sizing: border-box; }
+.structured .f-cmd > select.f-kind { width: auto; max-width: 100%; }
+.f-tools { display: flex; gap: .15em; }
+.f-row, .f-cond, .f-point { display: inline-flex; flex-wrap: wrap; gap: .35em; align-items: center; }
+.f-cmd { display: flex; flex-direction: column; gap: .25em; }
+.f-cmdbody { padding-left: .6em; }
+.f-text, .f-json { width: 100%; font: inherit; }
+.f-json { font-family: var(--mono, monospace); font-size: .85em; }
+.f-num { width: 6em; }
+.f-lab { display: inline-flex; flex-direction: column; }
+pre.diff { font-family: var(--mono, monospace); font-size: .8em; background: rgba(0, 0, 0, .25); padding: .5em; overflow: auto; max-height: 30vh; }
+pre.diff .add { color: #8fe36a; } pre.diff .del { color: #ff7a7a; } pre.diff .hunk { color: #8a8399; }
+.undo { display: inline-flex; gap: .25em; }
+.vtable { width: 100%; border-collapse: collapse; font-size: .9em; }
+.vtable th, .vtable td { border-bottom: 1px solid rgba(160, 140, 220, .15); padding: .25em .4em; text-align: left; vertical-align: top; }
+.vtable tr.v-approved td:first-child { box-shadow: inset 3px 0 #8fe36a; } .vtable tr.v-recorded td:first-child { box-shadow: inset 3px 0 #58c8ff; } .vtable tr.v-record td:first-child { box-shadow: inset 3px 0 #ffd84d; }

@@ -128,6 +128,12 @@ jobs:
         if: matrix.mode == 'canvas'
       - run: npm run e2e:perf -- http://127.0.0.1:5173/ --renderer=canvas && npm run e2e:perf -- http://127.0.0.1:5173/ --renderer=dom
         if: matrix.mode == 'canvas'
+      # The Studio edits a stage without JSON by hand (since 3.4): on its dev server, the Stage form, the diff, the
+      # write, the game sees it, undo puts the file back.
+      - run: STUDIO=1 npx vite --port 5317 --strictPort &
+        if: matrix.mode == 'canvas'
+      - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5317/__studio/ > /dev/null && break; sleep 1; done && npm run e2e:studio -- http://127.0.0.1:5317/__studio/
+        if: matrix.mode == 'canvas'
       # The accessibility and storage gates (since 3.3): axe on the conversation menu, the map, the save / load slots,
       # the confirmations and every built-in minigame; every minigame won at the keyboard; an older save (v2
       # localStorage, a 3.1.0 IndexedDB record) upgraded and resumed. Blocking in Chromium (keyboard row) and WebKit.

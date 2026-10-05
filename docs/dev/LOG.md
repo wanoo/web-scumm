@@ -1544,3 +1544,23 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 
 → next: Claude · merge on green CI, then v34-studio
 
+## #68 · 2026-10-05 · Claude · proposal · v34-studio
+
+- Server (`tools/studio`): `setValueInSource` / `valueText` / `lineDiff` (source.ts: replace, add, append, remove a
+  structured value through the TypeScript parser, in the file's quotes and indentation); core `setValue` (dry run =
+  diff; else write, reload, validate, take back on new errors: 422 with them), `writeAtomic` (tmp + rename), `commit`
+  history for every write (texts, values, layouts, entities, voices) with `undo` / `redo` refusing a file changed
+  since (409), voices endpoints. Routes `PUT room/:id/value`, `POST undo|redo`, `GET history`, `voices…`. MCP
+  `set_value` (23 tools); the in-browser demo refuses it with a reason.
+- UI (`src/studio`): `schema.ts` (`CMD_SPECS: Record<CmdKey, …>`, condition kinds, stage and rule fields),
+  `forms.ts` (recursive editors: ids with the game's suggestions, texts, numbers, points, tuples, lists with move and
+  remove, optional fields, JSON fallback, conditions, commands), `structured.ts` (dialog: Preview, Apply, Remove; header
+  Undo / Redo with Ctrl/Cmd+Z), Rooms: Edit… / + Reaction / Stage… / painter; editable timeline durations; Play:
+  painter and fps; Voices tab. Editor (src/engine/dev): handles and folders for walk zones, links, layers, occluders,
+  lights, emitters.
+- `scripts/e2e-studio.mjs` (CI canvas row): the Stage form fills a foreground layer and a fade, the preview's diff
+  shows them and writes nothing, Apply writes the file, the API sees `def.stage`, Undo restores the exact file, the
+  Voices tab lists 194 lines. Checked by eye: the reaction form (screenshot), after widening the dialog.
+
+→ next: Claude · merge on green CI, then v34-reference
+

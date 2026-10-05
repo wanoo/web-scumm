@@ -31,11 +31,32 @@ export class PlayTab {
     this.el.append(
       h('div', { class: 'playgrid' },
         h('div', { class: 'playcol' }, this.frame,
+          // 3.4: the painter of every room (DOM, the reference, or canvas) and how fast it draws.
+          h('div', { class: 'bar small' }, 'Painter ', select([['', 'as the game says'], ['dom', 'DOM'], ['canvas', 'canvas']], '', (v) => { this.frame.src = `${BASE}?dev${v ? `&renderer=${v}` : ''}`; }),
+            ' ', this.perf),
           h('p', { class: 'muted small' }, 'The game with the dev tools (?dev): press D for the zone overlay, the DEV panel teleports and sets flags. ',
             h('a', { href: `${BASE}?dev`, target: '_blank', rel: 'noopener' }, 'Open in a new tab ↗'))),
         h('div', { class: 'playside' }, this.state, this.why, this.journal)),
     );
-    this.timer = setInterval(() => this.refresh(), 700);
+    this.timer = setInterval(() => { this.refresh(); this.measure(); }, 700);
+  }
+
+  /** Frames per second of the game in the frame, its painter, and the canvas painter's repaints (3.4). */
+  private perf = h('span', { class: 'muted' });
+  private perfState = { frames: 0, since: performance.now(), paints: 0, raf: 0 };
+  private measure() {
+    const w = this.frame.contentWindow as (Window & { __game?: { view?: { painter?: string; r?: { paints?: number } } } }) | null;
+    if (!w || this.el.hidden) return;
+    const p = this.perfState;
+    cancelAnimationFrame(p.raf);
+    const tick = () => { p.frames++; p.raf = w.requestAnimationFrame(tick); };
+    try { p.raf = w.requestAnimationFrame(tick); } catch { /* the frame is loading */ }
+    const now = performance.now(), v = w.__game?.view;
+    if (now - p.since > 1000) {
+      const fps = (p.frames * 1000) / (now - p.since), paints = v?.r?.paints ?? 0;
+      this.perf.textContent = `${fps.toFixed(0)} fps · ${v?.painter ?? '?'} painter${v?.painter === 'canvas' ? ` · ${Math.max(0, paints - p.paints)} paints` : ''}`;
+      p.frames = 0; p.since = now; p.paints = paints;
+    }
   }
 
   private game(): { engine: Engine; game: GameDef } | null {

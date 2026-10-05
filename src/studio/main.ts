@@ -1,6 +1,8 @@
 // The Studio: tabs Rooms / Storyboard / Check / Notes over the game on disk (/__studio/ on the dev server), or over a
 // build-time snapshot with the edits kept in this browser (demo mode: studio.html in a STUDIO=1 build, e.g. on GitHub
 // Pages; see docs/en/STUDIO.md, "Demo mode").
+import { VoicesTab } from './voices';
+import { undoButtons } from './structured';
 import './style.css';
 import { BASE, serverApi, useApi, type GameInfo, type StudioEvent, type StudioSnapshot } from './api';
 import type { BrowserApi } from './api-browser';
@@ -13,8 +15,8 @@ import { RoomsTab } from './rooms';
 import { StoryboardTab } from './storyboard';
 import { download, h, toast } from './ui';
 
-type TabId = 'rooms' | 'storyboard' | 'assets' | 'check' | 'play' | 'notes';
-const TABS: [TabId, string][] = [['rooms', 'Rooms'], ['storyboard', 'Storyboard'], ['assets', 'Assets'], ['check', 'Check'], ['play', 'Play'], ['notes', 'Notes']];
+type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'check' | 'play' | 'notes';
+const TABS: [TabId, string][] = [['rooms', 'Rooms'], ['storyboard', 'Storyboard'], ['assets', 'Assets'], ['voices', 'Voices'], ['check', 'Check'], ['play', 'Play'], ['notes', 'Notes']];
 
 // Vite tells every page to reload when a game file changes (the engine view needs it). The Studio page doesn't:
 // it follows changes through its own event feed, and keeps what is being typed.
@@ -116,7 +118,8 @@ async function start() {
   });
   const assets = new AssetsTab({ info, ownWrite, openRoom, prepared: () => rooms.reloadFrame() });
   const play = new PlayTab(info);
-  const panes: Record<TabId, HTMLElement> = { rooms: rooms.el, storyboard: storyboard.el, assets: assets.el, check: check.el, play: play.el, notes: notes.el };
+  const voices = new VoicesTab();
+  const panes: Record<TabId, HTMLElement> = { rooms: rooms.el, storyboard: storyboard.el, assets: assets.el, voices: voices.el, check: check.el, play: play.el, notes: notes.el };
 
   const nav = h('nav', { class: 'tabs', role: 'tablist' });
   let current: TabId = (TABS.some(([t]) => t === hashTab) ? hashTab : 'rooms') as TabId;
@@ -128,6 +131,7 @@ async function start() {
     if (t === 'storyboard') void storyboard.load();
     if (t === 'notes') void notes.load();
     if (t === 'assets') void assets.load();
+    if (t === 'voices') void voices.load();
   };
   for (const [id, label] of TABS) {
     nav.append(h('button', { role: 'tab', dataset: { tab: id }, onclick: () => show(id) }, label, id === 'check' ? badge : null));
@@ -150,6 +154,7 @@ async function start() {
   root.replaceChildren(
     ...(demo ? [demoBanner(demo)] : []),
     h('header', { class: 'top' }, h('h1', null, 'Studio'), h('span', { class: 'game' }, info.title, h('span', { class: 'muted' }, ` · games/${info.id}`)), nav,
+      undoButtons(() => { void rooms.load(); rooms.reloadFrame(); check.schedule(300); }),
       h('a', { class: 'play', href: `${BASE}?dev`, target: '_blank', rel: 'noopener', title: demo ? 'Play with your edits (dev tools on)' : undefined }, 'Play ↗'), assistantBtn, live),
     h('main', null, ...Object.values(panes)), assistant.el);
   show(current);

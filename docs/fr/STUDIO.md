@@ -95,6 +95,36 @@ commandes personnalisées sont du code de confiance, pas des données isolées. 
   (« Notes (n) », avec une zone pour en ajouter une). Le journal suit les changements sur le disque (une IA qui
   écrit une note apparaît).
 
+### Édition structurée (3.4)
+
+- **Des formulaires plutôt que du code.** Dans l'onglet Lieux, chaque réaction a **Modifier…** (verbe, cibles,
+  condition, commandes en formulaire) et la liste finit par **+ Réaction** ; la fiche du lieu a **Scène…** (calques avec
+  leur image, leur rôle et leur condition ; lumières ; émetteurs de particules ; la transition ; la logique des liens de
+  marche) et le **peintre** (celui du jeu, DOM ou canvas). Les formulaires viennent d'une seule table de toutes les
+  conditions et commandes (`src/studio/schema.ts`, vérifiée contre les types à la compilation) : une nouvelle commande
+  sans formulaire ne compile pas. Ce qui n'a pas de champ simple (les paramètres d'un mini-jeu, les événements d'image
+  d'une animation) est une case JSON.
+- **Aperçu, puis application.** « Preview the change » montre le diff que le serveur écrirait (à blanc) ; « Apply »
+  l'écrit en code dans le style du fichier (`set_value`, par l'analyseur TypeScript : les commentaires et le reste du
+  fichier restent), puis le jeu est rechargé et validé : une modification qui ajoute une erreur de validation est reprise
+  et les erreurs sont montrées.
+- **Annuler / Rétablir** dans l'en-tête (Ctrl/Cmd+Z, avec Maj pour rétablir), sur toutes les écritures de la session
+  (textes, valeurs, layouts, voix). Une annulation refuse quand le fichier a changé depuis (une IA, un éditeur, git). Les
+  écritures sont atomiques (un fichier temporaire renommé).
+- **La géométrie dans la vue.** Le dossier **Walk zones** de l'éditeur de placement fait du polygone de marche une zone,
+  ajoute des zones (trous, zoom) et des liens entre elles (mode, durée, sens unique) ; son dossier **Stage** règle la
+  profondeur, la parallaxe, la fusion et l'opacité de chaque calque, dessine les occulteurs en polygones (profondeur,
+  adoucissement, inversion) et place lumières et zones de particules. Poignées : glisser ; double-clic sur un bord de
+  zone pour ajouter un sommet ; Alt-clic pour en retirer un.
+- **Timeline.** Double-clic sur une barre pour changer la durée d'une attente, d'une animation ou d'un mouvement.
+- **Jouer.** Le peintre de chaque lieu (celui du jeu, DOM ou canvas) et la vitesse de dessin (images par seconde,
+  repeints du peintre canvas).
+- **Voix.** Le tableau de production des voix par langue (`npm run voices`) : statut, comédien et note par ligne,
+  enregistrés aussitôt ; Export CSV pour les comédiens.
+
+`npm run e2e:studio -- <url du Studio>` (bloquant en CI) crée une scène par le formulaire, vérifie le diff, l'applique,
+la voit dans le jeu, et l'annule.
+
 ## L'API (`/__studio/api/*`, JSON, serveur de dev uniquement)
 Tous les chemins sont relatifs au jeu courant (`GAME`). Les erreurs renvoient `{ error }` avec un statut 4xx/5xx
 (400 entrée invalide, 404 lieu / chemin / endpoint inconnu, 405 mauvaise méthode, 409 existe déjà, 422 pas de

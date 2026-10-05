@@ -4,6 +4,14 @@
 
 ### Added
 
+- The Studio's structured editing (3.4): reactions, conditions, commands and a room's stage as forms (from one table
+  of every condition and command, checked against the types at compile time), a diff preview, a write as code in the
+  file's style validated after it is made (an edit that adds an error is taken back), atomic writes, Undo / Redo over
+  the session's writes (refused when the file changed since), the placement editor's walk zones, links, layers,
+  occluders, lights and particle areas, editable durations on the timeline, the painter choice and frame rate in Play,
+  and a Voices tab. The `set_value` MCP tool gives an AI the same structured write (23 tools). `npm run e2e:studio`
+  (a CI gate) creates, previews, applies and undoes a stage in a real browser.
+
 - Voice production (3.4): `npm run voices` (`status`, `export` to CSV or JSON for the actors, `import` their statuses,
   actors and notes into `games/<id>/voices.json`, `check` every clip with ffmpeg: codec, rate, length for its text,
   loudness, peak; in `verify:release`). Clips per language (`audio.voicesByLang`), chosen with the language and

@@ -1,6 +1,9 @@
 // Rooms tab: the room rendered by the real engine (the placement editor in an iframe) and, beside it, the room's
 // props / actors / hotspots with the selected one's sheet: name, states, visibility, look lines, reactions, talk
 // topics. Every text is edited in place in rooms/<id>.ts through PUT room/:id/text.
+import { objectEditor, type FormCtx } from './forms';
+import { RULE_FIELDS, STAGE_FIELDS } from './schema';
+import { structuredEdit } from './structured';
 import type { Cmd, Cond, Id, RoomDef, Rule } from '@engine/core/types';
 import { api, BASE, imgUrl, type EditorToStudio, type EntityKind, type GameInfo, type RoomData, type StudioToEditor, type TextRef } from './api';
 import { autoGrow, h, modal, select, toast } from './ui';
@@ -388,6 +391,25 @@ export class RoomsTab {
     return h('div', { class: 'timed' }, h('div', { class: 'bar small' }, toggle), bars, cmds);
   }
 
+  /** Asks for a new duration and writes it where the command keeps it (`wait`, `ms`, or a motion's `ms`). */
+  private editDuration(path: string, kind: string, ms: number) {
+    const cmd = this.valueAt(path) as Record<string, unknown> | undefined;
+    if (!cmd || typeof cmd !== 'object') return;
+    const motion = ['launch', 'spring', 'path', 'follow'].find((k) => k in cmd);
+    const where = 'wait' in cmd ? `${path}.wait` : motion ? `${path}.${motion}.ms` : kind === 'anim' || 'anim' in cmd ? `${path}.ms` : null;
+    if (!where) { toast('This bar\'s length comes from its text or its walk: edit those', 'info'); return; }
+    const v = prompt(`Duration of ${path} (ms)`, String(Math.round(ms)));
+    if (v === null || !/^\d+$/.test(v.trim())) return;
+    void this.writeValue(where, Number(v));
+  }
+
+  /** The value at a content path of the current room (`on[2].do[1]`). */
+  private valueAt(path: string): unknown {
+    let v: unknown = this.data?.def;
+    for (const seg of path.split(/\.|\[|\]/).filter(Boolean)) v = v && typeof v === 'object' ? (v as Record<string, unknown>)[seg] : undefined;
+    return v;
+  }
+
   private timelineBars(t: Timeline, list: HTMLElement): HTMLElement[] {
     const total = Math.max(t.total, 1);
     const s = (ms: number) => `${(ms / 1000).toFixed(1)} s`;
@@ -398,7 +420,9 @@ export class RoomsTab {
         const w = it.open ? 2 : Math.max(0.6, ((it.end - it.start) / total) * 100);
         row.append(h('span', { class: `tlbar k-${it.kind}${it.open ? ' open' : ''}${it.estimated ? ' est' : ''}`, style: { left: `${(it.start / total) * 100}%`, width: `${w}%` },
           title: `${it.label} · ${s(it.start)} → ${it.open ? 'the player' : s(it.end)}${it.estimated ? ' (estimated)' : ''}`,
-          onclick: () => { const el = list.querySelector<HTMLElement>(`[data-path="${CSS.escape(it.path)}"]`); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200); (el.querySelector('textarea, input') as HTMLElement | null)?.focus(); } } },
+          onclick: () => { const el = list.querySelector<HTMLElement>(`[data-path="${CSS.escape(it.path)}"]`); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200); (el.querySelector('textarea, input') as HTMLElement | null)?.focus(); } },
+          // 3.4: a timed command's duration is editable here (double-click: a wait, an animation, a motion).
+          ondblclick: () => this.editDuration(it.path, it.kind, it.end - it.start) },
           it.label));
       }
       rows.push(row);
@@ -468,9 +492,10 @@ export class RoomsTab {
     parts.push(h('section', null, h('h3', null, 'Reactions ', h('span', { class: 'muted' }, String(rules.length))),
       rules.length ? rules.map(([r, i]) => h('div', { class: 'rule' },
         h('div', { class: 'rulehead' }, h('span', null, this.ruleHead(r)), r.if !== undefined ? h('code', { class: 'cond' }, `if ${condText(r.if)}`) : null,
-          h('span', { class: 'muted small' }, `on[${i}]`)),
+          h('span', { class: 'muted small' }, `on[${i}]`), h('button', { class: 'small', title: 'Edit the verb, targets, condition and commands as a form', onclick: () => this.editRule(i) }, 'Edit…')),
         this.cmds(r.do, `on[${i}].do`)))
-      : h('p', { class: 'muted' }, 'None in this room: the game\'s fallback answers apply.')));
+      : h('p', { class: 'muted' }, 'None in this room: the game\'s fallback answers apply.'),
+      h('button', { class: 'small', onclick: () => this.editRule((d.on ?? []).length, { verb: 'look', a: id, do: [] }) }, '+ Reaction')));
 
     // Talk topics
     if (s.kind === 'actor') {
@@ -502,6 +527,35 @@ export class RoomsTab {
     }));
   }
 
+  // -------------------------------------------------------------- structured edits (3.4)
+
+  private formCtx(): FormCtx { return { info: this.ctx.info, room: this.data?.def }; }
+
+  /** A reaction as a form (`on[i]`); a new one when `blank` is given. */
+  private editRule(i: number, blank?: Rule) {
+    const d = this.data?.def;
+    if (!d) return;
+    const rule = blank ?? d.on?.[i];
+    if (!rule) return;
+    structuredEdit({ title: blank ? 'New reaction' : `Reaction on[${i}]`, room: this.roomId, path: `on[${i}]`, editor: objectEditor(RULE_FIELDS, rule as unknown as Record<string, unknown>, this.formCtx()), remove: !blank, after: () => this.afterWrite() });
+  }
+
+  private editStage() {
+    const d = this.data?.def;
+    if (!d) return;
+    structuredEdit({ title: `Stage of ${d.name}`, room: this.roomId, path: 'stage', editor: objectEditor(STAGE_FIELDS, (d.stage ?? {}) as Record<string, unknown>, this.formCtx()), remove: !!d.stage, after: () => this.afterWrite() });
+  }
+
+  /** A value written directly (no form: a select), through the same validated, undoable write. */
+  private async writeValue(path: string, value: unknown) {
+    if (!api.setValue) { toast('Needs the dev server (npm run studio)', 'error'); return; }
+    try { const r = await api.setValue(this.roomId, path, value); toast(r.changed ? `${path} written` : 'Nothing changed', r.changed ? 'ok' : 'info'); this.afterWrite(); }
+    catch (e) { toast((e as Error).message, 'error'); }
+  }
+
+  /** After a structured write: our own write (the watcher will tell too), reload the room and check. */
+  afterWrite() { this.ctx.ownWrite(); void this.load(); this.reloadFrame(); this.ctx.saved(); }
+
   // -------------------------------------------------------------- room-wide texts
 
   private renderRoomSheet() {
@@ -510,7 +564,12 @@ export class RoomsTab {
     const hints = d.hints ?? [];
     this.roomSheetEl.replaceChildren(
       h('section', null, h('h3', null, 'Room ', h('span', { class: 'muted small' }, this.data!.file)),
-        this.line('name', { label: 'name' }) ?? h('p', null, d.name)),
+        this.line('name', { label: 'name' }) ?? h('p', null, d.name),
+        // 3.4: the stage (layers, lights, particles, transition, walk links' logic) as a form; its geometry is placed
+        // in the view (the editor's Stage and Walk zones folders). The painter: DOM (the reference) or canvas.
+        h('div', { class: 'row' },
+          h('button', { class: 'small', onclick: () => this.editStage() }, d.stage ? `Stage… (${(d.stage.layers ?? []).length} layers)` : 'Stage…'),
+          h('label', { class: 'small' }, 'painter ', select([['', `game (${(this.ctx.info as unknown as { renderer?: string }).renderer ?? 'dom'})`], ['dom', 'DOM'], ['canvas', 'canvas']], d.renderer ?? '', (v) => this.writeValue('renderer', v || undefined))))),
       h('section', null, h('h3', null, 'Hints ', h('span', { class: 'muted small' }, 'the first one whose condition is still false is given')),
         hints.length ? hints.map((hd, i) => h('div', { class: 'rule' },
           h('div', { class: 'rulehead' }, h('code', { class: 'cond' }, `until ${condText(hd.until)}`), h('span', { class: 'muted small' }, `hints[${i}]`)),
