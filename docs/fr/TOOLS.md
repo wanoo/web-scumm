@@ -171,6 +171,8 @@ npm run bench -- --rooms=40 [--prove --v3]   # un jeu généré de cette taille,
 npm run i18n -- extract [--lang xx]   # tables de traduction (games/<id>/locales/<xx>.json) ; `status` pour la couverture
 npm run solve -- --audit-abstractions   # la preuve avec les abstractions contre la recherche explicite, chaque saut de la mémoire lancé quand même : 0 identique, 1 divergence, 2 la recherche explicite ne tient pas dans --max (BENCH.md « 3.3.1 »)
 npm run audit:corpus -- --seeds=500     # la même chose sur des jeux aléatoires (simples, objets libres, trois personnages), chaque nuit en CI (3.6) : 1 sur une divergence
+npm run audit:corpus -- --from=126 --seeds=125 --json=s.json   # une tranche : essayés, comparés, partiels, divergents par sorte (3.6.1)
+npm run audit:corpus -- --merge s0.json s1.json …               # les tranches additionnées ; le nightly en lance quatre (3.7)
 npm run solve -- --profile         # de quoi les états sont faits, ce que la recherche a coûté, ce que chaque abstraction a fait (docs/fr/BENCH.md)
 npm run solve -- --por=stubborn    # réduction d'ordre partiel : les actions commutantes une à la fois (moins d'états, même preuve)
 npm run replay -- session.json     # rejoue un fichier de session sur le vrai moteur, imprime le journal et l'état final
