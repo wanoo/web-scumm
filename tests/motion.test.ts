@@ -20,18 +20,41 @@ describe('the closed forms', () => {
     expect(spring(10, 3, 0.25, 0.37)).toBe(spring(10, 3, 0.25, 0.37));
   });
   it('a spline goes through its points', () => {
-    const pts: [number, number][] = [[0, 0], [100, 50], [200, 0], [300, 80]];
+    const pts: [number, number][] = [
+      [0, 0],
+      [100, 50],
+      [200, 0],
+      [300, 80],
+    ];
     expect(spline(pts, 0)).toEqual([0, 0]);
     const mid = spline(pts, 1 / 3);
-    expect(mid[0]).toBeCloseTo(100); expect(mid[1]).toBeCloseTo(50);
+    expect(mid[0]).toBeCloseTo(100);
+    expect(mid[1]).toBeCloseTo(50);
     const end = spline(pts, 1);
-    expect(end[0]).toBeCloseTo(300, 0); expect(end[1]).toBeCloseTo(80, 0);
+    expect(end[0]).toBeCloseTo(300, 0);
+    expect(end[1]).toBeCloseTo(80, 0);
   });
   it('frames and ends: a launch turns as it flies, a spring is back at rest, a follower keeps its offset', () => {
-    expect(motionAt({ kind: 'launch', from: [0, 0], to: [100, 0], height: 0, ms: 900, rotate: 360 }, 0.5)).toEqual({ at: [50, 0], rot: 180 });
-    expect(motionAt({ kind: 'spring', axis: 'y', amplitude: 10, frequency: 3, damping: 0.2, ms: 1000 }, 1)).toEqual({ dy: 0, rot: 0 });
+    expect(motionAt({ kind: 'launch', from: [0, 0], to: [100, 0], height: 0, ms: 900, rotate: 360 }, 0.5)).toEqual({
+      at: [50, 0],
+      rot: 180,
+    });
+    expect(motionAt({ kind: 'spring', axis: 'y', amplitude: 10, frequency: 3, damping: 0.2, ms: 1000 }, 1)).toEqual({
+      dy: 0,
+      rot: 0,
+    });
     expect(motionAt({ kind: 'follow', offset: [0, -40], ms: 500 }, 0.3)).toEqual({ dx: 0, dy: -40, rot: 0 });
-    expect(motionEnd({ kind: 'path', points: [[0, 0], [10, 10]], ms: 100, orient: false })).toEqual([10, 10]);
+    expect(
+      motionEnd({
+        kind: 'path',
+        points: [
+          [0, 0],
+          [10, 10],
+        ],
+        ms: 100,
+        orient: false,
+      }),
+    ).toEqual([10, 10]);
     expect(motionEnd({ kind: 'spring', axis: 'x', amplitude: 1, frequency: 1, damping: 0.5, ms: 100 })).toBeNull();
   });
 });

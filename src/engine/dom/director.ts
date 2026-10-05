@@ -5,7 +5,17 @@
 // with the same score changes nothing but the mix: the music goes on. A stinger plays on the next beat. Works on an
 // OfflineAudioContext too (scripts/e2e-music.mjs renders thirty minutes of it and counts the samples).
 import type { Id } from '../core/types';
-import { beatSec, crossfade, landing, loopWindow, nextBoundary, positionAt, type GainStep, type Landing, type ScoreDef } from '../core/score';
+import {
+  beatSec,
+  crossfade,
+  landing,
+  loopWindow,
+  nextBoundary,
+  positionAt,
+  type GainStep,
+  type Landing,
+  type ScoreDef,
+} from '../core/score';
 
 /**
  * Something the director has scheduled (3.6.1): a score, a bridge, a stinger. It owns its sources until they are
@@ -33,7 +43,12 @@ interface Playing extends Voice {
 }
 
 /** A transition scheduled and not landed yet: the old score plays on to `at`, then the bridge, then the new score. */
-interface Plan { outgoing: Playing; bridge: Voice | null; incoming: Playing; at: number }
+interface Plan {
+  outgoing: Playing;
+  bridge: Voice | null;
+  incoming: Playing;
+  at: number;
+}
 
 /** A stem's gain at `t`, from its last ramp. */
 const gainAt = (r: GainStep | undefined, fallback: number, t: number) =>
@@ -41,7 +56,15 @@ const gainAt = (r: GainStep | undefined, fallback: number, t: number) =>
 
 /** A score whose stems decode to more than the director's cap: it plays as its single mix (dom/audio.ts). */
 export class ScoreTooLarge extends Error {
-  constructor(readonly id: Id, readonly bytes: number, readonly cap: number) { super(`score "${id}" decodes to ${Math.round(bytes / 1048576)} MB, over the ${Math.round(cap / 1048576)} MB the director keeps`); }
+  constructor(
+    readonly id: Id,
+    readonly bytes: number,
+    readonly cap: number,
+  ) {
+    super(
+      `score "${id}" decodes to ${Math.round(bytes / 1048576)} MB, over the ${Math.round(cap / 1048576)} MB the director keeps`,
+    );
+  }
 }
 
 const bytesOf = (b: AudioBuffer) => b.length * b.numberOfChannels * 4;
@@ -71,14 +94,19 @@ export class MusicDirector {
   /** How far ahead a change is scheduled at the least (the audio thread takes it from there). */
   lead = 0.05;
 
-  constructor(readonly ctx: BaseAudioContext, private fetchBuffer: (url: string) => Promise<ArrayBuffer> = (u) => fetch(u).then((r) => r.arrayBuffer())) {
+  constructor(
+    readonly ctx: BaseAudioContext,
+    private fetchBuffer: (url: string) => Promise<ArrayBuffer> = (u) => fetch(u).then((r) => r.arrayBuffer()),
+  ) {
     this.master = ctx.createGain();
     this.master.connect(ctx.destination);
     this.duckBus = ctx.createGain();
     this.duckBus.connect(this.master);
   }
 
-  get current(): Id | null { return this.playing?.id ?? null; }
+  get current(): Id | null {
+    return this.playing?.id ?? null;
+  }
   /**
    * The last transition scheduled (tests, the Studio): when the old score let go, and when the new one starts. `cut`:
    * the decoded audio could not hold both, so the old one stopped at once; `bridge: false`: the bridge did not fit.
@@ -100,37 +128,67 @@ export class MusicDirector {
   }
 
   /** The score asked for whose stems are still decoding (null: none). */
-  get loading(): Id | null { return this.want; }
+  get loading(): Id | null {
+    return this.want;
+  }
   /** When the playing score started, on the audio clock (tests, the Studio's mixer). */
-  get startedAt(): number | null { return this.playing?.start ?? null; }
-  get stems(): Id[] { return this.playing?.stems ?? []; }
+  get startedAt(): number | null {
+    return this.playing?.start ?? null;
+  }
+  get stems(): Id[] {
+    return this.playing?.stems ?? [];
+  }
   /** The playing score's file length (its stems'), in seconds. */
-  get duration(): number | null { return this.playing?.duration ?? null; }
+  get duration(): number | null {
+    return this.playing?.duration ?? null;
+  }
 
   /** The decoded audio kept, in bytes (frames × channels × 4). */
-  get decodedBytes(): number { let n = 0; for (const b of this.sizes.values()) n += b; return n; }
+  get decodedBytes(): number {
+    let n = 0;
+    for (const b of this.sizes.values()) n += b;
+    return n;
+  }
   /** The files kept, least recently used first. */
-  get cached(): string[] { return [...this.buffers.keys()]; }
+  get cached(): string[] {
+    return [...this.buffers.keys()];
+  }
   /** Voices still sounding besides the score (tests): fading scores, bridges, stingers. */
-  get tailCount(): number { this.settle(); return this.tails.size; }
+  get tailCount(): number {
+    this.settle();
+    return this.tails.size;
+  }
 
   /** Decodes a file once (the same promise for every caller), and marks it as the most recently used. */
   buffer(url: string): Promise<AudioBuffer> {
     let p = this.buffers.get(url);
-    if (p) { this.buffers.delete(url); this.buffers.set(url, p); return p; }
-    p = this.fetchBuffer(url).then((b) => this.ctx.decodeAudioData(b)).then((buf) => {
-      if (this.buffers.get(url) === p) this.sizes.set(url, bytesOf(buf));
-      return buf;
-    });
+    if (p) {
+      this.buffers.delete(url);
+      this.buffers.set(url, p);
+      return p;
+    }
+    p = this.fetchBuffer(url)
+      .then((b) => this.ctx.decodeAudioData(b))
+      .then((buf) => {
+        if (this.buffers.get(url) === p) this.sizes.set(url, bytesOf(buf));
+        return buf;
+      });
     this.buffers.set(url, p);
-    p.catch(() => { if (this.buffers.get(url) === p) { this.buffers.delete(url); this.sizes.delete(url); } });
+    p.catch(() => {
+      if (this.buffers.get(url) === p) {
+        this.buffers.delete(url);
+        this.sizes.delete(url);
+      }
+    });
     return p;
   }
 
   /** The files the score, a planned transition or a bridge still needs: never evicted. */
   private inUse(): Set<string> {
     const s = new Set<string>(this.playing?.urls ?? []);
-    if (this.plan) for (const v of [this.plan.outgoing, this.plan.bridge, this.plan.incoming]) for (const u of v?.urls ?? []) s.add(u);
+    if (this.plan)
+      for (const v of [this.plan.outgoing, this.plan.bridge, this.plan.incoming])
+        for (const u of v?.urls ?? []) s.add(u);
     return s;
   }
 
@@ -139,17 +197,28 @@ export class MusicDirector {
     for (const url of [...this.buffers.keys()]) {
       if (this.decodedBytes <= this.maxDecodedBytes) return;
       if (keep.has(url) || !this.sizes.has(url)) continue;
-      this.buffers.delete(url); this.sizes.delete(url);
+      this.buffers.delete(url);
+      this.sizes.delete(url);
     }
   }
 
   /** Fades a voice out over `ms` and stops its sources (one not started yet never sounds). */
   private release(v: Voice, ms: number) {
-    clearTimeout(v.timer); v.timer = undefined;
+    clearTimeout(v.timer);
+    v.timer = undefined;
     this.tails.delete(v);
-    const t = this.ctx.currentTime, end = t + ms / 1000;
-    v.bus.gain.cancelScheduledValues(t); v.bus.gain.setValueAtTime(v.bus.gain.value, t); v.bus.gain.linearRampToValueAtTime(0, end);
-    for (const s of v.sources) { try { s.stop(end + 0.02); } catch { /* not started */ } }
+    const t = this.ctx.currentTime,
+      end = t + ms / 1000;
+    v.bus.gain.cancelScheduledValues(t);
+    v.bus.gain.setValueAtTime(v.bus.gain.value, t);
+    v.bus.gain.linearRampToValueAtTime(0, end);
+    for (const s of v.sources) {
+      try {
+        s.stop(end + 0.02);
+      } catch {
+        /* not started */
+      }
+    }
   }
 
   /** A transition whose landing has passed: the new score is the one heard, the old one and the bridge are tails. */
@@ -170,10 +239,22 @@ export class MusicDirector {
     const pl = this.plan;
     if (!pl) return;
     this.plan = null;
-    for (const v of [pl.incoming, pl.bridge]) if (v) { clearTimeout(v.timer); for (const s of v.sources) { try { s.stop(now); } catch { /* not started */ } } }
+    for (const v of [pl.incoming, pl.bridge])
+      if (v) {
+        clearTimeout(v.timer);
+        for (const s of v.sources) {
+          try {
+            s.stop(now);
+          } catch {
+            /* not started */
+          }
+        }
+      }
     const o = pl.outgoing;
-    clearTimeout(o.timer); o.timer = undefined;
-    o.bus.gain.cancelScheduledValues(now); o.bus.gain.setValueAtTime(1, now);
+    clearTimeout(o.timer);
+    o.timer = undefined;
+    o.bus.gain.cancelScheduledValues(now);
+    o.bus.gain.setValueAtTime(1, now);
     this.playing = o;
   }
 
@@ -181,7 +262,10 @@ export class MusicDirector {
   private track(v: Voice) {
     this.tails.add(v);
     let left = v.sources.length;
-    for (const s of v.sources) s.onended = () => { if (--left <= 0) this.tails.delete(v); };
+    for (const s of v.sources)
+      s.onended = () => {
+        if (--left <= 0) this.tails.delete(v);
+      };
   }
 
   /**
@@ -194,12 +278,30 @@ export class MusicDirector {
    * Resolves once it is scheduled, or once a later request has made it stale (then nothing is played). Rejects when a
    * stem does not load and this request is still the latest.
    */
-  async play(id: Id, score: ScoreDef, urls: Record<Id, string>, stems: Id[], opts: { at?: number; fadeMs?: number; offset?: number; transition?: { at?: Landing; bridge?: string; fadeBeats?: number } } = {}): Promise<void> {
+  async play(
+    id: Id,
+    score: ScoreDef,
+    urls: Record<Id, string>,
+    stems: Id[],
+    opts: {
+      at?: number;
+      fadeMs?: number;
+      offset?: number;
+      transition?: { at?: Landing; bridge?: string; fadeBeats?: number };
+    } = {},
+  ): Promise<void> {
     const g = ++this.gen;
     this.settle();
-    if (this.playing?.id === id) { this.want = null; this.mix(stems); return; }
+    if (this.playing?.id === id) {
+      this.want = null;
+      this.mix(stems);
+      return;
+    }
     // Too large to keep, by its declared weight: not even downloaded.
-    if (score.pcmBytes !== undefined && score.pcmBytes > this.maxDecodedBytes) { this.want = null; throw new ScoreTooLarge(id, score.pcmBytes, this.maxDecodedBytes); }
+    if (score.pcmBytes !== undefined && score.pcmBytes > this.maxDecodedBytes) {
+      this.want = null;
+      throw new ScoreTooLarge(id, score.pcmBytes, this.maxDecodedBytes);
+    }
     this.want = id;
     let buffers: (readonly [string, AudioBuffer])[], bridge: AudioBuffer | null;
     try {
@@ -216,26 +318,51 @@ export class MusicDirector {
     this.want = null;
     const ctx = this.ctx;
     this.settle();
-    if (this.playing?.id === id) { this.mix(stems); return; }
+    if (this.playing?.id === id) {
+      this.mix(stems);
+      return;
+    }
     // A transition still waiting for its landing is forgotten: the old score is the one heard again.
     this.cancelPlan();
-    if (this.playing?.id === id) { this.mix(stems); return; }
+    if (this.playing?.id === id) {
+      this.mix(stems);
+      return;
+    }
     const stemUrls = Object.keys(score.stems).map((s) => urls[s]);
     const bytes = buffers.reduce((n, [, b]) => n + bytesOf(b), 0);
-    const drop = (us: Iterable<string>, keep: Set<string>) => { for (const u of us) if (!keep.has(u)) { this.buffers.delete(u); this.sizes.delete(u); } };
-    if (bytes > this.maxDecodedBytes) { drop(stemUrls, this.inUse()); throw new ScoreTooLarge(id, bytes, this.maxDecodedBytes); }
+    const drop = (us: Iterable<string>, keep: Set<string>) => {
+      for (const u of us)
+        if (!keep.has(u)) {
+          this.buffers.delete(u);
+          this.sizes.delete(u);
+        }
+    };
+    if (bytes > this.maxDecodedBytes) {
+      drop(stemUrls, this.inUse());
+      throw new ScoreTooLarge(id, bytes, this.maxDecodedBytes);
+    }
     const prev = this.playing;
     // Every decoded file counts (3.6.1): the stems, the bridge, and the score heard until the landing.
     let bridgeUrl = bridge ? opts.transition!.bridge! : null;
-    if (bridge && bridgeUrl && bytes + bytesOf(bridge) > this.maxDecodedBytes) { drop([bridgeUrl], new Set([...this.inUse(), ...stemUrls])); bridge = null; bridgeUrl = null; }
+    if (bridge && bridgeUrl && bytes + bytesOf(bridge) > this.maxDecodedBytes) {
+      drop([bridgeUrl], new Set([...this.inUse(), ...stemUrls]));
+      bridge = null;
+      bridgeUrl = null;
+    }
     let mine = new Set([...stemUrls, ...(bridgeUrl ? [bridgeUrl] : [])]);
     this.evict(new Set([...mine, ...this.inUse()]));
     let transition = prev && opts.transition ? opts.transition : null;
     let cut = false;
     if (transition && this.decodedBytes > this.maxDecodedBytes) {
       // Both scores cannot be held at once: the old one stops now (its files go), the new one starts without a bridge.
-      cut = true; transition = null;
-      if (bridgeUrl) { drop([bridgeUrl], new Set(stemUrls)); bridge = null; bridgeUrl = null; mine = new Set(stemUrls); }
+      cut = true;
+      transition = null;
+      if (bridgeUrl) {
+        drop([bridgeUrl], new Set(stemUrls));
+        bridge = null;
+        bridgeUrl = null;
+        mine = new Set(stemUrls);
+      }
     }
     let start = opts.at ?? ctx.currentTime + this.lead;
     let fade = (opts.fadeMs ?? 600) / 1000;
@@ -246,33 +373,70 @@ export class MusicDirector {
       const t = landing(prev.score, prev.start, ctx.currentTime, transition.at ?? 'bar', this.lead, prev.duration);
       const out = Math.max((transition.fadeBeats ?? 0) * beatSec(prev.score), 0.02);
       const now = ctx.currentTime;
-      prev.bus.gain.cancelScheduledValues(now); prev.bus.gain.setValueAtTime(prev.bus.gain.value, now);
-      prev.bus.gain.setValueAtTime(prev.bus.gain.value, t); prev.bus.gain.linearRampToValueAtTime(0, t + out);
+      prev.bus.gain.cancelScheduledValues(now);
+      prev.bus.gain.setValueAtTime(prev.bus.gain.value, now);
+      prev.bus.gain.setValueAtTime(prev.bus.gain.value, t);
+      prev.bus.gain.linearRampToValueAtTime(0, t + out);
       const stopAt = t + out + 0.02;
-      prev.timer = setTimeout(() => { prev.timer = undefined; for (const s of prev.sources) { try { s.stop(Math.max(stopAt, ctx.currentTime)); } catch { /* stopped */ } } }, (stopAt - now) * 1000 + 100);
+      prev.timer = setTimeout(
+        () => {
+          prev.timer = undefined;
+          for (const s of prev.sources) {
+            try {
+              s.stop(Math.max(stopAt, ctx.currentTime));
+            } catch {
+              /* stopped */
+            }
+          }
+        },
+        (stopAt - now) * 1000 + 100,
+      );
       let bv: Voice | null = null;
       if (bridge && bridgeUrl) {
-        const bus = ctx.createGain(); bus.connect(this.duckBus);
-        const b = ctx.createBufferSource(); b.buffer = bridge; b.connect(bus); b.start(t);
+        const bus = ctx.createGain();
+        bus.connect(this.duckBus);
+        const b = ctx.createBufferSource();
+        b.buffer = bridge;
+        b.connect(bus);
+        b.start(t);
         bv = { urls: [bridgeUrl], sources: [b], bus };
       }
       start = t + (bridge?.duration ?? 0);
       fade = bridge ? 0 : out > 0.02 ? out : 0;
       plan = { outgoing: prev, bridge: bv, at: t };
-      this.lastTransition = { from: prev.id, to: id, at: t, start, ...(transition.bridge && !bridge ? { bridge: false as const } : {}) };
+      this.lastTransition = {
+        from: prev.id,
+        to: id,
+        at: t,
+        start,
+        ...(transition.bridge && !bridge ? { bridge: false as const } : {}),
+      };
     } else if (prev) {
       this.playing = null;
       if (cut) {
         this.release(prev, 50);
         drop(prev.urls, mine);
-        this.lastTransition = { from: prev.id, to: id, at: ctx.currentTime, start, cut: true, ...(opts.transition?.bridge ? { bridge: false as const } : {}) };
-      } else { this.release(prev, 600); }
+        this.lastTransition = {
+          from: prev.id,
+          to: id,
+          at: ctx.currentTime,
+          start,
+          cut: true,
+          ...(opts.transition?.bridge ? { bridge: false as const } : {}),
+        };
+      } else {
+        this.release(prev, 600);
+      }
     }
     const offset = opts.offset ?? 0;
     const bus = ctx.createGain();
     bus.connect(this.duckBus);
-    if (fade > 0) { bus.gain.setValueAtTime(0, start); bus.gain.linearRampToValueAtTime(1, start + fade); }
-    const gains = new Map<Id, GainNode>(), sources: AudioBufferSourceNode[] = [];
+    if (fade > 0) {
+      bus.gain.setValueAtTime(0, start);
+      bus.gain.linearRampToValueAtTime(1, start + fade);
+    }
+    const gains = new Map<Id, GainNode>(),
+      sources: AudioBufferSourceNode[] = [];
     for (const [stem, buf] of buffers) {
       const g = ctx.createGain();
       g.gain.setValueAtTime(stems.includes(stem) ? 1 : 0, 0);
@@ -280,15 +444,32 @@ export class MusicDirector {
       const src = ctx.createBufferSource();
       src.buffer = buf;
       const [a, b] = loopWindow(score, buf.duration);
-      src.loop = true; src.loopStart = a; src.loopEnd = b;
+      src.loop = true;
+      src.loopStart = a;
+      src.loopEnd = b;
       src.connect(g);
       src.start(start, Math.min(offset, buf.duration));
-      gains.set(stem, g); sources.push(src);
+      gains.set(stem, g);
+      sources.push(src);
     }
     // The grid counts from where the file's 0 would have been: an offset inside the first pass keeps the bars in place.
-    const incoming: Playing = { id, score, start: start - offset, duration: Math.min(...buffers.map(([, b]) => b.duration)), urls: stemUrls, sources, gains, bus, stems: [...stems], ramps: new Map() };
+    const incoming: Playing = {
+      id,
+      score,
+      start: start - offset,
+      duration: Math.min(...buffers.map(([, b]) => b.duration)),
+      urls: stemUrls,
+      sources,
+      gains,
+      bus,
+      stems: [...stems],
+      ramps: new Map(),
+    };
     this.playing = incoming;
-    if (plan) { this.plan = { ...plan, incoming }; if (this.plan.at <= ctx.currentTime) this.settle(); }
+    if (plan) {
+      this.plan = { ...plan, incoming };
+      if (this.plan.at <= ctx.currentTime) this.settle();
+    }
     // A score let go is no longer in use: its files may go now if the cap needs it (one still heard until a landing is).
     this.evict(new Set([...mine, ...this.inUse()]));
   }
@@ -336,17 +517,25 @@ export class MusicDirector {
     const buf = await this.buffer(url);
     this.evict(new Set([...this.inUse(), url]));
     if (this.decodedBytes > this.maxDecodedBytes && !this.inUse().has(url)) {
-      this.buffers.delete(url); this.sizes.delete(url);
+      this.buffers.delete(url);
+      this.sizes.delete(url);
       this.lastStinger = { url, skipped: 'cap' };
       return null;
     }
     const p = this.playing;
-    const at = p ? nextBoundary(p.score, p.start, Math.max(now, this.ctx.currentTime), 'beat', this.lead, p.duration) : Math.max(now, this.ctx.currentTime) + this.lead;
+    const at = p
+      ? nextBoundary(p.score, p.start, Math.max(now, this.ctx.currentTime), 'beat', this.lead, p.duration)
+      : Math.max(now, this.ctx.currentTime) + this.lead;
     // Asked before a stop or a restore: it does not sound after it.
     if (g0 !== this.gen) return null;
     this.lastStinger = { url, at };
-    const bus = this.ctx.createGain(); bus.gain.value = gain; bus.connect(this.duckBus);
-    const src = this.ctx.createBufferSource(); src.buffer = buf; src.connect(bus); src.start(at);
+    const bus = this.ctx.createGain();
+    bus.gain.value = gain;
+    bus.connect(this.duckBus);
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.connect(bus);
+    src.start(at);
     this.track({ urls: [url], sources: [src], bus });
     return at;
   }
@@ -354,10 +543,19 @@ export class MusicDirector {
   /** Everything the director plays steps back (a voice, a one-off track) to `level`, then `undo()` brings it back. */
   duck(level: number, ms = 150): () => void {
     if (!this.playing) return () => {};
-    const k = ++this.ducks, gain = this.duckBus.gain;
+    const k = ++this.ducks,
+      gain = this.duckBus.gain;
     const t = this.ctx.currentTime;
-    gain.cancelScheduledValues(t); gain.setValueAtTime(gain.value, t); gain.linearRampToValueAtTime(level, t + ms / 1000);
-    return () => { if (k !== this.ducks) return; const u = this.ctx.currentTime; gain.cancelScheduledValues(u); gain.setValueAtTime(gain.value, u); gain.linearRampToValueAtTime(1, u + 0.4); };
+    gain.cancelScheduledValues(t);
+    gain.setValueAtTime(gain.value, t);
+    gain.linearRampToValueAtTime(level, t + ms / 1000);
+    return () => {
+      if (k !== this.ducks) return;
+      const u = this.ctx.currentTime;
+      gain.cancelScheduledValues(u);
+      gain.setValueAtTime(gain.value, u);
+      gain.linearRampToValueAtTime(1, u + 0.4);
+    };
   }
 
   /** Fades out the score and everything else scheduled (a transition, a bridge, a stinger); a score still loading will not start. */
@@ -368,8 +566,23 @@ export class MusicDirector {
     this.plan = null;
     if (pl) {
       // Neither the bridge nor the new score has sounded yet: they never will. The old one fades from where it is.
-      for (const v of [pl.incoming, pl.bridge]) if (v) { clearTimeout(v.timer); for (const s of v.sources) { try { s.stop(this.ctx.currentTime); } catch { /* not started */ } } }
-      if (pl.at > this.ctx.currentTime) { this.playing = pl.outgoing; } else { this.tails.add(pl.outgoing); if (pl.bridge) this.tails.add(pl.bridge); }
+      for (const v of [pl.incoming, pl.bridge])
+        if (v) {
+          clearTimeout(v.timer);
+          for (const s of v.sources) {
+            try {
+              s.stop(this.ctx.currentTime);
+            } catch {
+              /* not started */
+            }
+          }
+        }
+      if (pl.at > this.ctx.currentTime) {
+        this.playing = pl.outgoing;
+      } else {
+        this.tails.add(pl.outgoing);
+        if (pl.bridge) this.tails.add(pl.bridge);
+      }
     }
     const p = this.playing;
     this.playing = null;
@@ -380,7 +593,9 @@ export class MusicDirector {
   /** Music volume (settings × the game's level), ramped so a change never clicks. */
   volume(v: number) {
     const t = this.ctx.currentTime;
-    this.master.gain.cancelScheduledValues(t); this.master.gain.setValueAtTime(this.master.gain.value, t); this.master.gain.linearRampToValueAtTime(v, t + 0.05);
+    this.master.gain.cancelScheduledValues(t);
+    this.master.gain.setValueAtTime(this.master.gain.value, t);
+    this.master.gain.linearRampToValueAtTime(v, t + 0.05);
   }
 }
 

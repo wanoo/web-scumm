@@ -14,7 +14,11 @@ const src = readFileSync(file, 'utf8');
 const ts = JSON.parse(src);
 const want = { '@game': [`games/${GAME}/index.ts`], '@game/*': [`games/${GAME}/*`] };
 const paths = ts.compilerOptions.paths ?? {};
-if (JSON.stringify(paths['@game']) === JSON.stringify(want['@game']) && JSON.stringify(paths['@game/*']) === JSON.stringify(want['@game/*'])) process.exit(0);
+if (
+  JSON.stringify(paths['@game']) === JSON.stringify(want['@game']) &&
+  JSON.stringify(paths['@game/*']) === JSON.stringify(want['@game/*'])
+)
+  process.exit(0);
 ts.compilerOptions.paths = { ...paths, ...want };
 writeFileSync(file, JSON.stringify(ts, null, 2) + '\n');
 console.log(`✔  @game → games/${GAME}`);

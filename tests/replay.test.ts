@@ -12,23 +12,43 @@ import { commands } from '../games/demo/index';
 import house from '../games/demo/layout/house.json';
 import garden from '../games/demo/layout/garden.json';
 import market from '../games/demo/layout/market.json';
-import { dott, dottLayouts, grog, grogLayouts, insults, insultsLayouts, mansion, mansionLayouts, stan, stanLayouts } from './fixtures/classics';
+import {
+  dott,
+  dottLayouts,
+  grog,
+  grogLayouts,
+  insults,
+  insultsLayouts,
+  mansion,
+  mansionLayouts,
+  stan,
+  stanLayouts,
+} from './fixtures/classics';
 
-const demoLayouts: Record<string, Layout> = { house: house as unknown as Layout, garden: garden as unknown as Layout, market: market as unknown as Layout };
+const demoLayouts: Record<string, Layout> = {
+  house: house as unknown as Layout,
+  garden: garden as unknown as Layout,
+  market: market as unknown as Layout,
+};
 
-describe('the solver\'s solution replays', () => {
+describe("the solver's solution replays", () => {
   const games: [string, () => GameDef, Record<string, Layout>][] = [
-    ['insults', insults, insultsLayouts], ['grog', grog, grogLayouts], ['dott', dott, dottLayouts], ['mansion', mansion, mansionLayouts], ['stan', stan, stanLayouts],
+    ['insults', insults, insultsLayouts],
+    ['grog', grog, grogLayouts],
+    ['dott', dott, dottLayouts],
+    ['mansion', mansion, mansionLayouts],
+    ['stan', stan, stanLayouts],
   ];
-  for (const [name, make, layouts] of games) it(`${name}: the steps reach the ending`, async () => {
-    const r = await solve(make(), layouts, { maxStates: 5000 });
-    expect(r.finished).toBe(true);
-    expect(r.steps.length).toBeGreaterThan(0);
-    const p = await replay(make(), layouts, { start: { kind: 'new' }, log: r.steps });
-    expect(p.divergedAt).toBeUndefined();
-    expect(p.ended).toBe(true);
-    expect(p.played).toBe(r.steps.filter((s) => !('start' in s)).length);
-  });
+  for (const [name, make, layouts] of games)
+    it(`${name}: the steps reach the ending`, async () => {
+      const r = await solve(make(), layouts, { maxStates: 5000 });
+      expect(r.finished).toBe(true);
+      expect(r.steps.length).toBeGreaterThan(0);
+      const p = await replay(make(), layouts, { start: { kind: 'new' }, log: r.steps });
+      expect(p.divergedAt).toBeUndefined();
+      expect(p.ended).toBe(true);
+      expect(p.played).toBe(r.steps.filter((s) => !('start' in s)).length);
+    });
 
   it('demo: the steps reach the sealed ending, every entry has a label', async () => {
     const r = await solve(structuredClone(demo), demoLayouts, { maxStates: 20000, commands });
@@ -38,7 +58,10 @@ describe('the solver\'s solution replays', () => {
     expect(p.ended).toBe(true);
     for (const s of r.steps) expect(labelOf(demo, s)).toBeTruthy();
     expect(r.steps[0]).toMatchObject({ start: 'new', picks: [2] });
-    expect(r.steps.at(-1)).toMatchObject({ act: { verb: 'use', a: 'key', b: 'pantry' }, ran: ['rule:house.use-key-pantry'] });
+    expect(r.steps.at(-1)).toMatchObject({
+      act: { verb: 'use', a: 'key', b: 'pantry' },
+      ran: ['rule:house.use-key-pantry'],
+    });
   });
 });
 

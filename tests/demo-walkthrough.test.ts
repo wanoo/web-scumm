@@ -15,7 +15,11 @@ import house from '../games/demo/layout/house.json';
 import garden from '../games/demo/layout/garden.json';
 import market from '../games/demo/layout/market.json';
 
-const layouts: Record<string, Layout> = { house: house as unknown as Layout, garden: garden as unknown as Layout, market: market as unknown as Layout };
+const layouts: Record<string, Layout> = {
+  house: house as unknown as Layout,
+  garden: garden as unknown as Layout,
+  market: market as unknown as Layout,
+};
 const tick = () => new Promise((r) => setTimeout(r, 0));
 
 function boot() {
@@ -37,7 +41,8 @@ describe('demo: content', () => {
 
   it('the solver finishes the game from New Game and from every checkpoint', async () => {
     expect((await solve(game, layouts, { commands })).finished).toBe(true);
-    for (const cp of Object.keys(game.checkpoints ?? {})) expect((await solve(game, layouts, { start: { checkpoint: cp }, commands })).finished, cp).toBe(true);
+    for (const cp of Object.keys(game.checkpoints ?? {}))
+      expect((await solve(game, layouts, { start: { checkpoint: cp }, commands })).finished, cp).toBe(true);
   });
 });
 
@@ -68,7 +73,7 @@ describe('demo: walkthrough', () => {
 
     // Hint voice: Grandma answers from the shell phone.
     await e.act({ verb: 'talk', a: 'shell_phone' });
-    expect(ui.log.at(-1)).toBe('grandma_voice: Grandpa\'s armchair eats everything. Look behind the cushion.');
+    expect(ui.log.at(-1)).toBe("grandma_voice: Grandpa's armchair eats everything. Look behind the cushion.");
     // Kinds: never pull a cat; using anything on Biscuit.
     await e.act({ verb: 'pull', a: 'biscuit' });
     expect(ui.log.at(-1)).toBe('hero: Never pull a cat. Cat law, article one.');
@@ -128,7 +133,10 @@ describe('demo: walkthrough', () => {
     // The key_found event moved Grandpa home: he greets us after the arrival line, his armchair prop is gone (he brought his own).
     expect(e.state.where).toEqual({ grandpa: 'house' });
     await e.travel('house');
-    expect(ui.log.slice(-2)).toEqual(['hero: Home! Pantry, here I come.', 'grandpa: Pixel! I beat you home. The armchair is faster than it looks.']);
+    expect(ui.log.slice(-2)).toEqual([
+      'hero: Home! Pantry, here I come.',
+      'grandpa: Pixel! I beat you home. The armchair is faster than it looks.',
+    ]);
     expect(e.visible('grandpa')).toBe(true);
     expect(e.visible('armchair')).toBe(false);
     await e.act({ verb: 'use', a: 'key', b: 'pantry' });
@@ -138,7 +146,9 @@ describe('demo: walkthrough', () => {
     expect(ui.log.at(-1)).toBe('hero: Best. Breakfast. Ever.');
 
     // The final card judges the opening guess against the sealed outcome.
-    expect(verdict(e.game, e.state.flags, { ticket: '', headline: '', outcome: 'sardines' } as never)).toContain('Right!');
+    expect(verdict(e.game, e.state.flags, { ticket: '', headline: '', outcome: 'sardines' } as never)).toContain(
+      'Right!',
+    );
     expect(verdict(e.game, e.state.flags, { ticket: '', headline: '', outcome: 'mouse' } as never)).toContain('Nope!');
   });
 });

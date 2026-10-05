@@ -14,12 +14,23 @@ const root = resolve(here, '..');
 
 async function loadConfig(): Promise<{ config: EndingConfig; example: boolean }> {
   const real = resolve(GAME_DIR, 'private/ending.config.ts');
-  try { await access(real); } catch { const m = await import(resolve(GAME_DIR, 'ending.config.example.ts')); return { config: m.config, example: true }; }
+  try {
+    await access(real);
+  } catch {
+    const m = await import(resolve(GAME_DIR, 'ending.config.example.ts'));
+    return { config: m.config, example: true };
+  }
   const m = await import(real);
   return { config: m.config, example: false };
 }
 
-const MIME: Record<string, string> = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif' };
+const MIME: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+};
 
 async function main() {
   const arg = process.argv.find((a) => a.startsWith('--outcome='));
@@ -40,8 +51,17 @@ async function main() {
     photos.push(`data:${mime};base64,${buf.toString('base64')}`);
   }
   const o = config.outcomes[outcome];
-  const payload: RevealPayload = { ticket: o.ticket, headline: o.headline, message: config.message, photos, lines: [...(o.lines ?? []), ...(config.lines ?? [])], ...(config.judgeGuess === false ? {} : { outcome }) };
-  const bytes = await seal(webcrypto.subtle as unknown as SubtleCrypto, payload, config.password, (n: number) => webcrypto.getRandomValues(new Uint8Array(n)));
+  const payload: RevealPayload = {
+    ticket: o.ticket,
+    headline: o.headline,
+    message: config.message,
+    photos,
+    lines: [...(o.lines ?? []), ...(config.lines ?? [])],
+    ...(config.judgeGuess === false ? {} : { outcome }),
+  };
+  const bytes = await seal(webcrypto.subtle as unknown as SubtleCrypto, payload, config.password, (n: number) =>
+    webcrypto.getRandomValues(new Uint8Array(n)),
+  );
   const out = resolve(root, 'public/data/dossier.bin');
   await mkdir(dirname(out), { recursive: true });
   await writeFile(out, bytes);
@@ -49,4 +69,7 @@ async function main() {
   console.log('   Game password: ' + config.password + '  (not stored in the bundle)');
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

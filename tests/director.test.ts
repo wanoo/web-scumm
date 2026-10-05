@@ -14,10 +14,26 @@ function fakeCtx() {
     destination: {},
     createGain: () => ({ gain: param(), connect() {} }),
     createBufferSource: () => {
-      const src = { buffer: null as null | { name: string }, loop: false, loopStart: 0, loopEnd: 0, connect() {}, stop() {}, start(when = 0, offset = 0) { started.push(src.buffer!.name); starts.push({ name: src.buffer!.name, when, offset }); } };
+      const src = {
+        buffer: null as null | { name: string },
+        loop: false,
+        loopStart: 0,
+        loopEnd: 0,
+        connect() {},
+        stop() {},
+        start(when = 0, offset = 0) {
+          started.push(src.buffer!.name);
+          starts.push({ name: src.buffer!.name, when, offset });
+        },
+      };
       return src;
     },
-    decodeAudioData: async (b: ArrayBuffer & { name?: string }) => ({ name: (b as unknown as { name: string }).name, duration: 8, length: 1000, numberOfChannels: 2 }),
+    decodeAudioData: async (b: ArrayBuffer & { name?: string }) => ({
+      name: (b as unknown as { name: string }).name,
+      duration: 8,
+      length: 1000,
+      numberOfChannels: 2,
+    }),
   };
   return { ctx: ctx as unknown as BaseAudioContext, started, starts, raw: ctx };
 }
@@ -36,35 +52,47 @@ const urls = (n: string) => ({ a: `${n}-a`, b: `${n}-b` });
 
 describe('music director requests', () => {
   it('a score asked first but decoded last does not replace the one asked after it', async () => {
-    const { ctx, started } = fakeCtx(), f = files();
+    const { ctx, started } = fakeCtx(),
+      f = files();
     const d = new MusicDirector(ctx, f.fetch);
     const a = d.play('A', score('A'), urls('A'), ['a']);
     const b = d.play('B', score('B'), urls('B'), ['a']);
-    f.load('B-a'); f.load('B-b'); await b;
-    f.load('A-a'); f.load('A-b'); await a;
+    f.load('B-a');
+    f.load('B-b');
+    await b;
+    f.load('A-a');
+    f.load('A-b');
+    await a;
     expect(d.current).toBe('B');
     expect(started).toEqual(['B-a', 'B-b']);
   });
 
   it('stop() while a score loads: nothing plays', async () => {
-    const { ctx, started } = fakeCtx(), f = files();
+    const { ctx, started } = fakeCtx(),
+      f = files();
     const d = new MusicDirector(ctx, f.fetch);
     const a = d.play('A', score('A'), urls('A'), ['a']);
     expect(d.loading).toBe('A');
     d.stop();
     expect(d.loading).toBeNull();
-    f.load('A-a'); f.load('A-b'); await a;
+    f.load('A-a');
+    f.load('A-b');
+    await a;
     expect(d.current).toBeNull();
     expect(started).toEqual([]);
   });
 
   it('a stem that fails for a stale score changes nothing; for the latest it rejects', async () => {
-    const { ctx, started } = fakeCtx(), f = files();
+    const { ctx, started } = fakeCtx(),
+      f = files();
     const d = new MusicDirector(ctx, f.fetch);
     const a = d.play('A', score('A'), urls('A'), ['a']);
     const b = d.play('B', score('B'), urls('B'), ['a']);
-    f.fail('A-a'); await expect(a).resolves.toBeUndefined();
-    f.load('B-a'); f.load('B-b'); await b;
+    f.fail('A-a');
+    await expect(a).resolves.toBeUndefined();
+    f.load('B-a');
+    f.load('B-b');
+    await b;
     expect(d.current).toBe('B');
     const c = d.play('C', score('C'), urls('C'), ['a']);
     const failed = expect(c).rejects.toThrow('C-b: 404');
@@ -76,24 +104,32 @@ describe('music director requests', () => {
   });
 
   it('the same score asked twice while it loads starts once', async () => {
-    const { ctx, started } = fakeCtx(), f = files();
+    const { ctx, started } = fakeCtx(),
+      f = files();
     const d = new MusicDirector(ctx, f.fetch);
     const a1 = d.play('A', score('A'), urls('A'), ['a']);
     const a2 = d.play('A', score('A'), urls('A'), ['a', 'b']);
-    f.load('A-a'); f.load('A-b'); await Promise.all([a1, a2]);
+    f.load('A-a');
+    f.load('A-b');
+    await Promise.all([a1, a2]);
     expect(d.current).toBe('A');
     expect(d.stems).toEqual(['a', 'b']);
     expect(started).toEqual(['A-a', 'A-b']);
   });
 
   it('the playing score asked again cancels a score still loading', async () => {
-    const { ctx, started } = fakeCtx(), f = files();
+    const { ctx, started } = fakeCtx(),
+      f = files();
     const d = new MusicDirector(ctx, f.fetch);
     const a = d.play('A', score('A'), urls('A'), ['a']);
-    f.load('A-a'); f.load('A-b'); await a;
+    f.load('A-a');
+    f.load('A-b');
+    await a;
     const b = d.play('B', score('B'), urls('B'), ['a']);
     await d.play('A', score('A'), urls('A'), ['a']);
-    f.load('B-a'); f.load('B-b'); await b;
+    f.load('B-a');
+    f.load('B-b');
+    await b;
     expect(d.current).toBe('A');
     expect(started).toEqual(['A-a', 'A-b']);
   });
@@ -116,21 +152,33 @@ describe('where the director plays stems', () => {
       expect(directorFits(40 * MB, nav({ deviceMemory: 2 }))).toBe(false);
       expect(directorFits(40 * MB, nav({ hardwareConcurrency: 2 }))).toBe(false);
       expect(directorFits(40 * MB, nav({ deviceMemory: 8, connection: { saveData: true } }))).toBe(false);
-    } finally { g.AudioContext = had; }
+    } finally {
+      g.AudioContext = had;
+    }
     expect(directorFits(40 * MB, nav({ deviceMemory: 8 }))).toBe(false); // no Web Audio
   });
 });
 
 describe('the decoded audio the director keeps (3.6)', () => {
   // Every fake stem decodes to 1000 frames × 2 channels × 4 bytes: 8 000 bytes, 16 000 a score of two stems.
-  const loadAll = async (d: MusicDirector, f: ReturnType<typeof files>, n: string) => { const p = d.play(n, score(n), urls(n), ['a']); f.load(`${n}-a`); f.load(`${n}-b`); await p; };
+  const loadAll = async (d: MusicDirector, f: ReturnType<typeof files>, n: string) => {
+    const p = d.play(n, score(n), urls(n), ['a']);
+    f.load(`${n}-a`);
+    f.load(`${n}-b`);
+    await p;
+  };
 
   it('the scores least recently played are let go past the cap; the playing one stays', async () => {
-    const { ctx } = fakeCtx(), f = files();
+    const { ctx } = fakeCtx(),
+      f = files();
     let fetched = 0;
-    const d = new MusicDirector(ctx, (u) => { fetched++; return f.fetch(u); });
+    const d = new MusicDirector(ctx, (u) => {
+      fetched++;
+      return f.fetch(u);
+    });
     d.maxDecodedBytes = 32000;
-    await loadAll(d, f, 'A'); await loadAll(d, f, 'B');
+    await loadAll(d, f, 'A');
+    await loadAll(d, f, 'B');
     expect(d.decodedBytes).toBe(32000);
     await loadAll(d, f, 'C');
     expect(d.cached).toEqual(['B-a', 'B-b', 'C-a', 'C-b']);
@@ -145,15 +193,22 @@ describe('the decoded audio the director keeps (3.6)', () => {
   });
 
   it('a score larger than the cap is refused: by its declared weight before any download, else once decoded', async () => {
-    const { ctx, started } = fakeCtx(), f = files();
+    const { ctx, started } = fakeCtx(),
+      f = files();
     let fetched = 0;
-    const d = new MusicDirector(ctx, (u) => { fetched++; return f.fetch(u); });
+    const d = new MusicDirector(ctx, (u) => {
+      fetched++;
+      return f.fetch(u);
+    });
     d.maxDecodedBytes = 10000;
-    await expect(d.play('A', { ...score('A'), pcmBytes: 16000 }, urls('A'), ['a'])).rejects.toBeInstanceOf(ScoreTooLarge);
+    await expect(d.play('A', { ...score('A'), pcmBytes: 16000 }, urls('A'), ['a'])).rejects.toBeInstanceOf(
+      ScoreTooLarge,
+    );
     expect(fetched).toBe(0);
     const b = d.play('B', score('B'), urls('B'), ['a']);
     const refused = expect(b).rejects.toThrow(/decodes to 0 MB, over the 0 MB/);
-    f.load('B-a'); f.load('B-b');
+    f.load('B-a');
+    f.load('B-b');
     await refused;
     expect(d.current).toBeNull();
     expect(d.cached).toEqual([]);
@@ -163,31 +218,48 @@ describe('the decoded audio the director keeps (3.6)', () => {
 
 describe('from one score to another (3.6)', () => {
   // 120 BPM: a beat is 0.5 s, a bar 2 s. Each fake file lasts 8 s.
-  it('the new score starts on the old one\'s landing, after its bridge', async () => {
-    const { ctx, starts, raw } = fakeCtx(), f = files();
+  it("the new score starts on the old one's landing, after its bridge", async () => {
+    const { ctx, starts, raw } = fakeCtx(),
+      f = files();
     const d = new MusicDirector(ctx, f.fetch);
     d.lead = 0;
-    const a = d.play('A', score('A'), urls('A'), ['a']); f.load('A-a'); f.load('A-b'); await a;
+    const a = d.play('A', score('A'), urls('A'), ['a']);
+    f.load('A-a');
+    f.load('A-b');
+    await a;
     raw.currentTime = 0.7;
-    const b = d.play('B', score('B'), urls('B'), ['a'], { transition: { at: 'bar' } }); f.load('B-a'); f.load('B-b'); await b;
+    const b = d.play('B', score('B'), urls('B'), ['a'], { transition: { at: 'bar' } });
+    f.load('B-a');
+    f.load('B-b');
+    await b;
     expect(d.lastTransition).toEqual({ from: 'A', to: 'B', at: 2, start: 2 });
     expect(starts.filter((s) => s.name.startsWith('B')).map((s) => s.when)).toEqual([2, 2]);
     raw.currentTime = 2.3;
     const c = d.play('C', score('C'), urls('C'), ['a'], { transition: { at: 'beat', bridge: 'jingle' } });
-    f.load('C-a'); f.load('C-b'); f.load('jingle'); await c;
+    f.load('C-a');
+    f.load('C-b');
+    f.load('jingle');
+    await c;
     // B started at 2: its next beat after 2.3 is 2.5; the bridge (8 s) plays there, then C.
     expect(d.lastTransition).toEqual({ from: 'B', to: 'C', at: 2.5, start: 10.5 });
     expect(starts.find((s) => s.name === 'jingle')?.when).toBe(2.5);
     expect(starts.filter((s) => s.name.startsWith('C')).map((s) => s.when)).toEqual([10.5, 10.5]);
   });
 
-  it('a save\'s phase: every stem starts at that point of the file, and the grid stays the file\'s', async () => {
-    const { ctx, starts, raw } = fakeCtx(), f = files();
+  it("a save's phase: every stem starts at that point of the file, and the grid stays the file's", async () => {
+    const { ctx, starts, raw } = fakeCtx(),
+      f = files();
     const d = new MusicDirector(ctx, f.fetch);
     d.lead = 0;
     raw.currentTime = 100;
-    const a = d.play('A', score('A'), urls('A'), ['a'], { offset: 3 }); f.load('A-a'); f.load('A-b'); await a;
-    expect(starts.map((s) => [s.when, s.offset])).toEqual([[100, 3], [100, 3]]);
+    const a = d.play('A', score('A'), urls('A'), ['a'], { offset: 3 });
+    f.load('A-a');
+    f.load('A-b');
+    await a;
+    expect(starts.map((s) => [s.when, s.offset])).toEqual([
+      [100, 3],
+      [100, 3],
+    ]);
     expect(d.startedAt).toBe(97);
     raw.currentTime = 101.5;
     expect(d.position).toBeCloseTo(4.5);
@@ -202,23 +274,67 @@ function recorder() {
   type Ev = [string, number, number?];
   const params: { events: Ev[] }[] = [];
   const param = () => {
-    const p = { value: 1, events: [] as Ev[], setValueAtTime(v: number, t: number) { p.events.push(['set', t, v]); }, linearRampToValueAtTime(v: number, t: number) { p.events.push(['ramp', t, v]); }, cancelScheduledValues(t: number) { p.events.push(['cancel', t]); } };
+    const p = {
+      value: 1,
+      events: [] as Ev[],
+      setValueAtTime(v: number, t: number) {
+        p.events.push(['set', t, v]);
+      },
+      linearRampToValueAtTime(v: number, t: number) {
+        p.events.push(['ramp', t, v]);
+      },
+      cancelScheduledValues(t: number) {
+        p.events.push(['cancel', t]);
+      },
+    };
     params.push(p);
     return p;
   };
-  const sources: { name: string; when: number; offset: number; stop: number | null; src: { onended: null | (() => void) } }[] = [];
+  const sources: {
+    name: string;
+    when: number;
+    offset: number;
+    stop: number | null;
+    src: { onended: null | (() => void) };
+  }[] = [];
   const raw = {
     currentTime: 0,
     destination: {},
     createGain: () => ({ gain: param(), connect() {} }),
     createBufferSource: () => {
-      const rec = { name: '', when: Infinity, offset: 0, stop: null as number | null, src: null as unknown as { onended: null | (() => void) } };
-      const src = { buffer: null as null | { name: string }, loop: false, loopStart: 0, loopEnd: 0, onended: null as null | (() => void), connect() {}, stop(t = 0) { rec.stop = t; }, start(when = 0, offset = 0) { rec.name = src.buffer!.name; rec.when = when; rec.offset = offset; sources.push(rec); } };
+      const rec = {
+        name: '',
+        when: Infinity,
+        offset: 0,
+        stop: null as number | null,
+        src: null as unknown as { onended: null | (() => void) },
+      };
+      const src = {
+        buffer: null as null | { name: string },
+        loop: false,
+        loopStart: 0,
+        loopEnd: 0,
+        onended: null as null | (() => void),
+        connect() {},
+        stop(t = 0) {
+          rec.stop = t;
+        },
+        start(when = 0, offset = 0) {
+          rec.name = src.buffer!.name;
+          rec.when = when;
+          rec.offset = offset;
+          sources.push(rec);
+        },
+      };
       rec.src = src;
       return src;
     },
     // A file decodes to 1000 frames × 2 channels (8 000 bytes) over 8 s; one named "long…" to three times that.
-    decodeAudioData: async (b: unknown) => { const name = (b as { name: string }).name; const length = name.startsWith('long') ? 3000 : 1000; return { name, duration: 8, length, numberOfChannels: 2 }; },
+    decodeAudioData: async (b: unknown) => {
+      const name = (b as { name: string }).name;
+      const length = name.startsWith('long') ? 3000 : 1000;
+      return { name, duration: 8, length, numberOfChannels: 2 };
+    },
   };
   /** Whether a file sounded at all: started, and not stopped at or before its start. */
   const heard = (name: string) => sources.some((s) => s.name === name && (s.stop === null || s.stop > s.when));
@@ -227,18 +343,40 @@ function recorder() {
   return { ctx: raw as unknown as BaseAudioContext, raw, sources, heard, last };
 }
 
-describe('the director\'s lifecycle (3.6.1)', () => {
-  const at = async (d: MusicDirector, f: ReturnType<typeof files>, n: string, opts: Parameters<MusicDirector['play']>[4] = {}, files_: string[] = [`${n}-a`, `${n}-b`]) => {
+describe("the director's lifecycle (3.6.1)", () => {
+  const at = async (
+    d: MusicDirector,
+    f: ReturnType<typeof files>,
+    n: string,
+    opts: Parameters<MusicDirector['play']>[4] = {},
+    files_: string[] = [`${n}-a`, `${n}-b`],
+  ) => {
     const p = d.play(n, score(n), urls(n), ['a'], opts);
     await Promise.resolve();
-    for (const u of files_) { try { f.load(u); } catch { /* cached */ } }
+    for (const u of files_) {
+      try {
+        f.load(u);
+      } catch {
+        /* cached */
+      }
+    }
     await p;
     expect(d.decodedBytes).toBeLessThanOrEqual(d.maxDecodedBytes);
   };
   // The cap holds after every case (3.7.1), whatever the case did last.
   let last: MusicDirector | null = null;
-  afterEach(() => { if (last) expect(last.decodedBytes).toBeLessThanOrEqual(last.maxDecodedBytes); last = null; });
-  const setup = () => { const r = recorder(), f = files(); const d = new MusicDirector(r.ctx, f.fetch); d.lead = 0; last = d; return { ...r, f, d }; };
+  afterEach(() => {
+    if (last) expect(last.decodedBytes).toBeLessThanOrEqual(last.maxDecodedBytes);
+    last = null;
+  });
+  const setup = () => {
+    const r = recorder(),
+      f = files();
+    const d = new MusicDirector(r.ctx, f.fetch);
+    d.lead = 0;
+    last = d;
+    return { ...r, f, d };
+  };
 
   it('restore() of the score playing starts it again at the saved point', async () => {
     const { d, f, raw, sources } = setup();
@@ -318,7 +456,10 @@ describe('the director\'s lifecycle (3.6.1)', () => {
     const before = d.lastTransition;
     raw.currentTime = 1;
     const r = d.restore('C', score('C'), urls('C'), ['a'], 4);
-    await Promise.resolve(); f.load('C-a'); f.load('C-b'); await r;
+    await Promise.resolve();
+    f.load('C-a');
+    f.load('C-b');
+    await r;
     expect(heard('jingle')).toBe(false);
     expect(heard('B-a')).toBe(false);
     expect(d.lastTransition).toBe(before);
@@ -326,7 +467,7 @@ describe('the director\'s lifecycle (3.6.1)', () => {
     expect(last('A-a')!.stop).toBeLessThanOrEqual(1.2);
   });
 
-  it('a voice ducks the director\'s bus, never the fades of a transition', async () => {
+  it("a voice ducks the director's bus, never the fades of a transition", async () => {
     const { d, f, raw } = setup();
     await at(d, f, 'A');
     raw.currentTime = 0.7;
@@ -335,9 +476,17 @@ describe('the director\'s lifecycle (3.6.1)', () => {
     const before = incoming.events.length;
     const undo = d.duck(0.35);
     expect(incoming.events.length).toBe(before);
-    expect((d.duckBus.gain as unknown as { events: [string, number, number?][] }).events.at(-1)).toEqual(['ramp', 0.85, 0.35]);
+    expect((d.duckBus.gain as unknown as { events: [string, number, number?][] }).events.at(-1)).toEqual([
+      'ramp',
+      0.85,
+      0.35,
+    ]);
     undo();
-    expect((d.duckBus.gain as unknown as { events: [string, number, number?][] }).events.at(-1)).toEqual(['ramp', 1.1, 1]);
+    expect((d.duckBus.gain as unknown as { events: [string, number, number?][] }).events.at(-1)).toEqual([
+      'ramp',
+      1.1,
+      1,
+    ]);
   });
 
   it('stingers count in the decoded audio: fifty different ones keep under the cap', async () => {
@@ -346,7 +495,9 @@ describe('the director\'s lifecycle (3.6.1)', () => {
     await at(d, f, 'A');
     for (let i = 0; i < 50; i++) {
       const p = d.stinger(`sting-${i}`);
-      await Promise.resolve(); f.load(`sting-${i}`); await p;
+      await Promise.resolve();
+      f.load(`sting-${i}`);
+      await p;
       expect(d.decodedBytes).toBeLessThanOrEqual(40000);
     }
     expect(d.cached).toContain('A-a');
@@ -357,7 +508,8 @@ describe('the director\'s lifecycle (3.6.1)', () => {
     d.maxDecodedBytes = 32000;
     await at(d, f, 'A'); // 16,000 bytes
     const p = d.stinger('long-sting'); // 24,000 bytes: both would be 40,000
-    await Promise.resolve(); f.load('long-sting');
+    await Promise.resolve();
+    f.load('long-sting');
     expect(await p).toBeNull();
     expect(d.decodedBytes).toBeLessThanOrEqual(32000);
     expect(d.cached).not.toContain('long-sting');
@@ -371,7 +523,8 @@ describe('the director\'s lifecycle (3.6.1)', () => {
     await at(d, f, 'A');
     const p = d.stinger('sting');
     d.stop();
-    f.load('sting'); await p;
+    f.load('sting');
+    await p;
     expect(heard('sting')).toBe(false);
   });
 
@@ -400,7 +553,7 @@ describe('the director\'s lifecycle (3.6.1)', () => {
     }
   });
 
-  it('the old score\'s files stay cached until its landing', async () => {
+  it("the old score's files stay cached until its landing", async () => {
     const { d, f, raw } = setup();
     d.maxDecodedBytes = 32000;
     await at(d, f, 'A');

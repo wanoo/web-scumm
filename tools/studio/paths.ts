@@ -5,7 +5,12 @@ import type { TextKind } from './types';
 export type Seg = string | number;
 
 export class SourceError extends Error {
-  constructor(message: string, readonly status = 400) { super(message); }
+  constructor(
+    message: string,
+    readonly status = 400,
+  ) {
+    super(message);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -32,7 +37,8 @@ export function parsePath(path: string): Seg[] {
   const re = /^(?:\.?([A-Za-z_$][\w$]*)|\[(\d+)\]|\[(\+)\]|\[("(?:[^"\\]|\\.)*")\])/;
   while (rest) {
     const m = re.exec(rest);
-    if (!m || (m[1] !== undefined && segs.length === 0 && rest.startsWith('.'))) throw new SourceError(`invalid path: "${path}"`);
+    if (!m || (m[1] !== undefined && segs.length === 0 && rest.startsWith('.')))
+      throw new SourceError(`invalid path: "${path}"`);
     if (m[1] !== undefined) segs.push(m[1]);
     else if (m[2] !== undefined) segs.push(Number(m[2]));
     else if (m[3] !== undefined) segs.push('+');
@@ -68,7 +74,8 @@ export function classify(segs: Seg[]): TextKind | null {
     if ((prev === 'say' || prev === 'shout') && last === 1) return 'say';
     if (segs[0] === 'look' && n === 3) return 'look';
     if (typeof prev === 'string' && HERO_LISTS.has(prev)) return 'hero';
-    if (typeof prev === 'number' && typeof segs[n - 3] === 'string' && HERO_LISTS2.has(segs[n - 3] as string)) return 'hero';
+    if (typeof prev === 'number' && typeof segs[n - 3] === 'string' && HERO_LISTS2.has(segs[n - 3] as string))
+      return 'hero';
   }
   if (segs[0] === 'look' && n === 2) return 'look';
   return null;

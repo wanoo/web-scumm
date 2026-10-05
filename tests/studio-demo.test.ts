@@ -16,7 +16,9 @@ import type { StudioSnapshot } from '../tools/studio/types';
 
 const ROOT = resolve(__dirname, '..');
 const temps: string[] = [];
-afterAll(() => { for (const d of temps) rmSync(d, { recursive: true, force: true }); });
+afterAll(() => {
+  for (const d of temps) rmSync(d, { recursive: true, force: true });
+});
 
 function copyDemo(): string {
   mkdirSync(join(ROOT, '.cache'), { recursive: true });
@@ -29,9 +31,15 @@ function copyDemo(): string {
 
 class FakeStorage implements KeyValue {
   map = new Map<string, string>();
-  getItem(k: string) { return this.map.get(k) ?? null; }
-  setItem(k: string, v: string) { this.map.set(k, v); }
-  removeItem(k: string) { this.map.delete(k); }
+  getItem(k: string) {
+    return this.map.get(k) ?? null;
+  }
+  setItem(k: string, v: string) {
+    this.map.set(k, v);
+  }
+  removeItem(k: string) {
+    this.map.delete(k);
+  }
 }
 
 const importFresh = (file: string) => importInChild(file, ROOT);
@@ -39,9 +47,18 @@ let snapshot: StudioSnapshot;
 const loadGame = async (): Promise<GameModuleLike> => {
   const [g, eng] = await Promise.all([import('../games/demo/index'), import('../src/engine/minigames')]);
   const m = g.manifest as unknown as { images: Record<string, [number, number]>; audio?: Record<string, unknown> };
-  return { game: g.game, minigames: { ...eng.minigames, ...g.minigames }, commands: g.commands, locales: g.locales, assets: { images: m.images, audio: m.audio } };
+  return {
+    game: g.game,
+    minigames: { ...eng.minigames, ...g.minigames },
+    commands: g.commands,
+    locales: g.locales,
+    assets: { images: m.images, audio: m.audio },
+  };
 };
-const fresh = (storage = new FakeStorage()) => ({ storage, api: new BrowserApi({ snapshot, storage, loadGame, now: () => new Date('2026-10-01T10:00:00Z') }) });
+const fresh = (storage = new FakeStorage()) => ({
+  storage,
+  api: new BrowserApi({ snapshot, storage, loadGame, now: () => new Date('2026-10-01T10:00:00Z') }),
+});
 
 beforeAll(async () => {
   snapshot = await buildSnapshot({ gameDir: copyDemo(), root: ROOT, importFresh });
@@ -79,13 +96,20 @@ describe('browser backend', () => {
     await api.setText('house', 'look.shell[+]', 'It smells of the sea.');
     room = await api.room('house');
     expect(room.def.look!.shell).toEqual([snapshot.rooms.house.def.look!.shell, 'It smells of the sea.']);
-    expect(room.texts.filter((t) => t.path.startsWith('look.shell')).map((t) => t.path).sort()).toEqual(['look.shell[0]', 'look.shell[1]']);
+    expect(
+      room.texts
+        .filter((t) => t.path.startsWith('look.shell'))
+        .map((t) => t.path)
+        .sort(),
+    ).toEqual(['look.shell[0]', 'look.shell[1]']);
 
     // Deleting a line shifts the following ones.
     await api.setText('house', 'look.clock[0]', null);
     room = await api.room('house');
     expect(room.def.look!.clock).toEqual((snapshot.rooms.house.def.look!.clock as ListLine[]).slice(1));
-    expect(room.texts.find((t) => t.path === 'look.clock[0]')?.value).toBe(listText((snapshot.rooms.house.def.look!.clock as ListLine[])[1]));
+    expect(room.texts.find((t) => t.path === 'look.clock[0]')?.value).toBe(
+      listText((snapshot.rooms.house.def.look!.clock as ListLine[])[1]),
+    );
     expect(room.texts.some((t) => t.path === 'look.clock[2]')).toBe(false);
 
     // A whole look entry; a hero line in a command list.
@@ -126,7 +150,10 @@ describe('browser backend', () => {
     await api.editNote(n.id, { text: 'Too fast?' });
     const n2 = await api.addNote({ text: 'to delete' });
     await api.deleteNote(n2.id);
-    expect((await api.notes()).entries.map((x) => x.text)).toEqual([...snapshot.notes.entries.map((x) => x.text), 'Too fast?']);
+    expect((await api.notes()).entries.map((x) => x.text)).toEqual([
+      ...snapshot.notes.entries.map((x) => x.text),
+      'Too fast?',
+    ]);
     await expect(api.editNote('nope', { text: 'x' })).rejects.toMatchObject({ status: 404 });
 
     // One layout, one storyboard, one note (its edit folded in, the deleted one gone).
@@ -143,14 +170,22 @@ describe('browser backend', () => {
 
   it('adds an entity to the definition, the texts and the layout', async () => {
     const { api } = fresh();
-    await api.add('house', { kind: 'prop', id: 'vase', name: 'blue vase', at: [300, 320], look: 'A vase. No sardines in it.' });
+    await api.add('house', {
+      kind: 'prop',
+      id: 'vase',
+      name: 'blue vase',
+      at: [300, 320],
+      look: 'A vase. No sardines in it.',
+    });
     const room = await api.room('house');
     expect(room.def.props!.vase).toMatchObject({ name: 'blue vase' });
     expect(room.layout.props!.vase).toEqual({ x: 300, y: 320, h: 60 });
     expect(room.texts.find((t) => t.path === 'look.vase')?.value).toBe('A vase. No sardines in it.');
     await api.setText('house', 'look.vase[+]', 'Still a vase.');
     expect((await api.room('house')).def.look!.vase).toEqual(['A vase. No sardines in it.', 'Still a vase.']);
-    await expect(api.add('house', { kind: 'prop', id: 'vase', name: 'x', at: [1, 1] })).rejects.toMatchObject({ status: 409 });
+    await expect(api.add('house', { kind: 'prop', id: 'vase', name: 'x', at: [1, 1] })).rejects.toMatchObject({
+      status: 409,
+    });
     await expect(api.add('house', { kind: 'prop', id: 'v2', at: [1, 1] })).rejects.toMatchObject({ status: 400 });
 
     // The engine view gets the same game.
@@ -183,7 +218,13 @@ describe('studio-apply', () => {
     await api.setText('house', 'look.shell[+]', 'Shells: the phones of the sea.');
     await api.setText('house', 'look.clock[0]', null);
     await api.setText('garden', 'name', 'The jungle');
-    await api.add('house', { kind: 'hotspot', id: 'rug', name: 'rug', at: [200, 350], look: 'A rug. Cat hair included.' });
+    await api.add('house', {
+      kind: 'hotspot',
+      id: 'rug',
+      name: 'rug',
+      at: [200, 350],
+      look: 'A rug. Cat hair included.',
+    });
     const L = { ...(await api.room('house')).layout };
     L.props = { ...L.props, teacup: { ...(L.props?.teacup ?? { x: 0, y: 0, h: 60 }), x: 400, y: 300 } };
     await api.setLayout('house', L);
@@ -210,6 +251,10 @@ describe('studio-apply', () => {
       expect(JSON.parse(JSON.stringify(demo.def))).toEqual(JSON.parse(JSON.stringify(server.def)));
     }
     expect(studio.getStoryboard().title).toBe('Applied');
-    expect(studio.getNotes().entries.at(-1)).toMatchObject({ about: 'house', author: 'demo', text: 'Applied from the demo' });
+    expect(studio.getNotes().entries.at(-1)).toMatchObject({
+      about: 'house',
+      author: 'demo',
+      text: 'Applied from the demo',
+    });
   }, 60000);
 });

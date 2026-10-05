@@ -17,7 +17,16 @@ import { StoryboardTab } from './storyboard';
 import { download, h, toast } from './ui';
 
 type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'music' | 'check' | 'play' | 'notes';
-const TABS: [TabId, string][] = [['rooms', 'Rooms'], ['storyboard', 'Storyboard'], ['assets', 'Assets'], ['voices', 'Voices'], ['music', 'Music'], ['check', 'Check'], ['play', 'Play'], ['notes', 'Notes']];
+const TABS: [TabId, string][] = [
+  ['rooms', 'Rooms'],
+  ['storyboard', 'Storyboard'],
+  ['assets', 'Assets'],
+  ['voices', 'Voices'],
+  ['music', 'Music'],
+  ['check', 'Check'],
+  ['play', 'Play'],
+  ['notes', 'Notes'],
+];
 
 // Vite tells every page to reload when a game file changes (the engine view needs it). The Studio page doesn't:
 // it follows changes through its own event feed, and keeps what is being typed.
@@ -35,13 +44,25 @@ async function demoApi(): Promise<BrowserApi> {
     }),
   ]);
   let storage: Storage | undefined;
-  try { storage = localStorage; } catch { /* blocked: edits last until the page is closed */ }
+  try {
+    storage = localStorage;
+  } catch {
+    /* blocked: edits last until the page is closed */
+  }
   return new BrowserApi({
-    snapshot, storage, download,
+    snapshot,
+    storage,
+    download,
     loadGame: async () => {
       const [g, eng] = await Promise.all([import('@game'), import('@engine/minigames')]);
       const m = g.manifest as unknown as { images?: Record<string, [number, number]>; audio?: Record<string, unknown> };
-      return { game: g.game, minigames: { ...eng.minigames, ...g.minigames }, commands: g.commands, locales: g.locales, assets: m.images ? { images: m.images, audio: m.audio } : undefined };
+      return {
+        game: g.game,
+        minigames: { ...eng.minigames, ...g.minigames },
+        commands: g.commands,
+        locales: g.locales,
+        assets: m.images ? { images: m.images, audio: m.audio } : undefined,
+      };
     },
   });
 }
@@ -70,28 +91,63 @@ async function pickBackend(): Promise<{ info: GameInfo; demo: BrowserApi | null 
 /** "Demo: your edits stay in this browser", with Download patch and Reset demo. */
 function demoBanner(demo: BrowserApi): HTMLElement {
   const count = h('span', { class: 'muted small' });
-  const dl = h('button', { class: 'primary', onclick: () => {
-    if (!demo.edits) { toast('No edits yet: change a text, a placement, the storyboard or a note first.', 'info'); return; }
-    download(`studio-patch-${demo.gameId}.json`, JSON.stringify(demo.patchFile(), null, 2) + '\n', 'application/json');
-  } }, 'Download patch');
-  const reset = h('button', { onclick: () => {
-    if (!confirm('Drop all your edits and go back to the original game?')) return;
-    demo.reset();
-    location.reload();
-  } }, 'Reset demo');
-  const refresh = () => { count.textContent = demo.edits ? `${demo.edits} edit${demo.edits > 1 ? 's' : ''} kept` : 'no edits yet'; };
+  const dl = h(
+    'button',
+    {
+      class: 'primary',
+      onclick: () => {
+        if (!demo.edits) {
+          toast('No edits yet: change a text, a placement, the storyboard or a note first.', 'info');
+          return;
+        }
+        download(
+          `studio-patch-${demo.gameId}.json`,
+          JSON.stringify(demo.patchFile(), null, 2) + '\n',
+          'application/json',
+        );
+      },
+    },
+    'Download patch',
+  );
+  const reset = h(
+    'button',
+    {
+      onclick: () => {
+        if (!confirm('Drop all your edits and go back to the original game?')) return;
+        demo.reset();
+        location.reload();
+      },
+    },
+    'Reset demo',
+  );
+  const refresh = () => {
+    count.textContent = demo.edits ? `${demo.edits} edit${demo.edits > 1 ? 's' : ''} kept` : 'no edits yet';
+  };
   demo.onChange = refresh;
   refresh();
-  return h('div', { class: 'demo-banner', role: 'note' },
-    h('span', null, h('b', null, 'Demo:'), ' your edits stay in this browser. Download them as a patch and apply them to your copy with ',
-      h('code', null, 'npm run studio-apply patch.json'), '.'),
-    count, dl, reset);
+  return h(
+    'div',
+    { class: 'demo-banner', role: 'note' },
+    h(
+      'span',
+      null,
+      h('b', null, 'Demo:'),
+      ' your edits stay in this browser. Download them as a patch and apply them to your copy with ',
+      h('code', null, 'npm run studio-apply patch.json'),
+      '.',
+    ),
+    count,
+    dl,
+    reset,
+  );
 }
 
 async function start() {
   const root = document.getElementById('studio')!;
   let info: GameInfo, demo: BrowserApi | null;
-  try { ({ info, demo } = await pickBackend()); } catch (e) {
+  try {
+    ({ info, demo } = await pickBackend());
+  } catch (e) {
     root.replaceChildren(h('p', { class: 'error pad' }, `The game does not load: ${(e as Error).message}`));
     return;
   }
@@ -99,21 +155,54 @@ async function start() {
 
   // Own writes come back from the file watcher: don't announce them as outside changes.
   let ownUntil = 0;
-  const ownWrite = () => { ownUntil = Date.now() + 2000; };
+  const ownWrite = () => {
+    ownUntil = Date.now() + 2000;
+  };
 
   const badge = h('span', { class: 'badge' });
-  const check = new CheckTab(info, (state, text) => { badge.className = `badge ${state}`; badge.textContent = text; }, (room, path) => { rooms.openRoom(room); show('rooms'); rooms.focusPath(path); });
+  const check = new CheckTab(
+    info,
+    (state, text) => {
+      badge.className = `badge ${state}`;
+      badge.textContent = text;
+    },
+    (room, path) => {
+      rooms.openRoom(room);
+      show('rooms');
+      rooms.focusPath(path);
+    },
+  );
   const [hashTab, hashRoom] = location.hash.slice(1).split('/');
   const store = new NotesStore(ownWrite);
   let show: (t: TabId) => void = () => undefined;
-  const openRoom = (id: string) => { rooms.openRoom(id); show('rooms'); };
-  const rooms = new RoomsTab({ info, saved: () => check.schedule(), ownWrite,
-    notesBlock: (room) => roomNotesBlock(store, room, (about) => { notes.focusAbout(about); show('notes'); }) }, hashRoom);
+  const openRoom = (id: string) => {
+    rooms.openRoom(id);
+    show('rooms');
+  };
+  const rooms = new RoomsTab(
+    {
+      info,
+      saved: () => check.schedule(),
+      ownWrite,
+      notesBlock: (room) =>
+        roomNotesBlock(store, room, (about) => {
+          notes.focusAbout(about);
+          show('notes');
+        }),
+    },
+    hashRoom,
+  );
   const storyboard = new StoryboardTab({ info, notes: store, ownWrite, openRoom });
   const notes = new NotesTab({
-    info, store, panels: () => storyboard.panels(),
+    info,
+    store,
+    panels: () => storyboard.panels(),
     open: (about) => {
-      if (storyboard.panels().some(([id]) => id === about)) { show('storyboard'); storyboard.showPanel(about); return; }
+      if (storyboard.panels().some(([id]) => id === about)) {
+        show('storyboard');
+        storyboard.showPanel(about);
+        return;
+      }
       openRoom(about.split('.')[0]);
     },
   });
@@ -121,14 +210,27 @@ async function start() {
   const play = new PlayTab(info);
   const voices = new VoicesTab();
   const music = new MusicTab(info);
-  const panes: Record<TabId, HTMLElement> = { rooms: rooms.el, storyboard: storyboard.el, assets: assets.el, voices: voices.el, music: music.el, check: check.el, play: play.el, notes: notes.el };
+  const panes: Record<TabId, HTMLElement> = {
+    rooms: rooms.el,
+    storyboard: storyboard.el,
+    assets: assets.el,
+    voices: voices.el,
+    music: music.el,
+    check: check.el,
+    play: play.el,
+    notes: notes.el,
+  };
 
   const nav = h('nav', { class: 'tabs', role: 'tablist' });
   let current: TabId = (TABS.some(([t]) => t === hashTab) ? hashTab : 'rooms') as TabId;
   show = (t: TabId) => {
     current = t;
     for (const [id, el] of Object.entries(panes)) el.hidden = id !== t;
-    nav.querySelectorAll('button').forEach((b) => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+    nav.querySelectorAll('button').forEach((b) => {
+      const on = b.dataset.tab === t;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-selected', String(on));
+    });
     history.replaceState(null, '', t === 'rooms' ? `#rooms/${rooms.room}` : `#${t}`);
     if (t === 'storyboard') void storyboard.load();
     if (t === 'notes') void notes.load();
@@ -137,29 +239,78 @@ async function start() {
     if (t === 'music') music.load();
   };
   for (const [id, label] of TABS) {
-    nav.append(h('button', { role: 'tab', dataset: { tab: id }, onclick: () => show(id) }, label, id === 'check' ? badge : null));
+    nav.append(
+      h('button', { role: 'tab', dataset: { tab: id }, onclick: () => show(id) }, label, id === 'check' ? badge : null),
+    );
   }
   const live = demo ? null : h('span', { class: 'live', title: 'Watching the game folder' }, '●');
   const assistant = new AssistantPanel({
-    info, demo,
+    info,
+    demo,
     selection: () => {
       const sel = rooms.selection;
-      return { tab: current, room: rooms.room, entity: sel ? { kind: sel.kind, id: sel.id } : undefined, panel: current === 'storyboard' ? storyboard.currentPanel() : undefined };
+      return {
+        tab: current,
+        room: rooms.room,
+        entity: sel ? { kind: sel.kind, id: sel.id } : undefined,
+        panel: current === 'storyboard' ? storyboard.currentPanel() : undefined,
+      };
     },
     refresh: (wrote) => {
       // On the dev server the file watcher reloads too; the demo has only this.
-      if (wrote.some((t) => t !== 'add_note' && t !== 'set_storyboard')) { void rooms.load(); if (demo) rooms.reloadFrame(); check.schedule(300); }
-      if (wrote.includes('set_storyboard')) { if (demo) void storyboard.reload(); else storyboard.onDiskChange(); check.schedule(300); }
+      if (wrote.some((t) => t !== 'add_note' && t !== 'set_storyboard')) {
+        void rooms.load();
+        if (demo) rooms.reloadFrame();
+        check.schedule(300);
+      }
+      if (wrote.includes('set_storyboard')) {
+        if (demo) void storyboard.reload();
+        else storyboard.onDiskChange();
+        check.schedule(300);
+      }
       if (wrote.includes('add_note')) void store.load();
     },
   });
-  const assistantBtn = h('button', { class: 'abtn', title: 'Ask an AI to help complete the game (a)', 'aria-label': 'Assistant', onclick: () => assistant.toggle() }, 'Assistant');
+  const assistantBtn = h(
+    'button',
+    {
+      class: 'abtn',
+      title: 'Ask an AI to help complete the game (a)',
+      'aria-label': 'Assistant',
+      onclick: () => assistant.toggle(),
+    },
+    'Assistant',
+  );
   root.replaceChildren(
     ...(demo ? [demoBanner(demo)] : []),
-    h('header', { class: 'top' }, h('h1', null, 'Studio'), h('span', { class: 'game' }, info.title, h('span', { class: 'muted' }, ` · games/${info.id}`)), nav,
-      undoButtons(() => { void rooms.load(); rooms.reloadFrame(); check.schedule(300); }),
-      h('a', { class: 'play', href: `${BASE}?dev`, target: '_blank', rel: 'noopener', title: demo ? 'Play with your edits (dev tools on)' : undefined }, 'Play ↗'), assistantBtn, live),
-    h('main', null, ...Object.values(panes)), assistant.el);
+    h(
+      'header',
+      { class: 'top' },
+      h('h1', null, 'Studio'),
+      h('span', { class: 'game' }, info.title, h('span', { class: 'muted' }, ` · games/${info.id}`)),
+      nav,
+      undoButtons(() => {
+        void rooms.load();
+        rooms.reloadFrame();
+        check.schedule(300);
+      }),
+      h(
+        'a',
+        {
+          class: 'play',
+          href: `${BASE}?dev`,
+          target: '_blank',
+          rel: 'noopener',
+          title: demo ? 'Play with your edits (dev tools on)' : undefined,
+        },
+        'Play ↗',
+      ),
+      assistantBtn,
+      live,
+    ),
+    h('main', null, ...Object.values(panes)),
+    assistant.el,
+  );
   show(current);
   void check.run();
   // The storyboard (panel ids for the notes) and the notes (shown in every tab) are read at start.
@@ -168,10 +319,22 @@ async function start() {
 
   // Ctrl/Cmd+S saves the storyboard while its tab is shown.
   document.addEventListener('keydown', (e) => {
-    if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 's' && current === 'storyboard') { e.preventDefault(); void storyboard.save(); }
+    if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 's' && current === 'storyboard') {
+      e.preventDefault();
+      void storyboard.save();
+    }
     // `a` toggles the Assistant when nothing is being typed.
     const t = e.target as HTMLElement | null;
-    if (e.key === 'a' && !e.metaKey && !e.ctrlKey && !e.altKey && !(t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable))) { e.preventDefault(); assistant.toggle(); }
+    if (
+      e.key === 'a' &&
+      !e.metaKey &&
+      !e.ctrlKey &&
+      !e.altKey &&
+      !(t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable))
+    ) {
+      e.preventDefault();
+      assistant.toggle();
+    }
   });
 
   // Changes on disk (an AI, an editor, git): reload what they touch. The demo has no disk to watch.
@@ -188,7 +351,8 @@ async function start() {
     assets.onFileChanged(ev.file);
     if (ev.file === 'storyboard.json' && outside) storyboard.onDiskChange();
     if (ev.file === 'notes.json' && outside) void store.load();
-    if (outside && /\.(ts|json)$/.test(ev.file) && ev.file !== 'notes.json' && ev.file !== 'storyboard.json') check.schedule(1000);
+    if (outside && /\.(ts|json)$/.test(ev.file) && ev.file !== 'notes.json' && ev.file !== 'storyboard.json')
+      check.schedule(1000);
   };
 }
 

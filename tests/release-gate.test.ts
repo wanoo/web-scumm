@@ -17,8 +17,14 @@ const variant = (name: string, edit: (dir: string) => void) => {
   edit(dir);
   return dir;
 };
-const release = (dir: string) => spawnSync('npx', ['tsx', 'tools/validate.ts', '--release'], { encoding: 'utf8', env: { ...process.env, GAME: '', GAME_DIR: dir, ASSETS_DIR: join(dir, 'assets') } });
-afterAll(() => { for (const d of made) rmSync(d, { recursive: true, force: true }); });
+const release = (dir: string) =>
+  spawnSync('npx', ['tsx', 'tools/validate.ts', '--release'], {
+    encoding: 'utf8',
+    env: { ...process.env, GAME: '', GAME_DIR: dir, ASSETS_DIR: join(dir, 'assets') },
+  });
+afterAll(() => {
+  for (const d of made) rmSync(d, { recursive: true, force: true });
+});
 
 describe('the release gate', () => {
   it('lets the clean fixture through, and release-check runs it', () => {
@@ -35,11 +41,23 @@ describe('the release gate', () => {
   }, 60000);
 
   it('fails a placeholder that no release exception names', () => {
-    const dir = variant('placeholder', (d) => writeFileSync(join(d, 'provenance.json'), JSON.stringify({ assets: [{ match: 'img:*', source: 'x', licence: 'MIT', status: 'placeholder' }] })));
+    const dir = variant('placeholder', (d) =>
+      writeFileSync(
+        join(d, 'provenance.json'),
+        JSON.stringify({ assets: [{ match: 'img:*', source: 'x', licence: 'MIT', status: 'placeholder' }] }),
+      ),
+    );
     const r = release(dir);
     expect(r.status).toBe(1);
     expect(r.stdout).toContain('a placeholder would ship');
-    writeFileSync(join(dir, 'provenance.json'), JSON.stringify({ licences: { allow: ['MIT'] }, assets: [{ match: 'img:*', source: 'x', licence: 'MIT', status: 'placeholder' }], releaseExceptions: [{ match: 'img:*', reason: 'a test' }] }));
+    writeFileSync(
+      join(dir, 'provenance.json'),
+      JSON.stringify({
+        licences: { allow: ['MIT'] },
+        assets: [{ match: 'img:*', source: 'x', licence: 'MIT', status: 'placeholder' }],
+        releaseExceptions: [{ match: 'img:*', reason: 'a test' }],
+      }),
+    );
     // the status is a claim the lock recorded as `final`: it changed since the review
     expect(release(dir).stdout).toContain('its provenance entry changed since the review');
     const lock = JSON.parse(readFileSync(join(dir, 'provenance.lock.json'), 'utf8'));
@@ -49,18 +67,25 @@ describe('the release gate', () => {
   }, 60000);
 
   it('fails a game translated into one other language whose lines have no id (no source-language file needed)', () => {
-    const r = release(variant('translated', (d) => {
-      mkdirSync(join(d, 'locales'), { recursive: true });
-      writeFileSync(join(d, 'locales', 'fr.json'), JSON.stringify({ _: 'test' }));
-      // back to the base fixture: its lines have no ids
-      writeFileSync(join(d, 'index.ts'), "export { game, layouts, manifest, minigames } from '../../fixture/index';\n");
-    }));
+    const r = release(
+      variant('translated', (d) => {
+        mkdirSync(join(d, 'locales'), { recursive: true });
+        writeFileSync(join(d, 'locales', 'fr.json'), JSON.stringify({ _: 'test' }));
+        // back to the base fixture: its lines have no ids
+        writeFileSync(
+          join(d, 'index.ts'),
+          "export { game, layouts, manifest, minigames } from '../../fixture/index';\n",
+        );
+      }),
+    );
     expect(r.status).toBe(1);
     expect(r.stdout).toMatch(/no stable id/);
   }, 60000);
 
   it('fails a file that is not the one reviewed, a new one, and a missing lock', () => {
-    const changed = release(variant('changed', (d) => writeFileSync(join(d, 'assets', 'img', 'items', 'key.webp'), 'another key\n')));
+    const changed = release(
+      variant('changed', (d) => writeFileSync(join(d, 'assets', 'img', 'items', 'key.webp'), 'another key\n')),
+    );
     expect(changed.status).toBe(1);
     expect(changed.stdout).toContain('img:items/key: the file changed since its provenance was reviewed');
     const nolock = release(variant('nolock', (d) => rmSync(join(d, 'provenance.lock.json'))));
@@ -69,18 +94,22 @@ describe('the release gate', () => {
   }, 60000);
 
   it('fails a licence outside the policy, and a game without a policy', () => {
-    const outside = release(variant('licence', (d) => {
-      const p = JSON.parse(readFileSync(join(d, 'provenance.json'), 'utf8'));
-      p.licences.allow = ['CC BY 4.0'];
-      writeFileSync(join(d, 'provenance.json'), JSON.stringify(p));
-    }));
+    const outside = release(
+      variant('licence', (d) => {
+        const p = JSON.parse(readFileSync(join(d, 'provenance.json'), 'utf8'));
+        p.licences.allow = ['CC BY 4.0'];
+        writeFileSync(join(d, 'provenance.json'), JSON.stringify(p));
+      }),
+    );
     expect(outside.status).toBe(1);
     expect(outside.stdout).toContain('MIT: not in licences.allow (CC BY 4.0), used by 14 asset(s)');
-    const none = release(variant('nopolicy', (d) => {
-      const p = JSON.parse(readFileSync(join(d, 'provenance.json'), 'utf8'));
-      delete p.licences;
-      writeFileSync(join(d, 'provenance.json'), JSON.stringify(p));
-    }));
+    const none = release(
+      variant('nopolicy', (d) => {
+        const p = JSON.parse(readFileSync(join(d, 'provenance.json'), 'utf8'));
+        delete p.licences;
+        writeFileSync(join(d, 'provenance.json'), JSON.stringify(p));
+      }),
+    );
     expect(none.status).toBe(1);
     expect(none.stdout).toContain('a release says which licences may ship');
   }, 60000);

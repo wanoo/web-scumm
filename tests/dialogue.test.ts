@@ -15,7 +15,12 @@ describe('dialogueTree', () => {
     const kids = tree[0].children!;
     expect(kids[0]).toMatchObject({ kind: 'line', who: 'master', path: 'talk.master[0].do[0].say[1]' });
     expect(kids[1].kind).toBe('choice');
-    expect(kids[1].children![0]).toMatchObject({ kind: 'option', text: 'How appropriate. You fight like a cow.', cond: 'learned_farmer', path: 'talk.master[0].do[1].choice[0].text' });
+    expect(kids[1].children![0]).toMatchObject({
+      kind: 'option',
+      text: 'How appropriate. You fight like a cow.',
+      cond: 'learned_farmer',
+      path: 'talk.master[0].do[1].choice[0].text',
+    });
     expect(kids[1].children![0].children![0]).toMatchObject({ kind: 'other', text: 'inc wins' });
     const branch = kids.find((k) => k.kind === 'if')!;
     expect(branch.text).toBe('if wins ≥ 2');

@@ -13,8 +13,11 @@ const temps: string[] = [];
 
 async function connect(env: Record<string, string>): Promise<Client> {
   const transport = new StdioClientTransport({
-    command: TSX, args: [join(ROOT, 'tools', 'mcp', 'server.ts')], cwd: ROOT,
-    env: { ...getDefaultEnvironment(), ...env }, stderr: 'pipe',
+    command: TSX,
+    args: [join(ROOT, 'tools', 'mcp', 'server.ts')],
+    cwd: ROOT,
+    env: { ...getDefaultEnvironment(), ...env },
+    stderr: 'pipe',
   });
   const client = new Client({ name: 'mcp-test', version: '0' });
   await client.connect(transport);
@@ -24,7 +27,7 @@ async function connect(env: Record<string, string>): Promise<Client> {
 
 type TextResult = { content: { type: string; text: string }[]; isError?: boolean };
 async function call(c: Client, name: string, args: Record<string, unknown> = {}): Promise<TextResult> {
-  return await c.callTool({ name, arguments: args }) as TextResult;
+  return (await c.callTool({ name, arguments: args })) as TextResult;
 }
 const parse = (r: TextResult) => JSON.parse(r.content[0].text);
 
@@ -40,8 +43,31 @@ describe('MCP server on games/demo', () => {
     demo = await connect({ GAME: 'demo' });
     const { tools } = await demo.listTools();
     const names = tools.map((t) => t.name);
-    for (const n of ['list_rooms', 'get_room', 'set_layout', 'set_text', 'add_entity', 'get_storyboard', 'set_storyboard',
-      'get_notes', 'add_note', 'validate', 'solve', 'screenshot', 'read_doc', 'run_tests', 'asset_prompts', 'content_report', 'world_graph', 'puzzle_graph', 'dialogue_tree', 'storyboard_coverage', 'lint', 'playtests']) expect(names).toContain(n);
+    for (const n of [
+      'list_rooms',
+      'get_room',
+      'set_layout',
+      'set_text',
+      'add_entity',
+      'get_storyboard',
+      'set_storyboard',
+      'get_notes',
+      'add_note',
+      'validate',
+      'solve',
+      'screenshot',
+      'read_doc',
+      'run_tests',
+      'asset_prompts',
+      'content_report',
+      'world_graph',
+      'puzzle_graph',
+      'dialogue_tree',
+      'storyboard_coverage',
+      'lint',
+      'playtests',
+    ])
+      expect(names).toContain(n);
     const { resources } = await demo.listResources();
     expect(resources.map((r) => r.uri)).toEqual(expect.arrayContaining(['webscumm://game', 'webscumm://room/house']));
   }, 30000);
@@ -53,8 +79,9 @@ describe('MCP server on games/demo', () => {
 
     const room = parse(await call(demo, 'get_room', { id: 'house' }));
     expect(room.def.id).toBe('house');
-    expect(room.texts.find((t: { path: string }) => t.path === 'look.pantry[0]')?.value)
-      .toBe('The pantry cupboard. The sardines live in there.');
+    expect(room.texts.find((t: { path: string }) => t.path === 'look.pantry[0]')?.value).toBe(
+      'The pantry cupboard. The sardines live in there.',
+    );
 
     const v = parse(await call(demo, 'validate'));
     expect(v.ok).toBe(true);
@@ -69,7 +96,9 @@ describe('MCP server on games/demo', () => {
   }, 60000);
 
   it('asset_prompts returns the markdown and the missing ids', async () => {
-    const r = await demo.callTool({ name: 'asset_prompts', arguments: { missing: true } }) as TextResult & { structuredContent?: { missing: string[]; sheets: unknown[] } };
+    const r = (await demo.callTool({ name: 'asset_prompts', arguments: { missing: true } })) as TextResult & {
+      structuredContent?: { missing: string[]; sheets: unknown[] };
+    };
     expect(r.isError).toBeFalsy();
     expect(r.content[0].text).toContain('## Style block');
     expect(r.structuredContent?.missing).toEqual([]);
@@ -97,7 +126,10 @@ describe('MCP server writes on a copy of the demo', () => {
     const dir = mkdtempSync(join(ROOT, '.cache', 'mcp-test-demo-'));
     temps.push(dir);
     const src = join(ROOT, 'games', 'demo');
-    cpSync(src, dir, { recursive: true, filter: (f) => !/[\\/](art|audio|private)([\\/]|$)/.test(f.slice(src.length)) });
+    cpSync(src, dir, {
+      recursive: true,
+      filter: (f) => !/[\\/](art|audio|private)([\\/]|$)/.test(f.slice(src.length)),
+    });
     const c = await connect({ GAME_DIR: dir });
 
     expect(parse(await call(c, 'get_notes')).entries ?? []).toEqual(expect.any(Array));
@@ -106,9 +138,13 @@ describe('MCP server writes on a copy of the demo', () => {
     const notes = parse(await call(c, 'get_notes'));
     expect(notes.entries.at(-1)).toMatchObject({ id: note.id, text: 'Hello from MCP' });
 
-    const edit = parse(await call(c, 'set_text', { id: 'house', path: 'look.pantry[0]', value: 'A cupboard. Smells of fish.' }));
+    const edit = parse(
+      await call(c, 'set_text', { id: 'house', path: 'look.pantry[0]', value: 'A cupboard. Smells of fish.' }),
+    );
     expect(edit).toMatchObject({ ok: true, changed: true });
     const room = parse(await call(c, 'get_room', { id: 'house' }));
-    expect(room.texts.find((t: { path: string }) => t.path === 'look.pantry[0]')?.value).toBe('A cupboard. Smells of fish.');
+    expect(room.texts.find((t: { path: string }) => t.path === 'look.pantry[0]')?.value).toBe(
+      'A cupboard. Smells of fish.',
+    );
   }, 60000);
 });

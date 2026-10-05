@@ -22,7 +22,8 @@ export function layoutsFromExport(json: unknown, fileName = ''): { room: string;
   const out: { room: string; layout: Layout }[] = [];
   const doc = (d: any) => {
     const v = d && typeof d === 'object' && d.data && typeof d.data === 'object' ? d.data : d;
-    if (v && typeof v.room === 'string' && v.layout && typeof v.layout === 'object') out.push({ room: v.room, layout: v.layout });
+    if (v && typeof v.room === 'string' && v.layout && typeof v.layout === 'object')
+      out.push({ room: v.room, layout: v.layout });
   };
   if (Array.isArray(json)) json.forEach(doc);
   else if (json && typeof json === 'object') {
@@ -30,7 +31,11 @@ export function layoutsFromExport(json: unknown, fileName = ''): { room: string;
     if (o.layouts && typeof o.layouts === 'object' && !Array.isArray(o.layouts)) {
       for (const [room, l] of Object.entries(o.layouts)) {
         const v = l as any;
-        out.push(v && v.layout && typeof v.room === 'string' ? { room: v.room, layout: v.layout } : { room, layout: v as Layout });
+        out.push(
+          v && v.layout && typeof v.room === 'string'
+            ? { room: v.room, layout: v.layout }
+            : { room, layout: v as Layout },
+        );
       }
     } else if (Array.isArray(o.docs)) o.docs.forEach(doc);
     else if (typeof o.room === 'string' && o.layout) doc(o);
@@ -39,9 +44,21 @@ export function layoutsFromExport(json: unknown, fileName = ''): { room: string;
   return out;
 }
 
-const canon = (v: unknown): unknown => Array.isArray(v) ? v.map(canon) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v as Obj).sort().map((k) => [k, canon((v as Obj)[k])])) : v;
+const canon = (v: unknown): unknown =>
+  Array.isArray(v)
+    ? v.map(canon)
+    : v && typeof v === 'object'
+      ? Object.fromEntries(
+          Object.keys(v as Obj)
+            .sort()
+            .map((k) => [k, canon((v as Obj)[k])]),
+        )
+      : v;
 const same = (a: unknown, b: unknown) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
-const short = (v: unknown) => { const s = JSON.stringify(v) ?? '—'; return s.length > 60 ? s.slice(0, 57) + '…' : s; };
+const short = (v: unknown) => {
+  const s = JSON.stringify(v) ?? '—';
+  return s.length > 60 ? s.slice(0, 57) + '…' : s;
+};
 
 /** Merges `patch` into `base` (both untouched) and lists the changes as readable lines. */
 export function mergeLayout(base: Layout, patch: Layout): { layout: Layout; changes: string[] } {
@@ -76,28 +93,49 @@ export function mergeLayout(base: Layout, patch: Layout): { layout: Layout; chan
 
 function readExports(target: string): { room: string; layout: Layout; from: string }[] {
   const files = statSync(target).isDirectory()
-    ? readdirSync(target).filter((f) => f.endsWith('.json')).sort().map((f) => join(target, f))
+    ? readdirSync(target)
+        .filter((f) => f.endsWith('.json'))
+        .sort()
+        .map((f) => join(target, f))
     : [target];
-  return files.flatMap((f) => layoutsFromExport(JSON.parse(readFileSync(f, 'utf8')), basename(f)).map((x) => ({ ...x, from: f })));
+  return files.flatMap((f) =>
+    layoutsFromExport(JSON.parse(readFileSync(f, 'utf8')), basename(f)).map((x) => ({ ...x, from: f })),
+  );
 }
 
 /** Applies every export found in `target` to `<gameDir>/layout/`. Returns the number of rooms changed. */
-export function importLayouts(target: string, gameDir: string, opts: { dry?: boolean; log?: (s: string) => void } = {}): number {
+export function importLayouts(
+  target: string,
+  gameDir: string,
+  opts: { dry?: boolean; log?: (s: string) => void } = {},
+): number {
   const log = opts.log ?? console.log;
   const dir = join(gameDir, 'layout');
   const exports = readExports(target);
-  if (!exports.length) { log(`nothing to import in ${target}`); return 0; }
+  if (!exports.length) {
+    log(`nothing to import in ${target}`);
+    return 0;
+  }
   let changed = 0;
   for (const { room, layout, from } of exports) {
-    if (!/^[A-Za-z0-9_-]+$/.test(room)) { log(`skipped "${room}" (${from}): not a room id`); continue; }
+    if (!/^[A-Za-z0-9_-]+$/.test(room)) {
+      log(`skipped "${room}" (${from}): not a room id`);
+      continue;
+    }
     const file = join(dir, `${room}.json`);
-    const base = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) as Layout : {};
+    const base = existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as Layout) : {};
     const { layout: merged, changes } = mergeLayout(base, layout);
-    if (!changes.length) { log(`${room}: unchanged`); continue; }
+    if (!changes.length) {
+      log(`${room}: unchanged`);
+      continue;
+    }
     changed++;
     log(`${room}: ${changes.length} change(s)${existsSync(file) ? '' : ' (new file)'}${opts.dry ? ' [dry run]' : ''}`);
     for (const c of changes) log(`   ${c}`);
-    if (!opts.dry) { mkdirSync(dir, { recursive: true }); writeFileSync(file, JSON.stringify(merged, null, 2) + '\n'); }
+    if (!opts.dry) {
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(file, JSON.stringify(merged, null, 2) + '\n');
+    }
   }
   return changed;
 }

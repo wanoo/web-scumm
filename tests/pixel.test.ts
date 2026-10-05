@@ -16,14 +16,16 @@ mkdirSync(join(ROOT, '.cache'), { recursive: true });
 const tmp = mkdtempSync(join(ROOT, '.cache', 'pixel-test-'));
 afterAll(() => rmSync(tmp, { recursive: true, force: true }));
 
-const py = (code: string, ...args: string[]) => execFileSync('python3', ['-c', code, ...args], { cwd: ROOT, encoding: 'utf8' });
+const py = (code: string, ...args: string[]) =>
+  execFileSync('python3', ['-c', code, ...args], { cwd: ROOT, encoding: 'utf8' });
 
 /**
  * A 6 x 4 sheet drawn as 64 x 64 pixel art scaled up 4x on #2B2E45: per cell an outline box, a base, a highlight and a
  * shadow band, every figure pixel jittered by ±3 per channel (near-identical colours), and a 1 px anti-aliased fringe.
  */
 function sheet(file: string) {
-  py(`
+  py(
+    `
 import sys, numpy as np
 from PIL import Image
 rng = np.random.default_rng(7)
@@ -39,12 +41,18 @@ big = np.repeat(np.repeat(small, 4, 0), 4, 1).astype(int)
 fig = np.abs(big - np.array([0x2B, 0x2E, 0x45])).sum(-1) > 0
 big[fig] = np.clip(big[fig] + rng.integers(-3, 4, big.shape)[fig], 0, 255)
 Image.fromarray(big.astype(np.uint8), 'RGB').save(sys.argv[1])
-`, file);
+`,
+    file,
+  );
 }
 
 /** Mode, size and the distinct opaque colours of each PNG of a folder (JSON). */
-function inspect(dir: string): Record<string, { mode: string; size: [number, number]; colors: string[]; transparency: number | null }> {
-  return JSON.parse(py(`
+function inspect(
+  dir: string,
+): Record<string, { mode: string; size: [number, number]; colors: string[]; transparency: number | null }> {
+  return JSON.parse(
+    py(
+      `
 import sys, os, json, numpy as np
 from PIL import Image
 out = {}
@@ -54,7 +62,10 @@ for f in sorted(os.listdir(sys.argv[1])):
     cols = sorted({'#%02x%02x%02x' % tuple(int(v) for v in p) for p in a[a[..., 3] > 0][:, :3]})
     out[f[:-4]] = {'mode': im.mode, 'size': list(im.size), 'colors': cols, 'transparency': im.info.get('transparency')}
 print(json.dumps(out))
-`, dir));
+`,
+      dir,
+    ),
+  );
 }
 
 describe('tools/cut-sheet.py --pixel', () => {
@@ -80,19 +91,29 @@ describe('tools/cut-sheet.py --pixel', () => {
   });
 
   it('keeps at most --colors colours per cell', () => {
-    execFileSync('python3', ['tools/cut-sheet.py', src, 'px', '--out', join(tmp, 'b'), '--pixel', '--colors', '3', '--cells', 'r1c1,r2c2'], { cwd: ROOT });
+    execFileSync(
+      'python3',
+      ['tools/cut-sheet.py', src, 'px', '--out', join(tmp, 'b'), '--pixel', '--colors', '3', '--cells', 'r1c1,r2c2'],
+      { cwd: ROOT },
+    );
     const cells = inspect(join(tmp, 'b', 'px'));
     expect(Object.keys(cells)).toEqual(['r1c1', 'r2c2']);
     for (const c of Object.values(cells)) expect(c.colors.length).toBeLessThanOrEqual(3);
   });
 
-  it('reads artStyle from the game\'s site.json next to the art folder; --cel overrides it', () => {
+  it("reads artStyle from the game's site.json next to the art folder; --cel overrides it", () => {
     const game = join(tmp, 'game');
     mkdirSync(game, { recursive: true });
     writeFileSync(join(game, 'site.json'), JSON.stringify({ title: 'x', artStyle: 'pixel' }));
-    execFileSync('python3', ['tools/cut-sheet.py', src, 'px', '--out', join(game, 'art'), '--cells', 'r1c1'], { cwd: ROOT });
+    execFileSync('python3', ['tools/cut-sheet.py', src, 'px', '--out', join(game, 'art'), '--cells', 'r1c1'], {
+      cwd: ROOT,
+    });
     expect(inspect(join(game, 'art', 'px')).r1c1).toMatchObject({ mode: 'P', size: [32, 48] });
-    execFileSync('python3', ['tools/cut-sheet.py', src, 'cel', '--out', join(game, 'art'), '--cells', 'r1c1', '--cel'], { cwd: ROOT });
+    execFileSync(
+      'python3',
+      ['tools/cut-sheet.py', src, 'cel', '--out', join(game, 'art'), '--cells', 'r1c1', '--cel'],
+      { cwd: ROOT },
+    );
     const cel = inspect(join(game, 'art', 'cel')).r1c1;
     expect(cel.mode).toBe('RGBA');
     expect(cel.size).toEqual([128, 192]);
@@ -101,15 +122,26 @@ describe('tools/cut-sheet.py --pixel', () => {
 
   it('gives exact colours a palette swap can replace', () => {
     // The RGBA bytes of a cut cell, swapped in node with the pure function the engine uses.
-    const raw = py(`
+    const raw = py(
+      `
 import sys, numpy as np
 from PIL import Image
 a = np.asarray(Image.open(sys.argv[1]).convert('RGBA'))
 print(a.shape[1], a.shape[0], a.tobytes().hex())
-`, join(tmp, 'a', 'px', 'r1c1.png')).trim().split(' ');
+`,
+      join(tmp, 'a', 'px', 'r1c1.png'),
+    )
+      .trim()
+      .split(' ');
     const data = new Uint8ClampedArray(Buffer.from(raw[2], 'hex'));
     const colors = inspect(join(tmp, 'a', 'px')).r1c1.colors;
-    const count = (hex: string) => { const [r, g, b] = parseHex(hex)!; let n = 0; for (let i = 0; i < data.length; i += 4) if (data[i + 3] && data[i] === r && data[i + 1] === g && data[i + 2] === b) n++; return n; };
+    const count = (hex: string) => {
+      const [r, g, b] = parseHex(hex)!;
+      let n = 0;
+      for (let i = 0; i < data.length; i += 4)
+        if (data[i + 3] && data[i] === r && data[i + 1] === g && data[i + 2] === b) n++;
+      return n;
+    };
     const base = colors.find((c) => parseHex(c)![0] > 180 && parseHex(c)![1] < 100)!;
     const before = count(base);
     expect(before).toBeGreaterThan(100);
@@ -143,7 +175,9 @@ describe('palette swap (src/engine/dom/palette.ts)', () => {
     expect(swapPalette(d, { red: '#000000', '#0a141e': 'blue' })).toBe(0);
     expect(parseHex('#0A141E')).toEqual([10, 20, 30]);
     expect(parseHex('#abc')).toBeNull();
-    expect(paletteKey({ '#000000': '#111111', '#AAAAAA': '#222222' })).toBe(paletteKey({ '#aaaaaa': '#222222', '#000000': '#111111' }));
+    expect(paletteKey({ '#000000': '#111111', '#AAAAAA': '#222222' })).toBe(
+      paletteKey({ '#aaaaaa': '#222222', '#000000': '#111111' }),
+    );
     expect(paletteKey({ '#000000': '#111111' }, 12)).not.toBe(paletteKey({ '#000000': '#111111' }));
   });
 
@@ -153,11 +187,13 @@ describe('palette swap (src/engine/dom/palette.ts)', () => {
     g.characters.biscuit.palette = { ginger: '#c0682a', '#123456': 'red' };
     g.characters.hero.variants = [{ if: 'x', palette: { '#12345': '#000000' }, paletteTolerance: -1 }];
     const w = validate(g, {}).warnings.filter((x) => x.includes('palette'));
-    expect(w).toEqual(expect.arrayContaining([
-      expect.stringContaining('character biscuit.palette › palette key "ginger" is not a #rrggbb colour'),
-      expect.stringContaining('palette value for "#123456" is not a #rrggbb colour'),
-      expect.stringContaining('character hero.variants[0].palette › palette key "#12345"'),
-      expect.stringContaining('paletteTolerance must be a number >= 0'),
-    ]));
+    expect(w).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('character biscuit.palette › palette key "ginger" is not a #rrggbb colour'),
+        expect.stringContaining('palette value for "#123456" is not a #rrggbb colour'),
+        expect.stringContaining('character hero.variants[0].palette › palette key "#12345"'),
+        expect.stringContaining('paletteTolerance must be a number >= 0'),
+      ]),
+    );
   });
 });

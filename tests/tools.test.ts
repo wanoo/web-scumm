@@ -8,7 +8,11 @@ import { game, layouts } from './fixture';
 describe('validate', () => {
   it('flags broken references', () => {
     const bad = structuredClone(game) as GameDef;
-    bad.rooms[0].on!.push({ verb: 'use', a: 'licorne', do: [{ gain: 'arc_en_ciel' }, { prop: ['lamp', 'violet'] }, { sfx: 'tonnerre' }] });
+    bad.rooms[0].on!.push({
+      verb: 'use',
+      a: 'licorne',
+      do: [{ gain: 'arc_en_ciel' }, { prop: ['lamp', 'violet'] }, { sfx: 'tonnerre' }],
+    });
     const { errors } = validate(bad, layouts);
     expect(errors.some((e) => e.includes('licorne'))).toBe(true);
     expect(errors.some((e) => e.includes('arc_en_ciel'))).toBe(true);
@@ -31,19 +35,31 @@ describe('minigame bindings', () => {
   it('flags a sound a minigame param names that the game does not have', () => {
     const bad = structuredClone(game) as GameDef;
     bad.audio = { ...(bad.audio ?? {}), sfx: { purr: 'purr.mp3' } };
-    bad.rooms[0].on!.push({ verb: 'use', a: 'lamp', do: [{ minigame: 'stroke', params: { target: 'lamp/off', hand: 'lamp/off', sfx: 'nope' } }] });
+    bad.rooms[0].on!.push({
+      verb: 'use',
+      a: 'lamp',
+      do: [{ minigame: 'stroke', params: { target: 'lamp/off', hand: 'lamp/off', sfx: 'nope' } }],
+    });
     const bindings = { stroke: { sfx: ['sfx'] } };
     const { errors } = validate(bad, layouts, { minigameBindings: bindings });
     expect(errors.some((e) => e.includes('unknown sound "nope"'))).toBe(true);
-    bad.rooms[0].on!.at(-1)!.do = [{ minigame: 'stroke', params: { target: 'lamp/off', hand: 'lamp/off', sfx: 'purr' } }];
-    expect(validate(bad, layouts, { minigameBindings: bindings }).errors.some((e) => e.includes('unknown sound'))).toBe(false);
+    bad.rooms[0].on!.at(-1)!.do = [
+      { minigame: 'stroke', params: { target: 'lamp/off', hand: 'lamp/off', sfx: 'purr' } },
+    ];
+    expect(validate(bad, layouts, { minigameBindings: bindings }).errors.some((e) => e.includes('unknown sound'))).toBe(
+      false,
+    );
   });
 });
 
 describe('line ids at release time', () => {
   const lines = (): GameDef => {
     const g = structuredClone(game) as GameDef;
-    g.rooms[0].on!.push({ verb: 'use', a: 'lamp', do: [{ say: ['hero', 'No id here.'] }, { id: 'x.l-dup', say: ['hero', 'One'] }, { id: 'x.l-dup', toast: 'Two' }] });
+    g.rooms[0].on!.push({
+      verb: 'use',
+      a: 'lamp',
+      do: [{ say: ['hero', 'No id here.'] }, { id: 'x.l-dup', say: ['hero', 'One'] }, { id: 'x.l-dup', toast: 'Two' }],
+    });
     return g;
   };
   it('a duplicate line id is always an error; a missing one only at --release, as a warning without voices', () => {
@@ -52,7 +68,8 @@ describe('line ids at release time', () => {
     expect(plain.warnings.some((w) => w.includes('no stable id'))).toBe(false);
     const release = validate(lines(), layouts, { release: true });
     expect(release.warnings.some((w) => w.includes('no stable id'))).toBe(true);
-    const voiced = lines(); voiced.audio = { ...(voiced.audio ?? {}), voices: { 'x.l-dup': 'dup.mp3' } };
+    const voiced = lines();
+    voiced.audio = { ...(voiced.audio ?? {}), voices: { 'x.l-dup': 'dup.mp3' } };
     expect(validate(voiced, layouts, { release: true }).errors.some((e) => e.includes('no stable id'))).toBe(true);
   });
 });

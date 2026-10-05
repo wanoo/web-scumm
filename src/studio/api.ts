@@ -2,14 +2,37 @@
 // or, in demo mode, the browser backend (src/studio/api-browser.ts: a build-time snapshot plus edits in localStorage).
 // Types are shared with the server.
 import type { Layout } from '@engine/core/types';
-import type { CoverageData, GraphData, LintData, PlaytestsData, PuzzleData, ReportData,
-  AddEntity, AssetsListing, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, ScreenshotResult, SolveData, ValidateResult,
+import type {
+  CoverageData,
+  GraphData,
+  LintData,
+  PlaytestsData,
+  PuzzleData,
+  ReportData,
+  AddEntity,
+  AssetsListing,
+  EditResult,
+  GameInfo,
+  MarkdownResult,
+  NewNote,
+  Note,
+  NoteEdit,
+  NotesFile,
+  RoomData,
+  ScreenshotResult,
+  SolveData,
+  ValidateResult,
 } from '../../tools/studio/types';
 
 export type * from '../../tools/studio/types';
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number) { super(message); }
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
 }
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -57,7 +80,12 @@ export interface Api {
   /** Every image and sound, where it is used, and the art prompts (the Assets tab; uploads: src/studio/assets.ts). */
   assets(): Promise<AssetsListing>;
   /** 3.4, dev server only: a structured value written at `path` of a room file (`dry`: the diff only), validated. */
-  setValue?(id: string, path: string, value: unknown, dry?: boolean): Promise<EditResult & { diff: string; dry?: true }>;
+  setValue?(
+    id: string,
+    path: string,
+    value: unknown,
+    dry?: boolean,
+  ): Promise<EditResult & { diff: string; dry?: true }>;
   /** 3.4, dev server only: the last write taken back or done again (409 when the file changed since). */
   undo?(): Promise<{ ok: boolean; what?: string; reason?: string }>;
   redo?(): Promise<{ ok: boolean; what?: string; reason?: string }>;
@@ -68,14 +96,20 @@ export interface Api {
   voicesCsv?(lang: string): Promise<{ lang: string; csv: string }>;
 }
 
-export interface VoicesData { lang: string; langs: string[]; statuses: string[]; rows: { id: string; who: string; text: string; status: string; file?: string; note?: string; actor?: string }[] }
+export interface VoicesData {
+  lang: string;
+  langs: string[];
+  statuses: string[];
+  rows: { id: string; who: string; text: string; status: string; file?: string; note?: string; actor?: string }[];
+}
 
 export const serverApi: Api = {
   mode: 'server',
   game: () => call<GameInfo>('GET', 'game'),
   room: (id: string) => call<RoomData>('GET', `room/${id}`),
   setLayout: (id: string, layout: Layout) => call<{ ok: true }>('PUT', `room/${id}/layout`, layout),
-  setText: (id: string, path: string, value: string | null) => call<EditResult>('PUT', `room/${id}/text`, { path, value }),
+  setText: (id: string, path: string, value: string | null) =>
+    call<EditResult>('PUT', `room/${id}/text`, { path, value }),
   add: (id: string, e: AddEntity) => call<EditResult>('POST', `room/${id}/add`, e),
   storyboardRaw: () => call<Storyboard>('GET', 'storyboard'),
   setStoryboard: (sb: unknown) => call<{ ok: true; changed: boolean }>('PUT', 'storyboard', sb),
@@ -91,21 +125,30 @@ export const serverApi: Api = {
   coverage: () => call<CoverageData>('POST', 'coverage'),
   lint: (prove?: boolean) => call<LintData>('POST', 'lint', { prove: prove || undefined }),
   playtests: () => call<PlaytestsData>('POST', 'playtests'),
-  solve: (from?: string, prove?: boolean) => call<SolveData>('POST', 'solve', { from: from || undefined, prove: prove || undefined }),
-  screenshot: (room: string, checkpoint?: string) => call<Exclude<ScreenshotResult, { unavailable: true }>>('POST', 'screenshot', { room, checkpoint: checkpoint || undefined }),
+  solve: (from?: string, prove?: boolean) =>
+    call<SolveData>('POST', 'solve', { from: from || undefined, prove: prove || undefined }),
+  screenshot: (room: string, checkpoint?: string) =>
+    call<Exclude<ScreenshotResult, { unavailable: true }>>('POST', 'screenshot', {
+      room,
+      checkpoint: checkpoint || undefined,
+    }),
   assets: () => call<AssetsListing>('GET', 'assets'),
-  setValue: (id: string, path: string, value: unknown, dry?: boolean) => call<EditResult & { diff: string; dry?: true }>('PUT', `room/${id}/value`, { path, value, dry: dry || undefined }),
+  setValue: (id: string, path: string, value: unknown, dry?: boolean) =>
+    call<EditResult & { diff: string; dry?: true }>('PUT', `room/${id}/value`, { path, value, dry: dry || undefined }),
   undo: () => call<{ ok: boolean; what?: string; reason?: string }>('POST', 'undo'),
   redo: () => call<{ ok: boolean; what?: string; reason?: string }>('POST', 'redo'),
   history: () => call<{ undo: string[]; redo: string[] }>('GET', 'history'),
   voices: (lang?: string) => call<VoicesData>('GET', lang ? `voices/${lang}` : 'voices'),
-  setVoice: (lang: string, id: string, patch: { status?: string; note?: string; actor?: string }) => call<{ ok: true }>('PUT', `voices/${lang}/${encodeURIComponent(id)}`, patch),
+  setVoice: (lang: string, id: string, patch: { status?: string; note?: string; actor?: string }) =>
+    call<{ ok: true }>('PUT', `voices/${lang}/${encodeURIComponent(id)}`, patch),
   voicesCsv: (lang: string) => call<{ lang: string; csv: string }>('GET', `voices/${lang}/csv`),
 };
 
 /** The backend in use (a live binding: the tabs read it at call time). Set once at start by main.ts. */
 export let api: Api = serverApi;
-export function useApi(a: Api) { api = a; }
+export function useApi(a: Api) {
+  api = a;
+}
 
 /** The game's root URL (the Vite base: `/` in dev, `/<repo>/` on GitHub Pages). */
 export const BASE = import.meta.env.BASE_URL ?? '/';

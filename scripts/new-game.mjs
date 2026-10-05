@@ -4,20 +4,50 @@ import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync
 import { join } from 'node:path';
 
 const [id, ...rest] = process.argv.slice(2);
-if (!id || !/^[a-z][a-z0-9-]*$/.test(id)) { console.error('usage: npm run new-game <id> ["Title"]   (id: lowercase letters, digits, dashes)'); process.exit(1); }
+if (!id || !/^[a-z][a-z0-9-]*$/.test(id)) {
+  console.error('usage: npm run new-game <id> ["Title"]   (id: lowercase letters, digits, dashes)');
+  process.exit(1);
+}
 const title = rest.join(' ') || id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 const dir = join('games', id);
-if (existsSync(dir)) { console.error(`${dir} already exists`); process.exit(1); }
+if (existsSync(dir)) {
+  console.error(`${dir} already exists`);
+  process.exit(1);
+}
 
 cpSync('games/_template', dir, { recursive: true });
 // Placeholder art so the game runs right away, drawn from shapes for the template (tools/placeholder-art.py): a
 // backdrop, a cat-shaped hero, interface icons, two items. Provenance says each is a placeholder, so it is never shipped
 // by mistake (npm run validate -- --release fails on every placeholder, on an asset no entry covers, on a licence
 // outside `licences.allow`, and without a provenance.lock.json: npm run provenance -- --lock once the art is reviewed).
-const placeholder = { source: 'Placeholder drawn from shapes by tools/placeholder-art.py (web-scumm template): replace before a release', author: 'web-scumm', licence: 'CC0 1.0', status: 'placeholder' };
-writeFileSync(join(dir, 'provenance.json'), JSON.stringify({ licences: { allow: ['CC BY 4.0', 'CC0 1.0'] }, assets: [{ match: 'img:*', ...placeholder }] }, null, 2) + '\n');
+const placeholder = {
+  source: 'Placeholder drawn from shapes by tools/placeholder-art.py (web-scumm template): replace before a release',
+  author: 'web-scumm',
+  licence: 'CC0 1.0',
+  status: 'placeholder',
+};
+writeFileSync(
+  join(dir, 'provenance.json'),
+  JSON.stringify(
+    { licences: { allow: ['CC BY 4.0', 'CC0 1.0'] }, assets: [{ match: 'img:*', ...placeholder }] },
+    null,
+    2,
+  ) + '\n',
+);
 
-const walk = (d) => { for (const e of readdirSync(d)) { const p = join(d, e); if (statSync(p).isDirectory()) walk(p); else if (/\.(ts|json|md)$/.test(e)) writeFileSync(p, readFileSync(p, 'utf8').replace(/__ID__/g, id).replace(/__TITLE__/g, title)); } };
+const walk = (d) => {
+  for (const e of readdirSync(d)) {
+    const p = join(d, e);
+    if (statSync(p).isDirectory()) walk(p);
+    else if (/\.(ts|json|md)$/.test(e))
+      writeFileSync(
+        p,
+        readFileSync(p, 'utf8')
+          .replace(/__ID__/g, id)
+          .replace(/__TITLE__/g, title),
+      );
+  }
+};
 walk(dir);
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));

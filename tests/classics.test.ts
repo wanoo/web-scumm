@@ -5,7 +5,18 @@ import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import type { GameDef, Layout } from '@engine/core/types';
 import { validate } from '@engine/tools/validate';
 import { solve } from '@engine/tools/solve';
-import { dott, dottLayouts, grog, grogLayouts, insults, insultsLayouts, mansion, mansionLayouts, stan, stanLayouts } from './fixtures/classics';
+import {
+  dott,
+  dottLayouts,
+  grog,
+  grogLayouts,
+  insults,
+  insultsLayouts,
+  mansion,
+  mansionLayouts,
+  stan,
+  stanLayouts,
+} from './fixtures/classics';
 
 function boot(g: GameDef, layouts: Record<string, Layout>) {
   const ui = new FakePresenter();
@@ -24,8 +35,10 @@ describe('insult sword fighting', () => {
     ui.picks = [0, 0, 0];
     await e.act({ verb: 'talk', a: 'master' });
     expect(e.state.flags.master_beaten).toBeUndefined();
-    ui.picks = [0]; await e.act({ verb: 'talk', a: 'thug' });
-    ui.picks = [0]; await e.act({ verb: 'talk', a: 'thug' });
+    ui.picks = [0];
+    await e.act({ verb: 'talk', a: 'thug' });
+    ui.picks = [0];
+    await e.act({ verb: 'talk', a: 'thug' });
     expect(e.state.flags).toMatchObject({ learned_farmer: true, learned_dog: true });
     ui.picks = [0, 0, 0];
     await e.act({ verb: 'talk', a: 'master' });
@@ -111,12 +124,18 @@ describe('haggling with Stan', () => {
     clean(stan(), stanLayouts);
     const { e, ui } = boot(stan(), stanLayouts);
     await e.newGame();
-    ui.picks = [0]; await e.act({ verb: 'talk', a: 'stan' });
-    for (let i = 0; i < 3; i++) { ui.picks = [0]; await e.act({ verb: 'talk', a: 'stan' }); }
+    ui.picks = [0];
+    await e.act({ verb: 'talk', a: 'stan' });
+    for (let i = 0; i < 3; i++) {
+      ui.picks = [0];
+      await e.act({ verb: 'talk', a: 'stan' });
+    }
     expect(e.state.flags.price).toBe(5000);
-    ui.picks = [0]; await e.act({ verb: 'talk', a: 'stan' });
+    ui.picks = [0];
+    await e.act({ verb: 'talk', a: 'stan' });
     expect(e.state.flags.price).toBe(5000);
-    ui.picks = [1]; await e.act({ verb: 'talk', a: 'stan' });
+    ui.picks = [1];
+    await e.act({ verb: 'talk', a: 'stan' });
     expect(e.state.done).toBe(true);
   });
   it('is proven by the solver, which counts down without clamping', async () => {

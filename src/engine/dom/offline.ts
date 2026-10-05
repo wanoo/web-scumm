@@ -5,26 +5,46 @@ import { assetGraph, splitKey } from '../core/asset-graph';
 import type { AssetManifest, WarmResult } from './assets';
 
 export type BatchKind = 'img' | 'sfx' | 'voice' | 'music' | 'video';
-export interface Batch { kind: BatchKind; ids: string[] }
+export interface Batch {
+  kind: BatchKind;
+  ids: string[];
+}
 
-export interface OfflineBudgets { initialImages?: number; audioFiles?: number }
+export interface OfflineBudgets {
+  initialImages?: number;
+  audioFiles?: number;
+}
 
 /**
  * Images first (every image of the manifest: sprites are addressed by sheet and cell, a content scan would miss
  * them), then sound effects, voices, music one track at a time, videos one at a time. Batch sizes follow
  * `GameDef.assetBudgets` (images per batch: `initialImages`, default 120; audio per batch: `audioFiles`, default 16).
  */
-export function offlinePlan(game: GameDef, manifest: AssetManifest, budgets: OfflineBudgets = game.assetBudgets ?? {}): Batch[] {
+export function offlinePlan(
+  game: GameDef,
+  manifest: AssetManifest,
+  budgets: OfflineBudgets = game.assetBudgets ?? {},
+): Batch[] {
   const chunk = (ids: string[], n: number, kind: BatchKind): Batch[] => {
     const out: Batch[] = [];
     for (let i = 0; i < ids.length; i += n) out.push({ kind, ids: ids.slice(i, i + n) });
     return out;
   };
-  const imgN = Math.max(1, budgets.initialImages ?? 120), audioN = Math.max(1, budgets.audioFiles ?? 16);
+  const imgN = Math.max(1, budgets.initialImages ?? 120),
+    audioN = Math.max(1, budgets.audioFiles ?? 16);
   // The asset graph's `offline` scope (src/engine/core/asset-graph.ts): the same keys provenance and the budgets use.
   const by: Record<BatchKind, string[]> = { img: [], sfx: [], voice: [], music: [], video: [] };
-  for (const k of assetGraph(game, { manifest }).offline) { const [kind, id] = splitKey(k); by[kind].push(id); }
-  return [...chunk(by.img, imgN, 'img'), ...chunk(by.sfx, audioN, 'sfx'), ...chunk(by.voice, audioN, 'voice'), ...chunk(by.music, 1, 'music'), ...chunk(by.video, 1, 'video')];
+  for (const k of assetGraph(game, { manifest }).offline) {
+    const [kind, id] = splitKey(k);
+    by[kind].push(id);
+  }
+  return [
+    ...chunk(by.img, imgN, 'img'),
+    ...chunk(by.sfx, audioN, 'sfx'),
+    ...chunk(by.voice, audioN, 'voice'),
+    ...chunk(by.music, 1, 'music'),
+    ...chunk(by.video, 1, 'video'),
+  ];
 }
 
 /** How many files and batches a plan holds, for a log line. */
@@ -54,8 +74,22 @@ export const MIN_FREE_BYTES = 64 * 1024 * 1024;
 
 export const offlineStart = (plan: Batch[], estimate?: { usage?: number; quota?: number }): OfflineStatus => {
   const { files } = planSize(plan);
-  const s: OfflineStatus = { state: 'running', done: 0, total: files, failed: [], ...(estimate?.usage !== undefined ? { usage: estimate.usage } : {}), ...(estimate?.quota !== undefined ? { quota: estimate.quota } : {}) };
-  if (estimate?.quota !== undefined && estimate.usage !== undefined && estimate.quota - estimate.usage < MIN_FREE_BYTES) { s.state = 'partial'; s.reason = 'quota'; }
+  const s: OfflineStatus = {
+    state: 'running',
+    done: 0,
+    total: files,
+    failed: [],
+    ...(estimate?.usage !== undefined ? { usage: estimate.usage } : {}),
+    ...(estimate?.quota !== undefined ? { quota: estimate.quota } : {}),
+  };
+  if (
+    estimate?.quota !== undefined &&
+    estimate.usage !== undefined &&
+    estimate.quota - estimate.usage < MIN_FREE_BYTES
+  ) {
+    s.state = 'partial';
+    s.reason = 'quota';
+  }
   return s;
 };
 
@@ -63,21 +97,37 @@ export const offlineStart = (plan: Batch[], estimate?: { usage?: number; quota?:
 export const offlineFold = (s: OfflineStatus, r: WarmResult, batchSize: number): OfflineStatus => {
   const out: OfflineStatus = { ...s, failed: [...s.failed, ...r.failed] };
   out.done += r.ok;
-  if (r.skipped) { out.reason = out.reason ?? r.skipped; out.state = 'partial'; }
-  else if (r.failed.length) { out.reason = out.reason ?? 'network'; out.state = 'partial'; }
+  if (r.skipped) {
+    out.reason = out.reason ?? r.skipped;
+    out.state = 'partial';
+  } else if (r.failed.length) {
+    out.reason = out.reason ?? 'network';
+    out.state = 'partial';
+  }
   if (r.ok + r.failed.length === 0 && !r.skipped && batchSize) out.reason = out.reason ?? 'network';
   return out;
 };
 
 /** The final word once every batch ran: complete only when nothing was skipped or failed. */
 export const offlineFinish = (s: OfflineStatus): OfflineStatus =>
-  s.state === 'running' ? { ...s, state: s.done >= s.total ? 'complete' : 'partial', ...(s.done >= s.total ? {} : { reason: s.reason ?? 'network' }) }
-  : s.state === 'partial' && s.done === 0 && (s.reason === 'save-data' || s.reason === 'slow') ? { ...s, state: 'skipped' } : s;
+  s.state === 'running'
+    ? {
+        ...s,
+        state: s.done >= s.total ? 'complete' : 'partial',
+        ...(s.done >= s.total ? {} : { reason: s.reason ?? 'network' }),
+      }
+    : s.state === 'partial' && s.done === 0 && (s.reason === 'save-data' || s.reason === 'slow')
+      ? { ...s, state: 'skipped' }
+      : s;
 
 /** A short line for the pause menu: "312/400", "complete", "312/400 ⚠". */
 export const offlineText = (s: OfflineStatus, ui: { complete?: string; retry?: string } = {}): string =>
-  s.state === 'complete' ? (ui.complete ?? 'complete')
-  : s.state === 'off' ? '—'
-  : s.state === 'idle' ? `0/${s.total}`
-  : s.state === 'running' ? `${s.done}/${s.total}…`
-  : `${s.done}/${s.total} ⚠${ui.retry ? ` ${ui.retry}` : ''}`;
+  s.state === 'complete'
+    ? (ui.complete ?? 'complete')
+    : s.state === 'off'
+      ? '—'
+      : s.state === 'idle'
+        ? `0/${s.total}`
+        : s.state === 'running'
+          ? `${s.done}/${s.total}…`
+          : `${s.done}/${s.total} ⚠${ui.retry ? ` ${ui.retry}` : ''}`;

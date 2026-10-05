@@ -3,14 +3,28 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AssetBank } from '@engine/dom/assets';
 
 const bank = () => new AssetBank({ images: {} }, 'assets', 'v1');
-const response = (ok: boolean, status = ok ? 200 : 404) => ({ ok, status, arrayBuffer: async () => new ArrayBuffer(1) });
+const response = (ok: boolean, status = ok ? 200 : 404) => ({
+  ok,
+  status,
+  arrayBuffer: async () => new ArrayBuffer(1),
+});
 
 describe('AssetBank.warm', () => {
-  afterEach(() => { vi.unstubAllGlobals(); });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
 
   it('counts a fetched file as done, a bad status or a network error as failed, and retries the failed ones', async () => {
     const calls: string[] = [];
-    vi.stubGlobal('fetch', vi.fn(async (u: string) => { calls.push(u); if (u.includes('missing')) return response(false); if (u.includes('down')) throw new Error('offline'); return response(true); }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (u: string) => {
+        calls.push(u);
+        if (u.includes('missing')) return response(false);
+        if (u.includes('down')) throw new Error('offline');
+        return response(true);
+      }),
+    );
     const b = bank();
     const r = await b.warm(['/a.webp', '/missing.webp', '/down.webp'], 2);
     expect(r).toEqual({ ok: 1, failed: ['/missing.webp', '/down.webp'], skipped: null });

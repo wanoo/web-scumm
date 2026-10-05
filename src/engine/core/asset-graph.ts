@@ -20,7 +20,10 @@ import type { Cmd, GameDef, Id, Layout, RoomDef } from './types';
 import { stageImages } from './stage';
 
 export type AssetKind = 'img' | 'sfx' | 'music' | 'voice' | 'video';
-export interface AssetManifestLike { images: Record<string, unknown>; videos?: Record<string, unknown> }
+export interface AssetManifestLike {
+  images: Record<string, unknown>;
+  videos?: Record<string, unknown>;
+}
 /** Per minigame, the dotted param paths that name images and sound effects (`MinigameDefinition.bindings`). */
 export type MinigameBindings = Record<Id, { images?: string[]; sfx?: string[] }>;
 
@@ -32,17 +35,25 @@ export interface AssetGraph {
   offline: string[];
 }
 
-const add = (out: Set<string>, kind: AssetKind, v: string | undefined) => { if (v) out.add(`${kind}:${v}`); };
+const add = (out: Set<string>, kind: AssetKind, v: string | undefined) => {
+  if (v) out.add(`${kind}:${v}`);
+};
 const asList = <T>(x: T | T[] | undefined): T[] => (x === undefined ? [] : Array.isArray(x) ? x : [x]);
-const at = (o: unknown, path: string): unknown => path.split('.').reduce<unknown>((v, k) => (v && typeof v === 'object' ? (v as Record<string, unknown>)[k] : undefined), o);
+const at = (o: unknown, path: string): unknown =>
+  path
+    .split('.')
+    .reduce<unknown>((v, k) => (v && typeof v === 'object' ? (v as Record<string, unknown>)[k] : undefined), o);
 
 /** The images a character can show: sprites, mouths and portrait, its own and every variant's. */
 export function characterImages(game: GameDef, c: Id): string[] {
   const def = game.characters[c];
   if (!def) return [];
   const out = new Set<string>();
-  for (const set of [def.sprites, ...(def.variants ?? []).map((v) => v.sprites)]) for (const frames of Object.values(set ?? {})) frames.forEach((f) => out.add(f));
-  for (const m of [def.mouths, ...(def.variants ?? []).map((v) => v.mouths)]) for (const ms of Object.values(m ?? {})) [ms.closed, ...ms.open, ms.blink, ms.smile].forEach((f) => f && out.add(f));
+  for (const set of [def.sprites, ...(def.variants ?? []).map((v) => v.sprites)])
+    for (const frames of Object.values(set ?? {})) frames.forEach((f) => out.add(f));
+  for (const m of [def.mouths, ...(def.variants ?? []).map((v) => v.mouths)])
+    for (const ms of Object.values(m ?? {}))
+      [ms.closed, ...ms.open, ms.blink, ms.smile].forEach((f) => f && out.add(f));
   for (const p of [def.portrait, ...(def.variants ?? []).map((v) => v.portrait)]) if (p) out.add(p);
   return [...out];
 }
@@ -61,8 +72,13 @@ export function roomImages(room: RoomDef, layout?: Layout): string[] {
 
 /** Every command list a room owns. */
 function roomCmds(room: RoomDef): (Cmd[] | undefined)[] {
-  return [room.onEnter, ...(room.on ?? []).map((r) => r.do), ...Object.values(room.talk ?? {}).flatMap((ts) => ts.map((t) => t.do)),
-    ...(room.scripts ?? []).map((s) => s.do), ...(room.events ?? []).map((e) => e.do)];
+  return [
+    room.onEnter,
+    ...(room.on ?? []).map((r) => r.do),
+    ...Object.values(room.talk ?? {}).flatMap((ts) => ts.map((t) => t.do)),
+    ...(room.scripts ?? []).map((s) => s.do),
+    ...(room.events ?? []).map((e) => e.do),
+  ];
 }
 
 /**
@@ -78,30 +94,49 @@ function addMusic(game: GameDef, out: Set<string>, id: Id | undefined, stems: bo
 }
 
 /** What commands can play or show: sounds, music, voice clips, gained items' icons, phone callers, minigame assets. */
-function cmdAssets(game: GameDef, lists: (Cmd[] | undefined)[], out: Set<string>, bindings: MinigameBindings, stems = true) {
+function cmdAssets(
+  game: GameDef,
+  lists: (Cmd[] | undefined)[],
+  out: Set<string>,
+  bindings: MinigameBindings,
+  stems = true,
+) {
   const a = game.audio ?? {};
-  const voice = (id?: Id, explicit?: Id) => { const v = explicit ?? id; if (v && a.voices?.[v]) add(out, 'voice', a.voices[v]); };
-  for (const list of lists) eachCmd(list, (c) => {
-    if (typeof c === 'string') return;
-    if ('sfx' in c) add(out, 'sfx', a.sfx?.[c.sfx]);
-    else if ('music' in c) {
-      const m = c.music;
-      if (typeof m === 'string' || 'push' in m) addMusic(game, out, typeof m === 'string' ? m : m.push, stems);
-      else if ('once' in m) add(out, 'music', a.music?.[m.once]);
-      else if ('stinger' in m) { add(out, 'music', a.music?.[m.stinger]); if (!a.music?.[m.stinger]) add(out, 'sfx', a.sfx?.[m.stinger]); }
-    }
-    else if ('say' in c) voice(c.id, (c as { voice?: Id }).voice);
-    else if ('toast' in c || 'guide' in c) voice(c.id);
-    else if ('choice' in c) c.choice.forEach((o) => voice(o.id));
-    else if ('gain' in c) add(out, 'img', game.items[c.gain]?.icon);
-    else if ('transfer' in c) add(out, 'img', game.items[c.transfer[0]]?.icon);
-    else if ('phone' in c) { for (const w of asList(c.phone)) if (typeof w === 'string') characterImages(game, w).forEach((f) => add(out, 'img', f)); add(out, 'sfx', a.sfx?.[game.skin?.sounds?.phone ?? '']); }
-    else if ('minigame' in c) {
-      const b = bindings[c.minigame] ?? {};
-      for (const p of b.images ?? []) for (const v of asList(at(c.params, p) as string | string[] | undefined)) if (typeof v === 'string') add(out, 'img', v);
-      for (const p of b.sfx ?? []) for (const v of asList(at(c.params, p) as string | string[] | undefined)) if (typeof v === 'string') add(out, 'sfx', a.sfx?.[v]);
-    }
-  });
+  const voice = (id?: Id, explicit?: Id) => {
+    const v = explicit ?? id;
+    if (v && a.voices?.[v]) add(out, 'voice', a.voices[v]);
+  };
+  for (const list of lists)
+    eachCmd(list, (c) => {
+      if (typeof c === 'string') return;
+      if ('sfx' in c) add(out, 'sfx', a.sfx?.[c.sfx]);
+      else if ('music' in c) {
+        const m = c.music;
+        if (typeof m === 'string' || 'push' in m) addMusic(game, out, typeof m === 'string' ? m : m.push, stems);
+        else if ('once' in m) add(out, 'music', a.music?.[m.once]);
+        else if ('stinger' in m) {
+          add(out, 'music', a.music?.[m.stinger]);
+          if (!a.music?.[m.stinger]) add(out, 'sfx', a.sfx?.[m.stinger]);
+        }
+      } else if ('say' in c) voice(c.id, (c as { voice?: Id }).voice);
+      else if ('toast' in c || 'guide' in c) voice(c.id);
+      else if ('choice' in c) c.choice.forEach((o) => voice(o.id));
+      else if ('gain' in c) add(out, 'img', game.items[c.gain]?.icon);
+      else if ('transfer' in c) add(out, 'img', game.items[c.transfer[0]]?.icon);
+      else if ('phone' in c) {
+        for (const w of asList(c.phone))
+          if (typeof w === 'string') characterImages(game, w).forEach((f) => add(out, 'img', f));
+        add(out, 'sfx', a.sfx?.[game.skin?.sounds?.phone ?? '']);
+      } else if ('minigame' in c) {
+        const b = bindings[c.minigame] ?? {};
+        for (const p of b.images ?? [])
+          for (const v of asList(at(c.params, p) as string | string[] | undefined))
+            if (typeof v === 'string') add(out, 'img', v);
+        for (const p of b.sfx ?? [])
+          for (const v of asList(at(c.params, p) as string | string[] | undefined))
+            if (typeof v === 'string') add(out, 'sfx', a.sfx?.[v]);
+      }
+    });
 }
 
 /**
@@ -114,24 +149,51 @@ export function playerRooms(game: GameDef): Map<Id, Set<Id>> {
   for (const r of game.rooms) {
     const n = next.get(r.id)!;
     for (const x of Object.values(r.exits ?? {})) n.add(x.to);
-    for (const list of roomCmds(r)) eachCmd(list, (c) => { if (typeof c !== 'string' && 'goto' in c) n.add(c.goto); if (typeof c !== 'string' && 'map' in c) placeRooms.forEach((p) => n.add(p)); });
+    for (const list of roomCmds(r))
+      eachCmd(list, (c) => {
+        if (typeof c !== 'string' && 'goto' in c) n.add(c.goto);
+        if (typeof c !== 'string' && 'map' in c) placeRooms.forEach((p) => n.add(p));
+      });
     if (placeRooms.includes(r.id)) placeRooms.forEach((p) => n.add(p));
   }
-  for (const list of [...(game.rules?.on ?? []).map((x) => x.do), ...(game.events ?? []).map((e) => e.do), ...(game.scripts ?? []).map((s) => s.do), game.start.intro])
-    eachCmd(list, (c) => { if (typeof c !== 'string' && 'goto' in c) for (const n of next.values()) n.add(c.goto); });
+  for (const list of [
+    ...(game.rules?.on ?? []).map((x) => x.do),
+    ...(game.events ?? []).map((e) => e.do),
+    ...(game.scripts ?? []).map((s) => s.do),
+    game.start.intro,
+  ])
+    eachCmd(list, (c) => {
+      if (typeof c !== 'string' && 'goto' in c) for (const n of next.values()) n.add(c.goto);
+    });
   const out = new Map<Id, Set<Id>>();
   const ids = game.players?.ids ?? [game.hero];
   for (const p of ids) {
-    const start = p === ids[0] ? game.start.room : game.players?.start?.[p]?.room ?? game.start.room;
+    const start = p === ids[0] ? game.start.room : (game.players?.start?.[p]?.room ?? game.start.room);
     const seen = new Set<Id>([start]);
-    for (const q = [start]; q.length;) for (const n of next.get(q.pop()!) ?? []) if (!seen.has(n)) { seen.add(n); q.push(n); }
-    for (const cp of Object.values(game.checkpoints ?? {})) { const r = cp.active === p ? cp.room : cp.players?.[p]?.room; if (r) seen.add(r); }
+    for (const q = [start]; q.length; )
+      for (const n of next.get(q.pop()!) ?? [])
+        if (!seen.has(n)) {
+          seen.add(n);
+          q.push(n);
+        }
+    for (const cp of Object.values(game.checkpoints ?? {})) {
+      const r = cp.active === p ? cp.room : cp.players?.[p]?.room;
+      if (r) seen.add(r);
+    }
     out.set(p, seen);
   }
   return out;
 }
 
-export function assetGraph(game: GameDef, opts: { manifest?: AssetManifestLike; bindings?: MinigameBindings; layouts?: Record<Id, Layout>; stems?: boolean } = {}): AssetGraph {
+export function assetGraph(
+  game: GameDef,
+  opts: {
+    manifest?: AssetManifestLike;
+    bindings?: MinigameBindings;
+    layouts?: Record<Id, Layout>;
+    stems?: boolean;
+  } = {},
+): AssetGraph {
   const a = game.audio ?? {};
   // The music director's stems where a score has them (the default), else the single mixes.
   const stems = opts.stems ?? true;
@@ -139,8 +201,20 @@ export function assetGraph(game: GameDef, opts: { manifest?: AssetManifestLike; 
   const reach = playerRooms(game);
   // Characters moved into a room by a command, wherever the command is.
   const movedTo = new Map<Id, Set<Id>>();
-  const allLists = [...game.rooms.flatMap(roomCmds), ...(game.rules?.on ?? []).map((x) => x.do), ...(game.events ?? []).map((e) => e.do), ...(game.scripts ?? []).map((s) => s.do), game.start.intro];
-  for (const list of allLists) eachCmd(list, (c) => { if (typeof c !== 'string' && 'moveActor' in c) (movedTo.get(c.moveActor[1]) ?? (movedTo.set(c.moveActor[1], new Set()), movedTo.get(c.moveActor[1])!)).add(c.moveActor[0]); });
+  const allLists = [
+    ...game.rooms.flatMap(roomCmds),
+    ...(game.rules?.on ?? []).map((x) => x.do),
+    ...(game.events ?? []).map((e) => e.do),
+    ...(game.scripts ?? []).map((s) => s.do),
+    game.start.intro,
+  ];
+  for (const list of allLists)
+    eachCmd(list, (c) => {
+      if (typeof c !== 'string' && 'moveActor' in c)
+        (movedTo.get(c.moveActor[1]) ?? (movedTo.set(c.moveActor[1], new Set()), movedTo.get(c.moveActor[1])!)).add(
+          c.moveActor[0],
+        );
+    });
 
   const rooms: Record<Id, string[]> = {};
   for (const r of game.rooms) {
@@ -156,7 +230,8 @@ export function assetGraph(game: GameDef, opts: { manifest?: AssetManifestLike; 
 
   const title = new Set<string>();
   const T = game.titleScreen;
-  add(title, 'img', T?.decor); add(title, 'img', T?.logo);
+  add(title, 'img', T?.decor);
+  add(title, 'img', T?.logo);
   addMusic(game, title, T?.music, stems);
   add(title, 'video', T?.video);
   const icons = game.skin?.icons;
@@ -174,18 +249,42 @@ export function assetGraph(game: GameDef, opts: { manifest?: AssetManifestLike; 
   add(map, 'sfx', game.skin?.sounds?.plane ? a.sfx?.[game.skin.sounds.plane] : undefined);
 
   const g = new Set<string>();
-  cmdAssets(game, [...(game.rules?.on ?? []).map((x) => x.do), ...(game.events ?? []).map((e) => e.do), ...(game.scripts ?? []).map((s) => s.do)], g, bindings, stems);
+  cmdAssets(
+    game,
+    [
+      ...(game.rules?.on ?? []).map((x) => x.do),
+      ...(game.events ?? []).map((e) => e.do),
+      ...(game.scripts ?? []).map((s) => s.do),
+    ],
+    g,
+    bindings,
+    stems,
+  );
   // Answers by kind (`rules.kinds`) speak with their id's voice clip, in any room.
-  for (const k of game.rules?.kinds ?? []) { const id = (k as { id?: Id }).id; if (id && a.voices?.[id]) add(g, 'voice', a.voices[id]); }
-  for (const x of Object.values(icons ?? {})) for (const f of asList(x as string | string[] | undefined)) add(g, 'img', f);
+  for (const k of game.rules?.kinds ?? []) {
+    const id = (k as { id?: Id }).id;
+    if (id && a.voices?.[id]) add(g, 'voice', a.voices[id]);
+  }
+  for (const x of Object.values(icons ?? {}))
+    for (const f of asList(x as string | string[] | undefined)) add(g, 'img', f);
   for (const s of Object.values(game.skin?.sounds ?? {})) add(g, 'sfx', s ? a.sfx?.[s] : undefined);
   for (const it of Object.values(game.items)) add(g, 'img', it.icon);
-  add(g, 'video', game.creditsScreen?.video); add(g, 'img', game.creditsScreen?.decor);
+  add(g, 'video', game.creditsScreen?.video);
+  add(g, 'img', game.creditsScreen?.decor);
 
   // With the manifest, the images and videos are the files it lists (a sprite sheet's every cell, an image only a
   // custom command draws): a content reference the manifest lacks is a validation error, not a file to cache.
-  const offline = new Set<string>(opts.manifest ? [] : [...Object.values(rooms).flat(), ...title, ...map, ...g].filter((k) => k.startsWith('img:') || k.startsWith('video:')));
-  if (opts.manifest) { Object.keys(opts.manifest.images).forEach((id) => offline.add(`img:${id}`)); Object.keys(opts.manifest.videos ?? {}).forEach((f) => offline.add(`video:${f}`)); }
+  const offline = new Set<string>(
+    opts.manifest
+      ? []
+      : [...Object.values(rooms).flat(), ...title, ...map, ...g].filter(
+          (k) => k.startsWith('img:') || k.startsWith('video:'),
+        ),
+  );
+  if (opts.manifest) {
+    Object.keys(opts.manifest.images).forEach((id) => offline.add(`img:${id}`));
+    Object.keys(opts.manifest.videos ?? {}).forEach((f) => offline.add(`video:${f}`));
+  }
   for (const f of Object.values(a.sfx ?? {})) offline.add(`sfx:${f}`);
   for (const f of Object.values(a.music ?? {})) offline.add(`music:${f}`);
   // Both the stems and the mix: which one a device plays is decided there (dom/director.ts `directorFits`).
@@ -201,4 +300,7 @@ export function initialScope(graph: AssetGraph, game: GameDef): string[] {
 }
 
 /** A key's kind and id (`img:hero/r1c1` → ['img', 'hero/r1c1']). */
-export const splitKey = (k: string): [AssetKind, string] => [k.slice(0, k.indexOf(':')) as AssetKind, k.slice(k.indexOf(':') + 1)];
+export const splitKey = (k: string): [AssetKind, string] => [
+  k.slice(0, k.indexOf(':')) as AssetKind,
+  k.slice(k.indexOf(':') + 1),
+];

@@ -22,10 +22,15 @@ export async function buildSnapshot(opts: StudioOptions = {}): Promise<StudioSna
   const guide = join(s.root, 'docs', 'en', 'CONTENT_GUIDE.md');
   if (existsSync(guide)) docs.CONTENT_GUIDE = readFileSync(guide, 'utf8');
   return {
-    format: 'web-scumm-studio-snapshot', version: 1, created: new Date().toISOString(),
+    format: 'web-scumm-studio-snapshot',
+    version: 1,
+    created: new Date().toISOString(),
     // JSON round-trip: functions and undefined fields dropped, like the dev server's responses.
-    game: JSON.parse(JSON.stringify(game)), rooms: JSON.parse(JSON.stringify(rooms)),
-    storyboard: s.getStoryboard(), notes: s.getNotes(), docs,
+    game: JSON.parse(JSON.stringify(game)),
+    rooms: JSON.parse(JSON.stringify(rooms)),
+    storyboard: s.getStoryboard(),
+    notes: s.getNotes(),
+    docs,
     // The Assets tab's listing (no file data: the demo shows the prepared images and sounds of public/assets).
     assets: await createAssets(s).list(),
   };
@@ -40,7 +45,15 @@ export async function writeSnapshot(file = SNAPSHOT_FILE, opts: StudioOptions = 
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const out = resolve(process.argv[2] ?? SNAPSHOT_FILE);
-  writeSnapshot(out).then((s) => {
-    console.log(`✔ Studio snapshot of "${s.game.id}": ${Object.keys(s.rooms).length} rooms, ${s.notes.entries.length} notes → ${out}`);
-  }, (e) => { console.error(`✘ ${(e as Error).message}`); process.exit(1); });
+  writeSnapshot(out).then(
+    (s) => {
+      console.log(
+        `✔ Studio snapshot of "${s.game.id}": ${Object.keys(s.rooms).length} rooms, ${s.notes.entries.length} notes → ${out}`,
+      );
+    },
+    (e) => {
+      console.error(`✘ ${(e as Error).message}`);
+      process.exit(1);
+    },
+  );
 }

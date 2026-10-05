@@ -13,17 +13,37 @@ import { game, layouts } from '../fixture';
 
 class Recorder implements SceneRenderer {
   el = document.createElement('div');
-  backdrop = ''; width = 0; cam = 0; u = 1;
+  backdrop = '';
+  width = 0;
+  cam = 0;
+  u = 1;
   sprites = new Map<string, SpriteSpec>();
-  reset(b: string, w: number) { this.backdrop = b; this.width = w; this.sprites.clear(); }
-  sprite(s: SpriteSpec) { this.sprites.set(s.id, s); }
-  camera(x: number) { this.cam = x; }
-  resize(u: number) { this.u = u; }
+  reset(b: string, w: number) {
+    this.backdrop = b;
+    this.width = w;
+    this.sprites.clear();
+  }
+  sprite(s: SpriteSpec) {
+    this.sprites.set(s.id, s);
+  }
+  camera(x: number) {
+    this.cam = x;
+  }
+  resize(u: number) {
+    this.u = u;
+  }
   st: StageSpec | null = null;
-  stage(s: StageSpec) { this.st = s; }
+  stage(s: StageSpec) {
+    this.st = s;
+  }
   dispose() {}
 }
-const bank = { img: (id: string) => `img/${id}`, size: () => [100, 200], widthFor: (_: string, h: number) => h / 2, preload: async () => {} } as unknown as AssetBank;
+const bank = {
+  img: (id: string) => `img/${id}`,
+  size: () => [100, 200],
+  widthFor: (_: string, h: number) => h / 2,
+  preload: async () => {},
+} as unknown as AssetBank;
 
 async function scene(renderer: SceneRenderer) {
   const e = new Engine(structuredClone(game), layouts, new FakePresenter(), new MemoryStore());
@@ -40,9 +60,18 @@ describe('the renderer contract', () => {
     const { e, v } = await scene(r);
     expect(r.backdrop).toBe(`img/${e.room().decor}`);
     expect(r.width).toBe(v.width);
-    const ids = [...Object.keys(e.room().props ?? {}).filter((id) => layouts[e.room().id]?.props?.[id]), ...Object.keys(e.room().actors ?? {}), e.heroId()];
+    const ids = [
+      ...Object.keys(e.room().props ?? {}).filter((id) => layouts[e.room().id]?.props?.[id]),
+      ...Object.keys(e.room().actors ?? {}),
+      e.heroId(),
+    ];
     for (const id of ids) expect(r.sprites.has(id), id).toBe(true);
-    for (const s of r.sprites.values()) if (s.url) { expect(s.w).toBeGreaterThan(0); expect(s.h).toBeGreaterThan(0); expect(Number.isFinite(s.z)).toBe(true); }
+    for (const s of r.sprites.values())
+      if (s.url) {
+        expect(s.w).toBeGreaterThan(0);
+        expect(s.h).toBeGreaterThan(0);
+        expect(Number.isFinite(s.z)).toBe(true);
+      }
   });
 
   it("the hit test is the model's: a tap at the centre of a drawn target finds it, whatever painter is attached", async () => {
@@ -60,9 +89,30 @@ describe('the renderer contract', () => {
     const d = new DomRenderer();
     d.reset('img/bg', 640);
     d.resize(2);
-    d.sprite({ id: 'ann', url: 'img/ann', fx: 100, fy: 300, w: 40, h: 80, bob: 0, z: 300, flip: true, flipV: false, rot: 0, visible: true, opacity: 1, shadow: { x: 86, y: 296, w: 28, h: 8, z: 299, visible: true } });
+    d.sprite({
+      id: 'ann',
+      url: 'img/ann',
+      fx: 100,
+      fy: 300,
+      w: 40,
+      h: 80,
+      bob: 0,
+      z: 300,
+      flip: true,
+      flipV: false,
+      rot: 0,
+      visible: true,
+      opacity: 1,
+      shadow: { x: 86, y: 296, w: 28, h: 8, z: 299, visible: true },
+    });
     const img = d.el.querySelector('img.spr') as HTMLImageElement;
-    expect([img.style.left, img.style.top, img.style.width, img.style.height, img.style.zIndex]).toEqual(['160px', '440px', '80px', '160px', '300']);
+    expect([img.style.left, img.style.top, img.style.width, img.style.height, img.style.zIndex]).toEqual([
+      '160px',
+      '440px',
+      '80px',
+      '160px',
+      '300',
+    ]);
     expect(img.classList.contains('flip')).toBe(true);
     expect((d.el.querySelector('.shadow') as HTMLElement).style.width).toBe('56px');
     d.camera(100, 1280);
@@ -75,7 +125,10 @@ describe('the stage through the contract', () => {
     const r = new Recorder();
     const { e, v } = await scene(r);
     const room = e.room();
-    room.stage = { layers: [{ id: 'lamp', image: 'l/lamp', role: 'foreground', visible: 'lamp_on' }], lights: [{ id: 'glow', kind: 'ambient', color: '#fc6', visible: 'lamp_on' }] };
+    room.stage = {
+      layers: [{ id: 'lamp', image: 'l/lamp', role: 'foreground', visible: 'lamp_on' }],
+      lights: [{ id: 'glow', kind: 'ambient', color: '#fc6', visible: 'lamp_on' }],
+    };
     await v.build(room);
     expect(r.st!.backdrop).toMatchObject({ url: `img/${room.decor}` });
     expect(r.st!.layers).toEqual([expect.objectContaining({ id: 'lamp', url: 'img/l/lamp', visible: false })]);
@@ -89,9 +142,41 @@ describe('the stage through the contract', () => {
     const d = new DomRenderer();
     d.reset('img/bg', 1280);
     d.resize(1);
-    d.stage({ backdrop: { url: 'img/bg', x: 0, y: 0, w: 1280, h: 400 }, reduceMotion: false, lights: [], emitters: [],
-      layers: [{ id: 'plant', url: 'img/plant', role: 'foreground', x: 100, y: 200, w: 80, h: 200, z: 10000, parallax: [1.5, 1], blend: 'normal', opacity: 1, visible: true }],
-      occluders: [{ id: 'pillar', z: 330, polygon: [[10, 10], [50, 10], [50, 300]], feather: 0, invert: false }] });
+    d.stage({
+      backdrop: { url: 'img/bg', x: 0, y: 0, w: 1280, h: 400 },
+      reduceMotion: false,
+      lights: [],
+      emitters: [],
+      layers: [
+        {
+          id: 'plant',
+          url: 'img/plant',
+          role: 'foreground',
+          x: 100,
+          y: 200,
+          w: 80,
+          h: 200,
+          z: 10000,
+          parallax: [1.5, 1],
+          blend: 'normal',
+          opacity: 1,
+          visible: true,
+        },
+      ],
+      occluders: [
+        {
+          id: 'pillar',
+          z: 330,
+          polygon: [
+            [10, 10],
+            [50, 10],
+            [50, 300],
+          ],
+          feather: 0,
+          invert: false,
+        },
+      ],
+    });
     d.camera(200, 1280);
     const plant = d.el.querySelector('img.layer') as HTMLImageElement;
     expect([plant.style.left, plant.style.zIndex]).toEqual(['0px', '10000']); // 100 + 200 × (1 − 1.5)

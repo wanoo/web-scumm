@@ -12,14 +12,33 @@ import { shardProblems, shardRange } from '../src/engine/tools/shards';
 import { auditAbstractions } from '../src/engine/tools/audit';
 import { randomGame } from '../tests/gen/random-game';
 
-interface Counts { tried: number; compared: number; same: number; partial: number; diverged: number; handovers: number }
-interface Shard { from: number; seeds: number; max: number; seconds: number; kinds: Record<string, Counts>; divergences: string[] }
+interface Counts {
+  tried: number;
+  compared: number;
+  same: number;
+  partial: number;
+  diverged: number;
+  handovers: number;
+}
+interface Shard {
+  from: number;
+  seeds: number;
+  max: number;
+  seconds: number;
+  kinds: Record<string, Counts>;
+  divergences: string[];
+}
 const json = process.argv.find((a) => a.startsWith('--json='))?.slice(7);
 const print = (title: string, r: Shard) => {
   console.log(title);
-  for (const [k, c] of Object.entries(r.kinds)) console.log(`  ${k.padEnd(17)} ${c.tried} tried, ${c.compared} compared (${c.same} same, ${c.diverged} diverged), ${c.partial} partial (${c.handovers} with hand-overs)`);
+  for (const [k, c] of Object.entries(r.kinds))
+    console.log(
+      `  ${k.padEnd(17)} ${c.tried} tried, ${c.compared} compared (${c.same} same, ${c.diverged} diverged), ${c.partial} partial (${c.handovers} with hand-overs)`,
+    );
   for (const d of r.divergences) console.log(`  ✖ ${d}`);
-  console.log(`${r.divergences.length ? '✖' : '✔'}  ${r.divergences.length ? `${r.divergences.length} divergence(s)` : 'no divergence'}`);
+  console.log(
+    `${r.divergences.length ? '✖' : '✔'}  ${r.divergences.length ? `${r.divergences.length} divergence(s)` : 'no divergence'}`,
+  );
   if (json) writeFileSync(json, JSON.stringify(r, null, 1) + '\n');
   process.exit(r.divergences.length ? 1 : 0);
 };
@@ -27,22 +46,50 @@ if (process.argv.includes('--merge')) {
   const files = process.argv.slice(process.argv.indexOf('--merge') + 1).filter((a) => !a.startsWith('--'));
   const shards = files.map((f) => JSON.parse(readFileSync(f, 'utf8')) as Shard);
   const kinds: Record<string, Counts> = {};
-  for (const sh of shards) for (const [k, c] of Object.entries(sh.kinds)) {
-    const t = (kinds[k] ??= { tried: 0, compared: 0, same: 0, partial: 0, diverged: 0, handovers: 0 });
-    for (const f of Object.keys(t) as (keyof Counts)[]) t[f] += c[f];
-  }
-  const merged: Shard = { from: Math.min(...shards.map((s) => s.from)), seeds: shards.reduce((n, s) => n + s.seeds, 0), max: Math.max(...shards.map((s) => s.max)), seconds: Math.max(...shards.map((s) => s.seconds)), kinds, divergences: shards.flatMap((s) => s.divergences) };
+  for (const sh of shards)
+    for (const [k, c] of Object.entries(sh.kinds)) {
+      const t = (kinds[k] ??= { tried: 0, compared: 0, same: 0, partial: 0, diverged: 0, handovers: 0 });
+      for (const f of Object.keys(t) as (keyof Counts)[]) t[f] += c[f];
+    }
+  const merged: Shard = {
+    from: Math.min(...shards.map((s) => s.from)),
+    seeds: shards.reduce((n, s) => n + s.seeds, 0),
+    max: Math.max(...shards.map((s) => s.max)),
+    seconds: Math.max(...shards.map((s) => s.seconds)),
+    kinds,
+    divergences: shards.flatMap((s) => s.divergences),
+  };
   const total = process.argv.find((a) => a.startsWith('--total='));
   const gaps = shardProblems(shards, total ? Number(total.slice(8)) : undefined);
-  if (gaps.length) { for (const g of gaps) console.log(`  ✖ ${g}`); console.log(`✖  the shards do not cover the seeds asked for once each`); process.exit(1); }
-  print(`audit corpus: ${shards.length} shard(s), ${merged.seeds} seeds, ${merged.max} states at most each, ${merged.seconds} s for the slowest`, merged);
+  if (gaps.length) {
+    for (const g of gaps) console.log(`  ✖ ${g}`);
+    console.log(`✖  the shards do not cover the seeds asked for once each`);
+    process.exit(1);
+  }
+  print(
+    `audit corpus: ${shards.length} shard(s), ${merged.seeds} seeds, ${merged.max} states at most each, ${merged.seconds} s for the slowest`,
+    merged,
+  );
 }
 
-const arg = (k: string, d: number) => { const m = process.argv.find((a) => a.startsWith(`--${k}=`)); return m ? Number(m.slice(k.length + 3)) : d; };
-const shard = process.argv.find((a) => a.startsWith('--shard='))?.slice(8).split('/').map(Number);
+const arg = (k: string, d: number) => {
+  const m = process.argv.find((a) => a.startsWith(`--${k}=`));
+  return m ? Number(m.slice(k.length + 3)) : d;
+};
+const shard = process.argv
+  .find((a) => a.startsWith('--shard='))
+  ?.slice(8)
+  .split('/')
+  .map(Number);
 const range = shard ? shardRange(arg('total', 500), shard[0], shard[1]) : null;
-const seeds = range?.seeds ?? arg('seeds', 100), from = range?.from ?? arg('from', 1), max = arg('max', 3000);
-const kinds = [{ name: 'plain', o: {} }, { name: 'free items', o: { free: true } }, { name: 'three characters', o: { free: true, players: 3 as const } }];
+const seeds = range?.seeds ?? arg('seeds', 100),
+  from = range?.from ?? arg('from', 1),
+  max = arg('max', 3000);
+const kinds = [
+  { name: 'plain', o: {} },
+  { name: 'free items', o: { free: true } },
+  { name: 'three characters', o: { free: true, players: 3 as const } },
+];
 const t0 = Date.now();
 const diverged: string[] = [];
 const count: Record<string, Record<string, number>> = {};
@@ -56,4 +103,23 @@ for (let seed = from; seed < from + seeds; seed++) {
   }
 }
 const seconds = Math.round((Date.now() - t0) / 1000);
-print(`audit corpus: seeds ${from}–${from + seeds - 1}, ${max} states at most each, ${seconds} s`, { from, seeds, max, seconds, kinds: Object.fromEntries(Object.entries(count).map(([k, c]) => [k, { tried: seeds, compared: c.same + c.diverged, same: c.same, partial: c.partial, diverged: c.diverged, handovers: c.handovers }])), divergences: diverged });
+print(`audit corpus: seeds ${from}–${from + seeds - 1}, ${max} states at most each, ${seconds} s`, {
+  from,
+  seeds,
+  max,
+  seconds,
+  kinds: Object.fromEntries(
+    Object.entries(count).map(([k, c]) => [
+      k,
+      {
+        tried: seeds,
+        compared: c.same + c.diverged,
+        same: c.same,
+        partial: c.partial,
+        diverged: c.diverged,
+        handovers: c.handovers,
+      },
+    ]),
+  ),
+  divergences: diverged,
+});

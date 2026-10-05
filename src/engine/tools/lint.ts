@@ -32,10 +32,18 @@ export interface LintOptions {
   ignore?: string[];
 }
 
-export interface LintResult { findings: Finding[]; ignored: number; counts: Record<Severity, number> }
+export interface LintResult {
+  findings: Finding[];
+  ignored: number;
+  counts: Record<Severity, number>;
+}
 
-const asList = <T>(x: T | T[] | undefined): T[] => x === undefined ? [] : Array.isArray(x) ? x : [x];
-const sev = (findings: Finding[]) => ({ error: findings.filter((f) => f.severity === 'error').length, warning: findings.filter((f) => f.severity === 'warning').length, info: findings.filter((f) => f.severity === 'info').length });
+const asList = <T>(x: T | T[] | undefined): T[] => (x === undefined ? [] : Array.isArray(x) ? x : [x]);
+const sev = (findings: Finding[]) => ({
+  error: findings.filter((f) => f.severity === 'error').length,
+  warning: findings.filter((f) => f.severity === 'warning').length,
+  info: findings.filter((f) => f.severity === 'info').length,
+});
 
 /** The ids of the state nodes something produces, and the ones the start state already holds. */
 function producers(game: GameDef, g: PuzzleGraph) {
@@ -43,16 +51,24 @@ function producers(game: GameDef, g: PuzzleGraph) {
   for (const [f, v] of Object.entries(game.start.flags ?? {})) if (v) produced.add(`flag:${f}`);
   for (const i of game.start.inventory ?? []) produced.add(`item:${i}`);
   for (const p of game.start.unlocked ?? []) produced.add(`place:${p}`);
-  for (const p of Object.values(game.players?.start ?? {})) for (const i of p.inventory ?? []) produced.add(`item:${i}`);
-  for (const cp of Object.values(game.checkpoints ?? {})) { for (const i of cp.inventory ?? []) produced.add(`item:${i}`); for (const [f, v] of Object.entries(cp.flags ?? {})) if (v) produced.add(`flag:${f}`); for (const p of cp.unlocked ?? []) produced.add(`place:${p}`); }
+  for (const p of Object.values(game.players?.start ?? {}))
+    for (const i of p.inventory ?? []) produced.add(`item:${i}`);
+  for (const cp of Object.values(game.checkpoints ?? {})) {
+    for (const i of cp.inventory ?? []) produced.add(`item:${i}`);
+    for (const [f, v] of Object.entries(cp.flags ?? {})) if (v) produced.add(`flag:${f}`);
+    for (const p of cp.unlocked ?? []) produced.add(`place:${p}`);
+  }
   return produced;
 }
 
 /** The positive atoms of a condition that nothing produces: the condition can never become true. */
 function unsatisfiable(c: Cond | undefined, room: Id | undefined, produced: Set<string>): CondAtom[] {
-  return condAtoms(c, room).filter((a) => !a.neg && (a.kind === 'flag' || a.kind === 'has' || a.kind === 'unlocked') && !produced.has(atomNodeId(a)));
+  return condAtoms(c, room).filter(
+    (a) => !a.neg && (a.kind === 'flag' || a.kind === 'has' || a.kind === 'unlocked') && !produced.has(atomNodeId(a)),
+  );
 }
-const atomText = (a: CondAtom) => a.kind === 'has' ? `item "${a.id}"` : a.kind === 'unlocked' ? `place "${a.id}"` : `flag "${a.id}"`;
+const atomText = (a: CondAtom) =>
+  a.kind === 'has' ? `item "${a.id}"` : a.kind === 'unlocked' ? `place "${a.id}"` : `flag "${a.id}"`;
 
 export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: LintOptions = {}): LintResult {
   const g = puzzleGraph(game, { commands: opts.commands as Record<string, { effects?: unknown[] }> | undefined });
@@ -70,29 +86,97 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
       if (r.exit) return;
       const path = `${pathBase}[${i}]`;
       pathOf.set(ruleActionId(scope, i, r), { room, path, id: r.id });
-      for (const a of unsatisfiable(r.if, room, produced)) add({ code: 'cond-never-true', severity: 'error', where: { room, path, id: r.id }, message: `requires ${atomText(a)}, which nothing sets`, fix: 'set it somewhere, or drop the condition' });
+      for (const a of unsatisfiable(r.if, room, produced))
+        add({
+          code: 'cond-never-true',
+          severity: 'error',
+          where: { room, path, id: r.id },
+          message: `requires ${atomText(a)}, which nothing sets`,
+          fix: 'set it somewhere, or drop the condition',
+        });
       // The engine takes the first matching rule: an earlier rule with no condition (or the same one) hides this one.
-      const same = (x: Rule) => asList(x.verb).some((v) => asList(r.verb).includes(v)) && asList(x.a).some((v) => asList(r.a).includes(v)) && JSON.stringify(asList(x.b)) === JSON.stringify(asList(r.b));
-      const shadow = list.findIndex((x, j) => j < i && !x.exit && same(x) && (x.if === undefined || JSON.stringify(x.if) === JSON.stringify(r.if)));
-      if (shadow >= 0) add({ code: 'rule-shadowed', severity: 'warning', where: { room, path, id: r.id }, message: `never runs: ${pathBase}[${shadow}] matches the same action first${list[shadow].if === undefined ? ' with no condition' : ' with the same condition'}`, fix: 'move it before, or give the earlier rule a condition' });
+      const same = (x: Rule) =>
+        asList(x.verb).some((v) => asList(r.verb).includes(v)) &&
+        asList(x.a).some((v) => asList(r.a).includes(v)) &&
+        JSON.stringify(asList(x.b)) === JSON.stringify(asList(r.b));
+      const shadow = list.findIndex(
+        (x, j) => j < i && !x.exit && same(x) && (x.if === undefined || JSON.stringify(x.if) === JSON.stringify(r.if)),
+      );
+      if (shadow >= 0)
+        add({
+          code: 'rule-shadowed',
+          severity: 'warning',
+          where: { room, path, id: r.id },
+          message: `never runs: ${pathBase}[${shadow}] matches the same action first${list[shadow].if === undefined ? ' with no condition' : ' with the same condition'}`,
+          fix: 'move it before, or give the earlier rule a condition',
+        });
     });
   };
   for (const r of game.rooms) {
     rules(r.on, r.id, r.id, 'on');
-    for (const [actor, topics] of Object.entries(r.talk ?? {})) topics.forEach((t, i) => {
-      pathOf.set(topicActionId(r.id, actor, i, t), { room: r.id, path: `talk.${actor}[${i}]`, id: t.id });
-      for (const a of unsatisfiable(t.if, r.id, produced)) add({ code: 'topic-never-visible', severity: 'warning', where: { room: r.id, path: `talk.${actor}[${i}]`, id: t.id }, message: `"${t.topic}" requires ${atomText(a)}, which nothing sets`, fix: 'set it somewhere, or drop the condition' });
+    for (const [actor, topics] of Object.entries(r.talk ?? {}))
+      topics.forEach((t, i) => {
+        pathOf.set(topicActionId(r.id, actor, i, t), { room: r.id, path: `talk.${actor}[${i}]`, id: t.id });
+        for (const a of unsatisfiable(t.if, r.id, produced))
+          add({
+            code: 'topic-never-visible',
+            severity: 'warning',
+            where: { room: r.id, path: `talk.${actor}[${i}]`, id: t.id },
+            message: `"${t.topic}" requires ${atomText(a)}, which nothing sets`,
+            fix: 'set it somewhere, or drop the condition',
+          });
+      });
+    (r.events ?? []).forEach((ev, i) => {
+      pathOf.set(listenerActionId(r.id, i, ev), { room: r.id, path: `events[${i}]`, id: ev.id });
+      for (const a of unsatisfiable(ev.if, r.id, produced))
+        add({
+          code: 'listener-dead',
+          severity: 'warning',
+          where: { room: r.id, path: `events[${i}]`, id: ev.id },
+          message: `on "${ev.on}" requires ${atomText(a)}, which nothing sets`,
+          fix: 'set it somewhere, or drop the condition',
+        });
     });
-    (r.events ?? []).forEach((ev, i) => { pathOf.set(listenerActionId(r.id, i, ev), { room: r.id, path: `events[${i}]`, id: ev.id }); for (const a of unsatisfiable(ev.if, r.id, produced)) add({ code: 'listener-dead', severity: 'warning', where: { room: r.id, path: `events[${i}]`, id: ev.id }, message: `on "${ev.on}" requires ${atomText(a)}, which nothing sets`, fix: 'set it somewhere, or drop the condition' }); });
     (r.hints ?? []).forEach((h, i) => {
-      for (const a of unsatisfiable(h.until, r.id, produced)) add({ code: 'hint-stuck', severity: 'error', where: { room: r.id, path: `hints[${i}]`, id: h.id }, message: `waits for ${atomText(a)}, which nothing sets: it is given forever`, fix: 'make `until` something the player can reach' });
+      for (const a of unsatisfiable(h.until, r.id, produced))
+        add({
+          code: 'hint-stuck',
+          severity: 'error',
+          where: { room: r.id, path: `hints[${i}]`, id: h.id },
+          message: `waits for ${atomText(a)}, which nothing sets: it is given forever`,
+          fix: 'make `until` something the player can reach',
+        });
       const twin = (r.hints ?? []).findIndex((x, j) => j < i && JSON.stringify(x.until) === JSON.stringify(h.until));
-      if (twin >= 0) add({ code: 'hint-never-fires', severity: 'warning', where: { room: r.id, path: `hints[${i}]`, id: h.id }, message: `has the same \`until\` as hints[${twin}], which is given first`, fix: 'give it its own `until`, or merge the lines' });
+      if (twin >= 0)
+        add({
+          code: 'hint-never-fires',
+          severity: 'warning',
+          where: { room: r.id, path: `hints[${i}]`, id: h.id },
+          message: `has the same \`until\` as hints[${twin}], which is given first`,
+          fix: 'give it its own `until`, or merge the lines',
+        });
     });
-    for (const [id, ex] of Object.entries(r.exits ?? {})) if (ex.if && !ex.locked) add({ code: 'exit-locked-silent', severity: 'info', where: { room: r.id, path: `exits.${id}` }, message: `"${ex.name}" has a condition but no \`locked\` line: the player gets the fallback`, fix: 'add a `locked` line that hints at what is missing' });
+    for (const [id, ex] of Object.entries(r.exits ?? {}))
+      if (ex.if && !ex.locked)
+        add({
+          code: 'exit-locked-silent',
+          severity: 'info',
+          where: { room: r.id, path: `exits.${id}` },
+          message: `"${ex.name}" has a condition but no \`locked\` line: the player gets the fallback`,
+          fix: 'add a `locked` line that hints at what is missing',
+        });
   }
   rules(game.rules.on, 'game', undefined, 'rules/on');
-  (game.events ?? []).forEach((ev, i) => { for (const a of unsatisfiable(ev.if, undefined, produced)) add({ code: 'listener-dead', severity: 'warning', where: { path: `events[${i}]`, id: ev.id }, message: `on "${ev.on}" requires ${atomText(a)}, which nothing sets`, fix: 'set it somewhere, or drop the condition' }); });
+  (game.events ?? []).forEach((ev, i) => {
+    for (const a of unsatisfiable(ev.if, undefined, produced))
+      add({
+        code: 'listener-dead',
+        severity: 'warning',
+        where: { path: `events[${i}]`, id: ev.id },
+        message: `on "${ev.on}" requires ${atomText(a)}, which nothing sets`,
+        fix: 'set it somewhere, or drop the condition',
+      });
+  });
 
   // ---- choices (every command list), found through the puzzle graph's owners is heavier than a walk: walk the content
   const walkChoices = (list: unknown, room: Id | undefined, path: string) => {
@@ -103,21 +187,41 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
       const o = c as Record<string, unknown>;
       if (Array.isArray(o.choice)) {
         const options = o.choice as { text: string; if?: Cond; id?: string; do?: unknown }[];
-        if (options.length === 1) add({ code: 'choice-single', severity: 'info', where: { room, path: here, id: options[0].id }, message: `a choice with one option ("${options[0].text}")`, fix: 'a plain line reads the same; or add the alternative' });
+        if (options.length === 1)
+          add({
+            code: 'choice-single',
+            severity: 'info',
+            where: { room, path: here, id: options[0].id },
+            message: `a choice with one option ("${options[0].text}")`,
+            fix: 'a plain line reads the same; or add the alternative',
+          });
         options.forEach((opt, j) => {
-          for (const a of unsatisfiable(opt.if, room, produced)) add({ code: 'choice-dead', severity: 'warning', where: { room, path: `${here}.choice[${j}]`, id: opt.id }, message: `"${opt.text}" requires ${atomText(a)}, which nothing sets`, fix: 'set it somewhere, or drop the condition' });
+          for (const a of unsatisfiable(opt.if, room, produced))
+            add({
+              code: 'choice-dead',
+              severity: 'warning',
+              where: { room, path: `${here}.choice[${j}]`, id: opt.id },
+              message: `"${opt.text}" requires ${atomText(a)}, which nothing sets`,
+              fix: 'set it somewhere, or drop the condition',
+            });
           walkChoices(opt.do, room, `${here}.choice[${j}].do`);
         });
       }
-      for (const k of ['then', 'else', 'once', 'cutscene', 'after', 'do'] as const) walkChoices(o[k], room, `${here}.${k}`);
-      for (const k of ['nth', 'cycle', 'random', 'parallel'] as const) if (Array.isArray(o[k])) (o[k] as unknown[]).forEach((b, j) => walkChoices(b, room, `${here}.${k}[${j}]`));
+      for (const k of ['then', 'else', 'once', 'cutscene', 'after', 'do'] as const)
+        walkChoices(o[k], room, `${here}.${k}`);
+      for (const k of ['nth', 'cycle', 'random', 'parallel'] as const)
+        if (Array.isArray(o[k])) (o[k] as unknown[]).forEach((b, j) => walkChoices(b, room, `${here}.${k}[${j}]`));
     });
   };
   for (const r of game.rooms) {
     r.on?.forEach((x, i) => walkChoices(x.do, r.id, `on[${i}].do`));
-    for (const [actor, topics] of Object.entries(r.talk ?? {})) topics.forEach((t, i) => walkChoices(t.do, r.id, `talk.${actor}[${i}].do`));
+    for (const [actor, topics] of Object.entries(r.talk ?? {}))
+      topics.forEach((t, i) => walkChoices(t.do, r.id, `talk.${actor}[${i}].do`));
     walkChoices(r.onEnter, r.id, 'onEnter');
-    r.scripts?.forEach((s) => { pathOf.set(`script:${s.id}`, { room: r.id, path: `scripts.${s.id}`, id: s.id }); walkChoices(s.do, r.id, `scripts.${s.id}.do`); });
+    r.scripts?.forEach((s) => {
+      pathOf.set(`script:${s.id}`, { room: r.id, path: `scripts.${s.id}`, id: s.id });
+      walkChoices(s.do, r.id, `scripts.${s.id}.do`);
+    });
     r.events?.forEach((e, i) => walkChoices(e.do, r.id, `events[${i}].do`));
   }
   walkChoices(game.start.intro, game.start.room, 'start.intro');
@@ -127,19 +231,37 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
   for (const n of issues.deadEnds.filter((x) => x.kind === 'item')) {
     const id = n.id.slice('item:'.length);
     if (game.hintItem === id) continue;
-    add({ code: 'item-red-herring', severity: 'warning', where: itemWhere(id), message: `"${game.items[id]?.name ?? id}" can be picked up but no rule needs it`, fix: 'use it in a rule, or make it a look-only prop; keep it on purpose with lint.ignore' });
+    add({
+      code: 'item-red-herring',
+      severity: 'warning',
+      where: itemWhere(id),
+      message: `"${game.items[id]?.name ?? id}" can be picked up but no rule needs it`,
+      fix: 'use it in a rule, or make it a look-only prop; keep it on purpose with lint.ignore',
+    });
   }
   for (const n of issues.orphans.filter((x) => x.kind === 'item')) {
     const id = n.id.slice('item:'.length);
     if (produced.has(n.id)) continue;
-    add({ code: 'item-never-gained', severity: 'warning', where: itemWhere(id), message: `"${game.items[id]?.name ?? id}" is needed by a rule but nothing gives it`, fix: 'add a `gain`, or put it in `start.inventory`' });
+    add({
+      code: 'item-never-gained',
+      severity: 'warning',
+      where: itemWhere(id),
+      message: `"${game.items[id]?.name ?? id}" is needed by a rule but nothing gives it`,
+      fix: 'add a `gain`, or put it in `start.inventory`',
+    });
   }
 
   // ---- actions dead for the solver that still change something: decoration, or a lost thread
   for (const n of g.nodes) {
     if (!['rule', 'topic', 'listener', 'script'].includes(n.kind) || classes.get(n.id) !== 'dead') continue;
     if (!g.edges.some((e) => e.from === n.id && e.kind === 'produces')) continue;
-    add({ code: 'action-dead', severity: 'info', where: pathOf.get(n.id) ?? { room: n.where !== 'game' ? n.where : undefined, path: n.id }, message: `${n.label}: changes things nothing live reads (decoration for the solver)`, fix: 'fine if intended; otherwise read what it sets somewhere' });
+    add({
+      code: 'action-dead',
+      severity: 'info',
+      where: pathOf.get(n.id) ?? { room: n.where !== 'game' ? n.where : undefined, path: n.id },
+      message: `${n.label}: changes things nothing live reads (decoration for the solver)`,
+      fix: 'fine if intended; otherwise read what it sets somewhere',
+    });
   }
 
   // ---- from a solver run
@@ -151,7 +273,12 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
     const proved = mode === 'prove' && !s.truncated;
     const search = proved ? 'exhaustive search' : mode === 'prove' ? 'truncated search' : 'solver';
     const sev = proved ? 'warning' : 'info';
-    const unreachableFix = (what: string) => proved ? `nothing reaches it: check ${what}` : mode === 'prove' ? 'the search hit its state budget: raise `--max` or prove by chapters' : 'run `npm run lint -- --prove` to know whether it is reachable';
+    const unreachableFix = (what: string) =>
+      proved
+        ? `nothing reaches it: check ${what}`
+        : mode === 'prove'
+          ? 'the search hit its state budget: raise `--max` or prove by chapters'
+          : 'run `npm run lint -- --prove` to know whether it is reachable';
     // What answered a try at all (`attempted`), and the start entry (the intro and its guided tutorial run inside it).
     // `perAction` only counts tries that changed the state: a topic that just talks would look unreachable.
     const ran = new Set(Object.keys(s.profile.attempted ?? s.profile.perAction));
@@ -160,15 +287,73 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
     for (const e of s.steps) for (const id of e.ran ?? []) changed.add(id);
     const live = new Set([...classes.entries()].filter(([, c]) => c !== 'dead').map(([id]) => id));
     const noEffect = (id: string, where: Finding['where'], label: string) => {
-      if (live.has(id) && ran.has(id) && !changed.has(id)) add({ code: 'rule-no-effect', severity: 'info', where, message: `${label}: the ${search} ran it, it never changed anything`, fix: 'fine for lines only; otherwise its `set`/`gain` is always already true where it runs', solver: mode });
+      if (live.has(id) && ran.has(id) && !changed.has(id))
+        add({
+          code: 'rule-no-effect',
+          severity: 'info',
+          where,
+          message: `${label}: the ${search} ran it, it never changed anything`,
+          fix: 'fine for lines only; otherwise its `set`/`gain` is always already true where it runs',
+          solver: mode,
+        });
     };
     for (const r of game.rooms) {
-      r.on?.forEach((rule, i) => { if (rule.exit) return; const id = ruleActionId(r.id, i, rule); const where = { room: r.id, path: `on[${i}]`, id: rule.id }; if (live.has(id) && !ran.has(id)) add({ code: 'rule-never-run', severity: sev, where, message: `the ${search} never ran it`, fix: unreachableFix('its condition and what gates it'), solver: mode }); noEffect(id, where, 'this rule'); });
-      for (const [actor, topics] of Object.entries(r.talk ?? {})) topics.forEach((t, i) => { const id = topicActionId(r.id, actor, i, t); const where = { room: r.id, path: `talk.${actor}[${i}]`, id: t.id }; if (live.has(id) && !ran.has(id)) add({ code: 'rule-never-run', severity: sev, where, message: `"${t.topic}": the ${search} never picked it`, fix: unreachableFix('its condition'), solver: mode }); noEffect(id, where, `"${t.topic}"`); });
-      r.events?.forEach((ev, i) => { const id = listenerActionId(r.id, i, ev); const where = { room: r.id, path: `events[${i}]`, id: ev.id }; if (live.has(id) && !ran.has(id)) add({ code: 'rule-never-run', severity: sev, where, message: `on "${ev.on}": never fired in the ${search}`, fix: proved ? 'check that something emits the event under its condition' : unreachableFix('what emits it'), solver: mode }); noEffect(id, where, `on "${ev.on}"`); });
+      r.on?.forEach((rule, i) => {
+        if (rule.exit) return;
+        const id = ruleActionId(r.id, i, rule);
+        const where = { room: r.id, path: `on[${i}]`, id: rule.id };
+        if (live.has(id) && !ran.has(id))
+          add({
+            code: 'rule-never-run',
+            severity: sev,
+            where,
+            message: `the ${search} never ran it`,
+            fix: unreachableFix('its condition and what gates it'),
+            solver: mode,
+          });
+        noEffect(id, where, 'this rule');
+      });
+      for (const [actor, topics] of Object.entries(r.talk ?? {}))
+        topics.forEach((t, i) => {
+          const id = topicActionId(r.id, actor, i, t);
+          const where = { room: r.id, path: `talk.${actor}[${i}]`, id: t.id };
+          if (live.has(id) && !ran.has(id))
+            add({
+              code: 'rule-never-run',
+              severity: sev,
+              where,
+              message: `"${t.topic}": the ${search} never picked it`,
+              fix: unreachableFix('its condition'),
+              solver: mode,
+            });
+          noEffect(id, where, `"${t.topic}"`);
+        });
+      r.events?.forEach((ev, i) => {
+        const id = listenerActionId(r.id, i, ev);
+        const where = { room: r.id, path: `events[${i}]`, id: ev.id };
+        if (live.has(id) && !ran.has(id))
+          add({
+            code: 'rule-never-run',
+            severity: sev,
+            where,
+            message: `on "${ev.on}": never fired in the ${search}`,
+            fix: proved ? 'check that something emits the event under its condition' : unreachableFix('what emits it'),
+            solver: mode,
+          });
+        noEffect(id, where, `on "${ev.on}"`);
+      });
     }
     const reached = new Set(s.roomsReached);
-    for (const r of game.rooms) if (!reached.has(r.id)) add({ code: 'room-never-reached', severity: sev, where: { room: r.id, path: 'id' }, message: `the ${search} never entered it`, fix: proved ? 'an exit, a `goto` or a map place must lead there' : unreachableFix('its exits'), solver: mode });
+    for (const r of game.rooms)
+      if (!reached.has(r.id))
+        add({
+          code: 'room-never-reached',
+          severity: sev,
+          where: { room: r.id, path: 'id' },
+          message: `the ${search} never entered it`,
+          fix: proved ? 'an exit, a `goto` or a map place must lead there' : unreachableFix('its exits'),
+          solver: mode,
+        });
   }
 
   // ---- walk links (3.4): a closed link stops the walk, never the action, so the rules of a target standing behind a
@@ -179,39 +364,80 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
     const S = stageOf(r, L);
     const gated = S.links.filter((l) => l.if !== undefined);
     if (!gated.length) continue;
-    const startZone = S.zones.find((z) => L.entries?.default && inPolygon(L.entries.default, z.area))?.id ?? S.zones[0]?.id;
+    const startZone =
+      S.zones.find((z) => L.entries?.default && inPolygon(L.entries.default, z.area))?.id ?? S.zones[0]?.id;
     const free = new Set([startZone]);
-    for (let grew = true; grew;) { grew = false; for (const k of S.links) if (k.if === undefined) for (const [a, b] of [[k.from.zone, k.to.zone], ...(k.oneWay ? [] : [[k.to.zone, k.from.zone]])]) if (free.has(a) && !free.has(b)) { free.add(b); grew = true; } }
+    for (let grew = true; grew; ) {
+      grew = false;
+      for (const k of S.links)
+        if (k.if === undefined)
+          for (const [a, b] of [[k.from.zone, k.to.zone], ...(k.oneWay ? [] : [[k.to.zone, k.from.zone]])])
+            if (free.has(a) && !free.has(b)) {
+              free.add(b);
+              grew = true;
+            }
+    }
     const spot = (id: Id): Point | null => {
-      const h = L.hotspots?.[id]; if (h?.approach) return h.approach; if (h?.rect) return [h.rect[0] + h.rect[2] / 2, h.rect[1] + h.rect[3]]; if (h?.poly) return h.poly[0];
-      const p = L.props?.[id] ?? L.actors?.[id]; return p ? (p.approach ?? [p.x, p.y]) : null;
+      const h = L.hotspots?.[id];
+      if (h?.approach) return h.approach;
+      if (h?.rect) return [h.rect[0] + h.rect[2] / 2, h.rect[1] + h.rect[3]];
+      if (h?.poly) return h.poly[0];
+      const p = L.props?.[id] ?? L.actors?.[id];
+      return p ? (p.approach ?? [p.x, p.y]) : null;
     };
     const zoneOf = (p: Point) => S.zones.find((z) => inPolygon(p, z.area))?.id;
     (r.on ?? []).forEach((rule, i) => {
       for (const t of [...asList(rule.a), ...asList(rule.b)]) {
-        const p = spot(t); const z = p ? zoneOf(p) : undefined;
+        const p = spot(t);
+        const z = p ? zoneOf(p) : undefined;
         if (!z || free.has(z)) continue;
         const ways = gated.filter((l) => l.from.zone === z || l.to.zone === z);
         const has = (c: Cond) => JSON.stringify(rule.if ?? null).includes(JSON.stringify(c));
-        if (ways.length && !ways.some((l) => has(l.if!))) add({ code: 'walk-link-gate', severity: 'warning', where: { room: r.id, path: `on[${i}]`, ...(rule.id ? { id: rule.id } : {}) }, message: `"${t}" stands behind the walk link${ways.length > 1 ? 's' : ''} ${ways.map((l) => `"${l.id}"`).join(', ')}, which a condition closes; this rule does not check it, so the hero would act from the other side`, fix: `add the link's condition to the rule's \`if\` (${JSON.stringify(ways[0].if)})` });
+        if (ways.length && !ways.some((l) => has(l.if!)))
+          add({
+            code: 'walk-link-gate',
+            severity: 'warning',
+            where: { room: r.id, path: `on[${i}]`, ...(rule.id ? { id: rule.id } : {}) },
+            message: `"${t}" stands behind the walk link${ways.length > 1 ? 's' : ''} ${ways.map((l) => `"${l.id}"`).join(', ')}, which a condition closes; this rule does not check it, so the hero would act from the other side`,
+            fix: `add the link's condition to the rule's \`if\` (${JSON.stringify(ways[0].if)})`,
+          });
       }
     });
   }
 
   // ---- ignore list: `code`, `code:<id>`, `code:<room>/<path>`
   const ignore = new Set(opts.ignore ?? game.lint?.ignore ?? []);
-  const kept = out.filter((f) => !(ignore.has(f.code) || (f.where.id && ignore.has(`${f.code}:${f.where.id}`)) || ignore.has(`${f.code}:${f.where.room ? `${f.where.room}/` : ''}${f.where.path}`)));
+  const kept = out.filter(
+    (f) =>
+      !(
+        ignore.has(f.code) ||
+        (f.where.id && ignore.has(`${f.code}:${f.where.id}`)) ||
+        ignore.has(`${f.code}:${f.where.room ? `${f.where.room}/` : ''}${f.where.path}`)
+      ),
+  );
   const order: Severity[] = ['error', 'warning', 'info'];
-  kept.sort((a, b) => order.indexOf(a.severity) - order.indexOf(b.severity) || a.code.localeCompare(b.code) || (a.where.room ?? '').localeCompare(b.where.room ?? '') || a.where.path.localeCompare(b.where.path));
+  kept.sort(
+    (a, b) =>
+      order.indexOf(a.severity) - order.indexOf(b.severity) ||
+      a.code.localeCompare(b.code) ||
+      (a.where.room ?? '').localeCompare(b.where.room ?? '') ||
+      a.where.path.localeCompare(b.where.path),
+  );
   return { findings: kept, ignored: out.length - kept.length, counts: sev(kept) };
 }
 
 const mark: Record<Severity, string> = { error: '✖', warning: '⚠', info: 'ℹ' };
-export const whereText = (f: Finding) => `${f.where.room ? `${f.where.room}/` : ''}${f.where.path}${f.where.id ? ` (${f.where.id})` : ''}`;
+export const whereText = (f: Finding) =>
+  `${f.where.room ? `${f.where.room}/` : ''}${f.where.path}${f.where.id ? ` (${f.where.id})` : ''}`;
 
 /** The findings as Markdown (the Studio panel and the MCP tool). */
 export function lintMarkdown(r: LintResult, mode: 'static' | 'witness' | 'prove' = 'static'): string {
-  const out = [`# Content lint (${mode})`, '', `${r.counts.error} error(s) · ${r.counts.warning} warning(s) · ${r.counts.info} info · ${r.ignored} ignored`, ''];
+  const out = [
+    `# Content lint (${mode})`,
+    '',
+    `${r.counts.error} error(s) · ${r.counts.warning} warning(s) · ${r.counts.info} info · ${r.ignored} ignored`,
+    '',
+  ];
   for (const s of ['error', 'warning', 'info'] as Severity[]) {
     const list = r.findings.filter((f) => f.severity === s);
     if (!list.length) continue;

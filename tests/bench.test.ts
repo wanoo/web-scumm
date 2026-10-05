@@ -7,7 +7,15 @@ import { solve } from '@engine/tools/solve';
 import { liveness, puzzleFor, puzzleGraph } from '@engine/tools/puzzle';
 
 describe('the stress game', () => {
-  const { game, layouts } = makeStressGame({ rooms: 10, players: 2, items: 12, flags: 30, npcs: 2, scripts: 4, topics: 6 });
+  const { game, layouts } = makeStressGame({
+    rooms: 10,
+    players: 2,
+    items: 12,
+    flags: 30,
+    npcs: 2,
+    scripts: 4,
+    topics: 6,
+  });
 
   it('is valid and every item has a source', () => {
     expect(validate(game, layouts).errors).toEqual([]);
@@ -17,9 +25,9 @@ describe('the stress game', () => {
 
   it('tells what is live', () => {
     const l = liveness(puzzleGraph(game));
-    expect(l.flags.has('opened_1')).toBe(true);   // read by the exit
-    expect(l.flags.has('looked_0')).toBe(false);  // only its own setter reads it
-    expect(l.flags.has('ticks_1')).toBe(false);   // a clock nobody reads
+    expect(l.flags.has('opened_1')).toBe(true); // read by the exit
+    expect(l.flags.has('looked_0')).toBe(false); // only its own setter reads it
+    expect(l.flags.has('ticks_1')).toBe(false); // a clock nobody reads
     expect(l.actions.has('clock_1')).toBe(false);
     expect(l.actions.has('patrol_0')).toBe(false); // nobody waits for the walkers
     expect(l.actors.has('npc0')).toBe(false);
@@ -28,7 +36,11 @@ describe('the stress game', () => {
   it('is solved chapter by chapter, then globally, in a few hundred states', async () => {
     let prev: string | undefined;
     for (const [cp, def] of Object.entries(game.checkpoints!)) {
-      const r = await solve(game, layouts, { maxStates: 5000, start: prev ? { checkpoint: prev } : 'new', goal: def.goals });
+      const r = await solve(game, layouts, {
+        maxStates: 5000,
+        start: prev ? { checkpoint: prev } : 'new',
+        goal: def.goals,
+      });
       expect(r.finished, cp).toBe(true);
       prev = cp;
     }

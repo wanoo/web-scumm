@@ -4,7 +4,15 @@ import { arrowFocus, el, finisher, num, operable, put, skipButton, sleep, stage,
 
 // Hide-and-seek: touch the right hiding spot in the scenery. Each wrong spot replies (and the hint gets clearer).
 
-interface Spot { img: string; x: number; y: number; h: number; reply?: string; found?: string; flip?: boolean }
+interface Spot {
+  img: string;
+  x: number;
+  y: number;
+  h: number;
+  reply?: string;
+  found?: string;
+  flip?: boolean;
+}
 
 export const hide: Minigame = {
   ...MINIGAME_META.hide,
@@ -16,8 +24,16 @@ export const hide: Minigame = {
     const box = stage(ctx);
     if (typeof p.bg === 'string') {
       const bg = el('img') as HTMLImageElement;
-      bg.src = ctx.img(p.bg); bg.alt = '';
-      Object.assign(bg.style, { position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' });
+      bg.src = ctx.img(p.bg);
+      bg.alt = '';
+      Object.assign(bg.style, {
+        position: 'absolute',
+        inset: '0',
+        width: '100%',
+        height: '100%',
+        objectFit: 'cover',
+        pointerEvents: 'none',
+      });
       box.append(bg);
     }
     if (p.intro) ctx.instruct(str(p.intro, ''));
@@ -37,8 +53,16 @@ export const hide: Minigame = {
           await sleep(1400, ctx.signal);
           f.finish();
         } else {
-          spr.el.classList.remove('mg-shake'); void spr.el.offsetWidth; spr.el.classList.add('mg-shake');
-          if (s.found) { const prev = spr.el.src; spr.el.src = ctx.img(s.found); setTimeout(() => { spr.el.src = prev; }, 1200); }
+          spr.el.classList.remove('mg-shake');
+          void spr.el.offsetWidth;
+          spr.el.classList.add('mg-shake');
+          if (s.found) {
+            const prev = spr.el.src;
+            spr.el.src = ctx.img(s.found);
+            setTimeout(() => {
+              spr.el.src = prev;
+            }, 1200);
+          }
           if (s.reply) ctx.instruct(s.reply);
         }
       };
@@ -49,6 +73,9 @@ export const hide: Minigame = {
     const offArrows = arrowFocus(ctx, () => spotEls);
     queueMicrotask(() => spotEls[0]?.focus?.({ preventScroll: true }));
     skipButton(ctx, box, f.finish);
-    return f.promise.then(() => { offArrows(); box.remove(); });
+    return f.promise.then(() => {
+      offArrows();
+      box.remove();
+    });
   },
 };

@@ -4,7 +4,7 @@ import type { GameDef } from '@engine/core/types';
 import { game as demo } from '../games/demo/game';
 
 describe('ui defaults', () => {
-  it('answers the game\'s text first, else the English default', () => {
+  it("answers the game's text first, else the English default", () => {
     const ui = { save: 'Sauver' } as unknown as GameDef['ui'];
     expect(uiText(ui, 'save')).toBe('Sauver');
     expect(uiText(ui, 'load')).toBe(DEFAULT_UI.load);

@@ -37,17 +37,36 @@ const tick = () => new Promise<void>((r) => setTimeout(r, 0));
 /** `p` or the next turn of the event loop, the timer cleared when `p` wins (a replay of many steps runs in microtasks). */
 const raceTick = async (p: Promise<unknown>) => {
   let t: ReturnType<typeof setTimeout> | undefined;
-  try { await Promise.race([p, new Promise<void>((r) => { t = setTimeout(r, 0); })]); } finally { clearTimeout(t); }
+  try {
+    await Promise.race([
+      p,
+      new Promise<void>((r) => {
+        t = setTimeout(r, 0);
+      }),
+    ]);
+  } finally {
+    clearTimeout(t);
+  }
 };
 
 /** Waits for an engine call, unless it pauses on a tutorial step: the next input of the log is that step. */
 async function settle(e: Engine, p: Promise<unknown>, pending: Promise<unknown>[]): Promise<void> {
   let done = false;
-  const q = p.then(() => { done = true; }, () => { done = true; });
+  const q = p.then(
+    () => {
+      done = true;
+    },
+    () => {
+      done = true;
+    },
+  );
   for (let guard = 0; guard < 500; guard++) {
     await raceTick(q);
     if (done) return;
-    if (e.guiding) { pending.push(q); return; }
+    if (e.guiding) {
+      pending.push(q);
+      return;
+    }
   }
   throw new Error('the engine never yields control back (stuck choice?)');
 }
@@ -56,7 +75,9 @@ async function settle(e: Engine, p: Promise<unknown>, pending: Promise<unknown>[
 export function labelOf(game: GameDef, en: SessionEntry): string {
   if ('act' in en) {
     const v = game.verbs.find((x) => x.id === en.act.verb);
-    const base = en.act.b ? `${v?.label ?? en.act.verb} ${en.act.a} ${v?.join ?? '→'} ${en.act.b}` : `${v?.label ?? en.act.verb} ${en.act.a}`;
+    const base = en.act.b
+      ? `${v?.label ?? en.act.verb} ${en.act.a} ${v?.join ?? '→'} ${en.act.b}`
+      : `${v?.label ?? en.act.verb} ${en.act.a}`;
     return `${base}${en.picks?.length ? ` [${en.picks.join(',')}]` : ''}${en.aborted ? ' (interrupted)' : ''}`;
   }
   if ('travel' in en) return `Map → ${game.map?.places[en.travel]?.name ?? en.travel}`;
@@ -73,14 +94,24 @@ export function labelOf(game: GameDef, en: SessionEntry): string {
  * scripts advance exactly when they did. `divergedAt` points at the first entry whose state digest (when the
  * recording has one) or outcome differs.
  */
-export async function replay(gameIn: GameDef, layouts: Record<Id, Layout>, session: Replayable, opts: ReplayOptions = {}): Promise<ReplayResult> {
+export async function replay(
+  gameIn: GameDef,
+  layouts: Record<Id, Layout>,
+  session: Replayable,
+  opts: ReplayOptions = {},
+): Promise<ReplayResult> {
   const game = structuredClone(gameIn);
   const ui = new FakePresenter();
   const e = new Engine(game, layouts, ui, new MemoryStore(), { commands: opts.commands });
   e.traceOn = true;
   e.digestOn = true;
   e.random = () => 0; // every draw was recorded; a missing one is deterministic anyway
-  e.feedSession({ v: session.v ?? game.saveVersion, start: session.start, base: session.base ?? (null as unknown as GameState), log: session.log });
+  e.feedSession({
+    v: session.v ?? game.saveVersion,
+    start: session.start,
+    base: session.base ?? (null as unknown as GameState),
+    log: session.log,
+  });
   const pending: Promise<unknown>[] = [];
   const log = session.log;
   let i = 0;
@@ -101,24 +132,52 @@ export async function replay(gameIn: GameDef, layouts: Record<Id, Layout>, sessi
     // A pending call (the intro waiting for a tutorial step) gets to continue before the next input, as in the game.
     for (let guard = 0; guard < 100 && (guard === 0 || e.busy); guard++) await tick();
     const n0 = e.session?.log.length ?? 0;
-    const run = 'act' in en ? e.act(en.act).then(() => undefined)
-      : 'travel' in en ? e.travel(en.travel)
-      : 'switch' in en ? e.switchTo(en.switch)
-      : 'map' in en ? e.openMap()
-      : 'step' in en ? e.advance(en.step).then(() => undefined)
-      : 'script' in en ? e.script(en.script)
-      : 'enter' in en ? e.teleport(en.enter)
-      : Promise.resolve();
+    const run =
+      'act' in en
+        ? e.act(en.act).then(() => undefined)
+        : 'travel' in en
+          ? e.travel(en.travel)
+          : 'switch' in en
+            ? e.switchTo(en.switch)
+            : 'map' in en
+              ? e.openMap()
+              : 'step' in en
+                ? e.advance(en.step).then(() => undefined)
+                : 'script' in en
+                  ? e.script(en.script)
+                  : 'enter' in en
+                    ? e.teleport(en.enter)
+                    : Promise.resolve();
     await settle(e, run, pending);
     played++;
     opts.onEntry?.(i, e);
     const mine = e.session?.log[n0];
-    if (!mine) { divergedAt = i; divergence = `${labelOf(game, en)}: nothing happened`; break; }
-    if (en.digest && mine.digest && en.digest !== mine.digest) { divergedAt = i; divergence = `${labelOf(game, en)}: the state differs from the recording`; break; }
-    if ('act' in en && 'act' in mine && !!en.aborted !== !!mine.aborted) { divergedAt = i; divergence = `${labelOf(game, en)}: ${en.aborted ? 'was interrupted' : 'ran'} in the recording`; break; }
+    if (!mine) {
+      divergedAt = i;
+      divergence = `${labelOf(game, en)}: nothing happened`;
+      break;
+    }
+    if (en.digest && mine.digest && en.digest !== mine.digest) {
+      divergedAt = i;
+      divergence = `${labelOf(game, en)}: the state differs from the recording`;
+      break;
+    }
+    if ('act' in en && 'act' in mine && !!en.aborted !== !!mine.aborted) {
+      divergedAt = i;
+      divergence = `${labelOf(game, en)}: ${en.aborted ? 'was interrupted' : 'ran'} in the recording`;
+      break;
+    }
   }
   await Promise.race([Promise.all(pending), tick().then(tick)]);
-  return { state: e.state, trace: e.trace, session: e.session!, played, first, ended: !!e.state.done || ui.log.includes('ENDING'), ...(divergedAt !== undefined ? { divergedAt, divergence } : {}) };
+  return {
+    state: e.state,
+    trace: e.trace,
+    session: e.session!,
+    played,
+    first,
+    ended: !!e.state.done || ui.log.includes('ENDING'),
+    ...(divergedAt !== undefined ? { divergedAt, divergence } : {}),
+  };
 }
 
 /** A device family, nothing finer (3.7.1): how many kinds of devices the playtests covered, never which device. */
@@ -132,16 +191,37 @@ export function deviceFamily(ua: string, touchPoints = 0): DeviceFamily {
 }
 
 /** The file a tester sends: the session, the journal, the game and its save version, its device family (3.7.1). */
-export interface SessionFile { kind: 'web-scumm-session'; game: Id; v: number; at: number; session: Session; trace: TraceEntry[]; device?: DeviceFamily;
+export interface SessionFile {
+  kind: 'web-scumm-session';
+  game: Id;
+  v: number;
+  at: number;
+  session: Session;
+  trace: TraceEntry[];
+  device?: DeviceFamily;
   /** Taps on nothing next to a target, by `room/target` (3.8): the hotspots players aim at and miss. */
-  misses?: Record<string, number> }
+  misses?: Record<string, number>;
+}
 
-export function sessionFile(gameId: Id, e: Engine, o: { playtest?: boolean; device?: DeviceFamily; misses?: Record<string, number> } = {}): SessionFile {
+export function sessionFile(
+  gameId: Id,
+  e: Engine,
+  o: { playtest?: boolean; device?: DeviceFamily; misses?: Record<string, number> } = {},
+): SessionFile {
   if (!e.session) throw new Error('no session yet: start or load a game first');
   const session = structuredClone(e.session);
   // A playtest leaves the device with ids and indices only: no journal (its lines carry text), no dev-panel scripts.
   if (o.playtest) for (const en of session.log) if ('script' in en) en.script = [];
-  return { kind: 'web-scumm-session', game: gameId, v: e.game.saveVersion, at: session.at ?? Date.now(), session, trace: o.playtest ? [] : [...e.trace], ...(o.device ? { device: o.device } : {}), ...(o.misses && Object.keys(o.misses).length ? { misses: { ...o.misses } } : {}) };
+  return {
+    kind: 'web-scumm-session',
+    game: gameId,
+    v: e.game.saveVersion,
+    at: session.at ?? Date.now(),
+    session,
+    trace: o.playtest ? [] : [...e.trace],
+    ...(o.device ? { device: o.device } : {}),
+    ...(o.misses && Object.keys(o.misses).length ? { misses: { ...o.misses } } : {}),
+  };
 }
 
 /** Reads a session file (or a bare session) and checks its shape. */
@@ -150,6 +230,20 @@ export function parseSessionFile(text: string): SessionFile {
   const session = (j.session ?? (j.log ? j : undefined)) as Session | undefined;
   if (!session || !Array.isArray(session.log) || !session.start?.kind) throw new Error('not a session file');
   const device = j.device === 'ios' || j.device === 'android' || j.device === 'desktop' ? j.device : undefined;
-  const misses = j.misses && typeof j.misses === 'object' ? Object.fromEntries(Object.entries(j.misses).filter(([k, n]) => /^[\w-]+\/[\w-]+$/.test(k) && Number.isInteger(n) && n > 0)) : {};
-  return { kind: 'web-scumm-session', game: j.game ?? '', v: j.v ?? session.v, at: j.at ?? 0, session, trace: j.trace ?? [], ...(device ? { device } : {}), ...(Object.keys(misses).length ? { misses } : {}) };
+  const misses =
+    j.misses && typeof j.misses === 'object'
+      ? Object.fromEntries(
+          Object.entries(j.misses).filter(([k, n]) => /^[\w-]+\/[\w-]+$/.test(k) && Number.isInteger(n) && n > 0),
+        )
+      : {};
+  return {
+    kind: 'web-scumm-session',
+    game: j.game ?? '',
+    v: j.v ?? session.v,
+    at: j.at ?? 0,
+    session,
+    trace: j.trace ?? [],
+    ...(device ? { device } : {}),
+    ...(Object.keys(misses).length ? { misses } : {}),
+  };
 }

@@ -40,12 +40,21 @@ const noIndexedDb = args.includes('--no-indexeddb');
 // Same game resolution as tools/game.ts (env GAME, else package.json config.game, else "demo"); --game overrides both.
 const GAME = flag('game') ?? process.env.GAME ?? 'demo';
 
-console.log(`e2e: ${url} (game: ${GAME}, browser: ${process.env.E2E_BROWSER ?? 'chromium'}, ${prod ? 'production' : 'development'}${keyboard ? ', keyboard' : ''}${lang ? `, lang ${lang}` : ''}${renderer ? `, ${renderer} painter` : ''}${saveCheck ? ', save round trip' : ''}${noIndexedDb ? ', no IndexedDB' : ''}${axeCheck ? ', axe' : ''})`);
-const harness = await launch(url, { at, dev: !prod, input: keyboard ? 'keyboard' : undefined, lang, noIndexedDb, renderer });
+console.log(
+  `e2e: ${url} (game: ${GAME}, browser: ${process.env.E2E_BROWSER ?? 'chromium'}, ${prod ? 'production' : 'development'}${keyboard ? ', keyboard' : ''}${lang ? `, lang ${lang}` : ''}${renderer ? `, ${renderer} painter` : ''}${saveCheck ? ', save round trip' : ''}${noIndexedDb ? ', no IndexedDB' : ''}${axeCheck ? ', axe' : ''})`,
+);
+const harness = await launch(url, {
+  at,
+  dev: !prod,
+  input: keyboard ? 'keyboard' : undefined,
+  lang,
+  noIndexedDb,
+  renderer,
+});
 let ok = true;
 const axeFound = [];
 try {
-  if (axeCheck) axeFound.push(...await harness.axe('title'));
+  if (axeCheck) axeFound.push(...(await harness.axe('title')));
   const gameScript = resolve(ROOT, 'games', GAME, 'e2e.mjs');
   if (!generic && existsSync(gameScript)) {
     console.log(`e2e: playing games/${GAME}/e2e.mjs`);
@@ -53,7 +62,11 @@ try {
     await run(harness);
   } else {
     console.log('e2e: no games/<id>/e2e.mjs — replaying `npm run solve -- --json`');
-    const r = spawnSync('npx', ['tsx', 'tools/solve.ts', '--json'], { cwd: ROOT, encoding: 'utf8', env: { ...process.env, GAME } });
+    const r = spawnSync('npx', ['tsx', 'tools/solve.ts', '--json'], {
+      cwd: ROOT,
+      encoding: 'utf8',
+      env: { ...process.env, GAME },
+    });
     const stdout = (r.stdout ?? '').trim();
     if (!stdout) throw new Error(`npm run solve -- --json produced no output${r.stderr ? `: ${r.stderr}` : ''}`);
     const solved = JSON.parse(stdout.split('\n').pop());
@@ -61,7 +74,10 @@ try {
     if (!verdict.ok) throw new Error(`the solver's path cannot prove the game: ${verdict.reason}`);
     console.log(`e2e: replaying ${solved.steps.length} step(s) from the solver`);
     await harness.walkthrough(solved.steps);
-    if (!(await harness.ended())) throw new Error('the solver\'s path was replayed but the game did not reach its ending (engine.state.done is false)');
+    if (!(await harness.ended()))
+      throw new Error(
+        "the solver's path was replayed but the game did not reach its ending (engine.state.done is false)",
+      );
     console.log('e2e: the ending was reached');
   }
   if (lang) {
@@ -71,33 +87,48 @@ try {
     await harness.page.evaluate(() => window.__game.pauseMenu());
     for (const t of await harness.leaks()) found.add(t);
     await harness.page.keyboard.press('Escape').catch(() => {});
-    if (found.size) throw new Error(`language "${lang}": ${found.size} visible text(s) are the engine's English defaults: ${[...found].join(' | ')} (add the keys to the game's ui / locales)`);
+    if (found.size)
+      throw new Error(
+        `language "${lang}": ${found.size} visible text(s) are the engine's English defaults: ${[...found].join(' | ')} (add the keys to the game's ui / locales)`,
+      );
     console.log(`e2e: no English default visible in "${lang}"`);
   }
   if (axeCheck) {
-    axeFound.push(...await harness.axe('ending'));
+    axeFound.push(...(await harness.axe('ending')));
     // A room and its pause menu: back to the first checkpoint (or the start room), then the menu.
-    await harness.page.evaluate(async () => { const g = window.__game; const cp = Object.keys(g.game.checkpoints ?? {})[0]; if (cp) await g.engine.checkpoint(cp); else await g.engine.teleport(g.game.start.room); });
+    await harness.page.evaluate(async () => {
+      const g = window.__game;
+      const cp = Object.keys(g.game.checkpoints ?? {})[0];
+      if (cp) await g.engine.checkpoint(cp);
+      else await g.engine.teleport(g.game.start.room);
+    });
     await harness.page.waitForTimeout(800);
-    axeFound.push(...await harness.axe('room'));
+    axeFound.push(...(await harness.axe('room')));
     await harness.page.evaluate(() => window.__game.pauseMenu());
-    axeFound.push(...await harness.axe('pause menu'));
+    axeFound.push(...(await harness.axe('pause menu')));
     await harness.page.keyboard.press('Escape').catch(() => {});
-    if (axeFound.length) throw new Error(`axe: ${axeFound.length} serious or critical violation(s):\n  ${axeFound.join('\n  ')}`);
+    if (axeFound.length)
+      throw new Error(`axe: ${axeFound.length} serious or critical violation(s):\n  ${axeFound.join('\n  ')}`);
     console.log('e2e: axe found no serious or critical violation (title, room, pause menu, ending)');
   }
   if (saveCheck) {
     const r = await harness.saveRoundTrip();
     if (!r.same) throw new Error(`a manual save did not come back identical after a reload (store ${r.store})`);
-    if (noIndexedDb && r.store !== 'localStorage') throw new Error(`without IndexedDB the game should use its localStorage store, it used ${r.store}`);
-    if (!noIndexedDb && r.store !== 'IndexedDB') throw new Error(`the game should use its IndexedDB store, it used ${r.store}`);
+    if (noIndexedDb && r.store !== 'localStorage')
+      throw new Error(`without IndexedDB the game should use its localStorage store, it used ${r.store}`);
+    if (!noIndexedDb && r.store !== 'IndexedDB')
+      throw new Error(`the game should use its IndexedDB store, it used ${r.store}`);
     console.log(`e2e: a manual save survived a reload (${r.store})`);
   }
   console.log('e2e: done');
 } catch (e) {
   ok = false;
   console.error('e2e: FAILED —', e.message);
-  try { console.error('e2e: engine at failure:', JSON.stringify(await harness.diagnose())); } catch { /* page gone */ }
+  try {
+    console.error('e2e: engine at failure:', JSON.stringify(await harness.diagnose()));
+  } catch {
+    /* page gone */
+  }
 } finally {
   await harness.close();
 }

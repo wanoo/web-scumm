@@ -31,17 +31,29 @@ function copyDemo(): string {
   return dir;
 }
 
-const listen = (fn: (req: IncomingMessage, res: ServerResponse) => void) => new Promise<string>((ok) => {
-  const s = createServer(fn);
-  servers.push(s);
-  s.listen(0, '127.0.0.1', () => ok(`http://127.0.0.1:${(s.address() as AddressInfo).port}`));
-});
-const body = (req: IncomingMessage) => new Promise<any>((ok) => { let s = ''; req.on('data', (c) => { s += c; }); req.on('end', () => ok(JSON.parse(s || '{}'))); });
+const listen = (fn: (req: IncomingMessage, res: ServerResponse) => void) =>
+  new Promise<string>((ok) => {
+    const s = createServer(fn);
+    servers.push(s);
+    s.listen(0, '127.0.0.1', () => ok(`http://127.0.0.1:${(s.address() as AddressInfo).port}`));
+  });
+const body = (req: IncomingMessage) =>
+  new Promise<any>((ok) => {
+    let s = '';
+    req.on('data', (c) => {
+      s += c;
+    });
+    req.on('end', () => ok(JSON.parse(s || '{}')));
+  });
 
 const KEY = 'sk-test-SECRET-123456';
 
 /** A fake chat model: first a call to `validate`, then (once it sees a tool result) a final answer. */
-interface Seen { path: string; headers: IncomingMessage['headers']; body: any }
+interface Seen {
+  path: string;
+  headers: IncomingMessage['headers'];
+  body: any;
+}
 async function fakeProvider(opts: { stream: boolean }) {
   const seen: Seen[] = [];
   const url = await listen(async (req, res) => {
@@ -51,17 +63,39 @@ async function fakeProvider(opts: { stream: boolean }) {
       const done = b.messages.some((m: any) => m.role === 'tool');
       if (!opts.stream) {
         res.setHeader('content-type', 'application/json');
-        res.end(JSON.stringify(done
-          ? { choices: [{ message: { role: 'assistant', content: 'The game validates: no errors.' } }], usage: { prompt_tokens: 10, completion_tokens: 5 } }
-          : { choices: [{ message: { role: 'assistant', content: null, tool_calls: [{ id: 'c1', type: 'function', function: { name: 'validate', arguments: '{}' } }] } }] }));
+        res.end(
+          JSON.stringify(
+            done
+              ? {
+                  choices: [{ message: { role: 'assistant', content: 'The game validates: no errors.' } }],
+                  usage: { prompt_tokens: 10, completion_tokens: 5 },
+                }
+              : {
+                  choices: [
+                    {
+                      message: {
+                        role: 'assistant',
+                        content: null,
+                        tool_calls: [{ id: 'c1', type: 'function', function: { name: 'validate', arguments: '{}' } }],
+                      },
+                    },
+                  ],
+                },
+          ),
+        );
         return;
       }
       res.writeHead(200, { 'content-type': 'text/event-stream' });
-      const chunk = (delta: unknown, extra: object = {}) => res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta }], ...extra })}\n\n`);
-      if (done) { chunk({ content: 'The game ' }); chunk({ content: 'validates: no errors.' }); }
-      else {
+      const chunk = (delta: unknown, extra: object = {}) =>
+        res.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta }], ...extra })}\n\n`);
+      if (done) {
+        chunk({ content: 'The game ' });
+        chunk({ content: 'validates: no errors.' });
+      } else {
         chunk({ content: 'Let me check.' });
-        chunk({ tool_calls: [{ index: 0, id: 'c1', type: 'function', function: { name: 'validate', arguments: '' } }] });
+        chunk({
+          tool_calls: [{ index: 0, id: 'c1', type: 'function', function: { name: 'validate', arguments: '' } }],
+        });
         chunk({ tool_calls: [{ index: 0, function: { arguments: '{}' } }] });
       }
       res.write('data: [DONE]\n\n');
@@ -69,9 +103,12 @@ async function fakeProvider(opts: { stream: boolean }) {
       return;
     }
     if (req.url === '/v1/messages') {
-      const done = b.messages.some((m: any) => Array.isArray(m.content) && m.content.some((c: any) => c.type === 'tool_result'));
+      const done = b.messages.some(
+        (m: any) => Array.isArray(m.content) && m.content.some((c: any) => c.type === 'tool_result'),
+      );
       res.writeHead(200, { 'content-type': 'text/event-stream' });
-      const ev = (type: string, data: object) => res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`);
+      const ev = (type: string, data: object) =>
+        res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`);
       ev('message_start', { message: { usage: { input_tokens: 20, output_tokens: 1 } } });
       if (done) {
         ev('content_block_start', { index: 0, content_block: { type: 'text', text: '' } });
@@ -84,7 +121,10 @@ async function fakeProvider(opts: { stream: boolean }) {
         ev('content_block_delta', { index: 0, delta: { type: 'thinking_delta', thinking: 'Check.' } });
         ev('content_block_delta', { index: 0, delta: { type: 'signature_delta', signature: 'sig' } });
         ev('content_block_stop', { index: 0 });
-        ev('content_block_start', { index: 1, content_block: { type: 'tool_use', id: 'tu1', name: 'validate', input: {} } });
+        ev('content_block_start', {
+          index: 1,
+          content_block: { type: 'tool_use', id: 'tu1', name: 'validate', input: {} },
+        });
         ev('content_block_delta', { index: 1, delta: { type: 'input_json_delta', partial_json: '{' } });
         ev('content_block_delta', { index: 1, delta: { type: 'input_json_delta', partial_json: '}' } });
         ev('content_block_stop', { index: 1 });
@@ -107,8 +147,11 @@ const backend = coreBackend(studio, { root: ROOT, devUrl: 'http://127.0.0.1:9/' 
 describe('tool registry', () => {
   it('exposes the same tools as the MCP server', async () => {
     const transport = new StdioClientTransport({
-      command: join(ROOT, 'node_modules', '.bin', 'tsx'), args: [join(ROOT, 'tools', 'mcp', 'server.ts')], cwd: ROOT,
-      env: { ...getDefaultEnvironment(), GAME: 'demo' }, stderr: 'pipe',
+      command: join(ROOT, 'node_modules', '.bin', 'tsx'),
+      args: [join(ROOT, 'tools', 'mcp', 'server.ts')],
+      cwd: ROOT,
+      env: { ...getDefaultEnvironment(), GAME: 'demo' },
+      stderr: 'pipe',
     });
     const client = new Client({ name: 'assistant-test', version: '0' });
     await client.connect(transport);
@@ -116,8 +159,19 @@ describe('tool registry', () => {
     await client.close();
     expect(tools.map((t) => t.name).sort()).toEqual(TOOLS.map((t) => t.name).sort());
     expect(TOOLS).toHaveLength(23);
-    expect(toolsFor(backend).map((t) => t.name).sort()).toEqual(TOOLS.map((t) => t.name).sort());
-    expect([...WRITING_TOOLS].sort()).toEqual(['add_entity', 'add_note', 'set_layout', 'set_storyboard', 'set_text', 'set_value']);
+    expect(
+      toolsFor(backend)
+        .map((t) => t.name)
+        .sort(),
+    ).toEqual(TOOLS.map((t) => t.name).sort());
+    expect([...WRITING_TOOLS].sort()).toEqual([
+      'add_entity',
+      'add_note',
+      'set_layout',
+      'set_storyboard',
+      'set_text',
+      'set_value',
+    ]);
   }, 30000);
 
   it('produces plain JSON schemas', () => {
@@ -146,17 +200,28 @@ describe('tool registry', () => {
 });
 
 describe('agentic loop', () => {
-  beforeAll(() => { expect(endpoint('https://api.mistral.ai/v1/', 'chat/completions')).toBe('https://api.mistral.ai/v1/chat/completions'); });
+  beforeAll(() => {
+    expect(endpoint('https://api.mistral.ai/v1/', 'chat/completions')).toBe(
+      'https://api.mistral.ai/v1/chat/completions',
+    );
+  });
 
   const run = async (kind: 'openai' | 'anthropic' | 'ollama', baseUrl: string, apiKey?: string) => {
     const events: AssistantEvent[] = [];
     await runAssistant({
-      provider: { kind, baseUrl, model: 'fake-1', apiKey }, system: 'You help.', backend,
-      messages: [{ role: 'user', content: 'Is the game valid?' }], emit: (e) => events.push(e),
+      provider: { kind, baseUrl, model: 'fake-1', apiKey },
+      system: 'You help.',
+      backend,
+      messages: [{ role: 'user', content: 'Is the game valid?' }],
+      emit: (e) => events.push(e),
     });
     return events;
   };
-  const text = (ev: AssistantEvent[]) => ev.filter((e) => e.type === 'text').map((e) => (e as { delta: string }).delta).join('');
+  const text = (ev: AssistantEvent[]) =>
+    ev
+      .filter((e) => e.type === 'text')
+      .map((e) => (e as { delta: string }).delta)
+      .join('');
 
   it('OpenAI format, streamed: calls validate and returns the answer', async () => {
     const p = await fakeProvider({ stream: true });
@@ -198,13 +263,22 @@ describe('agentic loop', () => {
     expect(p.seen[0].body).toMatchObject({ model: 'fake-1', system: 'You help.', stream: true });
     expect(p.seen[0].body.tools[0]).toHaveProperty('input_schema');
     const m = p.seen[1].body.messages;
-    expect(m[1]).toMatchObject({ role: 'assistant', content: [{ type: 'thinking', thinking: 'Check.', signature: 'sig' }, { type: 'tool_use', id: 'tu1', name: 'validate', input: {} }] });
+    expect(m[1]).toMatchObject({
+      role: 'assistant',
+      content: [
+        { type: 'thinking', thinking: 'Check.', signature: 'sig' },
+        { type: 'tool_use', id: 'tu1', name: 'validate', input: {} },
+      ],
+    });
     expect(m[2]).toMatchObject({ role: 'user', content: [{ type: 'tool_result', tool_use_id: 'tu1' }] });
     expect(ev.at(-1)).toMatchObject({ type: 'done', usage: { input: 40, output: 10 } });
   }, 60000);
 
   it('a provider error is an error event without the key', async () => {
-    const url = await listen((_req, res) => { res.statusCode = 401; res.end(JSON.stringify({ error: { message: `Incorrect API key provided: ${KEY}` } })); });
+    const url = await listen((_req, res) => {
+      res.statusCode = 401;
+      res.end(JSON.stringify({ error: { message: `Incorrect API key provided: ${KEY}` } }));
+    });
     const ev = await run('openai', url, KEY);
     const err = ev.find((e) => e.type === 'error') as { message: string };
     expect(err.message).toContain('401');
@@ -216,17 +290,26 @@ describe('agentic loop', () => {
 describe('relay routes', () => {
   let base = '';
   beforeAll(async () => {
-    const handler = assistantHandler(studio, { root: ROOT, devUrl: () => 'http://127.0.0.1:9/', allowCustomProvider: true, allowPrivateProviderForTests: true });
+    const handler = assistantHandler(studio, {
+      root: ROOT,
+      devUrl: () => 'http://127.0.0.1:9/',
+      allowCustomProvider: true,
+      allowPrivateProviderForTests: true,
+    });
     base = await listen((req, res) => {
       req.url = (req.url ?? '').replace(/^\/__studio\/api\/assistant/, '');
-      void handler(req, res, () => { res.statusCode = 404; res.end('{"error":"no such endpoint"}'); });
+      void handler(req, res, () => {
+        res.statusCode = 404;
+        res.end('{"error":"no such endpoint"}');
+      });
     });
   });
 
   it('POST assistant/chat streams the events of the loop', async () => {
     const p = await fakeProvider({ stream: true });
     const r = await fetch(`${base}/__studio/api/assistant/chat`, {
-      method: 'POST', headers: { 'content-type': 'application/json' },
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         provider: { kind: 'openai', baseUrl: p.url, model: 'fake-1', apiKey: KEY },
         messages: [{ role: 'user', content: 'Is the game valid?' }],
@@ -235,7 +318,10 @@ describe('relay routes', () => {
     });
     expect(r.headers.get('content-type')).toContain('text/event-stream');
     const raw = await r.text();
-    const ev = raw.split('\n\n').filter((l) => l.startsWith('data: ')).map((l) => JSON.parse(l.slice(6)) as AssistantEvent);
+    const ev = raw
+      .split('\n\n')
+      .filter((l) => l.startsWith('data: '))
+      .map((l) => JSON.parse(l.slice(6)) as AssistantEvent);
     expect(ev.map((e) => e.type)).toEqual(expect.arrayContaining(['text', 'tool_call', 'tool_result', 'done']));
     expect(raw).not.toContain(KEY);
     // The system prompt: AGENTS.md, the game, the selection and its texts.
@@ -247,13 +333,19 @@ describe('relay routes', () => {
   }, 60000);
 
   it('POST assistant/chat refuses a bad request', async () => {
-    const r = await fetch(`${base}/__studio/api/assistant/chat`, { method: 'POST', body: JSON.stringify({ provider: { kind: 'x' }, messages: [] }) });
+    const r = await fetch(`${base}/__studio/api/assistant/chat`, {
+      method: 'POST',
+      body: JSON.stringify({ provider: { kind: 'x' }, messages: [] }),
+    });
     expect(r.status).toBe(400);
     expect((await r.json()).error).toContain('provider.kind');
   });
 
   it('POST assistant/task writes a task note', async () => {
-    const r = await fetch(`${base}/__studio/api/assistant/task`, { method: 'POST', body: JSON.stringify({ about: 'house.pantry', text: 'Write 3 look lines' }) });
+    const r = await fetch(`${base}/__studio/api/assistant/task`, {
+      method: 'POST',
+      body: JSON.stringify({ about: 'house.pantry', text: 'Write 3 look lines' }),
+    });
     const note = await r.json();
     expect(note).toMatchObject({ about: 'house.pantry', author: 'you', text: 'Write 3 look lines', task: true });
     const file = JSON.parse(readFileSync(join(demoDir, 'notes.json'), 'utf8'));
@@ -263,10 +355,16 @@ describe('relay routes', () => {
 
 describe('provider URL policy', () => {
   it('allows presets and explicit local Ollama, but blocks SSRF destinations', () => {
-    expect(parseProvider({ kind: 'openai', baseUrl: 'https://api.openai.com', model: 'gpt' }).baseUrl).toBe('https://api.openai.com');
+    expect(parseProvider({ kind: 'openai', baseUrl: 'https://api.openai.com', model: 'gpt' }).baseUrl).toBe(
+      'https://api.openai.com',
+    );
     expect(parseProvider({ kind: 'ollama', baseUrl: 'http://127.0.0.1:11434', model: 'qwen' }).kind).toBe('ollama');
-    expect(() => parseProvider({ kind: 'openai', baseUrl: 'http://169.254.169.254/latest', model: 'x' }, true)).toThrow(/HTTPS|private/);
+    expect(() => parseProvider({ kind: 'openai', baseUrl: 'http://169.254.169.254/latest', model: 'x' }, true)).toThrow(
+      /HTTPS|private/,
+    );
     expect(() => parseProvider({ kind: 'openai', baseUrl: 'https://example.test', model: 'x' })).toThrow(/disabled/);
-    expect(parseProvider({ kind: 'openai', baseUrl: 'https://example.test/v1', model: 'x' }, true).baseUrl).toContain('example.test');
+    expect(parseProvider({ kind: 'openai', baseUrl: 'https://example.test/v1', model: 'x' }, true).baseUrl).toContain(
+      'example.test',
+    );
   });
 });

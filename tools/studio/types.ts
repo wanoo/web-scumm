@@ -1,6 +1,16 @@
 // Shared types of the Studio: the core functions (tools/studio/core.ts), the dev-server API (tools/studio/plugin.ts),
 // the Studio UI (src/studio/) and the MCP server all speak these shapes. Type-only: safe to import from the browser.
-import type { CharacterDef, GameDef, Id, ItemDef, Layout, Point, RoomDef, ScoreDef, VerbDef } from '../../src/engine/core/types';
+import type {
+  CharacterDef,
+  GameDef,
+  Id,
+  ItemDef,
+  Layout,
+  Point,
+  RoomDef,
+  ScoreDef,
+  VerbDef,
+} from '../../src/engine/core/types';
 import type { ContentReport } from '../../src/engine/tools/report';
 import type { WorldGraph } from '../../src/engine/tools/graph';
 import type { LiveClass, PuzzleGraph } from '../../src/engine/tools/puzzle';
@@ -12,15 +22,15 @@ import type { LintResult } from '../../src/engine/tools/lint';
 
 /** What a text literal is, from its JSON path in the room file. */
 export type TextKind =
-  | 'name'    // room / prop / hotspot / actor display name
-  | 'look'    // a look line
-  | 'say'     // { say: [who, text] }: `who` holds the speaker
-  | 'hero'    // a bare string in a command list: the hero says it
-  | 'topic'   // a conversation topic
-  | 'hint'    // a hint line
-  | 'toast'   // { toast: text }
-  | 'choice'  // { choice: [{ text }] }
-  | 'guide';  // { guide: { say } }
+  | 'name' // room / prop / hotspot / actor display name
+  | 'look' // a look line
+  | 'say' // { say: [who, text] }: `who` holds the speaker
+  | 'hero' // a bare string in a command list: the hero says it
+  | 'topic' // a conversation topic
+  | 'hint' // a hint line
+  | 'toast' // { toast: text }
+  | 'choice' // { choice: [{ text }] }
+  | 'guide'; // { guide: { say } }
 
 /** A text literal of a room file, addressed by its JSON path under `defineRoom({...})`. */
 export interface TextRef {
@@ -79,9 +89,16 @@ export interface AddEntity {
 }
 
 /** `{ path, value }`: replace. `value: null`: delete (an array element, or a whole `look.<id>`). `path` ending in `[+]`: append. */
-export interface SetText { path: string; value: string | null }
+export interface SetText {
+  path: string;
+  value: string | null;
+}
 
-export interface EditResult { ok: true; line: number; changed: boolean }
+export interface EditResult {
+  ok: true;
+  line: number;
+  changed: boolean;
+}
 
 export interface Note {
   id: string;
@@ -96,34 +113,81 @@ export interface Note {
   /** A request from the human for an AI agent to pick up (the Studio's Assistant, "Send as a task"). */
   task?: true;
 }
-export interface NewNote { about?: string; author?: string; text: string; task?: boolean }
-export interface NotesFile { entries: Note[] }
+export interface NewNote {
+  about?: string;
+  author?: string;
+  text: string;
+  task?: boolean;
+}
+export interface NotesFile {
+  entries: Note[];
+}
 /** PUT notes/:id: the new text (and optionally a new `about`). */
-export interface NoteEdit { text: string; about?: string }
+export interface NoteEdit {
+  text: string;
+  about?: string;
+}
 
 /** POST storyboard/markdown: the file written (relative to the repository root) and its size. */
-export interface MarkdownResult { ok: true; file: string; bytes: number; boards: number; panels: number }
+export interface MarkdownResult {
+  ok: true;
+  file: string;
+  bytes: number;
+  boards: number;
+  panels: number;
+}
 
-export interface ValidateResult { ok: boolean; errors: string[]; warnings: string[]; ms: number }
+export interface ValidateResult {
+  ok: boolean;
+  errors: string[];
+  warnings: string[];
+  ms: number;
+}
 
 /** The content profiler (src/engine/tools/report.ts) with its Markdown rendering. */
-export interface ReportData { report: ContentReport; markdown: string; ms: number }
+export interface ReportData {
+  report: ContentReport;
+  markdown: string;
+  ms: number;
+}
 /** The world's map (src/engine/tools/graph.ts), with an SVG and a DOT rendering. */
-export interface GraphData { graph: WorldGraph; svg: string; dot: string }
+export interface GraphData {
+  graph: WorldGraph;
+  svg: string;
+  dot: string;
+}
 /** The puzzle graph (src/engine/tools/puzzle.ts): the whole graph as SVG and DOT, the overview or one card as Markdown. */
 export interface PuzzleData {
-  graph: PuzzleGraph; svg: string; dot: string; markdown: string; id?: string;
+  graph: PuzzleGraph;
+  svg: string;
+  dot: string;
+  markdown: string;
+  id?: string;
   /** Why the solver keeps each node: critical (reaches the end or a goal), world, visible, or dead (not in its state). */
   classes: Record<string, LiveClass>;
 }
 
 /** The storyboard checked against the content (src/engine/tools/coverage.ts), with its Markdown rendering. */
-export interface CoverageData { coverage: Coverage; markdown: string; ms: number }
+export interface CoverageData {
+  coverage: Coverage;
+  markdown: string;
+  ms: number;
+}
 
 /** The playtests of games/<id>/playtests replayed and summed up (src/engine/tools/playtests.ts). */
-export interface PlaytestsData { report: PlaytestReport; markdown: string; files: number; ms: number }
+export interface PlaytestsData {
+  report: PlaytestReport;
+  markdown: string;
+  files: number;
+  ms: number;
+}
 /** The content lint (src/engine/tools/lint.ts) after a solver run, with its Markdown rendering. */
-export interface LintData { lint: LintResult; markdown: string; mode: 'static' | 'witness' | 'prove'; ms: number }
+export interface LintData {
+  lint: LintResult;
+  markdown: string;
+  mode: 'static' | 'witness' | 'prove';
+  ms: number;
+}
 
 export interface SolveData {
   /** Honest outcome of the search and the mode it ran in, with its exit code and sentence (`src/engine/tools/status.ts`): the same as `npm run solve`. */
@@ -301,17 +365,58 @@ export interface AssetsListing {
 }
 
 /** POST assets/sheet: an uploaded sheet (base64, data URL accepted) cut into `art/<sheetId>/`. */
-export interface SheetUpload { sheetId: string; grid?: string; cells?: string; data: string }
-export interface SheetUploadResult { ok: true; file: string; output: string; written: string[]; backups: string[]; cells: AssetCell[] }
+export interface SheetUpload {
+  sheetId: string;
+  grid?: string;
+  cells?: string;
+  data: string;
+}
+export interface SheetUploadResult {
+  ok: true;
+  file: string;
+  output: string;
+  written: string[];
+  backups: string[];
+  cells: AssetCell[];
+}
 /** 409 body of POST assets/sheet: cells that exist and would be overwritten. */
-export interface SheetConflict { error: string; conflicts: string[] }
+export interface SheetConflict {
+  error: string;
+  conflicts: string[];
+}
 
 /** POST assets/cell: replace (or add) one cell. `key`: 'auto' (default: key a flat background), 'always', 'never'. */
-export interface CellReplace { sheetId: string; cell: string; data: string; key?: 'auto' | 'always' | 'never' }
-export interface CellReplaceResult { ok: true; file: string; backup?: string; keyed: 'keyed' | 'kept' | 'opaque'; cell: AssetCell }
+export interface CellReplace {
+  sheetId: string;
+  cell: string;
+  data: string;
+  key?: 'auto' | 'always' | 'never';
+}
+export interface CellReplaceResult {
+  ok: true;
+  file: string;
+  backup?: string;
+  keyed: 'keyed' | 'kept' | 'opaque';
+  cell: AssetCell;
+}
 
-export interface SoundUpload { kind: 'music' | 'sfx'; file: string; data: string }
-export interface DecorUpload { name: string; data: string }
-export interface UploadResult { ok: true; file: string; backup?: string }
+export interface SoundUpload {
+  kind: 'music' | 'sfx';
+  file: string;
+  data: string;
+}
+export interface DecorUpload {
+  name: string;
+  data: string;
+}
+export interface UploadResult {
+  ok: true;
+  file: string;
+  backup?: string;
+}
 
-export interface PrepareResult { ok: boolean; code: number; output: string }
+export interface PrepareResult {
+  ok: boolean;
+  code: number;
+  output: string;
+}

@@ -51,7 +51,12 @@ export const chaptersExitCode = (p: Pick<ChaptersProof, 'status'>) => exitOf(p.s
 const worst = worstStatus;
 
 /** The state a hand-written checkpoint stands for. */
-async function checkpointState(game: GameDef, layouts: Record<string, Layout>, id: Id, commands?: CustomCommands): Promise<GameState> {
+async function checkpointState(
+  game: GameDef,
+  layouts: Record<string, Layout>,
+  id: Id,
+  commands?: CustomCommands,
+): Promise<GameState> {
   const e = new Engine(structuredClone(game), layouts, new FakePresenter(), new MemoryStore(), { commands });
   await e.checkpoint(id);
   return structuredClone(e.state);
@@ -60,7 +65,27 @@ async function checkpointState(game: GameDef, layouts: Record<string, Layout>, i
 /** Default cap on the boundary states a chapter is proved from: past it, the chapter is `truncated` (never green). */
 export const MAX_STARTS = 1000;
 
-export async function proveChapters(game: GameDef, layouts: Record<string, Layout>, opts: Pick<SolveOptions, 'maxStates' | 'commands' | 'por' | 'unsafeReduction' | 'workers' | 'batch' | 'gameModule' | 'timeLimitMs' | 'ownership'> & { mode?: 'witness' | 'prove'; maxStarts?: number; budget?: number; /** The search to run (the tools pass the persistent proof cache's). */ solver?: typeof solve } = {}): Promise<ChaptersProof> {
+export async function proveChapters(
+  game: GameDef,
+  layouts: Record<string, Layout>,
+  opts: Pick<
+    SolveOptions,
+    | 'maxStates'
+    | 'commands'
+    | 'por'
+    | 'unsafeReduction'
+    | 'workers'
+    | 'batch'
+    | 'gameModule'
+    | 'timeLimitMs'
+    | 'ownership'
+  > & {
+    mode?: 'witness' | 'prove';
+    maxStarts?: number;
+    budget?: number /** The search to run (the tools pass the persistent proof cache's). */;
+    solver?: typeof solve;
+  } = {},
+): Promise<ChaptersProof> {
   const run1 = opts.solver ?? solve;
   const maxStarts = opts.maxStarts ?? MAX_STARTS;
   // The whole proof's state budget, every chapter and every start together: past it, the proof is `truncated`.
@@ -73,30 +98,69 @@ export async function proveChapters(game: GameDef, layouts: Record<string, Layou
   let status: SolveResult['status'] = 'solved';
   // The starts of the current chapter: `new`, or the previous chapter's boundary states.
   let starts: ({ state: GameState } | 'new')[] = ['new'];
-  const run = async (id: ChapterProof['id'], goal: SolveOptions['goal'], nextGoal: SolveOptions['goal'] | undefined, cpId?: Id) => {
+  const run = async (
+    id: ChapterProof['id'],
+    goal: SolveOptions['goal'],
+    nextGoal: SolveOptions['goal'] | undefined,
+    cpId?: Id,
+  ) => {
     const t = Date.now();
     const results: SolveResult[] = [];
     let st: SolveResult['status'] = 'solved';
     const nextBoundaries = new Map<string, GameState>();
     if (starts.length > maxStarts) {
       // Too many distinct ways into this chapter to prove each one within the budget: say so, prove nothing more.
-      chapters.push({ id, from: starts.length, distinct: starts.length, status: 'truncated', states: 0, softlockCount: 0, ms: Date.now() - t, boundaries: 0, results });
+      chapters.push({
+        id,
+        from: starts.length,
+        distinct: starts.length,
+        status: 'truncated',
+        states: 0,
+        softlockCount: 0,
+        ms: Date.now() - t,
+        boundaries: 0,
+        results,
+      });
       status = worst(status, 'truncated');
       starts = [];
       return;
     }
     // One search from every boundary state at once, sharing its seen states (a state is safe or not whichever start
     // reached it): the chapter costs the union of what the starts reach, not the sum.
-    const groups: ({ state: GameState } | 'new' | { states: GameState[] })[] = mode === 'prove' && starts.length > 1 && starts.every((x) => x !== 'new')
-      ? [{ states: (starts as { state: GameState }[]).map((x) => x.state) }] : starts;
+    const groups: ({ state: GameState } | 'new' | { states: GameState[] })[] =
+      mode === 'prove' && starts.length > 1 && starts.every((x) => x !== 'new')
+        ? [{ states: (starts as { state: GameState }[]).map((x) => x.state) }]
+        : starts;
     for (const start of groups) {
-      if (spent >= budget) { st = worst(st, 'truncated'); break; }
-      const r = await run1(game, layouts, { maxStates: Math.min((opts.maxStates ?? 20000) * Math.max(1, typeof start === 'object' && 'states' in start ? 10 : 1), budget - spent), start, goal, commands: opts.commands, por: opts.por, unsafeReduction: opts.unsafeReduction, mode,
-        ...(opts.workers !== undefined ? { workers: opts.workers, batch: opts.batch, gameModule: opts.gameModule } : {}), ...(opts.ownership === false ? { ownership: false } : {}), ...(opts.timeLimitMs ? { timeLimitMs: Math.max(1, opts.timeLimitMs - (Date.now() - t0)) } : {}) });
+      if (spent >= budget) {
+        st = worst(st, 'truncated');
+        break;
+      }
+      const r = await run1(game, layouts, {
+        maxStates: Math.min(
+          (opts.maxStates ?? 20000) * Math.max(1, typeof start === 'object' && 'states' in start ? 10 : 1),
+          budget - spent,
+        ),
+        start,
+        goal,
+        commands: opts.commands,
+        por: opts.por,
+        unsafeReduction: opts.unsafeReduction,
+        mode,
+        ...(opts.workers !== undefined
+          ? { workers: opts.workers, batch: opts.batch, gameModule: opts.gameModule }
+          : {}),
+        ...(opts.ownership === false ? { ownership: false } : {}),
+        ...(opts.timeLimitMs ? { timeLimitMs: Math.max(1, opts.timeLimitMs - (Date.now() - t0)) } : {}),
+      });
       spent += r.states;
       results.push(r);
       st = worst(st, r.status);
-      if (mode === 'prove') for (const b of r.boundaries) { const k = projectState(game, layouts, b, { commands: opts.commands, goal: nextGoal }); if (!nextBoundaries.has(k)) nextBoundaries.set(k, b); }
+      if (mode === 'prove')
+        for (const b of r.boundaries) {
+          const k = projectState(game, layouts, b, { commands: opts.commands, goal: nextGoal });
+          if (!nextBoundaries.has(k)) nextBoundaries.set(k, b);
+        }
     }
     let checkpointUnreachable: boolean | undefined, checkpointDiff: string[] | undefined;
     if (mode === 'prove' && cpId && st !== 'truncated' && st !== 'error') {
@@ -109,17 +173,39 @@ export async function proveChapters(game: GameDef, layouts: Record<string, Layou
         let best: string[] = [];
         for (const k of nextBoundaries.keys()) {
           const have = Object.fromEntries(JSON.parse(k) as [string, string][]);
-          const diff = [...new Set([...Object.keys(want), ...Object.keys(have)])].filter((d) => want[d] !== have[d]).map((d) => `${d}: ${want[d] ?? '—'} vs ${have[d] ?? '—'}`);
+          const diff = [...new Set([...Object.keys(want), ...Object.keys(have)])]
+            .filter((d) => want[d] !== have[d])
+            .map((d) => `${d}: ${want[d] ?? '—'} vs ${have[d] ?? '—'}`);
           if (!best.length || diff.length < best.length) best = diff;
         }
         checkpointDiff = best;
       }
     }
-    const proof: ChapterProof = { id, from: starts.length, distinct: starts.length, status: st, states: results.reduce((n, r) => n + r.states, 0), softlockCount: results.reduce((n, r) => n + r.softlockCount, 0), ms: Date.now() - t, boundaries: nextBoundaries.size, results, ...(checkpointUnreachable !== undefined ? { checkpointUnreachable } : {}), ...(checkpointDiff ? { checkpointDiff } : {}) };
+    const proof: ChapterProof = {
+      id,
+      from: starts.length,
+      distinct: starts.length,
+      status: st,
+      states: results.reduce((n, r) => n + r.states, 0),
+      softlockCount: results.reduce((n, r) => n + r.softlockCount, 0),
+      ms: Date.now() - t,
+      boundaries: nextBoundaries.size,
+      results,
+      ...(checkpointUnreachable !== undefined ? { checkpointUnreachable } : {}),
+      ...(checkpointDiff ? { checkpointDiff } : {}),
+    };
     chapters.push(proof);
     status = worst(status, st);
-    if (st === 'truncated') { starts = []; return; }
-    if (mode === 'prove') starts = nextBoundaries.size ? [...nextBoundaries.values()].map((state) => ({ state })) : (cpId ? [{ state: await checkpointState(game, layouts, cpId, opts.commands) }] : []);
+    if (st === 'truncated') {
+      starts = [];
+      return;
+    }
+    if (mode === 'prove')
+      starts = nextBoundaries.size
+        ? [...nextBoundaries.values()].map((state) => ({ state }))
+        : cpId
+          ? [{ state: await checkpointState(game, layouts, cpId, opts.commands) }]
+          : [];
     else starts = cpId ? [{ state: await checkpointState(game, layouts, cpId, opts.commands) }] : [];
   };
   for (let i = 0; i < cps.length; i++) {
@@ -131,5 +217,11 @@ export async function proveChapters(game: GameDef, layouts: Record<string, Layou
   if (cps.length && starts.length) await run('ending', undefined, undefined);
   const mismatch = chapters.some((c) => c.checkpointUnreachable);
   const final: ProofStatus = status === 'solved' && mismatch ? 'checkpoint_mismatch' : status;
-  return { status: final, exit: exitOf(final), headline: chaptersHeadline({ status: final, chapters }), chapters, ms: Date.now() - t0 };
+  return {
+    status: final,
+    exit: exitOf(final),
+    headline: chaptersHeadline({ status: final, chapters }),
+    chapters,
+    ms: Date.now() - t0,
+  };
 }

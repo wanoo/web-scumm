@@ -14,7 +14,12 @@ describe('mergeLocale', () => {
     const fr = mergeLocale(paths0, {}, {});
     expect(fr.added).toBe(paths0.length);
     // translate two of them
-    const table = { ...fr.table, 'room:a/look.valise[0]': 'A suitcase.', 'room:a/look.valise[1]': 'Still a suitcase.', 'room:a/look.uncle': 'Uncle.' };
+    const table = {
+      ...fr.table,
+      'room:a/look.valise[0]': 'A suitcase.',
+      'room:a/look.valise[1]': 'Still a suitcase.',
+      'room:a/look.uncle': 'Uncle.',
+    };
     // reorder the list, drop the uncle's line
     g.rooms[0].look = { valise: ['Toujours une valise.', 'Une valise.'] };
     const m = mergeLocale(textPaths(g), table, base0);
@@ -51,11 +56,16 @@ describe('lines keyed by id', () => {
     const { FakePresenter, MemoryStore } = await import('@engine/core/ports');
     const { mini, miniLayouts } = await import('./fixtures/mini');
     const g = mini();
-    g.rooms[0].on = [{ id: 'r.open-door', verb: 'open', a: 'door', do: ['Locked.', { say: ['hero', 'Really locked.'] }] }];
+    g.rooms[0].on = [
+      { id: 'r.open-door', verb: 'open', a: 'door', do: ['Locked.', { say: ['hero', 'Really locked.'] }] },
+    ];
     const { game: v3, map } = assignIds(g, { lines: true });
     const table = { 'room:a/on.r.open-door.do[0]': 'Fermé.', 'room:a/on.r.open-door.do[1].say': 'Vraiment fermé.' };
     const renamed = renamePaths(table, map.paths);
-    expect(renamed).toEqual({ 'room:a/on.r.open-door.do[0]': 'Fermé.', 'room:a/on.r.open-door.do.r.open-door.l-really-locked.say': 'Vraiment fermé.' });
+    expect(renamed).toEqual({
+      'room:a/on.r.open-door.do[0]': 'Fermé.',
+      'room:a/on.r.open-door.do.r.open-door.l-really-locked.say': 'Vraiment fermé.',
+    });
     const fr = applyLocale(v3, renamed);
     expect((fr.rooms[0].on![0].do[1] as { say: [string, string] }).say[1]).toBe('Vraiment fermé.');
     // the voice: `audio.voices` keyed by the line id, no `voice` written on the line
@@ -78,4 +88,3 @@ describe('identical on purpose', () => {
     expect(localeStatus(g, table).untranslated).toEqual(all.same.slice(1));
   });
 });
-

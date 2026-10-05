@@ -7,6 +7,9 @@ import garden from './layout/garden.json';
 import manifestJson from './assets.gen.json';
 
 export { game };
-export const layouts: Record<string, Layout> = { house: house as unknown as Layout, garden: garden as unknown as Layout };
+export const layouts: Record<string, Layout> = {
+  house: house as unknown as Layout,
+  garden: garden as unknown as Layout,
+};
 export const manifest = manifestJson as unknown as AssetManifest;
 export const minigames = {};

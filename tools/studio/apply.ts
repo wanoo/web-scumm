@@ -17,20 +17,28 @@ export interface ApplySummary {
 
 function describe(p: StudioPatch): string {
   switch (p.kind) {
-    case 'text': return `${p.room} ${p.path}: ${p.value === null ? 'delete' : JSON.stringify(p.value.length > 60 ? p.value.slice(0, 58) + '…' : p.value)}`;
-    case 'layout': return `${p.room} layout`;
-    case 'entity': return `${p.room} add ${p.entity.kind} ${p.entity.id}`;
-    case 'storyboard': return 'storyboard';
-    case 'note': return `note about "${p.note.about}" by ${p.note.author}`;
-    case 'note-edit': return `edit note ${p.id}`;
-    case 'note-delete': return `delete note ${p.id}`;
+    case 'text':
+      return `${p.room} ${p.path}: ${p.value === null ? 'delete' : JSON.stringify(p.value.length > 60 ? p.value.slice(0, 58) + '…' : p.value)}`;
+    case 'layout':
+      return `${p.room} layout`;
+    case 'entity':
+      return `${p.room} add ${p.entity.kind} ${p.entity.id}`;
+    case 'storyboard':
+      return 'storyboard';
+    case 'note':
+      return `note about "${p.note.about}" by ${p.note.author}`;
+    case 'note-edit':
+      return `edit note ${p.id}`;
+    case 'note-delete':
+      return `delete note ${p.id}`;
   }
 }
 
 /** Reads and checks a patch file's content. */
 export function parsePatchFile(raw: unknown): StudioPatchFile {
   const f = raw as StudioPatchFile;
-  if (!f || f.format !== 'web-scumm-studio-patch' || !Array.isArray(f.patches)) throw new Error('not a Studio patch (expected { format: "web-scumm-studio-patch", patches: [...] })');
+  if (!f || f.format !== 'web-scumm-studio-patch' || !Array.isArray(f.patches))
+    throw new Error('not a Studio patch (expected { format: "web-scumm-studio-patch", patches: [...] })');
   return f;
 }
 
@@ -41,16 +49,32 @@ export async function applyPatches(patches: StudioPatch[], studio: Studio = crea
     try {
       let changed = true;
       switch (p.kind) {
-        case 'text': changed = (await studio.setText(p.room, p.path, p.value)).changed; break;
-        case 'layout': await studio.setLayout(p.room, p.layout); break;
-        case 'entity': await studio.addEntity(p.room, p.entity); break;
-        case 'storyboard': changed = (await studio.setStoryboard(p.storyboard)).changed; break;
-        case 'note': await studio.addNote({ about: p.note.about, author: p.note.author, text: p.note.text }); break;
-        case 'note-edit': await studio.editNote(p.id, { text: p.text, about: p.about }); break;
-        case 'note-delete': await studio.deleteNote(p.id); break;
-        default: throw new Error(`unknown patch kind: ${(p as { kind?: string }).kind}`);
+        case 'text':
+          changed = (await studio.setText(p.room, p.path, p.value)).changed;
+          break;
+        case 'layout':
+          await studio.setLayout(p.room, p.layout);
+          break;
+        case 'entity':
+          await studio.addEntity(p.room, p.entity);
+          break;
+        case 'storyboard':
+          changed = (await studio.setStoryboard(p.storyboard)).changed;
+          break;
+        case 'note':
+          await studio.addNote({ about: p.note.about, author: p.note.author, text: p.note.text });
+          break;
+        case 'note-edit':
+          await studio.editNote(p.id, { text: p.text, about: p.about });
+          break;
+        case 'note-delete':
+          await studio.deleteNote(p.id);
+          break;
+        default:
+          throw new Error(`unknown patch kind: ${(p as { kind?: string }).kind}`);
       }
-      if (changed) sum.applied++; else sum.unchanged++;
+      if (changed) sum.applied++;
+      else sum.unchanged++;
       sum.log.push(`${changed ? '✔' : '='} ${describe(p)}`);
     } catch (e) {
       sum.failed.push({ patch: p, error: (e as Error).message });
@@ -62,14 +86,21 @@ export async function applyPatches(patches: StudioPatch[], studio: Studio = crea
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const arg = process.argv[2];
-  if (!arg) { console.error('usage: npm run studio-apply <patch.json>'); process.exit(2); }
+  if (!arg) {
+    console.error('usage: npm run studio-apply <patch.json>');
+    process.exit(2);
+  }
   (async () => {
     const file = parsePatchFile(JSON.parse(readFileSync(resolve(arg), 'utf8')));
     const studio = createStudio();
-    if (file.game && file.game !== studio.gameId) console.warn(`⚠ the patch was made on "${file.game}", the current game is "${studio.gameId}"`);
+    if (file.game && file.game !== studio.gameId)
+      console.warn(`⚠ the patch was made on "${file.game}", the current game is "${studio.gameId}"`);
     const sum = await applyPatches(file.patches, studio);
     for (const l of sum.log) console.log(l);
     console.log(`${sum.applied} applied, ${sum.unchanged} unchanged, ${sum.failed.length} failed (${studio.gameDir}).`);
     if (sum.failed.length) process.exit(1);
-  })().catch((e) => { console.error(`✘ ${(e as Error).message}`); process.exit(1); });
+  })().catch((e) => {
+    console.error(`✘ ${(e as Error).message}`);
+    process.exit(1);
+  });
 }

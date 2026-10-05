@@ -40,9 +40,25 @@ export function normalizeExits(game: GameDef): GameDef {
     for (const [id, ex] of Object.entries(r.exits)) {
       // Idempotent through the data itself (a clone of a normalised game is normalised too): generated things are marked.
       if (r.on?.some((x) => x.exit === id)) continue;
-      r.hotspots = { ...(r.hotspots ?? {}), [id]: r.hotspots?.[id] ?? { name: ex.name, kind: ['exit', ...(ex.kind ?? [])], visible: ex.visible, exit: true } };
-      const verb: VerbId[] = ex.verbs ?? (defaults.length ? defaults : verbs.filter((v) => !['look', 'talk', 'give', 'take'].includes(v)));
-      rules.push({ id: `exit.${r.id}.${id}.go`, verb, a: id, if: ex.if, do: [...(ex.sfx ? [{ sfx: ex.sfx }] : []), { goto: ex.to, at: ex.entry }], exit: id });
+      r.hotspots = {
+        ...(r.hotspots ?? {}),
+        [id]: r.hotspots?.[id] ?? {
+          name: ex.name,
+          kind: ['exit', ...(ex.kind ?? [])],
+          visible: ex.visible,
+          exit: true,
+        },
+      };
+      const verb: VerbId[] =
+        ex.verbs ?? (defaults.length ? defaults : verbs.filter((v) => !['look', 'talk', 'give', 'take'].includes(v)));
+      rules.push({
+        id: `exit.${r.id}.${id}.go`,
+        verb,
+        a: id,
+        if: ex.if,
+        do: [...(ex.sfx ? [{ sfx: ex.sfx }] : []), { goto: ex.to, at: ex.entry }],
+        exit: id,
+      });
       if (ex.locked) rules.push({ id: `exit.${r.id}.${id}.locked`, verb, a: id, do: [ex.locked], exit: id });
     }
     r.on = [...(r.on ?? []), ...rules];
@@ -62,13 +78,26 @@ export function assignKeys(game: GameDef): GameDef {
     cmds.forEach((c, i) => {
       if (typeof c === 'string') return;
       const here = `${prefix}.${i}`;
-      if ('anim' in c && c.at) { for (const [i, b] of Object.entries(c.at)) walk(b, `${here}.at${i}`); return; }
-      if ('once' in c) { c.key ??= c.id ?? here; walk(c.once, here); }
-      else if ('nth' in c) { c.key ??= c.id ?? here; c.nth.forEach((b, j) => walk(b, `${here}.${j}`)); }
-      else if ('cycle' in c) { c.key ??= c.id ?? here; c.cycle.forEach((b, j) => walk(b, `${here}.${j}`)); }
-      else if ('random' in c) { c.key ??= c.id ?? here; c.random.forEach((b, j) => walk(b, `${here}.${j}`)); }
-      else if ('if' in c) { walk(c.then, here + 't'); walk(c.else, here + 'e'); }
-      else if ('parallel' in c) c.parallel.forEach((b, j) => walk(b, `${here}.p${j}`));
+      if ('anim' in c && c.at) {
+        for (const [i, b] of Object.entries(c.at)) walk(b, `${here}.at${i}`);
+        return;
+      }
+      if ('once' in c) {
+        c.key ??= c.id ?? here;
+        walk(c.once, here);
+      } else if ('nth' in c) {
+        c.key ??= c.id ?? here;
+        c.nth.forEach((b, j) => walk(b, `${here}.${j}`));
+      } else if ('cycle' in c) {
+        c.key ??= c.id ?? here;
+        c.cycle.forEach((b, j) => walk(b, `${here}.${j}`));
+      } else if ('random' in c) {
+        c.key ??= c.id ?? here;
+        c.random.forEach((b, j) => walk(b, `${here}.${j}`));
+      } else if ('if' in c) {
+        walk(c.then, here + 't');
+        walk(c.else, here + 'e');
+      } else if ('parallel' in c) c.parallel.forEach((b, j) => walk(b, `${here}.p${j}`));
       else if ('cutscene' in c) walk(c.cutscene, here + 'c');
       else if ('choice' in c) c.choice.forEach((o, j) => walk(o.do, `${here}.o${j}`));
       else if ('minigame' in c) walk(c.then, here + 'm');
@@ -79,11 +108,14 @@ export function assignKeys(game: GameDef): GameDef {
   };
   for (const r of game.rooms) {
     walk(r.onEnter, `${r.id}:enter`);
-    for (const [pid, p] of Object.entries(r.props ?? {})) for (const [an, a] of Object.entries(p.anims ?? {})) for (const [i, b] of Object.entries(a.at ?? {})) walk(b, `${r.id}:prop.${pid}.${an}.${i}`);
+    for (const [pid, p] of Object.entries(r.props ?? {}))
+      for (const [an, a] of Object.entries(p.anims ?? {}))
+        for (const [i, b] of Object.entries(a.at ?? {})) walk(b, `${r.id}:prop.${pid}.${an}.${i}`);
     // Rules generated from exits come last: the written rules keep their keys.
     const nw = r.on?.findIndex((x) => x.exit) ?? -1;
     r.on?.forEach((rule, i) => walk(rule.do, nw < 0 || i < nw ? `${r.id}:on${i}` : `${r.id}:exit${i - nw}`));
-    for (const [actor, topics] of Object.entries(r.talk ?? {})) topics.forEach((t, i) => walk(t.do, `${r.id}:talk.${actor}.${i}`));
+    for (const [actor, topics] of Object.entries(r.talk ?? {}))
+      topics.forEach((t, i) => walk(t.do, `${r.id}:talk.${actor}.${i}`));
     r.scripts?.forEach((sc) => walk(sc.do, `${r.id}:script.${sc.id}`));
     r.events?.forEach((ev, i) => walk(ev.do, `${r.id}:event${i}`));
   }

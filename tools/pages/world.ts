@@ -19,7 +19,13 @@ pre { background: #111; color: #eee; padding: 12px; border-radius: 8px; overflow
 
 export function buildWorld(ctx: PageContext): string {
   const g = worldGraph(ctx.game);
-  const rows = g.edges.filter((e) => e.kind !== 'map').map((e) => `<tr><td>${esc(e.from)}</td><td>→ ${esc(e.to)}</td><td>${esc(e.kind)}</td><td>${esc(e.via)}${e.oneWay ? ' (one way)' : ''}</td></tr>`).join('\n');
+  const rows = g.edges
+    .filter((e) => e.kind !== 'map')
+    .map(
+      (e) =>
+        `<tr><td>${esc(e.from)}</td><td>→ ${esc(e.to)}</td><td>${esc(e.kind)}</td><td>${esc(e.via)}${e.oneWay ? ' (one way)' : ''}</td></tr>`,
+    )
+    .join('\n');
   const places = [...new Set(g.edges.filter((e) => e.kind === 'map').map((e) => `${e.via} → ${e.to}`))];
   const body = `<main>
 <div class="kicker">${esc(ctx.game.title)}</div>
@@ -32,7 +38,13 @@ ${g.oneWay.length ? `<p class="warn">No way back: ${g.oneWay.map((e) => `<b>${es
 <h2>DOT (Graphviz)</h2>
 <pre>${esc(toDot(g))}</pre>
 </main>`;
-  return pageShell({ title: `${ctx.game.title} — world`, description: 'The rooms and the ways between them', css: CSS, body, script: '' });
+  return pageShell({
+    title: `${ctx.game.title} — world`,
+    description: 'The rooms and the ways between them',
+    css: CSS,
+    body,
+    script: '',
+  });
 }
 
 if (isMain(import.meta.url)) {

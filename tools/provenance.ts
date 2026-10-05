@@ -3,16 +3,39 @@
 // after a review; `validate --release` then refuses any file or claim that changed since (docs/en/TOOLS.md "Asset
 // provenance"). Exit codes: 0 clean, 1 something to review (coverage, lock, licences).
 import { writeFileSync } from 'node:fs';
-import { entryOf, licenceVerdict, lockDiff, lockMessages, makeLock, placeholderVerdict, provenanceReport } from '../src/engine/tools/provenance';
+import {
+  entryOf,
+  licenceVerdict,
+  lockDiff,
+  lockMessages,
+  makeLock,
+  placeholderVerdict,
+  provenanceReport,
+} from '../src/engine/tools/provenance';
 import { GAME, GAME_DIR, loadGameModule } from './game';
-import { fileFacts, LOCK, PROVENANCE, readJson, shippedKeys, type Provenance, type ProvenanceLock } from './provenance-files';
+import {
+  fileFacts,
+  LOCK,
+  PROVENANCE,
+  readJson,
+  shippedKeys,
+  type Provenance,
+  type ProvenanceLock,
+} from './provenance-files';
 import { resolve } from 'node:path';
 
 const { game } = await loadGameModule();
 const prov = readJson<Provenance>(PROVENANCE);
-if (!prov) { console.log(`✖  [${GAME}] no provenance.json: say where every asset comes from first (docs/en/TOOLS.md "Asset provenance")`); process.exit(1); }
+if (!prov) {
+  console.log(
+    `✖  [${GAME}] no provenance.json: say where every asset comes from first (docs/en/TOOLS.md "Asset provenance")`,
+  );
+  process.exit(1);
+}
 const keys = shippedKeys(game);
-const manifest = readJson<{ images: Record<string, unknown>; videos?: Record<string, unknown> }>(resolve(GAME_DIR, 'assets.gen.json')) ?? { images: {} };
+const manifest = readJson<{ images: Record<string, unknown>; videos?: Record<string, unknown> }>(
+  resolve(GAME_DIR, 'assets.gen.json'),
+) ?? { images: {} };
 const r = provenanceReport(game, manifest, prov);
 const files = fileFacts(keys);
 const problems = [
@@ -30,20 +53,32 @@ if (process.argv.includes('--lock')) {
   }
   const lock = makeLock(keys, prov, files);
   writeFileSync(LOCK, JSON.stringify(lock, null, 1) + '\n');
-  console.log(`✔  [${GAME}] provenance.lock.json: ${Object.keys(lock.assets).length} files locked (${(Object.values(lock.assets).reduce((n, a) => n + a.bytes, 0) / 1e6).toFixed(1)} MB)`);
+  console.log(
+    `✔  [${GAME}] provenance.lock.json: ${Object.keys(lock.assets).length} files locked (${(Object.values(lock.assets).reduce((n, a) => n + a.bytes, 0) / 1e6).toFixed(1)} MB)`,
+  );
   process.exit(0);
 }
 
 const byLicence = new Map<string, number>();
-for (const k of keys) { const e = entryOf(prov, k); if (e) byLicence.set(e.licence, (byLicence.get(e.licence) ?? 0) + 1); }
+for (const k of keys) {
+  const e = entryOf(prov, k);
+  if (e) byLicence.set(e.licence, (byLicence.get(e.licence) ?? 0) + 1);
+}
 console.log(`[${GAME}] ${keys.length} shipped assets`);
-for (const [l, n] of [...byLicence].sort((a, b) => b[1] - a[1])) console.log(`  ${String(n).padStart(5)}  ${l}${prov.licences?.allow?.includes(l) ? '' : prov.licences ? '  (not in licences.allow)' : ''}`);
+for (const [l, n] of [...byLicence].sort((a, b) => b[1] - a[1]))
+  console.log(
+    `  ${String(n).padStart(5)}  ${l}${prov.licences?.allow?.includes(l) ? '' : prov.licences ? '  (not in licences.allow)' : ''}`,
+  );
 const lock = readJson<ProvenanceLock>(LOCK);
-const lockMsgs = lock ? lockMessages(lockDiff(keys, prov, files, lock)) : ['provenance.lock.json › missing: npm run provenance -- --lock after reviewing every entry'];
+const lockMsgs = lock
+  ? lockMessages(lockDiff(keys, prov, files, lock))
+  : ['provenance.lock.json › missing: npm run provenance -- --lock after reviewing every entry'];
 const lic = licenceVerdict(keys, prov);
 const ph = placeholderVerdict(prov, r);
 const errs = [...problems.map((p) => `provenance.json › ${p}`), ...lockMsgs, ...lic.errors, ...ph.errors];
 for (const a of [...lic.accepted, ...ph.accepted]) console.log('  ℹ accepted: ' + a);
 for (const e of errs) console.log('  ✖ ' + e);
-console.log(`${errs.length ? '✖' : '✔'}  [${GAME}] provenance ${errs.length ? `${errs.length} thing(s) to review` : 'clean: every file is the one reviewed'}`);
+console.log(
+  `${errs.length ? '✖' : '✔'}  [${GAME}] provenance ${errs.length ? `${errs.length} thing(s) to review` : 'clean: every file is the one reviewed'}`,
+);
 process.exit(errs.length ? 1 : 0);

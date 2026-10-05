@@ -13,9 +13,35 @@ describe('the corpus in shards', () => {
   });
 
   it('a merge sees a missing shard, an overlap and seeds past the total', () => {
-    expect(shardProblems([{ from: 1, seeds: 100 }, { from: 201, seeds: 100 }], 300)).toEqual(['seeds 101–200: no shard ran them']);
-    expect(shardProblems([{ from: 1, seeds: 100 }, { from: 90, seeds: 211 }], 300)).toEqual(['seeds 90–100: run by more than one shard']);
-    expect(shardProblems([{ from: 1, seeds: 126 }, { from: 127, seeds: 126 }, { from: 253, seeds: 126 }, { from: 379, seeds: 126 }], 501)).toEqual(['seeds 502–504: past the 501 asked for']);
+    expect(
+      shardProblems(
+        [
+          { from: 1, seeds: 100 },
+          { from: 201, seeds: 100 },
+        ],
+        300,
+      ),
+    ).toEqual(['seeds 101–200: no shard ran them']);
+    expect(
+      shardProblems(
+        [
+          { from: 1, seeds: 100 },
+          { from: 90, seeds: 211 },
+        ],
+        300,
+      ),
+    ).toEqual(['seeds 90–100: run by more than one shard']);
+    expect(
+      shardProblems(
+        [
+          { from: 1, seeds: 126 },
+          { from: 127, seeds: 126 },
+          { from: 253, seeds: 126 },
+          { from: 379, seeds: 126 },
+        ],
+        501,
+      ),
+    ).toEqual(['seeds 502–504: past the 501 asked for']);
     expect(shardProblems([{ from: 1, seeds: 50 }], 100)).toEqual(['seeds 51–100: no shard ran them']);
   });
 });

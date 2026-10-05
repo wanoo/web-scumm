@@ -20,14 +20,18 @@ export function readPatches(store: KeyValue | undefined, game: string): StudioPa
     const raw = store?.getItem(storageKey(game));
     const list = raw ? JSON.parse(raw) : [];
     return Array.isArray(list) ? list.filter((p) => p && typeof p.kind === 'string') : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 export function writePatches(store: KeyValue | undefined, game: string, patches: StudioPatch[]) {
   try {
     if (patches.length) store?.setItem(storageKey(game), JSON.stringify(patches));
     else store?.removeItem(storageKey(game));
-  } catch { /* storage full or blocked: the edits live until the page is closed */ }
+  } catch {
+    /* storage full or blocked: the edits live until the page is closed */
+  }
 }
 
 /** Deep copy of plain data that keeps functions (and other non-plain values) by reference. */
@@ -63,7 +67,10 @@ export function editRoomText(def: RoomDef, path: string, value: string | null): 
     if (value === null) return false;
     const list = segs.slice(0, -1);
     const target = at(def, list);
-    if (Array.isArray(target)) { target.push(value); return true; }
+    if (Array.isArray(target)) {
+      target.push(value);
+      return true;
+    }
     if (list.length === 2 && list[0] === 'look') {
       const look = ((def as unknown as Obj).look ??= {}) as Obj;
       const id = list[1] as string;
@@ -77,16 +84,25 @@ export function editRoomText(def: RoomDef, path: string, value: string | null): 
   if (value === null) {
     if (Array.isArray(parent) && typeof last === 'number') {
       if (last >= parent.length) return false;
-      if (segs[0] === 'look' && segs.length === 3 && parent.length === 1) { delete ((def as unknown as Obj).look as Obj)[segs[1]]; return true; }
+      if (segs[0] === 'look' && segs.length === 3 && parent.length === 1) {
+        delete ((def as unknown as Obj).look as Obj)[segs[1]];
+        return true;
+      }
       parent.splice(last, 1);
       return true;
     }
-    if (segs[0] === 'look' && segs.length === 2 && last in (parent as Obj)) { delete (parent as Obj)[last]; return true; }
+    if (segs[0] === 'look' && segs.length === 2 && last in (parent as Obj)) {
+      delete (parent as Obj)[last];
+      return true;
+    }
     return false;
   }
   const cur = (parent as Obj)[last];
   // A list line with an id (`{ id, text }`): its text.
-  if (cur && typeof cur === 'object' && typeof (cur as Obj).text === 'string') { (cur as Obj).text = value; return true; }
+  if (cur && typeof cur === 'object' && typeof (cur as Obj).text === 'string') {
+    (cur as Obj).text = value;
+    return true;
+  }
   if (typeof cur !== 'string') return false;
   (parent as Obj)[last] = value;
   return true;
@@ -105,9 +121,11 @@ export function addRoomEntity(def: RoomDef, e: AddEntity, characterName?: string
 /** The place `addEntity` gives a new entity in the layout (prop: foot, height 60; hotspot: 60 × 60 box; actor: feet). */
 export function placeEntity(layout: Layout, e: AddEntity): Layout {
   const L = cloneData(layout);
-  const x = Math.round(Math.max(0, Math.min(640, e.at[0]))), y = Math.round(Math.max(0, Math.min(400, e.at[1])));
+  const x = Math.round(Math.max(0, Math.min(640, e.at[0]))),
+    y = Math.round(Math.max(0, Math.min(400, e.at[1])));
   if (e.kind === 'prop') (L.props ??= {})[e.id] = { x, y, h: 60 };
-  else if (e.kind === 'hotspot') (L.hotspots ??= {})[e.id] = { rect: [Math.max(0, x - 30), Math.max(0, y - 30), 60, 60] };
+  else if (e.kind === 'hotspot')
+    (L.hotspots ??= {})[e.id] = { rect: [Math.max(0, x - 30), Math.max(0, y - 30), 60, 60] };
   else (L.actors ??= {})[e.id] = { x, y };
   return L;
 }
@@ -122,23 +140,34 @@ export function isTextPath(path: string): boolean {
  * The compiled game with the room patches applied (texts reachable by their path, added entities) and the layouts
  * with the layout patches: what the engine view shows in demo mode. Rooms without patches are shared, not copied.
  */
-export function patchGame(game: GameDef, layouts: Record<Id, Layout>, patches: StudioPatch[]): { game: GameDef; layouts: Record<Id, Layout> } {
+export function patchGame(
+  game: GameDef,
+  layouts: Record<Id, Layout>,
+  patches: StudioPatch[],
+): { game: GameDef; layouts: Record<Id, Layout> } {
   const rooms = new Map<Id, RoomDef>();
   const room = (id: Id) => {
-    if (!rooms.has(id)) { const r = game.rooms.find((x) => x.id === id); if (r) rooms.set(id, cloneData(r)); }
+    if (!rooms.has(id)) {
+      const r = game.rooms.find((x) => x.id === id);
+      if (r) rooms.set(id, cloneData(r));
+    }
     return rooms.get(id);
   };
   const outLayouts = { ...layouts };
   for (const p of patches) {
     try {
-      if (p.kind === 'text') { const r = room(p.room); if (r) editRoomText(r, p.path, p.value); }
-      else if (p.kind === 'entity') {
+      if (p.kind === 'text') {
+        const r = room(p.room);
+        if (r) editRoomText(r, p.path, p.value);
+      } else if (p.kind === 'entity') {
         const r = room(p.room);
         if (!r) continue;
         addRoomEntity(r, p.entity, p.entity.char ? game.characters[p.entity.char]?.name : undefined);
         outLayouts[p.room] = placeEntity(outLayouts[p.room] ?? {}, p.entity);
       } else if (p.kind === 'layout') outLayouts[p.room] = p.layout;
-    } catch { /* a patch that no longer fits the game is skipped */ }
+    } catch {
+      /* a patch that no longer fits the game is skipped */
+    }
   }
   if (!rooms.size) return { game, layouts: outLayouts };
   return { game: { ...game, rooms: game.rooms.map((r) => rooms.get(r.id) ?? r) }, layouts: outLayouts };

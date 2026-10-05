@@ -8,14 +8,22 @@ import { ProviderError, providerFetch, readCapped } from '../tools/studio/assist
 const oldLan = process.env.WEB_SCUMM_LAN;
 const oldToken = process.env.WEB_SCUMM_STUDIO_TOKEN;
 afterEach(() => {
-  if (oldLan === undefined) delete process.env.WEB_SCUMM_LAN; else process.env.WEB_SCUMM_LAN = oldLan;
-  if (oldToken === undefined) delete process.env.WEB_SCUMM_STUDIO_TOKEN; else process.env.WEB_SCUMM_STUDIO_TOKEN = oldToken;
+  if (oldLan === undefined) delete process.env.WEB_SCUMM_LAN;
+  else process.env.WEB_SCUMM_LAN = oldLan;
+  if (oldToken === undefined) delete process.env.WEB_SCUMM_STUDIO_TOKEN;
+  else process.env.WEB_SCUMM_STUDIO_TOKEN = oldToken;
 });
 
 describe('LAN Studio capability', () => {
   it('requires a token and same-origin writes', async () => {
-    process.env.WEB_SCUMM_LAN = '1'; process.env.WEB_SCUMM_STUDIO_TOKEN = 'secret-token';
-    const server = createServer((req, res) => { if (authorizeStudioRequest(req, res)) { res.statusCode = 200; res.end('ok'); } });
+    process.env.WEB_SCUMM_LAN = '1';
+    process.env.WEB_SCUMM_STUDIO_TOKEN = 'secret-token';
+    const server = createServer((req, res) => {
+      if (authorizeStudioRequest(req, res)) {
+        res.statusCode = 200;
+        res.end('ok');
+      }
+    });
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
     const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     try {
@@ -25,8 +33,12 @@ describe('LAN Studio capability', () => {
       const cookie = login.headers.get('set-cookie')!;
       expect(cookie).toContain('HttpOnly');
       expect((await fetch(base, { method: 'POST', headers: { cookie, origin: base } })).status).toBe(200);
-      expect((await fetch(base, { method: 'POST', headers: { cookie, origin: 'https://evil.example' } })).status).toBe(403);
-    } finally { await new Promise<void>((resolve) => server.close(() => resolve())); }
+      expect((await fetch(base, { method: 'POST', headers: { cookie, origin: 'https://evil.example' } })).status).toBe(
+        403,
+      );
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
   });
 });
 
@@ -40,18 +52,45 @@ describe('custom provider addresses', () => {
   });
 
   it('refuses loopback, unspecified, private, link-local and local-name hosts, in both IP families', () => {
-    for (const h of ['localhost', 'studio.localhost', 'printer.local', 'db.internal', '127.0.0.1', '127.9.9.9', '0.0.0.0', '10.1.2.3', '172.16.0.1', '172.31.255.255', '192.168.1.1', '169.254.1.1', '100.64.0.1', '[::1]', '[::]', '[fc00::1]', '[fd12::1]', '[fe80::1]', '[::ffff:127.0.0.1]', '[::ffff:7f00:1]']) {
+    for (const h of [
+      'localhost',
+      'studio.localhost',
+      'printer.local',
+      'db.internal',
+      '127.0.0.1',
+      '127.9.9.9',
+      '0.0.0.0',
+      '10.1.2.3',
+      '172.16.0.1',
+      '172.31.255.255',
+      '192.168.1.1',
+      '169.254.1.1',
+      '100.64.0.1',
+      '[::1]',
+      '[::]',
+      '[fc00::1]',
+      '[fd12::1]',
+      '[fe80::1]',
+      '[::ffff:127.0.0.1]',
+      '[::ffff:7f00:1]',
+    ]) {
       expect(privateHost(h), h).toBe(true);
       expect(() => custom(`https://${h}/v1`), h).toThrow(/local or private/);
     }
-    for (const h of ['api.example.com', '8.8.8.8', '172.32.0.1', '[2001:db8::1]']) expect(privateHost(h), h).toBe(false);
+    for (const h of ['api.example.com', '8.8.8.8', '172.32.0.1', '[2001:db8::1]'])
+      expect(privateHost(h), h).toBe(false);
     expect(custom('https://api.example.com/v1').baseUrl).toBe('https://api.example.com/v1');
     expect(() => custom('http://api.example.com/v1')).toThrow(/HTTPS/);
   });
 
   it('keeps Ollama on this machine only, with or without brackets', () => {
-    for (const h of ['localhost', '127.0.0.1', '[::1]']) expect(parseProvider({ kind: 'ollama', baseUrl: `http://${h}:11434`, model: 'llama3.1' }, false).kind).toBe('ollama');
-    expect(() => parseProvider({ kind: 'ollama', baseUrl: 'http://192.168.1.10:11434', model: 'llama3.1' }, false)).toThrow(/custom provider URLs are disabled/);
+    for (const h of ['localhost', '127.0.0.1', '[::1]'])
+      expect(parseProvider({ kind: 'ollama', baseUrl: `http://${h}:11434`, model: 'llama3.1' }, false).kind).toBe(
+        'ollama',
+      );
+    expect(() =>
+      parseProvider({ kind: 'ollama', baseUrl: 'http://192.168.1.10:11434', model: 'llama3.1' }, false),
+    ).toThrow(/custom provider URLs are disabled/);
   });
 });
 
@@ -59,14 +98,19 @@ describe('provider calls', () => {
   const url = 'https://api.example.com/v1/chat/completions';
 
   it('never follows a redirect', async () => {
-    const f = (async () => new Response('', { status: 302, headers: { location: 'http://10.0.0.1/' } })) as unknown as typeof fetch;
+    const f = (async () =>
+      new Response('', { status: 302, headers: { location: 'http://10.0.0.1/' } })) as unknown as typeof fetch;
     await expect(providerFetch(f, url, { method: 'POST' })).rejects.toThrow(/redirect/);
-    const opaque = (async () => ({ status: 0, type: 'opaqueredirect', ok: false } as unknown as Response)) as unknown as typeof fetch;
+    const opaque = (async () =>
+      ({ status: 0, type: 'opaqueredirect', ok: false }) as unknown as Response) as unknown as typeof fetch;
     await expect(providerFetch(opaque, url, {})).rejects.toBeInstanceOf(ProviderError);
   });
 
-  it('gives up after its deadline, and passes the caller\'s own abort through', async () => {
-    const hang = ((_: string, init: RequestInit) => new Promise<Response>((_, rej) => init.signal!.addEventListener('abort', () => rej(init.signal!.reason)))) as unknown as typeof fetch;
+  it("gives up after its deadline, and passes the caller's own abort through", async () => {
+    const hang = ((_: string, init: RequestInit) =>
+      new Promise<Response>((_, rej) =>
+        init.signal!.addEventListener('abort', () => rej(init.signal!.reason)),
+      )) as unknown as typeof fetch;
     await expect(providerFetch(hang, url, {}, { timeoutMs: 30 })).rejects.toThrow(/did not answer within/);
     const ctl = new AbortController();
     const p = providerFetch(hang, url, {}, { timeoutMs: 10000, signal: ctl.signal });

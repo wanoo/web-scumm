@@ -46,7 +46,9 @@ export function coreBackend(studio: Studio, o: CoreBackendOptions): ToolBackend 
       try {
         await fetch(o.devUrl, { signal: AbortSignal.timeout(3000) });
       } catch {
-        return textResult(`Screenshot unavailable: no dev server at ${o.devUrl}. Ask the human to run "npm run studio" (or set WEB_SCUMM_DEV_URL).`);
+        return textResult(
+          `Screenshot unavailable: no dev server at ${o.devUrl}. Ask the human to run "npm run studio" (or set WEB_SCUMM_DEV_URL).`,
+        );
       }
       try {
         const r = await studio.screenshot(room, checkpoint, o.devUrl);
@@ -54,20 +56,38 @@ export function coreBackend(studio: Studio, o: CoreBackendOptions): ToolBackend 
         return jsonResult({ file: r.file, absolute: join(o.root, r.file) });
       } catch (e) {
         if (e instanceof Error && /Timeout/i.test(e.message)) {
-          return errorResult(new Error(`${e.message} The page at ${o.devUrl} did not show the engine's editor: is it the dev server of this game ("${studio.gameId}")?`));
+          return errorResult(
+            new Error(
+              `${e.message} The page at ${o.devUrl} did not show the engine's editor: is it the dev server of this game ("${studio.gameId}")?`,
+            ),
+          );
         }
         return errorResult(e);
       }
     },
-    runTests: () => new Promise<ToolResult>((done) => {
-      execFile('npx', ['vitest', 'run'], { cwd: o.root, env: { ...process.env, CI: '1', NO_COLOR: '1' }, maxBuffer: 32 * 1024 * 1024, timeout: 10 * 60_000 },
-        (err, stdout, stderr) => {
-          // eslint-disable-next-line no-control-regex
-          const all = `${stdout}\n${stderr}`.replace(/\x1b\[[0-9;]*m/g, '').split('\n');
-          const keep = all.filter((l) => /^\s*(Test Files|Tests|Duration|Start at)\b|FAIL|✗|×|AssertionError|Error:/.test(l));
-          const summary = (keep.length ? keep : all.slice(-30)).join('\n').trim();
-          done(err ? { content: [{ type: 'text', text: summary || err.message }], isError: true } : textResult(summary));
-        });
-    }),
+    runTests: () =>
+      new Promise<ToolResult>((done) => {
+        execFile(
+          'npx',
+          ['vitest', 'run'],
+          {
+            cwd: o.root,
+            env: { ...process.env, CI: '1', NO_COLOR: '1' },
+            maxBuffer: 32 * 1024 * 1024,
+            timeout: 10 * 60_000,
+          },
+          (err, stdout, stderr) => {
+            // eslint-disable-next-line no-control-regex
+            const all = `${stdout}\n${stderr}`.replace(/\x1b\[[0-9;]*m/g, '').split('\n');
+            const keep = all.filter((l) =>
+              /^\s*(Test Files|Tests|Duration|Start at)\b|FAIL|✗|×|AssertionError|Error:/.test(l),
+            );
+            const summary = (keep.length ? keep : all.slice(-30)).join('\n').trim();
+            done(
+              err ? { content: [{ type: 'text', text: summary || err.message }], isError: true } : textResult(summary),
+            );
+          },
+        );
+      }),
   };
 }

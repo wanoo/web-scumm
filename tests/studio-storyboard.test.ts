@@ -19,7 +19,10 @@ const studio = createStudio({ gameDir: dir, root: ROOT, importFresh: (f) => impo
 const read = (f: string) => readFileSync(f, 'utf8');
 
 async function expectError(p: Promise<unknown>, status: number, text?: string) {
-  const e = await p.then(() => null, (x) => x);
+  const e = await p.then(
+    () => null,
+    (x) => x,
+  );
   expect(e).toBeInstanceOf(StudioError);
   expect((e as StudioError).status).toBe(status);
   if (text) expect((e as Error).message).toContain(text);
@@ -39,7 +42,9 @@ describe('storyboard markdown export', () => {
     expect(md).toContain('- ACTION: Pick up pipe');
     expect(md).toContain('- PIXEL: A pipe! Grandpa will not miss it.');
     expect(md).toContain('- SFX: metal');
-    const game = ((await importInChild(join(dir, 'index.ts'), ROOT)) as { game: Parameters<typeof storyboardMarkdown>[0]['game'] }).game;
+    const game = (
+      (await importInChild(join(dir, 'index.ts'), ROOT)) as { game: Parameters<typeof storyboardMarkdown>[0]['game'] }
+    ).game;
     expect(md).toBe(storyboardMarkdown({ game }, readStoryboard(dir)));
 
     const sb = studio.getStoryboard() as { boards: { panels: { lines: { who: string; text: string }[] }[] }[] };

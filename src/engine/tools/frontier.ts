@@ -7,7 +7,9 @@ export class Frontier<T> {
   private seq = 0;
   constructor(private scoreOf: (v: T) => number) {}
 
-  get size(): number { return this.items.length; }
+  get size(): number {
+    return this.items.length;
+  }
 
   /** `a` comes out before `b`. */
   private before(a: { score: number; seq: number }, b: { score: number; seq: number }) {
@@ -35,7 +37,8 @@ export class Frontier<T> {
       h[0] = last;
       let i = 0;
       for (;;) {
-        const l = 2 * i + 1, r = l + 1;
+        const l = 2 * i + 1,
+          r = l + 1;
         let m = i;
         if (l < h.length && this.before(h[l], h[m])) m = l;
         if (r < h.length && this.before(h[r], h[m])) m = r;

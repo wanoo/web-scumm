@@ -58,7 +58,12 @@ export interface SaveStore {
 }
 
 /** What the save menu shows for a manual slot. */
-export interface SlotMeta { at: number; room: GameState['room']; roomName: string; v: number }
+export interface SlotMeta {
+  at: number;
+  room: GameState['room'];
+  roomName: string;
+  v: number;
+}
 
 /** Manual save slots (`GameDef.saves.slots`), durable and verified like the autosave. Numbered from 1. */
 export interface SlotStore {
@@ -72,9 +77,16 @@ export interface SlotStore {
 
 export class MemoryStore implements SaveStore {
   data: GameState | null = null;
-  load() { return this.data ? structuredClone(this.data) : null; }
-  save(s: GameState) { this.data = structuredClone(s); }
-  async clear() { this.data = null; return true; }
+  load() {
+    return this.data ? structuredClone(this.data) : null;
+  }
+  save(s: GameState) {
+    this.data = structuredClone(s);
+  }
+  async clear() {
+    this.data = null;
+    return true;
+  }
 }
 
 /** Silent presenter for node: everything finishes immediately, and everything is logged to `log`. */
@@ -84,29 +96,61 @@ export class FakePresenter implements Presenter {
   picks: number[] = [];
   mapPicks: (Id | null)[] = [];
   heroAt: Point = [320, 360];
-  async enterRoom(room: RoomDef) { this.log.push(`enter ${room.id}`); }
+  async enterRoom(room: RoomDef) {
+    this.log.push(`enter ${room.id}`);
+  }
   /** The voice clips the engine asked for, in order (`voice` of each line). */
   voices: Id[] = [];
-  async say(who: Id, text: string, o?: { voice?: Id }) { this.log.push(`${who}: ${text}`); if (o?.voice) this.voices.push(o.voice); }
-  async walk(who: Id, to: Point) { this.log.push(`walk ${who} ${to.join(',')}`); return to; }
+  async say(who: Id, text: string, o?: { voice?: Id }) {
+    this.log.push(`${who}: ${text}`);
+    if (o?.voice) this.voices.push(o.voice);
+  }
+  async walk(who: Id, to: Point) {
+    this.log.push(`walk ${who} ${to.join(',')}`);
+    return to;
+  }
   face() {}
-  pose(who: Id, pose: string) { this.log.push(`pose ${who} ${pose}`); }
+  pose(who: Id, pose: string) {
+    this.log.push(`pose ${who} ${pose}`);
+  }
   async anim() {}
-  async motion(who: Id, m: MotionSpec) { this.log.push(`motion ${who} ${m.kind}`); }
+  async motion(who: Id, m: MotionSpec) {
+    this.log.push(`motion ${who} ${m.kind}`);
+  }
   place() {}
   async wait() {}
-  prop(id: Id, state: string) { this.log.push(`prop ${id} ${state}`); }
-  propFrame(id: Id, img: Id | null) { this.log.push(`frame ${id} ${img ?? '-'}`); }
-  propLoop(id: Id, frames: Id[], _fps: number, onFrame?: (i: number) => void) { this.log.push(`loop ${id} ${frames.length}${onFrame ? ' +at' : ''}`); }
-  async camera(x: number | null, follow: boolean) { this.log.push(`camera ${follow ? 'follow' : x}`); }
-  async show(id: Id, v: boolean) { this.log.push(`${v ? 'show' : 'hide'} ${id}`); }
-  inventory(items: Id[]) { this.log.push(`inv ${items.join(',')}`); }
-  sfx(id: Id, caption?: string) { this.log.push(`sfx ${id}${caption ? ` [${caption}]` : ''}`); }
+  prop(id: Id, state: string) {
+    this.log.push(`prop ${id} ${state}`);
+  }
+  propFrame(id: Id, img: Id | null) {
+    this.log.push(`frame ${id} ${img ?? '-'}`);
+  }
+  propLoop(id: Id, frames: Id[], _fps: number, onFrame?: (i: number) => void) {
+    this.log.push(`loop ${id} ${frames.length}${onFrame ? ' +at' : ''}`);
+  }
+  async camera(x: number | null, follow: boolean) {
+    this.log.push(`camera ${follow ? 'follow' : x}`);
+  }
+  async show(id: Id, v: boolean) {
+    this.log.push(`${v ? 'show' : 'hide'} ${id}`);
+  }
+  inventory(items: Id[]) {
+    this.log.push(`inv ${items.join(',')}`);
+  }
+  sfx(id: Id, caption?: string) {
+    this.log.push(`sfx ${id}${caption ? ` [${caption}]` : ''}`);
+  }
   music() {}
-  toast(t: string) { this.log.push(`toast ${t}`); }
+  toast(t: string) {
+    this.log.push(`toast ${t}`);
+  }
   shake() {}
-  async openMap() { return this.mapPicks.length ? this.mapPicks.shift()! : null; }
-  async minigame(id: Id) { this.log.push(`minigame ${id}`); }
+  async openMap() {
+    return this.mapPicks.length ? this.mapPicks.shift()! : null;
+  }
+  async minigame(id: Id) {
+    this.log.push(`minigame ${id}`);
+  }
   /** Every choice asked so far: how many options, and whether it was a topic list (the solver enumerates the others). */
   asked: { n: number; topic: boolean; texts: string[] }[] = [];
   async choose(options: { text: string }[], who?: Id) {
@@ -115,9 +159,15 @@ export class FakePresenter implements Presenter {
     this.log.push(`choose ${options[i]?.text}`);
     return i;
   }
-  async phone(who: Id | Id[]) { this.log.push(`phone ${Array.isArray(who) ? who.join("+") : who}`); }
+  async phone(who: Id | Id[]) {
+    this.log.push(`phone ${Array.isArray(who) ? who.join('+') : who}`);
+  }
   guide() {}
   cutscene() {}
-  async ending(phase: 'open' | 'card') { if (phase === 'open') this.log.push('ENDING'); }
-  end() { this.log.push('END'); }
+  async ending(phase: 'open' | 'card') {
+    if (phase === 'open') this.log.push('ENDING');
+  }
+  end() {
+    this.log.push('END');
+  }
 }

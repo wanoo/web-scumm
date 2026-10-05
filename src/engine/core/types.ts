@@ -63,13 +63,16 @@ export type ListLine = string | { id: Id; text: string };
 export type Cmd =
   | string
   // --- speech
-  | { say: [Who, string]; shout?: boolean;
+  | {
+      say: [Who, string];
+      shout?: boolean;
       /** Stable id of the line (schema 3, `npm run ids -- --lines`): translations and voice clips are keyed by it, so
        *  inserting or moving a line never shifts them. A plain string line stays keyed by its owner and position. */
       id?: Id;
       /** A voice clip (`audio.voices`): the line stays as long as the clip plays, then moves on. Defaults to the
        *  line's `id` when `audio.voices` has a clip under it. */
-      voice?: Id }
+      voice?: Id;
+    }
   // --- movement and poses
   | { walk: WalkTarget; who?: Who }
   | { face: 'left' | 'right' | Id; who?: Who }
@@ -84,7 +87,16 @@ export type Cmd =
   | { launch: { target: Who; to: Id | Point; from?: Id | Point; height?: number; ms?: number; rotate?: number } }
   /** A damped oscillation around the target's place: `axis` x, y or rot (degrees), `amplitude` (default 10),
    *  `frequency` in hertz (default 3), `damping` 0–1 (default 0.25), `ms` (default 1200). A lamp swinging, a shelf shaking. */
-  | { spring: { target: Who; axis?: 'x' | 'y' | 'rot'; amplitude?: number; frequency?: number; damping?: number; ms?: number } }
+  | {
+      spring: {
+        target: Who;
+        axis?: 'x' | 'y' | 'rot';
+        amplitude?: number;
+        frequency?: number;
+        damping?: number;
+        ms?: number;
+      };
+    }
   /** Along a Catmull-Rom spline through `points` (eased), optionally turned along it (`orient`). */
   | { path: { target: Who; points: Point[]; ms?: number; orient?: boolean } }
   /** Keeps the target at `offset` from `leader` for `ms` (a parrot on a shoulder, a balloon on a string). */
@@ -147,10 +159,10 @@ export type Cmd =
   | { shake: number }
   // --- logic
   | { if: Cond; then: Cmd[]; else?: Cmd[] }
-  | { once: Cmd[]; /** Stable persistence id (v3). */ id?: Id; /** @deprecated v2 alias. */ key?: string }
-  | { nth: Cmd[][]; /** Stable persistence id (v3). */ id?: Id; /** @deprecated v2 alias. */ key?: string }
-  | { cycle: Cmd[][]; /** Stable persistence id (v3). */ id?: Id; /** @deprecated v2 alias. */ key?: string }
-  | { random: Cmd[][]; /** Stable persistence id (v3). */ id?: Id; /** @deprecated v2 alias. */ key?: string }
+  | { once: Cmd[] /** Stable persistence id (v3). */; id?: Id /** @deprecated v2 alias. */; key?: string }
+  | { nth: Cmd[][] /** Stable persistence id (v3). */; id?: Id /** @deprecated v2 alias. */; key?: string }
+  | { cycle: Cmd[][] /** Stable persistence id (v3). */; id?: Id /** @deprecated v2 alias. */; key?: string }
+  | { random: Cmd[][] /** Stable persistence id (v3). */; id?: Id /** @deprecated v2 alias. */; key?: string }
   // --- sequences and screens
   | { cutscene: Cmd[] }
   | { choice: Choice[] }
@@ -243,7 +255,12 @@ export type SpriteSet = Record<string, Id[]>;
  * `closed` replaces the idle pose's image (t1), `open` cycles randomly during the line (t2, t3, t4),
  * `blink` occasionally returns to idle (t5), `smile` ends a happy line (t6).
  */
-export interface MouthSet { closed: Id; open: Id[]; blink?: Id; smile?: Id }
+export interface MouthSet {
+  closed: Id;
+  open: Id[];
+  blink?: Id;
+  smile?: Id;
+}
 
 export interface CharacterDef {
   name: string;
@@ -297,7 +314,14 @@ export interface CharacterDef {
    * Image sets depending on state: the first variant whose condition is true replaces sprites / mouths / portrait,
    * and `palette` / `paletteTolerance` when it has them (a variant with no palette keeps the character's).
    */
-  variants?: { if: Cond; sprites?: SpriteSet; mouths?: Record<string, MouthSet>; portrait?: Id; palette?: Record<string, string>; paletteTolerance?: number }[];
+  variants?: {
+    if: Cond;
+    sprites?: SpriteSet;
+    mouths?: Record<string, MouthSet>;
+    portrait?: Id;
+    palette?: Record<string, string>;
+    paletteTolerance?: number;
+  }[];
 }
 
 export interface ItemDef {
@@ -310,7 +334,12 @@ export interface ItemDef {
 
 /** A prop in the scenery, with states (e.g. amp off/on). Its position comes from the layout. */
 /** A prop animation: images in order at `fps` (default 8); `at` = commands run when a frame is reached (index). */
-export interface PropAnim { frames: Id[]; fps?: number; loop?: boolean; at?: Record<number, Cmd[]> }
+export interface PropAnim {
+  frames: Id[];
+  fps?: number;
+  loop?: boolean;
+  at?: Record<number, Cmd[]>;
+}
 
 export interface PropDef {
   /** The verb a double tap uses on it (4.0), when the logical one is not right: see core/default-verb.ts. */
@@ -470,7 +499,7 @@ export interface StageDef {
   /** How the room appears when entered (default `cut`). `reduceMotion` makes every transition a cut. */
   transition?: TransitionKind | { kind: TransitionKind; ms?: number };
   /** The logic of walk links (`layout.walkLinks`): a link whose `if` does not hold cannot be walked. */
-  links?: Record<Id, { if?: Cond; /** Said when the hero tries it while it is closed. */ locked?: string }>;
+  links?: Record<Id, { if?: Cond /** Said when the hero tries it while it is closed. */; locked?: string }>;
 }
 
 export interface RoomDef {
@@ -586,11 +615,20 @@ export interface AudioDef {
    * track of `music`, played once) if any, crossfading over `fadeBeats` (default 0: on the downbeat). Without a rule,
    * a score replaces another at once, faded. The single mix (no director) ignores them.
    */
-  transitions?: { from: Id | '*'; to: Id | '*'; at?: 'beat' | 'bar' | 'phrase' | string; bridge?: Id; fadeBeats?: number }[];
+  transitions?: {
+    from: Id | '*';
+    to: Id | '*';
+    at?: 'beat' | 'bar' | 'phrase' | string;
+    bridge?: Id;
+    fadeBeats?: number;
+  }[];
 }
 
 /** Which stems sound in a given state: the first entry whose condition holds wins (`if` absent: always). */
-export interface ScoreState { if?: Cond; stems: Id[] }
+export interface ScoreState {
+  if?: Cond;
+  stems: Id[];
+}
 
 export interface ScoreDef {
   /** Stem id → file under `audio/music/` (the same length and rate: `npm run audio -- stems` renders them). */
@@ -615,7 +653,6 @@ export interface ScoreDef {
   /** A phrase's length in bars, for a transition that lands on `phrase` (default 4). */
   phraseBars?: number;
 }
-
 
 /** Sealed ending (`ending` module): encrypted content, decrypted at the end of the game and shown on a card. */
 export interface EndingDef {
@@ -644,11 +681,16 @@ export type RevealDef = EndingDef;
 export interface SkinDef {
   icons: {
     /** Column buttons: map, pause, music. */
-    map: Id; pause: Id; music: Id;
+    map: Id;
+    pause: Id;
+    music: Id;
     /** Guided tutorial spark. */
     spark?: Id;
     /** Map: pin, "!" for news, vehicles (plane, car) (MapDef.vehicles replaces them where present). */
-    pin?: Id; news?: Id; plane?: Id; car?: Id;
+    pin?: Id;
+    news?: Id;
+    plane?: Id;
+    car?: Id;
     /** Ending confetti (images drawn in alternation). */
     confetti?: Id[];
     /** Final card image when the sealed file has no photo. */
@@ -720,18 +762,27 @@ export interface GameDef {
    * Ready-to-use states for testing a specific moment (teleport in dev mode, solver). A checkpoint with `goals` is the
    * end of a chapter: `npm run solve -- --chapters` proves each chapter from the previous checkpoint until its goals hold.
    */
-  checkpoints?: Record<Id, { room: Id; inventory?: Id[]; flags?: Record<Id, Value>; unlocked?: Id[]; props?: Record<string, string>;
-    /** Where the moving characters are (character → room); the others are in their starting room. */
-    where?: Record<Id, Id>;
-    /** Conditions that must all hold when the chapter ending here is done (solver `--chapters`). */
-    goals?: Cond[];
-    /** Several playable characters: who is active, and where the others are. */
-    active?: Id;
-    players?: Record<Id, { room: Id; inventory?: Id[]; used?: Id[] }>;
-    /** Items already used (`used` once/`used` conditions) and topics / listeners / choices already seen (`seen`
-     *  keys by id): a checkpoint that the proof by chapters recognises as a reachable boundary state names them. */
-    used?: Id[];
-    seen?: Record<string, 1> }>;
+  checkpoints?: Record<
+    Id,
+    {
+      room: Id;
+      inventory?: Id[];
+      flags?: Record<Id, Value>;
+      unlocked?: Id[];
+      props?: Record<string, string>;
+      /** Where the moving characters are (character → room); the others are in their starting room. */
+      where?: Record<Id, Id>;
+      /** Conditions that must all hold when the chapter ending here is done (solver `--chapters`). */
+      goals?: Cond[];
+      /** Several playable characters: who is active, and where the others are. */
+      active?: Id;
+      players?: Record<Id, { room: Id; inventory?: Id[]; used?: Id[] }>;
+      /** Items already used (`used` once/`used` conditions) and topics / listeners / choices already seen (`seen`
+       *  keys by id): a checkpoint that the proof by chapters recognises as a reachable boundary state names them. */
+      used?: Id[];
+      seen?: Record<string, 1>;
+    }
+  >;
   /** Conditions that must never become true (the solver reports the path that makes one true). */
   invariants?: Cond[];
   /** Manual save slots (pause menu: save, load, export, import). Absent or 0: autosave only. */
@@ -765,7 +816,19 @@ export interface GameDef {
    * minigame, the dev tools and the Studio load on demand), checked on the build by `npm run verify:dist`.
    * The batch sizes never affect the assets required to render the current room.
    */
-  assetBudgets?: { initialImages?: number; neighboringRooms?: number; audioFiles?: number; initialKB?: number; roomKB?: number; chapterKB?: number; backgroundScoreKB?: number; offlineTotalKB?: number; decodedAudioMB?: number; transitionPeakMB?: number; initialJsKB?: number };
+  assetBudgets?: {
+    initialImages?: number;
+    neighboringRooms?: number;
+    audioFiles?: number;
+    initialKB?: number;
+    roomKB?: number;
+    chapterKB?: number;
+    backgroundScoreKB?: number;
+    offlineTotalKB?: number;
+    decodedAudioMB?: number;
+    transitionPeakMB?: number;
+    initialJsKB?: number;
+  };
   /**
    * How to bring an older save up to date, one step per version, as data: renames and drops. A save whose version has
    * no migration starts a new game (as before). The chain must reach `saveVersion`.
@@ -774,9 +837,14 @@ export interface GameDef {
   /** Engine texts (menus, confirmations). The engine never hardcodes any text. */
   ui: UiTexts;
   /** Title screen: background image, logo, music, footer. */
-  titleScreen?: { decor: Id; logo?: Id; music?: Id; footer?: string;
+  titleScreen?: {
+    decor: Id;
+    logo?: Id;
+    music?: Id;
+    footer?: string;
     /** Silent looping video behind the title (file in public/assets/video/), the backdrop serves as a poster. */
-    video?: string };
+    video?: string;
+  };
   /** Credits background: same video as the title by default. */
   creditsScreen?: { video?: string; decor?: Id };
   /** End credits, line by line (an empty line = a blank space). */
@@ -912,29 +980,84 @@ export interface Layout {
   scale?: [[number, number], [number, number]];
   /** Hero entry points (at least `default`). */
   entries?: Record<Id, Point>;
-  hotspots?: Record<Id, { rect?: [number, number, number, number]; poly?: Point[]; approach?: Point; face?: 'left' | 'right' }>;
+  hotspots?: Record<
+    Id,
+    { rect?: [number, number, number, number]; poly?: Point[]; approach?: Point; face?: 'left' | 'right' }
+  >;
   /** Props: foot position (bottom-center) and height. `z` forces the depth line, `on` = placed on a piece of furniture. */
-  props?: Record<Id, { x: number; y: number; h: number; z?: number; on?: boolean; flip?: boolean;
-    /** Vertical mirror. */
-    flipV?: boolean;
-    /** Rotation in degrees, clockwise, around the foot point. */
-    rot?: number;
-    approach?: Point;
-    /** Different position depending on state (e.g. stool pulled out). Missing fields fall back to the object's own. */
-    states?: Record<string, { x: number; y: number; h?: number; z?: number; rot?: number; flip?: boolean; flipV?: boolean; approach?: Point }> }>;
+  props?: Record<
+    Id,
+    {
+      x: number;
+      y: number;
+      h: number;
+      z?: number;
+      on?: boolean;
+      flip?: boolean;
+      /** Vertical mirror. */
+      flipV?: boolean;
+      /** Rotation in degrees, clockwise, around the foot point. */
+      rot?: number;
+      approach?: Point;
+      /** Different position depending on state (e.g. stool pulled out). Missing fields fall back to the object's own. */
+      states?: Record<
+        string,
+        {
+          x: number;
+          y: number;
+          h?: number;
+          z?: number;
+          rot?: number;
+          flip?: boolean;
+          flipV?: boolean;
+          approach?: Point;
+        }
+      >;
+    }
+  >;
   /** `z` forces the actor's layer (like a prop) instead of following their feet. */
   actors?: Record<Id, { x: number; y: number; h?: number; z?: number; flip?: boolean; approach?: Point }>;
   /** Stage layers' geometry (`RoomDef.stage.layers`): top-left corner, depth line, parallax factor per axis (1: moves
    *  with the room, 0.5: half as fast, behind; 1.2: faster, in front), blend mode and opacity. */
-  layers?: Record<Id, { x?: number; y?: number; z?: number; parallax?: [number, number]; blend?: 'normal' | 'multiply' | 'screen' | 'overlay'; opacity?: number }>;
+  layers?: Record<
+    Id,
+    {
+      x?: number;
+      y?: number;
+      z?: number;
+      parallax?: [number, number];
+      blend?: 'normal' | 'multiply' | 'screen' | 'overlay';
+      opacity?: number;
+    }
+  >;
   /** What hides a character standing behind it (a pillar, a counter, a window frame): a polygon, a black-and-white
    *  mask image, or a stage layer's alpha, drawn over whatever stands deeper than `z` (canvas painter). */
   occluders?: Record<Id, { polygon?: Point[]; mask?: Id; layer?: Id; z: number; feather?: number; invert?: boolean }>;
   /** Several walkable floors (3.4): replaces `walk` when present. Each zone has its own depth scale and camera zoom. */
-  walkZones?: Record<Id, { area: Point[]; holes?: Point[][]; scale?: [[number, number], [number, number]]; elevation?: number; zoom?: number }>;
+  walkZones?: Record<
+    Id,
+    {
+      area: Point[];
+      holes?: Point[][];
+      scale?: [[number, number], [number, number]];
+      elevation?: number;
+      zoom?: number;
+    }
+  >;
   /** How to go from one zone to another: walking, stairs, a ladder, a jump, a teleport; its logic is in
    *  `RoomDef.stage.links[id]`. */
-  walkLinks?: Record<Id, { from: { zone: Id; at: Point }; to: { zone: Id; at: Point }; mode: 'walk' | 'stairs' | 'ladder' | 'jump' | 'teleport'; anim?: string; ms?: number; facing?: 'left' | 'right'; oneWay?: boolean }>;
+  walkLinks?: Record<
+    Id,
+    {
+      from: { zone: Id; at: Point };
+      to: { zone: Id; at: Point };
+      mode: 'walk' | 'stairs' | 'ladder' | 'jump' | 'teleport';
+      anim?: string;
+      ms?: number;
+      facing?: 'left' | 'right';
+      oneWay?: boolean;
+    }
+  >;
   /** Where the radial lights are (`RoomDef.stage.lights`). */
   lights?: Record<Id, { at: Point; radius: number }>;
   /** Where particles appear (`RoomDef.stage.emitters`): a rectangle [x, y, w, h]. */
@@ -966,7 +1089,10 @@ export interface GameState {
   /** Room of each moving character (`CharacterDef.room`, `moveActor`). Absent in old saves. */
   where?: Record<Id, Id>;
   /** Position of each script: next command, finished, stopped. Absent in old saves. */
-  scripts?: Record<Id, { pc: number; /** Stable next-step id in schema v3 saves. */ step?: Id; done?: boolean; off?: boolean }>;
+  scripts?: Record<
+    Id,
+    { pc: number /** Stable next-step id in schema v3 saves. */; step?: Id; done?: boolean; off?: boolean }
+  >;
   /** Camera of the current room: left edge x, or following the hero. */
   camera?: { x: number; follow: boolean };
   /** The character the player controls (`GameDef.players`; otherwise `hero`). */
@@ -985,14 +1111,18 @@ export interface GameState {
 // ---------------------------------------------------------------------------
 
 /** A player action: VERB a (with/to b). `a` can be an inventory item, `b` is always a target. */
-export interface Action { verb: VerbId; a: Id; b?: Id }
+export interface Action {
+  verb: VerbId;
+  a: Id;
+  b?: Id;
+}
 
 /**
  * One input of a session (`Engine.session`). The answers given while it ran (`picks`, `maps`, `rnd`) are what makes it
  * replayable; `ran` lists the rules, topics, listeners and scripts that answered (the ids of the puzzle graph).
  */
 export type SessionEntry = (
-  | { act: Action; /** The walk to the target was interrupted: nothing happened. */ aborted?: true }
+  | { act: Action /** The walk to the target was interrupted: nothing happened. */; aborted?: true }
   | { travel: Id }
   | { switch: Id }
   | { map: true }
@@ -1001,7 +1131,9 @@ export type SessionEntry = (
   | { enter: Id }
   | { start: 'new' }
 ) & {
-  picks?: number[]; maps?: (Id | null)[]; rnd?: number[];
+  picks?: number[];
+  maps?: (Id | null)[];
+  rnd?: number[];
   /** `skip()` was called after that many commands. */
   skipAt?: number;
   ran?: string[];

@@ -8,7 +8,8 @@ export function condText(c: Cond | undefined): string {
   if ('all' in c) return c.all.map(condText).join(' and ');
   if ('any' in c) return c.any.map(condText).join(' or ');
   if ('has' in c) return `has ${c.has}`;
-  if ('flag' in c) return `${c.flag}${'eq' in c ? ` = ${JSON.stringify(c.eq)}` : c.gte !== undefined ? ` ≥ ${c.gte}` : c.lt !== undefined ? ` < ${c.lt}` : ''}`;
+  if ('flag' in c)
+    return `${c.flag}${'eq' in c ? ` = ${JSON.stringify(c.eq)}` : c.gte !== undefined ? ` ≥ ${c.gte}` : c.lt !== undefined ? ` < ${c.lt}` : ''}`;
   if ('visited' in c) return `visited ${c.visited}`;
   if ('room' in c) return `in ${c.room}`;
   if ('prop' in c) return `${c.prop[0]} is ${c.prop[1]}`;
