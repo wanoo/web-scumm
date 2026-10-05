@@ -6,11 +6,12 @@
 // `npm run weight` prints it against `assetBudgets` (`initialKB`, `roomKB`, `chapterKB`); docs/en/TOOLS.md "Weight".
 import { assetGraph, initialScope, type AssetGraph, type AssetManifestLike, type MinigameBindings } from '../core/asset-graph';
 import type { GameDef, Id, Layout, RoomDef } from '../core/types';
+import { transitionFor } from '../core/score';
 
-export interface WeightBudgets { initialKB?: number; roomKB?: number; chapterKB?: number; backgroundScoreKB?: number; offlineTotalKB?: number; decodedAudioMB?: number }
+export interface WeightBudgets { initialKB?: number; roomKB?: number; chapterKB?: number; backgroundScoreKB?: number; offlineTotalKB?: number; decodedAudioMB?: number; transitionPeakMB?: number }
 
 /** Every budget a release must set (`npm run weight -- --release`). */
-export const RELEASE_BUDGETS = ['initialKB', 'roomKB', 'chapterKB', 'backgroundScoreKB', 'offlineTotalKB', 'decodedAudioMB'] as const;
+export const RELEASE_BUDGETS = ['initialKB', 'roomKB', 'chapterKB', 'backgroundScoreKB', 'offlineTotalKB', 'decodedAudioMB', 'transitionPeakMB'] as const;
 
 /** The stem files of every score (`music:<file>` keys): what the director downloads in the background. */
 export function stemAssets(game: GameDef): string[] {
@@ -21,6 +22,45 @@ export function stemAssets(game: GameDef): string[] {
 export function decodedAudio(game: GameDef): number | null {
   const pcm = Object.values(game.audio?.scores ?? {}).map((s) => s.pcmBytes);
   return pcm.includes(undefined) ? null : Math.max(0, ...(pcm as number[]));
+}
+
+/** The tracks the game plays as stingers (`{ music: { stinger } }`), as asset keys (`music:<file>` or `sfx:<file>`). */
+export function stingerAssets(game: GameDef): string[] {
+  const ids = new Set<string>();
+  const walk = (v: unknown) => {
+    if (!v || typeof v !== 'object') return;
+    if (Array.isArray(v)) { v.forEach(walk); return; }
+    const o = v as Record<string, unknown>;
+    if (typeof o.stinger === 'string') ids.add(o.stinger);
+    for (const x of Object.values(o)) walk(x);
+  };
+  walk(game);
+  const music = game.audio?.music ?? {}, sfx = game.audio?.sfx ?? {};
+  return [...ids].flatMap((id) => music[id] ? [`music:${music[id]}`] : sfx[id] ? [`sfx:${sfx[id]}`] : []).sort();
+}
+
+/**
+ * The most decoded audio the director holds at once (3.6.1): during a transition, the old score until its landing,
+ * the new one and the bridge; without one, the largest score; plus the largest stinger on top. `pcm`: a file's decoded
+ * bytes (ffprobe, tools/stem-facts.ts), null when unknown. Null when a score's `pcmBytes` or a file's weight is unknown.
+ */
+export function transitionPeak(game: GameDef, pcm: (key: string) => number | null): number | null {
+  const scores = game.audio?.scores ?? {};
+  const largest = decodedAudio(game);
+  if (largest === null) return null;
+  const music = game.audio?.music ?? {};
+  let peak = largest;
+  for (const from of Object.keys(scores)) for (const to of Object.keys(scores)) {
+    if (from === to) continue;
+    const rule = transitionFor(game.audio?.transitions, from, to);
+    if (!rule) continue;
+    const bridge = rule.bridge && music[rule.bridge] ? pcm(`music:${music[rule.bridge]}`) : 0;
+    if (bridge === null) return null;
+    peak = Math.max(peak, scores[from].pcmBytes! + scores[to].pcmBytes! + bridge);
+  }
+  let sting = 0;
+  for (const k of stingerAssets(game)) { const b = pcm(k); if (b === null) return null; sting = Math.max(sting, b); }
+  return peak + sting;
 }
 
 /** The asset keys a room can need (`room:<id>` of the asset graph, src/engine/core/asset-graph.ts). */
@@ -49,13 +89,15 @@ export interface WeightReport {
   background: Weighed;
   offline: Weighed;
   decodedAudio: number | null;
+  /** The most decoded audio held at once (3.6.1: a transition's two scores and bridge, a stinger on top). */
+  transitionPeak: number | null;
   /** One line per budget exceeded. */
   over: string[];
 }
 
 const kb = (b: number) => Math.round(b / 1024);
 
-export function weightReport(game: GameDef, sizes: Record<string, number | null>, chapters: { id: string; rooms: Id[] }[] = [], budgets: WeightBudgets = game.assetBudgets ?? {}, opts: { bindings?: MinigameBindings; layouts?: Record<Id, Layout>; shell?: string[]; stems?: boolean; manifest?: AssetManifestLike } = {}): WeightReport {
+export function weightReport(game: GameDef, sizes: Record<string, number | null>, chapters: { id: string; rooms: Id[] }[] = [], budgets: WeightBudgets = game.assetBudgets ?? {}, opts: { bindings?: MinigameBindings; layouts?: Record<Id, Layout>; shell?: string[]; stems?: boolean; manifest?: AssetManifestLike; pcm?: (key: string) => number | null } = {}): WeightReport {
   const graph = assetGraph(game, { bindings: opts.bindings, layouts: opts.layouts, stems: opts.stems, manifest: opts.manifest });
   const byRoom = new Map(game.rooms.map((r) => [r.id, roomAssets(game, r, graph)]));
   // The first visit: the app shell (what the service worker precaches, when the build is there) and the initial scope.
@@ -75,5 +117,10 @@ export function weightReport(game: GameDef, sizes: Record<string, number | null>
     if (pcm === null) over.push(`decoded audio unknown: a score has no pcmBytes (npm run audio -- stems), decodedAudioMB ${budgets.decodedAudioMB}`);
     else if (Math.round(pcm / 1048576) > budgets.decodedAudioMB) over.push(`decoded audio ${Math.round(pcm / 1048576)} MB > decodedAudioMB ${budgets.decodedAudioMB}`);
   }
-  return { initial, rooms, chapters: ch, background, offline, decodedAudio: pcm, over };
+  const peak = transitionPeak(game, opts.pcm ?? (() => null));
+  if (budgets.transitionPeakMB !== undefined) {
+    if (peak === null) over.push(`decoded peak unknown: a score has no pcmBytes or a bridge or stinger could not be measured (ffprobe), transitionPeakMB ${budgets.transitionPeakMB}`);
+    else if (Math.round(peak / 1048576) > budgets.transitionPeakMB) over.push(`decoded peak ${Math.round(peak / 1048576)} MB > transitionPeakMB ${budgets.transitionPeakMB}`);
+  }
+  return { initial, rooms, chapters: ch, background, offline, decodedAudio: pcm, transitionPeak: peak, over };
 }

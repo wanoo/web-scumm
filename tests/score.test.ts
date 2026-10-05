@@ -117,4 +117,17 @@ describe('score: transitions between scores (3.6)', () => {
       expect.stringContaining('audio.scores.theme.markers.bad'),
     ]);
   });
+  it('validate: a marker from any score needs it on each, and a rule an earlier one covers is never used (3.6.1)', () => {
+    const g = structuredClone(demo);
+    g.audio!.scores!.other = { ...g.audio!.scores!.theme, markers: {} };
+    g.audio!.music!.other = g.audio!.music!.theme;
+    g.audio!.scores!.theme.markers = { coda: 2 };
+    // Rule 1 is fine: the only score it can leave is the theme, which has the marker.
+    g.audio!.transitions = [{ from: '*', to: 'theme', at: 'coda' }, { from: '*', to: 'other', at: 'coda' }, { from: 'other', to: 'theme', at: 'bar' }];
+    const { errors } = validate(g, {});
+    expect(errors.filter((e) => /transitions/.test(e))).toEqual([
+      expect.stringMatching(/transitions\[0\]\.at.*"other" has no such marker/),
+      expect.stringMatching(/transitions\[2\].*never used: audio\.transitions\[0\]/),
+    ]);
+  });
 });

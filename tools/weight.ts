@@ -12,7 +12,9 @@ import { resolve } from 'node:path';
 import { assetPath } from '../src/engine/tools/provenance';
 import { proveChapters } from '../src/engine/tools/chapters';
 import { assetGraph, initialScope, splitKey } from '../src/engine/core/asset-graph';
-import { RELEASE_BUDGETS, stemAssets, weightReport } from '../src/engine/tools/weight';
+import { RELEASE_BUDGETS, stemAssets, stingerAssets, weightReport } from '../src/engine/tools/weight';
+import { pcmOf } from '../src/engine/tools/stems';
+import { hasFfprobe, stemFacts } from './stem-facts';
 import { loadLayouts } from '../src/engine/tools/load';
 import { ASSETS_DIR, GAME, GAME_DIR, loadGameModule } from './game';
 
@@ -73,7 +75,10 @@ if (Object.values(game.checkpoints ?? {}).some((c) => c.goals?.length)) {
 // images and sounds as they are (already compressed).
 const net: Record<string, number | null> = { ...sizes, ...gzip };
 for (const k of twice) { net[`${k}#again`] = net[k]; sizes[`${k}#again`] = sizes[k]; if (gzip[k] !== undefined) gzip[`${k}#again`] = gzip[k]; }
-const rep = weightReport(game, net, chapters, game.assetBudgets ?? {}, { bindings, layouts, stems, manifest, shell: [...shell, ...twice.map((k) => `${k}#again`)] });
+// Bridges and stingers decoded (3.6.1): measured with ffprobe where it runs, unknown elsewhere.
+const probe = hasFfprobe();
+const pcm = (k: string) => { const p = assetPath(k); const f = probe && p ? stemFacts(resolve(ASSETS_DIR, p)) : null; return f ? pcmOf([f]) : null; };
+const rep = weightReport(game, net, chapters, game.assetBudgets ?? {}, { bindings, layouts, stems, manifest, pcm, shell: [...shell, ...twice.map((k) => `${k}#again`)] });
 const kb = (b: number) => `${Math.round(b / 1024)} KB`;
 const b = game.assetBudgets ?? {};
 const missing = [...new Set([rep.initial, ...rep.rooms, ...rep.chapters, rep.background, rep.offline].flatMap((w) => w.missing))];
@@ -96,11 +101,12 @@ for (const c of rep.chapters) console.log(`  chapter    ${kb(c.bytes).padStart(9
 // their own); everything the full warm-up stores; the largest score decoded in memory.
 if (rep.background.files) console.log(`  stems      ${kb(rep.background.bytes).padStart(9)}  ${rep.background.files} files, downloaded in the background where the music director plays them${stems ? ' (--stems: also in every scope above)' : ''}${b.backgroundScoreKB !== undefined ? `  (budget ${b.backgroundScoreKB} KB)` : ''}`);
 console.log(`  offline    ${kb(rep.offline.bytes).padStart(9)}  ${rep.offline.files} files, the full warm-up (app shell${shell.length ? '' : ' not built'}, every image, sound and video)${b.offlineTotalKB !== undefined ? `  (budget ${b.offlineTotalKB} KB)` : ''}`);
+if (game.audio?.transitions?.length || stingerAssets(game).length) console.log(`  peak       ${rep.transitionPeak === null ? '?'.padStart(9) : `${Math.round(rep.transitionPeak / 1048576)} MB`.padStart(9)}  the most decoded at once (a transition's scores and bridge, a stinger)${rep.transitionPeak === null ? ' (unmeasured: pcmBytes, or ffprobe)' : ''}${b.transitionPeakMB !== undefined ? `  (budget ${b.transitionPeakMB} MB)` : ''}`);
 if (game.audio?.scores) console.log(`  decoded    ${rep.decodedAudio === null ? '?'.padStart(9) : `${Math.round(rep.decodedAudio / 1048576)} MB`.padStart(9)}  the largest score's stems in memory${rep.decodedAudio === null ? ' (a score has no pcmBytes)' : ''}${b.decodedAudioMB !== undefined ? `  (budget ${b.decodedAudioMB} MB)` : ''}`);
 for (const m of missing) console.log(`  ✖ ${m}: no built file (${m.startsWith('shell:') ? 'npm run build:web' : 'npm run assets'})`);
 for (const o of rep.over) console.log(`  ✖ ${o}`);
 const release = process.argv.includes('--release');
-const unset = RELEASE_BUDGETS.filter((k) => b[k] === undefined && (k !== 'backgroundScoreKB' && k !== 'decodedAudioMB' || !!game.audio?.scores));
+const unset = RELEASE_BUDGETS.filter((k) => b[k] === undefined && (k === 'transitionPeakMB' ? !!game.audio?.transitions?.length : k !== 'backgroundScoreKB' && k !== 'decodedAudioMB' || !!game.audio?.scores));
 if (unset.length) console.log(`  ${release ? '✖' : 'ℹ'} no ${unset.join(', ')}: set assetBudgets.${unset[0]} (and the others) in game.ts${release ? ': a release says how much it asks a phone to download' : ' to hold the game to them'}`);
 const failed = rep.over.length + missing.length + (release ? unset.length : 0);
 console.log(`${failed ? '✖' : '✔'}  [${GAME}] ${rep.over.length ? `${rep.over.length} budget(s) exceeded` : missing.length ? `${missing.length} file(s) missing` : release && unset.length ? 'no weight budget' : 'within budget'}`);

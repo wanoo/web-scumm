@@ -720,7 +720,8 @@ défaut ; `'nearby'` ne garde que le lieu courant et ses voisins) ; `assetBudget
 pèse 40 Mo sur le téléphone.
 `assetBudgets.initialKB`, `roomKB` et `chapterKB` disent combien le jeu peut demander à un téléphone de télécharger
 avant que le premier lieu soit jouable, par lieu et par chapitre. Avec une partition, `backgroundScoreKB` (ses stems),
-`decodedAudioMB` (décodée), et pour tout jeu `offlineTotalKB` (le préchargement complet) tiennent le reste (3.6).
+`decodedAudioMB` (décodée), et pour tout jeu `offlineTotalKB` (le préchargement complet) tiennent le reste (3.6) ; avec
+des transitions, `transitionPeakMB` (deux partitions, un pont et un stinger décodés à la fois, 3.6.1).
 `npm run weight` les vérifie, et une release les exige (docs/fr/TOOLS.md).
 
 Une image se désigne par `dossier/nom`, le chemin du fichier découpé dans `games/<jeu>/art/` sans l'extension :
@@ -846,5 +847,7 @@ audio: {
 
 `at` vaut `beat`, `bar` (défaut), `phrase` ou un marqueur de l'ancienne partition, compté à travers sa boucle. Sans
 règle, une partition en remplace une autre aussitôt, en fondu, comme en 3.5. Une sauvegarde garde où en est la
-musique, et la charger la reprend là. C'est un mixeur adaptatif à stems avec transitions, pas iMUSE : pas de
+musique, et la charger la reprend là, en coupe, jamais par une transition (3.6.1). La première règle qui nomme les
+deux partitions s'applique : `validate` refuse une règle qu'une précédente couvre, et un marqueur depuis `'*'` qu'une
+partition qu'elle peut quitter n'a pas. C'est un mixeur adaptatif à stems avec transitions, pas iMUSE : pas de
 changement de tempo, pas de branches à l'intérieur d'une partition.

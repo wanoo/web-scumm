@@ -306,7 +306,11 @@ can be in during it, from the proof by chapters), with the decoded memory of the
 They count each track's single mix, what every device plays. Since 3.6 the rest has budgets too:
 - `backgroundScoreKB`: the scores' stems, downloaded after the room is playable where the director plays them;
 - `offlineTotalKB`: everything the full warm-up stores, app shell included;
-- `decodedAudioMB`: the largest score decoded in memory (its `pcmBytes`; unknown is over).
+- `decodedAudioMB`: the largest score decoded in memory (its `pcmBytes`; unknown is over);
+- `transitionPeakMB` (3.6.1, required with `audio.transitions`): the most decoded at once, the worst transition's two
+  scores and its bridge, plus the largest stinger (`{ music: { stinger } }`). Bridges and stingers are measured with
+  ffprobe; unmeasured is over. The director holds the runtime side: `audio.maxDecodedMB` caps every buffer it keeps,
+  and a transition over it cuts without its bridge (docs/en/AUDIO.md).
 `--release` (a step of `verify:release`) also fails when a budget is not set. `--json`. `npm run e2e:weight -- <url>`
 (a CI gate since 3.4) checks the prediction against a real first visit in Chromium, the warm-ups off: every request
 inside the predicted initial scope, the bytes within 10% of it or below.

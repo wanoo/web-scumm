@@ -195,7 +195,16 @@ les partitions jouées le moins récemment sont libérées, et une partition plu
 (d'après son `pcmBytes`, avant tout téléchargement). D'une partition à une autre, `audio.transitions` pose la nouvelle
 sur le temps, la mesure, la phrase ou le marqueur de l'ancienne, après un pont s'il y en a un (3.6, `core/score.ts`
 `landing`) ; `npm run e2e:music` vérifie les deux à l'échantillon, et la phase d'une sauvegarde (`state.music`, écrite
-par l'application, jamais lue par le moteur) reprend où elle en était.
+par l'application, jamais lue par le moteur) reprend où elle en était. La musique a trois intentions (3.6.1) : `play`
+(celle de l'histoire, avec ses transitions), `restore` (une sauvegarde chargée : ce qui joue s'arrête aussitôt et le
+morceau sauvegardé repart à son point, même quand c'est celui qui joue ; ni transition ni pont tant que la sauvegarde
+n'est pas en place) et `stop`. Le directeur possède ce qu'il programme : une transition pas encore arrivée est un plan
+(l'ancienne partition, le pont, la nouvelle) qu'un arrêt, une restauration ou une nouvelle demande annule, si bien
+qu'aucun pont ne sonne après eux ; l'ancienne partition est arrêtée par une minuterie, jamais par un arrêt programmé
+d'avance. Les voix baissent un bus sous tout ce qu'il joue (ponts et stingers compris), jamais les fondus. Le plafond
+compte chaque buffer : un pont qui ne tient pas est abandonné, deux partitions qui ne tiennent pas deviennent une
+coupe, les stingers sont évincés comme les partitions. Une partition qui se replie sur son mix garde le point
+sauvegardé.
 
 ## Cache et fluidité
 

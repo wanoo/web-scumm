@@ -6,6 +6,7 @@ import { condFlags } from '../core/cond';
 import { subLists } from '../core/cmds';
 import { normalizeExits } from '../core/define';
 import { worldGraph } from './graph';
+import { transitionPeak } from './weight';
 import { puzzleGraph, puzzleIssues } from './puzzle';
 import type { Cmd, Cond, EventRule, GameDef, Id, Layout, ListLine, RoomDef, Rule, ScriptDef, VerbId } from '../core/types';
 
@@ -431,9 +432,21 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     for (const k of ['from', 'to'] as const) if (t[k] !== '*' && !game.audio?.scores?.[t[k]]) err(`${w}.${k}`, `unknown score "${t[k]}" (audio.scores, or "*")`);
     const from = t.from === '*' ? undefined : game.audio?.scores?.[t.from];
     if (t.at !== undefined && !['beat', 'bar', 'phrase'].includes(t.at) && from && from.markers?.[t.at] === undefined) err(`${w}.at`, `"${t.at}" is not beat, bar, phrase or a marker of "${t.from}" (markers: ${Object.keys(from.markers ?? {}).join(', ') || 'none'})`);
+    // From any score to a marker (3.6.1): every score it can leave needs that marker, else it lands on a bar unsaid.
+    if (t.from === '*' && t.at !== undefined && !['beat', 'bar', 'phrase'].includes(t.at)) {
+      const lacking = Object.entries(game.audio?.scores ?? {}).filter(([id, sc]) => id !== t.to && sc.markers?.[t.at!] === undefined).map(([id]) => id);
+      if (lacking.length) err(`${w}.at`, `"${t.at}" from any score, but ${lacking.map((id) => `"${id}"`).join(', ')} has no such marker: name the scores, or give each the marker`);
+    }
+    // The first rule naming both scores applies (core/score.ts transitionFor): one an earlier rule covers is never used.
+    const masked = (game.audio?.transitions ?? []).slice(0, i).findIndex((r) => (r.from === '*' || r.from === t.from) && (r.to === '*' || r.to === t.to));
+    if (masked >= 0) err(w, `never used: audio.transitions[${masked}] (${game.audio!.transitions![masked].from} → ${game.audio!.transitions![masked].to}) comes first and covers it`);
     if (t.bridge !== undefined && !music[t.bridge]) err(`${w}.bridge`, `unknown track "${t.bridge}" (audio.music)`);
     if (t.fadeBeats !== undefined && !(t.fadeBeats >= 0)) err(`${w}.fadeBeats`, 'a number of beats, 0 or more');
   });
+  // The most decoded audio a transition holds (3.6.1), from the declared pcmBytes (bridges and stingers counted by
+  // `npm run weight`, which measures them): over the director's cap, that transition becomes a cut.
+  const peak = transitionPeak(game, () => 0);
+  if (peak && peak > (game.audio?.maxDecodedMB ?? 160) * 1048576) warn('audio.transitions', `a transition holds ${Math.round(peak / 1048576)} MB decoded (both scores), over audio.maxDecodedMB (${game.audio?.maxDecodedMB ?? 160}): it will cut, without its bridge`);
   // Scores (3.5): the stems of a track that exists, a tempo, mixes that name its stems, a loop inside the file.
   for (const [id, sc] of Object.entries(game.audio?.scores ?? {})) {
     const w = `audio.scores.${id}`;

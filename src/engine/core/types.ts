@@ -751,10 +751,11 @@ export interface GameDef {
    * room (`roomKB`), per chapter (`chapterKB`, every room a player can be in during it). Those three count each track's
    * single mix: what every device needs to play. Since 3.6 the rest is held too: the scores' stems the music director
    * downloads in the background (`backgroundScoreKB`, all of them), everything the full offline warm-up stores
-   * (`offlineTotalKB`, app shell included), and the largest score decoded in memory (`decodedAudioMB`, its `pcmBytes`).
+   * (`offlineTotalKB`, app shell included), and the largest score decoded in memory (`decodedAudioMB`, its `pcmBytes`), and the most held at once
+   * (`transitionPeakMB`, 3.6.1: a transition's two scores and its bridge, plus the largest stinger).
    * The batch sizes never affect the assets required to render the current room.
    */
-  assetBudgets?: { initialImages?: number; neighboringRooms?: number; audioFiles?: number; initialKB?: number; roomKB?: number; chapterKB?: number; backgroundScoreKB?: number; offlineTotalKB?: number; decodedAudioMB?: number };
+  assetBudgets?: { initialImages?: number; neighboringRooms?: number; audioFiles?: number; initialKB?: number; roomKB?: number; chapterKB?: number; backgroundScoreKB?: number; offlineTotalKB?: number; decodedAudioMB?: number; transitionPeakMB?: number };
   /**
    * How to bring an older save up to date, one step per version, as data: renames and drops. A save whose version has
    * no migration starts a new game (as before). The chain must reach `saveVersion`.
