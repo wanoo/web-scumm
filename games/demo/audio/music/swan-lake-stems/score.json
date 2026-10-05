@@ -6,5 +6,6 @@
   "bass": "swan-lake-stems/bass.mp3"
  },
  "bpm": 80.0,
- "beatsPerBar": 4
+ "beatsPerBar": 4,
+ "pcmBytes": 101376032
 }

@@ -585,6 +585,11 @@ export interface ScoreDef {
   /** Where a change of mix lands (default `bar`), and how long its crossfade lasts in beats (default 2). */
   quantize?: 'beat' | 'bar';
   fadeBeats?: number;
+  /**
+   * The stems decoded, in bytes (all of them, at 48 kHz, 4 bytes a sample; `npm run audio -- stems` writes it). A
+   * browser that does not tell its memory plays the stems only below 128 MB (dom/director.ts `directorFits`).
+   */
+  pcmBytes?: number;
 }
 
 

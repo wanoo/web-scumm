@@ -119,7 +119,8 @@ n'y en a pas (melody : lead et echo ; harmony : double, harmony, counter, accent
 bruit). Chaque stem vient du même rendu : tous ont la même longueur et le même départ, et leur somme est le mix. Un
 seul gain, le même pour chaque stem, amène la somme à −14 LUFS (jamais une normalisation par stem : l'équilibre est
 celui de l'arrangement). La commande écrit `games/<id>/audio/music/<slug>-stems/<stem>.mp3` et un `score.json` à
-coller sous `audio.scores`, sous l'id du mix unique (le tempo est mesuré sur le rendu : mesures × temps sur sa durée).
+coller sous `audio.scores`, sous l'id du mix unique (le tempo est mesuré sur le rendu : mesures × temps sur sa durée ;
+`pcmBytes` est le poids décodé des stems à 48 kHz, sur lequel décide un navigateur qui ne donne pas sa mémoire, 3.5.1).
 
 Regrouper les canaux selon ce que le jeu allumera ou éteindra : le thème du jeu d'exemple a mélodie, cordes, harpe et
 basse, et ne joue que la harpe et la basse quand Biscuit est actif. Un stem presque muet (le seul canal de bruit du

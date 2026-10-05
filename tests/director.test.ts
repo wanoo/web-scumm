@@ -2,7 +2,7 @@
 // order; a stop while a score loads; a stem that fails. Only the latest request plays. A fake audio context records
 // what starts (the real Web Audio is scripts/e2e-music.mjs's).
 import { describe, expect, it } from 'vitest';
-import { MusicDirector } from '../src/engine/dom/director';
+import { MusicDirector, directorFits, UNKNOWN_MEMORY_PCM } from '../src/engine/dom/director';
 import type { ScoreDef } from '../src/engine/core/types';
 
 const param = () => ({ value: 1, setValueAtTime() {}, linearRampToValueAtTime() {}, cancelScheduledValues() {} });
@@ -95,5 +95,27 @@ describe('music director requests', () => {
     f.load('B-a'); f.load('B-b'); await b;
     expect(d.current).toBe('A');
     expect(started).toEqual(['A-a', 'A-b']);
+  });
+});
+
+describe('where the director plays stems', () => {
+  const nav = (n: object) => ({ hardwareConcurrency: 8, ...n }) as unknown as Navigator;
+  const MB = 1024 * 1024;
+  it('a device that does not tell its memory gets stems only for a known, light enough score', () => {
+    const g = globalThis as { AudioContext?: unknown };
+    const had = g.AudioContext;
+    g.AudioContext = class {};
+    try {
+      expect(directorFits(40 * MB, nav({}))).toBe(true);
+      expect(directorFits(101376032, nav({}))).toBe(true); // the demo's theme
+      expect(directorFits(UNKNOWN_MEMORY_PCM + 1, nav({}))).toBe(false);
+      expect(directorFits(undefined, nav({}))).toBe(false);
+      // A device that tells: its memory decides, as in 3.5.
+      expect(directorFits(undefined, nav({ deviceMemory: 4 }))).toBe(true);
+      expect(directorFits(40 * MB, nav({ deviceMemory: 2 }))).toBe(false);
+      expect(directorFits(40 * MB, nav({ hardwareConcurrency: 2 }))).toBe(false);
+      expect(directorFits(40 * MB, nav({ deviceMemory: 8, connection: { saveData: true } }))).toBe(false);
+    } finally { g.AudioContext = had; }
+    expect(directorFits(40 * MB, nav({ deviceMemory: 8 }))).toBe(false); // no Web Audio
   });
 });

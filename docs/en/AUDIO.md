@@ -111,7 +111,8 @@ when it has none (melody: lead and echo; harmony: double, harmony, counter, acce
 noise). Every stem comes from the same render, so all have the same length and start, and their sum is the mix. One
 gain, the same for every stem, brings the sum to −14 LUFS (never a per-stem normalisation: the balance is the
 arrangement's). It writes `games/<id>/audio/music/<slug>-stems/<stem>.mp3` and a `score.json` to paste under
-`audio.scores`, by the id of the single mix (the tempo is measured from the render: bars × beats over its length).
+`audio.scores`, by the id of the single mix (the tempo is measured from the render: bars × beats over its length;
+`pcmBytes` is the stems' decoded weight at 48 kHz, on which a browser that does not tell its memory decides, 3.5.1).
 
 Group channels by what the game will switch on and off: the sample game's theme has melody, strings, harp and bass,
 and plays only the harp and the bass while Biscuit is active. A stem that is nearly silent (the swan-lake noise
