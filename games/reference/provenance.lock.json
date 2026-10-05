@@ -1205,6 +1205,48 @@
    "licence": "CC BY 4.0",
    "status": "final"
   },
+  "music:bridge_to_market.mp3": {
+   "sha256": "7fb5a38090c2b32f0dc7a11d3195317a51717cb78fd676010556f0ed4d4d32fb",
+   "bytes": 66544,
+   "match": "music:bridge_to_*.mp3",
+   "licence": "CC BY 4.0",
+   "status": "final"
+  },
+  "music:bridge_to_theme.mp3": {
+   "sha256": "1ea7dd818dd9e40a693b824032098d7bb37b3638f8595112f44d89a82c4ba6b9",
+   "bytes": 66543,
+   "match": "music:bridge_to_*.mp3",
+   "licence": "CC BY 4.0",
+   "status": "final"
+  },
+  "music:night-market-stems/bass.mp3": {
+   "sha256": "c52ed582de70880c5a63a478540f4dc46499e9ea9888d68786d971b4972d029a",
+   "bytes": 510716,
+   "match": "music:night-market-stems/*",
+   "licence": "CC BY 4.0",
+   "status": "final"
+  },
+  "music:night-market-stems/chords.mp3": {
+   "sha256": "34c0df93ee79dd8aaccc4de827efcbbff35f3258eb9cf50a6864eeedac60c3ad",
+   "bytes": 510718,
+   "match": "music:night-market-stems/*",
+   "licence": "CC BY 4.0",
+   "status": "final"
+  },
+  "music:night-market-stems/melody.mp3": {
+   "sha256": "1bdb05308a6058c3aac5b3c69d192adc4e6c4d5043552593674afebb492d3f34",
+   "bytes": 510718,
+   "match": "music:night-market-stems/*",
+   "licence": "CC BY 4.0",
+   "status": "final"
+  },
+  "music:night_market.mp3": {
+   "sha256": "6be7bcf013df18a33039a750f02d3f3e862feaaf8ee9dc9e0675fbe97275d2d6",
+   "bytes": 510722,
+   "match": "music:night_market.mp3",
+   "licence": "CC BY 4.0",
+   "status": "final"
+  },
   "music:swan-theme-stems/bass.mp3": {
    "sha256": "505104ca0ef614b14aa3162bc1eb879845dec7196fb565435e4d654384af9e55",
    "bytes": 648974,

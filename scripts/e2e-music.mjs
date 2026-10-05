@@ -14,7 +14,12 @@
 //      under 20 ms. The game's own stems decode, all of the same length.
 //   4. in the game (Chromium, the sample game): the theme plays as stems; another room changes the mix on the next
 //      bar without restarting the music; `?music=mix` plays the single mix instead.
-// `--only=offline|live|game` runs one part. Exit codes: 0 every gate passes, 1 not.
+//   5. the reference chapter (Chromium, `--only=reference` on its build, 3.7): two scores and two bridges. The theme
+//      hands over to the market on its next phrase after a bridge; a save loaded while the way back is planned
+//      restores the market at its point with no bridge; a stop while a transition waits leaves nothing sounding; the
+//      decoded audio never goes over `transitionPeakMB`.
+// `--only=offline|live|game|reference` runs one part (`reference` only on its own). Exit codes: 0 every gate passes,
+// 1 not.
 import { build } from 'esbuild';
 import { chromium, webkit } from 'playwright';
 
@@ -219,6 +224,60 @@ if ((!only || only === 'game') && !process.argv.includes('--no-game')) {
   await play('./?music=mix');
   const m = await p.evaluate(() => ({ director: !!window.__game.audio.director?.current }));
   say(!m.director, '?music=mix: the single mix, no director');
+  await browser.close();
+}
+if (only === 'reference') {
+  console.log('the reference chapter (Chromium):');
+  const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
+  const p = await (await browser.newContext({ viewport: { width: 932, height: 430 } })).newPage();
+  await p.goto(new URL('./?music=stems', url).toString());
+  await p.waitForFunction(() => !!window.__game?.engine, null, { timeout: 20000 });
+  await p.locator('.overlay .bigbtn').first().click();
+  await p.waitForFunction(() => !!window.__game.engine.state, null, { timeout: 20000 });
+  const r = await p.evaluate(async () => {
+    const g = window.__game, a = g.audio;
+    const wait = (f, ms = 30000) => new Promise((res) => { const t0 = performance.now(); const k = () => (f() || performance.now() - t0 > ms ? res(f()) : setTimeout(k, 50)); k(); });
+    let peak = 0;
+    const sample = setInterval(() => { peak = Math.max(peak, a.director?.decodedBytes ?? 0); }, 50);
+    await g.engine.teleport('street');
+    await wait(() => a.director?.current === 'theme' && a.director.position !== null);
+    const d = a.director;
+    // Into the market: a plan first (the theme plays on to its phrase), then the market after the bridge.
+    await g.engine.teleport('market');
+    await wait(() => d.pending !== null || d.lastTransition?.to === 'market', 15000);
+    const planned = d.pending ?? d.lastTransition;
+    await wait(() => d.lastTransition?.to === 'market' && d.ctx.currentTime > d.lastTransition.start + 1);
+    const inMarket = { current: d.current, stems: [...d.stems], transition: d.lastTransition };
+    // A save in the market, then the way back planned, then that save loaded before the landing.
+    await new Promise((res) => setTimeout(res, 1500));
+    g.engine.save();
+    const saved = g.engine.store.load();
+    await g.engine.teleport('street');
+    await wait(() => d.pending?.to === 'theme', 15000);
+    const back = d.pending;
+    const beforeLoad = d.lastTransition;
+    await g.engine.load(saved);
+    await wait(() => d.current === 'market' && d.position !== null && Math.abs(d.position - saved.music.at) < 1, 10000);
+    const restored = { current: d.current, position: d.position, pending: d.pending, lastTransition: d.lastTransition === beforeLoad };
+    await new Promise((res) => setTimeout(res, 400));
+    const tailsAfterRestore = d.tailCount;
+    // The way back planned again, then a stop before it lands: nothing left.
+    await g.engine.teleport('street');
+    await wait(() => d.pending?.to === 'theme', 15000);
+    a.stop();
+    await new Promise((res) => setTimeout(res, 400));
+    const stopped = { current: d.current, pending: d.pending, tails: d.tailCount };
+    clearInterval(sample);
+    return { planned, inMarket, saved: saved.music, back, restored, tailsAfterRestore, stopped, peak, budget: (g.game ?? g.engine.game).assetBudgets?.transitionPeakMB, cap: d.maxDecodedBytes };
+  });
+  const MB = 1048576;
+  say(r.planned?.from === 'theme' && r.planned?.to === 'market', `into the market: the theme hands over on its phrase (${r.planned?.at?.toFixed(2)} s on the clock)`);
+  say(r.inMarket.current === 'market' && r.inMarket.transition?.start > r.inMarket.transition?.at + 5, `the market score after the bridge (${(r.inMarket.transition?.start - r.inMarket.transition?.at).toFixed(2)} s of bridge), stems ${r.inMarket.stems.join(', ')}`);
+  say(r.back?.from === 'market' && r.back?.to === 'theme', 'the way back planned on the market\'s "home" bar');
+  say(r.restored.current === 'market' && r.restored.pending === null && r.restored.lastTransition && Math.abs(r.restored.position - r.saved.at) < 1, `a save loaded before that landing: the market at its saved point (${r.restored.position?.toFixed(2)} s for ${r.saved?.at?.toFixed(2)} s), no transition, no bridge`);
+  say(r.tailsAfterRestore === 0, `nothing left sounding besides the market after the restore (${r.tailsAfterRestore} tail(s))`);
+  say(r.stopped.current === null && r.stopped.pending === null && r.stopped.tails === 0, 'a stop while a transition waits: no score, no plan, no bridge left');
+  say(r.peak > 0 && r.peak <= r.budget * MB && r.peak <= r.cap, `decoded audio at most ${Math.round(r.peak / MB)} MB (transitionPeakMB ${r.budget}, cap ${Math.round(r.cap / MB)} MB)`);
   await browser.close();
 }
 console.log(`${failed ? '✖' : '✔'}  music director: ${failed ? `${failed} gate(s) failed` : 'every gate passes'}`);
