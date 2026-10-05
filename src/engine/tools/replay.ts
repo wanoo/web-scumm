@@ -5,6 +5,7 @@ import { Engine, type TraceEntry } from '../core/engine';
 import type { CustomCommands } from '../core/custom';
 import { FakePresenter, MemoryStore } from '../core/ports';
 import type { GameDef, GameState, Id, Layout, Session, SessionEntry } from '../core/types';
+import { must } from '../core/must';
 
 /** A session to replay: `base` is only needed when it starts from a save. */
 export type Replayable = Pick<Session, 'start' | 'log'> & Partial<Pick<Session, 'v' | 'base'>>;
@@ -128,7 +129,7 @@ export async function replay(
   let divergedAt: number | undefined, divergence: string | undefined;
   let played = 0;
   for (; i < end; i++) {
-    const en = log[i];
+    const en = must(log[i], 'log entry');
     // A pending call (the intro waiting for a tutorial step) gets to continue before the next input, as in the game.
     for (let guard = 0; guard < 100 && (guard === 0 || e.busy); guard++) await tick();
     const n0 = e.session?.log.length ?? 0;

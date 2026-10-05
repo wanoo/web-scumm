@@ -1,5 +1,6 @@
 // Keyboard helpers for the game's DOM: a focus trap for dialogs, arrow-key navigation inside a group of buttons.
 // Pure DOM, no engine: tested under happy-dom (tests/dom/a11y.test.ts).
+import { must } from '../core/must';
 
 export const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -22,8 +23,8 @@ export function trapFocus(
     if (e.key !== 'Tab') return;
     const focusable = [...container.querySelectorAll<HTMLElement>(FOCUSABLE)];
     if (!focusable.length) return;
-    const first = focusable[0],
-      last = focusable[focusable.length - 1];
+    const first = must(focusable[0], 'first focusable'),
+      last = must(focusable[focusable.length - 1], 'last focusable');
     if (e.shiftKey && document.activeElement === first) {
       e.preventDefault();
       last.focus();
@@ -61,7 +62,7 @@ export function roving(container: HTMLElement, selector: string): () => void {
         : e.key === 'End'
           ? items.length - 1
           : (i + (e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
-    items[next].focus();
+    must(items[next], 'roving item').focus();
   };
   container.addEventListener('keydown', onKey);
   return () => container.removeEventListener('keydown', onKey);

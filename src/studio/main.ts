@@ -15,6 +15,7 @@ import { PlayTab } from './play';
 import { RoomsTab } from './rooms';
 import { StoryboardTab } from './storyboard';
 import { download, h, toast } from './ui';
+import { must } from '../engine/core/must';
 
 type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'music' | 'check' | 'play' | 'notes';
 const TABS: [TabId, string][] = [
@@ -203,7 +204,7 @@ async function start() {
         storyboard.showPanel(about);
         return;
       }
-      openRoom(about.split('.')[0]);
+      openRoom(must(about.split('.')[0], 'room of a note'));
     },
   });
   const assets = new AssetsTab({ info, ownWrite, openRoom, prepared: () => rooms.reloadFrame() });

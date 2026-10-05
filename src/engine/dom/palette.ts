@@ -2,6 +2,8 @@
 // The pixel work (`swapPalette`) is pure and runs on a Uint8ClampedArray (RGBA, as in ImageData), so it is testable
 // without a DOM; `PaletteCache` wraps it for the browser (offscreen canvas, one blob URL per image and palette).
 
+import { must } from '../core/must';
+
 /** Source `#rrggbb` → target `#rrggbb`. */
 export type Palette = Record<string, string>;
 
@@ -41,9 +43,10 @@ export function swapPalette(data: Uint8ClampedArray, palette: Palette, tolerance
   let changed = 0;
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] === 0) continue;
-    const r = data[i],
-      g = data[i + 1],
-      b = data[i + 2];
+    // RGBA: i + 3 < data.length.
+    const r = must(data[i], 'red'),
+      g = must(data[i + 1], 'green'),
+      b = must(data[i + 2], 'blue');
     if (tolerance <= 0) {
       const to = exact.get((r << 16) | (g << 8) | b);
       if (!to) continue;
@@ -56,7 +59,7 @@ export function swapPalette(data: Uint8ClampedArray, palette: Palette, tolerance
     let best = -1,
       bestD = Infinity;
     for (let k = 0; k < pairs.length; k++) {
-      const f = pairs[k].from;
+      const f = must(pairs[k], 'palette pair').from;
       const d = (r - f[0]) ** 2 + (g - f[1]) ** 2 + (b - f[2]) ** 2;
       if (d < bestD) {
         bestD = d;
@@ -64,7 +67,7 @@ export function swapPalette(data: Uint8ClampedArray, palette: Palette, tolerance
       }
     }
     if (best < 0 || bestD > tol2) continue;
-    const { from, to } = pairs[best];
+    const { from, to } = must(pairs[best], 'palette pair');
     // Uint8ClampedArray clamps to 0..255 on assignment.
     data[i] = to[0] + r - from[0];
     data[i + 1] = to[1] + g - from[1];

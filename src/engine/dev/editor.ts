@@ -3,6 +3,7 @@ import type { App } from '../dom/app';
 import type { Id, Layout, Point } from '../core/types';
 import { FLOOR } from '../core/define';
 import { Overlay, type Handle } from './overlay';
+import { must } from '../core/must';
 
 type Drag = { h: Handle; start: Point; orig: unknown };
 
@@ -158,14 +159,14 @@ export class Editor {
   private dbl(e: MouseEvent) {
     const h = this.handleOf(e);
     if (h?.t === 'zedge') {
-      const z = this.L.walkZones![h.zone];
-      const ring = h.hole < 0 ? z.area : z.holes![h.hole];
+      const z = must(this.L.walkZones![h.zone], 'zone of a handle');
+      const ring = must(h.hole < 0 ? z.area : z.holes![h.hole], 'zone ring of a handle');
       ring.splice(h.i + 1, 0, clampPt(this.overlay.toLogical(e)));
       this.changed({ t: 'zone', zone: h.zone, hole: h.hole, i: h.i + 1 }, true);
       return;
     }
     if (!h || h.t !== 'edge') return;
-    const ring = h.hole < 0 ? this.L.walk!.area : this.L.walk!.holes![h.hole];
+    const ring = must(h.hole < 0 ? this.L.walk!.area : this.L.walk!.holes![h.hole], 'walk ring of a handle');
     ring.splice(h.i + 1, 0, clampPt(this.overlay.toLogical(e)));
     this.changed({ t: 'walk', hole: h.hole, i: h.i + 1 }, true);
   }
@@ -178,9 +179,9 @@ export class Editor {
     const k = e.deltaY < 0 ? 1.04 : 1 / 1.04;
     if (h.t.startsWith('prop')) {
       const t = this.propTarget(h.id, 'h');
-      t.h = Math.max(4, (t.h ?? this.L.props![h.id].h) * k);
+      t.h = Math.max(4, (t.h ?? must(this.L.props![h.id], 'prop of a handle').h) * k);
     } else {
-      const a = this.L.actors![h.id];
+      const a = must(this.L.actors![h.id], 'actor of a handle');
       a.h = Math.max(8, (a.h ?? this.charHeight(h.id)) * k);
     }
     this.changed(h, true);
@@ -188,19 +189,19 @@ export class Editor {
 
   private removeVertex(h: Handle) {
     if (h.t === 'walk') {
-      const ring = h.hole < 0 ? this.L.walk!.area : this.L.walk!.holes![h.hole];
+      const ring = must(h.hole < 0 ? this.L.walk!.area : this.L.walk!.holes![h.hole], 'walk ring of a handle');
       if (ring.length > 3) ring.splice(h.i, 1);
       else if (h.hole >= 0) this.L.walk!.holes!.splice(h.hole, 1);
     } else if (h.t === 'hs-vert') {
-      const poly = this.L.hotspots![h.id].poly!;
+      const poly = must(this.L.hotspots![h.id], 'hotspot of a handle').poly!;
       if (poly.length > 3) poly.splice(h.i, 1);
     } else if (h.t === 'zone') {
-      const z = this.L.walkZones![h.zone];
-      const ring = h.hole < 0 ? z.area : z.holes![h.hole];
+      const z = must(this.L.walkZones![h.zone], 'zone of a handle');
+      const ring = must(h.hole < 0 ? z.area : z.holes![h.hole], 'zone ring of a handle');
       if (ring.length > 3) ring.splice(h.i, 1);
       else if (h.hole >= 0) z.holes!.splice(h.hole, 1);
     } else if (h.t === 'occ') {
-      const poly = this.L.occluders![h.id].polygon!;
+      const poly = must(this.L.occluders![h.id], 'occluder of a handle').polygon!;
       if (poly.length > 3) poly.splice(h.i, 1);
     }
     this.changed(h, true);
@@ -215,7 +216,7 @@ export class Editor {
 
   /** Object to modify for a prop: the current state's variant if it exists. */
   private propTarget(id: Id, field: 'pos' | 'h' | 'approach'): { x: number; y: number; h?: number; approach?: Point } {
-    const p = this.L.props![id];
+    const p = must(this.L.props![id], 'prop of a handle');
     const st = this.app.engine.propState(id, this.room);
     const ov = st ? p.states?.[st] : undefined;
     if (!ov) return p;
@@ -233,9 +234,9 @@ export class Editor {
         return L.hotspots![h.id];
       case 'approach':
         return h.kind === 'hs'
-          ? L.hotspots![h.id].approach
+          ? must(L.hotspots![h.id], 'hotspot of a handle').approach
           : h.kind === 'actor'
-            ? L.actors![h.id].approach
+            ? must(L.actors![h.id], 'actor of a handle').approach
             : this.propTarget(h.id, 'approach').approach;
       case 'prop-pos':
       case 'prop-h':
@@ -246,23 +247,23 @@ export class Editor {
       case 'entry':
         return L.entries![h.name];
       case 'walk':
-        return h.hole < 0 ? L.walk!.area[h.i] : L.walk!.holes![h.hole][h.i];
+        return h.hole < 0 ? L.walk!.area[h.i] : must(L.walk!.holes![h.hole], 'walk hole of a handle')[h.i];
       case 'scale':
         return L.scale![h.k];
       case 'zone': {
-        const z = L.walkZones![h.zone];
-        return (h.hole < 0 ? z.area : z.holes![h.hole])[h.i];
+        const z = must(L.walkZones![h.zone], 'zone of a handle');
+        return must(h.hole < 0 ? z.area : z.holes![h.hole], 'zone ring of a handle')[h.i];
       }
       case 'link':
-        return L.walkLinks![h.id][h.end].at;
+        return must(L.walkLinks![h.id], 'link of a handle')[h.end].at;
       case 'layer':
         return ((L.layers ??= {})[h.id] ??= {});
       case 'occ':
-        return L.occluders![h.id].polygon![h.i];
+        return must(L.occluders![h.id], 'occluder of a handle').polygon![h.i];
       case 'light':
         return L.lights![h.id];
       case 'emit':
-        return L.emitters![h.id].area;
+        return must(L.emitters![h.id], 'emitter of a handle').area;
     }
   }
 
@@ -272,7 +273,7 @@ export class Editor {
     switch (h.t) {
       case 'hs-move': {
         const o = orig as NonNullable<Layout['hotspots']>[string];
-        const hs = L.hotspots![h.id];
+        const hs = must(L.hotspots![h.id], 'hotspot of a handle');
         if (o.rect) hs.rect = [o.rect[0] + d[0], o.rect[1] + d[1], o.rect[2], o.rect[3]];
         if (o.approach) hs.approach = [o.approach[0] + d[0], o.approach[1] + d[1]];
         break;
@@ -287,7 +288,7 @@ export class Editor {
         else x1 = p[0];
         if (h.c === 0 || h.c === 1) y0 = p[1];
         else y1 = p[1];
-        L.hotspots![h.id].rect = [
+        must(L.hotspots![h.id], 'hotspot of a handle').rect = [
           Math.min(x0, x1),
           Math.min(y0, y1),
           Math.max(4, Math.abs(x1 - x0)),
@@ -296,11 +297,11 @@ export class Editor {
         break;
       }
       case 'hs-vert':
-        L.hotspots![h.id].poly![h.i] = p;
+        must(L.hotspots![h.id], 'hotspot of a handle').poly![h.i] = p;
         break;
       case 'approach': {
-        if (h.kind === 'hs') L.hotspots![h.id].approach = p;
-        else if (h.kind === 'actor') L.actors![h.id].approach = p;
+        if (h.kind === 'hs') must(L.hotspots![h.id], 'hotspot of a handle').approach = p;
+        else if (h.kind === 'actor') must(L.actors![h.id], 'actor of a handle').approach = p;
         else this.propTarget(h.id, 'approach').approach = p;
         break;
       }
@@ -319,7 +320,7 @@ export class Editor {
         break;
       }
       case 'actor-pos': {
-        const a = L.actors![h.id];
+        const a = must(L.actors![h.id], 'actor of a handle');
         const o = orig as { x: number; y: number; approach?: Point };
         a.x = o.x + d[0];
         a.y = o.y + d[1];
@@ -330,7 +331,7 @@ export class Editor {
         break;
       }
       case 'actor-h': {
-        const a = L.actors![h.id];
+        const a = must(L.actors![h.id], 'actor of a handle');
         a.h = Math.max(8, a.y - p[1]);
         break;
       }
@@ -338,18 +339,18 @@ export class Editor {
         L.entries![h.name] = p;
         break;
       case 'walk':
-        (h.hole < 0 ? L.walk!.area : L.walk!.holes![h.hole])[h.i] = p;
+        must(h.hole < 0 ? L.walk!.area : L.walk!.holes![h.hole], 'walk ring of a handle')[h.i] = p;
         break;
       case 'scale':
-        L.scale![h.k] = [p[1], L.scale![h.k][1]];
+        L.scale![h.k] = [p[1], must(L.scale![h.k], 'scale point of a handle')[1]];
         break;
       case 'zone': {
-        const z = L.walkZones![h.zone];
-        (h.hole < 0 ? z.area : z.holes![h.hole])[h.i] = p;
+        const z = must(L.walkZones![h.zone], 'zone of a handle');
+        must(h.hole < 0 ? z.area : z.holes![h.hole], 'zone ring of a handle')[h.i] = p;
         break;
       }
       case 'link':
-        L.walkLinks![h.id][h.end].at = p;
+        must(L.walkLinks![h.id], 'link of a handle')[h.end].at = p;
         break;
       case 'layer': {
         const o = orig as { x?: number; y?: number };
@@ -359,10 +360,10 @@ export class Editor {
         break;
       }
       case 'occ':
-        L.occluders![h.id].polygon![h.i] = p;
+        must(L.occluders![h.id], 'occluder of a handle').polygon![h.i] = p;
         break;
       case 'light': {
-        const g = L.lights![h.id];
+        const g = must(L.lights![h.id], 'light of a handle');
         if (h.part === 'at') g.at = p;
         else g.radius = Math.max(8, Math.hypot(p[0] - g.at[0], p[1] - g.at[1]));
         break;
@@ -370,7 +371,7 @@ export class Editor {
       case 'emit': {
         const [x, y, w, hh] = orig as [number, number, number, number];
         if (h.c < 0) {
-          L.emitters![h.id].area = [x + d[0], y + d[1], w, hh];
+          must(L.emitters![h.id], 'emitter of a handle').area = [x + d[0], y + d[1], w, hh];
           break;
         }
         let x0 = x,
@@ -381,7 +382,7 @@ export class Editor {
         else x1 = p[0];
         if (h.c === 0 || h.c === 1) y0 = p[1];
         else y1 = p[1];
-        L.emitters![h.id].area = [
+        must(L.emitters![h.id], 'emitter of a handle').area = [
           Math.min(x0, x1),
           Math.min(y0, y1),
           Math.max(4, Math.abs(x1 - x0)),
@@ -685,11 +686,12 @@ export class Editor {
           this.changed({ t: 'zone', zone: id, hole: -1, i: 0 });
         });
         f.addButton({ title: 'Add a hole' }).on('click', () => {
+          const top = must(z.area[0], 'first point of a zone')[1];
           (z.holes ??= []).push([
-            [300, z.area[0][1] + 10],
-            [340, z.area[0][1] + 10],
-            [340, z.area[0][1] + 30],
-            [300, z.area[0][1] + 30],
+            [300, top + 10],
+            [340, top + 10],
+            [340, top + 30],
+            [300, top + 30],
           ]);
           this.changed({ t: 'zone', zone: id, hole: 0, i: 0 }, true);
         });
@@ -704,7 +706,7 @@ export class Editor {
       }
       const zones = Object.keys(L.walkZones);
       if (zones.length > 1) {
-        const nl = { id: '', from: zones[0], to: zones[1], mode: 'stairs' };
+        const nl = { id: '', from: must(zones[0], 'first zone'), to: must(zones[1], 'second zone'), mode: 'stairs' };
         const opts = Object.fromEntries(zones.map((z) => [z, z]));
         fz.addBinding(nl, 'id', { label: 'new link' });
         fz.addBinding(nl, 'from', { options: opts });
@@ -715,7 +717,8 @@ export class Editor {
         fz.addButton({ title: 'Add the link' }).on('click', () => {
           if (!/^[A-Za-z_]\w*$/.test(nl.id) || nl.from === nl.to) return;
           const c = (z: string): Point => {
-            const a = L.walkZones![z].area;
+            const a = must(L.walkZones![z], 'zone just listed').area;
+
             return [
               Math.round(a.reduce((s, p) => s + p[0], 0) / a.length),
               Math.round(a.reduce((s, p) => s + p[1], 0) / a.length),

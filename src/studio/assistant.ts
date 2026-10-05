@@ -16,6 +16,7 @@ import type { DocName, ToolBackend } from '../../tools/studio/tools';
 import { api, type GameInfo } from './api';
 import type { BrowserApi } from './api-browser';
 import { h, select, toast } from './ui';
+import { must } from '../engine/core/must';
 
 type PresetId = 'openai' | 'anthropic' | 'ollama' | 'mistral' | 'custom';
 interface Preset {
@@ -146,12 +147,13 @@ export function renderMarkdown(src: string): DocumentFragment {
     list = null;
   };
   for (let i = 0; i < lines.length; i++) {
-    const l = lines[i];
+    const l = must(lines[i], 'markdown line');
     const fence = /^\s*```(\S*)/.exec(l);
     if (fence) {
       flush();
       const body: string[] = [];
-      for (i++; i < lines.length && !/^\s*```/.test(lines[i]); i++) body.push(lines[i]);
+      for (i++; i < lines.length && !/^\s*```/.test(must(lines[i], 'markdown line')); i++)
+        body.push(must(lines[i], 'markdown line'));
       frag.append(h('pre', null, h('code', null, body.join('\n'))));
       continue;
     }
@@ -164,13 +166,14 @@ export function renderMarkdown(src: string): DocumentFragment {
         list = h(ul ? 'ul' : 'ol');
         frag.append(list);
       }
-      list.append(h('li', null, ...inline((ul ?? ol)![1])));
+      list.append(h('li', null, ...inline(must((ul ?? ol)![1], 'list item text'))));
       continue;
     }
     const hd = /^\s*#{1,6}\s+(.*)$/.exec(l);
     if (hd) {
       flush();
-      frag.append(h('h4', null, ...inline(hd[1])));
+      frag.append(h('h4', null, ...inline(must(hd[1], 'heading text'))));
+
       continue;
     }
     if (!l.trim()) {

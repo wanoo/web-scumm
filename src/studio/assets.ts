@@ -19,6 +19,7 @@ import {
   type UploadResult,
 } from './api';
 import { h, modal, toast } from './ui';
+import { must } from '../engine/core/must';
 
 export interface AssetsCtx {
   info: GameInfo;
@@ -390,7 +391,7 @@ export class AssetsTab {
                     this.renderSheet(id);
                   },
                 },
-                `${f[0].toUpperCase()}${f.slice(1)} (${count(f)})`,
+                `${f.charAt(0).toUpperCase()}${f.slice(1)} (${count(f)})`,
               ),
             ),
           ),
@@ -846,7 +847,11 @@ export class AssetsTab {
         return null;
       }
       const conflicts = (e.body.conflicts as string[]) ?? [];
-      const [cols, rows] = b.grid.split('x').map(Number);
+      // the dialog only sends a grid matching NxM
+      const dims = b.grid.split('x').map(Number);
+      const cols = must(dims[0], 'grid columns'),
+        rows = must(dims[1], 'grid rows');
+
       const all = Array.from({ length: cols * rows }, (_, i) => `r${Math.floor(i / cols) + 1}c${(i % cols) + 1}`);
       const fresh = all.filter((c) => !conflicts.includes(c));
       const boxes = conflicts.map((c) => h('input', { type: 'checkbox', value: c, 'aria-label': `Recut ${c}` }));
@@ -1110,7 +1115,8 @@ export class AssetsTab {
         label(g.rect[0] + 3, g.rect[1] + 11, id, 'hst');
       } else if (g.poly?.length) {
         svg.append(el('polygon', { points: g.poly.map((p) => p.join(',')).join(' '), class: 'hs' }));
-        label(g.poly[0][0] + 3, g.poly[0][1] + 11, id, 'hst');
+        const first = must(g.poly[0], 'first point of a hotspot polygon');
+        label(first[0] + 3, first[1] + 11, id, 'hst');
       }
     }
     for (const [id, p] of Object.entries(L.props ?? {})) {

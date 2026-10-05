@@ -5,6 +5,7 @@
 import type { GameDef, Id, Layout, SessionEntry } from '../core/types';
 import type { CustomCommands } from '../core/custom';
 import { labelOf, replay, type SessionFile } from './replay';
+import { must } from '../core/must';
 
 export interface PlaytestFile {
   name: string;
@@ -101,13 +102,14 @@ export async function analyzePlaytests(
 
   for (const { name, file } of files) {
     const log = file.session.log;
-    const roomAt: Id[] = [file.session.base?.room ?? game.start.room];
+    const startRoom = file.session.base?.room ?? game.start.room;
+    const roomAt: Id[] = [startRoom];
     const digests: (string | undefined)[] = [];
     const r = await replay(game, layouts, file.session, {
       commands: opts.commands,
       onEntry: (i, e) => {
         roomAt[i + 1] = e.state.room;
-        digests[i] = log[i].digest ?? e.session?.log.at(-1)?.digest;
+        digests[i] = must(log[i], 'log entry').digest ?? e.session?.log.at(-1)?.digest;
       },
     });
     const played = r.played,
@@ -119,8 +121,8 @@ export async function analyzePlaytests(
     let duration = 0;
     let run: { key: string; room: Id; count: number; from: number; at: number } | null = null;
     for (let i = first; i < first + played; i++) {
-      const en = log[i];
-      const here = roomAt[i] ?? roomAt[0];
+      const en = must(log[i], 'log entry');
+      const here = roomAt[i] ?? startRoom;
       const stat = room(here);
       stat.entries++;
       report.total.entries++;
@@ -138,8 +140,9 @@ export async function analyzePlaytests(
       else stat.noops++;
       // Time: this entry's duration is the gap to the next one, pauses excluded.
       let dt: number | undefined;
-      if (timed && en.t !== undefined && log[i + 1]?.t !== undefined) {
-        dt = log[i + 1].t! - en.t;
+      const nextT = log[i + 1]?.t;
+      if (timed && en.t !== undefined && nextT !== undefined) {
+        dt = nextT - en.t;
         if (dt > pauseMs || dt < 0) dt = undefined;
         else {
           duration += dt;
@@ -163,16 +166,17 @@ export async function analyzePlaytests(
             at: run.at,
           });
         else if (run.count > stallRepeats) {
-          const s = report.stalls[report.stalls.length - 1];
+          const s = must(report.stalls[report.stalls.length - 1], 'current stall');
           s.repeats = run.count;
           if (timed) s.ms = run.from;
         }
       } else run = null;
     }
     const lastIndex = Math.max(first, first + played - 1);
+    const lastEntry = log[lastIndex];
     const abandon = {
-      room: roomAt[lastIndex] ?? roomAt[0],
-      label: log[lastIndex] ? labelOf(game, log[lastIndex]) : '(empty)',
+      room: roomAt[lastIndex] ?? startRoom,
+      label: lastEntry ? labelOf(game, lastEntry) : '(empty)',
       index: lastIndex,
     };
     if (!r.ended) room(abandon.room).abandons++;
@@ -248,7 +252,7 @@ export function playtestsMarkdown(r: PlaytestReport, game: GameDef): string {
       '|---|---|---|',
       ...misses.map(([k, n]) => {
         const [room, t] = k.split('/');
-        return `| ${roomName(room)} | ${t} | ${n} |`;
+        return `| ${roomName(must(room, 'miss room'))} | ${t} | ${n} |`;
       }),
       '',
     );

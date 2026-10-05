@@ -6,6 +6,7 @@ import { CMD_KEYS, cmdKey, type CmdKey } from '@engine/core/cmds';
 import { CMD_SPECS, COND_KINDS, type CondKind, type Field, type Ref } from './schema';
 import type { GameInfo } from './api';
 import { autoGrow, h } from './ui';
+import { must } from '../engine/core/must';
 
 export interface Ed {
   el: HTMLElement;
@@ -209,7 +210,8 @@ export function listEditor(items: unknown[], make: (v: unknown) => Ed, label: st
       const i = rows.indexOf(row),
         j = i + d;
       if (j < 0 || j >= rows.length) return;
-      [rows[i], rows[j]] = [rows[j], rows[i]];
+      [rows[i], rows[j]] = [must(rows[j], 'row to swap'), must(rows[i], 'row to move')];
+
       draw();
     };
     row.el.append(

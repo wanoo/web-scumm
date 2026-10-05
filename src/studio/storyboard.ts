@@ -6,6 +6,7 @@ import { api, imgUrl, type CoverageData, type GameInfo } from './api';
 import type { BoardCoverage, Check, CoverStatus, PanelCoverage } from '@engine/tools/coverage';
 import { composer, liveBlock, newestFirst, noteItem, type NotesStore } from './notes';
 import { autoGrow, h, toast } from './ui';
+import { must } from '../engine/core/must';
 
 type Doc = Record<string, unknown> & { title?: string; intro?: string; boards: SbBoard[] };
 
@@ -73,7 +74,7 @@ function normDoc(raw: any): Doc {
 function move<T>(list: T[], i: number, d: number): boolean {
   const j = i + d;
   if (j < 0 || j >= list.length) return false;
-  [list[i], list[j]] = [list[j], list[i]];
+  [list[i], list[j]] = [must(list[j], 'item to swap'), must(list[i], 'item to move')];
   return true;
 }
 
@@ -248,7 +249,7 @@ export class StoryboardTab {
     const bi = this.doc?.boards.findIndex((b) => b.panels.some((p) => p.id === id)) ?? -1;
     if (bi < 0) return;
     this.bi = bi;
-    this.pi = this.doc!.boards[bi].panels.findIndex((p) => p.id === id);
+    this.pi = must(this.doc!.boards[bi], 'board just found').panels.findIndex((p) => p.id === id);
     this.li = 0;
     this.renderAll();
     requestAnimationFrame(() => this.editEl.querySelector('.card.on')?.scrollIntoView({ block: 'center' }));
@@ -449,7 +450,7 @@ export class StoryboardTab {
   }
 
   private deleteBoard(i: number) {
-    const b = this.doc!.boards[i];
+    const b = must(this.doc!.boards[i], 'board to delete');
     if (
       !confirm(
         `Delete the board "${b.title}" and its ${b.panels.length} panel(s)? (Nothing is written until you save.)`,
@@ -1159,7 +1160,7 @@ export class StoryboardTab {
         'select',
         { 'aria-label': 'Add topics for a character' },
         h('option', { value: '' }, '+ character…'),
-        free.map((c) => h('option', { value: c }, `${info.characters[c].name} (${c})`)),
+        free.map((c) => h('option', { value: c }, `${must(info.characters[c], 'listed character').name} (${c})`)),
       );
       add.addEventListener('change', () => {
         if (!add.value) return;

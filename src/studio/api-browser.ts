@@ -37,6 +37,7 @@ import type {
   ValidateResult,
 } from '../../tools/studio/types';
 import { ApiError, type Api } from './api';
+import { must } from '../engine/core/must';
 import {
   addRoomEntity,
   cloneData,
@@ -267,7 +268,7 @@ export class BrowserApi implements Api {
     addRoomEntity(d, { ...e, name }, e.char ? info.characters[e.char]?.name : undefined);
     const ref = (path: string, value: string, kind: TextRef['kind']) =>
       room.texts.push({ path, value, file: room.file, line, kind });
-    const stored = (d[section] as Record<string, { name?: string }>)[e.id];
+    const stored = must((d[section] as Record<string, { name?: string }>)[e.id], 'entity just added');
     if (stored.name) ref(`${section}.${e.id}.name`, stored.name, 'name');
     if (e.look?.trim()) ref(`look.${e.id}`, e.look.trim(), 'look');
     room.layout = placeEntity(room.layout, e);
@@ -551,7 +552,7 @@ export function applyText(room: RoomData, path: string, value: string | null): E
         own.map((x) => x.t),
       );
       editRoomText(room.def, path, null);
-      return { ok: true, line: own[0].t.line, changed: true };
+      return { ok: true, line: must(own[0], 'first own text').t.line, changed: true };
     }
     if (typeof last === 'number' && Array.isArray(parent)) {
       if (!ref) throw new ApiError(`path not found: "${path}"`, 404);

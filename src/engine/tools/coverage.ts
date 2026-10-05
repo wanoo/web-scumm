@@ -9,6 +9,7 @@ import type { GameDef, Id, RoomDef, Rule, VerbId } from '../core/types';
 import { textPaths } from './i18n';
 import { cmdLists, eachCmd } from '../core/cmds';
 import { normalizeExits } from '../core/define';
+import { must } from '../core/must';
 
 /** The storyboard, normalised (`normalizeStoryboard` in tools/pages/storyboard-data.ts): only what the checker reads. */
 export interface CoverLine {
@@ -205,11 +206,11 @@ export function storyboardCoverage(gameIn: GameDef, sb: CoverStoryboard): Covera
       const inside = cands
         .filter((c) => p.includes(norm(c.name)) || norm(c.name).includes(p) || p.split(' ').includes(c.id))
         .sort((x, y) => y.name.length - x.name.length);
-      if (inside.length) return inside[0];
+      if (inside.length) return must(inside[0], 'inside match');
       // "the garden window" and "big window": the head noun decides
       const head = p.split(' ').at(-1)!;
       const byHead = cands.filter((c) => norm(c.name).split(' ').at(-1) === head || c.id === head);
-      if (byHead.length === 1) return byHead[0];
+      if (byHead.length === 1) return must(byHead[0], 'head match');
       let best: { c: (typeof cands)[0]; s: number } | null = null;
       for (const c of cands) {
         const s = alike(c.name, p);

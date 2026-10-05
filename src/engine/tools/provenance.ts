@@ -7,6 +7,7 @@
 // not allow is an error, unless a `releaseExceptions` entry names that asset and says why.
 import type { GameDef } from '../core/types';
 import { assetGraph } from '../core/asset-graph';
+import { must } from '../core/must';
 
 export interface ProvenanceEntry {
   /** Asset keys this entry covers, `*` matching anything (`img:hero/*`, `music:swan_lake.mp3`). */
@@ -86,7 +87,7 @@ export function provenanceReport(
     const hits = entries.filter(({ re }) => re.test(k));
     if (!hits.length) uncovered.push(k);
     else if (hits.length > 1) ambiguous.push(`${k} (${hits.map((h) => h.e.match).join(', ')})`);
-    else if (hits[0].e.status === 'placeholder') placeholders.push(k);
+    else if (must(hits[0], 'provenance hit').e.status === 'placeholder') placeholders.push(k);
   }
   const incomplete = (prov.assets ?? [])
     .filter(
@@ -263,7 +264,7 @@ export function commercialVerdict(keys: string[], prov: Provenance, exists: (pat
     if (!e.author?.trim()) errors.push(`provenance.json › ${which}: no author`);
     // Any relative path the source names (games/…, art-src/draw.py in a game's own project, 3.9), never a URL's.
     const paths = [...e.source.replace(/\b\w+:\/\/\S+/g, '').matchAll(/(?<![\w/.-])((?:[\w-]+\/)+[\w.-]+)/g)].map((m) =>
-      m[1].replace(/[.,;:)]+$/, ''),
+      must(m[1], 'source path').replace(/[.,;:)]+$/, ''),
     );
     if (!e.url?.trim() && !paths.some(exists))
       errors.push(

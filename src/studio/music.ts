@@ -7,6 +7,7 @@ import { barSec, beatSec, loopWindow, positionAt } from '../engine/core/score';
 import { MusicDirector } from '../engine/dom/director';
 import { BASE, type GameInfo } from './api';
 import { h, select } from './ui';
+import { must } from '../engine/core/must';
 
 const condText = (c: Cond | undefined): string =>
   c === undefined ? 'always' : typeof c === 'string' ? c : JSON.stringify(c);
@@ -34,7 +35,7 @@ export class MusicTab {
       );
       return;
     }
-    this.id ??= ids[0];
+    this.id ??= must(ids[0], 'first score');
     this.render();
   }
 
@@ -43,7 +44,7 @@ export class MusicTab {
   }
 
   private async play() {
-    const sc = this.info.scores![this.id!];
+    const sc = must(this.info.scores![this.id!], 'selected score');
     if (!this.director) {
       this.director = new MusicDirector(new AudioContext());
       this.director.volume(0.8);
@@ -78,7 +79,7 @@ export class MusicTab {
   private tick() {
     cancelAnimationFrame(this.raf);
     const d = this.director,
-      sc = this.info.scores![this.id!];
+      sc = must(this.info.scores![this.id!], 'selected score');
     const step = () => {
       if (!d || d.current !== this.id || d.startedAt === null) return;
       const t = d.ctx.currentTime - d.startedAt;
@@ -94,7 +95,8 @@ export class MusicTab {
 
   private render() {
     const scores = this.info.scores!;
-    const sc: ScoreDef = scores[this.id!];
+    const sc: ScoreDef = must(scores[this.id!], 'selected score');
+
     const stems = Object.keys(sc.stems);
     const playing = this.director?.current === this.id;
     const stemRow = (s: Id) => {

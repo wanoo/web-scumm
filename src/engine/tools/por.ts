@@ -6,6 +6,7 @@
 import { check, type CondAtom } from '../core/cond';
 import type { Cond, GameState, Id } from '../core/types';
 import { STATE_KINDS, type PuzzleGraph, type PuzzleNode } from './puzzle';
+import { must } from '../core/must';
 
 /** What one action read and changed, in the state's dimensions: the independence relation of the reduction. */
 export type RW = { reads: Set<string>; writes: Set<string> };
@@ -284,8 +285,8 @@ export function stubbornKeys(
   opts: { all?: boolean } = {},
 ): Set<string> {
   const enabled = txs.map((t, i) => (t.enabled ? i : -1)).filter((i) => i >= 0);
-  const every = new Set(enabled.map((i) => txs[i].key));
-  if (opts.all || enabled.length <= 1 || enabled.some((i) => txs[i].visible)) return every;
+  const every = new Set(enabled.map((i) => must(txs[i], 'enabled tx').key));
+  if (opts.all || enabled.length <= 1 || enabled.some((i) => must(txs[i], 'enabled tx').visible)) return every;
   const n = txs.length;
   const dep: boolean[][] = txs.map((a) => txs.map((b) => a === b || !independent(a.rw, b.rw)));
   const roomWriters = txs.map((t, i) => (t.rw.writes.has('room') ? i : -1)).filter((i) => i >= 0);
@@ -327,15 +328,17 @@ export function stubbornKeys(
     let ok = true;
     while (queue.length && ok) {
       const i = queue.shift()!;
+      const tx = must(txs[i], 'tx');
       // An enabled member brings in everything dependent on it; a disabled one only what could enable it.
-      if (txs[i].enabled) {
+      if (tx.enabled) {
+        const row = must(dep[i], 'dependency row');
         for (let j = 0; j < n; j++)
-          if (!T.has(j) && dep[i][j]) {
+          if (!T.has(j) && row[j]) {
             T.add(j);
             queue.push(j);
           }
       } else {
-        const nes = enabling(txs[i]);
+        const nes = enabling(tx);
         if (nes === null) {
           ok = false;
           break;
@@ -348,7 +351,12 @@ export function stubbornKeys(
       }
     }
     if (!ok) continue;
-    const keys = new Set([...T].filter((i) => txs[i].enabled).map((i) => txs[i].key));
+    const keys = new Set(
+      [...T]
+        .map((i) => must(txs[i], 'tx'))
+        .filter((t) => t.enabled)
+        .map((t) => t.key),
+    );
     if (!best || keys.size < best.size) best = keys;
     if (best.size === 1) break;
   }

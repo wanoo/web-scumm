@@ -3,6 +3,7 @@
 // intruder (another game's asset, a file dropped into public/): `npm run verify:dist` refuses it, so what the
 // provenance lock declares and what the archive holds are the same set. Pure: tools/dist.ts reads the disk.
 import { assetPath, type ProvenanceLock } from './provenance';
+import { must } from '../core/must';
 
 export type FileKind = 'code' | 'asset' | 'data' | 'font' | 'shell' | 'licence';
 
@@ -89,7 +90,7 @@ export function inventory(input: InventoryInput): InventoryReport {
       continue;
     }
     kinds[kind]++;
-    const want = kind === 'asset' ? input.lock.assets[assets.get(path)!].sha256 : '';
+    const want = kind === 'asset' ? must(input.lock.assets[assets.get(path)!], `lock entry for ${path}`).sha256 : '';
     if (want && want !== f.sha256) changed.push(path);
   }
   const want = [...assets.keys(), ...data, ...NOTICES];
@@ -150,8 +151,9 @@ export function manifestMatches(manifest: ManifestEntry[], lock: ProvenanceLock)
 /** The scripts a first visit runs before anything is asked for (3.9): the page's module entry and preloads. */
 export function entryScripts(html: string): string[] {
   const out: string[] = [];
-  for (const m of html.matchAll(/<script[^>]*type="module"[^>]*src="([^"]+)"/g)) out.push(m[1]);
-  for (const m of html.matchAll(/<link[^>]*rel="modulepreload"[^>]*href="([^"]+)"/g)) out.push(m[1]);
+  for (const m of html.matchAll(/<script[^>]*type="module"[^>]*src="([^"]+)"/g)) out.push(must(m[1], 'script src'));
+  for (const m of html.matchAll(/<link[^>]*rel="modulepreload"[^>]*href="([^"]+)"/g))
+    out.push(must(m[1], 'preload href'));
   return out;
 }
 
@@ -161,7 +163,7 @@ export function staticImports(code: string): string[] {
   for (const m of code.matchAll(
     /(?:^|[;}\n])\s*(?:import|export)\s*(?:[\w$*{}\s,]+?\s*from\s*)?["'](\.\/[^"']+\.js)["']/g,
   ))
-    out.add(m[1].slice(2));
+    out.add(must(m[1], 'import path').slice(2));
   return [...out];
 }
 

@@ -3,6 +3,7 @@ import type { MotionSpec } from '../core/motion';
 import { check } from '../core/cond';
 import { sayMs } from '../core/timing';
 import { Engine } from '../core/engine';
+import { must } from '../core/must';
 import type { Presenter, SaveStore, SlotMeta, SlotStore } from '../core/ports';
 import type { GameDef, GameState, Id, Layout, Point, RoomDef, VerbId } from '../core/types';
 import { minigames as builtin, MINIGAME_CSS, type Minigame } from '../minigames';
@@ -918,10 +919,11 @@ export class App implements Presenter {
       this.invEl.append(b);
     }
     this.invNav.hidden = n <= per && !this.desk;
+    // The three buttons appended when the side panel was built.
     const [up, pg, down] = this.invNav.children as HTMLCollectionOf<HTMLButtonElement>;
-    up.disabled = this.invPage === 0;
-    down.disabled = off + per >= n;
-    pg.textContent = n > per ? `${Math.min(n, off + per)} / ${n}` : '';
+    must(up, 'page up button').disabled = this.invPage === 0;
+    must(down, 'page down button').disabled = off + per >= n;
+    must(pg, 'page label').textContent = n > per ? `${Math.min(n, off + per)} / ${n}` : '';
   }
 
   private refresh() {
@@ -1323,7 +1325,7 @@ export class App implements Presenter {
       return;
     }
     const box = el('div', 'callframe');
-    box.style.borderColor = shown[0].c?.color ?? '#fff';
+    box.style.borderColor = must(shown[0], 'first caller').c?.color ?? '#fff';
     const imgs = shown.map((f, i) => {
       const im = el('img') as HTMLImageElement;
       im.alt = f.c?.name ?? f.id;
@@ -1342,7 +1344,7 @@ export class App implements Presenter {
       const blink = now >= blinkAt && now < blinkAt + 150;
       if (now >= blinkAt + 150) blinkAt = now + 3000 + Math.random() * 4000;
       call.frames.forEach((f, i) => {
-        const im = call.imgs[i];
+        const im = must(call.imgs[i], `caller image ${i}`); // one image per frame
         const talking = call.talking === f.id;
         let img = f.base!;
         let bob = false;
@@ -1372,7 +1374,7 @@ export class App implements Presenter {
     if (!call?.frames.length) return;
     const hmax = Math.max(...call.frames.map((f) => f.h));
     call.frames.forEach((f, i) => {
-      call.imgs[i].style.height = `${(f.h / hmax) * 100}%`;
+      must(call.imgs[i], `caller image ${i}`).style.height = `${(f.h / hmax) * 100}%`;
     });
   }
 
@@ -1385,8 +1387,9 @@ export class App implements Presenter {
     if (!f.base) return;
     void this.bank.preload(f.all);
     call.frames[i] = f;
-    call.imgs[i].src = this.bank.img(f.base);
-    call.imgs[i].dataset.img = f.base;
+    const im = must(call.imgs[i], `caller image ${i}`);
+    im.src = this.bank.img(f.base);
+    im.dataset.img = f.base;
     this.sizeCall();
   }
 
@@ -1403,7 +1406,7 @@ export class App implements Presenter {
     const map = this.game.map;
     if (!map) return null;
     const here = Object.entries(map.places).find(([, p]) => p.room === state.room)?.[0];
-    let region = here ? map.places[here].region : map.start;
+    let region = here ? must(map.places[here], `place ${here}`).region : map.start;
     if (map.music) this.audio.push(map.music);
     const ov = el('div', 'overlay mapview');
     ov.style.background = '#000';
@@ -1445,7 +1448,7 @@ export class App implements Presenter {
       const draw = () => {
         ov.innerHTML = '';
         list.innerHTML = '';
-        const R = map.regions[region];
+        const R = must(map.regions[region], `map region ${region}`);
         const parent = R.parent ? map.regions[R.parent] : null;
         if (parent) {
           const bg = el('img', 'bg') as HTMLImageElement;
@@ -1549,8 +1552,9 @@ export class App implements Presenter {
           resolve(null);
           return;
         }
-        const p = map.places[id];
-        const from = here && map.places[here].region === region ? map.places[here].pos : null;
+        const p = must(map.places[id], `place ${id}`);
+        const herePlace = here ? must(map.places[here], `place ${here}`) : undefined;
+        const from = herePlace && herePlace.region === region ? herePlace.pos : null;
         const origin = from ?? [50, 50];
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         const mx = (origin[0] + p.pos[0]) / 2,
@@ -1830,7 +1834,7 @@ export class App implements Presenter {
       () => speeds.find(([k]) => k === S.textSpeed)?.[1] ?? String(S.textSpeed),
       () => {
         const i = speeds.findIndex(([k]) => k === S.textSpeed);
-        S.textSpeed = speeds[(i + 1) % speeds.length][0];
+        S.textSpeed = must(speeds[(i + 1) % speeds.length], 'text speed')[0];
       },
     );
     row(
@@ -1868,7 +1872,10 @@ export class App implements Presenter {
     if (langs && langs.available.length > 1) {
       const b = el('button', '', `<span>${esc(this.t('language'))}</span><span>${esc(langs.current)}</span>`);
       b.onclick = () => {
-        const next = langs.available[(langs.available.indexOf(langs.current) + 1) % langs.available.length];
+        const next = must(
+          langs.available[(langs.available.indexOf(langs.current) + 1) % langs.available.length],
+          'next language',
+        );
         try {
           localStorage.setItem(`${this.game.id}.lang`, next);
         } catch {
@@ -1927,7 +1934,7 @@ export class App implements Presenter {
     if (!d.isConnected) return;
     metas.forEach((s, i) => {
       const n = i + 1,
-        b = rows[i];
+        b = must(rows[i], `slot row ${n}`); // one row per slot listed
       b.lastElementChild!.textContent = label(s);
       b.disabled = mode === 'load' && !s;
       b.classList.toggle('off', mode === 'load' && !s);

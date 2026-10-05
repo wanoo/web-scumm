@@ -21,6 +21,7 @@ import type {
   ScriptDef,
   VerbId,
 } from '../core/types';
+import { must } from '../core/must';
 
 export interface AssetIndex {
   images: Record<string, [number, number]>;
@@ -225,7 +226,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     let r = room;
     let pid = id;
     if (id.includes('.')) {
-      const [rid, p] = id.split('.');
+      const [rid = '', p = ''] = id.split('.'); // never the defaults: `id` has a dot
       r = rooms.get(rid);
       pid = p;
       if (!r) {
@@ -358,7 +359,8 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       const cam = c.camera;
       if (typeof cam === 'object' && 'to' in cam && room && !entities(room).has(cam.to) && !whoOk(cam.to, room))
         err(where, `unknown camera target: "${cam.to}"`);
-      if (room && layouts[room.id] && (layouts[room.id].width ?? 640) <= 640)
+      const lay = room ? layouts[room.id] : undefined;
+      if (lay && (lay.width ?? 640) <= 640)
         warn(where, `camera in a 640-wide room (set "width" in the layout): no effect`);
       return;
     }
@@ -403,8 +405,9 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     }
     if ('goto' in c) {
       const target = rooms.get(c.goto);
+      const lay = layouts[c.goto];
       if (!target) err(where, `unknown room: "${c.goto}"`);
-      else if (typeof c.at === 'string' && layouts[c.goto] && !layouts[c.goto].entries?.[c.at])
+      else if (typeof c.at === 'string' && lay && !lay.entries?.[c.at])
         err(where, `unknown entry point "${c.at}" in ${c.goto}`);
       return;
     }
@@ -681,11 +684,9 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     const masked = (game.audio?.transitions ?? [])
       .slice(0, i)
       .findIndex((r) => (r.from === '*' || r.from === t.from) && (r.to === '*' || r.to === t.to));
-    if (masked >= 0)
-      err(
-        w,
-        `never used: audio.transitions[${masked}] (${game.audio!.transitions![masked].from} → ${game.audio!.transitions![masked].to}) comes first and covers it`,
-      );
+    const maskedBy = (game.audio?.transitions ?? [])[masked];
+    if (maskedBy)
+      err(w, `never used: audio.transitions[${masked}] (${maskedBy.from} → ${maskedBy.to}) comes first and covers it`);
     if (t.bridge !== undefined && !music[t.bridge]) err(`${w}.bridge`, `unknown track "${t.bridge}" (audio.music)`);
     if (t.fadeBeats !== undefined && !(t.fadeBeats >= 0)) err(`${w}.fadeBeats`, 'a number of beats, 0 or more');
   });
@@ -911,12 +912,16 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     if (L.walkZones && zones.size > 1) {
       const S = stageOf(r, L);
       const start =
-        S.zones.find((z) => L.entries?.default && inPolygon(L.entries.default, z.area))?.id ?? S.zones[0].id;
+        S.zones.find((z) => L.entries?.default && inPolygon(L.entries.default, z.area))?.id ??
+        must(S.zones[0], 'first walk zone').id;
       const seen = new Set([start]);
       for (let grew = true; grew; ) {
         grew = false;
         for (const k of S.links)
-          for (const [a, b] of [[k.from.zone, k.to.zone], ...(k.oneWay ? [] : [[k.to.zone, k.from.zone]])])
+          for (const [a, b] of [
+            [k.from.zone, k.to.zone] as const,
+            ...(k.oneWay ? [] : [[k.to.zone, k.from.zone] as const]),
+          ])
             if (seen.has(a) && !seen.has(b)) {
               seen.add(b);
               grew = true;
@@ -946,8 +951,9 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       const xw = `${w}.exits.${xid}`;
       text(ex.name, xw);
       text(ex.locked, `${xw}.locked`);
+      const lay = layouts[ex.to];
       if (!rooms.has(ex.to)) err(xw, `unknown room: "${ex.to}"`);
-      else if (typeof ex.entry === 'string' && layouts[ex.to] && !layouts[ex.to].entries?.[ex.entry])
+      else if (typeof ex.entry === 'string' && lay && !lay.entries?.[ex.entry])
         err(xw, `unknown entry point "${ex.entry}" in ${ex.to}`);
       if (ex.to === r.id) warn(xw, 'exit leading to its own room');
       for (const v of ex.verbs ?? []) if (!verbIds.has(v)) err(xw, `unknown verb: "${v}"`);
@@ -1125,12 +1131,12 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     for (const v of Object.values(m.renameCharacter ?? {}))
       if (!chars[v]) err(w, `renamed character does not exist: "${v}"`);
     for (const v of Object.values(m.renameProp ?? {})) {
-      const [rid, pid] = v.split('.');
-      if (!rooms.get(rid)?.props?.[pid]) err(w, `renamed prop does not exist: "${v}"`);
+      const [rid = '', pid] = v.split('.'); // never the default: split returns at least one part
+      if (pid === undefined || !rooms.get(rid)?.props?.[pid]) err(w, `renamed prop does not exist: "${v}"`);
     }
     for (const v of Object.values(m.renameActor ?? {})) {
-      const [rid, aid] = v.split('.');
-      if (!rooms.get(rid)?.actors?.[aid]) err(w, `renamed actor does not exist: "${v}"`);
+      const [rid = '', aid] = v.split('.'); // never the default: split returns at least one part
+      if (aid === undefined || !rooms.get(rid)?.actors?.[aid]) err(w, `renamed actor does not exist: "${v}"`);
     }
   }
   if (game.migrations?.length)

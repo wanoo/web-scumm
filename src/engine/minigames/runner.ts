@@ -1,6 +1,7 @@
 import { MINIGAME_META } from './meta';
 import type { Minigame, MinigameCtx } from './types';
 import { el, finisher, move, num, put, skipButton, stage, str, toast, keys } from './util';
+import { must } from '../core/must';
 
 // Runner: top of the screen = jump (ground obstacles), bottom = duck (hanging obstacles).
 // A mistake makes the hero stumble and lets the chaser close in, though it never catches up. Ends after `seconds`.
@@ -15,7 +16,7 @@ import { el, finisher, move, num, put, skipButton, stage, str, toast, keys } fro
 
 /** A runner: running, jump, slide and stumble images, and standing height. */
 interface RunnerSprites {
-  run: string[];
+  run: [string, ...string[]];
   jump: string;
   slide: string;
   stumble: string;
@@ -30,13 +31,13 @@ const GROUND = 392,
 function sprites(v: unknown, h: number, slideH: number): RunnerSprites | null {
   if (!v || typeof v !== 'object') return null;
   const o = v as Partial<RunnerSprites>;
-  const run = Array.isArray(o.run) ? o.run.map(String) : [];
-  if (!run.length) return null;
+  const [first, ...rest] = Array.isArray(o.run) ? o.run.map(String) : [];
+  if (first === undefined) return null;
   return {
-    run,
-    jump: str(o.jump, run[0]),
-    slide: str(o.slide, run[0]),
-    stumble: str(o.stumble, run[0]),
+    run: [first, ...rest],
+    jump: str(o.jump, first),
+    slide: str(o.slide, first),
+    stumble: str(o.stumble, first),
     h: num(o.h, h),
     slideH: num(o.slideH, slideH),
   };
@@ -98,7 +99,7 @@ export const runner: Minigame = {
       ballHome = num(ch.x, 95),
       ballBack = num(ch.speed, 12),
       ballH = num(ch.h, 130);
-    const ball = put(ctx, box, ballFrames[0], ballHome, GROUND + 6, ballH, 50);
+    const ball = put(ctx, box, must(ballFrames[0], 'first ball frame'), ballHome, GROUND + 6, ballH, 50);
     const runner2 = B ? put(ctx, box, B.run[0], PX, GROUND, B.h, 60) : null;
     const lead = put(ctx, box, H.run[0], AX, GROUND, H.h, 61);
 

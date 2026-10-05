@@ -5,6 +5,7 @@
 import type { GameDef, Id, Layout, RoomDef } from '@engine/core/types';
 import { classify, parsePath, type Seg } from '../../tools/studio/paths';
 import type { AddEntity, StudioPatch } from '../../tools/studio/types';
+import { must } from '../engine/core/must';
 
 /** The subset of the Storage interface used here (localStorage, or a Map-backed fake in tests). */
 export interface KeyValue {
@@ -62,7 +63,8 @@ function at(root: unknown, segs: Seg[]): unknown {
  */
 export function editRoomText(def: RoomDef, path: string, value: string | null): boolean {
   const segs = parsePath(path);
-  const last = segs[segs.length - 1];
+  // parsePath throws on an empty path
+  const last = must(segs[segs.length - 1], 'last path segment');
   if (last === '+') {
     if (value === null) return false;
     const list = segs.slice(0, -1);
@@ -85,7 +87,8 @@ export function editRoomText(def: RoomDef, path: string, value: string | null): 
     if (Array.isArray(parent) && typeof last === 'number') {
       if (last >= parent.length) return false;
       if (segs[0] === 'look' && segs.length === 3 && parent.length === 1) {
-        delete ((def as unknown as Obj).look as Obj)[segs[1]];
+        delete ((def as unknown as Obj).look as Obj)[must(segs[1], 'look id segment')];
+
         return true;
       }
       parent.splice(last, 1);

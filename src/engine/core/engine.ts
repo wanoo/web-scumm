@@ -5,6 +5,7 @@ import { CHANGES, cmdKey } from './cmds';
 import { listId, listText } from './list-lines';
 import { listenerActionId, ruleActionId, topicActionId } from './content-ids';
 import { migrate } from './migrate';
+import { must } from './must';
 import { stateDiff, stateDigest } from './diff';
 import { ANIM_MS, CAMERA_MS, FPS } from './timing';
 import type { Presenter, SaveStore } from './ports';
@@ -55,7 +56,7 @@ export interface TraceEntry {
 /** A short name for a command, for the journal. */
 export function describeCmd(c: Cmd): string {
   if (typeof c === 'string') return `"${c.length > 24 ? c.slice(0, 24) + '…' : c}"`;
-  const k = Object.keys(c)[0];
+  const k = must(Object.keys(c)[0], 'command key'); // a command object is one key
   const v = (c as Record<string, unknown>)[k];
   return `${k}${typeof v === 'string' ? ` ${v}` : Array.isArray(v) && v.every((x) => typeof x === 'string') ? ` ${v.join(' ')}` : typeof v === 'number' ? ` ${v}` : ''}`;
 }
@@ -256,7 +257,10 @@ export class Engine {
     for (const r of this.game.rooms)
       for (const [id, p] of Object.entries(r.props ?? {})) {
         const k = `${r.id}.${id}`;
-        if (s.props[k] === undefined && p.states) s.props[k] = p.initial ?? Object.keys(p.states)[0];
+        if (s.props[k] === undefined && p.states) {
+          const initial = p.initial ?? Object.keys(p.states)[0];
+          if (initial !== undefined) s.props[k] = initial;
+        }
       }
     s.where = { ...this.homes(), ...(s.where ?? {}) };
     s.scripts ??= {};
@@ -900,14 +904,14 @@ export class Engine {
     let i = Math.floor(this.rand() * list.length);
     if (list.length > 1 && i === this.lastFallback[key]) i = (i + 1) % list.length;
     this.lastFallback[key] = i;
-    return list[i];
+    return must(list[i], `fallback line ${key}[${i}]`);
   }
 
   private pickLine(key: string, lines: string | ListLine[]): ListLine {
     if (typeof lines === 'string') return lines;
     const n = this.state.counters[key] ?? 0;
     this.state.counters[key] = n + 1;
-    return lines[n % lines.length];
+    return must(lines[n % lines.length], `line ${key}`);
   }
 
   private async hint(ctx: Ctx) {
@@ -920,7 +924,7 @@ export class Engine {
       await this.sayFallback(voice, 'talk', ctx, this.game.hintItem!);
       return;
     }
-    const l = this.pickLine(`hint.${room.id}.${idx}`, hints[idx].lines);
+    const l = this.pickLine(`hint.${room.id}.${idx}`, must(hints[idx], `hint ${idx}`).lines);
     await this.say(voice, listText(l), ctx, false, this.voiceOf(l));
   }
 
@@ -938,7 +942,7 @@ export class Engine {
       opts.push({ text: g.bye ?? '…', seen: false, global: true } as never);
       const pick = await this.choose(opts, char);
       if (pick < topics.length) {
-        const { t, i } = topics[pick];
+        const { t, i } = must(topics[pick], `topic ${pick}`);
         this.ran(topicActionId(room.id, actor, i, t));
         await this.say(HERO, t.topic, ctx);
         await this.exec(t.do, ctx);
@@ -1048,7 +1052,7 @@ export class Engine {
       this.end();
       return 'wrapped';
     }
-    const c = def.do[st.pc];
+    const c = must(def.do[st.pc], `script ${id} step ${st.pc}`); // st.pc < def.do.length, checked above
     if (typeof c === 'object') {
       if ('waitUntil' in c) {
         if (!this.cond(c.waitUntil, room.id)) return 'blocked';
@@ -1357,7 +1361,7 @@ export class Engine {
         return;
       }
       for (let i = 0; i < def.frames.length; i++) {
-        this.ui.propFrame(pid, def.frames[i]);
+        this.ui.propFrame(pid, must(def.frames[i], `frame ${i}`));
         if (def.at?.[i]) await this.exec(def.at[i], ctx);
         await this.ui.wait(1000 / fps, ctx.fast);
       }
@@ -1610,7 +1614,7 @@ export class Engine {
         });
       if (!opts.length) return;
       const pick = await this.choose(opts.map(({ o }) => ({ text: o.text })));
-      const { o } = opts[Math.max(0, Math.min(pick, opts.length - 1))];
+      const { o } = must(opts[Math.max(0, Math.min(pick, opts.length - 1))], 'choice option');
       if (o.once) {
         s.seen[choiceKey(o)] = 1;
         this.writes?.add(`seen:${choiceKey(o)}`);

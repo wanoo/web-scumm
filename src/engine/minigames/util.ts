@@ -1,4 +1,5 @@
 import type { MinigameCtx } from './types';
+import { must } from '../core/must';
 
 export function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -142,7 +143,7 @@ export function arrowFocus(ctx: MinigameCtx, items: () => HTMLElement[], cols = 
     const doc = (globalThis as { document?: Document }).document;
     const i = list.indexOf(doc?.activeElement as HTMLElement);
     const next = i < 0 ? 0 : Math.max(0, Math.min(list.length - 1, i + d));
-    list[next].focus?.({ preventScroll: true });
+    must(list[next], 'focused item').focus?.({ preventScroll: true });
   };
   const v = cols || 1;
   return keys(ctx, {

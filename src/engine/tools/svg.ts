@@ -41,7 +41,8 @@ export function layeredSvg(
     F = opts.font ?? 12;
   const hasIn = new Set(edges.filter((e) => ids.has(e.from) && ids.has(e.to) && e.from !== e.to).map((e) => e.to));
   let roots = opts.roots?.filter((r) => ids.has(r)) ?? nodes.filter((n) => !hasIn.has(n.id)).map((n) => n.id);
-  if (!roots.length && nodes.length) roots = [nodes[0].id];
+  const first = nodes[0];
+  if (!roots.length && first) roots = [first.id];
   // Discovery order from the roots (then from whatever is left), and the distance from them.
   const dist = new Map<string, number>();
   const order: string[] = [];

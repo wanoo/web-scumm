@@ -1,6 +1,7 @@
 // A room's stage, normalized (3.4): the layers, lights, particles and walk zones the painters and the walker read,
 // whatever the room was written with. An old room (`decor`, one `walk` polygon) is a stage of one backdrop layer and
 // one zone named `main`: nothing to rewrite, and its picture does not change (tests/visual). Pure: no DOM.
+import { must } from './must';
 import type { Cond, EmitterDef, Id, Layout, LightDef, Point, RoomDef, StageLayer, TransitionKind } from './types';
 
 export interface NormalLayer extends StageLayer {
@@ -154,8 +155,8 @@ export function stageImages(room: RoomDef, layout: Layout = {}): Id[] {
 export function inPolygon(p: Point, poly: Point[]): boolean {
   let c = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const [xi, yi] = poly[i],
-      [xj, yj] = poly[j];
+    const [xi, yi] = must(poly[i], 'polygon vertex'),
+      [xj, yj] = must(poly[j], 'polygon vertex');
     if (yi > p[1] !== yj > p[1] && p[0] < ((xj - xi) * (p[1] - yi)) / (yj - yi) + xi) c = !c;
   }
   return c;

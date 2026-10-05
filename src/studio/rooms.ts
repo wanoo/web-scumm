@@ -17,6 +17,7 @@ import {
   type TextRef,
 } from './api';
 import { autoGrow, h, modal, select, toast } from './ui';
+import { must } from '../engine/core/must';
 import { dialogueTree, type DialogueNode } from '@engine/tools/dialogue';
 import { timeline, type Timeline } from '@engine/tools/timeline';
 
@@ -360,10 +361,12 @@ export class RoomsTab {
   private entityName(kind: EntityKind, id: Id): string {
     const d = this.data!.def;
     if (kind === 'actor') {
-      const a = d.actors![id];
+      const a = must(d.actors![id], 'listed actor');
       return a.name ?? this.ctx.info.characters[a.char]?.name ?? a.char;
     }
-    return (kind === 'prop' ? d.props![id].name : d.hotspots![id].name) ?? '';
+    return (
+      (kind === 'prop' ? must(d.props![id], 'listed prop').name : must(d.hotspots![id], 'listed hotspot').name) ?? ''
+    );
   }
 
   private renderList() {
@@ -399,7 +402,10 @@ export class RoomsTab {
             shown.map((id) => {
               const name = this.entityName(kind, id);
               const interactive =
-                kind === 'hotspot' || (kind === 'prop' ? !!d.props![id].name : d.actors![id].interactive !== false);
+                kind === 'hotspot' ||
+                (kind === 'prop'
+                  ? !!must(d.props![id], 'listed prop').name
+                  : must(d.actors![id], 'listed actor').interactive !== false);
               const noLook = interactive && !d.look?.[id];
               const on = this.sel?.kind === kind && this.sel.id === id;
               return h(
@@ -412,7 +418,7 @@ export class RoomsTab {
                     'aria-pressed': on ? 'true' : 'false',
                     onclick: () => this.selectEntity({ kind, id }),
                   },
-                  h('span', { class: `kind k-${kind}` }, kind[0].toUpperCase()),
+                  h('span', { class: `kind k-${kind}` }, kind.charAt(0).toUpperCase()),
                   h('span', { class: 'id' }, id),
                   name && name !== id ? h('span', { class: 'name' }, name) : null,
                   noLook ? h('span', { class: 'warn', title: 'No look line' }, 'no look') : null,
@@ -602,7 +608,7 @@ export class RoomsTab {
       }
       for (const k of ['nth', 'cycle', 'random', 'parallel'] as const) {
         if (k in c) {
-          const branches = (c as Record<string, Cmd[][]>)[k];
+          const branches = must((c as Record<string, Cmd[][]>)[k], `${k} branches`);
           box.append(
             h(
               'div',
@@ -803,7 +809,7 @@ export class RoomsTab {
     // Facts (read-only)
     const facts: HTMLElement[] = [];
     if (s.kind === 'prop') {
-      const p = d.props![id];
+      const p = must(d.props![id], 'selected prop');
       if (p.img) facts.push(h('div', { class: 'fact' }, h('b', null, 'image'), thumb(p.img), h('code', null, p.img)));
       if (p.states)
         facts.push(
@@ -828,7 +834,7 @@ export class RoomsTab {
       if (!p.name) facts.push(h('div', { class: 'fact muted' }, 'No name: scenery, not clickable.'));
     }
     if (s.kind === 'actor') {
-      const a = d.actors![id];
+      const a = must(d.actors![id], 'selected actor');
       facts.push(
         h(
           'div',

@@ -4,6 +4,7 @@
 // and invariants. No art: layouts are rectangles. Deterministic: the same options give the same game.
 import type { Cond, GameDef, Id, Layout, Migration, RoomDef, ScriptDef } from '../core/types';
 import { assignIds } from '../core/content-ids';
+import { must } from '../core/must';
 
 export interface StressOptions {
   rooms?: number;
@@ -221,7 +222,7 @@ export function makeStressGame(o: StressOptions = {}): { game: GameDef; layouts:
   const startFlags: Record<string, boolean> = {};
   for (let f = flagCount; f < (o.flags ?? 100); f++) {
     startFlags[`filler_${f}`] = true;
-    rooms[f % N].hints!.push({ until: `!filler_${f}`, lines: [`Filler ${f}.`] });
+    must(rooms[f % N], 'filler room').hints!.push({ until: `!filler_${f}`, lines: [`Filler ${f}.`] });
   }
 
   const gameScripts: ScriptDef[] = [];

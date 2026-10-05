@@ -3,6 +3,7 @@
 // every frame rate, and nothing logical depends on a collision. A motion only moves a picture: the state it leaves is
 // the end position of a character (like `place`); a prop lands where its motion ends until the room is entered again.
 // A puzzle effect is the next command (`{ hide }`, `{ prop }`, `{ set }`).
+import { must } from './must';
 import type { Point } from './types';
 
 export type MotionSpec =
@@ -37,15 +38,16 @@ export function spring(amplitude: number, frequency: number, damping: number, se
 
 /** A point on a Catmull-Rom spline through `pts` at `t` ∈ [0, 1] (uniform per segment). */
 export function spline(pts: Point[], t: number): Point {
-  if (pts.length === 1) return pts[0];
+  if (pts.length === 1) return must(pts[0], 'spline point 0');
   const n = pts.length - 1,
     f = Math.min(n - 1e-9, Math.max(0, t * n)),
     i = Math.floor(f),
     u = f - i;
-  const p0 = pts[Math.max(0, i - 1)],
-    p1 = pts[i],
-    p2 = pts[i + 1],
-    p3 = pts[Math.min(n, i + 2)];
+  // 0 ≤ i ≤ n − 1, so every index below is within [0, n].
+  const p0 = must(pts[Math.max(0, i - 1)], 'spline point'),
+    p1 = must(pts[i], 'spline point'),
+    p2 = must(pts[i + 1], 'spline point'),
+    p3 = must(pts[Math.min(n, i + 2)], 'spline point');
   const c = (a: number, b: number, cc: number, d: number) =>
     0.5 * (2 * b + (-a + cc) * u + (2 * a - 5 * b + 4 * cc - d) * u * u + (-a + 3 * b - 3 * cc + d) * u * u * u);
   return [c(p0[0], p1[0], p2[0], p3[0]), c(p0[1], p1[1], p2[1], p3[1])];
@@ -81,5 +83,5 @@ export function motionAt(m: MotionSpec, t: number): MotionFrame {
 
 /** Where a motion leaves its target (null: back to rest, a spring; a follower keeps its leader's offset). */
 export function motionEnd(m: MotionSpec): Point | null {
-  return m.kind === 'launch' ? m.to : m.kind === 'path' ? m.points[m.points.length - 1] : null;
+  return m.kind === 'launch' ? m.to : m.kind === 'path' ? (m.points[m.points.length - 1] ?? null) : null;
 }

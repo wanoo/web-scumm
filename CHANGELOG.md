@@ -9,6 +9,17 @@
   witness (status, length, a hash of the digest after every input) and the proof (status, states, softlocks); the 13
   golden saves played to their end; the hash of the public API and MCP surface; the number of test declarations (may
   only grow); the first visit's JavaScript (may only shrink). Each difference is named. In the CI `check` job.
+- **Biome** formats and lints the engine, the tools, the tests and the scripts (`biome.json`; a game's content in
+  `games/` is linted, never reformatted, since the Studio writes it). The formatting is one mechanical commit, listed in
+  `.git-blame-ignore-revs`. New scripts: `npm run format`, `format:check`, `lint:code`, `lint:content` (the content lint;
+  `npm run lint` stays its alias through 4.x) and `quality` (all of them plus both TypeScript configurations), in CI.
+- TypeScript: `noUnusedLocals`, `noUnusedParameters` and `noFallthroughCasesInSwitch` hold everywhere;
+  `tsconfig.strictest.json` adds `noUncheckedIndexedAccess` on `src/engine` and `src/studio` (tests and `tools/`
+  outside it). An index the code knows is there reads through `must()` (`src/engine/core/must.ts`), which throws with
+  what was missing instead of carrying `undefined` on.
+- The Canvas painter (`dom/render-canvas.ts`) is loaded the first time a room asks for it: a game that paints with
+  the DOM no longer downloads it. The demo's first visit: 122 → 120 KB of JavaScript gzipped, the index guards above
+  included (+0.5 KB). It stays in the offline precache.
 
 ## 4.0.0 — 2026-10-05
 

@@ -13,6 +13,7 @@ import {
 } from '../core/asset-graph';
 import type { GameDef, Id, Layout, RoomDef } from '../core/types';
 import { transitionFor } from '../core/score';
+import { must } from '../core/must';
 
 export interface WeightBudgets {
   initialKB?: number;
@@ -85,7 +86,10 @@ export function transitionPeak(game: GameDef, pcm: (key: string) => number | nul
       if (!rule) continue;
       const bridge = rule.bridge && music[rule.bridge] ? pcm(`music:${music[rule.bridge]}`) : 0;
       if (bridge === null) return null;
-      peak = Math.max(peak, scores[from].pcmBytes! + scores[to].pcmBytes! + bridge);
+      peak = Math.max(
+        peak,
+        must(scores[from], `score ${from}`).pcmBytes! + must(scores[to], `score ${to}`).pcmBytes! + bridge,
+      );
     }
   let sting = 0;
   for (const k of stingerAssets(game)) {

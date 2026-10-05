@@ -202,7 +202,8 @@ npm run e2e:visual -- <url> [--update] # chaque lieu, figé, contre tests/visual
 npm run e2e -- <url> --lang fr           # le jeu entier dans cette langue ; échoue sur tout texte anglais par défaut du moteur visible
 npm run e2e:a11y -- <url> [--only=axe,keys,storage] [--allow-skip]   # axe sur la conversation, la carte, les emplacements, les confirmations, chaque mini-jeu ; chaque mini-jeu gagné au clavier ; une ancienne sauvegarde mise à niveau (E2E_BROWSER=chromium|webkit ; sortie 3 : une vérification que le navigateur ne peut pas automatiser)
 npm run docs:screenshots [-- --only=game|studio --keep-png]   # les images du README depuis le bundle de production et le Studio, en WebP dans docs/img/ (Python avec Pillow)
-npm run lint [-- --prove | --static | --json]   # lint de contenu : conditions insatisfaisables, règles masquées, faux indices, indices bloqués, actions jamais jouées
+npm run lint [-- --prove | --static | --json]   # lint de contenu : conditions insatisfaisables, règles masquées, faux indices, indices bloqués, actions jamais jouées (alias de lint:content depuis la 4.1.0)
+npm run quality   # code du moteur (4.1.0) : formatage et lint Biome, tsconfig.json et tsconfig.strictest.json, puis le lint de contenu
 npm run doctor                     # vérifie Node, modules Python, ffmpeg et navigateurs Playwright
 npm run check                      # vérifie les types et lance les tests Node
 npm run verify:game                # validation, témoins globaux/par chapitre et couverture des traductions

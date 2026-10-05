@@ -3,6 +3,7 @@
 // this only lays it out for the Studio and the `dialogue_tree` tool. No second format, nothing to keep in sync.
 import type { Cmd, TalkTopic } from '../core/types';
 import { condText } from './condtext';
+import { must } from '../core/must';
 
 export interface DialogueNode {
   kind: 'topic' | 'line' | 'choice' | 'option' | 'if' | 'else' | 'talk' | 'end' | 'other';
@@ -72,7 +73,7 @@ function cmds(list: Cmd[] | undefined, path: string): DialogueNode[] {
       'switchPlayer' in c ||
       'minigame' in c
     ) {
-      const k = Object.keys(c)[0];
+      const k = must(Object.keys(c)[0], 'command key');
       const v = (c as Record<string, unknown>)[k];
       out.push({ kind: 'other', text: `${k} ${Array.isArray(v) ? v.join(' ') : String(v)}` });
     }

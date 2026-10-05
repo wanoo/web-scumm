@@ -1,5 +1,6 @@
 import earcut from 'earcut';
 import NavMesh from 'navmesh';
+import { must } from '../core/must';
 import type { Layout, Point } from '../core/types';
 import { inPolygon, stageOf, type NormalLink, type NormalZone } from '../core/stage';
 
@@ -23,11 +24,17 @@ export class WalkArea {
       for (const p of h) flat.push(p[0], p[1]);
     }
     for (const poly of [w.area, ...(w.holes ?? [])])
-      poly.forEach((p, i) => this.edges.push([p, poly[(i + 1) % poly.length]]));
+      poly.forEach((p, i) => this.edges.push([p, must(poly[(i + 1) % poly.length], 'next vertex')]));
     const tri = earcut(flat, holes.length ? holes : undefined);
     const polys: { x: number; y: number }[][] = [];
     for (let i = 0; i < tri.length; i += 3)
-      polys.push([0, 1, 2].map((k) => ({ x: flat[tri[i + k] * 2], y: flat[tri[i + k] * 2 + 1] })));
+      polys.push(
+        [0, 1, 2].map((k) => {
+          // earcut returns whole triangles of indices into `flat`.
+          const v = must(tri[i + k], 'triangle vertex');
+          return { x: must(flat[v * 2], 'vertex x'), y: must(flat[v * 2 + 1], 'vertex y') };
+        }),
+      );
     this.tris = polys.map((t) => t.map((v) => [v.x, v.y] as Point));
     this.mesh = new NavMesh(polys);
   }
@@ -40,8 +47,8 @@ export class WalkArea {
       bd = Infinity;
     for (const t of this.tris)
       for (let i = 0; i < 3; i++) {
-        const a = t[i],
-          b = t[(i + 1) % 3];
+        const a = must(t[i], 'triangle corner'),
+          b = must(t[(i + 1) % 3], 'triangle corner');
         const dx = b[0] - a[0],
           dy = b[1] - a[1],
           L = dx * dx + dy * dy || 1;
@@ -50,8 +57,9 @@ export class WalkArea {
         const d = (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2;
         if (d < bd) {
           bd = d;
-          const cx = (t[0][0] + t[1][0] + t[2][0]) / 3,
-            cy = (t[0][1] + t[1][1] + t[2][1]) / 3;
+          const [t0, t1, t2] = [must(t[0], 'corner 0'), must(t[1], 'corner 1'), must(t[2], 'corner 2')];
+          const cx = (t0[0] + t1[0] + t2[0]) / 3,
+            cy = (t0[1] + t1[1] + t2[1]) / 3;
           best = [q[0] + (cx - q[0]) * 0.02, q[1] + (cy - q[1]) * 0.02];
         }
       }
@@ -91,8 +99,8 @@ export class WalkArea {
     const out: Point[] = [];
     for (let i = 0; i < pts.length - 1; ) {
       let j = pts.length - 1;
-      while (j > i + 1 && !this.free(pts[i], pts[j])) j--;
-      out.push(pts[j]);
+      while (j > i + 1 && !this.free(must(pts[i], 'path point'), must(pts[j], 'path point'))) j--;
+      out.push(must(pts[j], 'path point'));
       i = j;
     }
     return out;
@@ -141,7 +149,7 @@ export class WalkTopology {
     if (!this.zones.length) return null;
     const inside = this.zones.filter((z) => inPolygon(p, z.area) && !z.holes.some((h) => inPolygon(p, h)));
     if (inside.length) return inside.reduce((a, b) => (b.elevation > a.elevation ? b : a));
-    let best = this.zones[0],
+    let best = must(this.zones[0], 'first zone'),
       bd = Infinity;
     for (const z of this.zones) {
       const q = this.areas.get(z.id)!.clamp(p);

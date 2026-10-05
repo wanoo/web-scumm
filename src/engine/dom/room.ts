@@ -8,9 +8,9 @@ import { PaletteCache } from './palette';
 import { WalkTopology, type WalkStep } from './walk';
 import type { NormalLink } from '../core/stage';
 import { DomRenderer } from './render-dom';
-import { CanvasRenderer } from './render-canvas';
 import { rendererOf, stageOf } from '../core/stage';
 import { check } from '../core/cond';
+import { must } from '../core/must';
 import type { SceneRenderer, SpriteSpec, StageSpec } from './renderer';
 
 /** Something drawn in the scene: prop, actor or hero. */
@@ -120,7 +120,8 @@ export class RoomView {
     const S = stageOf(this.room, this.layout);
     const s = this.engine.state;
     const shown = (c: Parameters<typeof check>[0]) => !s || check(c, s, this.room.id);
-    const [back, ...layers] = S.layers;
+    const [back0, ...layers] = S.layers;
+    const back = must(back0, 'backdrop layer'); // stageOf always puts a backdrop first
     const [bw, bh] = this.bank.size(back.image);
     const k = Math.max(this.width / bw, 400 / bh);
     const bx = (this.width - bw * k) / 2,
@@ -188,14 +189,18 @@ export class RoomView {
     );
   }
 
-  /** The painter this room asks for, swapped in when it differs from the current one. */
-  private usePainter(room: RoomDef) {
+  /**
+   * The painter this room asks for, swapped in when it differs from the current one. The Canvas painter is loaded the
+   * first time a room asks for it (4.1.0): a game that paints with the DOM never downloads it.
+   */
+  private async usePainter(room: RoomDef) {
     if (this.custom) return;
     const want = this.forced ?? rendererOf(room, this.engine.game);
     if (want === this.painter) return;
+    const next = want === 'canvas' ? new (await import('./render-canvas')).CanvasRenderer() : new DomRenderer();
     const old = this.r.el;
     this.r.dispose();
-    this.r = want === 'canvas' ? new CanvasRenderer() : new DomRenderer();
+    this.r = next;
     this.painter = want;
     this.r.resize(this.u);
     this.onSurface?.(this.r.el, old);
@@ -272,7 +277,7 @@ export class RoomView {
   /** Builds the room from the game state. */
   async build(room: RoomDef) {
     cancelAnimationFrame(this.raf);
-    this.usePainter(room);
+    await this.usePainter(room);
     this.room = room;
     this.layout = this.engine.layout(room.id);
     this.walk = new WalkTopology(this.layout, room);
@@ -549,12 +554,13 @@ export class RoomView {
       const a = (rot * Math.PI) / 180,
         co = Math.cos(a),
         sn = Math.sin(a);
-      const pts = [
+      const corners: [number, number][] = [
         [-w / 2, y0],
         [w / 2, y0],
         [-w / 2, y1],
         [w / 2, y1],
-      ].map(([px, py]) => [e.x + px * co - py * sn, e.y + px * sn + py * co]);
+      ];
+      const pts = corners.map(([px, py]): [number, number] => [e.x + px * co - py * sn, e.y + px * sn + py * co]);
       const xs = pts.map((p) => p[0]),
         ys = pts.map((p) => p[1]);
       e.bbox = [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
@@ -685,8 +691,8 @@ export class RoomView {
     const inPoly = (pt: Point, poly: Point[]) => {
       let c = false;
       for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-        const [xi, yi] = poly[i],
-          [xj, yj] = poly[j];
+        const [xi, yi] = must(poly[i], 'polygon vertex'),
+          [xj, yj] = must(poly[j], 'polygon vertex');
         if (yi > pt[1] !== yj > pt[1] && pt[0] < ((xj - xi) * (pt[1] - yi)) / (yj - yi) + xi) c = !c;
       }
       return c;

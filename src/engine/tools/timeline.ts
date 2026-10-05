@@ -6,6 +6,7 @@ import { ANIM_MS, CAMERA_MS, FPS, WALK_SPEED, sayMs } from '../core/timing';
 import type { Cmd, Id, Layout, Point, RoomDef } from '../core/types';
 import { describeCmd } from '../core/engine';
 import { condText } from './condtext';
+import { must } from '../core/must';
 
 export interface TimelineItem {
   start: number;
@@ -212,7 +213,7 @@ export function timeline(cmds: Cmd[] | undefined, o: TimelineOptions): Timeline 
       }
       for (const k of ['nth', 'cycle', 'random'] as const)
         if (k in c) {
-          const branches = (c as unknown as Record<string, Cmd[][]>)[k];
+          const branches = must((c as unknown as Record<string, Cmd[][]>)[k], `${k} branches`);
           let end = t;
           branches.forEach((b, j) => {
             push({

@@ -1,3 +1,5 @@
+import { must } from '../core/must';
+
 /** Catalogue of images and sounds prepared by `npm run assets`. */
 export interface AssetManifest {
   images: Record<string, [number, number]>;
@@ -81,7 +83,7 @@ export class AssetBank {
     let i = 0;
     const worker = async () => {
       while (i < todo.length) {
-        const u = todo[i++];
+        const u = must(todo[i++], 'warm-up url'); // i < todo.length, checked above
         await idle();
         if (await cached(u)) {
           result.ok++;

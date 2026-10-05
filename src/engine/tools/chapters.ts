@@ -10,6 +10,7 @@ import { Engine } from '../core/engine';
 import { FakePresenter, MemoryStore } from '../core/ports';
 import type { GameDef, GameState, Id, Layout } from '../core/types';
 import { projectState, solve, type SolveOptions, type SolveResult } from './solve';
+import { must } from '../core/must';
 
 export interface ChapterProof {
   /** The checkpoint that closes the chapter, or `ending`. */
@@ -210,7 +211,7 @@ export async function proveChapters(
   };
   for (let i = 0; i < cps.length; i++) {
     if (!starts.length && i > 0) break;
-    const [id, c] = cps[i];
+    const [id, c] = must(cps[i], 'checkpoint');
     const next = cps[i + 1]?.[1].goals;
     await run(id, c.goals, next, id);
   }

@@ -1,5 +1,6 @@
 import type { App } from '../dom/app';
 import type { Id, Layout, Point } from '../core/types';
+import { must } from '../core/must';
 
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -60,8 +61,7 @@ export class Overlay {
   layout(): Layout {
     const room = this.app.view.room;
     const eng = this.app.engine;
-    if (!eng.layouts[room.id]) eng.layouts[room.id] = { entries: { default: [320, 360] } };
-    return eng.layouts[room.id];
+    return (eng.layouts[room.id] ??= { entries: { default: [320, 360] } });
   }
 
   toLogical(e: { clientX: number; clientY: number }): Point {
@@ -145,16 +145,14 @@ export class Overlay {
           stroke: hole >= 0 ? '#ff5050' : '#50dc78',
           'stroke-width': 1.5,
         });
-        if (hole < 0)
-          label(
-            ring[0][0] + 3,
-            ring[0][1] + 10,
-            `zone ${zid}${z.zoom && z.zoom !== 1 ? ` ×${z.zoom}` : ''}`,
-            '#50dc78',
-          );
+        if (hole < 0) {
+          const first = must(ring[0], 'first point of a zone');
+          label(first[0] + 3, first[1] + 10, `zone ${zid}${z.zoom && z.zoom !== 1 ? ` ×${z.zoom}` : ''}`, '#50dc78');
+        }
+
         if (E) {
           ring.forEach((p, i) => {
-            const q = ring[(i + 1) % ring.length];
+            const q = must(ring[(i + 1) % ring.length], 'next point of a ring');
             add(
               'line',
               { x1: p[0], y1: p[1], x2: q[0], y2: q[1], stroke: 'transparent', 'stroke-width': 10 },
@@ -207,7 +205,8 @@ export class Overlay {
       if (o.polygon) {
         const c = sel(`occ:${id}`) ? '#ffd84d' : '#ff9f43';
         poly(o.polygon, { fill: 'rgba(255,159,67,.12)', stroke: c, 'stroke-width': 1.5, 'stroke-dasharray': '3 2' });
-        label(o.polygon[0][0] + 3, o.polygon[0][1] - 3, `occluder ${id} z${o.z}`, c);
+        const first = must(o.polygon[0], 'first point of an occluder');
+        label(first[0] + 3, first[1] - 3, `occluder ${id} z${o.z}`, c);
         if (E) o.polygon.forEach((p, i) => dot(p, c, { t: 'occ', id, i }, 3.5));
       }
     for (const [id, g] of Object.entries(L.lights ?? {})) {
@@ -241,12 +240,14 @@ export class Overlay {
         E ? { t: 'emit', id, c: -1 } : undefined,
       );
       if (E)
-        [
-          [x, y],
-          [x + w, y],
-          [x + w, y + hh],
-          [x, y + hh],
-        ].forEach((p, c) =>
+        (
+          [
+            [x, y],
+            [x + w, y],
+            [x + w, y + hh],
+            [x, y + hh],
+          ] satisfies Point[]
+        ).forEach((p, c) =>
           add(
             'rect',
             { x: p[0] - 3, y: p[1] - 3, width: 6, height: 6, fill: '#a0dcff', stroke: '#000' },
@@ -267,7 +268,7 @@ export class Overlay {
         });
         if (E) {
           ring.forEach((p, i) => {
-            const q = ring[(i + 1) % ring.length];
+            const q = must(ring[(i + 1) % ring.length], 'next point of a ring');
             add(
               'line',
               { x1: p[0], y1: p[1], x2: q[0], y2: q[1], stroke: 'transparent', 'stroke-width': 10 },
@@ -302,12 +303,14 @@ export class Overlay {
           E ? { t: 'hs-move', id } : undefined,
         );
         if (E)
-          [
-            [x, y],
-            [x + w, y],
-            [x + w, y + hh],
-            [x, y + hh],
-          ].forEach((p, c) =>
+          (
+            [
+              [x, y],
+              [x + w, y],
+              [x + w, y + hh],
+              [x, y + hh],
+            ] satisfies Point[]
+          ).forEach((p, c) =>
             add(
               'rect',
               { x: p[0] - 3.5, y: p[1] - 3.5, width: 7, height: 7, fill: color, stroke: '#000' },
@@ -318,7 +321,8 @@ export class Overlay {
       } else if (h.poly) {
         poly(h.poly, { fill: 'rgba(88,200,255,.08)', stroke: color, 'stroke-width': 1.5, 'stroke-dasharray': dash });
         if (E) h.poly.forEach((p, i) => dot(p, color, { t: 'hs-vert', id, i }, 3.5));
-        label(h.poly[0][0], h.poly[0][1] - 3, id, color);
+        const first = must(h.poly[0], 'first point of a hotspot polygon');
+        label(first[0], first[1] - 3, id, color);
       }
       const ap = h.approach ?? eng.approach(id, room);
       if (ap) dot(ap, '#58c8ff', E ? { t: 'approach', kind: 'hs', id } : undefined, 3, !h.approach);

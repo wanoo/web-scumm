@@ -1,6 +1,7 @@
 import { MINIGAME_META } from './meta';
 import type { Minigame, MinigameCtx } from './types';
 import { arrowFocus, el, finisher, num, skipButton, stage, str } from './util';
+import { must } from '../core/must';
 
 // Pipes: touching a tile rotates it a quarter turn. Water starts from the source (left of the middle row)
 // and must reach the sprinkler (right of the same row). Help: after `helpAfter` taps, the next wrong tile blinks.
@@ -33,6 +34,9 @@ interface Cell {
   need: Dir[] | null;
 }
 
+/** Cell of the grid at a row and column the caller knows are inside it. */
+const cellAt = (grid: Cell[][], r: number, c: number): Cell => must(must(grid[r], 'grid row')[c], 'grid cell');
+
 /** Random path from left to right: in each column, go down or up to a chosen row, then exit to the right. */
 export function makeGrid(cols: number, rows: number, rnd: () => number = Math.random): Cell[][] {
   const mid = Math.floor(rows / 2);
@@ -43,13 +47,13 @@ export function makeGrid(cols: number, rows: number, rnd: () => number = Math.ra
   for (let c = 0; c < cols; c++) target.push(c === cols - 1 ? mid : Math.floor(rnd() * rows));
   let row = mid;
   for (let c = 0; c < cols; c++) {
-    const b = target[c];
+    const b = must(target[c], 'target row of a column');
     const step = b > row ? 1 : -1;
     for (let r = row; ; r += step) {
       const need: Dir[] = [];
       need.push(r === row ? 'L' : step > 0 ? 'U' : 'D');
       need.push(r === b ? 'R' : step > 0 ? 'D' : 'U');
-      grid[r][c].need = need;
+      cellAt(grid, r, c).need = need;
       if (r === b) break;
     }
     row = b;
@@ -66,7 +70,7 @@ export function makeGrid(cols: number, rows: number, rnd: () => number = Math.ra
         let guard = 0;
         while (fits(cell) && guard++ < 4) cell.rot = (cell.rot + 1) % 4;
       } else {
-        cell.kind = kinds[Math.floor(rnd() * kinds.length)];
+        cell.kind = must(kinds[Math.floor(rnd() * kinds.length)], 'random pipe kind');
         cell.rot = Math.floor(rnd() * 4);
       }
     }
@@ -146,9 +150,9 @@ export const pipes: Minigame = {
     let won = false;
     const tiles: { b: HTMLButtonElement; im: HTMLImageElement; r: number; c: number }[] = [];
     const paint = () => {
-      const firstWrong = taps >= helpAfter && !won ? tiles.find(({ r, c }) => !fits(grid[r][c])) : undefined;
+      const firstWrong = taps >= helpAfter && !won ? tiles.find(({ r, c }) => !fits(cellAt(grid, r, c))) : undefined;
       for (const tile of tiles) {
-        const g = grid[tile.r][tile.c];
+        const g = cellAt(grid, tile.r, tile.c);
         const wet = won && !!g.need;
         const src = ctx.img(IMG[g.kind][wet ? 1 : 0]);
         if (tile.im.src !== src) tile.im.src = src;
@@ -179,7 +183,9 @@ export const pipes: Minigame = {
         b.append(im);
         b.addEventListener('click', () => {
           if (won) return;
-          grid[r][c].rot = (grid[r][c].rot + 1) % 4;
+          const g = cellAt(grid, r, c);
+          g.rot = (g.rot + 1) % 4;
+
           taps++;
           if (grid.every((line) => line.every(fits))) win();
           else paint();

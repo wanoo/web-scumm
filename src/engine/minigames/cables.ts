@@ -1,6 +1,7 @@
 import { MINIGAME_META } from './meta';
 import type { Minigame, MinigameCtx } from './types';
 import { el, finisher, num, skipButton, sleep, stage, str, operable } from './util';
+import { must } from '../core/must';
 
 // "The tangle of cables": four plugs on the left, a big knot in the middle, a panel of sockets on the right.
 // Touching a plug wiggles its cable through the knot: you can see where it comes out, near its socket.
@@ -41,8 +42,8 @@ interface Cable {
   socket: P;
   done: boolean;
   plug: HTMLImageElement;
-  under: SVGPathElement[];
-  over: SVGPathElement[];
+  under: [SVGPathElement, SVGPathElement];
+  over: [SVGPathElement, SVGPathElement];
 }
 
 const SVGNS = 'http://www.w3.org/2000/svg';
@@ -50,12 +51,13 @@ const SVGNS = 'http://www.w3.org/2000/svg';
 /** Smooth curve through all the points (Catmull-Rom converted to Bézier). */
 function smooth(pts: P[]): string {
   if (pts.length < 2) return '';
-  let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+  const first = must(pts[0], 'first point of a curve');
+  let d = `M${first[0].toFixed(1)} ${first[1].toFixed(1)}`;
   for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[Math.max(0, i - 1)],
-      p1 = pts[i],
-      p2 = pts[i + 1],
-      p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const p0 = must(pts[Math.max(0, i - 1)], 'curve point'),
+      p1 = must(pts[i], 'curve point'),
+      p2 = must(pts[i + 1], 'curve point'),
+      p3 = must(pts[Math.min(pts.length - 1, i + 2)], 'curve point');
     const c1: P = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
     const c2: P = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
     d += ` C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
@@ -67,7 +69,7 @@ function shuffle<T>(a: T[]): T[] {
   const b = [...a];
   for (let i = b.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [b[i], b[j]] = [b[j], b[i]];
+    [b[i], b[j]] = [must(b[j], 'shuffled item'), must(b[i], 'shuffled item')];
   }
   return b;
 }
@@ -135,7 +137,8 @@ export const cables: Minigame = {
     box.append(panel);
     const socketOf = (c: Color): P => {
       const i = Math.max(0, PANEL_ORDER.indexOf(c));
-      return [px0 + SOCKET_REL.x * pw, py0 + SOCKET_REL.y[i] * PANEL.h];
+      // a socket past the fourth has no slot on the panel: NaN, as before the index was checked
+      return [px0 + SOCKET_REL.x * pw, py0 + (SOCKET_REL.y[i] ?? Number.NaN) * PANEL.h];
     };
     const rings = new Map<Color, HTMLDivElement>();
     for (const c of colors) {
@@ -191,7 +194,7 @@ export const cables: Minigame = {
     box.append(knot);
     const svgOver = mkSvg(4);
 
-    const mkPath = (svg: SVGSVGElement, color: string) => {
+    const mkPath = (svg: SVGSVGElement, color: string): [SVGPathElement, SVGPathElement] => {
       const a = document.createElementNS(SVGNS, 'path');
       const b = document.createElementNS(SVGNS, 'path');
       for (const [pth, w, col] of [
@@ -224,9 +227,10 @@ export const cables: Minigame = {
       );
       const exit: P = [KNOT.cx + kw * 0.48, socket[1] + (Math.random() - 0.5) * 8];
       const plug = el('img', 'mg-img') as HTMLImageElement;
-      plug.src = ctx.img(plugs[c]);
+      const plugId = must(plugs[c], 'plug of a listed color');
+      plug.src = ctx.img(plugId);
       plug.alt = '';
-      const [fw0, fh0] = ctx.size(plugs[c]);
+      const [fw0, fh0] = ctx.size(plugId);
       Object.assign(plug.style, {
         width: `${((PLUG_H * fw0) / (fh0 || 1)) * u}px`,
         height: `${PLUG_H * u}px`,

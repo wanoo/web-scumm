@@ -3,6 +3,7 @@
 import type { GameDef, Id, Value } from '../core/types';
 import { showCard } from './card';
 import { unseal, type EndingPayload } from './seal';
+import { must } from '../core/must';
 
 export { DEFAULT_ACCENT, showCard, verdict } from './card';
 export { seal, unseal, normalizePassword, type EndingPayload, type RevealPayload } from './seal';
@@ -107,7 +108,10 @@ export class Ending {
       const c = document.createElement('img');
       c.alt = '';
       // two confetti out of three with the first image, the third with the following ones (round-robin)
-      c.src = this.h.img(i % 3 || imgs.length < 2 ? imgs[0] : imgs[1 + (Math.floor(i / 3) % (imgs.length - 1))]);
+      c.src = this.h.img(
+        must(i % 3 || imgs.length < 2 ? imgs[0] : imgs[1 + (Math.floor(i / 3) % (imgs.length - 1))], 'confetti image'),
+      );
+
       Object.assign(c.style, {
         position: 'absolute',
         left: `${10 + Math.random() * 80}%`,

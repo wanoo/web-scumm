@@ -10,6 +10,7 @@ import { condAtoms, type CondAtom } from '../core/cond';
 import { atomNodeId, liveClasses, puzzleGraph, puzzleIssues, type PuzzleGraph } from './puzzle';
 import { listenerActionId, ruleActionId, topicActionId } from '../core/content-ids';
 import type { SolveResult } from './solve';
+import { must } from '../core/must';
 
 export type Severity = 'error' | 'warning' | 'info';
 
@@ -107,7 +108,7 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
           code: 'rule-shadowed',
           severity: 'warning',
           where: { room, path, id: r.id },
-          message: `never runs: ${pathBase}[${shadow}] matches the same action first${list[shadow].if === undefined ? ' with no condition' : ' with the same condition'}`,
+          message: `never runs: ${pathBase}[${shadow}] matches the same action first${must(list[shadow], 'shadowing rule').if === undefined ? ' with no condition' : ' with the same condition'}`,
           fix: 'move it before, or give the earlier rule a condition',
         });
     });
@@ -191,8 +192,8 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
           add({
             code: 'choice-single',
             severity: 'info',
-            where: { room, path: here, id: options[0].id },
-            message: `a choice with one option ("${options[0].text}")`,
+            where: { room, path: here, id: must(options[0], 'single option').id },
+            message: `a choice with one option ("${must(options[0], 'single option').text}")`,
             fix: 'a plain line reads the same; or add the alternative',
           });
         options.forEach((opt, j) => {
@@ -381,7 +382,7 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
       const h = L.hotspots?.[id];
       if (h?.approach) return h.approach;
       if (h?.rect) return [h.rect[0] + h.rect[2] / 2, h.rect[1] + h.rect[3]];
-      if (h?.poly) return h.poly[0];
+      if (h?.poly) return h.poly[0] ?? null;
       const p = L.props?.[id] ?? L.actors?.[id];
       return p ? (p.approach ?? [p.x, p.y]) : null;
     };
@@ -399,7 +400,7 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
             severity: 'warning',
             where: { room: r.id, path: `on[${i}]`, ...(rule.id ? { id: rule.id } : {}) },
             message: `"${t}" stands behind the walk link${ways.length > 1 ? 's' : ''} ${ways.map((l) => `"${l.id}"`).join(', ')}, which a condition closes; this rule does not check it, so the hero would act from the other side`,
-            fix: `add the link's condition to the rule's \`if\` (${JSON.stringify(ways[0].if)})`,
+            fix: `add the link's condition to the rule's \`if\` (${JSON.stringify(must(ways[0], 'gated link').if)})`,
           });
       }
     });

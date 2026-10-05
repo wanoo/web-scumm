@@ -319,8 +319,8 @@ export class Audio {
       else {
         const rule =
           prev && !prev.howl && d.current === prev.id ? transitionFor(this.files.transitions, prev.id, id) : undefined;
-        const bridge =
-          rule?.bridge && this.files.music?.[rule.bridge] ? this.bank.music(this.files.music[rule.bridge]) : undefined;
+        const bridgeFile = rule?.bridge ? this.files.music?.[rule.bridge] : undefined;
+        const bridge = bridgeFile ? this.bank.music(bridgeFile) : undefined;
         const transition = rule ? { at: rule.at, fadeBeats: rule.fadeBeats, bridge } : undefined;
         done = d.play(id, score, urls, stems, { offset, transition });
       }

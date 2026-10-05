@@ -4,6 +4,7 @@
 // or bar, over a crossfade in beats (core/score.ts decides when, this file only schedules it). Entering another room
 // with the same score changes nothing but the mix: the music goes on. A stinger plays on the next beat. Works on an
 // OfflineAudioContext too (scripts/e2e-music.mjs renders thirty minutes of it and counts the samples).
+import { must } from '../core/must';
 import type { Id } from '../core/types';
 import {
   beatSec,
@@ -306,7 +307,9 @@ export class MusicDirector {
     let buffers: (readonly [string, AudioBuffer])[], bridge: AudioBuffer | null;
     try {
       [buffers, bridge] = await Promise.all([
-        Promise.all(Object.keys(score.stems).map(async (s) => [s, await this.buffer(urls[s])] as const)),
+        Promise.all(
+          Object.keys(score.stems).map(async (s) => [s, await this.buffer(must(urls[s], `stem ${s} url`))] as const),
+        ),
         opts.transition?.bridge ? this.buffer(opts.transition.bridge) : Promise.resolve(null),
       ]);
     } catch (e) {
@@ -328,7 +331,8 @@ export class MusicDirector {
       this.mix(stems);
       return;
     }
-    const stemUrls = Object.keys(score.stems).map((s) => urls[s]);
+    // Every stem's url was just loaded above.
+    const stemUrls = Object.keys(score.stems).map((s) => must(urls[s], `stem ${s} url`));
     const bytes = buffers.reduce((n, [, b]) => n + bytesOf(b), 0);
     const drop = (us: Iterable<string>, keep: Set<string>) => {
       for (const u of us)

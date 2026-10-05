@@ -4,6 +4,7 @@
 // ffprobe measures (tools/stem-facts.ts), in `npm run validate -- --release`. Also checks the declared `pcmBytes`
 // (what a device of unknown memory decides on, dom/director.ts) against the files.
 import type { Id, ScoreDef } from '../core/types';
+import { must } from '../core/must';
 
 export interface StemFacts {
   rate: number;
@@ -31,7 +32,7 @@ export function stemErrors(id: Id, score: ScoreDef, facts: Record<Id, StemFacts 
     return [[s, x] as const];
   });
   if (!ok.length) return errors;
-  const [s0, f0] = ok[0];
+  const [s0, f0] = must(ok[0], 'first stem');
   for (const [s, f] of ok.slice(1)) {
     if (f.rate !== f0.rate)
       errors.push(`${w}.stems.${s} › ${f.rate} Hz, "${s0}" is ${f0.rate} Hz: every stem needs the same rate`);

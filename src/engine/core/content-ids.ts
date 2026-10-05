@@ -3,6 +3,7 @@
 import { listPathSeg, listText } from './list-lines';
 import type { Choice, Cmd, EventRule, GameDef, Id, ListLine, Rule, ScriptDef, TalkTopic } from './types';
 import { assignKeys } from './define';
+import { must } from './must';
 
 // ------------------------------------------------------------------ action ids (engine `ran`, puzzle graph, solver)
 
@@ -299,7 +300,8 @@ export function assignIds(source: GameDef, options: AssignOptions = {}): Assigne
   };
 
   for (const [ri, r] of game.rooms.entries()) {
-    const o = old.rooms[ri];
+    // `old` is a keyed clone of the same source: same rooms, same order.
+    const o = must(old.rooms[ri], `room ${r.id} in the keyed clone`);
     const P = `room:${r.id}/`;
     rules(r.on, o.on, r.id, P, r.id);
     for (const [actor, topics] of Object.entries(r.talk ?? {}))

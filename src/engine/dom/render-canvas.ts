@@ -7,6 +7,7 @@
 // polygon, a black-and-white mask or the layer's alpha, feathered or inverted) at theirs, the foreground, then lights
 // (they fall on the foreground too), then particles (seeded, on the presentation clock: never the engine's dice), then
 // the effect layers.
+import { must } from '../core/must';
 import type { Id } from '../core/types';
 import type { EmitterSpec, OccluderSpec, SceneRenderer, SpriteSpec, StageSpec } from './renderer';
 
@@ -490,7 +491,12 @@ export class CanvasRenderer implements SceneRenderer {
       const px = t.getImageData(0, 0, m.width, m.height),
         d = px.data;
       for (let i = 0; i < d.length; i += 4) {
-        d[i + 3] = Math.round((d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114) * (d[i + 3] / 255));
+        // RGBA: i + 3 < d.length.
+        const red = must(d[i], 'red'),
+          green = must(d[i + 1], 'green'),
+          blue = must(d[i + 2], 'blue'),
+          alpha = must(d[i + 3], 'alpha');
+        d[i + 3] = Math.round((red * 0.299 + green * 0.587 + blue * 0.114) * (alpha / 255));
         d[i] = d[i + 1] = d[i + 2] = 255;
       }
       t.putImageData(px, 0, 0);

@@ -27,7 +27,7 @@ const BUILTIN_TEXT_PARAMS: Record<string, string[]> = {
 /** Visits a string at a dotted minigame-param path; `*` visits array items or object values. */
 function paramText(value: unknown, parts: string[], path: string, fn: Fn): void {
   if (!parts.length) return;
-  const [head, ...tail] = parts;
+  const [head = '', ...tail] = parts; // never the default: `parts` is not empty
   if (head === '*') {
     if (Array.isArray(value)) value.forEach((v, i) => paramText(v, tail, `${path}[${i}]`, fn));
     else if (value && typeof value === 'object')
@@ -336,10 +336,10 @@ export function mergeLocale(
       revived++;
       continue;
     }
-    const cands = bySrc.get(text)?.filter((o) => !used.has(o));
-    if (cands?.length) {
-      used.add(cands[0]);
-      table[path] = pool.get(cands[0])!;
+    const cand = bySrc.get(text)?.filter((o) => !used.has(o))[0];
+    if (cand !== undefined) {
+      used.add(cand);
+      table[path] = pool.get(cand)!;
       remapped++;
       continue;
     }

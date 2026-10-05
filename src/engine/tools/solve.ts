@@ -18,6 +18,7 @@ import { ruleActionId } from '../core/content-ids';
 import { Frontier } from './frontier';
 import { mobilityModel, viewOf, type MobilityModel } from './mobility';
 import type { ExpandPool } from './solve-pool';
+import { must } from '../core/must';
 
 /**
  * The worker pool, when a Node tool loaded it (`import '@engine/tools/solve-pool'` registers it): this file stays free
@@ -267,10 +268,10 @@ function stateKeys(game: GameDef, commands?: CustomCommands, goal?: Cond[]) {
   const json = JSON.stringify(game);
   // `seen` only counts if a condition reads it
   const seenRead = new Set<string>();
-  for (const m of json.matchAll(/"seen":"([^"]+)"/g)) seenRead.add(m[1]);
+  for (const m of json.matchAll(/"seen":"([^"]+)"/g)) seenRead.add(must(m[1], 'seen id'));
   // `visited` too (the room counter is otherwise decor)
   const visitedRead = new Set<string>();
-  for (const m of json.matchAll(/"visited":"([^"]+)"/g)) visitedRead.add(m[1]);
+  for (const m of json.matchAll(/"visited":"([^"]+)"/g)) visitedRead.add(must(m[1], 'visited id'));
   // A prop only counts if a condition reads its state ({ prop: [id, state] }): otherwise opening/closing it is just decor.
   const propRead = new Set<string>();
   const condProps = (c: unknown) => {
@@ -715,8 +716,9 @@ function splits(all: Dims[]): { key: string; split: number; values: number }[] {
     if (b.states.length === all.length && b.values.size === 1) continue; // a constant never splits
     const set = new Set(H);
     for (let j = 0; j < b.states.length; j++) {
-      set.delete(H[b.states[j]]);
-      set.add(H[b.states[j]] ^ b.ph[j]);
+      const h = must(H[must(b.states[j], 'dim state')], 'state hash');
+      set.delete(h);
+      set.add(h ^ must(b.ph[j], 'dim hash'));
     }
     out.push({ key, split: all.length - set.size, values: b.values.size + (b.states.length < all.length ? 1 : 0) });
   }
@@ -1032,13 +1034,15 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
       out: Id[][] = [];
     while (left.length) {
       const g = [left.shift()!];
-      for (let i = 0; i < g.length; i++)
+      for (let i = 0; i < g.length; i++) {
+        const gi = must(g[i], 'group member');
         for (let j = left.length - 1; j >= 0; j--)
-          if (meeting(st, g[i], left[j]) !== undefined) g.push(...left.splice(j, 1));
+          if (meeting(st, gi, must(left[j], 'ungrouped player')) !== undefined) g.push(...left.splice(j, 1));
+      }
       if (g.length > 1 && g.every((p, i) => g.every((q, j) => j <= i || meeting(st, p, q) !== undefined)))
         out.push(g.sort());
     }
-    return out.sort((a, b) => (a[0] < b[0] ? -1 : 1));
+    return out.sort((a, b) => (must(a[0], 'group head') < must(b[0], 'group head') ? -1 : 1));
   };
   const baseDims = (st: GameState): Dims =>
     canonical
@@ -1275,7 +1279,7 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
     // played on the engine and must leave the state as the search sees it.
     if (pool)
       for (let vi = 0; vi < placed.length; vi++) {
-        const v = placed[vi];
+        const v = must(placed[vi], 'placed start');
         const me = v.st.active ?? game.hero;
         const mine = groupsOf(v.st).find((g) => g.includes(me));
         if (!mine) continue;
@@ -1476,12 +1480,14 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
       // Other answers to every nested `choice` prompt. There is deliberately no hidden variant ceiling: maxStates is
       // the one explicit search budget, and reaching it returns `truncated`.
       for (let j = t.picks.length; j < asked.length; j++) {
-        const q = asked[j];
+        const q = must(asked[j], 'asked prompt');
         if (q.topic || q.n < 2) continue;
         const prefix = [...t.picks, ...asked.slice(t.picks.length, j).map((a) => a.n - 1)];
         for (let o = 0; o < q.n - 1; o++) {
           const base = t.label.replace(/ › ".*$/, '');
-          const chosen = [...prefix.slice(t.picks.length), o].map((pick, k) => asked[t.picks.length + k].texts[pick]);
+          const chosen = [...prefix.slice(t.picks.length), o].map(
+            (pick, k) => must(asked[t.picks.length + k], 'asked prompt').texts[pick],
+          );
           addTry({ ...t, label: `${base} › ${chosen.map((x) => `"${x}"`).join(' › ')}`, picks: [...prefix, o] });
         }
       }
@@ -1510,7 +1516,7 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
       for (const id of m.ran) attempted.set(id, (attempted.get(id) ?? 0) + 1);
     };
     for (let ti = 0; ti < tries.length; ti++) {
-      const t = tries[ti];
+      const t = must(tries[ti], 'try');
       const key = keyOf(t);
       if (por === 'sleep' && input.sleep.has(key)) {
         cnt.slept++;
@@ -1609,7 +1615,8 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
       }
       exp.progressed = true;
       exp.effective++;
-      exp.byVerb[t.label.split(' ')[0]] = (exp.byVerb[t.label.split(' ')[0]] ?? 0) + 1;
+      const verb = must(t.label.split(' ')[0], 'verb');
+      exp.byVerb[verb] = (exp.byVerb[verb] ?? 0) + 1;
       for (const en of e.session?.log ?? [])
         for (const id of en.ran ?? []) perAction.set(id, (perAction.get(id) ?? 0) + 1);
       const sleep = new Map<string, RW>();
@@ -1733,7 +1740,10 @@ async function solveOnce(
     opts.start && typeof opts.start === 'object' && 'states' in opts.start ? opts.start.states.slice(1) : [];
   if (opts.start && typeof opts.start === 'object') {
     if ('checkpoint' in opts.start) await e0.checkpoint(opts.start.checkpoint);
-    else await e0.load(structuredClone('states' in opts.start ? opts.start.states[0] : opts.start.state));
+    else
+      await e0.load(
+        structuredClone('states' in opts.start ? must(opts.start.states[0], 'first start state') : opts.start.state),
+      );
   } else await drive(e0, e0.newGame(), (a) => startPath.push(`(tutorial) ${label(game, a)}`));
   const broken: SolveResult['broken'] = [];
   const brokenSeen = new Set<number>();
@@ -1797,10 +1807,10 @@ async function solveOnce(
   // a flag the intro sets from a choice would be "proved" on one value only.
   if (mode === 'prove' && (opts.start === undefined || opts.start === 'new')) {
     for (let j = 0; j < ui0.asked.length; j++)
-      for (let o = 0; o < ui0.asked[j].n - 1; o++) {
+      for (let o = 0; o < must(ui0.asked[j], 'intro prompt').n - 1; o++) {
         const { e, ui } = makeEngine();
         ui.picks = [...ui0.asked.slice(0, j).map((a) => a.n - 1), o];
-        const path: string[] = [`New game › "${ui0.asked[j].texts[o]}"`];
+        const path: string[] = [`New game › "${must(ui0.asked[j], 'intro prompt').texts[o]}"`];
         await drive(e, e.newGame(), (a) => path.push(`(tutorial) ${label(game, a)}`));
         const dims = dimsOf(e.state);
         const h = JSON.stringify(dims);
@@ -2007,7 +2017,9 @@ async function solveOnce(
         nodes.push(n);
       }
       if (!nodes.length) continue;
-      const exps = pool ? await pool.expand(nodes.map(input), deadline) : [await X.expandNode(input(nodes[0]))];
+      const exps = pool
+        ? await pool.expand(nodes.map(input), deadline)
+        : [await X.expandNode(input(must(nodes[0], 'first node')))];
       for (let k = 0; k < nodes.length; k++) {
         // The batch is taken from the frontier at once; the rest of it is dropped as the one-at-a-time search would
         // have stopped before it (the budget, a witness found).
@@ -2023,8 +2035,9 @@ async function solveOnce(
           stoppedBy = 'time';
           break;
         }
-        visit(nodes[k]);
-        merge(nodes[k], exps[k]!);
+        const node = must(nodes[k], 'batch node');
+        visit(node);
+        merge(node, exps[k]!);
       }
       if (limitReached) break;
     }
