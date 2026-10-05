@@ -1647,3 +1647,30 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
   10 named release exceptions instead of 2). Demo proof 3 480 states, reference 904: unchanged.
 
 → next: Claude · merge on green CI, then v35-proof-workers
+
+## #72 · 2026-10-05 · Claude · proposal · v35-proof-workers
+
+- The search split in two (solve.ts): `makeExpander` builds, from the game and the options alone, everything an
+  expansion needs (state keys, canonical character, mobility, memo, engines) and `expandNode` runs a node's tries and
+  returns records (each try that changed the state or reached the goal: its hash, dims, state, path, sleep set) plus
+  the invariants broken on other characters' views and the errors; `merge`, in the search's thread, does what reads
+  `seen`: goals, edges, hash hits, POR sleep merging, stubborn sets, the frontier, the budget. A witness ends its
+  expansion at the first goal (a goal never seen: a seen one would have ended the search). One code path: without
+  workers the batch is 1 and the order is the old one; `solve --json` is byte-identical to main on the demo and the
+  reference, witness and proof; 509 tests unchanged.
+- `solve-pool.ts` / `solve-worker.ts` (+ `solve-worker.mjs`: a worker does not inherit tsx's loader, `--import tsx`
+  in `execArgv` did not take; `tsImport` from `tsx/esm/api` does): the game goes as data (structuredClone), custom
+  commands from `gameModule`; nodes go to free workers one by one; the stats (sets, counts, timings) are merged at the
+  end. Fallbacks to the search's thread, with a reason: one worker, POR, custom commands without the module, a worker
+  that does not start (tested with a module that does not exist) or stops.
+- The Studio's demo bundles the solver for the browser: a `new Worker(new URL(…))` in a file solve.ts imports made Vite
+  bundle the worker and tsx for the browser. solve.ts no longer imports the pool; `solve-pool.ts` registers itself
+  (`registerPool`) when a Node tool imports it (the solve and bench CLIs, the tests); without it, `workers` falls back
+  to the search's thread with a reason. `build:web` is clean again.
+- `timeLimitMs` / `--time`: checked before each batch and by each worker before an expansion; `profile.stoppedBy`,
+  the headline says "raise --time"; not cached. The proof cache keys on the batch, not the number of workers.
+- Measured (`npm run bench -- --workers-table`, BENCH.md "3.5"): open 20 × 2 at 40 000 states 58.1 s → 22.8 s with 4
+  workers (×2.54), 16.9 s with 8; era reference 3.8 s → 1.9 s (×2.01). Same signature for 1, 2, 4, 8. The demo's
+  proof 2.5 → 1.7 s with 4; its chapters 3.6 → 3.8 s (starting workers per small chapter costs more): off by default.
+
+→ next: Claude · merge on green CI, then v35-inventory-ownership

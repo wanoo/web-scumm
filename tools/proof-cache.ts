@@ -64,7 +64,13 @@ export function gameSourceHash(dir = GAME_DIR): string {
 export const cacheOn = () => process.env.PROOF_CACHE !== '0' && !process.argv.includes('--no-cache');
 
 /** The options as the solver reads them: an option left out and the same option at its default are one question. */
-const normal = (o: SolveOptions): SolveOptions => ({ maxStates: 20000, mode: 'witness', start: 'new', por: false, ...Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) });
+// With workers, the result depends on the batch, never on how many workers expanded it (solve-pool.ts): the key keeps
+// the batch and drops the count and the module path.
+const normal = (o: SolveOptions): SolveOptions => {
+  const { workers, gameModule, batch, ...rest } = o;
+  void gameModule;
+  return { maxStates: 20000, mode: 'witness', start: 'new', por: false, ...Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined)), ...(workers !== undefined ? { batch: batch ?? 64 } : {}) };
+};
 
 /** The key of one run. */
 export function proofKey(game: GameDef, layouts: Record<string, Layout>, opts: SolveOptions): string {
@@ -75,7 +81,8 @@ export type Cached = SolveResult & { cached?: string };
 
 /** `solve`, through the cache: a hit is the earlier result with `cached` set to its key (the printed outputs say so). */
 export async function cachedSolve(game: GameDef, layouts: Record<string, Layout>, opts: SolveOptions = {}): Promise<Cached> {
-  if (!cacheOn()) return solve(game, layouts, opts);
+  // A search stopped by the clock is not a verdict to keep (the next one may get further).
+  if (!cacheOn() || opts.timeLimitMs) return solve(game, layouts, opts);
   const key = proofKey(game, layouts, opts);
   const dir = cacheDir();
   const file = join(dir, `${key}.json`);

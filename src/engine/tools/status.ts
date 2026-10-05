@@ -14,13 +14,13 @@ const RANK: Record<SolveStatus, number> = { solved: 0, softlocks: 1, unsolved: 2
 export const worstStatus = (a: SolveStatus, b: SolveStatus): SolveStatus => (RANK[a] >= RANK[b] ? a : b);
 
 /** What a status means for one search, in one sentence. */
-export function solveHeadline(r: { status: SolveStatus; mode: 'witness' | 'prove'; states: number; softlockCount: number; broken: unknown[]; errors: unknown[]; goal?: boolean }): string {
+export function solveHeadline(r: { status: SolveStatus; mode: 'witness' | 'prove'; states: number; softlockCount: number; broken: unknown[]; errors: unknown[]; goal?: boolean; stoppedBy?: 'states' | 'time' }): string {
   const end = r.goal ? 'the goal' : 'the ending';
   switch (r.status) {
     case 'solved': return r.mode === 'prove' ? `solved: ${end} stays reachable from every one of the ${r.states} reachable states` : `solved: ${end} is reached (${r.states} states explored; --prove checks every state)`;
     case 'softlocks': return `softlocks: ${r.softlockCount} reachable state(s) can no longer reach ${end}`;
     case 'unsolved': return `unsolved: ${end} is not reached from any of the ${r.states} states explored`;
-    case 'truncated': return `truncated: the search stopped at ${r.states} states, nothing is proved (raise --max)`;
+    case 'truncated': return `truncated: the search stopped at ${r.states} states, nothing is proved (${r.stoppedBy === 'time' ? 'out of time: raise --time' : 'raise --max'})`;
     case 'broken': return `broken: ${r.broken.length} invariant(s) broken on a reachable state`;
     case 'error': return `error: ${r.errors.length} engine error(s) while exploring`;
   }

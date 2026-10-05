@@ -17,6 +17,24 @@ import { compileGame } from '../core/define';
 import { ruleActionId } from '../core/content-ids';
 import { Frontier } from './frontier';
 import { mobilityModel, viewOf, type Hop, type MobilityModel } from './mobility';
+import type { ExpandPool } from './solve-pool';
+
+/**
+ * The worker pool, when a Node tool loaded it (`import '@engine/tools/solve-pool'` registers it): this file stays free
+ * of worker threads, so the browser (the Studio's demo) bundles the solver without them.
+ */
+type PoolOpener = (w: number | 'auto', gameIn: GameDef, layouts: Record<string, Layout>, opts: SolveOptions, X: ReturnType<typeof makeExpander>) => Promise<ExpandPool>;
+let poolOpener: PoolOpener | null = null;
+export function registerPool(open: PoolOpener) { poolOpener = open; }
+/** The expansions in this thread, in order (one worker, no pool, or a pool's fallback). */
+export function threadPool(X: ReturnType<typeof makeExpander>, reason?: string): ExpandPool {
+  return {
+    size: 1, ...(reason ? { reason } : {}),
+    async expand(inputs, deadline) { const out: (Expansion | null)[] = []; for (const i of inputs) out.push(Date.now() > deadline ? null : await X.expandNode(i)); return out; },
+    async stats() { return null; },
+    async close() {},
+  };
+}
 
 export interface Step { label: string }
 
@@ -69,6 +87,10 @@ export interface SolveProfile {
    * no-op runs not kept because they wrote something back or read something the memo cannot value (`refused`).
    */
   memo: { applied: boolean; stored: number; hits: number; verified: number; refused: number; reason?: string };
+  /** Proof workers (`workers`): how many expanded, the batch, and why this thread expanded instead when it did. */
+  workers?: { workers: number; batch: number; reason?: string };
+  /** Why the search stopped early: the state budget (`maxStates`) or the time (`timeLimitMs`). */
+  stoppedBy?: 'states' | 'time';
 }
 
 export interface SolveResult {
@@ -156,6 +178,18 @@ export interface SolveOptions {
    * (`profile.mobility.reason`). Default: on in proof mode, off for a witness.
    */
   mobility?: boolean;
+  /**
+   * Proof workers (3.5, solve-pool.ts): the frontier expanded a batch at a time by this many worker threads (`auto`:
+   * the cores but one, at most 8). The result depends on `batch`, never on the number of workers; without this option
+   * the search expands one node at a time, as before. Not with a partial-order reduction.
+   */
+  workers?: number | 'auto';
+  /** Nodes taken from the frontier at once with workers (default 64). */
+  batch?: number;
+  /** The game's module (its `commands` reach the workers from there; the game itself is sent as data). */
+  gameModule?: string;
+  /** Stop after this long (milliseconds): the result is `truncated`, `profile.stoppedBy` says why. */
+  timeLimitMs?: number;
 }
 
 interface Node {
@@ -295,6 +329,9 @@ function regionDims(d: Dims, s: GameState, model: MobilityModel, hero: Id, share
 
 /** A hop the mobility model called silent was not: the search restarts with exact rooms. */
 class MobilityError extends Error {}
+/** A worker's mobility failure, raised again in the search (solve-pool.ts). */
+export const mobilityError = (m: string): Error => new MobilityError(m);
+export const isMobilityError = (e: unknown): boolean => e instanceof MobilityError;
 
 function canonicalDims(d: Dims, s: GameState, keys: ReturnType<typeof stateKeys>, hero: Id, shared: boolean): Dims {
   const live = (xs: Id[] | undefined) => (xs ?? []).filter((i) => keys.live.items.has(i)).sort().join(',');
@@ -469,8 +506,61 @@ export async function solve(gameIn: GameDef, layouts: Record<string, Layout>, op
   }
 }
 
-async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts: SolveOptions = {}): Promise<SolveResult> {
-  const maxStates = opts.maxStates ?? 20000;
+/** The node an expansion starts from: what it needs of it, nothing of the search around it (a worker gets this). */
+export interface NodeInput { state: GameState; dims: Dims; sleep: Map<string, RW>; only?: Set<string> }
+
+/**
+ * One try that changed the state or reached the goal, in the order the tries ran. The merge (which reads `seen`, the
+ * frontier and the goals) decides what becomes of it; the expansion never looks at them.
+ */
+export interface TryRecord {
+  key: string; label: string; h: string; hitGoal: boolean;
+  /** The state did not change (a goal state all the same: kept for the goals only). */
+  noop: boolean;
+  dims?: Dims; state?: GameState; path?: string[]; tailSteps?: SessionEntry[];
+  rw?: RW | null; sleep?: Map<string, RW>;
+}
+
+/** What expanding one node found. */
+export interface Expansion {
+  records: TryRecord[];
+  /** Stubborn mode's transitions (por.ts). */
+  txs: Tx[];
+  progressed: boolean;
+  tries: number; effective: number; byVerb: Record<string, number>;
+  /** Invariants broken on another character's view of the node: the step after the node's path. */
+  broken: { invariant: number; suffix: string[] }[];
+  errors: string[];
+}
+
+/** What expansions add up besides their records (summed over workers: union, sums, maxima). */
+export interface ExpandStats {
+  itemsInRules: Set<string>; itemsSeen: Set<string>; flags: Set<string>; gained: Set<string>; roomsReached: Set<string>;
+  attempted: Map<string, number>; perAction: Map<string, number>;
+  fallbackByRoom: Map<string, { candidates: number; rules: number; fallback: number }>;
+  n: { memoHits: number; memoStored: number; memoVerified: number; memoRefused: number; tries: number; skipped: number; slept: number; noops: number };
+  timing: SolveProfile['timing'];
+  canon: { folded: number; explicit: number };
+  mob: { moves: number; largest: number };
+}
+
+/** Adds `b` into `a` (the coordinator's stats and a worker's). */
+export function mergeStats(a: ExpandStats, b: ExpandStats) {
+  for (const k of ['itemsInRules', 'itemsSeen', 'flags', 'gained', 'roomsReached'] as const) b[k].forEach((x) => a[k].add(x));
+  for (const k of ['attempted', 'perAction'] as const) for (const [x, n] of b[k]) a[k].set(x, (a[k].get(x) ?? 0) + n);
+  for (const [r, f] of b.fallbackByRoom) { const g = a.fallbackByRoom.get(r) ?? { candidates: 0, rules: 0, fallback: 0 }; g.candidates += f.candidates; g.rules += f.rules; g.fallback += f.fallback; a.fallbackByRoom.set(r, g); }
+  for (const k of Object.keys(a.n) as (keyof ExpandStats['n'])[]) a.n[k] += b.n[k];
+  for (const k of Object.keys(a.timing) as (keyof SolveProfile['timing'])[]) a.timing[k] += b.timing[k];
+  a.canon.folded += b.canon.folded; a.canon.explicit += b.canon.explicit;
+  a.mob.moves += b.mob.moves; a.mob.largest = Math.max(a.mob.largest, b.mob.largest);
+}
+
+/**
+ * Everything one expansion needs, derived from the game and the options alone: the state keys, the abstractions, the
+ * memo, a fresh engine per try. Built the same way in the search and in each worker (solve-pool.ts), so an expansion
+ * gives the same records wherever it runs; the memo is each one's own (exact: it changes counts, never results).
+ */
+export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, opts: SolveOptions = {}) {
   const mode = opts.mode ?? 'witness';
   const game = compileGame(gameIn) as GameDef;
   const keys0 = new Engine(game, layouts, new FakePresenter(), new MemoryStore(), { commands: opts.commands }); // assigns the keys
@@ -488,26 +578,16 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   const mobInfo: SolveProfile['mobility'] = { applied: !!model, moves: 0, largest: model ? 0 : 1, ...(model0?.trivial ? { reason: 'no move of this game can be silent' } : {}) };
   const baseDims = (st: GameState): Dims => canonical ? canonicalDims(stateDims(st, keys), st, keys, game.hero, shared) : stateDims(st, keys);
   const dimsOf = (st: GameState): Dims => model ? regionDims(baseDims(st), st, model, game.hero, shared) : baseDims(st);
-  const errors: string[] = [];
-  const itemsInRules = new Set<string>();
-  const itemsSeen = new Set<string>();
-  const flags = new Set<string>();
-  const unlocked = new Set<string>();
-  const roomsReached = new Set<string>();
-  const deadEnds: SolveResult['deadEnds'] = [];
-  const gained = new Set<string>();
-  // The profile
-  const t0 = Date.now();
-  let memoHits = 0, memoStored = 0, memoVerified = 0, memoRefused = 0;
-  let tries_total = 0, skipped = 0, slept = 0, postponed = 0, noops = 0, hashHits = 0, maxQueue = 0, expansions = 0, triesSum = 0, triesMax = 0;
-  let worst: SolveProfile['branching']['worst'];
-  const perRoom = new Map<string, number>(), perAction = new Map<string, number>(), attempted = new Map<string, number>();
-  const fallbackByRoom = new Map<string, { candidates: number; rules: number; fallback: number }>();
-  const timing: SolveProfile['timing'] = { tries: 0, engine: 0, clone: 0, run: 0, hash: 0, queue: 0, other: 0, classify: 0 };
+  const stats: ExpandStats = {
+    itemsInRules: new Set(), itemsSeen: new Set(), flags: new Set(), gained: new Set(), roomsReached: new Set(),
+    attempted: new Map(), perAction: new Map(), fallbackByRoom: new Map(),
+    n: { memoHits: 0, memoStored: 0, memoVerified: 0, memoRefused: 0, tries: 0, skipped: 0, slept: 0, noops: 0 },
+    timing: { tries: 0, engine: 0, clone: 0, run: 0, hash: 0, queue: 0, other: 0, classify: 0 },
+    canon: { folded: 0, explicit: 0 }, mob: { moves: 0, largest: model ? 0 : 1 },
+  };
+  const { timing, n: cnt, attempted, perAction, fallbackByRoom, itemsInRules, flags, gained, roomsReached, itemsSeen } = stats;
   const now = () => performance.now();
   const timed = <T>(k: keyof SolveProfile['timing'], f: () => T): T => { const t = now(); try { return f(); } finally { timing[k] += now() - t; } };
-  const loopStart = { t: 0 };
-
   const randomBranchValues = [...new Set(cmdLists(game).flatMap(({ list }) => {
     const sizes: number[] = [];
     eachCmd(list, (c) => { if (typeof c !== 'string' && 'random' in c && c.random.length) sizes.push(c.random.length); });
@@ -522,25 +602,10 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     e.random = () => draws.shift() ?? 0;
     return { e, ui };
   };
-
-  // Starting state
-  const { e: e0, ui: ui0 } = makeEngine();
-  const startPath: string[] = [];
-  // Several starts (a chapter's boundary states): one search from all of them, sharing what it has seen.
-  const extraStarts = opts.start && typeof opts.start === 'object' && 'states' in opts.start ? opts.start.states.slice(1) : [];
-  if (opts.start && typeof opts.start === 'object') { if ('checkpoint' in opts.start) await e0.checkpoint(opts.start.checkpoint); else await e0.load(structuredClone('states' in opts.start ? opts.start.states[0] : opts.start.state)); }
-  else await drive(e0, e0.newGame(), (a) => startPath.push(`(tutorial) ${label(game, a)}`));
   // A goal can read the active character's bag or room (`{ has }`, `{ room }`). With the canonical character, a state
   // reaches the goal when any character, seen as active, meets it: switching to that one is silent.
   const goalHolds = (s: GameState) => !!opts.goal && (opts.goal.every((c) => check(c, s)) || (canonical && playerIds.some((p) => p !== (s.active ?? game.hero) && opts.goal!.every((c) => check(c, viewOf(s, p, game.hero, shared))))));
   const reached = (ui: FakePresenter, s: GameState) => opts.goal ? goalHolds(s) : (s.done || ui.log.includes('ENDING'));
-  const broken: SolveResult['broken'] = [];
-  const brokenSeen = new Set<number>();
-  const checkInvariants = (s: GameState, path: () => string[]) => {
-    (game.invariants ?? []).forEach((c, i) => { if (!brokenSeen.has(i) && check(c, s)) { brokenSeen.add(i); broken.push({ invariant: i, path: path() }); } });
-  };
-
-  const seen = new Map<string, Node>();
   // A reduction must not remove a losing branch from a proof. Keep proof mode deliberately conservative until the
   // reductions themselves have a model-equivalence proof.
   const por = mode === 'prove' && !opts.unsafeReduction ? false : (opts.por ?? false);
@@ -561,8 +626,280 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     return true;
   };
   const stx = por === 'stubborn' ? staticTransitions(puzzleGraph(game, { commands: opts.commands })) : null;
+
+  /** Every try from one node, run on the real engine. Reads nothing of the search (no `seen`, no frontier). */
+  async function expandNode(input: NodeInput): Promise<Expansion> {
+    const s = input.state;
+    const tTries = now(), engineBefore = timing.engine, cloneBefore = timing.clone, runBefore = timing.run;
+    const exp: Expansion = { records: [], txs: [], progressed: false, tries: 0, effective: 0, byVerb: {}, broken: [], errors: [] };
+    // List of actions to try
+    // `picks`: the answers given to the choices met on the way (a topic index first, then nested `choice` prompts);
+    // whatever is not given defaults to the last option. After a run, every other option of a prompt is a new try.
+    type Try = { label: string; run: (e: Engine) => Promise<Source | null | void>; items: string[]; picks: number[]; rnd: number[]; pair?: true; /** The content actions that could answer (puzzle graph ids). */ candidates: string[];
+      /** Another character's view or another room of the region: the state the try starts from, and the session entries that led there (played once). */
+      base?: GameState; pre?: SessionEntry[]; /** The variant's label prefix (`Switch to X › `): the memo keys the action without it. */ prefix?: string };
+    const keyOf = (t: Try) => `${t.label}|p=${t.picks.join(',')}|r=${t.rnd.join(',')}`;
+    const tries: Try[] = [];
+    const tryKeys = new Set<string>();
+    const addTry = (t: Try) => { const k = keyOf(t); if (!tryKeys.has(k)) { tryKeys.add(k); tries.push(t); } };
+    const brokenHere = (st: GameState, suffix: string[]) => (game.invariants ?? []).forEach((c, i) => { if (check(c, st)) exp.broken.push({ invariant: i, suffix }); });
+    // The canonical character: the same state seen from each other character it can switch to without changing
+    // anything the solver reads (`canonicalPlayers`); their actions are tried from here, prefixed by the switch.
+    const h0 = JSON.stringify(input.dims);
+    const variants: { st: GameState; via?: Id; pre?: SessionEntry[]; prefix?: string }[] = [{ st: s }];
+    const explicitSwitch: Id[] = [];
+    if (canonical) for (const pid of playerIds) {
+      if (pid === (s.active ?? game.hero)) continue;
+      const { e } = makeEngine();
+      e.state = timed('clone', () => structuredClone(s));
+      try { await drive(e, e.switchTo(pid), () => {}); } catch { explicitSwitch.push(pid); continue; }
+      if (JSON.stringify(dimsOf(e.state)) === h0) { variants.push({ st: e.state, via: pid, pre: e.session?.log ?? [], prefix: `Switch to ${pid} › ` }); stats.canon.folded++; brokenHere(e.state, [`Switch to ${pid}`]); }
+      else { explicitSwitch.push(pid); stats.canon.explicit++; }
+    }
+    // Mobility regions: each character's view, in every room of its region. The route there is played once, each
+    // hop checked (arrives, changes nothing the solver reads); the tries of that room start from where it ends.
+    const placed: { st: GameState; via?: Id; pre?: SessionEntry[]; prefix?: string; region?: Id[] }[] = [];
+    for (const v of variants) {
+      // What a character's view reaches is reached (the explicit search would switch to it, or walk there): the room
+      // reports and the lint's `room-never-reached` must not depend on the abstractions (tests/audit.test.ts).
+      v.st.inventory.forEach((i) => itemsSeen.add(i));
+      if (!model) { placed.push(v); roomsReached.add(v.st.room); continue; }
+      const R = model.region(v.st);
+      stats.mob.largest = Math.max(stats.mob.largest, R.rooms.length);
+      for (const r of R.rooms) {
+        roomsReached.add(r);
+        if (r === v.st.room) { placed.push({ ...v, region: R.rooms }); continue; }
+        const { e } = makeEngine();
+        e.state = timed('clone', () => structuredClone(v.st));
+        const tRun = now();
+        try {
+          for (const h of R.route(r)) {
+            await drive(e, h.kind === 'exit' ? e.act({ verb: h.verb, a: h.a }) : e.travel(h.place), () => {});
+            if (e.state.room !== h.to) throw new MobilityError(`a silent move from ${h.from} to ${h.to} did not arrive (in ${e.state.room})`);
+            if (JSON.stringify(dimsOf(e.state)) !== h0) throw new MobilityError(`moving from ${h.from} to ${h.to} changed something the solver reads`);
+          }
+        } finally { timing.run += now() - tRun; }
+        placed.push({ st: e.state, via: v.via, pre: [...(v.pre ?? []), ...(e.session?.log ?? [])], prefix: `${v.prefix ?? ''}Go to ${r} › `, region: R.rooms });
+        stats.mob.moves++;
+      }
+    }
+    for (const variant of placed) {
+      const s = variant.st;
+      const add = (t: Try) => addTry(variant.prefix ? { ...t, label: `${variant.prefix}${t.label}`, base: variant.st, pre: variant.pre, prefix: variant.prefix } : t);
+      // Inside a region, its silent exits and map trips are the macro moves above, not tries of their own.
+      const silentExits = new Set(model && variant.region ? model.hops(s, s.room).filter((h) => h.kind === 'exit' && variant.region!.includes(h.to)).map((h) => (h as { a: Id }).a) : []);
+      const regionRooms = new Set(variant.region ?? []);
+      const probe = makeEngine().e;
+      probe.state = timed('clone', () => structuredClone(s));
+      const room = probe.room();
+      const targets = probe.targets(room);
+      const inv = s.inventory;
+      const verbs = game.verbs.map((v) => v.id) as VerbId[];
+      // An action no written rule can answer (whatever the conditions) falls to a look line, a kind reaction or the
+      // fallback line: nothing changes, so the engine is not even run. The exceptions that do change something without
+      // a rule: talking to the hint item, giving to another playable character (the topics are tries of their own).
+      const rules = [...(room.on ?? []).map((r, i) => ({ r, id: ruleActionId(room.id, i, r) })), ...(game.rules.on ?? []).map((r, i) => ({ r, id: ruleActionId('game', i, r) }))];
+      const hasId = (x: Id | Id[] | undefined, v: Id | undefined) => x === undefined ? v === undefined : v !== undefined && (Array.isArray(x) ? x.includes(v) : x === v);
+      const answers = (v: VerbId, a: Id, b?: Id) => rules.filter(({ r }) => (Array.isArray(r.verb) ? r.verb.includes(v) : r.verb === v) &&
+        ((hasId(r.a, a) && hasId(r.b, b)) || (!!b && inv.includes(a) && inv.includes(b) && hasId(r.a, b) && hasId(r.b, a)))).map((x) => x.id);
+      const answered = (v: VerbId, a: Id, b?: Id) => answers(v, a, b).length > 0;
+      const fb = fallbackByRoom.get(s.room) ?? { candidates: 0, rules: 0, fallback: 0 };
+      fallbackByRoom.set(s.room, fb);
+      for (const t of [...targets, ...inv]) for (const v of verbs) {
+        if (v === 'talk' && room.talk?.[t]) continue; // handled by topics
+        if (silentExits.has(t)) continue;
+        if (!answered(v, t) && !(v === 'talk' && t === game.hintItem && inv.includes(t))) { cnt.skipped++; continue; }
+        add({ label: label(game, { verb: v, a: t }), run: (e) => e.act({ verb: v, a: t }), items: inv.includes(t) ? [t] : [], picks: [], rnd: [], candidates: answers(v, t) });
+      }
+      for (const it of inv) for (const t of [...targets, ...inv.filter((x) => x !== it)]) for (const v of ['use', 'give'] as VerbId[]) {
+        if (v === 'give' && inv.includes(t)) continue;
+        fb.candidates++;
+        if (!answered(v, it, t) && !(v === 'give' && probe.isPlayer(t) && t !== probe.heroId())) { fb.fallback++; cnt.skipped++; continue; }
+        add({ label: label(game, { verb: v, a: it, b: t }), run: (e) => e.act({ verb: v, a: it, b: t }), items: inv.includes(t) ? [it, t] : [it], picks: [], rnd: [], pair: true, candidates: answers(v, it, t) });
+      }
+      for (const [actor, topics] of Object.entries(room.talk ?? {})) {
+        if (!targets.includes(actor)) continue;
+        // the engine numbers visible topics: the label must follow the same list (otherwise the printed path would lie)
+        topics.map((tp, orig) => ({ tp, orig })).filter(({ tp }) => check(tp.if, s, room.id)).forEach(({ tp, orig }, i) => add({
+          label: `Talk ${actor}: "${tp.topic}"`, run: (e) => e.act({ verb: 'talk', a: actor }), items: [], picks: [i], rnd: [], candidates: [`topic:${tp.id ?? `${room.id}/${actor}[${orig}]`}`],
+        }));
+      }
+      for (const [pid, p] of Object.entries(game.map?.places ?? {})) {
+        if (!s.unlocked.includes(pid) || p.room === s.room || !game.rooms.some((r) => r.id === p.room) || regionRooms.has(p.room)) continue;
+        add({ label: `Map → ${p.name}`, run: (e) => e.travel(pid), items: [], picks: [], rnd: [], candidates: [] });
+      }
+      // Several playable characters: taking control of another one.
+      for (const pid of probe.playerIds()) if (pid !== probe.heroId() && (!canonical || explicitSwitch.includes(pid))) add({ label: `Switch to ${pid}`, run: (e) => e.switchTo(pid).then(() => undefined), items: [], picks: [], rnd: [], candidates: [] });
+      // The world's scripts: letting one run until its next wait (or its end) is something the player can do by waiting.
+      for (const sc of probe.scriptsHere()) {
+        const st = s.scripts?.[sc.id];
+        if (st?.done || st?.off || !keys.live.actions.has(sc.id)) continue;
+        add({ label: `Script ${sc.id}`, run: (e) => e.runScript(sc.id, true).then(() => undefined), items: [], picks: [], rnd: [], candidates: [`script:${sc.id}`] });
+      }
+    }
+
+    timing.tries += now() - tTries - (timing.engine - engineBefore) - (timing.clone - cloneBefore) - (timing.run - runBefore);
+    const only = input.only;
+    // The effective actions tried here so far, with what they read and wrote: the later ones sleep them in their children.
+    const done: { key: string; rw: RW }[] = [];
+    // What a run leaves besides its state: other answers to its prompts and draws (new tries), what answered it.
+    const expand = (t: Try, asked: FakePresenter['asked'], drawn: number[]) => {
+      // Other answers to every nested `choice` prompt. There is deliberately no hidden variant ceiling: maxStates is
+      // the one explicit search budget, and reaching it returns `truncated`.
+      for (let j = t.picks.length; j < asked.length; j++) {
+        const q = asked[j];
+        if (q.topic || q.n < 2) continue;
+        const prefix = [...t.picks, ...asked.slice(t.picks.length, j).map((a) => a.n - 1)];
+        for (let o = 0; o < q.n - 1; o++) {
+          const base = t.label.replace(/ › ".*$/, '');
+          const chosen = [...prefix.slice(t.picks.length), o].map((pick, k) => asked[t.picks.length + k].texts[pick]);
+          addTry({ ...t, label: `${base} › ${chosen.map((x) => `"${x}"`).join(' › ')}`, picks: [...prefix, o] });
+        }
+      }
+      // The engine records every random draw in the session. Expand every newly observed draw with representative
+      // values for every random block arity in the game; state hashing removes duplicates. This explores nested
+      // random blocks just like nested dialogue choices, instead of forcing branch zero.
+      for (let j = t.rnd.length; j < drawn.length; j++) {
+        const prefix = [...t.rnd, ...drawn.slice(t.rnd.length, j)];
+        for (const value of randomBranchValues) if (value !== drawn[j]) addTry({ ...t, rnd: [...prefix, value] });
+      }
+    };
+    const countAnswer = (t: Try, src: Source | null | void, room: Id) => {
+      if (src === 'rule' || src === 'hint') t.items.forEach((i) => itemsInRules.add(i));
+      if (t.pair) { const fb = fallbackByRoom.get(room); if (fb) { if (src === 'rule') fb.rules++; else if (src === 'fallback') fb.fallback++; } }
+    };
+    // A memo hit: the try is a no-op here, as it was where it was kept. Its prompts, draws and answers count the same.
+    const replayNoop = (t: Try, m: Memo, room: Id) => {
+      expand(t, m.asked, m.drawn);
+      countAnswer(t, m.src, room);
+      for (const id of m.ran) attempted.set(id, (attempted.get(id) ?? 0) + 1);
+    };
+    for (let ti = 0; ti < tries.length; ti++) {
+      const t = tries[ti];
+      const key = keyOf(t);
+      if (por === 'sleep' && input.sleep.has(key)) { cnt.slept++; exp.progressed = true; continue; }
+      if (only && !only.has(key)) continue;
+      const mk = t.prefix && t.label.startsWith(t.prefix) ? keyOf({ ...t, label: t.label.slice(t.prefix.length) }) : key;
+      const from = t.base ?? s;
+      const hit = memoOn ? memo.get(mk)?.find((m) => m.vals.every(([k, v]) => atomValue(from, k) === v)) : undefined;
+      let verify: Memo | undefined;
+      if (hit) {
+        cnt.memoHits++;
+        if (cnt.memoHits % memoEvery) { replayNoop(t, hit, s.room); cnt.noops++; continue; }
+        verify = hit;
+      }
+      cnt.tries++;
+      const { e, ui } = makeEngine(t.rnd);
+      e.state = timed('clone', () => structuredClone(from));
+      if (por || memoOn) e.reads = new Set();
+      if (memoOn) e.writes = new Set();
+      ui.picks = [...t.picks];
+      const path: string[] = []; // this step's tutorial moves, then its label
+      let src: Source | null | void = null;
+      const tRun = now();
+      try {
+        await drive(e, t.run(e).then((r) => { src = r; }), (a) => path.push(`(tutorial) ${label(game, a)}`));
+      } catch (err) {
+        if (err instanceof MobilityError) throw err;
+        exp.errors.push(`${t.label} (${s.room}): ${(err as Error).message}`);
+        continue;
+      } finally { timing.run += now() - tRun; }
+      const drawn = (e.session?.log ?? []).flatMap((entry) => entry.rnd ?? []);
+      expand(t, ui.asked, drawn);
+      countAnswer(t, src, s.room);
+      // Reported even when the state is not worth exploring (a flag nobody reads, a trinket no gate needs): it did happen.
+      Object.entries(e.state.flags).forEach(([k, v]) => v && flags.add(k));
+      e.state.inventory.forEach((i) => gained.add(i));
+      // What answered this try, even when nothing changed: a topic that only talks is reachable all the same.
+      for (const en of e.session?.log ?? []) for (const id of en.ran ?? []) attempted.set(id, (attempted.get(id) ?? 0) + 1);
+      const tHash = now();
+      const dims = dimsOf(e.state);
+      const h = JSON.stringify(dims);
+      timing.hash += now() - tHash;
+      const hitGoal = reached(ui, e.state);
+      const rw: RW | null = por ? { reads: readDims(e.reads!), writes: diffDims(input.dims, dims) } : null;
+      if (verify) {
+        cnt.memoVerified++;
+        if (h !== h0 || !hidden(e.writes!)) exp.errors.push(`${t.label} (${s.room}): the no-op memo skipped a try that ${h !== h0 ? 'changes the state' : 'writes what the solver hashes'} here (the engine's read trace is incomplete)`);
+      }
+      if (h === h0 && memoOn && !verify) {
+        const vals = hidden(e.writes!) ? valuation(from, e.reads!) : null;
+        if (vals) {
+          const list = memo.get(mk) ?? (memo.set(mk, []), memo.get(mk)!);
+          if (list.length < 64) { list.push({ vals, ran: (e.session?.log ?? []).flatMap((en) => en.ran ?? []), src, asked: ui.asked, drawn }); cnt.memoStored++; }
+        } else cnt.memoRefused++;
+      }
+      if (h === h0) {
+        cnt.noops++;
+        if (hitGoal) exp.records.push({ key, label: t.label, h, hitGoal, noop: true });
+        if (stx && rw) {
+          // A transition a condition holds back: what it would change, and the gates that hold it, from the content.
+          const cands = t.candidates.map((c) => stx.byId.get(c)).filter((x) => !!x);
+          cands.forEach((c) => c.writes.forEach((w) => rw.writes.add(w)));
+          if (rw.writes.size) exp.txs.push({ key, enabled: false, rw, candidates: t.candidates, gates: cands.map((c) => c.gates), visible: false });
+        }
+        continue;
+      }
+      exp.progressed = true;
+      exp.effective++;
+      exp.byVerb[t.label.split(' ')[0]] = (exp.byVerb[t.label.split(' ')[0]] ?? 0) + 1;
+      for (const en of e.session?.log ?? []) for (const id of en.ran ?? []) perAction.set(id, (perAction.get(id) ?? 0) + 1);
+      const sleep = new Map<string, RW>();
+      if (por === 'sleep' && rw) {
+        for (const [k, r] of input.sleep) if (independent(r, rw)) sleep.set(k, r);
+        for (const d of done) if (independent(d.rw, rw)) sleep.set(d.key, d.rw);
+        done.push({ key, rw });
+      }
+      if (stx && rw) exp.txs.push({ key, enabled: true, rw, candidates: t.candidates, gates: [], visible: [...rw.writes].some((w) => goalDims.has(w)) });
+      const state = timed('clone', () => structuredClone(e.state));
+      exp.records.push({ key, label: t.label, h, hitGoal, noop: false, dims, state, path: [...path, t.label], tailSteps: [...(t.pre ?? []), ...(e.session?.log ?? [])], rw, sleep });
+      // A witness ends at its first goal (one never seen before: a seen goal would have ended the search already).
+      if (hitGoal && mode === 'witness') break;
+    }
+    exp.tries = tries.length;
+    return exp;
+  }
+
   // What the search looks for: an action that changes it is never postponed by the reduction.
   const goalDims = new Set<string>(['done', ...(opts.goal ?? []).flatMap((c) => condAtoms(c).map(atomDim))]);
+  return { game, mode, keys, playerIds, canonical, canonInfo, model, mobInfo, dimsOf, makeEngine, reached, goalHolds, por, memoOn, stx, stats, timed, now, expandNode };
+}
+
+async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts: SolveOptions = {}): Promise<SolveResult> {
+  const maxStates = opts.maxStates ?? 20000;
+  const X = makeExpander(gameIn, layouts, opts);
+  const { game, mode, canonInfo, mobInfo, dimsOf, makeEngine, reached, goalHolds, por, memoOn, stx, stats, timed, now } = X;
+  const { timing } = stats;
+  const errors: string[] = [];
+  const unlocked = new Set<string>();
+  const deadEnds: SolveResult['deadEnds'] = [];
+  // The profile
+  const t0 = Date.now();
+  let postponed = 0, hashHits = 0, maxQueue = 0, expansions = 0, triesSum = 0, triesMax = 0;
+  let worst: SolveProfile['branching']['worst'];
+  const perRoom = new Map<string, number>();
+  const loopStart = { t: 0 };
+  // Workers (solve-pool.ts): the frontier is expanded a batch at a time, each node by whichever worker is free, and
+  // merged in the batch's order. The result depends on the batch, never on the number of workers.
+  const pool = opts.workers === undefined ? null : poolOpener ? await poolOpener(opts.workers, gameIn, layouts, opts, X) : threadPool(X, 'no worker pool here (a Node tool loads solve-pool.ts): this thread expands');
+  const batch = pool ? Math.max(1, opts.batch ?? 64) : 1;
+  const deadline = opts.timeLimitMs ? t0 + opts.timeLimitMs : Infinity;
+  let stoppedBy: 'states' | 'time' | undefined;
+
+  // Starting state
+  const { e: e0, ui: ui0 } = makeEngine();
+  const startPath: string[] = [];
+  // Several starts (a chapter's boundary states): one search from all of them, sharing what it has seen.
+  const extraStarts = opts.start && typeof opts.start === 'object' && 'states' in opts.start ? opts.start.states.slice(1) : [];
+  if (opts.start && typeof opts.start === 'object') { if ('checkpoint' in opts.start) await e0.checkpoint(opts.start.checkpoint); else await e0.load(structuredClone('states' in opts.start ? opts.start.states[0] : opts.start.state)); }
+  else await drive(e0, e0.newGame(), (a) => startPath.push(`(tutorial) ${label(game, a)}`));
+  const broken: SolveResult['broken'] = [];
+  const brokenSeen = new Set<number>();
+  const checkInvariants = (s: GameState, path: () => string[]) => {
+    (game.invariants ?? []).forEach((c, i) => { if (!brokenSeen.has(i) && check(c, s)) { brokenSeen.add(i); broken.push({ invariant: i, path: path() }); } });
+  };
+
+  const seen = new Map<string, Node>();
   const start: Node = { state: structuredClone(e0.state), tail: startPath, tailSteps: e0.session?.log ?? [], len: startPath.length, dims: dimsOf(e0.state), sleep: new Map(), expanded: false };
   // Best-first: the more a state has progressed, the earlier it's explored. At equal progress, the shortest path first.
   const score = (n: Node) => n.state.unlocked.length * 20 + Object.values(n.state.flags).filter(Boolean).length * 3 + n.state.inventory.length * 2 - n.len * 0.01;
@@ -608,247 +945,30 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   let last: Node = start;
   checkInvariants(start.state, () => pathOf(start));
 
-  loopStart.t = now();
-  while (queue.size && (mode === 'prove' || !finish)) {
-    if (seen.size >= maxStates) { limitReached = true; break; }
-    const node = timed('queue', () => queue.pop()!);
-    const tTries = now(), engineBefore = timing.engine, cloneBefore = timing.clone, runBefore = timing.run;
-    last = node;
+  /** What popping a node counts (the rooms, flags, places and items the search has been through). */
+  const visit = (node: Node) => {
     const s = node.state;
-    roomsReached.add(s.room);
+    last = node;
+    stats.roomsReached.add(s.room);
     perRoom.set(s.room, (perRoom.get(s.room) ?? 0) + 1);
-    Object.entries(s.flags).forEach(([k, v]) => v && flags.add(k));
+    Object.entries(s.flags).forEach(([k, v]) => v && stats.flags.add(k));
     s.unlocked.forEach((u) => unlocked.add(u));
-    s.inventory.forEach((i) => itemsSeen.add(i));
-
-    // List of actions to try
-    // `picks`: the answers given to the choices met on the way (a topic index first, then nested `choice` prompts);
-    // whatever is not given defaults to the last option. After a run, every other option of a prompt is a new try.
-    type Try = { label: string; run: (e: Engine) => Promise<Source | null | void>; items: string[]; picks: number[]; rnd: number[]; pair?: true; /** The content actions that could answer (puzzle graph ids). */ candidates: string[];
-      /** Another character's view or another room of the region: the state the try starts from, and the session entries that led there (played once). */
-      base?: GameState; pre?: SessionEntry[]; /** The variant's label prefix (`Switch to X › `): the memo keys the action without it. */ prefix?: string };
-    const keyOf = (t: Try) => `${t.label}|p=${t.picks.join(',')}|r=${t.rnd.join(',')}`;
-    const tries: Try[] = [];
-    const tryKeys = new Set<string>();
-    const addTry = (t: Try) => { const k = keyOf(t); if (!tryKeys.has(k)) { tryKeys.add(k); tries.push(t); } };
-    // The canonical character: the same state seen from each other character it can switch to without changing
-    // anything the solver reads (`canonicalPlayers`); their actions are tried from here, prefixed by the switch.
+    s.inventory.forEach((i) => stats.itemsSeen.add(i));
+  };
+  /** An expansion's records into the search: goals, edges, new states, the frontier. Reads `seen`; the expansion never did. */
+  const merge = (node: Node, exp: Expansion) => {
+    const s = node.state;
     const h0 = JSON.stringify(node.dims);
-    const variants: { st: GameState; via?: Id; pre?: SessionEntry[]; prefix?: string }[] = [{ st: s }];
-    const explicitSwitch: Id[] = [];
-    if (canonical) for (const pid of playerIds) {
-      if (pid === (s.active ?? game.hero)) continue;
-      const { e } = makeEngine();
-      e.state = timed('clone', () => structuredClone(s));
-      try { await drive(e, e.switchTo(pid), () => {}); } catch { explicitSwitch.push(pid); continue; }
-      if (JSON.stringify(dimsOf(e.state)) === h0) { variants.push({ st: e.state, via: pid, pre: e.session?.log ?? [], prefix: `Switch to ${pid} › ` }); canonInfo.folded++; checkInvariants(e.state, () => [...pathOf(node), `Switch to ${pid}`]); }
-      else { explicitSwitch.push(pid); canonInfo.explicit++; }
-    }
-    // Mobility regions: each character's view, in every room of its region. The route there is played once, each
-    // hop checked (arrives, changes nothing the solver reads); the tries of that room start from where it ends.
-    const placed: { st: GameState; via?: Id; pre?: SessionEntry[]; prefix?: string; region?: Id[] }[] = [];
-    for (const v of variants) {
-      // What a character's view reaches is reached (the explicit search would switch to it, or walk there): the room
-      // reports and the lint's `room-never-reached` must not depend on the abstractions (tests/audit.test.ts).
-      v.st.inventory.forEach((i) => itemsSeen.add(i));
-      if (!model) { placed.push(v); roomsReached.add(v.st.room); continue; }
-      const R = model.region(v.st);
-      mobInfo.largest = Math.max(mobInfo.largest, R.rooms.length);
-      for (const r of R.rooms) {
-        roomsReached.add(r);
-        if (r === v.st.room) { placed.push({ ...v, region: R.rooms }); continue; }
-        const { e } = makeEngine();
-        e.state = timed('clone', () => structuredClone(v.st));
-        const tRun = now();
-        try {
-          for (const h of R.route(r)) {
-            await drive(e, h.kind === 'exit' ? e.act({ verb: h.verb, a: h.a }) : e.travel(h.place), () => {});
-            if (e.state.room !== h.to) throw new MobilityError(`a silent move from ${h.from} to ${h.to} did not arrive (in ${e.state.room})`);
-            if (JSON.stringify(dimsOf(e.state)) !== h0) throw new MobilityError(`moving from ${h.from} to ${h.to} changed something the solver reads`);
-          }
-        } finally { timing.run += now() - tRun; }
-        placed.push({ st: e.state, via: v.via, pre: [...(v.pre ?? []), ...(e.session?.log ?? [])], prefix: `${v.prefix ?? ''}Go to ${r} › `, region: R.rooms });
-        mobInfo.moves++;
-      }
-    }
-    for (const variant of placed) {
-      const s = variant.st;
-      const add = (t: Try) => addTry(variant.prefix ? { ...t, label: `${variant.prefix}${t.label}`, base: variant.st, pre: variant.pre, prefix: variant.prefix } : t);
-      // Inside a region, its silent exits and map trips are the macro moves above, not tries of their own.
-      const silentExits = new Set(model && variant.region ? model.hops(s, s.room).filter((h) => h.kind === 'exit' && variant.region!.includes(h.to)).map((h) => (h as { a: Id }).a) : []);
-      const regionRooms = new Set(variant.region ?? []);
-      const probe = makeEngine().e;
-      probe.state = timed('clone', () => structuredClone(s));
-      const room = probe.room();
-      const targets = probe.targets(room);
-      const inv = s.inventory;
-      const verbs = game.verbs.map((v) => v.id) as VerbId[];
-      // An action no written rule can answer (whatever the conditions) falls to a look line, a kind reaction or the
-      // fallback line: nothing changes, so the engine is not even run. The exceptions that do change something without
-      // a rule: talking to the hint item, giving to another playable character (the topics are tries of their own).
-      const rules = [...(room.on ?? []).map((r, i) => ({ r, id: ruleActionId(room.id, i, r) })), ...(game.rules.on ?? []).map((r, i) => ({ r, id: ruleActionId('game', i, r) }))];
-      const hasId = (x: Id | Id[] | undefined, v: Id | undefined) => x === undefined ? v === undefined : v !== undefined && (Array.isArray(x) ? x.includes(v) : x === v);
-      const answers = (v: VerbId, a: Id, b?: Id) => rules.filter(({ r }) => (Array.isArray(r.verb) ? r.verb.includes(v) : r.verb === v) &&
-        ((hasId(r.a, a) && hasId(r.b, b)) || (!!b && inv.includes(a) && inv.includes(b) && hasId(r.a, b) && hasId(r.b, a)))).map((x) => x.id);
-      const answered = (v: VerbId, a: Id, b?: Id) => answers(v, a, b).length > 0;
-      const fb = fallbackByRoom.get(s.room) ?? { candidates: 0, rules: 0, fallback: 0 };
-      fallbackByRoom.set(s.room, fb);
-      for (const t of [...targets, ...inv]) for (const v of verbs) {
-        if (v === 'talk' && room.talk?.[t]) continue; // handled by topics
-        if (silentExits.has(t)) continue;
-        if (!answered(v, t) && !(v === 'talk' && t === game.hintItem && inv.includes(t))) { skipped++; continue; }
-        add({ label: label(game, { verb: v, a: t }), run: (e) => e.act({ verb: v, a: t }), items: inv.includes(t) ? [t] : [], picks: [], rnd: [], candidates: answers(v, t) });
-      }
-      for (const it of inv) for (const t of [...targets, ...inv.filter((x) => x !== it)]) for (const v of ['use', 'give'] as VerbId[]) {
-        if (v === 'give' && inv.includes(t)) continue;
-        fb.candidates++;
-        if (!answered(v, it, t) && !(v === 'give' && probe.isPlayer(t) && t !== probe.heroId())) { fb.fallback++; skipped++; continue; }
-        add({ label: label(game, { verb: v, a: it, b: t }), run: (e) => e.act({ verb: v, a: it, b: t }), items: inv.includes(t) ? [it, t] : [it], picks: [], rnd: [], pair: true, candidates: answers(v, it, t) });
-      }
-      for (const [actor, topics] of Object.entries(room.talk ?? {})) {
-        if (!targets.includes(actor)) continue;
-        // the engine numbers visible topics: the label must follow the same list (otherwise the printed path would lie)
-        topics.map((tp, orig) => ({ tp, orig })).filter(({ tp }) => check(tp.if, s, room.id)).forEach(({ tp, orig }, i) => add({
-          label: `Talk ${actor}: "${tp.topic}"`, run: (e) => e.act({ verb: 'talk', a: actor }), items: [], picks: [i], rnd: [], candidates: [`topic:${tp.id ?? `${room.id}/${actor}[${orig}]`}`],
-        }));
-      }
-      for (const [pid, p] of Object.entries(game.map?.places ?? {})) {
-        if (!s.unlocked.includes(pid) || p.room === s.room || !game.rooms.some((r) => r.id === p.room) || regionRooms.has(p.room)) continue;
-        add({ label: `Map → ${p.name}`, run: (e) => e.travel(pid), items: [], picks: [], rnd: [], candidates: [] });
-      }
-      // Several playable characters: taking control of another one.
-      for (const pid of probe.playerIds()) if (pid !== probe.heroId() && (!canonical || explicitSwitch.includes(pid))) add({ label: `Switch to ${pid}`, run: (e) => e.switchTo(pid).then(() => undefined), items: [], picks: [], rnd: [], candidates: [] });
-      // The world's scripts: letting one run until its next wait (or its end) is something the player can do by waiting.
-      for (const sc of probe.scriptsHere()) {
-        const st = s.scripts?.[sc.id];
-        if (st?.done || st?.off || !keys.live.actions.has(sc.id)) continue;
-        add({ label: `Script ${sc.id}`, run: (e) => e.runScript(sc.id, true).then(() => undefined), items: [], picks: [], rnd: [], candidates: [`script:${sc.id}`] });
-      }
-    }
-
-    timing.tries += now() - tTries - (timing.engine - engineBefore) - (timing.clone - cloneBefore) - (timing.run - runBefore);
-    let progressed = false;
-    const byVerb: Record<string, number> = {};
-    let effective = 0;
-    const only = node.only;
-    node.only = undefined;
-    // The effective actions tried here so far, with what they read and wrote: the later ones sleep them in their children.
-    const done: { key: string; rw: RW }[] = [];
-    // Stubborn mode: every try as a transition (what it read and wrote, whether it changed anything), the children
-    // kept aside until the set to expand is known.
-    const txs: Tx[] = [];
-    const children: { key: string; next: Node; h: string; ui: FakePresenter }[] = [];
+    for (const b of exp.broken) if (!brokenSeen.has(b.invariant)) { brokenSeen.add(b.invariant); broken.push({ invariant: b.invariant, path: [...pathOf(node), ...b.suffix] }); }
+    errors.push(...exp.errors);
+    const children: { key: string; next: Node; h: string }[] = [];
     let anyHit = false;
-    // What a run leaves besides its state: other answers to its prompts and draws (new tries), what answered it.
-    const expand = (t: Try, asked: FakePresenter['asked'], drawn: number[]) => {
-      // Other answers to every nested `choice` prompt. There is deliberately no hidden variant ceiling: maxStates is
-      // the one explicit search budget, and reaching it returns `truncated`.
-      for (let j = t.picks.length; j < asked.length; j++) {
-        const q = asked[j];
-        if (q.topic || q.n < 2) continue;
-        const prefix = [...t.picks, ...asked.slice(t.picks.length, j).map((a) => a.n - 1)];
-        for (let o = 0; o < q.n - 1; o++) {
-          const base = t.label.replace(/ › ".*$/, '');
-          const chosen = [...prefix.slice(t.picks.length), o].map((pick, k) => asked[t.picks.length + k].texts[pick]);
-          addTry({ ...t, label: `${base} › ${chosen.map((x) => `"${x}"`).join(' › ')}`, picks: [...prefix, o] });
-        }
-      }
-      // The engine records every random draw in the session. Expand every newly observed draw with representative
-      // values for every random block arity in the game; state hashing removes duplicates. This explores nested
-      // random blocks just like nested dialogue choices, instead of forcing branch zero.
-      for (let j = t.rnd.length; j < drawn.length; j++) {
-        const prefix = [...t.rnd, ...drawn.slice(t.rnd.length, j)];
-        for (const value of randomBranchValues) if (value !== drawn[j]) addTry({ ...t, rnd: [...prefix, value] });
-      }
-    };
-    const countAnswer = (t: Try, src: Source | null | void, room: Id) => {
-      if (src === 'rule' || src === 'hint') t.items.forEach((i) => itemsInRules.add(i));
-      if (t.pair) { const fb = fallbackByRoom.get(room); if (fb) { if (src === 'rule') fb.rules++; else if (src === 'fallback') fb.fallback++; } }
-    };
-    // A memo hit: the try is a no-op here, as it was where it was kept. Its prompts, draws and answers count the same.
-    const replayNoop = (t: Try, m: Memo, room: Id) => {
-      expand(t, m.asked, m.drawn);
-      countAnswer(t, m.src, room);
-      for (const id of m.ran) attempted.set(id, (attempted.get(id) ?? 0) + 1);
-    };
-    for (let ti = 0; ti < tries.length; ti++) {
-      const t = tries[ti];
-      const key = keyOf(t);
-      if (por === 'sleep' && node.sleep.has(key)) { slept++; progressed = true; continue; }
-      if (only && !only.has(key)) continue;
-      const mk = t.prefix && t.label.startsWith(t.prefix) ? keyOf({ ...t, label: t.label.slice(t.prefix.length) }) : key;
-      const from = t.base ?? s;
-      const hit = memoOn ? memo.get(mk)?.find((m) => m.vals.every(([k, v]) => atomValue(from, k) === v)) : undefined;
-      let check: Memo | undefined;
-      if (hit) {
-        memoHits++;
-        if (memoHits % memoEvery) { replayNoop(t, hit, s.room); noops++; continue; }
-        check = hit;
-      }
-      tries_total++;
-      const { e, ui } = makeEngine(t.rnd);
-      e.state = timed('clone', () => structuredClone(from));
-      if (por || memoOn) e.reads = new Set();
-      if (memoOn) e.writes = new Set();
-      ui.picks = [...t.picks];
-      const path: string[] = []; // this step's tutorial moves, then its label
-      let src: Source | null | void = null;
-      const tRun = now();
-      try {
-        await drive(e, t.run(e).then((r) => { src = r; }), (a) => path.push(`(tutorial) ${label(game, a)}`));
-      } catch (err) {
-        if (err instanceof MobilityError) throw err;
-        errors.push(`${t.label} (${s.room}): ${(err as Error).message}`);
-        continue;
-      } finally { timing.run += now() - tRun; }
-      const drawn = (e.session?.log ?? []).flatMap((entry) => entry.rnd ?? []);
-      expand(t, ui.asked, drawn);
-      countAnswer(t, src, s.room);
-      // Reported even when the state is not worth exploring (a flag nobody reads, a trinket no gate needs): it did happen.
-      Object.entries(e.state.flags).forEach(([k, v]) => v && flags.add(k));
-      e.state.inventory.forEach((i) => gained.add(i));
-      // What answered this try, even when nothing changed: a topic that only talks is reachable all the same.
-      for (const en of e.session?.log ?? []) for (const id of en.ran ?? []) attempted.set(id, (attempted.get(id) ?? 0) + 1);
-      const tHash = now();
-      const dims = dimsOf(e.state);
-      const h = JSON.stringify(dims);
-      timing.hash += now() - tHash;
-      const hitGoal = reached(ui, e.state);
-      if (hitGoal) goals.add(h);
-      const rw: RW | null = por ? { reads: readDims(e.reads!), writes: diffDims(node.dims, dims) } : null;
-      if (check) {
-        memoVerified++;
-        if (h !== h0 || !hidden(e.writes!)) errors.push(`${t.label} (${s.room}): the no-op memo skipped a try that ${h !== h0 ? 'changes the state' : 'writes what the solver hashes'} here (the engine's read trace is incomplete)`);
-      }
-      if (h === h0 && memoOn && !check) {
-        const vals = hidden(e.writes!) ? valuation(from, e.reads!) : null;
-        if (vals) {
-          const list = memo.get(mk) ?? (memo.set(mk, []), memo.get(mk)!);
-          if (list.length < 64) { list.push({ vals, ran: (e.session?.log ?? []).flatMap((en) => en.ran ?? []), src, asked: ui.asked, drawn }); memoStored++; }
-        } else memoRefused++;
-      }
-      if (h === h0) {
-        noops++;
-        if (stx && rw) {
-          // A transition a condition holds back: what it would change, and the gates that hold it, from the content.
-          const cands = t.candidates.map((c) => stx.byId.get(c)).filter((x) => !!x);
-          cands.forEach((c) => c.writes.forEach((w) => rw.writes.add(w)));
-          if (rw.writes.size) txs.push({ key, enabled: false, rw, candidates: t.candidates, gates: cands.map((c) => c.gates), visible: false });
-        }
-        continue;
-      }
-      progressed = true;
+    for (const r of exp.records) {
+      const h = r.h;
+      if (r.hitGoal) goals.add(h);
+      if (r.noop) continue;
       (edges.get(h0) ?? (edges.set(h0, new Set()), edges.get(h0)!)).add(h);
-      effective++;
-      byVerb[t.label.split(' ')[0]] = (byVerb[t.label.split(' ')[0]] ?? 0) + 1;
-      for (const en of e.session?.log ?? []) for (const id of en.ran ?? []) perAction.set(id, (perAction.get(id) ?? 0) + 1);
-      const sleep = new Map<string, RW>();
-      if (por === 'sleep' && rw) {
-        for (const [k, r] of node.sleep) if (independent(r, rw)) sleep.set(k, r);
-        for (const d of done) if (independent(d.rw, rw)) sleep.set(d.key, d.rw);
-        done.push({ key, rw });
-      }
-      if (stx && rw) txs.push({ key, enabled: true, rw, candidates: t.candidates, gates: [], visible: [...rw.writes].some((w) => goalDims.has(w)) });
+      const sleep = r.sleep ?? new Map<string, RW>();
       if (seen.has(h) || children.some((c) => c.h === h)) {
         hashHits++;
         anyHit = true;
@@ -864,24 +984,23 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
         }
         continue;
       }
-      const tClone = now();
-      const next: Node = { state: structuredClone(e.state), prev: node, tail: [...path, t.label], tailSteps: [...(t.pre ?? []), ...(e.session?.log ?? [])], len: node.len + path.length + 1, dims, sleep, expanded: false, parent: h0, via: t.label };
-      timing.clone += now() - tClone;
+      const next: Node = { state: r.state!, prev: node, tail: r.path!, tailSteps: r.tailSteps!, len: node.len + r.path!.length, dims: r.dims!, sleep, expanded: false, parent: h0, via: r.label };
       checkInvariants(next.state, () => pathOf(next));
-      if (hitGoal) {
+      if (r.hitGoal) {
         seen.set(h, next);
         finish ??= next;
         if (mode === 'witness') break;
         // The ending is terminal. Keep trying the other actions from the source state, but do not expand past it.
         continue;
       }
-      children.push({ key, next, h, ui });
+      children.push({ key: r.key, next, h });
     }
     if (mode === 'prove' || !finish) {
       // Stubborn mode: of the commuting actions, one at a time. The content's actions no try stands for (a hidden
       // topic, a rule on something not shown yet) count as held-back transitions too.
       let keep: Set<string> | null = null;
       if (stx) {
+        const txs = [...exp.txs];
         const covered = new Set(txs.flatMap((t) => t.candidates));
         for (const st of stx.forRoom(s.room)) if (!covered.has(st.id)) txs.push({ key: st.id, enabled: false, rw: { reads: new Set([...st.reads, ...st.gates.map(atomDim)]), writes: new Set(st.writes) }, candidates: [st.id], gates: [st.gates], visible: false });
         keep = stubbornKeys(txs, stx, s, s.room, { all: anyHit });
@@ -897,20 +1016,54 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     }
     node.expanded = true;
     expansions++;
-    triesSum += tries.length;
-    if (tries.length > triesMax) { triesMax = tries.length; worst = { room: s.room, inventory: [...s.inventory], tries: tries.length, effective, byVerb }; }
-    if (!progressed && deadEnds.length < 20) deadEnds.push({ path: pathOf(node), room: s.room, inventory: [...s.inventory] });
+    triesSum += exp.tries;
+    if (exp.tries > triesMax) { triesMax = exp.tries; worst = { room: s.room, inventory: [...s.inventory], tries: exp.tries, effective: exp.effective, byVerb: exp.byVerb }; }
+    if (!exp.progressed && deadEnds.length < 20) deadEnds.push({ path: pathOf(node), room: s.room, inventory: [...s.inventory] });
+  };
+  const input = (node: Node): NodeInput => {
+    const only = node.only;
+    node.only = undefined;
+    return { state: node.state, dims: node.dims, sleep: node.sleep, ...(only ? { only } : {}) };
+  };
+
+  loopStart.t = now();
+  try {
+    while (queue.size && (mode === 'prove' || !finish)) {
+      if (seen.size >= maxStates) { limitReached = true; stoppedBy = 'states'; break; }
+      if (Date.now() > deadline) { limitReached = true; stoppedBy = 'time'; break; }
+      const nodes: Node[] = [];
+      while (nodes.length < batch && queue.size) nodes.push(timed('queue', () => queue.pop()!));
+      const exps = pool ? await pool.expand(nodes.map(input), deadline) : [await X.expandNode(input(nodes[0]))];
+      for (let k = 0; k < nodes.length; k++) {
+        // The batch is taken from the frontier at once; the rest of it is dropped as the one-at-a-time search would
+        // have stopped before it (the budget, a witness found).
+        if (k > 0 && (seen.size >= maxStates || (mode === 'witness' && finish))) { if (seen.size >= maxStates) { limitReached = true; stoppedBy = 'states'; } break; }
+        if (!exps[k]) { limitReached = true; stoppedBy = 'time'; break; }
+        visit(nodes[k]);
+        merge(nodes[k], exps[k]!);
+      }
+      if (limitReached) break;
+    }
+  } finally {
+    if (pool) { const w = await pool.stats(); if (w) mergeStats(stats, w); await pool.close(); }
   }
+  if (limitReached && !stoppedBy) stoppedBy = 'states';
+  const { itemsInRules, itemsSeen, flags, gained, roomsReached, attempted, perAction, fallbackByRoom, n: cnt } = stats;
+  void itemsSeen;
+  canonInfo.folded = stats.canon.folded; canonInfo.explicit = stats.canon.explicit;
+  if (mobInfo.applied) { mobInfo.moves = stats.mob.moves; mobInfo.largest = stats.mob.largest; }
   const loopMs = now() - loopStart.t;
   timing.other = Math.max(0, loopMs - timing.tries - timing.engine - timing.clone - timing.run - timing.hash - timing.queue);
   const all = seen.size <= 50000 ? [...seen.values()].map((n) => n.dims) : [];
   const dims = splits(all).slice(0, 30);
   const positions = new Set([...seen.values()].map((n) => `${n.state.active ?? ''}|${n.state.room}|${Object.entries(n.state.players ?? {}).map(([k, p]) => `${k}:${p.room}`).sort().join(',')}`)).size;
   const profile: SolveProfile = {
-    ms: Date.now() - t0, states: seen.size, tries: tries_total, skipped, slept, postponed, noops, hashHits, maxQueue,
+    ms: Date.now() - t0, states: seen.size, tries: cnt.tries, skipped: cnt.skipped, slept: cnt.slept, postponed, noops: cnt.noops, hashHits, maxQueue,
     branching: { avg: expansions ? triesSum / expansions : 0, max: triesMax, ...(worst ? { worst } : {}) },
     fallbackByRoom: Object.fromEntries(fallbackByRoom), dims, perRoom: Object.fromEntries(perRoom), perAction: Object.fromEntries(perAction), attempted: Object.fromEntries(attempted),
-    monotonic: monotonicThings(game), independent: independentGroups(all, dims), timing, positions, canonical: canonInfo, mobility: mobInfo, memo: { applied: memoOn, stored: memoStored, hits: memoHits, verified: memoVerified, refused: memoRefused, ...(memoOn ? {} : { reason: opts.memo === false ? 'turned off' : 'off with a partial-order reduction' }) },
+    monotonic: monotonicThings(game), independent: independentGroups(all, dims), timing, positions, canonical: canonInfo, mobility: mobInfo, memo: { applied: memoOn, stored: cnt.memoStored, hits: cnt.memoHits, verified: cnt.memoVerified, refused: cnt.memoRefused, ...(memoOn ? {} : { reason: opts.memo === false ? 'turned off' : 'off with a partial-order reduction' }) },
+    workers: pool ? { workers: pool.size, batch, ...(pool.reason ? { reason: pool.reason } : {}) } : { workers: 1, batch: 1 },
+    ...(stoppedBy ? { stoppedBy } : {}),
   };
 
   const tClassify = now();
@@ -958,7 +1111,7 @@ async function solveOnce(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   return {
     status,
     exit: exitOf(status),
-    headline: solveHeadline({ status, mode, states: seen.size, softlockCount: unsafe.length, broken, errors: uniqueErrors, goal: !!opts.goal }),
+    headline: solveHeadline({ status, mode, states: seen.size, softlockCount: unsafe.length, broken, errors: uniqueErrors, goal: !!opts.goal, stoppedBy }),
     mode,
     finished: !!finish,
     path: pathOf(finish ?? last),
@@ -989,6 +1142,8 @@ export function abstractionLines(p: SolveProfile): string[] {
     `  canonical character   ${p.canonical.applied ? `${p.canonical.folded} switches folded, ${p.canonical.explicit} kept explicit` : off(p.canonical.reason)}`,
     `  mobility regions      ${p.mobility.applied ? `${p.mobility.moves} macro moves, largest region ${p.mobility.largest} rooms` : off(p.mobility.reason)}`,
     `  no-op memo            ${p.memo.applied ? `${p.memo.hits} runs skipped (${p.memo.verified} of them run anyway and identical), ${p.memo.stored} kept, ${p.memo.refused} refused` : off(p.memo.reason)}`,
+    ...(p.workers && p.workers.batch > 1 ? [`  workers               ${p.workers.workers} expanding batches of ${p.workers.batch}${p.workers.reason ? ` (${p.workers.reason})` : ''}; times below are summed over them`] : []),
+    ...(p.stoppedBy ? [`  stopped by            ${p.stoppedBy === 'time' ? 'the time limit (--time)' : 'the state budget (--max)'}`] : []),
   ];
 }
 

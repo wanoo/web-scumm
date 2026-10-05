@@ -4,6 +4,15 @@
 
 ### Added
 
+- Proof workers (3.5, `src/engine/tools/solve-pool.ts`): `npm run solve -- --prove --workers=N|auto [--batch=64]`
+  expands the frontier a batch at a time on worker threads and merges in the batch's order: the same result for 1, 2,
+  4 or 8 workers (`tests/workers.test.ts`), ×2.54 with 4 on a 40 000-state proof, ×2.01 on the 40-room era reference
+  (BENCH.md "3.5", `npm run bench -- --workers-table`). Off unless asked for: without it the search is the one of
+  3.4, byte for byte. A worker that cannot start leaves the work to the search's thread (`profile.workers.reason`);
+  custom commands reach the workers from the game's module. `--time=<s>` (`timeLimitMs`) stops a search: `truncated`,
+  `profile.stoppedBy: 'time'`, and such a result is not cached. The search is now an expansion that reads nothing of
+  the search (`makeExpander`) and a merge that does, one code path with or without workers.
+
 - The music director (3.5, `dom/director.ts`, `core/score.ts`): a track of `audio.music` can have a score
   (`audio.scores`: stems, tempo, the mix per game state). Its stems play sample-locked on Web Audio; a change of state
   (a flag, the room, the active character) moves stem gains on the next bar or beat, crossfaded; another room with the
