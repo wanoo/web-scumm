@@ -1,3 +1,4 @@
+import { characterImages, roomImages } from '../core/asset-graph';
 import type { Engine } from '../core/engine';
 import { WALK_SPEED } from '../core/timing';
 import type { CharacterDef, Id, Layout, Point, RoomDef } from '../core/types';
@@ -116,14 +117,10 @@ export class RoomView {
     this.ents.clear();
     this.el.innerHTML = '';
     const s = this.engine.state;
-    const ids = new Set<Id>([room.decor]);
-    for (const [id, p] of Object.entries(room.props ?? {})) { if (p.img) ids.add(p.img); Object.values(p.states ?? {}).forEach((x) => ids.add(x)); void id; }
+    // The room's part of the asset graph (core/asset-graph.ts) for who is actually here: never a file outside its scope.
+    const ids = new Set<Id>(roomImages(room));
     const chars = new Set<Id>([this.heroId, ...Object.values(room.actors ?? {}).map((a) => a.char), ...Object.keys(this.engine.guests(room))]);
-    for (const c of chars) {
-      const def = this.engine.game.characters[c];
-      for (const set of [def?.sprites, ...(def?.variants ?? []).map((v) => v.sprites)]) for (const frames of Object.values(set ?? {})) frames.forEach((f) => ids.add(f));
-      for (const m of [def?.mouths, ...(def?.variants ?? []).map((v) => v.mouths)]) for (const ms of Object.values(m ?? {})) [ms.closed, ...ms.open, ms.blink, ms.smile].forEach((f) => f && ids.add(f));
-    }
+    for (const c of chars) characterImages(this.engine.game, c).forEach((f) => ids.add(f));
     await this.bank.preload(ids);
     // Palette swaps: every frame of the character, under its own palette and each variant's, ready before drawing.
     const swaps: Promise<string>[] = [];

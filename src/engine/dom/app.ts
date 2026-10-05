@@ -11,6 +11,7 @@ import { Audio } from './audio';
 import { FONT_PIXEL, FONT_UI, fontStack } from './fonts';
 import { RoomView } from './room';
 import { isTyping, roving, trapFocus } from './a11y';
+import { assetGraph, splitKey, type AssetGraph, type AssetKind } from '../core/asset-graph';
 import { offlinePlan, offlineFinish, offlineFold, offlineStart, offlineText, type OfflineStatus } from './offline';
 import { uiFallbacks, uiText, type UiKey } from './ui-defaults';
 import './style.css';
@@ -137,6 +138,8 @@ export class App implements Presenter {
   private inCutscene = false;
   private saveError: string | null = null;
   private warmedAll = false;
+  /** The asset graph of the game, built on the first warm-up. */
+  private assets?: AssetGraph;
   private offlineDone!: (s: OfflineStatus) => void;
   /** Where the full warm-up stands (`GameDef.offline`): only `complete` means the whole game is in the cache. */
   offlineStatus: OfflineStatus = { state: 'idle', done: 0, total: 0, failed: [] };
@@ -1201,40 +1204,30 @@ export class App implements Presenter {
    * blocks on exactly what it needs; this only fills the runtime cache during idle time and respects constrained links.
    */
   private async warmAround(roomId: Id, initial = false) {
-    const b = this.bank, a = this.game.audio ?? {};
-    const rooms = new Map(this.game.rooms.map((r) => [r.id, r]));
+    const b = this.bank;
     const budget = this.game.assetBudgets ?? {};
-    const imageIds = new Set<Id>(); const sfxIds = new Set<Id>(); const voiceIds = new Set<Id>();
-    const scan = (v: unknown) => {
-      if (typeof v === 'string') {
-        if (b.manifest.images[v]) imageIds.add(v);
-        if (a.sfx?.[v]) sfxIds.add(v);
-        if (a.voices?.[v]) voiceIds.add(v);
-      } else if (Array.isArray(v)) v.forEach(scan);
-      else if (v && typeof v === 'object') Object.values(v).forEach(scan);
-    };
+    // The asset graph's scopes (core/asset-graph.ts): the current room, the title at boot, then the rooms one exit or
+    // one unlocked map place away. The same keys the weight budgets count and the offline plan caches.
+    const g = this.assets ??= assetGraph(this.game, { manifest: b.manifest, bindings: Object.fromEntries(Object.entries(this.mg).map(([k, m]) => [k, m.bindings ?? {}])) });
+    const rooms = new Map(this.game.rooms.map((r) => [r.id, r]));
     const current = rooms.get(roomId);
     if (!current) return;
-    scan(current); scan(this.game.characters[this.engine.state?.active ?? this.game.hero]);
-    for (const actor of Object.values(current.actors ?? {})) scan(this.game.characters[actor.char]);
-    for (const item of this.engine.state?.inventory ?? []) scan(this.game.items[item]);
-    if (initial) { scan(this.game.titleScreen); scan(this.game.skin.icons); }
-    await b.warm([...imageIds].slice(0, budget.initialImages ?? 120).map((id) => b.img(id)));
+    const urls = (keys: string[]) => {
+      const by: Record<AssetKind, string[]> = { img: [], sfx: [], music: [], voice: [], video: [] };
+      for (const k of keys) { const [kind, id] = splitKey(k); by[kind].push(kind === 'img' ? b.img(id) : kind === 'sfx' ? b.sfx(id) : kind === 'voice' ? b.voice(id) : kind === 'music' ? b.music(id) : b.video(id)); }
+      return by;
+    };
+    const imageLimit = budget.initialImages ?? 120, audioLimit = budget.audioFiles ?? 16;
+    const here = urls([...(g.rooms[roomId] ?? []), ...(initial ? g.title : [])]);
+    await b.warm(here.img.slice(0, imageLimit));
     const neighbors = new Set<Id>(Object.values(current.exits ?? {}).map((x) => x.to));
     for (const [id, place] of Object.entries(this.game.map?.places ?? {})) if (this.engine.state?.unlocked.includes(id)) neighbors.add(place.room);
-    let count = 0;
-    for (const id of neighbors) {
-      if (count++ >= (budget.neighboringRooms ?? 3)) break;
-      const room = rooms.get(id); if (room) scan(room);
-    }
-    const imageLimit = budget.initialImages ?? 120;
-    const audioLimit = budget.audioFiles ?? 16;
-    await b.warm([...imageIds].slice(0, imageLimit).map((id) => b.img(id)));
-    await b.warm([...sfxIds].slice(0, audioLimit).map((id) => b.sfx(a.sfx![id])));
-    await b.warm([...voiceIds].slice(0, audioLimit).map((id) => b.voice(a.voices![id])));
-    const music = new Set<Id>([this.game.titleScreen?.music, current.music, ...[...neighbors].map((id) => rooms.get(id)?.music)].filter(Boolean) as Id[]);
-    await b.warm([...music].filter((id) => a.music?.[id]).slice(0, 4).map((id) => b.music(a.music![id])), 2);
-    if (initial && this.game.titleScreen?.video) await b.warm([b.video(this.game.titleScreen.video)], 1);
+    const near = urls([...neighbors].slice(0, budget.neighboringRooms ?? 3).flatMap((id) => g.rooms[id] ?? []));
+    await b.warm(near.img.filter((u) => !here.img.includes(u)).slice(0, imageLimit));
+    await b.warm([...new Set([...here.sfx, ...near.sfx])].slice(0, audioLimit));
+    await b.warm([...new Set([...here.voice, ...near.voice])].slice(0, audioLimit));
+    await b.warm([...new Set([...here.music, ...near.music])].slice(0, 4), 2);
+    if (initial) await b.warm(here.video, 1);
   }
 
   /**

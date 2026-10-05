@@ -1,50 +1,22 @@
-// What a player downloads, in bytes: before the first room can be played (`initial`), to show each room, and over each
-// chapter (every room a player can be in during it). The same images the engine preloads when it builds a room
-// (dom/room.ts): the backdrop, the props in every state, the characters who can stand there (every playable one, the
-// room's actors) with their variants and mouths; plus the room's music and the sound effects its commands play.
+// What a player downloads, in bytes: before the first room can be played (`initial`: the app shell the service worker
+// precaches, the title and the first room), to show each room, and over each chapter (every room a player can be in
+// during it). The scopes come from the asset graph (src/engine/core/asset-graph.ts), which the renderer's preload, the
+// warm-up and the offline plan read too; `scripts/e2e-weight.mjs` checks the prediction against the bytes a browser
+// really transfers.
 // `npm run weight` prints it against `assetBudgets` (`initialKB`, `roomKB`, `chapterKB`); docs/en/TOOLS.md "Weight".
-import { eachCmd } from '../core/cmds';
-import type { Cmd, GameDef, Id, RoomDef } from '../core/types';
+import { assetGraph, initialScope, type AssetGraph, type MinigameBindings } from '../core/asset-graph';
+import type { GameDef, Id, RoomDef } from '../core/types';
 
 export interface WeightBudgets { initialKB?: number; roomKB?: number; chapterKB?: number }
 
-/** The images a character shows (sprites, mouths, every variant's). */
-function characterImages(game: GameDef, c: Id, out: Set<string>) {
-  const def = game.characters[c];
-  for (const set of [def?.sprites, ...(def?.variants ?? []).map((v) => v.sprites)]) for (const frames of Object.values(set ?? {})) frames.forEach((f) => out.add(`img:${f}`));
-  for (const m of [def?.mouths, ...(def?.variants ?? []).map((v) => v.mouths)]) for (const ms of Object.values(m ?? {})) [ms.closed, ...ms.open, ms.blink, ms.smile].forEach((f) => f && out.add(`img:${f}`));
+/** The asset keys a room can need (`room:<id>` of the asset graph, src/engine/core/asset-graph.ts). */
+export function roomAssets(game: GameDef, room: RoomDef, graph: AssetGraph = assetGraph(game)): string[] {
+  return graph.rooms[room.id] ?? [];
 }
 
-/** Every command list a room owns. */
-function roomCmds(room: RoomDef): (Cmd[] | undefined)[] {
-  return [room.onEnter, ...(room.on ?? []).map((r) => r.do), ...Object.values(room.talk ?? {}).flatMap((ts) => ts.map((t) => t.do)),
-    ...(room.scripts ?? []).map((s) => s.do), ...(room.events ?? []).map((e) => e.do)];
-}
-
-/** The asset keys (`img:`, `music:`, `sfx:`) a room needs on screen. */
-export function roomAssets(game: GameDef, room: RoomDef): string[] {
-  const out = new Set<string>([`img:${room.decor}`]);
-  for (const p of Object.values(room.props ?? {})) { if (p.img) out.add(`img:${p.img}`); Object.values(p.states ?? {}).forEach((x) => out.add(`img:${x}`)); }
-  const chars = new Set<Id>([game.hero, ...(game.players?.ids ?? []), ...Object.values(room.actors ?? {}).map((a) => a.char)]);
-  for (const c of chars) characterImages(game, c, out);
-  const music = room.music && game.audio?.music?.[room.music];
-  if (music) out.add(`music:${music}`);
-  for (const list of roomCmds(room)) eachCmd(list, (c) => { if (typeof c !== 'string' && 'sfx' in c) { const f = game.audio?.sfx?.[c.sfx]; if (f) out.add(`sfx:${f}`); } });
-  return [...out].sort();
-}
-
-/** What the first room needs, plus the title screen, the column's icons and the bag's icons at the start. */
-export function initialAssets(game: GameDef): string[] {
-  const start = game.rooms.find((r) => r.id === game.start.room);
-  const out = new Set<string>(start ? roomAssets(game, start) : []);
-  const T = game.titleScreen;
-  for (const x of [T?.decor, T?.logo]) if (x) out.add(`img:${x}`);
-  const tm = T?.music && game.audio?.music?.[T.music];
-  if (tm) out.add(`music:${tm}`);
-  const icons = game.skin?.icons;
-  for (const x of [icons?.map, icons?.pause, icons?.music]) if (x) out.add(`img:${x}`);
-  for (const it of game.start.inventory ?? []) { const icon = game.items[it]?.icon; if (icon) out.add(`img:${icon}`); }
-  return [...out].sort();
+/** What the first room needs, plus the title, the column's icons and the bag at the start (the graph's initial scope). */
+export function initialAssets(game: GameDef, graph: AssetGraph = assetGraph(game)): string[] {
+  return initialScope(graph, game);
 }
 
 export interface Weighed { bytes: number; files: number; missing: string[] }
@@ -65,9 +37,11 @@ export interface WeightReport {
 
 const kb = (b: number) => Math.round(b / 1024);
 
-export function weightReport(game: GameDef, sizes: Record<string, number | null>, chapters: { id: string; rooms: Id[] }[] = [], budgets: WeightBudgets = game.assetBudgets ?? {}): WeightReport {
-  const byRoom = new Map(game.rooms.map((r) => [r.id, roomAssets(game, r)]));
-  const initial = weigh(initialAssets(game), sizes);
+export function weightReport(game: GameDef, sizes: Record<string, number | null>, chapters: { id: string; rooms: Id[] }[] = [], budgets: WeightBudgets = game.assetBudgets ?? {}, opts: { bindings?: MinigameBindings; shell?: string[] } = {}): WeightReport {
+  const graph = assetGraph(game, { bindings: opts.bindings });
+  const byRoom = new Map(game.rooms.map((r) => [r.id, roomAssets(game, r, graph)]));
+  // The first visit: the app shell (what the service worker precaches, when the build is there) and the initial scope.
+  const initial = weigh([...(opts.shell ?? []), ...initialAssets(game, graph)], sizes);
   const rooms = game.rooms.map((r) => ({ id: r.id, ...weigh(byRoom.get(r.id)!, sizes) })).sort((a, b) => b.bytes - a.bytes);
   const ch = chapters.map((c) => ({ ...c, ...weigh([...new Set(c.rooms.flatMap((r) => byRoom.get(r) ?? []))], sizes) }));
   const over: string[] = [];

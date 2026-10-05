@@ -112,6 +112,23 @@ checked", not "WCAG AA".
 
 The choice is made automatically (`App.layout`), and redone whenever the window is resized.
 
+## Assets: one graph
+
+`src/engine/core/asset-graph.ts` says which files each part of the game needs, from the content: the title (backdrop,
+logo, music, video, the column's icons, the bag at the start), each room (backdrop; props in every state and animation
+frame; every character who can stand there, its actors, the playable characters who can reach it from their start
+through exits, the map or commands, characters moved there, with variants, mouths and portrait; its music; what its
+commands can play or show), the map, what game-wide rules can play, and `offline` (every file the game ships). The
+renderer preloads a room's subset for who is actually there, the background warm-up reads the current and neighbouring
+rooms' scopes, the full offline plan is the `offline` scope, provenance covers it, and `npm run weight` budgets it; a
+file one of them knows cannot escape the others. A room's scope over-approximates one visit (every variant, every
+character who could be there), never the other way: `npm run e2e:weight` fails on a request outside the prediction.
+
+The default fonts go through the bundler, with hashed names, so the service worker's precache takes them from the HTTP
+cache instead of downloading them again. The interface font is a Latin subset (118 KB, `tools/subset-font.py`); the
+full DotGothic16 (2 MB, mostly Japanese) is a second face whose `unicode-range` covers only the rest, so a browser
+fetches it, and caches it, only for a character outside the subset.
+
 ## Cache and responsiveness
 
 - A **service worker** (vite-plugin-pwa / Workbox) keeps the app shell cached from the first visit. Images and sounds
