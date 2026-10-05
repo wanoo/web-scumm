@@ -48,6 +48,7 @@ function cmds(list: Cmd[] | undefined, path: string, fn: Fn, minigames: Minigame
     if (typeof c === 'string') { const r = fn(p, c); if (r !== undefined) list[i] = r; return; }
     if ('say' in c) { const r = fn(`${p}.say`, c.say[1]); if (r !== undefined) c.say[1] = r; }
     else if ('toast' in c) { const r = fn(`${p}.toast`, c.toast); if (r !== undefined) c.toast = r; }
+    else if ('sfx' in c && c.caption) { const r = fn(`${p}.caption`, c.caption); if (r !== undefined) c.caption = r; }
     else if ('guide' in c) { const r = fn(`${p}.guide`, c.guide.say); if (r !== undefined) c.guide.say = r; }
     else if ('choice' in c) { c.choice.forEach((o, j) => { const r = fn(`${p}${choicePathSeg(j, o)}.text`, o.text); if (r !== undefined) o.text = r; cmds(o.do, `${p}${choicePathSeg(j, o)}.do`, fn, minigames); }); return; }
     if ('minigame' in c) for (const q of minigames[c.minigame]?.textParams ?? BUILTIN_TEXT_PARAMS[c.minigame] ?? []) paramText(c.params, q.split('.'), `${p}.params`, fn);

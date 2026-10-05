@@ -65,10 +65,14 @@ export class Audio {
     const h = this.howl('voice', id, false);
     if (!h) return Promise.resolve();
     this.speaking = h;
+    // The music steps back while someone speaks, and comes back after (3.4).
+    const m = this.current?.howl;
+    if (m && this.musicOn) m.fade(m.volume(), this.volume * 0.35, 150);
+    const back = () => { const c = this.current?.howl; if (c && this.musicOn && this.speaking === null) c.fade(c.volume(), this.volume, 400); };
     return new Promise((res) => {
       h.off('end'); h.off('playerror'); h.off('loaderror');
-      h.once('end', () => { if (this.speaking === h) this.speaking = null; res(); });
-      h.once('playerror', () => res()); h.once('loaderror', () => res());
+      h.once('end', () => { if (this.speaking === h) this.speaking = null; back(); res(); });
+      h.once('playerror', () => { if (this.speaking === h) this.speaking = null; back(); res(); }); h.once('loaderror', () => { if (this.speaking === h) this.speaking = null; back(); res(); });
       h.volume(0.9 * this.vol.voice); h.seek(0); h.play();
     });
   }

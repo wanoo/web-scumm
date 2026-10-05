@@ -1,3 +1,4 @@
+import { cmdLists, someCmd } from '../core/cmds';
 import type { MotionSpec } from '../core/motion';
 import { check } from '../core/cond';
 import { sayMs } from '../core/timing';
@@ -55,8 +56,8 @@ class LocalStore implements SaveStore {
 }
 
 /** Player preferences (see `GameDef.settings`). */
-export interface Settings { textSpeed: number; textSize: number; reduceMotion: boolean; readableFont: boolean; musicVolume: number; sfxVolume: number; voiceVolume: number }
-const DEFAULT_SETTINGS: Settings = { textSpeed: 1, textSize: 1, reduceMotion: false, readableFont: false, musicVolume: 1, sfxVolume: 1, voiceVolume: 1 };
+export interface Settings { textSpeed: number; textSize: number; reduceMotion: boolean; readableFont: boolean; musicVolume: number; sfxVolume: number; voiceVolume: number; captions: boolean }
+const DEFAULT_SETTINGS: Settings = { textSpeed: 1, textSize: 1, reduceMotion: false, readableFont: false, musicVolume: 1, sfxVolume: 1, voiceVolume: 1, captions: true };
 
 /** Manual slots in localStorage (`<game>.slot.<n>`), the fallback when IndexedDB is unavailable; verified like the autosave. */
 export class LocalSlotStore implements SlotStore {
@@ -632,7 +633,16 @@ export class App implements Presenter {
     this.view.refreshVisibility();
     this.view.redraw();
   }
-  sfx(id: Id) { this.audio.sfx(id); }
+  sfx(id: Id, caption?: string) {
+    this.audio.sfx(id);
+    // A sound that matters, in writing (`{ sfx, caption }`), for whoever plays without sound or cannot hear it.
+    if (caption && this.settings.captions && this.scene) {
+      this.live.textContent = caption;
+      const c = el('div', 'caption', esc(caption));
+      this.scene.append(c);
+      setTimeout(() => c.remove(), Math.max(1800, caption.length * 70));
+    }
+  }
   music(c: { play?: Id; push?: Id; pop?: true; stop?: true; once?: Id }) {
     if (c.play) this.audio.play(c.play);
     else if (c.push) this.audio.push(c.push);
@@ -1067,6 +1077,8 @@ export class App implements Presenter {
     row(this.t('textSize'), () => (S.textSize > 1 ? this.t('large') : this.t('normal')), () => { S.textSize = S.textSize > 1 ? 1 : 1.3; });
     row(this.t('reduceMotion'), () => (S.reduceMotion ? ui.on : ui.off), () => { S.reduceMotion = !S.reduceMotion; });
     if (this.game.skin?.fonts?.readable) row(this.t('readableFont'), () => (S.readableFont ? ui.on : ui.off), () => { S.readableFont = !S.readableFont; });
+    // Only in a game that captions some sound (`{ sfx, caption }`): elsewhere the row would do nothing.
+    if (someCaption(this.game)) row(this.t('captions'), () => (S.captions ? ui.on : ui.off), () => { S.captions = !S.captions; });
     const langs = this.o.languages;
     if (langs && langs.available.length > 1) {
       const b = el('button', '', `<span>${esc(this.t('language'))}</span><span>${esc(langs.current)}</span>`);
@@ -1302,3 +1314,9 @@ export class App implements Presenter {
     this.u = sw / 640; this.sw = sw;
   }
 }
+
+/** Whether the game captions any sound effect (the settings' captions row). */
+function someCaption(game: GameDef): boolean {
+  return cmdLists(game).some(({ list }) => someCmd(list, (c) => 'sfx' in c && !!c.caption));
+}
+

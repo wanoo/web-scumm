@@ -140,7 +140,8 @@ export type Cmd =
   /** Stops a script; `startScript` brings it back. */
   | { stopScript: Id }
   // --- audio and effects
-  | { sfx: Id }
+  /** `caption`: what the sound means, written for whoever cannot hear it (shown with the captions setting, translated). */
+  | { sfx: Id; caption?: string }
   | { music: Id | { push: Id } | { pop: true } | { stop: true } | { once: Id } }
   | { toast: string; id?: Id }
   | { shake: number }
@@ -558,6 +559,8 @@ export interface AudioDef {
   sfx?: Record<Id, string>;
   /** Voice clips (`games/<id>/audio/voice/<file>`), played by `say` with `voice`. */
   voices?: Record<Id, string>;
+  /** The clips of the other languages (3.4), by language: a translated game plays these instead (`npm run voices`). */
+  voicesByLang?: Record<string, Record<Id, string>>;
 }
 
 /** Sealed ending (`ending` module): encrypted content, decrypted at the end of the game and shown on a card. */
@@ -820,6 +823,8 @@ export interface UiTexts {
   textSize?: string;
   reduceMotion?: string;
   readableFont?: string;
+  /** The settings row of the sound captions (shown only in a game that captions a sound). */
+  captions?: string;
   volumeMusic?: string;
   volumeSfx?: string;
   volumeVoice?: string;

@@ -13,7 +13,7 @@ export const DEFAULT_UI = {
   save: 'Save', load: 'Load', slot: 'Slot {n}', emptySlot: 'empty', confirmOverwrite: 'Overwrite this save?',
   exportSave: 'Export file', importSave: 'Import file', exportSession: 'Export session', shareSession: 'Share session',
   settings: 'Settings', textSpeed: 'Text speed', textSize: 'Text size', slow: 'slow', normal: 'normal', fast: 'fast', large: 'large',
-  reduceMotion: 'Reduce motion', readableFont: 'Readable font', language: 'Language',
+  reduceMotion: 'Reduce motion', readableFont: 'Readable font', language: 'Language', captions: 'Sound captions',
   volumeMusic: 'Music volume', volumeSfx: 'Sound volume', volumeVoice: 'Voice volume',
 } as const;
 

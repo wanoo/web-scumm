@@ -170,6 +170,7 @@ export function assetGraph(game: GameDef, opts: { manifest?: AssetManifestLike; 
   for (const f of Object.values(a.sfx ?? {})) offline.add(`sfx:${f}`);
   for (const f of Object.values(a.music ?? {})) offline.add(`music:${f}`);
   for (const f of Object.values(a.voices ?? {})) offline.add(`voice:${f}`);
+  for (const m of Object.values(a.voicesByLang ?? {})) for (const f of Object.values(m)) offline.add(`voice:${f}`);
   return { title: [...title].sort(), map: [...map].sort(), game: [...g].sort(), rooms, offline: [...offline].sort() };
 }
 
