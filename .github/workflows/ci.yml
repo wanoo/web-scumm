@@ -155,8 +155,48 @@ jobs:
           path: |
             /tmp/e2e-${{ matrix.browser }}
             tests/visual
+  # The reference chapter (games/reference, since 3.4): the second real game, the 3.4 exit gate. Built, proved whole and
+  # chapter by chapter, played to the end at the keyboard in Chromium and WebKit, in French with no English default
+  # visible; its rooms against their references, its staged market at 30 fps or more with the CPU slowed 4×, its first
+  # visit inside the weight prediction.
+  reference:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    env:
+      GAME: reference
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run build
+      - run: npm run prove:game
+        if: matrix.browser == 'chromium'
+      - run: npm run preview -- --port 5175 &
+      - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5175/ > /dev/null && break; sleep 1; done
+      - run: npm run e2e -- http://127.0.0.1:5175/ --game reference --prod --keyboard
+        env:
+          E2E_BROWSER: ${{ matrix.browser }}
+          E2E_OUT: /tmp/e2e-reference-${{ matrix.browser }}
+      - run: npm run e2e -- http://127.0.0.1:5175/ --game reference --prod --lang fr && npm run e2e -- http://127.0.0.1:5175/ --game reference --prod --generic --axe --save
+        if: matrix.browser == 'chromium'
+        env:
+          E2E_OUT: /tmp/e2e-reference-fr
+      - run: npm run e2e:visual -- http://127.0.0.1:5175/ && npm run e2e:perf -- http://127.0.0.1:5175/ && npm run e2e:weight -- http://127.0.0.1:5175/
+        if: matrix.browser == 'chromium'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-reference-${{ matrix.browser }}
+          path: /tmp/e2e-reference-*
   pages:
-    needs: [check, e2e, second-game]
+    needs: [check, e2e, second-game, reference]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

@@ -6,7 +6,7 @@ import type { GameModule } from './game';
 export interface Refs { images: string[]; audio: { music: Record<string, string>; sfx: Record<string, string>; voices?: Record<string, string> } }
 
 /** Collects the image ids (and audio tables) cited by a game module. Pure: no file access. */
-export function collectRefs({ game, extraImages }: Pick<GameModule, 'game' | 'extraImages'>): Refs {
+export function collectRefs({ game, extraImages, layouts }: Pick<GameModule, 'game' | 'extraImages'> & { layouts?: GameModule['layouts'] }): Refs {
   const images = new Set<string>();
   const add = (id: string | undefined) => { if (id) images.add(id); };
   const looksLikeImage = (v: unknown): v is string => typeof v === 'string' && /^[a-z0-9_-]+\/[A-Za-z0-9_-]+$/.test(v);
@@ -32,6 +32,10 @@ export function collectRefs({ game, extraImages }: Pick<GameModule, 'game' | 'ex
 
   for (const r of game.rooms) {
     add(r.decor);
+    // The stage (3.4): its layers' and particles' images, and the occluders' mask images in the layout.
+    for (const l of r.stage?.layers ?? []) add(l.image);
+    for (const e of r.stage?.emitters ?? []) add(e.image);
+    for (const o of Object.values(layouts?.[r.id]?.occluders ?? {})) add(o.mask);
     for (const p of Object.values(r.props ?? {})) {
       add(p.img); Object.values(p.states ?? {}).forEach(add);
       for (const a of Object.values(p.anims ?? {})) { a.frames.forEach(add); Object.values(a.at ?? {}).forEach(scanCmds); }
@@ -73,6 +77,10 @@ export function collectRefs({ game, extraImages }: Pick<GameModule, 'game' | 'ex
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const { loadGameModule } = await import('./game');
-  process.stdout.write(JSON.stringify(collectRefs(await loadGameModule()), null, 1));
+  const { GAME_DIR, loadGameModule } = await import('./game');
+  // Outside Vite the module's layouts are empty: the occluders' masks are read from layout/*.json.
+  const { loadLayouts } = await import('../src/engine/tools/load');
+  const { resolve } = await import('node:path');
+  const mod = await loadGameModule();
+  process.stdout.write(JSON.stringify(collectRefs({ ...mod, layouts: loadLayouts(resolve(GAME_DIR, 'layout')) }), null, 1));
 }

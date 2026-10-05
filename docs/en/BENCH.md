@@ -368,3 +368,24 @@ What it found, and what is fixed:
   shadow (`puzzleGraph`); the demo and the reference game keep exactly the same state counts.
 - **Rooms reached.** With the canonical character, a room where only another playable character stood was missing
   from `roomsReached` (and so could be reported by the lint as never reached). Every character's view now counts.
+
+## 3.4: the reference chapter (5 October 2026)
+
+`games/reference`, "The Night Market": 8 rooms, 9 items, 5 characters, two of them playable (Pixel and Biscuit, who
+hand items to each other and open places for each other), a staged market (Canvas, 960 wide, 6 layers with
+parallax, 3 occluders, 2 walk zones joined by stairs), a yard on two planes (a ladder opened by a flag, a jump for
+Biscuit only), an autonomous script, a minigame, a timeline finale. Measured on an M-series laptop, cache off.
+
+| Measure | Result | Gate |
+|---|---|---|
+| Witness | 1 450 states, 0.6 s, 49 steps | — |
+| Global proof | solved, 904 states, 1.9 s | no softlock |
+| Proof by chapters (`lights`, `ending`) | 848 + 72 states, 16 boundary states, 2.0 s | every chapter from every boundary state |
+| `--audit-abstractions` | `same`: 904 states against 83 672 explicit, 36 144 memo hits identical, 40.8 s | no divergence |
+| Frame rate, CPU ÷4, Canvas | market 49.6 fps, yard / alley / street 60.2 fps | ≥ 30 fps |
+| First visit | 1 989 KB transferred, 2 198 KB predicted, nothing outside the prediction | within 10%, nothing outside |
+| Rooms | 541–718 KB each; the whole chapter 4 249 KB | 3 000 KB a room, 6 000 KB a chapter |
+| Visual baselines | 8 / 8 rooms, 0.00% | ≤ 0.5% |
+
+Played to the end by CI: at the keyboard in Chromium and WebKit, in French with no English default visible, and by
+the generic harness with axe and a save round trip.

@@ -2,6 +2,7 @@
 // "Export session", the Studio's Play tab, or the dev panel) on the real engine without a display, prints the journal
 // and the final state, and exits 1 where the replay stops matching the recording. A tester's bug report is a session
 // file and a screenshot; this is how to reproduce it. The game: GAME, otherwise package.json → config.game.
+import { flushExit } from './flush';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { labelOf, parseSessionFile, replay } from '../src/engine/tools/replay';
@@ -23,7 +24,7 @@ const r = await replay(game, layouts, f.session, { commands, upTo });
 
 if (process.argv.includes('--json')) {
   console.log(JSON.stringify({ played: r.played, ended: r.ended, divergedAt: r.divergedAt ?? null, divergence: r.divergence ?? null, state: r.state, trace: r.trace }));
-  process.exit(r.divergedAt === undefined ? 0 : 1);
+  await flushExit(r.divergedAt === undefined ? 0 : 1);
 }
 const start = f.session.start;
 console.log(`\nSession: ${start.kind === 'checkpoint' ? `from checkpoint ${start.id}` : start.kind === 'load' ? `from a save (${f.session.base.room})` : 'a new game'}, ${f.session.log.length} entries${f.at ? `, recorded ${new Date(f.at).toLocaleString()}` : ''}`);

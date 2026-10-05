@@ -56,7 +56,9 @@ try {
   const newGame = page.locator('.overlay .bigbtn').first();
   await newGame.waitFor({ timeout: 20000 });
   await newGame.tap();
-  await page.waitForFunction(() => { const g = window.__game; return g?.engine?.state && !document.querySelector('.overlay') && document.querySelector('.scene img.bg')?.complete; }, null, { timeout: 30000 });
+  // The first room drawn: its backdrop image (DOM painter) or its canvas (Canvas painter, which loads it as a bitmap;
+  // the network going idle below covers that load).
+  await page.waitForFunction(() => { const g = window.__game; return g?.engine?.state && !document.querySelector('.overlay') && (document.querySelector('.scene img.bg')?.complete || !!document.querySelector('.scene canvas')); }, null, { timeout: 30000 });
   await page.evaluate(async () => { const r = await navigator.serviceWorker.ready; return !!r.active; });
   await page.waitForLoadState('networkidle');
   await page.waitForTimeout(1500);

@@ -5,6 +5,7 @@
 // solver at all. --json: { mode, status, truncated, findings, counts, ignored } on stdout, nothing else.
 // Exit codes: 0 clean, 1 an error that is not ignored, 2 the solver's search was truncated (its reachability findings
 // are then information, never verdicts).
+import { flushExit } from './flush';
 import { cachedSolve } from './proof-cache';
 import { resolve } from 'node:path';
 import { lintContent, lintMarkdown, whereText } from '../src/engine/tools/lint';
@@ -29,4 +30,4 @@ if (asJson) {
   if (!r.findings.length) console.log('  nothing to report');
 }
 if (!asJson && s?.truncated) console.log(`  ⚠ the search was truncated (${s.states} states): "never run" and "never reached" are information, not verdicts — raise --max or prove by chapters`);
-process.exit(r.counts.error ? 1 : s?.truncated ? 2 : 0);
+await flushExit(r.counts.error ? 1 : s?.truncated ? 2 : 0);

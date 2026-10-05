@@ -392,3 +392,25 @@ Ce qu'il a trouvé, et qui est corrigé :
 - **Lieux atteints.** Avec le personnage canonique, un lieu où seul un autre personnage jouable se tenait manquait à
   `roomsReached` (et le lint pouvait donc le dire jamais atteint). Le point de vue de chaque personnage compte
   maintenant.
+
+## 3.4 : le chapitre de référence (5 octobre 2026)
+
+`games/reference`, « Le Marché de nuit » : 8 lieux, 9 objets, 5 personnages dont deux jouables (Pixel et Biscuit,
+qui se passent des objets et s'ouvrent des lieux), un marché mis en scène (Canvas, 960 de large, 6 calques avec
+parallaxe, 3 occultants, 2 zones de marche reliées par un escalier), un jardin sur deux plans (une échelle ouverte par
+un flag, un saut réservé à Biscuit), un script autonome, un mini-jeu, un final sur la timeline. Mesuré sur un portable
+M-series, cache coupé.
+
+| Mesure | Résultat | Seuil |
+|---|---|---|
+| Témoin | 1 450 états, 0,6 s, 49 étapes | — |
+| Preuve globale | résolue, 904 états, 1,9 s | aucun softlock |
+| Preuve par chapitres (`lights`, `ending`) | 848 + 72 états, 16 états frontière, 2,0 s | chaque chapitre depuis chaque état frontière |
+| `--audit-abstractions` | `same` : 904 états contre 83 672 en explicite, 36 144 succès du memo identiques, 40,8 s | aucune divergence |
+| Images par seconde, CPU ÷4, Canvas | marché 49,6 i/s, jardin / ruelle / rue 60,2 i/s | ≥ 30 i/s |
+| Première visite | 1 989 Ko transférés, 2 198 Ko prédits, rien hors de la prédiction | à 10 % près, rien hors |
+| Lieux | 541 à 718 Ko chacun ; le chapitre entier 4 249 Ko | 3 000 Ko par lieu, 6 000 Ko par chapitre |
+| Références visuelles | 8 / 8 lieux, 0,00 % | ≤ 0,5 % |
+
+Joué jusqu'au bout par la CI : au clavier dans Chromium et WebKit, en français sans défaut anglais visible, et par le
+harnais générique avec axe et un aller-retour de sauvegarde.

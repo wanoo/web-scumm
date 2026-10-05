@@ -8,6 +8,7 @@
 // boundary state of the previous one (deduped by what the chapter reads), not from the hand-written checkpoint, which
 // must itself be one of those boundary states (src/engine/tools/chapters.ts).
 // The game: GAME, otherwise package.json → config.game (see tools/game.ts).
+import { flushExit } from './flush';
 import { cachedSolve } from './proof-cache';
 import { auditAbstractions } from '../src/engine/tools/audit';
 import { exitOf, worstStatus, type SolveStatus } from '../src/engine/tools/status';
@@ -31,7 +32,7 @@ if (por && mode === 'prove' && !asJson) console.log(`ℹ  --por=${por} is ignore
 
 if (process.argv.includes('--audit-abstractions')) {
   const a = await auditAbstractions(game, layouts, { maxStates, commands });
-  if (asJson) { console.log(JSON.stringify(a)); process.exit(a.exit); }
+  if (asJson) { console.log(JSON.stringify(a)); await flushExit(a.exit); }
   console.log(`  with the abstractions  ${a.abstract.status}, ${a.abstract.states} states (canonical ${a.abstract.canonical ? 'on' : 'off'}, mobility ${a.abstract.mobility ? 'on' : 'off'}, ${a.abstract.memo.hits} memo hits, all run anyway)`);
   console.log(`  explicit search        ${a.explicit.status}, ${a.explicit.states} states${a.explicit.truncated ? ' (truncated)' : ''}`);
   for (const d of a.divergences) console.log(`   ✖ ${d}`);
@@ -43,7 +44,7 @@ if (process.argv.includes('--chapters') && mode === 'prove') {
   const p = await proveChapters(game, layouts, { maxStates, commands, mode: 'prove', solver: cachedSolve });
   // A game without chapters is proved by the global search (`--prove`): nothing more to do here, and not a failure.
   if (!p.chapters.length) { console.log('ℹ  No checkpoint declares `goals`: no chapter to prove (the global proof covers the game)'); process.exit(0); }
-  if (asJson) { console.log(JSON.stringify({ status: p.status, exit: p.exit, headline: p.headline, ms: p.ms, chapters: p.chapters.map(({ results, ...c }) => ({ ...c, softlockCauses: results.flatMap((r) => r.softlockCauses) })) })); process.exit(p.exit); }
+  if (asJson) { console.log(JSON.stringify({ status: p.status, exit: p.exit, headline: p.headline, ms: p.ms, chapters: p.chapters.map(({ results, ...c }) => ({ ...c, softlockCauses: results.flatMap((r) => r.softlockCauses) })) })); await flushExit(p.exit); }
   for (const c of p.chapters) {
     const ok = c.status === 'solved' && !c.checkpointUnreachable;
     if (c.status === 'truncated' && !c.results.length) { console.log(`✖  chapter → ${c.id}: truncated, ${c.distinct} distinct boundary states exceed the budget of ${MAX_STARTS} starts (the proof stops here)`); continue; }
@@ -93,7 +94,7 @@ if (asJson) {
     itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems, softlocks: r.softlocks, assumptions: r.assumptions,
     errors: r.errors, broken: r.broken, profile: r.profile,
   }));
-  process.exit(r.exit);
+  await flushExit(r.exit);
 }
 
 console.log(`\n${r.finished ? '✔  The game can be finished' : '…  No ending reached'} — ${r.states} states explored in ${((Date.now() - t0) / 1000).toFixed(1)} s${r.truncated ? ' (limit reached)' : ''}`);
