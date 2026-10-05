@@ -121,15 +121,25 @@ export async function replay(gameIn: GameDef, layouts: Record<Id, Layout>, sessi
   return { state: e.state, trace: e.trace, session: e.session!, played, first, ended: !!e.state.done || ui.log.includes('ENDING'), ...(divergedAt !== undefined ? { divergedAt, divergence } : {}) };
 }
 
-/** The file a tester sends: the session, the journal, the game and its save version. */
-export interface SessionFile { kind: 'web-scumm-session'; game: Id; v: number; at: number; session: Session; trace: TraceEntry[] }
+/** A device family, nothing finer (3.7.1): how many kinds of devices the playtests covered, never which device. */
+export type DeviceFamily = 'ios' | 'android' | 'desktop';
 
-export function sessionFile(gameId: Id, e: Engine, o: { playtest?: boolean } = {}): SessionFile {
+/** The family of a user agent string (an iPad that says it is a Mac is told by its touch points). */
+export function deviceFamily(ua: string, touchPoints = 0): DeviceFamily {
+  if (/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && touchPoints > 1)) return 'ios';
+  if (/Android/.test(ua)) return 'android';
+  return 'desktop';
+}
+
+/** The file a tester sends: the session, the journal, the game and its save version, its device family (3.7.1). */
+export interface SessionFile { kind: 'web-scumm-session'; game: Id; v: number; at: number; session: Session; trace: TraceEntry[]; device?: DeviceFamily }
+
+export function sessionFile(gameId: Id, e: Engine, o: { playtest?: boolean; device?: DeviceFamily } = {}): SessionFile {
   if (!e.session) throw new Error('no session yet: start or load a game first');
   const session = structuredClone(e.session);
   // A playtest leaves the device with ids and indices only: no journal (its lines carry text), no dev-panel scripts.
   if (o.playtest) for (const en of session.log) if ('script' in en) en.script = [];
-  return { kind: 'web-scumm-session', game: gameId, v: e.game.saveVersion, at: session.at ?? Date.now(), session, trace: o.playtest ? [] : [...e.trace] };
+  return { kind: 'web-scumm-session', game: gameId, v: e.game.saveVersion, at: session.at ?? Date.now(), session, trace: o.playtest ? [] : [...e.trace], ...(o.device ? { device: o.device } : {}) };
 }
 
 /** Reads a session file (or a bare session) and checks its shape. */
@@ -137,5 +147,6 @@ export function parseSessionFile(text: string): SessionFile {
   const j = JSON.parse(text) as Partial<SessionFile> & Partial<Session>;
   const session = (j.session ?? (j.log ? j : undefined)) as Session | undefined;
   if (!session || !Array.isArray(session.log) || !session.start?.kind) throw new Error('not a session file');
-  return { kind: 'web-scumm-session', game: j.game ?? '', v: j.v ?? session.v, at: j.at ?? 0, session, trace: j.trace ?? [] };
+  const device = j.device === 'ios' || j.device === 'android' || j.device === 'desktop' ? j.device : undefined;
+  return { kind: 'web-scumm-session', game: j.game ?? '', v: j.v ?? session.v, at: j.at ?? 0, session, trace: j.trace ?? [], ...(device ? { device } : {}) };
 }

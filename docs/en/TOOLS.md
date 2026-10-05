@@ -198,6 +198,8 @@ npm run verify:dist                # every file of dist/ accounted for: code, lo
 npm run provenance [-- --lock]     # the shipped assets by licence, what changed since the reviewed lock; --lock records the files after a review
 npm run weight [-- --release --json --stems]   # what a phone downloads before the first room, per room and per chapter, against assetBudgets (the single mixes; the scores' stems on their own line, --stems counts them)
 npm run playtests [-- --strict --out=.cache/playtests]  # the sessions players shared (games/<id>/playtests) replayed and summed up: time per room, stalls, hints, heat map
+npm run playtests -- --strict --require=5 --require-completed=3 --require-devices=2   # field quotas (3.7.1): --strict alone asks for no number of sessions
+npm run verify:field               # verify:commercial, then those quotas: what a release tested by players needs (not a step of release-check, D12)
 npm run e2e:perf -- <url> [--renderer=canvas|dom --cpu=4 --min=30 --room=<id>]   # frames per second while the hero walks, CPU slowed (the phone stand-in)
 npm run e2e:music -- <url> [--only=offline|live|game --live=chromium|webkit]   # the music director: 30 min offline without drift, 100 changes without a click, real-time jitter, the theme's stems in the game
 npm run e2e -- <url> --renderer canvas  # the whole game drawn by the Canvas painter

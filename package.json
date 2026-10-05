@@ -62,6 +62,7 @@
     "verify:release": "npm run validate -- --release && npm run weight -- --release && npm run i18n -- status && npm run voices -- check --release && npm run playtests -- --strict",
     "verify:commercial": "npm run verify:release && npm run validate -- --commercial --errors && npm run verify:dist",
     "verify:dist": "tsx tools/dist.ts",
+    "verify:field": "npm run verify:commercial && npm run playtests -- --strict --require=5 --require-completed=3 --require-devices=2",
     "provenance": "tsx tools/provenance.ts",
     "weight": "tsx tools/weight.ts",
     "e2e:a11y": "node scripts/e2e-a11y.mjs",

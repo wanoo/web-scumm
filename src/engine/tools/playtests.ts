@@ -14,6 +14,8 @@ export interface PlaytestSummary {
   entries: number;
   played: number;
   ended: boolean;
+  /** The device family the file says it was played on (3.7.1), when it says. */
+  device?: string;
   /** The content changed since the recording: the replay stopped there (counts stop there too). */
   divergedAt?: number;
   divergence?: string;
@@ -98,7 +100,7 @@ export async function analyzePlaytests(game: GameDef, layouts: Record<Id, Layout
     const abandon = { room: roomAt[lastIndex] ?? roomAt[0], label: log[lastIndex] ? labelOf(game, log[lastIndex]) : '(empty)', index: lastIndex };
     if (!r.ended) room(abandon.room).abandons++;
     report.total.ms += duration;
-    report.files.push({ name, entries: log.length - first, played, ended: r.ended, divergedAt: r.divergedAt, divergence: r.divergence, durationMs: timed ? duration : undefined, abandon });
+    report.files.push({ name, entries: log.length - first, played, ended: r.ended, ...(file.device ? { device: file.device } : {}), divergedAt: r.divergedAt, divergence: r.divergence, durationMs: timed ? duration : undefined, abandon });
   }
   report.stalls.sort((a, b) => (b.ms ?? 0) - (a.ms ?? 0) || b.repeats - a.repeats);
   return report;
@@ -130,4 +132,22 @@ export function playtestsMarkdown(r: PlaytestReport, game: GameDef): string {
   const diverged = r.files.filter((f) => f.divergedAt !== undefined);
   if (diverged.length) out.push('## Content changed since the recording', '', ...diverged.map((f) => `- ${f.name}: stopped at #${f.divergedAt! + 1}, ${f.divergence ?? ''} (re-record or delete the file)`), '');
   return out.join('\n');
+}
+
+/** What a field release asks of its playtests (3.7.1): `verify:field`'s quotas, each optional. */
+export interface PlaytestQuotas { sessions?: number; completed?: number; devices?: number }
+
+/**
+ * The quotas these playtests miss, one line each (empty: met). A diverged session counts for none of them: it no
+ * longer says what the game is.
+ */
+export function quotaShortfalls(files: Pick<PlaytestSummary, 'ended' | 'divergedAt' | 'device'>[], q: PlaytestQuotas): string[] {
+  const ok = files.filter((f) => f.divergedAt === undefined);
+  const done = ok.filter((f) => f.ended).length;
+  const devices = new Set(ok.map((f) => f.device).filter(Boolean)).size;
+  const out: string[] = [];
+  if (q.sessions !== undefined && ok.length < q.sessions) out.push(`${ok.length} session(s), ${q.sessions} asked`);
+  if (q.completed !== undefined && done < q.completed) out.push(`${done} played to the end, ${q.completed} asked`);
+  if (q.devices !== undefined && devices < q.devices) out.push(`${devices} device famil${devices === 1 ? 'y' : 'ies'}, ${q.devices} asked`);
+  return out;
 }

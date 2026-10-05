@@ -191,6 +191,8 @@ npm run verify:dist                # chaque fichier de dist/ justifié : code, a
 npm run provenance [-- --lock]     # les assets livrés par licence, ce qui a changé depuis le verrou relu ; --lock enregistre les fichiers après une relecture
 npm run weight [-- --release --json --stems]   # ce qu'un téléphone télécharge avant le premier lieu, par lieu et par chapitre, face à assetBudgets (les mix uniques ; les stems des partitions sur leur ligne, --stems les compte)
 npm run playtests [-- --strict --out=.cache/playtests]  # les sessions partagées par les joueurs (games/<id>/playtests) rejouées et cumulées : temps par lieu, blocages, indices, heatmap
+npm run playtests -- --strict --require=5 --require-completed=3 --require-devices=2   # quotas terrain (3.7.1) : --strict seul ne demande aucun nombre de sessions
+npm run verify:field               # verify:commercial, puis ces quotas : ce qu'il faut à une release testée par des joueurs (pas une étape de release-check, D12)
 npm run e2e:perf -- <url> [--renderer=canvas|dom --cpu=4 --min=30 --room=<id>]   # images par seconde pendant que le héros marche, CPU ralenti (le substitut du téléphone)
 npm run e2e:music -- <url> [--only=offline|live|game --live=chromium|webkit]   # le directeur musical : 30 min hors ligne sans dérive, 100 changements sans clic, gigue en temps réel, les stems du thème dans le jeu
 npm run e2e -- <url> --renderer canvas  # le jeu entier dessiné par le peintre Canvas

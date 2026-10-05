@@ -1152,8 +1152,8 @@ export class App implements Presenter {
     };
     if (mode === 'save') row(this.t('shareSession'), '⇪').onclick = () => {
       // A playtest: the inputs since the game started, ids only, for games/<id>/playtests/ (npm run playtests).
-      void import('../tools/replay').then(async ({ sessionFile }) => {
-        const json = JSON.stringify(sessionFile(this.game.id, this.engine, { playtest: true }));
+      void import('../tools/replay').then(async ({ sessionFile, deviceFamily }) => {
+        const json = JSON.stringify(sessionFile(this.game.id, this.engine, { playtest: true, device: deviceFamily(navigator.userAgent, navigator.maxTouchPoints) }));
         const name = `${this.game.id}-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.session.json`;
         const file = new File([json], name, { type: 'application/json' });
         const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };
