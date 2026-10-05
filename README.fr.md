@@ -17,13 +17,20 @@ vérifie, le prouve et le publie en jeu web jouable hors ligne. Il est né comme
 
 ![The Pantry Key : la maison de Grand-mère, neuf verbes, le sac](docs/img/v36-hero.webp)
 
-**Nouveau en v3.6 « Production » :** le directeur musical a ses propres budgets (stems, hors ligne, audio décodé, un
+**Nouveau en v3.7 « Field Proof » :** le jeu d'exemple peut être vendu : son thème, *Le Lac des cygnes* de
+Tchaïkovski écrit et arrangé pour le projet, remplace un arrangement sous licence non commerciale, si bien que
+`npm run verify:commercial` passe. Le chapitre de référence joue deux partitions reliées par des ponts, et le
+navigateur vérifie qu'une transition peut être annulée, restaurée depuis une sauvegarde ou arrêtée sans laisser de son
+derrière elle (la 3.6.1 « Audio truth » a donné à la musique ses trois intentions : jouer, restaurer, arrêter). Le
+corpus de nuit tourne en quatre tranches et garde ses comptes.
+
+**v3.6 « Production » :** le directeur musical a ses propres budgets (stems, hors ligne, audio décodé, un
 plafond sur ce qu'il garde), ses stems sont mesurés avant une release, et une partition passe la main à une autre sur
 un temps, une mesure, une phrase ou un marqueur, par un pont ; une sauvegarde garde où en était la musique. La preuve
 met les objets en commun par groupe de personnages qui peuvent se rejoindre : des chaînes ouvertes à trois
 personnages sont prouvées là où la 3.5 abandonnait
-([les mesures](docs/fr/BENCH.md#36--la-mise-en-commun-par-groupe-une-fuite-et-un-corpus-5-octobre-2026)), et 1 500 jeux
-aléatoires sont comparés à la recherche explicite chaque nuit.
+([les mesures](docs/fr/BENCH.md#36--la-mise-en-commun-par-groupe-une-fuite-et-un-corpus-5-octobre-2026)), et des jeux
+aléatoires de trois sortes sont comparés à la recherche explicite chaque nuit (comptés essayés, comparés, partiels).
 
 **v3.5 « Score » :** une musique qui suit le jeu. Un morceau est découpé en stems qui jouent calés ; le
 mix change avec le lieu, le personnage actif ou un flag, à la mesure suivante, sans clic. La preuve tourne sur

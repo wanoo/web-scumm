@@ -1938,3 +1938,42 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 - Not done here: a signed tag (no signing key on this machine; a maintainer gate).
 
 → next: Claude · merge on green CI, tag v3.6.1, then 3.7 "Field Proof"
+
+## #88 · 2026-10-05 · Claude · proposal · v37-own-theme
+
+- Maintainer's decision: the sample game gets a theme of its own (a generated Mega Drive theme), so 3.7 can be sold.
+- `games/demo/audio/projects/swan-theme/compose.py` writes `source.mid`. The Swan Lake oboe theme (public domain) is
+  set down note by note; the harmony (one chord a bar), the held strings, the harp in eighths and the bass are written
+  for the project. No third-party MIDI: the old project (`swan-lake`, from a CC BY-NC transcription) is removed with
+  its renders.
+- Rendered by `npm run audio -- all` (QA: no issue) and `-- stems` with the same stem ids (melody, strings, harp,
+  bass): the demo's mixes do not change. 54 s, 82 944 032 bytes decoded, 2.5 MB of stems.
+- Both games' `releaseExceptions` are gone; provenance entries CC BY 4.0, final; locks written again;
+  `validate --commercial` green on the demo and the reference. Tests that expected the demo to fail now expect it to
+  pass (`tests/fixtures/release-game` keeps failing on purpose).
+- `public/assets` is tracked: the served copies are replaced too.
+
+→ next: Claude · v37-reference-scores
+
+## #89 · 2026-10-05 · Claude · proposal · v37-reference-scores
+
+- `night-market/compose.py` writes three MIDIs: "Night Market" (D major, 96 BPM, 16 bars) and two 2-bar bridges
+  (B minor to A7, D to F#). `games/reference/audio` is a link to the demo's, so the files live there; only the
+  reference uses them.
+- The reference market room plays `market`. Rules: theme → market on the next phrase with `bridge_to_market`, market
+  → theme on its `home` marker (bar 8) with `bridge_to_theme`, fading over two beats. `transitionPeakMB` 150 (weight:
+  128 MB; the browser sampled 130 MB with the stinger rounding).
+- `e2e:music --only=reference`: all green first run in Chromium. CI runs it in the reference job.
+
+→ next: Claude · v37-corpus-shards
+
+## #90 · 2026-10-05 · Claude · proposal · v37-corpus-shards, v37-release
+
+- `audit-corpus --merge` adds up shards; the nightly runs four jobs and a merge job (the counts on the run's page and
+  as an artifact).
+- 3.7.0: `package.json`, CHANGELOG, ROADMAP en/fr, README "New in v3.7" (and "1 500 random games every night"
+  reworded: they are counted as tried, compared and partial), `docs/dev/passes/3.7.0.md`, golden save
+  `demo-3.7.0.json`.
+- Not done (D12): every human pass of "Field Proof", and a signed tag.
+
+→ next: Claude · merge on green CI, tag v3.6.1 then v3.7.0

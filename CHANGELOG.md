@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 3.7.0 — 2026-10-05
+
+"Field Proof", the machine part (LOG #88–#90): what can be proved without a person. The human passes are still to
+do (D12, `docs/dev/passes/3.7.0.md`).
+
+### Changed
+
+- The sample game's theme is written for the project: Tchaikovsky's *Swan Lake* oboe theme (public domain) set down
+  note by note with its own harmony, harp, strings and bass (`games/demo/audio/projects/swan-theme/compose.py`),
+  rendered by `npm run audio` with the same four stems. It replaces an arrangement of a CC BY-NC transcription: the
+  sample game and the reference chapter have no release exception left and pass `npm run verify:commercial`. The
+  theme is 54 s (66 s before): 79 MB decoded, 2.5 MB of stems.
+- The nightly corpus runs in four shards, one job each, then a job adds them up (`audit:corpus --merge`).
+
+### Added
+
+- The reference chapter's market has a score of its own ("Night Market", D major, 96 BPM, stems melody, chords and
+  bass) and two bridges: the theme hands over on its next phrase, the market hands back on its "home" marker.
+  `transitionPeakMB` 150 (128 measured).
+- `npm run e2e:music -- <url> --only=reference`, in CI on the reference build: the handover through the bridge, a save
+  loaded before the way back lands, a stop while a transition waits, the decoded audio under the budget.
+
 ## 3.6.1 — 2026-10-05
 
 "Audio truth": the 3.6.0 review's fixes (LOG #86–#87). The music now has three intents, `play`, `restore` and `stop`,

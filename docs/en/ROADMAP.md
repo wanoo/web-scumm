@@ -444,12 +444,26 @@ Exit criteria, as measured: the 9 lifecycle cases fail on 3.6.0 and pass; `npm r
 score plays on and comes back to within 0.1 s of the saved point. Reported (D12, `docs/dev/passes/3.6.1.md`): the
 same human passes, and a signed tag (no key on this machine).
 
+## v3.7 "Field Proof" (5 October 2026): what can be proved without a person
+
+- `v37-own-theme`: the sample game's theme written for the project (Swan Lake's oboe theme, public domain, with its
+  own harmony and arrangement): no release exception left, `verify:commercial` green on both games.
+- `v37-reference-scores`: the reference market's own score and two bridges; `e2e:music --only=reference` in CI
+  (handover, restore before a landing, stop while waiting, the decoded peak under `transitionPeakMB`).
+- `v37-corpus-shards`: the nightly corpus in four jobs, added up by a fifth.
+
+Exit criteria, as measured: `npm run verify:commercial` green on the demo and the reference; the reference scenario
+green in Chromium (bridge 5.47 s, restore within 0.1 s, peak 130 MB for a budget of 150). Not done, the human part of
+"Field Proof" (D12, `docs/dev/passes/3.7.0.md`): an iPhone/Safari and an Android/Chrome pass, VoiceOver or TalkBack,
+five external players, Safari offline, recorded voices on a full dialogue, a listening pass on both scores and their
+bridges, a signed tag.
+
 ## Next (not planned yet)
 
-- The open matrix of three characters: an abstraction for characters who cannot meet (what each can still bring to
-  the others), or a bound on it stated in BENCH.
+- The open matrix of three characters: exact dominance by the relevance of items and positions, audited against the
+  explicit search on the corpus (more workers do not help: the number of states is the limit).
 - Lip-sync markers in the voice table (left from 3.4).
-- The manual passes of `docs/dev/passes/` (D12), and the screenshots of 3.4–3.5 (the market, the Music tab).
+- The manual passes of `docs/dev/passes/` (D12).
 
 ## Out of scope (explicit decisions)
 
