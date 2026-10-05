@@ -421,8 +421,11 @@ In the layout: `layers.<id> { x, y, z, parallax: [x, y], blend, opacity }`, `occ
 z, feather?, invert? }` (what hides a character standing deeper than `z`: a pillar, a counter, a window frame),
 `walkZones.<id> { area, holes?, scale?, zoom? }` (several floors; they replace `walk`), `walkLinks.<id> { from: { zone,
 at }, to: { zone, at }, mode: walk | stairs | ladder | jump | teleport, ms?, facing?, oneWay? }`, `lights.<id> { at,
-radius }`, `emitters.<id> { area }`. A link that is closed cannot be walked; when it gates a puzzle, the puzzle is a
-rule (the link only stops the walk). `renderer: 'canvas'` (on the room or the game) chooses the Canvas painter: masks
+radius }`, `emitters.<id> { area }`. A link that is closed cannot be walked: the hero walks to its foot, says its
+`locked` line, and the action goes on from there, so the rules of what stands behind it must check the same condition
+(`npm run lint` warns, `walk-link-gate`): the puzzle is the rule, the link only stops the walk. Each zone scales the
+characters by its own depth line (`scale`) and can zoom the camera (`zoom`, 1–2: a balcony seen closer); a zoomed
+camera also moves up and down to keep the hero in view. `renderer: 'canvas'` (on the room or the game) chooses the Canvas painter: masks
 from images or layers, lights, particles and blend modes are drawn only by it (`npm run validate` says so on a DOM
 room). An old room is a stage of one backdrop (`decor`) and one zone (`walk`, named `main`): nothing to rewrite.
 

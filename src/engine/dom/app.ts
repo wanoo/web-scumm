@@ -214,6 +214,8 @@ export class App implements Presenter {
     const forced = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('renderer') : null;
     if (forced === 'canvas' || forced === 'dom') this.view.forced = forced;
     this.view.onSurface = (el, old) => { if (old.parentElement) old.replaceWith(el); else this.scene?.prepend(el); };
+    // A walk stopped before a closed link: its refusal (`stage.links[id].locked`), the way an exit's `locked` is said.
+    this.view.onBlocked = (l) => { if (l.locked) this.toast(l.locked); };
     this.engine.autoScripts = true;
     this.engine.clock = () => performance.now();
     this.engine.onChange = () => this.refresh();
@@ -364,7 +366,7 @@ export class App implements Presenter {
 
   private toScene(e: PointerEvent): Point {
     const r = this.scene.getBoundingClientRect();
-    return [((e.clientX - r.left) / r.width) * 640 + this.view.cam, ((e.clientY - r.top) / r.height) * 400];
+    return this.view.toLogical((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
   }
 
   // ================================================================== interaction
@@ -450,7 +452,8 @@ export class App implements Presenter {
     const b = this.view.box(id);
     if (!b) return;
     const l = el('div', 'label', esc(this.engine.nameOf(id)));
-    l.style.left = `${(b[0] + b[2] / 2 - this.view.cam) * this.u}px`; l.style.top = `${Math.max(14, b[1] - 2) * this.u}px`;
+    const [lx, ly] = this.view.toScreen([b[0] + b[2] / 2, b[1] - 2]);
+    l.style.left = `${lx}px`; l.style.top = `${Math.max(14 * this.u, ly)}px`;
     this.scene.append(l); this.labelEl = l;
   }
 
@@ -537,8 +540,9 @@ export class App implements Presenter {
       const maxW = Math.min(0.62 * this.sw, 390 * this.u);
       box.style.maxWidth = `${maxW}px`;
       const half = maxW / 2 / this.u + 6;
-      box.style.left = `${Math.max(half, Math.min(640 - half, head[0] - this.view.cam)) * this.u}px`;
-      box.style.top = `${Math.max(head[1], 70) * this.u}px`;
+      const [hx, hy] = this.view.toScreen(head);
+      box.style.left = `${Math.max(half, Math.min(640 - half, hx / this.u)) * this.u}px`;
+      box.style.top = `${Math.max(hy / this.u, 70) * this.u}px`;
       this.view.setTalking(who, text.length > 70);
     }
     const next = el('button', 'tapnext', '▼'); next.setAttribute('aria-label', this.t('advance')); next.tabIndex = -1;
@@ -647,7 +651,8 @@ export class App implements Presenter {
     if (!b) return;
     const s = el('img', 'spark') as HTMLImageElement;
     s.src = this.bank.img(spark); s.alt = '';
-    s.style.width = `${22 * this.u}px`; s.style.left = `${(b[0] + b[2] / 2 - this.view.cam) * this.u}px`; s.style.top = `${(b[1] + b[3] / 2) * this.u}px`;
+    const [sx, sy] = this.view.toScreen([b[0] + b[2] / 2, b[1] + b[3] / 2]);
+    s.style.width = `${22 * this.u}px`; s.style.left = `${sx}px`; s.style.top = `${sy}px`;
     this.scene.append(s); this.sparkEl = s;
   }
 

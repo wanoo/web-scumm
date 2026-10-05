@@ -68,8 +68,8 @@ export interface SceneRenderer {
   reset(backdrop: string, width: number): void;
   /** Adds or updates a sprite. */
   sprite(s: SpriteSpec): void;
-  /** The camera's left edge, logical units. */
-  camera(x: number, width: number): void;
+  /** The camera: its left and top edges (logical units) and its zoom (1: a 640 × 400 view; 1.5: a 427 × 267 one). */
+  camera(x: number, width: number, y?: number, zoom?: number): void;
   /** Pixels per logical unit. */
   resize(u: number): void;
   /** The room's stage (after `reset`, and again when a condition changes what shows). */

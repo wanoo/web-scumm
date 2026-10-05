@@ -488,7 +488,10 @@ export class AssetsTab {
     };
     const svg = el('svg', { viewBox: '0 0 640 400', preserveAspectRatio: 'none', class: 'as-over', role: 'img', 'aria-label': `Spots of ${room}` }) as SVGSVGElement;
     svg.append(el('rect', { x: 0, y: 232, width: 640, height: 148, class: 'band' }));
-    if (L.walk?.area?.length) svg.append(el('polygon', { points: L.walk.area.map((p) => p.join(',')).join(' '), class: 'walk' }));
+    if (L.walk?.area?.length && !L.walkZones) svg.append(el('polygon', { points: L.walk.area.map((p) => p.join(',')).join(' '), class: 'walk' }));
+    // Several floors (3.4): each zone, and each link as a line between its two ends.
+    for (const z of Object.values(L.walkZones ?? {})) svg.append(el('polygon', { points: z.area.map((p) => p.join(',')).join(' '), class: 'walk' }));
+    for (const [id, k] of Object.entries(L.walkLinks ?? {})) svg.append(el('line', { x1: k.from.at[0], y1: k.from.at[1], x2: k.to.at[0], y2: k.to.at[1], class: 'link', 'data-link': id, stroke: '#ffd84d', 'stroke-width': 2, 'stroke-dasharray': '4 3' }));
     const label = (x: number, y: number, t: string, cls: string) => svg.append(el('text', { x, y, class: cls }, t));
     for (const [id, g] of Object.entries(L.hotspots ?? {})) {
       if (g.rect) { svg.append(el('rect', { x: g.rect[0], y: g.rect[1], width: g.rect[2], height: g.rect[3], class: 'hs' })); label(g.rect[0] + 3, g.rect[1] + 11, id, 'hst'); }

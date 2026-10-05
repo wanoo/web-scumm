@@ -3,7 +3,8 @@
 // items nothing needs, hints that cannot fire; from a solver run: live actions never run, rooms never reached. Each
 // finding names its content path (the Rooms tab's `data-path`) and the stable id when there is one, and says what
 // to do. `GameDef.lint.ignore` silences a code, or a code for one thing.
-import type { Cond, GameDef, Id, Layout, Rule } from '../core/types';
+import type { Cond, GameDef, Id, Layout, Point, Rule } from '../core/types';
+import { inPolygon, stageOf } from '../core/stage';
 import type { CustomCommands } from '../core/custom';
 import { condAtoms, type CondAtom } from '../core/cond';
 import { atomNodeId, liveClasses, puzzleGraph, puzzleIssues, type PuzzleGraph } from './puzzle';
@@ -53,7 +54,7 @@ function unsatisfiable(c: Cond | undefined, room: Id | undefined, produced: Set<
 }
 const atomText = (a: CondAtom) => a.kind === 'has' ? `item "${a.id}"` : a.kind === 'unlocked' ? `place "${a.id}"` : `flag "${a.id}"`;
 
-export function lintContent(game: GameDef, _layouts: Record<Id, Layout>, opts: LintOptions = {}): LintResult {
+export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: LintOptions = {}): LintResult {
   const g = puzzleGraph(game, { commands: opts.commands as Record<string, { effects?: unknown[] }> | undefined });
   const produced = producers(game, g);
   const classes = liveClasses(g);
@@ -168,6 +169,33 @@ export function lintContent(game: GameDef, _layouts: Record<Id, Layout>, opts: L
     }
     const reached = new Set(s.roomsReached);
     for (const r of game.rooms) if (!reached.has(r.id)) add({ code: 'room-never-reached', severity: sev, where: { room: r.id, path: 'id' }, message: `the ${search} never entered it`, fix: proved ? 'an exit, a `goto` or a map place must lead there' : unreachableFix('its exits'), solver: mode });
+  }
+
+  // ---- walk links (3.4): a closed link stops the walk, never the action, so the rules of a target standing behind a
+  // gated link must be gated by the same condition, else the hero acts from the other side of a shut gate.
+  for (const r of game.rooms) {
+    const L = layouts[r.id];
+    if (!L?.walkZones) continue;
+    const S = stageOf(r, L);
+    const gated = S.links.filter((l) => l.if !== undefined);
+    if (!gated.length) continue;
+    const startZone = S.zones.find((z) => L.entries?.default && inPolygon(L.entries.default, z.area))?.id ?? S.zones[0]?.id;
+    const free = new Set([startZone]);
+    for (let grew = true; grew;) { grew = false; for (const k of S.links) if (k.if === undefined) for (const [a, b] of [[k.from.zone, k.to.zone], ...(k.oneWay ? [] : [[k.to.zone, k.from.zone]])]) if (free.has(a) && !free.has(b)) { free.add(b); grew = true; } }
+    const spot = (id: Id): Point | null => {
+      const h = L.hotspots?.[id]; if (h?.approach) return h.approach; if (h?.rect) return [h.rect[0] + h.rect[2] / 2, h.rect[1] + h.rect[3]]; if (h?.poly) return h.poly[0];
+      const p = L.props?.[id] ?? L.actors?.[id]; return p ? (p.approach ?? [p.x, p.y]) : null;
+    };
+    const zoneOf = (p: Point) => S.zones.find((z) => inPolygon(p, z.area))?.id;
+    (r.on ?? []).forEach((rule, i) => {
+      for (const t of [...asList(rule.a), ...asList(rule.b)]) {
+        const p = spot(t); const z = p ? zoneOf(p) : undefined;
+        if (!z || free.has(z)) continue;
+        const ways = gated.filter((l) => l.from.zone === z || l.to.zone === z);
+        const has = (c: Cond) => JSON.stringify(rule.if ?? null).includes(JSON.stringify(c));
+        if (ways.length && !ways.some((l) => has(l.if!))) add({ code: 'walk-link-gate', severity: 'warning', where: { room: r.id, path: `on[${i}]`, ...(rule.id ? { id: rule.id } : {}) }, message: `"${t}" stands behind the walk link${ways.length > 1 ? 's' : ''} ${ways.map((l) => `"${l.id}"`).join(', ')}, which a condition closes; this rule does not check it, so the hero would act from the other side`, fix: `add the link's condition to the rule's \`if\` (${JSON.stringify(ways[0].if)})` });
+      }
+    });
   }
 
   // ---- ignore list: `code`, `code:<id>`, `code:<room>/<path>`

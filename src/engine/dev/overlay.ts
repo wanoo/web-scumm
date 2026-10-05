@@ -48,7 +48,7 @@ export class Overlay {
 
   toLogical(e: { clientX: number; clientY: number }): Point {
     const r = this.app.scene.getBoundingClientRect();
-    return [((e.clientX - r.left) / r.width) * 640 + this.app.view.cam, ((e.clientY - r.top) / r.height) * 400];
+    return this.app.view.toLogical((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
   }
 
   setVisible(v: boolean) { this.visible = v; this.svg.style.display = v ? '' : 'none'; if (v) this.draw(); }
@@ -94,8 +94,11 @@ export class Overlay {
       });
     }
 
+    // several floors (3.4): every walk zone, and each link between its ends (the single `walk` below when there are none)
+    for (const z of Object.values(L.walkZones ?? {})) for (const [ri, ring] of [z.area, ...(z.holes ?? [])].entries()) poly(ring, { fill: ri ? 'rgba(255,60,60,.18)' : 'rgba(80,220,120,.12)', stroke: ri ? '#ff5050' : '#50dc78', 'stroke-width': 1.5 });
+    for (const k of Object.values(L.walkLinks ?? {})) poly([k.from.at, k.to.at], { fill: 'none', stroke: '#ffd84d', 'stroke-width': 2, 'stroke-dasharray': '4 3' });
     // walkable zone
-    if (L.walk) {
+    if (L.walk && !L.walkZones) {
       const rings: Point[][] = [L.walk.area, ...(L.walk.holes ?? [])];
       rings.forEach((ring, ri) => {
         const hole = ri - 1;

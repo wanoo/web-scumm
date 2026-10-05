@@ -199,7 +199,9 @@ ne dit pas fort (il répond « ça se finit ? ») : depuis le graphe de puzzles,
 n'exige (`item-red-herring`) ou que rien ne donne (`item-never-gained`), un indice qui attend ce que rien ne pose
 (`hint-stuck`, une erreur) ou qui a le même `until` qu'un indice antérieur (`hint-never-fires`), un sujet, une option
 de choix ou un écouteur morts, un choix à une seule option, une sortie conditionnée sans ligne `locked`, une action
-qui ne change que ce que rien de vivant ne lit (`action-dead`, info) ; après une passe du solveur, une action vivante
+qui ne change que ce que rien de vivant ne lit (`action-dead`, info), une cible derrière un lien de marche qu'une
+condition ferme et dont la règle ne vérifie pas cette condition (`walk-link-gate` : le lien arrête la marche, jamais
+l'action) ; après une passe du solveur, une action vivante
 que le témoin n'a jamais jouée et un lieu jamais atteint (`rule-never-run`, `room-never-reached` : info avec le
 témoin, avertissements avec un `--prove` mené à terme ; une preuve tronquée les garde en info et le dit, elle ne
 déclare jamais rien inatteignable), et une action vivante jouée sans jamais changer l'état (`rule-no-effect`, info :

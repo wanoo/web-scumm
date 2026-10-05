@@ -1,16 +1,18 @@
 import earcut from 'earcut';
 import NavMesh from 'navmesh';
 import type { Layout, Point } from '../core/types';
+import { inPolygon, stageOf, type NormalLink, type NormalZone } from '../core/stage';
 
-/** A room's walkable zone: triangulated once, then shortest paths between two points. */
+/** A walkable zone: triangulated once, then shortest paths between two points. */
 export class WalkArea {
   private mesh: NavMesh | null = null;
   private tris: Point[][] = [];
   /** Boundary edges (outer polygon and holes), for line-of-sight tests. */
   private edges: [Point, Point][] = [];
 
-  constructor(layout: Layout) {
-    const w = layout.walk;
+  /** A layout's single `walk` polygon, or a zone `{ area, holes }`. */
+  constructor(layoutOrZone: Layout | { area: Point[]; holes?: Point[][] }) {
+    const w = 'area' in layoutOrZone ? layoutOrZone as { area: Point[]; holes?: Point[][] } : (layoutOrZone as Layout).walk;
     if (!w || w.area.length < 3) return;
     const flat: number[] = [];
     const holes: number[] = [];
@@ -85,3 +87,92 @@ export function depthScale(layout: Layout, y: number): number {
   const t = Math.max(0, Math.min(1, (y - y0) / (y1 - y0)));
   return s0 + (s1 - s0) * t;
 }
+
+/** One move of a walk: to a point, either walking or through a link (stairs, a ladder, a jump, a teleport). */
+export interface WalkStep { to: Point; via?: NormalLink }
+
+/**
+ * A room's floors (3.4): its walk zones (`layout.walkZones`, else the single `walk` as zone `main`) joined by its
+ * walk links. A path inside a zone is the zone's shortest path; across zones, the fewest links, then walking to each
+ * link's start, crossing it (its mode, duration and facing), and on. A closed link (`stage.links[id].if`) is not
+ * crossed: the walk stops before it (`blocked`). Each zone has its own depth scale. Presentation only: the solver and
+ * the rules never read it.
+ */
+export class WalkTopology {
+  readonly zones: NormalZone[];
+  readonly links: NormalLink[];
+  private areas = new Map<string, WalkArea>();
+
+  constructor(private layout: Layout, room?: Parameters<typeof stageOf>[0]) {
+    const S = stageOf(room ?? ({ id: '', name: '', decor: '' } as Parameters<typeof stageOf>[0]), layout);
+    this.zones = S.zones;
+    this.links = S.links;
+    for (const z of this.zones) this.areas.set(z.id, new WalkArea(z));
+  }
+
+  /** The zone a point stands in (else the nearest one), or null when the room has no zone at all. */
+  zoneAt(p: Point): NormalZone | null {
+    if (!this.zones.length) return null;
+    const inside = this.zones.filter((z) => inPolygon(p, z.area) && !z.holes.some((h) => inPolygon(p, h)));
+    if (inside.length) return inside.reduce((a, b) => (b.elevation > a.elevation ? b : a));
+    let best = this.zones[0], bd = Infinity;
+    for (const z of this.zones) { const q = this.areas.get(z.id)!.clamp(p); const d = (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2; if (d < bd) { bd = d; best = z; } }
+    return best;
+  }
+
+  /** The closest walkable point (in the point's zone). */
+  clamp(p: Point): Point { const z = this.zoneAt(p); return z ? this.areas.get(z.id)!.clamp(p) : p; }
+
+  /** Character scale at a point: its zone's `scale`, else the layout's. */
+  scaleAt(p: Point): number {
+    const z = this.zoneAt(p);
+    return depthScale({ scale: z?.scale ?? this.layout.scale }, p[1]);
+  }
+
+  /**
+   * The steps from one point to another. `open` says whether a link can be crossed now (its condition). When the
+   * target's zone cannot be reached, the walk goes as near as it can and `blocked` is the closed link in the way.
+   */
+  route(from: Point, to: Point, open: (link: NormalLink) => boolean = () => true): { steps: WalkStep[]; blocked?: NormalLink } {
+    const za = this.zoneAt(from), zb = this.zoneAt(to);
+    if (!za || !zb) return { steps: [{ to }] };
+    const inZone = (z: NormalZone, a: Point, b: Point): WalkStep[] => this.areas.get(z.id)!.path(a, b).map((p) => ({ to: p }));
+    if (za.id === zb.id) return { steps: inZone(za, from, to) };
+    // Fewest links (breadth first), only through open ones; remember a closed one met on the way.
+    const prev = new Map<string, { zone: string; link: NormalLink; forward: boolean }>();
+    const seen = new Set([za.id]);
+    let blocked: NormalLink | undefined;
+    for (let frontier = [za.id]; frontier.length && !seen.has(zb.id);) {
+      const next: string[] = [];
+      for (const zid of frontier) for (const l of this.links) for (const forward of [true, false]) {
+        if (!forward && l.oneWay) continue;
+        const [a, b] = forward ? [l.from.zone, l.to.zone] : [l.to.zone, l.from.zone];
+        if (a !== zid || seen.has(b)) continue;
+        if (!open(l)) { blocked ??= l; continue; }
+        seen.add(b); prev.set(b, { zone: a, link: l, forward }); next.push(b);
+      }
+      frontier = next;
+    }
+    // Unreachable: as far as the walk can go, the foot of the closed link in the way (else the nearest point of the
+    // starting zone).
+    let goal = zb.id, last: Point = to;
+    if (!seen.has(zb.id)) {
+      const near = blocked && (seen.has(blocked.from.zone) ? blocked.from : seen.has(blocked.to.zone) ? blocked.to : null);
+      if (!near) return { steps: inZone(za, from, this.areas.get(za.id)!.clamp(to)), ...(blocked ? { blocked } : {}) };
+      goal = near.zone; last = near.at;
+    }
+    const chain: { zone: string; link: NormalLink; forward: boolean }[] = [];
+    for (let z = goal; z !== za.id;) { const p = prev.get(z)!; chain.unshift(p); z = p.zone; }
+    const steps: WalkStep[] = [];
+    let at = from, zone = za;
+    for (const { link, forward } of chain) {
+      const [start, end] = forward ? [link.from, link.to] : [link.to, link.from];
+      steps.push(...inZone(zone, at, start.at));
+      steps.push({ to: end.at, via: link });
+      at = end.at; zone = this.zones.find((z) => z.id === end.zone)!;
+    }
+    steps.push(...inZone(zone, at, last));
+    return { steps, ...(goal !== zb.id && blocked ? { blocked } : {}) };
+  }
+}
+

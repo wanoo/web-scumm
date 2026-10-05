@@ -74,14 +74,23 @@ export class CanvasRenderer implements SceneRenderer {
     this.invalidate();
   }
 
-  camera(x: number, width: number) {
-    const moved = x !== this.cam;
-    this.cam = x;
+  camera(x: number, width: number, y = 0, zoom = 1) {
+    const moved = x !== this.cam || y !== this.camY || zoom !== this.zoom;
+    this.cam = x; this.camY = y; this.zoom = zoom;
     if (width !== this.width) { this.width = width; this.bgCache = null; this.masks.clear(); this.cuts.clear(); }
-    this.el.style.transform = width > 640 ? `translateX(${-x * this.u}px)` : '';
-    this.canvas.style.transform = width > 640 ? `translateX(${x * this.u}px)` : '';
+    // The room moves (and zooms) like the DOM painter's; the canvas undoes it, pinned to the viewport.
+    this.el.style.transformOrigin = '0 0'; this.canvas.style.transformOrigin = '0 0';
+    if (zoom === 1 && !y) {
+      this.el.style.transform = width > 640 ? `translateX(${-x * this.u}px)` : '';
+      this.canvas.style.transform = width > 640 ? `translateX(${x * this.u}px)` : '';
+    } else {
+      this.el.style.transform = `translate(${-x * this.u * zoom}px, ${-y * this.u * zoom}px) scale(${zoom})`;
+      this.canvas.style.transform = `scale(${1 / zoom}) translate(${x * this.u * zoom}px, ${y * this.u * zoom}px)`;
+    }
     if (moved) this.invalidate();
   }
+  private camY = 0;
+  private zoom = 1;
 
   resize(u: number) { this.u = u; this.size(); this.bgCache = null; this.masks.clear(); this.cuts.clear(); this.invalidate(); }
 
@@ -148,9 +157,9 @@ export class CanvasRenderer implements SceneRenderer {
   /** Copies the visible part of a room-wide canvas onto the viewport, pixel for pixel. */
   private blit(src: HTMLCanvasElement) {
     // The camera's offset as it is, fractions included: the DOM painter translates its room by the same amount.
-    const c = this.ctx, sx = this.cam * this.k;
+    const c = this.ctx, sx = this.cam * this.k, sy = this.camY * this.k;
     c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
-    c.drawImage(src, sx, 0, this.canvas.width, this.canvas.height, 0, 0, this.canvas.width, this.canvas.height);
+    c.drawImage(src, sx, sy, this.canvas.width / this.zoom, this.canvas.height / this.zoom, 0, 0, this.canvas.width, this.canvas.height);
     c.restore();
   }
 
@@ -162,8 +171,9 @@ export class CanvasRenderer implements SceneRenderer {
     c.imageSmoothingEnabled = this.smooth;
     const bg = this.background();
     if (bg) this.blit(bg);
-    // From here, room coordinates: the camera's left edge at the canvas's left edge.
-    c.setTransform(k, 0, 0, k, -cam * k, 0);
+    // From here, room coordinates: the camera's corner at the canvas's corner, zoomed.
+    const kz = k * this.zoom;
+    c.setTransform(kz, 0, 0, kz, -cam * kz, -this.camY * kz);
     // Shadows, sprites, layers and occluders, by depth (a shadow sits just under its character), then by arrival.
     const items: { z: number; o: number; draw: () => void }[] = [];
     const st = this.st;
@@ -174,7 +184,7 @@ export class CanvasRenderer implements SceneRenderer {
       st.lights.forEach((l, i) => { if (l.visible) items.push({ z: lightZ, o: i, draw: () => {
         c.save();
         c.globalCompositeOperation = l.blend;
-        if (l.kind === 'ambient' || !l.at || !l.radius) { c.globalAlpha = l.intensity; c.fillStyle = l.color; c.fillRect(cam, 0, 640, H); }
+        if (l.kind === 'ambient' || !l.at || !l.radius) { c.globalAlpha = l.intensity; c.fillStyle = l.color; c.fillRect(cam, this.camY, 640 / this.zoom, H / this.zoom); }
         else { const g = c.createRadialGradient(l.at[0], l.at[1], 0, l.at[0], l.at[1], l.radius); g.addColorStop(0, l.color); g.addColorStop(1, 'rgba(0,0,0,0)'); c.globalAlpha = l.intensity; c.fillStyle = g; c.fillRect(l.at[0] - l.radius, l.at[1] - l.radius, l.radius * 2, l.radius * 2); }
         c.restore();
       } }); });
@@ -183,7 +193,7 @@ export class CanvasRenderer implements SceneRenderer {
     for (const { s, order } of this.sprites.values()) {
       if (!s.url || !s.visible) continue;
       // Off screen: nothing to draw (a wide room's far end).
-      if (s.fx + s.w / 2 < cam - 2 || s.fx - s.w / 2 > cam + 642) continue;
+      if (s.fx + s.w / 2 < cam - 2 || s.fx - s.w / 2 > cam + 640 / this.zoom + 2) continue;
       const alpha = s.opacity;
       if (s.shadow?.visible) { const sh = s.shadow; items.push({ z: sh.z, o: order, draw: () => { c.globalAlpha = alpha; c.fillStyle = 'rgba(25, 5, 35, .35)'; c.beginPath(); c.ellipse(sh.x + sh.w / 2, sh.y + sh.h / 2, sh.w / 2, sh.h / 2, 0, 0, Math.PI * 2); c.fill(); } }); }
       const im = this.image(s.url);
@@ -195,9 +205,9 @@ export class CanvasRenderer implements SceneRenderer {
         if (!s.rot && !s.flipV) {
           // Like the DOM's layout, an upright sprite's box is snapped to device pixels in the room, before the camera's
           // translation (which, like the DOM room's, keeps its fractions).
-          const snap = (v: number) => Math.round(v * k) / k;
+          const snap = (v: number) => Math.round(v * kz) / kz;
           const x0 = snap(s.fx - s.w / 2), x1 = snap(s.fx + s.w / 2);
-          const y0 = Math.round((s.fy - s.h - s.bob) * k) / k, y1 = Math.round((s.fy - s.bob) * k) / k;
+          const y0 = snap(s.fy - s.h - s.bob), y1 = snap(s.fy - s.bob);
           if (s.flip) { c.translate(x0 + x1, 0); c.scale(-1, 1); }
           c.drawImage(im, x0, y0, x1 - x0, y1 - y0);
         } else {

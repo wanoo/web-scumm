@@ -61,10 +61,12 @@ export class DomRenderer implements SceneRenderer {
     if (shadow && s.shadow) Object.assign(shadow.style, { display: s.shadow.visible ? '' : 'none', left: `${s.shadow.x * u}px`, top: `${s.shadow.y * u}px`, width: `${s.shadow.w * u}px`, height: `${s.shadow.h * u}px`, zIndex: String(Math.round(s.shadow.z)) });
   }
 
-  camera(x: number, width: number) {
+  camera(x: number, width: number, y = 0, zoom = 1) {
     this.width = width;
     this.cam = x;
-    this.el.style.transform = width > 640 ? `translateX(${-x * this.u}px)` : '';
+    // Zoom 1 and no vertical move: the same translation as ever (the old rooms' pictures do not change).
+    this.el.style.transformOrigin = '0 0';
+    this.el.style.transform = zoom === 1 && !y ? (width > 640 ? `translateX(${-x * this.u}px)` : '') : `translate(${-x * this.u * zoom}px, ${-y * this.u * zoom}px) scale(${zoom})`;
     if (this.st?.layers.some((l) => l.parallax[0] !== 1)) this.placeStage();
   }
 
