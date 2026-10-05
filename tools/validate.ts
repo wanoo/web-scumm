@@ -18,7 +18,7 @@ import { loadAssets, loadLayouts, loadLocales } from '../src/engine/tools/load';
 import { ASSETS_DIR, GAME, GAME_DIR, loadGameModule } from './game';
 import { assetPath } from '../src/engine/tools/provenance';
 import { stemErrors } from '../src/engine/tools/stems';
-import { stemFacts } from './stem-facts';
+import { hasFfprobe, stemFacts } from './stem-facts';
 
 const mod = await loadGameModule();
 const game = mod.game;
@@ -55,7 +55,8 @@ if (existsSync(provFile) && assets) {
 } else if (release) errors.push('provenance.json › missing: a release says where every asset comes from (docs/en/TOOLS.md "Asset provenance")');
 // The scores' stem files (3.6): the same rate, channels and samples, the loop inside them, pcmBytes as decoded. The
 // built files (npm run assets), measured with ffprobe.
-if (release) for (const [id, sc] of Object.entries(game.audio?.scores ?? {})) {
+if (release && game.audio?.scores && !hasFfprobe()) errors.push('audio.scores › ffprobe not found: a release measures the stem files (install ffmpeg, npm run doctor)');
+else if (release) for (const [id, sc] of Object.entries(game.audio?.scores ?? {})) {
   errors.push(...stemErrors(id, sc, Object.fromEntries(Object.entries(sc.stems).map(([s, f]) => [s, stemFacts(resolve(ASSETS_DIR, assetPath(`music:${f}`)!))]))));
 }
 const quiet = process.argv.includes('--errors');

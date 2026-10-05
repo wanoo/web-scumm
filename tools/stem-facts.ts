@@ -4,6 +4,9 @@ import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import type { StemFacts } from '../src/engine/tools/stems';
 
+/** Whether ffprobe runs here (`npm run doctor` checks ffmpeg). */
+export const hasFfprobe = () => spawnSync('ffprobe', ['-version']).status === 0;
+
 export function stemFacts(path: string): StemFacts | null {
   if (!existsSync(path)) return null;
   const p = spawnSync('ffprobe', ['-v', 'error', '-select_streams', 'a:0', '-show_entries', 'stream=sample_rate,channels,duration_ts,time_base', '-of', 'json', path], { encoding: 'utf8' });
