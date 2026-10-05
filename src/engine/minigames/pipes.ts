@@ -1,3 +1,4 @@
+import { MINIGAME_META } from './meta';
 import type { Minigame, MinigameCtx } from './types';
 import { arrowFocus, el, finisher, num, skipButton, stage, str } from './util';
 
@@ -70,8 +71,7 @@ export function fits(c: Cell): boolean {
 }
 
 export const pipes: Minigame = {
-  required: ['tiles', 'source', 'nozzle', 'tank'],
-  textParams: ['intro', 'win'],
+  ...MINIGAME_META.pipes,
   run(ctx: MinigameCtx) {
     const p = ctx.params;
     const t = (p.tiles && typeof p.tiles === 'object' ? p.tiles : {}) as Record<string, unknown>;

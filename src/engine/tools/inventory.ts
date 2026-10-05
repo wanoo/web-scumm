@@ -92,3 +92,33 @@ export function manifestMatches(manifest: ManifestEntry[], lock: ProvenanceLock)
   const keys = Object.keys(lock.assets);
   return manifest.length === keys.length && manifest.every((m) => lock.assets[m.key]?.sha256 === m.sha256);
 }
+
+/** The scripts a first visit runs before anything is asked for (3.9): the page's module entry and preloads. */
+export function entryScripts(html: string): string[] {
+  const out: string[] = [];
+  for (const m of html.matchAll(/<script[^>]*type="module"[^>]*src="([^"]+)"/g)) out.push(m[1]);
+  for (const m of html.matchAll(/<link[^>]*rel="modulepreload"[^>]*href="([^"]+)"/g)) out.push(m[1]);
+  return out;
+}
+
+/** The chunks a built module imports statically (`import … from "./x.js"`, `import "./x.js"`), never `import()`. */
+export function staticImports(code: string): string[] {
+  const out = new Set<string>();
+  for (const m of code.matchAll(/(?:^|[;}\n])\s*(?:import|export)\s*(?:[\w$*{}\s,]+?\s*from\s*)?["'](\.\/[^"']+\.js)["']/g)) out.add(m[1].slice(2));
+  return [...out];
+}
+
+/** Every chunk of `assets/` a first visit loads: the entries, then what they import statically, transitively. */
+export function initialChunks(html: string, read: (path: string) => string | null): string[] {
+  const seen = new Set<string>();
+  const queue = entryScripts(html).map((s) => s.replace(/^.*?assets\//, 'assets/'));
+  while (queue.length) {
+    const p = queue.shift()!;
+    if (seen.has(p)) continue;
+    const code = read(p);
+    if (code === null) continue;
+    seen.add(p);
+    for (const i of staticImports(code)) queue.push(p.replace(/[^/]+$/, '') + i);
+  }
+  return [...seen];
+}

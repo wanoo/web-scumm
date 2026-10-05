@@ -1,3 +1,4 @@
+import { MINIGAME_META } from './meta';
 import type { Minigame, MinigameCtx } from './types';
 import { arrowFocus, el, finisher, num, operable, put, skipButton, sleep, stage, str } from './util';
 
@@ -6,8 +7,7 @@ import { arrowFocus, el, finisher, num, operable, put, skipButton, sleep, stage,
 interface Spot { img: string; x: number; y: number; h: number; reply?: string; found?: string; flip?: boolean }
 
 export const hide: Minigame = {
-  required: ['spots'],
-  textParams: ['intro', 'win', 'spots.*.reply'],
+  ...MINIGAME_META.hide,
   run(ctx: MinigameCtx) {
     const p = ctx.params;
     const spots = (Array.isArray(p.spots) ? p.spots : []) as Spot[];

@@ -1,3 +1,4 @@
+import { MINIGAME_META } from './meta';
 import type { Minigame, MinigameCtx } from './types';
 import { arrowFocus, el, finisher, sleep, skipButton, stage, str } from './util';
 
@@ -8,8 +9,7 @@ import { arrowFocus, el, finisher, sleep, skipButton, stage, str } from './util'
 interface Round { prompt?: string; options: string[]; answer: number }
 
 export const pick: Minigame = {
-  required: ['rounds'],
-  textParams: ['rounds.*.prompt', 'decoyLine', 'wrongLine', 'win'],
+  ...MINIGAME_META.pick,
   async run(ctx: MinigameCtx) {
     const p = ctx.params;
     const rounds = Array.isArray(p.rounds) ? (p.rounds as Round[]) : [];

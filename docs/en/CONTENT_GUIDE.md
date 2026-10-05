@@ -719,7 +719,8 @@ keeps only the current room and its neighbours); `assetBudgets` sizes the batche
 `assetBudgets.initialKB`, `roomKB` and `chapterKB` say how much the game may ask a phone to download before the first
 room is playable, per room and per chapter. With a score, `backgroundScoreKB` (its stems), `decodedAudioMB` (decoded),
 and for every game `offlineTotalKB` (the full warm-up) hold the rest (3.6); with transitions, `transitionPeakMB` (two
-scores, a bridge and a stinger decoded at once, 3.6.1). `npm run weight` checks them, and a release
+scores, a bridge and a stinger decoded at once, 3.6.1); `initialJsKB` the JavaScript of a first visit (3.9, checked on
+the build by `npm run verify:dist`). `npm run weight` checks them, and a release
 requires them (docs/en/TOOLS.md).
 
 ## Available minigames

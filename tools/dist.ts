@@ -4,9 +4,10 @@
 // `seal <dir>` (vite.config.ts runs it after every build): removes from <dir>/assets the files that are not this
 // game's, then writes <dir>/licenses/ (engine and asset licences, credits, third-party notices, assets manifest).
 import { createHash } from 'node:crypto';
+import { gzipSync } from 'node:zlib';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
-import { assetsManifest, inventory, manifestMatches, strayAssets, type ManifestEntry } from '../src/engine/tools/inventory';
+import { assetsManifest, initialChunks, inventory, manifestMatches, strayAssets, type ManifestEntry } from '../src/engine/tools/inventory';
 import { GAME, GAME_DIR, ROOT, loadGameModule } from './game';
 import { LOCK, PROVENANCE, readJson, shippedKeys, type Provenance, type ProvenanceLock } from './provenance-files';
 
@@ -94,15 +95,21 @@ const files: Record<string, { sha256: string }> = {};
 for (const p of walk(dir)) files[rel(p)] = { sha256: sha(p) };
 const r = inventory({ files, lock, data, studio: existsSync(resolve(dir, 'studio.html')) });
 const manifest = readJson<{ assets: ManifestEntry[] }>(resolve(dir, 'licenses/assets-manifest.json'));
+// The JavaScript of a first visit, gzipped (3.9): held to `assetBudgets.initialJsKB` when the game sets it.
+const html = existsSync(resolve(dir, 'index.html')) ? readFileSync(resolve(dir, 'index.html'), 'utf8') : '';
+const initial = initialChunks(html, (p) => (existsSync(resolve(dir, p)) ? readFileSync(resolve(dir, p), 'utf8') : null));
+const initialJsKB = Math.round(initial.reduce((n, p) => n + gzipSync(readFileSync(resolve(dir, p)), { level: 9 }).length, 0) / 1024);
+const jsBudget = game.assetBudgets?.initialJsKB;
 const problems = [
+  ...(jsBudget !== undefined && initialJsKB > jsBudget ? [`first visit's JavaScript: ${initialJsKB} KB gzipped, over initialJsKB ${jsBudget} (${initial.join(', ')})`] : []),
   ...r.extra.map((p) => `${p}: not this game's (no lock entry, not code, not a notice)`),
   ...r.missing.map((p) => `${p}: missing`),
   ...r.changed.map((p) => `${p}: not the file reviewed (its hash differs from provenance.lock.json)`),
   ...(manifest && !manifestMatches(manifest.assets, lock) ? ['licenses/assets-manifest.json: does not match provenance.lock.json'] : []),
 ];
-if (args.includes('--json')) console.log(JSON.stringify({ ...r, problems }));
+if (args.includes('--json')) console.log(JSON.stringify({ ...r, initialJsKB, problems }));
 else {
-  console.log(`[${GAME}] ${relative(ROOT, dir)}: ${Object.keys(files).length} files · ${Object.entries(r.kinds).map(([k, n]) => `${n} ${k}`).join(', ')}`);
+  console.log(`[${GAME}] ${relative(ROOT, dir)}: ${Object.keys(files).length} files · ${Object.entries(r.kinds).map(([k, n]) => `${n} ${k}`).join(', ')} · first visit's JavaScript ${initialJsKB} KB gzipped${jsBudget !== undefined ? ` (initialJsKB ${jsBudget})` : ''}`);
   for (const p of problems.slice(0, 40)) console.log('  ✖ ' + p);
   if (problems.length > 40) console.log(`  … and ${problems.length - 40} more`);
   if (!locked) console.log(`  ℹ no provenance.lock.json: the files are not compared to a review (npm run provenance -- --lock)`);
