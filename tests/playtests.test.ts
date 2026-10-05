@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
-import { analyzePlaytests, playtestsMarkdown } from '@engine/tools/playtests';
-import { parseSessionFile, sessionFile } from '@engine/tools/replay';
+import { analyzePlaytests, playtestsMarkdown, quotaShortfalls } from '@engine/tools/playtests';
+import { deviceFamily, parseSessionFile, sessionFile } from '@engine/tools/replay';
 import { solve } from '@engine/tools/solve';
 import { game as demo, layouts as demoLayouts, commands } from '../games/demo';
 
@@ -93,5 +93,28 @@ describe('the committed demo playtest', () => {
     expect(r.total.entries).toBe(23);
     expect(r.heat['rule:house.use-key-pantry']).toBe(1);
     expect(playtestsMarkdown(r, demo)).toContain('| 23/23 | yes |');
+  });
+});
+
+describe('the field quotas (3.7.1)', () => {
+  const f = (ended: boolean, device?: string, divergedAt?: number) => ({ ended, device, divergedAt });
+  it('none asked: met, even with no session', () => {
+    expect(quotaShortfalls([], {})).toEqual([]);
+  });
+  it('zero sessions miss every quota asked', () => {
+    expect(quotaShortfalls([], { sessions: 5, completed: 3, devices: 2 })).toEqual(['0 session(s), 5 asked', '0 played to the end, 3 asked', '0 device families, 2 asked']);
+  });
+  it('a diverged session counts for nothing; devices are families, counted once', () => {
+    const files = [f(true, 'ios'), f(true, 'ios'), f(false, 'android', 4), f(true, 'desktop'), f(false)];
+    expect(quotaShortfalls(files, { sessions: 4, completed: 3, devices: 2 })).toEqual([]);
+    expect(quotaShortfalls(files, { sessions: 5, completed: 4, devices: 3 })).toEqual(['4 session(s), 5 asked', '3 played to the end, 4 asked', '2 device families, 3 asked']);
+  });
+  it('a session file says its device family, nothing finer', () => {
+    expect(deviceFamily('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)')).toBe('ios');
+    expect(deviceFamily('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 5)).toBe('ios');
+    expect(deviceFamily('Mozilla/5.0 (Linux; Android 15; Pixel 9)')).toBe('android');
+    expect(deviceFamily('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')).toBe('desktop');
+    expect(parseSessionFile(JSON.stringify({ session: { log: [], start: { kind: 'new' } }, device: 'android' })).device).toBe('android');
+    expect(parseSessionFile(JSON.stringify({ session: { log: [], start: { kind: 'new' } }, device: 'Pixel 9' })).device).toBeUndefined();
   });
 });

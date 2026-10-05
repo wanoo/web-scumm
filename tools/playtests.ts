@@ -1,12 +1,15 @@
-// npm run playtests [-- --json] [--strict] [--dir=games/<id>/playtests] [--out=.cache/playtests]
+// npm run playtests [-- --json] [--strict] [--require=N] [--require-completed=N] [--require-devices=N] [--dir=games/<id>/playtests] [--out=.cache/playtests]
 // Replays every playtest of the current game (sessions shared from phones: ids and indices only) and sums them up:
 // time per room, where players stall, hints shown, where they stopped, a heat map on the puzzle graph. A session the
 // content has outgrown (the replay diverges) is reported, not an error: re-record or delete it. No file: exit 0.
-// --strict (the release gate): a diverged session is an error (exit 1): re-record it or delete it.
+// --strict (the release gate): a diverged session is an error (exit 1): re-record it or delete it. It asks for no
+// number of sessions: zero sessions pass it, and it says so. The field quotas (3.7.1, `npm run verify:field`) do:
+// --require=N sessions, --require-completed=N played to the end, --require-devices=N device families (iOS, Android,
+// desktop, from the file); one missed is an error, with no session at all too.
 // --out writes report.md, report.json and heat.svg. --json prints the report on stdout, nothing else.
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
-import { analyzePlaytests, playtestsMarkdown, type PlaytestFile } from '../src/engine/tools/playtests';
+import { analyzePlaytests, playtestsMarkdown, quotaShortfalls, type PlaytestFile, type PlaytestQuotas } from '../src/engine/tools/playtests';
 import { parseSessionFile } from '../src/engine/tools/replay';
 import { puzzleGraph, toPuzzleSvg } from '../src/engine/tools/puzzle';
 import { loadLayouts } from '../src/engine/tools/load';
@@ -20,11 +23,20 @@ const dir = resolve(arg('dir') ?? join(GAME_DIR, 'playtests'));
 const { game, commands } = await loadGameModule();
 const layouts = loadLayouts(resolve(GAME_DIR, 'layout'));
 
+const num = (k: string) => { const v = arg(k); return v === undefined ? undefined : Number(v); };
+const quotas: PlaytestQuotas = { sessions: num('require'), completed: num('require-completed'), devices: num('require-devices') };
+const asked = Object.values(quotas).some((v) => v !== undefined);
+const shortfall = (files: Parameters<typeof quotaShortfalls>[0]) => {
+  const miss = asked ? quotaShortfalls(files, quotas) : [];
+  if (miss.length) { console.error(`✖ [${GAME}] field quotas missed: ${miss.join('; ')}`); process.exitCode = 1; }
+};
+
 const names = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.session.json')).sort() : [];
 if (!names.length) {
   if (asJson) console.log(JSON.stringify({ files: [], total: { files: 0, entries: 0, ms: 0 } }));
-  else console.log(`[${GAME}] no playtests in ${relative(ROOT, dir)} (play on a phone, "Share session" in the pause menu, drop the file there)`);
-  process.exit(0);
+  else console.log(`[${GAME}] no playtests in ${relative(ROOT, dir)} (play on a phone, "Share session" in the pause menu, drop the file there)${strict && !asked ? ': --strict asks for none, 0 sessions checked' : ''}`);
+  shortfall([]);
+  process.exit(process.exitCode ?? 0);
 }
 const files: PlaytestFile[] = [];
 let bad = 0;
@@ -50,6 +62,7 @@ if (strict && report.divergences) {
   console.error(`✖ --strict: ${report.divergences} session(s) no longer replay on this content: ${report.files.filter((f) => f.divergedAt !== undefined).map((f) => `${f.name} (#${f.divergedAt! + 1}: ${f.divergence})`).join(', ')}`);
   process.exitCode = 1;
 }
+shortfall(report.files);
 const out = arg('out');
 if (out) {
   mkdirSync(out, { recursive: true });

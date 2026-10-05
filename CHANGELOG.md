@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- Field quotas for playtests: `--require=N`, `--require-completed=N`, `--require-devices=N` (a diverged session counts
+  for none), and `npm run verify:field` (`verify:commercial`, then 5 sessions, 3 played to the end, 2 device families).
+  `--strict` alone still only refuses a diverged session, and now says when it checked none. A shared session says its
+  device family (`ios`, `android`, `desktop`), nothing finer.
+
 ### Fixed
 
 - The release workflow builds the commit CI tested (`workflow_run.head_sha`), checks that the tag still points there,
