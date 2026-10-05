@@ -4,6 +4,12 @@
 
 ### Added
 
+- The renderer contract (D10): `RoomView` is the scene model (positions, poses, depth, walking, fades, the camera, the
+  hit test) and hands finished sprites to a painter (`SceneRenderer` / `SpriteSpec`, `dom/renderer.ts`); the DOM
+  painter (`dom/render-dom.ts`) is the reference. The rooms render pixel for pixel as before.
+- Visual baselines: `RoomView.still()` freezes the scene; `npm run e2e:visual` (a CI gate) compares every room of the
+  sample game with `tests/visual/demo/*.png`.
+
 - One asset graph (`src/engine/core/asset-graph.ts`): the title, each room, the map, the game-wide rules and the whole
   game, from the content. The renderer's room preload, the background warm-up, the offline plan, provenance and
   `npm run weight` all read it. It counts what the old budget missed (voice clips, minigame images and sounds, music

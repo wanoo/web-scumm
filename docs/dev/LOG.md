@@ -1433,3 +1433,18 @@ maintainer asked for (stems, workers, dominance, Canvas, stage physics, masks). 
 
 → next: Claude · merge on green CI, then v34-renderer-contract
 
+## #61 · 2026-10-05 · Claude · proposal · v34-renderer-contract
+
+- `RoomView` (dom/room.ts) keeps every decision (entities, frames, depth scale, walking, mouths, fades now driven by
+  the model, camera, `hit` / `box` from the model's bounding boxes) and hands `SpriteSpec`s to a `SceneRenderer`
+  (`reset`, `sprite`, `camera`, `resize`, `dispose`). `DomRenderer` paints them as before; `RoomView.el` is the
+  painter's surface (the accessible targets still go in it).
+- Parity: the refactored build and `main`'s build give 0.00% different pixels on the three demo rooms
+  (`scripts/e2e-visual.mjs`, frozen with `still()`, the text over the scene hidden). References in
+  `tests/visual/demo/`; `npm run e2e:visual` in the Chromium full row. `tests/dom/renderer-contract.test.ts`: every
+  entity reaches the painter, the hit test is the same with a recording painter and the DOM one, the DOM painter's
+  styles.
+- `scripts/e2e/png.mjs`: a PNG reader (8-bit RGB/RGBA) and a pixel diff, no image library.
+
+→ next: Claude · merge on green CI, then v34-stage-schema
+

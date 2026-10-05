@@ -116,6 +116,9 @@ jobs:
       # request inside the asset graph's prediction, the total within 10% of it.
       - run: npm run e2e:weight -- http://127.0.0.1:5173/
         if: matrix.browser == 'chromium' && matrix.mode == 'full'
+      # Visual baselines (since 3.4): every room of the sample game, still, against tests/visual/demo/*.png.
+      - run: npm run e2e:visual -- http://127.0.0.1:5173/
+        if: matrix.browser == 'chromium' && matrix.mode == 'full'
       # The accessibility and storage gates (since 3.3): axe on the conversation menu, the map, the save / load slots,
       # the confirmations and every built-in minigame; every minigame won at the keyboard; an older save (v2
       # localStorage, a 3.1.0 IndexedDB record) upgraded and resumed. Blocking in Chromium (keyboard row) and WebKit.
@@ -133,8 +136,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: e2e-screenshots-${{ matrix.browser }}
-          path: /tmp/e2e-${{ matrix.browser }}
+          name: e2e-screenshots-${{ matrix.browser }}-${{ matrix.mode }}
+          path: |
+            /tmp/e2e-${{ matrix.browser }}
+            tests/visual
   pages:
     needs: [check, e2e, second-game]
     if: github.ref == 'refs/heads/main'

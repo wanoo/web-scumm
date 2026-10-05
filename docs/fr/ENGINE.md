@@ -116,6 +116,18 @@ contrôlés », pas « WCAG AA ».
 
 Le choix se fait tout seul (`App.layout`), et se refait si la fenêtre change de taille.
 
+## La scène : un modèle et un peintre
+
+`dom/room.ts` (`RoomView`) est le modèle de scène d'un lieu : qui est où, quelle image de quelle pose, la profondeur,
+la marche, les bouches et les clignements, les fondus, la caméra, et le test de toucher (la plus petite cible visible
+sous le doigt). Il donne chaque entité à un peintre sous forme de sprite fini (`SpriteSpec` dans `dom/renderer.ts` :
+image, position des pieds, taille, profondeur, miroir, rotation, opacité, halo, ombre) et ne lui demande jamais rien
+en retour : deux peintres ne peuvent pas diverger sur ce qu'un toucher atteint. `dom/render-dom.ts` est le peintre DOM,
+la référence (D10) : une `<img>` par sprite, le z-index pour la profondeur, une translation CSS pour la caméra.
+`RoomView.still()` arrête toute animation sur une image fixe (premières images, bouches fermées, caméra au repos) :
+`npm run e2e:visual` compare chaque lieu de la démo, figé, avec sa référence dans `tests/visual/demo/` (bloquant en
+CI ; `--update` les réécrit après un changement voulu).
+
 ## Assets : un seul graphe
 
 `src/engine/core/asset-graph.ts` dit quels fichiers chaque partie du jeu demande, d'après le contenu : le titre (décor,
