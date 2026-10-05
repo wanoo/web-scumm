@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### API
+
+- The public API (`docs/en/API.md`): `web-scumm/content`, `web-scumm/player`, `web-scumm/minigames`,
+  `web-scumm/testing` (`src/engine/api/`, the package's `exports`). `tests/api-surface.json` holds their names and the
+  Studio/MCP tools' arguments; `tests/api-surface.test.ts` fails on a change this page does not document. The template
+  imports from them only.
+- `docs/en/SUPPORT.md`: semantic versioning on that API, supported versions, the deprecation policy (deprecated in a
+  minor, removed at the next major), save compatibility. `docs/en/UPGRADING.md` § 10: from 3.x to 4.0.
+
+### Deprecated
+
+- `RevealDef`: use `EndingDef`; removed in 5.0.
+
 ### Added
 
 - The engine as a package (`docs/en/PACKAGE.md`): `npm run pack` makes `web-scumm` (the engine, its pages, its tools,

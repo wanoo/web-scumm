@@ -1,4 +1,4 @@
-import type { ItemDef } from '@engine/core/types';
+import type { ItemDef } from 'web-scumm/content';
 
 // Inventory items. `look` as a list = one line per look, cycling.
 export const items: Record<string, ItemDef> = {

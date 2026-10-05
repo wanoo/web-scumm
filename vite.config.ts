@@ -202,6 +202,8 @@ export default defineConfig({
   server: { port: 5173, host: process.env.WEB_SCUMM_LAN === '1' ? true : '127.0.0.1' },
   // The current game (GAME, otherwise package.json → config.game, otherwise demo): `@game` → games/<GAME>/index.ts.
   resolve: { alias: [
+    // The public API (4.0, src/engine/api): `web-scumm/content`, `/player`, `/minigames`, `/testing`.
+    { find: /^web-scumm\/(content|player|minigames|testing)$/, replacement: r('./src/engine/api/$1.ts') },
     { find: '@engine', replacement: r('./src/engine') },
     { find: /^@game$/, replacement: resolve(GAME_DIR, 'index.ts') },
     { find: /^@game\//, replacement: GAME_DIR + '/' },

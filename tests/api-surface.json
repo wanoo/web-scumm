@@ -1,0 +1,248 @@
+{
+ "content": [
+  "Action",
+  "ActorDef",
+  "AudioDef",
+  "CharacterDef",
+  "Choice",
+  "Cmd",
+  "CompiledGame",
+  "Cond",
+  "CustomCommand",
+  "CustomCommands",
+  "CustomContext",
+  "EMPTY_LAYOUT",
+  "EmitterDef",
+  "EndingDef",
+  "EventRule",
+  "ExitDef",
+  "FLOOR",
+  "GameDef",
+  "GameRules",
+  "GameSource",
+  "GameState",
+  "HintDef",
+  "HotspotDef",
+  "Id",
+  "ItemDef",
+  "KindRule",
+  "Layout",
+  "LightDef",
+  "ListLine",
+  "MapDef",
+  "MapRegion",
+  "Migration",
+  "MouthSet",
+  "NEAR",
+  "PlaceDef",
+  "Point",
+  "PropAnim",
+  "PropDef",
+  "RevealDef",
+  "RoomDef",
+  "Rule",
+  "ScoreDef",
+  "ScoreState",
+  "ScriptDef",
+  "Session",
+  "SessionEntry",
+  "SkinDef",
+  "SpriteSet",
+  "StageDef",
+  "StageLayer",
+  "TalkTopic",
+  "TransitionKind",
+  "UiTexts",
+  "Value",
+  "VerbDef",
+  "VerbId",
+  "WalkTarget",
+  "Who",
+  "compileGame",
+  "defineGame",
+  "defineRoom"
+ ],
+ "minigames": [
+  "MINIGAME_CSS",
+  "Minigame",
+  "MinigameCtx",
+  "minigames"
+ ],
+ "player": [
+  "AssetManifest",
+  "BootOptions",
+  "EmitterSpec",
+  "LayerSpec",
+  "LightSpec",
+  "Locales",
+  "OccluderSpec",
+  "Presenter",
+  "SaveStore",
+  "SceneRenderer",
+  "SlotStore",
+  "SpriteSpec",
+  "StageSpec",
+  "StoreOpener",
+  "SwModule",
+  "bootGame",
+  "openStore",
+  "pickLanguage"
+ ],
+ "testing": [
+  "Engine",
+  "FakePresenter",
+  "MemoryStore",
+  "SaveEnvelopeV3",
+  "SolveOptions",
+  "SolveResult",
+  "parseSave",
+  "saveEnvelope",
+  "solve"
+ ],
+ "mcp": {
+  "list_rooms": {
+   "required": [],
+   "optional": []
+  },
+  "get_room": {
+   "required": [
+    "id"
+   ],
+   "optional": []
+  },
+  "set_layout": {
+   "required": [
+    "id",
+    "layout"
+   ],
+   "optional": []
+  },
+  "set_text": {
+   "required": [
+    "id",
+    "path",
+    "value"
+   ],
+   "optional": []
+  },
+  "set_value": {
+   "required": [
+    "id",
+    "path"
+   ],
+   "optional": [
+    "dry",
+    "value"
+   ]
+  },
+  "add_entity": {
+   "required": [
+    "entityId",
+    "id",
+    "kind"
+   ],
+   "optional": [
+    "at",
+    "char",
+    "img",
+    "look",
+    "name"
+   ]
+  },
+  "get_storyboard": {
+   "required": [],
+   "optional": []
+  },
+  "set_storyboard": {
+   "required": [
+    "storyboard"
+   ],
+   "optional": []
+  },
+  "get_notes": {
+   "required": [],
+   "optional": []
+  },
+  "add_note": {
+   "required": [
+    "text"
+   ],
+   "optional": [
+    "about",
+    "author"
+   ]
+  },
+  "validate": {
+   "required": [],
+   "optional": []
+  },
+  "solve": {
+   "required": [],
+   "optional": [
+    "from",
+    "profile",
+    "prove"
+   ]
+  },
+  "content_report": {
+   "required": [],
+   "optional": []
+  },
+  "world_graph": {
+   "required": [],
+   "optional": []
+  },
+  "dialogue_tree": {
+   "required": [
+    "id"
+   ],
+   "optional": [
+    "actor"
+   ]
+  },
+  "puzzle_graph": {
+   "required": [],
+   "optional": [
+    "id"
+   ]
+  },
+  "storyboard_coverage": {
+   "required": [],
+   "optional": []
+  },
+  "playtests": {
+   "required": [],
+   "optional": []
+  },
+  "lint": {
+   "required": [],
+   "optional": [
+    "prove"
+   ]
+  },
+  "screenshot": {
+   "required": [
+    "room"
+   ],
+   "optional": [
+    "checkpoint"
+   ]
+  },
+  "read_doc": {
+   "required": [
+    "name"
+   ],
+   "optional": []
+  },
+  "run_tests": {
+   "required": [],
+   "optional": []
+  },
+  "asset_prompts": {
+   "required": [],
+   "optional": [
+    "missing"
+   ]
+  }
+ }
+}

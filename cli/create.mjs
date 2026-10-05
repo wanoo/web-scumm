@@ -41,7 +41,7 @@ writeFileSync(join(dir, 'tsconfig.json'), JSON.stringify({
   compilerOptions: {
     target: 'ES2022', module: 'ESNext', moduleResolution: 'bundler', lib: ['ES2022', 'DOM', 'DOM.Iterable'], strict: true, skipLibCheck: true,
     isolatedModules: true, noEmit: true, resolveJsonModule: true, baseUrl: '.',
-    paths: { '@engine/*': ['node_modules/web-scumm/src/engine/*'], '@game': ['game/index.ts'], '@game/*': ['game/*'] },
+    paths: { '@engine/*': ['node_modules/web-scumm/src/engine/*'], 'web-scumm/*': ['node_modules/web-scumm/src/engine/api/*'], '@game': ['game/index.ts'], '@game/*': ['game/*'] },
     types: ['vite/client', 'node'],
   },
   include: ['game', 'node_modules/web-scumm/src/env.d.ts'],

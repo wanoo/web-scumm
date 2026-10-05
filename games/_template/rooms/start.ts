@@ -1,4 +1,4 @@
-import { defineRoom } from '@engine/core/define';
+import { defineRoom } from 'web-scumm/content';
 
 // One room to start from. Logic lives here; geometry lives in layout/start.json (placement editor: ?edit=start).
 export default defineRoom({

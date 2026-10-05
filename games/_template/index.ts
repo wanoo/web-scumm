@@ -1,8 +1,8 @@
 // What the engine and the tools load for this game. Keep this file as is.
-import type { Layout } from '@engine/core/types';
-import type { AssetManifest } from '@engine/dom/assets';
-import type { Minigame } from '@engine/minigames';
-import type { CustomCommands } from '@engine/core/custom';
+import type { Layout } from 'web-scumm/content';
+import type { AssetManifest } from 'web-scumm/player';
+import type { Minigame } from 'web-scumm/minigames';
+import type { CustomCommands } from 'web-scumm/content';
 import { game } from './game';
 import manifestJson from './assets.gen.json';
 

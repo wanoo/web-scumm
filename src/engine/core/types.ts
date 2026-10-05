@@ -625,7 +625,7 @@ export interface EndingDef {
   /** Final card: `accent` = color of the frame and scratched text (default #d4145a). */
   card?: { accent?: string };
 }
-/** Old name for EndingDef. */
+/** @deprecated since 4.0: the old name of `EndingDef`, removed in 5.0 (docs/en/SUPPORT.md). */
 export type RevealDef = EndingDef;
 
 /**

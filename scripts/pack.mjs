@@ -28,6 +28,8 @@ writeFileSync(join(engine, 'package.json'), JSON.stringify({
   name: 'web-scumm', version: root.version, description: 'An engine for point-and-click adventure games in the browser: content as typed data, a solver that proves the game can be finished, a Studio.',
   license: 'MIT', type: 'module', engines: root.engines, repository: { type: 'git', url: 'git+https://github.com/wanoo/web-scumm.git' },
   bin: { 'web-scumm': 'cli/web-scumm.mjs' },
+  // The public API (4.0, docs/en/API.md): four entry modules, the command line. Anything else is internal.
+  exports: { './content': './src/engine/api/content.ts', './player': './src/engine/api/player.ts', './minigames': './src/engine/api/minigames.ts', './testing': './src/engine/api/testing.ts', './cli/*': './cli/*', './package.json': './package.json' },
   dependencies: { ...Object.fromEntries(Object.entries(root.dependencies).filter(([n]) => n !== 'sirv-cli')), ...pick(RUNTIME_DEV) },
 }, null, 2) + '\n');
 writeFileSync(join(engine, 'README.md'), `# web-scumm\n\nAn engine for point-and-click adventure games in the browser. Start a game:\n\n\`\`\`bash\nnpx create-web-scumm my-game\ncd my-game && npm install\nnpm run assets && npm run dev\n\`\`\`\n\nThen \`npx web-scumm help\`. Documentation: https://github.com/wanoo/web-scumm (docs/en/PACKAGE.md).\n`);

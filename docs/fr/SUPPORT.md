@@ -1,0 +1,43 @@
+# Suivi et stabilité
+
+Ce que web-scumm promet à partir de la 4.0, et comment cela change.
+
+## Ce qui est stable
+
+L'API publique (`docs/fr/API.md`) : les quatre entrées `web-scumm/content`, `/player`, `/minigames`, `/testing`, le
+schéma d'écriture (`schemaVersion: 3`), l'enveloppe des sauvegardes, les schémas des outils du Studio et du MCP, et la
+commande `web-scumm`. Tout le reste de `src/engine` est interne : il peut changer à chaque release, et un jeu qui y
+accède par l'alias `@engine/*` en prend le risque.
+
+## Versions
+
+Versionnage sémantique de l'API publique :
+
+- un **correctif** (4.0.x) répare ; il ne change jamais un nom public ni un format ;
+- une **mineure** (4.x) ajoute ; elle peut déprécier, jamais retirer ;
+- une **majeure** (5.0) peut retirer ce qu'une mineure a déprécié, et dit comment passer dans `docs/fr/UPGRADING.md`.
+
+Suivies : la dernière mineure de la majeure en cours reçoit les correctifs ; la mineure précédente reçoit les
+correctifs de sécurité trois mois après la sortie de la suivante. La lignée 3.x s'est terminée avec la 3.9 ; ses jeux
+passent en 4.0 avec `web-scumm migrate` (rien à réécrire pour un jeu déjà en schéma 3).
+
+## Dépréciation
+
+Un nom ou une option à retirer est d'abord **déprécié** dans une mineure : marqué `@deprecated` dans son type (les
+éditeurs le barrent), listé dans `docs/fr/API.md` avec son remplaçant, et nommé dans la section « Deprecated » du
+CHANGELOG. Il continue de marcher pour le reste de cette majeure, et disparaît à la suivante. Déprécié en 4.0 :
+`RevealDef` (utiliser `EndingDef`).
+
+## Sauvegardes
+
+Une sauvegarde écrite par n'importe quelle release des lignées 3.x ou 4.x se charge dans toute 4.x suivante :
+l'enveloppe est versionnée (schéma 3), les `migrations` du jeu portent ses ids, et `tests/save-v3.test.ts` charge une
+sauvegarde figée de chaque release. Une sauvegarde plus récente que le jeu où on la charge est refusée, jamais lue à
+moitié.
+
+## Releases
+
+Chaque release est construite depuis le commit que la CI a testé, porte ses licences dans l'archive, joint un manifeste
+des assets, un SBOM, des sommes SHA-256 et une attestation de provenance, et n'est jamais remplacée une fois publiée
+(`docs/fr/TOOLS.md`). Ce que seuls des gens et de vrais appareils vérifient est rapporté dans ses notes
+(`docs/fr/FIELD.md`).

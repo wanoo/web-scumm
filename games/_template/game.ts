@@ -1,4 +1,4 @@
-import { defineGame } from '@engine/core/define';
+import { defineGame } from 'web-scumm/content';
 import { characters } from './cast';
 import { items } from './items';
 import { rules } from './rules';
