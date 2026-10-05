@@ -21,7 +21,8 @@ vérifie, le prouve et le publie en jeu web jouable hors ligne. Il est né comme
 mix change avec le lieu, le personnage actif ou un flag, à la mesure suivante, sans clic. La preuve tourne sur
 plusieurs cœurs avec le même résultat, et met en commun les objets que les personnages peuvent se passer : les jeux à
 deux personnages où les objets circulent librement sont prouvés
-([la mesure](docs/fr/BENCH.md#35--les-workers-de-preuve-5-octobre-2026)). La 3.4 « Stagecraft » avait apporté des
+([la mesure](docs/fr/BENCH.md#35--les-workers-de-preuve-5-octobre-2026)). C'est un mixeur adaptatif à stems, pas
+iMUSE : pas encore de transitions entre morceaux, de marqueurs ni de ponts (3.6). La 3.4 « Stagecraft » avait apporté des
 scènes en profondeur : un peintre Canvas, calques, masques, lumières, zones de marche et escaliers, le Studio structuré,
 et un deuxième jeu, « Le Marché de nuit ».
 

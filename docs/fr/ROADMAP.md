@@ -367,6 +367,26 @@ que tant que deux personnages peuvent se rejoindre, et des portes fermées les s
 (D12, `docs/dev/passes/3.5.0.md`) : le lecteur d'écran, des testeurs, un vrai téléphone, Safari hors ligne, des voix
 enregistrées, un tag signé.
 
+## v3.5.1 « Cue » (5 octobre 2026) : les correctifs de la revue
+
+- Le directeur musical ne joue que la dernière demande (une partition lente ne remplace plus celle demandée après
+  elle ; un arrêt annule une partition encore en chargement).
+- Un navigateur qui ne donne pas sa mémoire n'a les stems que pour des partitions de 128 Mo décodées au plus
+  (`pcmBytes`).
+- Un worker de preuve qui s'arrête en pleine recherche quitte le pool, et `stats()` a un délai. La table des workers
+  donne la RSS maximale : 1,2 Go avec 4 workers.
+- Le test de poids ne dépend plus d'un `dist` antérieur.
+
+## v3.6 « Production » (planifiée)
+
+Le reste de la revue de la 3.5.0 :
+- des budgets séparés pour les stems, le hors-ligne et l'audio décodé ;
+- ffprobe sur les stems ;
+- un LRU de l'audio décodé avec un plafond ;
+- des transitions entre partitions (marqueurs, ponts, la phase gardée dans une sauvegarde) ;
+- moins d'états pour le solveur (vivacité des objets, quotient local à un puzzle), en visant 20 × 3 ;
+- un corpus nocturne de jeux aléatoires.
+
 ## Ensuite (pas encore planifié)
 
 - La matrice ouverte à trois personnages : une abstraction pour des personnages qui ne peuvent pas se rejoindre (ce que

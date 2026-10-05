@@ -21,7 +21,8 @@ single day with an AI assistant.
 with the room, the active character or a flag, on the next bar, without a click. The proof runs on several cores
 with the same result, and pools the items the characters can hand each other, so two-character games with items
 moving freely are proved
-([how it is measured](docs/en/BENCH.md#35-proof-workers-5-october-2026)). 3.4 "Stagecraft" brought scenes with depth:
+([how it is measured](docs/en/BENCH.md#35-proof-workers-5-october-2026)). It is an adaptive stem mixer, not iMUSE:
+no transitions between tracks, no markers or bridges yet (3.6). 3.4 "Stagecraft" brought scenes with depth:
 a Canvas painter, layers, masks, lights, walk zones and stairs, the structured Studio, and a second game, "The Night
 Market".
 
