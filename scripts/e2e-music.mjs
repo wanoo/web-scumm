@@ -18,7 +18,7 @@
 //      hands over to the market on its next phrase after a bridge; a save loaded while the way back is planned
 //      restores the market at its point with no bridge; a stop while a transition waits leaves nothing sounding; the
 //      decoded audio never goes over `transitionPeakMB`.
-// `--only=offline|live|game|reference` runs one part (`reference` only on its own). Exit codes: 0 every gate passes,
+// `--only=offline|live|game|reference` runs one part (`reference` only on its own; `--browser=webkit` runs it in WebKit). Exit codes: 0 every gate passes,
 // 1 not.
 import { build } from 'esbuild';
 import { chromium, webkit } from 'playwright';
@@ -227,8 +227,10 @@ if ((!only || only === 'game') && !process.argv.includes('--no-game')) {
   await browser.close();
 }
 if (only === 'reference') {
-  console.log('the reference chapter (Chromium):');
-  const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
+  // `--browser=webkit` (3.8): the same scenario in WebKit, Safari's engine, where Web Audio and memory differ most.
+  const engine = process.argv.find((a) => a.startsWith('--browser='))?.split('=')[1] === 'webkit' ? webkit : chromium;
+  console.log(`the reference chapter (${engine === webkit ? 'WebKit' : 'Chromium'}):`);
+  const browser = await engine.launch(engine === chromium ? { args: ['--autoplay-policy=no-user-gesture-required'] } : {});
   const p = await (await browser.newContext({ viewport: { width: 932, height: 430 } })).newPage();
   await p.goto(new URL('./?music=stems', url).toString());
   await p.waitForFunction(() => !!window.__game?.engine, null, { timeout: 20000 });

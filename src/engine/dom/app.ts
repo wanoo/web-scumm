@@ -94,6 +94,23 @@ const el = <K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, html?: 
   if (html != null) e.innerHTML = html;
   return e;
 };
+/** How far from a target (logical px of the 640×400 scene) a tap on nothing counts as a near miss (3.8). */
+const NEAR_MISS = 24;
+/** A frame counter fixed in the top-left corner: frames in the last second, and the lowest second since it started. */
+function fpsMeter() {
+  const box = document.createElement('div');
+  box.className = 'fps-meter';
+  box.setAttribute('aria-hidden', 'true');
+  Object.assign(box.style, { position: 'fixed', left: '4px', top: '4px', zIndex: '9999', font: '12px monospace', color: '#0f0', background: 'rgba(0,0,0,.6)', padding: '2px 4px', pointerEvents: 'none' });
+  document.body.append(box);
+  let frames = 0, low = Infinity, t0 = performance.now();
+  const tick = (t: number) => {
+    frames++;
+    if (t - t0 >= 1000) { const fps = Math.round((frames * 1000) / (t - t0)); low = Math.min(low, fps); box.textContent = `${fps} fps · low ${low}`; frames = 0; t0 = t; }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
 
@@ -143,6 +160,8 @@ export class App implements Presenter {
   private speechDone: (() => void) | null = null;
   private speechTimer = 0;
   private eatClick = -Infinity;
+  /** Taps on nothing next to a target, by `room/target` (3.8, `nearMiss`). */
+  private misses: Record<string, number> = {};
   private inCutscene = false;
   private saveError: string | null = null;
   private warmedAll = false;
@@ -232,6 +251,8 @@ export class App implements Presenter {
     // `?renderer=canvas|dom` forces a painter for every room (the visual parity check, the Studio's comparison).
     const forced = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('renderer') : null;
     if (forced === 'canvas' || forced === 'dom') this.view.forced = forced;
+    // `?fps` (3.8): a frame counter in a corner, now and the lowest second seen, for the real-phone pass (docs/en/FIELD.md).
+    if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('fps')) fpsMeter();
     this.view.onSurface = (el, old) => { if (old.parentElement) old.replaceWith(el); else this.scene?.prepend(el); };
     // A walk stopped before a closed link: its refusal (`stage.links[id].locked`), the way an exit's `locked` is said.
     this.view.onBlocked = (l) => { if (l.locked) this.toast(l.locked); };
@@ -438,12 +459,29 @@ export class App implements Presenter {
     this.view.el.append(layer); this.a11yTargets = layer;
   }
 
+  /**
+   * A tap on nothing, close to something (3.8): a hotspot players aim at and miss. Counted by room and target, ids
+   * only, for the playtest a tester shares (`misses` in the session file, `npm run playtests`).
+   */
+  private nearMiss(p: Point) {
+    const room = this.view.room;
+    if (!room || !this.engine.state) return;
+    let best: { id: Id; d: number } | null = null;
+    for (const id of this.engine.targets(room)) {
+      const b = this.view.box(id); if (!b) continue;
+      const dx = Math.max(b[0] - p[0], 0, p[0] - (b[0] + b[2])), dy = Math.max(b[1] - p[1], 0, p[1] - (b[1] + b[3]));
+      const d = Math.hypot(dx, dy);
+      if (d <= NEAR_MISS && (!best || d < best.d)) best = { id, d };
+    }
+    if (best) { const k = `${room.id}/${best.id}`; this.misses[k] = (this.misses[k] ?? 0) + 1; }
+  }
+
   private async onScenePointer(e: PointerEvent) {
     if (!this.view.room || this.engine.busy || this.speechEl || this.inCutscene) return;
     if ((e.target as HTMLElement).closest('.dim, .overlay, .skip, button')) return;
     const p = this.toScene(e);
     const id = this.view.hit(p);
-    if (!id) { await this.engine.walkTo(this.view.clampFloor(p)); return; }
+    if (!id) { this.nearMiss(p); await this.engine.walkTo(this.view.clampFloor(p)); return; }
     if (e.pointerType !== 'mouse') { this.showLabel(id); setTimeout(() => this.showLabel(null), 900); }
     await this.actOnTarget(id);
   }
@@ -1153,7 +1191,7 @@ export class App implements Presenter {
     if (mode === 'save') row(this.t('shareSession'), '⇪').onclick = () => {
       // A playtest: the inputs since the game started, ids only, for games/<id>/playtests/ (npm run playtests).
       void import('../tools/replay').then(async ({ sessionFile, deviceFamily }) => {
-        const json = JSON.stringify(sessionFile(this.game.id, this.engine, { playtest: true, device: deviceFamily(navigator.userAgent, navigator.maxTouchPoints) }));
+        const json = JSON.stringify(sessionFile(this.game.id, this.engine, { playtest: true, device: deviceFamily(navigator.userAgent, navigator.maxTouchPoints), misses: this.misses }));
         const name = `${this.game.id}-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.session.json`;
         const file = new File([json], name, { type: 'application/json' });
         const nav = navigator as Navigator & { canShare?: (d: { files: File[] }) => boolean };

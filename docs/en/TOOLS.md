@@ -202,6 +202,7 @@ npm run playtests -- --strict --require=5 --require-completed=3 --require-device
 npm run verify:field               # verify:commercial, then those quotas: what a release tested by players needs (not a step of release-check, D12)
 npm run e2e:perf -- <url> [--renderer=canvas|dom --cpu=4 --min=30 --room=<id>]   # frames per second while the hero walks, CPU slowed (the phone stand-in)
 npm run e2e:music -- <url> [--only=offline|live|game --live=chromium|webkit]   # the music director: 30 min offline without drift, 100 changes without a click, real-time jitter, the theme's stems in the game
+npm run e2e:music -- <url> --only=reference [--browser=webkit]   # GAME=reference: two scores, bridges, a restore and a stop mid-transition, the decoded peak (Chromium and WebKit, 3.8)
 npm run e2e -- <url> --renderer canvas  # the whole game drawn by the Canvas painter
 npm run e2e:visual -- <url> [--update] # every room, still, against tests/visual/<game>/*.png (0.5% of the pixels at most)
 npm run e2e -- <url> --lang fr           # the whole game in that language; fails on any visible English default of the engine

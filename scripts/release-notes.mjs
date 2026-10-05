@@ -18,7 +18,7 @@ export function releaseNotes(changelog, tag) {
 /** The manual passes of a release, from its sheet (`docs/dev/passes/<version>.md`), or the statement that none was made. */
 export function manualPasses(sheet) {
   const head = '### Manual passes (D12: reported, not blocking)\n\n';
-  if (!sheet) return `${head}None recorded for this release: the screen reader, Safari offline, a real phone, playtesters, recorded voices and a signed tag were not checked by hand (docs/dev/passes/TEMPLATE.md).\n`;
+  if (!sheet) return `${head}None recorded for this release: the screen reader, Safari offline, a real phone, playtesters, recorded voices, listening and a signed tag were not checked by hand (docs/en/FIELD.md, docs/dev/passes/TEMPLATE.md).\n`;
   const rows = sheet.split('\n').filter((l) => /^\|/.test(l) && !/^\|\s*-/.test(l)).slice(1);
   const todo = rows.filter((r) => /\|\s*not done\s*\|/i.test(r)).length;
   return `${head}${rows.length - todo} of ${rows.length} done.\n\n| Pass | Status | Who, when | Device, OS, browser, versions | What failed |\n|---|---|---|---|---|\n${rows.join('\n')}\n`;

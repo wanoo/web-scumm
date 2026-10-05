@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 3.8.0 — 2026-10-05
+
+"Human Proof", the machine part (LOG #92): everything the field passes need is ready, and what a browser can check
+is checked in Safari's engine too. The seven passes themselves are people's and devices' (D12, `docs/en/FIELD.md`):
+0 of 7 done for this release.
+
+### Added
+
+- The reference chapter's two-score scenario (a plan on the phrase, the bridge, a save restored before the landing, a
+  stop while a transition waits, the decoded peak under `transitionPeakMB`) runs in WebKit as well as Chromium, in CI
+  (`npm run e2e:music -- --only=reference --browser=webkit`).
+- `docs/{en,fr}/FIELD.md`: the seven field passes (screen reader, Safari offline, a real phone, playtesters, recorded
+  voices, listening, signed tag), how to make each and what to bring back; the passes template has the listening row.
+- Near misses in playtests: a tap on nothing within 24 px of a target counts for that room and target; the shared
+  session carries the counts (ids only) and `npm run playtests` lists them.
+- `?fps`: a frame counter (now and the lowest second) for the real-phone pass.
+
 ## 3.7.1 — 2026-10-05
 
 "Artifact Truth": what is tested, what is declared and what is shipped are the same files (the review of 3.7.0, LOG
