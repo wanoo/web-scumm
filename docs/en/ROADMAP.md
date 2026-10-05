@@ -380,11 +380,33 @@ keyboard in Chromium and WebKit, and in French. Reported, not done by hand (D12,
 screen reader, testers, a real phone, Safari offline, recorded voices, a signed tag. Left for later: lip-sync markers
 in the voice table.
 
-## v3.5 "Score" (planned): music, workers, inventories
+## v3.5 "Score" (5 October 2026): music, workers, inventories
 
-A music director with synchronised stems (cues, states, quantized transitions, stingers, ducking), solver workers
-judged by measurement (identical results, ×2 with 4 workers, or off by default), and a certified canonical item owner
-for proofs (dominance only for witness searches: it cannot prune a proof).
+From the plan decided with the maintainer (D11), one branch at a time (D9):
+
+- `v35-music-director`: a track can have a score (`audio.scores`), its stems rendered from the arrangement
+  (`npm run audio -- stems`), played sample-locked on Web Audio; the mix follows the game's state (a flag, the room,
+  the active character) on the next bar, crossfaded; stingers on the beat; the single mix where the director does not
+  fit (Save-Data, a low-end device). The Studio's Music tab. `npm run e2e:music` (CI): 30 minutes without a sample
+  of drift, 100 changes without a click, real-time jitter 0.02 ms in Chromium and WebKit.
+- `v35-proof-workers`: the frontier expanded in batches by worker threads, merged in the batch's order: the same
+  result for 1, 2, 4 and 8 workers, ×2.54 with 4 on a 40 000-state proof. Off unless asked for (`--workers`).
+- `v35-inventory-ownership`: the canonical owner pools the items no condition reads while the characters can meet,
+  the hand-overs played and checked; audited against the explicit search. The reference chapter 904 → 288 states,
+  the open 20 × 2 matrix proved. Witness dominance as an option (it prunes nothing on the bundled games).
+
+Exit criteria, as measured (BENCH.md "3.5"): the director's three gates green in CI; workers identical for 1, 2, 4, 8
+and ×2 with 4; the owner never diverging from the explicit search. **Missed, not blocking (D11):** the open matrix of
+20 rooms × 3 characters stays truncated at 200 000 states: the owner applies only while every two characters can
+meet, and locked doors keep them apart. Reported, not done by hand (D12, `docs/dev/passes/3.5.0.md`): the screen
+reader, testers, a real phone, Safari offline, recorded voices, a signed tag.
+
+## Next (not planned yet)
+
+- The open matrix of three characters: an abstraction for characters who cannot meet (what each can still bring to
+  the others), or a bound on it stated in BENCH.
+- Lip-sync markers in the voice table (left from 3.4).
+- The manual passes of `docs/dev/passes/` (D12), and the screenshots of 3.4–3.5 (the market, the Music tab).
 
 ## Out of scope (explicit decisions)
 

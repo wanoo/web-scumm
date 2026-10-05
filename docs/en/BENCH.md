@@ -480,3 +480,13 @@ a subset) is not explored. A witness search that finds nothing with it runs agai
 best-first search reaches a witness before a dominated state comes up, and a dominated state only comes up once the
 better ones are exhausted, which (when absence is never read) means the search is failing anyway. It stays an
 option, off by default.
+
+### 3.5.0, measured on the release (5 October 2026, cache off)
+
+| Game | Status | States | Time | Against 3.4.0 |
+|---|---|---|---|---|
+| Demo, global proof | solved | 3 480 | 2.5 s | same states (no mobility region, so no owner) |
+| Demo, proof by chapters | solved | 5 chapters | 3.7 s | same chapters |
+| Era reference, 40 rooms × 3 characters | solved | 578 (10 647 engine runs) | 4.1 s | same states (characters in their eras never meet) |
+| The Night Market, global proof | solved | 288 | 1.2 s | 904 → 288 (the canonical owner) |
+| The Night Market, by chapters | solved | 2 chapters | 1.2 s | 2.0 → 1.2 s |

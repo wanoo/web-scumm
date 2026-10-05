@@ -510,3 +510,13 @@ sans, elle ne rend donc jamais `unsolved` d'elle-même. Mesuré : elle n'élague
 référence ni les jeux de stress. La recherche « le meilleur d'abord » atteint un témoin avant qu'un état dominé ne
 sorte, et un état dominé ne sort qu'une fois les meilleurs épuisés, ce qui (quand l'absence n'est jamais lue) veut dire
 que la recherche échoue de toute façon. Elle reste une option, éteinte par défaut.
+
+### 3.5.0, mesurée sur la release (5 octobre 2026, cache coupé)
+
+| Jeu | Statut | États | Temps | Face à la 3.4.0 |
+|---|---|---|---|---|
+| Démo, preuve globale | résolue | 3 480 | 2,5 s | mêmes états (pas de région de mobilité, donc pas de propriétaire) |
+| Démo, preuve par chapitres | résolue | 5 chapitres | 3,7 s | mêmes chapitres |
+| Référence par époques, 40 lieux × 3 personnages | résolue | 578 (10 647 exécutions du moteur) | 4,1 s | mêmes états (des personnages dans leurs époques ne se rejoignent jamais) |
+| Le Marché de nuit, preuve globale | résolue | 288 | 1,2 s | 904 → 288 (le propriétaire canonique) |
+| Le Marché de nuit, par chapitres | résolue | 2 chapitres | 1,2 s | 2,0 → 1,2 s |
