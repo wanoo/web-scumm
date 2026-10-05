@@ -6,6 +6,11 @@
 
 "Artifact Truth": what is tested, what is declared and what is shipped are the same files (the review of 3.7.0, LOG
 #91). `inventory(dist) = code + locked assets + named data + fonts + icons + licences`, checked on every build.
+### Added
+
+- The reference chapter's two-score scenario (a plan on the phrase, the bridge, a save restored before the landing, a
+  stop while a transition waits, the decoded peak under `transitionPeakMB`) runs in WebKit as well as Chromium, in CI
+  (`npm run e2e:music -- --only=reference --browser=webkit`).
 
 ### Fixed
 
