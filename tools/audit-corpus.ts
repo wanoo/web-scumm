@@ -5,8 +5,10 @@
 // failure: those verdicts are just not compared, and the counts say so (3.6.1: tried, compared, partial). `--json`:
 // the same counts in a file (the nightly's artifact).
 // `--merge a.json b.json …` (3.7): the counts of several shards (the nightly runs one per job) added up, printed, and
-// written with `--json`; exit 1 on a divergence in any of them.
+// written with `--json`; exit 1 on a divergence in any of them. `--shard=i/n --total=N` (3.7.1): the seeds of shard i
+// of n over seeds 1…N; `--merge … --total=N` also fails when the shards miss a seed or run one twice.
 import { readFileSync, writeFileSync } from 'node:fs';
+import { shardProblems, shardRange } from '../src/engine/tools/shards';
 import { auditAbstractions } from '../src/engine/tools/audit';
 import { randomGame } from '../tests/gen/random-game';
 
@@ -30,11 +32,16 @@ if (process.argv.includes('--merge')) {
     for (const f of Object.keys(t) as (keyof Counts)[]) t[f] += c[f];
   }
   const merged: Shard = { from: Math.min(...shards.map((s) => s.from)), seeds: shards.reduce((n, s) => n + s.seeds, 0), max: Math.max(...shards.map((s) => s.max)), seconds: Math.max(...shards.map((s) => s.seconds)), kinds, divergences: shards.flatMap((s) => s.divergences) };
+  const total = process.argv.find((a) => a.startsWith('--total='));
+  const gaps = shardProblems(shards, total ? Number(total.slice(8)) : undefined);
+  if (gaps.length) { for (const g of gaps) console.log(`  ✖ ${g}`); console.log(`✖  the shards do not cover the seeds asked for once each`); process.exit(1); }
   print(`audit corpus: ${shards.length} shard(s), ${merged.seeds} seeds, ${merged.max} states at most each, ${merged.seconds} s for the slowest`, merged);
 }
 
 const arg = (k: string, d: number) => { const m = process.argv.find((a) => a.startsWith(`--${k}=`)); return m ? Number(m.slice(k.length + 3)) : d; };
-const seeds = arg('seeds', 100), from = arg('from', 1), max = arg('max', 3000);
+const shard = process.argv.find((a) => a.startsWith('--shard='))?.slice(8).split('/').map(Number);
+const range = shard ? shardRange(arg('total', 500), shard[0], shard[1]) : null;
+const seeds = range?.seeds ?? arg('seeds', 100), from = range?.from ?? arg('from', 1), max = arg('max', 3000);
 const kinds = [{ name: 'plain', o: {} }, { name: 'free items', o: { free: true } }, { name: 'three characters', o: { free: true, players: 3 as const } }];
 const t0 = Date.now();
 const diverged: string[] = [];

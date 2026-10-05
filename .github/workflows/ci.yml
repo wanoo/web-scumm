@@ -1,8 +1,9 @@
 name: ci
 on:
   push:
-    # main deploys to Pages; the v3 integration and topic branches only run the checks (docs/dev/CHARTER.md).
-    branches: [main, v3, 'v3-*', 'v32-*', 'v33-*', 'v331-*', 'v34-*', 'v35-*', 'v351-*', 'v36-*', 'v361-*', 'v37-*']
+    # main deploys to Pages; topic branches only run the checks (docs/dev/CHARTER.md). Since 3.7.1 a topic branch is
+    # named by its kind, whatever the version: feature/…, fix/…, release/… ('v[0-9]*' keeps the older v37-… names).
+    branches: [main, 'feature/**', 'fix/**', 'release/**', 'v[0-9]*']
     tags: ['v*']
   pull_request:
 jobs:

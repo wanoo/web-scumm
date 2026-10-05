@@ -7,6 +7,12 @@
 - A stinger that does not fit in the decoded audio beside the playing score is no longer played over the cap: the
   director lets it go (`stinger()` returns null, `lastStinger.skipped`) and it is streamed instead. The cap holds after
   every operation, which `tests/director.test.ts` now checks after every lifecycle case.
+- The release workflow builds the commit CI tested (`workflow_run.head_sha`), checks that the tag still points there,
+  takes any SemVer tag (not only `v3.*`), and refuses a release that already has files (no `--clobber`): a published
+  release is never replaced. The archive's assets manifest is attached beside it.
+- CI runs on `feature/**`, `fix/**` and `release/**` branches, whatever the version (it stopped at `v37-*`).
+- The nightly's shards split any total exactly (501 seeds ran 504) and the merge fails on a gap or an overlap
+  (`audit:corpus --shard=i/n --total=N`, `--merge … --total=N`).
 
 ## 3.7.0 — 2026-10-05
 
