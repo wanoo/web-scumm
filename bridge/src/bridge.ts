@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { manifestHash, type RealityManifest } from '../../src/engine/reality/manifest';
 import { signSignal, type WorldSignalV1 } from '../../src/engine/reality/protocol';
 import { biscuitLib, errorClass } from './biscuit';
+import { KeyedLock } from './lock';
 import { authorize, LIMITS, type Proposal } from './policy';
 import type { BridgeStore, JournalEntry, Player } from './store';
 
@@ -74,6 +75,8 @@ export class Bridge {
   readonly limits: Limits;
   private recent = new Map<string, number[]>();
   private listeners = new Set<(e: JournalEntry) => void>();
+  /** One section at a time per player (`propose`) and per pairing code (`confirmPairing`): see `lock.ts`. */
+  private locks = new KeyedLock();
 
   private constructor(
     readonly config: BridgeConfig,
@@ -117,7 +120,12 @@ export class Bridge {
   }
 
   /** A connector, under a Biscuit that may pair (`pair(true)`), confirms a code it received: a pseudonymous player. */
-  async confirmPairing(token: string, code: string): Promise<{ playerId: string }> {
+  confirmPairing(token: string, code: string): Promise<{ playerId: string }> {
+    // Two connectors confirming one code at once: the second waits for the first and finds it confirmed.
+    return this.locks.run(`pairing:${code}`, () => this.confirmPairingLocked(token, code));
+  }
+
+  private async confirmPairingLocked(token: string, code: string): Promise<{ playerId: string }> {
     const p = this.store.pairing(code);
     if (!p || p.expiresAt < this.now()) throw new BridgeError(404, 'pairing', 'unknown or expired code');
     if (p.playerId) throw new BridgeError(409, 'pairing', 'already confirmed');
@@ -209,38 +217,47 @@ export class Bridge {
       this.log({ event: 'signal.refused', code: auth.code, signal });
       throw new BridgeError(auth.code === 'denied' ? 403 : 401, auth.code, auth.reason);
     }
-    const seen = this.store.bySequenceKey(playerId, dedupeKey);
-    if (seen) return { id: seen.id, sequence: seen.sequence, duplicate: true };
-    const connector = auth.revocationIds[0] ?? 'unknown';
-    const window = (this.recent.get(connector) ?? []).filter((t) => t > this.now() - 60_000);
-    if (window.length >= this.limits.perMinutePerConnector)
-      throw new BridgeError(429, 'quota', 'too many signals this minute');
-    const sequence = this.store.lastSequence(playerId) + 1;
-    if (sequence - 1 - this.store.acked(playerId) >= this.limits.pendingPerPlayer)
-      throw new BridgeError(429, 'pending', 'the player has too many signals waiting');
-    window.push(this.now());
-    this.recent.set(connector, window);
-    const payload: WorldSignalV1 = {
-      format: 'web-scumm-world-signal',
-      schema: 1,
-      id: `s-${randomBytes(8).toString('hex')}`,
-      sequence,
-      gameId: this.config.gameId,
-      playerId,
-      signal,
-      source,
-      ...(occurredAt !== undefined ? { occurredAt } : {}),
-      receivedAt: this.now(),
-      dedupeKey,
-      policyVersion: this.config.policyVersion,
-      ...(evidenceHash ? { evidenceHash } : {}),
-    };
-    const jws = await signSignal(payload, this.config.eventKey.privateKey, this.config.eventKey.kid);
-    const entry: JournalEntry = { playerId, sequence, id: payload.id, dedupeKey, jws, at: this.now() };
-    this.store.write({ t: 'signal', e: entry });
-    this.log({ event: 'signal.accepted', playerId, sequence, signal });
-    for (const l of this.listeners) l(entry);
-    return { id: payload.id, sequence, duplicate: false };
+    // From here to the journal line, one proposal at a time for this player: the deduplication, the quota, the
+    // sequence and the write are read and decided together, and what was checked before the Biscuit's `await`
+    // (the player, the token) is checked again, as a revocation may have landed meanwhile.
+    return this.locks.run(`player:${playerId}`, async () => {
+      const current = this.store.player(playerId);
+      if (!current || current.revoked) throw new BridgeError(404, 'player', 'unknown or revoked player');
+      if (auth.revocationIds.some((id) => this.store.tokenRevoked(id)))
+        throw new BridgeError(401, 'revoked', 'token revoked');
+      const seen = this.store.bySequenceKey(playerId, dedupeKey);
+      if (seen) return { id: seen.id, sequence: seen.sequence, duplicate: true };
+      const connector = auth.revocationIds[0] ?? 'unknown';
+      const window = (this.recent.get(connector) ?? []).filter((t) => t > this.now() - 60_000);
+      if (window.length >= this.limits.perMinutePerConnector)
+        throw new BridgeError(429, 'quota', 'too many signals this minute');
+      const sequence = this.store.lastSequence(playerId) + 1;
+      if (sequence - 1 - this.store.acked(playerId) >= this.limits.pendingPerPlayer)
+        throw new BridgeError(429, 'pending', 'the player has too many signals waiting');
+      window.push(this.now());
+      this.recent.set(connector, window);
+      const payload: WorldSignalV1 = {
+        format: 'web-scumm-world-signal',
+        schema: 1,
+        id: `s-${randomBytes(8).toString('hex')}`,
+        sequence,
+        gameId: this.config.gameId,
+        playerId,
+        signal,
+        source,
+        ...(occurredAt !== undefined ? { occurredAt } : {}),
+        receivedAt: this.now(),
+        dedupeKey,
+        policyVersion: this.config.policyVersion,
+        ...(evidenceHash ? { evidenceHash } : {}),
+      };
+      const jws = await signSignal(payload, this.config.eventKey.privateKey, this.config.eventKey.kid);
+      const entry: JournalEntry = { playerId, sequence, id: payload.id, dedupeKey, jws, at: this.now() };
+      this.store.write({ t: 'signal', e: entry });
+      this.log({ event: 'signal.accepted', playerId, sequence, signal });
+      for (const l of this.listeners) l(entry);
+      return { id: payload.id, sequence, duplicate: false };
+    });
   }
 
   /** The player whose capability this is (read and acknowledge only). */

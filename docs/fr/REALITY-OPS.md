@@ -78,6 +78,11 @@ npm run bridge -- revoke --url=<bridge> --token=<id de révocation>   # le jeton
 Quotas : signaux par connecteur et par minute (120), signaux en attente d'accusé pour un joueur (1000), corps de
 requête (8 Ko). Au-delà, un 429, visible du connecteur, jamais un signal perdu en silence.
 
+Les propositions pour un joueur sont prises une par une : la déduplication, les quotas, la séquence, la signature et
+la ligne du journal sont décidées ensemble sous un verrou par joueur, donc deux connecteurs qui proposent en même
+temps ne partagent jamais une séquence, et une `dedupeKey` n'est acceptée qu'une fois quel que soit le moment. Un
+code de liaison confirmé par deux connecteurs à la fois n'est confirmé qu'une fois ; l'autre reçoit un 409.
+
 ## Conservation, export, suppression
 
 Le journal (`journal.jsonl`) garde chaque signal accepté : son id, sa séquence, la clé du connecteur, l'enveloppe

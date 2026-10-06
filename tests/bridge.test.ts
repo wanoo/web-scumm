@@ -251,6 +251,55 @@ describe('the reference Bridge', () => {
     expect((await t.propose(link.playerId, 'mail.answer.wrong', 'e')).status).toBe(429); // three this minute
   });
 
+  it('sequences concurrent proposals one by one: no shared sequence, one acceptance per dedupeKey', async () => {
+    // 4.1.1 awaited the Biscuit check and the signature between reading the last sequence and writing the journal:
+    // concurrent proposals all took sequence 1, and the player's client then skipped them as already seen.
+    const t = await setup();
+    const link = await t.pair();
+    const body = (dedupeKey: string) => ({
+      playerId: link.playerId,
+      signal: 'mail.answer.wrong',
+      source: 'mail',
+      dedupeKey,
+    });
+    const distinct = await Promise.all(Array.from({ length: 100 }, (_, i) => t.bridge.propose(t.mail, body(`m:${i}`))));
+    expect(distinct.every((r) => !r.duplicate)).toBe(true);
+    expect(new Set(distinct.map((r) => r.sequence)).size).toBe(100);
+    expect(t.bridge.signals(link.capability, 0).map((s) => s.sequence)).toEqual(
+      Array.from({ length: 100 }, (_, i) => i + 1),
+    );
+    const same = await Promise.all(Array.from({ length: 50 }, () => t.bridge.propose(t.mail, body('once'))));
+    expect(same.filter((r) => !r.duplicate)).toHaveLength(1);
+    expect(new Set(same.map((r) => r.id)).size).toBe(1);
+    expect(t.bridge.signals(link.capability, 100)).toHaveLength(1);
+  });
+
+  it('a proposal that overlaps a revocation is refused; a code confirmed twice at once is confirmed once', async () => {
+    const t = await setup();
+    const link = await t.pair();
+    const inFlight = t.bridge.propose(t.mail, {
+      playerId: link.playerId,
+      signal: 'mail.answer.correct',
+      source: 'mail',
+      dedupeKey: 'late',
+    });
+    t.bridge.revoke(t.admin, { playerId: link.playerId }); // lands while the proposal awaits its Biscuit check
+    await expect(inFlight).rejects.toMatchObject({ status: 404 });
+    expect(t.bridge.exportPlayer(t.admin, link.playerId).signals).toHaveLength(0);
+    const { code } = t.bridge.startPairing('signals');
+    const both = await Promise.allSettled([
+      t.bridge.confirmPairing(t.mail, code),
+      t.bridge.confirmPairing(t.mail, code),
+    ]);
+    expect(both.map((r) => r.status).sort()).toEqual(['fulfilled', 'rejected']);
+    const rejected = both.find((r) => r.status === 'rejected') as PromiseRejectedResult;
+    expect(rejected.reason).toMatchObject({ status: 409 });
+    const claimed = t.bridge.claimPairing(code);
+    expect(claimed.status).toBe('paired');
+    const confirmed = both.find((r) => r.status === 'fulfilled') as PromiseFulfilledResult<{ playerId: string }>;
+    expect(claimed.status === 'paired' && claimed.playerId).toBe(confirmed.value.playerId);
+  });
+
   it('answers CORS for the game only, and logs no secret', async () => {
     const t = await setup();
     const ok = await t.call('v1/keys', { headers: { Origin: 'http://game.test' } });

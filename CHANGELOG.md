@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Fixes
+
+- **Bridge: one proposal at a time per player.** In 4.1.1 `propose` awaited the Biscuit check and the signature
+  between reading a player's last sequence and writing the journal, so concurrent proposals could all take the same
+  sequence, and two with one `dedupeKey` were both accepted; the player's client then skipped the others as already
+  seen, and a signal was lost. The deduplication, the quotas, the sequence, the signature and the journal line now
+  run under a lock per player (`bridge/src/lock.ts`), where the player and the token are checked again: a proposal
+  that overlaps a revocation is refused. A pairing code confirmed twice at once is confirmed once (409 for the other).
+  Found by an outside review of 4.1.1 (the first of its four P0s), reproduced in `tests/bridge.test.ts`.
+
 ## 4.1.1 — 2026-10-06
 
 "Reality Bridge" (LOG #96, D14–D17): a game can react to a fact from the world outside (an email answered, a webhook

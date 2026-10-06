@@ -75,6 +75,11 @@ npm run bridge -- revoke --url=<bridge> --token=<revocation id>   # a connector'
 Quotas: signals per connector per minute (120), signals waiting for a player's acknowledgement (1000), request body
 (8 KB). Over a quota is a 429, visible to the connector, never a signal dropped in silence.
 
+Proposals for one player are taken one at a time: the deduplication, the quotas, the sequence, the signature and the
+journal line are decided together under a lock per player, so two connectors proposing at once never share a
+sequence, and a `dedupeKey` is accepted once whatever the timing. A pairing code confirmed by two connectors at once
+is confirmed once; the other gets a 409.
+
 ## Retention, export, deletion
 
 The journal (`journal.jsonl`) keeps every accepted signal: its id, sequence, the connector's key, the signed
