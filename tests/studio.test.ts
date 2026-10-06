@@ -317,5 +317,9 @@ describe('checks, storyboard, notes, layout', () => {
     await demo.setLayout('garden', { ...L, floor: 390 });
     expect(demo.getLayout('garden').floor).toBe(390);
     await expectError(demo.setLayout('garden', [] as never), 400);
+    // A layout that adds a validation error is taken back (4.1.6, as setValue does): a layer the room has not.
+    const kept = demo.getLayout('garden');
+    await expectError(demo.setLayout('garden', { ...kept, layers: { ghost: { x: 0, y: 0 } } }), 422);
+    expect(demo.getLayout('garden')).toEqual(kept);
   });
 });

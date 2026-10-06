@@ -29,7 +29,7 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 /* Keyboard and screen-reader targets only: pointer input keeps going through RoomView.hit(), which picks the smallest
    zone under the finger (a prop revealed on a sofa wins over the sofa). Buttons that took the pointer resolved by DOM order. */
 .a11y-target { position:absolute; padding:0; border:2px solid transparent; color:transparent; background:transparent; opacity:.01; pointer-events:none }
-.a11y-target:focus-visible { opacity:1; color:#fff; background:rgba(12,16,28,.82); border-color:#ffd84d; outline:3px solid #111; outline-offset:2px; font:10px var(--font-pixel); z-index:2 }
+.a11y-target:focus-visible { opacity:1; color:#fff; background:rgba(12,16,28,.82); border-color:#ffd84d; outline:3px solid #111; outline-offset:2px; font:12px var(--font-pixel); z-index:2 }
 .shadow { position: absolute; border-radius: 50%; background: rgba(25, 5, 35, .35); pointer-events: none; }
 .side { flex: 1; min-width: 0; background: #07070d; border-left: 2px solid #1e2a3a; display: flex; flex-direction: column; gap: 6px; padding: 8px; box-sizing: border-box; }
 .side.off { opacity: .35; pointer-events: none; }
@@ -110,7 +110,7 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .mapview .pin .news { position: absolute; right: -35%; top: -30%; width: 60%; animation: bob 1s ease-in-out infinite; }
 .credits { position: absolute; inset: 0; background: #0a0612; z-index: 1200; overflow: hidden; display: flex; justify-content: center; }
 .credits > div { z-index: 1; position: absolute; top: 100%; text-align: center; color: #efe7d6; line-height: 2; animation: roll 22s linear forwards; }
-@media (prefers-reduced-motion: reduce) { .speech.shout, .spark, .tapnext, .verb.blink, .slot.blink, .scene.shake { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .speech.shout, .spark, .tapnext, .verb.blink, .slot.blink, .scene.shake, .hintbadge, .rotate .ph, .mapview .pin .news, .credits > div { animation: none; } .credits > div { top: auto; bottom: 10%; } }
 
 /* ---------- Desktop layout (mouse, large screen): classic SCUMM ---------- */
 .game.desk { flex-direction: column; }

@@ -8,7 +8,11 @@
   stay in `npm test` and CI. `npm run doctor` tells required (Node, Chromium) from optional (Python and its modules,
   ffmpeg, WebKit): exit 0 when only optional ones are missing. The MCP server reports the engine's version. The
   verbs are 44 px high at least on a phone; the page may be zoomed (no `maximum-scale`, no `user-scalable=no`).
-  `packageManager` and `.nvmrc` pin npm and Node.
+  `packageManager` and `.nvmrc` pin npm and Node. The scripts that set a variable go through `cross-env` and the one
+  that made a directory through Node: they run on Windows. `requirements.txt` pins its three modules. The Vite
+  plugins (the layout writer, the Studio's demo snapshot, the sealed build, the assets' version, `site.json`) live
+  in `tools/vite/plugins.ts`; `vite.config.ts` is the configuration. `prefers-reduced-motion` stops every animation
+  (the call frame's, the map's news, the credits, the rotate hint included); the focused target's label is 12 px.
 
 ## 4.1.5 — 2026-10-06
 
