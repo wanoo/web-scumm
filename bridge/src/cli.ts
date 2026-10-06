@@ -1,13 +1,15 @@
 // npm run bridge -- <init|serve|grant|revoke> (web-scumm bridge …, 4.1.1): a reference Reality Bridge for a game, for
 // development and self-hosting (docs/en/REALITY-OPS.md).
-//   init [--dir=.cache/bridge] [--audience=bridge.local] [--origin=…] [--manifest=dist/reality-manifest.json]   keys, a config
-//   serve [--dir=…] [--port=8787] [--host=127.0.0.1]                                         the Bridge over HTTP
+//   init [--dir=.cache/bridge] [--audience=bridge.local] [--origin=…] [--manifest=dist/reality-manifest.json]
+//        [--no-demo-webhooks] [--demo-days=30]                                                 keys, a config
+//   serve [--dir=…] [--port=8787] [--host=127.0.0.1] [--trust-proxy]                         the Bridge over HTTP
 //   grant --connector=<id> --source=<s> --signals=a,b [--players=any|p-…,p-…] [--pair] [--days=30]   a connector's token
 //   rotate [--keep-days=30]                                                                   a new event-signing key
 //   revoke --url=<bridge> (--player=<p-…> | --token=<revocation id>)                         asks the running Bridge
 //   doctor [--dir=…]                                                                           reads the journal, says what it holds
 //   compact [--dir=…] [--retention-days=90]                                                    rewrites the journal (Bridge stopped)
 // Every secret `init` makes is written under --dir (not committed: .cache/ is ignored), never printed but the paths.
+// The Biscuit root's private half goes to `root.key`, read by `grant` only: `serve` never loads it (4.1.2).
 import { createHash, randomBytes, webcrypto } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -18,14 +20,17 @@ import { grantToken } from './policy';
 import { bridgeServer, type WebhookConfig } from './server';
 import { inspectJournal, JsonlBridgeStore } from './store';
 
-/** What `init` writes: everything a Bridge needs, the private halves included (file mode 0600). */
+/**
+ * What `init` writes to `config.json` (mode 0600): everything `serve` needs. The Biscuit root's private half is in
+ * `root.key` beside it (`privateKey` here is a 4.1.1 file: still read by `grant`, never written again).
+ */
 export interface BridgeFile {
   gameId: string;
   manifest: RealityManifest;
   manifestHash: string;
   audience: string;
   origins: string[];
-  biscuitRoot: { privateKey: string; publicKey: string };
+  biscuitRoot: { privateKey?: string; publicKey: string };
   eventKey: { kid: string; pkcs8: string; raw: string };
   previousKeys: { kid: string; raw: string; notAfter: number }[];
   adminTokenHash: string;
@@ -35,6 +40,14 @@ export interface BridgeFile {
 
 const arg = (args: string[], k: string) => args.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
+
+/** The Biscuit root's private half: `root.key` (4.1.2), else the 4.1.1 configuration's field. */
+function rootPrivateKey(dir: string, file: BridgeFile): string {
+  const own = resolve(dir, 'root.key');
+  if (existsSync(own)) return readFileSync(own, 'utf8').trim();
+  if (file.biscuitRoot.privateKey) return file.biscuitRoot.privateKey;
+  throw new Error(`${own} is missing: the root key signs connector tokens, and nothing else can`);
+}
 
 export async function loadBridge(file: BridgeFile, dir: string): Promise<Bridge> {
   const privateKey = await webcrypto.subtle.importKey(
@@ -93,7 +106,7 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
       manifestHash: await manifestHash(manifest),
       audience,
       origins: (arg(args, 'origin') ?? 'http://127.0.0.1:5173,http://localhost:5173').split(','),
-      biscuitRoot: { privateKey: root.getPrivateKey().toString(), publicKey: root.getPublicKey().toString() },
+      biscuitRoot: { publicKey: root.getPublicKey().toString() },
       eventKey: {
         kid: `k-${randomBytes(4).toString('hex')}`,
         pkcs8: Buffer.from(await webcrypto.subtle.exportKey('pkcs8', ev.privateKey)).toString('base64url'),
@@ -104,33 +117,43 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
       webhooks: {},
       journal: 'journal.jsonl',
     };
-    // The demonstration webhook: every signal of the manifest, under a token that may also confirm pairings.
-    const bySource = new Map<string, string[]>();
-    for (const s of manifest.signals) bySource.set(s.source, [...(bySource.get(s.source) ?? []), s.id]);
-    for (const [source, signals] of bySource)
-      file.webhooks[source] = {
-        secret: randomBytes(32).toString('base64url'),
-        source,
-        token: await grantToken(file.biscuitRoot.privateKey, {
-          connector: `webhook-${source}`,
-          gameId: manifest.gameId,
-          sources: [source],
-          signals,
-          players: 'any',
-          audience,
-          pair: true,
-          expiresAt: Date.now() + 365 * 24 * 3_600_000,
-        }),
-        map: Object.fromEntries(signals.map((s) => [s.slice(source.length + 1) || s, s])),
-      };
+    const rootPrivate = root.getPrivateKey().toString();
+    // The demonstration webhooks (one per source, every signal of it, any player, may confirm pairings): what makes
+    // a development Bridge usable at once, and too wide for one on the Internet, where each connector gets its own
+    // `grant`. `--no-demo-webhooks` leaves them out; their tokens live --demo-days (30).
+    if (!args.includes('--no-demo-webhooks')) {
+      const days = Number(arg(args, 'demo-days') ?? 30);
+      const bySource = new Map<string, string[]>();
+      for (const s of manifest.signals) bySource.set(s.source, [...(bySource.get(s.source) ?? []), s.id]);
+      for (const [source, signals] of bySource)
+        file.webhooks[source] = {
+          secret: randomBytes(32).toString('base64url'),
+          source,
+          token: await grantToken(rootPrivate, {
+            connector: `webhook-${source}`,
+            gameId: manifest.gameId,
+            sources: [source],
+            signals,
+            players: 'any',
+            audience,
+            pair: true,
+            expiresAt: Date.now() + days * 24 * 3_600_000,
+          }),
+          map: Object.fromEntries(signals.map((s) => [s.slice(source.length + 1) || s, s])),
+        };
+    }
     writeFileSync(cfgFile, `${JSON.stringify(file, null, 1)}\n`, { mode: 0o600 });
+    writeFileSync(resolve(dir, 'root.key'), `${rootPrivate}\n`, { mode: 0o600 });
     writeFileSync(resolve(dir, 'admin-token'), `${admin}\n`, { mode: 0o600 });
     chmodSync(cfgFile, 0o600);
-    console.log(`✔  ${cfgFile} (keys, webhook secrets and tokens; mode 600) and ${resolve(dir, 'admin-token')}`);
     console.log(
-      `   webhooks: ${Object.keys(file.webhooks)
-        .map((h) => `/v1/hooks/${h}`)
-        .join(', ')}; npm run bridge -- serve`,
+      `✔  ${cfgFile} (keys, webhook secrets and tokens; mode 600), ${resolve(dir, 'root.key')} (the root key: grant only) and ${resolve(dir, 'admin-token')}`,
+    );
+    const hooks = Object.keys(file.webhooks);
+    console.log(
+      hooks.length
+        ? `   demonstration webhooks: ${hooks.map((h) => `/v1/hooks/${h}`).join(', ')} (any player, may pair, ${arg(args, 'demo-days') ?? 30} days; on the Internet prefer --no-demo-webhooks and one grant per connector); npm run bridge -- serve`
+        : '   no demonstration webhook: grant each connector its token; npm run bridge -- serve',
     );
     return 0;
   }
@@ -139,7 +162,11 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     const bridge = await loadBridge(file, dir);
     const port = Number(arg(args, 'port') ?? 8787);
     const host = arg(args, 'host') ?? '127.0.0.1';
-    bridgeServer(bridge, { origins: file.origins, webhooks: file.webhooks }).listen(port, host, () =>
+    bridgeServer(bridge, {
+      origins: file.origins,
+      webhooks: file.webhooks,
+      trustProxy: args.includes('--trust-proxy'),
+    }).listen(port, host, () =>
       console.log(JSON.stringify({ event: 'bridge.listening', url: `http://${host}:${port}/`, game: file.gameId })),
     );
     return await new Promise<number>(() => {});
@@ -147,7 +174,7 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
   if (cmd === 'grant') {
     const file = read();
     const players = arg(args, 'players') ?? 'any';
-    const token = await grantToken(file.biscuitRoot.privateKey, {
+    const token = await grantToken(rootPrivateKey(dir, file), {
       connector: arg(args, 'connector') ?? 'connector',
       gameId: file.gameId,
       sources: [arg(args, 'source') ?? ''],

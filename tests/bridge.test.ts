@@ -1,7 +1,7 @@
 // The reference Bridge (4.1.1, bridge/src/), over real HTTP on a free port: pairing, signals proposed under a
 // Biscuit or by a signed webhook, deduplication, the fetch by cursor and SSE, acknowledgements, revocation, quotas,
 // sizes, export and deletion by player, a restart on its journal, and a log with no secret.
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -15,7 +15,7 @@ import { httpPort, sseEvents } from '@engine/reality/http-port';
 import { Bridge, type BridgeConfig, type BridgeLog } from '../bridge/src/bridge';
 import { biscuitLib } from '../bridge/src/biscuit';
 import { grantToken } from '../bridge/src/policy';
-import { bridgeServer, webhookSignature } from '../bridge/src/server';
+import { bridgeServer, type ServeOptions, webhookSignature } from '../bridge/src/server';
 import { inspectJournal, JsonlBridgeStore, MemoryBridgeStore, type BridgeStore } from '../bridge/src/store';
 import { signals, signalsLayouts } from './fixtures/signals';
 import { createHash } from 'node:crypto';
@@ -35,6 +35,7 @@ async function setup(
     /** The event key's id (a rotation: a second Bridge on the same store with another key). */
     kid?: string;
     previousKeys?: BridgeConfig['previousKeys'];
+    serve?: Partial<ServeOptions>;
   } = {},
 ) {
   const b = await biscuitLib();
@@ -83,6 +84,7 @@ async function setup(
   const server = bridgeServer(bridge, {
     origins: ['http://game.test'],
     webhooks: { webhook: { secret: hookSecret, token: hookToken, source: 'webhook', map: { bell: 'hook.bell' } } },
+    ...o.serve,
   });
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
   servers.push(server);
@@ -393,6 +395,50 @@ describe('the reference Bridge', () => {
     expect(after.bridge.exportPlayer(after.admin, link.playerId).acked).toBe(2);
   });
 
+  it('a bad token is refused before an unknown player is named; an address out of failed authentications waits', async () => {
+    const t = await setup({ serve: { perMinutePerIp: 3 } });
+    for (let i = 0; i < 3; i++)
+      expect((await t.propose('p-0000000000000000', 'mail.answer.correct', 'x', 'garbage')).status).toBe(401);
+    const blocked = await t.call('v1/keys');
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get('retry-after')).toBe('60');
+  });
+
+  it('the routes anyone may call are bounded per address; a token holder is not', async () => {
+    const t = await setup({ serve: { perMinutePerIp: 3 } });
+    const link = await t.pair(); // three anonymous calls: the code, its state, its claim
+    expect((await t.call('v1/keys')).status).toBe(429);
+    expect((await t.call('v1/signals?after=0', { token: link.capability })).status).toBe(200);
+  });
+
+  it('codes waiting for a confirmation are bounded, in memory, never written', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-codes-'));
+    temps.push(dir);
+    const file = join(dir, 'journal.jsonl');
+    const t = await setup({ store: new JsonlBridgeStore(file), limits: { pendingPairings: 2 } });
+    const ask = () => t.call('v1/pairings', { method: 'POST', body: JSON.stringify({ gameId: 'signals' }) });
+    expect((await ask()).status).toBe(201);
+    expect((await ask()).status).toBe(201);
+    expect((await ask()).status).toBe(429);
+    expect(existsSync(file) ? readFileSync(file, 'utf8') : '').toBe('');
+  });
+
+  it('a player ends its own link: revoked on the Bridge, not only forgotten; a link has a longest life', async () => {
+    let t0 = Date.now();
+    const t = await setup({ now: () => t0, limits: { capabilityMaxMs: 5_000 } });
+    const link = await t.pair();
+    expect((await t.call('v1/unlink', { method: 'POST', token: link.capability })).status).toBe(204);
+    expect((await t.call('v1/signals?after=0', { token: link.capability })).status).toBe(401);
+    expect((await t.propose(link.playerId, 'mail.answer.correct', 'after')).status).toBe(404);
+    expect(t.logs.some((l) => l.event === 'player.unlinked')).toBe(true);
+    const other = await t.pair();
+    expect((await t.call('v1/signals?after=0', { token: other.capability })).status).toBe(200);
+    t0 += 6_000;
+    const old = await t.call('v1/signals?after=0', { token: other.capability });
+    expect(old.status).toBe(401);
+    expect(await old.json()).toMatchObject({ message: expect.stringMatching(/too old/) });
+  });
+
   it('answers CORS for the game only, and logs no secret', async () => {
     const t = await setup();
     const ok = await t.call('v1/keys', { headers: { Origin: 'http://game.test' } });
@@ -519,8 +565,34 @@ describe('web-scumm bridge init', () => {
     }
     expect(statSync(join(dir, 'config.json')).mode & 0o777).toBe(0o600);
     expect(statSync(join(dir, 'admin-token')).mode & 0o777).toBe(0o600);
+    expect(statSync(join(dir, 'root.key')).mode & 0o777).toBe(0o600);
     const file = JSON.parse(readFileSync(join(dir, 'config.json'), 'utf8'));
     expect(Object.keys(file.webhooks).sort()).toEqual(['mail', 'webhook']);
+    // The root's private half is in root.key only; `grant` reads it there, `serve` never loads it.
+    expect(file.biscuitRoot.privateKey).toBeUndefined();
+    expect(readFileSync(join(dir, 'config.json'), 'utf8')).not.toContain('ed25519-private');
+    const write = process.stdout.write;
+    const out: string[] = [];
+    process.stdout.write = ((s: string) => (out.push(s), true)) as typeof process.stdout.write;
+    try {
+      expect(
+        await main(['grant', `--dir=${dir}`, '--connector=c', '--source=mail', '--signals=mail.answer.wrong']),
+      ).toBe(0);
+    } finally {
+      process.stdout.write = write;
+    }
+    expect(out.join('')).toMatch(/^\S{40,}\n$/);
+    const bare = mkdtempSync(join(tmpdir(), 'bridge-bare-'));
+    temps.push(bare);
+    console.log = () => {};
+    try {
+      expect(
+        await main(['init', `--dir=${bare}`, '--no-demo-webhooks'], { manifest: realityManifest(signals()) }),
+      ).toBe(0);
+    } finally {
+      console.log = log;
+    }
+    expect(JSON.parse(readFileSync(join(bare, 'config.json'), 'utf8')).webhooks).toEqual({});
     const bridge = await loadBridge(file, dir);
     expect(bridge.keys()[0]!.kid).toBe(file.eventKey.kid);
     console.log = () => {};

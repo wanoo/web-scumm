@@ -40,6 +40,18 @@
   [--retention-days=90]` (pairings past their time, earlier versions of a player's line and signals acknowledged and
   older than the retention dropped; a player's last signal and everything unacknowledged kept). The review's P1s on
   the store.
+- **The Bridge's surface, bounded.** Codes waiting for a confirmation live in memory only (1000 at most, swept),
+  where 4.1.1 appended and fsync'd a journal line for every anonymous request. Per address: 60 requests a minute on
+  the routes anyone may call, and 60 failed authentications a minute before every request of that address is
+  refused for a while (`Retry-After`); `serve --trust-proxy` reads `X-Forwarded-For`. A proposal's token is checked
+  before any player is named (a 401 or 403 before any 404; the manifest, public, still answers 422 first). A capability lives 180 days at most from its
+  pairing, renewals included. `POST /v1/unlink` (Bearer capability): the pause menu's "Unlink" revokes the link on
+  the Bridge, not only on the device, and a reconnection planned before it no longer brings the old link back. The
+  operator's token is compared in constant time. `init` writes the Biscuit root's private half to `root.key`, read by
+  `grant` only (`serve` never loads it; a 4.1.1 `config.json` still works); the demonstration webhooks' tokens live 30
+  days (`--demo-days`), and `init --no-demo-webhooks` leaves them out for a Bridge on the Internet. The review's
+  remaining P1s; its key-pinning ask is answered in `docs/dev/THREAT-MODEL.md` instead (the signing key lives on the
+  Bridge: a pin would not survive its compromise, and TLS already names the host).
 
 ## 4.1.1 — 2026-10-06
 

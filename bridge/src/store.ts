@@ -30,6 +30,8 @@ export interface Player {
   gameId: string;
   capabilityHash: string;
   capabilityExpiresAt: number;
+  /** When the link was made (4.1.2): a capability lives at most `capabilityMaxMs` from it, renewals included. */
+  issuedAt?: number;
   revoked?: boolean;
 }
 export interface JournalEntry {

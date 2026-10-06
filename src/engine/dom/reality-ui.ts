@@ -46,6 +46,8 @@ export class RealityLink {
   client?: RealityClient;
   private listeners = new Set<(s: LinkStatus) => void>();
   private releaseLock?: () => void;
+  /** A reconnection or a retry planned: cancelled by `unlink` and `relink`, so an old link never comes back. */
+  private retry?: ReturnType<typeof setTimeout>;
 
   constructor(private app: App) {}
 
@@ -137,7 +139,7 @@ export class RealityLink {
       if (this.client !== client || this.status === 'revoked' || this.status === 'none' || this.status === 'mismatch')
         return;
       this.set('retrying');
-      setTimeout(
+      this.retry = setTimeout(
         () => this.run(port, keyring, playerId, refreshKeys, attempt + 1),
         Math.min(60_000, 1000 * 2 ** attempt),
       );
@@ -162,7 +164,7 @@ export class RealityLink {
       keyring = await fetchKeys(r.bridge);
     } catch {
       this.set('retrying');
-      setTimeout(() => void this.connect(r), 10_000);
+      this.retry = setTimeout(() => void this.connect(r), 10_000);
       this.releaseLock?.();
       return;
     }
@@ -227,12 +229,27 @@ export class RealityLink {
     }
   }
 
-  /** Unlinks this game on this device: the stored link is forgotten (the Bridge's operator revokes it on its side). */
+  /**
+   * Unlinks this game: the link is revoked on the Bridge (`POST /v1/unlink`, so a capability copied from this browser
+   * stops working too) and forgotten here. Offline, the revocation is asked anyway and lost: the capability then
+   * ends with its expiry or the operator's revocation.
+   */
   async unlink(): Promise<void> {
+    clearTimeout(this.retry);
+    const r = this.record();
     this.forget();
     await this.client?.stop();
     this.releaseLock?.();
     this.set('none');
+    if (!r) return;
+    try {
+      await fetch(new URL('v1/unlink', r.bridge), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${r.capability}` },
+      });
+    } catch {
+      /* offline: the capability ends with its expiry or the operator's revocation */
+    }
   }
 
   /**
@@ -243,6 +260,7 @@ export class RealityLink {
   async relink(): Promise<void> {
     const r = this.record();
     if (!r || this.status !== 'mismatch') return;
+    clearTimeout(this.retry);
     await this.client?.stop();
     this.releaseLock?.();
     const s = JSON.parse(JSON.stringify(this.app.engine.state)) as typeof this.app.engine.state;

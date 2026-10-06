@@ -13,15 +13,26 @@ npm run bridge -- serve [--dir=.cache/bridge] [--port=8787] [--host=127.0.0.1]
 
 `init` lit le manifeste du jeu depuis son contenu et écrit, sous `--dir` en mode 600 :
 
-- `config.json` : le manifeste et son empreinte, la paire de clés racine Biscuit, la clé qui signe les événements
-  (Ed25519, avec un `kid`), l'empreinte du jeton de l'opérateur, un webhook par source (son secret, son propre jeton) ;
+- `config.json` : le manifeste et son empreinte, la clé publique racine Biscuit, la clé qui signe les événements
+  (Ed25519, avec un `kid`), l'empreinte du jeton de l'opérateur, un webhook de démonstration par source (son secret,
+  son propre jeton : tout joueur des signaux de cette source, peut confirmer des appairages, 30 jours ou
+  `--demo-days`) ;
+- `root.key` : la moitié privée de la racine Biscuit, lue par `grant` seulement (`serve` ne la charge jamais : la
+  garder là où le Bridge n'est pas, si possible) ;
 - `admin-token` : le jeton de l'opérateur, seule copie en clair.
 
 Rien de secret n'est affiché ni commité (`.cache/` est ignoré). Dans un projet de jeu, la commande est `web-scumm bridge`.
 
 Derrière HTTPS : lancer `serve` sur `127.0.0.1` derrière un proxy inverse qui termine TLS et ne met pas en tampon les
-réponses `text/event-stream`. `--origin` liste le site du jeu (CORS) ; les routes du joueur ne répondent qu'à lui.
-Mettre l'URL publique dans `reality.bridge` du jeu.
+réponses `text/event-stream`, avec `--trust-proxy` pour que les limites par adresse voient celle du client
+(`X-Forwarded-For`). `--origin` liste le site du jeu (CORS) ; les routes du joueur ne répondent qu'à lui. Mettre
+l'URL publique dans `reality.bridge` du jeu. Sur Internet, `init --no-demo-webhooks` et un `grant` par connecteur,
+chacun aussi étroit que sa tâche.
+
+Par adresse, les routes que n'importe qui peut appeler (un code, son état, les clés, le manifeste) répondent à 60
+requêtes par minute, et 60 authentifications ratées par minute sur les autres refusent un moment toute requête de
+cette adresse (429, `Retry-After`). Les codes en attente de confirmation ne vivent qu'en mémoire, 1000 au plus tous
+joueurs confondus : rien n'est écrit pour un code que personne ne confirme.
 
 ## Les connecteurs
 
@@ -56,9 +67,11 @@ peut proposer.
   le lien a été révoqué ou a expiré entre-temps est fermé par le Bridge, et le joueur se reconnecte depuis son curseur.
 - `GET /v1/keys` : les clés publiques, actuelle et précédentes.
 
-Une capacité lit et accuse réception des signaux d'un joueur, rien d'autre, et vit 30 jours depuis son dernier accusé.
+Une capacité lit et accuse réception des signaux d'un joueur, rien d'autre, et vit 30 jours depuis son dernier
+accusé, 180 jours au plus depuis son appairage.
 Dans le navigateur elle reste sensible (tout script de la page peut la lire) : révoquée ou expirée, le joueur devient
-« délié » et le jeu peut se lier à nouveau.
+« délié » et le jeu peut se lier à nouveau. Le « Délier » du menu pause la révoque sur le Bridge (`POST /v1/unlink`,
+capacité Bearer), pas seulement sur l'appareil.
 
 ## Clés et rotation
 
