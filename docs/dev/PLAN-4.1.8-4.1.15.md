@@ -959,6 +959,47 @@ catégorie.
 - Le Studio prévisualise, compare et exporte une seed.
 - Le jeu de référence fournit un mode histoire, un mode Remix et un défi quotidien reproductible.
 - Au moins vingt seeds de playtest sont exécutées automatiquement et cinq sont jouées par des humains.
+- La roue de code produit la même roue pour une même seed sur tous les runtimes, possède une alternative accessible équivalente et une version imprimable générée.
+
+### 11.13 Roue de code diégétique (« The Extremely Legitimate Pirate Check »)
+
+Hommage aux protections anti-copie physiques des années 1990 (les roues de code des jeux d'aventure), reconstruit
+avec les personnages et les objets du jeu, et porté par Remix parce qu'il repose sur les seeds et les associations
+variables. Ce n'est pas un DRM : dans une application web le code et la bonne réponse sont inspectables ; la
+fonctionnalité est présentée comme une reconstitution ludique et optionnelle, jamais comme une protection.
+
+Le joueur voit deux ou trois roues concentriques : à l'extérieur des visages tirés des sprites des acteurs, au
+centre des objets, animaux ou symboles du jeu, à l'intérieur des lieux, nombres, couleurs ou réponses ; le jeu
+demande d'aligner une combinaison et de donner le symbole révélé. La combinaison dépend de la seed de la partie.
+
+Configuration par l'auteur, un minijeu `code-wheel` : les acteurs, symboles et réponses admis, le flux aléatoire
+(`seedStream: 'copy-protection'`), le nombre d'essais, le mode d'échec. Modes : `parody` (réponses amusantes et
+passage automatique après quelques erreurs, le défaut), `story` (un échec déclenche un événement narratif),
+`strict` (bloque réellement, déconseillé), `cosmetic` (toute réponse finit par marcher), `disabled`, `daily` (même
+combinaison quotidienne pour tous, par la seed signée du Bridge).
+
+Remix fait varier les acteurs présents, leur position, les symboles associés, la formulation, l'emplacement
+narratif du contrôle, la bonne combinaison et les commentaires après un échec ; une même seed produit toujours
+exactement la même roue. Le flux `copy-protection` est indépendant des flux logique, cosmétique et minijeux
+(§11.6) : ajouter un portrait ne déplace aucune autre énigme.
+
+Version physique : `npm run code-wheel -- --game <id> --format pdf|svg` génère les disques (repères de découpe,
+trou central, instructions de montage, portraits tirés des sprites, version couleur et version économique, livret
+des questions). Le jeu fonctionne avec la roue imprimée ou avec sa reproduction interactive à l'écran.
+
+Accessibilité : sélection par boutons précédent/suivant, clavier et manette, annonce des éléments au lecteur
+d'écran, liste textuelle équivalente, contraste renforcé, pas de rotation animée sous `prefers-reduced-motion`,
+contrôle passable sans qu'une option d'accessibilité soit pénalisée.
+
+Solveur, replay et speedrun : le minijeu enregistre seed, version de la roue, configuration générée, rotations,
+réponse, essais et résultat ; le validateur vérifie qu'une solution existe pour chaque roue générée ; le solveur
+traite le minijeu comme gagnable après validation ; le replay reproduit la combinaison exacte ; une catégorie
+speedrun dit si la protection est activée, si la seed est fixe ou inconnue, si son temps compte, si le skip est
+autorisé, roue physique ou numérique.
+
+Direction artistique originale : personnages propres au jeu, roue, typographie et mise en page originales, aucun
+visage, logo, texte ou symbole repris d'un éditeur existant ; l'inspiration mécanique est assumée, la copie
+graphique évitée.
 
 ---
 
