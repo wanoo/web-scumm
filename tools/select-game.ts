@@ -1,5 +1,6 @@
 // npm run game: points `.cache/game` (a symbolic link, ignored by git) at games/<GAME>/, where tsconfig.json's
-// `@game` and `@game/*` paths look (4.1.6: 4.1.5 rewrote tsconfig.json, a tracked file, on every `dev` and `build`).
+// `@game` and `@game/*` paths look first, and games/demo second: a fresh checkout type-checks before any link exists
+// (4.1.6: 4.1.5 rewrote tsconfig.json, a tracked file, on every `dev` and `build`).
 // Vite and Vitest resolve the alias themselves (vite.config.ts); only `tsc` and the editor read tsconfig.json.
 // Run automatically by `npm run build`, `npm run check` and `npm run dev`; `GAME=<id> npm run game` switches game.
 import { existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync } from 'node:fs';
