@@ -120,37 +120,6 @@ export async function runScript(eng: Engine, id: Id, turn = false): Promise<bool
   return ran;
 }
 
-/** Starts the loops of the scripts in scope (auto mode): the room's on each room entry, the game's too on a new session. */
-export function startScripts(eng: Engine, session: boolean) {
-  eng.roomGen++;
-  if (session) eng.sessionGen++;
-  if (!eng.autoScripts) return;
-  for (const def of eng.room().scripts ?? []) void eng.loop(def.id, false, eng.roomGen);
-  if (session) for (const def of eng.game.scripts ?? []) void eng.loop(def.id, true, eng.sessionGen);
-}
-
-export async function loop(eng: Engine, id: Id, global: boolean, gen: number) {
-  eng.loops.add(id);
-  try {
-    while (eng.state && !eng.state.done && !eng.destroyed && gen === (global ? eng.sessionGen : eng.roomGen)) {
-      let r: Awaited<ReturnType<Engine['advance']>>;
-      try {
-        r = await eng.advance(id);
-      } catch (e) {
-        // A script that throws is stopped, and the save says so (`off`): it does not look alive while it is dead.
-        const st = eng.state.scripts?.[id];
-        if (st) st.off = true;
-        eng.onError(e, `script ${id}`);
-        return;
-      }
-      if (r === 'done' || r === 'off') return;
-      if (r !== 'ran') await eng.ui.wait(250, false);
-    }
-  } finally {
-    eng.loops.delete(id);
-  }
-}
-
 // ------------------------------------------------------------------ scripts
 /** Runs a script in the current room (usable by the UI or tests). */
 export async function script(eng: Engine, cmds: Cmd[]) {

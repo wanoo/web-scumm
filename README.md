@@ -17,6 +17,14 @@ single day with an AI assistant.
 
 ![The Pantry Key: Grandma's house, nine verbs, the bag](docs/img/v36-hero.webp)
 
+**New in v4.1.5 "Real Core":** nothing in the content, everything in who owns what inside the engine. `step()` is
+a table of handlers, one function per command; the script loops, the session and the room's camera and walking
+have owners of their own (`ScriptScheduler`, `SessionLog`, `Camera`, `Walker`) instead of fields on the engine or the
+view that functions mutated; the keyboard targets and the inventory are diffed, not rebuilt, on a state change, and
+the stage is re-sent only when one of its conditions changes; `dom/room.ts` is under the 800-line limit without an
+exception. Behaviour identical: the quality baseline, the visual baselines and the frame-rate gate are the same before
+and after each step ([CHANGELOG](CHANGELOG.md)).
+
 **New in v4.1.4 "Honest Engine":** nothing in the content, everything in how the engine behaves when things end or
 fail. `Engine.destroy()` and `App.destroy()` leave no loop, listener, frame or blob URL behind; `Engine.onError` hears
 a script that threw (stopped and marked so in the save, where 4.1.3 left it looking alive); time comes from the
@@ -98,7 +106,7 @@ Market".
 | A game made on the previous release, upgraded, its save played to the end on 4.0 | a CI job on every push (`npm run upgrade-check`) |
 | "The Lighthouse", the independent game: 5 places, English and French | `release --commercial` green: proof over 85 states, 202 texts per language, 62 locked files |
 | The public API | 92 names in 4 entries, 23 Studio/MCP tools, held by `tests/api-surface.test.ts` |
-| Saves | one per release from 3.0.0 to 4.1.4 loads and reaches the ending |
+| Saves | one per release from 3.0.0 to 4.1.5 loads and reaches the ending |
 | The player's first visit | 122 KB of JavaScript, gzipped (153 in 3.7.0), held by `initialJsKB` |
 | The archive | every file accounted for: code, locked assets, fonts, icons, `licenses/` |
 | The nightly corpus | 1 503 random games in four shards, 910 compared to the explicit search, 0 divergences |
@@ -163,7 +171,7 @@ Needs Node 22+, Python 3 for the art tools (`pip install -r requirements.txt`) a
 publishing to come, then `npx create-web-scumm my-game`):
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.4/web-scumm-4.1.4.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.5/web-scumm-4.1.5.tgz
 npx --package=$T web-scumm create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # then npm run verify, npm run build, npm run release
@@ -246,9 +254,9 @@ Every page also exists in French under `docs/fr/`. `docs/dev/` holds the log of 
 
 ## Releases
 
-Current release: [v4.1.4 "Honest Engine"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.4): an engine that
-ends cleanly (`destroy`), says what fails (`onError`), knows one clock, and exposes hooks where the player used to
-patch its methods; the state's keys in one place; English placeholders. The
+Current release: [v4.1.5 "Real Core"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.5): the split that
+4.1.0 announced, done: `step()` as a table, owners for the script loops, the session, the camera and the walking,
+rendering diffed instead of rebuilt, `room.ts` under the limit; behaviour identical to 4.1.4. The
 story from v1.3 to v4.1 is in the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map

@@ -17,6 +17,15 @@ vérifie, le prouve et le publie en jeu web jouable hors ligne. Il est né comme
 
 ![The Pantry Key : la maison de Grand-mère, neuf verbes, le sac](docs/img/v36-hero.webp)
 
+**Nouveau en v4.1.5 « Cœur réel » :** rien dans le contenu, tout dans qui possède quoi à l'intérieur du moteur.
+`step()` est une table de handlers, une fonction par commande ; les boucles de scripts, la session, la caméra et la
+marche d'une pièce ont leurs propres propriétaires (`ScriptScheduler`, `SessionLog`, `Camera`, `Walker`) au lieu de
+champs du moteur ou de la vue que des fonctions mutaient ; les cibles clavier et l'inventaire sont diffés, pas
+reconstruits, à chaque changement d'état, et la scène n'est renvoyée au peintre que si l'une de ses conditions
+change ; `dom/room.ts` passe sous la limite des 800 lignes sans exception. Comportement identique : la baseline de
+qualité, les baselines visuelles et la gate de fréquence d'images sont les mêmes avant et après chaque étape
+([CHANGELOG](CHANGELOG.md)).
+
 **Nouveau en v4.1.4 « Moteur honnête » :** rien dans le contenu, tout dans la façon dont le moteur se comporte quand
 les choses finissent ou échouent. `Engine.destroy()` et `App.destroy()` ne laissent ni boucle, ni écouteur, ni image,
 ni URL blob derrière eux ; `Engine.onError` entend un script qui a levé (arrêté et marqué tel dans la sauvegarde, là
@@ -104,7 +113,7 @@ et un deuxième jeu, « Le Marché de nuit ».
 | Un jeu fait sur la release précédente, mis à jour, sa sauvegarde jouée jusqu'à la fin en 4.0 | un job de CI à chaque push (`npm run upgrade-check`) |
 | « Le Phare », le jeu indépendant : 5 lieux, anglais et français | `release --commercial` vert : preuve sur 85 états, 202 textes par langue, 62 fichiers verrouillés |
 | L'API publique | 92 noms dans 4 entrées, 23 outils Studio/MCP, tenus par `tests/api-surface.test.ts` |
-| Les sauvegardes | une par release de la 3.0.0 à la 4.1.4 se charge et atteint la fin |
+| Les sauvegardes | une par release de la 3.0.0 à la 4.1.5 se charge et atteint la fin |
 | La première visite du joueur | 122 Ko de JavaScript compressé (153 en 3.7.0), tenus par `initialJsKB` |
 | L'archive | chaque fichier justifié : code, assets verrouillés, polices, icônes, `licenses/` |
 | Le corpus de nuit | 1 503 jeux aléatoires en quatre tranches, 910 comparés à la recherche explicite, 0 divergence |
@@ -170,7 +179,7 @@ Il faut Node 22+, Python 3 pour les outils d'image (`pip install -r requirements
 (la publication sur npm viendra, puis `npx create-web-scumm mon-jeu`) :
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.4/web-scumm-4.1.4.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.5/web-scumm-4.1.5.tgz
 npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # puis npm run verify, npm run build, npm run release
@@ -257,9 +266,10 @@ assistant.
 
 ## Releases
 
-Release actuelle : [v4.1.4 « Moteur honnête »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.4) : un moteur
-qui se termine proprement (`destroy`), dit ce qui échoue (`onError`), ne connaît qu'une horloge, et expose des hooks
-là où le joueur rapiéçait ses méthodes ; les clés de l'état en un seul endroit ; des placeholders en anglais. L'histoire de la v1.3 à la v4.1 est dans la
+Release actuelle : [v4.1.5 « Cœur réel »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.5) : la découpe
+annoncée par la 4.1.0, faite : `step()` en table, des propriétaires pour les boucles de scripts, la session, la
+caméra et la marche, un rendu diffé plutôt que reconstruit, `room.ts` sous la limite ; comportement identique à la
+4.1.4. L'histoire de la v1.3 à la v4.1 est dans la
 [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt

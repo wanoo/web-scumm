@@ -83,7 +83,7 @@ export function usedLocked(eng: Engine, id: Id, room: RoomDef = eng.room()): boo
 }
 
 /** Is the entity visible in the current room? A moving character only shows in the room it is in. */
-export function visible(eng: Engine, id: Id, room: RoomDef = eng.room()): boolean {
+export function visible(eng: Engine, id: Id, room: RoomDef = eng.room(), guests = eng.guests(room)): boolean {
   const act = room.actors?.[id];
   if (eng.reads) {
     if (act) eng.reads.add(`where:${act.char}`);
@@ -96,7 +96,7 @@ export function visible(eng: Engine, id: Id, room: RoomDef = eng.room()): boolea
   const over = eng.state.actors[`${room.id}.${id}`]?.visible;
   if (over !== undefined) return over;
   const def = act ?? room.props?.[id] ?? room.hotspots?.[id];
-  if (!def && eng.guests(room)[id]) return true;
+  if (!def && guests[id]) return true;
   return def ? eng.cond(def.visible, room.id) : false;
 }
 
@@ -113,6 +113,8 @@ export function propState(eng: Engine, id: Id, room: RoomDef = eng.room()): stri
 
 /** Everything that can be targeted in the room (ids), in the content's display order. */
 export function targets(eng: Engine, room: RoomDef = eng.room()): Id[] {
+  // The guests of the room once (4.1.5): `visible` asked for them again for every id, on every pointer move.
+  const guests = eng.guests(room);
   const ids = [
     ...Object.keys(room.hotspots ?? {}),
     ...Object.entries(room.props ?? {})
@@ -121,9 +123,9 @@ export function targets(eng: Engine, room: RoomDef = eng.room()): Id[] {
     ...Object.entries(room.actors ?? {})
       .filter(([, a]) => a.interactive !== false)
       .map(([k]) => k),
-    ...Object.keys(eng.guests(room)),
+    ...Object.keys(guests),
   ];
-  return ids.filter((id) => eng.visible(id, room));
+  return ids.filter((id) => visible(eng, id, room, guests));
 }
 
 /** Is this id something the room offers to target (declared and visible)? Reads only what concerns it. */

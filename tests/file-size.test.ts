@@ -18,10 +18,6 @@ const EXCEPTIONS: Record<string, { cap: number; why: string }> = {
     cap: 1187,
     why: 'the validator: one check after another over the same indexes, read top to bottom',
   },
-  'src/engine/dom/room.ts': {
-    cap: 1026,
-    why: 'the room view: the camera, the entities and the walk share one frame loop',
-  },
   'src/engine/dev/editor.ts': { cap: 847, why: 'the dev layout editor: handles of every kind on one overlay' },
   'src/studio/assistant.ts': { cap: 845, why: 'the Studio assistant: the conversation, its tools and its rendering' },
 };

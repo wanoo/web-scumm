@@ -63,7 +63,7 @@ export function onKey(app: App, e: KeyboardEvent) {
 
 export function toScene(app: App, e: PointerEvent): Point {
   const r = app.scene.getBoundingClientRect();
-  return app.view.toLogical((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+  return app.view.camera.toLogical((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
 }
 
 // ================================================================== interaction
@@ -184,7 +184,7 @@ export async function onScenePointer(app: App, e: PointerEvent) {
   const id = app.view.hit(p);
   if (!id) {
     app.nearMiss(p);
-    await app.engine.walkTo(app.view.clampFloor(p));
+    await app.engine.walkTo(app.view.walker.clamp(p));
     return;
   }
   if (e.pointerType !== 'mouse') {
@@ -219,7 +219,7 @@ export function showLabel(app: App, id: Id | null) {
   const b = app.view.box(id);
   if (!b) return;
   const l = el('div', 'label', esc(app.engine.nameOf(id)));
-  const [lx, ly] = app.view.toScreen([b[0] + b[2] / 2, b[1] - 2]);
+  const [lx, ly] = app.view.camera.toScreen([b[0] + b[2] / 2, b[1] - 2]);
   l.style.left = `${lx}px`;
   l.style.top = `${Math.max(14 * app.u, ly)}px`;
   app.scene.append(l);
@@ -240,36 +240,53 @@ export function renderInv(app: App) {
     per = cols * 2;
   const maxPage = Math.max(0, Math.ceil((n - per) / cols));
   app.invPage = Math.min(app.invPage, maxPage);
-  app.invEl.innerHTML = '';
-  app.invEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  // The slots are made once per shape (4.1.5): a change of inventory patches what each one shows, where 4.1.0 threw
+  // the grid away and made six buttons again on every gain, loss or use.
+  if (app.invEl.children.length !== per || app.invEl.dataset.cols !== String(cols)) {
+    app.invEl.innerHTML = '';
+    app.invEl.dataset.cols = String(cols);
+    app.invEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    for (let j = 0; j < per; j++) app.invEl.append(el('button', 'slot'));
+  }
   const off = app.invPage * cols;
   for (let j = 0; j < per; j++) {
     const id = app.items[off + j];
-    const b = el('button', 'slot');
+    const b = app.invEl.children[j] as HTMLButtonElement;
     // An empty slot is layout, not a control: out of the tab order and of the accessibility tree.
     if (!id) {
+      if (b.dataset.id) {
+        b.innerHTML = '';
+        delete b.dataset.id;
+        b.className = 'slot';
+        b.removeAttribute('aria-label');
+        b.removeAttribute('aria-disabled');
+        b.onclick = null;
+        b.onpointerenter = null;
+      }
       b.tabIndex = -1;
       b.setAttribute('aria-hidden', 'true');
+      continue;
     }
-    if (id) {
-      const it = app.game.items[id];
+    const it = app.game.items[id];
+    if (b.dataset.id !== id) {
+      b.dataset.id = id;
       b.innerHTML = `<img src="${app.bank.img(it?.icon ?? id)}" alt="">`;
       b.setAttribute('aria-label', it?.name ?? id);
-      b.classList.toggle('sel', id === app.a);
-      b.classList.toggle('blink', id === app.guideState?.target);
-      if (app.used.includes(id)) {
-        b.classList.add('used');
-        if (app.engine.state && app.engine.usedLocked(id)) {
-          b.classList.add('locked');
-          b.setAttribute('aria-disabled', 'true');
-        }
-      }
       b.onclick = () => void app.onItem(id);
       b.onpointerenter = (e) => {
         if (e.pointerType === 'mouse' && !app.engine.busy) app.sentence(id);
       };
     }
-    app.invEl.append(b);
+    b.tabIndex = 0;
+    b.removeAttribute('aria-hidden');
+    b.classList.toggle('sel', id === app.a);
+    b.classList.toggle('blink', id === app.guideState?.target);
+    const used = app.used.includes(id);
+    const locked = used && !!app.engine.state && app.engine.usedLocked(id);
+    b.classList.toggle('used', used);
+    b.classList.toggle('locked', locked);
+    if (locked) b.setAttribute('aria-disabled', 'true');
+    else b.removeAttribute('aria-disabled');
   }
   app.invNav.hidden = n <= per && !app.desk;
   // The three buttons appended when the side panel was built.

@@ -537,6 +537,19 @@ module, des placeholders en anglais avec les noms 4.0 conservés, le code mort r
 et dépendances morts. La suivante, 4.1.5, rend réelle la découpe de la 4.1.0 : `step()` en table, des sous-objets qui
 possèdent leur état, le joueur décomposé, le rendu diffé.
 
+## v4.1.5 « Cœur réel » (livrée le 6 octobre 2026) : la découpe annoncée par la 4.1.0
+
+`step()` en table de handlers (`core/command-handlers.ts`), les boucles de scripts possédées par `ScriptScheduler`,
+la session par `SessionLog` (`Engine.sessions`), la caméra et la marche de la vue de pièce par `Camera` et `Walker`
+(`view.camera`, `view.walker`) ; les cibles clavier et l'inventaire diffés à chaque changement d'état, la scène
+renvoyée au peintre seulement si l'une de ses conditions change, les invités calculés une fois par `targets()` ;
+`dom/room.ts` de 1026 lignes à 744, hors de la liste des exceptions ; la table et le scheduler dans le jeu de
+mutation du cœur. Comportement identique à chaque étape (la baseline de qualité, les baselines visuelles, la gate de
+fréquence d'images). Laissé pour plus tard, dit comme tel : `busyCount`, `guideWait` et `skipping` restent sur
+l'Engine ; le joueur (`dom/app.ts`) n'est pas décomposé ; le peintre Canvas construit encore sa liste de dessin à
+chaque image. La suivante, 4.1.6, est l'outil du studio : les scripts npm, aucun fichier suivi écrit par `dev` ou
+`new-game`, Python hors du chemin de build, Windows, les onglets du Studio, les cibles tactiles du joueur.
+
 ## Après la 4.0 (pas encore planifié)
 
 - Les passes terrain, puis ce qu'elles trouvent (D12).

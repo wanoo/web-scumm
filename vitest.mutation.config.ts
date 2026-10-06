@@ -16,6 +16,8 @@ const CORE = [
   'tests/properties.test.ts',
   'tests/cmds.test.ts',
   'tests/critical-*.test.ts',
+  'tests/engine-honesty.test.ts',
+  'tests/scheduler.test.ts',
 ];
 const REALITY = ['tests/reality-*.test.ts', 'tests/bridge*.test.ts'];
 const set = process.env.MUTATION_SET ?? 'core';

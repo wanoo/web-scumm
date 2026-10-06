@@ -2230,3 +2230,22 @@ Platform"; human gates reported, not blocking (D12).
   off until they are judged), a signed tag.
 
 → next: Claude · pull request, merge on green, tag v4.1.4; then 4.1.5 "Cœur réel"
+
+## #101 · 2026-10-06 · Claude · release · 4.1.5 "Real Core"
+
+- Five branches, each on the one before, each with the baseline identical: `refactor/step-table` (the handlers'
+  table, the scheduler), `refactor/render-diff` (targets and inventory diffed, guests once), `refactor/room-split`
+  (`Camera`, `Walker`, the entity type; room.ts 1026 → 744), `refactor/session-owner` (`SessionLog`); then
+  `release/4.1.5` (the stage keyed by its conditions, the mutation set, the chores).
+- Found on the way: the diffed targets kept the focus on the target a key had activated, so the player's next Space
+  landed on that button and no longer advanced the line (the keyboard e2e caught it; the button now advances the
+  line as a tap on the scene does); `npm run new-game second` of a local check had written `games/second` and
+  `config.game` into the tree and the menu fix of 4.1.4 committed them, so CI played the second game (removed on
+  `release/4.1.4`; that `new-game` and `dev` write tracked files is a 4.1.6 item).
+- 4.1.3's chain: the first merge reached `main` before the two node-24 fixes, its CI failed and the release skipped;
+  the tag was deleted without a release and the branch's tested head re-proposed by pull request (#15).
+- Not done (D12): the field passes, the reality survivors, a signed tag; and of the plan's 4.1.5 list, the `Busy`
+  owner, the player's decomposition, the Canvas draw list, the precomputed hit boxes, the memoised guests (the passes
+  sheet says so).
+
+→ next: Claude · pull request, merge on green, tag v4.1.5; then 4.1.6 "Outil de studio"

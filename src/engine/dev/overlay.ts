@@ -66,7 +66,7 @@ export class Overlay {
 
   toLogical(e: { clientX: number; clientY: number }): Point {
     const r = this.app.scene.getBoundingClientRect();
-    return this.app.view.toLogical((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+    return this.app.view.camera.toLogical((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
   }
 
   setVisible(v: boolean) {

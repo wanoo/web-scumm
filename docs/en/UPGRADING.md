@@ -249,3 +249,11 @@ Nothing to change in a game. A host that embeds the engine or the player gains `
 hear what fails, and `beforeSave` / `onLoad` where it used to replace `store.save` or `engine.load` (do that no
 more: the hooks compose). Fallback, kind and give lines may use `{item}`, `{target}`, `{name}`; `{objet}`,
 `{cible}`, `{nom}` still work. A 4.1.3 save loads unchanged.
+
+## 17. From 4.1.4 to 4.1.5 "Real Core"
+
+Nothing to change in a game, and nothing in a host that uses the public API: `engine.session`, `begin`, `choose`,
+`rand`, `destroy`, the hooks are where they were. A host that reached the engine's `@internal` fields `feed`, `open`
+or `sessionT0` finds them on `engine.sessions` (`feed`, `open`, `t0`); one that reached the room view's `toScreen`,
+`toLogical`, `setCamera`, `followHero`, `onCamera` or `cam` finds them on `view.camera`, and `walkTo`, `motion` and
+`clampFloor` (now `clamp`) on `view.walker`. A 4.1.4 save loads unchanged.
