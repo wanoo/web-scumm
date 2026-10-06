@@ -67,7 +67,8 @@ jobs:
           cp pack/web-scumm-*.tgz pack/create-web-scumm-*.tgz .
           # The reference Reality Bridge (4.1.1): web-scumm-bridge-<version>.tgz, its own package, with its own SBOM
           # (4.1.2): the root's SBOM lists the engine's runtime dependencies, not the Bridge's.
-          (cd pack/web-scumm-bridge && npm install --package-lock-only --omit=dev --ignore-scripts --no-audit --no-fund && npm sbom --sbom-format cyclonedx --omit dev) > "web-scumm-bridge-$TAG-sbom.cdx.json"
+          # `npm sbom` reads the installed tree, not a lockfile: a real install of the package's two dependencies.
+          (cd pack/web-scumm-bridge && npm install --omit=dev --ignore-scripts --no-audit --no-fund >/dev/null && npm sbom --sbom-format cyclonedx --omit dev) > "web-scumm-bridge-$TAG-sbom.cdx.json"
           sha256sum "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz > "web-scumm-$TAG-SHA256SUMS"
       - uses: actions/attest-build-provenance@v2
         with:

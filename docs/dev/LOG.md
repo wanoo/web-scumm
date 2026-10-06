@@ -2190,4 +2190,8 @@ Platform"; human gates reported, not blocking (D12).
 - Not done (D12): a Bridge behind HTTPS with a phone and a rotation while linked, a real connector, the field passes,
   the 88 survivors, a signed tag.
 
-→ next: Claude · merge on green CI, tag v4.1.2; then 4.1.3 "Gates honnêtes" (the plan's second release)
+- The first `v4.1.2` tag (on 74bbee7) failed in `release.yml` at the Bridge's SBOM: `npm sbom` reads an installed tree,
+  and the step had only written a lockfile. No release and no asset were made, so the tag was removed, the step
+  installs the package's two dependencies for real (`fix/release-sbom`), and the tag goes on the commit CI tests next.
+
+→ next: Claude · merge on green CI, tag v4.1.2 again; then 4.1.3 "Gates honnêtes" (the plan's second release)
