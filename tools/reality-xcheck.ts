@@ -7,6 +7,8 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { biscuitLib, errorClass } from '../bridge/src/biscuit';
+import { importBridgeKey, verifySignal } from '../src/engine/reality/protocol';
+import { authorize } from '../bridge/src/policy';
 import { ROOT } from './game';
 import { flushExit } from './flush';
 
@@ -99,6 +101,59 @@ for (const t of samples.testcases)
     if (rs && r && j && r.revocation !== j.revocation)
       problems.push(`${tag}: revocation ids differ (JavaScript ${j.revocation}, Rust ${r.revocation})`);
   }
+// The signed signal's conformance corpus: the player's verifier (JavaScript) and the Rust one give each case's verdict.
+const CORPUS = resolve(ROOT, 'tests/fixtures/reality/conformance.json');
+const corpus = JSON.parse(readFileSync(CORPUS, 'utf8')) as {
+  keys: { kid: string; raw: string; notBefore?: number; notAfter?: number }[];
+  expect: { gameId: string; playerId: string; signals: string[]; now: number };
+  cases: { name: string; jws: string; verdict: string; expect?: { now?: number } }[];
+};
+const keyring = await Promise.all(corpus.keys.map(({ kid, raw, ...w }) => importBridgeKey(kid, raw, w)));
+for (const c of corpus.cases) {
+  const r = await verifySignal(c.jws, keyring, {
+    ...corpus.expect,
+    signals: new Set(corpus.expect.signals),
+    ...c.expect,
+  });
+  const got = r.ok ? 'ok' : r.code;
+  if (got !== c.verdict) problems.push(`signal "${c.name}": JavaScript says ${got}, the corpus ${c.verdict}`);
+}
+if (rs) {
+  const out = execFileSync('cargo', ['run', '--quiet', '--release', '--', 'conformance', CORPUS], {
+    cwd: resolve(ROOT, 'bridge/xcheck'),
+    encoding: 'utf8',
+  });
+  for (const l of out.trim().split('\n')) {
+    const r = JSON.parse(l) as { name: string; verdict: string };
+    const want = corpus.cases.find((c) => c.name === r.name)?.verdict;
+    if (r.verdict !== want) problems.push(`signal "${r.name}": Rust says ${r.verdict}, the corpus ${want}`);
+  }
+}
+
+// The Bridge's policy: the same tokens and requests, authorised by both implementations.
+const POLICY_CASES = resolve(ROOT, 'tests/fixtures/reality/policy.json');
+const policy = JSON.parse(readFileSync(POLICY_CASES, 'utf8')) as {
+  rootPublicKey: string;
+  cases: { name: string; token: string; request: Parameters<typeof authorize>[2]; now: number; verdict: string }[];
+};
+for (const c of policy.cases) {
+  const r = await authorize(c.token, policy.rootPublicKey, c.request, c.now);
+  const got = r.ok ? 'ok' : r.code;
+  if (got !== c.verdict) problems.push(`policy "${c.name}": JavaScript says ${got}, the fixture ${c.verdict}`);
+}
+if (rs) {
+  const out = execFileSync(
+    'cargo',
+    ['run', '--quiet', '--release', '--', 'policy', POLICY_CASES, resolve(ROOT, 'bridge/policy/propose.datalog')],
+    { cwd: resolve(ROOT, 'bridge/xcheck'), encoding: 'utf8' },
+  );
+  for (const l of out.trim().split('\n')) {
+    const r = JSON.parse(l) as { name: string; verdict: string };
+    const want = policy.cases.find((c) => c.name === r.name)?.verdict;
+    if (r.verdict !== want) problems.push(`policy "${r.name}": Rust says ${r.verdict}, JavaScript ${want}`);
+  }
+}
+
 for (const p of problems) console.log('  ✖ ' + p);
 for (const [f, why] of Object.entries(EXCLUDED)) console.log(`  ℹ ${f} excluded: ${why}`);
 if (!rs)
@@ -106,7 +161,7 @@ if (!rs)
 const fail = problems.length > 0 || (!rs && process.argv.includes('--require-rust'));
 console.log(
   fail
-    ? `✖  Biscuit cross-check: ${problems.length} difference(s)`
-    : `✔  Biscuit cross-check: ${checked} validations, the specification's verdict in JavaScript${rs ? ' and in Rust' : ''}`,
+    ? `✖  cross-check: ${problems.length} difference(s)`
+    : `✔  cross-check: Biscuit's ${checked} validations, the signal's ${corpus.cases.length} cases and the policy's ${policy.cases.length}, the expected verdict in JavaScript${rs ? ' and in Rust' : ''}`,
 );
 await flushExit(fail ? 1 : 0);

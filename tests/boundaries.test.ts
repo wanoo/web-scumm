@@ -107,6 +107,10 @@ describe("the engine's layers", () => {
     expect(cycles).toEqual([]);
   });
 
+  it('the Reality protocol (4.1.1) imports nothing but the core and plain packages: the player loads it on demand', () => {
+    expect(offenders(layer('reality'), (to) => /^(dom|tools|dev|minigames|ending|studio)(\/|$)/.test(to))).toEqual([]);
+  });
+
   it('the engine never imports the Bridge (4.1.1): Biscuit, keys and the server stay out of every game', () => {
     const offending = files(ROOT).flatMap((f) =>
       imports(f)

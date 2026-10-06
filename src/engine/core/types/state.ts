@@ -1,5 +1,6 @@
 // The state of a game in progress: what a save holds. (core/types.ts re-exports every name; 4.1.0 "Clarity".)
 import type { Id, Point, Value } from './content';
+import type { RealityState } from './reality';
 
 // ---------------------------------------------------------------------------
 // Game state (serialised as-is in the save)
@@ -41,4 +42,6 @@ export interface GameState {
   /** Where the music was when this was saved (3.6): its track and its position in the file, in seconds. Written by the
    *  player's app, read back by it to resume the music there; the engine and the tools never read it. */
   music?: { id: Id; at: number };
+  /** The link to a Reality Bridge (4.1.1): the cursor and the signals applied. Absent in a game without `reality`. */
+  reality?: RealityState;
 }

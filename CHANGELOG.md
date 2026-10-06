@@ -51,6 +51,15 @@
   JavaScript and in the Rust crate (`bridge/xcheck`), 49 validations, in a CI job of their own. `npm run
   reality:spike` reproduces the measures. `docs/dev/THREAT-MODEL.md`. The engine never imports the Bridge
   (`tests/boundaries.test.ts`).
+- **Reality Bridge, the protocol** (lot B): `src/engine/reality/protocol.ts` checks a signed signal in the order
+  size, shape, algorithm and key (with rotation windows), the Ed25519 signature on the transported bytes, then the
+  payload (`WorldSignalV1`, a strict schema), the game, the player, the manifest and the expiry; each refusal has a
+  code. `src/engine/reality/manifest.ts`: a game's manifest of signals and its hash. Content types `RealityDef`,
+  `SignalDef`, `RealityState` (`GameDef.reality`, `GameState.reality`; API). The Bridge's Biscuit policy
+  (`bridge/policy/propose.datalog`, `bridge/src/policy.ts`): a connector proposes only the game, sources, signals,
+  players and audience its token grants, before its expiry (to the second, strict), unless revoked; attenuation only
+  narrows. Conformance: 22 signed cases (`tests/fixtures/reality/conformance.json`, test keys from fixed seeds) and 9
+  policy cases, the same verdict in JavaScript and in Rust (`npm run reality:xcheck`).
 
 ## 4.0.0 — 2026-10-05
 

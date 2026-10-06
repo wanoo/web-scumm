@@ -6,6 +6,7 @@ What each folder of `src/engine` may import (3.9). `tests/boundaries.test.ts` ch
 |---|---|---|---|
 | Core | `core/` | itself, plain packages (`zod/mini`) | the DOM, tools, dev, minigames, the Studio |
 | Player | `dom/`, `minigames/`, `ending/`, `boot.ts` | core, each other; `tools/i18n` (locales at boot); `tools/replay` and `dev/` only through `import()` | the solver, the validator, the linter, any other tool, the Studio, tweakpane |
+| Reality | `reality/` (4.1.1) | core, plain packages (`zod/mini`); WebCrypto | the DOM, tools, dev, the Studio, the Bridge (`bridge/`) |
 | Tools | `tools/` | core | the DOM (they run in Node, workers and tests) |
 | Dev | `dev/` | anything | being imported statically by the player |
 

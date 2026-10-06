@@ -1,5 +1,6 @@
 // A game and its rooms: the room, the map, the rules, the ending, the skin, the game itself, its migrations and its interface texts. (core/types.ts re-exports every name; 4.1.0 "Clarity".)
 import type { AudioDef } from './audio';
+import type { RealityDef } from './reality';
 import type {
   ActorDef,
   CharacterDef,
@@ -217,6 +218,8 @@ export interface GameDef {
   skin: SkinDef;
   /** Sealed ending, optional. */
   ending?: EndingDef;
+  /** Signals from the world outside, through a Reality Bridge (4.1.1, docs/en/REALITY.md). Absent: none, no code loaded. */
+  reality?: RealityDef;
   /**
    * Ready-to-use states for testing a specific moment (teleport in dev mode, solver). A checkpoint with `goals` is the
    * end of a chapter: `npm run solve -- --chapters` proves each chapter from the previous checkpoint until its goals hold.

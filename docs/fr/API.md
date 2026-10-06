@@ -37,6 +37,7 @@ Dans un projet de jeu, les entrées sont `web-scumm/content`, `web-scumm/player`
 | `GameRules` | les règles communes à tous les lieux |
 | `AudioDef` · `ScoreDef` · `ScoreState` | musique, sons, voix ; les stems d'une partition et lesquels sonnent quand |
 | `EndingDef` | la fin scellée |
+| `RealityDef` · `SignalDef` · `RealityState` | les signaux du monde extérieur par un Reality Bridge (4.1.1, `docs/fr/REALITY.md`) : ce qu'un jeu déclare, ce qu'une sauvegarde garde du lien |
 | `RevealDef` | **déprécié** (4.0) : l'ancien nom de `EndingDef` ; retiré en 5.0 |
 | `SkinDef` · `UiTexts` | les images et sons de l'interface, ses textes |
 | `Migration` | une étape de migration des sauvegardes (renommages, suppressions) |
