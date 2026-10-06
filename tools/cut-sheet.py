@@ -26,7 +26,7 @@ one exact value, shared across the cells of the sheet. Written as an indexed PNG
 
     python3 tools/cut-sheet.py sheet.png hero --pixel [--scale 4] [--colors 32]
 
-The game: env GAME, else package.json -> config.game, else 'demo' (same rule as tools/game.ts). Its site.json is
+The game: env GAME, else the game .cache/game links to (npm run game, 4.1.6), else package.json -> config.game, else 'demo' (tools/game.ts' rule). Its site.json is
 looked up next to the --out folder (<game>/art -> <game>/site.json), then in $GAME_DIR, then in games/<GAME>/.
 """
 import argparse
@@ -47,6 +47,12 @@ def game_id():
     g = os.environ.get('GAME', '').strip()
     if g:
         return g
+    try:
+        g = os.path.basename(os.readlink(os.path.join('.cache', 'game')).rstrip('/\\'))
+        if g:
+            return g
+    except OSError:
+        pass
     try:
         g = json.load(open('package.json')).get('config', {}).get('game')
         if g:
