@@ -42,6 +42,11 @@ async function checks(pr) {
   return until(
     () => {
       const list = prChecks(pr);
+      // Right after a push GitHub lists no check at all for a moment: that is "not started", not "all pass".
+      if (list.length === 0) {
+        say('no check listed yet');
+        return undefined;
+      }
       const pending = list.filter((c) => c.bucket === 'pending');
       const failed = list.filter((c) => c.bucket === 'fail' || c.bucket === 'cancel');
       if (failed.length) {
@@ -172,7 +177,9 @@ async function watch(versionArg) {
         '40',
         '--json',
         'databaseId,headSha,status,conclusion,headBranch',
-      ]).find((x) => x.headSha === sha && x.headBranch === name && x.conclusion !== 'skipped');
+        // A `workflow_run` run reports `main` as its branch, not the tag: the SHA is the key; `skipped` is the
+        // release workflow declining a main push, not the tag's run.
+      ]).find((x) => x.headSha === sha && x.conclusion !== 'skipped');
       if (!r || r.status !== 'completed') return undefined;
       return r;
     },
