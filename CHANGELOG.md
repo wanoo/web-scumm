@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### Changes
+
+- **The gates, made trustworthy before the refactorings** (4.1.3, the plan's second release). The workflows read only
+  (`permissions: contents: read`; Pages asks for its own), cancel a run a newer push supersedes, stop after a
+  deadline (`timeout-minutes` on every job), run on `ubuntu-24.04` by name, and pin every action to a commit. The
+  unit suite runs once per push (`check`, and `coverage` under V8) where it ran five times: the second game and
+  the reference chapter build with `npm run build:game` (the game's gates and the bundle, no `tsc`, no unit suite),
+  which `npm run build` now composes with `check` and `test:assets`. The CPU-bound solver tests (the abstraction
+  audits, the canonical owner, the memo and ownership proofs, the reference chapter's proof: 14 tests with
+  five-minute ceilings, the push suite's whole instability) leave the push: `npm run test:heavy` runs them every
+  night, `npm test` and `test:coverage` exclude them. A `node-24` job runs the quality checks and the unit suite on
+  the next Node. `tools/coverage-ratchet.ts` compares the floors with what the tests reach and names a floor at
+  least three points behind (the coverage summary is an artifact); the floors of 4.1.2 are raised where it said so.
+  `npm run quality:baseline` says what behaviour it moves when it rewrites the baseline, and `--check` names a
+  policy measure that got better (a ratchet to make on purpose): a rewrite is no longer silent. `release-check`
+  runs what CI runs (`quality`, `test:coverage`, `reality:xcheck`, `test:mutation:core`) before the proofs and the
+  audits. `.github/CODEOWNERS`: the frozen behaviour, the public surface, the named mutants, the floors and the
+  workflows ask for the maintainer's review. On GitHub: a ruleset on `main` (the gates required, no force push, no
+  deletion), merges by pull request, Dependabot alerts and security updates on, merged branches deleted, topics.
+
 ## 4.1.2 — 2026-10-06
 
 "Reliable Bridge" (LOG #97–#98): the Reality Bridge of 4.1.1 after an outside review relayed by the maintainer and
