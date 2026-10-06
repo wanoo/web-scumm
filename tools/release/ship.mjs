@@ -15,7 +15,22 @@
 // PID, not a pattern.
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { gh, ghJson, git, isPrerelease, REPO, run, runIdOf, say, until, versionOf, writePid } from './lib.mjs';
+import {
+  gh,
+  ghJson,
+  git,
+  isPrerelease,
+  localCommit,
+  originTagCommit,
+  REPO,
+  run,
+  runIdOf,
+  say,
+  spawn,
+  until,
+  versionOf,
+  writePid,
+} from './lib.mjs';
 
 const [command, ...rest] = process.argv.slice(2);
 
@@ -29,13 +44,13 @@ function rerunOnce(runId, why) {
   return true;
 }
 
-/** `gh pr checks --json`: the state of every check; exit code 8 means pending, 1 means a failure (both fine here). */
-const prChecks = (pr) =>
-  JSON.parse(
-    run('gh', ['pr', 'checks', String(pr), '--json', 'name,state,bucket,link,workflow', '-R', REPO], {
-      ok: [0, 1, 8],
-    }) || '[]',
-  );
+/** `gh pr checks --json`: every check's state. Exit 8 means pending, 1 a failing check; 1 with nothing on stdout is an error. */
+function prChecks(pr) {
+  const r = spawn('gh', ['pr', 'checks', String(pr), '--json', 'name,state,bucket,link,workflow', '-R', REPO]);
+  if (![0, 1, 8].includes(r.status) || (r.status === 1 && !r.stdout))
+    throw new Error(`gh pr checks ${pr} → ${r.status}: ${r.stderr || 'no output'}`);
+  return JSON.parse(r.stdout || '[]');
+}
 
 async function checks(pr) {
   say(`waiting for the checks of #${pr}`);
@@ -139,20 +154,27 @@ async function main(sha) {
 async function tag(versionArg, sha) {
   const version = versionOf(versionArg);
   const name = `v${version}`;
-  const full = git(['rev-parse', `${sha}^{commit}`]);
-  const existing = git(['ls-remote', '--tags', 'origin', `refs/tags/${name}`]);
-  if (existing) {
-    const at = existing.split(/\s/)[0];
-    const pointsTo = git(['rev-parse', `${at}^{commit}`], { ok: [0, 128] }) || at;
-    if (pointsTo !== full)
+  const full = localCommit(sha);
+  if (!full) throw new Error(`${sha}: not a commit here (fetch first)`);
+  const onOrigin = originTagCommit(name);
+  if (onOrigin) {
+    if (onOrigin !== full)
       throw new Error(
-        `${name} exists on origin at ${pointsTo.slice(0, 7)}, not ${full.slice(0, 7)}: a tag is never moved`,
+        `${name} exists on origin at ${onOrigin.slice(0, 7)}, not ${full.slice(0, 7)}: a tag is never moved`,
       );
     say(`${name} already on origin at ${full.slice(0, 7)}`);
   } else {
     await main(full);
-    say(`tagging ${name} on ${full.slice(0, 7)}${isPrerelease(version) ? ' (pre-release)' : ''}`);
-    git(['tag', '-a', name, full, '-m', version]);
+    const local = localCommit(name);
+    if (local && local !== full)
+      throw new Error(
+        `${name} exists here at ${local.slice(0, 7)}, not ${full.slice(0, 7)}: delete it by hand if it was never published`,
+      );
+    if (local) say(`${name} already here at ${full.slice(0, 7)} (a push that failed before): pushing it`);
+    else {
+      say(`tagging ${name} on ${full.slice(0, 7)}${isPrerelease(version) ? ' (pre-release)' : ''}`);
+      git(['tag', '-a', name, full, '-m', version]);
+    }
     git(['push', 'origin', `refs/tags/${name}`]);
   }
   return watch(version);
@@ -161,9 +183,7 @@ async function tag(versionArg, sha) {
 async function watch(versionArg) {
   const version = versionOf(versionArg);
   const name = `v${version}`;
-  const sha =
-    git(['rev-parse', `${name}^{commit}`], { ok: [0, 128] }) ||
-    git(['ls-remote', '--tags', 'origin', `refs/tags/${name}^{}`]).split(/\s/)[0];
+  const sha = localCommit(name) ?? originTagCommit(name);
   if (!sha) throw new Error(`${name}: not a tag here nor on origin`);
   await waitRun('ci', sha, name, `ci on ${name}`);
   const rel = await until(
@@ -203,7 +223,8 @@ async function verify(versionArg) {
   const files = readdirSync(dir);
   const sums = files.find((f) => f.endsWith('-SHA256SUMS'));
   if (!sums) throw new Error(`${name}: no SHA256SUMS among ${files.join(', ')}`);
-  const check = run('shasum', ['-a', '256', '-c', sums], { ok: [0, 1] });
+  // The sums file lists bare names: checked from inside the download folder.
+  const check = run('shasum', ['-a', '256', '-c', sums], { ok: [0, 1], cwd: dir });
   console.log(
     check
       .split('\n')
@@ -222,6 +243,7 @@ async function verify(versionArg) {
 }
 
 async function chain(pr, version) {
+  versionOf(version); // refused before anything is merged
   const sha = await merge(pr);
   return tag(version, sha);
 }

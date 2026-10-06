@@ -7,8 +7,8 @@ import { join } from 'node:path';
 export const REPO = process.env.WEB_SCUMM_REPO ?? 'wanoo/web-scumm';
 
 /** Runs a command and returns its trimmed stdout; throws with stderr when it fails (unless `ok` lists the code). */
-export function run(cmd, args, { ok = [0], input } = {}) {
-  const r = spawnSync(cmd, args, { encoding: 'utf8', input, maxBuffer: 64 * 1024 * 1024 });
+export function run(cmd, args, { ok = [0], input, cwd } = {}) {
+  const r = spawnSync(cmd, args, { encoding: 'utf8', input, cwd, maxBuffer: 64 * 1024 * 1024 });
   if (r.error) throw r.error;
   if (!ok.includes(r.status ?? -1)) throw new Error(`${cmd} ${args.join(' ')} → ${r.status}\n${r.stderr || r.stdout}`);
   return (r.stdout ?? '').trim();
@@ -18,6 +18,29 @@ export function run(cmd, args, { ok = [0], input } = {}) {
 export const ghJson = (args, opts) => JSON.parse(run('gh', [...args, '-R', REPO], opts) || 'null');
 export const gh = (args, opts) => run('gh', [...args, '-R', REPO], opts);
 export const git = (args, opts) => run('git', args, opts);
+
+/** Runs a command and returns `{ status, stdout, stderr }` without judging the exit code. */
+export function spawn(cmd, args) {
+  const r = spawnSync(cmd, args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  if (r.error) throw r.error;
+  return { status: r.status ?? -1, stdout: (r.stdout ?? '').trim(), stderr: (r.stderr ?? '').trim() };
+}
+
+/**
+ * The commit a local ref points to, or null when the ref is unknown here. `git rev-parse X^{commit}` echoes `X^{commit}`
+ * to stdout on an unknown ref (exit 128); `-q --verify` prints nothing and exits 1, which is what a fallback needs.
+ */
+export const localCommit = (ref) => git(['rev-parse', '-q', '--verify', `${ref}^{commit}`], { ok: [0, 1] }) || null;
+
+/** The commit a tag points to on origin (peeled), or null when origin has no such tag. */
+export function originTagCommit(name) {
+  const lines = git(['ls-remote', '--tags', 'origin', `refs/tags/${name}`, `refs/tags/${name}^{}`])
+    .split('\n')
+    .filter(Boolean);
+  if (!lines.length) return null;
+  const peeled = lines.find((l) => l.endsWith('^{}'));
+  return (peeled ?? lines[0]).split(/\s/)[0];
+}
 
 /** The PID of this command, written where `npm run ship` says (`SHIP_PIDS`, default `.cache/pids/`). */
 export function writePid(name) {

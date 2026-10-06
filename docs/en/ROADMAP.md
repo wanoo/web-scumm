@@ -624,7 +624,7 @@ the renderer before the staging primitives; the DSL stabilised before the solver
 replay, the solver and the Bridge once stable; Remix reuses its seeds, proofs and packages. Human passes stay reported,
 not blocking, through 4.1.x (D12), and become blocking for 4.2.0 on every surface announced as supported.
 
-## After 4.0 (not planned yet)
+## After 4.0: where each item went, and what is still unplanned
 
 - The field passes, then what they find (D12); blocking for 4.2.0 (D18).
 - Publishing `web-scumm` and `create-web-scumm` on npm: 4.2.0 "Stable World"; The Lighthouse in a public repository.

@@ -2,8 +2,10 @@
 
 The decisions live in `docs/dev/PLAN-4.1.8-4.1.15.md`, in French: that file is the source, this page is its English
 summary for a reader of the ROADMAP, the CHANGELOG or a pull request. Decided by the maintainer on 7 October 2026
-(D18). The plan the releases are run from, with the branches of each version, is the maintainer's; what each release
-changes is in the CHANGELOG and the LOG as it lands.
+(D18). Two things D18 records are not in the plan's text and come from the maintainer's review of it: the release
+candidates on the risky versions, and the second automated reading of every pull request. The plan the releases are
+run from, with the branches of each version, is the maintainer's; what each release changes is in the CHANGELOG and
+the LOG as it lands.
 
 ## Why a programme, why now
 

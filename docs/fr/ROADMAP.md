@@ -612,7 +612,7 @@ speedrun réutilise le replay, le solveur et le Bridge une fois stables ; Remix 
 paquets. Les passes humaines restent rapportées, non bloquantes, pendant la 4.1.x (D12), et deviennent bloquantes pour
 la 4.2.0 sur chaque surface annoncée comme supportée.
 
-## Après la 4.0 (pas encore planifié)
+## Après la 4.0 : où chaque point est allé, et ce qui reste sans plan
 
 - Les passes terrain, puis ce qu'elles trouvent (D12) ; bloquantes pour la 4.2.0 (D18).
 - Publier `web-scumm` et `create-web-scumm` sur npm : la 4.2.0 « Stable World » ; Le Phare dans un dépôt public.

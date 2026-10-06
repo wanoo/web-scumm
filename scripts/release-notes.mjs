@@ -55,7 +55,7 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop()
   }
   const notes = releaseNotes(readFileSync(process.argv[3] ?? 'CHANGELOG.md', 'utf8'), tag);
   if (notes === null) {
-    console.error(`no "## ${tag.replace(/^v/, '')}" section in the changelog`);
+    console.error(`no "## ${tag.replace(/^v/, '').replace(/-.*$/, '')}" section in the changelog`);
     process.exit(1);
   }
   // The sheet of the version a candidate is for (4.1.8): `v4.1.8-rc.1` reads `docs/dev/passes/4.1.8.md`.
