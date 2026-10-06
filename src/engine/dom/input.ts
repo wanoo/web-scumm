@@ -63,7 +63,7 @@ export function onKey(app: App, e: KeyboardEvent) {
 
 export function toScene(app: App, e: PointerEvent): Point {
   const r = app.scene.getBoundingClientRect();
-  return app.view.toLogical((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+  return app.view.camera.toLogical((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
 }
 
 // ================================================================== interaction
@@ -184,7 +184,7 @@ export async function onScenePointer(app: App, e: PointerEvent) {
   const id = app.view.hit(p);
   if (!id) {
     app.nearMiss(p);
-    await app.engine.walkTo(app.view.clampFloor(p));
+    await app.engine.walkTo(app.view.walker.clamp(p));
     return;
   }
   if (e.pointerType !== 'mouse') {
@@ -219,7 +219,7 @@ export function showLabel(app: App, id: Id | null) {
   const b = app.view.box(id);
   if (!b) return;
   const l = el('div', 'label', esc(app.engine.nameOf(id)));
-  const [lx, ly] = app.view.toScreen([b[0] + b[2] / 2, b[1] - 2]);
+  const [lx, ly] = app.view.camera.toScreen([b[0] + b[2] / 2, b[1] - 2]);
   l.style.left = `${lx}px`;
   l.style.top = `${Math.max(14 * app.u, ly)}px`;
   app.scene.append(l);

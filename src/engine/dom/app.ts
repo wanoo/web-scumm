@@ -476,7 +476,7 @@ export class App implements Presenter {
   }
 
   walk(who: Id, to: Point, fast: boolean) {
-    return this.view.walkTo(who, to, fast);
+    return this.view.walker.walkTo(who, to, fast);
   }
   face(who: Id, dir: 'left' | 'right') {
     this.view.face(who, dir);
@@ -506,16 +506,16 @@ export class App implements Presenter {
   }
   camera(x: number | null, follow: boolean, ms: number, fast: boolean) {
     if (follow || x === null) {
-      this.view.followHero();
+      this.view.camera.followHero();
       return Promise.resolve();
     }
-    return this.view.setCamera(x, fast ? 0 : ms);
+    return this.view.camera.setCamera(x, fast ? 0 : ms);
   }
   show(id: Id, visible: boolean, fade: number, fast: boolean) {
     return this.view.show(id, visible, fade, fast || this.settings.reduceMotion);
   }
   motion(who: Id, m: MotionSpec, fast: boolean, leader?: Id) {
-    return this.view.motion(who, m, fast || this.view.reduceMotion, leader);
+    return this.view.walker.motion(who, m, fast || this.view.reduceMotion, leader);
   }
   inventory(items: Id[], used?: Id[]) {
     this.used = [...(used ?? [])];
@@ -578,7 +578,7 @@ export class App implements Presenter {
     const s = el('img', 'spark') as HTMLImageElement;
     s.src = this.bank.img(spark);
     s.alt = '';
-    const [sx, sy] = this.view.toScreen([b[0] + b[2] / 2, b[1] + b[3] / 2]);
+    const [sx, sy] = this.view.camera.toScreen([b[0] + b[2] / 2, b[1] + b[3] / 2]);
     s.style.width = `${22 * this.u}px`;
     s.style.left = `${sx}px`;
     s.style.top = `${sy}px`;

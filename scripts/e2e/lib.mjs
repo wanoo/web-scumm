@@ -121,7 +121,7 @@ export async function launch(url, opts = {}) {
     return page.evaluate(
       ([x, y]) => {
         const v = window.__game?.view;
-        return v?.toScreen ? v.toScreen([x, y]) : [(x - (v?.cam ?? 0)) * (v?.u ?? 1), y * (v?.u ?? 1)];
+        return v?.camera ? v.camera.toScreen([x, y]) : [(x - (v?.cam ?? 0)) * (v?.u ?? 1), y * (v?.u ?? 1)];
       },
       [x, y],
     );
@@ -186,7 +186,7 @@ export async function launch(url, opts = {}) {
       // A point the hit test gives to `id`, on screen first (a wide room or a zoomed camera shows part of the box).
       const seen = (q) => {
         if (!v.toScreen) return true;
-        const [px, py] = v.toScreen(q);
+        const [px, py] = v.camera.toScreen(q);
         return px > 4 && py > 4 && px < 640 * v.u - 4 && py < 400 * v.u - 4;
       };
       for (const [kx, ky] of tries) {

@@ -45,7 +45,7 @@ for (const r of rooms) {
     const at = v.pos(hero) ?? [320, 360];
     let walking = true;
     void (async () => {
-      for (let i = 0; walking; i++) await v.walkTo(hero, i % 2 ? at : [Math.max(60, at[0] - 220), at[1]], false);
+      for (let i = 0; walking; i++) await v.walker.walkTo(hero, i % 2 ? at : [Math.max(60, at[0] - 220), at[1]], false);
     })();
     const paints0 = v.r.paints ?? 0;
     const frames = await new Promise((done) => {

@@ -6,7 +6,11 @@
   same before and after each step). `step()` is a table of handlers (`core/command-handlers.ts`, one function per
   command key, type-checked against the union); the script loops have an owner (`core/scheduler.ts`,
   `ScriptScheduler`); the keyboard targets and the inventory slots are diffed, not rebuilt, on a state change (a
-  focused target keeps its focus, and a key on it advances the line it caused); `targets()` computes the guests once.
+  focused target keeps its focus, and a key on it advances the line it caused); `targets()` computes the guests once;
+  the room view's camera (`dom/camera.ts`) and walking (`dom/walker.ts`) are owners of their own, the entity type has
+  its module, and `dom/room.ts` is under the 800-line limit without an exception (1026 → 744). Hosts that reached
+  `view.toScreen`, `view.setCamera`, `view.walkTo`… use `view.camera.*` and `view.walker.*` (the dev overlay, the
+  e2e harness and the perf probe do).
 
 ## 4.1.4 — 2026-10-06
 

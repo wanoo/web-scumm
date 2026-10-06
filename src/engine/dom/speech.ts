@@ -31,7 +31,7 @@ export function say(
     const maxW = Math.min(0.62 * app.sw, 390 * app.u);
     box.style.maxWidth = `${maxW}px`;
     const half = maxW / 2 / app.u + 6;
-    const [hx, hy] = app.view.toScreen(head);
+    const [hx, hy] = app.view.camera.toScreen(head);
     box.style.left = `${Math.max(half, Math.min(640 - half, hx / app.u)) * app.u}px`;
     box.style.top = `${Math.max(hy / app.u, 70) * app.u}px`;
     app.view.setTalking(who, text.length > 70);

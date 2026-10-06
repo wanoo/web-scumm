@@ -539,7 +539,7 @@ export class Editor {
     pane.addButton({ title: 'Reload (undo)' }).on('click', () => location.reload());
     pane.addBinding(this.overlay.o, 'all', { label: 'hidden zones' }).on('change', () => this.overlay.draw());
     // Wide rooms: the logical width, and a camera slider to look around while placing.
-    const wide = { width: this.L.width ?? 640, cam: this.app.view.cam };
+    const wide = { width: this.L.width ?? 640, cam: this.app.view.camera.cam };
     const rf = pane.addFolder({ title: 'Room width', expanded: (this.L.width ?? 640) > 640 });
     rf.addBinding(wide, 'width', { min: 640, max: 3200, step: 10 }).on('change', (ev) => {
       if (ev.value <= 640) delete this.L.width;
@@ -550,7 +550,7 @@ export class Editor {
     rf.addBinding(wide, 'cam', { min: 0, max: Math.max(0, (this.L.width ?? 640) - 640), step: 1 }).on(
       'change',
       (ev) => {
-        void this.app.view.setCamera(ev.value, 0);
+        void this.app.view.camera.setCamera(ev.value, 0);
         this.overlay.draw();
       },
     );

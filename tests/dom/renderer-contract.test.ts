@@ -59,7 +59,7 @@ describe('the renderer contract', () => {
     const r = new Recorder();
     const { e, v } = await scene(r);
     expect(r.backdrop).toBe(`img/${e.room().decor}`);
-    expect(r.width).toBe(v.width);
+    expect(r.width).toBe(v.camera.width);
     const ids = [
       ...Object.keys(e.room().props ?? {}).filter((id) => layouts[e.room().id]?.props?.[id]),
       ...Object.keys(e.room().actors ?? {}),
