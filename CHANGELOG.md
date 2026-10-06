@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **The core's real split** (4.1.5, the plan's fourth release; no change of behaviour: the quality baseline is the
+  same before and after each step). `step()` is a table of handlers (`core/command-handlers.ts`, one function per
+  command key, type-checked against the union); the script loops have an owner (`core/scheduler.ts`,
+  `ScriptScheduler`); the keyboard targets and the inventory slots are diffed, not rebuilt, on a state change (a
+  focused target keeps its focus, and a key on it advances the line it caused); `targets()` computes the guests once.
+
 ## 4.1.4 — 2026-10-06
 
 "Honest Engine" (LOG #100): the plan's third release; nothing in the content or the commands, everything in how the

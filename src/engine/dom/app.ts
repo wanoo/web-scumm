@@ -205,6 +205,8 @@ export class App implements Presenter {
   private saveWarning: string | null = null;
   /** @internal Read by the modules of dom/ (4.1.0). */
   a11yTargets: HTMLDivElement | null = null;
+  /** @internal The keyboard targets by id (4.1.5): diffed, not rebuilt, on each state change. */
+  a11yButtons = new Map<Id, HTMLButtonElement>();
   /** @internal Read by the modules of dom/ (4.1.0). */
   live!: HTMLDivElement;
 

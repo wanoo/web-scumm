@@ -192,36 +192,69 @@ export function layout(app: App) {
 
 /** Keyboard and screen-reader representation of the visible coordinate-based scene hotspots. */
 export function renderA11yTargets(app: App) {
-  app.a11yTargets?.remove();
-  if (!app.view.room || !app.engine.state) return;
-  const layer = el('div', 'a11y-targets');
+  // Diffed by id (4.1.5): a button lives as long as its target is in the room; 4.1.0 rebuilt the layer on every state
+  // change, and a focused button lost its focus each time.
+  if (!app.view.room || !app.engine.state) {
+    app.a11yTargets?.remove();
+    app.a11yTargets = null;
+    app.a11yButtons.clear();
+    return;
+  }
+  let layer = app.a11yTargets;
+  if (!layer || layer.parentElement !== app.view.el) {
+    layer?.remove();
+    app.a11yButtons.clear();
+    layer = el('div', 'a11y-targets');
+    app.view.el.append(layer);
+    app.a11yTargets = layer;
+  }
   layer.setAttribute('aria-label', app.view.room.name);
+  const wanted = new Set<string>();
   for (const id of app.engine.targets(app.view.room)) {
     const box = app.view.box(id);
     if (!box) continue;
-    const b = el('button', 'a11y-target', esc(app.engine.nameOf(id)));
-    b.dataset.target = id;
-    b.setAttribute('aria-label', app.engine.nameOf(id));
+    wanted.add(id);
+    let b = app.a11yButtons.get(id);
+    if (!b) {
+      b = el('button', 'a11y-target');
+      b.dataset.target = id;
+      b.onfocus = () => {
+        app.showLabel(id);
+        app.sentence(id);
+      };
+      b.onblur = () => {
+        app.showLabel(null);
+        app.sentence();
+      };
+      b.onclick = (e) => {
+        e.stopPropagation();
+        // The button keeps its focus across the action it started (4.1.5), so the player's Space or Enter lands here
+        // while the line it caused is showing: it advances the line, as a tap on the scene does.
+        if (app.speechEl && !app.scene.querySelector('.overlay:not(.mapview) .mg-skip')) {
+          app.endSpeech();
+          app.eatClick = performance.now();
+          return;
+        }
+        if (!app.engine.busy && !app.inCutscene) void app.actOnTarget(id);
+      };
+      layer.append(b);
+      app.a11yButtons.set(id, b);
+    }
+    const name = app.engine.nameOf(id);
+    if (b.textContent !== name) {
+      b.textContent = name;
+      b.setAttribute('aria-label', name);
+    }
     Object.assign(b.style, {
       left: `${box[0] * app.u}px`,
       top: `${box[1] * app.u}px`,
       width: `${Math.max(24, box[2] * app.u)}px`,
       height: `${Math.max(24, box[3] * app.u)}px`,
     });
-    b.onfocus = () => {
-      app.showLabel(id);
-      app.sentence(id);
-    };
-    b.onblur = () => {
-      app.showLabel(null);
-      app.sentence();
-    };
-    b.onclick = (e) => {
-      e.stopPropagation();
-      if (!app.engine.busy && !app.speechEl && !app.inCutscene) void app.actOnTarget(id);
-    };
-    layer.append(b);
   }
-  app.view.el.append(layer);
-  app.a11yTargets = layer;
+  for (const [id, b] of app.a11yButtons)
+    if (!wanted.has(id)) {
+      b.remove();
+      app.a11yButtons.delete(id);
+    }
 }
