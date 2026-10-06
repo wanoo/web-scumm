@@ -10,7 +10,7 @@ import type { ExternalEntry, GameState, Session } from '@engine/core/types';
 import { importBridgeKey, signSignal, type WorldSignalV1 } from '@engine/reality/protocol';
 import { RealityClient } from '@engine/reality/client';
 import { compact } from '@engine/core/reality-runtime';
-import { replay } from '@engine/tools/replay';
+import { labelOf, replay } from '@engine/tools/replay';
 import { signals, signalsLayouts } from './fixtures/signals';
 
 const NOW = Date.UTC(2026, 9, 6, 12);
@@ -77,6 +77,10 @@ describe('Engine.receive', () => {
     await e.receive(x(4, 'hook.bell'));
     expect(e.state.flags).toMatchObject({ rang_1: true, rang_2: true });
     expect(e.state.flags.rang_3).toBeUndefined();
+  });
+
+  it('a signal entry reads as a signal in the journal and the Studio', () => {
+    expect(labelOf(signals(), { external: x(4, 'hook.bell') })).toBe('Signal hook.bell (#4)');
   });
 
   it('compact moves the cursor over contiguous sequences only', () => {
