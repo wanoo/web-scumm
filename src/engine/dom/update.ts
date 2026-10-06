@@ -117,7 +117,7 @@ export async function warmAll(app: App, retry = false) {
     if (status.state !== 'running') return; // quota too small: say so, download nothing
     const visible = () =>
       new Promise<void>((r) => {
-        if (!document.hidden) return r();
+        if (app.aborter.signal.aborted || typeof document === 'undefined' || !document.hidden) return r();
         const on = () => {
           if (!document.hidden) {
             document.removeEventListener('visibilitychange', on);
@@ -127,6 +127,7 @@ export async function warmAll(app: App, retry = false) {
         document.addEventListener('visibilitychange', on);
       });
     for (const batch of plan) {
+      if (app.aborter.signal.aborted) return; // the player was destroyed: nothing more is fetched or said
       await visible();
       const r = await b.warm(
         batch.ids.map((id) => app.offlineUrl(batch.kind, id)),

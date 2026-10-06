@@ -19,7 +19,9 @@ first, after the code it describes. What this release does not do is in the LOG 
   third of its English twin, section by section; another checks every relative link in the docs. AGENTS.md loses
   the rules of the pair work that ended with v3; CLAUDE.md points at the right pages. The release notes drop the
   work log's entry and decision numbers. `CODE_OF_CONDUCT.md`, a pull request template and a feature issue template;
-  the wiki is off.
+  the wiki is off. Fixed: a warm-up of the assets in progress ended with `App.destroy()` neither its idle waits
+  nor its fetches (CI's node-24 saw `window is not defined` from a test's torn-down page); the bank now carries the
+  player's abort signal and stops at it.
 
 ## 4.1.6 — 2026-10-06
 

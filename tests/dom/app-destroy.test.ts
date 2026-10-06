@@ -80,6 +80,20 @@ describe('App.destroy', () => {
     expect(app.aborter.signal.aborted).toBe(true);
   });
 
+  it('ends a warm-up in progress: nothing is fetched after destroy, and no error escapes (4.1.7)', async () => {
+    let fetched = 0;
+    vi.stubGlobal('fetch', async () => {
+      fetched++;
+      return new Response(new ArrayBuffer(1));
+    });
+    const app = build();
+    const warm = app.bank.warm(['/assets/a.webp', '/assets/b.webp', '/assets/c.webp'], 1);
+    app.destroy();
+    await expect(warm).resolves.toMatchObject({ failed: [] });
+    expect(fetched).toBe(0);
+    vi.unstubAllGlobals();
+  });
+
   it('can be built and destroyed twenty times without a listener left behind', () => {
     const left = listeners();
     for (let i = 0; i < 20; i++) build().destroy();

@@ -2278,6 +2278,9 @@ Platform"; human gates reported, not blocking (D12).
   `.cache/game` link existed (tsconfig's `@game` paths now fall back to `games/demo`); `tools/assets.py` and
   `cut-sheet.py` did not read the link, so after `new-game second` the assets prepared were the demo's and the second
   game's validation found no image (the link comes before package.json in both, as in `tools/game.ts`).
+- Found on the way, in the player: `App.destroy()` left the assets' warm-up running (its idle wait touched
+  `window` after a test's page was gone, `node-24` on PR #18); the bank stops at the player's abort signal. The
+  leak audit caught a family nickname in the French README's captions.
 - Measured, not claimed: English/French parity by words per section (30 %, sections of 60 words or more), 83 scripts,
   175 signatures, 910 unit tests.
 - Not done (D12): the field passes, a newcomer's pass of the tutorial, the reality survivors, a signed tag; examples
