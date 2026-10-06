@@ -138,6 +138,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # validate --release measures the stems with ffprobe (tests/tooling.test.ts).
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - run: npm run quality
       - run: npm run test:node
   # A second game, as `npm run new-game` makes it: every gate the sample game passes (check, verify:game, prove:game,
