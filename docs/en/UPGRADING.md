@@ -265,3 +265,9 @@ game` makes (`dev`, `check` and `build` make it too), and fall back to `games/de
 `package.json` whose `config.game` named a game still counts, after the link and `GAME`. `npm run build` no longer runs the pixel tests (`npm test` and CI
 do). `npm run doctor` exits 0 when only Python, ffmpeg or WebKit are missing. `requirements.txt` pins its modules:
 `pip install -r requirements.txt` again if yours are older. A 4.1.5 save loads unchanged.
+
+## 19. From 4.1.6 to 4.1.7 "Docs for a Studio"
+
+Nothing to change in a game or a host: 4.1.7 changes documentation, tests and the repository's templates, no code a
+game runs. A 4.1.6 save loads unchanged. If you keep a fork of `AGENTS.md`, its rule 14 and the "Working in pairs"
+section are gone; `docs/en/TUTORIAL.md` is the page to hand a newcomer.

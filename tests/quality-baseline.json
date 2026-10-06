@@ -296,16 +296,21 @@
    "ended": true,
    "inputs": 7,
    "last": "23325ca7"
+  },
+  "demo-4.1.7.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
   }
  },
  "surface": {
   "api": "38af9c35409038da"
  },
  "tests": {
-  "files": 100,
-  "declarations": 722
+  "files": 103,
+  "declarations": 728
  },
  "bundle": {
-  "initialJsKB": 122
+  "initialJsKB": 123
  }
 }

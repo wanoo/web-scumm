@@ -43,3 +43,36 @@ describe('the reading guides', () => {
     ).toEqual(['src/engine/core/engine.ts', 'dom/app.ts']);
   });
 });
+
+// Both languages say the same (4.1.7): every docs/en page has its docs/fr twin with the same number of sections, and
+// no section of sixty words or more is a third shorter in one language than in the other (a summary is not a
+// translation). Measured in words, not lines: the French pages wrap differently.
+const sectionsOf = (md: string): [string, number][] => {
+  const out: [string, number][] = [];
+  let title: string | null = null;
+  let words = 0;
+  for (const line of md.split('\n')) {
+    if (line.startsWith('## ')) {
+      if (title !== null) out.push([title, words]);
+      title = line.slice(3).trim();
+      words = 0;
+    } else words += line.split(/\s+/).filter(Boolean).length;
+  }
+  if (title !== null) out.push([title, words]);
+  return out;
+};
+
+describe('the French documentation keeps up with the English', () => {
+  for (const f of readdirSync('docs/en'))
+    it(f, () => {
+      expect(existsSync(`docs/fr/${f}`), `docs/fr/${f} is missing`).toBe(true);
+      const en = sectionsOf(readFileSync(`docs/en/${f}`, 'utf8'));
+      const fr = sectionsOf(readFileSync(`docs/fr/${f}`, 'utf8'));
+      expect(fr.length, `${f}: ${en.length} sections in English, ${fr.length} in French`).toBe(en.length);
+      const short = en
+        .map(([t, w], i) => [t, w, fr[i]![1]] as const)
+        .filter(([, a, b]) => Math.max(a, b) >= 60 && Math.abs(a - b) > 0.3 * Math.max(a, b))
+        .map(([t, a, b]) => `${t}: ${a} words in English, ${b} in French`);
+      expect(short).toEqual([]);
+    });
+});

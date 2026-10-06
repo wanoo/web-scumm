@@ -15,6 +15,8 @@ export interface WarmResult {
 }
 
 export class AssetBank {
+  /** Ends a warm-up in progress (`App.destroy`, 4.1.7): no idle wait and no fetch after it, and nothing of the page touched. */
+  signal: AbortSignal | null = null;
   private loaded = new Map<string, Promise<void>>();
   private warmed = new Set<string>();
   /** `version` is appended to every URL: a new assets build bypasses the browser's old cache. */
@@ -68,11 +70,11 @@ export class AssetBank {
     const todo = urls.filter((u) => !this.warmed.has(u));
     todo.forEach((u) => this.warmed.add(u));
     const idle = () =>
-      new Promise<void>((r) =>
-        typeof window.requestIdleCallback === 'function'
-          ? window.requestIdleCallback(() => r(), { timeout: 1500 })
-          : setTimeout(r, 50),
-      );
+      new Promise<void>((r) => {
+        if (this.signal?.aborted || typeof window === 'undefined') return r();
+        if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(() => r(), { timeout: 1500 });
+        else setTimeout(r, 50);
+      });
     const cached = async (u: string) => {
       try {
         return 'caches' in globalThis && !!(await caches.match(u));
@@ -82,9 +84,11 @@ export class AssetBank {
     };
     let i = 0;
     const worker = async () => {
-      while (i < todo.length) {
+      // A destroyed player ends the loop (its bank goes with it: what was not tried is not retried).
+      while (i < todo.length && !this.signal?.aborted) {
         const u = must(todo[i++], 'warm-up url'); // i < todo.length, checked above
         await idle();
+        if (this.signal?.aborted) return;
         if (await cached(u)) {
           result.ok++;
           continue;

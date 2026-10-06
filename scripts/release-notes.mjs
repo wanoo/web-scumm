@@ -18,6 +18,9 @@ export function releaseNotes(changelog, tag) {
     lines
       .slice(start + 1, end)
       .join('\n')
+      // The notes are read by people outside the work log (4.1.7): its entry numbers and decision ids stay in the CHANGELOG.
+      .replace(/ ?\(LOG #\d+(?:,[^)]*)?\)/g, '')
+      .replace(/ ?\(D\d+(?:[–-]D?\d+)?\)/g, '')
       .trim() + '\n'
   );
 }

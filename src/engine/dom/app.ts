@@ -247,6 +247,7 @@ export class App implements Presenter {
     this.game = o.game;
     this.root = o.root;
     this.bank = new AssetBank(o.manifest, o.base ?? `${import.meta.env?.BASE_URL ?? '/'}assets`, o.version ?? '');
+    this.bank.signal = this.aborter.signal; // a warm-up ends with the player (4.1.7)
     // `?music=mix|stems` forces the single mix or the director's stems (tests, the Studio); else the device decides.
     const musicMode = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('music') : null;
     this.audio = new Audio(

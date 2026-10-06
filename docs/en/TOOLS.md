@@ -212,6 +212,7 @@ npm run e2e:visual -- <url> [--update] # every room, still, against tests/visual
 npm run e2e -- <url> --lang fr           # the whole game in that language; fails on any visible English default of the engine
 npm run e2e:a11y -- <url> [--only=axe,keys,storage] [--allow-skip]   # axe on the conversation, map, slots, confirmations, every minigame; every minigame won at the keyboard; an older save upgraded (E2E_BROWSER=chromium|webkit; exit 3: a check the browser cannot automate)
 npm run docs:screenshots [-- --only=game|studio --keep-png]   # the README images from the production bundle and the Studio, as WebP in docs/img/ (needs Python with Pillow)
+npx tsx tools/api-doc.ts [--check]                            # the public API's signatures into docs/en/API.md and docs/fr/API.md (4.1.7; tests/api-doc.test.ts fails when a page is behind)
 npm run lint [-- --prove | --static | --json]   # content lint: conditions nothing can satisfy, hidden rules, red herrings, stuck hints, actions never run (alias of lint:content since 4.1.0)
 npm run quality   # engine code (4.1.0): Biome formatting and lint, tsconfig.json and tsconfig.strictest.json, then the content lint
 npm run doctor                     # checks Node, Python modules, ffmpeg and Playwright browsers
@@ -389,3 +390,30 @@ node scripts/e2e.mjs https://<your-site>/   # plays the live version end to end
 
 `games/<id>/private/` is never sent: it is excluded by `.gitignore`. **Before sharing a game with a sealed ending**: seal
 the real outcome (`npm run seal -- --outcome=…` with `games/<id>/private/ending.config.ts`), then `npm run build`, commit, deploy.
+
+## Every other script
+
+The scripts above are the ones a game needs. The rest of `package.json` is listed here so that every `npm run` has a
+line (4.1.7; a script missing from this page fails `tests/scripts-documented.test.ts`):
+
+| Script | What |
+|---|---|
+| `npm run preview` | serves `dist/` on 127.0.0.1 (what the e2e scripts are pointed at after a build) |
+| `npm start` | serves `dist/` on every interface at `$PORT` (8080 by default) with `sirv`: what a host such as Clever Cloud runs |
+| `npm run test:node` | the unit suite without the Python-bound and the CPU-bound tests (`npm run check` runs it; the heavy ones run nightly) |
+| `npm run test:mutation:core [-- --set=core\|reality\|all --file=…]` | mutation testing of the modules a save, a session, a condition or a signal rest on (`docs/dev/MUTANTS.md`) |
+| `npm run e2e:smoke` | the generic playthrough of the production build (the solver's path replayed by touch) |
+| `npm run e2e:pwa`, `e2e:studio`, `e2e:taps`, `e2e:reality` | the offline cache, the Studio, the default verbs, the Reality Bridge, each in a real browser |
+| `npm run migrate` | a game project moved to this release (`web-scumm migrate`; `docs/en/UPGRADING.md`) |
+| `npm run lint:content`, `lint:code` | the content lint alone (`npm run lint` runs it with a solver pass), Biome's lint alone |
+| `npm run format`, `format:check` | Biome's formatting, written or checked (`npm run quality` checks) |
+| `npm run mcp` | the MCP server of the current game on stdio (`docs/en/MCP.md`; `npm run -s mcp` for a client) |
+| `npm run icons` | `public/icons/*.png` and `public/og.png` from the game's `site.json` |
+| `npm run audit:assets` | every file of `dist/` accounted for with its licence (`npm run build:game` runs it) |
+| `npm run audio -- …` | the Mega Drive music and sound-effect pipeline (`docs/en/AUDIO.md`) |
+| `npm run build:studio-demo`, `studio-snapshot`, `studio-apply <patch>` | the Studio's static build, its snapshot alone, a demo patch applied to your copy (`docs/en/STUDIO.md`, "Demo mode") |
+| `npm run pack` | the `web-scumm` and `web-scumm-bridge` tarballs a release ships (`docs/en/PACKAGE.md`) |
+| `npm run fresh-install`, `upgrade-check` | a game created from the tarball and played to its end; a game made on the previous release upgraded and played (CI runs both) |
+| `npm run page:storyboard`, `page:review`, `page:placement`, `import-layout` | the phone-friendly review pages and the placement page's import (`docs/en/PAGES.md`) |
+| `npm run bridge -- …` | the Reality Bridge's command line (`docs/en/REALITY-OPS.md`) |
+| `npm run solve:reality`, `reality:spike`, `reality:xcheck` | the solver under every reality scenario, a load probe of the Bridge, the Rust cross-check of the protocol (`docs/en/REALITY.md`) |

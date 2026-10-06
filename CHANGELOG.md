@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 4.1.7 — 2026-10-06
+
+"Docs for a Studio" (LOG #103): the plan's sixth release, the last before 4.2; the documentation a studio reads
+first, after the code it describes. What this release does not do is in the LOG and the passes sheet.
+
+### Changes
+
+- **Docs for a studio** (4.1.7, the plan's sixth release). The READMEs rewritten in both languages: one pitch,
+  three commands, what each role gets, the screenshots taken again from the current build, one table of numbers,
+  the current release in one paragraph (the release-by-release stack is the CHANGELOG's), a non-affiliation note
+  (also in CREDITS.md). `docs/en/TUTORIAL.md` and its French twin: a first room in fifteen minutes. `API.md` carries
+  the public API's signatures, generated from the sources (`tools/api-doc.ts`, held by `tests/api-doc.test.ts`).
+  SUPPORT.md says the 4.1.x policy once and has a support matrix (what CI checks, what only people check). STUDIO.md
+  in French has the three sections it summarised (Assets, Demo, Assistant); a test keeps every French page within a
+  third of its English twin, section by section; another checks every relative link in the docs. AGENTS.md loses
+  the rules of the pair work that ended with v3; CLAUDE.md points at the right pages. The release notes drop the
+  work log's entry and decision numbers. `CODE_OF_CONDUCT.md`, a pull request template and a feature issue template;
+  the wiki is off. Fixed: a warm-up of the assets in progress ended with `App.destroy()` neither its idle waits
+  nor its fetches (CI's node-24 saw `window is not defined` from a test's torn-down page); the bank now carries the
+  player's abort signal and stops at it. The first visit's JavaScript goes from 122 to 123 KB gzipped for it (the
+  baseline moved on purpose; the budget, `initialJsKB` 140, is untouched).
+
 ## 4.1.6 — 2026-10-06
 
 "Studio Tool" (LOG #102): the plan's fifth release; what a studio touches every day, made to leave the tree clean,
@@ -24,7 +46,7 @@ the LOG and the passes sheet.
   `web-scumm doctor` and `web-scumm mcp` join the command line. The Mega Drive pipeline says what to do on Windows
   instead of failing on a missing download. The e2e harness reads the camera through `view.camera` (the 4.1.5 split
   left its visibility test reading a field that was gone, so a wide room's target was tapped at the screen's edge).
-- **CI without silly timeouts** (4.1.7). Every install step of the workflows (Playwright's browsers, pip, apt,
+- **CI without silly timeouts** (4.1.6, merged before its tag). Every install step of the workflows (Playwright's browsers, pip, apt,
   `npm ci`) is retried three times and held to 8 minutes: a download that hangs no longer keeps a job for its
   45-minute limit (a `playwright install` did, on 6 October, for 45 minutes).
 

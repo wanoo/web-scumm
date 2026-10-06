@@ -2,6 +2,10 @@
 
 Use Node.js 22 or newer. Asset tests also need Python 3 with `requirements.txt`; audio authoring needs ffmpeg. Run `npm run doctor` for an exact local report.
 
+Everyone here follows `CODE_OF_CONDUCT.md`. A pull request starts from `.github/PULL_REQUEST_TEMPLATE.md`; a request for
+something new starts from the feature issue template, after `docs/en/CLASSICS.md` (most mechanics are combinations of
+what exists).
+
 Before opening a pull request:
 
 1. Keep gameplay declarative in `games/<id>/`; geometry belongs in `layout/*.json`.

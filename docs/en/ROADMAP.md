@@ -1,6 +1,6 @@
-# Roadmap: from a reactive engine to a world engine (v1.3 → v2.0)
+# Roadmap: from v1.3 to the 4.1.x line, and 4.2
 
-*Written on 3 October 2026 from an external audit of v1.2.1; M1 shipped in v1.3.0. French version: [docs/fr/ROADMAP.md](../fr/ROADMAP.md).*
+*Started on 3 October 2026 from an external audit of v1.2.1 as "from a reactive engine to a world engine (v1.3 → v2.0)"; every release since has its section below, the newest last. French version: [docs/fr/ROADMAP.md](../fr/ROADMAP.md).*
 
 ## Context
 
@@ -581,6 +581,19 @@ not consolidated into twelve verbs (81 remain, documented in TOOLS.md); the Stud
 view/state/io and have no test per tab; the Check tab still speaks the solver's language; `sirv-cli` stays where it
 is. The next release, 4.1.7, is the documentation for a studio: a README worth reading, API reference from TSDoc, a
 first-room tutorial, French parity checked, governance files.
+
+## v4.1.7 "Docs for a Studio" (shipped 6 October 2026): the documentation a studio reads first
+
+The READMEs rewritten in both languages (one pitch, three commands, what each role gets, the screenshots taken again,
+one table of numbers, the release in one paragraph, a non-affiliation note); `TUTORIAL.md`, a first room in fifteen
+minutes; `API.md` with the public API's signatures generated from the sources (`tools/api-doc.ts`, held by a test);
+`SUPPORT.md` with the 4.1.x policy said once and a support matrix; the French `STUDIO.md` complete, and a test that
+keeps every French page within a third of its English twin, section by section; every relative link checked; every
+npm script documented in `TOOLS.md` and tested so; `AGENTS.md` and `CLAUDE.md` without the pair work of v3; release
+notes without the work log's numbers; a code of conduct, a pull request template, a feature issue template, the wiki
+off. Left for later, said as such: the API reference carries signatures and first doc lines, not examples per name;
+no link checker fetches external URLs. The next release is 4.2.0, the final one: the compiled package on npm, a
+narrower host API with typed events, the dependency upgrades, a signed tag.
 
 ## After 4.0 (not planned yet)
 

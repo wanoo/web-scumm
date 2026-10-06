@@ -206,6 +206,7 @@ npm run e2e:visual -- <url> [--update] # chaque lieu, figé, contre tests/visual
 npm run e2e -- <url> --lang fr           # le jeu entier dans cette langue ; échoue sur tout texte anglais par défaut du moteur visible
 npm run e2e:a11y -- <url> [--only=axe,keys,storage] [--allow-skip]   # axe sur la conversation, la carte, les emplacements, les confirmations, chaque mini-jeu ; chaque mini-jeu gagné au clavier ; une ancienne sauvegarde mise à niveau (E2E_BROWSER=chromium|webkit ; sortie 3 : une vérification que le navigateur ne peut pas automatiser)
 npm run docs:screenshots [-- --only=game|studio --keep-png]   # les images du README depuis le bundle de production et le Studio, en WebP dans docs/img/ (Python avec Pillow)
+npx tsx tools/api-doc.ts [--check]                            # les signatures de l'API publique dans docs/en/API.md et docs/fr/API.md (4.1.7 ; tests/api-doc.test.ts échoue quand une page est en retard)
 npm run lint [-- --prove | --static | --json]   # lint de contenu : conditions insatisfaisables, règles masquées, faux indices, indices bloqués, actions jamais jouées (alias de lint:content depuis la 4.1.0)
 npm run quality   # code du moteur (4.1.0) : formatage et lint Biome, tsconfig.json et tsconfig.strictest.json, puis le lint de contenu
 npm run doctor                     # vérifie Node, modules Python, ffmpeg et navigateurs Playwright
@@ -395,3 +396,30 @@ node scripts/e2e.mjs https://<votre-site>/   # joue la version en ligne de bout 
 
 `games/<id>/private/` n'est jamais envoyé : il est exclu par `.gitignore`. **Avant de partager un jeu à fin scellée** : sceller
 la vraie issue (`npm run seal -- --outcome=…` avec `games/<id>/private/ending.config.ts`), puis `npm run build`, commit, déploiement.
+
+## Tous les autres scripts
+
+Les scripts ci-dessus sont ceux dont un jeu a besoin. Le reste de `package.json` est listé ici pour que chaque
+`npm run` ait une ligne (4.1.7 ; un script absent de cette page fait échouer `tests/scripts-documented.test.ts`) :
+
+| Script | Quoi |
+|---|---|
+| `npm run preview` | sert `dist/` sur 127.0.0.1 (ce vers quoi les scripts e2e sont pointés après un build) |
+| `npm start` | sert `dist/` sur toutes les interfaces au port `$PORT` (8080 par défaut) avec `sirv` : ce qu'un hébergeur comme Clever Cloud lance |
+| `npm run test:node` | la suite unitaire sans les tests liés à Python ni ceux qui saturent le processeur (`npm run check` la lance ; les lourds tournent la nuit) |
+| `npm run test:mutation:core [-- --set=core\|reality\|all --file=…]` | les tests de mutation des modules dont dépendent une sauvegarde, une session, une condition ou un signal (`docs/dev/MUTANTS.md`) |
+| `npm run e2e:smoke` | le parcours générique du build de production (le chemin du solveur rejoué au tactile) |
+| `npm run e2e:pwa`, `e2e:studio`, `e2e:taps`, `e2e:reality` | le cache hors ligne, le Studio, les verbes par défaut, le Reality Bridge, chacun dans un vrai navigateur |
+| `npm run migrate` | un projet de jeu passé à cette release (`web-scumm migrate` ; `docs/fr/UPGRADING.md`) |
+| `npm run lint:content`, `lint:code` | le lint du contenu seul (`npm run lint` l'enchaîne avec une passe du solveur), le lint de Biome seul |
+| `npm run format`, `format:check` | le formatage de Biome, écrit ou vérifié (`npm run quality` vérifie) |
+| `npm run mcp` | le serveur MCP du jeu courant sur stdio (`docs/fr/MCP.md` ; `npm run -s mcp` pour un client) |
+| `npm run icons` | `public/icons/*.png` et `public/og.png` depuis le `site.json` du jeu |
+| `npm run audit:assets` | chaque fichier de `dist/` justifié avec sa licence (`npm run build:game` le lance) |
+| `npm run audio -- …` | le pipeline de musique et de bruitages Mega Drive (`docs/fr/AUDIO.md`) |
+| `npm run build:studio-demo`, `studio-snapshot`, `studio-apply <patch>` | le build statique du Studio, son instantané seul, un patch de démo appliqué à votre copie (`docs/fr/STUDIO.md`, « Mode démo ») |
+| `npm run pack` | les archives `web-scumm` et `web-scumm-bridge` qu'une release livre (`docs/fr/PACKAGE.md`) |
+| `npm run fresh-install`, `upgrade-check` | un jeu créé depuis l'archive et joué jusqu'à sa fin ; un jeu fait sur la release précédente mis à niveau et joué (la CI lance les deux) |
+| `npm run page:storyboard`, `page:review`, `page:placement`, `import-layout` | les pages de relecture pour téléphone et l'import de la page de placement (`docs/fr/PAGES.md`) |
+| `npm run bridge -- …` | la ligne de commande du Reality Bridge (`docs/fr/REALITY-OPS.md`) |
+| `npm run solve:reality`, `reality:spike`, `reality:xcheck` | le solveur sous chaque scénario de réalité, une sonde de charge du Bridge, la contre-vérification Rust du protocole (`docs/fr/REALITY.md`) |
