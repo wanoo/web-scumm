@@ -109,6 +109,8 @@ export function pauseMenu(app: App) {
     row(app.t('save'), '💾').onclick = () => void app.slotMenu(d, m, 'save', slots);
     row(app.t('load'), '📂').onclick = () => void app.slotMenu(d, m, 'load', slots);
   }
+  const link = app.reality;
+  if (link) row(link.statusText(), '⇄').onclick = () => link.menu(m, () => d.remove());
   if (app.game.settings) row(app.t('settings'), '⚙').onclick = () => app.settingsMenu(d, m);
   row(ui.credits, '★').onclick = () => {
     d.remove();

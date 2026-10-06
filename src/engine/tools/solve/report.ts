@@ -79,6 +79,8 @@ export interface SolveResult {
   headline: string;
   /** Search contract used for this result. */
   mode: 'witness' | 'prove';
+  /** A game with `reality` (4.1.1): the world the verdict holds in (`realityLabel`). */
+  reality?: string;
   /** The game reaches the sealed ending or the ending. */
   finished: boolean;
   /** Path found to the ending (or to the last explored state). Not necessarily the shortest. */

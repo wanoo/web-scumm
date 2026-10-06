@@ -9,10 +9,10 @@ import type { Cond, GameDef, GameState, Id, Layout } from '../../core/types';
 import { compileGame } from '../../core/define';
 import { viewOf, type MobilityModel } from '../mobility';
 import { must } from '../../core/must';
-import type { SolveOptions } from './model';
+import type { RealityPolicy, SolveOptions } from './model';
 
 /** Keys of once / nth blocks: their counter changes behaviour, so it's part of the state. */
-export function stateKeys(game: GameDef, commands?: CustomCommands, goal?: Cond[]) {
+export function stateKeys(game: GameDef, commands?: CustomCommands, goal?: Cond[], reality?: RealityPolicy) {
   // What can still change the outcome: a flag nobody but its setter reads, a clock nobody looks at, a walker nobody
   // waits for are left out of the state (and the solver does not spend actions on them).
   const extra = extraReads(game, goal);
@@ -92,7 +92,20 @@ export function stateKeys(game: GameDef, commands?: CustomCommands, goal?: Cond[
   };
   findBounds(game);
   for (const k of exact) flagBounds.delete(k);
-  return { once: onceRead, nth: nthRead, random: randomRead, seenRead, visitedRead, propRead, flagBounds, exact, live };
+  // Under a scenario the next signal to come is the one after the cursor: where the scenario stands is state (4.1.1).
+  const realityCursor = typeof reality === 'object';
+  return {
+    once: onceRead,
+    nth: nthRead,
+    random: randomRead,
+    seenRead,
+    visitedRead,
+    propRead,
+    flagBounds,
+    exact,
+    live,
+    realityCursor,
+  };
 }
 
 /**
@@ -127,7 +140,10 @@ export function stateDims(s: GameState, keys: ReturnType<typeof stateKeys>): Dim
     else if (keys.random.has(k)) d.push([`random:${k}`, String(v)]);
   }
   // `once` listeners (`event.*`) change what the next emit does: they are part of the state.
-  for (const k of Object.keys(s.seen)) if (keys.seenRead.has(k) || k.startsWith('event.')) d.push([`seen:${k}`, '1']);
+  // A signal applied once per game (`reality.*`, 4.1.1) changes what its next delivery does: state too.
+  for (const k of Object.keys(s.seen))
+    if (keys.seenRead.has(k) || k.startsWith('event.') || k.startsWith('reality.')) d.push([`seen:${k}`, '1']);
+  if (keys.realityCursor) d.push(['reality', String(s.reality?.cursor ?? 0)]);
   for (const [k, n] of Object.entries(s.visited)) if (n && keys.visitedRead.has(k)) d.push([`visited:${k}`, '1']);
   if (s.done) d.push(['done', '1']);
   for (const u of s.used ?? []) if (keys.live.items.has(u)) d.push([`used:${u}`, '1']);
@@ -507,11 +523,11 @@ export function projectState(
   gameIn: GameDef,
   layouts: Record<string, Layout>,
   state: GameState,
-  opts: Pick<SolveOptions, 'commands' | 'goal' | 'canonicalPlayers'> = {},
+  opts: Pick<SolveOptions, 'commands' | 'goal' | 'canonicalPlayers' | 'reality'> = {},
 ): string {
   const game = compileGame(gameIn) as GameDef;
   const keyed = new Engine(game, layouts, new FakePresenter(), new MemoryStore(), { commands: opts.commands });
-  const keys = stateKeys(keyed.game, opts.commands, opts.goal);
+  const keys = stateKeys(keyed.game, opts.commands, opts.goal, opts.reality);
   const d = stateDims(state, keys);
   // The same canonical character as the proof that starts from it: the active character does not split boundaries.
   const canonical =

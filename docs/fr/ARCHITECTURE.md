@@ -79,6 +79,14 @@ distingue un état que par ce qui peut encore compter (`solve/abstractions.ts`) 
 la recherche explicite (`--audit-abstractions`, le corpus de `npm run audit:corpus`). Le chemin de `solve()` jusqu'au
 verdict est dans `src/engine/BOUNDARIES.md`, « Inside the solver ».
 
+## Les signaux de l'extérieur (4.1.1)
+
+Un jeu peut déclarer des signaux (`reality`, `docs/fr/REALITY.md`). Un Reality Bridge à part (`bridge/src/`) autorise
+les connecteurs avec Biscuit et signe chaque fait accepté ; le joueur vérifie la signature avant de lire quoi que ce
+soit (`src/engine/reality/protocol.ts`), et le moteur applique le signal au plus une fois, comme une entrée de session,
+sauvegardée avant l'accusé de réception. Le moteur ne touche jamais au réseau : le transport est un port
+(`WorldSignalPort`), et un jeu sans `reality` ne charge rien de ce code.
+
 ## Public et interne
 
 Public : `web-scumm/content` (les types et `defineGame`), `web-scumm/player` (le démarrage), `web-scumm/minigames`,

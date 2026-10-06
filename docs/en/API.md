@@ -7,7 +7,7 @@ under `src/engine` is internal and may change in any release; the `@engine/*` al
 promise.
 
 In a game project the entries are `web-scumm/content`, `web-scumm/player`, `web-scumm/minigames` and
-`web-scumm/testing` (the package's `exports`); in this repository the same names resolve to `src/engine/api/`.
+`web-scumm/testing` and, since 4.1.1, `web-scumm/reality` (the package's `exports`); in this repository the same names resolve to `src/engine/api/`.
 
 ## web-scumm/content: writing a game
 
@@ -37,6 +37,7 @@ In a game project the entries are `web-scumm/content`, `web-scumm/player`, `web-
 | `GameRules` | rules shared by every room |
 | `AudioDef` · `ScoreDef` · `ScoreState` | music, sounds, voices; a score's stems and which sound when |
 | `EndingDef` | the sealed ending |
+| `RealityDef` · `SignalDef` · `RealityState` · `ExternalEntry` | signals from the world outside through a Reality Bridge (4.1.1, `docs/en/REALITY.md`): what a game declares, what a save keeps of the link, a signal as a session entry |
 | `RevealDef` | **deprecated** (4.0): the old name of `EndingDef`; removed in 5.0 |
 | `SkinDef` · `UiTexts` | the interface's images and sounds, its texts |
 | `Migration` | one step of save migration (renames, drops) |
@@ -77,6 +78,19 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `FakePresenter` · `MemoryStore` | a front end that answers by script, a save store in memory |
 | `solve` · `SolveOptions` · `SolveResult` | the solver: a way to the end, softlocks with `prove` |
 | `parseSave` · `saveEnvelope` · `SaveEnvelopeV3` | a save's envelope: write it, read it back (migrations applied) |
+
+## web-scumm/reality: signals from the world outside (4.1.1)
+
+| Name | What |
+|---|---|
+| `verifySignal` · `SignalExpectation` · `VerifyResult` · `RefusalCode` | a signed signal checked before it is read: size, algorithm, key, signature, then game, player, manifest, expiry; a refusal has a code |
+| `signSignal` · `importBridgeKey` · `BridgeKey` · `Keyring` | signing as a Bridge does (tests, simulators); a Bridge's public key and the set the player trusts |
+| `WorldSignalV1` · `WorldSignalV1Schema` · `SignedWorldSignalV1` · `MAX_SIGNAL_CHARS` | the payload and its schema, the compact JWS that carries it, its size limit |
+| `WorldSignalPort` | where signals come from: a Bridge's transport, the simulator, a game's own |
+| `RealityClient` · `RealityClientOptions` | verify, apply, wait for the durable save, acknowledge |
+| `httpPort` · `HttpPortOptions` | the transport to a Bridge: Server-Sent Events read with fetch, or a fetch by cursor |
+| `SignalSimulator` · `Fault` · `SimulatedDelivery` | a Bridge in the browser for the Studio and the tests: delays, duplicates, order, bad signatures, expiry, cuts |
+| `realityManifest` · `manifestHash` · `RealityManifest` | the signals a game declares, as the Bridge checks them, and the hash its configuration keeps |
 
 ## Beside the modules
 

@@ -222,3 +222,9 @@ Nothing to change in a game. The content format, the save envelope, the four pub
 those of 4.0.0 (`tests/api-surface.json` is the same); `npm install` of the new package is the whole upgrade, and a
 4.0 save loads. In this repository: `npm run lint` is now `npm run lint:content` (the alias stays through 4.x), and
 `npm run quality` adds Biome and the stricter TypeScript to what CI checks.
+
+## 13. From 4.1.0 to 4.1.1 "Reality Bridge"
+
+Nothing to change: every addition is optional. A game that wants signals from outside declares `reality`
+(`docs/en/REALITY.md`), adds scenarios under `reality/scenarios/`, and runs a Bridge (`web-scumm bridge`, or the
+package `web-scumm-bridge`). A 4.1.0 save loads; it gets a `reality` state only when a signal is applied.

@@ -43,8 +43,53 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           path: dist
-  # A second game, as `npm run new-game` makes it: every gate the sample game passes (check, verify:game, prove:game,
-  # the build, the production e2e with axe and saves), without a single test written for it. A gate since 3.2.
+  # Biscuit's official samples in the JavaScript build the Bridge runs and in the Rust crate (4.1.1, D16): the same
+  # verdict as the specification in both. The runner image has cargo.
+  reality-xcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run reality:xcheck -- --require-rust
+  # Reality Bridge end to end (4.1.1, scripts/e2e-reality.mjs): the sample game games/signals built for production, a
+  # reference Bridge, pairing from the pause menu, the same webhook twice, offline then online, applied once, the
+  # session replayed with the Bridge stopped. WebKit cannot reopen offline under automation (as e2e:pwa).
+  reality:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run assets
+        env:
+          GAME: signals
+      - run: npx vite build
+        env:
+          GAME: signals
+      - run: npm run solve:reality
+        env:
+          GAME: signals
+      - run: npx vite preview --port 5176 --strictPort &
+        env:
+          GAME: signals
+      - run: for i in $(seq 1 60); do curl -sf http://127.0.0.1:5176/ > /dev/null && break; sleep 1; done
+      - run: npm run e2e:reality -- http://127.0.0.1:5176/ --browser=${{ matrix.browser }} ${{ matrix.browser == 'webkit' && '--allow-skip' || '' }}
   # The coverage floors of 4.1.0 (vite.config.ts, test.coverage.thresholds): the whole Node suite under V8 coverage,
   # beside the check job; every branch of the critical core, the global floor never lower.
   coverage:
@@ -63,6 +108,8 @@ jobs:
       # validate --release measures the stems with ffprobe (tests/tooling.test.ts).
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - run: npm run test:coverage
+  # A second game, as `npm run new-game` makes it: every gate the sample game passes (check, verify:game, prove:game,
+  # the build, the production e2e with axe and saves), without a single test written for it. A gate since 3.2.
   second-game:
     runs-on: ubuntu-latest
     steps:

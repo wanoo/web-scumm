@@ -253,6 +253,9 @@ export function puzzleGraph(
     requires(a, ev.if, undefined);
     effects(a, ev.do, undefined);
   });
+  // A signal from the world outside (4.1.1) produces its event, like an action no one in the game takes.
+  for (const sg of game.reality?.signals ?? [])
+    edge(node('rule', `reality/${sg.id}`, `outside: ${sg.id}`, 'game'), node('event', sg.id), 'produces');
   if (game.start.intro?.length || game.start.inventory?.length || game.start.flags) {
     const a = node('rule', 'game/start', 'start', 'game');
     (game.start.inventory ?? []).forEach((it) => edge(a, node('item', it, itemLabel(it)), 'produces'));

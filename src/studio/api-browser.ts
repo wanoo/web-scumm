@@ -5,7 +5,7 @@
 // injected, so the tests run it in node.
 import type { GameDef, Layout } from '@engine/core/types';
 import { validate as validateGame, type AssetIndex } from '@engine/tools/validate';
-import { solve as solveGame } from '@engine/tools/solve';
+import { solve as solveGame, type RealityPolicy } from '@engine/tools/solve';
 import { report as reportGame, reportMarkdown } from '@engine/tools/report';
 import { toDot, toSvg, worldGraph } from '@engine/tools/graph';
 import { extraReads, liveClasses, puzzleGraph, puzzleMarkdown, toPuzzleDot, toPuzzleSvg } from '@engine/tools/puzzle';
@@ -451,7 +451,7 @@ export class BrowserApi implements Api {
     return { lint: r, markdown: lintMarkdown(r, s.mode), mode: s.mode, ms: Date.now() - t0 };
   }
 
-  async solve(from?: string, prove = false, maxStates = 20000): Promise<SolveData> {
+  async solve(from?: string, prove = false, maxStates = 20000, reality?: RealityPolicy): Promise<SolveData> {
     const t0 = Date.now();
     const { mod, game, layouts } = await this.editedGame();
     if (from && !game.checkpoints?.[from]) throw new ApiError(`unknown checkpoint: "${from}"`, 400);
@@ -460,6 +460,7 @@ export class BrowserApi implements Api {
       start: from ? { checkpoint: from } : 'new',
       commands: mod.commands,
       mode: prove ? 'prove' : 'witness',
+      ...(reality ? { reality } : {}),
     });
     return {
       status: r.status,
@@ -482,6 +483,7 @@ export class BrowserApi implements Api {
       from: from || null,
       ms: Date.now() - t0,
       profile: r.profile,
+      ...(r.reality ? { reality: r.reality } : {}),
     };
   }
 

@@ -486,7 +486,7 @@ témoins, preuves et sauvegardes de référence que la 4.0.0 sur 15 jeux et 13 s
 visite 122 → 120 Ko ; planchers de couverture avec toutes les branches des conditions, sauvegardes, migrations et
 empreintes ; 340 mutants tués sur 348, les 8 autres expliqués.
 
-## v4.1.1 « Reality Bridge » (planifiée, D14) : un jeu réagit au monde extérieur
+## v4.1.1 « Reality Bridge » (livrée le 6 octobre 2026, D14) : un jeu réagit au monde extérieur
 
 Le plan de Codex `docs/dev/PLAN-4.1-REALITY-BRIDGE.md`, sur le code clarifié : un jeu déclare un alphabet fini de
 signaux ; un Bridge séparé (appairage, capacités Biscuit, événements signés, journal) les livre au moins une fois ; le
@@ -494,6 +494,12 @@ moteur applique chacun au plus une fois, sauvegarde, puis accuse réception ; un
 solveur prouve un jeu fermé, sous un scénario, ou face aux absences et aux doublons. Un spike tranche d'abord
 l'enveloppe, le transport et Biscuit. Un jeu sans `reality` ne paie ni code ni requête. Reporté (D12) : un Bridge
 déployé, un vrai webhook.
+
+Mesuré au tag : les choix du spike (un JWS EdDSA compact vérifié par WebCrypto, 381 octets gzippés ; Biscuit côté
+Bridge, ses 49 validations officielles et les 22 cas signés et 9 cas de politique du projet au même verdict en
+JavaScript et en Rust ; SSE et une lecture par curseur) ; des tests de crash à chaque frontière de la livraison ; le jeu
+d'exemple prouvé dans quatre mondes ; le scénario de bout en bout du plan vert sous Chromium et WebKit (réouverture hors
+ligne sous Chromium) ; la démo sans un octet de Reality dans sa première visite ni son cache hors ligne.
 
 Le projet reste un moment en 4.1.x ; la 4.2 sera la version finale.
 

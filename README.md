@@ -17,7 +17,15 @@ single day with an AI assistant.
 
 ![The Pantry Key: Grandma's house, nine verbs, the bag](docs/img/v36-hero.webp)
 
-**New in v4.1 "Clarity":** a maintenance release that makes web-scumm easier to read, review and contribute to. It
+**New in v4.1.1 "Reality Bridge":** a game can react to a fact from the world outside (an email answered, a webhook
+called) without its content touching the network. A separate Bridge (`web-scumm bridge`, or the package
+`web-scumm-bridge`) turns the fact into a short signed signal the game declares; the player verifies it, applies it at
+most once, saves, then acknowledges; a session replays it offline; the solver proves the game without the outside,
+under each scenario, and against any order of signals. Pair a game from its pause menu, try signals in the Studio's
+simulated Bridge, run the sample `games/signals` ([REALITY](docs/en/REALITY.md), [REALITY-OPS](docs/en/REALITY-OPS.md)).
+A game without signals pays nothing.
+
+**v4.1 "Clarity":** a maintenance release that makes web-scumm easier to read, review and contribute to. It
 changes no gameplay and no public contract: the engine, the player and the solver are split into modules of one
 responsibility each, every index access in `src/` is checked, data from outside starts as `unknown`, the code is
 formatted and linted by Biome, and the behaviour of 4.0.0 (witnesses, proofs, golden saves, the public surface) is
@@ -68,7 +76,7 @@ Market".
 | A game made on the previous release, upgraded, its save played to the end on 4.0 | a CI job on every push (`npm run upgrade-check`) |
 | "The Lighthouse", the independent game: 5 places, English and French | `release --commercial` green: proof over 85 states, 202 texts per language, 62 locked files |
 | The public API | 92 names in 4 entries, 23 Studio/MCP tools, held by `tests/api-surface.test.ts` |
-| Saves | one per release from 3.0.0 to 4.1.0 loads and reaches the ending |
+| Saves | one per release from 3.0.0 to 4.1.1 loads and reaches the ending |
 | The player's first visit | 122 KB of JavaScript, gzipped (153 in 3.7.0), held by `initialJsKB` |
 | The archive | every file accounted for: code, locked assets, fonts, icons, `licenses/` |
 | The nightly corpus | 1 503 random games in four shards, 910 compared to the explicit search, 0 divergences |
@@ -133,7 +141,7 @@ Needs Node 22+, Python 3 for the art tools (`pip install -r requirements.txt`) a
 publishing to come, then `npx create-web-scumm my-game`):
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.0/web-scumm-4.1.0.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.1/web-scumm-4.1.1.tgz
 npx --package=$T web-scumm create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # then npm run verify, npm run build, npm run release
@@ -216,9 +224,9 @@ Every page also exists in French under `docs/fr/`. `docs/dev/` holds the log of 
 
 ## Releases
 
-Current release: [v4.1.0 "Clarity"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.0): the same engine, easier to
-read, review and contribute to (`docs/en/ARCHITECTURE.md`, `docs/en/CODE_TOUR.md`). The story from v1.3 to v4.1 is in
-the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
+Current release: [v4.1.1 "Reality Bridge"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.1): a game reacts to
+the world outside through a signed, finite set of signals (`docs/en/REALITY.md`), on the clarified code of 4.1.0. The
+story from v1.3 to v4.1 is in the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map
 

@@ -228,3 +228,10 @@ Rien à changer dans un jeu. Le format du contenu, l'enveloppe de sauvegarde, le
 MCP sont ceux de la 4.0.0 (`tests/api-surface.json` est identique) ; `npm install` du nouveau paquet est toute la mise
 à jour, et une sauvegarde 4.0 se charge. Dans ce dépôt : `npm run lint` est désormais `npm run lint:content` (l'alias
 reste pendant toute la 4.x), et `npm run quality` ajoute Biome et le TypeScript plus strict à ce que la CI vérifie.
+
+## 13. De la 4.1.0 à la 4.1.1 « Reality Bridge »
+
+Rien à changer : chaque ajout est optionnel. Un jeu qui veut des signaux de l'extérieur déclare `reality`
+(`docs/fr/REALITY.md`), ajoute des scénarios sous `reality/scenarios/`, et fait tourner un Bridge (`web-scumm bridge`, ou
+le paquet `web-scumm-bridge`). Une sauvegarde 4.1.0 se charge ; elle reçoit un état `reality` seulement quand un signal
+est appliqué.

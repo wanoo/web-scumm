@@ -7,7 +7,7 @@ version majeure suivante). Tout le reste de `src/engine` est interne et peut cha
 `@engine/*` y mène toujours, sans cette promesse.
 
 Dans un projet de jeu, les entrées sont `web-scumm/content`, `web-scumm/player`, `web-scumm/minigames` et
-`web-scumm/testing` (les `exports` du paquet) ; dans ce dépôt, les mêmes noms mènent à `src/engine/api/`.
+`web-scumm/testing` et, depuis la 4.1.1, `web-scumm/reality` (les `exports` du paquet) ; dans ce dépôt, les mêmes noms mènent à `src/engine/api/`.
 
 ## web-scumm/content : écrire un jeu
 
@@ -37,6 +37,7 @@ Dans un projet de jeu, les entrées sont `web-scumm/content`, `web-scumm/player`
 | `GameRules` | les règles communes à tous les lieux |
 | `AudioDef` · `ScoreDef` · `ScoreState` | musique, sons, voix ; les stems d'une partition et lesquels sonnent quand |
 | `EndingDef` | la fin scellée |
+| `RealityDef` · `SignalDef` · `RealityState` · `ExternalEntry` | les signaux du monde extérieur par un Reality Bridge (4.1.1, `docs/fr/REALITY.md`) : ce qu'un jeu déclare, ce qu'une sauvegarde garde du lien, un signal comme entrée de session |
 | `RevealDef` | **déprécié** (4.0) : l'ancien nom de `EndingDef` ; retiré en 5.0 |
 | `SkinDef` · `UiTexts` | les images et sons de l'interface, ses textes |
 | `Migration` | une étape de migration des sauvegardes (renommages, suppressions) |
@@ -77,6 +78,19 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `FakePresenter` · `MemoryStore` | une interface qui répond par script, un stockage de sauvegarde en mémoire |
 | `solve` · `SolveOptions` · `SolveResult` | le solveur : un chemin vers la fin, les blocages avec `prove` |
 | `parseSave` · `saveEnvelope` · `SaveEnvelopeV3` | l'enveloppe d'une sauvegarde : l'écrire, la relire (migrations appliquées) |
+
+## web-scumm/reality : les signaux du monde extérieur (4.1.1)
+
+| Nom | Quoi |
+|---|---|
+| `verifySignal` · `SignalExpectation` · `VerifyResult` · `RefusalCode` | un signal signé vérifié avant d'être lu : taille, algorithme, clé, signature, puis jeu, joueur, manifeste, expiration ; un refus a un code |
+| `signSignal` · `importBridgeKey` · `BridgeKey` · `Keyring` | signer comme un Bridge (tests, simulateurs) ; la clé publique d'un Bridge et celles auxquelles le joueur se fie |
+| `WorldSignalV1` · `WorldSignalV1Schema` · `SignedWorldSignalV1` · `MAX_SIGNAL_CHARS` | le contenu et son schéma, le JWS compact qui le porte, sa taille limite |
+| `WorldSignalPort` | d'où viennent les signaux : le transport d'un Bridge, le simulateur, celui d'un jeu |
+| `RealityClient` · `RealityClientOptions` | vérifier, appliquer, attendre la sauvegarde durable, accuser réception |
+| `httpPort` · `HttpPortOptions` | le transport vers un Bridge : Server-Sent Events lus avec fetch, ou une lecture par curseur |
+| `SignalSimulator` · `Fault` · `SimulatedDelivery` | un Bridge dans le navigateur pour le Studio et les tests : délais, doublons, ordre, mauvaises signatures, expiration, coupures |
+| `realityManifest` · `manifestHash` · `RealityManifest` | les signaux qu'un jeu déclare, tels que le Bridge les vérifie, et l'empreinte que sa configuration garde |
 
 ## À côté des modules
 

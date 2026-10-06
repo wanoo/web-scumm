@@ -91,6 +91,14 @@ const COMMANDS = {
   assets: ['art/ and audio/ into public/assets (Python 3, Pillow)', assets],
   validate: ['the content checked: references, rules, dialogues, budgets', () => tool('validate', rest)],
   solve: ['the solver: a way to the end, softlocks (--prove), chapters', () => tool('solve', rest)],
+  bridge: [
+    'a reference Reality Bridge for the game: init, serve, grant, revoke (docs/en/REALITY-OPS.md)',
+    () => tool('bridge', rest),
+  ],
+  'solve-reality': [
+    'a game with reality.signals proved closed, under each scenario and adversarial',
+    () => tool('solve-reality', rest),
+  ],
   lint: ['what a player would trip on', () => tool('lint', rest)],
   i18n: ['translations: extract, status', () => tool('i18n', rest)],
   weight: ['what a phone downloads and decodes, against assetBudgets', () => tool('weight', rest)],
@@ -119,6 +127,7 @@ const COMMANDS = {
         () => vite(['build']),
         verifyRelease,
         () => tool('solve', ['--prove']),
+        () => tool('solve-reality'),
         () => (rest.includes('--commercial') ? tool('validate', ['--commercial', '--errors']) : 0),
         () => tool('dist'),
       ),

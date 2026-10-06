@@ -47,6 +47,15 @@ verdict. What a state is made of for the search is in `src/engine/tools/solve/ab
 `tests/solver-contract.test.ts`, `tests/memo.test.ts`, and the behaviour of every game frozen by
 `tests/quality-baseline.json` (`npm run quality:baseline -- --check`).
 
+## 8. A signal from the world outside (4.1.1)
+
+`tests/fixtures/signals.ts` declares three signals; `src/engine/reality/protocol.ts` checks a signed one before it is
+read; `src/engine/reality/client.ts` verifies it, hands it to `Engine.receive` (`src/engine/core/reality-runtime.ts`:
+applied at most once, a session entry), waits for the durable save, then acknowledges. The solver offers signals
+under a policy (`src/engine/tools/solve/scenarios.ts`). The reference Bridge is `bridge/src/`. Tests:
+`tests/reality-engine.test.ts` (a crash at each boundary), `tests/reality-proof.test.ts`, `tests/bridge.test.ts`; in
+the browser, `scripts/e2e-reality.mjs`.
+
 ## 7. Find the test of a thing
 
 A command: grep its key in `tests/cmds.test.ts` and `tests/core.test.ts`. A layer rule: `tests/boundaries.test.ts`.

@@ -1,4 +1,5 @@
-// node scripts/pack.mjs [--out=.cache/pack] (3.9): the engine as npm packages, from the files git tracks.
+// node scripts/pack.mjs [--out=.cache/pack] (3.9): the engine as npm packages, from the files git tracks. 4.1.1:
+// `web-scumm-bridge`, the reference Reality Bridge, a package of its own (a game that does not run one never installs it).
 // `web-scumm`: the engine (src/), its pages, its tools and the `web-scumm` command, the game template; never a game
 // of this repository, a test, a doc page or a build. `create-web-scumm`: `npx create-web-scumm <folder>`, which runs
 // `web-scumm create`. Both are packed (`npm pack`) into <out>/, ready for `npm install <tarball>` or `npm publish`.
@@ -24,7 +25,8 @@ const SHIP = [
   /^requirements\.txt$/,
   /^LICENSE$/,
 ];
-const SKIP = [/__pycache__|\.pyc$/, /^tools\/audit-assets\.ts$/];
+// The Bridge's development tools (Biscuit's samples, the Rust cross-check) stay in the repository.
+const SKIP = [/__pycache__|\.pyc$/, /^tools\/audit-assets\.ts$/, /^tools\/reality-(xcheck|fixtures)\.ts$/];
 const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], {
   cwd: ROOT,
   encoding: 'utf8',
@@ -73,6 +75,7 @@ writeFileSync(
         './player': './src/engine/api/player.ts',
         './minigames': './src/engine/api/minigames.ts',
         './testing': './src/engine/api/testing.ts',
+        './reality': './src/engine/api/reality.ts',
         './cli/*': './cli/*',
         './package.json': './package.json',
       },
@@ -114,9 +117,63 @@ writeFileSync(
 );
 cpSync(join(ROOT, 'LICENSE'), join(create, 'LICENSE'));
 
-for (const d of [engine, create])
+// The Reality Bridge (4.1.1): bridge/src and its policies, with the protocol it shares with the player.
+const bridge = join(out, 'web-scumm-bridge');
+const BRIDGE_FILES = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], {
+  cwd: ROOT,
+  encoding: 'utf8',
+})
+  .split('\n')
+  .filter(
+    (f) =>
+      /^bridge\/(src\/[\w-]+\.ts|policy\/[\w-]+\.datalog|bin\.mjs)$/.test(f) ||
+      /^src\/engine\/reality\/(protocol|manifest)\.ts$/.test(f),
+  );
+for (const f of BRIDGE_FILES) {
+  const to = join(bridge, f.replace(/^bridge\//, ''));
+  mkdirSync(dirname(to), { recursive: true });
+  cpSync(join(ROOT, f), to);
+}
+// The shared protocol sits where bridge/src expects it (../../src/engine/reality/ becomes ../src/engine/reality/).
+for (const f of BRIDGE_FILES.filter((f) => f.startsWith('bridge/src/'))) {
+  const p = join(bridge, f.replace(/^bridge\//, ''));
+  writeFileSync(p, readFileSync(p, 'utf8').replaceAll("'../../src/engine/reality/", "'../src/engine/reality/"));
+}
+writeFileSync(
+  join(bridge, 'package.json'),
+  JSON.stringify(
+    {
+      name: 'web-scumm-bridge',
+      version: root.version,
+      description:
+        'The reference Reality Bridge for web-scumm games: signals from the world outside, signed, delivered at least once.',
+      license: 'MIT',
+      type: 'module',
+      engines: root.engines,
+      repository: { type: 'git', url: 'git+https://github.com/wanoo/web-scumm.git' },
+      bin: { 'web-scumm-bridge': 'bin.mjs' },
+      exports: { './cli': './src/cli.ts', './package.json': './package.json' },
+      dependencies: {
+        '@biscuit-auth/biscuit-wasm': root.devDependencies['@biscuit-auth/biscuit-wasm'],
+        zod: root.dependencies.zod,
+        tsx: root.devDependencies.tsx,
+      },
+    },
+    null,
+    2,
+  ) + '\n',
+);
+cpSync(join(ROOT, 'LICENSE'), join(bridge, 'LICENSE'));
+writeFileSync(
+  join(bridge, 'README.md'),
+  `# web-scumm-bridge\n\nThe reference Reality Bridge for a web-scumm game (4.1.1). \`npx web-scumm-bridge init --manifest=dist/reality-manifest.json\`, then \`npx web-scumm-bridge serve\`. Documentation: https://github.com/wanoo/web-scumm (docs/en/REALITY-OPS.md).\n`,
+);
+
+for (const d of [engine, create, bridge])
   execFileSync('npm', ['pack', '--pack-destination', out, '--silent'], {
     cwd: d,
     stdio: ['ignore', 'inherit', 'inherit'],
   });
-console.log(`packed into ${out}: web-scumm ${root.version} (${files.length} files), create-web-scumm`);
+console.log(
+  `packed into ${out}: web-scumm ${root.version} (${files.length} files), create-web-scumm, web-scumm-bridge (${BRIDGE_FILES.length} files)`,
+);

@@ -42,7 +42,8 @@
     "games",
     "tests",
     "tools",
-    "scripts"
+    "scripts",
+    "bridge"
   ],
   "exclude": [
     "legacy",

@@ -106,4 +106,32 @@ describe("the engine's layers", () => {
     for (const f of all) if (!state.has(f)) visit(f);
     expect(cycles).toEqual([]);
   });
+
+  it('the Reality protocol (4.1.1) imports nothing but the core and plain packages: the player loads it on demand', () => {
+    expect(offenders(layer('reality'), (to) => /^(dom|tools|dev|minigames|ending|studio)(\/|$)/.test(to))).toEqual([]);
+  });
+
+  it('the engine never imports the Bridge (4.1.1): Biscuit, keys and the server stay out of every game', () => {
+    const offending = files(ROOT).flatMap((f) =>
+      imports(f)
+        .filter((d) => /(^|\/)bridge\//.test(d.to) || d.to.includes('biscuit'))
+        .map((d) => `${relative(ROOT, f)} → ${d.to}`),
+    );
+    expect(offending).toEqual([]);
+  });
+
+  it('the Bridge reaches neither the Studio, the tools, nor a game: only the protocol it shares with the player', () => {
+    const dir = resolve('bridge/src');
+    const offending = readdirSync(dir)
+      .filter((f) => f.endsWith('.ts'))
+      .flatMap((f) =>
+        [...readFileSync(join(dir, f), 'utf8').matchAll(/from '([^']+)'/g)]
+          .map((m) => m[1]!)
+          .filter(
+            (spec) => !/^(node:|\.\/|@biscuit-auth\/)/.test(spec) && !/^\.\.\/\.\.\/src\/engine\/reality\//.test(spec),
+          )
+          .map((spec) => `bridge/src/${f} → ${spec}`),
+      );
+    expect(offending).toEqual([]);
+  });
 });

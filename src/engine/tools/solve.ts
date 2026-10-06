@@ -9,7 +9,7 @@
 export { abstractionLines, profileText } from './solve/report';
 export type { Step, SolveProfile, SolveResult } from './solve/report';
 export { mergeStats } from './solve/model';
-export type { SolveOptions, NodeInput, TryRecord, Expansion, ExpandStats } from './solve/model';
+export type { SolveOptions, NodeInput, TryRecord, Expansion, ExpandStats, RealityPolicy } from './solve/model';
 export {
   mobilityError,
   isMobilityError,

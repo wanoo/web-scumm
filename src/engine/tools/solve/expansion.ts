@@ -25,6 +25,7 @@ import {
   valuation,
 } from './abstractions';
 import type { ExpandStats, Expansion, NodeInput, SolveOptions } from './model';
+import { signalTries } from './scenarios';
 import { type SolveProfile, label } from './report';
 
 /**
@@ -85,7 +86,7 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
   const mode = opts.mode ?? 'witness';
   const game = compileGame(gameIn) as GameDef;
   const keys0 = new Engine(game, layouts, new FakePresenter(), new MemoryStore(), { commands: opts.commands }); // assigns the keys
-  const keys = stateKeys(keys0.game, opts.commands, opts.goal);
+  const keys = stateKeys(keys0.game, opts.commands, opts.goal, opts.reality);
   const playerIds = game.players?.ids ?? [game.hero];
   // A goal that reads `{ player }` makes the active character part of the question: no canonical character then.
   // Invariants are checked on every variant of a state instead (each one is a concrete state the player can reach).
@@ -583,6 +584,8 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
           candidates: [`script:${sc.id}`],
         });
       }
+      // Signals from the world outside (4.1.1): what can arrive now, under the search's policy (solve/scenarios.ts).
+      for (const t of signalTries(game, opts.reality, s)) add({ ...t, items: [], picks: [], rnd: [] });
     }
 
     timing.tries +=

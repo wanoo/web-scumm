@@ -2,6 +2,94 @@
 
 ## Unreleased
 
+## 4.1.1 — 2026-10-06
+
+"Reality Bridge" (LOG #96, D14–D17): a game can react to a fact from the world outside (an email answered, a webhook
+called) without its content touching the network. A separate Bridge turns the fact into a short signed signal from
+a finite alphabet the game declares; the player verifies it, applies it at most once, saves, then acknowledges; a
+session replays it offline; the solver proves a game closed, under a scenario and against any order of signals. The
+plan is Codex's, `docs/dev/PLAN-4.1-REALITY-BRIDGE.md`, adopted as 4.1.1 on the clarified code. A game without
+`reality` pays nothing: no code in its first visit, nothing in its offline cache, no request.
+
+**Versioning**: 4.1.1 adds a public entry (`web-scumm/reality`) and content fields, which semantic versioning calls a
+minor. The maintainer chose the number (D14: the project stays on 4.1.x, 4.2 is the final version); it is a one-off
+exception recorded in `docs/en/SUPPORT.md`. Every addition is optional: a 4.1.0 game, its saves and its sessions are
+unchanged.
+
+### API
+
+- New entry `web-scumm/reality` (23 names, `docs/en/API.md`); `web-scumm/content` adds `RealityDef`, `SignalDef`,
+  `RealityState`, `ExternalEntry`; the MCP's `solve` takes an optional `reality`. Nothing removed or changed.
+
+### Changes
+
+- **The release**: a third package, `web-scumm-bridge-<version>.tgz` (the Bridge on its own: `npx web-scumm-bridge init
+  --manifest=dist/reality-manifest.json`, then `serve`), attached and attested with the others; a game with `reality`
+  ships `reality-manifest.json` in its build (`verify:dist` requires it). The demo's first visit: 120.7 → 121.2 KB, the
+  hooks only. Golden saves: `demo-4.1.1.json`, and `signals-4.1.1.json` with a link state. `docs/dev/adr/0007`, the
+  code tour's step 8, a section of `ARCHITECTURE.md`.
+
+- **Reality Bridge, the spike** (4.1.1's lot A, `docs/dev/reality-spike.md`): Ed25519 is in WebCrypto in Node,
+  Chromium and WebKit; the player's verifier of a compact JWS is 381 bytes gzipped (D15); Biscuit runs on the Bridge
+  from its WebAssembly build, loaded without an experimental flag (`bridge/src/biscuit.ts`), 0.24 ms to authorise
+  (D16); delivery by Server-Sent Events and a fetch by cursor (D17). `npm run reality:xcheck`: Biscuit's official
+  samples (vendored with their licence in `bridge/test-vectors/biscuit`) give the specification's verdict in
+  JavaScript and in the Rust crate (`bridge/xcheck`), 49 validations, in a CI job of their own. `npm run
+  reality:spike` reproduces the measures. `docs/dev/THREAT-MODEL.md`. The engine never imports the Bridge
+  (`tests/boundaries.test.ts`).
+- **Reality Bridge, the protocol** (lot B): `src/engine/reality/protocol.ts` checks a signed signal in the order
+  size, shape, algorithm and key (with rotation windows), the Ed25519 signature on the transported bytes, then the
+  payload (`WorldSignalV1`, a strict schema), the game, the player, the manifest and the expiry; each refusal has a
+  code. `src/engine/reality/manifest.ts`: a game's manifest of signals and its hash. Content types `RealityDef`,
+  `SignalDef`, `RealityState` (`GameDef.reality`, `GameState.reality`; API). The Bridge's Biscuit policy
+  (`bridge/policy/propose.datalog`, `bridge/src/policy.ts`): a connector proposes only the game, sources, signals,
+  players and audience its token grants, before its expiry (to the second, strict), unless revoked; attenuation only
+  narrows. Conformance: 22 signed cases (`tests/fixtures/reality/conformance.json`, test keys from fixed seeds) and 9
+  policy cases, the same verdict in JavaScript and in Rust (`npm run reality:xcheck`).
+- **Reality Bridge in the engine** (lot C): `Engine.receive` applies a verified signal at most once
+  (`core/reality-runtime.ts`): the save keeps the last sequence without a gap and the ids applied above it
+  (`GameState.reality`, validated on load), a delivery seen before is a no-op, out of order waits for the gap, the
+  effect is the event of the signal's name, once per game unless `once: false`. A signal is a session entry
+  (`ExternalEntry`, API): `replay` applies it offline; no token, payload or address is ever recorded.
+  `WorldSignalPort` (`core/ports.ts`) and `RealityClient` (`src/engine/reality/client.ts`): verify, apply, wait for
+  the durable save, acknowledge; a refusal is never acknowledged, a signal the Bridge signed that can never apply
+  (expired, no longer declared) is recorded as skipped so the cursor moves on, and a loaded game acknowledges what
+  it holds first. A crash before applying, after applying, after the save: delivered again, applied once
+  (`tests/reality-engine.test.ts`). Biscuit authorises under explicit run limits (200 ms on the Bridge), so a slow
+  machine never refuses a valid token as a timeout. `core/movement.ts` keeps `engine.ts` under 800 lines.
+- **Reality Bridge in the proof** (lot D): `SolveOptions.reality` is `closed` (the default: the game on its own),
+  a scenario (its signals in order, each able to arrive at any point after the previous one) or `adversarial` (any
+  declared signal, at any point, again); every result says which world it holds in (`SolveResult.reality`). `npm run
+  solve:reality`, in `prove:game` and the packaged `web-scumm release`: closed, each scenario of
+  `games/<id>/reality/scenarios/*.json`, and adversarial, all proved without a softlock, never truncated; a required
+  signal needs a scenario that sends it. The validator: signal ids, sources, modes, a required signal's `fallback`
+  matching a rule, and in a game with `reality` an event listened to that nothing emits nor declares is an error. The
+  puzzle graph shows each signal as produced from outside.
+- **The reference Reality Bridge** (lot E, `bridge/src/`, `npm run bridge -- init|serve|grant|revoke`, `web-scumm
+  bridge`): pseudonymous pairing by an 8-character code a connector confirms; signals proposed under a Biscuit or by
+  an HMAC-signed webhook mapped to a finite signal; the manifest checked (and its hash at start), deduplication by
+  the connector's key, a sequence per player, Ed25519 signatures with a key id and previous keys for rotation; the
+  fetch by cursor and Server-Sent Events (read with fetch, so the capability travels in a header, never a URL); the
+  player's capability only reads and acknowledges, and lives 30 days from its last acknowledgement; revocation of a
+  player or a token; quotas per connector, a limit of signals waiting per player, a body limit; CORS for the game's
+  origins; export and deletion of a player's data (the JSON-lines journal is rewritten without it); a log with no
+  secret. `init` writes its keys and tokens with mode 600 under `.cache/bridge/`. The player's transport:
+  `src/engine/reality/http-port.ts`. `npm run doctor` checks Ed25519 and Biscuit. The Bridge imports nothing but
+  the protocol it shares with the player (`tests/boundaries.test.ts`).
+- **Reality Bridge for players, authors and the Studio** (lot F): `GameDef.reality.bridge` names the Bridge; the pause
+  menu's "World link" pairs the game with an 8-character code, shows the link's state (announced politely) and
+  unlinks; `dom/reality-ui.ts` runs the client, one tab at a time (Web Locks), waits for a game in progress, and starts
+  again after a failure. The Studio's Play tab has a Reality panel: a simulated Bridge (`SignalSimulator`) with faults
+  (delay, duplicate, bad signature, expiry, order, a cut), through the same verification and save as a real one. The
+  MCP's `solve` takes `reality`. A new public entry, `web-scumm/reality` (API). The sample game `games/signals/`:
+  proved closed, under two scenarios and adversarial. `npm run e2e:reality` runs the plan's scenario on its production
+  build in Chromium and WebKit (pair, the browser closed, the same webhook twice, offline, online, applied once, the
+  session replayed with the Bridge stopped; WebKit cannot reopen offline under automation, as in `e2e:pwa`), in CI.
+  A game without `reality` pays nothing: the engine's `receive`, the client and the link are a lazy chunk under
+  `assets/reality/`, left out of its offline cache. `docs/en/REALITY.md` (authors) and `docs/en/REALITY-OPS.md`
+  (operators: init, connectors, keys and `bridge rotate`, revocation, quotas, retention, export and deletion), in
+  French too.
+
 ## 4.1.0 — 2026-10-06
 
 "Clarity" (LOG #95, D14): a maintenance release focused on making web-scumm easier to read, review and contribute to.

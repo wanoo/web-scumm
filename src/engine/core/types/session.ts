@@ -26,6 +26,8 @@ export type SessionEntry = (
   | { script: Cmd[] }
   | { enter: Id }
   | { start: 'new' }
+  /** A signal from the world outside, verified by the player before it became an input (4.1.1, Reality Bridge). */
+  | { external: ExternalEntry }
 ) & {
   picks?: number[];
   maps?: (Id | null)[];
@@ -48,4 +50,22 @@ export interface Session {
   log: SessionEntry[];
   /** When it started (epoch ms), when a clock was set. */
   at?: number;
+}
+
+/**
+ * What a session keeps of a signal from outside (4.1.1): its id and sequence on the Bridge, the signal, the source
+ * and when it arrived. Never a token, an email, a credential or the connector's payload: a replay applies it offline.
+ */
+export interface ExternalEntry {
+  id: string;
+  sequence: number;
+  signal: Id;
+  source: string;
+  receivedAt: number;
+  evidenceHash?: string;
+  /**
+   * Signed by the Bridge but refused for good (expired, a signal the game no longer declares): recorded so the
+   * cursor moves past it, with no effect.
+   */
+  skipped?: 'expired' | 'signal';
 }

@@ -6,7 +6,17 @@ import type { Cond, GameState, Id, SessionEntry } from '../../core/types';
 import type { Dims } from './abstractions';
 import type { SolveProfile } from './report';
 
+/**
+ * Signals from the world outside in a search (4.1.1, docs/en/REALITY.md): `closed` (the default) none, the game on its
+ * own; a scenario, the listed signals in order, each able to arrive at any point after the one before; `adversarial`,
+ * any declared signal at any point, again and again (a signal applied once per game is a no-op after its first time).
+ * A proof never contacts a real service: the solver hands the engine the signal itself.
+ */
+export type RealityPolicy = 'closed' | 'adversarial' | { scenario: string; signals: string[] };
+
 export interface SolveOptions {
+  /** Signals from the world outside (4.1.1). Default `closed`. */
+  reality?: RealityPolicy;
   maxStates?: number;
   /** `witness` stops at the first solution; `prove` explores the whole reachable graph and finds softlocks. */
   mode?: 'witness' | 'prove';

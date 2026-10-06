@@ -7,6 +7,7 @@ import type {
   CharacterDef,
   ListLine,
   Cmd,
+  ExternalEntry,
   Cond,
   GameDef,
   GameState,
@@ -55,6 +56,14 @@ import {
   swap as swapImpl,
   transfer as transferImpl,
 } from './players';
+import {
+  enter as enterImpl,
+  walkTo as walkToImpl,
+  travel as travelImpl,
+  openMap as openMapImpl,
+  teleport as teleportImpl,
+} from './movement';
+import type { ReceiveResult } from './reality-runtime';
 import {
   begin as beginImpl,
   newSession as newSessionImpl,
@@ -554,58 +563,22 @@ export class Engine {
 
   /** Walk to a point on the floor. */
   async walkTo(p: Point): Promise<void> {
-    if (this.busy) return;
-    if (this.guideWait) {
-      const g = this.guideWait;
-      await this.run(async () => {
-        await this.ui.say(this.heroId(), g.say, {});
-      });
-      return;
-    }
-    const end = await this.ui.walk(this.heroId(), p, false);
-    if (end) {
-      this.state.hero[this.state.room] = end;
-      this.save();
-    }
+    return walkToImpl(this, p);
   }
 
   /** Travel to a place on the map. */
   async travel(place: Id): Promise<void> {
-    const p = this.game.map?.places[place];
-    if (!p || !this.state.unlocked.includes(place)) return;
-    this.begin({ travel: place });
-    try {
-      await this.run(() => this.enter(p.room, undefined, true));
-    } finally {
-      this.end();
-    }
+    return travelImpl(this, place);
   }
 
   /** Opens the map from the UI. */
   async openMap(): Promise<void> {
-    if (this.busy) return;
-    this.begin({ map: true });
-    try {
-      await this.run(async () => {
-        const pick = await this.pickPlace();
-        if (pick) {
-          const p = this.game.map?.places[pick];
-          if (p) await this.enter(p.room, undefined, true);
-        }
-      });
-    } finally {
-      this.end();
-    }
+    return openMapImpl(this);
   }
 
   /** Goes to a room without playing its arrival script (dev panel). */
   async teleport(id: Id): Promise<void> {
-    this.begin({ enter: id });
-    try {
-      await this.enter(id, undefined, false);
-    } finally {
-      this.end();
-    }
+    return teleportImpl(this, id);
   }
 
   /** Skip the current cutscene. */
@@ -692,24 +665,7 @@ export class Engine {
 
   /** Enters a room: state, display, music, then arrival script. */
   async enter(id: Id, at: Id | Point | undefined, runEnter: boolean) {
-    const room = this.room(id);
-    if (this.state.room !== id || at !== undefined) this.state.camera = { x: 0, follow: true };
-    this.state.room = id;
-    this.writes?.add('*');
-    const L = this.layout(id);
-    if (at) this.state.hero[id] = Array.isArray(at) ? at : (L.entries?.[at] ?? L.entries?.default ?? [320, 360]);
-    else this.state.hero[id] ??= L.entries?.default ?? [320, 360];
-    this.state.visited[id] = (this.state.visited[id] ?? 0) + 1;
-    this.save();
-    await this.ui.enterRoom(room, this.state);
-    this.ui.inventory(this.state.inventory, this.state.used);
-    if (room.music) this.ui.music({ play: room.music });
-    this.onChange();
-    if (runEnter && room.onEnter) {
-      this.ran(`rule:${id}/enter`);
-      await this.exec(room.onEnter, { room, fast: false });
-    }
-    if (runEnter) this.startScripts(false);
+    return enterImpl(this, id, at, runEnter);
   }
 
   // ------------------------------------------------------------------ the world's scripts and events
@@ -757,6 +713,15 @@ export class Engine {
   }
 
   /** Fires an event: moves the scripts waiting for it, then runs the listeners of the room, then of the game. */
+  /**
+   * A verified signal from the world outside (4.1.1): applied at most once, recorded in the session, saved with the
+   * state. `busy`: the engine is running something (a dialogue, a cutscene, a minigame), deliver it again when idle.
+   */
+  async receive(x: ExternalEntry): Promise<ReceiveResult> {
+    // Loaded on the first signal: a game without `reality` never downloads it (4.1.1).
+    return (await import('./reality-runtime')).receive(this, x);
+  }
+
   async emit(id: Id, ctx: Ctx) {
     return emitImpl(this, id, ctx);
   }

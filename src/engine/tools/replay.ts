@@ -87,6 +87,7 @@ export function labelOf(game: GameDef, en: SessionEntry): string {
   if ('step' in en) return `Script ${en.step}`;
   if ('script' in en) return `Run ${en.script.length} command${en.script.length > 1 ? 's' : ''}`;
   if ('enter' in en) return `Go to ${en.enter}`;
+  if ('external' in en) return `Signal ${en.external.signal} (#${en.external.sequence})`;
   return `New game${en.picks?.length ? ` [${en.picks.join(',')}]` : ''}`;
 }
 
@@ -148,7 +149,9 @@ export async function replay(
                   ? e.script(en.script)
                   : 'enter' in en
                     ? e.teleport(en.enter)
-                    : Promise.resolve();
+                    : 'external' in en
+                      ? e.receive(en.external).then(() => undefined)
+                      : Promise.resolve();
     await settle(e, run, pending);
     played++;
     opts.onEntry?.(i, e);
