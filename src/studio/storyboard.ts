@@ -1,7 +1,16 @@
 // Storyboard tab: edits storyboard.json (boards, panels in play order, lines, sfx, arrival, hints, talks, reactions)
 // in memory; Save writes the whole document (PUT storyboard). Beside the editor, the selected panel composed like a
 // storyboard frame (room decor, speakers' portraits, the lines as the game shows them) and the notes about it.
-import type { SbBoard, SbLine, SbPanel, SbReaction, SbTopic } from '../../tools/pages/storyboard-data';
+import {
+  sbLines,
+  sbReactions,
+  sbTalks,
+  type SbBoard,
+  type SbLine,
+  type SbPanel,
+  type SbReaction,
+  type SbTopic,
+} from '../../tools/pages/storyboard-data';
 import { api, imgUrl, type CoverageData, type GameInfo } from './api';
 import type { BoardCoverage, Check, CoverStatus, PanelCoverage } from '@engine/tools/coverage';
 import { composer, liveBlock, newestFirst, noteItem, type NotesStore } from './notes';
@@ -20,53 +29,31 @@ export interface StoryboardCtx {
 
 const STAGE = new Set(['action', 'stage']);
 
-/** Lines in their canonical `{ who, text }` form (accepts `[who, text]` and bare strings, like the page generator). */
-function fixLines(v: unknown): SbLine[] {
-  return (Array.isArray(v) ? v : []).map((l: any) =>
-    Array.isArray(l)
-      ? { who: String(l[0]), text: String(l[1] ?? '') }
-      : typeof l === 'string'
-        ? { who: 'hero', text: l }
-        : { ...l, who: String(l?.who ?? 'hero'), text: String(l?.text ?? '') },
-  );
-}
-
-/** Light normalisation in place: lines, `talk` / talk lists, `optional`. Every other field is kept as it is. */
-function normDoc(raw: any): Doc {
+/**
+ * Light normalisation in place: lines, `talk` / talk lists, `optional`, through the page generator's helpers with the
+ * other fields kept (`tools/pages/storyboard-data.ts`, 4.1.0: one normalisation for the page, the Studio and the MCP).
+ */
+function normDoc(raw: unknown): Doc {
   const doc = (raw && typeof raw === 'object' ? raw : {}) as Doc;
   if (!Array.isArray(doc.boards)) doc.boards = [];
-  for (const b of doc.boards as any[]) {
+  for (const b of doc.boards as unknown as Record<string, unknown>[]) {
     if (!Array.isArray(b.panels)) b.panels = [];
-    for (const p of b.panels) {
-      if (p.lines !== undefined) p.lines = fixLines(p.lines);
+    for (const p of b.panels as Record<string, unknown>[]) {
+      if (p.lines !== undefined) p.lines = sbLines(p.lines, true);
       if (p.id === undefined) p.id = '';
       if (p.title === undefined) p.title = '';
     }
-    if (b.arrival !== undefined) b.arrival = fixLines(b.arrival);
+    if (b.arrival !== undefined) b.arrival = sbLines(b.arrival, true);
     if (b.talk !== undefined && b.talks === undefined) {
       b.talks = b.talk;
       delete b.talk;
     }
-    if (Array.isArray(b.talks))
-      b.talks = Object.fromEntries(b.talks.map((x: any) => [String(x.who ?? x.actor), x.topics ?? []]));
-    if (b.talks && typeof b.talks === 'object') {
-      for (const k of Object.keys(b.talks)) {
-        b.talks[k] = (Array.isArray(b.talks[k]) ? b.talks[k] : []).map((t: any) => {
-          const { q, answer, ...rest } = t ?? {};
-          return { ...rest, topic: String(t?.topic ?? q ?? ''), lines: fixLines(t?.lines ?? answer ?? t?.do) };
-        });
-      }
-    }
+    if (b.talks !== undefined) b.talks = sbTalks(b.talks, true) ?? b.talks;
     if (b.optional !== undefined && b.reactions === undefined) {
       b.reactions = b.optional;
       delete b.optional;
     }
-    if (Array.isArray(b.reactions))
-      b.reactions = b.reactions.map((r: any) =>
-        Array.isArray(r)
-          ? { action: String(r[0] ?? ''), lines: r[1] ? [{ who: 'hero', text: String(r[1]) }] : [] }
-          : { ...r, lines: fixLines(r.lines) },
-      );
+    if (Array.isArray(b.reactions)) b.reactions = sbReactions(b.reactions, true);
   }
   return doc;
 }
@@ -467,7 +454,7 @@ export class StoryboardTab {
 
   /** A text input bound to `obj[key]` (an empty optional field is removed). */
   private input(
-    obj: any,
+    target: object,
     key: string,
     opts: {
       placeholder?: string;
@@ -479,11 +466,12 @@ export class StoryboardTab {
       onInput?: () => void;
     },
   ) {
+    const obj = target as Record<string, unknown>;
     const el = opts.area
       ? autoGrow(
           h('textarea', {
             rows: 1,
-            value: obj[key] ?? '',
+            value: String(obj[key] ?? ''),
             placeholder: opts.placeholder,
             'aria-label': opts.label,
             class: opts.cls,
@@ -492,7 +480,7 @@ export class StoryboardTab {
         )
       : h('input', {
           type: 'text',
-          value: obj[key] ?? '',
+          value: String(obj[key] ?? ''),
           placeholder: opts.placeholder,
           'aria-label': opts.label,
           class: opts.cls,
@@ -526,8 +514,9 @@ export class StoryboardTab {
   }
 
   /** Editable list of lines at `owner[field]` (created on the first added line). */
-  private lines(owner: any, field: string, fk: string, onLine?: (i: number) => void): HTMLElement {
-    const list: SbLine[] = owner[field] ?? [];
+  private lines(owner: object, field: string, fk: string, onLine?: (i: number) => void): HTMLElement {
+    const rec = owner as Record<string, unknown>;
+    const list = (rec[field] as SbLine[] | undefined) ?? [];
     const box = h('div', { class: 'sblines' });
     list.forEach((l, i) => {
       const who = h(
@@ -620,7 +609,7 @@ export class StoryboardTab {
         {
           class: 'add small',
           onclick: () => {
-            const arr: SbLine[] = (owner[field] ??= []);
+            const arr = (rec[field] ??= []) as SbLine[];
             arr.push({ who: arr.at(-1)?.who ?? 'hero', text: '' });
             this.focusKey = `${fk}.${arr.length - 1}`;
             onLine?.(arr.length - 1);

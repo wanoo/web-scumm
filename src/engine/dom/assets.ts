@@ -69,8 +69,8 @@ export class AssetBank {
     todo.forEach((u) => this.warmed.add(u));
     const idle = () =>
       new Promise<void>((r) =>
-        'requestIdleCallback' in window
-          ? (window as any).requestIdleCallback(() => r(), { timeout: 1500 })
+        typeof window.requestIdleCallback === 'function'
+          ? window.requestIdleCallback(() => r(), { timeout: 1500 })
           : setTimeout(r, 50),
       );
     const cached = async (u: string) => {

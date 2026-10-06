@@ -26,7 +26,7 @@ import { parseSessionFile } from '../../src/engine/tools/replay';
 import { lintContent, lintMarkdown } from '../../src/engine/tools/lint';
 import { loadAssets, loadLayouts, loadLocales } from '../../src/engine/tools/load';
 import { GAME_DIR, ROOT, type GameModule } from '../game';
-import { normalizeStoryboard, storyboardMarkdown } from '../pages/storyboard-data';
+import { normalizeStoryboard, storyboardMarkdown, storyboardProblems } from '../pages/storyboard-data';
 import {
   addToSection,
   extractTexts,
@@ -448,8 +448,8 @@ export function createStudio(opts: StudioOptions = {}) {
 
   function setStoryboard(sb: unknown): Promise<{ ok: true; changed: boolean }> {
     return serial(() => {
-      if (!sb || typeof sb !== 'object' || !Array.isArray((sb as { boards?: unknown }).boards))
-        throw new StudioError('a storyboard is an object with a `boards` list');
+      const problems = storyboardProblems(sb);
+      if (problems.length) throw new StudioError(problems.join('; '));
       const file = join(dir, 'storyboard.json');
       if (existsSync(file) && sameJson(readJson(file, null), sb)) return { ok: true as const, changed: false };
       writeFileSync(file, formatJson(sb));

@@ -102,8 +102,17 @@ export interface ToolDef {
     | 'coverage'
     | 'lint'
     | 'playtests';
-  run(args: any, b: ToolBackend): Promise<ToolResult>;
+  /** Runs with arguments already validated against `input` (callTool, the MCP SDK); `tool()` types them per tool. */
+  run(args: unknown, b: ToolBackend): Promise<ToolResult>;
 }
+
+/** A tool as written: `run` receives the arguments its zod `input` describes. */
+interface TypedTool<S extends z.ZodRawShape> extends Omit<ToolDef, 'input' | 'run'> {
+  input: S;
+  run(args: z.infer<z.ZodObject<S>>, b: ToolBackend): Promise<ToolResult>;
+}
+/** Types a tool's `run` from its `input` and erases it into the registry's `ToolDef`. */
+const tool = <S extends z.ZodRawShape>(t: TypedTool<S>): ToolDef => t;
 
 export const textResult = (t: string): ToolResult => ({ content: [{ type: 'text', text: t }] });
 export const jsonResult = (v: unknown): ToolResult => textResult(JSON.stringify(v, null, 2));
@@ -132,7 +141,7 @@ const roomId = z.string().describe('Room id, e.g. "house" (see list_rooms).');
 const point = z.tuple([z.number(), z.number()]).describe('[x, y] in the logical 640 × 400 room space.');
 
 export const TOOLS: ToolDef[] = [
-  {
+  tool({
     name: 'list_rooms',
     title: 'Game overview',
     description:
@@ -141,8 +150,8 @@ export const TOOLS: ToolDef[] = [
     input: {},
     annotations: { readOnlyHint: true },
     run: (_a, b) => op(() => b.game()),
-  },
-  {
+  }),
+  tool({
     name: 'get_room',
     title: 'Read a room',
     description:
@@ -152,8 +161,8 @@ export const TOOLS: ToolDef[] = [
     input: { id: roomId },
     annotations: { readOnlyHint: true },
     run: ({ id }, b) => op(() => b.room(id)),
-  },
-  {
+  }),
+  tool({
     name: 'set_layout',
     title: 'Write a room layout',
     description:
@@ -164,8 +173,8 @@ export const TOOLS: ToolDef[] = [
     annotations: { destructiveHint: true, idempotentHint: true },
     writes: true,
     run: ({ id, layout }, b) => op(() => b.setLayout(id, layout)),
-  },
-  {
+  }),
+  tool({
     name: 'set_text',
     title: 'Edit a text of a room',
     description:
@@ -183,8 +192,8 @@ export const TOOLS: ToolDef[] = [
     annotations: { destructiveHint: true },
     writes: true,
     run: ({ id, path, value }, b) => op(() => b.setText(id, path, value)),
-  },
-  {
+  }),
+  tool({
     name: 'set_value',
     title: 'Write a structured value in a room',
     description:
@@ -208,8 +217,8 @@ export const TOOLS: ToolDef[] = [
     annotations: { destructiveHint: true },
     writes: true,
     run: ({ id, path, value, dry }, b) => op(() => b.setValue(id, path, value === null ? undefined : value, !!dry)),
-  },
-  {
+  }),
+  tool({
     name: 'add_entity',
     title: 'Add a prop, hotspot or actor',
     description:
@@ -231,8 +240,8 @@ export const TOOLS: ToolDef[] = [
     writes: true,
     run: ({ id, kind, entityId, name, img, char, at, look }, b) =>
       op(() => b.add(id, { kind, id: entityId, name, img, char, at: at ?? [320, 300], look })),
-  },
-  {
+  }),
+  tool({
     name: 'get_storyboard',
     title: 'Read the storyboard',
     description:
@@ -241,8 +250,8 @@ export const TOOLS: ToolDef[] = [
     input: {},
     annotations: { readOnlyHint: true },
     run: (_a, b) => op(() => b.storyboardRaw()),
-  },
-  {
+  }),
+  tool({
     name: 'set_storyboard',
     title: 'Write the storyboard',
     description:
@@ -252,8 +261,8 @@ export const TOOLS: ToolDef[] = [
     annotations: { destructiveHint: true, idempotentHint: true },
     writes: true,
     run: ({ storyboard }, b) => op(() => b.setStoryboard(storyboard)),
-  },
-  {
+  }),
+  tool({
     name: 'get_notes',
     title: 'Read the notes',
     description:
@@ -262,8 +271,8 @@ export const TOOLS: ToolDef[] = [
     input: {},
     annotations: { readOnlyHint: true },
     run: (_a, b) => op(() => b.notes()),
-  },
-  {
+  }),
+  tool({
     name: 'add_note',
     title: 'Write a note to the human',
     description:
@@ -277,8 +286,8 @@ export const TOOLS: ToolDef[] = [
     },
     writes: true,
     run: ({ about, author, text }, b) => op(() => b.addNote({ about, author: author ?? b.author?.() ?? 'ai', text })),
-  },
-  {
+  }),
+  tool({
     name: 'validate',
     title: 'Validate the game',
     description:
@@ -287,8 +296,8 @@ export const TOOLS: ToolDef[] = [
     input: {},
     annotations: { readOnlyHint: true },
     run: (_a, b) => op(() => b.validate()),
-  },
-  {
+  }),
+  tool({
     name: 'solve',
     title: 'Solve the game',
     description:
@@ -321,8 +330,8 @@ export const TOOLS: ToolDef[] = [
         }
         return { ...r, profile: r.profile ? profileText(r.profile) : undefined };
       }),
-  },
-  {
+  }),
+  tool({
     name: 'content_report',
     title: 'Content profiler',
     description:
@@ -334,8 +343,8 @@ export const TOOLS: ToolDef[] = [
     annotations: { readOnlyHint: true },
     needs: 'report',
     run: (_a, b) => op(async () => (await b.report!()).markdown),
-  },
-  {
+  }),
+  tool({
     name: 'world_graph',
     title: 'World map',
     description:
@@ -349,8 +358,8 @@ export const TOOLS: ToolDef[] = [
         const g = await b.graph!();
         return `${g.dot}\n\nunreachable: ${g.graph.unreachable.join(', ') || 'none'}\none-way: ${g.graph.oneWay.map((e) => `${e.from} → ${e.to} (${e.via})`).join('; ') || 'none'}`;
       }),
-  },
-  {
+  }),
+  tool({
     name: 'dialogue_tree',
     title: 'Dialogue tree',
     description:
@@ -373,8 +382,8 @@ export const TOOLS: ToolDef[] = [
           `no conversation in ${id}`
         );
       }),
-  },
-  {
+  }),
+  tool({
     name: 'puzzle_graph',
     title: 'Puzzle graph',
     description:
@@ -388,8 +397,8 @@ export const TOOLS: ToolDef[] = [
     annotations: { readOnlyHint: true },
     needs: 'puzzle',
     run: ({ id }, b) => op(async () => (await b.puzzle!(id)).markdown),
-  },
-  {
+  }),
+  tool({
     name: 'storyboard_coverage',
     title: 'Storyboard coverage',
     description:
@@ -401,8 +410,8 @@ export const TOOLS: ToolDef[] = [
     annotations: { readOnlyHint: true },
     needs: 'coverage',
     run: (_a, b) => op(async () => (await b.coverage!()).markdown),
-  },
-  {
+  }),
+  tool({
     name: 'playtests',
     title: 'Playtests',
     description:
@@ -414,8 +423,8 @@ export const TOOLS: ToolDef[] = [
     annotations: { readOnlyHint: true },
     needs: 'playtests',
     run: (_a, b) => op(async () => (await b.playtests!()).markdown),
-  },
-  {
+  }),
+  tool({
     name: 'lint',
     title: 'Content lint',
     description:
@@ -428,8 +437,8 @@ export const TOOLS: ToolDef[] = [
     annotations: { readOnlyHint: true },
     needs: 'lint',
     run: (a, b) => op(async () => (await b.lint!(!!a.prove)).markdown),
-  },
-  {
+  }),
+  tool({
     name: 'screenshot',
     title: 'Screenshot a room',
     description:
@@ -446,8 +455,8 @@ export const TOOLS: ToolDef[] = [
         return errorResult(e);
       }
     },
-  },
-  {
+  }),
+  tool({
     name: 'read_doc',
     title: 'Read a documentation page',
     description:
@@ -458,8 +467,8 @@ export const TOOLS: ToolDef[] = [
     annotations: { readOnlyHint: true },
     needs: 'readDoc',
     run: ({ name }, b) => op(() => b.readDoc!(name)),
-  },
-  {
+  }),
+  tool({
     name: 'run_tests',
     title: 'Run the tests',
     description:
@@ -475,8 +484,8 @@ export const TOOLS: ToolDef[] = [
         return errorResult(e);
       }
     },
-  },
-  {
+  }),
+  tool({
     name: 'asset_prompts',
     title: 'Art prompts',
     description:
@@ -508,7 +517,7 @@ export const TOOLS: ToolDef[] = [
         return errorResult(e);
       }
     },
-  },
+  }),
 ];
 
 /** The tools a backend can run (the optional abilities it lacks remove their tool). */

@@ -117,7 +117,15 @@ export function isImageFile(f: string): boolean {
   return IMG_EXT.includes(extname(f).toLowerCase());
 }
 
-function readJson(file: string): any {
+/** An object of a parsed JSON file (an array too: its named fields are then just absent), else undefined. */
+const record = (v: unknown): Record<string, unknown> | undefined =>
+  v !== null && typeof v === 'object' ? (v as Record<string, unknown>) : undefined;
+/** A cached thumbnail size: [w, h]. */
+const isSize = (v: unknown): v is [number, number] =>
+  Array.isArray(v) && v.length === 2 && v.every((n) => typeof n === 'number');
+
+/** A JSON file as parsed, `undefined` when missing or invalid: the caller narrows what it reads. */
+function readJson(file: string): unknown {
   try {
     return JSON.parse(readFileSync(file, 'utf8'));
   } catch {
@@ -131,17 +139,20 @@ function readJson(file: string): any {
  * public/assets/img/<id>.webp when the game's manifest lists the id (that folder holds the last game prepared).
  */
 export function imageSource(gameDir: string, id: string): string | undefined {
-  const src = readJson(join(gameDir, 'sources.json')) ?? {};
+  const src = record(readJson(join(gameDir, 'sources.json'))) ?? {};
   const rel = (p: string) => resolve(ROOT, p);
-  const ov = src.overrides?.[id];
+  const ov = record(src.overrides)?.[id];
   if (ov) {
     for (const c of Array.isArray(ov) ? ov : [ov]) {
-      const p = typeof c === 'string' ? c : c?.src;
-      if (p && existsSync(rel(p))) return rel(p);
+      const p = typeof c === 'string' ? c : record(c)?.src;
+      if (typeof p === 'string' && p && existsSync(rel(p))) return rel(p);
     }
   }
+  /** `sources.json` patterns: a string, `{ path }`, or a list of them; anything else is ignored. */
   const pats = (v: unknown): string[] =>
-    (Array.isArray(v) ? v : v ? [v] : []).map((x: any) => (typeof x === 'string' ? x : x?.path)).filter(Boolean);
+    (Array.isArray(v) ? v : v ? [v] : [])
+      .map((x: unknown) => (typeof x === 'string' ? x : record(x)?.path))
+      .filter((x): x is string => typeof x === 'string' && x !== '');
   const name = id.startsWith('decor/') ? id.slice(6) : '';
   for (const p of name ? pats(src.decors) : pats(src.images)) {
     const f = rel(p.replace('{name}', name).replace('{id}', id));
@@ -151,9 +162,9 @@ export function imageSource(gameDir: string, id: string): string | undefined {
     const f = join(gameDir, 'art', id + ext);
     if (existsSync(f)) return f;
   }
-  const manifest = readJson(join(gameDir, 'assets.gen.json'));
+  const manifest = record(readJson(join(gameDir, 'assets.gen.json')));
   const pub = join(ROOT, 'public/assets/img', id + '.webp');
-  if (manifest?.images?.[id] && existsSync(pub)) return pub;
+  if (record(manifest?.images)?.[id] && existsSync(pub)) return pub;
   return undefined;
 }
 
@@ -236,8 +247,8 @@ export function thumbs(files: string[], max: number, opts: { trim?: boolean } = 
   for (const f of uniq) {
     if (usePil) {
       const k = keyOf(f);
-      const dims = readJson(join(cacheDir, k + '.json')) as [number, number] | null;
-      if (dims) {
+      const dims = readJson(join(cacheDir, k + '.json'));
+      if (isSize(dims)) {
         res.set(f, { uri: dataUri(join(cacheDir, k + '.webp')), w: dims[0], h: dims[1] });
         continue;
       }
