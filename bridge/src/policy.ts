@@ -4,6 +4,12 @@
 import { readFileSync } from 'node:fs';
 import { biscuitLib, errorClass } from './biscuit';
 
+/**
+ * Biscuit's run limits for one authorisation: 200 ms (its default is one millisecond, which a loaded server or a slow
+ * CI runner can pass on a legitimate token and refuse it as a timeout); the facts and iterations keep their defaults.
+ */
+export const LIMITS = { max_time_micro: 200_000 };
+
 export const POLICY = readFileSync(new URL('../policy/propose.datalog', import.meta.url), 'utf8');
 
 /** What a connector may do, as the operator grants it (`web-scumm bridge grant`). */
@@ -110,7 +116,7 @@ export async function authorize(
     {},
   );
   try {
-    a.buildAuthenticated(t).authorize();
+    a.buildAuthenticated(t).authorizeWithLimits(LIMITS);
   } catch (e) {
     return { ok: false, code: 'denied', reason: `not allowed (${errorClass(e)})` };
   }

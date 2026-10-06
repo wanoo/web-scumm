@@ -57,6 +57,18 @@ export interface SaveStore {
   whenIdle?(): Promise<void>;
 }
 
+/**
+ * Where signals from the world outside come from (4.1.1, Reality Bridge): the Bridge's transport (Server-Sent Events,
+ * a fetch by cursor), or the Studio's simulator; injected like the stores, so the engine never touches the network.
+ * Each item is a signed signal (a compact JWS) the player verifies before anything reads it.
+ */
+export interface WorldSignalPort {
+  connect(input: { gameId: string; playerId: string; after: number; signal?: AbortSignal }): AsyncIterable<string>;
+  /** Everything up to `through` (a sequence) is applied and saved: the Bridge may stop delivering it. */
+  acknowledge(input: { playerId: string; through: number }): Promise<void>;
+  close(): Promise<void>;
+}
+
 /** What the save menu shows for a manual slot. */
 export interface SlotMeta {
   at: number;

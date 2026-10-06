@@ -2,8 +2,14 @@
 // verdict of the Rust implementation (Ok, Format, FailedLogic, Execution) and the revocation ids, for
 // scripts/reality-xcheck.mjs to compare with the JavaScript implementation and with the expected verdicts.
 use biscuit_auth::{error::Token, AuthorizerBuilder, Biscuit, PublicKey};
-use std::{env, fs, path::Path};
+use std::{env, fs, path::Path, time::Duration};
+use biscuit_auth::AuthorizerLimits as RunLimits;
 mod signal;
+
+/// One second, not the default millisecond: a slow CI runner must not turn a verdict into a timeout.
+fn limits() -> RunLimits {
+    RunLimits { max_time: Duration::from_secs(1), ..RunLimits::default() }
+}
 
 fn class(e: &Token) -> &'static str {
     match e {
@@ -54,7 +60,7 @@ fn policy(file: &str, policy_file: &str) {
                     params.insert(k.into(), Term::Str(r[f].as_str().unwrap().into()));
                 }
                 params.insert("now".into(), Term::Date(case["now"].as_u64().unwrap() / 1000));
-                match AuthorizerBuilder::new().code_with_params(&code, params, HashMap::new()).and_then(|b| b.build(&token)).and_then(|mut a| a.authorize()) {
+                match AuthorizerBuilder::new().set_limits(RunLimits { max_time: Duration::from_millis(200), ..RunLimits::default() }).code_with_params(&code, params, HashMap::new()).and_then(|b| b.build(&token)).and_then(|mut a| a.authorize()) {
                     Ok(_) => "ok",
                     Err(_) => "denied",
                 }
@@ -80,7 +86,7 @@ fn main() {
                 Ok(token) => {
                     let ids: Vec<String> = token.revocation_identifiers().iter().map(hex::encode).collect();
                     let code = v["authorizer_code"].as_str().unwrap_or("");
-                    let r = AuthorizerBuilder::new().code(code).and_then(|b| b.build(&token)).and_then(|mut a| a.authorize());
+                    let r = AuthorizerBuilder::new().set_limits(limits()).code(code).and_then(|b| b.build(&token)).and_then(|mut a| a.authorize());
                     (match r { Ok(_) => "Ok".to_string(), Err(e) => class(&e).to_string() }, ids)
                 }
             };

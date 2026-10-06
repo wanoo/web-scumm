@@ -31,6 +31,8 @@ of its own, a function taking the engine as its first argument:
 | `core/command-runtime.ts` | `exec` and `step`: running `Cmd`s; where a command points in the room |
 | `core/world-queries.ts` | names, kinds, visibility, prop states, targets, approach points |
 | `core/players.ts` | several playable characters: who is where, switch, swap, transfer |
+| `core/movement.ts` | walking, entering a room, the map and its travel, a teleport (4.1.1) |
+| `core/reality-runtime.ts` | a signal from outside: applied at most once, the cursor, the session entry (4.1.1) |
 | `core/engine-shared.ts` | the context of a command, the journal's entry, small helpers |
 | `core/types/*.ts` | the content format by subject; `core/types.ts` re-exports every name |
 

@@ -1,0 +1,274 @@
+// Signals from the world outside in the engine and the player's client (4.1.1): delivered at least once, applied at
+// most once, saved before acknowledged, replayed offline. A crash at every boundary of the protocol, then the Bridge
+// delivers again: the effect happens once.
+import { describe, expect, it } from 'vitest';
+import { Engine } from '@engine/core/engine';
+import { FakePresenter, MemoryStore, type WorldSignalPort } from '@engine/core/ports';
+import { parseSave, saveEnvelope } from '@engine/core/save';
+import { stateDigest } from '@engine/core/diff';
+import type { ExternalEntry, GameState, Session } from '@engine/core/types';
+import { importBridgeKey, signSignal, type WorldSignalV1 } from '@engine/reality/protocol';
+import { RealityClient } from '@engine/reality/client';
+import { compact } from '@engine/core/reality-runtime';
+import { replay } from '@engine/tools/replay';
+import { signals, signalsLayouts } from './fixtures/signals';
+
+const NOW = Date.UTC(2026, 9, 6, 12);
+const PLAYER = 'p-7f3a';
+const x = (sequence: number, signal = 'mail.answer.correct', id = `sig-${sequence}`): ExternalEntry => ({
+  id,
+  sequence,
+  signal,
+  source: signal.split('.')[0]!,
+  receivedAt: NOW,
+});
+
+async function engine(store = new MemoryStore(), saved?: GameState) {
+  const e = new Engine(signals(), signalsLayouts, new FakePresenter(), store);
+  e.digestOn = true;
+  if (saved) await e.load(saved);
+  else await e.newGame();
+  return e;
+}
+
+describe('Engine.receive', () => {
+  it('applies a declared signal once, records it, and saves it with the state', async () => {
+    const store = new MemoryStore();
+    const e = await engine(store);
+    expect(await e.receive(x(1))).toBe('applied');
+    expect(e.state.flags.vault_open).toBe(true);
+    expect(e.state.reality).toEqual({ cursor: 1, applied: {} });
+    expect(e.session?.log.at(-1)).toMatchObject({ external: { id: 'sig-1', signal: 'mail.answer.correct' } });
+    expect(store.data?.reality?.cursor).toBe(1);
+    expect(await e.receive(x(1))).toBe('duplicate');
+    expect(e.session?.log.filter((l) => 'external' in l)).toHaveLength(1);
+  });
+
+  it('refuses a signal the game does not declare, and waits while the engine is busy', async () => {
+    const e = await engine();
+    expect(await e.receive(x(1, 'mail.admin.reset'))).toBe('unknown');
+    let release!: () => void;
+    const busy = e.run(() => new Promise<void>((r) => (release = r)));
+    expect(await e.receive(x(1))).toBe('busy');
+    release();
+    await busy;
+    expect(await e.receive(x(1))).toBe('applied');
+  });
+
+  it('out of order: the cursor waits for the gap, then compacts', async () => {
+    const e = await engine();
+    expect(await e.receive(x(2, 'mail.answer.wrong'))).toBe('applied');
+    expect(e.state.reality).toEqual({ cursor: 0, applied: { 'sig-2': 2 } });
+    expect(await e.receive(x(3, 'hook.bell'))).toBe('applied');
+    expect(await e.receive(x(2, 'mail.answer.wrong'))).toBe('duplicate');
+    expect(await e.receive(x(1))).toBe('applied');
+    expect(e.state.reality).toEqual({ cursor: 3, applied: {} });
+  });
+
+  it('`once` (the default): a second correct answer, a new id, changes nothing; `once: false` repeats', async () => {
+    const e = await engine();
+    await e.receive(x(1));
+    const before = structuredClone(e.state);
+    expect(await e.receive(x(2, 'mail.answer.correct', 'sig-other'))).toBe('applied');
+    // Only the link moved: the signal's effect, once per game, did not run again.
+    expect({ ...e.state, reality: undefined }).toEqual({ ...before, reality: undefined });
+    expect(e.state.reality?.cursor).toBe(2);
+    await e.receive(x(3, 'hook.bell'));
+    await e.receive(x(4, 'hook.bell'));
+    expect(e.state.flags).toMatchObject({ rang_1: true, rang_2: true });
+    expect(e.state.flags.rang_3).toBeUndefined();
+  });
+
+  it('compact moves the cursor over contiguous sequences only', () => {
+    const st = { cursor: 0, applied: { a: 1, b: 2, d: 4 } };
+    compact(st);
+    expect(st).toEqual({ cursor: 2, applied: { d: 4 } });
+  });
+
+  it('a save keeps the link and nothing else: no token, no payload', async () => {
+    const e = await engine();
+    await e.receive(x(1));
+    await e.receive(x(3, 'hook.bell'));
+    const env = JSON.parse(JSON.stringify(saveEnvelope(e.game, e.state)));
+    expect(parseSave(e.game, env).reality).toEqual({ cursor: 1, applied: { 'sig-3': 3 } });
+    expect(JSON.stringify(env)).not.toMatch(/dedupe|policy|token|@/);
+    expect(() =>
+      parseSave(e.game, { ...env, state: { ...env.state, reality: { cursor: -1, applied: {} } } }),
+    ).toThrow();
+  });
+
+  it('a session with signals replays offline to the same state', async () => {
+    const e = await engine();
+    await e.receive(x(2, 'hook.bell'));
+    await e.act({ verb: 'look', a: 'vault' });
+    await e.receive(x(1));
+    await e.act({ verb: 'use', a: 'vault' });
+    const s = JSON.parse(JSON.stringify(e.session)) as Session;
+    const r = await replay(signals(), signalsLayouts, s);
+    expect(r.divergedAt).toBeUndefined();
+    expect(r.ended).toBe(true);
+    expect(stateDigest(r.state)).toBe(stateDigest(e.state));
+    expect(JSON.stringify(s)).not.toMatch(/dedupe|policy|token/);
+  });
+});
+
+/** A Bridge in memory: a queue of signed signals per sequence, redelivered from the cursor on every connect. */
+async function fakeBridge() {
+  const kp = (await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify'])) as CryptoKeyPair;
+  const raw = new Uint8Array(await crypto.subtle.exportKey('raw', kp.publicKey));
+  const key = await importBridgeKey(
+    'k1',
+    btoa(String.fromCharCode(...raw))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, ''),
+  );
+  const journal: string[] = [];
+  const acks: number[] = [];
+  const sign = async (sequence: number, signal: string, extra: Partial<WorldSignalV1> = {}) => {
+    const p: WorldSignalV1 = {
+      format: 'web-scumm-world-signal',
+      schema: 1,
+      id: `sig-${sequence}`,
+      sequence,
+      gameId: 'signals',
+      playerId: PLAYER,
+      signal,
+      source: signal.split('.')[0]!,
+      receivedAt: NOW,
+      dedupeKey: `d-${sequence}`,
+      policyVersion: '1',
+      ...extra,
+    };
+    journal[sequence - 1] = await signSignal(p, kp.privateKey, 'k1');
+  };
+  const port = (extra: string[] = []): WorldSignalPort => ({
+    async *connect({ after }) {
+      for (const j of extra) yield j;
+      for (let i = after; i < journal.length; i++) if (journal[i]) yield journal[i]!;
+    },
+    async acknowledge({ through }) {
+      acks.push(through);
+    },
+    async close() {},
+  });
+  return { key, journal, acks, sign, port };
+}
+
+describe('the client: verify, apply, save, acknowledge', () => {
+  it('acknowledges only after the save is durable, and through the contiguous cursor', async () => {
+    const b = await fakeBridge();
+    await b.sign(1, 'mail.answer.correct');
+    await b.sign(2, 'hook.bell');
+    const order: string[] = [];
+    const store = new MemoryStore() as MemoryStore & { whenIdle(): Promise<void> };
+    store.whenIdle = async () => void order.push(`saved ${store.data?.reality?.cursor}`);
+    const e = await engine(store);
+    const port = b.port();
+    const ack = port.acknowledge.bind(port);
+    port.acknowledge = async (a) => {
+      order.push(`ack ${a.through}`);
+      await ack(a);
+    };
+    await new RealityClient({ engine: e, store, port, keyring: [b.key], playerId: PLAYER, now: () => NOW }).run();
+    expect(order).toEqual(['saved 1', 'ack 1', 'saved 2', 'ack 2']);
+    expect(e.state.flags).toMatchObject({ vault_open: true, rang_1: true });
+  });
+
+  it('a tampered or foreign signal is refused and never acknowledged; an expired one is skipped and moves on', async () => {
+    const b = await fakeBridge();
+    await b.sign(1, 'mail.answer.wrong', { expiresAt: NOW - 1 });
+    await b.sign(2, 'mail.answer.correct');
+    const good = b.journal[1]!;
+    const [h, p, s] = good.split('.') as [string, string, string];
+    const tampered = `${h}.${p.slice(0, -3)}AAA.${s}`;
+    const e = await engine();
+    const refused: string[] = [];
+    const c = new RealityClient({
+      engine: e,
+      store: new MemoryStore(),
+      port: b.port([tampered]),
+      keyring: [b.key],
+      playerId: PLAYER,
+      now: () => NOW,
+      onRefused: (code) => refused.push(code),
+    });
+    await c.run();
+    expect(refused).toEqual(['signature', 'expired']);
+    expect(e.state.reality).toEqual({ cursor: 2, applied: {} });
+    expect(
+      e.session?.log
+        .filter((l) => 'external' in l)
+        .map((l) => ('external' in l ? (l.external.skipped ?? 'applied') : '')),
+    ).toEqual(['expired', 'applied']);
+    expect(e.state.flags.vault_open).toBe(true);
+  });
+
+  // The boundaries of the protocol: received, applied, saved, acknowledged. A crash at each, the game reloaded from
+  // what was saved, the Bridge delivering again from its own record: the vault opens once, the bell rings once.
+  it.each([
+    'before applying',
+    'after applying, before the save',
+    'after the save, before the acknowledgement',
+  ] as const)('a crash %s: delivered again, applied once', async (when) => {
+    const b = await fakeBridge();
+    await b.sign(1, 'hook.bell');
+    const store = new MemoryStore() as MemoryStore & { whenIdle?(): Promise<void> };
+    let durable: GameState | null = null;
+    store.whenIdle = async () => {
+      if (when === 'after applying, before the save') throw new Error('crash');
+      durable = structuredClone(store.data);
+      if (when === 'after the save, before the acknowledgement') throw new Error('crash');
+    };
+    const e = await engine(store);
+    durable = structuredClone(store.data);
+    const c = new RealityClient({
+      engine: e,
+      store,
+      port: b.port(),
+      keyring: [b.key],
+      playerId: PLAYER,
+      now: () => NOW,
+    });
+    if (when === 'before applying')
+      e.receive = async () => {
+        throw new Error('crash');
+      };
+    await expect(c.run()).rejects.toThrow('crash');
+    expect(b.acks).toEqual([]);
+    // The tab is gone; the game comes back from the last durable save, the Bridge has no acknowledgement.
+    const store2 = new MemoryStore();
+    const e2 = await engine(store2, structuredClone(durable!));
+    await new RealityClient({
+      engine: e2,
+      store: store2,
+      port: b.port(),
+      keyring: [b.key],
+      playerId: PLAYER,
+      now: () => NOW,
+    }).run();
+    expect(e2.state.flags.rang_1).toBe(true);
+    expect(e2.state.flags.rang_2).toBeUndefined();
+    expect(b.acks).toEqual([1]);
+  });
+
+  it('a delivery repeated after the acknowledgement (the Bridge did not get it) is recognised', async () => {
+    const b = await fakeBridge();
+    await b.sign(1, 'hook.bell');
+    const store = new MemoryStore();
+    const e = await engine(store);
+    const c = () =>
+      new RealityClient({
+        engine: e,
+        store,
+        port: b.port([b.journal[0]!]),
+        keyring: [b.key],
+        playerId: PLAYER,
+        now: () => NOW,
+      });
+    await c().run();
+    await c().run();
+    expect(e.state.flags.rang_2).toBeUndefined();
+    expect(e.session?.log.filter((l) => 'external' in l)).toHaveLength(1);
+  });
+});

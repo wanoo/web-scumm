@@ -46,7 +46,8 @@ async function javascript(): Promise<Verdict[]> {
         const a = new b.AuthorizerBuilder();
         a.addCode(v.authorizer_code ?? '');
         try {
-          a.buildAuthenticated(token).authorize();
+          // 1 s, not the default millisecond: a slow CI runner must not turn a verdict into a timeout.
+          a.buildAuthenticated(token).authorizeWithLimits({ max_time_micro: 1_000_000 });
         } catch (e) {
           verdict = errorClass(e);
         }

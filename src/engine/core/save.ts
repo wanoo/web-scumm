@@ -49,6 +49,13 @@ export const GameStateSchema = z.looseObject({
   started: num(),
   done: opt(z.boolean()),
   music: opt(z.looseObject({ id, at: num().check(z.nonnegative()) })),
+  reality: opt(
+    z.strictObject({
+      playerId: opt(z.string().check(z.minLength(1), z.maxLength(128))),
+      cursor: count(),
+      applied: z.record(z.string().check(z.minLength(1)), z.int().check(z.positive())),
+    }),
+  ),
 });
 
 export const SaveEnvelopeV3Schema = z.strictObject({

@@ -34,6 +34,9 @@ export interface RealityState {
   playerId?: string;
   /** The last sequence delivered without a gap. */
   cursor: number;
-  /** Signal ids applied above the cursor (below it, everything was applied: compacted away). */
-  applied: Record<string, 1>;
+  /**
+   * Signal ids applied above the cursor, with their sequence (at or below the cursor everything was applied: they
+   * are compacted away, so the set stays small).
+   */
+  applied: Record<string, number>;
 }

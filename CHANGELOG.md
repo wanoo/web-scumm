@@ -60,6 +60,17 @@
   players and audience its token grants, before its expiry (to the second, strict), unless revoked; attenuation only
   narrows. Conformance: 22 signed cases (`tests/fixtures/reality/conformance.json`, test keys from fixed seeds) and 9
   policy cases, the same verdict in JavaScript and in Rust (`npm run reality:xcheck`).
+- **Reality Bridge in the engine** (lot C): `Engine.receive` applies a verified signal at most once
+  (`core/reality-runtime.ts`): the save keeps the last sequence without a gap and the ids applied above it
+  (`GameState.reality`, validated on load), a delivery seen before is a no-op, out of order waits for the gap, the
+  effect is the event of the signal's name, once per game unless `once: false`. A signal is a session entry
+  (`ExternalEntry`, API): `replay` applies it offline; no token, payload or address is ever recorded.
+  `WorldSignalPort` (`core/ports.ts`) and `RealityClient` (`src/engine/reality/client.ts`): verify, apply, wait for
+  the durable save, acknowledge; a refusal is never acknowledged, a signal the Bridge signed that can never apply
+  (expired, no longer declared) is recorded as skipped so the cursor moves on, and a loaded game acknowledges what
+  it holds first. A crash before applying, after applying, after the save: delivered again, applied once
+  (`tests/reality-engine.test.ts`). Biscuit authorises under explicit run limits (200 ms on the Bridge), so a slow
+  machine never refuses a valid token as a timeout. `core/movement.ts` keeps `engine.ts` under 800 lines.
 
 ## 4.0.0 — 2026-10-05
 

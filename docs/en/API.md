@@ -37,7 +37,7 @@ In a game project the entries are `web-scumm/content`, `web-scumm/player`, `web-
 | `GameRules` | rules shared by every room |
 | `AudioDef` · `ScoreDef` · `ScoreState` | music, sounds, voices; a score's stems and which sound when |
 | `EndingDef` | the sealed ending |
-| `RealityDef` · `SignalDef` · `RealityState` | signals from the world outside through a Reality Bridge (4.1.1, `docs/en/REALITY.md`): what a game declares, what a save keeps of the link |
+| `RealityDef` · `SignalDef` · `RealityState` · `ExternalEntry` | signals from the world outside through a Reality Bridge (4.1.1, `docs/en/REALITY.md`): what a game declares, what a save keeps of the link, a signal as a session entry |
 | `RevealDef` | **deprecated** (4.0): the old name of `EndingDef`; removed in 5.0 |
 | `SkinDef` · `UiTexts` | the interface's images and sounds, its texts |
 | `Migration` | one step of save migration (renames, drops) |
