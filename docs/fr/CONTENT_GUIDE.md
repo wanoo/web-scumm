@@ -159,7 +159,15 @@ Le moteur cherche la réponse dans cet ordre, et s'arrête à la première trouv
 5. Donner à un personnage : sa phrase de refus (`refuse` dans sa fiche) ;
 6. une réponse de repli du verbe (`rules.fallbacks`), tirée au sort, jamais deux fois de suite la même.
 
-Dans les textes de repli et de sorte, `{objet}` est remplacé par le nom de l'objet, `{cible}` par la cible, `{nom}` par le nom de ce qu'on vise.
+Dans les textes de repli et de sorte, `{item}` est remplacé par le nom de l'objet, `{target}` par la cible, `{name}` par le nom de ce qu'on vise.
+`{objet}`, `{cible}` et `{nom}` sont les trois mêmes sous leurs noms de la 4.0 : tout jeu écrit avec eux continue de
+marcher, et le jeu d'exemple les utilise encore.
+
+**`once`, quatre fois.** Le mot nomme une idée, un effet qui n'arrive qu'une fois par partie, sur quatre choses : la
+commande `{ once: […], id }` n'exécute sa liste que la première fois ; `once: true` sur une option d'un `choice` ne la
+montre qu'une fois ; `once: true` sur un écouteur (`events`) ne le déclenche qu'une fois ; un signal du monde extérieur
+s'applique une fois par défaut (`once: false` le répète à chaque nouvelle livraison). Le moteur retient chacun dans
+`GameState.seen` sous l'id stable de la chose.
 
 ```ts
 // rules.ts

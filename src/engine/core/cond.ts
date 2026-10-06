@@ -1,4 +1,5 @@
 import type { Cond, GameState, Id } from './types';
+import { roomKey } from './keys';
 
 /** Evaluates a condition. `room` is used for `{ prop: [id, state] }` with no room prefix. */
 export function check(c: Cond | undefined, s: GameState, room: Id = s.room): boolean {
@@ -19,7 +20,7 @@ export function check(c: Cond | undefined, s: GameState, room: Id = s.room): boo
   if ('room' in c) return s.room === c.room;
   if ('prop' in c) {
     const [id, state] = c.prop;
-    const key = id.includes('.') ? id : `${room}.${id}`;
+    const key = id.includes('.') ? id : roomKey(room, id);
     return s.props[key] === state;
   }
   if ('unlocked' in c) return s.unlocked.includes(c.unlocked);

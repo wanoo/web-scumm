@@ -74,7 +74,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 
 | Name | What |
 |---|---|
-| `Engine` | the engine without a page (its members marked `@internal` are read by the modules of `core/` since 4.1.0: not part of the contract) |
+| `Engine` | the engine without a page (its members marked `@internal` are read by the modules of `core/` since 4.1.0: not part of the contract). Since 4.1.4: `destroy()` ends it (loops stopped, waiters released, nothing called back); `onError(error, where)` hears a script that threw (stopped, `scripts[id].off`) or a custom command that changed more than it declared; `beforeSave(state)` shapes what the store writes, `onLoad.before/after` frame a load; `clock` is the only time it knows (`started`, the trace, a session's date) |
 | `FakePresenter` · `MemoryStore` | a front end that answers by script, a save store in memory |
 | `solve` · `SolveOptions` · `SolveResult` | the solver: a way to the end, softlocks with `prove` |
 | `parseSave` · `saveEnvelope` · `SaveEnvelopeV3` | a save's envelope: write it, read it back (migrations applied) |

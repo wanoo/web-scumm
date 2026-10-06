@@ -159,8 +159,15 @@ The engine looks for an answer in this order, and stops at the first one found:
 5. Giving to a character: their refusal line (`refuse` on their sheet);
 6. a verb's fallback response (`rules.fallbacks`), drawn at random, never the same one twice in a row.
 
-In fallback and kind texts, `{objet}` is replaced by the item's name, `{cible}` by the target, `{nom}` by the name of
+In fallback and kind texts, `{item}` is replaced by the item's name, `{target}` by the target, `{name}` by the name of
 whatever is targeted.
+`{objet}`, `{cible}` and `{nom}` are the same three under their names of 4.0: every game written with them keeps
+working, and the sample game still uses them.
+
+**`once`, four times.** The word names one idea, an effect that happens once per game, on four things: the command
+`{ once: […], id }` runs its list the first time only; `once: true` on an option of a `choice` shows it once; `once:
+true` on a listener (`events`) fires it once; a signal from the world outside applies once by default (`once: false`
+repeats it on each new delivery). The engine remembers each in `GameState.seen` under the thing's stable id.
 
 ```ts
 // rules.ts

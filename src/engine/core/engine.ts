@@ -106,6 +106,7 @@ import {
   step as stepImpl,
 } from './command-runtime';
 import { atomKey, HERO, SESSION_MAX, type Ctx, type Source, type TraceEntry } from './engine-shared';
+import { roomKey } from './keys';
 export { atomKey, describeCmd } from './engine-shared';
 export type { Source, TraceEntry } from './engine-shared';
 
@@ -283,7 +284,7 @@ export class Engine {
   private ensureState(s: GameState) {
     for (const r of this.game.rooms)
       for (const [id, p] of Object.entries(r.props ?? {})) {
-        const k = `${r.id}.${id}`;
+        const k = roomKey(r.id, id);
         if (s.props[k] === undefined && p.states) {
           const initial = p.initial ?? Object.keys(p.states)[0];
           if (initial !== undefined) s.props[k] = initial;

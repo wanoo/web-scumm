@@ -9,6 +9,7 @@ import type { Cmd, Id, Point, RoomDef, Value } from './types';
 
 import { HERO, type Ctx } from './engine-shared';
 import type { Engine } from './engine';
+import { roomKey, seenKey } from './keys';
 
 export async function say(eng: Engine, who: Id, text: string, ctx: Ctx, shout = false, voice?: Id) {
   await eng.ui.say(eng.who(who), text, { shout, fast: ctx.fast, voice });
@@ -22,7 +23,7 @@ export function point(eng: Engine, t: Id | Point, room: RoomDef): Point {
 }
 
 export function actorKey(_eng: Engine, who: Id, room: RoomDef) {
-  return `${room.id}.${who}`;
+  return roomKey(room.id, who);
 }
 
 /** Where a thing stands, for a motion's ends: a prop's or an actor's feet, a hotspot's centre, else its approach point. */
@@ -228,7 +229,7 @@ export async function step(eng: Engine, c: Cmd, ctx: Ctx): Promise<void> {
   }
   if ('prop' in c) {
     const [id, st] = c.prop;
-    const key = id.includes('.') ? id : `${room.id}.${id}`;
+    const key = id.includes('.') ? id : roomKey(room.id, id);
     s.props[key] = st;
     if (key.startsWith(`${s.room}.`)) eng.ui.prop(key.slice(s.room.length + 1), st);
     return;
@@ -449,7 +450,7 @@ export async function step(eng: Engine, c: Cmd, ctx: Ctx): Promise<void> {
     return;
   }
   if ('choice' in c) {
-    const choiceKey = (o: (typeof c.choice)[number]) => `choice.${o.id ?? `${room.id}.${o.text}`}`;
+    const choiceKey = (o: (typeof c.choice)[number]) => seenKey.choice(o, room.id);
     const opts = c.choice
       .map((o, i) => ({ o, i }))
       .filter(({ o }) => {

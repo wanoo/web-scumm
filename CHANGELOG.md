@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+### Changes
+
+- **The engine's honesty** (4.1.4, the plan's third release; nothing in the content or the commands). `Engine.destroy()`
+  and `App.destroy()`: the script loops stop, whoever waits is released, the listeners the player put on the window
+  and the document end with it (`AbortController`), the frame loop and the fps meter stop, the palette cache gives
+  its blob URLs back, the audio's document listeners go, the world link stops. `Engine.onError(error, where)`: a
+  script that throws is stopped, marked `off` in the save and said (4.1.1 logged it and left the save calling it
+  alive), a custom command that changed more than it declared is said there too, an unknown minigame throws (the
+  validator refuses it anyway). Time comes from the injected clock alone: `started`, a trace entry, a session's date;
+  `saveEnvelope(game, state, now)`. `Engine.beforeSave` and `Engine.onLoad` replace the player's rewriting of
+  `store.save` and `engine.load` (the music's phase goes through them); the pause menu undoes what it set up through
+  one list of cleanups. `waitUntil` wakes on the state change that satisfies it, a quarter of a second at most
+  behind. Dead code: three copies of `EngineOptions`, two duplicated module headers, two copies of `esc` and `sleep`.
+  `knip` runs in `npm run quality` for dead files, dependencies and duplicates (`esbuild` listed as the dependency it
+  is; the unused-exports rule stays off: 216 exports to judge, a chantier of its own); the Biome configuration
+  migrated to its current shape.
+- **One place for the state's keys, English placeholders.** `core/keys.ts` builds and reads every key of
+  `GameState.seen` (a topic, a listener, a choice, a signal) and the room-scoped keys of `props` and `actors`, where
+  ten sites spelled them by hand and parsed them with `indexOf('.')`; nothing in a save changes. The placeholders of
+  a fallback, kind or give line are `{item}`, `{target}` and `{name}`; `{objet}`, `{cible}` and `{nom}` stay as their
+  4.0 names, so every game keeps working (`docs/en/CONTENT_GUIDE.md`, which also says what the four `once`s are).
+
 ## 4.1.3 — 2026-10-06
 
 "Honest Gates" (LOG #99): the plan's second release, nothing in the game, everything in what guards it; the CI made
