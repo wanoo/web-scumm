@@ -38,6 +38,29 @@ const build = () =>
     manifest: { images: {} },
   });
 
+describe('the pause menu', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    document.body.innerHTML = '';
+  });
+
+  it('opens, and its resume row closes it, gives the focus back, and undoes what it set up (4.1.4)', async () => {
+    const app = build();
+    await app.engine.newGame();
+    const before = document.createElement('button');
+    document.body.append(before);
+    before.focus();
+    app.pauseMenu();
+    const dim = document.querySelector('.dim');
+    expect(dim).not.toBeNull();
+    const resume = dim!.querySelector('button') as HTMLButtonElement;
+    resume.click();
+    expect(document.querySelector('.dim')).toBeNull();
+    expect(document.activeElement).toBe(before);
+    app.destroy();
+  });
+});
+
 describe('App.destroy', () => {
   afterEach(() => {
     vi.restoreAllMocks();

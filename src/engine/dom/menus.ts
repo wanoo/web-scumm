@@ -67,7 +67,7 @@ export function pauseMenu(app: App) {
   const cleanups: (() => void)[] = [];
   const close = () => {
     for (const c of cleanups.splice(0)) c();
-    close();
+    d.remove();
     previousFocus?.focus();
   };
   cleanups.push(trapFocus(m, { onEscape: close, restore: false }));

@@ -89,7 +89,7 @@
     "build:game": "npm run verify:game && vite build && npm run verify:dist && npm run check:spoilers && npm run audit:assets"
   },
   "config": {
-    "game": "demo"
+    "game": "second"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
