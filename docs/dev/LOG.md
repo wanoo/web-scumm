@@ -2164,3 +2164,30 @@ Platform"; human gates reported, not blocking (D12).
   confirmed twice at once (one 409).
 
 → next: Claude · lot 2 (the link's identity in the save), then lots 3–6
+
+## #98 · 2026-10-06 · Claude · release · 4.1.2 "Reliable Bridge"
+
+- The six lots of #97 landed, one branch each, stacked, each green on CI before the next, merged into `main` through
+  the stack's top; `release/4.1.2` on top of them. Nothing added to the content, the commands or the scripts.
+- Lot 1, transactions: `bridge/src/lock.ts`, one proposal at a time per player, the player and the token checked again
+  inside the lock, a pairing code confirmed once. Lot 2, the link's identity: `GameState.reality.playerId` filled
+  on the first signal and carried by the session entry, `mismatch` in the engine and the client, the pause menu's
+  relink. Lot 3, transport and rotation: the journal keeps the payload and the Bridge signs again at delivery,
+  `refreshKeys` in the client and the player, `CLOCK_SKEW_MS` in both verifiers with a corpus case on each edge,
+  `sequences` in the fetch by cursor, streams bounded and closed. Lot 4, the surface: codes in memory, buckets per
+  address, the token before any player, a longest life, `POST /v1/unlink`, `root.key`, demonstration webhooks bounded;
+  the journal: a torn line dropped and said, deletion by reading, `doctor`, `compact`. Lot 5: `fallback-unplayed`.
+  Lot 6, falsification: the `reality` mutation set and a gate by identity (`docs/dev/mutants.json`), coverage floors
+  on `bridge/src`, properties at random, a failing write, a compiled `web-scumm-bridge` installed and started by
+  `fresh-install`, a per-package SBOM and every asset attested, the Studio's host guard, the SSE headers flushed.
+- What the lots found beyond the review: the SSE route never flushed its headers, so a stream with no backlog that
+  the Bridge closed stayed open on the client until the heartbeat; a JWS header that is a list was `algorithm` in
+  JavaScript and `header` in Rust (now `header` in both: the corpus found it); the `once` guard of a signal was not
+  observable by the tests (the fixture now leaves a trace on a repeat).
+- Measured: the reality mutation set 382 of 484 killed (338 before this release's tests), 14 equivalents named, 88
+  survivors listed as missing tests in `docs/dev/MUTANTS.md`; the nightly runs the set without gating until they are
+  killed or named. The review's key-pinning ask is answered in the threat model, not built.
+- Not done (D12): a Bridge behind HTTPS with a phone and a rotation while linked, a real connector, the field passes,
+  the 88 survivors, a signed tag.
+
+→ next: Claude · merge on green CI, tag v4.1.2; then 4.1.3 "Gates honnêtes" (the plan's second release)

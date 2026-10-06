@@ -1,9 +1,19 @@
 // Starts Vite in explicit LAN mode with a fresh capability token for every file-writing route (tools/serve-args.ts).
 import { randomBytes } from 'node:crypto';
+import { networkInterfaces } from 'node:os';
 import { spawn } from 'node:child_process';
 import { serveArgs } from './serve-args';
 
-const plan = serveArgs(process.argv, process.env, () => randomBytes(24).toString('base64url'));
+const plan = serveArgs(
+  process.argv,
+  process.env,
+  () => randomBytes(24).toString('base64url'),
+  () =>
+    Object.values(networkInterfaces())
+      .flat()
+      .filter((i): i is NonNullable<typeof i> => !!i && i.family === 'IPv4' && !i.internal)
+      .map((i) => i.address),
+);
 for (const line of plan.banner) console.log(line);
 const child = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', plan.args, {
   stdio: 'inherit',

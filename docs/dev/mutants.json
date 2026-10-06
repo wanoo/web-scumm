@@ -1,0 +1,121 @@
+[
+ {
+  "file": "src/engine/core/save.ts",
+  "operator": "condition true",
+  "from": "cut > 0",
+  "to": "true",
+  "why": "props and actors pruning: alone, the next line still reads `cut > 0` for the prop and finds none; the key is dropped either way (both lines mutated together is killed, critical-save)"
+ },
+ {
+  "file": "src/engine/core/save.ts",
+  "operator": "operator",
+  "from": ">",
+  "to": ">=",
+  "why": "props and actors pruning: differs only for a key starting with a dot, whose room part is '' (no room has an empty id: the validator refuses it)"
+ },
+ {
+  "file": "src/engine/core/migrate.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "why": "room prefix `if (i < 0)`: differs only for a key starting with a dot, whose room part '' is never in renameRoom"
+ },
+ {
+  "file": "src/engine/core/migrate.ts",
+  "operator": "condition true",
+  "from": "st.step",
+  "to": "true",
+  "why": "script steps: with no step, renameScriptStep[id][undefined] is looked up and is undefined, so st.step stays undefined"
+ },
+ {
+  "file": "src/engine/core/migrate.ts",
+  "operator": "condition true",
+  "from": "s.active",
+  "to": "true",
+  "why": "players: with no active player, renamePlayer[undefined] is undefined and the value stays undefined"
+ },
+ {
+  "file": "src/engine/core/reality-runtime.ts",
+  "operator": "operator",
+  "from": "&&",
+  "to": "||",
+  "why": "binding the save to its player: with `||`, a bound save is written again with the same id (a different one returned `mismatch` just above), and a delivery without a player writes undefined over nothing"
+ },
+ {
+  "file": "src/engine/core/reality-runtime.ts",
+  "operator": "boolean",
+  "from": "false",
+  "to": "true",
+  "why": "`fast: true` on the emitted event changes how the presenter paces the lines, not what the state becomes: nothing a Node test can see"
+ },
+ {
+  "file": "src/engine/reality/protocol.ts",
+  "operator": "condition false",
+  "from": "!/^[\\w-]*$/.test(s)",
+  "to": "false",
+  "why": "b64url.decode's own alphabet check: every caller in verifySignal already refused a part outside [\\w-] as `shape`, and atob refuses the rest; defence in depth, unreachable from a signal"
+ },
+ {
+  "file": "src/engine/reality/protocol.ts",
+  "operator": "boolean",
+  "from": "true",
+  "to": "false",
+  "why": "`fatal: false` on the UTF-8 decoder: bytes that are not UTF-8 decode to replacement characters that JSON.parse refuses just the same, with the same code (`header` or `payload`)"
+ },
+ {
+  "file": "src/engine/reality/protocol.ts",
+  "operator": "boolean",
+  "from": "false",
+  "to": "true",
+  "why": "`extractable: true` on the imported verification key: nothing ever exports it; a public key is public anyway"
+ },
+ {
+  "file": "src/engine/reality/client.ts",
+  "operator": "operator",
+  "from": "-",
+  "to": "+",
+  "why": "base64url padding `(4 - n % 4) % 4` → `(4 + n % 4) % 4`: Node's atob tolerates missing or wrong padding, so the payload decodes the same"
+ },
+ {
+  "file": "bridge/src/lock.ts",
+  "operator": "condition false",
+  "from": "this.tails.get(key) === tail",
+  "to": "false",
+  "why": "forgetting an idle key is bookkeeping (the map would only grow): with the entry kept, the next section still waits on a settled promise"
+ },
+ {
+  "file": "bridge/src/bridge.ts",
+  "operator": "condition false",
+  "from": "!player || player.gameId !== this.config.gameId || player.revoked",
+  "to": "false",
+  "why": "the check before the lock: the same check runs again inside it (`!current || current.revoked`), which refuses an unknown or revoked player just the same; the two together are killed"
+ },
+ {
+  "file": "bridge/src/bridge.ts",
+  "operator": "condition false",
+  "from": "!current || current.revoked",
+  "to": "false",
+  "why": "the check inside the lock: the one before it already refused an unknown or revoked player, and nothing awaits between the two unless another proposal holds the lock (a window no test opens yet)"
+ },
+ {
+  "file": "bridge/src/bridge.ts",
+  "operator": "condition true",
+  "from": "this.streams.delete(s)",
+  "to": "true",
+  "why": "ending a stream already ended calls `res.end()` a second time, which Node ignores"
+ },
+ {
+  "file": "bridge/src/store.ts",
+  "operator": "condition true",
+  "from": "err instanceof Error",
+  "to": "true",
+  "why": "only the wording of the corruption message (`err.message` vs 'unreadable'); the line number and the refusal are the same"
+ },
+ {
+  "file": "bridge/src/store.ts",
+  "operator": "condition false",
+  "from": "err instanceof Error",
+  "to": "false",
+  "why": "only the wording of the corruption message; the line number and the refusal are the same"
+ }
+]

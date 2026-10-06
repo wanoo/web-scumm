@@ -9,7 +9,7 @@ import { stateDigest } from '@engine/core/diff';
 import type { ExternalEntry, GameState, Session } from '@engine/core/types';
 import { CLOCK_SKEW_MS, importBridgeKey, signSignal, type WorldSignalV1 } from '@engine/reality/protocol';
 import { RealityClient } from '@engine/reality/client';
-import { compact } from '@engine/core/reality-runtime';
+import { compact, MAX_PENDING } from '@engine/core/reality-runtime';
 import { labelOf, replay } from '@engine/tools/replay';
 import { signals, signalsLayouts } from './fixtures/signals';
 
@@ -104,6 +104,18 @@ describe('Engine.receive', () => {
     expect(e.state.reality?.playerId).toBe(PLAYER);
   });
 
+  it('a skipped delivery moves the cursor and emits nothing; beyond MAX_PENDING ids above the cursor, overflow', async () => {
+    const e = await engine();
+    // Signed by the Bridge, expired for good: recorded as skipped, its event never runs.
+    expect(await e.receive({ ...x(1), skipped: 'expired' })).toBe('applied');
+    expect(e.state.flags.vault_open).toBeUndefined();
+    expect(e.state.reality).toEqual({ cursor: 1, applied: {} });
+    // Sequence 2 never arrives: everything above waits as ids, up to a bound; then a delivery is refused, never dropped.
+    for (let i = 0; i < MAX_PENDING; i++) expect(await e.receive(x(3 + i, 'hook.bell', `id-${i}`))).toBe('applied');
+    expect(await e.receive(x(3 + MAX_PENDING, 'hook.bell', 'one-too-many'))).toBe('overflow');
+    expect(Object.keys(e.state.reality!.applied)).toHaveLength(MAX_PENDING);
+  });
+
   it('a save keeps the link and nothing else: no token, no payload', async () => {
     const e = await engine();
     await e.receive(x(1));
@@ -144,7 +156,7 @@ async function fakeBridge() {
   );
   const journal: string[] = [];
   const acks: number[] = [];
-  const sign = async (sequence: number, signal: string, extra: Partial<WorldSignalV1> = {}) => {
+  const sign = async (sequence: number, signal: string, extra: Partial<WorldSignalV1> = {}, kid = 'k1') => {
     const p: WorldSignalV1 = {
       format: 'web-scumm-world-signal',
       schema: 1,
@@ -159,7 +171,7 @@ async function fakeBridge() {
       policyVersion: '1',
       ...extra,
     };
-    journal[sequence - 1] = await signSignal(p, kp.privateKey, 'k1');
+    journal[sequence - 1] = await signSignal(p, kp.privateKey, kid);
   };
   const port = (extra: string[] = []): WorldSignalPort => ({
     async *connect({ after }) {
@@ -214,13 +226,76 @@ describe('the client: verify, apply, save, acknowledge', () => {
     });
     await c.run();
     expect(refused).toEqual(['signature', 'expired']);
+    expect(c.refused).toEqual({ signature: 1, expired: 1 });
     expect(e.state.reality).toEqual({ playerId: PLAYER, cursor: 2, applied: {} });
+    expect(e.state.flags.wrong_count).toBeUndefined(); // the expired wrong answer ran nothing
     expect(
       e.session?.log
         .filter((l) => 'external' in l)
         .map((l) => ('external' in l ? (l.external.skipped ?? 'applied') : '')),
     ).toEqual(['expired', 'applied']);
     expect(e.state.flags.vault_open).toBe(true);
+  });
+
+  it('handle says what became of a delivery; the keys are asked for again only for a key the keyring lacks', async () => {
+    const b = await fakeBridge();
+    await b.sign(1, 'hook.bell', { evidenceHash: 'ab'.repeat(32) });
+    await b.sign(2, 'mail.answer.wrong', { expiresAt: NOW - CLOCK_SKEW_MS - 1 });
+    const good = b.journal[0]!;
+    const [h, p, s] = good.split('.') as [string, string, string];
+    const tampered = `${h}.${p.slice(0, -3)}AAA.${s}`;
+    const e = await engine();
+    let asked = 0;
+    const c = new RealityClient({
+      engine: e,
+      store: new MemoryStore(),
+      port: b.port(),
+      keyring: [b.key],
+      refreshKeys: async () => (asked++, [b.key]),
+      playerId: PLAYER,
+      now: () => NOW,
+    });
+    expect(await c.handle(tampered)).toBe('refused'); // a bad signature is not a key problem
+    expect(asked).toBe(0);
+    expect(await c.handle(good)).toBe('applied');
+    expect(e.session?.log.at(-1)).toMatchObject({ external: { id: 'sig-1', evidenceHash: 'ab'.repeat(32) } });
+    expect(await c.handle(good)).toBe('duplicate'); // acknowledged again: the Bridge may have missed the first
+    expect(await c.handle(b.journal[1]!)).toBe('skipped');
+    expect(b.acks).toEqual([1, 1, 2]);
+    // A key the keyring does not hold: the keys are asked for once; still unknown, the signal is refused.
+    const other = await fakeBridge();
+    await other.sign(3, 'hook.bell', {}, 'k9');
+    expect(await c.handle(other.journal[2]!)).toBe('refused');
+    expect(asked).toBe(1);
+    expect(b.acks).toEqual([1, 1, 2]);
+    // Delivered out of order, the cursor does not move and nothing is acknowledged as 0.
+    const e2 = await engine();
+    const c2 = new RealityClient({
+      engine: e2,
+      store: new MemoryStore(),
+      port: b.port(),
+      keyring: [b.key],
+      playerId: PLAYER,
+      now: () => NOW,
+    });
+    await b.sign(4, 'hook.bell');
+    expect(await c2.handle(b.journal[3]!)).toBe('applied');
+    expect(e2.state.reality).toEqual({ playerId: PLAYER, cursor: 0, applied: { 'sig-4': 4 } });
+    expect(b.acks).toEqual([1, 1, 2]);
+    // Stopped before any game exists: run returns, acknowledges nothing.
+    const e3 = new Engine(signals(), signalsLayouts, new FakePresenter(), new MemoryStore());
+    const c3 = new RealityClient({
+      engine: e3,
+      store: new MemoryStore(),
+      port: b.port(),
+      keyring: [b.key],
+      playerId: PLAYER,
+      retryMs: 5,
+    });
+    const run = c3.run();
+    await c3.stop();
+    await run;
+    expect(b.acks).toEqual([1, 1, 2]);
   });
 
   // The boundaries of the protocol: received, applied, saved, acknowledged. A crash at each, the game reloaded from
@@ -337,16 +412,22 @@ describe('the client: verify, apply, save, acknowledge', () => {
   });
 });
 
-describe('the golden save of games/signals (4.1.1)', () => {
-  it('keeps its link state, and its remaining inputs (a signal, then the gate) reach the ending offline', async () => {
-    const { readFileSync } = await import('node:fs');
-    const { game, layouts } = await import('../games/signals');
-    const golden = JSON.parse(readFileSync('tests/fixtures/saves/signals-4.1.1.json', 'utf8'));
-    const state = parseSave(game, golden.envelope);
-    expect(state.reality).toEqual({ cursor: 1, applied: { 's-3': 3 } });
-    const r = await replay(game, layouts, { start: { kind: 'load' }, base: state, log: golden.remaining });
-    expect(r.divergedAt).toBeUndefined();
-    expect(r.ended).toBe(true);
-    expect(r.state.reality).toEqual({ cursor: 3, applied: {} });
-  });
+describe('the golden saves of games/signals', () => {
+  it.each([
+    ['4.1.1', {}],
+    ['4.1.2', { playerId: 'p-golden' }], // bound to its player since 4.1.2
+  ])(
+    '%s keeps its link state, and its remaining inputs (a signal, then the gate) reach the ending offline',
+    async (version, link) => {
+      const { readFileSync } = await import('node:fs');
+      const { game, layouts } = await import('../games/signals');
+      const golden = JSON.parse(readFileSync(`tests/fixtures/saves/signals-${version}.json`, 'utf8'));
+      const state = parseSave(game, golden.envelope);
+      expect(state.reality).toEqual({ ...link, cursor: 1, applied: { 's-3': 3 } });
+      const r = await replay(game, layouts, { start: { kind: 'load' }, base: state, log: golden.remaining });
+      expect(r.divergedAt).toBeUndefined();
+      expect(r.ended).toBe(true);
+      expect(r.state.reality).toEqual({ ...link, cursor: 3, applied: {} });
+    },
+  );
 });

@@ -524,6 +524,21 @@ without a byte of Reality in its first visit or its offline cache.
 
 The project stays on 4.1.x for a while; 4.2 will be the final version.
 
+## v4.1.2 "Reliable Bridge" (shipped 6 October 2026): the Bridge made true
+
+The maintainer asked for a hard critique of the whole project and a plan towards professional quality, framed by
+three decisions: a reliable engine for a small studio, nothing cut from the core, the cadence kept. An outside review
+of 4.1.1's Bridge arrived with it and was checked against the code: proposals were not atomic (a shared sequence, a
+signal lost), a save's cursor was acknowledged for whoever held the device, a rotation stranded a player; its
+"signal lost between the backlog and the subscription" did not exist. Six lots, one branch each, each with its
+tests: transactions, the link's identity, transport and rotation, the Bridge's surface, the fallback proof, and
+falsification (a mutation set for what a signal rests on, measured at 382 of 484 and listed honestly; properties at
+random; a compiled package installed by CI; the Studio's host guard). The plan's next releases, each a quality
+topic at a frozen scope: 4.1.3 the gates (a ruleset on `main`, build once, the heavy solver tests out of the push),
+4.1.4 the engine's honesty (`destroy`, an error port, a clock-only determinism, hooks instead of patches), 4.1.5 the
+core's real split, 4.1.6 the tooling a studio touches, 4.1.7 the documentation, then 4.2.0 final (a compiled
+package, npm, a host API).
+
 ## After 4.0 (not planned yet)
 
 - The field passes, then what they find (D12).

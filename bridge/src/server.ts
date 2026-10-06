@@ -180,6 +180,7 @@ export function bridgeServer(bridge: Bridge, o: ServeOptions = {}): Server {
           throw e;
         }
         res.writeHead(200, { 'Content-Type': 'text/event-stream', Connection: 'keep-alive' });
+        res.flushHeaders();
         sending = false;
         for (const x of backlog) event(x.sequence, x.jws);
         for (const [seq, jws] of held.splice(0)) if (seq > from) event(seq, jws);

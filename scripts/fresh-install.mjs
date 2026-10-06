@@ -4,7 +4,7 @@
 // and plays it to its ending in a browser (scripts/e2e.mjs on `web-scumm preview`). Nothing in the new project points
 // into this repository: a path that does is an error. Exit 0 when every step passes.
 import { execFileSync, spawn } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { existsSync, mkdtempSync, openSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -89,8 +89,65 @@ try {
     /* gone */
   }
 }
+// The Bridge the same way (4.1.2): its tarball installed on its own, outside the repository, with the sample game's
+// manifest; init without the demonstration webhooks, the journal read, the service up and answering its keys.
+console.log('\n▶ the Bridge from its tarball');
+const bridgeTgz = join(base, 'pack', `web-scumm-bridge-${version}.tgz`);
+const bridgeDir = join(base, 'bridge');
+step('bridge: unpack', 'tar', ['-xzf', bridgeTgz, '-C', base], base);
+execFileSync('mv', [join(base, 'package'), bridgeDir]);
+step('bridge: install', 'npm', ['install', '--omit=dev', '--no-audit', '--no-fund'], bridgeDir);
+const manifestFile = join(base, 'reality-manifest.json');
+execFileSync(
+  'npx',
+  [
+    'tsx',
+    '-e',
+    `import('./tools/game.ts').then(async (g) => { const { game } = await g.loadGameModule(); const m = await import('./src/engine/reality/manifest.ts'); process.stdout.write(JSON.stringify(m.realityManifest(game))); })`,
+  ],
+  { cwd: ROOT, stdio: ['ignore', openSync(manifestFile, 'w'), 'inherit'], env: { ...process.env, GAME: 'signals' } },
+);
+if (readFileSync(bridgeDir + '/src/cli.mjs', 'utf8').includes('tsx/esm/api')) {
+  console.error('✖ the Bridge package still runs TypeScript sources');
+  process.exit(1);
+}
+const data = join(base, 'bridge-data');
+step(
+  'bridge: init',
+  process.execPath,
+  [join(bridgeDir, 'bin.mjs'), 'init', `--dir=${data}`, `--manifest=${manifestFile}`, '--no-demo-webhooks'],
+  bridgeDir,
+);
+step('bridge: doctor', process.execPath, [join(bridgeDir, 'bin.mjs'), 'doctor', `--dir=${data}`], bridgeDir);
+const bridgeServer = spawn(process.execPath, [join(bridgeDir, 'bin.mjs'), 'serve', `--dir=${data}`, '--port=5182'], {
+  cwd: bridgeDir,
+  stdio: 'ignore',
+  detached: true,
+});
+try {
+  let keys = '';
+  for (let i = 0; i < 40 && !keys; i++) {
+    try {
+      keys = execFileSync('curl', ['-sf', 'http://127.0.0.1:5182/v1/keys'], { encoding: 'utf8' });
+    } catch {
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+  if (!keys.includes('"keys"')) {
+    console.error('✖ the Bridge did not answer its keys');
+    process.exit(1);
+  }
+  console.log('✔  the Bridge serves its keys from the installed package');
+} finally {
+  try {
+    process.kill(-bridgeServer.pid);
+  } catch {
+    /* gone */
+  }
+}
+
 if (!args.includes('--keep') && !args.some((a) => a.startsWith('--dir=')))
   rmSync(base, { recursive: true, force: true });
 console.log(
-  `\n✔  fresh install: web-scumm ${version} packed, a game created, verified, built and played outside the repository`,
+  `\n✔  fresh install: web-scumm ${version} packed, a game created, verified, built and played outside the repository; the Bridge installed and serving`,
 );

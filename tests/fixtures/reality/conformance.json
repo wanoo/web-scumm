@@ -158,6 +158,47 @@
    "expect": {
     "now": 1791284340000
    }
+  },
+  {
+   "name": "k1 exactly at the end of its tolerance",
+   "jws": "eyJhbGciOiJFZERTQSIsImtpZCI6ImsxIn0.eyJmb3JtYXQiOiJ3ZWItc2N1bW0td29ybGQtc2lnbmFsIiwic2NoZW1hIjoxLCJpZCI6InNpZy0wMDAxIiwic2VxdWVuY2UiOjEsImdhbWVJZCI6InNpZ25hbHMiLCJwbGF5ZXJJZCI6InAtN2YzYSIsInNpZ25hbCI6Im1haWwuYW5zd2VyLmNvcnJlY3QiLCJzb3VyY2UiOiJtYWlsIiwicmVjZWl2ZWRBdCI6MTc5MTI4Nzk5OTAwMCwiZGVkdXBlS2V5IjoibWFpbDptc2ctNDIiLCJwb2xpY3lWZXJzaW9uIjoiMSJ9.33BAxrzzBIQDi-v2EWM6Q9HNyWRTDXwJSxakgUQEi0mSmvD6lGKNzNDeC-kkbV5mIl_TWTcIYwUWGGw6vFy-Ag",
+   "verdict": "ok",
+   "expect": {
+    "now": 1791291900000
+   }
+  },
+  {
+   "name": "k2 exactly at the start of its tolerance",
+   "jws": "eyJhbGciOiJFZERTQSIsImtpZCI6ImsyIn0.eyJmb3JtYXQiOiJ3ZWItc2N1bW0td29ybGQtc2lnbmFsIiwic2NoZW1hIjoxLCJpZCI6InNpZy0wMDAxIiwic2VxdWVuY2UiOjEsImdhbWVJZCI6InNpZ25hbHMiLCJwbGF5ZXJJZCI6InAtN2YzYSIsInNpZ25hbCI6Im1haWwuYW5zd2VyLmNvcnJlY3QiLCJzb3VyY2UiOiJtYWlsIiwicmVjZWl2ZWRBdCI6MTc5MTI4Nzk5OTAwMCwiZGVkdXBlS2V5IjoibWFpbDptc2ctNDIiLCJwb2xpY3lWZXJzaW9uIjoiMSJ9.9VImOzbvkcF1JxTQ3FuiBL2UXw_08wTMOGl0nmMTPzt0nwDyUrUqreJ9tTsAnoUtsqMSXobTOfWlm4hA2DVHAA",
+   "verdict": "ok",
+   "expect": {
+    "now": 1791284100000
+   }
+  },
+  {
+   "name": "expired exactly at the tolerance",
+   "jws": "eyJhbGciOiJFZERTQSIsImtpZCI6ImsxIn0.eyJmb3JtYXQiOiJ3ZWItc2N1bW0td29ybGQtc2lnbmFsIiwic2NoZW1hIjoxLCJpZCI6InNpZy0wMDAxIiwic2VxdWVuY2UiOjEsImdhbWVJZCI6InNpZ25hbHMiLCJwbGF5ZXJJZCI6InAtN2YzYSIsInNpZ25hbCI6Im1haWwuYW5zd2VyLmNvcnJlY3QiLCJzb3VyY2UiOiJtYWlsIiwicmVjZWl2ZWRBdCI6MTc5MTI4Nzk5OTAwMCwiZGVkdXBlS2V5IjoibWFpbDptc2ctNDIiLCJwb2xpY3lWZXJzaW9uIjoiMSIsImV4cGlyZXNBdCI6MTc5MTI4NzcwMDAwMH0.79qistQrH6HGpFx0JoY541FidmZ4RIzowo9Cyk02yVQDd1R2q6HAF3CUVbF8zj9e78CHnSDbNQGkbR1SZu04Cw",
+   "verdict": "ok"
+  },
+  {
+   "name": "a header that is not an object",
+   "jws": "bnVsbA.eyJmb3JtYXQiOiJ3ZWItc2N1bW0td29ybGQtc2lnbmFsIiwic2NoZW1hIjoxLCJpZCI6InNpZy0wMDAxIiwic2VxdWVuY2UiOjEsImdhbWVJZCI6InNpZ25hbHMiLCJwbGF5ZXJJZCI6InAtN2YzYSIsInNpZ25hbCI6Im1haWwuYW5zd2VyLmNvcnJlY3QiLCJzb3VyY2UiOiJtYWlsIiwicmVjZWl2ZWRBdCI6MTc5MTI4Nzk5OTAwMCwiZGVkdXBlS2V5IjoibWFpbDptc2ctNDIiLCJwb2xpY3lWZXJzaW9uIjoiMSJ9.33BAxrzzBIQDi-v2EWM6Q9HNyWRTDXwJSxakgUQEi0mSmvD6lGKNzNDeC-kkbV5mIl_TWTcIYwUWGGw6vFy-Ag",
+   "verdict": "header"
+  },
+  {
+   "name": "a header that is a list",
+   "jws": "WyJFZERTQSJd.eyJmb3JtYXQiOiJ3ZWItc2N1bW0td29ybGQtc2lnbmFsIiwic2NoZW1hIjoxLCJpZCI6InNpZy0wMDAxIiwic2VxdWVuY2UiOjEsImdhbWVJZCI6InNpZ25hbHMiLCJwbGF5ZXJJZCI6InAtN2YzYSIsInNpZ25hbCI6Im1haWwuYW5zd2VyLmNvcnJlY3QiLCJzb3VyY2UiOiJtYWlsIiwicmVjZWl2ZWRBdCI6MTc5MTI4Nzk5OTAwMCwiZGVkdXBlS2V5IjoibWFpbDptc2ctNDIiLCJwb2xpY3lWZXJzaW9uIjoiMSJ9.33BAxrzzBIQDi-v2EWM6Q9HNyWRTDXwJSxakgUQEi0mSmvD6lGKNzNDeC-kkbV5mIl_TWTcIYwUWGGw6vFy-Ag",
+   "verdict": "header"
+  },
+  {
+   "name": "a payload that is JSON but not an object, signed",
+   "jws": "eyJhbGciOiJFZERTQSIsImtpZCI6ImsxIn0.ImhlbGxvIg.Jwz4RhmOQdn5yBcH4AhJPWHdupexR_0goy_fVBiauYo8hw5z-TPkUlH9LZC6vssjmfNhSWBwrol6Fs4OOVysAw",
+   "verdict": "payload"
+  },
+  {
+   "name": "a payload that is JSON null, signed",
+   "jws": "eyJhbGciOiJFZERTQSIsImtpZCI6ImsxIn0.bnVsbA._XvJAtxBasTXxnuS7OyPsFy5DVPrbtS2eMvKBCuPCNhXoQEKhY52jAasNrtS8h_nv8AX2MErxWxpipWE5ebgCw",
+   "verdict": "payload"
   }
  ]
 }

@@ -65,17 +65,24 @@ jobs:
           # The engine as packages (3.9): what `npm install <tarball>` and `npx create-web-scumm` take.
           node scripts/pack.mjs --out=pack
           cp pack/web-scumm-*.tgz pack/create-web-scumm-*.tgz .
-          # The reference Reality Bridge (4.1.1): web-scumm-bridge-<version>.tgz, its own package.
-          sha256sum "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz > "web-scumm-$TAG-SHA256SUMS"
+          # The reference Reality Bridge (4.1.1): web-scumm-bridge-<version>.tgz, its own package, with its own SBOM
+          # (4.1.2): the root's SBOM lists the engine's runtime dependencies, not the Bridge's.
+          (cd pack/web-scumm-bridge && npm install --package-lock-only --omit=dev --ignore-scripts --no-audit --no-fund && npm sbom --sbom-format cyclonedx --omit dev) > "web-scumm-bridge-$TAG-sbom.cdx.json"
+          sha256sum "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz > "web-scumm-$TAG-SHA256SUMS"
       - uses: actions/attest-build-provenance@v2
         with:
+          # Every file the release carries (4.1.2): the archives and packages, the manifests, both SBOMs, the sums.
           subject-path: |
             web-scumm-${{ env.TAG }}-dist.tar.gz
+            web-scumm-${{ env.TAG }}-assets-manifest.json
+            web-scumm-${{ env.TAG }}-sbom.cdx.json
+            web-scumm-bridge-${{ env.TAG }}-sbom.cdx.json
+            web-scumm-${{ env.TAG }}-SHA256SUMS
             web-scumm-[0-9]*.tgz
             create-web-scumm-*.tgz
             web-scumm-bridge-*.tgz
       - run: |
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes-file notes.md
-          gh release upload "$TAG" "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz "web-scumm-$TAG-SHA256SUMS"
+          gh release upload "$TAG" "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz "web-scumm-$TAG-SHA256SUMS"
         env:
           GH_TOKEN: ${{ github.token }}

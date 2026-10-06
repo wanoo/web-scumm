@@ -4,7 +4,7 @@
 // of this repository, a test, a doc page or a build. `create-web-scumm`: `npx create-web-scumm <folder>`, which runs
 // `web-scumm create`. Both are packed (`npm pack`) into <out>/, ready for `npm install <tarball>` or `npm publish`.
 import { execFileSync } from 'node:child_process';
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '..');
@@ -117,28 +117,36 @@ writeFileSync(
 );
 cpSync(join(ROOT, 'LICENSE'), join(create, 'LICENSE'));
 
-// The Reality Bridge (4.1.1): bridge/src and its policies, with the protocol it shares with the player.
+// The Reality Bridge (4.1.1; compiled since 4.1.2): bridge/src and the protocol it shares with the player, bundled
+// into one JavaScript module by esbuild, so the package runs on Node alone (no tsx, no TypeScript at run time); the
+// Datalog policies beside it, where `new URL('../policy/…', import.meta.url)` finds them from src/cli.mjs; Biscuit's
+// WebAssembly and zod stay dependencies.
 const bridge = join(out, 'web-scumm-bridge');
-const BRIDGE_FILES = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], {
-  cwd: ROOT,
-  encoding: 'utf8',
-})
-  .split('\n')
-  .filter(
-    (f) =>
-      /^bridge\/(src\/[\w-]+\.ts|policy\/[\w-]+\.datalog|bin\.mjs)$/.test(f) ||
-      /^src\/engine\/reality\/(protocol|manifest)\.ts$/.test(f),
-  );
-for (const f of BRIDGE_FILES) {
-  const to = join(bridge, f.replace(/^bridge\//, ''));
-  mkdirSync(dirname(to), { recursive: true });
-  cpSync(join(ROOT, f), to);
+mkdirSync(join(bridge, 'src'), { recursive: true });
+execFileSync(
+  join(ROOT, 'node_modules', '.bin', 'esbuild'),
+  [
+    'bridge/src/cli.ts',
+    '--bundle',
+    '--platform=node',
+    '--format=esm',
+    '--target=node22',
+    '--log-level=warning',
+    `--outfile=${join(bridge, 'src', 'cli.mjs')}`,
+    '--external:@biscuit-auth/biscuit-wasm',
+    '--external:zod',
+    '--external:zod/*',
+  ],
+  { cwd: ROOT, stdio: 'inherit' },
+);
+for (const f of readdirSync(join(ROOT, 'bridge', 'policy')).filter((f) => f.endsWith('.datalog'))) {
+  mkdirSync(join(bridge, 'policy'), { recursive: true });
+  cpSync(join(ROOT, 'bridge', 'policy', f), join(bridge, 'policy', f));
 }
-// The shared protocol sits where bridge/src expects it (../../src/engine/reality/ becomes ../src/engine/reality/).
-for (const f of BRIDGE_FILES.filter((f) => f.startsWith('bridge/src/'))) {
-  const p = join(bridge, f.replace(/^bridge\//, ''));
-  writeFileSync(p, readFileSync(p, 'utf8').replaceAll("'../../src/engine/reality/", "'../src/engine/reality/"));
-}
+writeFileSync(
+  join(bridge, 'bin.mjs'),
+  `#!/usr/bin/env node\n// web-scumm-bridge <init|serve|grant|rotate|revoke|doctor|compact>: the reference Reality Bridge on its own, for a\n// game that is already built: \`init --manifest=<game>/dist/reality-manifest.json\`, then \`serve\`. docs/en/REALITY-OPS.md.\nconst { main } = await import('./src/cli.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
+);
 writeFileSync(
   join(bridge, 'package.json'),
   JSON.stringify(
@@ -152,11 +160,10 @@ writeFileSync(
       engines: root.engines,
       repository: { type: 'git', url: 'git+https://github.com/wanoo/web-scumm.git' },
       bin: { 'web-scumm-bridge': 'bin.mjs' },
-      exports: { './cli': './src/cli.ts', './package.json': './package.json' },
+      exports: { './cli': './src/cli.mjs', './package.json': './package.json' },
       dependencies: {
         '@biscuit-auth/biscuit-wasm': root.devDependencies['@biscuit-auth/biscuit-wasm'],
         zod: root.dependencies.zod,
-        tsx: root.devDependencies.tsx,
       },
     },
     null,
@@ -166,7 +173,7 @@ writeFileSync(
 cpSync(join(ROOT, 'LICENSE'), join(bridge, 'LICENSE'));
 writeFileSync(
   join(bridge, 'README.md'),
-  `# web-scumm-bridge\n\nThe reference Reality Bridge for a web-scumm game (4.1.1). \`npx web-scumm-bridge init --manifest=dist/reality-manifest.json\`, then \`npx web-scumm-bridge serve\`. Documentation: https://github.com/wanoo/web-scumm (docs/en/REALITY-OPS.md).\n`,
+  `# web-scumm-bridge\n\nThe reference Reality Bridge for a web-scumm game. \`npx web-scumm-bridge init --manifest=dist/reality-manifest.json\`, then \`npx web-scumm-bridge serve\`; \`doctor\` and \`compact\` for the journal. Documentation: https://github.com/wanoo/web-scumm (docs/en/REALITY-OPS.md).\n`,
 );
 
 for (const d of [engine, create, bridge])
@@ -175,5 +182,5 @@ for (const d of [engine, create, bridge])
     stdio: ['ignore', 'inherit', 'inherit'],
   });
 console.log(
-  `packed into ${out}: web-scumm ${root.version} (${files.length} files), create-web-scumm, web-scumm-bridge (${BRIDGE_FILES.length} files)`,
+  `packed into ${out}: web-scumm ${root.version} (${files.length} files), create-web-scumm, web-scumm-bridge (one module, its policies)`,
 );

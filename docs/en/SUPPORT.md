@@ -21,7 +21,8 @@ Semantic versioning on the public API:
 One exception, chosen by the maintainer (D14): **4.1.1 adds** (the entry `web-scumm/reality`, the content's `reality`,
 the save's `reality`, the session's signal entry, the MCP's `solve` argument `reality`), which would be a minor. The
 4.1.x line is where the project stays until 4.2, the final version. Every addition is optional, and nothing of 4.1.0
-changes.
+changes. 4.1.2 adds in the same way (optional fields on `RealityClientOptions`, `ExternalEntry` and the Bridge's
+routes, a `mismatch` result, a lint code, two Bridge commands): the same exception, nothing of 4.1.1 changes.
 
 Supported: the current major's last minor gets fixes; the previous minor gets security fixes for three months after
 the next one. The 3.x line ended with 3.9; its games move to 4.0 with `web-scumm migrate` (nothing to rewrite for a

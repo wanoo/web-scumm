@@ -148,6 +148,24 @@ add('k2 before its start', await signSignal(base, k2.priv, 'k2'), 'key-window', 
 add('k2 a minute before its start (within the clock tolerance)', await signSignal(base, k2.priv, 'k2'), 'ok', {
   expect: { now: NOW - 3_600_000 - 60_000 },
 });
+// The exact edges of the tolerance: on the line is still fine, one millisecond past it is not.
+add('k1 exactly at the end of its tolerance', good, 'ok', { expect: { now: NOW + 3_600_000 + CLOCK_SKEW_MS } });
+add('k2 exactly at the start of its tolerance', await signSignal(base, k2.priv, 'k2'), 'ok', {
+  expect: { now: NOW - 3_600_000 - CLOCK_SKEW_MS },
+});
+add(
+  'expired exactly at the tolerance',
+  await signSignal({ ...base, expiresAt: NOW - CLOCK_SKEW_MS }, k1.priv, 'k1'),
+  'ok',
+);
+add('a header that is not an object', `${enc(null)}.${p}.${s}`, 'header');
+add('a header that is a list', `${enc(['EdDSA'])}.${p}.${s}`, 'header');
+add(
+  'a payload that is JSON but not an object, signed',
+  await rawJws({ alg: 'EdDSA', kid: 'k1' }, 'hello', k1.priv),
+  'payload',
+);
+add('a payload that is JSON null, signed', await rawJws({ alg: 'EdDSA', kid: 'k1' }, null, k1.priv), 'payload');
 
 const out = resolve(ROOT, 'tests/fixtures/reality');
 mkdirSync(out, { recursive: true });

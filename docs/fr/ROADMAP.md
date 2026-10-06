@@ -503,6 +503,22 @@ ligne sous Chromium) ; la démo sans un octet de Reality dans sa première visit
 
 Le projet reste un moment en 4.1.x ; la 4.2 sera la version finale.
 
+## v4.1.2 « Bridge fiable » (livrée le 6 octobre 2026) : le Bridge rendu vrai
+
+Le mainteneur a demandé une critique sévère de tout le projet et un plan vers une qualité professionnelle, cadrés par
+trois décisions : un moteur fiable pour un petit studio, rien de retiré du cœur, la cadence gardée. Une revue
+extérieure du Bridge de la 4.1.1 est arrivée avec, vérifiée contre le code : les propositions n'étaient pas atomiques
+(une séquence partagée, un signal perdu), le curseur d'une sauvegarde était acquitté pour qui tenait l'appareil, une
+rotation bloquait un joueur ; son « signal perdu entre le backlog et l'abonnement » n'existait pas. Six lots, une
+branche chacun, chacun avec ses tests : transactions, identité du lien, transport et rotation, surface du Bridge,
+preuve du fallback, et falsification (un set de mutation pour ce dont un signal dépend, mesuré à 382 sur 484 et
+listé honnêtement ; des propriétés aléatoires ; un paquet compilé installé par la CI ; la garde d'hôte du Studio).
+Les releases suivantes du plan, chacune un sujet de qualité à périmètre figé : 4.1.3 les gates (un ruleset sur
+`main`, un seul build, les tests lourds du solveur hors du push), 4.1.4 l'honnêteté du moteur (`destroy`, un port
+d'erreur, un déterminisme par l'horloge seule, des hooks plutôt que des patchs), 4.1.5 la vraie découpe du cœur,
+4.1.6 l'outillage qu'un studio touche, 4.1.7 la documentation, puis la 4.2.0 finale (paquet compilé, npm, une API
+hôte).
+
 ## Après la 4.0 (pas encore planifié)
 
 - Les passes terrain, puis ce qu'elles trouvent (D12).
