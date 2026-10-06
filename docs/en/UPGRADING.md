@@ -215,3 +215,10 @@ What changes is what is promised (`docs/en/SUPPORT.md`):
    `npm install`, `npx web-scumm verify`.
 3. **`RevealDef`** is deprecated: use `EndingDef` (removed in 5.0).
 4. `npx web-scumm migrate --check` (or `npm run migrate -- --check` here) says whether anything is due.
+
+## 12. From 4.0 to 4.1 "Clarity"
+
+Nothing to change in a game. The content format, the save envelope, the four public entries and the MCP tools are
+those of 4.0.0 (`tests/api-surface.json` is the same); `npm install` of the new package is the whole upgrade, and a
+4.0 save loads. In this repository: `npm run lint` is now `npm run lint:content` (the alias stays through 4.x), and
+`npm run quality` adds Biome and the stricter TypeScript to what CI checks.

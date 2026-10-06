@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 4.1.0 — 2026-10-06
+
+"Clarity" (LOG #95, D14): a maintenance release focused on making web-scumm easier to read, review and contribute to.
+It changes no gameplay or public contract: module boundaries are clearer, large responsibilities are separated, static
+checks are stronger, and the architecture and quality evidence are easier to find. The plan is Codex's,
+`docs/dev/PLAN-4.1.1-CLARITY.md`, adopted as 4.1.0. Same behaviour as 4.0.0, measured: every witness, proof and golden
+save of `tests/quality-baseline.json`, the public surface byte for byte, the first visit 120 KB (122 on 4.0.0). Human
+passes: 0 of 7 field passes, 0 of 1 outside review (D12, `docs/dev/passes/4.1.0.md`).
+
 - Codex's plans after 4.0 in `docs/dev/` (D14): "Clarity" ships as 4.1.0, "Reality Bridge" as 4.1.1, 4.2 will be
   the final version. CI runs on `docs/…`, `test/…` and `refactor/…` branches too.
 - `npm run quality:baseline -- --check [--dist]` (`tools/quality-baseline.ts`): the behaviour of 4.0.0 frozen in
