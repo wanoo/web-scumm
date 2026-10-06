@@ -13,6 +13,9 @@
   plugins (the layout writer, the Studio's demo snapshot, the sealed build, the assets' version, `site.json`) live
   in `tools/vite/plugins.ts`; `vite.config.ts` is the configuration. `prefers-reduced-motion` stops every animation
   (the call frame's, the map's news, the credits, the rotate hint included); the focused target's label is 12 px.
+  `web-scumm doctor` and `web-scumm mcp` join the command line. The Mega Drive pipeline says what to do on Windows
+  instead of failing on a missing download. The e2e harness reads the camera through `view.camera` (the 4.1.5 split
+  left its visibility test reading a field that was gone, so a wide room's target was tapped at the screen's edge).
 
 ## 4.1.5 — 2026-10-06
 

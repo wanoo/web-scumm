@@ -89,6 +89,11 @@ const COMMANDS = {
     () => vite(['--open', '/__studio/', ...rest], { env: { STUDIO: '1' } }),
   ],
   assets: ['art/ and audio/ into public/assets (Python 3, Pillow)', assets],
+  doctor: [
+    'the prerequisites: Node and Chromium required, Python, ffmpeg and WebKit optional',
+    () => tool('doctor', rest),
+  ],
+  mcp: ['the MCP server of this game for an assistant (stdio)', () => tool('mcp/server', rest)],
   validate: ['the content checked: references, rules, dialogues, budgets', () => tool('validate', rest)],
   solve: ['the solver: a way to the end, softlocks (--prove), chapters', () => tool('solve', rest)],
   bridge: [

@@ -37,6 +37,8 @@ release refuses it until each file is replaced and reviewed.
 | `web-scumm dev` / `studio` | the game, the Studio |
 | `web-scumm assets` | art and audio into `public/assets` |
 | `web-scumm verify` | validate, solve, translations, lint, playtests |
+| `web-scumm doctor` | the prerequisites: Node and Chromium required; Python, ffmpeg and WebKit optional, said when missing (4.1.6) |
+| `web-scumm mcp` | the MCP server of this game, on stdio, for an assistant (4.1.6) |
 | `web-scumm build` | assets, verify, the build, every file of `dist/` accounted for (`docs/en/TOOLS.md`, "What the archive holds") |
 | `web-scumm release [--commercial]` | build, then the release gates: provenance lock, budgets, translations, voices, strict playtests, the proof |
 | `web-scumm validate`, `solve`, `lint`, `i18n`, `weight`, `provenance`, `playtests`, `voices`, `prompts` | each tool, with its options (`docs/en/TOOLS.md`) |
