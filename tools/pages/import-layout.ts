@@ -17,29 +17,32 @@ import { isMain } from './lib';
 type Obj = Record<string, unknown>;
 const MAPS = ['hotspots', 'props', 'actors', 'entries'] as const;
 
-/** Extracts (room, layout) pairs from one parsed export file. */
+/** An object of the parsed file (an array passes too, as JSON.parse can give one where a Layout is expected). */
+const isObj = (v: unknown): v is Obj => v !== null && typeof v === 'object';
+
+/**
+ * Extracts (room, layout) pairs from one parsed export file. The file is untrusted: an entry is kept only when its
+ * room is a string and its layout an object; anything else in the file is ignored (the caller then reports
+ * "nothing to import" or "unchanged"). The layout's fields are not checked here: `mergeLayout` copies them as they come.
+ */
 export function layoutsFromExport(json: unknown, fileName = ''): { room: string; layout: Layout }[] {
   const out: { room: string; layout: Layout }[] = [];
-  const doc = (d: any) => {
-    const v = d && typeof d === 'object' && d.data && typeof d.data === 'object' ? d.data : d;
-    if (v && typeof v.room === 'string' && v.layout && typeof v.layout === 'object')
-      out.push({ room: v.room, layout: v.layout });
+  /** One db document: `{ room, layout }`, or that under `data`. */
+  const doc = (d: unknown) => {
+    const v = isObj(d) && isObj(d.data) ? d.data : d;
+    if (isObj(v) && typeof v.room === 'string' && isObj(v.layout)) out.push({ room: v.room, layout: v.layout });
   };
   if (Array.isArray(json)) json.forEach(doc);
-  else if (json && typeof json === 'object') {
-    const o = json as any;
-    if (o.layouts && typeof o.layouts === 'object' && !Array.isArray(o.layouts)) {
-      for (const [room, l] of Object.entries(o.layouts)) {
-        const v = l as any;
-        out.push(
-          v && v.layout && typeof v.room === 'string'
-            ? { room: v.room, layout: v.layout }
-            : { room, layout: v as Layout },
-        );
+  else if (isObj(json)) {
+    if (isObj(json.layouts) && !Array.isArray(json.layouts)) {
+      for (const [room, v] of Object.entries(json.layouts)) {
+        if (isObj(v) && v.layout && typeof v.room === 'string') {
+          if (isObj(v.layout)) out.push({ room: v.room, layout: v.layout });
+        } else if (isObj(v)) out.push({ room, layout: v });
       }
-    } else if (Array.isArray(o.docs)) o.docs.forEach(doc);
-    else if (typeof o.room === 'string' && o.layout) doc(o);
-    else if (fileName) out.push({ room: basename(fileName, '.json'), layout: o as Layout });
+    } else if (Array.isArray(json.docs)) json.docs.forEach(doc);
+    else if (typeof json.room === 'string' && json.layout) doc(json);
+    else if (fileName) out.push({ room: basename(fileName, '.json'), layout: json });
   }
   return out;
 }
@@ -98,9 +101,10 @@ function readExports(target: string): { room: string; layout: Layout; from: stri
         .sort()
         .map((f) => join(target, f))
     : [target];
-  return files.flatMap((f) =>
-    layoutsFromExport(JSON.parse(readFileSync(f, 'utf8')), basename(f)).map((x) => ({ ...x, from: f })),
-  );
+  return files.flatMap((f) => {
+    const json: unknown = JSON.parse(readFileSync(f, 'utf8'));
+    return layoutsFromExport(json, basename(f)).map((x) => ({ ...x, from: f }));
+  });
 }
 
 /** Applies every export found in `target` to `<gameDir>/layout/`. Returns the number of rooms changed. */
@@ -123,7 +127,8 @@ export function importLayouts(
       continue;
     }
     const file = join(dir, `${room}.json`);
-    const base = existsSync(file) ? (JSON.parse(readFileSync(file, 'utf8')) as Layout) : {};
+    const stored: unknown = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : {};
+    const base: Layout = isObj(stored) ? stored : {};
     const { layout: merged, changes } = mergeLayout(base, layout);
     if (!changes.length) {
       log(`${room}: unchanged`);

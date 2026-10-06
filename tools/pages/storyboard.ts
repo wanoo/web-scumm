@@ -5,7 +5,14 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { GameDef } from '../../src/engine/core/types';
-import { normalizeStoryboard, storyboardMarkdown, type SbBoard, type SbLine, type Storyboard } from './storyboard-data';
+import {
+  normalizeStoryboard,
+  storyboardMarkdown,
+  storyboardProblems,
+  type SbBoard,
+  type SbLine,
+  type Storyboard,
+} from './storyboard-data';
 import {
   charImageId,
   cliArgs,
@@ -34,7 +41,10 @@ export { normalizeStoryboard, storyboardMarkdown } from './storyboard-data';
 export function readStoryboard(gameDir: string): Storyboard {
   const file = join(gameDir, 'storyboard.json');
   if (!existsSync(file)) throw new Error(`no storyboard: ${file}`);
-  return normalizeStoryboard(JSON.parse(readFileSync(file, 'utf8')));
+  const raw: unknown = JSON.parse(readFileSync(file, 'utf8'));
+  const problems = storyboardProblems(raw);
+  if (problems.length) throw new Error(`${file}: ${problems.join('; ')}`);
+  return normalizeStoryboard(raw);
 }
 
 // ---------------------------------------------------------------------------

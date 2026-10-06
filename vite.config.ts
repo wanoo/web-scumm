@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { defineConfig, type Plugin } from 'vite';
 import { fileURLToPath } from 'node:url';
 import { writeFile } from 'node:fs/promises';
@@ -349,4 +350,4 @@ export default defineConfig({
     },
   },
   test: { environment: 'node', include: ['tests/**/*.test.ts', `games/${GAME}/tests/**/*.test.ts`] },
-} as any);
+});

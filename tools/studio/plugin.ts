@@ -6,7 +6,8 @@ import type { Plugin } from 'vite';
 import { assetsMiddleware } from './assets';
 import { registerAssistant } from './assistant';
 import { createStudio, StudioError, type Studio } from './core';
-import type { StudioEvent } from './types';
+import type { AddEntity, EntityKind, NoteEdit, StudioEvent } from './types';
+import type { Point } from '../../src/engine/core/types';
 import { authorizeStudioRequest } from './security';
 
 const MAX_BODY = 8 * 1024 * 1024;
@@ -47,29 +48,96 @@ function send(res: ServerResponse, status: number, data: unknown) {
   res.end(JSON.stringify(data));
 }
 
-type Handler = (m: RegExpMatchArray, body: any, ctx: { baseUrl: string }) => Promise<unknown> | unknown;
+/** A request body once known to be a JSON object (an array passes too, as before: its fields are just absent). */
+type Body = Readonly<Record<string, unknown>>;
+export const isBody = (v: unknown): v is Body => v !== null && typeof v === 'object';
+type Handler = (m: RegExpMatchArray, body: Body, ctx: { baseUrl: string }) => Promise<unknown> | unknown;
+
+const ENTITY_KINDS: readonly EntityKind[] = ['prop', 'hotspot', 'actor'];
+const isKind = (v: unknown): v is EntityKind => ENTITY_KINDS.some((k) => k === v);
+const isPoint = (v: unknown): v is Point =>
+  Array.isArray(v) && v.length === 2 && v.every((x) => typeof x === 'number' && Number.isFinite(x));
+/** A string field, '' when it is anything else (core.ts then refuses it as missing, with its own message). */
+const text = (v: unknown): string => (typeof v === 'string' ? v : '');
+const optText = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined);
+
+/** set_text: core.ts checks `path`, then `value`; a wrong-typed `value` gets the same refusal here. */
+export function textEdit(b: Body): { path: string; value: string | null } {
+  const path = text(b.path);
+  const value = b.value;
+  if (value === null || typeof value === 'string') return { path, value };
+  throw new StudioError(path ? '`value` must be a string or null' : '`path` is required');
+}
+
+/** add: the fields core.ts reads, narrowed; a wrong kind, id or point is refused with core.ts's own message. */
+export function entity(b: Body): AddEntity {
+  if (!isKind(b.kind)) throw new StudioError('`kind` must be prop, hotspot or actor');
+  if (typeof b.id !== 'string') throw new StudioError('`id` must be letters, digits and _ (not starting with a digit)');
+  if (!isPoint(b.at)) throw new StudioError('`at` must be [x, y]');
+  return {
+    kind: b.kind,
+    id: b.id,
+    at: b.at,
+    name: optText(b.name),
+    // A character or image id is looked up as a property key: String() keeps the lookup and the message it gives.
+    char: b.char === undefined || b.char === null ? undefined : String(b.char),
+    img: b.img ? String(b.img) : undefined,
+    look: optText(b.look),
+  };
+}
+
+/** PUT notes/:id: core.ts checks `text`, then `about`. */
+export function noteEdit(b: Body): NoteEdit {
+  const t = text(b.text);
+  if (t.trim() && b.about !== undefined && typeof b.about !== 'string')
+    throw new StudioError('`about` must be a string');
+  return { text: t, about: optText(b.about) };
+}
+
+/** PUT voices/:lang/:id: each field a string, or absent (null: absent). */
+export function voicePatch(b: Body): { status?: string; note?: string; actor?: string } {
+  const field = (k: 'status' | 'note' | 'actor') => {
+    const v = b[k];
+    if (v === undefined || v === null) return undefined;
+    if (typeof v !== 'string') throw new StudioError(`\`${k}\` must be a string`);
+    return v;
+  };
+  return { status: field('status'), note: field('note'), actor: field('actor') };
+}
 
 function routes(s: Studio): [string, RegExp, Handler][] {
   return [
     ['GET', /^\/game$/, () => s.gameInfo()],
     ['GET', /^\/room\/([\w-]+)$/, (m) => s.getRoom(m[1])],
     ['PUT', /^\/room\/([\w-]+)\/layout$/, (m, b) => s.setLayout(m[1], b)],
-    ['PUT', /^\/room\/([\w-]+)\/text$/, (m, b) => s.setText(m[1], b.path, b.value)],
-    ['POST', /^\/room\/([\w-]+)\/add$/, (m, b) => s.addEntity(m[1], b)],
+    [
+      'PUT',
+      /^\/room\/([\w-]+)\/text$/,
+      (m, b) => {
+        const t = textEdit(b);
+        return s.setText(m[1], t.path, t.value);
+      },
+    ],
+    ['POST', /^\/room\/([\w-]+)\/add$/, (m, b) => s.addEntity(m[1], entity(b))],
     // 3.4: structured values (stage, conditions, commands) with a dry run for the diff, undo / redo, voices.
-    ['PUT', /^\/room\/([\w-]+)\/value$/, (m, b) => s.setValue(m[1], b.path, b.value, { dry: !!b.dry })],
+    ['PUT', /^\/room\/([\w-]+)\/value$/, (m, b) => s.setValue(m[1], text(b.path), b.value, { dry: !!b.dry })],
     ['POST', /^\/undo$/, () => s.undo()],
     ['POST', /^\/redo$/, () => s.redo()],
     ['GET', /^\/history$/, () => s.history()],
     ['GET', /^\/voices(?:\/([\w-]+))?$/, (m) => s.voices(m[1])],
-    ['PUT', /^\/voices\/([\w-]+)\/([\w.-]+)$/, (m, b) => s.setVoice(m[1], m[2], b)],
+    ['PUT', /^\/voices\/([\w-]+)\/([\w.-]+)$/, (m, b) => s.setVoice(m[1], m[2], voicePatch(b))],
     ['GET', /^\/voices\/([\w-]+)\/csv$/, (m) => s.voicesCsv(m[1])],
     ['GET', /^\/storyboard$/, () => s.getStoryboard()],
     ['PUT', /^\/storyboard$/, (_m, b) => s.setStoryboard(b)],
     ['POST', /^\/storyboard\/markdown$/, () => s.exportStoryboardMarkdown()],
     ['GET', /^\/notes$/, () => s.getNotes()],
-    ['POST', /^\/notes$/, (_m, b) => s.addNote(b)],
-    ['PUT', /^\/notes\/([\w-]+)$/, (m, b) => s.editNote(m[1], b)],
+    [
+      'POST',
+      /^\/notes$/,
+      (_m, b) =>
+        s.addNote({ text: text(b.text), about: optText(b.about), author: optText(b.author), task: b.task === true }),
+    ],
+    ['PUT', /^\/notes\/([\w-]+)$/, (m, b) => s.editNote(m[1], noteEdit(b))],
     ['DELETE', /^\/notes\/([\w-]+)$/, (m) => s.deleteNote(m[1])],
     ['POST', /^\/validate$/, () => s.validate()],
     ['POST', /^\/report$/, () => s.report()],
@@ -198,7 +266,7 @@ export function studioPlugin(): Plugin {
             matchedPath = true;
             if (m !== method) continue;
             const body = method === 'GET' ? {} : await readBody(req);
-            if (body === null || typeof body !== 'object') throw new StudioError('the body must be a JSON object');
+            if (!isBody(body)) throw new StudioError('the body must be a JSON object');
             const baseUrl =
               server.resolvedUrls?.local[0] ??
               `http://localhost:${server.config.server.port ?? 5173}${server.config.base}`;

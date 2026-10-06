@@ -37,6 +37,12 @@
   10.5 s on 4.0.0 (+1%).
 - `tests/file-size.test.ts`: no file of `src/` over 800 lines, but seven listed with their reason (three Studio tabs,
   the validator, the room view, the dev editor, the Studio assistant), each capped at its size.
+- **Data from outside starts as `unknown`** (lot F): no explicit `any` left in `src/` or `tools/` (Biome refuses a new
+  one; tests may still use it). The storyboard has one normalisation (`sbLines`, `sbTopics`, `sbTalks`, `sbReactions`
+  in `tools/pages/storyboard-data.ts`; the Studio keeps the fields it does not know) and one diagnostic,
+  `storyboardProblems`: the page generator, the Studio's server, its in-browser demo and the MCP's `set_storyboard`
+  refuse an invalid storyboard with the same sentences (`tests/diagnostics-parity.test.ts`). A panel without an id no
+  longer becomes `"undefined"` in one reader and `""` in the other.
 
 ## 4.0.0 — 2026-10-05
 

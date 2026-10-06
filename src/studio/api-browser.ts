@@ -9,7 +9,7 @@ import { solve as solveGame } from '@engine/tools/solve';
 import { report as reportGame, reportMarkdown } from '@engine/tools/report';
 import { toDot, toSvg, worldGraph } from '@engine/tools/graph';
 import { extraReads, liveClasses, puzzleGraph, puzzleMarkdown, toPuzzleDot, toPuzzleSvg } from '@engine/tools/puzzle';
-import { normalizeStoryboard, storyboardMarkdown } from '../../tools/pages/storyboard-data';
+import { normalizeStoryboard, storyboardMarkdown, storyboardProblems } from '../../tools/pages/storyboard-data';
 import { coverageMarkdown, storyboardCoverage } from '@engine/tools/coverage';
 import { lintContent, lintMarkdown } from '@engine/tools/lint';
 import { classify, formatPath, parsePath, SourceError, type Seg } from '../../tools/studio/paths';
@@ -330,8 +330,8 @@ export class BrowserApi implements Api {
   }
 
   async setStoryboard(sb: unknown): Promise<{ ok: true; changed: boolean }> {
-    if (!sb || typeof sb !== 'object' || !Array.isArray((sb as { boards?: unknown }).boards))
-      throw new ApiError('a storyboard is an object with a `boards` list', 400);
+    const problems = storyboardProblems(sb);
+    if (problems.length) throw new ApiError(problems.join('; '), 400);
     if (JSON.stringify(sb) === JSON.stringify(this.state.storyboard)) return { ok: true, changed: false };
     this.commit({ kind: 'storyboard', storyboard: sb as Record<string, unknown> });
     return { ok: true, changed: true };

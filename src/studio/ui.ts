@@ -14,7 +14,8 @@ export function h<K extends keyof HTMLElementTagNameMap>(
     else if (k === 'class') el.className = String(v);
     else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
     else if (k === 'dataset' && typeof v === 'object') Object.assign(el.dataset, v);
-    else if (k === 'value' || k === 'checked' || k === 'selected' || k === 'disabled') (el as any)[k] = v;
+    else if (k === 'value' || k === 'checked' || k === 'selected' || k === 'disabled')
+      (el as unknown as Record<string, unknown>)[k] = v; // a form control's property, not an attribute
     else el.setAttribute(k, v === true ? '' : String(v));
   }
   append(el, kids);

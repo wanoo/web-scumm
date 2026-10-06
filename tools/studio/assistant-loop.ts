@@ -261,7 +261,7 @@ async function* sse(
   if (last) yield last;
 }
 
-interface Call {
+export interface Call {
   id: string;
   name: string;
   args: string;
@@ -269,6 +269,195 @@ interface Call {
 interface Round {
   calls: Call[];
   usage: Usage;
+}
+
+// ---------------------------------------------------------------------------------------------------- what a provider says
+// A provider's answer is untrusted JSON: each reader below takes it as `unknown` and keeps only the fields the loop
+// uses, with the type it needs. A field of the wrong type is ignored, as a missing one is; a chunk that is not an
+// object carries nothing. Only an `error` the provider sends stops the turn (with its message).
+
+type Json = Record<string, unknown>;
+/** The named fields of a JSON value (an array or an object; anything else has none). */
+const rec = (v: unknown): Json | undefined => (v !== null && typeof v === 'object' ? (v as Json) : undefined);
+const num = (v: unknown): number | undefined => (typeof v === 'number' ? v : undefined);
+/** A provider's `error` (an object with a message, or anything else) as a line. */
+const errorText = (e: unknown): string => String(rec(e)?.message ?? JSON.stringify(e));
+
+/** The message of a provider's error answer (a non-2xx body): `error.message`, `error`, `message`, else the text. */
+export function errorBodyMessage(text: string): string {
+  let msg: unknown = text;
+  try {
+    const j = rec(JSON.parse(text));
+    if (j) msg = rec(j.error)?.message ?? j.error ?? j.message ?? text;
+  } catch {
+    /* not JSON */
+  }
+  return typeof msg === 'string' ? msg : String(JSON.stringify(msg));
+}
+
+/** One tool call fragment of an OpenAI-compatible stream chunk (fragments of one call share an index). */
+export interface ToolCallDelta {
+  index: number;
+  id?: string;
+  name?: string;
+  args?: string;
+}
+/** What one OpenAI-compatible stream chunk carries for the loop. */
+export interface OpenAIChunk {
+  error?: string;
+  usage?: Usage;
+  text?: string;
+  toolCalls: ToolCallDelta[];
+}
+
+const openaiUsage = (v: unknown): Usage | undefined => {
+  if (!v) return undefined;
+  const o = rec(v);
+  return { input: num(o?.prompt_tokens) ?? 0, output: num(o?.completion_tokens) ?? 0 };
+};
+
+/** Reads one parsed `data:` chunk of an OpenAI-compatible stream (choices[0].delta, usage, error). */
+export function readOpenAIChunk(data: unknown): OpenAIChunk {
+  const j = rec(data) ?? {};
+  if (j.error) return { error: errorText(j.error), toolCalls: [] };
+  const out: OpenAIChunk = { toolCalls: [] };
+  const usage = openaiUsage(j.usage);
+  if (usage) out.usage = usage;
+  const d = rec(rec(rec(j.choices)?.[0])?.delta);
+  if (!d) return out;
+  if (typeof d.content === 'string' && d.content) out.text = d.content;
+  const list = Array.isArray(d.tool_calls) ? d.tool_calls : [];
+  list.forEach((x: unknown, k: number) => {
+    const tc = rec(x);
+    if (!tc) return;
+    const fn = rec(tc.function);
+    const a = fn?.arguments;
+    out.toolCalls.push({
+      index: typeof tc.index === 'number' ? tc.index : k,
+      ...(tc.id ? { id: String(tc.id) } : {}),
+      ...(fn?.name ? { name: String(fn.name) } : {}),
+      ...(a ? { args: typeof a === 'string' ? a : JSON.stringify(a) } : {}),
+    });
+  });
+  return out;
+}
+
+/** Reads a whole (non-streamed) OpenAI-compatible answer: choices[0].message (content, tool_calls) and usage. */
+export function readOpenAIMessage(data: unknown): { text?: string; calls: Call[]; usage?: Usage } {
+  const j = rec(data) ?? {};
+  const m = rec(rec(rec(j.choices)?.[0])?.message) ?? {};
+  const calls: Call[] = [];
+  for (const x of Array.isArray(m.tool_calls) ? m.tool_calls : []) {
+    const tc = rec(x);
+    if (!tc) continue;
+    const fn = rec(tc.function);
+    const a = fn?.arguments;
+    calls.push({
+      id: typeof tc.id === 'string' ? tc.id : '',
+      name: typeof fn?.name === 'string' ? fn.name : '',
+      args: typeof a === 'string' ? a : JSON.stringify(a ?? {}),
+    });
+  }
+  const usage = openaiUsage(j.usage);
+  return {
+    ...(typeof m.content === 'string' && m.content ? { text: m.content } : {}),
+    calls,
+    ...(usage ? { usage } : {}),
+  };
+}
+
+/** An Anthropic content block as received (text, tool_use, thinking…): sent back as it came. */
+export type Block = Json;
+/** The state of an Anthropic stream being read: the blocks by index, the partial JSON of tool inputs, the usage. */
+export interface AnthropicStream {
+  blocks: Block[];
+  partial: Map<number, string>;
+  usage: Usage;
+}
+/** A block index: a non-negative integer (anything else addresses no block). */
+const slot = (v: unknown): number | undefined =>
+  typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : undefined;
+const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+
+/**
+ * Applies one parsed Anthropic stream event to `st`; returns the text to show, if any. An `error` event throws its
+ * message. Unknown events, and fields of the wrong type, are ignored.
+ */
+export function anthropicEvent(st: AnthropicStream, data: unknown): string | undefined {
+  const j = rec(data) ?? {};
+  const i = slot(j.index);
+  switch (j.type) {
+    case 'message_start': {
+      const mu = rec(rec(j.message)?.usage);
+      st.usage.input += num(mu?.input_tokens) ?? 0;
+      st.usage.output += num(mu?.output_tokens) ?? 0;
+      return undefined;
+    }
+    case 'content_block_start': {
+      if (i === undefined) return undefined;
+      const cb = rec(j.content_block);
+      st.blocks[i] = { ...cb };
+      if (cb?.type === 'tool_use') st.partial.set(i, '');
+      return undefined;
+    }
+    case 'content_block_delta': {
+      // A delta for a block never started opens a text block (a stray index: the text is still shown).
+      const b: Block = i === undefined ? { type: 'text', text: '' } : (st.blocks[i] ??= { type: 'text', text: '' });
+      const d = rec(j.delta) ?? {};
+      if (d.type === 'text_delta') {
+        if (typeof d.text !== 'string') return undefined;
+        b.text = str(b.text) + d.text;
+        return d.text;
+      }
+      if (d.type === 'input_json_delta') {
+        if (i !== undefined && typeof d.partial_json === 'string')
+          st.partial.set(i, (st.partial.get(i) ?? '') + d.partial_json);
+      } else if (d.type === 'thinking_delta') {
+        if (typeof d.thinking === 'string') b.thinking = str(b.thinking) + d.thinking;
+      } else if (d.type === 'signature_delta') {
+        if (typeof d.signature === 'string') b.signature = str(b.signature) + d.signature;
+      }
+      return undefined;
+    }
+    case 'content_block_stop': {
+      const b = i === undefined ? undefined : st.blocks[i];
+      if (b?.type === 'tool_use' && i !== undefined) {
+        const s = st.partial.get(i) ?? '';
+        b.input = s.trim() ? s : {};
+      }
+      return undefined;
+    }
+    case 'message_delta':
+      st.usage.output = Math.max(st.usage.output, num(rec(j.usage)?.output_tokens) ?? 0);
+      return undefined;
+    case 'error':
+      throw new ProviderError(`anthropic: ${errorText(j.error)}`);
+  }
+  return undefined;
+}
+
+/** Reads a whole (non-streamed) Anthropic answer: its content blocks (objects only) and usage. */
+export function readAnthropicMessage(data: unknown): { blocks: Block[]; usage: Usage } {
+  const j = rec(data) ?? {};
+  const blocks: Block[] = [];
+  if (Array.isArray(j.content))
+    for (const x of j.content) {
+      const b = rec(x);
+      if (b && !Array.isArray(x)) blocks.push(b);
+    }
+  const ju = rec(j.usage);
+  return { blocks, usage: { input: num(ju?.input_tokens) ?? 0, output: num(ju?.output_tokens) ?? 0 } };
+}
+
+/** The tool calls of Anthropic content blocks (`tool_use`): id, name and input as JSON text. */
+export function anthropicCalls(blocks: Block[]): Call[] {
+  return blocks
+    .filter((b) => b.type === 'tool_use')
+    .map((b) => ({
+      id: typeof b.id === 'string' ? b.id : '',
+      name: typeof b.name === 'string' ? b.name : '',
+      args: typeof b.input === 'string' ? b.input : JSON.stringify(b.input ?? {}),
+    }));
 }
 
 export async function runAssistant(o: LoopOptions): Promise<void> {
@@ -302,15 +491,8 @@ export async function runAssistant(o: LoopOptions): Promise<void> {
     }
     if (!res.ok) {
       const text = await readCapped(res, 64 * 1024).catch(() => '');
-      let msg = text;
-      try {
-        const j = JSON.parse(text);
-        msg = j.error?.message ?? j.error ?? j.message ?? text;
-      } catch {
-        /* not JSON */
-      }
       throw new ProviderError(
-        `${o.provider.kind} ${res.status}${res.statusText ? ` ${res.statusText}` : ''}: ${String(typeof msg === 'string' ? msg : JSON.stringify(msg)).slice(0, 500)}`,
+        `${o.provider.kind} ${res.status}${res.statusText ? ` ${res.statusText}` : ''}: ${errorBodyMessage(text).slice(0, 500)}`,
       );
     }
     return res;
@@ -344,57 +526,40 @@ export async function runAssistant(o: LoopOptions): Promise<void> {
       const byIndex = new Map<number, Call>();
       for await (const ev of sse(res.body!)) {
         if (ev.data === '[DONE]') break;
-        let j: any;
+        let data: unknown;
         try {
-          j = JSON.parse(ev.data);
+          data = JSON.parse(ev.data);
         } catch {
           continue;
         }
-        if (j.error) throw new ProviderError(`${o.provider.kind}: ${j.error.message ?? JSON.stringify(j.error)}`);
-        if (j.usage) {
-          u.input = j.usage.prompt_tokens ?? 0;
-          u.output = j.usage.completion_tokens ?? 0;
+        const chunk = readOpenAIChunk(data);
+        if (chunk.error !== undefined) throw new ProviderError(`${o.provider.kind}: ${chunk.error}`);
+        if (chunk.usage) Object.assign(u, chunk.usage);
+        if (chunk.text) {
+          text += chunk.text;
+          o.emit({ type: 'text', delta: chunk.text });
         }
-        const d = j.choices?.[0]?.delta;
-        if (!d) continue;
-        if (typeof d.content === 'string' && d.content) {
-          text += d.content;
-          o.emit({ type: 'text', delta: d.content });
-        }
-        (d.tool_calls ?? []).forEach((tc: any, k: number) => {
-          const idx = typeof tc.index === 'number' ? tc.index : k;
-          let c = byIndex.get(idx);
+        for (const tc of chunk.toolCalls) {
+          let c = byIndex.get(tc.index);
           if (!c) {
             c = { id: '', name: '', args: '' };
-            byIndex.set(idx, c);
+            byIndex.set(tc.index, c);
           }
           if (tc.id) c.id = tc.id;
-          if (tc.function?.name) c.name += tc.function.name;
-          if (tc.function?.arguments)
-            c.args +=
-              typeof tc.function.arguments === 'string' ? tc.function.arguments : JSON.stringify(tc.function.arguments);
-        });
+          if (tc.name) c.name += tc.name;
+          if (tc.args) c.args += tc.args;
+        }
       }
       calls.push(...[...byIndex.entries()].sort((a, b) => a[0] - b[0]).map(([, c]) => c));
     } else {
-      const j: any = JSON.parse(await readCapped(res));
-      const m = j.choices?.[0]?.message ?? {};
-      if (typeof m.content === 'string' && m.content) {
-        text = m.content;
-        o.emit({ type: 'text', delta: m.content });
+      const data: unknown = JSON.parse(await readCapped(res));
+      const m = readOpenAIMessage(data);
+      if (m.text) {
+        text = m.text;
+        o.emit({ type: 'text', delta: m.text });
       }
-      for (const tc of m.tool_calls ?? []) {
-        const a = tc.function?.arguments;
-        calls.push({
-          id: tc.id ?? '',
-          name: tc.function?.name ?? '',
-          args: typeof a === 'string' ? a : JSON.stringify(a ?? {}),
-        });
-      }
-      if (j.usage) {
-        u.input = j.usage.prompt_tokens ?? 0;
-        u.output = j.usage.completion_tokens ?? 0;
-      }
+      calls.push(...m.calls);
+      if (m.usage) Object.assign(u, m.usage);
     }
     calls.forEach((c, i) => {
       if (!c.id) c.id = `call_${Date.now().toString(36)}_${i}`;
@@ -440,68 +605,29 @@ export async function runAssistant(o: LoopOptions): Promise<void> {
       },
       headers,
     );
-    const u: Usage = { input: 0, output: 0 };
-    let blocks: any[] = [];
+    let u: Usage = { input: 0, output: 0 };
+    let blocks: Block[];
     if (streamed(res)) {
-      const partial = new Map<number, string>();
+      const st: AnthropicStream = { blocks: [], partial: new Map(), usage: u };
       for await (const ev of sse(res.body!)) {
-        let j: any;
+        let data: unknown;
         try {
-          j = JSON.parse(ev.data);
+          data = JSON.parse(ev.data);
         } catch {
           continue;
         }
-        switch (j.type) {
-          case 'message_start':
-            u.input += j.message?.usage?.input_tokens ?? 0;
-            u.output += j.message?.usage?.output_tokens ?? 0;
-            break;
-          case 'content_block_start':
-            blocks[j.index] = { ...j.content_block };
-            if (j.content_block?.type === 'tool_use') partial.set(j.index, '');
-            break;
-          case 'content_block_delta': {
-            const b = blocks[j.index] ?? (blocks[j.index] = { type: 'text', text: '' });
-            const d = j.delta ?? {};
-            if (d.type === 'text_delta') {
-              b.text = (b.text ?? '') + d.text;
-              o.emit({ type: 'text', delta: d.text });
-            } else if (d.type === 'input_json_delta')
-              partial.set(j.index, (partial.get(j.index) ?? '') + d.partial_json);
-            else if (d.type === 'thinking_delta') b.thinking = (b.thinking ?? '') + d.thinking;
-            else if (d.type === 'signature_delta') b.signature = (b.signature ?? '') + d.signature;
-            break;
-          }
-          case 'content_block_stop': {
-            const b = blocks[j.index];
-            if (b?.type === 'tool_use') {
-              const s = partial.get(j.index) ?? '';
-              b.input = s.trim() ? s : {};
-            }
-            break;
-          }
-          case 'message_delta':
-            u.output = Math.max(u.output, j.usage?.output_tokens ?? 0);
-            break;
-          case 'error':
-            throw new ProviderError(`anthropic: ${j.error?.message ?? JSON.stringify(j.error)}`);
-        }
+        const delta = anthropicEvent(st, data);
+        if (delta !== undefined) o.emit({ type: 'text', delta });
       }
-      blocks = blocks.filter(Boolean);
+      blocks = st.blocks.filter(Boolean);
     } else {
-      const j: any = JSON.parse(await readCapped(res));
-      blocks = j.content ?? [];
-      for (const b of blocks) if (b.type === 'text' && b.text) o.emit({ type: 'text', delta: b.text });
-      u.input = j.usage?.input_tokens ?? 0;
-      u.output = j.usage?.output_tokens ?? 0;
+      const m = readAnthropicMessage(JSON.parse(await readCapped(res)));
+      blocks = m.blocks;
+      u = m.usage;
+      for (const b of blocks)
+        if (b.type === 'text' && typeof b.text === 'string' && b.text) o.emit({ type: 'text', delta: b.text });
     }
-    const calls: Call[] = blocks
-      .filter((b) => b.type === 'tool_use')
-      .map((b) => ({
-        id: b.id,
-        name: b.name,
-        args: typeof b.input === 'string' ? b.input : JSON.stringify(b.input ?? {}),
-      }));
+    const calls = anthropicCalls(blocks);
     // The assistant turn goes back as it came (thinking blocks included); tool inputs as objects.
     const content = blocks
       .filter((b) => b.type !== 'text' || b.text)
