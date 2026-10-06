@@ -1,6 +1,6 @@
 """Prepares the images and sounds cited by the current game's content (reads .cache/refs.json, produced by tools/refs.ts).
 
-Current game: env GAME, else package.json -> "config": { "game" }, else "demo" (same rule as tools/game.ts).
+Current game: env GAME, else the game .cache/game links to (npm run game, 4.1.6), else package.json -> "config": { "game" }, else "demo" (same rule as tools/game.ts).
 Sources: games/<id>/sources.json, else the game's default folders:
   images  games/<id>/art/{id}.png            decors  games/<id>/art/decor/{name}.png
   video   games/<id>/art/decor/{name}.mp4    sounds  games/<id>/audio/music/{file}, games/<id>/audio/sfx/{file}, games/<id>/audio/voice/{file}
@@ -22,6 +22,10 @@ os.chdir(PROJECT or ROOT)
 def game_id():
     g = os.environ.get('GAME', '').strip()
     if g: return g
+    try:
+        g = os.path.basename(os.readlink(os.path.join('.cache', 'game')).rstrip('/\\'))
+        if g: return g
+    except OSError: pass
     try:
         g = json.load(open('package.json')).get('config', {}).get('game')
         if g: return g
