@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { createServer } from 'node:http';
+import { createServer, request } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { authorizeStudioRequest } from '../tools/studio/security';
+import { allowedStudioHosts, authorizeStudioRequest } from '../tools/studio/security';
 import { hostOf, parseProvider, privateHost } from '../tools/studio/assistant';
 import { ProviderError, providerFetch, readCapped } from '../tools/studio/assistant-loop';
 
@@ -39,6 +39,53 @@ describe('LAN Studio capability', () => {
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
+  });
+});
+
+describe('the names the Studio answers to', () => {
+  it('refuses a Host that is not this machine, even with a matching Origin (DNS rebinding); LAN hosts are listed', async () => {
+    delete process.env.WEB_SCUMM_LAN;
+    const server = createServer((req, res) => {
+      if (authorizeStudioRequest(req, res)) {
+        res.statusCode = 200;
+        res.end('ok');
+      }
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const port = (server.address() as AddressInfo).port;
+    // `fetch` never lets a page set `Host`; a raw request does, as a rebinding browser would.
+    const post = (host: string, origin = `http://${host}`) =>
+      new Promise<number>((resolve, reject) => {
+        const req = request(
+          { host: '127.0.0.1', port, method: 'POST', path: '/', headers: { host, origin } },
+          (res) => {
+            res.resume();
+            res.on('end', () => resolve(res.statusCode ?? 0));
+          },
+        );
+        req.on('error', reject);
+        req.end();
+      });
+    try {
+      expect(await post(`127.0.0.1:${port}`)).toBe(200);
+      expect(await post('localhost:5173')).toBe(200);
+      expect(await post('[::1]:5173')).toBe(200);
+      // A page on evil.example whose name now points at 127.0.0.1: Host and Origin both say evil.example.
+      expect(await post('evil.example:5173')).toBe(403);
+      expect(await post('192.168.1.20:5173')).toBe(403);
+      process.env.WEB_SCUMM_STUDIO_HOSTS = '192.168.1.20';
+      expect(await post('192.168.1.20:5173')).toBe(200);
+    } finally {
+      delete process.env.WEB_SCUMM_STUDIO_HOSTS;
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+    expect([...allowedStudioHosts({ WEB_SCUMM_STUDIO_HOSTS: '10.0.0.2, 10.0.0.3' })]).toEqual([
+      'localhost',
+      '127.0.0.1',
+      '[::1]',
+      '10.0.0.2',
+      '10.0.0.3',
+    ]);
   });
 });
 

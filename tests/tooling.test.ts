@@ -37,9 +37,31 @@ describe('serve', () => {
     expect(serveArgs([], {}, () => 'T')).toMatchObject({ args: ['vite'], env: {}, banner: [] });
     const lan = serveArgs(['--lan', '--studio'], {}, () => 'T');
     expect(lan.args).toEqual(['vite', '--host', '0.0.0.0', '--open', '/__studio/?token=T']);
-    expect(lan.env).toEqual({ WEB_SCUMM_LAN: '1', WEB_SCUMM_STUDIO_TOKEN: 'T', STUDIO: '1' });
+    expect(lan.env).toEqual({
+      WEB_SCUMM_LAN: '1',
+      WEB_SCUMM_STUDIO_TOKEN: 'T',
+      WEB_SCUMM_STUDIO_HOSTS: '',
+      STUDIO: '1',
+    });
     expect(lan.banner.join('\n')).toContain('token=T');
     expect(serveArgs(['--lan'], { WEB_SCUMM_STUDIO_TOKEN: 'given' }, () => 'T').token).toBe('given');
+    // The machine's addresses reach the Studio's Host guard, and the banner names the first (4.1.2).
+    const named = serveArgs(
+      ['--lan', '--studio'],
+      {},
+      () => 'T',
+      () => ['10.0.0.2', '10.0.0.3'],
+    );
+    expect(named.env.WEB_SCUMM_STUDIO_HOSTS).toBe('10.0.0.2,10.0.0.3');
+    expect(named.banner.join('\n')).toContain('http://10.0.0.2:5173/__studio/?token=T');
+    expect(
+      serveArgs(
+        [],
+        {},
+        () => 'T',
+        () => ['10.0.0.2'],
+      ).env,
+    ).toEqual({});
   });
 });
 

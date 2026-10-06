@@ -28,7 +28,12 @@ export function signals(): GameDef {
       ],
     },
     events: [
-      { id: 'mail-opens-vault', on: 'mail.answer.correct', do: [{ set: 'vault_open' }, 'The vault clicks open.'] },
+      {
+        id: 'mail-opens-vault',
+        on: 'mail.answer.correct',
+        // The second time (a `once` signal never gets there) leaves a trace: the tests see a repeat.
+        do: [{ nth: [[{ set: 'vault_open' }], [{ set: 'vault_reopened' }]], key: 'vault' }, 'The vault clicks open.'],
+      },
       {
         id: 'bell-rings',
         on: 'hook.bell',

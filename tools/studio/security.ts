@@ -15,12 +15,34 @@ const cookie = (req: IncomingMessage) =>
       .filter((x) => x.length === 2),
   );
 
+/** The host part of a `Host` header, without its port (`[::1]:5173` → `[::1]`, `localhost:5173` → `localhost`). */
+const hostname = (host: string) => host.replace(/:\d+$/, '').toLowerCase();
+
+/**
+ * The names the Studio answers to (4.1.2): this machine's, and in LAN mode the addresses `dev:lan` serves
+ * (`WEB_SCUMM_STUDIO_HOSTS`). A page on another site that rebinds its own name to this port sends that name as
+ * `Host` (and as `Origin`, so the same-origin check alone would let it through): refused.
+ */
+export function allowedStudioHosts(env: Record<string, string | undefined> = process.env): Set<string> {
+  const own = ['localhost', '127.0.0.1', '[::1]'];
+  const lan = (env.WEB_SCUMM_STUDIO_HOSTS ?? '')
+    .split(',')
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+  return new Set([...own, ...lan]);
+}
+
 /** Same-origin + optional LAN token guard shared by every file-writing development route. */
 export function authorizeStudioRequest(req: IncomingMessage, res: ServerResponse): boolean {
   const host = req.headers.host;
   if (!host || /[\s/@\\]/.test(host)) {
     res.statusCode = 400;
     res.end('invalid Host');
+    return false;
+  }
+  if (!allowedStudioHosts().has(hostname(host))) {
+    res.statusCode = 403;
+    res.end('the Studio answers its own names only (localhost, 127.0.0.1, [::1], or the address dev:lan serves)');
     return false;
   }
   const origin = req.headers.origin;

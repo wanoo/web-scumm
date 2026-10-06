@@ -80,13 +80,20 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run test:mutation:core | tee mutation.txt
+      - run: npm run test:mutation:core -- --set=core | tee mutation.txt
         shell: bash
+      # What a signal from the world outside rests on (4.1.2), judged by the Reality and Bridge tests. Measured, not
+      # yet gating: docs/dev/MUTANTS.md says how many of its mutants survive unexplained; the job goes red for them
+      # once that count is zero (remove `continue-on-error` then).
+      - run: npm run test:mutation:core -- --set=reality | tee mutation-reality.txt
+        shell: bash
+        continue-on-error: true
       - if: always()
         uses: actions/upload-artifact@v7
         with:
           name: mutation
           path: |
             mutation.txt
-            .cache/mutation/report.json
+            mutation-reality.txt
+            .cache/mutation/report-*.json
           if-no-files-found: ignore

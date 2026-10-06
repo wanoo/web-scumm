@@ -57,6 +57,24 @@
   game finishes without the world outside by another route: the declared rule is not the way through, and may be
   dead. The review's P1 on the fallback proof, as a lint rather than a validation error: the closed proof still
   holds, the declaration is what is wrong.
+- **What a signal rests on is falsified like what a save rests on.** Mutation testing gains a `reality` set
+  (`npm run test:mutation:core -- --set=reality`: the engine's receive, the protocol, the client, the Bridge, its
+  store, its lock and its policy, judged by the Reality and Bridge tests) and a gate by identity: every surviving
+  mutant is named in `docs/dev/mutants.json` (file, operator, from, to, why), and a survivor not named there fails
+  the run in every mode, where 4.1.1 compared a count. Measured on the reality set: 382 of 484 killed, 14
+  equivalents named, 88 survivors listed as missing tests in `docs/dev/MUTANTS.md` (the nightly runs the set
+  without gating until they are killed or named). The corpus gains seven cases (the exact edges of the clock
+  tolerance, a header that is a list or null, a payload that is JSON but not an object), and one found a divergence:
+  a list header was `algorithm` in JavaScript and `header` in Rust; it is `header` in both. Coverage includes
+  `bridge/src` with floors. Properties at
+  random (fast-check) on concurrent proposals: sequences 1..n and one acceptance per `dedupeKey` whatever the
+  interleaving; a write that fails (disk full) leaves nothing behind and the next proposal takes the same sequence.
+  The package `web-scumm-bridge` is now one JavaScript module (esbuild) plus its Datalog policies: Node 22,
+  Biscuit's WebAssembly and zod, no `tsx`, no TypeScript at run time; `fresh-install` installs it from its tarball
+  outside the repository, runs `init --no-demo-webhooks` and `doctor`, starts it and reads its keys; the release
+  carries the Bridge's own SBOM and attests every file it uploads. The Studio's write routes accept a `Host` that
+  names this machine (`localhost`, `127.0.0.1`, `[::1]`, or the LAN address `dev:lan` serves) and nothing else, so a
+  page that rebinds a name to the Studio's port finds the door closed. `npm run seal` no longer prints the password.
 
 ## 4.1.1 — 2026-10-06
 

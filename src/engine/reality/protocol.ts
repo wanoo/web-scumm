@@ -125,7 +125,8 @@ export async function verifySignal(jws: unknown, keyring: Keyring, expect: Signa
   } catch {
     return fail('header', 'unreadable header');
   }
-  if (!header || typeof header !== 'object') return fail('header', 'unreadable header');
+  // An object, not a list: a list is an object for `typeof`, and the Rust cross-check says `header` for it.
+  if (!header || typeof header !== 'object' || Array.isArray(header)) return fail('header', 'unreadable header');
   const { alg, kid, ...rest } = header as Record<string, unknown>;
   if (alg !== 'EdDSA') return fail('algorithm', `unknown algorithm ${JSON.stringify(alg)}`);
   if (Object.keys(rest).some((k) => k !== 'typ')) return fail('header', 'unknown header field');

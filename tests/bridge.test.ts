@@ -5,6 +5,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import fc from 'fast-check';
 import { afterAll, describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
@@ -437,6 +438,142 @@ describe('the reference Bridge', () => {
     const old = await t.call('v1/signals?after=0', { token: other.capability });
     expect(old.status).toBe(401);
     expect(await old.json()).toMatchObject({ message: expect.stringMatching(/too old/) });
+  });
+
+  it('whatever the interleaving and the repeats, sequences are 1..n and a dedupeKey is accepted once', async () => {
+    const t = await setup({ limits: { perMinutePerConnector: 100_000 } });
+    const link = await t.pair();
+    let offset = 0;
+    await fc.assert(
+      fc.asyncProperty(
+        fc.array(fc.tuple(fc.integer({ min: 0, max: 5 }), fc.integer({ min: 0, max: 3 })), {
+          minLength: 1,
+          maxLength: 12,
+        }),
+        async (batch) => {
+          // Each pick: a dedupeKey from a small alphabet (so repeats happen) and a delay before the call.
+          const base = offset;
+          offset += 100;
+          const results = await Promise.all(
+            batch.map(([k, delay]) =>
+              new Promise((r) => setTimeout(r, delay)).then(() =>
+                t.bridge.propose(t.mail, {
+                  playerId: link.playerId,
+                  signal: 'mail.answer.wrong',
+                  source: 'mail',
+                  dedupeKey: `k${base + k}`,
+                }),
+              ),
+            ),
+          );
+          const fresh = results.filter((r) => !r.duplicate);
+          const distinctKeys = new Set(batch.map(([k]) => k)).size;
+          expect(fresh).toHaveLength(distinctKeys);
+          // A repeat answers with the first acceptance's id and sequence.
+          for (const [i, r] of results.entries())
+            if (r.duplicate) {
+              const first = results.find((x, j) => !x.duplicate && batch[j]![0] === batch[i]![0]);
+              expect(r).toMatchObject({ id: first?.id, sequence: first?.sequence });
+            }
+          const all = await t.bridge.signals(link.capability, 0);
+          expect(all.map((s) => s.sequence)).toEqual(all.map((_, i) => i + 1));
+        },
+      ),
+      { numRuns: 25 },
+    );
+  });
+
+  it('a write that fails leaves nothing behind: the proposal is refused, the next one takes the same sequence', async () => {
+    class Flaky extends MemoryBridgeStore {
+      fail = false;
+      override write(e: Parameters<MemoryBridgeStore['write']>[0]): void {
+        if (this.fail && e.t === 'signal') {
+          this.fail = false;
+          throw new Error('disk full');
+        }
+        super.write(e);
+      }
+    }
+    const store = new Flaky();
+    const t = await setup({ store });
+    const link = await t.pair();
+    await t.propose(link.playerId, 'mail.answer.correct', 'mail:1');
+    store.fail = true;
+    expect((await t.propose(link.playerId, 'mail.answer.wrong', 'mail:2')).status).toBe(500);
+    expect(await t.bridge.signals(link.capability, 0)).toHaveLength(1);
+    const again = await t.propose(link.playerId, 'mail.answer.wrong', 'mail:2');
+    expect(again.status).toBe(202);
+    expect(await again.json()).toMatchObject({ sequence: 2, duplicate: false });
+    expect(t.logs.filter((l) => l.event === 'signal.accepted')).toHaveLength(2);
+  });
+
+  it('refuses another game, an expired or claimed code, a revoked pairing token; keeps what a proposal says', async () => {
+    let t0 = Date.now();
+    const t = await setup({ now: () => t0 });
+    await expect(
+      Bridge.start(
+        { ...t.bridge.config, gameId: 'demo', manifestHash: t.bridge.config.manifestHash },
+        new MemoryBridgeStore(),
+      ),
+    ).rejects.toThrow(/for signals/);
+    expect(() => t.bridge.startPairing('demo')).toThrow(expect.objectContaining({ status: 404 }));
+    // A code past its ten minutes: unknown to a connector and to the player alike.
+    const { code: stale } = t.bridge.startPairing('signals');
+    t0 += 11 * 60_000;
+    expect(() => t.bridge.claimPairing(stale)).toThrow(expect.objectContaining({ status: 404 }));
+    await expect(t.bridge.confirmPairing(t.mail, stale)).rejects.toMatchObject({ status: 404 });
+    // Claimed once; a second claim is gone, a second confirmation is already done.
+    const { code } = t.bridge.startPairing('signals');
+    await t.bridge.confirmPairing(t.mail, code);
+    expect(t.bridge.claimPairing(code).status).toBe('paired');
+    expect(() => t.bridge.claimPairing(code)).toThrow(expect.objectContaining({ status: 410 }));
+    await expect(t.bridge.confirmPairing(t.mail, code)).rejects.toMatchObject({ status: 409 });
+    // A revoked token may not pair either.
+    const b = await biscuitLib();
+    const tok = b.Biscuit.fromBase64(
+      t.mail,
+      b.PublicKey.fromString(t.rootPub.replace(/^ed25519\//, ''), b.SignatureAlgorithm.Ed25519),
+    );
+    const link = await t.pair();
+    const body = (extra: Record<string, unknown>) => ({
+      playerId: link.playerId,
+      signal: 'mail.answer.correct',
+      source: 'mail',
+      dedupeKey: `k-${JSON.stringify(extra)}`,
+      ...extra,
+    });
+    await expect(t.bridge.propose(t.mail, body({ evidenceHash: 'xyz' }))).rejects.toMatchObject({ status: 400 });
+    await expect(
+      t.bridge.propose(t.mail, body({ signal: 'mail.answer.correct', source: 'webhook' })),
+    ).rejects.toMatchObject({ status: 422 });
+    await t.bridge.propose(t.mail, body({ occurredAt: 1234, evidenceHash: 'ab'.repeat(32) }));
+    await t.bridge.propose(t.mail, body({ occurredAt: -5 }));
+    const payloads = (await t.bridge.signals(link.capability, 0)).map(
+      (x) => JSON.parse(Buffer.from(x.jws.split('.')[1]!, 'base64url').toString()) as Record<string, unknown>,
+    );
+    expect(payloads[0]).toMatchObject({ occurredAt: 1234, evidenceHash: 'ab'.repeat(32), sequence: 1 });
+    expect(payloads[1]).not.toHaveProperty('occurredAt');
+    expect(payloads[1]).not.toHaveProperty('evidenceHash');
+    t.bridge.revoke(t.admin, { tokenId: (tok.getRevocationIdentifiers() as string[])[0]! });
+    await expect(t.bridge.confirmPairing(t.mail, t.bridge.startPairing('signals').code)).rejects.toMatchObject({
+      status: 401,
+    });
+  });
+
+  it('a stream ends when the link expires, and a proposal for an expired link is refused', async () => {
+    let t0 = Date.now();
+    const t = await setup({ now: () => t0, limits: { capabilityMs: 1_000 } });
+    const link = await t.pair();
+    const res = await t.call('v1/events?after=0', { token: link.capability, headers: { Accept: 'text/event-stream' } });
+    expect(res.status).toBe(200);
+    const events = sseEvents(res.body!);
+    t0 += 2_000; // no acknowledgement within the capability's life: it is gone (the connector's token still lives)
+    const late = await t.propose(link.playerId, 'mail.answer.correct', 'late');
+    expect([late.status, await late.text()]).toEqual([202, expect.any(String)]);
+    let ended = false;
+    for (let i = 0; i < 50 && !ended; i++) ended = (await events.next()).done === true;
+    expect(ended).toBe(true);
+    expect((await t.call('v1/signals?after=0', { token: link.capability })).status).toBe(401);
   });
 
   it('answers CORS for the game only, and logs no secret', async () => {

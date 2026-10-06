@@ -66,7 +66,9 @@ async function main() {
   await mkdir(dirname(out), { recursive: true });
   await writeFile(out, bytes);
   console.log(`✔  Sealed file (${outcome}) → public/data/dossier.bin (${(bytes.length / 1024).toFixed(1)} KB)`);
-  console.log('   Game password: ' + config.password + '  (not stored in the bundle)');
+  // The password is never printed (a terminal's scrollback is a leak). Where it lives depends on the game's
+  // `ending.password`: `typed` by the player, nowhere in the bundle; `given`, in the bundle, an obfuscation only.
+  console.log('   Game password: the one of the private configuration (not printed)');
 }
 
 main().catch((e) => {
