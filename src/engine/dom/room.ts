@@ -234,7 +234,8 @@ export class RoomView {
     const stage = this.stageSpec();
     this.r.reset(stage.backdrop.url, this.camera.width);
     this.r.stage(stage);
-    this.stageKey = JSON.stringify(stage);
+    this.stageKey =
+      [...stage.layers, ...stage.lights, ...stage.emitters].map((x) => +x.visible).join('') + +stage.reduceMotion;
 
     for (const [id, def] of Object.entries(room.props ?? {})) {
       const L = this.layout.props?.[id];
@@ -627,9 +628,10 @@ export class RoomView {
 
   refreshVisibility() {
     // The stage's conditions (a lit window, a light switched on) are read again with the entities'.
+    // Only its conditions can change a built stage (4.1.5): the key is their answers, not the whole spec serialized.
     if (this.room) {
       const st = this.stageSpec();
-      const key = JSON.stringify(st);
+      const key = [...st.layers, ...st.lights, ...st.emitters].map((x) => +x.visible).join('') + +st.reduceMotion;
       if (key !== this.stageKey) {
         this.stageKey = key;
         this.r.stage(st);

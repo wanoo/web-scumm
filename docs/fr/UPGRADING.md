@@ -257,3 +257,11 @@ Rien à changer dans un jeu. Un hôte qui embarque le moteur ou le joueur gagne 
 pour entendre ce qui échoue, et `beforeSave` / `onLoad` là où il remplaçait `store.save` ou `engine.load` (ne le
 faites plus : les hooks se composent). Les lignes de repli, de sorte et de don peuvent utiliser `{item}`, `{target}`,
 `{name}` ; `{objet}`, `{cible}`, `{nom}` marchent toujours. Une sauvegarde 4.1.3 se charge telle quelle.
+
+## 17. De la 4.1.4 à la 4.1.5 « Cœur réel »
+
+Rien à changer dans un jeu, ni dans un hôte qui passe par l'API publique : `engine.session`, `begin`, `choose`,
+`rand`, `destroy`, les hooks sont là où ils étaient. Un hôte qui atteignait les champs `@internal` `feed`, `open` ou
+`sessionT0` du moteur les trouve sur `engine.sessions` (`feed`, `open`, `t0`) ; un qui atteignait `toScreen`,
+`toLogical`, `setCamera`, `followHero`, `onCamera` ou `cam` de la vue de pièce les trouve sur `view.camera`, et
+`walkTo`, `motion` et `clampFloor` (désormais `clamp`) sur `view.walker`. Une sauvegarde 4.1.4 se charge telle quelle.

@@ -555,6 +555,18 @@ throws is stopped and marked so in the save), time from the injected clock alone
 names kept, dead code gone and `knip` on guard for dead files and dependencies. The next release, 4.1.5, makes the
 split of 4.1.0 real: `step()` as a table, sub-objects that own their state, the player decomposed, rendering diffed.
 
+## v4.1.5 "Real Core" (shipped 6 October 2026): the split that 4.1.0 announced
+
+`step()` as a table of handlers (`core/command-handlers.ts`), the script loops owned by `ScriptScheduler`, the session
+by `SessionLog` (`Engine.sessions`), the room view's camera and walking by `Camera` and `Walker` (`view.camera`,
+`view.walker`); the keyboard targets and the inventory diffed on a state change, the stage re-sent only when one of
+its conditions changes, the guests computed once per `targets()`; `dom/room.ts` from 1026 lines to 744, off the
+exceptions list; the step table and the scheduler in the core mutation set. Behaviour identical at every step (the
+quality baseline, the visual baselines, the frame-rate gate). Left for later, said as such: `busyCount`, `guideWait`
+and `skipping` stay on the Engine; the player (`dom/app.ts`) is not decomposed; the Canvas painter still builds its
+draw list per frame. The next release, 4.1.6, is the studio's tool: the npm scripts, no tracked file written by
+`dev` or `new-game`, Python out of the build path, Windows, the Studio's tabs, the player's touch targets.
+
 ## After 4.0 (not planned yet)
 
 - The field passes, then what they find (D12).

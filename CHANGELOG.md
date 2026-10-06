@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 4.1.5 — 2026-10-06
+
+"Real Core" (LOG #101): the plan's fourth release; the split that 4.1.0 announced, done behind the baseline, one
+branch per step, no change of behaviour. What the plan listed and this release does not do is said in the LOG and
+the passes sheet.
+
+### Changes
+
 - **The core's real split** (4.1.5, the plan's fourth release; no change of behaviour: the quality baseline is the
   same before and after each step). `step()` is a table of handlers (`core/command-handlers.ts`, one function per
   command key, type-checked against the union); the script loops have an owner (`core/scheduler.ts`,
