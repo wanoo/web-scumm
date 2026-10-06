@@ -2,56 +2,33 @@
 
 ## Unreleased
 
-## 4.1.0 — 2026-10-06
+## 4.1.1 — 2026-10-06
 
-"Clarity" (LOG #95, D14): a maintenance release focused on making web-scumm easier to read, review and contribute to.
-It changes no gameplay or public contract: module boundaries are clearer, large responsibilities are separated, static
-checks are stronger, and the architecture and quality evidence are easier to find. The plan is Codex's,
-`docs/dev/PLAN-4.1.1-CLARITY.md`, adopted as 4.1.0. Same behaviour as 4.0.0, measured: every witness, proof and golden
-save of `tests/quality-baseline.json`, the public surface byte for byte, the first visit 120 KB (122 on 4.0.0). Human
-passes: 0 of 7 field passes, 0 of 1 outside review (D12, `docs/dev/passes/4.1.0.md`).
+"Reality Bridge" (LOG #96, D14–D17): a game can react to a fact from the world outside (an email answered, a webhook
+called) without its content touching the network. A separate Bridge turns the fact into a short signed signal from
+a finite alphabet the game declares; the player verifies it, applies it at most once, saves, then acknowledges; a
+session replays it offline; the solver proves a game closed, under a scenario and against any order of signals. The
+plan is Codex's, `docs/dev/PLAN-4.1-REALITY-BRIDGE.md`, adopted as 4.1.1 on the clarified code. A game without
+`reality` pays nothing: no code in its first visit, nothing in its offline cache, no request.
 
-- Codex's plans after 4.0 in `docs/dev/` (D14): "Clarity" ships as 4.1.0, "Reality Bridge" as 4.1.1, 4.2 will be
-  the final version. CI runs on `docs/…`, `test/…` and `refactor/…` branches too.
-- `npm run quality:baseline -- --check [--dist]` (`tools/quality-baseline.ts`): the behaviour of 4.0.0 frozen in
-  `tests/quality-baseline.json` before any refactoring. For the demo, the reference game and 13 solver fixtures: the
-  witness (status, length, a hash of the digest after every input) and the proof (status, states, softlocks); the 13
-  golden saves played to their end; the hash of the public API and MCP surface; the number of test declarations (may
-  only grow); the first visit's JavaScript (may only shrink). Each difference is named. In the CI `check` job.
-- **Biome** formats and lints the engine, the tools, the tests and the scripts (`biome.json`; a game's content in
-  `games/` is linted, never reformatted, since the Studio writes it). The formatting is one mechanical commit, listed in
-  `.git-blame-ignore-revs`. New scripts: `npm run format`, `format:check`, `lint:code`, `lint:content` (the content lint;
-  `npm run lint` stays its alias through 4.x) and `quality` (all of them plus both TypeScript configurations), in CI.
-- TypeScript: `noUnusedLocals`, `noUnusedParameters` and `noFallthroughCasesInSwitch` hold everywhere;
-  `tsconfig.strictest.json` adds `noUncheckedIndexedAccess` on `src/engine` and `src/studio` (tests and `tools/`
-  outside it). An index the code knows is there reads through `must()` (`src/engine/core/must.ts`), which throws with
-  what was missing instead of carrying `undefined` on.
-- The Canvas painter (`dom/render-canvas.ts`) is loaded the first time a room asks for it: a game that paints with
-  the DOM no longer downloads it. The demo's first visit: 122 → 120 KB of JavaScript gzipped, the index guards above
-  included (+0.5 KB). It stays in the offline precache.
-- **The core split by responsibility** (`src/engine/BOUNDARIES.md`, "Inside the core"): `core/engine.ts` (1,667 lines
-  once formatted) keeps the `Engine` facade, its state and lifecycle (795 lines); sessions, events, scripts,
-  interactions, commands, world queries and players each live in a module of their own, called through a forwarding
-  method in the same order of effects. `core/types.ts` re-exports `core/types/{content,game,stage,audio,state,session}.ts`.
-  The public surface is unchanged (`tests/api-surface.json`, which now follows nested re-exports), and so is the
-  behaviour (`quality:baseline`). `tests/boundaries.test.ts` refuses any cycle of static imports.
-- **The player split the same way** (`BOUNDARIES.md`, "Inside the player"): `dom/app.ts` (2,343 lines once
-  formatted) keeps `App`, the `Presenter` and the orchestration (780 lines); the shell, input, speech, map, menus,
-  settings, offline and update, and the localStorage store each have a module. The production e2e (Chromium and
-  WebKit, keyboard, saves, axe, offline, the double tap, the Canvas painter) give the same results.
-- **The solver split** (`BOUNDARIES.md`, "Inside the solver"): `tools/solve.ts` (2,333 lines once formatted) is now
-  `tools/solve/{search,expansion,abstractions,model,report}.ts` and re-exports what it did. The internal `Node` is
-  `SearchNode`, and the search's types document their invariants. Same verdicts on every fixture, the demo's proof,
-  its chapters, `--audit-abstractions` and 120 corpus games; the demo's proof with the audit takes 10.6 s against
-  10.5 s on 4.0.0 (+1%).
-- `tests/file-size.test.ts`: no file of `src/` over 800 lines, but seven listed with their reason (three Studio tabs,
-  the validator, the room view, the dev editor, the Studio assistant), each capped at its size.
-- **Data from outside starts as `unknown`** (lot F): no explicit `any` left in `src/` or `tools/` (Biome refuses a new
-  one; tests may still use it). The storyboard has one normalisation (`sbLines`, `sbTopics`, `sbTalks`, `sbReactions`
-  in `tools/pages/storyboard-data.ts`; the Studio keeps the fields it does not know) and one diagnostic,
-  `storyboardProblems`: the page generator, the Studio's server, its in-browser demo and the MCP's `set_storyboard`
-  refuse an invalid storyboard with the same sentences (`tests/diagnostics-parity.test.ts`). A panel without an id no
-  longer becomes `"undefined"` in one reader and `""` in the other.
+**Versioning**: 4.1.1 adds a public entry (`web-scumm/reality`) and content fields, which semantic versioning calls a
+minor. The maintainer chose the number (D14: the project stays on 4.1.x, 4.2 is the final version); it is a one-off
+exception recorded in `docs/en/SUPPORT.md`. Every addition is optional: a 4.1.0 game, its saves and its sessions are
+unchanged.
+
+### API
+
+- New entry `web-scumm/reality` (23 names, `docs/en/API.md`); `web-scumm/content` adds `RealityDef`, `SignalDef`,
+  `RealityState`, `ExternalEntry`; the MCP's `solve` takes an optional `reality`. Nothing removed or changed.
+
+### Changes
+
+- **The release**: a third package, `web-scumm-bridge-<version>.tgz` (the Bridge on its own: `npx web-scumm-bridge init
+  --manifest=dist/reality-manifest.json`, then `serve`), attached and attested with the others; a game with `reality`
+  ships `reality-manifest.json` in its build (`verify:dist` requires it). The demo's first visit: 120.7 → 121.2 KB, the
+  hooks only. Golden saves: `demo-4.1.1.json`, and `signals-4.1.1.json` with a link state. `docs/dev/adr/0007`, the
+  code tour's step 8, a section of `ARCHITECTURE.md`.
+
 - **Reality Bridge, the spike** (4.1.1's lot A, `docs/dev/reality-spike.md`): Ed25519 is in WebCrypto in Node,
   Chromium and WebKit; the player's verifier of a compact JWS is 381 bytes gzipped (D15); Biscuit runs on the Bridge
   from its WebAssembly build, loaded without an experimental flag (`bridge/src/biscuit.ts`), 0.24 ms to authorise
@@ -112,6 +89,57 @@ passes: 0 of 7 field passes, 0 of 1 outside review (D12, `docs/dev/passes/4.1.0.
   `assets/reality/`, left out of its offline cache. `docs/en/REALITY.md` (authors) and `docs/en/REALITY-OPS.md`
   (operators: init, connectors, keys and `bridge rotate`, revocation, quotas, retention, export and deletion), in
   French too.
+
+## 4.1.0 — 2026-10-06
+
+"Clarity" (LOG #95, D14): a maintenance release focused on making web-scumm easier to read, review and contribute to.
+It changes no gameplay or public contract: module boundaries are clearer, large responsibilities are separated, static
+checks are stronger, and the architecture and quality evidence are easier to find. The plan is Codex's,
+`docs/dev/PLAN-4.1.1-CLARITY.md`, adopted as 4.1.0. Same behaviour as 4.0.0, measured: every witness, proof and golden
+save of `tests/quality-baseline.json`, the public surface byte for byte, the first visit 120 KB (122 on 4.0.0). Human
+passes: 0 of 7 field passes, 0 of 1 outside review (D12, `docs/dev/passes/4.1.0.md`).
+
+- Codex's plans after 4.0 in `docs/dev/` (D14): "Clarity" ships as 4.1.0, "Reality Bridge" as 4.1.1, 4.2 will be
+  the final version. CI runs on `docs/…`, `test/…` and `refactor/…` branches too.
+- `npm run quality:baseline -- --check [--dist]` (`tools/quality-baseline.ts`): the behaviour of 4.0.0 frozen in
+  `tests/quality-baseline.json` before any refactoring. For the demo, the reference game and 13 solver fixtures: the
+  witness (status, length, a hash of the digest after every input) and the proof (status, states, softlocks); the 13
+  golden saves played to their end; the hash of the public API and MCP surface; the number of test declarations (may
+  only grow); the first visit's JavaScript (may only shrink). Each difference is named. In the CI `check` job.
+- **Biome** formats and lints the engine, the tools, the tests and the scripts (`biome.json`; a game's content in
+  `games/` is linted, never reformatted, since the Studio writes it). The formatting is one mechanical commit, listed in
+  `.git-blame-ignore-revs`. New scripts: `npm run format`, `format:check`, `lint:code`, `lint:content` (the content lint;
+  `npm run lint` stays its alias through 4.x) and `quality` (all of them plus both TypeScript configurations), in CI.
+- TypeScript: `noUnusedLocals`, `noUnusedParameters` and `noFallthroughCasesInSwitch` hold everywhere;
+  `tsconfig.strictest.json` adds `noUncheckedIndexedAccess` on `src/engine` and `src/studio` (tests and `tools/`
+  outside it). An index the code knows is there reads through `must()` (`src/engine/core/must.ts`), which throws with
+  what was missing instead of carrying `undefined` on.
+- The Canvas painter (`dom/render-canvas.ts`) is loaded the first time a room asks for it: a game that paints with
+  the DOM no longer downloads it. The demo's first visit: 122 → 120 KB of JavaScript gzipped, the index guards above
+  included (+0.5 KB). It stays in the offline precache.
+- **The core split by responsibility** (`src/engine/BOUNDARIES.md`, "Inside the core"): `core/engine.ts` (1,667 lines
+  once formatted) keeps the `Engine` facade, its state and lifecycle (795 lines); sessions, events, scripts,
+  interactions, commands, world queries and players each live in a module of their own, called through a forwarding
+  method in the same order of effects. `core/types.ts` re-exports `core/types/{content,game,stage,audio,state,session}.ts`.
+  The public surface is unchanged (`tests/api-surface.json`, which now follows nested re-exports), and so is the
+  behaviour (`quality:baseline`). `tests/boundaries.test.ts` refuses any cycle of static imports.
+- **The player split the same way** (`BOUNDARIES.md`, "Inside the player"): `dom/app.ts` (2,343 lines once
+  formatted) keeps `App`, the `Presenter` and the orchestration (780 lines); the shell, input, speech, map, menus,
+  settings, offline and update, and the localStorage store each have a module. The production e2e (Chromium and
+  WebKit, keyboard, saves, axe, offline, the double tap, the Canvas painter) give the same results.
+- **The solver split** (`BOUNDARIES.md`, "Inside the solver"): `tools/solve.ts` (2,333 lines once formatted) is now
+  `tools/solve/{search,expansion,abstractions,model,report}.ts` and re-exports what it did. The internal `Node` is
+  `SearchNode`, and the search's types document their invariants. Same verdicts on every fixture, the demo's proof,
+  its chapters, `--audit-abstractions` and 120 corpus games; the demo's proof with the audit takes 10.6 s against
+  10.5 s on 4.0.0 (+1%).
+- `tests/file-size.test.ts`: no file of `src/` over 800 lines, but seven listed with their reason (three Studio tabs,
+  the validator, the room view, the dev editor, the Studio assistant), each capped at its size.
+- **Data from outside starts as `unknown`** (lot F): no explicit `any` left in `src/` or `tools/` (Biome refuses a new
+  one; tests may still use it). The storyboard has one normalisation (`sbLines`, `sbTopics`, `sbTalks`, `sbReactions`
+  in `tools/pages/storyboard-data.ts`; the Studio keeps the fields it does not know) and one diagnostic,
+  `storyboardProblems`: the page generator, the Studio's server, its in-browser demo and the MCP's `set_storyboard`
+  refuse an invalid storyboard with the same sentences (`tests/diagnostics-parity.test.ts`). A panel without an id no
+  longer becomes `"undefined"` in one reader and `""` in the other.
 - **Test strength** (lot G): `npm run test:coverage` (V8) holds the floor measured at 4.1.0 (56% of `src/` in
   Node; the browser-only parts are the e2e's) and every branch of `core/cond.ts`, `diff.ts`, `migrate.ts` and
   `save.ts` (`session-runtime.ts` 93, `tools/replay.ts` 99, `content-ids.ts` 96, each gap explained in

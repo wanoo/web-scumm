@@ -272,3 +272,17 @@ describe('the client: verify, apply, save, acknowledge', () => {
     expect(e.session?.log.filter((l) => 'external' in l)).toHaveLength(1);
   });
 });
+
+describe('the golden save of games/signals (4.1.1)', () => {
+  it('keeps its link state, and its remaining inputs (a signal, then the gate) reach the ending offline', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { game, layouts } = await import('../games/signals');
+    const golden = JSON.parse(readFileSync('tests/fixtures/saves/signals-4.1.1.json', 'utf8'));
+    const state = parseSave(game, golden.envelope);
+    expect(state.reality).toEqual({ cursor: 1, applied: { 's-3': 3 } });
+    const r = await replay(game, layouts, { start: { kind: 'load' }, base: state, log: golden.remaining });
+    expect(r.divergedAt).toBeUndefined();
+    expect(r.ended).toBe(true);
+    expect(r.state.reality).toEqual({ cursor: 3, applied: {} });
+  });
+});

@@ -1,6 +1,6 @@
 // npm run bridge -- <init|serve|grant|revoke> (web-scumm bridge …, 4.1.1): a reference Reality Bridge for a game, for
 // development and self-hosting (docs/en/REALITY-OPS.md).
-//   init [--dir=.cache/bridge] [--audience=bridge.local] [--origin=http://127.0.0.1:5173]  keys, tokens, a config
+//   init [--dir=.cache/bridge] [--audience=bridge.local] [--origin=…] [--manifest=dist/reality-manifest.json]   keys, a config
 //   serve [--dir=…] [--port=8787] [--host=127.0.0.1]                                         the Bridge over HTTP
 //   grant --connector=<id> --source=<s> --signals=a,b [--players=any|p-…,p-…] [--pair] [--days=30]   a connector's token
 //   rotate [--keep-days=30]                                                                   a new event-signing key
@@ -62,7 +62,12 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
   const cfgFile = resolve(dir, 'config.json');
   const read = (): BridgeFile => JSON.parse(readFileSync(cfgFile, 'utf8')) as BridgeFile;
   if (cmd === 'init') {
-    const manifest = game?.manifest;
+    // The game's manifest: from its content (npm run bridge, web-scumm bridge), or a built game's
+    // dist/reality-manifest.json (--manifest=…, the standalone web-scumm-bridge package).
+    const manifestFile = arg(args, 'manifest');
+    const manifest = manifestFile
+      ? (JSON.parse(readFileSync(resolve(manifestFile), 'utf8')) as RealityManifest)
+      : game?.manifest;
     if (!manifest) {
       console.error('✖  the game declares no reality.signals: nothing to bridge');
       return 1;

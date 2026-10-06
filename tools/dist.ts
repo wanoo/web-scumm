@@ -16,6 +16,7 @@ import {
   type ManifestEntry,
 } from '../src/engine/tools/inventory';
 import { GAME, GAME_DIR, PROJECT, ROOT, WORK, loadGameModule } from './game';
+import { realityManifest } from '../src/engine/reality/manifest';
 import { LOCK, PROVENANCE, readJson, shippedKeys, type Provenance, type ProvenanceLock } from './provenance-files';
 
 const args = process.argv.slice(2);
@@ -54,6 +55,9 @@ const lock: ProvenanceLock = locked ?? {
   ),
 };
 const data = game.ending?.file ? [game.ending.file.replace(/^\//, '')] : [];
+// A game that takes signals from outside ships its manifest (4.1.1): what its Bridge checks proposals against.
+const signalsManifest = realityManifest(game);
+if (signalsManifest) data.push('reality-manifest.json');
 
 /** A package's folder: the project's node_modules first (an installed engine's dependencies are hoisted there). */
 const moduleDir = (p: string) =>
@@ -174,6 +178,8 @@ if (seal) {
     readFileSync(resolve(ROOT, 'src/engine/dom/fonts/OFL.txt'), 'utf8'),
   ];
   writeFileSync(join(out, 'THIRD_PARTY_NOTICES.txt'), notices.join('\n'));
+  if (signalsManifest)
+    writeFileSync(resolve(dir, 'reality-manifest.json'), `${JSON.stringify(signalsManifest, null, 1)}\n`);
   writeFileSync(
     join(out, 'assets-manifest.json'),
     JSON.stringify({ game: game.id, assets: assetsManifest(lock, prov.assets ?? []) }, null, 1) + '\n',

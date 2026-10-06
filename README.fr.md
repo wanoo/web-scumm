@@ -17,7 +17,15 @@ vérifie, le prouve et le publie en jeu web jouable hors ligne. Il est né comme
 
 ![The Pantry Key : la maison de Grand-mère, neuf verbes, le sac](docs/img/v36-hero.webp)
 
-**Nouveau en v4.1 « Clarity » :** une release de maintenance qui rend web-scumm plus facile à lire, relire et
+**Nouveau en v4.1.1 « Reality Bridge » :** un jeu peut réagir à un fait du monde extérieur (un email qui répond, un
+webhook appelé) sans que son contenu touche au réseau. Un Bridge à part (`web-scumm bridge`, ou le paquet
+`web-scumm-bridge`) transforme le fait en un court signal signé que le jeu déclare ; le joueur le vérifie, l'applique au
+plus une fois, sauvegarde, puis accuse réception ; une session le rejoue hors ligne ; le solveur prouve le jeu sans
+l'extérieur, sous chaque scénario, et face à tout ordre des signaux. Lier un jeu depuis son menu pause, essayer des
+signaux dans le Bridge simulé du Studio, lancer l'exemple `games/signals` ([REALITY](docs/fr/REALITY.md),
+[REALITY-OPS](docs/fr/REALITY-OPS.md)). Un jeu sans signaux ne paie rien.
+
+**v4.1 « Clarity » :** une release de maintenance qui rend web-scumm plus facile à lire, relire et
 contribuer. Elle ne change ni le gameplay ni un contrat public : le moteur, le joueur et le solveur sont découpés en
 modules d'une responsabilité chacun, chaque accès indexé de `src/` est vérifié, les données venues de l'extérieur
 commencent en `unknown`, le code est formaté et vérifié par Biome, et le comportement de la 4.0.0 (témoins, preuves,
@@ -71,7 +79,7 @@ et un deuxième jeu, « Le Marché de nuit ».
 | Un jeu fait sur la release précédente, mis à jour, sa sauvegarde jouée jusqu'à la fin en 4.0 | un job de CI à chaque push (`npm run upgrade-check`) |
 | « Le Phare », le jeu indépendant : 5 lieux, anglais et français | `release --commercial` vert : preuve sur 85 états, 202 textes par langue, 62 fichiers verrouillés |
 | L'API publique | 92 noms dans 4 entrées, 23 outils Studio/MCP, tenus par `tests/api-surface.test.ts` |
-| Les sauvegardes | une par release de la 3.0.0 à la 4.1.0 se charge et atteint la fin |
+| Les sauvegardes | une par release de la 3.0.0 à la 4.1.1 se charge et atteint la fin |
 | La première visite du joueur | 122 Ko de JavaScript compressé (153 en 3.7.0), tenus par `initialJsKB` |
 | L'archive | chaque fichier justifié : code, assets verrouillés, polices, icônes, `licenses/` |
 | Le corpus de nuit | 1 503 jeux aléatoires en quatre tranches, 910 comparés à la recherche explicite, 0 divergence |
@@ -137,7 +145,7 @@ Il faut Node 22+, Python 3 pour les outils d'image (`pip install -r requirements
 (la publication sur npm viendra, puis `npx create-web-scumm mon-jeu`) :
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.0/web-scumm-4.1.0.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.1/web-scumm-4.1.1.tgz
 npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # puis npm run verify, npm run build, npm run release
@@ -224,9 +232,9 @@ assistant.
 
 ## Releases
 
-Release actuelle : [v4.1.0 « Clarity »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.0) : le même moteur, plus
-facile à lire, relire et contribuer (`docs/fr/ARCHITECTURE.md`, `docs/fr/CODE_TOUR.md`). L'histoire de la v1.3 à la
-v4.1 est dans la
+Release actuelle : [v4.1.1 « Reality Bridge »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.1) : un jeu réagit
+au monde extérieur par un ensemble fini de signaux signés (`docs/fr/REALITY.md`), sur le code clarifié de la 4.1.0.
+L'histoire de la v1.3 à la v4.1 est dans la
 [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt

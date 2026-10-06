@@ -508,13 +508,19 @@ capped; 464 index accesses checked in `src/`; no explicit `any` in `src/` or `to
 golden saves as 4.0.0 on 15 games and 13 saves; proof time +1%; first visit 122 → 120 KB; coverage floors with every
 branch of conditions, saves, migrations and diffs; 340 of 348 mutants killed, the 8 others explained.
 
-## v4.1.1 "Reality Bridge" (planned, D14): a game reacts to the world outside
+## v4.1.1 "Reality Bridge" (shipped 6 October 2026, D14): a game reacts to the world outside
 
 Codex's plan `docs/dev/PLAN-4.1-REALITY-BRIDGE.md`, on the clarified code: a game declares a finite alphabet of
 signals; a separate Bridge (pairing, Biscuit capabilities, signed events, a journal) delivers them at least once; the
 engine applies each at most once, saves, then acknowledges; a session replays them offline; the solver proves a game
 closed, under a scenario, or against absences and duplicates. A spike settles the envelope, transport and Biscuit
 first. A game without `reality` pays no code and no request. Reported (D12): a deployed Bridge, a real webhook.
+
+As measured at the tag: the spike's choices (a compact EdDSA JWS verified by WebCrypto, 381 bytes gzipped; Biscuit on
+the Bridge, its 49 official validations and the project's 22 signed cases and 9 policy cases giving the same verdict
+in JavaScript and Rust; SSE and a fetch by cursor); crash tests at every boundary of delivery; the sample game proved
+in four worlds; the plan's end-to-end scenario green in Chromium and WebKit (offline reopening on Chromium); the demo
+without a byte of Reality in its first visit or its offline cache.
 
 The project stays on 4.1.x for a while; 4.2 will be the final version.
 

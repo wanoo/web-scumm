@@ -49,6 +49,15 @@ et rend son verdict. Ce dont un état est fait pour la recherche est dans `src/e
 Tests : `tests/solver-contract.test.ts`, `tests/memo.test.ts`, et le comportement de chaque jeu figé par
 `tests/quality-baseline.json` (`npm run quality:baseline -- --check`).
 
+## 8. Un signal du monde extérieur (4.1.1)
+
+`tests/fixtures/signals.ts` déclare trois signaux ; `src/engine/reality/protocol.ts` vérifie un signal signé avant de
+le lire ; `src/engine/reality/client.ts` le vérifie, le donne à `Engine.receive` (`src/engine/core/reality-runtime.ts` :
+appliqué au plus une fois, une entrée de session), attend la sauvegarde durable, puis accuse réception. Le solveur
+propose des signaux selon une politique (`src/engine/tools/solve/scenarios.ts`). Le Bridge de référence est
+`bridge/src/`. Tests : `tests/reality-engine.test.ts` (un crash à chaque frontière), `tests/reality-proof.test.ts`,
+`tests/bridge.test.ts` ; dans le navigateur, `scripts/e2e-reality.mjs`.
+
 ## 7. Trouver le test d'une chose
 
 Une commande : chercher sa clé dans `tests/cmds.test.ts` et `tests/core.test.ts`. Une règle de couche :

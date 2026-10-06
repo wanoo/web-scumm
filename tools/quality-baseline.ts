@@ -85,7 +85,7 @@ async function measure(): Promise<Baseline> {
   }
   const { game: demo, layouts: demoLayouts, commands } = await import('../games/demo');
   for (const f of readdirSync(resolve(ROOT, 'tests/fixtures/saves'))
-    .filter((n) => n.endsWith('.json'))
+    .filter((n) => n.startsWith('demo-') && n.endsWith('.json'))
     .sort()) {
     const golden = JSON.parse(readFileSync(resolve(ROOT, 'tests/fixtures/saves', f), 'utf8'));
     const state = parseSave(demo, golden.envelope);

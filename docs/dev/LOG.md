@@ -2110,3 +2110,34 @@ Platform"; human gates reported, not blocking (D12).
   a signed tag, GitHub's immutable releases setting.
 
 → next: Claude · tag v4.1.0, then 4.1.1 "Reality Bridge" (its branches are pushed, stacked on this one)
+
+## #96 · 2026-10-06 · Claude · proposal · 4.1.1 "Reality Bridge"
+
+- Codex's Reality Bridge plan, adopted as 4.1.1 on the clarified code (D14), in its six lots, each on its branch
+  (`feature/reality-spike`, `-protocol`, `-engine`, `-proof`, `-bridge`, `-studio`), stacked, then `release/4.1.1`
+  with 4.1.0 merged in. The intermediate branches went red on two things fixed on the way (the POR test's timeout on a
+  shared runner, a file left unformatted between two lots); the stack is merged through its top, green as a whole.
+- The spike settled §15 with measures (`docs/dev/reality-spike.md`, D15–D17): a compact EdDSA JWS on WebCrypto
+  (Ed25519 present in Node, Chromium and WebKit; 381 bytes gzipped in the player), Biscuit on the Bridge from its
+  WebAssembly build loaded by hand (no experimental flag), cross-checked by the Rust crate on the 49 official
+  validations, SSE plus a fetch by cursor, a JSON-lines journal, the Bridge as its own package, a required signal only
+  with a proved fallback.
+- What the tests found and the code now holds: Biscuit's dates are whole seconds, so an expiry check with `<=` let a
+  token through for the last second: expiry is strict now; Biscuit's default run limit (1 ms) turned valid
+  authorisations into timeouts on a CI runner: explicit limits in JavaScript and Rust; a game reopened after a crash
+  between its save and its acknowledgement never got the signal again to acknowledge it: a loaded game acknowledges
+  what it holds first; in WebKit the link connected before the player pressed Continue and the client read a state
+  that did not exist yet: it waits for a game in progress, and restarts after any failure.
+- A game without `reality` pays nothing that matters: the engine's `receive`, the client, the transport and the menu
+  are a lazy chunk under `assets/reality/`, out of its offline cache (detected from the game's sources at build time);
+  the demo's first visit grows 0.5 KB for the hooks.
+- Deviations: the link (player id, capability) lives in localStorage, never in a save (the plan put the player id in
+  the save; a save is exported and shared, a capability must not be); the player's modules are `dom/reality-ui.ts`
+  and `src/engine/reality/` rather than `dom/reality-client.ts`; MCP simulation is `solve`'s `reality` argument
+  rather than new tools; the sample game has one room.
+- SemVer: 4.1.1 adds public names, which would be a minor; the maintainer chose the number, recorded in
+  `docs/en/SUPPORT.md` as a one-off exception.
+- Not done (D12): a Bridge deployed behind HTTPS with a phone linked to it, a real email or webhook connector, the
+  outside review, the field passes, a signed tag.
+
+→ next: Claude · merge on green CI, tag v4.1.1

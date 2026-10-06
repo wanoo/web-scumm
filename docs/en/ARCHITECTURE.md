@@ -73,6 +73,14 @@ every reachable state and names the softlocks. The search keys a state only on w
 corpus of `npm run audit:corpus`). The path from `solve()` to a verdict is in `src/engine/BOUNDARIES.md`, "Inside the
 solver".
 
+## Signals from outside (4.1.1)
+
+A game may declare signals (`reality`, `docs/en/REALITY.md`). A separate Reality Bridge (`bridge/src/`) authorises
+connectors with Biscuit and signs each accepted fact; the player verifies the signature before reading anything
+(`src/engine/reality/protocol.ts`), and the engine applies the signal at most once, as a session entry, saved before
+it is acknowledged. The engine never touches the network: the transport is a port (`WorldSignalPort`), and a game
+without `reality` loads none of this code.
+
 ## Public and internal
 
 Public: `web-scumm/content` (the types and `defineGame`), `web-scumm/player` (boot), `web-scumm/minigames`,

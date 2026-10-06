@@ -4,7 +4,8 @@ What web-scumm promises from 4.0 on, and how it changes.
 
 ## What is stable
 
-The public API (`docs/en/API.md`): the four entries `web-scumm/content`, `/player`, `/minigames`, `/testing`, the
+The public API (`docs/en/API.md`): the entries `web-scumm/content`, `/player`, `/minigames`, `/testing` and, since
+4.1.1, `/reality`, the
 authoring schema (`schemaVersion: 3`), the save envelope, the Studio/MCP tools' schemas and the `web-scumm` command.
 Everything else under `src/engine` is internal: it may change in any release, and a game that reaches it through the
 `@engine/*` alias takes that risk.
@@ -16,6 +17,11 @@ Semantic versioning on the public API:
 - a **patch** (4.0.x) fixes; it never changes a public name or a format;
 - a **minor** (4.x) adds; it may deprecate, never remove;
 - a **major** (5.0) may remove what a minor deprecated, and says how to move in `docs/en/UPGRADING.md`.
+
+One exception, chosen by the maintainer (D14): **4.1.1 adds** (the entry `web-scumm/reality`, the content's `reality`,
+the save's `reality`, the session's signal entry, the MCP's `solve` argument `reality`), which would be a minor. The
+4.1.x line is where the project stays until 4.2, the final version. Every addition is optional, and nothing of 4.1.0
+changes.
 
 Supported: the current major's last minor gets fixes; the previous minor gets security fixes for three months after
 the next one. The 3.x line ended with 3.9; its games move to 4.0 with `web-scumm migrate` (nothing to rewrite for a
