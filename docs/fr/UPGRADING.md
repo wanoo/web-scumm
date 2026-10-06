@@ -235,3 +235,11 @@ Rien à changer : chaque ajout est optionnel. Un jeu qui veut des signaux de l'e
 (`docs/fr/REALITY.md`), ajoute des scénarios sous `reality/scenarios/`, et fait tourner un Bridge (`web-scumm bridge`, ou
 le paquet `web-scumm-bridge`). Une sauvegarde 4.1.0 se charge ; elle reçoit un état `reality` seulement quand un signal
 est appliqué.
+
+## 14. De la 4.1.1 à la 4.1.2 « Bridge fiable »
+
+Rien à changer dans un jeu. Pour un Bridge : un `config.json` 4.1.1 sert et accorde encore (`grant` y lit la clé racine
+tant qu'`init` n'a pas écrit un `root.key`) ; derrière un proxy inverse, lancer `serve --trust-proxy` pour que les
+limites par adresse voient l'adresse du client ; `doctor` lit le journal, `compact` le réduit, Bridge arrêté. Le paquet
+`web-scumm-bridge` tourne sur Node seul désormais (sans `tsx`). Une sauvegarde 4.1.1 se charge ; elle reçoit l'id de son
+joueur au signal suivant.

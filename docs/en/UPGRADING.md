@@ -228,3 +228,11 @@ those of 4.0.0 (`tests/api-surface.json` is the same); `npm install` of the new 
 Nothing to change: every addition is optional. A game that wants signals from outside declares `reality`
 (`docs/en/REALITY.md`), adds scenarios under `reality/scenarios/`, and runs a Bridge (`web-scumm bridge`, or the
 package `web-scumm-bridge`). A 4.1.0 save loads; it gets a `reality` state only when a signal is applied.
+
+## 14. From 4.1.1 to 4.1.2 "Reliable Bridge"
+
+Nothing to change in a game. For a Bridge: a 4.1.1 `config.json` still serves and still grants (`grant` reads the
+root key from it until `init` writes a `root.key`); behind a reverse proxy, start `serve --trust-proxy` so the limits
+per address see the client's address; `doctor` reads the journal, `compact` shrinks it with the Bridge stopped. The
+package `web-scumm-bridge` runs on Node alone now (no `tsx`). A 4.1.1 save loads; it gets its player id on the next
+signal.

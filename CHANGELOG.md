@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 4.1.2 — 2026-10-06
+
+"Reliable Bridge" (LOG #97–#98): the Reality Bridge of 4.1.1 after an outside review relayed by the maintainer and
+checked against the code (three of its four P0s real, the fourth shown not to apply), and the first release of the
+plan towards a professional engine for a small studio: nothing added to the content, the commands or the scripts;
+what 4.1.1 promised made true under concurrency, across devices, through a rotation and under load, then measured
+by mutation. Nothing to change in a game; a 4.1.1 Bridge keeps its `config.json` and its journal.
+
 ### Fixes
 
 - **Bridge: one proposal at a time per player.** In 4.1.1 `propose` awaited the Biscuit check and the signature
