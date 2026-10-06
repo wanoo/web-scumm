@@ -2,8 +2,19 @@
 // the acknowledgements, and revocations. Behind an interface: `MemoryBridgeStore` for the tests, `JsonlBridgeStore`
 // for a reference server (an append-only JSON-lines file, fsync'd before a write is reported done, replayed at start).
 // No secret is stored in clear: a player's capability is kept as its SHA-256.
-import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, writeSync } from 'node:fs';
+import {
+  closeSync,
+  existsSync,
+  fsyncSync,
+  mkdirSync,
+  openSync,
+  readFileSync,
+  renameSync,
+  truncateSync,
+  writeSync,
+} from 'node:fs';
 import { dirname } from 'node:path';
+import type { WorldSignalV1 } from '../../src/engine/reality/protocol';
 
 export interface Pairing {
   code: string;
@@ -19,6 +30,8 @@ export interface Player {
   gameId: string;
   capabilityHash: string;
   capabilityExpiresAt: number;
+  /** When the link was made (4.1.2): a capability lives at most `capabilityMaxMs` from it, renewals included. */
+  issuedAt?: number;
   revoked?: boolean;
 }
 export interface JournalEntry {
@@ -28,6 +41,13 @@ export interface JournalEntry {
   dedupeKey: string;
   jws: string;
   at: number;
+  /** The key that signed `jws` (4.1.2); absent in a 4.1.1 journal line. */
+  kid?: string;
+  /**
+   * The payload as signed (4.1.2): after a rotation the Bridge signs it again with its current key at delivery, so a
+   * signal waiting for a player never outlives the key that first signed it. Absent in a 4.1.1 line: delivered as is.
+   */
+  payload?: WorldSignalV1;
 }
 
 export type BridgeEvent =
@@ -111,34 +131,104 @@ export class MemoryBridgeStore implements BridgeStore {
   }
 }
 
-/** A JSON-lines journal: every event appended and fsync'd, the whole file replayed when the Bridge starts. */
+/** Whether an event is about a player (its link, its journal, its acknowledgements, its pairing). */
+export function aboutPlayer(e: BridgeEvent, playerId: string): boolean {
+  if (e.t === 'pairing') return e.p.playerId === playerId;
+  if (e.t === 'player') return e.p.playerId === playerId;
+  if (e.t === 'signal') return e.e.playerId === playerId;
+  if (e.t === 'revoke-token') return false;
+  return e.playerId === playerId;
+}
+
+function parseLine(line: string, n: number): BridgeEvent {
+  try {
+    const e = JSON.parse(line) as BridgeEvent;
+    if (!e || typeof e !== 'object' || typeof e.t !== 'string') throw new Error('not an event');
+    return e;
+  } catch (err) {
+    throw new Error(`journal line ${n} is not an event (${err instanceof Error ? err.message : 'unreadable'})`);
+  }
+}
+
+/** What `inspectJournal` says of a file: its lines, what they hold, and whether its end was cut by a crash. */
+export interface JournalReport {
+  lines: number;
+  players: number;
+  signals: number;
+  /** A last line without its newline that does not parse: a write a crash cut short (`JsonlBridgeStore` drops it). */
+  torn: boolean;
+  /** A complete line that does not parse: corruption; the Bridge refuses to start on it. */
+  corrupt?: string;
+}
+
+/** Reads a journal without changing it (the `doctor` command). */
+export function inspectJournal(file: string): JournalReport {
+  const r: JournalReport = { lines: 0, players: 0, signals: 0, torn: false };
+  if (!existsSync(file)) return r;
+  const { complete, tail } = splitLines(readFileSync(file, 'utf8'));
+  const players = new Set<string>();
+  for (const [i, line] of complete.entries()) {
+    r.lines++;
+    try {
+      const e = parseLine(line, i + 1);
+      if (e.t === 'player') players.add(e.p.playerId);
+      else if (e.t === 'signal') r.signals++;
+      else if (e.t === 'forget') players.delete(e.playerId);
+    } catch (err) {
+      r.corrupt ??= err instanceof Error ? err.message : String(err);
+    }
+  }
+  r.players = players.size;
+  if (tail) {
+    try {
+      parseLine(tail, complete.length + 1);
+      r.lines++;
+    } catch {
+      r.torn = true;
+    }
+  }
+  return r;
+}
+
+/** The complete lines of a journal (each ended by a newline) and the fragment after the last newline, if any. */
+function splitLines(text: string): { complete: string[]; tail: string } {
+  const lines = text.split('\n');
+  const tail = lines.pop() ?? '';
+  return { complete: lines.filter((l) => l.trim()), tail: tail.trim() ? tail : '' };
+}
+
+/**
+ * A JSON-lines journal: every event appended and fsync'd, the whole file replayed when the Bridge starts. A last line
+ * cut short by a crash (no newline, not JSON) is dropped and reported, never a reason not to start; any other line
+ * that does not parse is corruption, and the Bridge refuses to start on it rather than guess.
+ */
 export class JsonlBridgeStore extends MemoryBridgeStore {
-  constructor(private file: string) {
+  constructor(
+    private file: string,
+    private o: { onRepair?: (what: string) => void } = {},
+  ) {
     super();
     mkdirSync(dirname(file), { recursive: true });
-    if (existsSync(file))
-      for (const line of readFileSync(file, 'utf8').split('\n'))
-        if (line.trim()) {
-          // The pairing's capability is never written: a restart forgets an unclaimed one (the player pairs again).
-          this.apply(JSON.parse(line) as BridgeEvent);
-        }
+    if (!existsSync(file)) return;
+    const text = readFileSync(file, 'utf8');
+    const { complete, tail } = splitLines(text);
+    // The pairing's capability is never written: a restart forgets an unclaimed one (the player pairs again).
+    for (const [i, line] of complete.entries()) this.apply(parseLine(line, i + 1));
+    if (!tail) return;
+    try {
+      this.apply(parseLine(tail, complete.length + 1));
+    } catch {
+      truncateSync(file, Buffer.byteLength(text) - Buffer.byteLength(tail));
+      this.o.onRepair?.(`a last line cut short by a crash (${Buffer.byteLength(tail)} bytes) was dropped`);
+    }
   }
+
   override write(e: BridgeEvent): void {
     // Forgetting a player rewrites the journal without any line about it (atomically: a new file, fsync'd, renamed),
-    // so the deletion is real, not a tombstone over data still on disk.
+    // so the deletion is real, not a tombstone over data still on disk. Each line is read, never matched as text.
     if (e.t === 'forget') {
-      const kept = readFileSync(this.file, 'utf8')
-        .split('\n')
-        .filter((l) => l.trim() && !l.includes(JSON.stringify(e.playerId)));
-      const tmp = `${this.file}.tmp`;
-      const fd = openSync(tmp, 'w');
-      try {
-        writeSync(fd, kept.map((l) => `${l}\n`).join(''));
-        fsyncSync(fd);
-      } finally {
-        closeSync(fd);
-      }
-      renameSync(tmp, this.file);
+      const { complete } = splitLines(readFileSync(this.file, 'utf8'));
+      this.rewrite(complete.filter((l, i) => !aboutPlayer(parseLine(l, i + 1), e.playerId)));
       this.apply(e);
       return;
     }
@@ -151,5 +241,53 @@ export class JsonlBridgeStore extends MemoryBridgeStore {
       closeSync(fd);
     }
     this.apply(e);
+  }
+
+  /**
+   * Rewrites the journal from what the Bridge holds, dropping what nobody needs any more: pairings past their time,
+   * earlier versions of a player's line, and the signals acknowledged and older than `retentionMs` (a player's last
+   * signal always stays: the next sequence is counted from it). Returns the line counts.
+   */
+  compact(o: { now?: number; retentionMs?: number } = {}): { before: number; after: number } {
+    const now = o.now ?? Date.now();
+    const retention = o.retentionMs ?? 90 * 24 * 3_600_000;
+    const before = splitLines(existsSync(this.file) ? readFileSync(this.file, 'utf8') : '').complete.length;
+    const events: BridgeEvent[] = [];
+    for (const p of this.pairings.values())
+      if (p.expiresAt >= now) events.push({ t: 'pairing', p: { ...p, capability: undefined } });
+    for (const p of this.players.values()) events.push({ t: 'player', p });
+    for (const id of this.revoked) events.push({ t: 'revoke-token', id });
+    for (const [playerId, j] of this.journal) {
+      const acked = this.acked(playerId);
+      const kept = j.filter((e, i) => i === j.length - 1 || e.sequence > acked || e.at >= now - retention);
+      for (const e of kept) events.push({ t: 'signal', e });
+      this.journal.set(playerId, kept);
+      if (acked) events.push({ t: 'ack', playerId, through: acked });
+    }
+    this.rewrite(events.map((e) => JSON.stringify(e)));
+    return { before, after: events.length };
+  }
+
+  /** A new file with these lines, fsync'd, renamed over the journal, the directory fsync'd where the system allows. */
+  private rewrite(lines: string[]): void {
+    const tmp = `${this.file}.tmp`;
+    const fd = openSync(tmp, 'w');
+    try {
+      writeSync(fd, lines.map((l) => `${l}\n`).join(''));
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
+    }
+    renameSync(tmp, this.file);
+    try {
+      const dir = openSync(dirname(this.file), 'r');
+      try {
+        fsyncSync(dir);
+      } finally {
+        closeSync(dir);
+      }
+    } catch {
+      /* a directory cannot be opened for fsync on every system (Windows): the rename itself is still atomic */
+    }
   }
 }

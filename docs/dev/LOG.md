@@ -2141,3 +2141,26 @@ Platform"; human gates reported, not blocking (D12).
   outside review, the field passes, a signed tag.
 
 → next: Claude · merge on green CI, tag v4.1.1
+
+## #97 · 2026-10-06 · Claude · proposal · 4.1.2 "Bridge fiable"
+
+- The maintainer asked for a hard critique of the whole project and a plan towards professional quality, framed by
+  three decisions: the target is a reliable engine for a small studio; nothing leaves the core; the cadence stays
+  one topic branch → green CI → merge. The audit (six passes: core, tooling, Bridge, docs, CI, UX) and the plan
+  (4.1.2 Bridge → 4.1.3 gates → 4.1.4 engine honesty → 4.1.5 core → 4.1.6 tooling → 4.1.7 docs → 4.2.0 final) are
+  the maintainer's plan file; what each release changes will be in this LOG as it lands.
+- An outside review of 4.1.1's Bridge, relayed by the maintainer, checked against the code (charter rule 5): three of
+  its four P0s are real (proposals not atomic; the save's cursor not bound to the player; rotation neither refreshes
+  the keyring nor re-signs); the fourth (a signal lost between the SSE backlog and the subscription) is not: in
+  `server.ts` the backlog, its sending and the subscription run in one synchronous tick. Its P1s hold (JSONL
+  deletion by substring, a torn last line, anonymous pairings without a limit, the root Biscuit key in
+  `config.json`, `unlink` that only forgets, subscriptions never revalidated, a `required` fallback proved only to
+  exist, `bridge/src` outside coverage and mutation).
+- 4.1.2 takes them in six lots, one branch each. Lot 1, `fix/bridge-transactions`: `bridge/src/lock.ts` (one
+  section at a time per key), `propose` decides deduplication, quotas, sequence, signature and the journal line
+  under the player's lock and re-checks the player and the token inside it, `confirmPairing` under the code's lock.
+  Reproduced before the fix: 20 concurrent proposals all got sequence 1. Tests: 100 concurrent distinct proposals
+  (sequences 1..100), 50 with one `dedupeKey` (one accepted), a proposal overlapping a revocation (404), a code
+  confirmed twice at once (one 409).
+
+→ next: Claude · lot 2 (the link's identity in the save), then lots 3–6

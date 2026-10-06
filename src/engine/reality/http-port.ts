@@ -62,11 +62,12 @@ export function httpPort(o: HttpPortOptions): WorldSignalPort {
           if (o.mode === 'poll') {
             const r = await f(`${base}v1/signals?after=${cursor}`, { headers: auth, signal });
             if (!r.ok) throw new Error(`Bridge: ${r.status}`);
-            const { signals } = (await r.json()) as { signals: string[] };
+            // `sequences` (a 4.1.2 Bridge) says where each signal stands; a 4.1.1 Bridge sends them contiguous.
+            const { signals, sequences } = (await r.json()) as { signals: string[]; sequences?: number[] };
             o.onStatus?.('open');
-            for (const jws of signals) {
-              cursor++;
-              yield jws;
+            for (let i = 0; i < signals.length; i++) {
+              cursor = sequences?.[i] ?? cursor + 1;
+              yield signals[i]!;
             }
           } else {
             const r = await f(`${base}v1/events?after=${cursor}`, {

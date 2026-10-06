@@ -7,7 +7,7 @@ import { FakePresenter, MemoryStore, type WorldSignalPort } from '@engine/core/p
 import { parseSave, saveEnvelope } from '@engine/core/save';
 import { stateDigest } from '@engine/core/diff';
 import type { ExternalEntry, GameState, Session } from '@engine/core/types';
-import { importBridgeKey, signSignal, type WorldSignalV1 } from '@engine/reality/protocol';
+import { CLOCK_SKEW_MS, importBridgeKey, signSignal, type WorldSignalV1 } from '@engine/reality/protocol';
 import { RealityClient } from '@engine/reality/client';
 import { compact } from '@engine/core/reality-runtime';
 import { labelOf, replay } from '@engine/tools/replay';
@@ -87,6 +87,21 @@ describe('Engine.receive', () => {
     const st = { cursor: 0, applied: { a: 1, b: 2, d: 4 } };
     compact(st);
     expect(st).toEqual({ cursor: 2, applied: { d: 4 } });
+  });
+
+  it('the first delivery binds the save to its player; a delivery for another player is a mismatch', async () => {
+    const e = await engine();
+    expect(await e.receive({ ...x(1), playerId: PLAYER })).toBe('applied');
+    expect(e.state.reality).toEqual({ playerId: PLAYER, cursor: 1, applied: {} });
+    // Another player's sequence 1 is neither "already applied" nor applied: the save is not that player's stream.
+    expect(await e.receive({ ...x(1, 'mail.answer.wrong', 'other-1'), playerId: 'p-other' })).toBe('mismatch');
+    expect(await e.receive({ ...x(2, 'mail.answer.wrong', 'other-2'), playerId: 'p-other' })).toBe('mismatch');
+    expect(e.state.reality).toEqual({ playerId: PLAYER, cursor: 1, applied: {} });
+    expect(e.state.flags.wrong_count).toBeUndefined();
+    expect(e.session?.log.filter((l) => 'external' in l)).toHaveLength(1);
+    // The solver's worlds name no player: they apply to any save, and bind none.
+    expect(await e.receive(x(2, 'mail.answer.wrong'))).toBe('applied');
+    expect(e.state.reality?.playerId).toBe(PLAYER);
   });
 
   it('a save keeps the link and nothing else: no token, no payload', async () => {
@@ -181,7 +196,7 @@ describe('the client: verify, apply, save, acknowledge', () => {
 
   it('a tampered or foreign signal is refused and never acknowledged; an expired one is skipped and moves on', async () => {
     const b = await fakeBridge();
-    await b.sign(1, 'mail.answer.wrong', { expiresAt: NOW - 1 });
+    await b.sign(1, 'mail.answer.wrong', { expiresAt: NOW - CLOCK_SKEW_MS - 1 });
     await b.sign(2, 'mail.answer.correct');
     const good = b.journal[1]!;
     const [h, p, s] = good.split('.') as [string, string, string];
@@ -199,7 +214,7 @@ describe('the client: verify, apply, save, acknowledge', () => {
     });
     await c.run();
     expect(refused).toEqual(['signature', 'expired']);
-    expect(e.state.reality).toEqual({ cursor: 2, applied: {} });
+    expect(e.state.reality).toEqual({ playerId: PLAYER, cursor: 2, applied: {} });
     expect(
       e.session?.log
         .filter((l) => 'external' in l)
@@ -254,6 +269,51 @@ describe('the client: verify, apply, save, acknowledge', () => {
     expect(e2.state.flags.rang_1).toBe(true);
     expect(e2.state.flags.rang_2).toBeUndefined();
     expect(b.acks).toEqual([1]);
+  });
+
+  it('a save bound to another player is neither acknowledged nor changed under this link, until it is relinked', async () => {
+    const b = await fakeBridge();
+    await b.sign(1, 'hook.bell');
+    await b.sign(2, 'mail.answer.correct');
+    // Player A's save, cursor 1, imported on a device linked as player B.
+    const store = new MemoryStore();
+    const a = await engine(store);
+    expect(await a.receive({ ...x(1, 'hook.bell'), playerId: 'p-a' })).toBe('applied');
+    const envelope = JSON.stringify(saveEnvelope(a.game, a.state));
+    const savedA = () => parseSave(a.game, JSON.parse(envelope));
+    const e = await engine(store, savedA());
+    const mismatches: string[] = [];
+    const client = () =>
+      new RealityClient({
+        engine: e,
+        store,
+        port: b.port(),
+        keyring: [b.key],
+        playerId: PLAYER,
+        now: () => NOW,
+        onMismatch: (p) => mismatches.push(p),
+      });
+    await client().run();
+    expect(mismatches).toEqual(['p-a']);
+    expect(b.acks).toEqual([]); // not even the cursor the save holds: it is A's, not B's
+    expect(e.state.reality).toEqual({ playerId: 'p-a', cursor: 1, applied: {} });
+    expect(e.state.flags.vault_open).toBeUndefined();
+    // Relinked (the pause menu's choice): the link state starts over for B, as a loaded game.
+    const s = JSON.parse(JSON.stringify(e.state)) as GameState;
+    s.reality = { playerId: PLAYER, cursor: 0, applied: {} };
+    await e.load(s);
+    await client().run();
+    expect(mismatches).toHaveLength(1);
+    expect(b.acks).toEqual([1, 2]);
+    expect(e.state.reality).toEqual({ playerId: PLAYER, cursor: 2, applied: {} });
+    expect(e.state.flags.vault_open).toBe(true);
+    // A's save loaded again while B's link is open: the next signal stops the link instead of being applied.
+    await b.sign(3, 'mail.answer.wrong');
+    await e.load(savedA());
+    const late = client();
+    await late.run();
+    expect(mismatches).toEqual(['p-a', 'p-a']);
+    expect(b.acks).toEqual([1, 2]);
   });
 
   it('a delivery repeated after the acknowledgement (the Bridge did not get it) is recognised', async () => {

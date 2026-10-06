@@ -50,6 +50,11 @@ proves the game in three kinds of world:
 Each must be solved with no softlock and never truncated. The solver hands the engine the signal itself: no service
 is contacted. In the Studio's MCP, `solve` takes `reality` to try a world.
 
+`validate` checks that a required signal's `fallback` names a rule; the content lint (`npm run lint`, in
+`verify:game`) checks that the closed witness plays it. A game that finishes without the world outside by another
+route gets `fallback-unplayed`, a warning: the fallback is declared on a rule nobody needs, often one that cannot
+run; declare the action the witness plays, or make the declared one the way through.
+
 ## Try it in the Studio
 
 The Play tab shows a **Reality** panel for a game with `reality`: a button per signal, faults to add (a delay, a
@@ -69,15 +74,27 @@ acknowledge this game's signals, under `<game>:reality-link` in localStorage. Th
 a session. A new game on the same device keeps the link.
 
 The interface texts are `realityLink`, `realityStart`, `realityCode`, `realityWaiting`, `realityOpen`,
-`realityOffline`, `realityRevoked`, `realityNone`, `realitySimulated`, `realityUnlink` in the game's `ui`
-(English defaults in `src/engine/dom/reality-ui.ts`).
+`realityOffline`, `realityRevoked`, `realityNone`, `realitySimulated`, `realityUnlink`, `realityMismatch`,
+`realityRelink` in the game's `ui` (English defaults in `src/engine/dom/reality-ui.ts`).
+
+The player verifies each signal with the Bridge's keys, each within its window, and a signal's expiry, with five
+minutes of tolerance for the device's clock (`CLOCK_SKEW_MS` in `src/engine/reality/protocol.ts`, the same in the
+Rust cross-check). When a signal names a key the keyring does not hold (the Bridge rotated while the link was open),
+the client asks for the keys once before refusing it.
 
 ## What the session and the save hold
 
-A signal is an entry of the session (`{ external: { id, sequence, signal, source, receivedAt } }`): `npm run replay`
-applies it offline, with no Bridge. The save keeps the last sequence received without a gap and the ids above it
-(`GameState.reality`), so a signal delivered again (the Bridge delivers at least once) is recognised and not applied
-twice.
+A signal is an entry of the session (`{ external: { id, sequence, signal, source, receivedAt, playerId } }`):
+`npm run replay` applies it offline, with no Bridge. The save keeps the last sequence received without a gap and the
+ids above it (`GameState.reality`), so a signal delivered again (the Bridge delivers at least once) is recognised and
+not applied twice.
+
+The first signal binds the save to its pseudonymous player (`GameState.reality.playerId`, the `p-…` the Bridge gave
+at pairing; never the capability). A save that reaches a device linked as someone else (imported from another
+device, or saved before an unlink and a new pairing) is a **mismatch**: nothing of it is applied or acknowledged,
+the game plays on, and the pause menu's "World link" offers to use this device's link with that save; its link
+state then starts over for this player (cursor 0), and the signals whose effect the save already has are not
+applied again. The solver's worlds name no player, so they bind nothing.
 
 ## The API
 

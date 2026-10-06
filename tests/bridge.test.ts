@@ -1,7 +1,7 @@
 // The reference Bridge (4.1.1, bridge/src/), over real HTTP on a free port: pairing, signals proposed under a
 // Biscuit or by a signed webhook, deduplication, the fetch by cursor and SSE, acknowledgements, revocation, quotas,
 // sizes, export and deletion by player, a restart on its journal, and a log with no secret.
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -11,12 +11,12 @@ import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import { manifestHash, realityManifest } from '@engine/reality/manifest';
 import { importBridgeKey } from '@engine/reality/protocol';
 import { RealityClient } from '@engine/reality/client';
-import { httpPort } from '@engine/reality/http-port';
+import { httpPort, sseEvents } from '@engine/reality/http-port';
 import { Bridge, type BridgeConfig, type BridgeLog } from '../bridge/src/bridge';
 import { biscuitLib } from '../bridge/src/biscuit';
 import { grantToken } from '../bridge/src/policy';
-import { bridgeServer, webhookSignature } from '../bridge/src/server';
-import { JsonlBridgeStore, MemoryBridgeStore, type BridgeStore } from '../bridge/src/store';
+import { bridgeServer, type ServeOptions, webhookSignature } from '../bridge/src/server';
+import { inspectJournal, JsonlBridgeStore, MemoryBridgeStore, type BridgeStore } from '../bridge/src/store';
 import { signals, signalsLayouts } from './fixtures/signals';
 import { createHash } from 'node:crypto';
 
@@ -27,7 +27,17 @@ afterAll(() => {
   for (const d of temps) rmSync(d, { recursive: true, force: true });
 });
 
-async function setup(o: { store?: BridgeStore; limits?: BridgeConfig['limits']; now?: () => number } = {}) {
+async function setup(
+  o: {
+    store?: BridgeStore;
+    limits?: BridgeConfig['limits'];
+    now?: () => number;
+    /** The event key's id (a rotation: a second Bridge on the same store with another key). */
+    kid?: string;
+    previousKeys?: BridgeConfig['previousKeys'];
+    serve?: Partial<ServeOptions>;
+  } = {},
+) {
   const b = await biscuitLib();
   const root = new b.KeyPair(b.SignatureAlgorithm.Ed25519);
   const ev = (await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify'])) as CryptoKeyPair;
@@ -41,7 +51,8 @@ async function setup(o: { store?: BridgeStore; limits?: BridgeConfig['limits']; 
     manifestHash: await manifestHash(manifest),
     audience: 'bridge.test',
     biscuitRootPublicKey: root.getPublicKey().toString(),
-    eventKey: { kid: 'k1', privateKey: ev.privateKey, raw },
+    eventKey: { kid: o.kid ?? 'k1', privateKey: ev.privateKey, raw },
+    ...(o.previousKeys ? { previousKeys: o.previousKeys } : {}),
     adminTokenHash: createHash('sha256').update(admin).digest('hex'),
     policyVersion: '1',
     ...(o.limits ? { limits: o.limits } : {}),
@@ -73,6 +84,7 @@ async function setup(o: { store?: BridgeStore; limits?: BridgeConfig['limits']; 
   const server = bridgeServer(bridge, {
     origins: ['http://game.test'],
     webhooks: { webhook: { secret: hookSecret, token: hookToken, source: 'webhook', map: { bell: 'hook.bell' } } },
+    ...o.serve,
   });
   await new Promise<void>((ok) => server.listen(0, '127.0.0.1', ok));
   servers.push(server);
@@ -251,6 +263,182 @@ describe('the reference Bridge', () => {
     expect((await t.propose(link.playerId, 'mail.answer.wrong', 'e')).status).toBe(429); // three this minute
   });
 
+  it('sequences concurrent proposals one by one: no shared sequence, one acceptance per dedupeKey', async () => {
+    // 4.1.1 awaited the Biscuit check and the signature between reading the last sequence and writing the journal:
+    // concurrent proposals all took sequence 1, and the player's client then skipped them as already seen.
+    const t = await setup();
+    const link = await t.pair();
+    const body = (dedupeKey: string) => ({
+      playerId: link.playerId,
+      signal: 'mail.answer.wrong',
+      source: 'mail',
+      dedupeKey,
+    });
+    const distinct = await Promise.all(Array.from({ length: 100 }, (_, i) => t.bridge.propose(t.mail, body(`m:${i}`))));
+    expect(distinct.every((r) => !r.duplicate)).toBe(true);
+    expect(new Set(distinct.map((r) => r.sequence)).size).toBe(100);
+    expect((await t.bridge.signals(link.capability, 0)).map((s) => s.sequence)).toEqual(
+      Array.from({ length: 100 }, (_, i) => i + 1),
+    );
+    const same = await Promise.all(Array.from({ length: 50 }, () => t.bridge.propose(t.mail, body('once'))));
+    expect(same.filter((r) => !r.duplicate)).toHaveLength(1);
+    expect(new Set(same.map((r) => r.id)).size).toBe(1);
+    expect(await t.bridge.signals(link.capability, 100)).toHaveLength(1);
+  });
+
+  it('a proposal that overlaps a revocation is refused; a code confirmed twice at once is confirmed once', async () => {
+    const t = await setup();
+    const link = await t.pair();
+    const inFlight = t.bridge.propose(t.mail, {
+      playerId: link.playerId,
+      signal: 'mail.answer.correct',
+      source: 'mail',
+      dedupeKey: 'late',
+    });
+    t.bridge.revoke(t.admin, { playerId: link.playerId }); // lands while the proposal awaits its Biscuit check
+    await expect(inFlight).rejects.toMatchObject({ status: 404 });
+    expect(t.bridge.exportPlayer(t.admin, link.playerId).signals).toHaveLength(0);
+    const { code } = t.bridge.startPairing('signals');
+    const both = await Promise.allSettled([
+      t.bridge.confirmPairing(t.mail, code),
+      t.bridge.confirmPairing(t.mail, code),
+    ]);
+    expect(both.map((r) => r.status).sort()).toEqual(['fulfilled', 'rejected']);
+    const rejected = both.find((r) => r.status === 'rejected') as PromiseRejectedResult;
+    expect(rejected.reason).toMatchObject({ status: 409 });
+    const claimed = t.bridge.claimPairing(code);
+    expect(claimed.status).toBe('paired');
+    const confirmed = both.find((r) => r.status === 'fulfilled') as PromiseFulfilledResult<{ playerId: string }>;
+    expect(claimed.status === 'paired' && claimed.playerId).toBe(confirmed.value.playerId);
+  });
+
+  it('the fetch by cursor names each sequence; a stream holds what is proposed while it opens; streams are bounded', async () => {
+    const t = await setup({ limits: { streamsPerPlayer: 1 } });
+    const link = await t.pair();
+    await t.propose(link.playerId, 'mail.answer.correct', 'mail:1');
+    await t.propose(link.playerId, 'mail.answer.wrong', 'mail:2');
+    const got = (await (await t.call('v1/signals?after=1', { token: link.capability })).json()) as {
+      signals: string[];
+      sequences: number[];
+    };
+    expect(got.signals).toHaveLength(1);
+    expect(got.sequences).toEqual([2]);
+    // A stream opened and a signal proposed at once: the stream gets the backlog, then the new one, in order.
+    const stream = t.call('v1/events?after=0', { token: link.capability, headers: { Accept: 'text/event-stream' } });
+    await t.propose(link.playerId, 'mail.answer.wrong', 'mail:3');
+    const res = await stream;
+    expect(res.status).toBe(200);
+    const seen: number[] = [];
+    const events = sseEvents(res.body!);
+    while (seen.length < 3) seen.push(Number((await events.next()).value?.id));
+    expect(seen).toEqual([1, 2, 3]);
+    // A second stream for the same player, over the limit.
+    expect(
+      (await t.call('v1/events?after=0', { token: link.capability, headers: { Accept: 'text/event-stream' } })).status,
+    ).toBe(429);
+    // Revoked: the Bridge ends the open stream itself.
+    await t.call('v1/admin/revoke', {
+      method: 'POST',
+      token: t.admin,
+      body: JSON.stringify({ playerId: link.playerId }),
+    });
+    let ended = false;
+    for (let i = 0; i < 50 && !ended; i++) ended = (await events.next()).done === true;
+    expect(ended).toBe(true);
+  });
+
+  it('a rotation: what waits is delivered under the new key; a link whose keyring is older asks for the keys once', async () => {
+    const store = new MemoryBridgeStore();
+    const before = await setup({ store });
+    const link = await before.pair();
+    await before.propose(link.playerId, 'mail.answer.correct', 'mail:1');
+    const oldKeys = await Promise.all(
+      ((await (await before.call('v1/keys')).json()) as { keys: { kid: string; raw: string }[] }).keys.map((k) =>
+        importBridgeKey(k.kid, k.raw),
+      ),
+    );
+    // The operator rotates: a new key, the previous one listed until its end (already past: the player was away).
+    const after = await setup({
+      store,
+      kid: 'k2',
+      previousKeys: [{ kid: 'k1', raw: before.raw, notAfter: Date.now() - 24 * 3_600_000 }],
+    });
+    await after.propose(link.playerId, 'mail.answer.wrong', 'mail:2', after.mail);
+    const delivered = await after.bridge.signals(link.capability, 0);
+    expect(delivered.map((d) => JSON.parse(atob(d.jws.split('.')[0]!)).kid)).toEqual(['k2', 'k2']);
+    expect(after.bridge.exportPlayer(after.admin, link.playerId).signals.map((s) => s.kid)).toEqual(['k1', 'k2']);
+    // A player that connected before the rotation: its keyring knows k1 only; it asks once, then applies both.
+    const e = new Engine(signals(), signalsLayouts, new FakePresenter(), new MemoryStore());
+    await e.newGame();
+    let asked = 0;
+    const c = new RealityClient({
+      engine: e,
+      store: new MemoryStore(),
+      port: httpPort({ url: after.url, capability: link.capability, mode: 'poll', retryMs: 20 }),
+      keyring: oldKeys,
+      refreshKeys: async () => {
+        asked++;
+        return Promise.all(
+          ((await (await after.call('v1/keys')).json()) as { keys: { kid: string; raw: string }[] }).keys.map((k) =>
+            importBridgeKey(k.kid, k.raw),
+          ),
+        );
+      },
+      playerId: link.playerId,
+    });
+    const run = c.run();
+    for (let i = 0; i < 100 && (e.state.reality?.cursor ?? 0) < 2; i++) await new Promise((r) => setTimeout(r, 20));
+    await c.stop();
+    await run;
+    expect(asked).toBe(1);
+    expect(e.state.reality?.cursor).toBe(2);
+    expect(after.bridge.exportPlayer(after.admin, link.playerId).acked).toBe(2);
+  });
+
+  it('a bad token is refused before an unknown player is named; an address out of failed authentications waits', async () => {
+    const t = await setup({ serve: { perMinutePerIp: 3 } });
+    for (let i = 0; i < 3; i++)
+      expect((await t.propose('p-0000000000000000', 'mail.answer.correct', 'x', 'garbage')).status).toBe(401);
+    const blocked = await t.call('v1/keys');
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get('retry-after')).toBe('60');
+  });
+
+  it('the routes anyone may call are bounded per address; a token holder is not', async () => {
+    const t = await setup({ serve: { perMinutePerIp: 3 } });
+    const link = await t.pair(); // three anonymous calls: the code, its state, its claim
+    expect((await t.call('v1/keys')).status).toBe(429);
+    expect((await t.call('v1/signals?after=0', { token: link.capability })).status).toBe(200);
+  });
+
+  it('codes waiting for a confirmation are bounded, in memory, never written', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-codes-'));
+    temps.push(dir);
+    const file = join(dir, 'journal.jsonl');
+    const t = await setup({ store: new JsonlBridgeStore(file), limits: { pendingPairings: 2 } });
+    const ask = () => t.call('v1/pairings', { method: 'POST', body: JSON.stringify({ gameId: 'signals' }) });
+    expect((await ask()).status).toBe(201);
+    expect((await ask()).status).toBe(201);
+    expect((await ask()).status).toBe(429);
+    expect(existsSync(file) ? readFileSync(file, 'utf8') : '').toBe('');
+  });
+
+  it('a player ends its own link: revoked on the Bridge, not only forgotten; a link has a longest life', async () => {
+    let t0 = Date.now();
+    const t = await setup({ now: () => t0, limits: { capabilityMaxMs: 5_000 } });
+    const link = await t.pair();
+    expect((await t.call('v1/unlink', { method: 'POST', token: link.capability })).status).toBe(204);
+    expect((await t.call('v1/signals?after=0', { token: link.capability })).status).toBe(401);
+    expect((await t.propose(link.playerId, 'mail.answer.correct', 'after')).status).toBe(404);
+    expect(t.logs.some((l) => l.event === 'player.unlinked')).toBe(true);
+    const other = await t.pair();
+    expect((await t.call('v1/signals?after=0', { token: other.capability })).status).toBe(200);
+    t0 += 6_000;
+    const old = await t.call('v1/signals?after=0', { token: other.capability });
+    expect(old.status).toBe(401);
+    expect(await old.json()).toMatchObject({ message: expect.stringMatching(/too old/) });
+  });
+
   it('answers CORS for the game only, and logs no secret', async () => {
     const t = await setup();
     const ok = await t.call('v1/keys', { headers: { Origin: 'http://game.test' } });
@@ -283,12 +471,81 @@ describe('the reference Bridge', () => {
     const link = await t.pair();
     await t.propose(link.playerId, 'mail.answer.correct', 'mail:1');
     const again = await Bridge.start(t.bridge.config, new JsonlBridgeStore(file), { log: () => {} });
-    expect(again.signals(link.capability, 0)).toHaveLength(1);
+    expect(await again.signals(link.capability, 0)).toHaveLength(1);
     expect(readFileSync(file, 'utf8')).not.toContain(link.capability);
     again.forgetPlayer(t.admin, link.playerId);
     expect(readFileSync(file, 'utf8')).not.toContain(link.playerId);
     expect(() => new JsonlBridgeStore(file).player(link.playerId)).not.toThrow();
     expect(new JsonlBridgeStore(file).player(link.playerId)).toBeUndefined();
+  });
+});
+
+describe('the journal file', () => {
+  it('drops a last line cut short by a crash and says so; refuses a corrupt line; forgets by reading, not matching', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-journal-'));
+    temps.push(dir);
+    const file = join(dir, 'journal.jsonl');
+    const t = await setup({ store: new JsonlBridgeStore(file) });
+    const a = await t.pair();
+    const b = await t.pair();
+    await t.propose(a.playerId, 'mail.answer.correct', 'mail:1');
+    // B's dedupeKey is A's id: a deletion that matched text would take B's line with A's.
+    await t.propose(b.playerId, 'mail.answer.correct', a.playerId);
+    const { appendFileSync, writeFileSync } = await import('node:fs');
+    appendFileSync(file, '{"t":"signal","e":{"playerId":"p-00');
+    const repairs: string[] = [];
+    const again = new JsonlBridgeStore(file, { onRepair: (w) => repairs.push(w) });
+    expect(repairs).toEqual([expect.stringMatching(/cut short by a crash/)]);
+    expect(readFileSync(file, 'utf8').endsWith('}\n')).toBe(true);
+    expect(again.signals(a.playerId, 0)).toHaveLength(1);
+    expect(inspectJournal(file)).toMatchObject({ players: 2, signals: 2, torn: false });
+    const whole = readFileSync(file, 'utf8');
+    writeFileSync(file, `${whole}not json\n`);
+    expect(inspectJournal(file).corrupt).toMatch(/line \d+ is not an event/);
+    expect(() => new JsonlBridgeStore(file)).toThrow(/line \d+ is not an event/);
+    writeFileSync(file, whole);
+    const bridge = await Bridge.start(t.bridge.config, new JsonlBridgeStore(file), { log: () => {} });
+    bridge.forgetPlayer(t.admin, a.playerId);
+    expect(readFileSync(file, 'utf8')).not.toContain(`"${a.playerId}"`.replace(/"/g, '"playerId":"'));
+    const after = new JsonlBridgeStore(file);
+    expect(after.player(a.playerId)).toBeUndefined();
+    expect(after.signals(b.playerId, 0)).toHaveLength(1);
+  });
+
+  it('compaction keeps what a player may still need: its unacknowledged signals, its last sequence', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-compact-'));
+    temps.push(dir);
+    const file = join(dir, 'journal.jsonl');
+    const t = await setup({ store: new JsonlBridgeStore(file) });
+    const link = await t.pair();
+    for (const k of ['1', '2', '3']) await t.propose(link.playerId, 'mail.answer.wrong', `mail:${k}`);
+    await t.call('v1/ack', { method: 'POST', token: link.capability, body: JSON.stringify({ through: 2 }) });
+    const store = new JsonlBridgeStore(file);
+    const r = store.compact({ now: Date.now() + 100 * 24 * 3_600_000, retentionMs: 90 * 24 * 3_600_000 });
+    expect(r.after).toBeLessThan(r.before);
+    const fresh = new JsonlBridgeStore(file);
+    expect(fresh.lastSequence(link.playerId)).toBe(3);
+    expect(fresh.acked(link.playerId)).toBe(2);
+    expect(fresh.signals(link.playerId, 2).map((e) => e.sequence)).toEqual([3]);
+    expect(fresh.playerByCapability(createHash('sha256').update(link.capability).digest('hex'))).toBeDefined();
+    // Still a Bridge: the next proposal takes sequence 4, the recent duplicate is still known.
+    const bridge = await Bridge.start(t.bridge.config, fresh, { log: () => {} });
+    expect(
+      await bridge.propose(t.mail, {
+        playerId: link.playerId,
+        signal: 'mail.answer.wrong',
+        source: 'mail',
+        dedupeKey: 'mail:3',
+      }),
+    ).toMatchObject({ duplicate: true });
+    expect(
+      await bridge.propose(t.mail, {
+        playerId: link.playerId,
+        signal: 'mail.answer.wrong',
+        source: 'mail',
+        dedupeKey: 'mail:4',
+      }),
+    ).toMatchObject({ sequence: 4 });
   });
 });
 
@@ -308,13 +565,46 @@ describe('web-scumm bridge init', () => {
     }
     expect(statSync(join(dir, 'config.json')).mode & 0o777).toBe(0o600);
     expect(statSync(join(dir, 'admin-token')).mode & 0o777).toBe(0o600);
+    expect(statSync(join(dir, 'root.key')).mode & 0o777).toBe(0o600);
     const file = JSON.parse(readFileSync(join(dir, 'config.json'), 'utf8'));
     expect(Object.keys(file.webhooks).sort()).toEqual(['mail', 'webhook']);
+    // The root's private half is in root.key only; `grant` reads it there, `serve` never loads it.
+    expect(file.biscuitRoot.privateKey).toBeUndefined();
+    expect(readFileSync(join(dir, 'config.json'), 'utf8')).not.toContain('ed25519-private');
+    const write = process.stdout.write;
+    const out: string[] = [];
+    process.stdout.write = ((s: string) => (out.push(s), true)) as typeof process.stdout.write;
+    try {
+      expect(
+        await main(['grant', `--dir=${dir}`, '--connector=c', '--source=mail', '--signals=mail.answer.wrong']),
+      ).toBe(0);
+    } finally {
+      process.stdout.write = write;
+    }
+    expect(out.join('')).toMatch(/^\S{40,}\n$/);
+    const bare = mkdtempSync(join(tmpdir(), 'bridge-bare-'));
+    temps.push(bare);
+    console.log = () => {};
+    try {
+      expect(
+        await main(['init', `--dir=${bare}`, '--no-demo-webhooks'], { manifest: realityManifest(signals()) }),
+      ).toBe(0);
+    } finally {
+      console.log = log;
+    }
+    expect(JSON.parse(readFileSync(join(bare, 'config.json'), 'utf8')).webhooks).toEqual({});
     const bridge = await loadBridge(file, dir);
     expect(bridge.keys()[0]!.kid).toBe(file.eventKey.kid);
     console.log = () => {};
     try {
       expect(await main(['rotate', `--dir=${dir}`, '--keep-days=2'])).toBe(0);
+    } finally {
+      console.log = log;
+    }
+    console.log = () => {};
+    try {
+      expect(await main(['doctor', `--dir=${dir}`])).toBe(0);
+      expect(await main(['compact', `--dir=${dir}`])).toBe(0);
     } finally {
       console.log = log;
     }

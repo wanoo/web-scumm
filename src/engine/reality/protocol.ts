@@ -9,6 +9,13 @@ import * as z from 'zod/mini';
 /** The largest signed signal accepted, in characters: a signal is an identifier, not a document. */
 export const MAX_SIGNAL_CHARS = 4096;
 
+/**
+ * The clock tolerance between the player's device and the Bridge, in milliseconds (4.1.2): a key's window and a
+ * signal's expiry are judged with it, so a phone a few minutes off does not refuse every signal. The Rust
+ * cross-check (`bridge/xcheck/src/signal.rs`) holds the same value; the conformance corpus has a case on each side.
+ */
+export const CLOCK_SKEW_MS = 5 * 60_000;
+
 const ident = z.string().check(z.minLength(1), z.maxLength(128), z.regex(/^[\w.:-]+$/));
 const time = z.int().check(z.nonnegative());
 
@@ -124,7 +131,10 @@ export async function verifySignal(jws: unknown, keyring: Keyring, expect: Signa
   if (Object.keys(rest).some((k) => k !== 'typ')) return fail('header', 'unknown header field');
   const k = keyring.find((x) => x.kid === kid);
   if (!k) return fail('key', `unknown key ${JSON.stringify(kid)}`);
-  if ((k.notBefore !== undefined && expect.now < k.notBefore) || (k.notAfter !== undefined && expect.now > k.notAfter))
+  if (
+    (k.notBefore !== undefined && expect.now < k.notBefore - CLOCK_SKEW_MS) ||
+    (k.notAfter !== undefined && expect.now > k.notAfter + CLOCK_SKEW_MS)
+  )
     return fail('key-window', `key ${k.kid} is not valid now`);
   let sig: Uint8Array;
   try {
@@ -151,7 +161,7 @@ export async function verifySignal(jws: unknown, keyring: Keyring, expect: Signa
   if (sgn.gameId !== expect.gameId) return fail('game', `for game ${sgn.gameId}`);
   if (sgn.playerId !== expect.playerId) return fail('player', 'for another player');
   if (!expect.signals.has(sgn.signal)) return fail('signal', `signal ${sgn.signal} is not in the manifest`);
-  if (sgn.expiresAt !== undefined && expect.now > sgn.expiresAt) return fail('expired', 'expired');
+  if (sgn.expiresAt !== undefined && expect.now > sgn.expiresAt + CLOCK_SKEW_MS) return fail('expired', 'expired');
   return { ok: true, signal: sgn };
 }
 

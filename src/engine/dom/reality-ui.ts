@@ -26,10 +26,13 @@ export const REALITY_UI = {
   realityNone: 'not linked',
   realitySimulated: 'simulated',
   realityUnlink: 'Unlink this game',
+  realityMismatch: 'this save belongs to another link',
+  realityRelink: 'Use this link with this save',
 } as const;
 type Key = keyof typeof REALITY_UI;
 
-export type LinkStatus = 'none' | 'pairing' | 'connecting' | 'open' | 'retrying' | 'revoked' | 'simulated';
+/** `mismatch` (4.1.2): the game in progress was linked as another player; it plays on, the link waits for a choice. */
+export type LinkStatus = 'none' | 'pairing' | 'connecting' | 'open' | 'retrying' | 'revoked' | 'simulated' | 'mismatch';
 interface LinkRecord {
   bridge: string;
   playerId: string;
@@ -43,6 +46,8 @@ export class RealityLink {
   client?: RealityClient;
   private listeners = new Set<(s: LinkStatus) => void>();
   private releaseLock?: () => void;
+  /** A reconnection or a retry planned: cancelled by `unlink` and `relink`, so an old link never comes back. */
+  private retry?: ReturnType<typeof setTimeout>;
 
   constructor(private app: App) {}
 
@@ -86,6 +91,7 @@ export class RealityLink {
       retrying: 'realityOffline',
       revoked: 'realityRevoked',
       simulated: 'realitySimulated',
+      mismatch: 'realityMismatch',
     };
     return this.t(k[this.status]);
   }
@@ -107,13 +113,22 @@ export class RealityLink {
   /** The last failure of the client, for the diagnostics (a message, never a payload). */
   lastError = '';
 
-  private run(port: ReturnType<SignalSimulator['port']>, keyring: Keyring, playerId: string, attempt = 0) {
+  private run(
+    port: ReturnType<SignalSimulator['port']>,
+    keyring: Keyring,
+    playerId: string,
+    refreshKeys?: () => Promise<Keyring>,
+    attempt = 0,
+  ) {
     const client = new RealityClient({
       engine: this.app.engine,
       store: this.app.engine.store,
       port,
       keyring,
+      ...(refreshKeys ? { refreshKeys } : {}),
       playerId,
+      // The game in progress belongs to another player: the link idles until the pause menu's choice (`relink`).
+      onMismatch: () => this.set('mismatch'),
     });
     this.client = client;
     void client.run().catch((e: unknown) => {
@@ -121,9 +136,13 @@ export class RealityLink {
       // from the saved cursor, and what was not acknowledged comes again.
       this.lastError = e instanceof Error ? e.message : String(e);
       console.warn(`Reality link: ${this.lastError}`);
-      if (this.client !== client || this.status === 'revoked' || this.status === 'none') return;
+      if (this.client !== client || this.status === 'revoked' || this.status === 'none' || this.status === 'mismatch')
+        return;
       this.set('retrying');
-      setTimeout(() => this.run(port, keyring, playerId, attempt + 1), Math.min(60_000, 1000 * 2 ** attempt));
+      this.retry = setTimeout(
+        () => this.run(port, keyring, playerId, refreshKeys, attempt + 1),
+        Math.min(60_000, 1000 * 2 ** attempt),
+      );
     });
   }
 
@@ -142,14 +161,10 @@ export class RealityLink {
     }
     let keyring: Keyring;
     try {
-      const res = await fetch(new URL('v1/keys', r.bridge));
-      const { keys } = (await res.json()) as {
-        keys: { kid: string; raw: string; notBefore?: number; notAfter?: number }[];
-      };
-      keyring = await Promise.all(keys.map(({ kid, raw, ...w }) => importBridgeKey(kid, raw, w)));
+      keyring = await fetchKeys(r.bridge);
     } catch {
       this.set('retrying');
-      setTimeout(() => void this.connect(r), 10_000);
+      this.retry = setTimeout(() => void this.connect(r), 10_000);
       this.releaseLock?.();
       return;
     }
@@ -168,7 +183,8 @@ export class RealityLink {
         return res;
       },
     });
-    this.run(port, keyring, r.playerId);
+    // The keys again when a signal names one this keyring does not hold: the Bridge rotated while the link was open.
+    this.run(port, keyring, r.playerId, () => fetchKeys(r.bridge));
   }
 
   /** Links this game: a code to give to the game's connector, then the link collected when it confirms it. */
@@ -213,12 +229,44 @@ export class RealityLink {
     }
   }
 
-  /** Unlinks this game on this device: the stored link is forgotten (the Bridge's operator revokes it on its side). */
+  /**
+   * Unlinks this game: the link is revoked on the Bridge (`POST /v1/unlink`, so a capability copied from this browser
+   * stops working too) and forgotten here. Offline, the revocation is asked anyway and lost: the capability then
+   * ends with its expiry or the operator's revocation.
+   */
   async unlink(): Promise<void> {
+    clearTimeout(this.retry);
+    const r = this.record();
     this.forget();
     await this.client?.stop();
     this.releaseLock?.();
     this.set('none');
+    if (!r) return;
+    try {
+      await fetch(new URL('v1/unlink', r.bridge), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${r.capability}` },
+      });
+    } catch {
+      /* offline: the capability ends with its expiry or the operator's revocation */
+    }
+  }
+
+  /**
+   * Binds the game in progress to this device's link (after a `mismatch`): its link state starts over for this
+   * player (cursor 0, nothing pending), as a loaded game, so the session and its replay stay exact. The signals whose
+   * effect the save already has (`once`) are not applied again; the Bridge delivers this player's own from the start.
+   */
+  async relink(): Promise<void> {
+    const r = this.record();
+    if (!r || this.status !== 'mismatch') return;
+    clearTimeout(this.retry);
+    await this.client?.stop();
+    this.releaseLock?.();
+    const s = JSON.parse(JSON.stringify(this.app.engine.state)) as typeof this.app.engine.state;
+    s.reality = { playerId: r.playerId, cursor: 0, applied: {} };
+    await this.app.engine.load(s);
+    await this.connect(r);
   }
 
   /** The pause menu's page: the state of the link and what can be done with it. */
@@ -240,6 +288,14 @@ export class RealityLink {
         button(this.t('realityStart'), '⇄').onclick = () => {
           void this.pair((code) => (status.textContent = this.t('realityCode', { code })), ctrl.signal);
         };
+    } else if (this.status === 'mismatch') {
+      button(this.t('realityRelink'), '⇄').onclick = () => {
+        void this.relink().then(() => {
+          stop();
+          back();
+        });
+      };
+      button(this.t('realityUnlink'), '✕').onclick = () => void this.unlink();
     } else if (this.status !== 'simulated') button(this.t('realityUnlink'), '✕').onclick = () => void this.unlink();
     button(this.app.game.ui.resume, '▶').onclick = () => {
       ctrl.abort();
@@ -247,6 +303,15 @@ export class RealityLink {
       back();
     };
   }
+}
+
+/** The Bridge's verification keys (`GET /v1/keys`: current and previous, with their windows). */
+async function fetchKeys(bridge: string): Promise<Keyring> {
+  const res = await fetch(new URL('v1/keys', bridge));
+  const { keys } = (await res.json()) as {
+    keys: { kid: string; raw: string; notBefore?: number; notAfter?: number }[];
+  };
+  return Promise.all(keys.map(({ kid, raw, ...w }) => importBridgeKey(kid, raw, w)));
 }
 
 /** Starts the link of a game that declares `reality` (bootGame, after the App exists). */

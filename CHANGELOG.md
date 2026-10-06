@@ -2,6 +2,62 @@
 
 ## Unreleased
 
+### Fixes
+
+- **Bridge: one proposal at a time per player.** In 4.1.1 `propose` awaited the Biscuit check and the signature
+  between reading a player's last sequence and writing the journal, so concurrent proposals could all take the same
+  sequence, and two with one `dedupeKey` were both accepted; the player's client then skipped the others as already
+  seen, and a signal was lost. The deduplication, the quotas, the sequence, the signature and the journal line now
+  run under a lock per player (`bridge/src/lock.ts`), where the player and the token are checked again: a proposal
+  that overlaps a revocation is refused. A pairing code confirmed twice at once is confirmed once (409 for the other).
+  Found by an outside review of 4.1.1 (the first of its four P0s), reproduced in `tests/bridge.test.ts`.
+- **A save is bound to its player.** In 4.1.1 the client acknowledged a loaded save's cursor with whatever link the
+  device held, so a save imported from another device (or saved before an unlink and a new pairing) could
+  acknowledge, for the new player, signals that save never applied, or loop on a refused acknowledgement. The first
+  signal now writes the Bridge's pseudonymous player id into the save (`GameState.reality.playerId`, the field 4.1.1
+  declared and never filled; a session entry carries it too, so a replay is exact); a signal for another player is
+  `mismatch`: nothing applied, nothing acknowledged, the link idles with that status and the pause menu offers to
+  use this device's link with that save (its link state starts over, cursor 0). The outside review's second P0.
+  `docs/en/REALITY.md`, two interface texts (`realityMismatch`, `realityRelink`).
+- **A rotation no longer strands a player.** In 4.1.1 the journal kept the signature only, nothing re-signed, and a
+  link that was open kept its keyring, so a signal signed by a key past its window was refused for good and the
+  cursor stuck (the outside review's fourth P0). The journal now keeps the payload as accepted and the Bridge signs
+  what waits again under its current key at delivery (`JournalEntry.payload`, `kid`); a client asks for the keys once
+  when a signal names one it does not know (`RealityClientOptions.refreshKeys`, wired in the player). Key windows
+  and expiries carry five minutes of clock tolerance (`CLOCK_SKEW_MS`, the same in the Rust cross-check; the
+  conformance corpus has a case on each side, 22 → 25). `GET /v1/signals` answers `{ signals, sequences }` and the
+  poll transport follows the sequences instead of counting. Event streams: at most 4 per player (429 beyond), closed
+  by the Bridge when the link is revoked or expires or when the reader stops reading (64 KB unsent); a signal
+  accepted while a stream opens is held and sent after the backlog (the review's third P0 could not happen: the
+  backlog and the subscription were one synchronous tick; the stream now registers first, and a test proposes while
+  it opens). `docs/en/REALITY-OPS.md` "Keys and rotation" rewritten.
+- **The journal survives a crash and is read, never matched.** A last line cut short by a crash (no newline, not
+  JSON) stopped the Bridge from starting; it is dropped and said in the log (`journal.repaired`), while any other
+  line that does not parse is still refused as corruption, with its number. Forgetting a player rewrote the file
+  by matching its id as text, which took another player's line whose `dedupeKey` was that id; each line is now read
+  as an event. The rewrite fsyncs the directory after the rename where the system allows. Two commands:
+  `web-scumm-bridge doctor` (what the journal holds, torn or corrupt) and `web-scumm-bridge compact
+  [--retention-days=90]` (pairings past their time, earlier versions of a player's line and signals acknowledged and
+  older than the retention dropped; a player's last signal and everything unacknowledged kept). The review's P1s on
+  the store.
+- **The Bridge's surface, bounded.** Codes waiting for a confirmation live in memory only (1000 at most, swept),
+  where 4.1.1 appended and fsync'd a journal line for every anonymous request. Per address: 60 requests a minute on
+  the routes anyone may call, and 60 failed authentications a minute before every request of that address is
+  refused for a while (`Retry-After`); `serve --trust-proxy` reads `X-Forwarded-For`. A proposal's token is checked
+  before any player is named (a 401 or 403 before any 404; the manifest, public, still answers 422 first). A capability lives 180 days at most from its
+  pairing, renewals included. `POST /v1/unlink` (Bearer capability): the pause menu's "Unlink" revokes the link on
+  the Bridge, not only on the device, and a reconnection planned before it no longer brings the old link back. The
+  operator's token is compared in constant time. `init` writes the Biscuit root's private half to `root.key`, read by
+  `grant` only (`serve` never loads it; a 4.1.1 `config.json` still works); the demonstration webhooks' tokens live 30
+  days (`--demo-days`), and `init --no-demo-webhooks` leaves them out for a Bridge on the Internet. The review's
+  remaining P1s; its key-pinning ask is answered in `docs/dev/THREAT-MODEL.md` instead (the signing key lives on the
+  Bridge: a pin would not survive its compromise, and TLS already names the host).
+- **A required signal's fallback is proved, not only named.** `validate` checked that a `fallback` matched a rule;
+  the content lint now checks that the closed witness plays it, and says `fallback-unplayed` (a warning) when the
+  game finishes without the world outside by another route: the declared rule is not the way through, and may be
+  dead. The review's P1 on the fallback proof, as a lint rather than a validation error: the closed proof still
+  holds, the declaration is what is wrong.
+
 ## 4.1.1 — 2026-10-06
 
 "Reality Bridge" (LOG #96, D14–D17): a game can react to a fact from the world outside (an email answered, a webhook
