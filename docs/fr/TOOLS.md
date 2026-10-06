@@ -14,8 +14,8 @@ La règle est codée une seule fois, dans `tools/game.ts`, et lue par `vite.conf
 écriture des layouts de l'éditeur dans `games/<GAME>/layout/`), `tools/validate.ts`, `tools/solve.ts`, `tools/refs.ts` ; `tools/assets.py` refait la même lecture en Python.
 
 `tsconfig.json` ne peut pas lire une variable : ses chemins `@game` et `@game/*` regardent dans `.cache/game`, un lien symbolique que
-`npm run game` (`tools/select-game.ts`) pointe vers le jeu courant (4.1.6 ; jusqu'à la 4.1.5 il réécrivait `tsconfig.json`, un fichier
-suivi, à chaque `dev` et `build`). `npm run dev`, `npm run check` et `npm run build` le lancent d'abord ; `GAME=<id> npm run game` et
+`npm run game` (`tools/select-game.ts`) pointe vers le jeu courant, avec `games/demo` en repli tant qu'aucun lien n'existe (4.1.6 ; jusqu'à
+la 4.1.5 il réécrivait `tsconfig.json`, un fichier suivi, à chaque `dev` et `build`). `npm run dev`, `npm run check` et `npm run build` le lancent d'abord ; `GAME=<id> npm run game` et
 `npm run new-game` changent de jeu, et les outils lisent le lien quand `GAME` n'est pas défini. Vite et Vitest n'en ont pas besoin : ils
 résolvent l'alias dans `vite.config.ts`.
 
