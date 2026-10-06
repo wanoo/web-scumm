@@ -185,7 +185,7 @@ export async function launch(url, opts = {}) {
       ];
       // A point the hit test gives to `id`, on screen first (a wide room or a zoomed camera shows part of the box).
       const seen = (q) => {
-        if (!v.toScreen) return true;
+        if (!v.camera?.toScreen) return true;
         const [px, py] = v.camera.toScreen(q);
         return px > 4 && py > 4 && px < 640 * v.u - 4 && py < 400 * v.u - 4;
       };
