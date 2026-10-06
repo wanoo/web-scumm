@@ -4,7 +4,7 @@
 // reversed, a bad signature, an expired signal, the connection cut then resumed. No network.
 import type { WorldSignalPort } from '../core/ports';
 import type { GameDef } from '../core/types';
-import { b64url, importBridgeKey, signSignal, type Keyring, type WorldSignalV1 } from './protocol';
+import { b64url, CLOCK_SKEW_MS, importBridgeKey, signSignal, type Keyring, type WorldSignalV1 } from './protocol';
 
 export interface Fault {
   /** Deliver it this many milliseconds later. */
@@ -86,7 +86,7 @@ export class SignalSimulator {
       receivedAt: this.now(),
       dedupeKey: `studio:${seq}`,
       policyVersion: 'studio',
-      ...(f.expired ? { expiresAt: this.now() - 1 } : {}),
+      ...(f.expired ? { expiresAt: this.now() - CLOCK_SKEW_MS - 1 } : {}),
     };
     let jws = await signSignal(payload, this.key, 'studio');
     if (f.badSignature) {

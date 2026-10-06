@@ -18,13 +18,13 @@ applies only verified, declared, finite signals.
 | A replay over the network | `id`, `sequence`, `dedupeKey`; the engine's `applied` set: an id seen is a no-op | `core/` `receive`, the crash tests |
 | An event for another player | `gameId` + `playerId` checked by the policy on the Bridge and by the player on every event | policy tests, protocol tests |
 | An old manifest | The manifest's hash is in the Bridge's configuration; an unknown signal is refused | `bridge/src/`, manifest tests |
-| Flooding | Quotas per source and player, bounded payload and queue, timeouts; overflow is visible, never dropped silently | `bridge/src/`, `tests/bridge.test.ts` |
+| Flooding | Quotas per source and player, bounded payload, queue and event streams (4 per player, 64 KB unsent), timeouts; overflow is visible, never dropped silently | `bridge/src/`, `tests/bridge.test.ts` |
 | Two connectors at once (a shared sequence, a `dedupeKey` accepted twice, a proposal landing after a revocation) | One proposal at a time per player: deduplication, quotas, sequence, signature and the journal line under a lock, the player and the token checked again inside it; a pairing code confirmed once | `bridge/src/lock.ts`, `tests/bridge.test.ts` (100 concurrent proposals) |
 | A save under another link (imported from elsewhere, or from before an unlink): its cursor acknowledged for a player that never applied those signals | The first signal binds the save to its player (`reality.playerId`); the client acknowledges and applies nothing for another player (`mismatch`), the pause menu relinks on request with the cursor at 0 | `src/engine/core/reality-runtime.ts`, `src/engine/reality/client.ts`, `tests/reality-engine.test.ts` |
 | A leak through a session or a save | Sessions and saves hold ids, sequences and the signal's name; never a token, an email, a credential or a raw payload | session tests, `tests/reality-engine.test.ts` |
 | A script injected in the game (XSS) | The capability in the browser is minimal and revocable; no emission or administration right reaches the browser | `docs/en/REALITY-OPS.md` |
 | The Bridge down | The journal is durable, delivery resumes from the cursor, the game declares a fallback for a required signal | proof (`closed`, `scenario`), e2e |
-| A compromised key | `kid` on every event, a keyring with an overlap period, rotation and revocation documented, a retention horizon | protocol tests, ops guide |
+| A compromised key | `kid` on every event, a keyring with windows (five minutes of clock tolerance), rotation: the Bridge signs what waits again under its current key, a player with an older keyring asks once; revocation documented, a retention horizon | protocol tests, `tests/bridge.test.ts` (rotation), ops guide |
 | Hostile text from outside | The engine receives an identifier from a finite, declared alphabet; nothing from the payload reaches a condition, a line or HTML | content types, validator |
 
 **Out of scope for 4.1.1.** Verifying a credential's content (Open Badges), real email and SSH connectors, a hosted

@@ -156,8 +156,9 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     return 0;
   }
   if (cmd === 'rotate') {
-    // A new event key; the current one stays trusted by the players until --keep-days have passed (signals it signed
-    // and not yet delivered are delivered again under the new key after that). Restart the Bridge to use it.
+    // A new event key. The Bridge signs again, under its current key, every signal still waiting for a player, and
+    // a player whose keyring is older asks for the keys once; the previous key stays listed for --keep-days for a
+    // player that received a signal just before the rotation. Restart the Bridge to use it.
     const file = read();
     const ev = (await webcrypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify'])) as CryptoKeyPair;
     const notAfter = Date.now() + Number(arg(args, 'keep-days') ?? 30) * 24 * 3_600_000;

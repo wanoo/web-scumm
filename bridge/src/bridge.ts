@@ -42,6 +42,10 @@ export interface Limits {
   pairingMs: number;
   /** How long a player's capability lives without an acknowledgement (renewed on each). */
   capabilityMs: number;
+  /** Open event streams (SSE) one player may hold at once: beyond, a 429 (a tab reconnects when another closes). */
+  streamsPerPlayer: number;
+  /** Bytes a stream may hold unsent before it is closed (the player reconnects from its cursor). */
+  streamBufferBytes: number;
 }
 export const DEFAULT_LIMITS: Limits = {
   bodyBytes: 8192,
@@ -49,7 +53,16 @@ export const DEFAULT_LIMITS: Limits = {
   pendingPerPlayer: 1000,
   pairingMs: 10 * 60_000,
   capabilityMs: 30 * 24 * 3_600_000,
+  streamsPerPlayer: 4,
+  streamBufferBytes: 64 * 1024,
 };
+
+/** An open event stream of a player: what it receives, and how the Bridge ends it (revocation, expiry). */
+interface Stream {
+  playerId: string;
+  on: (seq: number, jws: string) => void;
+  close: (why: 'revoked' | 'expired') => void;
+}
 
 export class BridgeError extends Error {
   constructor(
@@ -74,9 +87,11 @@ const pairingCode = () => [...randomBytes(8)].map((x) => CODE_ALPHABET[x % CODE_
 export class Bridge {
   readonly limits: Limits;
   private recent = new Map<string, number[]>();
-  private listeners = new Set<(e: JournalEntry) => void>();
+  private streams = new Set<Stream>();
   /** One section at a time per player (`propose`) and per pairing code (`confirmPairing`): see `lock.ts`. */
   private locks = new KeyedLock();
+  /** Signals signed again under the current key after a rotation, by `<id>:<kid>` (the journal keeps the first). */
+  private resigned = new Map<string, Promise<string>>();
 
   private constructor(
     readonly config: BridgeConfig,
@@ -251,13 +266,50 @@ export class Bridge {
         policyVersion: this.config.policyVersion,
         ...(evidenceHash ? { evidenceHash } : {}),
       };
-      const jws = await signSignal(payload, this.config.eventKey.privateKey, this.config.eventKey.kid);
-      const entry: JournalEntry = { playerId, sequence, id: payload.id, dedupeKey, jws, at: this.now() };
+      const { kid } = this.config.eventKey;
+      const jws = await signSignal(payload, this.config.eventKey.privateKey, kid);
+      const entry: JournalEntry = { playerId, sequence, id: payload.id, dedupeKey, jws, at: this.now(), kid, payload };
       this.store.write({ t: 'signal', e: entry });
       this.log({ event: 'signal.accepted', playerId, sequence, signal });
-      for (const l of this.listeners) l(entry);
+      this.emit(entry);
       return { id: payload.id, sequence, duplicate: false };
     });
+  }
+
+  /** A signal to its player's open streams, each checked again (a link revoked or expired since it opened ends). */
+  private emit(e: JournalEntry): void {
+    for (const s of [...this.streams]) {
+      if (s.playerId !== e.playerId) continue;
+      const why = this.streamEnds(s.playerId);
+      if (why) this.endStream(s, why);
+      else s.on(e.sequence, e.jws);
+    }
+  }
+  private streamEnds(playerId: string): 'revoked' | 'expired' | undefined {
+    const p = this.store.player(playerId);
+    if (!p || p.revoked) return 'revoked';
+    if (p.capabilityExpiresAt < this.now()) return 'expired';
+    return undefined;
+  }
+  private endStream(s: Stream, why: 'revoked' | 'expired'): void {
+    if (this.streams.delete(s)) s.close(why);
+  }
+
+  /**
+   * A journal entry as the player receives it: signed by the current key. After a rotation the entries the previous
+   * key signed are signed again (once, then kept in memory), so what waits for a player never depends on a key that
+   * is about to leave the keyring; a 4.1.1 line, without its payload, goes out as it was signed.
+   */
+  private deliverable(e: JournalEntry): Promise<string> {
+    const { kid, privateKey } = this.config.eventKey;
+    if (!e.payload || e.kid === kid) return Promise.resolve(e.jws);
+    const k = `${e.id}:${kid}`;
+    let p = this.resigned.get(k);
+    if (!p) {
+      p = signSignal(e.payload, privateKey, kid);
+      this.resigned.set(k, p);
+    }
+    return p;
   }
 
   /** The player whose capability this is (read and acknowledge only). */
@@ -268,20 +320,47 @@ export class Bridge {
     return p;
   }
 
-  /** The signed signals of a player after a sequence (the fetch by cursor; SSE sends the same). */
-  signals(capability: string | undefined, after: number): { sequence: number; jws: string }[] {
+  /** The signed signals of a player after a sequence (the fetch by cursor; SSE sends the same), under the current key. */
+  async signals(capability: string | undefined, after: number): Promise<{ sequence: number; jws: string }[]> {
     const p = this.playerOf(capability);
-    return this.store.signals(p.playerId, after).map((e) => ({ sequence: e.sequence, jws: e.jws }));
+    return Promise.all(
+      this.store
+        .signals(p.playerId, after)
+        .map(async (e) => ({ sequence: e.sequence, jws: await this.deliverable(e) })),
+    );
   }
 
-  /** New signals of a player as they are accepted (SSE). Returns the unsubscribe function. */
-  subscribe(capability: string | undefined, on: (seq: number, jws: string) => void): () => void {
+  /**
+   * New signals of a player as they are accepted (SSE). Returns the unsubscribe function; `onClose` is called when the
+   * Bridge ends the stream itself (the link revoked or expired). At most `streamsPerPlayer` streams per player.
+   */
+  subscribe(
+    capability: string | undefined,
+    on: (seq: number, jws: string) => void,
+    onClose: (why: 'revoked' | 'expired') => void = () => {},
+  ): () => void {
     const p = this.playerOf(capability);
-    const l = (e: JournalEntry) => {
-      if (e.playerId === p.playerId) on(e.sequence, e.jws);
-    };
-    this.listeners.add(l);
-    return () => this.listeners.delete(l);
+    let open = 0;
+    for (const s of this.streams) if (s.playerId === p.playerId) open++;
+    if (open >= this.limits.streamsPerPlayer)
+      throw new BridgeError(429, 'streams', `at most ${this.limits.streamsPerPlayer} open streams for a player`);
+    const s: Stream = { playerId: p.playerId, on, close: onClose };
+    this.streams.add(s);
+    return () => this.streams.delete(s);
+  }
+
+  /** Whether a player's stream may stay open (the heartbeat asks; a link revoked or expired meanwhile ends it). */
+  streamAlive(capability: string | undefined): boolean {
+    try {
+      this.playerOf(capability);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private closeStreams(playerId: string, why: 'revoked' | 'expired'): void {
+    for (const s of [...this.streams]) if (s.playerId === playerId) this.endStream(s, why);
   }
 
   /** Everything up to `through` is applied and saved on the player's side; the link lives on. */
@@ -311,6 +390,7 @@ export class Bridge {
       const p = this.store.player(what.playerId);
       if (!p) throw new BridgeError(404, 'player', 'unknown player');
       this.store.write({ t: 'player', p: { ...p, revoked: true } });
+      this.closeStreams(p.playerId, 'revoked');
       this.log({ event: 'player.revoked', playerId: p.playerId });
     }
     if (what.tokenId) {
@@ -325,6 +405,7 @@ export class Bridge {
     this.admin(adminToken);
     if (!this.store.player(playerId)) throw new BridgeError(404, 'player', 'unknown player');
     this.store.write({ t: 'forget', playerId });
+    this.closeStreams(playerId, 'revoked');
     this.log({ event: 'player.forgotten' });
   }
 

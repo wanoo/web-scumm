@@ -13,6 +13,11 @@ export interface RealityClientOptions {
   store: SaveStore;
   port: WorldSignalPort;
   keyring: Keyring;
+  /**
+   * The Bridge's keys again (`GET /v1/keys`), asked once per delivery when a signal names a key the keyring does not
+   * hold or holds outside its window: the Bridge rotated while this link was open (4.1.2).
+   */
+  refreshKeys?: () => Promise<Keyring>;
   playerId: string;
   now?: () => number;
   /** How long to wait before trying a signal again while the engine is busy (ms). */
@@ -34,8 +39,11 @@ export class RealityClient {
   private stopped = false;
   private ctrl = new AbortController();
   readonly refused: Record<string, number> = {};
+  private keyring: Keyring;
 
-  constructor(private o: RealityClientOptions) {}
+  constructor(private o: RealityClientOptions) {
+    this.keyring = o.keyring;
+  }
 
   private get signals(): Set<string> {
     return new Set(this.o.engine.game.reality?.signals.map((s) => s.id) ?? []);
@@ -82,12 +90,17 @@ export class RealityClient {
   async handle(jws: string): Promise<'applied' | 'duplicate' | 'skipped' | 'refused'> {
     await this.ready();
     const now = this.o.now?.() ?? Date.now();
-    const v = await verifySignal(jws, this.o.keyring, {
-      gameId: this.o.engine.game.id,
-      playerId: this.o.playerId,
-      signals: this.signals,
-      now,
-    });
+    const expectation = { gameId: this.o.engine.game.id, playerId: this.o.playerId, signals: this.signals, now };
+    let v = await verifySignal(jws, this.keyring, expectation);
+    if (!v.ok && (v.code === 'key' || v.code === 'key-window') && this.o.refreshKeys) {
+      // A key this keyring does not know, or knows outside its window: the Bridge may have rotated; ask once.
+      try {
+        this.keyring = await this.o.refreshKeys();
+        v = await verifySignal(jws, this.keyring, expectation);
+      } catch {
+        /* the keys could not be fetched: the refusal stands, the next delivery asks again */
+      }
+    }
     let entry: ExternalEntry;
     if (v.ok) {
       const s = v.signal;

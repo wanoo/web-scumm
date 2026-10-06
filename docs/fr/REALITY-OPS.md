@@ -50,8 +50,10 @@ peut proposer.
 
 - `POST /v1/pairings` `{ gameId }` → `{ code, expiresAt }` (10 minutes) ; `GET /v1/pairings/<code>` → en attente,
   puis une seule fois `{ playerId, capability }`.
-- `GET /v1/events?after=<n>` (SSE, capacité Bearer) et `GET /v1/signals?after=<n>` : les signaux signés après une
-  séquence. `POST /v1/ack { through }` : appliqué et sauvegardé jusque-là.
+- `GET /v1/events?after=<n>` (SSE, capacité Bearer) et `GET /v1/signals?after=<n>` → `{ signals, sequences }` : les
+  signaux signés après une séquence, chacun avec la sienne. `POST /v1/ack { through }` : appliqué et sauvegardé
+  jusque-là. Un joueur tient au plus 4 flux ouverts ; un flux dont le lecteur ne lit plus (64 Ko non envoyés) ou dont
+  le lien a été révoqué ou a expiré entre-temps est fermé par le Bridge, et le joueur se reconnecte depuis son curseur.
 - `GET /v1/keys` : les clés publiques, actuelle et précédentes.
 
 Une capacité lit et accuse réception des signaux d'un joueur, rien d'autre, et vit 30 jours depuis son dernier accusé.
@@ -60,11 +62,15 @@ Dans le navigateur elle reste sensible (tout script de la page peut la lire) : r
 
 ## Clés et rotation
 
-La clé d'événements signe chaque signal avec son `kid` ; le joueur se fie aux clés que liste `GET /v1/keys`. Pour la
-faire tourner : `npm run bridge -- rotate [--keep-days=30]` crée une nouvelle clé et garde l'actuelle dans
-`previousKeys` jusque-là (choisir plus long qu'un joueur ne peut rester hors ligne avec des signaux en attente), puis
-redémarrer le Bridge. Une clé compromise : la retirer de `previousKeys` et redémarrer ; les joueurs refusent dès lors
-ce qu'elle a signé.
+La clé d'événements signe chaque signal avec son `kid` ; le joueur se fie aux clés que liste `GET /v1/keys`, chacune
+dans sa fenêtre, avec cinq minutes de tolérance pour l'horloge d'un appareil. Pour la faire tourner :
+`npm run bridge -- rotate [--keep-days=30]` crée une nouvelle clé et garde l'actuelle dans `previousKeys` jusque-là,
+puis redémarrer le Bridge. Dès lors le Bridge livre chaque signal sous sa clé courante : ce qui attendait un joueur est
+signé de nouveau à la livraison (le journal garde le contenu tel qu'accepté), et un joueur dont le lien était ouvert
+redemande les clés une fois quand un signal en nomme une qu'il ne connaît pas. `--keep-days` n'a à couvrir qu'un
+joueur qui a reçu un signal juste avant la rotation et le vérifie après. Une clé compromise : la retirer de
+`previousKeys` et redémarrer ; les joueurs refusent dès lors ce qu'elle a signé, et ce qu'elle a signé dans le journal
+est livré de nouveau sous la nouvelle clé.
 
 La clé racine Biscuit émet les jetons des connecteurs ; la changer, c'est donner un nouveau jeton à chacun.
 

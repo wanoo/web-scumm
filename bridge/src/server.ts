@@ -89,21 +89,45 @@ export function bridgeServer(bridge: Bridge, o: ServeOptions = {}): Server {
         const r = await bridge.propose(bearer(req) ?? '', json(await body(req, bridge.limits.bodyBytes)));
         return send(r.duplicate ? 200 : 202, r);
       }
-      if (req.method === 'GET' && path === '/v1/signals')
-        return send(200, { signals: bridge.signals(bearer(req), after).map((x) => x.jws) });
+      if (req.method === 'GET' && path === '/v1/signals') {
+        // `sequences` (4.1.2) says each signal's sequence, so a reader's cursor follows the Bridge, never a count.
+        const xs = await bridge.signals(bearer(req), after);
+        return send(200, { signals: xs.map((x) => x.jws), sequences: xs.map((x) => x.sequence) });
+      }
       if (req.method === 'POST' && path === '/v1/ack') {
         bridge.ack(bearer(req), (json(await body(req, bridge.limits.bodyBytes)) as { through?: unknown }).through);
         return send(204);
       }
       if (req.method === 'GET' && path === '/v1/events') {
         // Server-Sent Events: what is already there after the cursor, then each new signal; `id` is the sequence.
+        // The stream is registered first, then the backlog read: a signal accepted while the backlog goes out is
+        // held and sent after it, so nothing falls between the two (a repeat is recognised by the player).
         const cap = bearer(req);
-        const backlog = bridge.signals(cap, Math.max(after, Number(req.headers['last-event-id'] ?? 0) || 0));
+        const from = Math.max(after, Number(req.headers['last-event-id'] ?? 0) || 0);
+        let sending = true;
+        const held: [number, string][] = [];
+        const event = (seq: number, jws: string) => {
+          if (sending) return void held.push([seq, jws]);
+          res.write(`id: ${seq}\nevent: signal\ndata: ${jws}\n\n`);
+          // A reader that stopped reading: the Bridge keeps nothing for it beyond the buffer; it reconnects from its cursor.
+          if (res.writableLength > bridge.limits.streamBufferBytes) res.end();
+        };
+        const off = bridge.subscribe(cap, event, () => res.end());
+        let backlog: { sequence: number; jws: string }[];
+        try {
+          backlog = await bridge.signals(cap, from);
+        } catch (e) {
+          off();
+          throw e;
+        }
         res.writeHead(200, { 'Content-Type': 'text/event-stream', Connection: 'keep-alive' });
-        const event = (seq: number, jws: string) => res.write(`id: ${seq}\nevent: signal\ndata: ${jws}\n\n`);
+        sending = false;
         for (const x of backlog) event(x.sequence, x.jws);
-        const off = bridge.subscribe(cap, event);
-        const beat = setInterval(() => res.write(': keep-alive\n\n'), (o.heartbeat ?? 15) * 1000);
+        for (const [seq, jws] of held.splice(0)) if (seq > from) event(seq, jws);
+        const beat = setInterval(
+          () => (bridge.streamAlive(cap) ? res.write(': keep-alive\n\n') : res.end()),
+          (o.heartbeat ?? 15) * 1000,
+        );
         req.on('close', () => {
           clearInterval(beat);
           off();

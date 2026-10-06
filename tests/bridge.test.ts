@@ -11,7 +11,7 @@ import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import { manifestHash, realityManifest } from '@engine/reality/manifest';
 import { importBridgeKey } from '@engine/reality/protocol';
 import { RealityClient } from '@engine/reality/client';
-import { httpPort } from '@engine/reality/http-port';
+import { httpPort, sseEvents } from '@engine/reality/http-port';
 import { Bridge, type BridgeConfig, type BridgeLog } from '../bridge/src/bridge';
 import { biscuitLib } from '../bridge/src/biscuit';
 import { grantToken } from '../bridge/src/policy';
@@ -27,7 +27,16 @@ afterAll(() => {
   for (const d of temps) rmSync(d, { recursive: true, force: true });
 });
 
-async function setup(o: { store?: BridgeStore; limits?: BridgeConfig['limits']; now?: () => number } = {}) {
+async function setup(
+  o: {
+    store?: BridgeStore;
+    limits?: BridgeConfig['limits'];
+    now?: () => number;
+    /** The event key's id (a rotation: a second Bridge on the same store with another key). */
+    kid?: string;
+    previousKeys?: BridgeConfig['previousKeys'];
+  } = {},
+) {
   const b = await biscuitLib();
   const root = new b.KeyPair(b.SignatureAlgorithm.Ed25519);
   const ev = (await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify'])) as CryptoKeyPair;
@@ -41,7 +50,8 @@ async function setup(o: { store?: BridgeStore; limits?: BridgeConfig['limits']; 
     manifestHash: await manifestHash(manifest),
     audience: 'bridge.test',
     biscuitRootPublicKey: root.getPublicKey().toString(),
-    eventKey: { kid: 'k1', privateKey: ev.privateKey, raw },
+    eventKey: { kid: o.kid ?? 'k1', privateKey: ev.privateKey, raw },
+    ...(o.previousKeys ? { previousKeys: o.previousKeys } : {}),
     adminTokenHash: createHash('sha256').update(admin).digest('hex'),
     policyVersion: '1',
     ...(o.limits ? { limits: o.limits } : {}),
@@ -265,13 +275,13 @@ describe('the reference Bridge', () => {
     const distinct = await Promise.all(Array.from({ length: 100 }, (_, i) => t.bridge.propose(t.mail, body(`m:${i}`))));
     expect(distinct.every((r) => !r.duplicate)).toBe(true);
     expect(new Set(distinct.map((r) => r.sequence)).size).toBe(100);
-    expect(t.bridge.signals(link.capability, 0).map((s) => s.sequence)).toEqual(
+    expect((await t.bridge.signals(link.capability, 0)).map((s) => s.sequence)).toEqual(
       Array.from({ length: 100 }, (_, i) => i + 1),
     );
     const same = await Promise.all(Array.from({ length: 50 }, () => t.bridge.propose(t.mail, body('once'))));
     expect(same.filter((r) => !r.duplicate)).toHaveLength(1);
     expect(new Set(same.map((r) => r.id)).size).toBe(1);
-    expect(t.bridge.signals(link.capability, 100)).toHaveLength(1);
+    expect(await t.bridge.signals(link.capability, 100)).toHaveLength(1);
   });
 
   it('a proposal that overlaps a revocation is refused; a code confirmed twice at once is confirmed once', async () => {
@@ -298,6 +308,89 @@ describe('the reference Bridge', () => {
     expect(claimed.status).toBe('paired');
     const confirmed = both.find((r) => r.status === 'fulfilled') as PromiseFulfilledResult<{ playerId: string }>;
     expect(claimed.status === 'paired' && claimed.playerId).toBe(confirmed.value.playerId);
+  });
+
+  it('the fetch by cursor names each sequence; a stream holds what is proposed while it opens; streams are bounded', async () => {
+    const t = await setup({ limits: { streamsPerPlayer: 1 } });
+    const link = await t.pair();
+    await t.propose(link.playerId, 'mail.answer.correct', 'mail:1');
+    await t.propose(link.playerId, 'mail.answer.wrong', 'mail:2');
+    const got = (await (await t.call('v1/signals?after=1', { token: link.capability })).json()) as {
+      signals: string[];
+      sequences: number[];
+    };
+    expect(got.signals).toHaveLength(1);
+    expect(got.sequences).toEqual([2]);
+    // A stream opened and a signal proposed at once: the stream gets the backlog, then the new one, in order.
+    const stream = t.call('v1/events?after=0', { token: link.capability, headers: { Accept: 'text/event-stream' } });
+    await t.propose(link.playerId, 'mail.answer.wrong', 'mail:3');
+    const res = await stream;
+    expect(res.status).toBe(200);
+    const seen: number[] = [];
+    const events = sseEvents(res.body!);
+    while (seen.length < 3) seen.push(Number((await events.next()).value?.id));
+    expect(seen).toEqual([1, 2, 3]);
+    // A second stream for the same player, over the limit.
+    expect(
+      (await t.call('v1/events?after=0', { token: link.capability, headers: { Accept: 'text/event-stream' } })).status,
+    ).toBe(429);
+    // Revoked: the Bridge ends the open stream itself.
+    await t.call('v1/admin/revoke', {
+      method: 'POST',
+      token: t.admin,
+      body: JSON.stringify({ playerId: link.playerId }),
+    });
+    let ended = false;
+    for (let i = 0; i < 50 && !ended; i++) ended = (await events.next()).done === true;
+    expect(ended).toBe(true);
+  });
+
+  it('a rotation: what waits is delivered under the new key; a link whose keyring is older asks for the keys once', async () => {
+    const store = new MemoryBridgeStore();
+    const before = await setup({ store });
+    const link = await before.pair();
+    await before.propose(link.playerId, 'mail.answer.correct', 'mail:1');
+    const oldKeys = await Promise.all(
+      ((await (await before.call('v1/keys')).json()) as { keys: { kid: string; raw: string }[] }).keys.map((k) =>
+        importBridgeKey(k.kid, k.raw),
+      ),
+    );
+    // The operator rotates: a new key, the previous one listed until its end (already past: the player was away).
+    const after = await setup({
+      store,
+      kid: 'k2',
+      previousKeys: [{ kid: 'k1', raw: before.raw, notAfter: Date.now() - 24 * 3_600_000 }],
+    });
+    await after.propose(link.playerId, 'mail.answer.wrong', 'mail:2', after.mail);
+    const delivered = await after.bridge.signals(link.capability, 0);
+    expect(delivered.map((d) => JSON.parse(atob(d.jws.split('.')[0]!)).kid)).toEqual(['k2', 'k2']);
+    expect(after.bridge.exportPlayer(after.admin, link.playerId).signals.map((s) => s.kid)).toEqual(['k1', 'k2']);
+    // A player that connected before the rotation: its keyring knows k1 only; it asks once, then applies both.
+    const e = new Engine(signals(), signalsLayouts, new FakePresenter(), new MemoryStore());
+    await e.newGame();
+    let asked = 0;
+    const c = new RealityClient({
+      engine: e,
+      store: new MemoryStore(),
+      port: httpPort({ url: after.url, capability: link.capability, mode: 'poll', retryMs: 20 }),
+      keyring: oldKeys,
+      refreshKeys: async () => {
+        asked++;
+        return Promise.all(
+          ((await (await after.call('v1/keys')).json()) as { keys: { kid: string; raw: string }[] }).keys.map((k) =>
+            importBridgeKey(k.kid, k.raw),
+          ),
+        );
+      },
+      playerId: link.playerId,
+    });
+    const run = c.run();
+    for (let i = 0; i < 100 && (e.state.reality?.cursor ?? 0) < 2; i++) await new Promise((r) => setTimeout(r, 20));
+    await c.stop();
+    await run;
+    expect(asked).toBe(1);
+    expect(e.state.reality?.cursor).toBe(2);
+    expect(after.bridge.exportPlayer(after.admin, link.playerId).acked).toBe(2);
   });
 
   it('answers CORS for the game only, and logs no secret', async () => {
@@ -332,7 +425,7 @@ describe('the reference Bridge', () => {
     const link = await t.pair();
     await t.propose(link.playerId, 'mail.answer.correct', 'mail:1');
     const again = await Bridge.start(t.bridge.config, new JsonlBridgeStore(file), { log: () => {} });
-    expect(again.signals(link.capability, 0)).toHaveLength(1);
+    expect(await again.signals(link.capability, 0)).toHaveLength(1);
     expect(readFileSync(file, 'utf8')).not.toContain(link.capability);
     again.forgetPlayer(t.admin, link.playerId);
     expect(readFileSync(file, 'utf8')).not.toContain(link.playerId);

@@ -19,6 +19,18 @@
   `mismatch`: nothing applied, nothing acknowledged, the link idles with that status and the pause menu offers to
   use this device's link with that save (its link state starts over, cursor 0). The outside review's second P0.
   `docs/en/REALITY.md`, two interface texts (`realityMismatch`, `realityRelink`).
+- **A rotation no longer strands a player.** In 4.1.1 the journal kept the signature only, nothing re-signed, and a
+  link that was open kept its keyring, so a signal signed by a key past its window was refused for good and the
+  cursor stuck (the outside review's fourth P0). The journal now keeps the payload as accepted and the Bridge signs
+  what waits again under its current key at delivery (`JournalEntry.payload`, `kid`); a client asks for the keys once
+  when a signal names one it does not know (`RealityClientOptions.refreshKeys`, wired in the player). Key windows
+  and expiries carry five minutes of clock tolerance (`CLOCK_SKEW_MS`, the same in the Rust cross-check; the
+  conformance corpus has a case on each side, 22 → 25). `GET /v1/signals` answers `{ signals, sequences }` and the
+  poll transport follows the sequences instead of counting. Event streams: at most 4 per player (429 beyond), closed
+  by the Bridge when the link is revoked or expires or when the reader stops reading (64 KB unsent); a signal
+  accepted while a stream opens is held and sent after the backlog (the review's third P0 could not happen: the
+  backlog and the subscription were one synchronous tick; the stream now registers first, and a test proposes while
+  it opens). `docs/en/REALITY-OPS.md` "Keys and rotation" rewritten.
 
 ## 4.1.1 — 2026-10-06
 

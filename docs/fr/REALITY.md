@@ -74,6 +74,11 @@ Les textes de l'interface sont `realityLink`, `realityStart`, `realityCode`, `re
 `realityOffline`, `realityRevoked`, `realityNone`, `realitySimulated`, `realityUnlink`, `realityMismatch`,
 `realityRelink` dans le `ui` du jeu (valeurs anglaises par défaut dans `src/engine/dom/reality-ui.ts`).
 
+Le joueur vérifie chaque signal avec les clés du Bridge, chacune dans sa fenêtre, et l'expiration d'un signal, avec
+cinq minutes de tolérance pour l'horloge de l'appareil (`CLOCK_SKEW_MS` dans `src/engine/reality/protocol.ts`, la
+même valeur dans le cross-check Rust). Quand un signal nomme une clé que le trousseau n'a pas (le Bridge a fait
+tourner sa clé pendant que le lien était ouvert), le client redemande les clés une fois avant de le refuser.
+
 ## Ce que la session et la sauvegarde gardent
 
 Un signal est une entrée de la session (`{ external: { id, sequence, signal, source, receivedAt, playerId } }`) :

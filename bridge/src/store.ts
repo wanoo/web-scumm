@@ -4,6 +4,7 @@
 // No secret is stored in clear: a player's capability is kept as its SHA-256.
 import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, writeSync } from 'node:fs';
 import { dirname } from 'node:path';
+import type { WorldSignalV1 } from '../../src/engine/reality/protocol';
 
 export interface Pairing {
   code: string;
@@ -28,6 +29,13 @@ export interface JournalEntry {
   dedupeKey: string;
   jws: string;
   at: number;
+  /** The key that signed `jws` (4.1.2); absent in a 4.1.1 journal line. */
+  kid?: string;
+  /**
+   * The payload as signed (4.1.2): after a rotation the Bridge signs it again with its current key at delivery, so a
+   * signal waiting for a player never outlives the key that first signed it. Absent in a 4.1.1 line: delivered as is.
+   */
+  payload?: WorldSignalV1;
 }
 
 export type BridgeEvent =

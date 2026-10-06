@@ -6,6 +6,9 @@ use serde_json::{Map, Value};
 
 pub const MAX_SIGNAL_CHARS: usize = 4096;
 
+/// The clock tolerance of src/engine/reality/protocol.ts (CLOCK_SKEW_MS), in milliseconds.
+const CLOCK_SKEW_MS: f64 = 300_000.0;
+
 pub struct Key { pub kid: String, pub raw: Vec<u8>, pub not_before: Option<f64>, pub not_after: Option<f64> }
 pub struct Expect { pub game: String, pub player: String, pub signals: Vec<String>, pub now: f64 }
 
@@ -44,7 +47,7 @@ pub fn verify(jws: &str, keys: &[Key], e: &Expect) -> &'static str {
     if header.keys().any(|k| k != "alg" && k != "kid" && k != "typ") { return "header"; }
     let kid = header.get("kid").and_then(Value::as_str);
     let Some(key) = keys.iter().find(|k| Some(k.kid.as_str()) == kid) else { return "key" };
-    if key.not_before.map_or(false, |t| e.now < t) || key.not_after.map_or(false, |t| e.now > t) { return "key-window"; }
+    if key.not_before.map_or(false, |t| e.now < t - CLOCK_SKEW_MS) || key.not_after.map_or(false, |t| e.now > t + CLOCK_SKEW_MS) { return "key-window"; }
     let Some(sig) = b64(parts[2]).and_then(|b| Signature::from_slice(&b).ok()) else { return "signature" };
     let Ok(vk) = VerifyingKey::from_bytes(key.raw.as_slice().try_into().unwrap_or(&[0u8; 32])) else { return "key" };
     if vk.verify(format!("{}.{}", parts[0], parts[1]).as_bytes(), &sig).is_err() { return "signature"; }
@@ -58,6 +61,6 @@ pub fn verify(jws: &str, keys: &[Key], e: &Expect) -> &'static str {
     if o.get("gameId").and_then(Value::as_str) != Some(e.game.as_str()) { return "game"; }
     if o.get("playerId").and_then(Value::as_str) != Some(e.player.as_str()) { return "player"; }
     if !e.signals.iter().any(|s| Some(s.as_str()) == o.get("signal").and_then(Value::as_str)) { return "signal"; }
-    if o.get("expiresAt").and_then(Value::as_f64).map_or(false, |t| e.now > t) { return "expired"; }
+    if o.get("expiresAt").and_then(Value::as_f64).map_or(false, |t| e.now > t + CLOCK_SKEW_MS) { return "expired"; }
     "ok"
 }

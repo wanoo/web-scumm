@@ -72,6 +72,11 @@ The interface texts are `realityLink`, `realityStart`, `realityCode`, `realityWa
 `realityOffline`, `realityRevoked`, `realityNone`, `realitySimulated`, `realityUnlink`, `realityMismatch`,
 `realityRelink` in the game's `ui` (English defaults in `src/engine/dom/reality-ui.ts`).
 
+The player verifies each signal with the Bridge's keys, each within its window, and a signal's expiry, with five
+minutes of tolerance for the device's clock (`CLOCK_SKEW_MS` in `src/engine/reality/protocol.ts`, the same in the
+Rust cross-check). When a signal names a key the keyring does not hold (the Bridge rotated while the link was open),
+the client asks for the keys once before refusing it.
+
 ## What the session and the save hold
 
 A signal is an entry of the session (`{ external: { id, sequence, signal, source, receivedAt, playerId } }`):

@@ -8,6 +8,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   b64url,
+  CLOCK_SKEW_MS,
   MAX_SIGNAL_CHARS,
   signSignal,
   type RefusalCode,
@@ -129,10 +130,24 @@ add(
   await signSignal({ ...base, signal: 'mail.admin.reset' }, k1.priv, 'k1'),
   'signal',
 );
-add('expired', await signSignal({ ...base, expiresAt: NOW - 1 }, k1.priv, 'k1'), 'expired');
+// Expiry and key windows carry the clock tolerance (CLOCK_SKEW_MS): a minute off is fine, beyond it is not.
+add('expired', await signSignal({ ...base, expiresAt: NOW - CLOCK_SKEW_MS - 1 }, k1.priv, 'k1'), 'expired');
+add(
+  'expired a minute ago (within the clock tolerance)',
+  await signSignal({ ...base, expiresAt: NOW - 60_000 }, k1.priv, 'k1'),
+  'ok',
+);
 add('not expired yet', await signSignal({ ...base, expiresAt: NOW + 1 }, k1.priv, 'k1'), 'ok');
-add('k1 after its end (rotation done)', good, 'key-window', { expect: { now: NOW + 3_600_001 } });
-add('k2 before its start', await signSignal(base, k2.priv, 'k2'), 'key-window', { expect: { now: NOW - 3_600_001 } });
+add('k1 after its end (rotation done)', good, 'key-window', { expect: { now: NOW + 3_600_000 + CLOCK_SKEW_MS + 1 } });
+add('k1 a minute after its end (within the clock tolerance)', good, 'ok', {
+  expect: { now: NOW + 3_600_000 + 60_000 },
+});
+add('k2 before its start', await signSignal(base, k2.priv, 'k2'), 'key-window', {
+  expect: { now: NOW - 3_600_000 - CLOCK_SKEW_MS - 1 },
+});
+add('k2 a minute before its start (within the clock tolerance)', await signSignal(base, k2.priv, 'k2'), 'ok', {
+  expect: { now: NOW - 3_600_000 - 60_000 },
+});
 
 const out = resolve(ROOT, 'tests/fixtures/reality');
 mkdirSync(out, { recursive: true });

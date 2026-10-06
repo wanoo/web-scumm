@@ -7,7 +7,7 @@ import { FakePresenter, MemoryStore, type WorldSignalPort } from '@engine/core/p
 import { parseSave, saveEnvelope } from '@engine/core/save';
 import { stateDigest } from '@engine/core/diff';
 import type { ExternalEntry, GameState, Session } from '@engine/core/types';
-import { importBridgeKey, signSignal, type WorldSignalV1 } from '@engine/reality/protocol';
+import { CLOCK_SKEW_MS, importBridgeKey, signSignal, type WorldSignalV1 } from '@engine/reality/protocol';
 import { RealityClient } from '@engine/reality/client';
 import { compact } from '@engine/core/reality-runtime';
 import { labelOf, replay } from '@engine/tools/replay';
@@ -196,7 +196,7 @@ describe('the client: verify, apply, save, acknowledge', () => {
 
   it('a tampered or foreign signal is refused and never acknowledged; an expired one is skipped and moves on', async () => {
     const b = await fakeBridge();
-    await b.sign(1, 'mail.answer.wrong', { expiresAt: NOW - 1 });
+    await b.sign(1, 'mail.answer.wrong', { expiresAt: NOW - CLOCK_SKEW_MS - 1 });
     await b.sign(2, 'mail.answer.correct');
     const good = b.journal[1]!;
     const [h, p, s] = good.split('.') as [string, string, string];

@@ -111,12 +111,19 @@ export class RealityLink {
   /** The last failure of the client, for the diagnostics (a message, never a payload). */
   lastError = '';
 
-  private run(port: ReturnType<SignalSimulator['port']>, keyring: Keyring, playerId: string, attempt = 0) {
+  private run(
+    port: ReturnType<SignalSimulator['port']>,
+    keyring: Keyring,
+    playerId: string,
+    refreshKeys?: () => Promise<Keyring>,
+    attempt = 0,
+  ) {
     const client = new RealityClient({
       engine: this.app.engine,
       store: this.app.engine.store,
       port,
       keyring,
+      ...(refreshKeys ? { refreshKeys } : {}),
       playerId,
       // The game in progress belongs to another player: the link idles until the pause menu's choice (`relink`).
       onMismatch: () => this.set('mismatch'),
@@ -130,7 +137,10 @@ export class RealityLink {
       if (this.client !== client || this.status === 'revoked' || this.status === 'none' || this.status === 'mismatch')
         return;
       this.set('retrying');
-      setTimeout(() => this.run(port, keyring, playerId, attempt + 1), Math.min(60_000, 1000 * 2 ** attempt));
+      setTimeout(
+        () => this.run(port, keyring, playerId, refreshKeys, attempt + 1),
+        Math.min(60_000, 1000 * 2 ** attempt),
+      );
     });
   }
 
@@ -149,11 +159,7 @@ export class RealityLink {
     }
     let keyring: Keyring;
     try {
-      const res = await fetch(new URL('v1/keys', r.bridge));
-      const { keys } = (await res.json()) as {
-        keys: { kid: string; raw: string; notBefore?: number; notAfter?: number }[];
-      };
-      keyring = await Promise.all(keys.map(({ kid, raw, ...w }) => importBridgeKey(kid, raw, w)));
+      keyring = await fetchKeys(r.bridge);
     } catch {
       this.set('retrying');
       setTimeout(() => void this.connect(r), 10_000);
@@ -175,7 +181,8 @@ export class RealityLink {
         return res;
       },
     });
-    this.run(port, keyring, r.playerId);
+    // The keys again when a signal names one this keyring does not hold: the Bridge rotated while the link was open.
+    this.run(port, keyring, r.playerId, () => fetchKeys(r.bridge));
   }
 
   /** Links this game: a code to give to the game's connector, then the link collected when it confirms it. */
@@ -278,6 +285,15 @@ export class RealityLink {
       back();
     };
   }
+}
+
+/** The Bridge's verification keys (`GET /v1/keys`: current and previous, with their windows). */
+async function fetchKeys(bridge: string): Promise<Keyring> {
+  const res = await fetch(new URL('v1/keys', bridge));
+  const { keys } = (await res.json()) as {
+    keys: { kid: string; raw: string; notBefore?: number; notAfter?: number }[];
+  };
+  return Promise.all(keys.map(({ kid, raw, ...w }) => importBridgeKey(kid, raw, w)));
 }
 
 /** Starts the link of a game that declares `reality` (bootGame, after the App exists). */

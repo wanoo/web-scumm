@@ -48,8 +48,10 @@ A connector checks what it claims (a credential's proof, an email's sender): Bis
 
 - `POST /v1/pairings` `{ gameId }` → `{ code, expiresAt }` (10 minutes); `GET /v1/pairings/<code>` → pending, then
   once `{ playerId, capability }`.
-- `GET /v1/events?after=<n>` (SSE, Bearer capability) and `GET /v1/signals?after=<n>`: the signed signals after a
-  sequence. `POST /v1/ack { through }`: applied and saved up to there.
+- `GET /v1/events?after=<n>` (SSE, Bearer capability) and `GET /v1/signals?after=<n>` → `{ signals, sequences }`:
+  the signed signals after a sequence, each with its sequence. `POST /v1/ack { through }`: applied and saved up to
+  there. A player holds at most 4 open streams; a stream whose reader stopped reading (64 KB unsent) or whose link
+  was revoked or expired meanwhile is closed by the Bridge, and the player reconnects from its cursor.
 - `GET /v1/keys`: the public keys, current and previous.
 
 A capability reads and acknowledges one player's signals, nothing else, and lives 30 days from its last
@@ -58,10 +60,14 @@ one makes the player "unlinked", and the game can be linked again.
 
 ## Keys and rotation
 
-The event key signs every signal with its `kid`; the player trusts the keys `GET /v1/keys` lists. To rotate:
-`npm run bridge -- rotate [--keep-days=30]` makes a new key and keeps the current one in `previousKeys` until then (pick
-longer than a player may stay offline with signals waiting), then restart the Bridge. A compromised key: remove it from
-`previousKeys` and restart; players refuse what it signed from then on.
+The event key signs every signal with its `kid`; the player trusts the keys `GET /v1/keys` lists, each within its
+window, with five minutes of tolerance for a device's clock. To rotate: `npm run bridge -- rotate [--keep-days=30]`
+makes a new key and keeps the current one in `previousKeys` until then, then restart the Bridge. From then on the
+Bridge delivers every signal under its current key: what was waiting for a player is signed again at delivery (the
+journal keeps the payload as accepted), and a player whose link was open asks for the keys once when a signal names
+one it does not know. `--keep-days` only has to cover a player that received a signal just before the rotation and
+verifies it after. A compromised key: remove it from `previousKeys` and restart; players refuse what it signed from
+then on, and what it signed in the journal is delivered again under the new key.
 
 The Biscuit root key mints connector tokens; rotating it means granting every connector a new token.
 
