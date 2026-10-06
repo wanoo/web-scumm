@@ -75,4 +75,34 @@ describe("the engine's layers", () => {
   it('the tools run without a browser: they never import the DOM layer', () => {
     expect(offenders(layer('tools'), (to) => /^dom(\/|$)/.test(to))).toEqual([]);
   });
+
+  it('no module imports itself back through a cycle of static imports (4.1.0): a layer reads top to bottom', () => {
+    // Types only (`import type`) are erased and not counted; `import()` is not static.
+    const all = files(ROOT).map((f) => relative(ROOT, f).replace(/\.tsx?$/, ''));
+    const known = new Set(all);
+    const graph = new Map(
+      all.map((f) => [
+        f,
+        imports(join(ROOT, `${f}.ts`))
+          .filter((d) => !d.dynamic)
+          .map((d) => (known.has(d.to) ? d.to : known.has(`${d.to}/index`) ? `${d.to}/index` : null))
+          .filter((d): d is string => !!d),
+      ]),
+    );
+    const cycles: string[] = [];
+    const state = new Map<string, 'open' | 'done'>();
+    const stack: string[] = [];
+    const visit = (f: string) => {
+      state.set(f, 'open');
+      stack.push(f);
+      for (const d of graph.get(f) ?? []) {
+        if (state.get(d) === 'open') cycles.push([...stack.slice(stack.indexOf(d)), d].join(' → '));
+        else if (!state.has(d)) visit(d);
+      }
+      stack.pop();
+      state.set(f, 'done');
+    };
+    for (const f of all) if (!state.has(f)) visit(f);
+    expect(cycles).toEqual([]);
+  });
 });

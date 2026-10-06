@@ -73,7 +73,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 
 | Nom | Quoi |
 |---|---|
-| `Engine` | le moteur sans page |
+| `Engine` | le moteur sans page (ses membres marqués `@internal` sont lus par les modules de `core/` depuis la 4.1.0 : hors contrat) |
 | `FakePresenter` · `MemoryStore` | une interface qui répond par script, un stockage de sauvegarde en mémoire |
 | `solve` · `SolveOptions` · `SolveResult` | le solveur : un chemin vers la fin, les blocages avec `prove` |
 | `parseSave` · `saveEnvelope` · `SaveEnvelopeV3` | l'enveloppe d'une sauvegarde : l'écrire, la relire (migrations appliquées) |

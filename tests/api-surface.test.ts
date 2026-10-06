@@ -27,8 +27,9 @@ function surface(file: string): string[] {
         .pop()!;
       if (k) names.add(k);
     }
+  // `export * from` follows the module, and what it re-exports in turn (core/types.ts is a facade since 4.1.0).
   for (const m of code.matchAll(/export (?:type )?\* from '([^']+)'/g))
-    for (const n of own(join(dirname(file), `${m[1]}.ts`))) names.add(n);
+    for (const n of surface(join(dirname(file), `${m[1]}.ts`))) names.add(n);
   return [...names].sort();
 }
 
