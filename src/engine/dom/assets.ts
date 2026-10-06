@@ -84,17 +84,11 @@ export class AssetBank {
     };
     let i = 0;
     const worker = async () => {
-      while (i < todo.length) {
-        if (this.signal?.aborted) {
-          for (const left of todo.slice(i)) this.warmed.delete(left); // not tried: the next warm-up may
-          return;
-        }
+      // A destroyed player ends the loop (its bank goes with it: what was not tried is not retried).
+      while (i < todo.length && !this.signal?.aborted) {
         const u = must(todo[i++], 'warm-up url'); // i < todo.length, checked above
         await idle();
-        if (this.signal?.aborted) {
-          this.warmed.delete(u);
-          return;
-        }
+        if (this.signal?.aborted) return;
         if (await cached(u)) {
           result.ok++;
           continue;

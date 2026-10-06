@@ -131,7 +131,7 @@ Measured on the current release, by the automated gates that run on every change
 | Saves | one frozen save per release from 3.0.0 to 4.1.7 loads and reaches the ending |
 | Proof | the sample game's every reachable state in seconds; a 40-room reference game in 578 states; 1 503 random games compared to an explicit search every night, 0 divergences ([BENCH](docs/en/BENCH.md)) |
 | A new game | packed, created from the tarball, installed, verified, built and played to its end by CI; a game made on the previous release upgraded and its save played to the end |
-| The player's first visit | 122 KB of JavaScript, gzipped, held by a budget; every byte fetched predicted by the asset graph |
+| The player's first visit | 123 KB of JavaScript, gzipped, held by a budget; every byte fetched predicted by the asset graph |
 | The release | built from the commit CI tested, every file accounted for with its licence, SBOM, SHA-256 sums and a provenance attestation, never replaced once published |
 
 What only people and real devices can check is listed, not claimed: [FIELD](docs/en/FIELD.md), and each release's

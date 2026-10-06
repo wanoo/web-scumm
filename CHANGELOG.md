@@ -21,7 +21,8 @@ first, after the code it describes. What this release does not do is in the LOG 
   work log's entry and decision numbers. `CODE_OF_CONDUCT.md`, a pull request template and a feature issue template;
   the wiki is off. Fixed: a warm-up of the assets in progress ended with `App.destroy()` neither its idle waits
   nor its fetches (CI's node-24 saw `window is not defined` from a test's torn-down page); the bank now carries the
-  player's abort signal and stops at it.
+  player's abort signal and stops at it. The first visit's JavaScript goes from 122 to 123 KB gzipped for it (the
+  baseline moved on purpose; the budget, `initialJsKB` 140, is untouched).
 
 ## 4.1.6 — 2026-10-06
 
