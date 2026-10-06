@@ -45,6 +45,22 @@ jobs:
           path: dist
   # A second game, as `npm run new-game` makes it: every gate the sample game passes (check, verify:game, prove:game,
   # the build, the production e2e with axe and saves), without a single test written for it. A gate since 3.2.
+  # The coverage floors of 4.1.0 (vite.config.ts, test.coverage.thresholds): the whole Node suite under V8 coverage,
+  # beside the check job; every branch of the critical core, the global floor never lower.
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: npm ci
+      - run: npm run test:coverage
   second-game:
     runs-on: ubuntu-latest
     steps:
