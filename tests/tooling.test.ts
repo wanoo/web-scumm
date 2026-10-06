@@ -101,7 +101,7 @@ describe('exit codes of the content tools', () => {
 
   it('a release of the sample game has no warning and no exception left, and it may be sold (3.7: its own theme)', () => {
     const rel = run(['tools/validate.ts', '--release']);
-    expect(rel.status).toBe(0);
+    expect(rel.status, rel.stdout + rel.stderr).toBe(0); // the CLI's own words when it refuses, not a bare 1
     expect(rel.stdout).not.toContain('warning(s)');
     expect(rel.stdout).not.toContain('release exception');
     const com = run(['tools/validate.ts', '--commercial', '--errors']);
