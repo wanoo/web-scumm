@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { httpPort, sseEvents } from '@engine/reality/http-port';
 
 /** A Bridge of `n` signals, `s1`…`sn`, as the two routes the port reads, and the `after` of every request it saw. */
-function fakeBridge(n: number, o: { streamClosesAfter?: number } = {}) {
+function fakeBridge(n: number) {
   const asked: { route: string; after: number }[] = [];
   const acked: number[] = [];
   const all = Array.from({ length: n }, (_, i) => ({ sequence: i + 1, jws: `s${i + 1}` }));
@@ -17,7 +17,7 @@ function fakeBridge(n: number, o: { streamClosesAfter?: number } = {}) {
     const url = new URL(String(input));
     if (url.pathname.endsWith('/v1/ack')) {
       acked.push((JSON.parse(String(init?.body)) as { through: number }).through);
-      return new Response('{}', { status: 200 });
+      return new Response(null, { status: 204 });
     }
     const after = Number(url.searchParams.get('after') ?? 0);
     const pending = all.filter((s) => s.sequence > after);
@@ -27,9 +27,9 @@ function fakeBridge(n: number, o: { streamClosesAfter?: number } = {}) {
     }
     if (url.pathname.endsWith('/v1/events')) {
       asked.push({ route: 'events', after });
-      // The stream carries the pending signals, then ends (a proxy's timeout, a network cut): the port reconnects.
-      const sent = pending.slice(0, o.streamClosesAfter ?? pending.length);
-      const body = sent.map((s) => `id: ${s.sequence}\ndata: ${s.jws}\n\n`).join('');
+      // The stream carries the pending signals as the server writes them, then ends (a proxy's timeout, a network
+      // cut): the port reconnects.
+      const body = pending.map((s) => `id: ${s.sequence}\nevent: signal\ndata: ${s.jws}\n\n`).join('');
       return new Response(body, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
     }
     return new Response('not found', { status: 404 });
@@ -60,7 +60,9 @@ async function readThen(
   ctrl.abort();
   await port.close();
   await reading;
-  return { got, next: bridge.asked.at(-1)! };
+  // The harness itself: the next request did arrive (a slow runner would otherwise hand back request 1 as "next").
+  expect(bridge.asked.length).toBeGreaterThanOrEqual(requestsBefore + 2);
+  return { got, next: bridge.asked[requestsBefore + 1]! };
 }
 
 describe('the port resumes from the acknowledged cursor, not from the delivered one (P0, fixed in 4.1.8)', () => {
