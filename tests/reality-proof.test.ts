@@ -2,6 +2,7 @@
 // finishable on its own (a required signal's fallback); under a scenario, with the listed signals in order; adversarial,
 // against any order and repetition of the declared signals. No real service is ever contacted.
 import { describe, expect, it } from 'vitest';
+import { lintContent } from '@engine/tools/lint';
 import { solve } from '@engine/tools/solve';
 import { validate } from '@engine/tools/validate';
 import { replay } from '@engine/tools/replay';
@@ -55,6 +56,34 @@ describe('the solver under the reality policies', () => {
     });
     expect(scenario.softlockCount).toBeGreaterThan(0);
     expect(scenario.softlockCauses.map((c) => c.action).join(' ')).toMatch(/Signal mail\.answer\.wrong/);
+  });
+});
+
+describe('the content lint and a required signal', () => {
+  it('the closed witness plays the declared fallback, or the lint says the fallback is not the way through', async () => {
+    const ok = await solve(signals(), signalsLayouts, { mode: 'witness' });
+    expect(lintContent(signals(), signalsLayouts, { solve: ok }).findings.map((f) => f.code)).not.toContain(
+      'fallback-unplayed',
+    );
+    // The radio (the declared fallback) behind a flag nothing sets, and another way to open the vault: the game
+    // still finishes closed, through a route the declaration does not name.
+    const g = signals();
+    const radio = g.rooms[0]!.on!.find((x) => x.a === 'radio')!;
+    radio.if = 'ghost';
+    g.rooms[0]!.on!.push({ verb: 'look', a: 'vault', if: '!vault_open', do: [{ set: 'vault_open' }, 'Ajar.'] });
+    const r = await solve(structuredClone(g), signalsLayouts, { mode: 'witness' });
+    expect(r.status).toBe('solved');
+    const found = lintContent(g, signalsLayouts, { solve: r }).findings.find((f) => f.code === 'fallback-unplayed');
+    expect(found).toMatchObject({ severity: 'warning', where: { path: 'reality.signals[0].fallback' } });
+    expect(found?.message).toMatch(/use radio/);
+    // Under a scenario the witness may go through the signal: nothing to say about the fallback there.
+    const sc = await solve(structuredClone(g), signalsLayouts, {
+      mode: 'witness',
+      reality: { scenario: 'mail', signals: ['mail.answer.correct'] },
+    });
+    expect(lintContent(g, signalsLayouts, { solve: sc }).findings.map((f) => f.code)).not.toContain(
+      'fallback-unplayed',
+    );
   });
 });
 

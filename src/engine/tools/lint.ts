@@ -269,6 +269,26 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
   const s = opts.solve;
   if (s) {
     const mode = s.mode;
+    // A required signal's fallback is what a player does when the world never answers. `validate` only checks that
+    // a rule matches it; the closed witness (no world outside) says whether that rule is the way through: a game
+    // that finishes closed by another route has a fallback nobody plays, declared on a rule that may well be dead.
+    if (s.status === 'solved' && s.reality?.startsWith('closed'))
+      (game.reality?.signals ?? []).forEach((sg, i) => {
+        const f = sg.fallback;
+        if (sg.availability !== 'required' || !f) return;
+        const played = s.steps.some(
+          (e) => 'act' in e && e.act.verb === f.verb && e.act.a === f.a && (f.b === undefined || e.act.b === f.b),
+        );
+        if (played) return;
+        add({
+          code: 'fallback-unplayed',
+          severity: 'warning',
+          where: { path: `reality.signals[${i}].fallback` },
+          message: `required signal "${sg.id}": its fallback (${f.verb} ${f.a}${f.b ? ` ${f.b}` : ''}) is not on the closed witness; the game finishes without the world outside by another route`,
+          fix: 'declare as the fallback the action the closed witness plays, or make the declared one the way through',
+          solver: mode,
+        });
+      });
     // A completed proof is the only run that can say "nothing reaches it"; a witness or a truncated proof only says
     // "not seen", as information.
     const proved = mode === 'prove' && !s.truncated;

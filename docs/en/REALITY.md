@@ -50,6 +50,11 @@ proves the game in three kinds of world:
 Each must be solved with no softlock and never truncated. The solver hands the engine the signal itself: no service
 is contacted. In the Studio's MCP, `solve` takes `reality` to try a world.
 
+`validate` checks that a required signal's `fallback` names a rule; the content lint (`npm run lint`, in
+`verify:game`) checks that the closed witness plays it. A game that finishes without the world outside by another
+route gets `fallback-unplayed`, a warning: the fallback is declared on a rule nobody needs, often one that cannot
+run; declare the action the witness plays, or make the declared one the way through.
+
 ## Try it in the Studio
 
 The Play tab shows a **Reality** panel for a game with `reality`: a button per signal, faults to add (a delay, a

@@ -52,6 +52,11 @@
   days (`--demo-days`), and `init --no-demo-webhooks` leaves them out for a Bridge on the Internet. The review's
   remaining P1s; its key-pinning ask is answered in `docs/dev/THREAT-MODEL.md` instead (the signing key lives on the
   Bridge: a pin would not survive its compromise, and TLS already names the host).
+- **A required signal's fallback is proved, not only named.** `validate` checked that a `fallback` matched a rule;
+  the content lint now checks that the closed witness plays it, and says `fallback-unplayed` (a warning) when the
+  game finishes without the world outside by another route: the declared rule is not the way through, and may be
+  dead. The review's P1 on the fallback proof, as a lint rather than a validation error: the closed proof still
+  holds, the declaration is what is wrong.
 
 ## 4.1.1 — 2026-10-06
 

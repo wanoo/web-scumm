@@ -51,6 +51,11 @@ Une preuve ne suppose jamais que l'extérieur coopère. `npm run solve:reality` 
 Chacun doit être résolu sans blocage et jamais tronqué. Le solveur donne le signal au moteur lui-même : aucun service
 n'est contacté. Dans le MCP du Studio, `solve` prend `reality` pour essayer un monde.
 
+`validate` vérifie que le `fallback` d'un signal requis nomme une règle ; le lint de contenu (`npm run lint`, dans
+`verify:game`) vérifie que le témoin du monde fermé le joue. Un jeu qui se finit sans l'extérieur par un autre chemin
+reçoit `fallback-unplayed`, un avertissement : le fallback est déclaré sur une règle dont personne n'a besoin, souvent
+une qui ne peut pas s'exécuter ; déclarer l'action que joue le témoin, ou faire de celle déclarée le chemin.
+
 ## L'essayer dans le Studio
 
 L'onglet Jouer montre un panneau **Reality** pour un jeu avec `reality` : un bouton par signal, des pannes à ajouter
