@@ -12,18 +12,15 @@ sections below.
 
 | Where | Mutant | Why it is equivalent |
 |---|---|---|
-| `core/save.ts` `props` pruning, `const r = cut > 0 ? …` | `cut > 0` → `true` | Alone, the next line still reads `cut > 0` for the prop and finds none: the key is dropped either way. Mutating both lines together is killed (`critical-save`, "a prop or actor key without its room"). |
-| same line | `>` → `>=` | Differs only for a key starting with a dot (`.x`), whose room part is `''`: no room has an empty id (the validator refuses it). |
 | `core/save.ts` `props` pruning, `const p = cut > 0 ? …` | `cut > 0` → `true` | Alone, `r` is undefined for a key without a dot, so `p` is too. |
-| same line | `>` → `>=` | As above: only for a room id `''`. |
-| `core/save.ts` `actors` pruning | `>` → `>=` | As above: only for a room id `''`. |
-| `core/migrate.ts` room prefix, `if (i < 0)` | `<` → `<=` | Differs only for a key starting with a dot: its room part `''` is never in `renameRoom`. |
+| `core/session-runtime.ts` `cur`, `this.open.length ? … : undefined` | `this.open.length` → `true` | With no open entry, `this.open[-1]` is undefined: the same answer as the branch it replaces (4.1.5, the session's owner). |
 | `core/migrate.ts` script steps, `if (st.step)` | → `true` | With no step, `renameScriptStep[id][undefined]` is looked up and is undefined, so `st.step` stays undefined. |
 | `core/migrate.ts` players, `s.active ? …` | → `true` | With no active player, `renamePlayer[undefined]` is undefined and the value stays undefined. |
 
 ## The core set (4.1.0, measured again 2026-10-06)
 
-**340 of 348 mutants killed**; the 8 survivors are the table above, each named in `mutants.json`.
+**342 of 345 mutants killed** (4.1.5, after `core/keys.ts` and the session's owner: three of 4.1.0's named survivors
+are killed by the new code and left the list); the 3 survivors are the table above, each named in `mutants.json`.
 
 ## The modules of 4.1.5, measured, not gated (2026-10-06)
 

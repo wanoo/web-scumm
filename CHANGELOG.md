@@ -46,6 +46,9 @@ the LOG and the passes sheet.
   `web-scumm doctor` and `web-scumm mcp` join the command line. The Mega Drive pipeline says what to do on Windows
   instead of failing on a missing download. The e2e harness reads the camera through `view.camera` (the 4.1.5 split
   left its visibility test reading a field that was gone, so a wide room's target was tapped at the screen's edge).
+- **CI without silly timeouts** (4.1.7). Every install step of the workflows (Playwright's browsers, pip, apt,
+  `npm ci`) is retried three times and held to 8 minutes: a download that hangs no longer keeps a job for its
+  45-minute limit (a `playwright install` did, on 6 October, for 45 minutes).
 
 ## 4.1.5 — 2026-10-06
 
