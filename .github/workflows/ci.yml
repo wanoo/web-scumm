@@ -1,9 +1,9 @@
 name: ci
 on:
   push:
-    # main deploys to Pages; topic branches only run the checks (docs/dev/CHARTER.md). Since 3.7.1 a topic branch is
-    # named by its kind, whatever the version: feature/…, fix/…, release/…, docs/…, test/…, refactor/… ('v[0-9]*' keeps the older v37-… names).
-    branches: [main, 'feature/**', 'fix/**', 'release/**', 'docs/**', 'test/**', 'refactor/**', 'v[0-9]*']
+    # main deploys to Pages; a tag releases. A topic branch runs through its pull request (4.1.4; the ruleset on main
+    # requires these checks on the pull request's head), so a push runs once, not twice.
+    branches: [main]
     tags: ['v*']
   pull_request:
 # The token does nothing but read (4.1.3); the Pages job asks for what it needs. One run per ref at a time: a push

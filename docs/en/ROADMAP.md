@@ -547,6 +547,14 @@ ratchets that say what they could hold; `release-check` as CI runs it; a ruleset
 force push, no deletion) and merges by pull request; Dependabot alerts on, 233 merged branches and 52 worktrees gone.
 The refactorings of 4.1.4 and 4.1.5 lean on these gates.
 
+## v4.1.4 "Honest Engine" (shipped 6 October 2026): what the engine does when things end or fail
+
+`destroy` on the engine and the player (no loop, listener, frame or blob URL left), an error port (a script that
+throws is stopped and marked so in the save), time from the injected clock alone, hooks instead of patched methods,
+`waitUntil` woken by the change that satisfies it, the state's keys in one module, English placeholders with the 4.0
+names kept, dead code gone and `knip` on guard for dead files and dependencies. The next release, 4.1.5, makes the
+split of 4.1.0 real: `step()` as a table, sub-objects that own their state, the player decomposed, rendering diffed.
+
 ## After 4.0 (not planned yet)
 
 - The field passes, then what they find (D12).

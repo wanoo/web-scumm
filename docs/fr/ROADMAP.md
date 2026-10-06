@@ -528,6 +528,15 @@ CI le lance ; un ruleset sur `main` (les gates requises, pas de force-push, pas 
 pull request ; alertes Dependabot actives, 233 branches fusionnées et 52 worktrees disparus. Les refactorisations
 de 4.1.4 et 4.1.5 s'appuient sur ces gates.
 
+## v4.1.4 « Moteur honnête » (livrée le 6 octobre 2026) : ce que fait le moteur quand les choses finissent ou échouent
+
+`destroy` sur le moteur et le joueur (ni boucle, ni écouteur, ni image, ni URL blob laissés), un port d'erreur (un
+script qui lève est arrêté et marqué tel dans la sauvegarde), le temps par la seule horloge injectée, des hooks à la
+place de méthodes rapiécées, `waitUntil` réveillé par le changement qui le satisfait, les clés de l'état dans un seul
+module, des placeholders en anglais avec les noms 4.0 conservés, le code mort retiré et `knip` qui veille aux fichiers
+et dépendances morts. La suivante, 4.1.5, rend réelle la découpe de la 4.1.0 : `step()` en table, des sous-objets qui
+possèdent leur état, le joueur décomposé, le rendu diffé.
+
 ## Après la 4.0 (pas encore planifié)
 
 - Les passes terrain, puis ce qu'elles trouvent (D12).

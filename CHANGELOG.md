@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 4.1.4 — 2026-10-06
+
+"Honest Engine" (LOG #100): the plan's third release; nothing in the content or the commands, everything in how the
+engine ends, fails and keeps time. The first release merged by pull request under the ruleset of 4.1.3.
+
 ### Changes
 
 - **The engine's honesty** (4.1.4, the plan's third release; nothing in the content or the commands). `Engine.destroy()`
