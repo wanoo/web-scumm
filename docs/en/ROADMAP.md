@@ -567,6 +567,21 @@ and `skipping` stay on the Engine; the player (`dom/app.ts`) is not decomposed; 
 draw list per frame. The next release, 4.1.6, is the studio's tool: the npm scripts, no tracked file written by
 `dev` or `new-game`, Python out of the build path, Windows, the Studio's tabs, the player's touch targets.
 
+## v4.1.6 "Studio Tool" (shipped 6 October 2026): what a studio touches every day
+
+No tracked file written by `dev`, `check`, `build` or `new-game` (the current game is `.cache/game`, a link
+`npm run game` points; tsconfig.json's `@game` paths look there); `npm run build` without Python (the pixel tests
+stay in `npm test` and CI); `npm run doctor` with required (Node, Chromium) and optional (Python, its modules, ffmpeg,
+WebKit) prerequisites, exit 0 when only optional ones are missing; `cross-env` and Node for the scripts that set a
+variable or make a directory (Windows); `requirements.txt` pinned; the Vite plugins in `tools/vite/plugins.ts`;
+`set_layout` validated and taken back like `set_value`; the MCP server's version from package.json; `web-scumm
+doctor` and `web-scumm mcp`; verbs 44 px high on a phone, no `maximum-scale`, `prefers-reduced-motion` complete,
+the focused target's label 12 px; `packageManager` and `.nvmrc`. Left for later, said as such: the npm scripts are
+not consolidated into twelve verbs (81 remain, documented in TOOLS.md); the Studio's tabs are not split into
+view/state/io and have no test per tab; the Check tab still speaks the solver's language; `sirv-cli` stays where it
+is. The next release, 4.1.7, is the documentation for a studio: a README worth reading, API reference from TSDoc, a
+first-room tutorial, French parity checked, governance files.
+
 ## After 4.0 (not planned yet)
 
 - The field passes, then what they find (D12).

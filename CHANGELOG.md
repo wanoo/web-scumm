@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 4.1.6 — 2026-10-06
+
+"Studio Tool" (LOG #102): the plan's fifth release; what a studio touches every day, made to leave the tree clean,
+run without Python and on Windows, and say what is optional. What the plan listed and this release does not do is in
+the LOG and the passes sheet.
+
+### Changes
+
 - **The studio's tool** (4.1.6, the plan's fifth release). No tracked file is written by `dev`, `check`, `build` or
   `new-game` any more: the current game is `.cache/game`, a symbolic link `npm run game` points (tsconfig.json's
   `@game` paths look there; 4.1.5 rewrote tsconfig.json). `npm run build` no longer needs Python: the pixel tests

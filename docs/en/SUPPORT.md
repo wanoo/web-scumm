@@ -25,6 +25,8 @@ changes. 4.1.2 adds in the same way (optional fields on `RealityClientOptions`, 
 routes, a `mismatch` result, a lint code, two Bridge commands): the same exception, nothing of 4.1.1 changes. 4.1.4 adds
 `destroy`, `onError`, `beforeSave` and `onLoad` on `Engine`, and `destroy` on `App`: the same again. 4.1.5 adds
 `sessions` on `Engine` and `camera` and `walker` on the room view, and moves `@internal` members only: the same again.
+4.1.6 adds two commands to the command line, an `optional` field to doctor's checks and `tools/vite/plugins.ts`,
+and changes no API: the same again.
 
 Supported: the current major's last minor gets fixes; the previous minor gets security fixes for three months after
 the next one. The 3.x line ended with 3.9; its games move to 4.0 with `web-scumm migrate` (nothing to rewrite for a

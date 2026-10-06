@@ -550,6 +550,22 @@ l'Engine ; le joueur (`dom/app.ts`) n'est pas décomposé ; le peintre Canvas co
 chaque image. La suivante, 4.1.6, est l'outil du studio : les scripts npm, aucun fichier suivi écrit par `dev` ou
 `new-game`, Python hors du chemin de build, Windows, les onglets du Studio, les cibles tactiles du joueur.
 
+## v4.1.6 « Outil de studio » (livrée le 6 octobre 2026) : ce qu'un studio touche tous les jours
+
+Aucun fichier suivi écrit par `dev`, `check`, `build` ou `new-game` (le jeu courant est `.cache/game`, un lien que
+`npm run game` pointe ; les chemins `@game` de tsconfig.json regardent là) ; `npm run build` sans Python (les tests
+pixel restent dans `npm test` et la CI) ; `npm run doctor` avec des prérequis requis (Node, Chromium) et optionnels
+(Python, ses modules, ffmpeg, WebKit), sortie 0 quand seuls des optionnels manquent ; `cross-env` et Node pour les
+scripts qui posent une variable ou créent un dossier (Windows) ; `requirements.txt` épinglé ; les plugins Vite dans
+`tools/vite/plugins.ts` ; `set_layout` validé et repris comme `set_value` ; la version du serveur MCP lue dans
+package.json ; `web-scumm doctor` et `web-scumm mcp` ; des verbes de 44 px sur téléphone, plus de `maximum-scale`,
+`prefers-reduced-motion` complet, l'étiquette de la cible au clavier à 12 px ; `packageManager` et `.nvmrc`. Laissé
+pour plus tard, dit comme tel : les scripts npm ne sont pas ramenés à douze verbes (81 restent, documentés dans
+TOOLS.md) ; les onglets du Studio ne sont pas découpés en vue/état/io et n'ont pas de test par onglet ; l'onglet
+Check parle encore la langue du solveur ; `sirv-cli` reste où il est. La suivante, 4.1.7, est la documentation pour
+un studio : un README qui donne envie, la référence d'API depuis le TSDoc, un tutoriel « première pièce », la parité
+française vérifiée, les fichiers de gouvernance.
+
 ## Après la 4.0 (pas encore planifié)
 
 - Les passes terrain, puis ce qu'elles trouvent (D12).

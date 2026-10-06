@@ -17,6 +17,13 @@ single day with an AI assistant.
 
 ![The Pantry Key: Grandma's house, nine verbs, the bag](docs/img/v36-hero.webp)
 
+**New in v4.1.6 "Studio Tool":** what a studio touches every day. `dev`, `check`, `build` and `new-game` write no
+tracked file any more (the current game is a link in `.cache`); `npm run build` needs no Python; `npm run doctor`
+tells required from optional and exits 0 when only Python, ffmpeg or WebKit are missing; the scripts run on Windows
+(`cross-env`, no `mkdir -p`); the Vite plugins have their module; `set_layout` is validated and taken back like
+`set_value`; the MCP server knows its version; `web-scumm doctor` and `web-scumm mcp`; verbs 44 px high on a phone,
+a page that zooms, reduced motion complete ([CHANGELOG](CHANGELOG.md)).
+
 **New in v4.1.5 "Real Core":** nothing in the content, everything in who owns what inside the engine. `step()` is
 a table of handlers, one function per command; the script loops, the session and the room's camera and walking
 have owners of their own (`ScriptScheduler`, `SessionLog`, `Camera`, `Walker`) instead of fields on the engine or the
@@ -106,7 +113,7 @@ Market".
 | A game made on the previous release, upgraded, its save played to the end on 4.0 | a CI job on every push (`npm run upgrade-check`) |
 | "The Lighthouse", the independent game: 5 places, English and French | `release --commercial` green: proof over 85 states, 202 texts per language, 62 locked files |
 | The public API | 92 names in 4 entries, 23 Studio/MCP tools, held by `tests/api-surface.test.ts` |
-| Saves | one per release from 3.0.0 to 4.1.5 loads and reaches the ending |
+| Saves | one per release from 3.0.0 to 4.1.6 loads and reaches the ending |
 | The player's first visit | 122 KB of JavaScript, gzipped (153 in 3.7.0), held by `initialJsKB` |
 | The archive | every file accounted for: code, locked assets, fonts, icons, `licenses/` |
 | The nightly corpus | 1 503 random games in four shards, 910 compared to the explicit search, 0 divergences |
@@ -171,7 +178,7 @@ Needs Node 22+. Python 3 (`pip install -r requirements.txt`) is for the art tool
 publishing to come, then `npx create-web-scumm my-game`):
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.5/web-scumm-4.1.5.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.6/web-scumm-4.1.6.tgz
 npx --package=$T web-scumm create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # then npm run verify, npm run build, npm run release
@@ -254,9 +261,9 @@ Every page also exists in French under `docs/fr/`. `docs/dev/` holds the log of 
 
 ## Releases
 
-Current release: [v4.1.5 "Real Core"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.5): the split that
-4.1.0 announced, done: `step()` as a table, owners for the script loops, the session, the camera and the walking,
-rendering diffed instead of rebuilt, `room.ts` under the limit; behaviour identical to 4.1.4. The
+Current release: [v4.1.6 "Studio Tool"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.6): the day-to-day
+tool of a small studio: nothing tracked written by `dev` or `new-game`, a build without Python, a `doctor` that tells
+required from optional, scripts that run on Windows, a validated `set_layout`, 44 px verbs; on 4.1.5's real core. The
 story from v1.3 to v4.1 is in the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map

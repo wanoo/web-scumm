@@ -265,3 +265,12 @@ Rien à changer dans un jeu, ni dans un hôte qui passe par l'API publique : `en
 `sessionT0` du moteur les trouve sur `engine.sessions` (`feed`, `open`, `t0`) ; un qui atteignait `toScreen`,
 `toLogical`, `setCamera`, `followHero`, `onCamera` ou `cam` de la vue de pièce les trouve sur `view.camera`, et
 `walkTo`, `motion` et `clampFloor` (désormais `clamp`) sur `view.walker`. Une sauvegarde 4.1.4 se charge telle quelle.
+
+## 18. De la 4.1.5 à la 4.1.6 « Outil de studio »
+
+Rien à changer dans un jeu. Dans un checkout : lancer `npm run game` une fois (ou n'importe lequel de `dev`,
+`check`, `build`), qui crée `.cache/game`, le lien par lequel passent désormais les chemins `@game` de
+tsconfig.json ; un `package.json` dont `config.game` nommait un jeu compte toujours, après le lien et `GAME`.
+`npm run build` ne lance plus les tests pixel (`npm test` et la CI le font). `npm run doctor` sort 0 quand seuls
+Python, ffmpeg ou WebKit manquent. `requirements.txt` épingle ses modules : `pip install -r requirements.txt` à
+nouveau si les vôtres sont plus anciens. Une sauvegarde 4.1.5 se charge telle quelle.
