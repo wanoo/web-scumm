@@ -124,13 +124,26 @@ export class Engine {
   skipping = false;
   /** Called on every state change relevant to the UI (inventory, room, busy state). */
   onChange: () => void = () => {};
+  /**
+   * A failure the engine survives (4.1.4): a script that threw (stopped, `scripts[id].off`, and said here), a custom
+   * command that changed more than it declared. The browser logs; a host or a test hears it. Never a payload.
+   */
+  onError: (error: unknown, where: string) => void = (error, where) => console.error(where, error);
+  /** What `beforeSave` returns is what the store writes (4.1.4): the player adds the music's phase this way. */
+  beforeSave: ((state: GameState) => GameState) | null = null;
+  /** Around `load` (4.1.4): `before` sees the migrated state, `after` runs once the room is entered or failed. */
+  onLoad: { before?: (state: GameState) => void; after?: () => void } = {};
+  /** @internal Woken by the next state change: `waitUntil` and anyone waiting on the engine (4.1.4). */
+  waiters = new Set<() => void>();
+  /** Ended by `destroy()`: no loop runs, no waiter waits, nothing is called back (4.1.4). */
+  destroyed = false;
   /** The journal (dev tools, Studio Play tab): what answered, which events fired, how scripts moved. Kept only when `traceOn`. */
   trace: TraceEntry[] = [];
   traceOn = false;
   /** @internal Read by the modules of core/ (4.1.0). */
   log(kind: TraceEntry['kind'], text: string) {
     if (!this.traceOn) return;
-    this.trace.push({ t: Date.now(), kind, text, room: this.state.room });
+    this.trace.push({ t: this.clock?.() ?? Date.now(), kind, text, room: this.state.room });
     if (this.trace.length > 200) this.trace.splice(0, this.trace.length - 200);
   }
   /** Injectable randomness (the solver makes it deterministic). */
@@ -248,7 +261,7 @@ export class Engine {
       visited: {},
       counters: {},
       seen: {},
-      started: Date.now(),
+      started: this.clock?.() ?? Date.now(),
       where: this.homes(),
       scripts: {},
       camera: { x: 0, follow: true },
@@ -324,12 +337,17 @@ export class Engine {
   async load(saved: GameState): Promise<void> {
     const s = migrate(this.game, saved);
     if (!s) throw new Error(`save version ${saved.v} cannot be migrated to ${this.game.saveVersion}`);
-    this.dropGuide();
-    this.state = this.ensureState(s);
-    this.store.save(this.state);
-    this.newSession({ kind: 'load' });
-    await this.enter(s.room, undefined, false);
-    this.startScripts(true);
+    this.onLoad.before?.(s);
+    try {
+      this.dropGuide();
+      this.state = this.ensureState(s);
+      this.save();
+      this.newSession({ kind: 'load' });
+      await this.enter(s.room, undefined, false);
+      this.startScripts(true);
+    } finally {
+      this.onLoad.after?.();
+    }
   }
 
   /** Forgets a pending tutorial step (game session change). */
@@ -376,7 +394,28 @@ export class Engine {
   }
 
   save() {
-    this.store.save(this.state);
+    this.store.save(this.beforeSave ? this.beforeSave(this.state) : this.state);
+  }
+
+  /**
+   * Ends this engine (4.1.4): the script loops stop at their next step, whoever waits on it is released, nothing is
+   * called back any more. The state stays readable. A host that makes engines (the Studio's preview, a test) calls it.
+   */
+  destroy(): void {
+    this.destroyed = true;
+    this.roomGen++;
+    this.sessionGen++;
+    this.loops.clear();
+    this.wake();
+    this.onChange = () => {};
+    this.onError = () => {};
+  }
+
+  /** @internal Releases whoever waits for a state change (4.1.4). */
+  wake(): void {
+    const w = [...this.waiters];
+    this.waiters.clear();
+    for (const f of w) f();
   }
 
   get busy() {
@@ -598,6 +637,7 @@ export class Engine {
       this.busyCount--;
       if (this.busyCount === 0) this.save();
       this.onChange();
+      this.wake();
     }
   }
 

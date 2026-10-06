@@ -3,24 +3,12 @@
 import { check } from './cond';
 import { FLOOR } from './define';
 import type { CharacterDef, Id, Point, RoomDef } from './types';
-import type { CustomCommands } from './custom';
 
 export type { Action } from './types';
-
-export interface EngineOptions {
-  /** The game's custom commands (`{ custom }`), from games/<id>/index.ts. */
-  commands?: CustomCommands;
-  /** Run their `run` part (the browser app); off in node (tests, solver): only `effects` apply. */
-  runCustom?: boolean;
-  /** The scene element handed to custom commands (DOM renderer). */
-  scene?: () => HTMLElement | undefined;
-}
 
 import { near } from './engine-shared';
 import type { Engine } from './engine';
 
-// What the world shows: names, kinds, visibility, prop states, targets and where to stand to reach them.
-// Part of the Engine (4.1.0 "Clarity"): its methods of the same name forward here, in the same order of effects.
 /** Inactive players standing in this room with no actor declared for them: shown by the view, targetable. */
 export function guests(eng: Engine, room: RoomDef = eng.room()): Record<Id, { char: Id; at: Point }> {
   const out: Record<Id, { char: Id; at: Point }> = {};

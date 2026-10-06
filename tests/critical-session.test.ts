@@ -32,12 +32,12 @@ describe('newSession', () => {
     expect('at' in s).toBe(false);
     expect(e.sessionT0).toBe(0);
   });
-  it('is dated, and its clock origin set, with a clock', async () => {
+  it('is dated by the clock, and its clock origin set, with a clock', async () => {
     const { e } = await engine();
-    vi.spyOn(Date, 'now').mockReturnValue(5000);
+    vi.spyOn(Date, 'now').mockReturnValue(5000); // never read: the clock is the only time the engine knows (4.1.4)
     e.clock = () => 123;
     const s = newSession(e, { kind: 'new' });
-    expect(s.at).toBe(5000);
+    expect(s.at).toBe(123);
     expect(e.sessionT0).toBe(123);
   });
 });

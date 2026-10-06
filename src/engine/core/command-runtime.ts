@@ -43,6 +43,8 @@ export function spot(eng: Engine, t: Id | Point, room: RoomDef): Point {
 export async function exec(eng: Engine, cmds: Cmd[] | undefined, ctx: Ctx): Promise<void> {
   if (!cmds) return;
   for (const c of cmds) {
+    // A destroyed engine runs nothing more (4.1.4): what was waiting ends, what followed never starts.
+    if (eng.destroyed) return;
     if (eng.skipping && !ctx.fast) ctx = { ...ctx, fast: true };
     await eng.step(c, ctx);
     if (eng.state.done) return;
@@ -324,7 +326,17 @@ export async function step(eng: Engine, c: Cmd, ctx: Ctx): Promise<void> {
   }
   if ('emit' in c) return eng.emit(c.emit, ctx);
   if ('waitUntil' in c) {
-    for (let guard = 0; guard < 100000 && !eng.cond(c.waitUntil, room.id); guard++) await eng.ui.wait(250, ctx.fast);
+    // Woken by the next state change (4.1.4), with the presenter's wait as a bound: a condition met is seen at once,
+    // never a quarter of a second later; the guard keeps a condition nothing can meet from waiting for ever.
+    for (let guard = 0; guard < 100000 && !eng.cond(c.waitUntil, room.id) && !eng.destroyed; guard++) {
+      let woken = () => {};
+      const change = new Promise<void>((ok) => {
+        woken = ok;
+        eng.waiters.add(ok);
+      });
+      await Promise.race([eng.ui.wait(250, ctx.fast), change]);
+      eng.waiters.delete(woken);
+    }
     return;
   }
   if ('waitEvent' in c) return; // only meaningful at the top level of a script (advance); elsewhere it is a no-op
@@ -375,7 +387,7 @@ export async function step(eng: Engine, c: Cmd, ctx: Ctx): Promise<void> {
         if (diff.length) {
           const msg = `custom "${c.custom}" changed ${diff.join(', ')} outside its declared effects`;
           eng.log('action', msg);
-          console.warn(msg);
+          eng.onError(new Error(msg), `custom ${c.custom}`);
         }
       }
     }

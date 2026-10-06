@@ -106,6 +106,9 @@ export class App implements Presenter {
   readonly game: GameDef;
   /** The world link (4.1.1, dom/reality-ui.ts), when the game declares `reality`. */
   reality?: RealityLinkLike;
+  /** Every listener this player puts on the window or the document ends with it (`destroy`, 4.1.4). */
+  readonly aborter = new AbortController();
+  private stopFps?: () => void;
   /** @internal Read by the modules of dom/ (4.1.0). */
   mg: Record<Id, Minigame>;
   private sealed!: Ending;
@@ -267,20 +270,12 @@ export class App implements Presenter {
       o.store ?? new LocalStore(`${o.game.id}.save`, o.game, storageFailure, storageWarning),
       { commands: o.commands, runCustom: true, scene: () => this.scene },
     );
-    // The music's phase (3.6): every save keeps where the music is, and a loaded save resumes it there.
+    // The music's phase (3.6): every save keeps where the music is, and a loaded save resumes it there. Loading is a
+    // restore, not a scene change (3.6.1): the saved music at its point, with no transition or bridge. Through the
+    // engine's hooks (4.1.4), not by replacing its methods.
     const store = this.engine.store as SaveStore & Partial<SlotStore>;
-    const saveRaw = store.save.bind(store);
-    store.save = (s) => saveRaw(this.withMusic(s));
-    const loadRaw = this.engine.load.bind(this.engine);
-    // Loading is a restore, not a scene change (3.6.1): the saved music at its point, with no transition or bridge.
-    this.engine.load = async (s) => {
-      this.audio.restore(s.music ?? null);
-      try {
-        return await loadRaw(s);
-      } finally {
-        this.audio.restored();
-      }
-    };
+    this.engine.beforeSave = (s) => this.withMusic(s);
+    this.engine.onLoad = { before: (s) => this.audio.restore(s.music ?? null), after: () => this.audio.restored() };
     this.slots =
       o.slots ??
       (typeof store.listSlots === 'function'
@@ -291,7 +286,7 @@ export class App implements Presenter {
     const forced = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('renderer') : null;
     if (forced === 'canvas' || forced === 'dom') this.view.forced = forced;
     // `?fps` (3.8): a frame counter in a corner, now and the lowest second seen, for the real-phone pass (docs/en/FIELD.md).
-    if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('fps')) fpsMeter();
+    if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('fps')) this.stopFps = fpsMeter();
     this.view.onSurface = (el, old) => {
       if (old.parentElement) old.replaceWith(el);
       else this.scene?.prepend(el);
@@ -334,8 +329,21 @@ export class App implements Presenter {
       },
       credits: () => this.credits(),
     });
-    window.addEventListener('resize', () => this.layout());
+    window.addEventListener('resize', () => this.layout(), { signal: this.aborter.signal });
     this.layout();
+  }
+
+  /**
+   * Ends this player (4.1.4): its listeners on the window and the document, its frame loop and meter, its sounds, its
+   * world link and the engine's scripts. The DOM it built stays for the host to drop; the save is untouched.
+   */
+  destroy(): void {
+    this.aborter.abort();
+    this.stopFps?.();
+    this.view.destroy();
+    this.audio.dispose();
+    void this.reality?.stop?.();
+    this.engine.destroy();
   }
 
   // ================================================================== layout
@@ -653,10 +661,8 @@ export class App implements Presenter {
 
   async minigame(id: Id, params: Record<string, unknown>) {
     const game = this.mg[id];
-    if (!game) {
-      console.warn('unknown minigame', id);
-      return;
-    }
+    // The validator refuses a minigame the game does not register; a run that gets here is a bug, said as one.
+    if (!game) throw new Error(`unknown minigame: ${id}`);
     const host = el('div', 'overlay');
     host.style.background = '#000';
     this.scene.append(host);

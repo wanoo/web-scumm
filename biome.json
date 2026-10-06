@@ -49,7 +49,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": false,
+      "preset": "none",
       "suspicious": {
         "noExplicitAny": "error",
         "noFallthroughSwitchClause": "error",

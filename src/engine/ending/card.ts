@@ -5,7 +5,7 @@ import type { EndingPayload } from './seal';
 
 export const DEFAULT_ACCENT = '#d4145a';
 
-const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
+import { esc } from '../dom/app-shared';
 
 /** "Your guess: … Nice call!": only judged if the sealed file knows the outcome. */
 export function verdict(game: GameDef, flags: Record<string, Value>, p: EndingPayload): string {

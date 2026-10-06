@@ -92,13 +92,13 @@ export interface SaveEnvelopeV3 {
   state: GameState;
 }
 
-export function saveEnvelope(game: GameDef, state: GameState): SaveEnvelopeV3 {
+export function saveEnvelope(game: GameDef, state: GameState, now = Date.now()): SaveEnvelopeV3 {
   return {
     format: 'web-scumm-save',
     schema: 3,
     gameId: game.id,
     gameSaveVersion: game.saveVersion,
-    savedAt: Date.now(),
+    savedAt: now,
     state: structuredClone(state),
   };
 }

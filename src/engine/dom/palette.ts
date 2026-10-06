@@ -119,6 +119,13 @@ export class PaletteCache {
     }
     return job;
   }
+
+  /** Revokes every blob URL made (4.1.4): a view that ends gives its images back to the browser. */
+  dispose(): void {
+    for (const u of this.done.values()) if (u.startsWith('blob:')) URL.revokeObjectURL(u);
+    this.done.clear();
+    this.pending.clear();
+  }
 }
 
 async function recolour(url: string, p: Palette, tolerance: number): Promise<string> {

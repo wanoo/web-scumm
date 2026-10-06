@@ -56,13 +56,22 @@ export class Audio {
       if (id) this.play(id);
     };
     for (const ev of ['pointerdown', 'touchend', 'keydown'])
-      document.addEventListener(ev, unlock, { capture: true, passive: true });
+      document.addEventListener(ev, unlock, { capture: true, passive: true, signal: this.aborter.signal });
     const wake = () => {
       const c = this.director?.ctx as AudioContext | undefined;
       if (c?.state === 'suspended') void c.resume().catch(() => {});
     };
     for (const ev of ['pointerdown', 'touchend', 'keydown'])
-      document.addEventListener(ev, wake, { capture: true, passive: true });
+      document.addEventListener(ev, wake, { capture: true, passive: true, signal: this.aborter.signal });
+  }
+
+  /** Every listener this audio put on the document ends with it (`App.destroy`, 4.1.4). */
+  private readonly aborter = new AbortController();
+
+  /** Ends this audio (4.1.4): the music stopped, the document listeners gone. */
+  dispose(): void {
+    this.stop();
+    this.aborter.abort();
   }
 
   /** Volume set "by hand": Howler's fade gets lost when the file isn't loaded yet, and the track would play silently. */
@@ -90,7 +99,7 @@ export class Audio {
       }
     };
     for (const ev of ['pointerdown', 'touchend', 'keydown'])
-      document.addEventListener(ev, again, { once: true, capture: true, passive: true });
+      document.addEventListener(ev, again, { once: true, capture: true, passive: true, signal: this.aborter.signal });
   }
 
   private howl(kind: 'music' | 'sfx' | 'voice', id: string, loop: boolean): Howl | null {

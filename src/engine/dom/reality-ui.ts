@@ -229,6 +229,15 @@ export class RealityLink {
     }
   }
 
+  /** Ends the client and the tab's lock, the stored link kept: the next start connects again (`App.destroy`). */
+  async stop(): Promise<void> {
+    clearTimeout(this.retry);
+    const client = this.client;
+    this.client = undefined;
+    await client?.stop();
+    this.releaseLock?.();
+  }
+
   /**
    * Unlinks this game: the link is revoked on the Bridge (`POST /v1/unlink`, so a capability copied from this browser
    * stops working too) and forgotten here. Offline, the revocation is asked anyway and lost: the capability then

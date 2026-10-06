@@ -22,7 +22,7 @@ export function newSession(eng: Engine, start: Session['start']): Session {
     start,
     base: structuredClone(eng.state),
     log: [],
-    ...(eng.clock ? { at: Date.now() } : {}),
+    ...(eng.clock ? { at: eng.clock() } : {}),
   };
   return eng.session;
 }
