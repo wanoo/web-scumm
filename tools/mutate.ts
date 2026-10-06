@@ -20,7 +20,6 @@ export const SETS = {
     'src/engine/core/save.ts',
     'src/engine/core/session-runtime.ts',
     'src/engine/core/migrate.ts',
-    'src/engine/core/scheduler.ts',
   ],
   reality: [
     'src/engine/core/reality-runtime.ts',

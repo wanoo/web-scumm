@@ -25,6 +25,16 @@ sections below.
 
 **340 of 348 mutants killed**; the 8 survivors are the table above, each named in `mutants.json`.
 
+## The modules of 4.1.5, measured, not gated (2026-10-06)
+
+The core's real split made two modules the plan wanted in the set: the handlers' table and the scheduler. Measured
+with the core set's tests (`npm run test:mutation:core -- --file=…`): `core/command-handlers.ts` **106 of 260
+killed**, `core/scheduler.ts` **23 of 32 killed** (with `tests/scheduler.test.ts` and `tests/engine-honesty.test.ts`
+in the set since 4.1.5). The 154 and 9 survivors are missing tests, not equivalents: the core set's tests reach a
+command through a save, a session or a condition, rarely through its own handler. Neither file is in the gated set
+until a test file per handler exists (4.1.6 or later); this page says so rather than naming 163 survivors as
+explained.
+
 ## The reality set (4.1.2, measured 2026-10-06)
 
 **382 of 484 mutants killed** (`reality-runtime` 42/44, `protocol` 70/75, `client` 52/65, `bridge` 142/178, `store`
