@@ -151,27 +151,35 @@ describe('proof mode: the differential suite', () => {
   // Two full proofs of the demo per test: 11 s on a laptop, 55 to 62 s on a shared CI runner (4.1.0): three minutes.
   const DIFFERENTIAL_MS = 180_000;
   for (const [name, game, layouts, o] of games) {
-    it(`${name}: stubborn sets reach the plain verdict`, async () => {
-      const plain = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', por: false, memo: false });
-      const reduced = await solve(structuredClone(game), layouts, {
-        ...o,
-        mode: 'prove',
-        por: 'stubborn',
-        unsafeReduction: true,
-      });
-      expect(plain.truncated).toBe(false);
-      expect(agree(plain, reduced)).toBe(true);
-    }, DIFFERENTIAL_MS);
-    it(`${name}: sleep sets ${SLEEP_AGREES[name] ? 'agree' : 'invent softlocks'}`, async () => {
-      const plain = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', por: false, memo: false });
-      const reduced = await solve(structuredClone(game), layouts, {
-        ...o,
-        mode: 'prove',
-        por: 'sleep',
-        unsafeReduction: true,
-      });
-      expect(agree(plain, reduced)).toBe(SLEEP_AGREES[name]);
-    }, DIFFERENTIAL_MS);
+    it(
+      `${name}: stubborn sets reach the plain verdict`,
+      async () => {
+        const plain = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', por: false, memo: false });
+        const reduced = await solve(structuredClone(game), layouts, {
+          ...o,
+          mode: 'prove',
+          por: 'stubborn',
+          unsafeReduction: true,
+        });
+        expect(plain.truncated).toBe(false);
+        expect(agree(plain, reduced)).toBe(true);
+      },
+      DIFFERENTIAL_MS,
+    );
+    it(
+      `${name}: sleep sets ${SLEEP_AGREES[name] ? 'agree' : 'invent softlocks'}`,
+      async () => {
+        const plain = await solve(structuredClone(game), layouts, { ...o, mode: 'prove', por: false, memo: false });
+        const reduced = await solve(structuredClone(game), layouts, {
+          ...o,
+          mode: 'prove',
+          por: 'sleep',
+          unsafeReduction: true,
+        });
+        expect(agree(plain, reduced)).toBe(SLEEP_AGREES[name]);
+      },
+      DIFFERENTIAL_MS,
+    );
   }
 
   it('the trap: one cause, every losing state counted', async () => {
