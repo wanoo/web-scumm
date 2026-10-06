@@ -1,24 +1,10 @@
 [
  {
-  "file": "src/engine/core/save.ts",
+  "file": "src/engine/core/session-runtime.ts",
   "operator": "condition true",
-  "from": "cut > 0",
+  "from": "this.open.length",
   "to": "true",
-  "why": "props and actors pruning: alone, the next line still reads `cut > 0` for the prop and finds none; the key is dropped either way (both lines mutated together is killed, critical-save)"
- },
- {
-  "file": "src/engine/core/save.ts",
-  "operator": "operator",
-  "from": ">",
-  "to": ">=",
-  "why": "props and actors pruning: differs only for a key starting with a dot, whose room part is '' (no room has an empty id: the validator refuses it)"
- },
- {
-  "file": "src/engine/core/migrate.ts",
-  "operator": "operator",
-  "from": "<",
-  "to": "<=",
-  "why": "room prefix `if (i < 0)`: differs only for a key starting with a dot, whose room part '' is never in renameRoom"
+  "why": "`cur`: with no open entry, `this.open[this.open.length - 1]` is `this.open[-1]`, undefined, which is what the condition returned"
  },
  {
   "file": "src/engine/core/migrate.ts",
@@ -74,7 +60,7 @@
   "operator": "operator",
   "from": "-",
   "to": "+",
-  "why": "base64url padding `(4 - n % 4) % 4` → `(4 + n % 4) % 4`: Node's atob tolerates missing or wrong padding, so the payload decodes the same"
+  "why": "base64url padding `(4 - n % 4) % 4` \u2192 `(4 + n % 4) % 4`: Node's atob tolerates missing or wrong padding, so the payload decodes the same"
  },
  {
   "file": "bridge/src/lock.ts",

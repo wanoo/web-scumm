@@ -50,11 +50,15 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.12'
-      - run: pip install -r requirements.txt
+      - run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
       # `npm run doctor` (first step of release-check) requires ffmpeg: the audio pipeline's prerequisite.
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: for i in 1 2 3; do (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: for i in 1 2 3; do (npx playwright install --with-deps chromium firefox webkit) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
       - run: npm run release-check
       - run: node scripts/release-notes.mjs "$TAG" > notes.md
       - name: Build archive, checksum and SBOM
