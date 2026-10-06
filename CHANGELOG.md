@@ -43,6 +43,14 @@
   `storyboardProblems`: the page generator, the Studio's server, its in-browser demo and the MCP's `set_storyboard`
   refuse an invalid storyboard with the same sentences (`tests/diagnostics-parity.test.ts`). A panel without an id no
   longer becomes `"undefined"` in one reader and `""` in the other.
+- **Test strength** (lot G): `npm run test:coverage` (V8) holds the floor measured at 4.1.0 (56% of `src/` in
+  Node; the browser-only parts are the e2e's) and every branch of `core/cond.ts`, `diff.ts`, `migrate.ts` and
+  `save.ts` (`session-runtime.ts` 93, `tools/replay.ts` 99, `content-ids.ts` 96, each gap explained in
+  `vite.config.ts`); seven `tests/critical-*.test.ts` files reach them. `tests/properties.test.ts` (fast-check): on
+  games played at random, a save comes back identical through JSON, a session replays to the same state, a migration
+  twice is once. `npm run test:mutation:core` (`tools/mutate.ts`): 348 mutants of the critical core, 340 killed, the 8
+  others equivalent and explained in `docs/dev/MUTANTS.md`; a new survivor fails it; nightly, with its report.
+  Stryker was tried and dropped: under Vitest 5 it never activated its mutants.
 
 ## 4.0.0 — 2026-10-05
 
