@@ -23,7 +23,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
       - run: npm run prove:game
       # The committed playtests must still replay on this content: a diverged one fails here, not on every push.
       - run: npm run playtests -- --strict
