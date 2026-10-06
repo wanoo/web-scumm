@@ -470,7 +470,7 @@ Critères de sortie, mesurés : `fresh-install` et `upgrade` verts en CI ; le `r
 fin. Rapporté, pas fait (D12) : les sept passes terrain (`docs/fr/FIELD.md`), un jeu fait par quelqu'un d'autre, la
 publication sur npm, un tag signé, le réglage « immutable releases » de GitHub.
 
-## v4.1.0 « Clarity » (planifiée, D14) : plus facile à lire, relire et contribuer
+## v4.1.0 « Clarity » (livrée le 6 octobre 2026, D14) : plus facile à lire, relire et contribuer
 
 Le plan de Codex `docs/dev/PLAN-4.1.1-CLARITY.md` : aucun changement de gameplay, ni de l'API publique, du contenu ou
 des sauvegardes. D'abord une référence de comportement (digests, verdicts du solveur, surface de l'API), puis Biome et
@@ -478,6 +478,13 @@ un TypeScript plus strict, les quatre fichiers de plus de 1 000 lignes découpé
 joueur, solveur), des frontières de données typées, couverture et mutation testing, `ARCHITECTURE.md`,
 `CODE_TOUR.md`, des ADR et un guide de contribution. Reporté (D12) : la relecture par une personne qui n'a pas
 construit le moteur.
+
+Mesuré au tag : les quatre fichiers de plus de 1 000 lignes découpés (`engine.ts` 795, `app.ts` 780, `solve.ts` une
+façade sur cinq modules, `types.ts` une façade sur six), sept fichiers de `src/` au-delà de 800 lignes gardés avec leur
+raison et plafonnés ; 464 accès indexés vérifiés dans `src/` ; aucun `any` explicite dans `src/` ni `tools/` ; les mêmes
+témoins, preuves et sauvegardes de référence que la 4.0.0 sur 15 jeux et 13 sauvegardes ; preuve +1 % ; première
+visite 122 → 120 Ko ; planchers de couverture avec toutes les branches des conditions, sauvegardes, migrations et
+empreintes ; 340 mutants tués sur 348, les 8 autres expliqués.
 
 ## v4.1.1 « Reality Bridge » (planifiée, D14) : un jeu réagit au monde extérieur
 

@@ -221,3 +221,10 @@ sauvegarde 3.x se charge. Ce qui change, c'est ce qui est promis (`docs/fr/SUPPO
    `game/`, `npm install`, `npx web-scumm verify`.
 3. **`RevealDef`** est déprécié : utiliser `EndingDef` (retiré en 5.0).
 4. `npx web-scumm migrate --check` (ou `npm run migrate -- --check` ici) dit si quelque chose est dû.
+
+## 12. De la 4.0 à la 4.1 « Clarity »
+
+Rien à changer dans un jeu. Le format du contenu, l'enveloppe de sauvegarde, les quatre entrées publiques et les outils
+MCP sont ceux de la 4.0.0 (`tests/api-surface.json` est identique) ; `npm install` du nouveau paquet est toute la mise
+à jour, et une sauvegarde 4.0 se charge. Dans ce dépôt : `npm run lint` est désormais `npm run lint:content` (l'alias
+reste pendant toute la 4.x), et `npm run quality` ajoute Biome et le TypeScript plus strict à ce que la CI vérifie.

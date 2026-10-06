@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 4.1.0 — 2026-10-06
+
+"Clarity" (LOG #95, D14): a maintenance release focused on making web-scumm easier to read, review and contribute to.
+It changes no gameplay or public contract: module boundaries are clearer, large responsibilities are separated, static
+checks are stronger, and the architecture and quality evidence are easier to find. The plan is Codex's,
+`docs/dev/PLAN-4.1.1-CLARITY.md`, adopted as 4.1.0. Same behaviour as 4.0.0, measured: every witness, proof and golden
+save of `tests/quality-baseline.json`, the public surface byte for byte, the first visit 120 KB (122 on 4.0.0). Human
+passes: 0 of 7 field passes, 0 of 1 outside review (D12, `docs/dev/passes/4.1.0.md`).
+
 - Codex's plans after 4.0 in `docs/dev/` (D14): "Clarity" ships as 4.1.0, "Reality Bridge" as 4.1.1, 4.2 will be
   the final version. CI runs on `docs/…`, `test/…` and `refactor/…` branches too.
 - `npm run quality:baseline -- --check [--dist]` (`tools/quality-baseline.ts`): the behaviour of 4.0.0 frozen in
@@ -103,6 +112,22 @@
   `assets/reality/`, left out of its offline cache. `docs/en/REALITY.md` (authors) and `docs/en/REALITY-OPS.md`
   (operators: init, connectors, keys and `bridge rotate`, revocation, quotas, retention, export and deletion), in
   French too.
+- **Test strength** (lot G): `npm run test:coverage` (V8) holds the floor measured at 4.1.0 (56% of `src/` in
+  Node; the browser-only parts are the e2e's) and every branch of `core/cond.ts`, `diff.ts`, `migrate.ts` and
+  `save.ts` (`session-runtime.ts` 93, `tools/replay.ts` 99, `content-ids.ts` 96, each gap explained in
+  `vite.config.ts`); seven `tests/critical-*.test.ts` files reach them. `tests/properties.test.ts` (fast-check): on
+  games played at random, a save comes back identical through JSON, a session replays to the same state, a migration
+  twice is once. `npm run test:mutation:core` (`tools/mutate.ts`): 348 mutants of the critical core, 340 killed, the 8
+  others equivalent and explained in `docs/dev/MUTANTS.md`; a new survivor fails it; nightly, with its report.
+  Stryker was tried and dropped: under Vitest 5 it never activated its mutants.
+- **For a reader new to the code**: `docs/en/ARCHITECTURE.md` (the layers, the life of an action from a tap to the
+  autosave and the render, trusted content and untrusted input, storage and replay, the solver on the real engine,
+  public and internal), `docs/en/CODE_TOUR.md` (seven steps, half an hour, each with its files and tests), both in
+  French too; six ADRs in `docs/dev/adr/` (the DOM renderer, declarative content, the solver on the real engine, the
+  session as the unit of reproduction, saves read back, the double tap); `CONTRIBUTING.md` gains how to read the code
+  and the checklist for changing a command end to end, with `shake` as the worked example.
+  `tests/docs-truth.test.ts` fails when one of these guides names a file that does not exist. The outside review's
+  protocol: `docs/dev/passes/clarity-review.md` (D12, reported).
 
 ## 4.0.0 — 2026-10-05
 

@@ -17,7 +17,14 @@ single day with an AI assistant.
 
 ![The Pantry Key: Grandma's house, nine verbs, the bag](docs/img/v36-hero.webp)
 
-**New in v4.0 "Stable Platform":** the engine is a package with a public API it promises to keep. A game lives in
+**New in v4.1 "Clarity":** a maintenance release that makes web-scumm easier to read, review and contribute to. It
+changes no gameplay and no public contract: the engine, the player and the solver are split into modules of one
+responsibility each, every index access in `src/` is checked, data from outside starts as `unknown`, the code is
+formatted and linted by Biome, and the behaviour of 4.0.0 (witnesses, proofs, golden saves, the public surface) is
+frozen by `npm run quality:baseline`. Coverage floors, property tests and mutation testing say how strong the tests
+are. A newcomer starts with [ARCHITECTURE](docs/en/ARCHITECTURE.md) and the half-hour [CODE_TOUR](docs/en/CODE_TOUR.md).
+
+**v4.0 "Stable Platform":** the engine is a package with a public API it promises to keep. A game lives in
 its own project (`web-scumm create`, then `npm run dev`, `verify`, `build`, `release`), imports four entries
 (`web-scumm/content`, `/player`, `/minigames`, `/testing`), and moves to a new release with `web-scumm migrate`: CI
 creates a game on the previous release, saves in it, upgrades it and plays the old save to the end. What a release
@@ -61,7 +68,7 @@ Market".
 | A game made on the previous release, upgraded, its save played to the end on 4.0 | a CI job on every push (`npm run upgrade-check`) |
 | "The Lighthouse", the independent game: 5 places, English and French | `release --commercial` green: proof over 85 states, 202 texts per language, 62 locked files |
 | The public API | 92 names in 4 entries, 23 Studio/MCP tools, held by `tests/api-surface.test.ts` |
-| Saves | one per release from 3.0.0 to 4.0.0 loads and reaches the ending |
+| Saves | one per release from 3.0.0 to 4.1.0 loads and reaches the ending |
 | The player's first visit | 122 KB of JavaScript, gzipped (153 in 3.7.0), held by `initialJsKB` |
 | The archive | every file accounted for: code, locked assets, fonts, icons, `licenses/` |
 | The nightly corpus | 1 503 random games in four shards, 910 compared to the explicit search, 0 divergences |
@@ -126,7 +133,7 @@ Needs Node 22+, Python 3 for the art tools (`pip install -r requirements.txt`) a
 publishing to come, then `npx create-web-scumm my-game`):
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.0.0/web-scumm-4.0.0.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.0/web-scumm-4.1.0.tgz
 npx --package=$T web-scumm create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # then npm run verify, npm run build, npm run release
@@ -202,15 +209,16 @@ furniture, all in one style. `npm run assets` cuts the generated sheets into spr
 | [ENGINE](docs/en/ENGINE.md) · [BENCH](docs/en/BENCH.md) · [FIELD](docs/en/FIELD.md) | how the engine works, what the proof can and cannot do, what only people and real devices check |
 | [PROMPTS](docs/en/PROMPTS.md) · [AUDIO](docs/en/AUDIO.md) · [PAGES](docs/en/PAGES.md) | images, sound, the review pages |
 | [PACKAGE](docs/en/PACKAGE.md) · [API](docs/en/API.md) · [SUPPORT](docs/en/SUPPORT.md) | a game in its own project (`npx create-web-scumm`), the public API, what stays stable |
+| [ARCHITECTURE](docs/en/ARCHITECTURE.md) · [CODE_TOUR](docs/en/CODE_TOUR.md) · [CONTRIBUTING](CONTRIBUTING.md) | how the code is put together, a half-hour tour of it, how to change it (and the decisions in `docs/dev/adr/`) |
 | [ROADMAP](docs/en/ROADMAP.md) · [CHANGELOG](CHANGELOG.md) · [UPGRADING](docs/en/UPGRADING.md) | where it comes from, every release, moving to a new version |
 
 Every page also exists in French under `docs/fr/`. `docs/dev/` holds the log of the work with the other assistant.
 
 ## Releases
 
-Current release: [v4.0.0 "Stable Platform"](https://github.com/wanoo/web-scumm/releases/tag/v4.0.0): a package with a
-public API it keeps (`docs/en/SUPPORT.md`), games in their own projects, upgrades proved in CI. The story from v1.3 to
-v4.0 is in the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
+Current release: [v4.1.0 "Clarity"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.0): the same engine, easier to
+read, review and contribute to (`docs/en/ARCHITECTURE.md`, `docs/en/CODE_TOUR.md`). The story from v1.3 to v4.1 is in
+the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map
 

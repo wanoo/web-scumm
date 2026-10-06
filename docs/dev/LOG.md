@@ -2078,3 +2078,35 @@ Platform"; human gates reported, not blocking (D12).
   immutable releases setting; The Lighthouse stays a local repository until the maintainer says where to push it.
 
 → next: Claude · merge on green CI, tag v4.0.0
+
+## #95 · 2026-10-06 · Claude · proposal · 4.1.0 "Clarity"
+
+- The maintainer brought Codex's two plans after 4.0 (`feature/4.1-reality-bridge`): "4.1.1 Clarity" and "4.1
+  Reality Bridge". Decided (D14): stay on 4.1.x for a while, 4.2 final; Clarity ships as 4.1.0, Reality Bridge as
+  4.1.1; Biome in full. Codex's commits are merged as they were; the adoption headers say what was adapted.
+- Claims checked first (charter rule 5): the baseline of §2 is right but for the tests (70 files, 459 declarations,
+  not 75 and ~490); `any` in production was 11 (none in `core`), not the larger hunt the plan implied; the stricter
+  flags cost 16 and 933 errors (396 in `src/engine`).
+- In order, each on its branch, merged on green CI: `docs/clarity-plans`; `test/quality-baseline` (the behaviour of
+  4.0.0 frozen first: 15 games, 13 golden saves, the surface, the first visit); `fix/quality-tooling` (Biome config,
+  then the formatting alone in `1e0e305`, in `.git-blame-ignore-revs`, then the lint fixes; `noUncheckedIndexedAccess`
+  on `src/`: 464 sites by narrowing or `must()`, done by three agents on disjoint folders, reviewed; the Canvas painter
+  on demand pays the guards' 0.5 KB back: 122 → 120 KB); `refactor/core-runtime`, `refactor/player-shell`,
+  `refactor/solver-search` (the methods moved by the TypeScript compiler API, bodies unchanged but for `this`, a
+  forwarding method left in the facade, so the order of effects cannot move; `quality:baseline` identical after each);
+  `fix/untrusted-boundaries` (one storyboard normalisation and one diagnostic for the CLI, the Studio, its demo and the
+  MCP); `test/coverage-and-mutation`; `docs/code-tour`.
+- Deviations from the plan, on purpose: the player's modules are functions over `App` (forwarding methods), not
+  components with injected dependencies, as in the core: the same split, no change of ownership, a smaller diff to
+  review. `noUncheckedIndexedAccess` holds on `src/` only. Seven files over 800 lines stay, capped, with their reason
+  (three Studio tabs, the validator, the room view, the dev editor, the Studio assistant).
+- Found on the way: Stryker 10 never activated its mutants under Vitest 5 (739 of 749 "survived", an emptied function
+  included), so its score was meaningless; `tools/mutate.ts` mutates the source itself and runs the critical tests,
+  340 of 348 killed, the 8 equivalents explained in `docs/dev/MUTANTS.md`. A coverage agent reached 100% of a module
+  with a 5000-iteration loop that only fed V8's counters: removed, the floor set to the real 93% with the reason. The
+  demo's differential POR test needs 55–62 s on a shared runner (11 s locally, +2.5% after the split): three minutes.
+  A new high advisory on `source-map-js` (through `@vitest/coverage-v8`) fixed by `npm audit fix`.
+- Not done (D12): the outside review (`docs/dev/passes/clarity-review.md`), the seven field passes, npm publishing,
+  a signed tag, GitHub's immutable releases setting.
+
+→ next: Claude · tag v4.1.0, then 4.1.1 "Reality Bridge" (its branches are pushed, stacked on this one)
