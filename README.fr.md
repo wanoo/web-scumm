@@ -16,7 +16,7 @@ simples : une personne les écrit, un assistant IA les écrit, un solveur les li
 | ⏱ **Commencer** | [Une première pièce en quinze minutes](docs/fr/TUTORIAL.md), puis [faire son propre jeu](#faire-son-propre-jeu) |
 | 📚 **Docs** | [La méthode](docs/fr/WORKFLOW.md) · [le format du contenu](docs/fr/CONTENT_GUIDE.md) · [toutes les pages](#documentation) |
 
-![La Clé du garde-manger : le salon de Mamie, neuf verbes, le sac](docs/img/v36-hero.webp)
+![La Clé du garde-manger : le salon de Grand-mère, neuf verbes, le sac](docs/img/v36-hero.webp)
 
 ## Trois commandes
 
@@ -43,7 +43,7 @@ Il faut Node 22 ou plus récent. Python 3 et ffmpeg servent aux outils d'image e
 ## Ce que voit le joueur
 
 <table>
-<tr><td width="50%" valign="top"><img src="docs/img/v36-player-scene.webp" alt="Parler à Mamie : ses sujets dans la colonne de droite" width="100%"><br><sub>Des conversations à sujets, à choix, avec transcription</sub></td><td width="50%" valign="top"><img src="docs/img/v36-player-minigame.webp" alt="Le mini-jeu des tuyaux : amener l'eau aux champignons" width="100%"><br><sub>Des mini-jeux, jouables au tactile ou au clavier</sub></td></tr>
+<tr><td width="50%" valign="top"><img src="docs/img/v36-player-scene.webp" alt="Parler à Grand-mère : ses sujets dans la colonne de droite" width="100%"><br><sub>Des conversations à sujets, à choix, avec transcription</sub></td><td width="50%" valign="top"><img src="docs/img/v36-player-minigame.webp" alt="Le mini-jeu des tuyaux : amener l'eau aux champignons" width="100%"><br><sub>Des mini-jeux, jouables au tactile ou au clavier</sub></td></tr>
 <tr><td width="50%" valign="top"><img src="docs/img/v36-player-map.webp" alt="La carte du monde avec les personnages épinglés" width="100%"><br><sub>Une carte du monde, des personnages qui se déplacent entre les lieux</sub></td><td width="50%" valign="top"><img src="docs/img/v36-player-ending.webp" alt="La carte finale : Pixel a trouvé les sardines" width="100%"><br><sub>Une fin qui se souvient de ce que le joueur a deviné</sub></td></tr>
 </table>
 
