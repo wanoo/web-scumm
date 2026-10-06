@@ -28,40 +28,72 @@ const server = new McpServer(
   },
 );
 
-const backend = coreBackend(studio, { root: ROOT, devUrl: DEV_URL, author: () => server.server.getClientVersion()?.name ?? 'ai' });
+const backend = coreBackend(studio, {
+  root: ROOT,
+  devUrl: DEV_URL,
+  author: () => server.server.getClientVersion()?.name ?? 'ai',
+});
 
 // The tools are shared with the Studio's Assistant (tools/studio/tools.ts).
 for (const t of TOOLS) {
-  server.registerTool(t.name, {
-    title: t.title,
-    description: t.description,
-    ...(Object.keys(t.input).length ? { inputSchema: t.input } : {}),
-    ...(t.output ? { outputSchema: t.output } : {}),
-    ...(t.annotations ? { annotations: t.annotations } : {}),
-  }, async (args: unknown) => {
-    const r = await t.run(args ?? {}, backend);
-    if (r.isError) console.error(`[web-scumm mcp] ${t.name}: ${r.content[0]?.text}`);
-    return r;
-  });
+  server.registerTool(
+    t.name,
+    {
+      title: t.title,
+      description: t.description,
+      ...(Object.keys(t.input).length ? { inputSchema: t.input } : {}),
+      ...(t.output ? { outputSchema: t.output } : {}),
+      ...(t.annotations ? { annotations: t.annotations } : {}),
+    },
+    async (args: unknown) => {
+      const r = await t.run(args ?? {}, backend);
+      if (r.isError) console.error(`[web-scumm mcp] ${t.name}: ${r.content[0]?.text}`);
+      return r;
+    },
+  );
 }
 
 // ------------------------------------------------------------------ resources
 
-server.registerResource('game', 'webscumm://game', {
-  title: 'Game overview', description: 'list_rooms as a resource (JSON).', mimeType: 'application/json',
-}, async (uri) => ({ contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(await studio.gameInfo(), null, 2) }] }));
-
-server.registerResource('room', new ResourceTemplate('webscumm://room/{id}', {
-  list: async () => {
-    try {
-      const g = await studio.gameInfo();
-      return { resources: g.rooms.map((r) => ({ uri: `webscumm://room/${r.id}`, name: r.name || r.id, mimeType: 'application/json' })) };
-    } catch (e) { console.error(`[web-scumm mcp] ${(e as Error).message}`); return { resources: [] }; }
+server.registerResource(
+  'game',
+  'webscumm://game',
+  {
+    title: 'Game overview',
+    description: 'list_rooms as a resource (JSON).',
+    mimeType: 'application/json',
   },
-}), { title: 'Room', description: 'get_room as a resource (JSON).', mimeType: 'application/json' },
-async (uri, { id }) => ({
-  contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(await studio.getRoom(String(id)), null, 2) }],
-}));
+  async (uri) => ({
+    contents: [{ uri: uri.href, mimeType: 'application/json', text: JSON.stringify(await studio.gameInfo(), null, 2) }],
+  }),
+);
+
+server.registerResource(
+  'room',
+  new ResourceTemplate('webscumm://room/{id}', {
+    list: async () => {
+      try {
+        const g = await studio.gameInfo();
+        return {
+          resources: g.rooms.map((r) => ({
+            uri: `webscumm://room/${r.id}`,
+            name: r.name || r.id,
+            mimeType: 'application/json',
+          })),
+        };
+      } catch (e) {
+        console.error(`[web-scumm mcp] ${(e as Error).message}`);
+        return { resources: [] };
+      }
+    },
+  }),
+  { title: 'Room', description: 'get_room as a resource (JSON).', mimeType: 'application/json' },
+  async (uri, { id }) => ({
+    contents: [
+      { uri: uri.href, mimeType: 'application/json', text: JSON.stringify(await studio.getRoom(String(id)), null, 2) },
+    ],
+  }),
+);
 
 process.on('uncaughtException', (e) => console.error('[web-scumm mcp] uncaught:', e));
 process.on('unhandledRejection', (e) => console.error('[web-scumm mcp] unhandled:', e));

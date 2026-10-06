@@ -21,5 +21,8 @@ const LOAD: Record<keyof typeof MINIGAME_META, () => Promise<Minigame>> = {
  * so it works offline).
  */
 export const minigames: Record<string, Minigame> = Object.fromEntries(
-  (Object.keys(MINIGAME_META) as (keyof typeof MINIGAME_META)[]).map((k) => [k, { ...MINIGAME_META[k], run: (ctx) => LOAD[k]().then((m) => m.run(ctx)) } satisfies Minigame]),
+  (Object.keys(MINIGAME_META) as (keyof typeof MINIGAME_META)[]).map((k) => [
+    k,
+    { ...MINIGAME_META[k], run: (ctx) => LOAD[k]().then((m) => m.run(ctx)) } satisfies Minigame,
+  ]),
 );

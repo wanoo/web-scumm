@@ -6,21 +6,45 @@ import { WalkTopology } from '@engine/dom/walk';
 import { lintContent } from '@engine/tools/lint';
 import { game as fixture, layouts as fixtureLayouts } from './fixture';
 
-const rect = (x0: number, y0: number, x1: number, y1: number): [number, number][] => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+const rect = (x0: number, y0: number, x1: number, y1: number): [number, number][] => [
+  [x0, y0],
+  [x1, y0],
+  [x1, y1],
+  [x0, y1],
+];
 const layout: Layout = {
   entries: { default: [100, 360] },
-  scale: [[300, 0.6], [400, 1]],
+  scale: [
+    [300, 0.6],
+    [400, 1],
+  ],
   walkZones: {
     floor: { area: rect(0, 300, 640, 400) },
-    balcony: { area: rect(400, 100, 640, 160), scale: [[100, 0.4], [160, 0.5]] },
+    balcony: {
+      area: rect(400, 100, 640, 160),
+      scale: [
+        [100, 0.4],
+        [160, 0.5],
+      ],
+    },
     roof: { area: rect(500, 20, 640, 60) },
   },
   walkLinks: {
     stairs: { from: { zone: 'floor', at: [420, 310] }, to: { zone: 'balcony', at: [420, 150] }, mode: 'stairs' },
-    ladder: { from: { zone: 'balcony', at: [620, 110] }, to: { zone: 'roof', at: [620, 50] }, mode: 'ladder', ms: 1500 },
+    ladder: {
+      from: { zone: 'balcony', at: [620, 110] },
+      to: { zone: 'roof', at: [620, 50] },
+      mode: 'ladder',
+      ms: 1500,
+    },
   },
 };
-const room = { id: 'yard', name: 'Yard', decor: 'd/yard', stage: { links: { ladder: { if: 'ladder_down', locked: 'The ladder is up.' } } } } as GameDef['rooms'][number];
+const room = {
+  id: 'yard',
+  name: 'Yard',
+  decor: 'd/yard',
+  stage: { links: { ladder: { if: 'ladder_down', locked: 'The ladder is up.' } } },
+} as GameDef['rooms'][number];
 
 describe('walk topology', () => {
   const t = new WalkTopology(layout, room);
@@ -54,13 +78,29 @@ describe('walk topology', () => {
 });
 
 describe('lint: a gated link and the rules behind it', () => {
-  it('warns when a target behind a closed link has a rule that does not check the link\'s condition', () => {
+  it("warns when a target behind a closed link has a rule that does not check the link's condition", () => {
     const g = structuredClone(fixture) as GameDef;
     const r = g.rooms[0];
     r.stage = { links: { ladder: { if: 'ladder_down' } } };
     r.hotspots = { ...r.hotspots, chimney: { name: 'chimney' } };
-    r.on = [...(r.on ?? []), { verb: 'look', a: 'chimney', do: ['Soot.'] }, { verb: 'use', a: 'chimney', if: { all: ['ladder_down', 'x'] }, do: ['Up.'] }];
-    const L = { ...fixtureLayouts[r.id], walkZones: layout.walkZones, walkLinks: layout.walkLinks, entries: { ...fixtureLayouts[r.id]?.entries, default: [100, 360] as [number, number] }, hotspots: { ...fixtureLayouts[r.id]?.hotspots, chimney: { rect: [580, 0, 40, 40] as [number, number, number, number], approach: [600, 40] as [number, number] } } };
+    r.on = [
+      ...(r.on ?? []),
+      { verb: 'look', a: 'chimney', do: ['Soot.'] },
+      { verb: 'use', a: 'chimney', if: { all: ['ladder_down', 'x'] }, do: ['Up.'] },
+    ];
+    const L = {
+      ...fixtureLayouts[r.id],
+      walkZones: layout.walkZones,
+      walkLinks: layout.walkLinks,
+      entries: { ...fixtureLayouts[r.id]?.entries, default: [100, 360] as [number, number] },
+      hotspots: {
+        ...fixtureLayouts[r.id]?.hotspots,
+        chimney: {
+          rect: [580, 0, 40, 40] as [number, number, number, number],
+          approach: [600, 40] as [number, number],
+        },
+      },
+    };
     const f = lintContent(g, { ...fixtureLayouts, [r.id]: L }).findings.filter((x) => x.code === 'walk-link-gate');
     expect(f).toHaveLength(1);
     expect(f[0].message).toContain('"chimney" stands behind the walk link "ladder"');

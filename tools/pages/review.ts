@@ -5,11 +5,33 @@
 import { existsSync, readdirSync, statSync } from 'node:fs';
 import { extname, join, resolve } from 'node:path';
 import { collectRefs } from '../refs';
-import { cliArgs, docId, esc, imageSource, isImageFile, isMain, jsonForScript, loadContext, outPath, pageShell, persistBar,
-  thumbs, writePage, type PageContext } from './lib';
+import {
+  cliArgs,
+  docId,
+  esc,
+  imageSource,
+  isImageFile,
+  isMain,
+  jsonForScript,
+  loadContext,
+  outPath,
+  pageShell,
+  persistBar,
+  thumbs,
+  writePage,
+  type PageContext,
+} from './lib';
 
-export interface Cell { sheet: string; cell: string; file: string; usedBy: string[] }
-export interface Sheet { id: string; cells: Cell[] }
+export interface Cell {
+  sheet: string;
+  cell: string;
+  file: string;
+  usedBy: string[];
+}
+export interface Sheet {
+  id: string;
+  cells: Cell[];
+}
 
 /** Natural order: r2c10 after r2c9. */
 const natural = (a: string, b: string) => a.localeCompare(b, 'en', { numeric: true });
@@ -35,7 +57,10 @@ export function listSheets(ctx: PageContext): { sheets: Sheet[]; missing: string
   const missing: string[] = [];
   for (const id of refs.images) {
     const f = imageSource(ctx.gameDir, id);
-    if (!f) { missing.push(id); continue; }
+    if (!f) {
+      missing.push(id);
+      continue;
+    }
     const k = resolve(f);
     byFile.set(k, [...(byFile.get(k) ?? []), id]);
   }
@@ -150,24 +175,33 @@ export function buildReview(ctx: PageContext): string {
   const total = files.length;
   const used = sheets.reduce((n, s) => n + s.cells.filter((c) => c.usedBy.length).length, 0);
 
-  const sheetHtml = sheets.map((s) => {
-    const u = s.cells.filter((c) => c.usedBy.length).length;
-    return `<section class="sheet" id="s-${esc(docId(s.id))}"><h2>${esc(s.id)} <small>${s.cells.length} cell(s), ${u} used</small></h2><div class="grid">`
-      + s.cells.map((c) => {
-        const key = docId(`${c.sheet}__${c.cell}`);
-        const t = th.get(c.file);
-        const name = `d-${key}`;
-        return `<div class="cell" data-key="${esc(key)}" data-sheet="${esc(c.sheet)}" data-cell="${esc(c.cell)}" data-used="${c.usedBy.length ? 1 : 0}">`
-          + `<div class="pic">${t ? `<img src="${t.uri}" alt="${esc(`${c.sheet}/${c.cell}`)}" loading="lazy" width="${t.w}" height="${t.h}">` : ''}</div>`
-          + `<div class="meta"><code>${esc(c.cell)}</code>${c.usedBy.length ? '<span class="tag used">used</span>' : '<span class="tag unref">not used</span>'}</div>`
-          + `<div class="ids">${esc(c.usedBy.filter((id) => id !== `${c.sheet}/${c.cell}`).join(', '))}</div>`
-          + `<div class="choice" role="radiogroup" aria-label="Decision for ${esc(c.sheet)} ${esc(c.cell)}">`
-          + `<label><input type="radio" name="${esc(name)}" value="keep"><span class="k">keep</span></label>`
-          + `<label><input type="radio" name="${esc(name)}" value="redo"><span class="r">redo</span></label>`
-          + `<label><input type="radio" name="${esc(name)}" value="unused"><span class="u">unused</span></label></div>`
-          + `<input type="text" placeholder="Note…" aria-label="Note for ${esc(c.sheet)} ${esc(c.cell)}"><span class="state"></span></div>`;
-      }).join('') + '</div></section>';
-  }).join('\n');
+  const sheetHtml = sheets
+    .map((s) => {
+      const u = s.cells.filter((c) => c.usedBy.length).length;
+      return (
+        `<section class="sheet" id="s-${esc(docId(s.id))}"><h2>${esc(s.id)} <small>${s.cells.length} cell(s), ${u} used</small></h2><div class="grid">` +
+        s.cells
+          .map((c) => {
+            const key = docId(`${c.sheet}__${c.cell}`);
+            const t = th.get(c.file);
+            const name = `d-${key}`;
+            return (
+              `<div class="cell" data-key="${esc(key)}" data-sheet="${esc(c.sheet)}" data-cell="${esc(c.cell)}" data-used="${c.usedBy.length ? 1 : 0}">` +
+              `<div class="pic">${t ? `<img src="${t.uri}" alt="${esc(`${c.sheet}/${c.cell}`)}" loading="lazy" width="${t.w}" height="${t.h}">` : ''}</div>` +
+              `<div class="meta"><code>${esc(c.cell)}</code>${c.usedBy.length ? '<span class="tag used">used</span>' : '<span class="tag unref">not used</span>'}</div>` +
+              `<div class="ids">${esc(c.usedBy.filter((id) => id !== `${c.sheet}/${c.cell}`).join(', '))}</div>` +
+              `<div class="choice" role="radiogroup" aria-label="Decision for ${esc(c.sheet)} ${esc(c.cell)}">` +
+              `<label><input type="radio" name="${esc(name)}" value="keep"><span class="k">keep</span></label>` +
+              `<label><input type="radio" name="${esc(name)}" value="redo"><span class="r">redo</span></label>` +
+              `<label><input type="radio" name="${esc(name)}" value="unused"><span class="u">unused</span></label></div>` +
+              `<input type="text" placeholder="Note…" aria-label="Note for ${esc(c.sheet)} ${esc(c.cell)}"><span class="state"></span></div>`
+            );
+          })
+          .join('') +
+        '</div></section>'
+      );
+    })
+    .join('\n');
 
   const missingHtml = missing.length
     ? `<section class="missing"><h2>Referenced but missing (${missing.length})</h2><p class="lede">The game cites these image ids, but no file provides them yet.</p><ul>${missing.map((m) => `<li>${esc(m)}</li>`).join('')}</ul></section>`
@@ -192,7 +226,13 @@ ${missingHtml}
 ${sheetHtml || '<p class="lede">No sheet yet: cut one into games/&lt;id&gt;/art/&lt;sheet&gt;/ first.</p>'}
 </main>`;
   const script = `var PAGE_KEY = ${jsonForScript(`review:${ctx.gameId}`)}; var GAME_ID = ${jsonForScript(ctx.gameId)};\n${SCRIPT}`;
-  return pageShell({ title: `${ctx.game.title} sprite review`.slice(0, 60), description: 'Keep, redo or unused, cell by cell.', css: CSS, body, script });
+  return pageShell({
+    title: `${ctx.game.title} sprite review`.slice(0, 60),
+    description: 'Keep, redo or unused, cell by cell.',
+    css: CSS,
+    body,
+    script,
+  });
 }
 
 if (isMain(import.meta.url)) {

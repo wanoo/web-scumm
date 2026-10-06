@@ -1,0 +1,100 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "src/**/*.ts",
+      "tools/**/*.ts",
+      "tools/**/*.mjs",
+      "tests/**/*.ts",
+      "scripts/**/*.mjs",
+      "scripts/**/*.ts",
+      "games/**/*.ts",
+      "cli/**/*.mjs",
+      "vite.config.ts",
+      "vitest.config.ts",
+      "!legacy",
+      "!dist",
+      "!public",
+      "!.cache",
+      "!tools/audio/.venv",
+      "!tools/audio/.furnace"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 120,
+    "includes": ["**", "!games/**"]
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "always",
+      "trailingCommas": "all",
+      "arrowParentheses": "always"
+    }
+  },
+  "assist": {
+    "enabled": false
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": false,
+      "suspicious": {
+        "noExplicitAny": "error",
+        "noFallthroughSwitchClause": "error",
+        "noDoubleEquals": "error",
+        "noDuplicateCase": "error",
+        "noDuplicateObjectKeys": "error",
+        "noSelfCompare": "error",
+        "noRedeclare": "error",
+        "noShadowRestrictedNames": "error",
+        "noAsyncPromiseExecutor": "error",
+        "noDebugger": "error"
+      },
+      "correctness": {
+        "noConstantCondition": "error",
+        "noUnreachable": "error",
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error",
+        "noSwitchDeclarations": "error",
+        "noUnsafeFinally": "error",
+        "noInvalidUseBeforeDeclaration": "error",
+        "useIsNan": "error",
+        "noSelfAssign": "error"
+      },
+      "nursery": {
+        "noFloatingPromises": "error"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["tests/**", "scripts/**", "tools/**", "vite.config.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/studio/storyboard.ts", "src/studio/ui.ts", "src/engine/dom/assets.ts"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    }
+  ]
+}

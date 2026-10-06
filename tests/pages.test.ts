@@ -12,7 +12,10 @@ import { buildPlacement } from '../tools/pages/placement';
 import { importLayouts, layoutsFromExport, mergeLayout } from '../tools/pages/import-layout';
 
 // A 1 × 1 transparent PNG.
-const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+const PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  'base64',
+);
 
 function tempGame(): string {
   const dir = mkdtempSync(join(tmpdir(), 'pages-'));
@@ -21,15 +24,42 @@ function tempGame(): string {
     mkdirSync(join(dir, 'art', f.split('/')[0]), { recursive: true });
     writeFileSync(join(dir, 'art', f + '.png'), PNG);
   }
-  writeFileSync(join(dir, 'storyboard.json'), JSON.stringify({
-    boards: [{ id: 'house', title: 'At home', room: 'house', goal: 'Get the key.',
-      panels: [
-        { id: 'house-1', title: 'The drawer', action: 'Open drawer', lines: [{ who: 'hero', text: 'A coin!' }, { who: 'stage', text: 'It shines.' }], sfx: ['ding'] },
-        { id: 'house-2', title: 'Grandma', action: 'Give coin to Grandma', lines: [{ who: 'grandma', text: 'Thanks! Here is the key.' }, { who: 'action', text: 'Hero takes the key' }] },
+  writeFileSync(
+    join(dir, 'storyboard.json'),
+    JSON.stringify({
+      boards: [
+        {
+          id: 'house',
+          title: 'At home',
+          room: 'house',
+          goal: 'Get the key.',
+          panels: [
+            {
+              id: 'house-1',
+              title: 'The drawer',
+              action: 'Open drawer',
+              lines: [
+                { who: 'hero', text: 'A coin!' },
+                { who: 'stage', text: 'It shines.' },
+              ],
+              sfx: ['ding'],
+            },
+            {
+              id: 'house-2',
+              title: 'Grandma',
+              action: 'Give coin to Grandma',
+              lines: [
+                { who: 'grandma', text: 'Thanks! Here is the key.' },
+                { who: 'action', text: 'Hero takes the key' },
+              ],
+            },
+          ],
+          talks: { grandma: [{ topic: 'Where is the key?', lines: [{ who: 'grandma', text: 'Bring me a coin.' }] }] },
+          hints: ['Look in the drawer.', 'Grandma wants the coin.'],
+        },
       ],
-      talks: { grandma: [{ topic: 'Where is the key?', lines: [{ who: 'grandma', text: 'Bring me a coin.' }] }] },
-      hints: ['Look in the drawer.', 'Grandma wants the coin.'] }],
-  }));
+    }),
+  );
   return dir;
 }
 
@@ -87,11 +117,20 @@ describe('placement page', () => {
     writeFileSync(join(dir, 'layout/garden.json'), '{}');
     const ctx = await ctxFor(dir);
     const html = buildPlacement(ctx);
-    const rooms = JSON.parse(html.match(/var ROOMS = (.*?);\n/)![1]) as { id: string; layout: any; items: { kind: string; id: string; img?: string }[] }[];
+    const rooms = JSON.parse(html.match(/var ROOMS = (.*?);\n/)![1]) as {
+      id: string;
+      layout: any;
+      items: { kind: string; id: string; img?: string }[];
+    }[];
     expect(rooms.map((r) => r.id)).toEqual(['house', 'garden']);
     const house = rooms[0];
     expect(house.layout.props.lamp).toEqual({ x: 250, y: 300, h: 60 });
-    expect(house.items.map((i) => `${i.kind}:${i.id}`)).toEqual(['prop:lamp', 'actor:grandma', 'hotspot:drawer', 'hotspot:door']);
+    expect(house.items.map((i) => `${i.kind}:${i.id}`)).toEqual([
+      'prop:lamp',
+      'actor:grandma',
+      'hotspot:drawer',
+      'hotspot:door',
+    ]);
     expect(house.items[0].img).toMatch(/^data:image\//);
     expect(rooms[1].items).toEqual([expect.objectContaining({ kind: 'hotspot', id: 'shed' })]);
     expect(html).toContain('<svg id="st" viewBox="0 0 640 400"');
@@ -104,16 +143,29 @@ describe('import-layout', () => {
     const l = { props: { a: { x: 1, y: 2, h: 3 } } };
     expect(layoutsFromExport({ layouts: { house: l } })).toEqual([{ room: 'house', layout: l }]);
     expect(layoutsFromExport({ room: 'house', layout: l })).toEqual([{ room: 'house', layout: l }]);
-    expect(layoutsFromExport([{ id: 'house', data: { room: 'house', layout: l } }])).toEqual([{ room: 'house', layout: l }]);
+    expect(layoutsFromExport([{ id: 'house', data: { room: 'house', layout: l } }])).toEqual([
+      { room: 'house', layout: l },
+    ]);
     expect(layoutsFromExport(l, 'garden.json')).toEqual([{ room: 'garden', layout: l }]);
   });
 
   it('replaces exported entities, keeps the others and the keys not exported', () => {
-    const base = { floor: 390, props: { lamp: { x: 1, y: 2, h: 3, z: 9 }, box: { x: 5, y: 5, h: 5 } }, entries: { default: [1, 1] as [number, number] } };
-    const { layout, changes } = mergeLayout(base, { props: { lamp: { x: 10, y: 2, h: 3 } }, hotspots: { door: { rect: [0, 0, 10, 10] } } });
+    const base = {
+      floor: 390,
+      props: { lamp: { x: 1, y: 2, h: 3, z: 9 }, box: { x: 5, y: 5, h: 5 } },
+      entries: { default: [1, 1] as [number, number] },
+    };
+    const { layout, changes } = mergeLayout(base, {
+      props: { lamp: { x: 10, y: 2, h: 3 } },
+      hotspots: { door: { rect: [0, 0, 10, 10] } },
+    });
     // The page exports complete entities: a `z` removed on the page is removed here (no silent merge back).
-    expect(layout).toEqual({ floor: 390, props: { lamp: { x: 10, y: 2, h: 3 }, box: { x: 5, y: 5, h: 5 } }, entries: { default: [1, 1] },
-      hotspots: { door: { rect: [0, 0, 10, 10] } } });
+    expect(layout).toEqual({
+      floor: 390,
+      props: { lamp: { x: 10, y: 2, h: 3 }, box: { x: 5, y: 5, h: 5 } },
+      entries: { default: [1, 1] },
+      hotspots: { door: { rect: [0, 0, 10, 10] } },
+    });
     expect(changes).toEqual(['~ props.lamp: x 1 → 10, z 9 → —', '+ hotspots.door {"rect":[0,0,10,10]}']);
   });
 

@@ -8,9 +8,9 @@ import { PaletteCache } from './palette';
 import { WalkTopology, type WalkStep } from './walk';
 import type { NormalLink } from '../core/stage';
 import { DomRenderer } from './render-dom';
-import { CanvasRenderer } from './render-canvas';
 import { rendererOf, stageOf } from '../core/stage';
 import { check } from '../core/cond';
+import { must } from '../core/must';
 import type { SceneRenderer, SpriteSpec, StageSpec } from './renderer';
 
 /** Something drawn in the scene: prop, actor or hero. */
@@ -21,7 +21,8 @@ interface Ent {
   drawn: boolean;
   /** 0–1 during a fade (`show`), 1 otherwise. */
   opacity: number;
-  x: number; y: number;
+  x: number;
+  y: number;
   /** Reference height (idle pose), in logical units. */
   h: number;
   z?: number;
@@ -53,7 +54,6 @@ interface Ent {
   scaleWithDepth: boolean;
 }
 
-
 /**
  * The scene model of a room: backdrop, props, characters, depth sort, walking, poses, the camera and the hit test, in
  * logical units (640 × 400 per screen). What paints it is a `SceneRenderer` (dom/renderer.ts): the DOM painter by
@@ -61,7 +61,9 @@ interface Ent {
  */
 export class RoomView {
   /** The painter's surface (moves with the camera; the accessible targets go in it). */
-  get el(): HTMLElement { return this.r.el; }
+  get el(): HTMLElement {
+    return this.r.el;
+  }
   r: SceneRenderer;
   /** Which painter draws the current room (`RoomDef.renderer`, else `GameDef.renderer`, else the DOM reference). */
   painter: 'dom' | 'canvas' = 'dom';
@@ -93,7 +95,11 @@ export class RoomView {
   /** Reduced motion (settings): instant camera moves. */
   reduceMotion = false;
 
-  constructor(private engine: Engine, private bank: AssetBank, renderer?: SceneRenderer) {
+  constructor(
+    private engine: Engine,
+    private bank: AssetBank,
+    renderer?: SceneRenderer,
+  ) {
     this.r = renderer ?? new DomRenderer();
     this.custom = !!renderer;
   }
@@ -114,16 +120,59 @@ export class RoomView {
     const S = stageOf(this.room, this.layout);
     const s = this.engine.state;
     const shown = (c: Parameters<typeof check>[0]) => !s || check(c, s, this.room.id);
-    const [back, ...layers] = S.layers;
+    const [back0, ...layers] = S.layers;
+    const back = must(back0, 'backdrop layer'); // stageOf always puts a backdrop first
     const [bw, bh] = this.bank.size(back.image);
     const k = Math.max(this.width / bw, 400 / bh);
-    const bx = (this.width - bw * k) / 2, by = (400 - bh * k) / 2;
+    const bx = (this.width - bw * k) / 2,
+      by = (400 - bh * k) / 2;
     return {
       backdrop: { url: this.bank.img(back.image), x: bx, y: by, w: bw * k, h: bh * k },
-      layers: layers.map((l) => { const [iw, ih] = this.bank.size(l.image); return { id: l.id, url: this.bank.img(l.image), role: l.role, x: bx + l.x, y: by + l.y, w: iw * k, h: ih * k, z: l.z, parallax: l.parallax, blend: l.blend, opacity: l.opacity, visible: shown(l.visible) }; }),
-      occluders: S.occluders.map((o) => ({ id: o.id, z: o.z, ...(o.polygon ? { polygon: o.polygon } : {}), ...(o.mask ? { mask: this.bank.img(o.mask) } : {}), ...(o.layer ? { layer: o.layer } : {}), feather: o.feather, invert: o.invert })),
-      lights: S.lights.map((l) => ({ id: l.id, kind: l.kind, color: l.color, intensity: l.intensity ?? 0.6, blend: l.blend ?? (l.kind === 'radial' ? 'screen' : 'multiply'), ...(l.at ? { at: l.at } : {}), ...(l.radius ? { radius: l.radius } : {}), visible: shown(l.visible) })),
-      emitters: S.emitters.map((e) => ({ id: e.id, kind: e.kind, ...(e.image ? { url: this.bank.img(e.image) } : {}), color: e.color ?? '#ffffff', rate: e.rate ?? RoomView.RATES[e.kind] ?? 8, area: e.area ?? [0, 0, this.width, 400], visible: shown(e.visible) })),
+      layers: layers.map((l) => {
+        const [iw, ih] = this.bank.size(l.image);
+        return {
+          id: l.id,
+          url: this.bank.img(l.image),
+          role: l.role,
+          x: bx + l.x,
+          y: by + l.y,
+          w: iw * k,
+          h: ih * k,
+          z: l.z,
+          parallax: l.parallax,
+          blend: l.blend,
+          opacity: l.opacity,
+          visible: shown(l.visible),
+        };
+      }),
+      occluders: S.occluders.map((o) => ({
+        id: o.id,
+        z: o.z,
+        ...(o.polygon ? { polygon: o.polygon } : {}),
+        ...(o.mask ? { mask: this.bank.img(o.mask) } : {}),
+        ...(o.layer ? { layer: o.layer } : {}),
+        feather: o.feather,
+        invert: o.invert,
+      })),
+      lights: S.lights.map((l) => ({
+        id: l.id,
+        kind: l.kind,
+        color: l.color,
+        intensity: l.intensity ?? 0.6,
+        blend: l.blend ?? (l.kind === 'radial' ? 'screen' : 'multiply'),
+        ...(l.at ? { at: l.at } : {}),
+        ...(l.radius ? { radius: l.radius } : {}),
+        visible: shown(l.visible),
+      })),
+      emitters: S.emitters.map((e) => ({
+        id: e.id,
+        kind: e.kind,
+        ...(e.image ? { url: this.bank.img(e.image) } : {}),
+        color: e.color ?? '#ffffff',
+        rate: e.rate ?? RoomView.RATES[e.kind] ?? 8,
+        area: e.area ?? [0, 0, this.width, 400],
+        visible: shown(e.visible),
+      })),
       reduceMotion: this.reduceMotion,
     };
   }
@@ -132,23 +181,34 @@ export class RoomView {
   private enterTransition() {
     const t = stageOf(this.room, this.layout).transition;
     if (t.kind === 'cut' || this.reduceMotion || !this.r.el.animate) return;
-    this.r.el.animate(t.kind === 'fade' ? [{ opacity: 0 }, { opacity: 1 }] : [{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: t.ms, easing: 'ease-out' });
+    this.r.el.animate(
+      t.kind === 'fade'
+        ? [{ opacity: 0 }, { opacity: 1 }]
+        : [{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }],
+      { duration: t.ms, easing: 'ease-out' },
+    );
   }
 
-  /** The painter this room asks for, swapped in when it differs from the current one. */
-  private usePainter(room: RoomDef) {
+  /**
+   * The painter this room asks for, swapped in when it differs from the current one. The Canvas painter is loaded the
+   * first time a room asks for it (4.1.0): a game that paints with the DOM never downloads it.
+   */
+  private async usePainter(room: RoomDef) {
     if (this.custom) return;
     const want = this.forced ?? rendererOf(room, this.engine.game);
     if (want === this.painter) return;
+    const next = want === 'canvas' ? new (await import('./render-canvas')).CanvasRenderer() : new DomRenderer();
     const old = this.r.el;
     this.r.dispose();
-    this.r = want === 'canvas' ? new CanvasRenderer() : new DomRenderer();
+    this.r = next;
     this.painter = want;
     this.r.resize(this.u);
     this.onSurface?.(this.r.el, old);
   }
 
-  get heroId() { return this.engine.heroId(); }
+  get heroId() {
+    return this.engine.heroId();
+  }
 
   resize(u: number) {
     this.u = u;
@@ -161,20 +221,28 @@ export class RoomView {
   /** The camera's zoom (a walk zone's `zoom`, bounded 1–2) and top edge: 1 and 0 on every room without zones that zoom. */
   zoom = 1;
   camY = 0;
-  private clampCam(x: number) { return Math.max(0, Math.min(this.width - 640 / this.zoom, x)); }
-  private clampCamY(y: number) { return Math.max(0, Math.min(400 - 400 / this.zoom, y)); }
+  private clampCam(x: number) {
+    return Math.max(0, Math.min(this.width - 640 / this.zoom, x));
+  }
+  private clampCamY(y: number) {
+    return Math.max(0, Math.min(400 - 400 / this.zoom, y));
+  }
   private applyCam() {
     this.r.camera(this.cam, this.width, this.camY, this.zoom);
     this.onCamera?.(this.cam);
   }
   /** A logical point on the screen, in pixels of the scene (speech, labels, sparks). */
-  toScreen(p: Point): Point { return [(p[0] - this.cam) * this.zoom * this.u, (p[1] - this.camY) * this.zoom * this.u]; }
+  toScreen(p: Point): Point {
+    return [(p[0] - this.cam) * this.zoom * this.u, (p[1] - this.camY) * this.zoom * this.u];
+  }
   /** A point of the scene (fractions of its width and height) in the room's logical units: what a tap touches. */
-  toLogical(fx: number, fy: number): Point { return [this.cam + (fx * 640) / this.zoom, this.camY + (fy * 400) / this.zoom]; }
+  toLogical(fx: number, fy: number): Point {
+    return [this.cam + (fx * 640) / this.zoom, this.camY + (fy * 400) / this.zoom];
+  }
   /** The zoom the hero's zone asks for. */
   private zoomTarget(): number {
     const h = this.ents.get(this.heroId);
-    const z = h ? this.walk?.zoneAt([h.x, h.y])?.zoom ?? 1 : 1;
+    const z = h ? (this.walk?.zoneAt([h.x, h.y])?.zoom ?? 1) : 1;
     return Math.max(1, Math.min(2, z));
   }
   /** The top edge that keeps the hero's feet in the lower part of a zoomed view. */
@@ -187,19 +255,29 @@ export class RoomView {
     const h = this.ents.get(this.heroId);
     return this.clampCam((h?.x ?? 320) - 320 / this.zoom);
   }
-  followHero() { this.follow = true; this.pan = null; }
+  followHero() {
+    this.follow = true;
+    this.pan = null;
+  }
   /** Moves the camera to left edge `x` (follow off), animated over `ms`. */
   setCamera(x: number, ms = 0): Promise<void> {
     this.follow = false;
     const to = this.clampCam(x);
-    if (this.width <= 640 || ms <= 0 || this.reduceMotion || Math.abs(to - this.cam) < 1) { this.pan = null; this.cam = to; this.applyCam(); return Promise.resolve(); }
-    return new Promise((done) => { this.pan = { from: this.cam, to, t0: performance.now(), ms, done }; });
+    if (this.width <= 640 || ms <= 0 || this.reduceMotion || Math.abs(to - this.cam) < 1) {
+      this.pan = null;
+      this.cam = to;
+      this.applyCam();
+      return Promise.resolve();
+    }
+    return new Promise((done) => {
+      this.pan = { from: this.cam, to, t0: performance.now(), ms, done };
+    });
   }
 
   /** Builds the room from the game state. */
   async build(room: RoomDef) {
     cancelAnimationFrame(this.raf);
-    this.usePainter(room);
+    await this.usePainter(room);
     this.room = room;
     this.layout = this.engine.layout(room.id);
     this.walk = new WalkTopology(this.layout, room);
@@ -207,7 +285,11 @@ export class RoomView {
     const s = this.engine.state;
     // The room's part of the asset graph (core/asset-graph.ts) for who is actually here: never a file outside its scope.
     const ids = new Set<Id>(roomImages(room, this.layout));
-    const chars = new Set<Id>([this.heroId, ...Object.values(room.actors ?? {}).map((a) => a.char), ...Object.keys(this.engine.guests(room))]);
+    const chars = new Set<Id>([
+      this.heroId,
+      ...Object.values(room.actors ?? {}).map((a) => a.char),
+      ...Object.keys(this.engine.guests(room)),
+    ]);
     for (const c of chars) characterImages(this.engine.game, c).forEach((f) => ids.add(f));
     await this.bank.preload(ids);
     // Palette swaps: every frame of the character, under its own palette and each variant's, ready before drawing.
@@ -216,11 +298,20 @@ export class RoomView {
       const def = this.engine.game.characters[c];
       if (!def) continue;
       const frames = new Set<Id>();
-      for (const set of [def.sprites, ...(def.variants ?? []).map((v) => v.sprites)]) for (const f of Object.values(set ?? {})) f.forEach((x) => frames.add(x));
-      for (const m of [def.mouths, ...(def.variants ?? []).map((v) => v.mouths)]) for (const ms of Object.values(m ?? {})) [ms.closed, ...ms.open, ms.blink, ms.smile].forEach((x) => x && frames.add(x));
-      const pals: { pal?: Record<string, string>; tol?: number }[] = [{ pal: def.palette, tol: def.paletteTolerance },
-        ...(def.variants ?? []).map((v) => (v.palette ? { pal: v.palette, tol: v.paletteTolerance } : { pal: def.palette, tol: def.paletteTolerance }))];
-      for (const { pal, tol } of pals) if (pal && Object.keys(pal).length) for (const f of frames) swaps.push(this.palettes.load(this.bank.img(f), pal, tol ?? 0));
+      for (const set of [def.sprites, ...(def.variants ?? []).map((v) => v.sprites)])
+        for (const f of Object.values(set ?? {})) f.forEach((x) => frames.add(x));
+      for (const m of [def.mouths, ...(def.variants ?? []).map((v) => v.mouths)])
+        for (const ms of Object.values(m ?? {}))
+          [ms.closed, ...ms.open, ms.blink, ms.smile].forEach((x) => x && frames.add(x));
+      const pals: { pal?: Record<string, string>; tol?: number }[] = [
+        { pal: def.palette, tol: def.paletteTolerance },
+        ...(def.variants ?? []).map((v) =>
+          v.palette ? { pal: v.palette, tol: v.paletteTolerance } : { pal: def.palette, tol: def.paletteTolerance },
+        ),
+      ];
+      for (const { pal, tol } of pals)
+        if (pal && Object.keys(pal).length)
+          for (const f of frames) swaps.push(this.palettes.load(this.bank.img(f), pal, tol ?? 0));
     }
     await Promise.all(swaps);
 
@@ -233,7 +324,17 @@ export class RoomView {
     for (const [id, def] of Object.entries(room.props ?? {})) {
       const L = this.layout.props?.[id];
       if (!L) continue;
-      const e = this.add({ id, kind: 'prop', x: L.x, y: L.y, h: L.h, z: L.z != null ? L.z : L.on ? L.y + 200 : undefined, flip: !!L.flip, pose: '', scaleWithDepth: false });
+      const e = this.add({
+        id,
+        kind: 'prop',
+        x: L.x,
+        y: L.y,
+        h: L.h,
+        z: L.z != null ? L.z : L.on ? L.y + 200 : undefined,
+        flip: !!L.flip,
+        pose: '',
+        scaleWithDepth: false,
+      });
       e.img = this.propImage(id);
       this.applyPropState(e);
       e.visible = this.engine.visible(id, room);
@@ -242,21 +343,56 @@ export class RoomView {
     // Inactive playable characters standing here (no actor declared for them): drawn at their saved position.
     for (const [id, g] of Object.entries(this.engine.guests(room))) {
       const char = this.engine.character(g.char);
-      this.add({ id, kind: 'actor', x: g.at[0], y: g.at[1], h: char?.height ?? this.engine.game.skin?.heights?.hero ?? 84, flip: g.at[0] > 320, charId: g.char, pose: 'idle', scaleWithDepth: true, visible: true });
+      this.add({
+        id,
+        kind: 'actor',
+        x: g.at[0],
+        y: g.at[1],
+        h: char?.height ?? this.engine.game.skin?.heights?.hero ?? 84,
+        flip: g.at[0] > 320,
+        charId: g.char,
+        pose: 'idle',
+        scaleWithDepth: true,
+        visible: true,
+      });
     }
     for (const [id, a] of Object.entries(room.actors ?? {})) {
       if (a.char === this.heroId) continue; // the active player is the hero entity, not this actor
       const L = this.layout.actors?.[id];
       const o = s.actors[`${room.id}.${id}`] ?? {};
       const char = this.engine.character(a.char);
-      const x = o.x ?? L?.x ?? 320, y = o.y ?? L?.y ?? 360;
+      const x = o.x ?? L?.x ?? 320,
+        y = o.y ?? L?.y ?? 360;
       const facing = o.facing ?? a.facing ?? (L?.flip ? 'left' : 'right');
-      this.add({ id, kind: 'actor', x, y, h: L?.h ?? char?.height ?? this.engine.game.skin?.heights?.actor ?? 110, z: L?.z ?? undefined, flip: facing === 'left', charId: a.char, pose: o.pose ?? a.pose ?? 'idle', scaleWithDepth: true, visible: this.engine.visible(id, room) });
+      this.add({
+        id,
+        kind: 'actor',
+        x,
+        y,
+        h: L?.h ?? char?.height ?? this.engine.game.skin?.heights?.actor ?? 110,
+        z: L?.z ?? undefined,
+        flip: facing === 'left',
+        charId: a.char,
+        pose: o.pose ?? a.pose ?? 'idle',
+        scaleWithDepth: true,
+        visible: this.engine.visible(id, room),
+      });
     }
     if (room.hero !== false) {
       const [x, y] = s.hero[room.id] ?? this.layout.entries?.default ?? [320, 360];
       const char = this.engine.character(this.heroId);
-      this.add({ id: this.heroId, kind: 'hero', x, y, h: char?.height ?? this.engine.game.skin?.heights?.hero ?? 84, flip: false, charId: this.heroId, pose: 'idle', scaleWithDepth: true, visible: true });
+      this.add({
+        id: this.heroId,
+        kind: 'hero',
+        x,
+        y,
+        h: char?.height ?? this.engine.game.skin?.heights?.hero ?? 84,
+        flip: false,
+        charId: this.heroId,
+        pose: 'idle',
+        scaleWithDepth: true,
+        visible: true,
+      });
     }
     for (const e of this.ents.values()) this.draw(e);
     this.enterTransition();
@@ -269,11 +405,17 @@ export class RoomView {
     this.cam = this.follow ? this.heroCam() : this.clampCam(c?.x ?? 0);
     this.applyCam();
     this.last = performance.now();
-    const tick = (t: number) => { this.tick(t); this.raf = requestAnimationFrame(tick); };
+    const tick = (t: number) => {
+      this.tick(t);
+      this.raf = requestAnimationFrame(tick);
+    };
     this.raf = requestAnimationFrame(tick);
   }
 
-  destroy() { cancelAnimationFrame(this.raf); this.r.dispose(); }
+  destroy() {
+    cancelAnimationFrame(this.raf);
+    this.r.dispose();
+  }
 
   /**
    * Stops every animation on a fixed picture: first frame of each pose and loop, mouths closed, no bob, no walk pose,
@@ -283,8 +425,15 @@ export class RoomView {
   still() {
     cancelAnimationFrame(this.raf);
     for (const e of this.ents.values()) {
-      e.frame = 0; e.mouth = undefined; e.bob = 0; e.over = undefined;
-      if (e.loop) { e.loop.i = 0; e.frameImg = e.loop.frames[0]; e.loop = undefined; }
+      e.frame = 0;
+      e.mouth = undefined;
+      e.bob = 0;
+      e.over = undefined;
+      if (e.loop) {
+        e.loop.i = 0;
+        e.frameImg = e.loop.frames[0];
+        e.loop = undefined;
+      }
       this.draw(e);
     }
     this.pan = null;
@@ -293,7 +442,17 @@ export class RoomView {
   }
 
   private add(p: Partial<Ent> & Pick<Ent, 'id' | 'kind' | 'x' | 'y' | 'h' | 'flip' | 'pose' | 'scaleWithDepth'>): Ent {
-    const e: Ent = { frame: 0, visible: true, mouthAt: 0, blinkAt: performance.now() + 2000 + Math.random() * 4000, bob: 0, drawn: false, opacity: 1, hasShadow: p.kind !== 'prop', ...p };
+    const e: Ent = {
+      frame: 0,
+      visible: true,
+      mouthAt: 0,
+      blinkAt: performance.now() + 2000 + Math.random() * 4000,
+      bob: 0,
+      drawn: false,
+      opacity: 1,
+      hasShadow: p.kind !== 'prop',
+      ...p,
+    };
     this.ents.set(e.id, e);
     return e;
   }
@@ -310,8 +469,12 @@ export class RoomView {
     const st = this.engine.propState(e.id, this.room);
     const o = st ? L?.states?.[st] : undefined;
     if (L) {
-      e.x = o?.x ?? L.x; e.y = o?.y ?? L.y; e.h = o?.h ?? L.h;
-      e.rot = o?.rot ?? L.rot ?? 0; e.flip = !!(o?.flip ?? L.flip); e.flipV = !!(o?.flipV ?? L.flipV);
+      e.x = o?.x ?? L.x;
+      e.y = o?.y ?? L.y;
+      e.h = o?.h ?? L.h;
+      e.rot = o?.rot ?? L.rot ?? 0;
+      e.flip = !!(o?.flip ?? L.flip);
+      e.flipV = !!(o?.flipV ?? L.flipV);
       const z = o?.z ?? L.z;
       e.z = z != null ? z : L.on ? L.y + 200 : undefined;
     }
@@ -320,7 +483,9 @@ export class RoomView {
 
   // ------------------------------------------------------------ drawing
 
-  private char(e: Ent): CharacterDef | undefined { return e.charId ? this.engine.character(e.charId) : undefined; }
+  private char(e: Ent): CharacterDef | undefined {
+    return e.charId ? this.engine.character(e.charId) : undefined;
+  }
 
   /** Current image of a character: pose (or walk), and mouth if the pose has one. */
   private frames(e: Ent): Id[] {
@@ -333,7 +498,8 @@ export class RoomView {
   }
 
   private draw(e: Ent) {
-    let img: Id | undefined, h = e.h;
+    let img: Id | undefined,
+      h = e.h;
     if (e.kind === 'prop') img = e.frameImg ?? e.img;
     else {
       const fr = this.frames(e);
@@ -342,10 +508,26 @@ export class RoomView {
       // same scale for all of a character's poses: a crouching pose stays smaller
       const ref = idle ? this.bank.size(idle)[1] : 0;
       const scale = e.scaleWithDepth ? this.walk.scaleAt([e.x, e.y]) : 1;
-      if (img && ref) h = (this.bank.size(img)[1] / ref) * e.h * scale; else h = e.h * scale;
+      if (img && ref) h = (this.bank.size(img)[1] / ref) * e.h * scale;
+      else h = e.h * scale;
     }
-    const base = { id: e.id, fx: e.x, fy: e.y, bob: e.bob, z: e.z ?? e.y, flip: e.flip, flipV: !!e.flipV, rot: e.rot ?? 0, visible: e.visible, opacity: e.opacity };
-    if (!img) { e.drawn = false; this.r.sprite({ ...base, url: null, w: 0, h: 0 }); return; }
+    const base = {
+      id: e.id,
+      fx: e.x,
+      fy: e.y,
+      bob: e.bob,
+      z: e.z ?? e.y,
+      flip: e.flip,
+      flipV: !!e.flipV,
+      rot: e.rot ?? 0,
+      visible: e.visible,
+      opacity: e.opacity,
+    };
+    if (!img) {
+      e.drawn = false;
+      this.r.sprite({ ...base, url: null, w: 0, h: 0 });
+      return;
+    }
     const w = this.bank.widthFor(img, h);
     const c = e.kind === 'prop' ? undefined : this.char(e);
     const pal = c?.palette && Object.keys(c.palette).length ? c.palette : undefined;
@@ -353,19 +535,34 @@ export class RoomView {
     const glow = e.charId ? this.engine.game.characters[e.charId]?.glow : undefined;
     const sw = Math.min(w * 0.7, 46);
     const spec: SpriteSpec = {
-      ...base, url: (pal && this.palettes.get(url, pal, c?.paletteTolerance ?? 0)) || url, w, h,
+      ...base,
+      url: (pal && this.palettes.get(url, pal, c?.paletteTolerance ?? 0)) || url,
+      w,
+      h,
       ...(glow ? { filter: `drop-shadow(0 0 6px ${glow}) drop-shadow(0 0 14px ${glow})` } : {}),
-      ...(e.hasShadow ? { shadow: { x: e.x - sw / 2, y: e.y - 4, w: sw, h: 8, z: Math.round(e.y) - 1, visible: e.visible } } : {}),
+      ...(e.hasShadow
+        ? { shadow: { x: e.x - sw / 2, y: e.y - 4, w: sw, h: 8, z: Math.round(e.y) - 1, visible: e.visible } }
+        : {}),
     };
     this.r.sprite(spec);
     e.drawn = true;
     // The box a tap is tested against (rotation included): the model's, whatever paints it.
     const rot = e.rot ?? 0;
-    const y0 = e.flipV ? 0 : -h, y1 = e.flipV ? h : 0;
+    const y0 = e.flipV ? 0 : -h,
+      y1 = e.flipV ? h : 0;
     if (rot) {
-      const a = (rot * Math.PI) / 180, co = Math.cos(a), sn = Math.sin(a);
-      const pts = [[-w / 2, y0], [w / 2, y0], [-w / 2, y1], [w / 2, y1]].map(([px, py]) => [e.x + px * co - py * sn, e.y + px * sn + py * co]);
-      const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+      const a = (rot * Math.PI) / 180,
+        co = Math.cos(a),
+        sn = Math.sin(a);
+      const corners: [number, number][] = [
+        [-w / 2, y0],
+        [w / 2, y0],
+        [-w / 2, y1],
+        [w / 2, y1],
+      ];
+      const pts = corners.map(([px, py]): [number, number] => [e.x + px * co - py * sn, e.y + px * sn + py * co]);
+      const xs = pts.map((p) => p[0]),
+        ys = pts.map((p) => p[1]);
       e.bbox = [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
     } else e.bbox = [e.x - w / 2, e.y + y0 - e.bob, w, h];
   }
@@ -376,10 +573,14 @@ export class RoomView {
     // Zoom: toward what the hero's zone asks, smoothed (at once with reduced motion); the top edge follows.
     const zt = this.zoomTarget();
     if (Math.abs(zt - this.zoom) > 0.002 || this.zoom !== 1) {
-      this.zoom = Math.abs(zt - this.zoom) < 0.002 ? zt : this.zoom + (zt - this.zoom) * Math.min(1, dt * (this.reduceMotion ? 60 : 3));
+      this.zoom =
+        Math.abs(zt - this.zoom) < 0.002
+          ? zt
+          : this.zoom + (zt - this.zoom) * Math.min(1, dt * (this.reduceMotion ? 60 : 3));
       const ty = this.heroCamY();
       this.camY += (ty - this.camY) * Math.min(1, dt * (this.reduceMotion ? 60 : 5));
-      if (!this.pan && this.follow) this.cam = this.cam + (this.heroCam() - this.cam) * Math.min(1, dt * (this.reduceMotion ? 60 : 5));
+      if (!this.pan && this.follow)
+        this.cam = this.cam + (this.heroCam() - this.cam) * Math.min(1, dt * (this.reduceMotion ? 60 : 5));
       this.cam = this.clampCam(this.cam);
       this.applyCam();
     }
@@ -390,18 +591,30 @@ export class RoomView {
         const k = Math.min(1, (t - p.t0) / p.ms);
         const ease = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
         this.cam = p.from + (p.to - p.from) * ease;
-        if (k >= 1) { this.pan = null; p.done(); }
+        if (k >= 1) {
+          this.pan = null;
+          p.done();
+        }
         this.applyCam();
       } else if (this.follow) {
         const target = this.heroCam();
-        if (Math.abs(target - this.cam) > 0.5) { this.cam += (target - this.cam) * Math.min(1, dt * (this.reduceMotion ? 60 : 5)); this.applyCam(); }
+        if (Math.abs(target - this.cam) > 0.5) {
+          this.cam += (target - this.cam) * Math.min(1, dt * (this.reduceMotion ? 60 : 5));
+          this.applyCam();
+        }
       }
     }
     // Prop animations that loop.
     for (const e of this.ents.values()) {
       if (!e.loop) continue;
       e.loop.acc += dt;
-      if (e.loop.acc >= 1 / e.loop.fps) { e.loop.acc = 0; e.loop.i = (e.loop.i + 1) % e.loop.frames.length; e.frameImg = e.loop.frames[e.loop.i]; this.draw(e); e.loop.onFrame?.(e.loop.i); }
+      if (e.loop.acc >= 1 / e.loop.fps) {
+        e.loop.acc = 0;
+        e.loop.i = (e.loop.i + 1) % e.loop.frames.length;
+        e.frameImg = e.loop.frames[e.loop.i];
+        this.draw(e);
+        e.loop.onFrame?.(e.loop.i);
+      }
     }
     // Mouths: during speech, t2/t3/t4 at random every 160 to 220 ms; at rest, an occasional blink.
     for (const e of this.ents.values()) {
@@ -409,14 +622,23 @@ export class RoomView {
       const m = this.char(e)?.mouths?.[e.over ?? e.pose];
       if (this.talking === e.id) {
         if (t >= e.mouthAt) {
-          if (m) { const opts = m.open.filter((f) => f !== e.mouth); e.mouth = opts[Math.floor(Math.random() * opts.length)] ?? m.closed; }
-          else e.bob = e.bob ? 0 : 1.5; // no mouth: same image, slight bob
+          if (m) {
+            const opts = m.open.filter((f) => f !== e.mouth);
+            e.mouth = opts[Math.floor(Math.random() * opts.length)] ?? m.closed;
+          } else e.bob = e.bob ? 0 : 1.5; // no mouth: same image, slight bob
           e.mouthAt = t + (m ? 160 + Math.random() * 60 : 350);
           this.draw(e);
         }
       } else if (m?.blink) {
-        if (e.mouth === m.blink && t >= e.mouthAt) { e.mouth = undefined; this.draw(e); }
-        else if (!e.mouth && t >= e.blinkAt) { e.mouth = m.blink; e.mouthAt = t + 150; e.blinkAt = t + 3000 + Math.random() * 4000; this.draw(e); }
+        if (e.mouth === m.blink && t >= e.mouthAt) {
+          e.mouth = undefined;
+          this.draw(e);
+        } else if (!e.mouth && t >= e.blinkAt) {
+          e.mouth = m.blink;
+          e.mouthAt = t + 150;
+          e.blinkAt = t + 3000 + Math.random() * 4000;
+          this.draw(e);
+        }
       }
     }
     // Animated poses (walk, sleeping cat…) at 8 frames per second.
@@ -426,7 +648,10 @@ export class RoomView {
     for (const e of this.ents.values()) {
       if (e.kind === 'prop') continue;
       const n = this.frames(e).length;
-      if (n > 1) { e.frame = (e.frame + 1) % n; this.draw(e); }
+      if (n > 1) {
+        e.frame = (e.frame + 1) % n;
+        this.draw(e);
+      }
     }
   }
 
@@ -440,7 +665,10 @@ export class RoomView {
     return [e.x, e.y - e.h * scale - 6];
   }
 
-  pos(id: Id): Point | null { const e = this.ents.get(id); return e ? [e.x, e.y] : null; }
+  pos(id: Id): Point | null {
+    const e = this.ents.get(id);
+    return e ? [e.x, e.y] : null;
+  }
 
   /** Box of an entity or hotspot, in logical units [x, y, w, h]. */
   box(id: Id): [number, number, number, number] | null {
@@ -448,30 +676,46 @@ export class RoomView {
     if (e?.drawn && e.bbox) return e.bbox;
     const h = this.layout.hotspots?.[id];
     if (h?.rect) return h.rect;
-    if (h?.poly) { const xs = h.poly.map((p) => p[0]), ys = h.poly.map((p) => p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)]; }
+    if (h?.poly) {
+      const xs = h.poly.map((p) => p[0]),
+        ys = h.poly.map((p) => p[1]);
+      return [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
+    }
     return null;
   }
 
   /** Whatever is under the finger: the smallest visible thing that contains the point. */
   hit(p: Point): Id | null {
-    let best: Id | null = null, area = Infinity;
+    let best: Id | null = null,
+      area = Infinity;
     const inPoly = (pt: Point, poly: Point[]) => {
       let c = false;
       for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-        const [xi, yi] = poly[i], [xj, yj] = poly[j];
-        if ((yi > pt[1]) !== (yj > pt[1]) && pt[0] < ((xj - xi) * (pt[1] - yi)) / (yj - yi) + xi) c = !c;
+        const [xi, yi] = must(poly[i], 'polygon vertex'),
+          [xj, yj] = must(poly[j], 'polygon vertex');
+        if (yi > pt[1] !== yj > pt[1] && pt[0] < ((xj - xi) * (pt[1] - yi)) / (yj - yi) + xi) c = !c;
       }
       return c;
     };
     for (const id of this.engine.targets(this.room)) {
       const hs = this.layout.hotspots?.[id];
-      let inside = false, a = Infinity;
-      if (hs?.poly) { inside = inPoly(p, hs.poly); const b = this.box(id)!; a = b[2] * b[3]; }
-      else {
+      let inside = false,
+        a = Infinity;
+      if (hs?.poly) {
+        inside = inPoly(p, hs.poly);
+        const b = this.box(id)!;
+        a = b[2] * b[3];
+      } else {
         const b = this.box(id);
-        if (b) { inside = p[0] >= b[0] && p[0] <= b[0] + b[2] && p[1] >= b[1] && p[1] <= b[1] + b[3]; a = b[2] * b[3]; }
+        if (b) {
+          inside = p[0] >= b[0] && p[0] <= b[0] + b[2] && p[1] >= b[1] && p[1] <= b[1] + b[3];
+          a = b[2] * b[3];
+        }
       }
-      if (inside && a < area) { best = id; area = a; }
+      if (inside && a < area) {
+        best = id;
+        area = a;
+      }
     }
     return best;
   }
@@ -495,7 +739,12 @@ export class RoomView {
   propLoop(id: Id, frames: Id[], fps: number, onFrame?: (i: number) => void) {
     const e = this.ents.get(id);
     if (!e) return;
-    if (!frames.length) { e.loop = undefined; e.frameImg = undefined; this.draw(e); return; }
+    if (!frames.length) {
+      e.loop = undefined;
+      e.frameImg = undefined;
+      this.draw(e);
+      return;
+    }
     void this.bank.preload(new Set(frames));
     e.loop = { frames, fps: fps || 8, i: 0, acc: 0, onFrame };
     e.frameImg = frames[0];
@@ -505,31 +754,68 @@ export class RoomView {
 
   refreshVisibility() {
     // The stage's conditions (a lit window, a light switched on) are read again with the entities'.
-    if (this.room) { const st = this.stageSpec(); const key = JSON.stringify(st); if (key !== this.stageKey) { this.stageKey = key; this.r.stage(st); } }
+    if (this.room) {
+      const st = this.stageSpec();
+      const key = JSON.stringify(st);
+      if (key !== this.stageKey) {
+        this.stageKey = key;
+        this.r.stage(st);
+      }
+    }
     for (const e of this.ents.values()) {
       if (e.kind === 'hero') continue;
       const v = this.engine.visible(e.id, this.room);
-      if (v !== e.visible) { e.visible = v; this.draw(e); }
+      if (v !== e.visible) {
+        e.visible = v;
+        this.draw(e);
+      }
     }
   }
 
   async show(id: Id, visible: boolean, fade: number, fast: boolean) {
     const e = this.ents.get(id);
     if (!e) return;
-    if (fast || !fade) { e.visible = visible; e.opacity = 1; this.draw(e); return; }
+    if (fast || !fade) {
+      e.visible = visible;
+      e.opacity = 1;
+      this.draw(e);
+      return;
+    }
     // The fade is the model's (an opacity the painter is given each frame), so every painter fades the same way.
     e.visible = true;
-    const from = visible ? 0 : 1, to = visible ? 1 : 0, t0 = performance.now();
+    const from = visible ? 0 : 1,
+      to = visible ? 1 : 0,
+      t0 = performance.now();
     await new Promise<void>((done) => {
-      const step = (t: number) => { const k = Math.min(1, (t - t0) / fade); e.opacity = from + (to - from) * k; this.draw(e); if (k < 1) requestAnimationFrame(step); else done(); };
+      const step = (t: number) => {
+        const k = Math.min(1, (t - t0) / fade);
+        e.opacity = from + (to - from) * k;
+        this.draw(e);
+        if (k < 1) requestAnimationFrame(step);
+        else done();
+      };
       requestAnimationFrame(step);
     });
-    e.visible = visible; e.opacity = 1;
+    e.visible = visible;
+    e.opacity = 1;
     this.draw(e);
   }
 
-  face(id: Id, dir: 'left' | 'right') { const e = this.ents.get(id); if (e) { e.flip = dir === 'left'; this.draw(e); } }
-  pose(id: Id, pose: string) { const e = this.ents.get(id); if (e) { e.pose = pose; e.frame = 0; this.draw(e); } }
+  face(id: Id, dir: 'left' | 'right') {
+    const e = this.ents.get(id);
+    if (e) {
+      e.flip = dir === 'left';
+      this.draw(e);
+    }
+  }
+  pose(id: Id, pose: string) {
+    const e = this.ents.get(id);
+    if (e) {
+      e.pose = pose;
+      e.frame = 0;
+      this.draw(e);
+    }
+  }
   place(id: Id, at: Point, face?: 'left' | 'right') {
     const e = this.ents.get(id);
     if (!e) return;
@@ -541,9 +827,14 @@ export class RoomView {
   async anim(id: Id, pose: string, ms: number, fast: boolean) {
     const e = this.ents.get(id);
     if (!e || fast) return;
-    e.over = pose; e.frame = 0; this.draw(e);
+    e.over = pose;
+    e.frame = 0;
+    this.draw(e);
     await new Promise((r) => setTimeout(r, ms));
-    if (e.over === pose) { e.over = undefined; this.draw(e); }
+    if (e.over === pose) {
+      e.over = undefined;
+      this.draw(e);
+    }
   }
 
   /**
@@ -555,7 +846,11 @@ export class RoomView {
     this.talking = id;
     const now = performance.now();
     const p = prev ? this.ents.get(prev) : undefined;
-    if (p) { p.mouth = undefined; p.bob = 0; this.draw(p); }
+    if (p) {
+      p.mouth = undefined;
+      p.bob = 0;
+      this.draw(p);
+    }
     const e = id ? this.ents.get(id) : undefined;
     if (e) {
       e.mouthAt = now;
@@ -566,7 +861,12 @@ export class RoomView {
   }
 
   /** Redraws everything (after a state change affecting variants, e.g. a picked-up item). */
-  redraw() { for (const e of this.ents.values()) { if (e.kind === 'prop') this.applyPropState(e); this.draw(e); } }
+  redraw() {
+    for (const e of this.ents.values()) {
+      if (e.kind === 'prop') this.applyPropState(e);
+      this.draw(e);
+    }
+  }
 
   /** Walks along the path. Returns the arrival point, or null if interrupted by another walk. */
   async walkTo(id: Id, to: Point, fast: boolean): Promise<Point | null> {
@@ -578,16 +878,29 @@ export class RoomView {
     const { steps, blocked } = this.walk.route([e.x, e.y], to, (l) => !l.if || !st || check(l.if, st, this.room.id));
     // A closed link stops the walk, never the action: the engine goes on from where the walk ended, and the rule of
     // the target (gated by the same condition, lint `walk-link-gate`) answers. A link is never game logic by itself.
-    if (fast) { const end = steps[steps.length - 1]?.to ?? to; [e.x, e.y] = end; this.draw(e); if (blocked) this.onBlocked?.(blocked); return end; }
+    if (fast) {
+      const end = steps[steps.length - 1]?.to ?? to;
+      [e.x, e.y] = end;
+      this.draw(e);
+      if (blocked) this.onBlocked?.(blocked);
+      return end;
+    }
     // Actors and the hero already follow depth (as in the placement page): nothing to convert.
     const wasDepth = e.scaleWithDepth;
-    if (e.kind === 'actor' && !wasDepth) { e.h = e.h / this.walk.scaleAt([e.x, e.y]); e.scaleWithDepth = true; }
+    if (e.kind === 'actor' && !wasDepth) {
+      e.h = e.h / this.walk.scaleAt([e.x, e.y]);
+      e.scaleWithDepth = true;
+    }
     for (const step of steps) {
-      const ok = step.via && step.via.mode !== 'walk' ? await this.cross(e, step, tok) : await this.stride(e, step.to, tok);
+      const ok =
+        step.via && step.via.mode !== 'walk' ? await this.cross(e, step, tok) : await this.stride(e, step.to, tok);
       if (!ok) return null;
     }
     e.over = undefined;
-    if (e.kind === 'actor' && !wasDepth) { e.h = e.h * this.walk.scaleAt([e.x, e.y]); e.scaleWithDepth = false; }
+    if (e.kind === 'actor' && !wasDepth) {
+      e.h = e.h * this.walk.scaleAt([e.x, e.y]);
+      e.scaleWithDepth = false;
+    }
     this.draw(e);
     if (blocked) this.onBlocked?.(blocked);
     return [e.x, e.y];
@@ -600,14 +913,33 @@ export class RoomView {
       let last = performance.now();
       const step = (now: number) => {
         if (this.walkTokens.get(e.id) !== tok) return res(false);
-        const dt = Math.min(0.05, (now - last) / 1000); last = now;
-        const dx = p[0] - e.x, dy = p[1] - e.y, d = Math.hypot(dx, dy);
-        if (d < 1.5) { e.x = p[0]; e.y = p[1]; this.draw(e); return res(true); }
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        const dx = p[0] - e.x,
+          dy = p[1] - e.y,
+          d = Math.hypot(dx, dy);
+        if (d < 1.5) {
+          e.x = p[0];
+          e.y = p[1];
+          this.draw(e);
+          return res(true);
+        }
         const k = Math.min(1, (WALK_SPEED * dt) / d);
-        e.x += dx * k; e.y += dy * k;
+        e.x += dx * k;
+        e.y += dy * k;
         if (Math.abs(dx) > 1) e.flip = dx < 0;
         const vertical = Math.abs(dy) > Math.abs(dx) * 1.5;
-        e.over = vertical ? (dy < 0 ? (sp.walk_back ? 'walk_back' : 'walk') : (sp.walk_front ? 'walk_front' : 'walk')) : (sp.walk ? 'walk' : undefined);
+        e.over = vertical
+          ? dy < 0
+            ? sp.walk_back
+              ? 'walk_back'
+              : 'walk'
+            : sp.walk_front
+              ? 'walk_front'
+              : 'walk'
+          : sp.walk
+            ? 'walk'
+            : undefined;
         this.draw(e);
         requestAnimationFrame(step);
       };
@@ -621,11 +953,17 @@ export class RoomView {
    */
   private cross(e: Ent, step: WalkStep, tok: number): Promise<boolean> {
     const l = step.via!;
-    const from: Point = [e.x, e.y], to = step.to, sp = this.char(e)?.sprites ?? {};
+    const from: Point = [e.x, e.y],
+      to = step.to,
+      sp = this.char(e)?.sprites ?? {};
     if (l.facing) e.flip = l.facing === 'left';
     else if (Math.abs(to[0] - from[0]) > 1) e.flip = to[0] < from[0];
     const pose = l.anim ?? (l.mode === 'ladder' ? (sp.climb ? 'climb' : undefined) : sp.walk ? 'walk' : undefined);
-    if (l.mode === 'teleport' || this.reduceMotion || l.ms <= 0) { [e.x, e.y] = to; this.draw(e); return Promise.resolve(this.walkTokens.get(e.id) === tok); }
+    if (l.mode === 'teleport' || this.reduceMotion || l.ms <= 0) {
+      [e.x, e.y] = to;
+      this.draw(e);
+      return Promise.resolve(this.walkTokens.get(e.id) === tok);
+    }
     return new Promise<boolean>((res) => {
       const t0 = performance.now();
       const step2 = (now: number) => {
@@ -635,7 +973,8 @@ export class RoomView {
         e.y = from[1] + (to[1] - from[1]) * k - (l.mode === 'jump' ? Math.sin(Math.PI * k) * 30 : 0);
         e.over = pose;
         this.draw(e);
-        if (k < 1) requestAnimationFrame(step2); else res(true);
+        if (k < 1) requestAnimationFrame(step2);
+        else res(true);
       };
       requestAnimationFrame(step2);
     });
@@ -654,19 +993,34 @@ export class RoomView {
     const lead = leader ? this.ents.get(leader) : undefined;
     const apply = (k: number) => {
       const f = motionAt(spec, k);
-      if (spec.kind === 'follow' && lead) { e.x = lead.x + (f.dx ?? 0); e.y = lead.y + (f.dy ?? 0); }
-      else if (f.at) [e.x, e.y] = f.at;
-      else { e.x = base.x + (f.dx ?? 0); e.y = base.y + (f.dy ?? 0); }
+      if (spec.kind === 'follow' && lead) {
+        e.x = lead.x + (f.dx ?? 0);
+        e.y = lead.y + (f.dy ?? 0);
+      } else if (f.at) [e.x, e.y] = f.at;
+      else {
+        e.x = base.x + (f.dx ?? 0);
+        e.y = base.y + (f.dy ?? 0);
+      }
       e.rot = base.rot + f.rot;
       this.draw(e);
     };
-    if (fast || m.ms <= 0) { apply(1); return; }
+    if (fast || m.ms <= 0) {
+      apply(1);
+      return;
+    }
     const t0 = performance.now();
     await new Promise<void>((done) => {
-      const step = (t: number) => { const k = Math.min(1, (t - t0) / m.ms); apply(k); if (k < 1) requestAnimationFrame(step); else done(); };
+      const step = (t: number) => {
+        const k = Math.min(1, (t - t0) / m.ms);
+        apply(k);
+        if (k < 1) requestAnimationFrame(step);
+        else done();
+      };
       requestAnimationFrame(step);
     });
   }
 
-  clampFloor(p: Point): Point { return this.walk.clamp(p); }
+  clampFloor(p: Point): Point {
+    return this.walk.clamp(p);
+  }
 }

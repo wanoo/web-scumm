@@ -1,6 +1,11 @@
 import type { MinigameCtx } from './types';
+import { must } from '../core/must';
 
-export function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, html?: string): HTMLElementTagNameMap[K] {
+export function el<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  cls?: string,
+  html?: string,
+): HTMLElementTagNameMap[K] {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
   if (html != null) e.innerHTML = html;
@@ -16,8 +21,23 @@ export function stage(ctx: MinigameCtx): HTMLDivElement {
 }
 
 /** Image positioned by its feet (bottom-center) in logical 640 × 400 coordinates, height h. */
-export interface Spr { el: HTMLImageElement; id: string; x: number; y: number; h: number }
-export function put(ctx: MinigameCtx, parent: HTMLElement, id: string, x: number, y: number, h: number, z = Math.round(y), flip = false): Spr {
+export interface Spr {
+  el: HTMLImageElement;
+  id: string;
+  x: number;
+  y: number;
+  h: number;
+}
+export function put(
+  ctx: MinigameCtx,
+  parent: HTMLElement,
+  id: string,
+  x: number,
+  y: number,
+  h: number,
+  z = Math.round(y),
+  flip = false,
+): Spr {
   const im = el('img', 'mg-img') as HTMLImageElement;
   im.alt = '';
   im.draggable = false;
@@ -29,12 +49,22 @@ export function put(ctx: MinigameCtx, parent: HTMLElement, id: string, x: number
   return s;
 }
 export function move(ctx: MinigameCtx, s: Spr, x: number, y: number, h = s.h, id = s.id) {
-  if (id !== s.id) { s.el.src = ctx.img(id); s.id = id; }
+  if (id !== s.id) {
+    s.el.src = ctx.img(id);
+    s.id = id;
+  }
   const [w0, h0] = ctx.size(id);
   const w = h * (w0 / (h0 || 1));
   const u = ctx.u;
-  Object.assign(s.el.style, { left: `${(x - w / 2) * u}px`, top: `${(y - h) * u}px`, width: `${w * u}px`, height: `${h * u}px` });
-  s.x = x; s.y = y; s.h = h;
+  Object.assign(s.el.style, {
+    left: `${(x - w / 2) * u}px`,
+    top: `${(y - h) * u}px`,
+    width: `${w * u}px`,
+    height: `${h * u}px`,
+  });
+  s.x = x;
+  s.y = y;
+  s.h = h;
 }
 
 /**
@@ -43,7 +73,8 @@ export function move(ctx: MinigameCtx, s: Spr, x: number, y: number, h = s.h, id
  */
 export function skipped(from: HTMLElement) {
   const E = (globalThis as { CustomEvent?: typeof CustomEvent }).CustomEvent;
-  if (E && typeof (from as { dispatchEvent?: unknown }).dispatchEvent === 'function') from.dispatchEvent(new E('mg-skip', { bubbles: true }));
+  if (E && typeof (from as { dispatchEvent?: unknown }).dispatchEvent === 'function')
+    from.dispatchEvent(new E('mg-skip', { bubbles: true }));
 }
 
 /** Always-present "Skip" button. */
@@ -51,7 +82,11 @@ export function skipButton(ctx: MinigameCtx, parent: HTMLElement, onSkip: () => 
   const b = el('button', 'mg-skip', ctx.labels.skip);
   b.type = 'button';
   b.style.fontSize = `${Math.max(12, 13 * ctx.u)}px`;
-  b.addEventListener('click', (e) => { e.stopPropagation(); skipped(parent); onSkip(); });
+  b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    skipped(parent);
+    onSkip();
+  });
   parent.append(b);
   // The focus goes to Skip unless the minigame already put it on one of its own controls (a keyboard-playable game).
   // Tests drive the minigames with bare element stubs: focus is optional there.
@@ -68,7 +103,9 @@ export function skipButton(ctx: MinigameCtx, parent: HTMLElement, onSkip: () => 
  * function when it ends). Never steals Tab, nor Enter / Space from a focused button (Skip): those stay the browser's.
  */
 export function keys(ctx: MinigameCtx, map: Record<string, (e: KeyboardEvent) => void>): () => void {
-  const doc = (ctx.root as unknown as { ownerDocument?: Document }).ownerDocument ?? (globalThis as { document?: Document }).document;
+  const doc =
+    (ctx.root as unknown as { ownerDocument?: Document }).ownerDocument ??
+    (globalThis as { document?: Document }).document;
   if (!doc?.addEventListener) return () => {};
   const on = (e: KeyboardEvent) => {
     const f = map[e.key];
@@ -90,7 +127,11 @@ export function operable(target: HTMLElement, label: string, onActivate: () => v
   target.setAttribute('aria-label', label);
   target.addEventListener('keydown', (e: Event) => {
     const k = (e as KeyboardEvent).key;
-    if (k === 'Enter' || k === ' ') { e.preventDefault(); e.stopPropagation(); onActivate(); }
+    if (k === 'Enter' || k === ' ') {
+      e.preventDefault();
+      e.stopPropagation();
+      onActivate();
+    }
   });
 }
 
@@ -102,10 +143,15 @@ export function arrowFocus(ctx: MinigameCtx, items: () => HTMLElement[], cols = 
     const doc = (globalThis as { document?: Document }).document;
     const i = list.indexOf(doc?.activeElement as HTMLElement);
     const next = i < 0 ? 0 : Math.max(0, Math.min(list.length - 1, i + d));
-    list[next].focus?.({ preventScroll: true });
+    must(list[next], 'focused item').focus?.({ preventScroll: true });
   };
   const v = cols || 1;
-  return keys(ctx, { ArrowRight: step(1), ArrowLeft: step(-1), ArrowDown: step(cols ? v : 1), ArrowUp: step(cols ? -v : -1) });
+  return keys(ctx, {
+    ArrowRight: step(1),
+    ArrowLeft: step(-1),
+    ArrowDown: step(cols ? v : 1),
+    ArrowUp: step(cols ? -v : -1),
+  });
 }
 
 export function toast(parent: HTMLElement, text: string, ms = 1400) {
@@ -114,20 +160,45 @@ export function toast(parent: HTMLElement, text: string, ms = 1400) {
   setTimeout(() => t.remove(), ms);
 }
 
-export const sleep = (ms: number, signal?: AbortSignal) => new Promise<void>((res) => {
-  const t = setTimeout(res, ms);
-  signal?.addEventListener('abort', () => { clearTimeout(t); res(); }, { once: true });
-});
+export const sleep = (ms: number, signal?: AbortSignal) =>
+  new Promise<void>((res) => {
+    const t = setTimeout(res, ms);
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(t);
+        res();
+      },
+      { once: true },
+    );
+  });
 
-export function str(v: unknown, d: string): string { return typeof v === 'string' ? v : d; }
-export function num(v: unknown, d: number): number { return typeof v === 'number' && isFinite(v) ? v : d; }
+export function str(v: unknown, d: string): string {
+  return typeof v === 'string' ? v : d;
+}
+export function num(v: unknown, d: number): number {
+  return typeof v === 'number' && isFinite(v) ? v : d;
+}
 
 /** Promise that resolves only once, and also if the signal is cancelled. */
 export function finisher(signal: AbortSignal) {
   let done!: () => void;
   let finished = false;
-  const p = new Promise<void>((res) => { done = res; });
-  const finish = () => { if (!finished) { finished = true; done(); } };
+  const p = new Promise<void>((res) => {
+    done = res;
+  });
+  const finish = () => {
+    if (!finished) {
+      finished = true;
+      done();
+    }
+  };
   signal.addEventListener('abort', finish, { once: true });
-  return { promise: p, finish, get finished() { return finished; } };
+  return {
+    promise: p,
+    finish,
+    get finished() {
+      return finished;
+    },
+  };
 }

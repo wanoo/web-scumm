@@ -12,7 +12,11 @@ import { game } from '../games/reference/game';
 import manifest from '../games/reference/assets.gen.json';
 
 const dir = 'games/reference/layout';
-const layouts: Record<string, Layout> = Object.fromEntries(readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => [f.slice(0, -5), JSON.parse(readFileSync(`${dir}/${f}`, 'utf8'))]));
+const layouts: Record<string, Layout> = Object.fromEntries(
+  readdirSync(dir)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => [f.slice(0, -5), JSON.parse(readFileSync(`${dir}/${f}`, 'utf8'))]),
+);
 const room = (id: string) => game.rooms.find((r) => r.id === id)!;
 const stage = (id: string) => stageOf(room(id), layouts[id]);
 
@@ -54,7 +58,11 @@ describe('reference chapter: the stage', () => {
     expect(s.links.find((l) => l.mode === 'jump')?.if).toEqual({ player: 'biscuit' });
   });
   it('no layer or link changes the puzzle state: a link only reads a condition', () => {
-    for (const r of game.rooms) for (const l of Object.values(r.stage?.links ?? {})) expect(Object.keys(l).every((k) => k === 'if' || k === 'locked')).toBe(true);
-    for (const r of game.rooms) for (const l of r.stage?.layers ?? []) expect(Object.keys(l).every((k) => ['id', 'image', 'role', 'visible', 'name'].includes(k))).toBe(true);
+    for (const r of game.rooms)
+      for (const l of Object.values(r.stage?.links ?? {}))
+        expect(Object.keys(l).every((k) => k === 'if' || k === 'locked')).toBe(true);
+    for (const r of game.rooms)
+      for (const l of r.stage?.layers ?? [])
+        expect(Object.keys(l).every((k) => ['id', 'image', 'role', 'visible', 'name'].includes(k))).toBe(true);
   });
 });

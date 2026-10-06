@@ -10,7 +10,16 @@
 // The game: GAME, otherwise package.json → config.game (see tools/game.ts).
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { commercialVerdict, licenceVerdict, lockDiff, lockMessages, placeholderVerdict, provenanceReport, type Provenance, type ProvenanceLock } from '../src/engine/tools/provenance';
+import {
+  commercialVerdict,
+  licenceVerdict,
+  lockDiff,
+  lockMessages,
+  placeholderVerdict,
+  provenanceReport,
+  type Provenance,
+  type ProvenanceLock,
+} from '../src/engine/tools/provenance';
 import { fileFacts, LOCK, readJson, shippedKeys } from './provenance-files';
 import { validate } from '../src/engine/tools/validate';
 import { report, reportMarkdown } from '../src/engine/tools/report';
@@ -29,39 +38,100 @@ const accepted: string[] = [];
 const layouts = loadLayouts(resolve(GAME_DIR, 'layout'));
 const assets = loadAssets(resolve(GAME_DIR, 'assets.gen.json'));
 let minigames: Record<string, { required?: string[] }> | undefined;
-try { minigames = { ...(await import('../src/engine/minigames/index')).minigames, ...(mod.minigames ?? {}) }; } catch { minigames = undefined; }
+try {
+  minigames = { ...(await import('../src/engine/minigames/index')).minigames, ...(mod.minigames ?? {}) };
+} catch {
+  minigames = undefined;
+}
 const minigameIds = minigames ? Object.keys(minigames) : undefined;
-const minigameParams = minigames ? Object.fromEntries(Object.entries(minigames).map(([k, m]) => [k, m.required ?? []])) : undefined;
-const minigameBindings = minigames ? Object.fromEntries(Object.entries(minigames).map(([k, m]) => [k, (m as { bindings?: { images?: string[]; sfx?: string[] } }).bindings ?? {}])) : undefined;
+const minigameParams = minigames
+  ? Object.fromEntries(Object.entries(minigames).map(([k, m]) => [k, m.required ?? []]))
+  : undefined;
+const minigameBindings = minigames
+  ? Object.fromEntries(
+      Object.entries(minigames).map(([k, m]) => [
+        k,
+        (m as { bindings?: { images?: string[]; sfx?: string[] } }).bindings ?? {},
+      ]),
+    )
+  : undefined;
 
-if (process.argv.includes('--report')) { process.stdout.write(reportMarkdown(report(game, layouts, { locales: loadLocales(resolve(GAME_DIR, 'locales')) }))); process.exit(0); }
-const { errors, warnings } = validate(game, layouts, { assets, minigameIds, minigameParams, minigameBindings, commands: mod.commands, release, translated: Object.keys(loadLocales(resolve(GAME_DIR, 'locales'))).some((l) => l !== (game.lang ?? 'en')) });
+if (process.argv.includes('--report')) {
+  process.stdout.write(reportMarkdown(report(game, layouts, { locales: loadLocales(resolve(GAME_DIR, 'locales')) })));
+  process.exit(0);
+}
+const { errors, warnings } = validate(game, layouts, {
+  assets,
+  minigameIds,
+  minigameParams,
+  minigameBindings,
+  commands: mod.commands,
+  release,
+  translated: Object.keys(loadLocales(resolve(GAME_DIR, 'locales'))).some((l) => l !== (game.lang ?? 'en')),
+});
 // Asset provenance: where every shipped image and sound comes from, and under which licence.
 const provFile = resolve(GAME_DIR, 'provenance.json');
 if (existsSync(provFile) && assets) {
-  const r = provenanceReport(game, { images: assets.images, videos: (JSON.parse(readFileSync(resolve(GAME_DIR, 'assets.gen.json'), 'utf8')) as { videos?: Record<string, unknown> }).videos }, JSON.parse(readFileSync(provFile, 'utf8')) as Provenance);
+  const r = provenanceReport(
+    game,
+    {
+      images: assets.images,
+      videos: (
+        JSON.parse(readFileSync(resolve(GAME_DIR, 'assets.gen.json'), 'utf8')) as { videos?: Record<string, unknown> }
+      ).videos,
+    },
+    JSON.parse(readFileSync(provFile, 'utf8')) as Provenance,
+  );
   for (const k of r.uncovered) errors.push(`provenance.json › ${k}: no entry says where this asset comes from`);
-  for (const m of r.incomplete) errors.push(`provenance.json › ${m}: an entry needs match, source, licence and status (final | placeholder)`);
-  for (const a of r.ambiguous) errors.push(`provenance.json › ${a}: more than one entry matches this asset; make the patterns disjoint`);
+  for (const m of r.incomplete)
+    errors.push(`provenance.json › ${m}: an entry needs match, source, licence and status (final | placeholder)`);
+  for (const a of r.ambiguous)
+    errors.push(`provenance.json › ${a}: more than one entry matches this asset; make the patterns disjoint`);
   const prov = JSON.parse(readFileSync(provFile, 'utf8')) as Provenance;
-  if (release) { const v = placeholderVerdict(prov, r); errors.push(...v.errors); accepted.push(...v.accepted); }
+  if (release) {
+    const v = placeholderVerdict(prov, r);
+    errors.push(...v.errors);
+    accepted.push(...v.accepted);
+  }
   // The lock: the files and claims that were reviewed. Required for a release; otherwise checked when present.
   const lock = readJson<ProvenanceLock>(LOCK);
   const keys = shippedKeys(game);
   if (lock) (release ? errors : warnings).push(...lockMessages(lockDiff(keys, prov, fileFacts(keys), lock)));
-  else if (release) errors.push('provenance.lock.json › missing: a release ships the files that were reviewed (npm run provenance -- --lock)');
-  if (release) { const l = licenceVerdict(keys, prov); errors.push(...l.errors); accepted.push(...l.accepted); }
+  else if (release)
+    errors.push(
+      'provenance.lock.json › missing: a release ships the files that were reviewed (npm run provenance -- --lock)',
+    );
+  if (release) {
+    const l = licenceVerdict(keys, prov);
+    errors.push(...l.errors);
+    accepted.push(...l.accepted);
+  }
   if (commercial) errors.push(...commercialVerdict(keys, prov, (p) => existsSync(resolve(WORK, p))));
-} else if (release) errors.push('provenance.json › missing: a release says where every asset comes from (docs/en/TOOLS.md "Asset provenance")');
+} else if (release)
+  errors.push(
+    'provenance.json › missing: a release says where every asset comes from (docs/en/TOOLS.md "Asset provenance")',
+  );
 // The scores' stem files (3.6): the same rate, channels and samples, the loop inside them, pcmBytes as decoded. The
 // built files (npm run assets), measured with ffprobe.
-if (release && game.audio?.scores && !hasFfprobe()) errors.push('audio.scores › ffprobe not found: a release measures the stem files (install ffmpeg, npm run doctor)');
-else if (release) for (const [id, sc] of Object.entries(game.audio?.scores ?? {})) {
-  errors.push(...stemErrors(id, sc, Object.fromEntries(Object.entries(sc.stems).map(([s, f]) => [s, stemFacts(resolve(ASSETS_DIR, assetPath(`music:${f}`)!))]))));
-}
+if (release && game.audio?.scores && !hasFfprobe())
+  errors.push('audio.scores › ffprobe not found: a release measures the stem files (install ffmpeg, npm run doctor)');
+else if (release)
+  for (const [id, sc] of Object.entries(game.audio?.scores ?? {})) {
+    errors.push(
+      ...stemErrors(
+        id,
+        sc,
+        Object.fromEntries(
+          Object.entries(sc.stems).map(([s, f]) => [s, stemFacts(resolve(ASSETS_DIR, assetPath(`music:${f}`)!))]),
+        ),
+      ),
+    );
+  }
 const quiet = process.argv.includes('--errors');
 if (!quiet && accepted.length && !commercial) {
-  console.log(`\nℹ  ${accepted.length} release exception(s), accepted by name in provenance.json (verify:commercial refuses them)`);
+  console.log(
+    `\nℹ  ${accepted.length} release exception(s), accepted by name in provenance.json (verify:commercial refuses them)`,
+  );
   for (const a of accepted) console.log('   ' + a);
 }
 if (!quiet && warnings.length) {
@@ -72,6 +142,8 @@ if (errors.length) {
   console.log(`\n✖  ${errors.length} error(s)`);
   for (const e of errors) console.log('   ' + e);
 }
-console.log(`\n${errors.length ? '✖' : '✔'}  [${GAME}]${commercial ? ' commercial release:' : ''} ${game.rooms.length} room(s), ${Object.keys(game.items).length} items, ${Object.keys(game.characters).length} characters` +
-  `${assets ? '' : ' (images not checked: run npm run assets)'}${minigameIds ? '' : ' (minigames not checked)'}`);
+console.log(
+  `\n${errors.length ? '✖' : '✔'}  [${GAME}]${commercial ? ' commercial release:' : ''} ${game.rooms.length} room(s), ${Object.keys(game.items).length} items, ${Object.keys(game.characters).length} characters` +
+    `${assets ? '' : ' (images not checked: run npm run assets)'}${minigameIds ? '' : ' (minigames not checked)'}`,
+);
 process.exit(errors.length ? 1 : 0);

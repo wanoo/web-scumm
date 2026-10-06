@@ -22,7 +22,9 @@ function copyGame(id: string): string {
   return dir;
 }
 
-afterAll(() => { for (const d of temps) rmSync(d, { recursive: true, force: true }); });
+afterAll(() => {
+  for (const d of temps) rmSync(d, { recursive: true, force: true });
+});
 
 const demoDir = copyGame('demo');
 const tplDir = copyGame('_template');
@@ -35,11 +37,30 @@ const tpl = createStudio({ gameDir: tplDir, root: ROOT, importFresh });
 function textsOfDef(def: RoomDef): Map<string, string> {
   const out = new Map<string, string>();
   const walk = (v: unknown, segs: Seg[]) => {
-    if (typeof v === 'string') { if (classify(segs)) out.set(formatPath(segs), v); return; }
+    if (typeof v === 'string') {
+      if (classify(segs)) out.set(formatPath(segs), v);
+      return;
+    }
     // A list line with an id (`{ id, text }`) is a text at its own path.
-    if (typeof segs[segs.length - 1] === 'number' && v && typeof v === 'object' && typeof (v as { text?: unknown }).text === 'string' && classify(segs)) { out.set(formatPath(segs), (v as { text: string }).text); return; }
+    if (
+      typeof segs[segs.length - 1] === 'number' &&
+      v &&
+      typeof v === 'object' &&
+      typeof (v as { text?: unknown }).text === 'string' &&
+      classify(segs)
+    ) {
+      out.set(formatPath(segs), (v as { text: string }).text);
+      return;
+    }
     // Hotspots and rules generated from declared exits are not in the source: their texts live under `exits`.
-    if (v && typeof v === 'object' && !Array.isArray(v) && ((v as { exit?: unknown }).exit === true || (segs[0] === 'on' && typeof (v as { exit?: unknown }).exit === 'string'))) return;
+    if (
+      v &&
+      typeof v === 'object' &&
+      !Array.isArray(v) &&
+      ((v as { exit?: unknown }).exit === true ||
+        (segs[0] === 'on' && typeof (v as { exit?: unknown }).exit === 'string'))
+    )
+      return;
     if (Array.isArray(v)) v.forEach((x, i) => walk(x, [...segs, i]));
     else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) walk(x, [...segs, k]);
   };
@@ -52,7 +73,10 @@ const roomFile = (dir: string, id: string) => join(dir, 'rooms', `${id}.ts`);
 const read = (f: string) => readFileSync(f, 'utf8');
 
 async function expectError(p: Promise<unknown>, status: number, text?: string) {
-  const e = await p.then(() => null, (x) => x);
+  const e = await p.then(
+    () => null,
+    (x) => x,
+  );
   expect(e).toBeInstanceOf(StudioError);
   expect((e as StudioError).status).toBe(status);
   if (text) expect((e as Error).message).toContain(text);
@@ -60,7 +84,13 @@ async function expectError(p: Promise<unknown>, status: number, text?: string) {
 
 describe('paths', () => {
   it('format and parse round-trip', () => {
-    for (const p of ['look.pantry[1]', 'on[3].do[2].say[1]', 'talk.grandma[0].topic', 'props["odd.key"].name', 'look.piano[+]']) {
+    for (const p of [
+      'look.pantry[1]',
+      'on[3].do[2].say[1]',
+      'talk.grandma[0].topic',
+      'props["odd.key"].name',
+      'look.piano[+]',
+    ]) {
       expect(formatPath(parsePath(p) as Seg[])).toBe(p);
     }
     expect(() => parsePath('look..x')).toThrow();
@@ -84,7 +114,12 @@ describe('texts of a room', () => {
     expect(by.get('talk.grandma[0].do[1].then[1].toast')?.kind).toBe('toast');
     expect(by.get('talk.grandma[1].do[0].nth[2][0].say[1]')?.value).toBe('Pixel. Sardines. Go.');
     // ids, images, flags and conditions are not texts
-    expect(r.texts.some((t) => /\.(img|char|decor|id|verb|a|b)$|\.states\.|until|\.if/.test(t.path) || t.path === 'id' || t.path === 'decor')).toBe(false);
+    expect(
+      r.texts.some(
+        (t) =>
+          /\.(img|char|decor|id|verb|a|b)$|\.states\.|until|\.if/.test(t.path) || t.path === 'id' || t.path === 'decor',
+      ),
+    ).toBe(false);
     const ln = by.get('look.pantry[0]')!;
     expect(ln.file).toMatch(/rooms[\\/]house\.ts$/);
     expect(read(roomFile(demoDir, 'house')).split('\n')[ln.line - 1]).toContain('The pantry cupboard.');
@@ -115,7 +150,7 @@ describe('setText', () => {
     expect(read(f)).toBe(after);
   });
 
-  it('escapes quotes, backslashes and new lines in the file\'s quote style', async () => {
+  it("escapes quotes, backslashes and new lines in the file's quote style", async () => {
     const tricky = 'It\'s "fine" \\ really\nyes';
     await demo.setText('house', 'hotspots.lamp.name', tricky);
     expect(read(roomFile(demoDir, 'house'))).toContain(`lamp: { name: 'It\\'s "fine" \\\\ really\\nyes' }`);
@@ -129,7 +164,12 @@ describe('setText', () => {
     const before = read(f);
     await demo.setText('house', 'look.clock[+]', 'Cuckoo? No cuckoo.');
     let def = (await demo.getRoom('house')).def;
-    expect(texts(def.look!.clock)).toEqual(['Tick. Tock. Breakfast o\'clock.', 'Two hours past breakfast, actually.', 'The clock agrees with me: food.', 'Cuckoo? No cuckoo.']);
+    expect(texts(def.look!.clock)).toEqual([
+      "Tick. Tock. Breakfast o'clock.",
+      'Two hours past breakfast, actually.',
+      'The clock agrees with me: food.',
+      'Cuckoo? No cuckoo.',
+    ]);
     await demo.setText('house', 'look.clock[3]', null);
     expect(read(f)).toBe(before);
 
@@ -138,7 +178,9 @@ describe('setText', () => {
     def = (await demo.getRoom('house')).def;
     expect(texts(def.look!.door)).toEqual(['The hall. Nothing to eat there. I checked. Twice.', 'Still the hall.']);
     await demo.setText('house', 'look.door[1]', null);
-    expect(texts((await demo.getRoom('house')).def.look!.door)).toEqual(['The hall. Nothing to eat there. I checked. Twice.']);
+    expect(texts((await demo.getRoom('house')).def.look!.door)).toEqual([
+      'The hall. Nothing to eat there. I checked. Twice.',
+    ]);
 
     // deleting the first line, then a whole look entry
     await demo.setText('house', 'look.teacup[0]', null);
@@ -163,11 +205,30 @@ describe('setText', () => {
 describe('addEntity', () => {
   it('adds a prop, a hotspot and an actor; the room still imports and validates', async () => {
     const f = roomFile(tplDir, 'start');
-    const r1 = await tpl.addEntity('start', { kind: 'hotspot', id: 'well', name: 'old well', at: [500, 220], look: 'A well. Wishes not included.' });
+    const r1 = await tpl.addEntity('start', {
+      kind: 'hotspot',
+      id: 'well',
+      name: 'old well',
+      at: [500, 220],
+      look: 'A well. Wishes not included.',
+    });
     expect(read(f).split('\n')[r1.line - 1]).toContain(`well: { name: 'old well' },`);
-    await tpl.addEntity('start', { kind: 'prop', id: 'pail', name: 'pail', img: 'home2/r4c2', at: [200, 330], look: 'Another bucket.' });
+    await tpl.addEntity('start', {
+      kind: 'prop',
+      id: 'pail',
+      name: 'pail',
+      img: 'home2/r4c2',
+      at: [200, 330],
+      look: 'Another bucket.',
+    });
     // the template has no actors section: it is created
-    const r3 = await tpl.addEntity('start', { kind: 'actor', id: 'cat', char: Object.keys((await tpl.gameInfo()).characters)[0], at: [300, 350], look: 'A cat.' });
+    const r3 = await tpl.addEntity('start', {
+      kind: 'actor',
+      id: 'cat',
+      char: Object.keys((await tpl.gameInfo()).characters)[0],
+      at: [300, 350],
+      look: 'A cat.',
+    });
     expect(read(f)).toMatch(/\n {2}actors: \{\n {4}\w+: \{ char: '\w+' \},\n {2}\},\n/);
     expect(r3.line).toBeGreaterThan(1);
 
@@ -186,7 +247,13 @@ describe('addEntity', () => {
   });
 
   it('adds to the demo, which still validates and solves', async () => {
-    await demo.addEntity('house', { kind: 'hotspot', id: 'rug', name: 'rug', at: [320, 380], look: 'A rug. Nap zone.' });
+    await demo.addEntity('house', {
+      kind: 'hotspot',
+      id: 'rug',
+      name: 'rug',
+      at: [320, 380],
+      look: 'A rug. Nap zone.',
+    });
     const v = await demo.validate();
     expect(v.errors).toEqual([]);
     expect((await demo.solve()).finished).toBe(true);
@@ -196,8 +263,16 @@ describe('addEntity', () => {
     await expectError(demo.addEntity('house', { kind: 'prop', id: 'pantry', name: 'x', at: [1, 1] }), 409);
     await expectError(demo.addEntity('house', { kind: 'prop', id: '9bad', name: 'x', at: [1, 1] }), 400);
     await expectError(demo.addEntity('house', { kind: 'hotspot', id: 'nameless', at: [1, 1] }), 400, 'name');
-    await expectError(demo.addEntity('house', { kind: 'actor', id: 'ghost', char: 'nobody', at: [1, 1] }), 400, 'character');
-    await expectError(demo.addEntity('house', { kind: 'prop', id: 'thing', name: 'x', img: 'no/such', at: [1, 1] }), 400, 'manifest');
+    await expectError(
+      demo.addEntity('house', { kind: 'actor', id: 'ghost', char: 'nobody', at: [1, 1] }),
+      400,
+      'character',
+    );
+    await expectError(
+      demo.addEntity('house', { kind: 'prop', id: 'thing', name: 'x', img: 'no/such', at: [1, 1] }),
+      400,
+      'manifest',
+    );
     await expectError(demo.addEntity('house', { kind: 'hotspot', id: 'spot', name: 'x', at: [1] as never }), 400);
   });
 });
@@ -243,5 +318,4 @@ describe('checks, storyboard, notes, layout', () => {
     expect(demo.getLayout('garden').floor).toBe(390);
     await expectError(demo.setLayout('garden', [] as never), 400);
   });
-
 });

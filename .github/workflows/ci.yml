@@ -20,6 +20,8 @@ jobs:
           python-version: '3.12'
       - run: pip install -r requirements.txt
       - run: npm ci
+      # Formatting, code lint, both TypeScript configurations, content lint (4.1.0 "Clarity").
+      - run: npm run quality
       # validate --release measures the stems with ffprobe (3.6).
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - run: npm run build

@@ -40,14 +40,27 @@ export async function startDev(app: App, o: { edit: string | null; checkpoint: s
   ov.draw();
   // The overlay follows changes (props, visibility) without hooking anything into the engine.
   const prev = eng.onChange;
-  eng.onChange = () => { prev(); redraw(); };
+  eng.onChange = () => {
+    prev();
+    redraw();
+  };
   window.addEventListener('resize', redraw);
 
   const toggle = () => ov.setVisible(!ov.visible);
-  window.addEventListener('keydown', (e) => { if (e.key === 'd' || e.key === 'D') toggle(); });
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'd' || e.key === 'D') toggle();
+  });
   const btn = document.createElement('button');
   btn.textContent = 'DEV';
-  Object.assign(btn.style, { position: 'fixed', left: '4px', bottom: '4px', zIndex: '9001', font: '10px monospace', padding: '4px 6px', opacity: '.7' });
+  Object.assign(btn.style, {
+    position: 'fixed',
+    left: '4px',
+    bottom: '4px',
+    zIndex: '9001',
+    font: '10px monospace',
+    padding: '4px 6px',
+    opacity: '.7',
+  });
   btn.onclick = toggle;
   document.body.append(btn);
 }

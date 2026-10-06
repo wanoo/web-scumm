@@ -6,22 +6,51 @@ import type { GameDef } from '../core/types';
 
 export const DEFAULT_UI = {
   verbs: 'Verbs',
-  saveFailed: 'Save failed', saveAdjusted: 'Save adjusted for this version',
-  updateAvailable: 'A new version is ready.', updateNow: 'Save and update',
-  advance: 'Continue', jump: '▲', duck: '▼',
-  offlineStatus: 'Offline', offlineComplete: 'complete', offlineRetry: 'retry',
-  save: 'Save', load: 'Load', slot: 'Slot {n}', emptySlot: 'empty', confirmOverwrite: 'Overwrite this save?',
-  exportSave: 'Export file', importSave: 'Import file', exportSession: 'Export session', shareSession: 'Share session',
-  settings: 'Settings', textSpeed: 'Text speed', textSize: 'Text size', slow: 'slow', normal: 'normal', fast: 'fast', large: 'large',
-  reduceMotion: 'Reduce motion', readableFont: 'Readable font', language: 'Language', captions: 'Sound captions',
-  volumeMusic: 'Music volume', volumeSfx: 'Sound volume', volumeVoice: 'Voice volume',
+  saveFailed: 'Save failed',
+  saveAdjusted: 'Save adjusted for this version',
+  updateAvailable: 'A new version is ready.',
+  updateNow: 'Save and update',
+  advance: 'Continue',
+  jump: '▲',
+  duck: '▼',
+  offlineStatus: 'Offline',
+  offlineComplete: 'complete',
+  offlineRetry: 'retry',
+  save: 'Save',
+  load: 'Load',
+  slot: 'Slot {n}',
+  emptySlot: 'empty',
+  confirmOverwrite: 'Overwrite this save?',
+  exportSave: 'Export file',
+  importSave: 'Import file',
+  exportSession: 'Export session',
+  shareSession: 'Share session',
+  settings: 'Settings',
+  textSpeed: 'Text speed',
+  textSize: 'Text size',
+  slow: 'slow',
+  normal: 'normal',
+  fast: 'fast',
+  large: 'large',
+  reduceMotion: 'Reduce motion',
+  readableFont: 'Readable font',
+  language: 'Language',
+  captions: 'Sound captions',
+  volumeMusic: 'Music volume',
+  volumeSfx: 'Sound volume',
+  volumeVoice: 'Voice volume',
 } as const;
 
 export type UiKey = keyof typeof DEFAULT_UI;
 
 /** The game's text for a key, else the English default. */
-export const uiText = (ui: GameDef['ui'], key: UiKey): string => (ui as unknown as Record<string, string | undefined>)[key] ?? DEFAULT_UI[key];
+export const uiText = (ui: GameDef['ui'], key: UiKey): string =>
+  (ui as unknown as Record<string, string | undefined>)[key] ?? DEFAULT_UI[key];
 
 /** The keys this game leaves to the English defaults, with the text a player would see. */
 export const uiFallbacks = (ui: GameDef['ui']): Record<string, string> =>
-  Object.fromEntries((Object.keys(DEFAULT_UI) as UiKey[]).filter((k) => (ui as unknown as Record<string, unknown>)[k] === undefined).map((k) => [k, DEFAULT_UI[k]]));
+  Object.fromEntries(
+    (Object.keys(DEFAULT_UI) as UiKey[])
+      .filter((k) => (ui as unknown as Record<string, unknown>)[k] === undefined)
+      .map((k) => [k, DEFAULT_UI[k]]),
+  );

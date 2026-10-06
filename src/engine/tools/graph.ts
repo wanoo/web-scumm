@@ -26,7 +26,9 @@ export interface WorldGraph {
 
 /** `goto` targets in a command list, with their position. */
 function gotos(cmds: Cmd[] | undefined, where: string, out: [Id, string][]) {
-  eachCmd(cmds, (c, path) => { if (typeof c === 'object' && 'goto' in c) out.push([c.goto, where + path]); });
+  eachCmd(cmds, (c, path) => {
+    if (typeof c === 'object' && 'goto' in c) out.push([c.goto, where + path]);
+  });
 }
 
 export function worldGraph(game: GameDef): WorldGraph {
@@ -36,13 +38,21 @@ export function worldGraph(game: GameDef): WorldGraph {
     // Declared exits: the written rules of the room still hold their own gotos (normalizeExits adds rules; the exit
     // itself is what we draw, so the generated "exit" rules are not listed twice).
     const exitTargets = new Set<string>();
-    for (const [id, ex] of Object.entries(r.exits ?? {})) { edges.push({ from: r.id, to: ex.to, kind: 'exit', via: id, oneWay: ex.oneWay }); exitTargets.add(`${ex.to}|${id}`); }
+    for (const [id, ex] of Object.entries(r.exits ?? {})) {
+      edges.push({ from: r.id, to: ex.to, kind: 'exit', via: id, oneWay: ex.oneWay });
+      exitTargets.add(`${ex.to}|${id}`);
+    }
     const found: [Id, string][] = [];
     gotos(r.onEnter, 'onEnter', found);
-    (r.on ?? []).forEach((rule, i) => { const list: [Id, string][] = []; gotos(rule.do, `on[${i}]`, list);
+    (r.on ?? []).forEach((rule, i) => {
+      const list: [Id, string][] = [];
+      gotos(rule.do, `on[${i}]`, list);
       // skip the rules generated from exits (same target, rule a = the exit id)
-      for (const [to, via] of list) if (!(typeof rule.a === 'string' && exitTargets.has(`${to}|${rule.a}`))) found.push([to, via]); });
-    for (const [actor, topics] of Object.entries(r.talk ?? {})) topics.forEach((t, i) => gotos(t.do, `talk.${actor}[${i}]`, found));
+      for (const [to, via] of list)
+        if (!(typeof rule.a === 'string' && exitTargets.has(`${to}|${rule.a}`))) found.push([to, via]);
+    });
+    for (const [actor, topics] of Object.entries(r.talk ?? {}))
+      topics.forEach((t, i) => gotos(t.do, `talk.${actor}[${i}]`, found));
     r.scripts?.forEach((sc) => gotos(sc.do, `scripts.${sc.id}`, found));
     r.events?.forEach((ev, i) => gotos(ev.do, `events[${i}]`, found));
     for (const [to, via] of found) if (to !== r.id) edges.push({ from: r.id, to, kind: 'goto', via });
@@ -53,7 +63,8 @@ export function worldGraph(game: GameDef): WorldGraph {
   game.scripts?.forEach((sc) => gotos(sc.do, `scripts.${sc.id}`, global));
   game.events?.forEach((ev, i) => gotos(ev.do, `events[${i}]`, global));
   gotos(game.start.intro, 'start.intro', global);
-  for (const [to, via] of global) for (const r of game.rooms) if (r.id !== to) edges.push({ from: r.id, to, kind: 'goto', via });
+  for (const [to, via] of global)
+    for (const r of game.rooms) if (r.id !== to) edges.push({ from: r.id, to, kind: 'goto', via });
   // Map places: reachable from every room once unlocked.
   for (const [pid, p] of Object.entries(game.map?.places ?? {})) {
     if (!ids.has(p.room)) continue;
@@ -64,19 +75,32 @@ export function worldGraph(game: GameDef): WorldGraph {
   const queue = [game.start.room];
   while (queue.length) {
     const cur = queue.shift()!;
-    for (const e of edges) if (e.from === cur && ids.has(e.to) && !seen.has(e.to)) { seen.add(e.to); queue.push(e.to); }
+    for (const e of edges)
+      if (e.from === cur && ids.has(e.to) && !seen.has(e.to)) {
+        seen.add(e.to);
+        queue.push(e.to);
+      }
   }
   const unreachable = game.rooms.map((r) => r.id).filter((id) => !seen.has(id));
   const back = (from: Id, to: Id) => edges.some((e) => e.from === to && e.to === from);
   const oneWay = edges.filter((e) => e.kind === 'exit' && !e.oneWay && ids.has(e.to) && !back(e.from, e.to));
-  return { rooms: game.rooms.map((r) => ({ id: r.id, name: r.name })), edges, start: game.start.room, unreachable, oneWay };
+  return {
+    rooms: game.rooms.map((r) => ({ id: r.id, name: r.name })),
+    edges,
+    start: game.start.room,
+    unreachable,
+    oneWay,
+  };
 }
 
 /** The graph in DOT (Graphviz) form. */
 export function toDot(g: WorldGraph): string {
   const q = (s: string) => `"${s.replace(/"/g, '\\"')}"`;
   const lines = ['digraph world {', '  rankdir=LR; node [shape=box, style=rounded];'];
-  for (const r of g.rooms) lines.push(`  ${q(r.id)} [label=${q(r.name)}${r.id === g.start ? ', penwidth=2' : ''}${g.unreachable.includes(r.id) ? ', color=red' : ''}];`);
+  for (const r of g.rooms)
+    lines.push(
+      `  ${q(r.id)} [label=${q(r.name)}${r.id === g.start ? ', penwidth=2' : ''}${g.unreachable.includes(r.id) ? ', color=red' : ''}];`,
+    );
   const drawn = new Set<string>();
   for (const e of g.edges) {
     if (e.kind === 'map') continue; // the map joins everything: drawn as a note, not as edges
@@ -99,9 +123,22 @@ export function toSvg(g: WorldGraph): string {
   const onMap = new Set(g.edges.filter((e) => e.kind === 'map').map((e) => e.to));
   const nodes: SvgNode[] = g.rooms.map((r) => {
     const bad = g.unreachable.includes(r.id);
-    return { id: r.id, label: r.name, sub: `${r.id}${onMap.has(r.id) ? ' ◎' : ''}${bad ? ' · unreachable' : ''}`,
-      fill: bad ? '#fde8e8' : '#f3f4f6', stroke: bad ? '#d33' : r.id === g.start ? '#333' : '#aaa', strokeWidth: r.id === g.start ? 2 : 1 };
+    return {
+      id: r.id,
+      label: r.name,
+      sub: `${r.id}${onMap.has(r.id) ? ' ◎' : ''}${bad ? ' · unreachable' : ''}`,
+      fill: bad ? '#fde8e8' : '#f3f4f6',
+      stroke: bad ? '#d33' : r.id === g.start ? '#333' : '#aaa',
+      strokeWidth: r.id === g.start ? 2 : 1,
+    };
   });
-  const edges: SvgEdge[] = g.edges.filter((e) => e.kind !== 'map').map((e) => ({ from: e.from, to: e.to, dashed: e.kind === 'goto', title: `${e.from} → ${e.to} (${e.kind}: ${e.via})` }));
+  const edges: SvgEdge[] = g.edges
+    .filter((e) => e.kind !== 'map')
+    .map((e) => ({
+      from: e.from,
+      to: e.to,
+      dashed: e.kind === 'goto',
+      title: `${e.from} → ${e.to} (${e.kind}: ${e.via})`,
+    }));
   return layeredSvg(nodes, edges, { roots: [g.start] });
 }

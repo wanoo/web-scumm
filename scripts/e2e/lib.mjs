@@ -51,17 +51,28 @@ export async function launch(url, opts = {}) {
   if (!browserType) throw new Error(`unknown E2E browser "${browserName}" (expected chromium, webkit or firefox)`);
   const browser = await browserType.launch();
   // A context of its own (axe-core's Playwright runner needs one), then the page.
-  const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
+  const context = await browser.newContext({
+    viewport: VIEWPORT,
+    deviceScaleFactor: 2,
+    hasTouch: true,
+    isMobile: true,
+  });
   const page = await context.newPage();
   // opts.noIndexedDb: the browser offers no IndexedDB (a private window, a locked-down profile): the game must fall
   // back to its localStorage store and say so, never lose a save silently.
-  if (opts.noIndexedDb) await page.addInitScript(() => { Object.defineProperty(window, 'indexedDB', { value: undefined, configurable: true }); });
+  if (opts.noIndexedDb)
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'indexedDB', { value: undefined, configurable: true });
+    });
   const cdp = browserName === 'chromium' ? await page.context().newCDPSession(page) : null;
   // E2E_CPU=4 slows the page's CPU like a shared CI runner (Chromium only), to reproduce timing failures locally.
-  if (cdp && process.env.E2E_CPU) await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.E2E_CPU) });
+  if (cdp && process.env.E2E_CPU)
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: Number(process.env.E2E_CPU) });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.stack ?? String(e)));
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
 
   const dest = new URL(url);
   // ?dev&at=<checkpoint> : dev-server only (ignored in a production build, see docs/en/TOOLS.md), skips the title screen.
@@ -77,7 +88,10 @@ export async function launch(url, opts = {}) {
   // so screenshots show the real art, unless the caller wants it (opts.overlay: true), e.g. to debug a hit test.
   if (opts.dev !== false && opts.overlay !== true) {
     await page.waitForSelector('.scene > svg', { timeout: 5000 }).catch(() => {});
-    await page.evaluate(() => { const svg = document.querySelector('.scene > svg'); if (svg) svg.style.display = 'none'; });
+    await page.evaluate(() => {
+      const svg = document.querySelector('.scene > svg');
+      if (svg) svg.style.display = 'none';
+    });
   }
 
   let shotN = 0;
@@ -87,17 +101,30 @@ export async function launch(url, opts = {}) {
 
   // ------------------------------------------------------------------ taps and drags
 
-  async function tapXY(x, y) { await page.touchscreen.tap(x, y); }
+  async function tapXY(x, y) {
+    await page.touchscreen.tap(x, y);
+  }
   /** Taps a control, or focuses it and presses Enter in keyboard mode. */
   async function activate(locator, tapOpts = {}) {
-    if (!keyboard) { await locator.tap(tapOpts); return; }
+    if (!keyboard) {
+      await locator.tap(tapOpts);
+      return;
+    }
     await locator.focus({ timeout: tapOpts.timeout ?? 30000 });
     await page.keyboard.press('Enter');
   }
-  async function sceneRect() { return page.locator('.scene').boundingBox(); }
+  async function sceneRect() {
+    return page.locator('.scene').boundingBox();
+  }
   /** Where a logical point is on the scene, in its pixels (the camera's offset and zoom included: RoomView.toScreen). */
   async function onScreen(x, y) {
-    return page.evaluate(([x, y]) => { const v = window.__game?.view; return v?.toScreen ? v.toScreen([x, y]) : [(x - (v?.cam ?? 0)) * (v?.u ?? 1), y * (v?.u ?? 1)]; }, [x, y]);
+    return page.evaluate(
+      ([x, y]) => {
+        const v = window.__game?.view;
+        return v?.toScreen ? v.toScreen([x, y]) : [(x - (v?.cam ?? 0)) * (v?.u ?? 1), y * (v?.u ?? 1)];
+      },
+      [x, y],
+    );
   }
   async function tapScene(x, y) {
     const r = await sceneRect();
@@ -112,42 +139,89 @@ export async function launch(url, opts = {}) {
     const toPx = ([x, y]) => [r.x + (x / LOGICAL.width) * r.width, r.y + (y / LOGICAL.height) * r.height];
     const first = toPx(points[0]);
     if (cdp) {
-      const send = (type, [x, y]) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
+      const send = (type, [x, y]) =>
+        cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
       await send('touchStart', first);
-      for (const p of points.slice(1)) { await send('touchMove', toPx(p)); await page.waitForTimeout(stepMs); }
+      for (const p of points.slice(1)) {
+        await send('touchMove', toPx(p));
+        await page.waitForTimeout(stepMs);
+      }
       await send('touchEnd', toPx(points[points.length - 1]));
     } else {
-      await page.mouse.move(first[0], first[1]); await page.mouse.down();
-      for (const p of points.slice(1)) { const [x, y] = toPx(p); await page.mouse.move(x, y); await page.waitForTimeout(stepMs); }
+      await page.mouse.move(first[0], first[1]);
+      await page.mouse.down();
+      for (const p of points.slice(1)) {
+        const [x, y] = toPx(p);
+        await page.mouse.move(x, y);
+        await page.waitForTimeout(stepMs);
+      }
       await page.mouse.up();
     }
   }
-  const line = (a, z, n) => Array.from({ length: n + 1 }, (_, i) => [a[0] + ((z[0] - a[0]) * i) / n, a[1] + ((z[1] - a[1]) * i) / n]);
+  const line = (a, z, n) =>
+    Array.from({ length: n + 1 }, (_, i) => [a[0] + ((z[0] - a[0]) * i) / n, a[1] + ((z[1] - a[1]) * i) / n]);
 
   /** A scene point where a tap really lands on `id` (its box center can be hidden by someone standing on it). */
   async function pointOn(id) {
     return page.evaluate((id) => {
-      const v = window.__game.view; const box = v.box(id);
+      const v = window.__game.view;
+      const box = v.box(id);
       if (!box) return null;
       const [x, y, w, h] = box;
-      const tries = [[0.5, 0.5], [0.5, 0.3], [0.5, 0.7], [0.3, 0.5], [0.7, 0.5], [0.3, 0.3], [0.7, 0.3], [0.3, 0.7], [0.7, 0.7], [0.5, 0.15], [0.5, 0.85], [0.15, 0.5], [0.85, 0.5]];
+      const tries = [
+        [0.5, 0.5],
+        [0.5, 0.3],
+        [0.5, 0.7],
+        [0.3, 0.5],
+        [0.7, 0.5],
+        [0.3, 0.3],
+        [0.7, 0.3],
+        [0.3, 0.7],
+        [0.7, 0.7],
+        [0.5, 0.15],
+        [0.5, 0.85],
+        [0.15, 0.5],
+        [0.85, 0.5],
+      ];
       // A point the hit test gives to `id`, on screen first (a wide room or a zoomed camera shows part of the box).
-      const seen = (q) => { if (!v.toScreen) return true; const [px, py] = v.toScreen(q); return px > 4 && py > 4 && px < 640 * v.u - 4 && py < 400 * v.u - 4; };
-      for (const [kx, ky] of tries) { const q = [x + w * kx, y + h * ky]; if (v.hit(q) === id && seen(q)) return q; }
-      for (let gx = 0.05; gx < 1; gx += 0.1) for (let gy = 0.1; gy < 1; gy += 0.2) { const q = [x + w * gx, y + h * gy]; if (v.hit(q) === id && seen(q)) return q; }
-      for (const [kx, ky] of tries) { const q = [x + w * kx, y + h * ky]; if (v.hit(q) === id) return q; }
+      const seen = (q) => {
+        if (!v.toScreen) return true;
+        const [px, py] = v.toScreen(q);
+        return px > 4 && py > 4 && px < 640 * v.u - 4 && py < 400 * v.u - 4;
+      };
+      for (const [kx, ky] of tries) {
+        const q = [x + w * kx, y + h * ky];
+        if (v.hit(q) === id && seen(q)) return q;
+      }
+      for (let gx = 0.05; gx < 1; gx += 0.1)
+        for (let gy = 0.1; gy < 1; gy += 0.2) {
+          const q = [x + w * gx, y + h * gy];
+          if (v.hit(q) === id && seen(q)) return q;
+        }
+      for (const [kx, ky] of tries) {
+        const q = [x + w * kx, y + h * ky];
+        if (v.hit(q) === id) return q;
+      }
       return [x + w / 2, y + h / 2];
     }, id);
   }
   async function tapTarget(id) {
-    if (keyboard) { await activate(page.locator(`.a11y-target[data-target="${id}"]`).first()); return; }
+    if (keyboard) {
+      await activate(page.locator(`.a11y-target[data-target="${id}"]`).first());
+      return;
+    }
     const q = await pointOn(id);
     if (!q) throw new Error(`tapTarget: no box for ${id}`);
     // Off screen (a wide room's far end, a zoomed camera): reached the way a keyboard player reaches it, its target.
-    const r = await sceneRect(), [px, py] = await onScreen(q[0], q[1]);
+    const r = await sceneRect(),
+      [px, py] = await onScreen(q[0], q[1]);
     if (r && (px < 0 || py < 0 || px > r.width || py > r.height)) {
       const t = page.locator(`.a11y-target[data-target="${id}"]`).first();
-      if (await t.count()) { await t.focus(); await page.keyboard.press('Enter'); return; }
+      if (await t.count()) {
+        await t.focus();
+        await page.keyboard.press('Enter');
+        return;
+      }
     }
     await tapScene(q[0], q[1]);
   }
@@ -157,7 +231,10 @@ export async function launch(url, opts = {}) {
   async function verb(label) {
     for (let k = 0; k < 50; k++) {
       await activate(page.locator('.verb', { hasText: label }));
-      const ok = await page.evaluate((l) => window.__game.game.verbs.find((v) => v.id === window.__game.verb)?.label === l, label);
+      const ok = await page.evaluate(
+        (l) => window.__game.game.verbs.find((v) => v.id === window.__game.verb)?.label === l,
+        label,
+      );
       if (ok) return;
       await page.waitForTimeout(150);
     }
@@ -166,7 +243,10 @@ export async function launch(url, opts = {}) {
 
   let verbsCache = null;
   async function verbs() {
-    if (!verbsCache) verbsCache = await page.evaluate(() => window.__game.game.verbs.map((v) => ({ id: v.id, label: v.label, join: v.join || '→' })));
+    if (!verbsCache)
+      verbsCache = await page.evaluate(() =>
+        window.__game.game.verbs.map((v) => ({ id: v.id, label: v.label, join: v.join || '→' })),
+      );
     return verbsCache;
   }
   async function verbById(id) {
@@ -182,14 +262,17 @@ export async function launch(url, opts = {}) {
       if (await page.locator(sel).count()) return page.locator(sel).first();
       // next bag page, then back to the top
       const nav = page.locator('.invnav button');
-      const down = nav.nth(1), up = nav.nth(0);
+      const down = nav.nth(1),
+        up = nav.nth(0);
       if (k < 4 && (await down.count()) && !(await down.isDisabled())) await down.tap();
       else if ((await up.count()) && !(await up.isDisabled())) await up.tap();
       await page.waitForTimeout(60);
     }
     throw new Error(`itemSlot: not in the bag: ${id}`);
   }
-  async function item(id) { await activate(await itemSlot(id)); }
+  async function item(id) {
+    await activate(await itemSlot(id));
+  }
   const inInventory = (id) => page.evaluate((id) => window.__game.engine.state.inventory.includes(id), id);
   /** Switches the playable character by its button, again until the engine has switched: the button ignores a
    * press while a line is still on screen or the engine is busy (the end of a hand-over, at the keyboard's pace). */
@@ -202,23 +285,32 @@ export async function launch(url, opts = {}) {
     }
     throw new Error(`switchTo: still not playing ${pid}`);
   }
-  async function target(id) { if (await inInventory(id)) await item(id); else await tapTarget(id); }
+  async function target(id) {
+    if (await inInventory(id)) await item(id);
+    else await tapTarget(id);
+  }
 
   // ------------------------------------------------------------------ waiting for the engine
 
   /** What the engine was doing when a step failed: busy, speech, choices, overlays, the side column's state, the
    * last journal lines and the busy counter — printed by scripts/e2e.mjs so a CI log explains a timed-out tap. */
   async function diagnose() {
-    return page.evaluate(() => {
-      const e = window.__game?.engine;
-      return {
-        busy: !!e?.busy, busyCount: e?.busyCount, guiding: e?.guiding ?? null, room: e?.state?.room,
-        sideOff: !!document.querySelector('.side.off'), choosing: !!document.querySelector('.side .choices .choice'),
-        overlays: [...document.querySelectorAll('.overlay')].map((o) => o.className),
-        speech: document.querySelector('.scene > .speech, .scene > .narr')?.textContent?.slice(0, 80) ?? null,
-        trace: (e?.trace ?? []).slice(-6),
-      };
-    }).catch((err) => ({ error: String(err) }));
+    return page
+      .evaluate(() => {
+        const e = window.__game?.engine;
+        return {
+          busy: !!e?.busy,
+          busyCount: e?.busyCount,
+          guiding: e?.guiding ?? null,
+          room: e?.state?.room,
+          sideOff: !!document.querySelector('.side.off'),
+          choosing: !!document.querySelector('.side .choices .choice'),
+          overlays: [...document.querySelectorAll('.overlay')].map((o) => o.className),
+          speech: document.querySelector('.scene > .speech, .scene > .narr')?.textContent?.slice(0, 80) ?? null,
+          trace: (e?.trace ?? []).slice(-6),
+        };
+      })
+      .catch((err) => ({ error: String(err) }));
   }
 
   async function state() {
@@ -240,7 +332,12 @@ export async function launch(url, opts = {}) {
     if (!(await b.count())) return false;
     // The overlay may be mid-transition (a minigame just won, its card fading): tap without waiting for the button
     // to be stable, and treat one detached in the meantime as already gone (CI runners hit that race every time).
-    try { await activate(b.first(), { force: true, timeout: 3000 }); return true; } catch { return false; }
+    try {
+      await activate(b.first(), { force: true, timeout: 3000 });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** Completes the built-in scratch minigame with pointer strokes. It intentionally has no Skip button when used
@@ -254,7 +351,8 @@ export async function launch(url, opts = {}) {
     sweep: for (let pass = 0; pass < 2; pass++) {
       for (let row = 0; row < 9; row++) {
         const y = box.y + ((row + 0.5) / 9) * box.height;
-        await page.mouse.move(box.x + 2, y); await page.mouse.down();
+        await page.mouse.move(box.x + 2, y);
+        await page.mouse.down();
         for (let col = 0; col <= cols; col++) {
           await page.mouse.move(box.x + (col / cols) * box.width, y, { steps: 3 });
           if (!(await canvas.count())) break sweep;
@@ -275,7 +373,10 @@ export async function launch(url, opts = {}) {
     const overlays = page.locator('.overlay:not(.mapview)');
     for (let i = 0; i < (await overlays.count()); i++) {
       const b = overlays.nth(i).locator('.bigbtn');
-      if ((await b.count()) === 1) { await activate(b.first()); return true; }
+      if ((await b.count()) === 1) {
+        await activate(b.first());
+        return true;
+      }
     }
     return false;
   }
@@ -285,7 +386,13 @@ export async function launch(url, opts = {}) {
    * line if nothing else is pending, but that races the next step here: close it explicitly instead. */
   async function dismissTranscript() {
     const t = page.locator('.side .transcript');
-    if (await t.count()) { await t.first().tap().catch(() => {}); return true; }
+    if (await t.count()) {
+      await t
+        .first()
+        .tap()
+        .catch(() => {});
+      return true;
+    }
     return false;
   }
 
@@ -297,15 +404,33 @@ export async function launch(url, opts = {}) {
   async function waitIdle({ max = 10000, interval = 80, ignoreGuide = null, acceptEnding = false } = {}) {
     for (let waited = 0; waited < max; waited += interval) {
       const s = await state();
-      if (s.speech) { if (keyboard) await page.keyboard.press('Space'); else await tapScene(320, 10).catch(() => {}); await page.waitForTimeout(interval); continue; }
-      if (await skip()) { await page.waitForTimeout(interval); continue; }
-      if (await scratch()) { await page.waitForTimeout(interval); continue; }
-      if (acceptEnding && (await page.locator('.overlay:not(.mapview) .bigbtn').count()) >= 2) return { ...s, ending: true };
+      if (s.speech) {
+        if (keyboard) await page.keyboard.press('Space');
+        else await tapScene(320, 10).catch(() => {});
+        await page.waitForTimeout(interval);
+        continue;
+      }
+      if (await skip()) {
+        await page.waitForTimeout(interval);
+        continue;
+      }
+      if (await scratch()) {
+        await page.waitForTimeout(interval);
+        continue;
+      }
+      if (acceptEnding && (await page.locator('.overlay:not(.mapview) .bigbtn').count()) >= 2)
+        return { ...s, ending: true };
       if (s.choices) return s;
       // A guide deliberately keeps the engine's intro command pending while handing control to the player.
       if (s.guiding && !sameGuide(s.guiding, ignoreGuide)) return s;
-      if (await confirmCard()) { await page.waitForTimeout(interval); continue; }
-      if (await dismissTranscript()) { await page.waitForTimeout(interval); continue; }
+      if (await confirmCard()) {
+        await page.waitForTimeout(interval);
+        continue;
+      }
+      if (await dismissTranscript()) {
+        await page.waitForTimeout(interval);
+        continue;
+      }
       if (!s.busy && !sameGuide(s.guiding, ignoreGuide)) {
         await page.waitForTimeout(interval);
         const s2 = await state();
@@ -323,12 +448,16 @@ export async function launch(url, opts = {}) {
     // browser engines can reach the map button inside that window, so retry like verb() does instead of timing out.
     for (let attempt = 0; attempt < 20; attempt++) {
       await activate(button);
-      for (let i = 0; i < 4; i++) { if ((await state()).map) return; await page.waitForTimeout(80); }
+      for (let i = 0; i < 4; i++) {
+        if ((await state()).map) return;
+        await page.waitForTimeout(80);
+      }
     }
     throw new Error('openMap: the map did not open');
   }
 
-  const choiceTexts = () => page.evaluate(() => [...document.querySelectorAll('.side .choices .choice')].map((e) => e.textContent));
+  const choiceTexts = () =>
+    page.evaluate(() => [...document.querySelectorAll('.side .choices .choice')].map((e) => e.textContent));
 
   /** Taps the `.choice` containing this text: a talk topic, or a map place once openMap() ran.
    * Polls for a moment first: the list can still be rendering right after the tap that opened it. A map
@@ -399,7 +528,10 @@ export async function launch(url, opts = {}) {
    * last option, as the solver's silent presenter would. */
   async function answer(picks = [], { ignoreGuide = null, acceptEnding = false } = {}) {
     let s = await waitIdle({ ignoreGuide, acceptEnding });
-    for (const i of picks) { if (!s.choices) break; s = await pick(i, { ignoreGuide, acceptEnding }); }
+    for (const i of picks) {
+      if (!s.choices) break;
+      s = await pick(i, { ignoreGuide, acceptEnding });
+    }
     for (let n = 0; n < 5 && s.choices; n++) {
       await page.locator('.side .choices .choice').last().tap();
       s = await waitIdle({ ignoreGuide, acceptEnding });
@@ -438,26 +570,45 @@ export async function launch(url, opts = {}) {
           await page.waitForFunction(() => {
             const e = window.__game?.engine;
             if (e?.session?.start?.kind !== 'new') return false;
-            return !!document.querySelector('.scene > .speech, .scene > .narr, .side .choices .choice')
-              || !!e.guiding || !!e.session.log[0]?.digest;
+            return (
+              !!document.querySelector('.scene > .speech, .scene > .narr, .side .choices .choice') ||
+              !!e.guiding ||
+              !!e.session.log[0]?.digest
+            );
           });
-        }
-        else {
+        } else {
           const room = await page.evaluate(() => window.__game?.engine?.state?.room);
-          if (!room) throw new Error('walkthrough: start entry found, but neither a title button nor a running game exists');
+          if (!room)
+            throw new Error('walkthrough: start entry found, but neither a title button nor a running game exists');
         }
         await answer(en.picks);
       } else if ('act' in en) {
         if (en.aborted) continue;
         const guide = await page.evaluate(() => window.__game.engine.guiding);
-        await verbById(en.act.verb); await target(en.act.a); if (en.act.b) await target(en.act.b);
+        await verbById(en.act.verb);
+        await target(en.act.a);
+        if (en.act.b) await target(en.act.b);
         await answer(en.picks, { ignoreGuide: guide, acceptEnding: i === steps.length - 1 });
-      } else if ('travel' in en) { await openMap(); await say(await placeName(en.travel)); }
-      else if ('map' in en) { await openMap(); if (en.maps?.[0]) await say(await placeName(en.maps[0])); else { await page.keyboard.press('Escape').catch(() => {}); await waitIdle(); } }
-      else if ('step' in en) { await waitScript(en.step); }
-      else if ('switch' in en) await switchTo(en.switch);
-      else if ('script' in en) { await page.evaluate((c) => window.__game.engine.script(c), en.script); await waitIdle(); }
-      else if ('enter' in en) { await page.evaluate((r) => window.__game.engine.teleport(r), en.enter); await waitIdle(); }
+      } else if ('travel' in en) {
+        await openMap();
+        await say(await placeName(en.travel));
+      } else if ('map' in en) {
+        await openMap();
+        if (en.maps?.[0]) await say(await placeName(en.maps[0]));
+        else {
+          await page.keyboard.press('Escape').catch(() => {});
+          await waitIdle();
+        }
+      } else if ('step' in en) {
+        await waitScript(en.step);
+      } else if ('switch' in en) await switchTo(en.switch);
+      else if ('script' in en) {
+        await page.evaluate((c) => window.__game.engine.script(c), en.script);
+        await waitIdle();
+      } else if ('enter' in en) {
+        await page.evaluate((r) => window.__game.engine.teleport(r), en.enter);
+        await waitIdle();
+      }
       await screenshot(`walk-${String(i + 1).padStart(3, '0')}`).catch(() => {});
     }
   }
@@ -468,22 +619,31 @@ export async function launch(url, opts = {}) {
    * ARIA labels of the whole page.
    */
   async function leaks() {
-    return page.evaluate(() => {
-      // Compared after the CSS case and the decorations (▶, icons) are stripped: "▶ NOUVELLE PARTIE" is "nouvelle partie".
-      const norm = (t) => (t ?? '').replace(/\s+/g, ' ').replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '').trim().toLowerCase();
-      const defaults = Object.values(window.__game.uiFallbacks()).map(norm).filter(Boolean);
-      const seen = new Set();
-      const out = [];
-      for (const el of document.querySelectorAll('button, .verb, .choice, .menu span, .menu p, .menu h3, .toast, .tool, [aria-label]')) {
-        for (const raw of [el.innerText, el.getAttribute('aria-label')]) {
-          const text = norm(raw);
-          if (!text || seen.has(text)) continue;
-          seen.add(text);
-          if (defaults.includes(text)) out.push((raw ?? '').trim());
+    return page
+      .evaluate(() => {
+        // Compared after the CSS case and the decorations (▶, icons) are stripped: "▶ NOUVELLE PARTIE" is "nouvelle partie".
+        const norm = (t) =>
+          (t ?? '')
+            .replace(/\s+/g, ' ')
+            .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')
+            .trim()
+            .toLowerCase();
+        const defaults = Object.values(window.__game.uiFallbacks()).map(norm).filter(Boolean);
+        const seen = new Set();
+        const out = [];
+        for (const el of document.querySelectorAll(
+          'button, .verb, .choice, .menu span, .menu p, .menu h3, .toast, .tool, [aria-label]',
+        )) {
+          for (const raw of [el.innerText, el.getAttribute('aria-label')]) {
+            const text = norm(raw);
+            if (!text || seen.has(text)) continue;
+            seen.add(text);
+            if (defaults.includes(text)) out.push((raw ?? '').trim());
+          }
         }
-      }
-      return out;
-    }).catch(() => []);
+        return out;
+      })
+      .catch(() => []);
   }
 
   /**
@@ -518,16 +678,51 @@ export async function launch(url, opts = {}) {
     const r = await new AxeBuilder({ page }).include('#app').analyze();
     return r.violations
       .filter((v) => (v.impact === 'serious' || v.impact === 'critical') && !AXE_ACCEPTED.includes(v.id))
-      .map((v) => `${name}: ${v.id} (${v.impact}) ${v.nodes.length} node(s), e.g. ${v.nodes[0]?.target?.join(' ') ?? ''}`);
+      .map(
+        (v) => `${name}: ${v.id} (${v.impact}) ${v.nodes.length} node(s), e.g. ${v.nodes[0]?.target?.join(' ') ?? ''}`,
+      );
   }
 
   /** The game reached an ending: the engine says so (`state.done`), not a screenshot of a card. */
-  async function ended() { return page.evaluate(() => !!window.__game?.engine?.state?.done).catch(() => false); }
+  async function ended() {
+    return page.evaluate(() => !!window.__game?.engine?.state?.done).catch(() => false);
+  }
 
-  async function close() { await browser.close(); }
+  async function close() {
+    await browser.close();
+  }
 
   return {
-    page, errors, screenshot, tapXY, tapScene, drag, line, pointOn, tapTarget, verb, verbById,
-    itemSlot, item, inInventory, target, state, diagnose, waitIdle, openMap, say, pick, answer, skip, act, play, walkthrough, close, ended, leaks, saveRoundTrip, axe,
+    page,
+    errors,
+    screenshot,
+    tapXY,
+    tapScene,
+    drag,
+    line,
+    pointOn,
+    tapTarget,
+    verb,
+    verbById,
+    itemSlot,
+    item,
+    inInventory,
+    target,
+    state,
+    diagnose,
+    waitIdle,
+    openMap,
+    say,
+    pick,
+    answer,
+    skip,
+    act,
+    play,
+    walkthrough,
+    close,
+    ended,
+    leaks,
+    saveRoundTrip,
+    axe,
   };
 }

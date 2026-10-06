@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import { dialogueText, dialogueTree } from '@engine/tools/dialogue';
-import { insults, insultsLayouts } from './fixtures/classics';
+import { insults } from './fixtures/classics';
 import { world, worldLayouts } from './fixtures/world';
 
 describe('dialogueTree', () => {
@@ -15,7 +15,12 @@ describe('dialogueTree', () => {
     const kids = tree[0].children!;
     expect(kids[0]).toMatchObject({ kind: 'line', who: 'master', path: 'talk.master[0].do[0].say[1]' });
     expect(kids[1].kind).toBe('choice');
-    expect(kids[1].children![0]).toMatchObject({ kind: 'option', text: 'How appropriate. You fight like a cow.', cond: 'learned_farmer', path: 'talk.master[0].do[1].choice[0].text' });
+    expect(kids[1].children![0]).toMatchObject({
+      kind: 'option',
+      text: 'How appropriate. You fight like a cow.',
+      cond: 'learned_farmer',
+      path: 'talk.master[0].do[1].choice[0].text',
+    });
     expect(kids[1].children![0].children![0]).toMatchObject({ kind: 'other', text: 'inc wins' });
     const branch = kids.find((k) => k.kind === 'if')!;
     expect(branch.text).toBe('if wins ≥ 2');

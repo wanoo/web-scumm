@@ -6,11 +6,20 @@ import { manualPasses, releaseNotes } from '../scripts/release-notes.mjs';
 describe('doctor', () => {
   const probes = (ok: boolean) => ({
     command: (cmd: string) => ({ ok, stdout: cmd === 'ffmpeg' ? 'ffmpeg version 8.0\nbuilt' : '3.12.7\n' }),
-    exists: () => ok, nodeVersion: ok ? '22.14.0' : '18.0.0', browsers: { Chromium: '/x/chromium', WebKit: '/x/webkit' },
+    exists: () => ok,
+    nodeVersion: ok ? '22.14.0' : '18.0.0',
+    browsers: { Chromium: '/x/chromium', WebKit: '/x/webkit' },
   });
   it('reports every prerequisite with a fix when missing', () => {
     const bad = collectChecks(probes(false));
-    expect(bad.map((c) => c.name)).toEqual(['Node.js', 'Python', 'Python image modules', 'ffmpeg', 'Playwright Chromium', 'Playwright WebKit']);
+    expect(bad.map((c) => c.name)).toEqual([
+      'Node.js',
+      'Python',
+      'Python image modules',
+      'ffmpeg',
+      'Playwright Chromium',
+      'Playwright WebKit',
+    ]);
     expect(bad.every((c) => !c.ok && c.fix)).toBe(true);
     expect(doctorReport(bad).failed).toBe(6);
     expect(doctorReport(bad).text).toContain('npx playwright install webkit');
@@ -42,7 +51,8 @@ describe('release notes', () => {
     expect(releaseNotes(log, 'v3.2.0')).toBeNull();
     // D12: the notes say which manual pass was done, or that none was.
     expect(manualPasses(null)).toContain('None recorded for this release');
-    const sheet = '| Pass | Status | Who | Device | Failed |\n|---|---|---|---|---|\n| Screen reader | done | Ann | iPhone | — |\n| Safari offline | not done | | | |\n';
+    const sheet =
+      '| Pass | Status | Who | Device | Failed |\n|---|---|---|---|---|\n| Screen reader | done | Ann | iPhone | — |\n| Safari offline | not done | | | |\n';
     expect(manualPasses(sheet)).toContain('1 of 2 done.');
     expect(manualPasses(sheet)).toContain('| Safari offline | not done |');
   });
@@ -64,7 +74,8 @@ describe('e2e: the solver verdict', () => {
 
 describe('exit codes of the content tools', () => {
   const { spawnSync } = require('node:child_process') as typeof import('node:child_process');
-  const run = (args: string[], env: Record<string, string> = {}) => spawnSync('npx', ['tsx', ...args], { encoding: 'utf8', env: { ...process.env, GAME: 'demo', ...env } });
+  const run = (args: string[], env: Record<string, string> = {}) =>
+    spawnSync('npx', ['tsx', ...args], { encoding: 'utf8', env: { ...process.env, GAME: 'demo', ...env } });
 
   it('a release of the sample game has no warning and no exception left, and it may be sold (3.7: its own theme)', () => {
     const rel = run(['tools/validate.ts', '--release']);
@@ -101,7 +112,11 @@ describe('exit codes of the content tools', () => {
 
 describe('the proof by chapters has one verdict in every output', () => {
   const { spawnSync } = require('node:child_process') as typeof import('node:child_process');
-  const run = (args: string[]) => spawnSync('npx', ['tsx', 'tools/solve.ts', ...args], { encoding: 'utf8', env: { ...process.env, GAME: '', GAME_DIR: 'tests/fixtures/mismatch-game' } });
+  const run = (args: string[]) =>
+    spawnSync('npx', ['tsx', 'tools/solve.ts', ...args], {
+      encoding: 'utf8',
+      env: { ...process.env, GAME: '', GAME_DIR: 'tests/fixtures/mismatch-game' },
+    });
   it('an unreachable checkpoint fails the text output and --json alike, status checkpoint_mismatch', () => {
     const json = run(['--prove', '--chapters', '--json']);
     expect(json.status).toBe(1);
@@ -111,4 +126,3 @@ describe('the proof by chapters has one verdict in every output', () => {
     expect(text.stdout).toContain('checkpoint_mismatch');
   }, 60000);
 });
-

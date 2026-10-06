@@ -3,7 +3,8 @@
 
 /** Seeds `from`…`from + seeds - 1` of shard `i` of `n` over `total` seeds from 1: as even as can be, never past `total`. */
 export function shardRange(total: number, i: number, n: number): { from: number; seeds: number } {
-  const lo = Math.floor((i * total) / n), hi = Math.floor(((i + 1) * total) / n);
+  const lo = Math.floor((i * total) / n),
+    hi = Math.floor(((i + 1) * total) / n);
   return { from: lo + 1, seeds: hi - lo };
 }
 

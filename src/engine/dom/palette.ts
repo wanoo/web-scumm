@@ -2,6 +2,8 @@
 // The pixel work (`swapPalette`) is pure and runs on a Uint8ClampedArray (RGBA, as in ImageData), so it is testable
 // without a DOM; `PaletteCache` wraps it for the browser (offscreen canvas, one blob URL per image and palette).
 
+import { must } from '../core/must';
+
 /** Source `#rrggbb` → target `#rrggbb`. */
 export type Palette = Record<string, string>;
 
@@ -18,7 +20,8 @@ export function parseHex(s: string): [number, number, number] | null {
 export function palettePairs(p: Palette): { from: [number, number, number]; to: [number, number, number] }[] {
   const out: { from: [number, number, number]; to: [number, number, number] }[] = [];
   for (const [k, v] of Object.entries(p)) {
-    const from = parseHex(k), to = parseHex(v);
+    const from = parseHex(k),
+      to = parseHex(v);
     if (from && to) out.push({ from, to });
   }
   return out;
@@ -40,24 +43,35 @@ export function swapPalette(data: Uint8ClampedArray, palette: Palette, tolerance
   let changed = 0;
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] === 0) continue;
-    const r = data[i], g = data[i + 1], b = data[i + 2];
+    // RGBA: i + 3 < data.length.
+    const r = must(data[i], 'red'),
+      g = must(data[i + 1], 'green'),
+      b = must(data[i + 2], 'blue');
     if (tolerance <= 0) {
       const to = exact.get((r << 16) | (g << 8) | b);
       if (!to) continue;
-      data[i] = to[0]; data[i + 1] = to[1]; data[i + 2] = to[2];
+      data[i] = to[0];
+      data[i + 1] = to[1];
+      data[i + 2] = to[2];
       changed++;
       continue;
     }
-    let best = -1, bestD = Infinity;
+    let best = -1,
+      bestD = Infinity;
     for (let k = 0; k < pairs.length; k++) {
-      const f = pairs[k].from;
+      const f = must(pairs[k], 'palette pair').from;
       const d = (r - f[0]) ** 2 + (g - f[1]) ** 2 + (b - f[2]) ** 2;
-      if (d < bestD) { bestD = d; best = k; }
+      if (d < bestD) {
+        bestD = d;
+        best = k;
+      }
     }
     if (best < 0 || bestD > tol2) continue;
-    const { from, to } = pairs[best];
+    const { from, to } = must(pairs[best], 'palette pair');
     // Uint8ClampedArray clamps to 0..255 on assignment.
-    data[i] = to[0] + r - from[0]; data[i + 1] = to[1] + g - from[1]; data[i + 2] = to[2] + b - from[2];
+    data[i] = to[0] + r - from[0];
+    data[i + 1] = to[1] + g - from[1];
+    data[i + 2] = to[2] + b - from[2];
     changed++;
   }
   return changed;
@@ -65,7 +79,12 @@ export function swapPalette(data: Uint8ClampedArray, palette: Palette, tolerance
 
 /** Cache key of a palette (order-independent). */
 export function paletteKey(p: Palette, tolerance = 0): string {
-  return Object.keys(p).sort().map((k) => `${k.toLowerCase()}>${String(p[k]).toLowerCase()}`).join(',') + (tolerance ? `~${tolerance}` : '');
+  return (
+    Object.keys(p)
+      .sort()
+      .map((k) => `${k.toLowerCase()}>${String(p[k]).toLowerCase()}`)
+      .join(',') + (tolerance ? `~${tolerance}` : '')
+  );
 }
 
 /**
@@ -77,9 +96,13 @@ export class PaletteCache {
   private done = new Map<string, string>();
   private pending = new Map<string, Promise<string>>();
 
-  private key(url: string, p: Palette, tolerance: number) { return `${url}|${paletteKey(p, tolerance)}`; }
+  private key(url: string, p: Palette, tolerance: number) {
+    return `${url}|${paletteKey(p, tolerance)}`;
+  }
 
-  get(url: string, p: Palette, tolerance = 0): string | undefined { return this.done.get(this.key(url, p, tolerance)); }
+  get(url: string, p: Palette, tolerance = 0): string | undefined {
+    return this.done.get(this.key(url, p, tolerance));
+  }
 
   load(url: string, p: Palette, tolerance = 0): Promise<string> {
     const k = this.key(url, p, tolerance);
@@ -87,7 +110,11 @@ export class PaletteCache {
     if (ready) return Promise.resolve(ready);
     let job = this.pending.get(k);
     if (!job) {
-      job = recolour(url, p, tolerance).then((out) => { this.done.set(k, out); this.pending.delete(k); return out; });
+      job = recolour(url, p, tolerance).then((out) => {
+        this.done.set(k, out);
+        this.pending.delete(k);
+        return out;
+      });
       this.pending.set(k, job);
     }
     return job;
@@ -101,7 +128,8 @@ async function recolour(url: string, p: Palette, tolerance: number): Promise<str
     im.src = url;
     await im.decode();
     const c = document.createElement('canvas');
-    c.width = im.naturalWidth; c.height = im.naturalHeight;
+    c.width = im.naturalWidth;
+    c.height = im.naturalHeight;
     const ctx = c.getContext('2d', { willReadFrequently: true });
     if (!ctx || !c.width || !c.height) return url;
     ctx.drawImage(im, 0, 0);

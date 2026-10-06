@@ -13,19 +13,49 @@ import { normalizeStoryboard, storyboardMarkdown } from '../../tools/pages/story
 import { coverageMarkdown, storyboardCoverage } from '@engine/tools/coverage';
 import { lintContent, lintMarkdown } from '@engine/tools/lint';
 import { classify, formatPath, parsePath, SourceError, type Seg } from '../../tools/studio/paths';
-import type { CoverageData, GraphData, LintData, PuzzleData, ReportData,
-  AddEntity, AssetsListing, EditResult, GameInfo, MarkdownResult, NewNote, Note, NoteEdit, NotesFile, RoomData, SolveData, StudioPatch, StudioPatchFile,
-  StudioSnapshot, TextRef, ValidateResult,
+import type {
+  CoverageData,
+  GraphData,
+  LintData,
+  PuzzleData,
+  ReportData,
+  AddEntity,
+  AssetsListing,
+  EditResult,
+  GameInfo,
+  MarkdownResult,
+  NewNote,
+  Note,
+  NoteEdit,
+  NotesFile,
+  RoomData,
+  SolveData,
+  StudioPatch,
+  StudioPatchFile,
+  StudioSnapshot,
+  TextRef,
+  ValidateResult,
 } from '../../tools/studio/types';
 import { ApiError, type Api } from './api';
-import { addRoomEntity, cloneData, editRoomText, isTextPath, patchGame, placeEntity, readPatches, writePatches, type KeyValue } from './demo-patch';
+import { must } from '../engine/core/must';
+import {
+  addRoomEntity,
+  cloneData,
+  editRoomText,
+  isTextPath,
+  patchGame,
+  placeEntity,
+  readPatches,
+  writePatches,
+  type KeyValue,
+} from './demo-patch';
 
 /** What validate / solve / the Markdown export need from the game's own module (`@game`). */
 export interface GameModuleLike {
   game: GameDef;
   /** Minigames of the engine and of the game (ids and required params are validated). */
   minigames?: Record<string, { required?: string[] }>;
-  assets?: AssetIndex;  /** Custom commands (`{ custom }`): their effects for validate and solve. */
+  assets?: AssetIndex /** Custom commands (`{ custom }`): their effects for validate and solve. */;
   commands?: import('@engine/core/custom').CustomCommands;
   /** Translation tables, for the report's coverage. */
   locales?: Record<string, Record<string, string>>;
@@ -42,12 +72,23 @@ export interface BrowserApiOptions {
   now?: () => Date;
 }
 
-interface State { rooms: Record<string, RoomData>; storyboard: Record<string, unknown>; notes: Note[] }
+interface State {
+  rooms: Record<string, RoomData>;
+  storyboard: Record<string, unknown>;
+  notes: Note[];
+}
 
 const ID = /^[A-Za-z_][\w]*$/;
-const segsOf = (path: string): Seg[] => { try { return parsePath(path); } catch (e) { throw asApi(e); } };
+const segsOf = (path: string): Seg[] => {
+  try {
+    return parsePath(path);
+  } catch (e) {
+    throw asApi(e);
+  }
+};
 const asApi = (e: unknown) => (e instanceof SourceError ? new ApiError(e.message, e.status) : e);
-const startsWith = (segs: Seg[], prefix: Seg[]) => prefix.length <= segs.length && prefix.every((s, i) => segs[i] === s);
+const startsWith = (segs: Seg[], prefix: Seg[]) =>
+  prefix.length <= segs.length && prefix.every((s, i) => segs[i] === s);
 
 export class BrowserApi implements Api {
   readonly mode = 'demo' as const;
@@ -62,16 +103,30 @@ export class BrowserApi implements Api {
     this.rebuild();
   }
 
-  get gameId() { return this.o.snapshot.game.id; }
+  get gameId() {
+    return this.o.snapshot.game.id;
+  }
   /** A documentation page of the snapshot (the Assistant's read_doc), by name. */
-  doc(name: string): string | undefined { return this.o.snapshot.docs?.[name]; }
-  docNames(): string[] { return Object.keys(this.o.snapshot.docs ?? {}); }
+  doc(name: string): string | undefined {
+    return this.o.snapshot.docs?.[name];
+  }
+  docNames(): string[] {
+    return Object.keys(this.o.snapshot.docs ?? {});
+  }
   /** Number of edits kept in this browser. */
-  get edits() { return this.patches.length; }
+  get edits() {
+    return this.patches.length;
+  }
 
   /** The edits as the file `npm run studio-apply <file>` reads. */
   patchFile(): StudioPatchFile {
-    return { format: 'web-scumm-studio-patch', version: 1, game: this.gameId, created: this.now().toISOString(), patches: cloneData(this.patches) };
+    return {
+      format: 'web-scumm-studio-patch',
+      version: 1,
+      game: this.gameId,
+      created: this.now().toISOString(),
+      patches: cloneData(this.patches),
+    };
   }
 
   /** Drops every edit: back to the snapshot. */
@@ -82,23 +137,44 @@ export class BrowserApi implements Api {
     this.onChange?.(0);
   }
 
-  private now() { return this.o.now?.() ?? new Date(); }
+  private now() {
+    return this.o.now?.() ?? new Date();
+  }
 
   private rebuild() {
     const s = this.o.snapshot;
-    this.state = { rooms: cloneData(s.rooms), storyboard: cloneData(s.storyboard ?? { boards: [] }), notes: cloneData(s.notes?.entries ?? []) };
+    this.state = {
+      rooms: cloneData(s.rooms),
+      storyboard: cloneData(s.storyboard ?? { boards: [] }),
+      notes: cloneData(s.notes?.entries ?? []),
+    };
     // A patch that no longer fits (the snapshot changed under it) is dropped.
-    this.patches = this.patches.filter((p) => { try { this.apply(p); return true; } catch { return false; } });
+    this.patches = this.patches.filter((p) => {
+      try {
+        this.apply(p);
+        return true;
+      } catch {
+        return false;
+      }
+    });
   }
 
   /** Applies a patch to the in-memory state; throws (ApiError) without changing anything if it does not apply. */
   private apply(p: StudioPatch): EditResult | Note | undefined {
     switch (p.kind) {
-      case 'text': return applyText(this.roomData(p.room), p.path, p.value);
-      case 'layout': this.roomData(p.room).layout = cloneData(p.layout); return;
-      case 'entity': return this.applyEntity(p.room, p.entity);
-      case 'storyboard': this.state.storyboard = cloneData(p.storyboard); return;
-      case 'note': this.state.notes.push(cloneData(p.note)); return p.note;
+      case 'text':
+        return applyText(this.roomData(p.room), p.path, p.value);
+      case 'layout':
+        this.roomData(p.room).layout = cloneData(p.layout);
+        return;
+      case 'entity':
+        return this.applyEntity(p.room, p.entity);
+      case 'storyboard':
+        this.state.storyboard = cloneData(p.storyboard);
+        return;
+      case 'note':
+        this.state.notes.push(cloneData(p.note));
+        return p.note;
       case 'note-edit': {
         const n = this.note(p.id);
         n.text = p.text;
@@ -106,7 +182,10 @@ export class BrowserApi implements Api {
         n.edited = p.edited;
         return n;
       }
-      case 'note-delete': this.note(p.id); this.state.notes = this.state.notes.filter((n) => n.id !== p.id); return;
+      case 'note-delete':
+        this.note(p.id);
+        this.state.notes = this.state.notes.filter((n) => n.id !== p.id);
+        return;
     }
   }
 
@@ -117,19 +196,41 @@ export class BrowserApi implements Api {
     const last = ps[ps.length - 1];
     if (p.kind === 'layout') this.patches = ps.filter((x) => !(x.kind === 'layout' && x.room === p.room));
     else if (p.kind === 'storyboard') this.patches = ps.filter((x) => x.kind !== 'storyboard');
-    else if (p.kind === 'text' && p.value !== null && !p.path.endsWith('[+]') && last?.kind === 'text' && last.room === p.room && last.path === p.path && last.value !== null) ps.pop();
+    else if (
+      p.kind === 'text' &&
+      p.value !== null &&
+      !p.path.endsWith('[+]') &&
+      last?.kind === 'text' &&
+      last.room === p.room &&
+      last.path === p.path &&
+      last.value !== null
+    )
+      ps.pop();
     if (p.kind === 'note-edit' || p.kind === 'note-delete') {
-      const added = this.patches.find((x): x is Extract<StudioPatch, { kind: 'note' }> => x.kind === 'note' && x.note.id === p.id);
+      const added = this.patches.find(
+        (x): x is Extract<StudioPatch, { kind: 'note' }> => x.kind === 'note' && x.note.id === p.id,
+      );
       this.patches = this.patches.filter((x) => !(x.kind === 'note-edit' && x.id === p.id));
-      if (added && p.kind === 'note-edit') { added.note = cloneData(this.note(p.id)); this.save(); return r as T; }
-      if (added && p.kind === 'note-delete') { this.patches = this.patches.filter((x) => x !== added); this.save(); return r as T; }
+      if (added && p.kind === 'note-edit') {
+        added.note = cloneData(this.note(p.id));
+        this.save();
+        return r as T;
+      }
+      if (added && p.kind === 'note-delete') {
+        this.patches = this.patches.filter((x) => x !== added);
+        this.save();
+        return r as T;
+      }
     }
     this.patches.push(cloneData(p));
     this.save();
     return r as T;
   }
 
-  private save() { writePatches(this.o.storage, this.gameId, this.patches); this.onChange?.(this.patches.length); }
+  private save() {
+    writePatches(this.o.storage, this.gameId, this.patches);
+    this.onChange?.(this.patches.length);
+  }
 
   private roomData(id: string): RoomData {
     const r = this.state.rooms[id];
@@ -146,21 +247,28 @@ export class BrowserApi implements Api {
   private applyEntity(roomId: string, e: AddEntity): EditResult {
     const room = this.roomData(roomId);
     const info = this.o.snapshot.game;
-    if (!e || !['prop', 'hotspot', 'actor'].includes(e.kind)) throw new ApiError('`kind` must be prop, hotspot or actor', 400);
-    if (typeof e.id !== 'string' || !ID.test(e.id)) throw new ApiError('`id` must be letters, digits and _ (not starting with a digit)', 400);
-    if (!Array.isArray(e.at) || e.at.length !== 2 || !e.at.every((v) => typeof v === 'number' && Number.isFinite(v))) throw new ApiError('`at` must be [x, y]', 400);
+    if (!e || !['prop', 'hotspot', 'actor'].includes(e.kind))
+      throw new ApiError('`kind` must be prop, hotspot or actor', 400);
+    if (typeof e.id !== 'string' || !ID.test(e.id))
+      throw new ApiError('`id` must be letters, digits and _ (not starting with a digit)', 400);
+    if (!Array.isArray(e.at) || e.at.length !== 2 || !e.at.every((v) => typeof v === 'number' && Number.isFinite(v)))
+      throw new ApiError('`at` must be [x, y]', 400);
     const name = typeof e.name === 'string' ? e.name.trim() : '';
     if (e.kind !== 'actor' && !name) throw new ApiError('`name` is required for a prop or a hotspot', 400);
     const d = room.def;
-    if ([d.props, d.hotspots, d.actors].some((o) => o && e.id in o)) throw new ApiError(`"${e.id}" already exists in room "${roomId}"`, 409);
-    if (e.kind === 'actor' && (!e.char || !info.characters[e.char])) throw new ApiError(`unknown character: "${e.char ?? ''}"`, 400);
-    if (e.kind === 'prop' && e.img && Object.keys(info.images).length && !info.images[e.img]) throw new ApiError(`image not in the manifest: "${e.img}"`, 400);
+    if ([d.props, d.hotspots, d.actors].some((o) => o && e.id in o))
+      throw new ApiError(`"${e.id}" already exists in room "${roomId}"`, 409);
+    if (e.kind === 'actor' && (!e.char || !info.characters[e.char]))
+      throw new ApiError(`unknown character: "${e.char ?? ''}"`, 400);
+    if (e.kind === 'prop' && e.img && Object.keys(info.images).length && !info.images[e.img])
+      throw new ApiError(`image not in the manifest: "${e.img}"`, 400);
 
     const line = Math.max(1, ...room.texts.map((t) => t.line));
     const section = e.kind === 'prop' ? 'props' : e.kind === 'hotspot' ? 'hotspots' : 'actors';
     addRoomEntity(d, { ...e, name }, e.char ? info.characters[e.char]?.name : undefined);
-    const ref = (path: string, value: string, kind: TextRef['kind']) => room.texts.push({ path, value, file: room.file, line, kind });
-    const stored = (d[section] as Record<string, { name?: string }>)[e.id];
+    const ref = (path: string, value: string, kind: TextRef['kind']) =>
+      room.texts.push({ path, value, file: room.file, line, kind });
+    const stored = must((d[section] as Record<string, { name?: string }>)[e.id], 'entity just added');
     if (stored.name) ref(`${section}.${e.id}.name`, stored.name, 'name');
     if (e.look?.trim()) ref(`look.${e.id}`, e.look.trim(), 'look');
     room.layout = placeEntity(room.layout, e);
@@ -177,19 +285,28 @@ export class BrowserApi implements Api {
   private async editedGame(): Promise<{ mod: GameModuleLike; game: GameDef; layouts: Record<string, Layout> }> {
     const mod = await this.loadModule();
     const layouts = Object.fromEntries(Object.entries(this.state.rooms).map(([id, r]) => [id, r.layout]));
-    const { game } = patchGame(mod.game, {}, this.patches.filter((p) => p.kind === 'text' || p.kind === 'entity'));
+    const { game } = patchGame(
+      mod.game,
+      {},
+      this.patches.filter((p) => p.kind === 'text' || p.kind === 'entity'),
+    );
     return { mod, game, layouts };
   }
 
   // ------------------------------------------------------------------ the Api
 
-  async game(): Promise<GameInfo> { return cloneData(this.o.snapshot.game); }
+  async game(): Promise<GameInfo> {
+    return cloneData(this.o.snapshot.game);
+  }
 
-  async room(id: string): Promise<RoomData> { return cloneData(this.roomData(id)); }
+  async room(id: string): Promise<RoomData> {
+    return cloneData(this.roomData(id));
+  }
 
   async setLayout(id: string, layout: Layout): Promise<{ ok: true }> {
     this.roomData(id);
-    if (!layout || typeof layout !== 'object' || Array.isArray(layout)) throw new ApiError('the layout must be an object', 400);
+    if (!layout || typeof layout !== 'object' || Array.isArray(layout))
+      throw new ApiError('the layout must be an object', 400);
     this.commit({ kind: 'layout', room: id, layout });
     return { ok: true };
   }
@@ -208,10 +325,13 @@ export class BrowserApi implements Api {
     return this.commit<EditResult>({ kind: 'entity', room: id, entity: cloneData(e) });
   }
 
-  async storyboardRaw() { return cloneData(this.state.storyboard) as Record<string, unknown> & { boards: unknown[] }; }
+  async storyboardRaw() {
+    return cloneData(this.state.storyboard) as Record<string, unknown> & { boards: unknown[] };
+  }
 
   async setStoryboard(sb: unknown): Promise<{ ok: true; changed: boolean }> {
-    if (!sb || typeof sb !== 'object' || !Array.isArray((sb as { boards?: unknown }).boards)) throw new ApiError('a storyboard is an object with a `boards` list', 400);
+    if (!sb || typeof sb !== 'object' || !Array.isArray((sb as { boards?: unknown }).boards))
+      throw new ApiError('a storyboard is an object with a `boards` list', 400);
     if (JSON.stringify(sb) === JSON.stringify(this.state.storyboard)) return { ok: true, changed: false };
     this.commit({ kind: 'storyboard', storyboard: sb as Record<string, unknown> });
     return { ok: true, changed: true };
@@ -222,10 +342,18 @@ export class BrowserApi implements Api {
     const sb = normalizeStoryboard(this.state.storyboard);
     const md = storyboardMarkdown({ game }, sb);
     this.o.download?.('storyboard.md', md, 'text/markdown');
-    return { ok: true, file: 'storyboard.md (downloaded)', bytes: new TextEncoder().encode(md).length, boards: sb.boards.length, panels: sb.boards.reduce((n, b) => n + b.panels.length, 0) };
+    return {
+      ok: true,
+      file: 'storyboard.md (downloaded)',
+      bytes: new TextEncoder().encode(md).length,
+      boards: sb.boards.length,
+      panels: sb.boards.reduce((n, b) => n + b.panels.length, 0),
+    };
   }
 
-  async notes(): Promise<NotesFile> { return { entries: cloneData(this.state.notes) }; }
+  async notes(): Promise<NotesFile> {
+    return { entries: cloneData(this.state.notes) };
+  }
 
   async addNote(n: NewNote): Promise<Note> {
     if (!n || typeof n.text !== 'string' || !n.text.trim()) throw new ApiError('`text` is required', 400);
@@ -245,7 +373,13 @@ export class BrowserApi implements Api {
   async editNote(id: string, e: NoteEdit): Promise<Note> {
     if (!e || typeof e.text !== 'string' || !e.text.trim()) throw new ApiError('`text` is required', 400);
     if (e.about !== undefined && typeof e.about !== 'string') throw new ApiError('`about` must be a string', 400);
-    const n = this.commit<Note>({ kind: 'note-edit', id, text: e.text.trim(), about: e.about?.trim(), edited: this.now().toISOString() });
+    const n = this.commit<Note>({
+      kind: 'note-edit',
+      id,
+      text: e.text.trim(),
+      about: e.about?.trim(),
+      edited: this.now().toISOString(),
+    });
     return cloneData(n);
   }
 
@@ -259,10 +393,18 @@ export class BrowserApi implements Api {
     const { mod, game, layouts } = await this.editedGame();
     const mg = mod.minigames;
     const { errors, warnings } = validateGame(game, layouts, {
-      assets: mod.assets, commands: mod.commands,
+      assets: mod.assets,
+      commands: mod.commands,
       minigameIds: mg ? Object.keys(mg) : undefined,
       minigameParams: mg ? Object.fromEntries(Object.entries(mg).map(([k, m]) => [k, m.required ?? []])) : undefined,
-      minigameBindings: mg ? Object.fromEntries(Object.entries(mg).map(([k, m]) => [k, (m as { bindings?: { images?: string[]; sfx?: string[] } }).bindings ?? {}])) : undefined,
+      minigameBindings: mg
+        ? Object.fromEntries(
+            Object.entries(mg).map(([k, m]) => [
+              k,
+              (m as { bindings?: { images?: string[]; sfx?: string[] } }).bindings ?? {},
+            ]),
+          )
+        : undefined,
     });
     return { ok: errors.length === 0, errors, warnings, ms: Date.now() - t0 };
   }
@@ -284,7 +426,14 @@ export class BrowserApi implements Api {
     const { mod, game } = await this.editedGame();
     const g = puzzleGraph(game, { commands: mod.commands });
     const extra = extraReads(game);
-    return { graph: g, svg: toPuzzleSvg(g), dot: toPuzzleDot(g), markdown: puzzleMarkdown(g, id || undefined, { extra }), classes: Object.fromEntries(liveClasses(g, extra)), ...(id ? { id } : {}) };
+    return {
+      graph: g,
+      svg: toPuzzleSvg(g),
+      dot: toPuzzleDot(g),
+      markdown: puzzleMarkdown(g, id || undefined, { extra }),
+      classes: Object.fromEntries(liveClasses(g, extra)),
+      ...(id ? { id } : {}),
+    };
   }
 
   async coverage(): Promise<CoverageData> {
@@ -306,20 +455,40 @@ export class BrowserApi implements Api {
     const t0 = Date.now();
     const { mod, game, layouts } = await this.editedGame();
     if (from && !game.checkpoints?.[from]) throw new ApiError(`unknown checkpoint: "${from}"`, 400);
-    const r = await solveGame(game, layouts, { maxStates, start: from ? { checkpoint: from } : 'new', commands: mod.commands, mode: prove ? 'prove' : 'witness' });
+    const r = await solveGame(game, layouts, {
+      maxStates,
+      start: from ? { checkpoint: from } : 'new',
+      commands: mod.commands,
+      mode: prove ? 'prove' : 'witness',
+    });
     return {
-      status: r.status, exit: r.exit, headline: r.headline, mode: r.mode, softlocks: r.softlocks,
-      finished: r.finished, states: r.states, truncated: r.truncated, path: r.path,
-      roomsReached: r.roomsReached, unlockedReached: r.unlockedReached, flagsReached: r.flagsReached,
-      itemsNeverUsed: r.itemsNeverUsed, unusedItems: r.unusedItems,
+      status: r.status,
+      exit: r.exit,
+      headline: r.headline,
+      mode: r.mode,
+      softlocks: r.softlocks,
+      finished: r.finished,
+      states: r.states,
+      truncated: r.truncated,
+      path: r.path,
+      roomsReached: r.roomsReached,
+      unlockedReached: r.unlockedReached,
+      flagsReached: r.flagsReached,
+      itemsNeverUsed: r.itemsNeverUsed,
+      unusedItems: r.unusedItems,
       deadEnds: r.deadEnds.map((d) => ({ room: d.room, inventory: d.inventory, path: d.path })),
-      errors: r.errors, broken: r.broken, from: from || null, ms: Date.now() - t0, profile: r.profile,
+      errors: r.errors,
+      broken: r.broken,
+      from: from || null,
+      ms: Date.now() - t0,
+      profile: r.profile,
     };
   }
 
   /** The snapshot's assets listing (read-only: uploads and Prepare need the dev server). */
   async assets(): Promise<AssetsListing> {
-    if (!this.o.snapshot.assets) throw new ApiError('this demo snapshot has no assets listing: rebuild it with STUDIO=1', 501);
+    if (!this.o.snapshot.assets)
+      throw new ApiError('this demo snapshot has no assets listing: rebuild it with STUDIO=1', 501);
     return cloneData(this.o.snapshot.assets);
   }
 
@@ -344,7 +513,9 @@ export function applyText(room: RoomData, path: string, value: string | null): E
     if (!isTextPath(path)) throw new ApiError(`cannot append to "${path}": its lines are not texts`, 400);
     const list = segs.slice(0, -1);
     const listPath = formatPath(list);
-    const siblings = parsed.filter((x) => x.segs.length === list.length + 1 && startsWith(x.segs, list) && typeof x.segs[list.length] === 'number');
+    const siblings = parsed.filter(
+      (x) => x.segs.length === list.length + 1 && startsWith(x.segs, list) && typeof x.segs[list.length] === 'number',
+    );
     const single = texts.find((t) => t.path === listPath);
     const target = getAt(room.def, list);
     const isLook = list.length === 2 && list[0] === 'look';
@@ -376,15 +547,21 @@ export function applyText(room: RoomData, path: string, value: string | null): E
     if (isLook && segs.length === 2) {
       const own = parsed.filter((x) => startsWith(x.segs, segs));
       if (!own.length) throw new ApiError(`path not found: "${path}"`, 404);
-      removeRefs(room, own.map((x) => x.t));
+      removeRefs(
+        room,
+        own.map((x) => x.t),
+      );
       editRoomText(room.def, path, null);
-      return { ok: true, line: own[0].t.line, changed: true };
+      return { ok: true, line: must(own[0], 'first own text').t.line, changed: true };
     }
     if (typeof last === 'number' && Array.isArray(parent)) {
       if (!ref) throw new ApiError(`path not found: "${path}"`, 404);
       if (!classify(segs)) throw new ApiError(`not a text: "${path}"`, 400);
       if (isLook && segs.length === 3 && parent.length === 1) return applyText(room, formatPath(parentSegs), null);
-      removeRefs(room, parsed.filter((x) => startsWith(x.segs, segs)).map((x) => x.t));
+      removeRefs(
+        room,
+        parsed.filter((x) => startsWith(x.segs, segs)).map((x) => x.t),
+      );
       // Following items of the same list move up by one.
       for (const x of parsed) {
         const i = x.segs[parentSegs.length];
@@ -408,7 +585,10 @@ export function applyText(room: RoomData, path: string, value: string | null): E
 }
 
 function removeRefs(room: RoomData, refs: TextRef[]) {
-  for (const r of refs) { const i = room.texts.indexOf(r); if (i >= 0) room.texts.splice(i, 1); }
+  for (const r of refs) {
+    const i = room.texts.indexOf(r);
+    if (i >= 0) room.texts.splice(i, 1);
+  }
 }
 
 function getAt(root: unknown, segs: Seg[]): unknown {

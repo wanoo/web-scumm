@@ -9,9 +9,24 @@ import { GAME, loadGameModule } from './game';
 export const CURRENT_SCHEMA = 3;
 const { game } = await loadGameModule();
 const at = game.schemaVersion ?? 2;
-if (at === CURRENT_SCHEMA) { console.log(`✔  [${GAME}] authoring schema ${at}: up to date with this engine`); process.exit(0); }
-if (at > CURRENT_SCHEMA) { console.error(`✖  [${GAME}] authoring schema ${at} is newer than this engine's (${CURRENT_SCHEMA}): install a newer web-scumm`); process.exit(1); }
-if (process.argv.includes('--check')) { console.error(`✖  [${GAME}] authoring schema ${at}: a migration to ${CURRENT_SCHEMA} is due (web-scumm migrate)`); process.exit(1); }
+if (at === CURRENT_SCHEMA) {
+  console.log(`✔  [${GAME}] authoring schema ${at}: up to date with this engine`);
+  process.exit(0);
+}
+if (at > CURRENT_SCHEMA) {
+  console.error(
+    `✖  [${GAME}] authoring schema ${at} is newer than this engine's (${CURRENT_SCHEMA}): install a newer web-scumm`,
+  );
+  process.exit(1);
+}
+if (process.argv.includes('--check')) {
+  console.error(`✖  [${GAME}] authoring schema ${at}: a migration to ${CURRENT_SCHEMA} is due (web-scumm migrate)`);
+  process.exit(1);
+}
 console.log(`[${GAME}] authoring schema ${at} → ${CURRENT_SCHEMA}: writing stable ids (docs/en/UPGRADING.md)`);
-const r = spawnSync(process.execPath, [...process.execArgv, resolve(import.meta.dirname, 'ids.ts'), '--write', '--map'], { stdio: 'inherit', env: process.env });
+const r = spawnSync(
+  process.execPath,
+  [...process.execArgv, resolve(import.meta.dirname, 'ids.ts'), '--write', '--map'],
+  { stdio: 'inherit', env: process.env },
+);
 process.exit(r.status ?? 1);

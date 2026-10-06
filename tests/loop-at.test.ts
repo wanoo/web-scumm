@@ -9,7 +9,9 @@ describe('loop frame events', () => {
   it('reach the presenter, and only play sounds', async () => {
     const g = mini();
     g.audio = { sfx: { clank: 'clank.mp3' } };
-    g.rooms[0].props!.valise.anims = { run: { frames: ['o/v1', 'o/v2'], fps: 4, loop: true, at: { 1: [{ sfx: 'clank' }] } } };
+    g.rooms[0].props!.valise.anims = {
+      run: { frames: ['o/v1', 'o/v2'], fps: 4, loop: true, at: { 1: [{ sfx: 'clank' }] } },
+    };
     expect(validate(g, miniLayouts).errors).toEqual([]);
     const ui = new FakePresenter();
     const e = new Engine(g, miniLayouts, ui, new MemoryStore());

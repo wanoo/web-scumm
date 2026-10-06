@@ -10,7 +10,10 @@ import { cachedSolve, proofKey, stableJson } from '../tools/proof-cache';
 
 const dir = mkdtempSync(join(tmpdir(), 'proofs-'));
 process.env.PROOF_CACHE_DIR = dir;
-afterAll(() => { delete process.env.PROOF_CACHE_DIR; rmSync(dir, { recursive: true, force: true }); });
+afterAll(() => {
+  delete process.env.PROOF_CACHE_DIR;
+  rmSync(dir, { recursive: true, force: true });
+});
 
 describe('the proof cache', () => {
   it('keys on content, not on key order; functions by their source; undefined dropped', () => {
@@ -20,8 +23,11 @@ describe('the proof cache', () => {
     expect(proofKey(g, insultsLayouts, { mode: 'prove' })).toBe(proofKey(insults(), insultsLayouts, { mode: 'prove' }));
     expect(proofKey(g, insultsLayouts, { mode: 'prove' })).not.toBe(proofKey(g, insultsLayouts, { mode: 'witness' }));
     // an option at its default is the same question as the option left out
-    expect(proofKey(g, insultsLayouts, {})).toBe(proofKey(g, insultsLayouts, { mode: 'witness', start: 'new', maxStates: 20000, por: false, goal: undefined }));
-    const h = insults(); h.rooms[0].name += '!';
+    expect(proofKey(g, insultsLayouts, {})).toBe(
+      proofKey(g, insultsLayouts, { mode: 'witness', start: 'new', maxStates: 20000, por: false, goal: undefined }),
+    );
+    const h = insults();
+    h.rooms[0].name += '!';
     expect(proofKey(h, insultsLayouts, { mode: 'prove' })).not.toBe(proofKey(g, insultsLayouts, { mode: 'prove' }));
   });
 
@@ -37,14 +43,34 @@ describe('the proof cache', () => {
 
   it('is off with PROOF_CACHE=0', async () => {
     process.env.PROOF_CACHE = '0';
-    try { expect((await cachedSolve(insults(), insultsLayouts, { mode: 'prove' })).cached).toBeUndefined(); } finally { delete process.env.PROOF_CACHE; }
+    try {
+      expect((await cachedSolve(insults(), insultsLayouts, { mode: 'prove' })).cached).toBeUndefined();
+    } finally {
+      delete process.env.PROOF_CACHE;
+    }
   });
 
   it('npm run solve says when it answers from the cache, and --no-cache runs again', () => {
-    const run = (...a: string[]) => JSON.parse(spawnSync('npx', ['tsx', 'tools/solve.ts', '--json', ...a], { encoding: 'utf8', env: { ...process.env, GAME: 'demo', PROOF_CACHE_DIR: dir } }).stdout.trim().split('\n').pop()!);
-    const first = run(), second = run(), fresh = run('--no-cache');
+    const run = (...a: string[]) =>
+      JSON.parse(
+        spawnSync('npx', ['tsx', 'tools/solve.ts', '--json', ...a], {
+          encoding: 'utf8',
+          env: { ...process.env, GAME: 'demo', PROOF_CACHE_DIR: dir },
+        })
+          .stdout.trim()
+          .split('\n')
+          .pop()!,
+      );
+    const first = run(),
+      second = run(),
+      fresh = run('--no-cache');
     expect(second.cached).toMatch(/^[0-9a-f]{12}$/);
     expect(fresh.cached).toBeNull();
-    for (const r of [first, second, fresh]) expect({ status: r.status, states: r.states, path: r.path }).toEqual({ status: first.status, states: first.states, path: first.path });
+    for (const r of [first, second, fresh])
+      expect({ status: r.status, states: r.states, path: r.path }).toEqual({
+        status: first.status,
+        states: first.states,
+        path: first.path,
+      });
   }, 120000);
 });

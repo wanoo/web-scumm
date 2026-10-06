@@ -3,19 +3,36 @@
 // intruder (another game's asset, a file dropped into public/): `npm run verify:dist` refuses it, so what the
 // provenance lock declares and what the archive holds are the same set. Pure: tools/dist.ts reads the disk.
 import { assetPath, type ProvenanceLock } from './provenance';
+import { must } from '../core/must';
 
 export type FileKind = 'code' | 'asset' | 'data' | 'font' | 'shell' | 'licence';
 
 /** The notices every build carries under licenses/ (tools/dist.ts writes them). */
-export const NOTICES = ['licenses/LICENSE', 'licenses/LICENSE-ASSETS', 'licenses/CREDITS.md', 'licenses/THIRD_PARTY_NOTICES.txt', 'licenses/assets-manifest.json'] as const;
+export const NOTICES = [
+  'licenses/LICENSE',
+  'licenses/LICENSE-ASSETS',
+  'licenses/CREDITS.md',
+  'licenses/THIRD_PARTY_NOTICES.txt',
+  'licenses/assets-manifest.json',
+] as const;
 
 /** The built folder of a game's assets (dist/assets/…): `assetPath` of a key, under `assets/`. */
-export const distPath = (key: string): string | null => { const p = assetPath(key); return p ? `assets/${p}` : null; };
+export const distPath = (key: string): string | null => {
+  const p = assetPath(key);
+  return p ? `assets/${p}` : null;
+};
 
 // A Vite output name: its name, a dash, eight characters of hash.
 const HASHED = /^assets\/(tools\/)?[\w.-]+-[\w-]{8}\.(js|css)$/;
 const FONT = /^(assets\/[\w.-]+-[\w-]{8}|fonts\/[\w.-]+)\.(ttf|woff2?|otf)$/;
-const SHELL = new Set(['index.html', 'sw.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'og.png']);
+const SHELL = new Set([
+  'index.html',
+  'sw.js',
+  'manifest.webmanifest',
+  'icons/icon-192.png',
+  'icons/icon-512.png',
+  'og.png',
+]);
 
 export interface InventoryInput {
   /** Every file of dist/, by its path inside it (`/`), with its SHA-256. */
@@ -38,12 +55,18 @@ export interface InventoryReport {
   changed: string[];
 }
 
-export function classify(path: string, assets: Map<string, string>, data: Set<string>, studio = false): FileKind | null {
+export function classify(
+  path: string,
+  assets: Map<string, string>,
+  data: Set<string>,
+  studio = false,
+): FileKind | null {
   if (path.startsWith('licenses/')) return 'licence';
   if (assets.has(path)) return 'asset';
   if (data.has(path)) return 'data';
   if (FONT.test(path)) return 'font';
-  if (SHELL.has(path)) return path.endsWith('.html') || path.endsWith('.js') || path.endsWith('.webmanifest') ? 'code' : 'shell';
+  if (SHELL.has(path))
+    return path.endsWith('.html') || path.endsWith('.js') || path.endsWith('.webmanifest') ? 'code' : 'shell';
   if (HASHED.test(path) || /^workbox-[\w-]+\.js$/.test(path)) return 'code';
   if (studio && (path === 'studio.html' || path.startsWith('studio-demo/'))) return 'code';
   return null;
@@ -52,15 +75,22 @@ export function classify(path: string, assets: Map<string, string>, data: Set<st
 /** Each file of dist/ against the lock: the files that should not be there, those missing, those changed. */
 export function inventory(input: InventoryInput): InventoryReport {
   const assets = new Map<string, string>();
-  for (const key of Object.keys(input.lock.assets)) { const p = distPath(key); if (p) assets.set(p, key); }
+  for (const key of Object.keys(input.lock.assets)) {
+    const p = distPath(key);
+    if (p) assets.set(p, key);
+  }
   const data = new Set(input.data);
   const kinds: Record<FileKind, number> = { code: 0, asset: 0, data: 0, font: 0, shell: 0, licence: 0 };
-  const extra: string[] = [], changed: string[] = [];
+  const extra: string[] = [],
+    changed: string[] = [];
   for (const [path, f] of Object.entries(input.files)) {
     const kind = classify(path, assets, data, input.studio);
-    if (!kind) { extra.push(path); continue; }
+    if (!kind) {
+      extra.push(path);
+      continue;
+    }
     kinds[kind]++;
-    const want = kind === 'asset' ? input.lock.assets[assets.get(path)!].sha256 : '';
+    const want = kind === 'asset' ? must(input.lock.assets[assets.get(path)!], `lock entry for ${path}`).sha256 : '';
     if (want && want !== f.sha256) changed.push(path);
   }
   const want = [...assets.keys(), ...data, ...NOTICES];
@@ -78,13 +108,38 @@ export function strayAssets(paths: string[], keys: string[]): string[] {
 }
 
 /** One line per shipped asset, for licenses/assets-manifest.json: its file, who made it, from what, under which licence. */
-export interface ManifestEntry { key: string; path: string; sha256: string; bytes: number; licence: string; status: string; author?: string; source?: string; url?: string }
+export interface ManifestEntry {
+  key: string;
+  path: string;
+  sha256: string;
+  bytes: number;
+  licence: string;
+  status: string;
+  author?: string;
+  source?: string;
+  url?: string;
+}
 
-export function assetsManifest(lock: ProvenanceLock, entries: { match: string; author?: string; source?: string; url?: string }[]): ManifestEntry[] {
-  return Object.entries(lock.assets).sort(([a], [b]) => a.localeCompare(b)).map(([key, l]) => {
-    const e = entries.find((x) => x.match === l.match);
-    return { key, path: distPath(key) ?? '', sha256: l.sha256, bytes: l.bytes, licence: l.licence, status: l.status, ...(e?.author ? { author: e.author } : {}), ...(e?.source ? { source: e.source } : {}), ...(e?.url ? { url: e.url } : {}) };
-  });
+export function assetsManifest(
+  lock: ProvenanceLock,
+  entries: { match: string; author?: string; source?: string; url?: string }[],
+): ManifestEntry[] {
+  return Object.entries(lock.assets)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, l]) => {
+      const e = entries.find((x) => x.match === l.match);
+      return {
+        key,
+        path: distPath(key) ?? '',
+        sha256: l.sha256,
+        bytes: l.bytes,
+        licence: l.licence,
+        status: l.status,
+        ...(e?.author ? { author: e.author } : {}),
+        ...(e?.source ? { source: e.source } : {}),
+        ...(e?.url ? { url: e.url } : {}),
+      };
+    });
 }
 
 /** The manifest in the build says what the lock says (same files, same hashes). */
@@ -96,15 +151,19 @@ export function manifestMatches(manifest: ManifestEntry[], lock: ProvenanceLock)
 /** The scripts a first visit runs before anything is asked for (3.9): the page's module entry and preloads. */
 export function entryScripts(html: string): string[] {
   const out: string[] = [];
-  for (const m of html.matchAll(/<script[^>]*type="module"[^>]*src="([^"]+)"/g)) out.push(m[1]);
-  for (const m of html.matchAll(/<link[^>]*rel="modulepreload"[^>]*href="([^"]+)"/g)) out.push(m[1]);
+  for (const m of html.matchAll(/<script[^>]*type="module"[^>]*src="([^"]+)"/g)) out.push(must(m[1], 'script src'));
+  for (const m of html.matchAll(/<link[^>]*rel="modulepreload"[^>]*href="([^"]+)"/g))
+    out.push(must(m[1], 'preload href'));
   return out;
 }
 
 /** The chunks a built module imports statically (`import … from "./x.js"`, `import "./x.js"`), never `import()`. */
 export function staticImports(code: string): string[] {
   const out = new Set<string>();
-  for (const m of code.matchAll(/(?:^|[;}\n])\s*(?:import|export)\s*(?:[\w$*{}\s,]+?\s*from\s*)?["'](\.\/[^"']+\.js)["']/g)) out.add(m[1].slice(2));
+  for (const m of code.matchAll(
+    /(?:^|[;}\n])\s*(?:import|export)\s*(?:[\w$*{}\s,]+?\s*from\s*)?["'](\.\/[^"']+\.js)["']/g,
+  ))
+    out.add(must(m[1], 'import path').slice(2));
   return [...out];
 }
 

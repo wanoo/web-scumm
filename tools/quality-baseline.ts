@@ -20,12 +20,20 @@ import { flushExit } from './flush';
 const OUT = resolve(ROOT, 'tests/quality-baseline.json');
 const args = process.argv.slice(2);
 const check = args.includes('--check');
-const distArg = args.find((a) => a.startsWith('--dist'))?.split('=')[1] ?? (args.includes('--dist') ? 'dist' : undefined);
+const distArg =
+  args.find((a) => a.startsWith('--dist'))?.split('=')[1] ?? (args.includes('--dist') ? 'dist' : undefined);
 const hash = (s: string) => createHash('sha256').update(s).digest('hex').slice(0, 16);
 
-interface GameCase { id: string; load: () => Promise<{ game: GameDef; layouts: Record<string, Layout>; commands?: CustomCommands }> }
+interface GameCase {
+  id: string;
+  load: () => Promise<{ game: GameDef; layouts: Record<string, Layout>; commands?: CustomCommands }>;
+}
 const fx = (id: string, file: string, make: string, lay: string, ...a: unknown[]): GameCase => ({
-  id, load: async () => { const m = await import(`../tests/fixtures/${file}`); return { game: m[make](...a), layouts: m[lay] }; },
+  id,
+  load: async () => {
+    const m = await import(`../tests/fixtures/${file}`);
+    return { game: m[make](...a), layouts: m[lay] };
+  },
 });
 const GAMES: GameCase[] = [
   { id: 'demo', load: async () => import('../games/demo') },
@@ -46,7 +54,13 @@ const GAMES: GameCase[] = [
 ];
 
 interface Baseline {
-  games: Record<string, { witness: { status: string; finished: boolean; inputs: number; digests: string }; proof: { status: string; states: number; softlocks: number } }>;
+  games: Record<
+    string,
+    {
+      witness: { status: string; finished: boolean; inputs: number; digests: string };
+      proof: { status: string; states: number; softlocks: number };
+    }
+  >;
   saves: Record<string, { ended: boolean; inputs: number; last: string }>;
   surface: { api: string };
   tests: { files: number; declarations: number };
@@ -65,22 +79,46 @@ async function measure(): Promise<Baseline> {
       witness: { status: w.status, finished: w.finished, inputs: w.steps.length, digests: hash(digests) },
       proof: { status: p.status, states: p.states, softlocks: p.softlockCount },
     };
-    console.error(`  ${c.id}: witness ${w.status} (${w.steps.length}), proof ${p.status} (${p.states} states, ${p.softlockCount} softlocks)`);
+    console.error(
+      `  ${c.id}: witness ${w.status} (${w.steps.length}), proof ${p.status} (${p.states} states, ${p.softlockCount} softlocks)`,
+    );
   }
   const { game: demo, layouts: demoLayouts, commands } = await import('../games/demo');
-  for (const f of readdirSync(resolve(ROOT, 'tests/fixtures/saves')).filter((n) => n.endsWith('.json')).sort()) {
+  for (const f of readdirSync(resolve(ROOT, 'tests/fixtures/saves'))
+    .filter((n) => n.endsWith('.json'))
+    .sort()) {
     const golden = JSON.parse(readFileSync(resolve(ROOT, 'tests/fixtures/saves', f), 'utf8'));
     const state = parseSave(demo, golden.envelope);
-    const r = await replay(demo, demoLayouts, { start: { kind: 'load' }, base: state, log: golden.remaining }, { commands });
+    const r = await replay(
+      demo,
+      demoLayouts,
+      { start: { kind: 'load' }, base: state, log: golden.remaining },
+      { commands },
+    );
     b.saves[f] = { ended: r.ended, inputs: golden.remaining.length, last: r.session.log.at(-1)?.digest ?? '' };
   }
   b.surface.api = hash(readFileSync(resolve(ROOT, 'tests/api-surface.json'), 'utf8'));
   const testFiles: string[] = [];
-  const walk = (d: string) => { for (const e of readdirSync(d, { withFileTypes: true })) { const p = resolve(d, e.name); if (e.isDirectory()) walk(p); else if (e.name.endsWith('.test.ts')) testFiles.push(p); } };
+  const walk = (d: string) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const p = resolve(d, e.name);
+      if (e.isDirectory()) walk(p);
+      else if (e.name.endsWith('.test.ts')) testFiles.push(p);
+    }
+  };
   walk(resolve(ROOT, 'tests'));
-  b.tests = { files: testFiles.length, declarations: testFiles.reduce((n, f) => n + (readFileSync(f, 'utf8').match(/^\s*(it|test)(\.each\([^)]*\))?\(/gm)?.length ?? 0), 0) };
+  b.tests = {
+    files: testFiles.length,
+    declarations: testFiles.reduce(
+      (n, f) => n + (readFileSync(f, 'utf8').match(/^\s*(it|test)(\.each\([^)]*\))?\(/gm)?.length ?? 0),
+      0,
+    ),
+  };
   if (distArg) {
-    const out = execFileSync('npx', ['tsx', 'tools/dist.ts', `--dir=${distArg}`, '--json'], { cwd: ROOT, encoding: 'utf8' });
+    const out = execFileSync('npx', ['tsx', 'tools/dist.ts', `--dir=${distArg}`, '--json'], {
+      cwd: ROOT,
+      encoding: 'utf8',
+    });
     b.bundle = { initialJsKB: JSON.parse(out).initialJsKB };
   }
   return b;
@@ -91,21 +129,34 @@ export function differences(want: Baseline, got: Baseline): string[] {
   const out: string[] = [];
   for (const [id, g] of Object.entries(want.games)) {
     const h = got.games[id];
-    if (!h) { out.push(`${id}: no longer measured`); continue; }
-    for (const part of ['witness', 'proof'] as const) for (const [k, v] of Object.entries(g[part])) {
-      const now = (h[part] as Record<string, unknown>)[k];
-      if (now !== v) out.push(`${id} ${part}.${k}: ${v} → ${now}${k === 'digests' ? ' (a state after some input differs: npm run replay on the witness names the entry)' : ''}`);
+    if (!h) {
+      out.push(`${id}: no longer measured`);
+      continue;
     }
+    for (const part of ['witness', 'proof'] as const)
+      for (const [k, v] of Object.entries(g[part])) {
+        const now = (h[part] as Record<string, unknown>)[k];
+        if (now !== v)
+          out.push(
+            `${id} ${part}.${k}: ${v} → ${now}${k === 'digests' ? ' (a state after some input differs: npm run replay on the witness names the entry)' : ''}`,
+          );
+      }
   }
-  for (const id of Object.keys(got.games)) if (!want.games[id]) out.push(`${id}: new game, not in the baseline (npm run quality:baseline)`);
+  for (const id of Object.keys(got.games))
+    if (!want.games[id]) out.push(`${id}: new game, not in the baseline (npm run quality:baseline)`);
   for (const [f, s] of Object.entries(want.saves)) {
     const h = got.saves[f];
     if (!h) out.push(`golden save ${f}: missing`);
-    else for (const [k, v] of Object.entries(s)) if ((h as Record<string, unknown>)[k] !== v) out.push(`golden save ${f} ${k}: ${v} → ${(h as Record<string, unknown>)[k]}`);
+    else
+      for (const [k, v] of Object.entries(s))
+        if ((h as Record<string, unknown>)[k] !== v)
+          out.push(`golden save ${f} ${k}: ${v} → ${(h as Record<string, unknown>)[k]}`);
   }
   if (want.surface.api !== got.surface.api) out.push('tests/api-surface.json: the public API or the MCP tools changed');
-  if (got.tests.declarations < want.tests.declarations) out.push(`tests: ${want.tests.declarations} declarations → ${got.tests.declarations} (a test was removed)`);
-  if (want.bundle && got.bundle && got.bundle.initialJsKB > want.bundle.initialJsKB) out.push(`first visit's JavaScript: ${want.bundle.initialJsKB} KB → ${got.bundle.initialJsKB} KB gzipped`);
+  if (got.tests.declarations < want.tests.declarations)
+    out.push(`tests: ${want.tests.declarations} declarations → ${got.tests.declarations} (a test was removed)`);
+  if (want.bundle && got.bundle && got.bundle.initialJsKB > want.bundle.initialJsKB)
+    out.push(`first visit's JavaScript: ${want.bundle.initialJsKB} KB → ${got.bundle.initialJsKB} KB gzipped`);
   return out;
 }
 
@@ -113,16 +164,22 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
   console.error('quality baseline: solving and replaying…');
   const got = await measure();
   if (!check) {
-    const prev = existsSync(OUT) ? JSON.parse(readFileSync(OUT, 'utf8')) as Baseline : undefined;
+    const prev = existsSync(OUT) ? (JSON.parse(readFileSync(OUT, 'utf8')) as Baseline) : undefined;
     if (!got.bundle && prev?.bundle) got.bundle = prev.bundle;
     writeFileSync(OUT, JSON.stringify(got, null, 1) + '\n');
-    console.log(`✔  tests/quality-baseline.json written: ${Object.keys(got.games).length} games, ${Object.keys(got.saves).length} golden saves, ${got.tests.declarations} test declarations`);
+    console.log(
+      `✔  tests/quality-baseline.json written: ${Object.keys(got.games).length} games, ${Object.keys(got.saves).length} golden saves, ${got.tests.declarations} test declarations`,
+    );
     await flushExit(0);
   } else {
     const want = JSON.parse(readFileSync(OUT, 'utf8')) as Baseline;
     const diff = differences(want, got);
     for (const d of diff) console.log('  ✖ ' + d);
-    console.log(diff.length ? `✖  behaviour moved from tests/quality-baseline.json (${diff.length})` : `✔  same behaviour as tests/quality-baseline.json: ${Object.keys(got.games).length} games, ${Object.keys(got.saves).length} golden saves, ${got.tests.declarations} test declarations${got.bundle ? `, first visit ${got.bundle.initialJsKB} KB` : ''}`);
+    console.log(
+      diff.length
+        ? `✖  behaviour moved from tests/quality-baseline.json (${diff.length})`
+        : `✔  same behaviour as tests/quality-baseline.json: ${Object.keys(got.games).length} games, ${Object.keys(got.saves).length} golden saves, ${got.tests.declarations} test declarations${got.bundle ? `, first visit ${got.bundle.initialJsKB} KB` : ''}`,
+    );
     await flushExit(diff.length ? 1 : 0);
   }
 }

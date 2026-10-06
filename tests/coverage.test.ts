@@ -15,25 +15,58 @@ describe('text matching', () => {
   });
 });
 
-describe('the sample game\'s storyboard', () => {
+describe("the sample game's storyboard", () => {
   const c = storyboardCoverage(game, sb);
   it('is mostly implemented, with the rooms, speakers, sounds and actions found', () => {
     expect(c.score).toBeGreaterThan(0.9);
     const house = c.boards.find((b) => b.id === 'house')!;
     expect(house.room).toMatchObject({ status: 'ok' });
     expect(house.panels.find((p) => p.id === 'house-1')).toMatchObject({ status: 'ok' });
-    expect(house.panels.find((p) => p.id === 'house-1')!.action).toMatchObject({ status: 'ok', path: 'room:house/on[1]' });
+    expect(house.panels.find((p) => p.id === 'house-1')!.action).toMatchObject({
+      status: 'ok',
+      path: 'room:house/on[1]',
+    });
     expect(house.panels.find((p) => p.id === 'house-3')!.action).toMatchObject({ status: 'ok' }); // a declared exit
-    expect(house.reactions.find((r) => r.what.startsWith('Pull'))).toMatchObject({ status: 'ok', path: expect.stringContaining('rules/kinds') });
+    expect(house.reactions.find((r) => r.what.startsWith('Pull'))).toMatchObject({
+      status: 'ok',
+      path: expect.stringContaining('rules/kinds'),
+    });
     const market = c.boards.find((b) => b.id === 'market')!;
-    expect(market.panels.find((p) => p.id === 'market-1')!.action).toMatchObject({ status: 'ok', path: expect.stringContaining('talk.neighbor') });
+    expect(market.panels.find((p) => p.id === 'market-1')!.action).toMatchObject({
+      status: 'ok',
+      path: expect.stringContaining('talk.neighbor'),
+    });
     expect(market.panels.find((p) => p.id === 'market-4')!.lines.every((l) => l.status === 'ok')).toBe(true); // minigame texts
   });
   it('reports what is not there', () => {
-    const sb2 = normalizeStoryboard({ boards: [{ id: 'x', title: 'X', room: 'attic', panels: [
-      { id: 'x-1', title: 'nope', action: 'Use ladder with roof', lines: [{ who: 'ghost', text: 'Boo' }, { who: 'hero', text: 'Nobody ever said this sentence.' }], sfx: ['thunder'] },
-      { id: 'x-2', title: 'half', action: 'Pull the clock', lines: [{ who: 'grandma', text: 'Go through the big window. Mind the roses.' }] },
-    ], talks: { grandma: [{ topic: 'Where is the key?' }, { topic: 'Where is the moon?' }] } }] });
+    const sb2 = normalizeStoryboard({
+      boards: [
+        {
+          id: 'x',
+          title: 'X',
+          room: 'attic',
+          panels: [
+            {
+              id: 'x-1',
+              title: 'nope',
+              action: 'Use ladder with roof',
+              lines: [
+                { who: 'ghost', text: 'Boo' },
+                { who: 'hero', text: 'Nobody ever said this sentence.' },
+              ],
+              sfx: ['thunder'],
+            },
+            {
+              id: 'x-2',
+              title: 'half',
+              action: 'Pull the clock',
+              lines: [{ who: 'grandma', text: 'Go through the big window. Mind the roses.' }],
+            },
+          ],
+          talks: { grandma: [{ topic: 'Where is the key?' }, { topic: 'Where is the moon?' }] },
+        },
+      ],
+    });
     const r = storyboardCoverage(game, sb2);
     const b = r.boards[0];
     expect(b.room).toMatchObject({ status: 'missing' });
@@ -41,7 +74,10 @@ describe('the sample game\'s storyboard', () => {
     expect(b.panels[0].lines[0]).toMatchObject({ status: 'missing', detail: 'no character "ghost"' });
     expect(b.panels[0].lines[1].status).toBe('missing');
     expect(b.panels[0].sfx[0]).toMatchObject({ status: 'missing' });
-    expect(b.panels[1].lines[0]).toMatchObject({ status: 'ok', path: expect.stringContaining('room:house/talk.grandma') });
+    expect(b.panels[1].lines[0]).toMatchObject({
+      status: 'ok',
+      path: expect.stringContaining('room:house/talk.grandma'),
+    });
     expect(b.talks[0].actor.status).toBe('unknown'); // grandma exists but the board's room does not
     expect(b.talks[0].topics[1].status).toBe('missing');
     const md = coverageMarkdown(r);

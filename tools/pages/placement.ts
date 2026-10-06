@@ -7,11 +7,42 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { GameDef, Layout, RoomDef } from '../../src/engine/core/types';
-import { charImageId, cliArgs, docId, esc, imageSource, isMain, jsonForScript, loadContext, outPath, pageShell, persistBar,
-  ROOT, thumbs, writePage, type PageContext } from './lib';
+import {
+  charImageId,
+  cliArgs,
+  docId,
+  esc,
+  imageSource,
+  isMain,
+  jsonForScript,
+  loadContext,
+  outPath,
+  pageShell,
+  persistBar,
+  ROOT,
+  thumbs,
+  writePage,
+  type PageContext,
+} from './lib';
 
-interface Item { kind: 'prop' | 'actor' | 'hotspot'; id: string; name: string; img?: string; aspect?: number; h: number; depth?: boolean }
-interface RoomData { id: string; name: string; doc: string; decor?: string; layout: Layout; items: Item[]; hero?: { img?: string; aspect: number; h: number } }
+interface Item {
+  kind: 'prop' | 'actor' | 'hotspot';
+  id: string;
+  name: string;
+  img?: string;
+  aspect?: number;
+  h: number;
+  depth?: boolean;
+}
+interface RoomData {
+  id: string;
+  name: string;
+  doc: string;
+  decor?: string;
+  layout: Layout;
+  items: Item[];
+  hero?: { img?: string; aspect: number; h: number };
+}
 
 /** The prepared image when the game's manifest has it (same proportions as in the game), else the source file. */
 function placeImage(ctx: PageContext, id: string | undefined): string | undefined {
@@ -36,25 +67,61 @@ function actorImage(g: GameDef, charId: string, pose = 'idle'): string | undefin
 export function placementData(ctx: PageContext): RoomData[] {
   const g = ctx.game;
   const wanted = new Map<string, string>(); // image id -> file
-  const want = (id?: string) => { const f = placeImage(ctx, id); if (id && f) wanted.set(id, f); return f ? id : undefined; };
+  const want = (id?: string) => {
+    const f = placeImage(ctx, id);
+    if (id && f) wanted.set(id, f);
+    return f ? id : undefined;
+  };
   const rooms = g.rooms.map((r) => {
     const items: Item[] = [];
-    for (const [id, p] of Object.entries(r.props ?? {})) items.push({ kind: 'prop', id, name: p.name ?? id, img: want(propImage(r, id)), h: 60 });
+    for (const [id, p] of Object.entries(r.props ?? {}))
+      items.push({ kind: 'prop', id, name: p.name ?? id, img: want(propImage(r, id)), h: 60 });
     for (const [id, a] of Object.entries(r.actors ?? {})) {
       const c = g.characters[a.char];
-      items.push({ kind: 'actor', id, name: a.name ?? c?.name ?? id, img: want(actorImage(g, a.char, a.pose)), h: c?.height ?? g.skin?.heights?.actor ?? 110, depth: true });
+      items.push({
+        kind: 'actor',
+        id,
+        name: a.name ?? c?.name ?? id,
+        img: want(actorImage(g, a.char, a.pose)),
+        h: c?.height ?? g.skin?.heights?.actor ?? 110,
+        depth: true,
+      });
     }
-    for (const [id, h] of Object.entries(r.hotspots ?? {})) items.push({ kind: 'hotspot', id, name: h.name ?? id, h: 0 });
+    for (const [id, h] of Object.entries(r.hotspots ?? {}))
+      items.push({ kind: 'hotspot', id, name: h.name ?? id, h: 0 });
     const heroImg = r.hero === false ? undefined : want(actorImage(g, g.hero));
     return { r, items, heroImg, decor: want(r.decor) };
   });
-  const sprites = thumbs([...wanted.entries()].filter(([id]) => !id.startsWith('decor/')).map(([, f]) => f), 200);
-  const decors = thumbs([...wanted.entries()].filter(([id]) => id.startsWith('decor/')).map(([, f]) => f), 960);
+  const sprites = thumbs(
+    [...wanted.entries()].filter(([id]) => !id.startsWith('decor/')).map(([, f]) => f),
+    200,
+  );
+  const decors = thumbs(
+    [...wanted.entries()].filter(([id]) => id.startsWith('decor/')).map(([, f]) => f),
+    960,
+  );
   const uri = (id?: string) => (id ? (id.startsWith('decor/') ? decors : sprites).get(wanted.get(id)!) : undefined);
   return rooms.map(({ r, items, heroImg, decor }) => ({
-    id: r.id, name: r.name, doc: docId(r.id), decor: uri(decor)?.uri, layout: ctx.layouts[r.id] ?? {},
-    items: items.map((it) => { const t = uri(it.img); return { ...it, img: t?.uri, aspect: t ? t.w / t.h : 0.6 }; }),
-    hero: r.hero === false ? undefined : (() => { const t = uri(heroImg); return { img: t?.uri, aspect: t ? t.w / t.h : 0.6, h: g.characters[g.hero]?.height ?? g.skin?.heights?.hero ?? 84 }; })(),
+    id: r.id,
+    name: r.name,
+    doc: docId(r.id),
+    decor: uri(decor)?.uri,
+    layout: ctx.layouts[r.id] ?? {},
+    items: items.map((it) => {
+      const t = uri(it.img);
+      return { ...it, img: t?.uri, aspect: t ? t.w / t.h : 0.6 };
+    }),
+    hero:
+      r.hero === false
+        ? undefined
+        : (() => {
+            const t = uri(heroImg);
+            return {
+              img: t?.uri,
+              aspect: t ? t.w / t.h : 0.6,
+              h: g.characters[g.hero]?.height ?? g.skin?.heights?.hero ?? 84,
+            };
+          })(),
   }));
 }
 
@@ -427,7 +494,16 @@ export function buildPlacement(ctx: PageContext): string {
   <div class="row"><button type="button" class="btn primary" id="exp-room">Export room</button><button type="button" class="btn" id="reset">Reset room</button><span id="savestate" class="state"></span></div>
   <div class="insp" id="insp"></div>
   <div class="layers" aria-label="Show">
-    ${[['prop', 'props'], ['actor', 'actors'], ['hotspot', 'zones'], ['walk', 'walk area'], ['entry', 'entries'], ['scale', 'scale']].map(([v, l]) => `<label><input type="checkbox" value="${v}" checked>${l}</label>`).join('')}
+    ${[
+      ['prop', 'props'],
+      ['actor', 'actors'],
+      ['hotspot', 'zones'],
+      ['walk', 'walk area'],
+      ['entry', 'entries'],
+      ['scale', 'scale'],
+    ]
+      .map(([v, l]) => `<label><input type="checkbox" value="${v}" checked>${l}</label>`)
+      .join('')}
   </div>
   <h2>In this room</h2>
   <div class="list" id="list"></div>
@@ -435,7 +511,13 @@ export function buildPlacement(ctx: PageContext): string {
 </aside>
 </div>`;
   const script = `var PAGE_KEY = ${jsonForScript(`placement:${ctx.gameId}`)}; var GAME_ID = ${jsonForScript(ctx.gameId)}; var ROOMS = ${jsonForScript(rooms)};\n${SCRIPT}`;
-  return pageShell({ title: `${ctx.game.title} placement`.slice(0, 60), description: 'Drag props, actors, zones and the walk area of each room.', css: CSS, body, script });
+  return pageShell({
+    title: `${ctx.game.title} placement`.slice(0, 60),
+    description: 'Drag props, actors, zones and the walk area of each room.',
+    css: CSS,
+    body,
+    script,
+  });
 }
 
 if (isMain(import.meta.url)) {
@@ -443,4 +525,3 @@ if (isMain(import.meta.url)) {
   const ctx = await loadContext();
   writePage(outPath(out, 'placement.html'), buildPlacement(ctx));
 }
-

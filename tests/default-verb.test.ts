@@ -24,7 +24,10 @@ describe('the default verb of a double tap', () => {
 
   it('the content names it (defaultVerb), and a verb the game lacks is never chosen', () => {
     const street = room('street');
-    const named = { ...street, hotspots: { ...street.hotspots, fusebox: { ...street.hotspots!.fusebox, defaultVerb: 'open' } } };
+    const named = {
+      ...street,
+      hotspots: { ...street.hotspots, fusebox: { ...street.hotspots!.fusebox, defaultVerb: 'open' } },
+    };
     expect(defaultVerb(g, named, 'fusebox')).toBe('open');
     const noTalk = { ...g, verbs: g.verbs.filter((v) => v.id !== 'talk' && v.id !== 'give') };
     expect(defaultVerb(noTalk, room('hall'), 'neighbor')).toBe('look');

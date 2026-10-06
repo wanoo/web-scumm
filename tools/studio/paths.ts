@@ -1,11 +1,17 @@
 // Text paths of a room file (`look.piano[1]`, `on[3].do[0]`…) and which of them are texts. Pure, with no dependency:
 // shared by the source editor (tools/studio/source.ts, node) and the Studio's browser backend (src/studio/api-browser.ts).
 import type { TextKind } from './types';
+import { must } from '../../src/engine/core/must';
 
 export type Seg = string | number;
 
 export class SourceError extends Error {
-  constructor(message: string, readonly status = 400) { super(message); }
+  constructor(
+    message: string,
+    readonly status = 400,
+  ) {
+    super(message);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -32,11 +38,13 @@ export function parsePath(path: string): Seg[] {
   const re = /^(?:\.?([A-Za-z_$][\w$]*)|\[(\d+)\]|\[(\+)\]|\[("(?:[^"\\]|\\.)*")\])/;
   while (rest) {
     const m = re.exec(rest);
-    if (!m || (m[1] !== undefined && segs.length === 0 && rest.startsWith('.'))) throw new SourceError(`invalid path: "${path}"`);
+    if (!m || (m[1] !== undefined && segs.length === 0 && rest.startsWith('.')))
+      throw new SourceError(`invalid path: "${path}"`);
     if (m[1] !== undefined) segs.push(m[1]);
     else if (m[2] !== undefined) segs.push(Number(m[2]));
     else if (m[3] !== undefined) segs.push('+');
-    else segs.push(JSON.parse(m[4]) as string);
+    else segs.push(JSON.parse(must(m[4], 'quoted key of a matched path segment')) as string);
+
     rest = rest.slice(m[0].length);
   }
   if (!segs.length) throw new SourceError('empty path');
@@ -68,7 +76,8 @@ export function classify(segs: Seg[]): TextKind | null {
     if ((prev === 'say' || prev === 'shout') && last === 1) return 'say';
     if (segs[0] === 'look' && n === 3) return 'look';
     if (typeof prev === 'string' && HERO_LISTS.has(prev)) return 'hero';
-    if (typeof prev === 'number' && typeof segs[n - 3] === 'string' && HERO_LISTS2.has(segs[n - 3] as string)) return 'hero';
+    if (typeof prev === 'number' && typeof segs[n - 3] === 'string' && HERO_LISTS2.has(segs[n - 3] as string))
+      return 'hero';
   }
   if (segs[0] === 'look' && n === 2) return 'look';
   return null;

@@ -3,12 +3,38 @@
 // their first property, keeping the file's quotes and indentation. Anything that is not a plain literal (a spread, a
 // `.map(...)`, an identifier) is skipped and reported with the id the engine expects, so the author adds it by hand.
 import ts from 'typescript';
-import type { Cmd, EventRule, GameDef, GameRules, HintDef, ItemDef, KindRule, ListLine, RoomDef, Rule, ScriptDef, TalkTopic } from '../../src/engine/core/types';
+import type {
+  Cmd,
+  EventRule,
+  GameDef,
+  GameRules,
+  HintDef,
+  ItemDef,
+  KindRule,
+  ListLine,
+  RoomDef,
+  Rule,
+  ScriptDef,
+  TalkTopic,
+} from '../../src/engine/core/types';
 import { encodeString, fileQuote, propKey, unwrap } from '../studio/source';
 
-export interface Inserted { path: string; id: string; line: number }
-export interface Skipped { path: string; line: number; reason: string; expected?: string }
-export interface CodemodResult { code: string; inserted: Inserted[]; skipped: Skipped[] }
+export interface Inserted {
+  path: string;
+  id: string;
+  line: number;
+}
+export interface Skipped {
+  path: string;
+  line: number;
+  reason: string;
+  expected?: string;
+}
+export interface CodemodResult {
+  code: string;
+  inserted: Inserted[];
+  skipped: Skipped[];
+}
 
 type Edit = { pos: number; text: string; end?: number };
 type Obj = ts.ObjectLiteralExpression;
@@ -18,17 +44,25 @@ class Codemod {
   readonly inserted: Inserted[] = [];
   readonly skipped: Skipped[] = [];
   private q: string;
-  constructor(private sf: ts.SourceFile) { this.q = fileQuote(sf); }
+  constructor(private sf: ts.SourceFile) {
+    this.q = fileQuote(sf);
+  }
 
-  private line(n: ts.Node) { return this.sf.getLineAndCharacterOfPosition(n.getStart(this.sf)).line + 1; }
-  private skip(n: ts.Node, path: string, reason: string, expected?: string) { this.skipped.push({ path, line: this.line(n), reason, expected }); }
+  private line(n: ts.Node) {
+    return this.sf.getLineAndCharacterOfPosition(n.getStart(this.sf)).line + 1;
+  }
+  private skip(n: ts.Node, path: string, reason: string, expected?: string) {
+    this.skipped.push({ path, line: this.line(n), reason, expected });
+  }
 
   /** The property `name` of an object literal, when written as `name: value`. */
   prop(obj: Obj, name: string): ts.Expression | undefined {
     for (const p of obj.properties) if (propKey(p) === name && ts.isPropertyAssignment(p)) return unwrap(p.initializer);
     return undefined;
   }
-  private has(obj: Obj, name: string) { return obj.properties.some((p) => propKey(p) === name); }
+  private has(obj: Obj, name: string) {
+    return obj.properties.some((p) => propKey(p) === name);
+  }
 
   /** Inserts `text` as the first property of `obj`, following the file's layout. */
   private insertFirst(obj: Obj, text: string) {
@@ -36,7 +70,9 @@ class Codemod {
     const open = obj.getStart(this.sf);
     const rest = code.slice(open + 1);
     if (/^[ \t]*\n/.test(rest)) {
-      const firstLine = obj.properties.length ? code.slice(code.lastIndexOf('\n', obj.properties[0].getStart(this.sf) - 1) + 1) : '';
+      const firstLine = obj.properties.length
+        ? code.slice(code.lastIndexOf('\n', obj.properties[0].getStart(this.sf) - 1) + 1)
+        : '';
       const indent = /^[ \t]*/.exec(firstLine)?.[0] ?? '  ';
       this.edits.push({ pos: open + 1, text: `\n${indent}${text},` });
     } else {
@@ -48,7 +84,10 @@ class Codemod {
   idObj(node: ts.Expression | undefined, runtime: { id?: string } | undefined, path: string, kind: string): Obj | null {
     if (!node) return null;
     const e = unwrap(node);
-    if (!ts.isObjectLiteralExpression(e)) { this.skip(node, path, `${kind} is not an object literal`, runtime?.id); return null; }
+    if (!ts.isObjectLiteralExpression(e)) {
+      this.skip(node, path, `${kind} is not an object literal`, runtime?.id);
+      return null;
+    }
     if (!this.has(e, 'id') && runtime?.id) {
       this.insertFirst(e, `id: ${encodeString(runtime.id, this.q)}`);
       this.inserted.push({ path, id: runtime.id, line: this.line(e) });
@@ -60,8 +99,14 @@ class Codemod {
   elements(node: ts.Expression | undefined, path: string, what: string): ts.Expression[] | null {
     if (!node) return null;
     const e = unwrap(node);
-    if (!ts.isArrayLiteralExpression(e)) { this.skip(node, path, `${what} is not an array literal`); return null; }
-    if (e.elements.some((x) => ts.isSpreadElement(x) || ts.isOmittedExpression(x))) { this.skip(node, path, `${what} has a spread: indices cannot be matched`); return null; }
+    if (!ts.isArrayLiteralExpression(e)) {
+      this.skip(node, path, `${what} is not an array literal`);
+      return null;
+    }
+    if (e.elements.some((x) => ts.isSpreadElement(x) || ts.isOmittedExpression(x))) {
+      this.skip(node, path, `${what} has a spread: indices cannot be matched`);
+      return null;
+    }
     return [...e.elements] as ts.Expression[];
   }
 
@@ -76,52 +121,92 @@ class Codemod {
       const line = 'say' in c || 'toast' in c || 'guide' in c ? (c as { id?: string }) : null;
       // `--lines=all`: the runtime turned this plain string into `{ say: ['hero', text], id }`; the source follows.
       if (line?.id && ts.isStringLiteralLike(e) && 'say' in c) {
-        this.edits.push({ pos: e.getStart(this.sf), end: e.getEnd(), text: `{ say: [${encodeString(c.say[0], this.q)}, ${e.getText(this.sf)}], id: ${encodeString(line.id, this.q)} }` });
+        this.edits.push({
+          pos: e.getStart(this.sf),
+          end: e.getEnd(),
+          text: `{ say: [${encodeString(c.say[0], this.q)}, ${e.getText(this.sf)}], id: ${encodeString(line.id, this.q)} }`,
+        });
         this.inserted.push({ path: here, id: line.id, line: this.line(e) });
         return;
       }
-      if (!ts.isObjectLiteralExpression(e)) { if (!ts.isStringLiteralLike(e)) this.skip(el, here, 'command is not a literal', (c as { id?: string }).id); return; }
-      if (line) { this.idObj(e, line, here, 'line'); return; }
+      if (!ts.isObjectLiteralExpression(e)) {
+        if (!ts.isStringLiteralLike(e)) this.skip(el, here, 'command is not a literal', (c as { id?: string }).id);
+        return;
+      }
+      if (line) {
+        this.idObj(e, line, here, 'line');
+        return;
+      }
       const kind = (['once', 'nth', 'cycle', 'random'] as const).find((k) => k in c);
       if (kind) {
         this.idObj(e, c as { id?: string }, here, kind);
         const lists = kind === 'once' ? [(c as { once: Cmd[] }).once] : (c as unknown as Record<string, Cmd[][]>)[kind];
         if (kind === 'once') this.cmds(this.prop(e, 'once'), lists[0], `${here}.once`);
-        else { const subs = this.elements(this.prop(e, kind), `${here}.${kind}`, kind); subs?.forEach((s, j) => this.cmds(s, lists[j], `${here}.${kind}[${j}]`)); }
+        else {
+          const subs = this.elements(this.prop(e, kind), `${here}.${kind}`, kind);
+          subs?.forEach((s, j) => this.cmds(s, lists[j], `${here}.${kind}[${j}]`));
+        }
         return;
       }
       if ('choice' in c) {
         const opts = this.elements(this.prop(e, 'choice'), `${here}.choice`, 'choice');
-        opts?.forEach((o, j) => { const obj = this.idObj(o, c.choice[j], `${here}.choice[${j}]`, 'choice option'); if (obj) this.cmds(this.prop(obj, 'do'), c.choice[j]?.do, `${here}.choice[${j}].do`); });
+        opts?.forEach((o, j) => {
+          const obj = this.idObj(o, c.choice[j], `${here}.choice[${j}]`, 'choice option');
+          if (obj) this.cmds(this.prop(obj, 'do'), c.choice[j]?.do, `${here}.choice[${j}].do`);
+        });
         return;
       }
-      if ('if' in c) { this.cmds(this.prop(e, 'then'), c.then, `${here}.then`); this.cmds(this.prop(e, 'else'), c.else, `${here}.else`); }
-      else if ('parallel' in c) { const subs = this.elements(this.prop(e, 'parallel'), `${here}.parallel`, 'parallel'); subs?.forEach((s, j) => this.cmds(s, c.parallel[j], `${here}.parallel[${j}]`)); }
-      else if ('cutscene' in c) this.cmds(this.prop(e, 'cutscene'), c.cutscene, `${here}.cutscene`);
+      if ('if' in c) {
+        this.cmds(this.prop(e, 'then'), c.then, `${here}.then`);
+        this.cmds(this.prop(e, 'else'), c.else, `${here}.else`);
+      } else if ('parallel' in c) {
+        const subs = this.elements(this.prop(e, 'parallel'), `${here}.parallel`, 'parallel');
+        subs?.forEach((s, j) => this.cmds(s, c.parallel[j], `${here}.parallel[${j}]`));
+      } else if ('cutscene' in c) this.cmds(this.prop(e, 'cutscene'), c.cutscene, `${here}.cutscene`);
       else if ('minigame' in c) this.cmds(this.prop(e, 'then'), c.then, `${here}.then`);
       else if ('phone' in c) this.cmds(this.prop(e, 'do'), c.do, `${here}.do`);
-      else if ('anim' in c && c.at) { const at = this.prop(e, 'at'); if (at && ts.isObjectLiteralExpression(at)) for (const p of at.properties) { const k = propKey(p); if (k !== undefined && ts.isPropertyAssignment(p)) this.cmds(p.initializer, (c.at as Record<string, Cmd[]>)[k], `${here}.at[${k}]`); } }
-      else if ('ending' in c || 'reveal' in c) this.cmds(this.prop(e, 'after'), (c as { after?: Cmd[] }).after, `${here}.after`);
+      else if ('anim' in c && c.at) {
+        const at = this.prop(e, 'at');
+        if (at && ts.isObjectLiteralExpression(at))
+          for (const p of at.properties) {
+            const k = propKey(p);
+            if (k !== undefined && ts.isPropertyAssignment(p))
+              this.cmds(p.initializer, (c.at as Record<string, Cmd[]>)[k], `${here}.at[${k}]`);
+          }
+      } else if ('ending' in c || 'reveal' in c)
+        this.cmds(this.prop(e, 'after'), (c as { after?: Cmd[] }).after, `${here}.after`);
     });
   }
 
   rules(node: ts.Expression | undefined, runtime: Rule[] | undefined, path: string) {
     const els = this.elements(node, path, 'rules');
-    els?.forEach((el, i) => { const obj = this.idObj(el, runtime?.[i], `${path}[${i}]`, 'rule'); if (obj) this.cmds(this.prop(obj, 'do'), runtime?.[i]?.do, `${path}[${i}].do`); });
+    els?.forEach((el, i) => {
+      const obj = this.idObj(el, runtime?.[i], `${path}[${i}]`, 'rule');
+      if (obj) this.cmds(this.prop(obj, 'do'), runtime?.[i]?.do, `${path}[${i}].do`);
+    });
   }
   events(node: ts.Expression | undefined, runtime: EventRule[] | undefined, path: string) {
     const els = this.elements(node, path, 'listeners');
-    els?.forEach((el, i) => { const obj = this.idObj(el, runtime?.[i], `${path}[${i}]`, 'listener'); if (obj) this.cmds(this.prop(obj, 'do'), runtime?.[i]?.do, `${path}[${i}].do`); });
+    els?.forEach((el, i) => {
+      const obj = this.idObj(el, runtime?.[i], `${path}[${i}]`, 'listener');
+      if (obj) this.cmds(this.prop(obj, 'do'), runtime?.[i]?.do, `${path}[${i}].do`);
+    });
   }
   topics(node: ts.Expression | undefined, runtime: Record<string, TalkTopic[]> | undefined, path: string) {
     if (!node) return;
     const e = unwrap(node);
-    if (!ts.isObjectLiteralExpression(e)) { this.skip(node, path, 'talk is not an object literal'); return; }
+    if (!ts.isObjectLiteralExpression(e)) {
+      this.skip(node, path, 'talk is not an object literal');
+      return;
+    }
     for (const p of e.properties) {
       const actor = propKey(p);
       if (actor === undefined || !ts.isPropertyAssignment(p)) continue;
       const els = this.elements(p.initializer, `${path}.${actor}`, 'topics');
-      els?.forEach((el, i) => { const obj = this.idObj(el, runtime?.[actor]?.[i], `${path}.${actor}[${i}]`, 'topic'); if (obj) this.cmds(this.prop(obj, 'do'), runtime?.[actor]?.[i]?.do, `${path}.${actor}[${i}].do`); });
+      els?.forEach((el, i) => {
+        const obj = this.idObj(el, runtime?.[actor]?.[i], `${path}.${actor}[${i}]`, 'topic');
+        if (obj) this.cmds(this.prop(obj, 'do'), runtime?.[actor]?.[i]?.do, `${path}.${actor}[${i}].do`);
+      });
     }
   }
   scripts(node: ts.Expression | undefined, runtime: ScriptDef[] | undefined, path: string) {
@@ -129,7 +214,10 @@ class Codemod {
     els?.forEach((el, i) => {
       const sc = runtime?.[i];
       const e = unwrap(el);
-      if (!ts.isObjectLiteralExpression(e)) { this.skip(el, `${path}[${i}]`, 'script is not an object literal', sc?.stepIds?.join(', ')); return; }
+      if (!ts.isObjectLiteralExpression(e)) {
+        this.skip(el, `${path}[${i}]`, 'script is not an object literal', sc?.stepIds?.join(', '));
+        return;
+      }
       if (sc?.stepIds && !this.has(e, 'stepIds')) {
         this.insertFirst(e, `stepIds: [${sc.stepIds.map((x) => encodeString(x, this.q)).join(', ')}]`);
         this.inserted.push({ path: `${path}[${i}].stepIds`, id: sc.stepIds.join(', '), line: this.line(e) });
@@ -142,16 +230,27 @@ class Codemod {
     const e = unwrap(node);
     if (!ts.isObjectLiteralExpression(e)) return;
     for (const p of e.properties) {
-      const pid = propKey(p); if (pid === undefined || !ts.isPropertyAssignment(p)) continue;
-      const po = unwrap(p.initializer); if (!ts.isObjectLiteralExpression(po)) continue;
-      const anims = this.prop(po, 'anims'); if (!anims || !ts.isObjectLiteralExpression(anims)) continue;
+      const pid = propKey(p);
+      if (pid === undefined || !ts.isPropertyAssignment(p)) continue;
+      const po = unwrap(p.initializer);
+      if (!ts.isObjectLiteralExpression(po)) continue;
+      const anims = this.prop(po, 'anims');
+      if (!anims || !ts.isObjectLiteralExpression(anims)) continue;
       for (const a of anims.properties) {
-        const an = propKey(a); if (an === undefined || !ts.isPropertyAssignment(a)) continue;
-        const ao = unwrap(a.initializer); if (!ts.isObjectLiteralExpression(ao)) continue;
-        const at = this.prop(ao, 'at'); if (!at || !ts.isObjectLiteralExpression(at)) continue;
+        const an = propKey(a);
+        if (an === undefined || !ts.isPropertyAssignment(a)) continue;
+        const ao = unwrap(a.initializer);
+        if (!ts.isObjectLiteralExpression(ao)) continue;
+        const at = this.prop(ao, 'at');
+        if (!at || !ts.isObjectLiteralExpression(at)) continue;
         for (const k of at.properties) {
-          const key = propKey(k); if (key === undefined || !ts.isPropertyAssignment(k)) continue;
-          this.cmds(k.initializer, (runtime?.[pid]?.anims?.[an]?.at as Record<string, Cmd[]> | undefined)?.[key], `${path}.${pid}.anims.${an}.at[${key}]`);
+          const key = propKey(k);
+          if (key === undefined || !ts.isPropertyAssignment(k)) continue;
+          this.cmds(
+            k.initializer,
+            (runtime?.[pid]?.anims?.[an]?.at as Record<string, Cmd[]> | undefined)?.[key],
+            `${path}.${pid}.anims.${an}.at[${key}]`,
+          );
         }
       }
     }
@@ -169,11 +268,18 @@ class Codemod {
       const x = unwrap(el);
       const here = `${path}[${i}]`;
       if (ts.isStringLiteralLike(x)) {
-        this.edits.push({ pos: x.getStart(this.sf), end: x.getEnd(), text: `{ id: ${encodeString(l.id, this.q)}, text: ${x.getText(this.sf)} }` });
+        this.edits.push({
+          pos: x.getStart(this.sf),
+          end: x.getEnd(),
+          text: `{ id: ${encodeString(l.id, this.q)}, text: ${x.getText(this.sf)} }`,
+        });
         this.inserted.push({ path: here, id: l.id, line: this.line(x) });
         return;
       }
-      if (!ts.isObjectLiteralExpression(x)) { this.skip(el, here, 'line is not a literal', l.id); return; }
+      if (!ts.isObjectLiteralExpression(x)) {
+        this.skip(el, here, 'line is not a literal', l.id);
+        return;
+      }
       this.idObj(x, l, here, 'line');
     });
   }
@@ -181,18 +287,34 @@ class Codemod {
   looks(node: ts.Expression | undefined, runtime: Record<string, string | ListLine[]> | undefined, path: string) {
     if (!node) return;
     const e = unwrap(node);
-    if (!ts.isObjectLiteralExpression(e)) { this.skip(node, path, 'look is not an object literal'); return; }
-    for (const p of e.properties) { const k = propKey(p); if (k !== undefined && ts.isPropertyAssignment(p)) this.listLines(p.initializer, runtime?.[k], `${path}.${k}`); }
+    if (!ts.isObjectLiteralExpression(e)) {
+      this.skip(node, path, 'look is not an object literal');
+      return;
+    }
+    for (const p of e.properties) {
+      const k = propKey(p);
+      if (k !== undefined && ts.isPropertyAssignment(p)) this.listLines(p.initializer, runtime?.[k], `${path}.${k}`);
+    }
   }
   hints(node: ts.Expression | undefined, runtime: HintDef[] | undefined, path: string) {
     const els = this.elements(node, path, 'hints');
-    els?.forEach((el, i) => { const obj = this.idObj(el, runtime?.[i], `${path}[${i}]`, 'hint'); if (obj) this.listLines(this.prop(obj, 'lines'), runtime?.[i]?.lines, `${path}[${i}].lines`); });
+    els?.forEach((el, i) => {
+      const obj = this.idObj(el, runtime?.[i], `${path}[${i}]`, 'hint');
+      if (obj) this.listLines(this.prop(obj, 'lines'), runtime?.[i]?.lines, `${path}[${i}].lines`);
+    });
   }
   fallbacks(node: ts.Expression | undefined, runtime: GameRules['fallbacks'] | undefined, path: string) {
     if (!node) return;
     const e = unwrap(node);
-    if (!ts.isObjectLiteralExpression(e)) { this.skip(node, path, 'fallbacks is not an object literal'); return; }
-    for (const p of e.properties) { const k = propKey(p); if (k !== undefined && ts.isPropertyAssignment(p)) this.listLines(p.initializer, (runtime as Record<string, ListLine[]> | undefined)?.[k], `${path}.${k}`); }
+    if (!ts.isObjectLiteralExpression(e)) {
+      this.skip(node, path, 'fallbacks is not an object literal');
+      return;
+    }
+    for (const p of e.properties) {
+      const k = propKey(p);
+      if (k !== undefined && ts.isPropertyAssignment(p))
+        this.listLines(p.initializer, (runtime as Record<string, ListLine[]> | undefined)?.[k], `${path}.${k}`);
+    }
   }
   kinds(node: ts.Expression | undefined, runtime: KindRule[] | undefined, path: string) {
     const els = this.elements(node, path, 'kinds');
@@ -200,7 +322,10 @@ class Codemod {
   }
   items(node: ts.Expression, runtime: Record<string, ItemDef>, path: string) {
     const e = unwrap(node);
-    if (!ts.isObjectLiteralExpression(e)) { this.skip(node, path, 'items is not an object literal'); return; }
+    if (!ts.isObjectLiteralExpression(e)) {
+      this.skip(node, path, 'items is not an object literal');
+      return;
+    }
     for (const p of e.properties) {
       const k = propKey(p);
       if (k === undefined || !ts.isPropertyAssignment(p)) continue;
@@ -211,7 +336,8 @@ class Codemod {
 
   result(): CodemodResult {
     let code = this.sf.text;
-    for (const e of [...this.edits].sort((a, b) => b.pos - a.pos)) code = code.slice(0, e.pos) + e.text + code.slice(e.end ?? e.pos);
+    for (const e of [...this.edits].sort((a, b) => b.pos - a.pos))
+      code = code.slice(0, e.pos) + e.text + code.slice(e.end ?? e.pos);
     return { code, inserted: this.inserted, skipped: this.skipped };
   }
 }
@@ -223,20 +349,38 @@ export function findRoot(sf: ts.SourceFile, callee: string, variable?: string): 
     if (root) return;
     if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === callee && n.arguments[0]) {
       const a = unwrap(n.arguments[0]);
-      if (ts.isObjectLiteralExpression(a)) { root = a; return; }
+      if (ts.isObjectLiteralExpression(a)) {
+        root = a;
+        return;
+      }
     }
-    if (variable && ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.name.text === variable && n.initializer) {
+    if (
+      variable &&
+      ts.isVariableDeclaration(n) &&
+      ts.isIdentifier(n.name) &&
+      n.name.text === variable &&
+      n.initializer
+    ) {
       const a = unwrap(n.initializer);
-      if (ts.isObjectLiteralExpression(a)) { root = a; return; }
+      if (ts.isObjectLiteralExpression(a)) {
+        root = a;
+        return;
+      }
     }
     ts.forEachChild(n, visit);
   };
   visit(sf);
-  if (!root) for (const st of sf.statements) if (ts.isExportAssignment(st)) { const e = unwrap(st.expression); if (ts.isObjectLiteralExpression(e)) root = e; }
+  if (!root)
+    for (const st of sf.statements)
+      if (ts.isExportAssignment(st)) {
+        const e = unwrap(st.expression);
+        if (ts.isObjectLiteralExpression(e)) root = e;
+      }
   return root;
 }
 
-const parse = (code: string, fileName: string) => ts.createSourceFile(fileName, code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+const parse = (code: string, fileName: string) =>
+  ts.createSourceFile(fileName, code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
 
 /** The `id` literal of a room file's root object, to match it with the loaded game's rooms. */
 export function roomIdOf(code: string, fileName = 'room.ts'): string | undefined {
@@ -250,7 +394,10 @@ export function addIdsToRoomSource(code: string, room: RoomDef, fileName = 'room
   const sf = parse(code, fileName);
   const root = findRoot(sf, 'defineRoom');
   const cm = new Codemod(sf);
-  if (!root) { cm.skipped.push({ path: '', line: 1, reason: 'no defineRoom({...}) object found' }); return cm.result(); }
+  if (!root) {
+    cm.skipped.push({ path: '', line: 1, reason: 'no defineRoom({...}) object found' });
+    return cm.result();
+  }
   cm.rules(cm.prop(root, 'on'), room.on, 'on');
   cm.topics(cm.prop(root, 'talk'), room.talk, 'talk');
   cm.events(cm.prop(root, 'events'), room.events, 'events');
@@ -267,7 +414,10 @@ export function addIdsToRulesSource(code: string, rules: GameRules, fileName = '
   const sf = parse(code, fileName);
   const root = findRoot(sf, 'defineRules', 'rules');
   const cm = new Codemod(sf);
-  if (!root) { cm.skipped.push({ path: '', line: 1, reason: 'no `rules` object found' }); return cm.result(); }
+  if (!root) {
+    cm.skipped.push({ path: '', line: 1, reason: 'no `rules` object found' });
+    return cm.result();
+  }
   cm.rules(cm.prop(root, 'on'), rules.on, 'on');
   cm.fallbacks(cm.prop(root, 'fallbacks'), rules.fallbacks, 'fallbacks');
   cm.kinds(cm.prop(root, 'kinds'), rules.kinds, 'kinds');
@@ -275,11 +425,18 @@ export function addIdsToRulesSource(code: string, rules: GameRules, fileName = '
 }
 
 /** `items.ts`: `export const items = { key: { look: [...] } }`: ids on the lines of look lists. */
-export function addIdsToItemsSource(code: string, items: Record<string, ItemDef>, fileName = 'items.ts'): CodemodResult {
+export function addIdsToItemsSource(
+  code: string,
+  items: Record<string, ItemDef>,
+  fileName = 'items.ts',
+): CodemodResult {
   const sf = parse(code, fileName);
   const root = findRoot(sf, 'defineItems', 'items');
   const cm = new Codemod(sf);
-  if (!root) { cm.skipped.push({ path: '', line: 1, reason: 'no `items` object found' }); return cm.result(); }
+  if (!root) {
+    cm.skipped.push({ path: '', line: 1, reason: 'no `items` object found' });
+    return cm.result();
+  }
   cm.items(root, items, 'items');
   return cm.result();
 }
@@ -289,7 +446,10 @@ export function addIdsToGameSource(code: string, game: GameDef, fileName = 'game
   const sf = parse(code, fileName);
   const root = findRoot(sf, 'defineGame', 'game');
   const cm = new Codemod(sf);
-  if (!root) { cm.skipped.push({ path: '', line: 1, reason: 'no defineGame({...}) object found' }); return cm.result(); }
+  if (!root) {
+    cm.skipped.push({ path: '', line: 1, reason: 'no defineGame({...}) object found' });
+    return cm.result();
+  }
   cm.events(cm.prop(root, 'events'), game.events, 'events');
   cm.scripts(cm.prop(root, 'scripts'), game.scripts, 'scripts');
   const start = cm.prop(root, 'start');

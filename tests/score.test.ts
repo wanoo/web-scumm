@@ -2,20 +2,37 @@
 // the loop), and the ramps between two mixes. The browser side (sample-locked stems, no clicks over thirty minutes)
 // is scripts/e2e-music.mjs.
 import { describe, expect, it } from 'vitest';
-import { barSec, beatSec, crossfade, landing, loopWindow, nextBoundary, positionAt, stemsFor, transitionFor } from '@engine/core/score';
+import {
+  barSec,
+  beatSec,
+  crossfade,
+  landing,
+  loopWindow,
+  nextBoundary,
+  positionAt,
+  stemsFor,
+  transitionFor,
+} from '@engine/core/score';
 import type { ScoreDef } from '@engine/core/types';
 import { validate } from '@engine/tools/validate';
 import { game as demo } from '../games/demo/game';
 
 const score: ScoreDef = {
-  stems: { melody: 'm.mp3', strings: 's.mp3', harp: 'h.mp3', bass: 'b.mp3' }, bpm: 120, beatsPerBar: 4,
-  states: [{ if: { player: 'biscuit' }, stems: ['harp', 'bass'] }, { if: { room: 'garden' }, stems: ['strings', 'harp', 'bass'] }],
+  stems: { melody: 'm.mp3', strings: 's.mp3', harp: 'h.mp3', bass: 'b.mp3' },
+  bpm: 120,
+  beatsPerBar: 4,
+  states: [
+    { if: { player: 'biscuit' }, stems: ['harp', 'bass'] },
+    { if: { room: 'garden' }, stems: ['strings', 'harp', 'bass'] },
+  ],
 };
 
 describe('score: the mix per state', () => {
   it('the first matching state wins; none: every stem', () => {
     const holds = (on: string[]) => (c: unknown) => on.includes(JSON.stringify(c));
-    expect(stemsFor(score, holds([JSON.stringify({ room: 'garden' }), JSON.stringify({ player: 'biscuit' })]))).toEqual(['harp', 'bass']);
+    expect(stemsFor(score, holds([JSON.stringify({ room: 'garden' }), JSON.stringify({ player: 'biscuit' })]))).toEqual(
+      ['harp', 'bass'],
+    );
     expect(stemsFor(score, holds([JSON.stringify({ room: 'garden' })]))).toEqual(['strings', 'harp', 'bass']);
     expect(stemsFor(score, holds([]))).toEqual(['melody', 'strings', 'harp', 'bass']);
   });
@@ -99,7 +116,11 @@ describe('score: transitions between scores (3.6)', () => {
     expect(landing(s, 0, 0.7, 'nowhere', 0, 32)).toBe(2);
   });
   it('the first rule naming both scores applies, * for any', () => {
-    const rules = [{ from: 'a', to: 'b', at: 'phrase' }, { from: '*', to: 'b', at: 'beat' }, { from: 'a', to: '*', at: 'bar' }];
+    const rules = [
+      { from: 'a', to: 'b', at: 'phrase' },
+      { from: '*', to: 'b', at: 'beat' },
+      { from: 'a', to: '*', at: 'bar' },
+    ];
     expect(transitionFor(rules, 'a', 'b')?.at).toBe('phrase');
     expect(transitionFor(rules, 'c', 'b')?.at).toBe('beat');
     expect(transitionFor(rules, 'a', 'c')?.at).toBe('bar');
@@ -108,7 +129,10 @@ describe('score: transitions between scores (3.6)', () => {
   it('validate checks the rules', () => {
     const g = structuredClone(demo);
     g.audio!.scores!.theme.markers = { bridge: 2, bad: -1 };
-    g.audio!.transitions = [{ from: 'theme', to: 'nope', at: 'bridge' }, { from: 'theme', to: 'theme', at: 'coda', bridge: 'jingle?' }];
+    g.audio!.transitions = [
+      { from: 'theme', to: 'nope', at: 'bridge' },
+      { from: 'theme', to: 'theme', at: 'coda', bridge: 'jingle?' },
+    ];
     const { errors } = validate(g, {});
     expect(errors.filter((e) => /transitions|markers/.test(e))).toEqual([
       expect.stringContaining('audio.transitions[0].to'),
@@ -123,7 +147,11 @@ describe('score: transitions between scores (3.6)', () => {
     g.audio!.music!.other = g.audio!.music!.theme;
     g.audio!.scores!.theme.markers = { coda: 2 };
     // Rule 1 is fine: the only score it can leave is the theme, which has the marker.
-    g.audio!.transitions = [{ from: '*', to: 'theme', at: 'coda' }, { from: '*', to: 'other', at: 'coda' }, { from: 'other', to: 'theme', at: 'bar' }];
+    g.audio!.transitions = [
+      { from: '*', to: 'theme', at: 'coda' },
+      { from: '*', to: 'other', at: 'coda' },
+      { from: 'other', to: 'theme', at: 'bar' },
+    ];
     const { errors } = validate(g, {});
     expect(errors.filter((e) => /transitions/.test(e))).toEqual([
       expect.stringMatching(/transitions\[0\]\.at.*"other" has no such marker/),

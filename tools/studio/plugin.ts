@@ -17,13 +17,24 @@ function readBody(req: IncomingMessage): Promise<unknown> {
     const chunks: Buffer[] = [];
     req.on('data', (c: Buffer) => {
       size += c.length;
-      if (size > MAX_BODY) { fail(new StudioError('body too large', 413)); req.destroy(); return; }
+      if (size > MAX_BODY) {
+        fail(new StudioError('body too large', 413));
+        req.destroy();
+        return;
+      }
       chunks.push(c);
     });
     req.on('end', () => {
       const s = Buffer.concat(chunks).toString('utf8');
-      if (!s.trim()) { ok({}); return; }
-      try { ok(JSON.parse(s)); } catch { fail(new StudioError('the body is not valid JSON')); }
+      if (!s.trim()) {
+        ok({});
+        return;
+      }
+      try {
+        ok(JSON.parse(s));
+      } catch {
+        fail(new StudioError('the body is not valid JSON'));
+      }
     });
     req.on('error', fail);
   });
@@ -67,13 +78,26 @@ function routes(s: Studio): [string, RegExp, Handler][] {
     ['POST', /^\/coverage$/, () => s.coverage()],
     ['POST', /^\/playtests$/, () => s.playtests()],
     ['POST', /^\/lint$/, (_m, b) => s.lint(!!b.prove)],
-    ['POST', /^\/solve$/, (_m, b) => s.solve(typeof b.from === 'string' && b.from ? b.from : null, undefined, b.prove ? 'prove' : 'witness')],
-    ['POST', /^\/screenshot$/, async (_m, b, ctx) => {
-      if (typeof b.room !== 'string') throw new StudioError('`room` is required');
-      const r = await s.screenshot(b.room, typeof b.checkpoint === 'string' && b.checkpoint ? b.checkpoint : null, ctx.baseUrl);
-      if ('unavailable' in r) throw Object.assign(new StudioError(r.reason, 501), { body: r });
-      return r;
-    }],
+    [
+      'POST',
+      /^\/solve$/,
+      (_m, b) =>
+        s.solve(typeof b.from === 'string' && b.from ? b.from : null, undefined, b.prove ? 'prove' : 'witness'),
+    ],
+    [
+      'POST',
+      /^\/screenshot$/,
+      async (_m, b, ctx) => {
+        if (typeof b.room !== 'string') throw new StudioError('`room` is required');
+        const r = await s.screenshot(
+          b.room,
+          typeof b.checkpoint === 'string' && b.checkpoint ? b.checkpoint : null,
+          ctx.baseUrl,
+        );
+        if ('unavailable' in r) throw Object.assign(new StudioError(r.reason, 501), { body: r });
+        return r;
+      },
+    ],
   ];
 }
 
@@ -101,19 +125,34 @@ export function studioPlugin(): Plugin {
           const file = String(name).split('\\').join('/');
           if (/(^|\/)\.|~$|\.swp$|^private\//.test(file)) return;
           clearTimeout(timers.get(file));
-          timers.set(file, setTimeout(() => { timers.delete(file); broadcast({ type: 'changed', file }); }, 150));
+          timers.set(
+            file,
+            setTimeout(() => {
+              timers.delete(file);
+              broadcast({ type: 'changed', file });
+            }, 150),
+          );
         });
       } catch (e) {
         server.config.logger.warn(`[studio] no file watcher: ${(e as Error).message}`);
       }
-      server.httpServer?.on('close', () => { watcher?.close(); for (const c of clients) c.end(); });
+      server.httpServer?.on('close', () => {
+        watcher?.close();
+        for (const c of clients) c.end();
+      });
 
       // /__studio/ → studio.html (the Vite html pipeline serves and transforms it).
       server.middlewares.use((req, res, next) => {
         const [path, query] = (req.url ?? '').split('?');
         if ((path === '/__studio' || path.startsWith('/__studio/')) && !authorizeStudioRequest(req, res)) return;
-        if (path === '/__studio') { res.statusCode = 302; res.setHeader('location', `/__studio/${query ? `?${query}` : ''}`); res.end(); return; }
-        if (path === '/__studio/' || path === '/__studio/index.html') req.url = `/studio.html${query ? `?${query}` : ''}`;
+        if (path === '/__studio') {
+          res.statusCode = 302;
+          res.setHeader('location', `/__studio/${query ? `?${query}` : ''}`);
+          res.end();
+          return;
+        }
+        if (path === '/__studio/' || path === '/__studio/index.html')
+          req.url = `/studio.html${query ? `?${query}` : ''}`;
         next();
       });
 
@@ -126,17 +165,27 @@ export function studioPlugin(): Plugin {
         const method = req.method ?? 'GET';
         try {
           if (method === 'GET' && path === '/events') {
-            res.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache', connection: 'keep-alive' });
+            res.writeHead(200, {
+              'content-type': 'text/event-stream',
+              'cache-control': 'no-cache',
+              connection: 'keep-alive',
+            });
             res.write(`data: ${JSON.stringify({ type: 'hello', game: studio.gameId } satisfies StudioEvent)}\n\n`);
             clients.add(res);
             const ping = setInterval(() => res.write(': ping\n\n'), 25000);
-            req.on('close', () => { clearInterval(ping); clients.delete(res); });
+            req.on('close', () => {
+              clearInterval(ping);
+              clients.delete(res);
+            });
             return;
           }
           const shot = method === 'GET' && /^\/screenshots\/([\w.-]+\.png)$/.exec(path);
           if (shot) {
             const f = studio.screenshotPath(shot[1]);
-            if (!f) { send(res, 404, { error: 'no such screenshot' }); return; }
+            if (!f) {
+              send(res, 404, { error: 'no such screenshot' });
+              return;
+            }
             res.setHeader('content-type', 'image/png');
             res.setHeader('cache-control', 'no-store');
             createReadStream(f).pipe(res);
@@ -150,15 +199,20 @@ export function studioPlugin(): Plugin {
             if (m !== method) continue;
             const body = method === 'GET' ? {} : await readBody(req);
             if (body === null || typeof body !== 'object') throw new StudioError('the body must be a JSON object');
-            const baseUrl = server.resolvedUrls?.local[0] ?? `http://localhost:${server.config.server.port ?? 5173}${server.config.base}`;
+            const baseUrl =
+              server.resolvedUrls?.local[0] ??
+              `http://localhost:${server.config.server.port ?? 5173}${server.config.base}`;
             send(res, 200, await fn(hit, body, { baseUrl }));
             return;
           }
-          send(res, matchedPath ? 405 : 404, { error: matchedPath ? `method ${method} not allowed on ${path}` : `no such endpoint: ${path}` });
+          send(res, matchedPath ? 405 : 404, {
+            error: matchedPath ? `method ${method} not allowed on ${path}` : `no such endpoint: ${path}`,
+          });
         } catch (e) {
           const status = e instanceof StudioError ? e.status : 500;
           const extra = (e as { body?: object }).body ?? {};
-          if (status >= 500 && status !== 501) server.config.logger.error(`[studio] ${method} ${path}: ${(e as Error).stack ?? e}`);
+          if (status >= 500 && status !== 501)
+            server.config.logger.error(`[studio] ${method} ${path}: ${(e as Error).stack ?? e}`);
           send(res, status, { ...extra, error: (e as Error).message });
         }
       });

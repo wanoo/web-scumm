@@ -10,8 +10,18 @@ import { solve } from '@engine/tools/solve';
 import { game as fixture, layouts } from './fixture';
 
 const commands: CustomCommands = {
-  boom: { effects: [{ set: 'boomed' }, { sfx: 'bang' }], run: async (ctx) => { ran.push(`boom ${JSON.stringify(ctx.args)} in ${ctx.room.id}`); } },
-  sparkle: { pure: true, run: () => { ran.push('sparkle'); } },
+  boom: {
+    effects: [{ set: 'boomed' }, { sfx: 'bang' }],
+    run: async (ctx) => {
+      ran.push(`boom ${JSON.stringify(ctx.args)} in ${ctx.room.id}`);
+    },
+  },
+  sparkle: {
+    pure: true,
+    run: () => {
+      ran.push('sparkle');
+    },
+  },
   shady: {},
 };
 const ran: string[] = [];
@@ -20,7 +30,11 @@ describe('custom commands', () => {
   it('apply their declared effects everywhere, run their visual part only when asked', async () => {
     const g = structuredClone(fixture);
     g.audio = { sfx: { bang: 'bang.mp3' } };
-    g.rooms[0].on!.push({ verb: 'push', a: 'lamp', do: [{ custom: 'boom', args: { size: 3 } }, { custom: 'sparkle' }] });
+    g.rooms[0].on!.push({
+      verb: 'push',
+      a: 'lamp',
+      do: [{ custom: 'boom', args: { size: 3 } }, { custom: 'sparkle' }],
+    });
     const ui = new FakePresenter();
     const e = new Engine(g, layouts, ui, new MemoryStore(), { commands });
     await e.checkpoint('free');
@@ -28,7 +42,10 @@ describe('custom commands', () => {
     expect(e.state.flags.boomed).toBe(true);
     expect(ui.log).toContain('sfx bang');
     expect(ran).toEqual([]); // node: no run
-    const e2 = new Engine(structuredClone(g), layouts, new FakePresenter(), new MemoryStore(), { commands, runCustom: true });
+    const e2 = new Engine(structuredClone(g), layouts, new FakePresenter(), new MemoryStore(), {
+      commands,
+      runCustom: true,
+    });
     await e2.checkpoint('free');
     await e2.act({ verb: 'push', a: 'lamp' });
     expect(ran).toEqual(['boom {"size":3} in house', 'sparkle']);
@@ -70,7 +87,12 @@ describe('localisation by extraction', () => {
     expect(byPath['start/intro[0].guide']).toBe('Look at the lamp first.');
     expect(byPath['map/places.garden.name']).toBe('Garden');
     expect(paths.some((p) => p.text.includes('/'))).toBe(false); // no image id leaked as a text
-    const fr = { 'room:house/look.drawer[1]': 'Toujours un vieux tiroir.', 'ui/newGame': 'Nouvelle partie', 'char:grandma/name': 'Grand-mère', 'old/key': 'gone' };
+    const fr = {
+      'room:house/look.drawer[1]': 'Toujours un vieux tiroir.',
+      'ui/newGame': 'Nouvelle partie',
+      'char:grandma/name': 'Grand-mère',
+      'old/key': 'gone',
+    };
     const g = applyLocale(fixture, fr);
     expect(g.rooms[0].look!.drawer[1]).toBe('Toujours un vieux tiroir.');
     expect(g.ui.newGame).toBe('Nouvelle partie');
@@ -88,10 +110,15 @@ describe('explained conditions', () => {
   it('tells which part of a condition fails', () => {
     const e = new Engine(structuredClone(fixture), layouts, new FakePresenter(), new MemoryStore());
     const s = e.fresh();
-    s.inventory = ['coin']; s.flags.a = 1;
+    s.inventory = ['coin'];
+    s.flags.a = 1;
     const x = explainCond({ all: ['coin_found', { has: 'coin' }, { not: { flag: 'a', gte: 2 } }] }, s, 'house');
     expect(x.ok).toBe(false);
-    expect(x.parts!.map((p) => `${p.ok ? '✓' : '✗'} ${p.text}`)).toEqual(['✗ flag coin_found is true (false)', '✓ has coin', '✓ not']);
+    expect(x.parts!.map((p) => `${p.ok ? '✓' : '✗'} ${p.text}`)).toEqual([
+      '✗ flag coin_found is true (false)',
+      '✓ has coin',
+      '✓ not',
+    ]);
     expect(x.parts![2].parts![0]).toEqual({ text: 'flag a ≥ 2 (1)', ok: false });
   });
 });

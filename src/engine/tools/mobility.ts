@@ -10,7 +10,9 @@
 import { check, condAtoms } from '../core/cond';
 import type { Cond, GameDef, GameState, Id, VerbId } from '../core/types';
 
-export type Hop = { kind: 'exit'; from: Id; verb: VerbId; a: Id; to: Id } | { kind: 'map'; from: Id; place: Id; to: Id };
+export type Hop =
+  | { kind: 'exit'; from: Id; verb: VerbId; a: Id; to: Id }
+  | { kind: 'map'; from: Id; place: Id; to: Id };
 
 export interface MobilityModel {
   /** Rooms some condition names: never merged with another. */
@@ -26,12 +28,20 @@ export interface MobilityModel {
 /** Every room a condition names, anywhere a condition can be (content, invariants, a goal). */
 export function observedRooms(game: GameDef, extra: (Cond | undefined)[] = []): Set<Id> {
   const out = new Set<Id>();
-  const fromCond = (c: unknown) => { for (const a of condAtoms(c as Cond)) if (a.kind === 'room') out.add(a.id); };
+  const fromCond = (c: unknown) => {
+    for (const a of condAtoms(c as Cond)) if (a.kind === 'room') out.add(a.id);
+  };
   const walk = (v: unknown) => {
     if (!v || typeof v !== 'object') return;
-    if (Array.isArray(v)) { v.forEach(walk); return; }
+    if (Array.isArray(v)) {
+      v.forEach(walk);
+      return;
+    }
     for (const [k, x] of Object.entries(v as Record<string, unknown>)) {
-      if (k === 'if' || k === 'visible' || k === 'until' || k === 'news' || k === 'goals') { if (Array.isArray(x) && k === 'goals') x.forEach(fromCond); else fromCond(x); }
+      if (k === 'if' || k === 'visible' || k === 'until' || k === 'news' || k === 'goals') {
+        if (Array.isArray(x) && k === 'goals') x.forEach(fromCond);
+        else fromCond(x);
+      }
       walk(x);
     }
   };
@@ -44,7 +54,13 @@ export function observedRooms(game: GameDef, extra: (Cond | undefined)[] = []): 
 export function mobilityModel(game: GameDef, visitedRead: Set<string>, goal?: Cond[]): MobilityModel {
   const observed = observedRooms(game, goal ?? []);
   const rooms = new Map(game.rooms.map((r) => [r.id, r]));
-  const silentTarget = (from: Id, to: Id) => from !== to && !observed.has(from) && !observed.has(to) && !rooms.get(to)?.onEnter?.length && !visitedRead.has(to) && rooms.has(to);
+  const silentTarget = (from: Id, to: Id) =>
+    from !== to &&
+    !observed.has(from) &&
+    !observed.has(to) &&
+    !rooms.get(to)?.onEnter?.length &&
+    !visitedRead.has(to) &&
+    rooms.has(to);
   // The generated exit rules of each room (normalizeExits): rule id `exit.<room>.<exit>.go`, do: [sfx?, { goto }].
   const exits = new Map<Id, { verb: VerbId; a: Id; to: Id; cond: Cond | undefined; visible: Cond | undefined }[]>();
   for (const r of game.rooms) {
@@ -61,8 +77,12 @@ export function mobilityModel(game: GameDef, visitedRead: Set<string>, goal?: Co
   }
   const hops = (view: GameState, room: Id): Hop[] => {
     const out: Hop[] = [];
-    for (const x of exits.get(room) ?? []) if (silentTarget(room, x.to) && check(x.visible, view, room) && check(x.cond, view, room)) out.push({ kind: 'exit', from: room, verb: x.verb, a: x.a, to: x.to });
-    for (const [pid, p] of Object.entries(game.map?.places ?? {})) if (view.unlocked.includes(pid) && silentTarget(room, p.room)) out.push({ kind: 'map', from: room, place: pid, to: p.room });
+    for (const x of exits.get(room) ?? [])
+      if (silentTarget(room, x.to) && check(x.visible, view, room) && check(x.cond, view, room))
+        out.push({ kind: 'exit', from: room, verb: x.verb, a: x.a, to: x.to });
+    for (const [pid, p] of Object.entries(game.map?.places ?? {}))
+      if (view.unlocked.includes(pid) && silentTarget(room, p.room))
+        out.push({ kind: 'map', from: room, place: pid, to: p.room });
     return out;
   };
   const region = (view: GameState) => {
@@ -76,18 +96,37 @@ export function mobilityModel(game: GameDef, visitedRead: Set<string>, goal?: Co
       const r = todo.shift()!;
       const hs = hops(view, r);
       adj.set(r, hs);
-      for (const h of hs) if (!via.has(h.to)) { via.set(h.to, h); todo.push(h.to); }
+      for (const h of hs)
+        if (!via.has(h.to)) {
+          via.set(h.to, h);
+          todo.push(h.to);
+        }
     }
     const back = new Map<Id, Id[]>();
     for (const [r, hs] of adj) for (const h of hs) (back.get(h.to) ?? back.set(h.to, []).get(h.to)!).push(r);
     const comes = new Set<Id>([start]);
     const q = [start];
-    while (q.length) for (const p of back.get(q.shift()!) ?? []) if (!comes.has(p)) { comes.add(p); q.push(p); }
+    while (q.length)
+      for (const p of back.get(q.shift()!) ?? [])
+        if (!comes.has(p)) {
+          comes.add(p);
+          q.push(p);
+        }
     const members = [...via.keys()].filter((r) => comes.has(r)).sort();
-    const route = (to: Id) => { const out: Hop[] = []; for (let r = to; r !== start;) { const h = via.get(r)!; out.unshift(h); r = h.from; } return out; };
+    const route = (to: Id) => {
+      const out: Hop[] = [];
+      for (let r = to; r !== start; ) {
+        const h = via.get(r)!;
+        out.unshift(h);
+        r = h.from;
+      }
+      return out;
+    };
     return { rooms: members, key: members.join('+'), route };
   };
-  const trivial = ![...exits].some(([from, xs]) => xs.some((x) => silentTarget(from, x.to))) && !Object.values(game.map?.places ?? {}).some((p) => game.rooms.some((r) => silentTarget(r.id, p.room)));
+  const trivial =
+    ![...exits].some(([from, xs]) => xs.some((x) => silentTarget(from, x.to))) &&
+    !Object.values(game.map?.places ?? {}).some((p) => game.rooms.some((r) => silentTarget(r.id, p.room)));
   return { observed, hops, region, trivial };
 }
 
@@ -96,5 +135,11 @@ export function viewOf(s: GameState, who: Id, hero: Id, shared: boolean): GameSt
   if ((s.active ?? hero) === who) return s;
   const p = s.players?.[who];
   if (!p) return s;
-  return { ...s, active: who, room: p.room, inventory: shared ? s.inventory : p.inventory, used: shared ? s.used : p.used };
+  return {
+    ...s,
+    active: who,
+    room: p.room,
+    inventory: shared ? s.inventory : p.inventory,
+    used: shared ? s.used : p.used,
+  };
 }

@@ -3,7 +3,17 @@
 import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
-import { CHANGES, CMD_KEYS, CONTAINERS, changesState, cmdKey, cmdLists, eachCmd, subLists, type CmdKey } from '@engine/core/cmds';
+import {
+  CHANGES,
+  CMD_KEYS,
+  CONTAINERS,
+  changesState,
+  cmdKey,
+  cmdLists,
+  eachCmd,
+  subLists,
+  type CmdKey,
+} from '@engine/core/cmds';
 import type { Cmd, GameDef } from '@engine/core/types';
 import type { CustomCommands } from '@engine/core/custom';
 import { validate } from '@engine/tools/validate';
@@ -30,21 +40,70 @@ const layouts = { ...miniLayouts, b: { ...miniLayouts.b, actors: { uncle: { x: 2
 
 /** One minimal instance per command key. */
 const instances: Record<CmdKey, Cmd> = {
-  say: { say: ['hero', 'Hi.'] }, walk: { walk: 'valise' }, face: { face: 'left' }, pose: { pose: ['uncle', 'front'] },
-  anim: { anim: ['uncle', 'attack'], at: { 0: ['Go.'] } }, place: { place: ['hero', [100, 300]] }, wait: { wait: 10 },
-  parallel: { parallel: [['One.'], ['Two.']] }, camera: { camera: 'follow' }, play: { play: ['valise', 'wobble'] }, stopAnim: { stopAnim: 'valise' },
-  prop: { prop: ['valise', 'open'] }, show: { show: 'uncle' }, hide: { hide: 'uncle' }, gain: { gain: 'cle' }, lose: { lose: 'cle' }, used: { used: 'cle' },
-  set: { set: 'seen_it' }, unset: { unset: 'seen_it' }, inc: { inc: 'count' }, unlock: { unlock: 'nowhere' }, goto: { goto: 'b' }, map: { map: true },
-  moveActor: { moveActor: ['uncle', 'b'] }, emit: { emit: 'ping' }, waitUntil: { waitUntil: { has: 'cle' } }, waitEvent: { waitEvent: 'ping' },
-  switchPlayer: { switchPlayer: 'uncle' }, transfer: { transfer: ['cle', 'uncle'] }, custom: { custom: 'zap' },
-  startScript: { startScript: 'tick' }, stopScript: { stopScript: 'tick' },
-  launch: { launch: { target: 'valise', to: [300, 320] } }, spring: { spring: { target: 'valise' } }, path: { path: { target: 'hero', points: [[100, 300], [200, 280], [300, 320]] } },
+  say: { say: ['hero', 'Hi.'] },
+  walk: { walk: 'valise' },
+  face: { face: 'left' },
+  pose: { pose: ['uncle', 'front'] },
+  anim: { anim: ['uncle', 'attack'], at: { 0: ['Go.'] } },
+  place: { place: ['hero', [100, 300]] },
+  wait: { wait: 10 },
+  parallel: { parallel: [['One.'], ['Two.']] },
+  camera: { camera: 'follow' },
+  play: { play: ['valise', 'wobble'] },
+  stopAnim: { stopAnim: 'valise' },
+  prop: { prop: ['valise', 'open'] },
+  show: { show: 'uncle' },
+  hide: { hide: 'uncle' },
+  gain: { gain: 'cle' },
+  lose: { lose: 'cle' },
+  used: { used: 'cle' },
+  set: { set: 'seen_it' },
+  unset: { unset: 'seen_it' },
+  inc: { inc: 'count' },
+  unlock: { unlock: 'nowhere' },
+  goto: { goto: 'b' },
+  map: { map: true },
+  moveActor: { moveActor: ['uncle', 'b'] },
+  emit: { emit: 'ping' },
+  waitUntil: { waitUntil: { has: 'cle' } },
+  waitEvent: { waitEvent: 'ping' },
+  switchPlayer: { switchPlayer: 'uncle' },
+  transfer: { transfer: ['cle', 'uncle'] },
+  custom: { custom: 'zap' },
+  startScript: { startScript: 'tick' },
+  stopScript: { stopScript: 'tick' },
+  launch: { launch: { target: 'valise', to: [300, 320] } },
+  spring: { spring: { target: 'valise' } },
+  path: {
+    path: {
+      target: 'hero',
+      points: [
+        [100, 300],
+        [200, 280],
+        [300, 320],
+      ],
+    },
+  },
   follow: { follow: { target: 'uncle', leader: 'hero', ms: 100 } },
-  sfx: { sfx: 'ding' }, music: { music: 'tune' }, toast: { toast: 'Done.' }, shake: { shake: 2 },
-  if: { if: 'seen_it', then: ['Yes.'], else: ['No.'] }, once: { once: ['Once.'] }, nth: { nth: [['First.'], ['Then.']] }, cycle: { cycle: [['A.'], ['B.']] }, random: { random: [['A.'], ['B.']] },
-  cutscene: { cutscene: ['Scene.'] }, choice: { choice: [{ text: 'Ok', do: ['Fine.'] }] }, minigame: { minigame: 'pipes', then: ['Won.'] },
-  phone: { phone: 'ann', do: ['Ring.'] }, guide: { guide: { verb: 'look', target: 'valise', say: 'Look at it.' } }, talk: { talk: 'uncle' }, hint: { hint: true },
-  ending: { ending: true, after: ['Yay.'] }, reveal: { reveal: true, after: ['Again.'] }, end: { end: true },
+  sfx: { sfx: 'ding' },
+  music: { music: 'tune' },
+  toast: { toast: 'Done.' },
+  shake: { shake: 2 },
+  if: { if: 'seen_it', then: ['Yes.'], else: ['No.'] },
+  once: { once: ['Once.'] },
+  nth: { nth: [['First.'], ['Then.']] },
+  cycle: { cycle: [['A.'], ['B.']] },
+  random: { random: [['A.'], ['B.']] },
+  cutscene: { cutscene: ['Scene.'] },
+  choice: { choice: [{ text: 'Ok', do: ['Fine.'] }] },
+  minigame: { minigame: 'pipes', then: ['Won.'] },
+  phone: { phone: 'ann', do: ['Ring.'] },
+  guide: { guide: { verb: 'look', target: 'valise', say: 'Look at it.' } },
+  talk: { talk: 'uncle' },
+  hint: { hint: true },
+  ending: { ending: true, after: ['Yay.'] },
+  reveal: { reveal: true, after: ['Again.'] },
+  end: { end: true },
 };
 
 describe('the command catalogue', () => {
@@ -78,7 +137,9 @@ describe('the command catalogue', () => {
       const c = instances[k];
       expect(subLists(c).length, k).toBeGreaterThan(0);
       const found: string[] = [];
-      eachCmd([c], (x, path) => { if (typeof x === 'string') found.push(path); });
+      eachCmd([c], (x, path) => {
+        if (typeof x === 'string') found.push(path);
+      });
       expect(found.length, k).toBeGreaterThan(0);
       expect(found[0]).toMatch(/^\[0\]\.\w+/);
     }
@@ -91,7 +152,12 @@ describe('the command catalogue', () => {
   it('lists every command list of the game, with the paths the translation tables use', () => {
     const g = stage();
     const lists = cmdLists(g);
-    expect(lists.map((l) => l.path)).toEqual(['room:a/on[0].do', 'room:a/talk.uncle[0].do', 'room:a/scripts.tick.do', 'room:b/on[0].do']);
+    expect(lists.map((l) => l.path)).toEqual([
+      'room:a/on[0].do',
+      'room:a/talk.uncle[0].do',
+      'room:a/scripts.tick.do',
+      'room:b/on[0].do',
+    ]);
     expect(lists[2].script).toBe(true);
     // the texts walker follows the same convention
     const paths = textPaths(g).map((p) => p.path);

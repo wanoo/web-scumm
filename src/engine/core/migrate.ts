@@ -22,12 +22,15 @@ export function applyMigration(s: GameState, m: Migration): GameState {
     s.room = m.renameRoom[s.room] ?? s.room;
     s.hero = renameKeys(s.hero, m.renameRoom);
     s.visited = renameKeys(s.visited, m.renameRoom);
-    const prefix = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).map(([k, v]) => {
-      const i = k.indexOf('.');
-      if (i < 0) return [k, v];
-      const r = k.slice(0, i);
-      return [`${m.renameRoom![r] ?? r}${k.slice(i)}`, v];
-    }));
+    const prefix = (o: Record<string, unknown>) =>
+      Object.fromEntries(
+        Object.entries(o).map(([k, v]) => {
+          const i = k.indexOf('.');
+          if (i < 0) return [k, v];
+          const r = k.slice(0, i);
+          return [`${m.renameRoom![r] ?? r}${k.slice(i)}`, v];
+        }),
+      );
     s.props = prefix(s.props) as GameState['props'];
     s.actors = prefix(s.actors) as GameState['actors'];
     if (s.where) s.where = Object.fromEntries(Object.entries(s.where).map(([c, r]) => [c, m.renameRoom![r] ?? r]));
@@ -42,7 +45,8 @@ export function applyMigration(s: GameState, m: Migration): GameState {
   if (s.scripts) {
     const scripts = renameKeys(s.scripts, m.renameScript);
     for (const k of m.dropScript ?? []) delete scripts[k];
-    for (const [id, st] of Object.entries(scripts)) if (st.step) st.step = m.renameScriptStep?.[id]?.[st.step] ?? st.step;
+    for (const [id, st] of Object.entries(scripts))
+      if (st.step) st.step = m.renameScriptStep?.[id]?.[st.step] ?? st.step;
     s.scripts = scripts;
   }
   if (m.renameCharacter && s.where) s.where = renameKeys(s.where, m.renameCharacter);

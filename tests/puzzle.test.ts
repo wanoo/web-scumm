@@ -1,7 +1,19 @@
 // The puzzle graph (src/engine/tools/puzzle.ts): what each action needs and changes, derived from the content.
 import { describe, expect, it } from 'vitest';
 import { condAtoms } from '@engine/core/cond';
-import { extraReads, findNode, heatFill, liveClasses, puzzleFor, puzzleGraph, puzzleIssues, puzzleMarkdown, toPuzzleDot, toPuzzleSvg, whyLive } from '@engine/tools/puzzle';
+import {
+  extraReads,
+  findNode,
+  heatFill,
+  liveClasses,
+  puzzleFor,
+  puzzleGraph,
+  puzzleIssues,
+  puzzleMarkdown,
+  toPuzzleDot,
+  toPuzzleSvg,
+  whyLive,
+} from '@engine/tools/puzzle';
 import { game as demo } from '../games/demo/game';
 import { commands } from '../games/demo/index';
 import { validate } from '@engine/tools/validate';
@@ -10,9 +22,27 @@ import { scale } from './fixtures/scale';
 
 describe('condAtoms', () => {
   it('lists what a condition reads, with negations', () => {
-    expect(condAtoms({ all: ['a', '!b', { not: { has: 'key' } }, { flag: 'n', gte: 2 }, { prop: ['door', 'open'] }, { actorIn: ['cook', 'hall'] }] }, 'kitchen')).toEqual([
-      { kind: 'flag', id: 'a' }, { kind: 'flag', id: 'b', neg: true }, { kind: 'has', id: 'key', neg: true },
-      { kind: 'flag', id: 'n', detail: '≥ 2' }, { kind: 'prop', id: 'kitchen.door', detail: 'open' }, { kind: 'actorIn', id: 'cook@hall' },
+    expect(
+      condAtoms(
+        {
+          all: [
+            'a',
+            '!b',
+            { not: { has: 'key' } },
+            { flag: 'n', gte: 2 },
+            { prop: ['door', 'open'] },
+            { actorIn: ['cook', 'hall'] },
+          ],
+        },
+        'kitchen',
+      ),
+    ).toEqual([
+      { kind: 'flag', id: 'a' },
+      { kind: 'flag', id: 'b', neg: true },
+      { kind: 'has', id: 'key', neg: true },
+      { kind: 'flag', id: 'n', detail: '≥ 2' },
+      { kind: 'prop', id: 'kitchen.door', detail: 'open' },
+      { kind: 'actorIn', id: 'cook@hall' },
     ]);
     expect(condAtoms({ not: '!x' })).toEqual([{ kind: 'flag', id: 'x' }]);
   });
@@ -41,7 +71,9 @@ describe('the puzzle graph', () => {
     expect(g.edges).toContainEqual({ from: 'actor:edna@hall', to: 'rule:hall/enter', kind: 'reads' });
     const s = puzzleGraph(stan());
     expect(s.edges).toContainEqual({ from: 'rule:game/start', to: 'flag:price', kind: 'produces', detail: '= 8000' });
-    expect(s.edges.filter((e) => e.to === 'flag:price' && e.kind === 'produces').map((e) => e.detail)).toContain('-1000');
+    expect(s.edges.filter((e) => e.to === 'flag:price' && e.kind === 'produces').map((e) => e.detail)).toContain(
+      '-1000',
+    );
     const sc = puzzleGraph(scale());
     expect(sc.nodes.some((n) => n.kind === 'goal')).toBe(true);
   });
@@ -59,7 +91,9 @@ describe('the puzzle graph', () => {
     const g = grog();
     g.rooms[0].on!.push({ verb: 'use', a: 'door', if: 'locked', do: [{ set: 'locked' }] });
     expect(puzzleIssues(puzzleGraph(g)).selfLocked.map((n) => n.label)).toEqual(['locked']);
-    expect(validate(g, grogLayouts).warnings.some((w) => /"locked" is only set by actions that already require it/.test(w))).toBe(true);
+    expect(
+      validate(g, grogLayouts).warnings.some((w) => /"locked" is only set by actions that already require it/.test(w)),
+    ).toBe(true);
     expect(puzzleIssues(puzzleGraph(grog())).selfLocked).toEqual([]);
   });
 });
@@ -90,7 +124,10 @@ describe('why the solver keeps a thing', () => {
   it('draws heat and fades everything off the critical path', () => {
     const g = puzzleGraph(demo, { commands });
     const cl = liveClasses(g, extraReads(demo));
-    const svg = toPuzzleSvg(g, { heat: { 'rule:house/enter': 24, 'rule:garden/enter': 2 }, focus: new Set([...cl].filter(([, c]) => c === 'critical').map(([id]) => id)) });
+    const svg = toPuzzleSvg(g, {
+      heat: { 'rule:house/enter': 24, 'rule:garden/enter': 2 },
+      focus: new Set([...cl].filter(([, c]) => c === 'critical').map(([id]) => id)),
+    });
     expect(svg).toContain('rule:house/enter · 24');
     expect(svg).toContain('opacity="0.25"');
     expect(heatFill(0)).not.toBe(heatFill(1));

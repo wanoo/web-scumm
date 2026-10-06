@@ -5,21 +5,30 @@ import { pickups, pickupsLayouts } from './fixtures/por';
 
 const layouts: Record<string, Layout> = { room: { entries: { default: [320, 360] } } };
 const base = (): GameDef => ({
-  id: 'solver-contract', title: 'Solver contract', saveVersion: 1, hero: 'hero',
+  id: 'solver-contract',
+  title: 'Solver contract',
+  saveVersion: 1,
+  hero: 'hero',
   verbs: [{ id: 'use', label: 'Use', color: '#fff' }],
   characters: { hero: { name: 'Hero', color: '#fff', sprites: { idle: ['hero'] } } },
   items: {},
-  rooms: [{
-    id: 'room', name: 'Room', decor: 'room',
-    hotspots: { exit: { name: 'exit' }, danger: { name: 'danger' } },
-    look: { exit: 'The exit.', danger: 'Trouble.' },
-    on: [
-      { verb: 'use', a: 'exit', if: '!doomed', do: [{ end: true }] },
-      { verb: 'use', a: 'danger', do: [{ set: 'doomed' }] },
-    ],
-  }],
+  rooms: [
+    {
+      id: 'room',
+      name: 'Room',
+      decor: 'room',
+      hotspots: { exit: { name: 'exit' }, danger: { name: 'danger' } },
+      look: { exit: 'The exit.', danger: 'Trouble.' },
+      on: [
+        { verb: 'use', a: 'exit', if: '!doomed', do: [{ end: true }] },
+        { verb: 'use', a: 'danger', do: [{ set: 'doomed' }] },
+      ],
+    },
+  ],
   rules: { fallbacks: { use: ['No.'] } },
-  start: { room: 'room' }, skin: { icons: { map: 'map', pause: 'pause', music: 'music' } }, ui: {} as GameDef['ui'],
+  start: { room: 'room' },
+  skin: { icons: { map: 'map', pause: 'pause', music: 'music' } },
+  ui: {} as GameDef['ui'],
 });
 
 describe('solver result contract', () => {
@@ -41,7 +50,12 @@ describe('solver result contract', () => {
     const game = base();
     game.rooms[0].on = [
       { verb: 'use', a: 'exit', if: 'safe', do: [{ end: true }] },
-      { verb: 'use', a: 'danger', if: '!doomed', do: [{ random: [[{ set: 'safe' }], [{ set: 'doomed' }]], key: 'danger-outcome' }] },
+      {
+        verb: 'use',
+        a: 'danger',
+        if: '!doomed',
+        do: [{ random: [[{ set: 'safe' }], [{ set: 'doomed' }]], key: 'danger-outcome' }],
+      },
     ];
     const proof = await solve(game, layouts, { mode: 'prove' });
     expect(proof.status).toBe('softlocks');
@@ -55,7 +69,8 @@ describe('solver result contract', () => {
       { verb: 'use', a: 'exit', do: [{ end: true }] },
     ];
     const r = await solve(game, layouts, { mode: 'prove' });
-    const ran = Object.keys(r.profile.perAction), tried = Object.keys(r.profile.attempted);
+    const ran = Object.keys(r.profile.perAction),
+      tried = Object.keys(r.profile.attempted);
     expect(ran.every((id) => tried.includes(id))).toBe(true);
     expect(tried).toContain('rule:room/on[0]'); // the line-only rule: tried, nothing changed
     expect(ran).not.toContain('rule:room/on[0]');
@@ -70,7 +85,16 @@ describe('boundaries and the proof by chapters', () => {
   it('a proof with a goal returns every state where the goal holds; the next chapter starts from each distinct one', async () => {
     const { proveChapters } = await import('@engine/tools/chapters');
     const { makeStressGame } = await import('@engine/tools/stress');
-    const stress = makeStressGame({ rooms: 6, players: 1, items: 6, flags: 10, npcs: 0, scripts: 0, topics: 2, chapters: 2 });
+    const stress = makeStressGame({
+      rooms: 6,
+      players: 1,
+      items: 6,
+      flags: 10,
+      npcs: 0,
+      scripts: 0,
+      topics: 2,
+      chapters: 2,
+    });
     const first = Object.entries(stress.game.checkpoints!)[0];
     const r = await solve(stress.game, stress.layouts, { mode: 'prove', goal: first[1].goals });
     expect(r.status).toBe('solved');
@@ -104,7 +128,16 @@ describe('the proof by chapters stays honest past its budget', () => {
   it('a chapter with more boundary states than the cap is truncated, and nothing after it is claimed', async () => {
     const { proveChapters } = await import('@engine/tools/chapters');
     const { makeStressGame } = await import('@engine/tools/stress');
-    const stress = makeStressGame({ rooms: 10, players: 2, items: 6, flags: 10, npcs: 0, scripts: 0, topics: 2, chapters: 2 });
+    const stress = makeStressGame({
+      rooms: 10,
+      players: 2,
+      items: 6,
+      flags: 10,
+      npcs: 0,
+      scripts: 0,
+      topics: 2,
+      chapters: 2,
+    });
     const p = await proveChapters(stress.game, stress.layouts, { mode: 'prove', maxStarts: 3 });
     expect(p.status).toBe('truncated');
     expect(p.chapters.at(-1)!.status).toBe('truncated');
@@ -116,7 +149,16 @@ describe('the proof by chapters has one state budget', () => {
   it('past the budget the proof is truncated, never green', async () => {
     const { proveChapters } = await import('@engine/tools/chapters');
     const { makeStressGame } = await import('@engine/tools/stress');
-    const stress = makeStressGame({ rooms: 10, players: 2, items: 6, flags: 10, npcs: 0, scripts: 0, topics: 2, chapters: 2 });
+    const stress = makeStressGame({
+      rooms: 10,
+      players: 2,
+      items: 6,
+      flags: 10,
+      npcs: 0,
+      scripts: 0,
+      topics: 2,
+      chapters: 2,
+    });
     const p = await proveChapters(stress.game, stress.layouts, { mode: 'prove', budget: 50 });
     expect(p.status).toBe('truncated');
     expect(p.chapters.reduce((n, c) => n + c.states, 0)).toBeLessThanOrEqual(50 + 20000);
@@ -128,7 +170,16 @@ describe('the solver measures itself', () => {
     const { makeStressGame } = await import('@engine/tools/stress');
     const g = makeStressGame({ rooms: 6, players: 2, items: 4, flags: 6, npcs: 0, scripts: 0, topics: 2 });
     const r = await solve(g.game, g.layouts, { mode: 'prove', maxStates: 400 });
-    expect(Object.keys(r.profile.timing).sort()).toEqual(['classify', 'clone', 'engine', 'hash', 'other', 'queue', 'run', 'tries']);
+    expect(Object.keys(r.profile.timing).sort()).toEqual([
+      'classify',
+      'clone',
+      'engine',
+      'hash',
+      'other',
+      'queue',
+      'run',
+      'tries',
+    ]);
     expect(Object.values(r.profile.timing).every((v) => v >= 0)).toBe(true);
     expect(r.profile.timing.run).toBeGreaterThan(0);
     expect(r.profile.positions).toBeGreaterThan(1);

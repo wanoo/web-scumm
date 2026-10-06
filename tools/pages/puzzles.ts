@@ -1,7 +1,16 @@
 // npm run page:puzzles [-- --out <dir|file.html>]
 // The puzzle graph as a page: what every rule, topic, script and listener needs and changes, a card per item / flag /
 // prop (tap a node), the issues (read but never set, produced but never used), plus the DOT source. Read-only.
-import { extraReads, liveClasses, puzzleGraph, puzzleIssues, puzzleMarkdown, STATE_KINDS, toPuzzleDot, toPuzzleSvg } from '../../src/engine/tools/puzzle';
+import {
+  extraReads,
+  liveClasses,
+  puzzleGraph,
+  puzzleIssues,
+  puzzleMarkdown,
+  STATE_KINDS,
+  toPuzzleDot,
+  toPuzzleSvg,
+} from '../../src/engine/tools/puzzle';
 import { cliArgs, esc, isMain, loadContext, outPath, pageShell, writePage, type PageContext } from './lib';
 
 const CSS = `
@@ -49,7 +58,13 @@ document.getElementById('graph').addEventListener('click', (ev) => {
   const id = g.getAttribute('data-node');
   document.getElementById('card').textContent = cards[id] || id;
 });`;
-  return pageShell({ title: `${ctx.game.title} — puzzles`, description: 'What every rule needs and changes', css: CSS, body, script });
+  return pageShell({
+    title: `${ctx.game.title} — puzzles`,
+    description: 'What every rule needs and changes',
+    css: CSS,
+    body,
+    script,
+  });
 }
 
 if (isMain(import.meta.url)) {

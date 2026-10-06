@@ -5,7 +5,10 @@ import { chromium, firefox, webkit } from 'playwright';
 import { collectChecks, doctorReport } from './doctor-checks';
 
 const checks = collectChecks({
-  command: (cmd, args) => { const r = spawnSync(cmd, args, { encoding: 'utf8' }); return { ok: r.status === 0, stdout: r.stdout ?? '' }; },
+  command: (cmd, args) => {
+    const r = spawnSync(cmd, args, { encoding: 'utf8' });
+    return { ok: r.status === 0, stdout: r.stdout ?? '' };
+  },
   exists: existsSync,
   nodeVersion: process.versions.node,
   browsers: { Chromium: chromium.executablePath(), Firefox: firefox.executablePath(), WebKit: webkit.executablePath() },

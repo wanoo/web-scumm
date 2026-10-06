@@ -13,7 +13,9 @@ describe('v3 content compilation', () => {
     expect(compiled.rooms[0].hotspots?.hall?.exit).toBe(true);
     expect(compiled.rooms[0].on?.find((r) => r.exit === 'hall')?.id).toBe('exit.a.hall.go');
     expect(Object.isFrozen(compiled)).toBe(true);
-    expect(() => { (compiled.rooms[0] as { name: string }).name = 'mutated'; }).toThrow();
+    expect(() => {
+      (compiled.rooms[0] as { name: string }).name = 'mutated';
+    }).toThrow();
   });
 
   it('rejects missing and duplicate persistence ids in schema v3', () => {
@@ -23,9 +25,11 @@ describe('v3 content compilation', () => {
     game.rooms[1].on![0].id = 'same';
     game.start.intro = [{ choice: [{ text: 'A', once: true, do: [] }] }];
     const report = validate(game, miniLayouts);
-    expect(report.errors).toEqual(expect.arrayContaining([
-      expect.stringContaining('duplicate stable id "same"'),
-      expect.stringContaining('choice requires a stable "id"'),
-    ]));
+    expect(report.errors).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('duplicate stable id "same"'),
+        expect.stringContaining('choice requires a stable "id"'),
+      ]),
+    );
   });
 });

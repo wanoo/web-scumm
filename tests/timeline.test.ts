@@ -6,11 +6,19 @@ import { sayMs, ANIM_MS, CAMERA_MS } from '@engine/core/timing';
 import { game as demo } from '../games/demo/game';
 import house from '../games/demo/layout/house.json';
 
-const game = { ...demo, characters: { ...demo.characters, fast: { name: 'Fast', color: '#fff', sprites: { idle: ['f/1'] }, fps: 20 } } } as GameDef;
+const game = {
+  ...demo,
+  characters: { ...demo.characters, fast: { name: 'Fast', color: '#fff', sprites: { idle: ['f/1'] }, fps: 20 } },
+} as GameDef;
 
 describe('timeline', () => {
   it('lays commands end to end, parallel branches on their own lanes', () => {
-    const cmds: Cmd[] = ['Hello there.', { wait: 500 }, { parallel: [[{ anim: ['hero', 'wave'] }], [{ say: ['grandma', 'Hi'] }, { camera: { pan: 100 } }]] }, { sfx: 'ding' }];
+    const cmds: Cmd[] = [
+      'Hello there.',
+      { wait: 500 },
+      { parallel: [[{ anim: ['hero', 'wave'] }], [{ say: ['grandma', 'Hi'] }, { camera: { pan: 100 } }]] },
+      { sfx: 'ding' },
+    ];
     const t = timeline(cmds, { game, path: 'on[0].do' });
     expect(t.lanes).toBe(2);
     expect(t.openEnded).toBe(false);
@@ -29,9 +37,22 @@ describe('timeline', () => {
     expect(sfx.start).toBe(Math.max(anim.end, cam.end));
     expect(t.total).toBe(sfx.start);
   });
-  it('estimates walks from the layout, marks the player\'s turns as open', () => {
+  it("estimates walks from the layout, marks the player's turns as open", () => {
     const room = demo.rooms.find((r) => r.id === 'house')!;
-    const t = timeline([{ walk: 'armchair' }, { walk: [10, 10], who: 'ghost' }, { choice: [{ text: 'Yes', do: ['Fine.'] }, { text: 'No', do: [] }] }, 'After.'], { game, room, layout: house as never, path: 'x' });
+    const t = timeline(
+      [
+        { walk: 'armchair' },
+        { walk: [10, 10], who: 'ghost' },
+        {
+          choice: [
+            { text: 'Yes', do: ['Fine.'] },
+            { text: 'No', do: [] },
+          ],
+        },
+        'After.',
+      ],
+      { game, room, layout: house as never, path: 'x' },
+    );
     const walk = t.items.find((x) => x.kind === 'walk' && !x.estimated)!;
     expect(walk.end).toBeGreaterThan(0);
     expect(t.items.find((x) => x.kind === 'walk' && x.estimated)).toBeDefined();
@@ -41,7 +62,7 @@ describe('timeline', () => {
     expect(t.items.find((x) => x.path === 'x[2].choice[0].do[0]')!.lane).toBe(1);
     expect(timelineText(t)).toContain('then the player');
   });
-  it('frame events follow the character\'s fps', () => {
+  it("frame events follow the character's fps", () => {
     const t = timeline([{ anim: ['fast', 'hit'], ms: 1000, at: { 10: [{ sfx: 'thud' }] } }], { game, path: 'p' });
     expect(t.items.find((x) => x.path === 'p[0].at[10][0]')!.start).toBe(500);
   });

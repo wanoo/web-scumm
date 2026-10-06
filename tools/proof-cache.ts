@@ -4,14 +4,24 @@
 // and given back as is when nothing of that changed: the build, `verify:game`, `prove:game`, `lint`, `weight` and the
 // e2e ask the same questions. `PROOF_CACHE=0` (or `--no-cache` on `npm run solve`) turns it off; tests never use it.
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { GameDef, Layout } from '../src/engine/core/types';
 import { solve, type SolveOptions, type SolveResult } from '../src/engine/tools/solve';
 import { GAME_DIR, ROOT, WORK } from './game';
 
 /** Where the results go (`PROOF_CACHE_DIR` to put them elsewhere). */
-export const cacheDir = () => (process.env.PROOF_CACHE_DIR?.trim() ? resolve(process.env.PROOF_CACHE_DIR.trim()) : resolve(WORK, '.cache', 'proofs'));
+export const cacheDir = () =>
+  process.env.PROOF_CACHE_DIR?.trim() ? resolve(process.env.PROOF_CACHE_DIR.trim()) : resolve(WORK, '.cache', 'proofs');
 /** Files kept: the oldest go first. */
 const KEEP = 300;
 
@@ -23,7 +33,14 @@ export function stableJson(v: unknown): string {
     if (x === null || typeof x !== 'object') return x;
     if (seen.has(x)) throw new Error('stableJson: a cycle');
     seen.add(x);
-    const out = Array.isArray(x) ? x.map(walk) : Object.fromEntries(Object.entries(x).filter(([, y]) => y !== undefined).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([k, y]) => [k, walk(y)]));
+    const out = Array.isArray(x)
+      ? x.map(walk)
+      : Object.fromEntries(
+          Object.entries(x)
+            .filter(([, y]) => y !== undefined)
+            .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+            .map(([k, y]) => [k, walk(y)]),
+        );
     seen.delete(x);
     return out;
   };
@@ -36,7 +53,13 @@ export function engineHash(): string {
   if (engine) return engine;
   const h = createHash('sha256');
   const files: string[] = [];
-  const walk = (d: string) => { for (const e of readdirSync(d).sort()) { const p = join(d, e); if (statSync(p).isDirectory()) walk(p); else if (/\.(ts|json)$/.test(e)) files.push(p); } };
+  const walk = (d: string) => {
+    for (const e of readdirSync(d).sort()) {
+      const p = join(d, e);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (/\.(ts|json)$/.test(e)) files.push(p);
+    }
+  };
   walk(resolve(ROOT, 'src', 'engine'));
   for (const f of files) h.update(f.slice(ROOT.length)).update('\0').update(readFileSync(f)).update('\0');
   return (engine = h.digest('hex'));
@@ -53,8 +76,10 @@ export function gameSourceHash(dir = GAME_DIR): string {
   const walk = (d: string) => {
     for (const e of readdirSync(d).sort()) {
       const p = join(d, e);
-      if (statSync(p).isDirectory()) { if (!['art', 'audio', 'private', 'node_modules', 'playtests'].includes(e)) walk(p); }
-      else if (/\.(ts|json|mjs)$/.test(e)) h.update(p.slice(dir.length)).update('\0').update(readFileSync(p)).update('\0');
+      if (statSync(p).isDirectory()) {
+        if (!['art', 'audio', 'private', 'node_modules', 'playtests'].includes(e)) walk(p);
+      } else if (/\.(ts|json|mjs)$/.test(e))
+        h.update(p.slice(dir.length)).update('\0').update(readFileSync(p)).update('\0');
     }
   };
   if (existsSync(dir)) walk(dir);
@@ -69,25 +94,46 @@ export const cacheOn = () => process.env.PROOF_CACHE !== '0' && !process.argv.in
 const normal = (o: SolveOptions): SolveOptions => {
   const { workers, gameModule, batch, ...rest } = o;
   void gameModule;
-  return { maxStates: 20000, mode: 'witness', start: 'new', por: false, ...Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined)), ...(workers !== undefined ? { batch: batch ?? 64 } : {}) };
+  return {
+    maxStates: 20000,
+    mode: 'witness',
+    start: 'new',
+    por: false,
+    ...Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined)),
+    ...(workers !== undefined ? { batch: batch ?? 64 } : {}),
+  };
 };
 
 /** The key of one run. */
 export function proofKey(game: GameDef, layouts: Record<string, Layout>, opts: SolveOptions): string {
-  return createHash('sha256').update(engineHash()).update('\0').update(gameSourceHash()).update('\0').update(stableJson({ game, layouts, opts: normal(opts) })).digest('hex');
+  return createHash('sha256')
+    .update(engineHash())
+    .update('\0')
+    .update(gameSourceHash())
+    .update('\0')
+    .update(stableJson({ game, layouts, opts: normal(opts) }))
+    .digest('hex');
 }
 
 export type Cached = SolveResult & { cached?: string };
 
 /** `solve`, through the cache: a hit is the earlier result with `cached` set to its key (the printed outputs say so). */
-export async function cachedSolve(game: GameDef, layouts: Record<string, Layout>, opts: SolveOptions = {}): Promise<Cached> {
+export async function cachedSolve(
+  game: GameDef,
+  layouts: Record<string, Layout>,
+  opts: SolveOptions = {},
+): Promise<Cached> {
   // A search stopped by the clock is not a verdict to keep (the next one may get further).
   if (!cacheOn() || opts.timeLimitMs) return solve(game, layouts, opts);
   const key = proofKey(game, layouts, opts);
   const dir = cacheDir();
   const file = join(dir, `${key}.json`);
   if (existsSync(file)) {
-    try { return { ...(JSON.parse(readFileSync(file, 'utf8')) as SolveResult), cached: key.slice(0, 12) }; } catch { /* a torn file: solve again */ }
+    try {
+      return { ...(JSON.parse(readFileSync(file, 'utf8')) as SolveResult), cached: key.slice(0, 12) };
+    } catch {
+      /* a torn file: solve again */
+    }
   }
   const r = await solve(game, layouts, opts);
   // An engine error is not a verdict worth keeping (a flaky host, a bug fixed outside src/engine).
@@ -102,6 +148,15 @@ export async function cachedSolve(game: GameDef, layouts: Record<string, Layout>
 }
 
 function prune(dir: string) {
-  const files = readdirSync(dir).filter((f) => f.endsWith('.json')).map((f) => ({ f, t: statSync(join(dir, f)).mtimeMs })).sort((a, b) => b.t - a.t);
-  for (const { f } of files.slice(KEEP)) { try { unlinkSync(join(dir, f)); } catch { /* raced */ } }
+  const files = readdirSync(dir)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => ({ f, t: statSync(join(dir, f)).mtimeMs }))
+    .sort((a, b) => b.t - a.t);
+  for (const { f } of files.slice(KEEP)) {
+    try {
+      unlinkSync(join(dir, f));
+    } catch {
+      /* raced */
+    }
+  }
 }

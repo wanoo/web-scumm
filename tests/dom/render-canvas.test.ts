@@ -9,12 +9,35 @@ import type { SpriteSpec } from '@engine/dom/renderer';
 function recorder() {
   const calls: unknown[][] = [];
   const ctx = new Proxy({} as Record<string, unknown>, {
-    get: (t, k: string) => (k in t ? t[k] : (...a: unknown[]) => { calls.push([k, ...a]); }),
-    set: (t, k: string, v) => { t[k] = v; return true; },
+    get: (t, k: string) =>
+      k in t
+        ? t[k]
+        : (...a: unknown[]) => {
+            calls.push([k, ...a]);
+          },
+    set: (t, k: string, v) => {
+      t[k] = v;
+      return true;
+    },
   });
   return { calls, ctx };
 }
-const spec = (id: string, extra: Partial<SpriteSpec> = {}): SpriteSpec => ({ id, url: `img/${id}`, fx: 100, fy: 300, w: 40, h: 80, bob: 0, z: 300, flip: false, flipV: false, rot: 0, visible: true, opacity: 1, ...extra });
+const spec = (id: string, extra: Partial<SpriteSpec> = {}): SpriteSpec => ({
+  id,
+  url: `img/${id}`,
+  fx: 100,
+  fy: 300,
+  w: 40,
+  h: 80,
+  bob: 0,
+  z: 300,
+  flip: false,
+  flipV: false,
+  rot: 0,
+  visible: true,
+  opacity: 1,
+  ...extra,
+});
 
 describe('the canvas painter', () => {
   it('paints the backdrop, then shadows and sprites by depth, skipping hidden ones', () => {
@@ -31,17 +54,22 @@ describe('the canvas painter', () => {
     r.sprite(spec('ghost', { visible: false }));
     r.sprite(spec('mirror', { z: 250, flip: true, fx: 100.3 }));
     r.paint();
-    const name = (x: unknown) => (x instanceof HTMLCanvasElement ? 'blit' : (x as HTMLImageElement).src.split('/').pop());
+    const name = (x: unknown) =>
+      x instanceof HTMLCanvasElement ? 'blit' : (x as HTMLImageElement).src.split('/').pop();
     const draws = calls.filter((c) => c[0] === 'drawImage').map((c) => name(c[1]));
     // The backdrop is drawn once into the room's background cache, then copied onto the viewport.
     expect(draws).toEqual(['bg', 'blit', 'back', 'mirror', 'front']);
-    expect(calls.findIndex((c) => c[0] === 'ellipse')).toBeLessThan(calls.findIndex((c) => c[0] === 'drawImage' && (c[1] as HTMLImageElement).src?.endsWith('/back')));
+    expect(calls.findIndex((c) => c[0] === 'ellipse')).toBeLessThan(
+      calls.findIndex((c) => c[0] === 'drawImage' && (c[1] as HTMLImageElement).src?.endsWith('/back')),
+    );
     // Upright: snapped to device pixels; mirrored: flipped about its own box.
     const front = calls.find((c) => c[0] === 'drawImage' && (c[1] as HTMLImageElement).src?.endsWith('/front'))!;
     expect(front.slice(2)).toEqual([80, 220, 40, 80]);
     expect(calls.some((c) => c[0] === 'scale' && c[1] === -1)).toBe(true);
     expect(r.paints).toBe(1);
-    loaded.mockRestore(); w.mockRestore(); h.mockRestore();
+    loaded.mockRestore();
+    w.mockRestore();
+    h.mockRestore();
   });
 });
 
@@ -55,20 +83,50 @@ describe('the canvas painter draws the stage', () => {
     const r = new CanvasRenderer();
     r.reset('img/bg', 640);
     r.resize(1);
-    const layer = (id: string, role: 'backdrop' | 'scenery' | 'foreground' | 'effect', z: number) => ({ id, url: `img/${id}`, role, x: 0, y: 0, w: 640, h: 400, z, parallax: [1, 1] as [number, number], blend: 'normal' as const, opacity: 1, visible: true });
+    const layer = (id: string, role: 'backdrop' | 'scenery' | 'foreground' | 'effect', z: number) => ({
+      id,
+      url: `img/${id}`,
+      role,
+      x: 0,
+      y: 0,
+      w: 640,
+      h: 400,
+      z,
+      parallax: [1, 1] as [number, number],
+      blend: 'normal' as const,
+      opacity: 1,
+      visible: true,
+    });
     r.stage({
       backdrop: { url: 'img/bg', x: 0, y: 0, w: 640, h: 400 },
-      layers: [layer('sky', 'backdrop', -1000), layer('counter', 'scenery', 320), layer('plant', 'foreground', 10000), layer('fog', 'effect', 20000), { ...layer('hidden', 'scenery', 1), visible: false }],
+      layers: [
+        layer('sky', 'backdrop', -1000),
+        layer('counter', 'scenery', 320),
+        layer('plant', 'foreground', 10000),
+        layer('fog', 'effect', 20000),
+        { ...layer('hidden', 'scenery', 1), visible: false },
+      ],
       occluders: [{ id: 'pillar', z: 330, layer: 'counter', feather: 0, invert: false }],
       lights: [{ id: 'sun', kind: 'ambient', color: '#fff', intensity: 0.5, blend: 'multiply', visible: true }],
-      emitters: [], reduceMotion: false,
+      emitters: [],
+      reduceMotion: false,
     });
     r.sprite(spec('ann', { z: 310 }));
     r.sprite(spec('bob', { z: 340 }));
     r.paint();
-    const seq = calls.filter((c) => c[0] === 'drawImage' || c[0] === 'fillRect').map((c) => (c[0] === 'fillRect' ? 'light' : c[1] instanceof HTMLCanvasElement ? 'blit' : (c[1] as HTMLImageElement).src.split('/').pop()));
+    const seq = calls
+      .filter((c) => c[0] === 'drawImage' || c[0] === 'fillRect')
+      .map((c) =>
+        c[0] === 'fillRect'
+          ? 'light'
+          : c[1] instanceof HTMLCanvasElement
+            ? 'blit'
+            : (c[1] as HTMLImageElement).src.split('/').pop(),
+      );
     // The backdrop and the still backdrop layer go into the background cache, copied once.
     expect(seq).toEqual(['bg', 'sky', 'blit', 'ann', 'counter', 'counter', 'bob', 'plant', 'light', 'fog']);
-    loaded.mockRestore(); w.mockRestore(); h.mockRestore();
+    loaded.mockRestore();
+    w.mockRestore();
+    h.mockRestore();
   });
 });

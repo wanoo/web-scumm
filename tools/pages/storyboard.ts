@@ -6,8 +6,22 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { GameDef } from '../../src/engine/core/types';
 import { normalizeStoryboard, storyboardMarkdown, type SbBoard, type SbLine, type Storyboard } from './storyboard-data';
-import { charImageId, cliArgs, docId, esc, imageSource, isMain, jsonForScript, loadContext, outPath, pageShell, persistBar,
-  thumbs, writePage, type PageContext } from './lib';
+import {
+  charImageId,
+  cliArgs,
+  docId,
+  esc,
+  imageSource,
+  isMain,
+  jsonForScript,
+  loadContext,
+  outPath,
+  pageShell,
+  persistBar,
+  thumbs,
+  writePage,
+  type PageContext,
+} from './lib';
 
 // ---------------------------------------------------------------------------
 // Schema, normalisation and Markdown export: storyboard-data.ts (pure, shared with the Studio)
@@ -27,8 +41,11 @@ export function readStoryboard(gameDir: string): Storyboard {
 // Speakers
 // ---------------------------------------------------------------------------
 
-interface Speaker { name: string; color: string; img?: string }
-const STAGE = new Set(['action', 'stage']);
+interface Speaker {
+  name: string;
+  color: string;
+  img?: string;
+}
 
 function speaker(game: GameDef, who: string): Speaker {
   const id = who === 'hero' ? game.hero : who;
@@ -143,9 +160,18 @@ export function buildStoryboard(ctx: PageContext, sb: Storyboard): string {
     if (f) decorFiles.set(b.id, f);
   }
   const speakers = new Set<string>(['hero']);
-  const allLines = (b: SbBoard) => [...(b.arrival ?? []), ...b.panels.flatMap((p) => p.lines ?? []),
-    ...Object.values(b.talks ?? {}).flat().flatMap((t) => t.lines ?? []), ...(b.reactions ?? []).flatMap((r) => r.lines ?? [])];
-  sb.boards.forEach((b) => { allLines(b).forEach((l) => speakers.add(l.who)); Object.keys(b.talks ?? {}).forEach((k) => speakers.add(k)); });
+  const allLines = (b: SbBoard) => [
+    ...(b.arrival ?? []),
+    ...b.panels.flatMap((p) => p.lines ?? []),
+    ...Object.values(b.talks ?? {})
+      .flat()
+      .flatMap((t) => t.lines ?? []),
+    ...(b.reactions ?? []).flatMap((r) => r.lines ?? []),
+  ];
+  sb.boards.forEach((b) => {
+    allLines(b).forEach((l) => speakers.add(l.who));
+    Object.keys(b.talks ?? {}).forEach((k) => speakers.add(k));
+  });
   if (g.hintVoice) speakers.add(g.hintVoice);
   const avatarFile = new Map<string, string>();
   for (const w of speakers) {
@@ -161,7 +187,11 @@ export function buildStoryboard(ctx: PageContext, sb: Storyboard): string {
   let budget = SOUND_BUDGET;
   for (const id of new Set(sb.boards.flatMap((b) => b.panels.flatMap((p) => p.sfx ?? [])))) {
     const file = g.audio?.sfx?.[id];
-    const path = file && [join(ctx.gameDir, 'audio/sfx', file), join(ctx.gameDir, '..', '..', 'public/assets/audio/sfx', file)].find(existsSync);
+    const path =
+      file &&
+      [join(ctx.gameDir, 'audio/sfx', file), join(ctx.gameDir, '..', '..', 'public/assets/audio/sfx', file)].find(
+        existsSync,
+      );
     if (!path) continue;
     const buf = readFileSync(path);
     if (buf.length > budget) continue;
@@ -173,7 +203,8 @@ export function buildStoryboard(ctx: PageContext, sb: Storyboard): string {
   const avatar = (w: string, size = 36) => {
     const s = speaker(g, w);
     const t = avatarFile.has(w) ? avT.get(avatarFile.get(w)!) : undefined;
-    return t ? `<img class="av" src="${t.uri}" alt="" width="${size}" height="${size}">`
+    return t
+      ? `<img class="av" src="${t.uri}" alt="" width="${size}" height="${size}">`
       : `<span class="av" style="border:2px solid ${esc(s.color)}" aria-hidden="true">${esc(s.name.slice(0, 1).toUpperCase())}</span>`;
   };
   const dot = (c: string) => `<i class="dot" style="background:${esc(c)}"></i>`;
@@ -185,48 +216,97 @@ export function buildStoryboard(ctx: PageContext, sb: Storyboard): string {
   };
   const notes = (key: string, label = 'Your notes') => {
     const k = docId(key);
-    return `<div class="answer" data-key="${esc(k)}"><label for="n-${esc(k)}">${esc(label)}</label>`
-      + `<textarea id="n-${esc(k)}" rows="2" placeholder="Rewrite a line, add an idea, cut what does not work…"></textarea>`
-      + `<span class="state"></span></div><div class="rewrite" data-rewrite="${esc(k)}" hidden></div>`;
+    return (
+      `<div class="answer" data-key="${esc(k)}"><label for="n-${esc(k)}">${esc(label)}</label>` +
+      `<textarea id="n-${esc(k)}" rows="2" placeholder="Rewrite a line, add an idea, cut what does not work…"></textarea>` +
+      `<span class="state"></span></div><div class="rewrite" data-rewrite="${esc(k)}" hidden></div>`
+    );
   };
-  const sfx = (ids?: string[]) => ids?.length ? `<div class="sfx">${ids.map((id) => sounds[id]
-    ? `<button type="button" data-snd="${esc(id)}">▶ ${esc(id)}</button>` : `<span>♪ ${esc(id)}</span>`).join('')}</div>` : '';
+  const sfx = (ids?: string[]) =>
+    ids?.length
+      ? `<div class="sfx">${ids
+          .map((id) =>
+            sounds[id]
+              ? `<button type="button" data-snd="${esc(id)}">▶ ${esc(id)}</button>`
+              : `<span>♪ ${esc(id)}</span>`,
+          )
+          .join('')}</div>`
+      : '';
 
-  const nav = sb.boards.map((b, i) => `<a href="#b-${esc(docId(b.id))}"><span>${i + 1}</span>${esc(b.title)}</a>`).join('');
-  const boards = sb.boards.map((b, i) => {
-    const room = g.rooms.find((r) => r.id === b.room);
-    const d = decorFiles.has(b.id) ? decorT.get(decorFiles.get(b.id)!) : undefined;
-    const pic = d ? `<img class="decor" src="${d.uri}" alt="${esc(room?.name ?? '')}" loading="lazy" width="640" height="400">`
-      : `<div class="nodecor">${b.room ? `no decor image for ${esc(b.room)}` : 'no room'}</div>`;
-    const parts = [`<section class="board" id="b-${esc(docId(b.id))}">`,
-      `<div class="bh"><div><h2><span class="bnum">${i + 1}</span>${esc(b.title)}</h2>`
-        + `<p class="room">${b.room ? `Room: ${esc(room?.name ?? '(unknown room)')} · <code>${esc(b.room)}</code>` : 'No room'}${b.music ? ` · ♪ ${esc(b.music)}` : ''}</p>`
-        + (b.goal ? `<p class="goal"><span class="label">Goal</span>${esc(b.goal)}</p>` : '') + `</div>${pic}</div>`];
-    if (b.arrival?.length) parts.push(`<div class="arrival"><span class="label">On arrival</span>${b.arrival.map(line).join('')}</div>`);
-    parts.push('<ol class="strip">' + b.panels.map((p, k) => `<li class="panel" id="p-${esc(docId(p.id))}">`
-      + `<h3><span class="pid">${i + 1}.${k + 1}</span>${esc(p.title)}</h3>`
-      + (p.action ? `<p class="act">${esc(p.action)}</p>` : '') + sfx(p.sfx) + (p.lines ?? []).map(line).join('')
-      + notes(p.id) + '</li>').join('') + '</ol>');
-    const side: string[] = [];
-    for (const [c, ts] of Object.entries(b.talks ?? {})) {
-      const s = speaker(g, c);
-      side.push(`<div class="box"><span class="label">Talk to <span class="who">${dot(s.color)}${esc(s.name)}</span></span><ul>`
-        + ts.map((t) => `<li><p class="topic">“${esc(t.topic)}”</p>${(t.lines ?? []).map(line).join('')}</li>`).join('') + '</ul>'
-        + notes(`${b.id}__talk__${c}`, 'Notes on this conversation') + '</div>');
-    }
-    if (b.reactions?.length) side.push('<div class="box"><span class="label">Optional reactions</span><ul>'
-      + b.reactions.map((r) => `<li><p class="act">${esc(r.action)}</p>${(r.lines ?? []).map(line).join('')}</li>`).join('') + '</ul>'
-      + notes(`${b.id}__reactions`, 'Notes on the reactions') + '</div>');
-    if (b.hints?.length) {
-      const hv = g.hintVoice ? speaker(g, g.hintVoice) : undefined;
-      side.push(`<div class="box"><span class="label">Hints${hv ? ` · ${esc(hv.name)}` : ''}, vague to precise</span><ol>`
-        + b.hints.map((h) => `<li>${esc(h)}</li>`).join('') + '</ol>' + notes(`${b.id}__hints`, 'Notes on the hints') + '</div>');
-    }
-    if (side.length) parts.push(`<div class="side">${side.join('')}</div>`);
-    if (b.exit) parts.push(`<p class="goal"><span class="label">Exit</span>${esc(b.exit)}</p>`);
-    parts.push('</section>');
-    return parts.join('');
-  }).join('\n');
+  const nav = sb.boards
+    .map((b, i) => `<a href="#b-${esc(docId(b.id))}"><span>${i + 1}</span>${esc(b.title)}</a>`)
+    .join('');
+  const boards = sb.boards
+    .map((b, i) => {
+      const room = g.rooms.find((r) => r.id === b.room);
+      const d = decorFiles.has(b.id) ? decorT.get(decorFiles.get(b.id)!) : undefined;
+      const pic = d
+        ? `<img class="decor" src="${d.uri}" alt="${esc(room?.name ?? '')}" loading="lazy" width="640" height="400">`
+        : `<div class="nodecor">${b.room ? `no decor image for ${esc(b.room)}` : 'no room'}</div>`;
+      const parts = [
+        `<section class="board" id="b-${esc(docId(b.id))}">`,
+        `<div class="bh"><div><h2><span class="bnum">${i + 1}</span>${esc(b.title)}</h2>` +
+          `<p class="room">${b.room ? `Room: ${esc(room?.name ?? '(unknown room)')} · <code>${esc(b.room)}</code>` : 'No room'}${b.music ? ` · ♪ ${esc(b.music)}` : ''}</p>` +
+          (b.goal ? `<p class="goal"><span class="label">Goal</span>${esc(b.goal)}</p>` : '') +
+          `</div>${pic}</div>`,
+      ];
+      if (b.arrival?.length)
+        parts.push(`<div class="arrival"><span class="label">On arrival</span>${b.arrival.map(line).join('')}</div>`);
+      parts.push(
+        '<ol class="strip">' +
+          b.panels
+            .map(
+              (p, k) =>
+                `<li class="panel" id="p-${esc(docId(p.id))}">` +
+                `<h3><span class="pid">${i + 1}.${k + 1}</span>${esc(p.title)}</h3>` +
+                (p.action ? `<p class="act">${esc(p.action)}</p>` : '') +
+                sfx(p.sfx) +
+                (p.lines ?? []).map(line).join('') +
+                notes(p.id) +
+                '</li>',
+            )
+            .join('') +
+          '</ol>',
+      );
+      const side: string[] = [];
+      for (const [c, ts] of Object.entries(b.talks ?? {})) {
+        const s = speaker(g, c);
+        side.push(
+          `<div class="box"><span class="label">Talk to <span class="who">${dot(s.color)}${esc(s.name)}</span></span><ul>` +
+            ts
+              .map((t) => `<li><p class="topic">“${esc(t.topic)}”</p>${(t.lines ?? []).map(line).join('')}</li>`)
+              .join('') +
+            '</ul>' +
+            notes(`${b.id}__talk__${c}`, 'Notes on this conversation') +
+            '</div>',
+        );
+      }
+      if (b.reactions?.length)
+        side.push(
+          '<div class="box"><span class="label">Optional reactions</span><ul>' +
+            b.reactions
+              .map((r) => `<li><p class="act">${esc(r.action)}</p>${(r.lines ?? []).map(line).join('')}</li>`)
+              .join('') +
+            '</ul>' +
+            notes(`${b.id}__reactions`, 'Notes on the reactions') +
+            '</div>',
+        );
+      if (b.hints?.length) {
+        const hv = g.hintVoice ? speaker(g, g.hintVoice) : undefined;
+        side.push(
+          `<div class="box"><span class="label">Hints${hv ? ` · ${esc(hv.name)}` : ''}, vague to precise</span><ol>` +
+            b.hints.map((h) => `<li>${esc(h)}</li>`).join('') +
+            '</ol>' +
+            notes(`${b.id}__hints`, 'Notes on the hints') +
+            '</div>',
+        );
+      }
+      if (side.length) parts.push(`<div class="side">${side.join('')}</div>`);
+      if (b.exit) parts.push(`<p class="goal"><span class="label">Exit</span>${esc(b.exit)}</p>`);
+      parts.push('</section>');
+      return parts.join('');
+    })
+    .join('\n');
 
   const title = sb.title ?? g.title;
   const body = `<main>
@@ -241,14 +321,25 @@ export function buildStoryboard(ctx: PageContext, sb: Storyboard): string {
 ${boards}
 </main>`;
   const script = `var PAGE_KEY = ${jsonForScript(`storyboard:${ctx.gameId}`)}; var GAME_ID = ${jsonForScript(ctx.gameId)}; var SOUNDS = ${jsonForScript(sounds)};\n${SCRIPT}`;
-  return pageShell({ title: `${title} storyboard`.slice(0, 60), description: `Storyboard of ${title} with notes per panel.`, css: CSS, body, script });
+  return pageShell({
+    title: `${title} storyboard`.slice(0, 60),
+    description: `Storyboard of ${title} with notes per panel.`,
+    css: CSS,
+    body,
+    script,
+  });
 }
 
 if (isMain(import.meta.url)) {
   const { flags, out } = cliArgs();
   const ctx = await loadContext();
   let sb: Storyboard;
-  try { sb = readStoryboard(ctx.gameDir); } catch (e) { console.error(String((e as Error).message ?? e)); process.exit(1); }
+  try {
+    sb = readStoryboard(ctx.gameDir);
+  } catch (e) {
+    console.error(String((e as Error).message ?? e));
+    process.exit(1);
+  }
   writePage(outPath(out, 'storyboard.html'), buildStoryboard(ctx, sb));
   if (flags.has('--md')) {
     const f = join(ctx.gameDir, 'storyboard.md');

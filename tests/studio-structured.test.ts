@@ -10,19 +10,36 @@ import { lineDiff, setValueInSource, valueText } from '../tools/studio/source';
 const ROOT = resolve(__dirname, '..');
 mkdirSync(join(ROOT, '.cache'), { recursive: true });
 const dir = mkdtempSync(join(ROOT, '.cache', 'studio-structured-'));
-cpSync(join(ROOT, 'games', 'demo'), dir, { recursive: true, filter: (src) => !/[\\/](art|audio|private)([\\/]|$)/.test(src.slice(join(ROOT, 'games', 'demo').length)) });
+cpSync(join(ROOT, 'games', 'demo'), dir, {
+  recursive: true,
+  filter: (src) => !/[\\/](art|audio|private)([\\/]|$)/.test(src.slice(join(ROOT, 'games', 'demo').length)),
+});
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 const studio = createStudio({ gameDir: dir, root: ROOT, importFresh: (f: string) => importInChild(f, ROOT) });
 const garden = () => readFileSync(join(dir, 'rooms', 'garden.ts'), 'utf8');
 
 describe('values as code', () => {
-  it('in the file\'s style: bare keys, its quotes, one line when short, one item per line when long', () => {
+  it("in the file's style: bare keys, its quotes, one line when short, one item per line when long", () => {
     expect(valueText({ all: ['a', { not: { has: 'key' } }] }, "'")).toBe("{ all: ['a', { not: { has: 'key' } }] }");
     expect(valueText({ 'two words': 1 }, '"')).toBe("{ 'two words': 1 }");
-    expect(valueText({ layers: Array.from({ length: 4 }, (_, i) => ({ id: `layer_${i}`, image: `pier/layer_${i}`, role: 'scenery' })) }, "'", '  ', '  ').split('\n').length).toBeGreaterThan(4);
+    expect(
+      valueText(
+        {
+          layers: Array.from({ length: 4 }, (_, i) => ({
+            id: `layer_${i}`,
+            image: `pier/layer_${i}`,
+            role: 'scenery',
+          })),
+        },
+        "'",
+        '  ',
+        '  ',
+      ).split('\n').length,
+    ).toBeGreaterThan(4);
   });
   it('replaces, adds, appends and removes, leaving the rest of the file alone', () => {
-    const code = "export const r = defineRoom({\n  id: 'x', name: 'X', decor: 'd/x',\n  // a comment that stays\n  on: [\n    { verb: 'look', a: 'door', do: ['A door.'] },\n  ],\n});\n";
+    const code =
+      "export const r = defineRoom({\n  id: 'x', name: 'X', decor: 'd/x',\n  // a comment that stays\n  on: [\n    { verb: 'look', a: 'door', do: ['A door.'] },\n  ],\n});\n";
     const a = setValueInSource(code, 'on[0].if', 'lit');
     expect(a.code).toContain("{ verb: 'look', a: 'door', do: ['A door.'], if: 'lit' }");
     const b = setValueInSource(a.code, 'on[1]', { verb: 'use', a: 'door', do: [{ set: 'open' }] });
@@ -43,7 +60,7 @@ describe('the Studio core', () => {
     const stage = { layers: [{ id: 'fg', image: 'decor/backyard', role: 'foreground' }], transition: 'fade' };
     const dry = await studio.setValue('garden', 'stage', stage, { dry: true });
     expect(dry).toMatchObject({ dry: true, changed: true });
-    expect(dry.diff).toContain("+  stage: {");
+    expect(dry.diff).toContain('+  stage: {');
     expect(garden()).toBe(before);
     const r = await studio.setValue('garden', 'stage', stage);
     expect(r.changed).toBe(true);

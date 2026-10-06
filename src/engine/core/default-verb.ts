@@ -8,9 +8,14 @@ import type { GameDef, Id, RoomDef, VerbId } from './types';
 export function defaultVerb(game: GameDef, room: RoomDef, target: Id, item?: Id | null): VerbId | null {
   const has = (v: VerbId) => game.verbs.some((x) => x.id === v);
   const first = (vs: readonly VerbId[]) => vs.find(has) ?? null;
-  const isCharacter = !!room.actors?.[target] || (!!game.characters[target] && !room.props?.[target] && !room.hotspots?.[target]);
+  const isCharacter =
+    !!room.actors?.[target] || (!!game.characters[target] && !room.props?.[target] && !room.hotspots?.[target]);
   if (item) return isCharacter ? first(['give', 'use']) : first(['use']);
-  const named = room.props?.[target]?.defaultVerb ?? room.hotspots?.[target]?.defaultVerb ?? room.actors?.[target]?.defaultVerb ?? room.exits?.[target]?.defaultVerb;
+  const named =
+    room.props?.[target]?.defaultVerb ??
+    room.hotspots?.[target]?.defaultVerb ??
+    room.actors?.[target]?.defaultVerb ??
+    room.exits?.[target]?.defaultVerb;
   if (named && has(named)) return named;
   const exit = room.exits?.[target];
   if (exit) return first(exit.verbs ?? EXIT_VERBS);

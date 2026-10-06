@@ -7,6 +7,7 @@
 // not allow is an error, unless a `releaseExceptions` entry names that asset and says why.
 import type { GameDef } from '../core/types';
 import { assetGraph } from '../core/asset-graph';
+import { must } from '../core/must';
 
 export interface ProvenanceEntry {
   /** Asset keys this entry covers, `*` matching anything (`img:hero/*`, `music:swan_lake.mp3`). */
@@ -37,9 +38,18 @@ export interface Provenance {
 }
 
 /** One shipped file as reviewed: its content and the claims its entry made then. */
-export interface LockEntry { sha256: string; bytes: number; match: string; licence: string; status: 'final' | 'placeholder' }
+export interface LockEntry {
+  sha256: string;
+  bytes: number;
+  match: string;
+  licence: string;
+  status: 'final' | 'placeholder';
+}
 /** `provenance.lock.json`: written by `npm run provenance -- --lock` after a review, checked by `validate --release`. */
-export interface ProvenanceLock { version: 1; assets: Record<string, LockEntry> }
+export interface ProvenanceLock {
+  version: 1;
+  assets: Record<string, LockEntry>;
+}
 /** What a shipped file is now: null when it is missing. */
 export type FileFacts = { sha256: string; bytes: number } | null;
 
@@ -55,33 +65,53 @@ export interface ProvenanceReport {
 const glob = (pattern: string) => new RegExp(`^${pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`);
 
 /** Every asset key a game ships: the manifest's images, the files its audio and videos name. */
-export function assetKeys(game: GameDef, manifest: { images: Record<string, unknown>; videos?: Record<string, unknown> }): string[] {
+export function assetKeys(
+  game: GameDef,
+  manifest: { images: Record<string, unknown>; videos?: Record<string, unknown> },
+): string[] {
   // The asset graph's `offline` scope: what the full warm-up caches is what provenance covers.
   return assetGraph(game, { manifest }).offline;
 }
 
-export function provenanceReport(game: GameDef, manifest: { images: Record<string, unknown>; videos?: Record<string, unknown> }, prov: Provenance): ProvenanceReport {
+export function provenanceReport(
+  game: GameDef,
+  manifest: { images: Record<string, unknown>; videos?: Record<string, unknown> },
+  prov: Provenance,
+): ProvenanceReport {
   const entries = (prov.assets ?? []).map((e) => ({ e, re: glob(e.match) }));
   const keys = assetKeys(game, manifest);
-  const uncovered: string[] = [], placeholders: string[] = [], ambiguous: string[] = [];
+  const uncovered: string[] = [],
+    placeholders: string[] = [],
+    ambiguous: string[] = [];
   for (const k of keys) {
     const hits = entries.filter(({ re }) => re.test(k));
     if (!hits.length) uncovered.push(k);
     else if (hits.length > 1) ambiguous.push(`${k} (${hits.map((h) => h.e.match).join(', ')})`);
-    else if (hits[0].e.status === 'placeholder') placeholders.push(k);
+    else if (must(hits[0], 'provenance hit').e.status === 'placeholder') placeholders.push(k);
   }
-  const incomplete = (prov.assets ?? []).filter((e) => !e.match || !e.source?.trim() || !e.licence?.trim() || (e.status !== 'final' && e.status !== 'placeholder')).map((e) => e.match || '(no match)');
+  const incomplete = (prov.assets ?? [])
+    .filter(
+      (e) =>
+        !e.match || !e.source?.trim() || !e.licence?.trim() || (e.status !== 'final' && e.status !== 'placeholder'),
+    )
+    .map((e) => e.match || '(no match)');
   return { keys: keys.length, uncovered, placeholders, incomplete, ambiguous };
 }
 
 /** What a release does with each placeholder: an error, unless a `releaseExceptions` entry names it with a reason (then accepted, said by name). */
 export function placeholderVerdict(prov: Provenance, r: ProvenanceReport): { errors: string[]; accepted: string[] } {
-  const ex = (prov.releaseExceptions ?? []).filter((x) => x.match && x.reason?.trim()).map((x) => ({ x, re: glob(x.match) }));
-  const errors: string[] = [], accepted: string[] = [];
+  const ex = (prov.releaseExceptions ?? [])
+    .filter((x) => x.match && x.reason?.trim())
+    .map((x) => ({ x, re: glob(x.match) }));
+  const errors: string[] = [],
+    accepted: string[] = [];
   for (const k of r.placeholders) {
     const hit = ex.find(({ re }) => re.test(k));
     if (hit) accepted.push(`provenance.json › ${k}: a placeholder ships (release exception: ${hit.x.reason.trim()})`);
-    else errors.push(`provenance.json › ${k}: a placeholder would ship; replace it, or add a releaseExceptions entry that names it and says why`);
+    else
+      errors.push(
+        `provenance.json › ${k}: a placeholder would ship; replace it, or add a releaseExceptions entry that names it and says why`,
+      );
   }
   return { errors, accepted };
 }
@@ -89,14 +119,21 @@ export function placeholderVerdict(prov: Provenance, r: ProvenanceReport): { err
 /** Where an asset key's file is, under the built assets folder (`public/assets`). */
 export function assetPath(key: string): string | null {
   const i = key.indexOf(':');
-  const kind = key.slice(0, i), id = key.slice(i + 1);
+  const kind = key.slice(0, i),
+    id = key.slice(i + 1);
   switch (kind) {
-    case 'img': return `img/${id}.webp`;
-    case 'sfx': return `audio/sfx/${id}`;
-    case 'music': return `audio/music/${id}`;
-    case 'voice': return `audio/voices/${id}`;
-    case 'video': return `video/${id}`;
-    default: return null;
+    case 'img':
+      return `img/${id}.webp`;
+    case 'sfx':
+      return `audio/sfx/${id}`;
+    case 'music':
+      return `audio/music/${id}`;
+    case 'voice':
+      return `audio/voices/${id}`;
+    case 'video':
+      return `video/${id}`;
+    default:
+      return null;
   }
 }
 
@@ -109,7 +146,8 @@ export function entryOf(prov: Provenance, key: string): ProvenanceEntry | undefi
 export function makeLock(keys: string[], prov: Provenance, files: Record<string, FileFacts>): ProvenanceLock {
   const assets: Record<string, LockEntry> = {};
   for (const k of [...keys].sort()) {
-    const f = files[k], e = entryOf(prov, k);
+    const f = files[k],
+      e = entryOf(prov, k);
     if (f && e) assets[k] = { sha256: f.sha256, bytes: f.bytes, match: e.match, licence: e.licence, status: e.status };
   }
   return { version: 1, assets };
@@ -128,13 +166,26 @@ export interface LockDiff {
   claims: string[];
 }
 
-export function lockDiff(keys: string[], prov: Provenance, files: Record<string, FileFacts>, lock: ProvenanceLock): LockDiff {
+export function lockDiff(
+  keys: string[],
+  prov: Provenance,
+  files: Record<string, FileFacts>,
+  lock: ProvenanceLock,
+): LockDiff {
   const d: LockDiff = { missing: [], added: [], removed: [], changed: [], claims: [] };
   const now = new Set(keys);
   for (const k of [...keys].sort()) {
-    const f = files[k], l = lock.assets[k], e = entryOf(prov, k);
-    if (!f) { d.missing.push(k); continue; }
-    if (!l) { d.added.push(k); continue; }
+    const f = files[k],
+      l = lock.assets[k],
+      e = entryOf(prov, k);
+    if (!f) {
+      d.missing.push(k);
+      continue;
+    }
+    if (!l) {
+      d.added.push(k);
+      continue;
+    }
     if (l.sha256 !== f.sha256 || l.bytes !== f.bytes) d.changed.push(k);
     else if (e && (l.match !== e.match || l.licence !== e.licence || l.status !== e.status)) d.claims.push(k);
   }
@@ -155,19 +206,32 @@ export function lockMessages(d: LockDiff): string[] {
 
 /** Licences in a release: one the policy does not allow is an error, unless a `releaseExceptions` entry names the asset. */
 export function licenceVerdict(keys: string[], prov: Provenance): { errors: string[]; accepted: string[] } {
-  const errors: string[] = [], accepted: string[] = [];
+  const errors: string[] = [],
+    accepted: string[] = [];
   const allow = (prov.licences?.allow ?? []).map((x) => x.trim()).filter(Boolean);
-  if (!allow.length) return { errors: ['provenance.json › licences: a release says which licences may ship (`licences: { allow: [...] }`)'], accepted };
-  const ex = (prov.releaseExceptions ?? []).filter((x) => x.match && x.reason?.trim()).map((x) => ({ x, re: glob(x.match) }));
+  if (!allow.length)
+    return {
+      errors: ['provenance.json › licences: a release says which licences may ship (`licences: { allow: [...] }`)'],
+      accepted,
+    };
+  const ex = (prov.releaseExceptions ?? [])
+    .filter((x) => x.match && x.reason?.trim())
+    .map((x) => ({ x, re: glob(x.match) }));
   const bad = new Map<string, string[]>();
   for (const k of keys) {
     const e = entryOf(prov, k);
     if (!e || allow.includes(e.licence.trim())) continue;
     const hit = ex.find(({ re }) => re.test(k));
-    if (hit) accepted.push(`provenance.json › ${k}: ships under ${e.licence}, outside the policy (release exception: ${hit.x.reason.trim()})`);
+    if (hit)
+      accepted.push(
+        `provenance.json › ${k}: ships under ${e.licence}, outside the policy (release exception: ${hit.x.reason.trim()})`,
+      );
     else (bad.get(e.licence) ?? (bad.set(e.licence, []), bad.get(e.licence)!)).push(k);
   }
-  for (const [lic, ks] of bad) errors.push(`provenance.json › ${lic}: not in licences.allow (${allow.join(', ')}), used by ${ks.length} asset(s): ${ks.slice(0, 5).join(', ')}${ks.length > 5 ? '…' : ''}`);
+  for (const [lic, ks] of bad)
+    errors.push(
+      `provenance.json › ${lic}: not in licences.allow (${allow.join(', ')}), used by ${ks.length} asset(s): ${ks.slice(0, 5).join(', ')}${ks.length > 5 ? '…' : ''}`,
+    );
   return { errors, accepted };
 }
 
@@ -183,18 +247,29 @@ export const nonCommercial = (licence: string) => /\b(NC|ND)\b|non[- ]?commercia
  */
 export function commercialVerdict(keys: string[], prov: Provenance, exists: (path: string) => boolean): string[] {
   const errors: string[] = [];
-  for (const x of prov.releaseExceptions ?? []) errors.push(`provenance.json › releaseExceptions › ${x.match}: a commercial release ships no exception (${x.reason?.trim() || 'no reason'})`);
+  for (const x of prov.releaseExceptions ?? [])
+    errors.push(
+      `provenance.json › releaseExceptions › ${x.match}: a commercial release ships no exception (${x.reason?.trim() || 'no reason'})`,
+    );
   const used = new Map<ProvenanceEntry, string[]>();
-  for (const k of keys) { const e = entryOf(prov, k); if (e) (used.get(e) ?? (used.set(e, []), used.get(e)!)).push(k); }
+  for (const k of keys) {
+    const e = entryOf(prov, k);
+    if (e) (used.get(e) ?? (used.set(e, []), used.get(e)!)).push(k);
+  }
   for (const [e, ks] of used) {
     const which = `${e.match} (${ks.length} asset(s))`;
     if (e.status === 'placeholder') errors.push(`provenance.json › ${which}: a placeholder, not for sale`);
-    if (nonCommercial(e.licence)) errors.push(`provenance.json › ${which}: ${e.licence} does not allow commercial use (or changes)`);
+    if (nonCommercial(e.licence))
+      errors.push(`provenance.json › ${which}: ${e.licence} does not allow commercial use (or changes)`);
     if (!e.author?.trim()) errors.push(`provenance.json › ${which}: no author`);
     // Any relative path the source names (games/…, art-src/draw.py in a game's own project, 3.9), never a URL's.
-    const paths = [...e.source.replace(/\b\w+:\/\/\S+/g, '').matchAll(/(?<![\w/.-])((?:[\w-]+\/)+[\w.-]+)/g)].map((m) => m[1].replace(/[.,;:)]+$/, ''));
-    if (!e.url?.trim() && !paths.some(exists)) errors.push(`provenance.json › ${which}: nothing to check the source against (add a url, or name the repository file it was made from)`);
+    const paths = [...e.source.replace(/\b\w+:\/\/\S+/g, '').matchAll(/(?<![\w/.-])((?:[\w-]+\/)+[\w.-]+)/g)].map((m) =>
+      must(m[1], 'source path').replace(/[.,;:)]+$/, ''),
+    );
+    if (!e.url?.trim() && !paths.some(exists))
+      errors.push(
+        `provenance.json › ${which}: nothing to check the source against (add a url, or name the repository file it was made from)`,
+      );
   }
   return errors;
 }
-

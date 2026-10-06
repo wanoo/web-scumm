@@ -12,7 +12,8 @@ export const barSec = (s: ScoreDef) => (60 / s.bpm) * (s.beatsPerBar ?? 4);
 /** The stems the state asks for. */
 export function stemsFor(s: ScoreDef, holds: (c: Cond) => boolean): Id[] {
   const all = Object.keys(s.stems);
-  for (const st of s.states ?? []) if (st.if === undefined || holds(st.if)) return st.stems.filter((x) => all.includes(x));
+  for (const st of s.states ?? [])
+    if (st.if === undefined || holds(st.if)) return st.stems.filter((x) => all.includes(x));
   return all;
 }
 
@@ -38,7 +39,14 @@ export function positionAt(p: number, [a, b]: [number, number]): number {
  * count where it restarts the music, and the loop's start is always a point of the grid). `duration` is the file's
  * length; `lead`, the least time a change needs to be scheduled ahead (a boundary closer than that moves on).
  */
-export function nextBoundary(s: ScoreDef, start: number, t: number, unit: 'beat' | 'bar' = s.quantize ?? 'bar', lead = 0, duration = Infinity): number {
+export function nextBoundary(
+  s: ScoreDef,
+  start: number,
+  t: number,
+  unit: 'beat' | 'bar' = s.quantize ?? 'bar',
+  lead = 0,
+  duration = Infinity,
+): number {
   const u = unit === 'beat' ? beatSec(s) : barSec(s);
   const from = t + lead;
   if (from <= start) return start;
@@ -60,14 +68,21 @@ export function nextBoundary(s: ScoreDef, start: number, t: number, unit: 'beat'
 }
 
 /** One gain change: a stem from its gain to another, ramped linearly between two instants of the audio clock. */
-export interface GainStep { stem: Id; from: number; to: number; at: number; until: number }
+export interface GainStep {
+  stem: Id;
+  from: number;
+  to: number;
+  at: number;
+  until: number;
+}
 
 /** The ramps that take the mix from `prev` to `next` at a boundary, over `fadeBeats`. Stems already right: none. */
 export function crossfade(s: ScoreDef, prev: Id[], next: Id[], at: number): GainStep[] {
   const until = at + (s.fadeBeats ?? 2) * beatSec(s);
   const out: GainStep[] = [];
   for (const stem of Object.keys(s.stems)) {
-    const a = prev.includes(stem) ? 1 : 0, b = next.includes(stem) ? 1 : 0;
+    const a = prev.includes(stem) ? 1 : 0,
+      b = next.includes(stem) ? 1 : 0;
     if (a !== b) out.push({ stem, from: a, to: b, at, until });
   }
   return out;
@@ -104,7 +119,13 @@ export function landing(s: ScoreDef, start: number, t: number, at: Landing, lead
 }
 
 /** One rule of `audio.transitions`: the first that names both scores (or `*`) applies. */
-export interface TransitionRule { from: Id | '*'; to: Id | '*'; at?: Landing; bridge?: Id; fadeBeats?: number }
+export interface TransitionRule {
+  from: Id | '*';
+  to: Id | '*';
+  at?: Landing;
+  bridge?: Id;
+  fadeBeats?: number;
+}
 
 export function transitionFor(rules: TransitionRule[] | undefined, from: Id, to: Id): TransitionRule | undefined {
   return rules?.find((r) => (r.from === '*' || r.from === from) && (r.to === '*' || r.to === to));

@@ -5,8 +5,19 @@ import { objectEditor, type FormCtx } from './forms';
 import { RULE_FIELDS, STAGE_FIELDS } from './schema';
 import { structuredEdit } from './structured';
 import type { Cmd, Cond, Id, RoomDef, Rule } from '@engine/core/types';
-import { api, BASE, imgUrl, type EditorToStudio, type EntityKind, type GameInfo, type RoomData, type StudioToEditor, type TextRef } from './api';
+import {
+  api,
+  BASE,
+  imgUrl,
+  type EditorToStudio,
+  type EntityKind,
+  type GameInfo,
+  type RoomData,
+  type StudioToEditor,
+  type TextRef,
+} from './api';
 import { autoGrow, h, modal, select, toast } from './ui';
+import { must } from '../engine/core/must';
 import { dialogueTree, type DialogueNode } from '@engine/tools/dialogue';
 import { timeline, type Timeline } from '@engine/tools/timeline';
 
@@ -23,7 +34,11 @@ export interface RoomsCtx {
 type Sel = { kind: EntityKind; id: Id } | null;
 
 const KIND_LABEL: Record<EntityKind, string> = { prop: 'Prop', actor: 'Actor', hotspot: 'Hotspot' };
-const SECTION: Record<EntityKind, 'props' | 'actors' | 'hotspots'> = { prop: 'props', actor: 'actors', hotspot: 'hotspots' };
+const SECTION: Record<EntityKind, 'props' | 'actors' | 'hotspots'> = {
+  prop: 'props',
+  actor: 'actors',
+  hotspot: 'hotspots',
+};
 const MAX_TEXT = 140;
 
 // ---------------------------------------------------------------------------
@@ -43,7 +58,14 @@ export function condText(c: Cond | undefined): string {
   if ('unlocked' in c) return `${c.unlocked} unlocked`;
   if ('seen' in c) return `heard ${c.seen}`;
   if ('flag' in c) {
-    const op = c.eq !== undefined ? `= ${JSON.stringify(c.eq)}` : c.gte !== undefined ? `≥ ${c.gte}` : c.lt !== undefined ? `< ${c.lt}` : 'set';
+    const op =
+      c.eq !== undefined
+        ? `= ${JSON.stringify(c.eq)}`
+        : c.gte !== undefined
+          ? `≥ ${c.gte}`
+          : c.lt !== undefined
+            ? `< ${c.lt}`
+            : 'set';
     return `${c.flag} ${op}`;
   }
   return JSON.stringify(c);
@@ -51,8 +73,12 @@ export function condText(c: Cond | undefined): string {
 
 function chipText(c: Exclude<Cmd, string>): string {
   const [k, v] = Object.entries(c)[0] ?? ['?', ''];
-  const val = (x: unknown): string => (Array.isArray(x) ? x.map(val).join(' → ') : typeof x === 'object' && x ? JSON.stringify(x) : String(x));
-  const rest = Object.entries(c).slice(1).filter(([kk]) => !['then', 'else', 'do', 'after'].includes(kk)).map(([kk, x]) => `${kk} ${val(x)}`);
+  const val = (x: unknown): string =>
+    Array.isArray(x) ? x.map(val).join(' → ') : typeof x === 'object' && x ? JSON.stringify(x) : String(x);
+  const rest = Object.entries(c)
+    .slice(1)
+    .filter(([kk]) => !['then', 'else', 'do', 'after'].includes(kk))
+    .map(([kk, x]) => `${kk} ${val(x)}`);
   const s = `${k} ${v === true ? '' : val(v)}${rest.length ? ` (${rest.join(', ')})` : ''}`.trim();
   return s.length > 70 ? s.slice(0, 68) + '…' : s;
 }
@@ -82,16 +108,23 @@ export class RoomsTab {
   private pendingRender = false;
   private pendingSelect: Sel = null;
 
-  constructor(private ctx: RoomsCtx, initialRoom?: string) {
+  constructor(
+    private ctx: RoomsCtx,
+    initialRoom?: string,
+  ) {
     const rooms = ctx.info.rooms;
-    this.roomId = rooms.some((r) => r.id === initialRoom) ? initialRoom! : rooms[0]?.id ?? '';
+    this.roomId = rooms.some((r) => r.id === initialRoom) ? initialRoom! : (rooms[0]?.id ?? '');
     window.addEventListener('message', (e) => this.onMessage(e));
     this.build();
   }
 
-  get room() { return this.roomId; }
+  get room() {
+    return this.roomId;
+  }
   /** The selected entity, if any (the Assistant's context). */
-  get selection(): Sel { return this.sel; }
+  get selection(): Sel {
+    return this.sel;
+  }
 
   // -------------------------------------------------------------- layout
 
@@ -99,20 +132,73 @@ export class RoomsTab {
     const info = this.ctx.info;
     const cps = Object.entries(info.checkpoints);
     this.frame = h('iframe', { class: 'engine', title: 'Room editor', src: this.frameUrl() });
-    const bar = h('div', { class: 'bar' },
-      h('label', null, 'Room ', select(info.rooms.map((r) => [r.id, `${r.name} (${r.id})`]), this.roomId, (v) => this.openRoom(v), { 'aria-label': 'Room' })),
-      h('label', null, 'State ', select([['', 'auto'], ...cps.map(([k, c]) => [k, `${k} (${c.room})`] as [string, string])], this.checkpoint, (v) => { this.checkpoint = v; this.reloadFrame(); }, { 'aria-label': 'Checkpoint' })),
-      h('button', { onclick: () => this.post({ source: 'web-scumm-studio', type: 'save' }), title: 'Save the layout edited in the view' }, 'Save layout'),
-      h('button', { onclick: () => this.reloadFrame(), title: 'Reload the view (drops unsaved placement)' }, 'Reload view'),
+    const bar = h(
+      'div',
+      { class: 'bar' },
+      h(
+        'label',
+        null,
+        'Room ',
+        select(
+          info.rooms.map((r) => [r.id, `${r.name} (${r.id})`]),
+          this.roomId,
+          (v) => this.openRoom(v),
+          { 'aria-label': 'Room' },
+        ),
+      ),
+      h(
+        'label',
+        null,
+        'State ',
+        select(
+          [['', 'auto'], ...cps.map(([k, c]) => [k, `${k} (${c.room})`] as [string, string])],
+          this.checkpoint,
+          (v) => {
+            this.checkpoint = v;
+            this.reloadFrame();
+          },
+          { 'aria-label': 'Checkpoint' },
+        ),
+      ),
+      h(
+        'button',
+        {
+          onclick: () => this.post({ source: 'web-scumm-studio', type: 'save' }),
+          title: 'Save the layout edited in the view',
+        },
+        'Save layout',
+      ),
+      h(
+        'button',
+        { onclick: () => this.reloadFrame(), title: 'Reload the view (drops unsaved placement)' },
+        'Reload view',
+      ),
       this.frameStatus,
     );
-    const search = h('input', { type: 'search', placeholder: 'Search props, actors, hotspots…', value: this.search, 'aria-label': 'Search' });
-    search.addEventListener('input', () => { this.search = search.value.trim().toLowerCase(); this.renderList(); });
+    const search = h('input', {
+      type: 'search',
+      placeholder: 'Search props, actors, hotspots…',
+      value: this.search,
+      'aria-label': 'Search',
+    });
+    search.addEventListener('input', () => {
+      this.search = search.value.trim().toLowerCase();
+      this.renderList();
+    });
     this.el.replaceChildren(
       h('div', { class: 'stage' }, bar, h('div', { class: 'frame' }, this.frame), this.roomSheetEl),
-      h('aside', { class: 'side' },
-        h('div', { class: 'listhead' }, search, h('button', { class: 'primary', onclick: () => this.addDialog() }, '+ Add')),
-        this.listEl, this.sheetEl),
+      h(
+        'aside',
+        { class: 'side' },
+        h(
+          'div',
+          { class: 'listhead' },
+          search,
+          h('button', { class: 'primary', onclick: () => this.addDialog() }, '+ Add'),
+        ),
+        this.listEl,
+        this.sheetEl,
+      ),
     );
     void this.load();
   }
@@ -131,9 +217,16 @@ export class RoomsTab {
 
   /** Scrolls to and flashes the editor of a content path (`on[3]`, `talk.lou[1].do[0]`…), once the room is shown. */
   focusPath(path: string, tries = 20) {
-    const el = this.el.querySelector<HTMLElement>(`[data-path="${CSS.escape(path)}"]`) ?? [...this.el.querySelectorAll<HTMLElement>('[data-path]')].find((x) => x.dataset.path?.startsWith(path));
-    if (!el) { if (tries > 0) setTimeout(() => this.focusPath(path, tries - 1), 150); return; }
-    el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200);
+    const el =
+      this.el.querySelector<HTMLElement>(`[data-path="${CSS.escape(path)}"]`) ??
+      [...this.el.querySelectorAll<HTMLElement>('[data-path]')].find((x) => x.dataset.path?.startsWith(path));
+    if (!el) {
+      if (tries > 0) setTimeout(() => this.focusPath(path, tries - 1), 150);
+      return;
+    }
+    el.scrollIntoView({ block: 'center' });
+    el.classList.add('flash');
+    setTimeout(() => el.classList.remove('flash'), 1200);
     (el.querySelector('textarea, input') as HTMLElement | null)?.focus();
   }
 
@@ -162,7 +255,10 @@ export class RoomsTab {
   /** Re-render now, or after the text being typed is saved. */
   private render() {
     const a = document.activeElement;
-    if (a instanceof HTMLTextAreaElement && this.el.contains(a) && a.value !== a.defaultValue) { this.pendingRender = true; return; }
+    if (a instanceof HTMLTextAreaElement && this.el.contains(a) && a.value !== a.defaultValue) {
+      this.pendingRender = true;
+      return;
+    }
     this.pendingRender = false;
     this.renderList();
     this.renderSheet();
@@ -171,20 +267,35 @@ export class RoomsTab {
 
   // -------------------------------------------------------------- bridge with the editor (iframe)
 
-  private post(m: StudioToEditor) { this.frame.contentWindow?.postMessage(m, location.origin); }
+  private post(m: StudioToEditor) {
+    this.frame.contentWindow?.postMessage(m, location.origin);
+  }
 
   private onMessage(e: MessageEvent) {
     const m = e.data as EditorToStudio;
-    if (e.origin !== location.origin || m?.source !== 'web-scumm-editor' || e.source !== this.frame.contentWindow) return;
+    if (e.origin !== location.origin || m?.source !== 'web-scumm-editor' || e.source !== this.frame.contentWindow)
+      return;
     if (m.type === 'ready') {
       this.lastReady = Date.now();
       this.editorDirty = false;
-      this.frameStatus.textContent = m.missing.length ? `${m.missing.length} without a place: ${m.missing.map((x) => x.id).join(', ')}` : '';
+      this.frameStatus.textContent = m.missing.length
+        ? `${m.missing.length} without a place: ${m.missing.map((x) => x.id).join(', ')}`
+        : '';
       const s = this.pendingSelect ?? this.sel;
       this.pendingSelect = null;
-      if (s) this.post({ source: 'web-scumm-studio', type: m.missing.some((x) => x.id === s.id) ? 'create' : 'select', kind: s.kind, id: s.id });
+      if (s)
+        this.post({
+          source: 'web-scumm-studio',
+          type: m.missing.some((x) => x.id === s.id) ? 'create' : 'select',
+          kind: s.kind,
+          id: s.id,
+        });
     } else if (m.type === 'select' && m.kind && m.id) {
-      if (this.sel?.kind !== m.kind || this.sel?.id !== m.id) { this.sel = { kind: m.kind, id: m.id }; this.renderList(); this.renderSheet(); }
+      if (this.sel?.kind !== m.kind || this.sel?.id !== m.id) {
+        this.sel = { kind: m.kind, id: m.id };
+        this.renderList();
+        this.renderSheet();
+      }
     } else if (m.type === 'dirty') {
       this.editorDirty = m.dirty;
       this.frameStatus.textContent = m.dirty ? 'placement not saved' : '';
@@ -197,11 +308,20 @@ export class RoomsTab {
     let { ok, error } = m;
     // The editor could not write the file (demo mode): the layout is stored through the Studio's backend.
     if (ok && m.layout) {
-      try { await api.setLayout(m.room, m.layout); } catch (e) { ok = false; error = (e as Error).message; }
+      try {
+        await api.setLayout(m.room, m.layout);
+      } catch (e) {
+        ok = false;
+        error = (e as Error).message;
+      }
     }
     this.editorDirty = !ok;
-    this.frameStatus.textContent = ok ? '' : error ?? 'save failed';
-    if (ok) { this.ctx.ownWrite(); toast(api.mode === 'demo' ? 'Layout saved in this browser' : 'Layout saved'); this.ctx.saved(); } else toast(error ?? 'Layout not saved', 'error');
+    this.frameStatus.textContent = ok ? '' : (error ?? 'save failed');
+    if (ok) {
+      this.ctx.ownWrite();
+      toast(api.mode === 'demo' ? 'Layout saved in this browser' : 'Layout saved');
+      this.ctx.saved();
+    } else toast(error ?? 'Layout not saved', 'error');
     if (ok && m.layout && this.data && m.room === this.roomId) this.data.layout = m.layout;
     this.savedWaiters.splice(0).forEach((f) => f(ok));
   }
@@ -209,7 +329,10 @@ export class RoomsTab {
   /** Before touching the room file (the view reloads when it changes): save the placement in progress. */
   private async flushEditor() {
     if (!this.editorDirty) return;
-    const done = new Promise<boolean>((res) => { this.savedWaiters.push(res); setTimeout(() => res(false), 4000); });
+    const done = new Promise<boolean>((res) => {
+      this.savedWaiters.push(res);
+      setTimeout(() => res(false), 4000);
+    });
     this.post({ source: 'web-scumm-studio', type: 'save' });
     await done;
   }
@@ -220,7 +343,9 @@ export class RoomsTab {
     if (file === `layout/${this.roomId}.json`) {
       // Vite reloads the view by itself when the layout module changes; make sure it does.
       const since = Date.now();
-      setTimeout(() => { if (this.lastReady < since) this.reloadFrame(); }, 1200);
+      setTimeout(() => {
+        if (this.lastReady < since) this.reloadFrame();
+      }, 1200);
       void this.load();
     } else if (file.endsWith('.ts') || file === 'assets.gen.json') {
       void this.load();
@@ -229,37 +354,82 @@ export class RoomsTab {
 
   // -------------------------------------------------------------- list
 
-  private entityDef(s: NonNullable<Sel>) { return this.data?.def[SECTION[s.kind]]?.[s.id]; }
+  private entityDef(s: NonNullable<Sel>) {
+    return this.data?.def[SECTION[s.kind]]?.[s.id];
+  }
 
   private entityName(kind: EntityKind, id: Id): string {
     const d = this.data!.def;
-    if (kind === 'actor') { const a = d.actors![id]; return a.name ?? this.ctx.info.characters[a.char]?.name ?? a.char; }
-    return (kind === 'prop' ? d.props![id].name : d.hotspots![id].name) ?? '';
+    if (kind === 'actor') {
+      const a = must(d.actors![id], 'listed actor');
+      return a.name ?? this.ctx.info.characters[a.char]?.name ?? a.char;
+    }
+    return (
+      (kind === 'prop' ? must(d.props![id], 'listed prop').name : must(d.hotspots![id], 'listed hotspot').name) ?? ''
+    );
   }
 
   private renderList() {
     if (!this.data) return;
     const d = this.data.def;
-    const groups: [EntityKind, Id[]][] = [['prop', Object.keys(d.props ?? {})], ['actor', Object.keys(d.actors ?? {})], ['hotspot', Object.keys(d.hotspots ?? {})]];
+    const groups: [EntityKind, Id[]][] = [
+      ['prop', Object.keys(d.props ?? {})],
+      ['actor', Object.keys(d.actors ?? {})],
+      ['hotspot', Object.keys(d.hotspots ?? {})],
+    ];
     const q = this.search;
-    this.listEl.replaceChildren(...groups.map(([kind, ids]) => {
-      const shown = ids.filter((id) => !q || id.toLowerCase().includes(q) || this.entityName(kind, id).toLowerCase().includes(q));
-      return h('div', { class: 'group' },
-        h('h3', null, `${KIND_LABEL[kind]}s `, h('span', { class: 'muted' }, shown.length === ids.length ? String(ids.length) : `${shown.length}/${ids.length}`)),
-        h('ul', null, shown.map((id) => {
-          const name = this.entityName(kind, id);
-          const interactive = kind === 'hotspot' || (kind === 'prop' ? !!d.props![id].name : d.actors![id].interactive !== false);
-          const noLook = interactive && !d.look?.[id];
-          const on = this.sel?.kind === kind && this.sel.id === id;
-          return h('li', null, h('button', {
-            class: `ent${on ? ' on' : ''}`, 'aria-pressed': on ? 'true' : 'false',
-            onclick: () => this.selectEntity({ kind, id }),
-          }, h('span', { class: `kind k-${kind}` }, kind[0].toUpperCase()), h('span', { class: 'id' }, id),
-          name && name !== id ? h('span', { class: 'name' }, name) : null,
-          noLook ? h('span', { class: 'warn', title: 'No look line' }, 'no look') : null,
-          !interactive ? h('span', { class: 'muted small' }, 'decor') : null));
-        })));
-    }));
+    this.listEl.replaceChildren(
+      ...groups.map(([kind, ids]) => {
+        const shown = ids.filter(
+          (id) => !q || id.toLowerCase().includes(q) || this.entityName(kind, id).toLowerCase().includes(q),
+        );
+        return h(
+          'div',
+          { class: 'group' },
+          h(
+            'h3',
+            null,
+            `${KIND_LABEL[kind]}s `,
+            h(
+              'span',
+              { class: 'muted' },
+              shown.length === ids.length ? String(ids.length) : `${shown.length}/${ids.length}`,
+            ),
+          ),
+          h(
+            'ul',
+            null,
+            shown.map((id) => {
+              const name = this.entityName(kind, id);
+              const interactive =
+                kind === 'hotspot' ||
+                (kind === 'prop'
+                  ? !!must(d.props![id], 'listed prop').name
+                  : must(d.actors![id], 'listed actor').interactive !== false);
+              const noLook = interactive && !d.look?.[id];
+              const on = this.sel?.kind === kind && this.sel.id === id;
+              return h(
+                'li',
+                null,
+                h(
+                  'button',
+                  {
+                    class: `ent${on ? ' on' : ''}`,
+                    'aria-pressed': on ? 'true' : 'false',
+                    onclick: () => this.selectEntity({ kind, id }),
+                  },
+                  h('span', { class: `kind k-${kind}` }, kind.charAt(0).toUpperCase()),
+                  h('span', { class: 'id' }, id),
+                  name && name !== id ? h('span', { class: 'name' }, name) : null,
+                  noLook ? h('span', { class: 'warn', title: 'No look line' }, 'no look') : null,
+                  !interactive ? h('span', { class: 'muted small' }, 'decor') : null,
+                ),
+              );
+            }),
+          ),
+        );
+      }),
+    );
     this.listEl.querySelector('.ent.on')?.scrollIntoView({ block: 'nearest' });
   }
 
@@ -276,30 +446,73 @@ export class RoomsTab {
   private line(path: string, opts: { label?: string; color?: string; deletable?: boolean } = {}): HTMLElement | null {
     const ref = this.byPath.get(path);
     if (!ref) return null;
-    const t = autoGrow(h('textarea', { rows: 1, value: ref.value, spellcheck: true, 'aria-label': `${opts.label ?? ref.kind}: ${path}` }));
+    const t = autoGrow(
+      h('textarea', {
+        rows: 1,
+        value: ref.value,
+        spellcheck: true,
+        'aria-label': `${opts.label ?? ref.kind}: ${path}`,
+      }),
+    );
     t.defaultValue = ref.value;
     const count = h('span', { class: 'count' });
-    const showCount = () => { const n = t.value.length; count.textContent = n > MAX_TEXT - 20 ? String(n) : ''; count.classList.toggle('over', n > MAX_TEXT); };
+    const showCount = () => {
+      const n = t.value.length;
+      count.textContent = n > MAX_TEXT - 20 ? String(n) : '';
+      count.classList.toggle('over', n > MAX_TEXT);
+    };
     showCount();
-    const row = h('div', { class: 'line', 'data-path': path, title: `${path} · ${ref.file}:${ref.line}` },
-      opts.label ? h('span', { class: 'who', style: opts.color ? { color: opts.color } : undefined }, opts.label) : null,
-      t, count,
-      opts.deletable ? h('button', { class: 'icon del', title: 'Delete this line', 'aria-label': `Delete ${path}`, onclick: () => void this.write(path, null) }, '✕') : null);
+    const row = h(
+      'div',
+      { class: 'line', 'data-path': path, title: `${path} · ${ref.file}:${ref.line}` },
+      opts.label
+        ? h('span', { class: 'who', style: opts.color ? { color: opts.color } : undefined }, opts.label)
+        : null,
+      t,
+      count,
+      opts.deletable
+        ? h(
+            'button',
+            {
+              class: 'icon del',
+              title: 'Delete this line',
+              'aria-label': `Delete ${path}`,
+              onclick: () => void this.write(path, null),
+            },
+            '✕',
+          )
+        : null,
+    );
     const commit = async () => {
       const v = t.value;
-      if (v === t.defaultValue) { if (this.pendingRender) this.render(); return; }
-      if (!v.trim()) { toast('A line cannot be empty (✕ deletes it)', 'error'); t.value = t.defaultValue; return; }
+      if (v === t.defaultValue) {
+        if (this.pendingRender) this.render();
+        return;
+      }
+      if (!v.trim()) {
+        toast('A line cannot be empty (✕ deletes it)', 'error');
+        t.value = t.defaultValue;
+        return;
+      }
       row.classList.add('saving');
       const ok = await this.write(path, v, false);
       row.classList.remove('saving');
-      if (ok) { t.defaultValue = v; ref.value = v; }
+      if (ok) {
+        t.defaultValue = v;
+        ref.value = v;
+      }
       if (this.pendingRender) this.render();
     };
     t.addEventListener('input', showCount);
     t.addEventListener('blur', () => void commit());
     t.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); t.blur(); }
-      else if (e.key === 'Escape') { t.value = t.defaultValue; t.blur(); }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        t.blur();
+      } else if (e.key === 'Escape') {
+        t.value = t.defaultValue;
+        t.blur();
+      }
     });
     return row;
   }
@@ -307,8 +520,17 @@ export class RoomsTab {
   /** "+ line" input appending to the list at `path` (`look.piano`, `hints[2].lines`). */
   private appender(path: string, placeholder: string): HTMLElement {
     const t = h('input', { type: 'text', placeholder, 'aria-label': placeholder });
-    const go = async () => { const v = t.value.trim(); if (!v) return; if (await this.write(`${path}[+]`, v)) t.value = ''; };
-    t.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); void go(); } });
+    const go = async () => {
+      const v = t.value.trim();
+      if (!v) return;
+      if (await this.write(`${path}[+]`, v)) t.value = '';
+    };
+    t.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        void go();
+      }
+    });
     return h('div', { class: 'line add' }, t, h('button', { onclick: () => void go() }, '+ line'));
   }
 
@@ -319,7 +541,9 @@ export class RoomsTab {
       this.ctx.ownWrite();
       const r = await api.setText(this.roomId, path, value);
       if (r.changed) {
-        toast(`${value === null ? 'Deleted' : path.endsWith('[+]') ? 'Added' : 'Saved'} · ${this.data?.file.split('/').pop()}:${r.line}`);
+        toast(
+          `${value === null ? 'Deleted' : path.endsWith('[+]') ? 'Added' : 'Saved'} · ${this.data?.file.split('/').pop()}:${r.line}`,
+        );
         this.ctx.saved();
       }
       if (reload || !r.changed) await this.load();
@@ -342,35 +566,91 @@ export class RoomsTab {
     const box = h('div', { class: 'cmds' });
     (list ?? []).forEach((c, i) => {
       const p = `${path}[${i}]`;
-      if (typeof c === 'string') { const s = this.speaker('hero'); box.append(this.line(p, s) ?? h('div', { class: 'chip' }, c)); return; }
-      if ('say' in c) { const s = this.speaker(c.say[0]); box.append(this.line(`${p}.say[1]`, s) ?? h('div', { class: 'chip' }, chipText(c))); return; }
-      if ('toast' in c) { box.append(this.line(`${p}.toast`, { label: 'toast' }) ?? h('div', { class: 'chip' }, chipText(c))); return; }
-      if ('guide' in c) { box.append(this.line(`${p}.guide.say`, { label: 'guide' }) ?? h('div', { class: 'chip' }, chipText(c))); return; }
-      const nest = (label: string, sub: Cmd[] | undefined, subPath: string) => h('div', { class: 'nest' }, h('div', { class: 'chip k' }, label), this.cmds(sub, subPath));
+      if (typeof c === 'string') {
+        const s = this.speaker('hero');
+        box.append(this.line(p, s) ?? h('div', { class: 'chip' }, c));
+        return;
+      }
+      if ('say' in c) {
+        const s = this.speaker(c.say[0]);
+        box.append(this.line(`${p}.say[1]`, s) ?? h('div', { class: 'chip' }, chipText(c)));
+        return;
+      }
+      if ('toast' in c) {
+        box.append(this.line(`${p}.toast`, { label: 'toast' }) ?? h('div', { class: 'chip' }, chipText(c)));
+        return;
+      }
+      if ('guide' in c) {
+        box.append(this.line(`${p}.guide.say`, { label: 'guide' }) ?? h('div', { class: 'chip' }, chipText(c)));
+        return;
+      }
+      const nest = (label: string, sub: Cmd[] | undefined, subPath: string) =>
+        h('div', { class: 'nest' }, h('div', { class: 'chip k' }, label), this.cmds(sub, subPath));
       if ('if' in c && 'then' in c) {
         box.append(nest(`if ${condText(c.if)}`, c.then, `${p}.then`));
         if (c.else) box.append(nest('else', c.else, `${p}.else`));
         return;
       }
-      if ('cutscene' in c) { box.append(h('div', { class: 'nest' }, h('div', { class: 'chip k' }, 'cutscene'), this.timed(c.cutscene, `${p}.cutscene`))); return; }
-      if ('once' in c) { box.append(nest('once', c.once, `${p}.once`)); return; }
+      if ('cutscene' in c) {
+        box.append(
+          h(
+            'div',
+            { class: 'nest' },
+            h('div', { class: 'chip k' }, 'cutscene'),
+            this.timed(c.cutscene, `${p}.cutscene`),
+          ),
+        );
+        return;
+      }
+      if ('once' in c) {
+        box.append(nest('once', c.once, `${p}.once`));
+        return;
+      }
       for (const k of ['nth', 'cycle', 'random', 'parallel'] as const) {
         if (k in c) {
-          const branches = (c as Record<string, Cmd[][]>)[k];
-          box.append(h('div', { class: 'nest' }, h('div', { class: 'chip k' }, k),
-            branches.map((b, j) => nest(`${k === 'nth' ? `time ${j + 1}` : `#${j + 1}`}`, b, `${p}.${k}[${j}]`))));
+          const branches = must((c as Record<string, Cmd[][]>)[k], `${k} branches`);
+          box.append(
+            h(
+              'div',
+              { class: 'nest' },
+              h('div', { class: 'chip k' }, k),
+              branches.map((b, j) => nest(`${k === 'nth' ? `time ${j + 1}` : `#${j + 1}`}`, b, `${p}.${k}[${j}]`)),
+            ),
+          );
           return;
         }
       }
       if ('choice' in c) {
-        box.append(h('div', { class: 'nest' }, h('div', { class: 'chip k' }, 'choice'), c.choice.map((o, j) => h('div', { class: 'nest' },
-          this.line(`${p}.choice[${j}].text`, { label: `option${o.if ? ` (if ${condText(o.if)})` : ''}` }) ?? h('div', { class: 'chip' }, o.text),
-          this.cmds(o.do, `${p}.choice[${j}].do`)))));
+        box.append(
+          h(
+            'div',
+            { class: 'nest' },
+            h('div', { class: 'chip k' }, 'choice'),
+            c.choice.map((o, j) =>
+              h(
+                'div',
+                { class: 'nest' },
+                this.line(`${p}.choice[${j}].text`, { label: `option${o.if ? ` (if ${condText(o.if)})` : ''}` }) ??
+                  h('div', { class: 'chip' }, o.text),
+                this.cmds(o.do, `${p}.choice[${j}].do`),
+              ),
+            ),
+          ),
+        );
         return;
       }
-      if ('phone' in c) { box.append(nest(`phone ${asList(c.phone).join(', ')}`, c.do, `${p}.do`)); return; }
-      if ('minigame' in c && c.then) { box.append(h('div', { class: 'chip' }, chipText(c)), nest('then', c.then, `${p}.then`)); return; }
-      if (('ending' in c || 'reveal' in c) && c.after) { box.append(h('div', { class: 'chip' }, chipText(c)), nest('after', c.after, `${p}.after`)); return; }
+      if ('phone' in c) {
+        box.append(nest(`phone ${asList(c.phone).join(', ')}`, c.do, `${p}.do`));
+        return;
+      }
+      if ('minigame' in c && c.then) {
+        box.append(h('div', { class: 'chip' }, chipText(c)), nest('then', c.then, `${p}.then`));
+        return;
+      }
+      if (('ending' in c || 'reveal' in c) && c.after) {
+        box.append(h('div', { class: 'chip' }, chipText(c)), nest('after', c.after, `${p}.after`));
+        return;
+      }
       box.append(h('div', { class: 'chip', 'data-path': p }, chipText(c)));
     });
     return box;
@@ -382,12 +662,31 @@ export class RoomsTab {
     if (!list?.length) return cmds;
     const d = this.data;
     const bars = h('div', { class: 'tl', hidden: true });
-    const toggle = h('button', { class: 'small', title: 'How long each command takes on screen, what runs in parallel, where the player is waited for', onclick: () => {
-      const show = bars.hidden;
-      if (show && !bars.childElementCount) bars.append(...this.timelineBars(timeline(list, { game: { characters: this.ctx.info.characters as unknown as Record<string, { fps?: number }> }, room: d?.def, layout: d?.layout, path }), cmds));
-      bars.hidden = !show;
-      toggle.textContent = show ? 'Hide timeline' : 'Timeline';
-    } }, 'Timeline');
+    const toggle = h(
+      'button',
+      {
+        class: 'small',
+        title: 'How long each command takes on screen, what runs in parallel, where the player is waited for',
+        onclick: () => {
+          const show = bars.hidden;
+          if (show && !bars.childElementCount)
+            bars.append(
+              ...this.timelineBars(
+                timeline(list, {
+                  game: { characters: this.ctx.info.characters as unknown as Record<string, { fps?: number }> },
+                  room: d?.def,
+                  layout: d?.layout,
+                  path,
+                }),
+                cmds,
+              ),
+            );
+          bars.hidden = !show;
+          toggle.textContent = show ? 'Hide timeline' : 'Timeline';
+        },
+      },
+      'Timeline',
+    );
     return h('div', { class: 'timed' }, h('div', { class: 'bar small' }, toggle), bars, cmds);
   }
 
@@ -396,8 +695,18 @@ export class RoomsTab {
     const cmd = this.valueAt(path) as Record<string, unknown> | undefined;
     if (!cmd || typeof cmd !== 'object') return;
     const motion = ['launch', 'spring', 'path', 'follow'].find((k) => k in cmd);
-    const where = 'wait' in cmd ? `${path}.wait` : motion ? `${path}.${motion}.ms` : kind === 'anim' || 'anim' in cmd ? `${path}.ms` : null;
-    if (!where) { toast('This bar\'s length comes from its text or its walk: edit those', 'info'); return; }
+    const where =
+      'wait' in cmd
+        ? `${path}.wait`
+        : motion
+          ? `${path}.${motion}.ms`
+          : kind === 'anim' || 'anim' in cmd
+            ? `${path}.ms`
+            : null;
+    if (!where) {
+      toast("This bar's length comes from its text or its walk: edit those", 'info');
+      return;
+    }
     const v = prompt(`Duration of ${path} (ms)`, String(Math.round(ms)));
     if (v === null || !/^\d+$/.test(v.trim())) return;
     void this.writeValue(where, Number(v));
@@ -406,7 +715,8 @@ export class RoomsTab {
   /** The value at a content path of the current room (`on[2].do[1]`). */
   private valueAt(path: string): unknown {
     let v: unknown = this.data?.def;
-    for (const seg of path.split(/\.|\[|\]/).filter(Boolean)) v = v && typeof v === 'object' ? (v as Record<string, unknown>)[seg] : undefined;
+    for (const seg of path.split(/\.|\[|\]/).filter(Boolean))
+      v = v && typeof v === 'object' ? (v as Record<string, unknown>)[seg] : undefined;
     return v;
   }
 
@@ -418,25 +728,51 @@ export class RoomsTab {
       const row = h('div', { class: 'tlrow' });
       for (const it of t.items.filter((x) => x.lane === lane)) {
         const w = it.open ? 2 : Math.max(0.6, ((it.end - it.start) / total) * 100);
-        row.append(h('span', { class: `tlbar k-${it.kind}${it.open ? ' open' : ''}${it.estimated ? ' est' : ''}`, style: { left: `${(it.start / total) * 100}%`, width: `${w}%` },
-          title: `${it.label} · ${s(it.start)} → ${it.open ? 'the player' : s(it.end)}${it.estimated ? ' (estimated)' : ''}`,
-          onclick: () => { const el = list.querySelector<HTMLElement>(`[data-path="${CSS.escape(it.path)}"]`); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1200); (el.querySelector('textarea, input') as HTMLElement | null)?.focus(); } },
-          // 3.4: a timed command's duration is editable here (double-click: a wait, an animation, a motion).
-          ondblclick: () => this.editDuration(it.path, it.kind, it.end - it.start) },
-          it.label));
+        row.append(
+          h(
+            'span',
+            {
+              class: `tlbar k-${it.kind}${it.open ? ' open' : ''}${it.estimated ? ' est' : ''}`,
+              style: { left: `${(it.start / total) * 100}%`, width: `${w}%` },
+              title: `${it.label} · ${s(it.start)} → ${it.open ? 'the player' : s(it.end)}${it.estimated ? ' (estimated)' : ''}`,
+              onclick: () => {
+                const el = list.querySelector<HTMLElement>(`[data-path="${CSS.escape(it.path)}"]`);
+                if (el) {
+                  el.scrollIntoView({ block: 'center' });
+                  el.classList.add('flash');
+                  setTimeout(() => el.classList.remove('flash'), 1200);
+                  (el.querySelector('textarea, input') as HTMLElement | null)?.focus();
+                }
+              },
+              // 3.4: a timed command's duration is editable here (double-click: a wait, an animation, a motion).
+              ondblclick: () => this.editDuration(it.path, it.kind, it.end - it.start),
+            },
+            it.label,
+          ),
+        );
       }
       rows.push(row);
     }
-    rows.push(h('div', { class: 'muted small' }, `${t.openEnded ? `at least ${s(t.total)}, then the player` : s(t.total)} · ${t.items.filter((x) => x.kind === 'say').length} lines`));
+    rows.push(
+      h(
+        'div',
+        { class: 'muted small' },
+        `${t.openEnded ? `at least ${s(t.total)}, then the player` : s(t.total)} · ${t.items.filter((x) => x.kind === 'say').length} lines`,
+      ),
+    );
     return rows;
   }
 
   // -------------------------------------------------------------- the selected entity's sheet
 
-  private verbLabel(v: string) { return this.ctx.info.verbs.find((x) => x.id === v)?.label ?? v; }
+  private verbLabel(v: string) {
+    return this.ctx.info.verbs.find((x) => x.id === v)?.label ?? v;
+  }
 
   private ruleHead(r: Rule): string {
-    const verbs = asList(r.verb).map((v) => this.verbLabel(v)).join(' / ');
+    const verbs = asList(r.verb)
+      .map((v) => this.verbLabel(v))
+      .join(' / ');
     const a = asList(r.a).join(' / ');
     const b = r.b ? ` → ${asList(r.b).join(' / ')}` : '';
     return `${verbs} ${a}${b}`;
@@ -446,7 +782,9 @@ export class RoomsTab {
     const s = this.sel;
     const d = this.data?.def;
     if (!d || !s || !this.entityDef(s)) {
-      this.sheetEl.replaceChildren(h('p', { class: 'muted hint' }, 'Select a prop, an actor or a hotspot in the list or in the view.'));
+      this.sheetEl.replaceChildren(
+        h('p', { class: 'muted hint' }, 'Select a prop, an actor or a hotspot in the list or in the view.'),
+      );
       return;
     }
     const info = this.ctx.info;
@@ -457,59 +795,190 @@ export class RoomsTab {
     // Header: name
     const nameLine = this.line(`${sec}.${id}.name`, { label: 'name' });
     const title = this.entityName(s.kind, id);
-    parts.push(h('header', { class: 'sheethead' }, h('span', { class: `kind k-${s.kind}` }, KIND_LABEL[s.kind]), h('h2', null, id),
-      title && title !== id ? h('span', { class: 'muted' }, title) : null));
+    parts.push(
+      h(
+        'header',
+        { class: 'sheethead' },
+        h('span', { class: `kind k-${s.kind}` }, KIND_LABEL[s.kind]),
+        h('h2', null, id),
+        title && title !== id ? h('span', { class: 'muted' }, title) : null,
+      ),
+    );
     if (nameLine) parts.push(nameLine);
 
     // Facts (read-only)
     const facts: HTMLElement[] = [];
     if (s.kind === 'prop') {
-      const p = d.props![id];
+      const p = must(d.props![id], 'selected prop');
       if (p.img) facts.push(h('div', { class: 'fact' }, h('b', null, 'image'), thumb(p.img), h('code', null, p.img)));
-      if (p.states) facts.push(h('div', { class: 'fact' }, h('b', null, 'states'), h('div', { class: 'states' },
-        Object.entries(p.states).map(([st, im]) => h('figure', { class: st === p.initial ? 'initial' : '' }, thumb(im), h('figcaption', null, st, st === p.initial ? ' ★' : ''))))));
+      if (p.states)
+        facts.push(
+          h(
+            'div',
+            { class: 'fact' },
+            h('b', null, 'states'),
+            h(
+              'div',
+              { class: 'states' },
+              Object.entries(p.states).map(([st, im]) =>
+                h(
+                  'figure',
+                  { class: st === p.initial ? 'initial' : '' },
+                  thumb(im),
+                  h('figcaption', null, st, st === p.initial ? ' ★' : ''),
+                ),
+              ),
+            ),
+          ),
+        );
       if (!p.name) facts.push(h('div', { class: 'fact muted' }, 'No name: scenery, not clickable.'));
     }
     if (s.kind === 'actor') {
-      const a = d.actors![id];
-      facts.push(h('div', { class: 'fact' }, h('b', null, 'character'), h('code', null, a.char),
-        a.pose ? h('span', null, ` pose ${a.pose}`) : null, a.facing ? h('span', null, ` facing ${a.facing}`) : null,
-        a.interactive === false ? h('span', { class: 'muted' }, ' (not interactive)') : null));
+      const a = must(d.actors![id], 'selected actor');
+      facts.push(
+        h(
+          'div',
+          { class: 'fact' },
+          h('b', null, 'character'),
+          h('code', null, a.char),
+          a.pose ? h('span', null, ` pose ${a.pose}`) : null,
+          a.facing ? h('span', null, ` facing ${a.facing}`) : null,
+          a.interactive === false ? h('span', { class: 'muted' }, ' (not interactive)') : null,
+        ),
+      );
     }
     const vis = (this.entityDef(s) as { visible?: Cond }).visible;
-    facts.push(h('div', { class: 'fact' }, h('b', null, 'visible'), vis === undefined ? 'always' : h('code', null, condText(vis))));
+    facts.push(
+      h(
+        'div',
+        { class: 'fact' },
+        h('b', null, 'visible'),
+        vis === undefined ? 'always' : h('code', null, condText(vis)),
+      ),
+    );
     parts.push(h('div', { class: 'facts' }, facts));
 
     // Look lines
     const look = d.look?.[id];
-    const lookPaths = look === undefined ? [] : Array.isArray(look) ? look.map((_, i) => `look.${id}[${i}]`) : [`look.${id}`];
-    parts.push(h('section', null, h('h3', null, 'Look ', h('span', { class: 'muted small' }, lookPaths.length > 1 ? 'one line per look, in turn' : '')),
-      lookPaths.length ? lookPaths.map((p) => this.line(p, { deletable: true })) : h('p', { class: 'warn' }, 'No look line yet: everything visible should have one.'),
-      this.appender(`look.${id}`, 'New look line…')));
+    const lookPaths =
+      look === undefined ? [] : Array.isArray(look) ? look.map((_, i) => `look.${id}[${i}]`) : [`look.${id}`];
+    parts.push(
+      h(
+        'section',
+        null,
+        h(
+          'h3',
+          null,
+          'Look ',
+          h('span', { class: 'muted small' }, lookPaths.length > 1 ? 'one line per look, in turn' : ''),
+        ),
+        lookPaths.length
+          ? lookPaths.map((p) => this.line(p, { deletable: true }))
+          : h('p', { class: 'warn' }, 'No look line yet: everything visible should have one.'),
+        this.appender(`look.${id}`, 'New look line…'),
+      ),
+    );
 
     // Reactions touching this entity
-    const rules = (d.on ?? []).map((r, i) => [r, i] as const).filter(([r]) => asList(r.a).includes(id) || asList(r.b).includes(id));
-    parts.push(h('section', null, h('h3', null, 'Reactions ', h('span', { class: 'muted' }, String(rules.length))),
-      rules.length ? rules.map(([r, i]) => h('div', { class: 'rule' },
-        h('div', { class: 'rulehead' }, h('span', null, this.ruleHead(r)), r.if !== undefined ? h('code', { class: 'cond' }, `if ${condText(r.if)}`) : null,
-          h('span', { class: 'muted small' }, `on[${i}]`), h('button', { class: 'small', title: 'Edit the verb, targets, condition and commands as a form', onclick: () => this.editRule(i) }, 'Edit…')),
-        this.cmds(r.do, `on[${i}].do`)))
-      : h('p', { class: 'muted' }, 'None in this room: the game\'s fallback answers apply.'),
-      h('button', { class: 'small', onclick: () => this.editRule((d.on ?? []).length, { verb: 'look', a: id, do: [] }) }, '+ Reaction')));
+    const rules = (d.on ?? [])
+      .map((r, i) => [r, i] as const)
+      .filter(([r]) => asList(r.a).includes(id) || asList(r.b).includes(id));
+    parts.push(
+      h(
+        'section',
+        null,
+        h('h3', null, 'Reactions ', h('span', { class: 'muted' }, String(rules.length))),
+        rules.length
+          ? rules.map(([r, i]) =>
+              h(
+                'div',
+                { class: 'rule' },
+                h(
+                  'div',
+                  { class: 'rulehead' },
+                  h('span', null, this.ruleHead(r)),
+                  r.if !== undefined ? h('code', { class: 'cond' }, `if ${condText(r.if)}`) : null,
+                  h('span', { class: 'muted small' }, `on[${i}]`),
+                  h(
+                    'button',
+                    {
+                      class: 'small',
+                      title: 'Edit the verb, targets, condition and commands as a form',
+                      onclick: () => this.editRule(i),
+                    },
+                    'Edit…',
+                  ),
+                ),
+                this.cmds(r.do, `on[${i}].do`),
+              ),
+            )
+          : h('p', { class: 'muted' }, "None in this room: the game's fallback answers apply."),
+        h(
+          'button',
+          { class: 'small', onclick: () => this.editRule((d.on ?? []).length, { verb: 'look', a: id, do: [] }) },
+          '+ Reaction',
+        ),
+      ),
+    );
 
     // Talk topics
     if (s.kind === 'actor') {
       const topics = d.talk?.[id] ?? [];
-      const list = h('div', null, ...(topics.length ? topics.map((t, i) => h('div', { class: 'rule' },
-          h('div', { class: 'rulehead' }, this.line(`talk.${id}[${i}].topic`, { label: 'topic' }) ?? h('span', null, t.topic),
-            t.if !== undefined ? h('code', { class: 'cond' }, `if ${condText(t.if)}`) : null),
-          this.cmds(t.do, `talk.${id}[${i}].do`)))
-        : [h('p', { class: 'muted' }, 'No topics (only the game-wide ones).')]));
+      const list = h(
+        'div',
+        null,
+        ...(topics.length
+          ? topics.map((t, i) =>
+              h(
+                'div',
+                { class: 'rule' },
+                h(
+                  'div',
+                  { class: 'rulehead' },
+                  this.line(`talk.${id}[${i}].topic`, { label: 'topic' }) ?? h('span', null, t.topic),
+                  t.if !== undefined ? h('code', { class: 'cond' }, `if ${condText(t.if)}`) : null,
+                ),
+                this.cmds(t.do, `talk.${id}[${i}].do`),
+              ),
+            )
+          : [h('p', { class: 'muted' }, 'No topics (only the game-wide ones).')]),
+      );
       // The same topics as a tree (read-only): topics, lines, choices and their options, branches; tapping a node
       // scrolls to its editor in the list.
-      const tree = h('div', { class: 'dtree', hidden: true }, this.dialogueNodes(dialogueTree(topics, `talk.${id}`), list));
-      const toggle = h('button', { class: 'small', onclick: () => { const t = tree.hidden; tree.hidden = !t; list.hidden = t; toggle.textContent = t ? 'List' : 'Tree'; } }, 'Tree');
-      parts.push(h('section', null, h('h3', null, 'Talk topics ', h('span', { class: 'muted' }, String(topics.length)), ' ', topics.length ? toggle : null), list, tree));
+      const tree = h(
+        'div',
+        { class: 'dtree', hidden: true },
+        this.dialogueNodes(dialogueTree(topics, `talk.${id}`), list),
+      );
+      const toggle = h(
+        'button',
+        {
+          class: 'small',
+          onclick: () => {
+            const t = tree.hidden;
+            tree.hidden = !t;
+            list.hidden = t;
+            toggle.textContent = t ? 'List' : 'Tree';
+          },
+        },
+        'Tree',
+      );
+      parts.push(
+        h(
+          'section',
+          null,
+          h(
+            'h3',
+            null,
+            'Talk topics ',
+            h('span', { class: 'muted' }, String(topics.length)),
+            ' ',
+            topics.length ? toggle : null,
+          ),
+          list,
+          tree,
+        ),
+      );
     }
     this.sheetEl.replaceChildren(...parts.filter((x): x is HTMLElement => !!x));
     void info;
@@ -517,19 +986,44 @@ export class RoomsTab {
 
   /** The dialogue tree as nested lists; a node with a content path scrolls to that editor in `list`. */
   private dialogueNodes(nodes: DialogueNode[], list: HTMLElement): HTMLElement {
-    return h('ul', null, ...nodes.map((n) => {
-      const label = n.kind === 'topic' ? `"${n.text}"` : n.kind === 'line' ? `${n.who}: ${n.text}` : n.kind === 'option' ? `○ "${n.text}"` : n.kind === 'choice' ? '? choice' : n.text;
-      const go = n.path ? () => { list.hidden = false; const el = list.querySelector(`[data-path="${CSS.escape(n.path!)}"]`) as HTMLElement | null; el?.scrollIntoView({ block: 'center' }); (el?.querySelector('textarea, input') as HTMLElement | null)?.focus(); } : undefined;
-      return h('li', { class: `d-${n.kind}` },
-        h('span', { class: n.path ? 'dnode link' : 'dnode', onclick: go }, label),
-        n.cond && n.kind !== 'if' ? h('code', { class: 'cond' }, `if ${n.cond}`) : null,
-        n.children?.length ? this.dialogueNodes(n.children, list) : null);
-    }));
+    return h(
+      'ul',
+      null,
+      ...nodes.map((n) => {
+        const label =
+          n.kind === 'topic'
+            ? `"${n.text}"`
+            : n.kind === 'line'
+              ? `${n.who}: ${n.text}`
+              : n.kind === 'option'
+                ? `○ "${n.text}"`
+                : n.kind === 'choice'
+                  ? '? choice'
+                  : n.text;
+        const go = n.path
+          ? () => {
+              list.hidden = false;
+              const el = list.querySelector(`[data-path="${CSS.escape(n.path!)}"]`) as HTMLElement | null;
+              el?.scrollIntoView({ block: 'center' });
+              (el?.querySelector('textarea, input') as HTMLElement | null)?.focus();
+            }
+          : undefined;
+        return h(
+          'li',
+          { class: `d-${n.kind}` },
+          h('span', { class: n.path ? 'dnode link' : 'dnode', onclick: go }, label),
+          n.cond && n.kind !== 'if' ? h('code', { class: 'cond' }, `if ${n.cond}`) : null,
+          n.children?.length ? this.dialogueNodes(n.children, list) : null,
+        );
+      }),
+    );
   }
 
   // -------------------------------------------------------------- structured edits (3.4)
 
-  private formCtx(): FormCtx { return { info: this.ctx.info, room: this.data?.def }; }
+  private formCtx(): FormCtx {
+    return { info: this.ctx.info, room: this.data?.def };
+  }
 
   /** A reaction as a form (`on[i]`); a new one when `blank` is given. */
   private editRule(i: number, blank?: Rule) {
@@ -537,24 +1031,51 @@ export class RoomsTab {
     if (!d) return;
     const rule = blank ?? d.on?.[i];
     if (!rule) return;
-    structuredEdit({ title: blank ? 'New reaction' : `Reaction on[${i}]`, room: this.roomId, path: `on[${i}]`, editor: objectEditor(RULE_FIELDS, rule as unknown as Record<string, unknown>, this.formCtx()), remove: !blank, after: () => this.afterWrite() });
+    structuredEdit({
+      title: blank ? 'New reaction' : `Reaction on[${i}]`,
+      room: this.roomId,
+      path: `on[${i}]`,
+      editor: objectEditor(RULE_FIELDS, rule as unknown as Record<string, unknown>, this.formCtx()),
+      remove: !blank,
+      after: () => this.afterWrite(),
+    });
   }
 
   private editStage() {
     const d = this.data?.def;
     if (!d) return;
-    structuredEdit({ title: `Stage of ${d.name}`, room: this.roomId, path: 'stage', editor: objectEditor(STAGE_FIELDS, (d.stage ?? {}) as Record<string, unknown>, this.formCtx()), remove: !!d.stage, after: () => this.afterWrite() });
+    structuredEdit({
+      title: `Stage of ${d.name}`,
+      room: this.roomId,
+      path: 'stage',
+      editor: objectEditor(STAGE_FIELDS, (d.stage ?? {}) as Record<string, unknown>, this.formCtx()),
+      remove: !!d.stage,
+      after: () => this.afterWrite(),
+    });
   }
 
   /** A value written directly (no form: a select), through the same validated, undoable write. */
   private async writeValue(path: string, value: unknown) {
-    if (!api.setValue) { toast('Needs the dev server (npm run studio)', 'error'); return; }
-    try { const r = await api.setValue(this.roomId, path, value); toast(r.changed ? `${path} written` : 'Nothing changed', r.changed ? 'ok' : 'info'); this.afterWrite(); }
-    catch (e) { toast((e as Error).message, 'error'); }
+    if (!api.setValue) {
+      toast('Needs the dev server (npm run studio)', 'error');
+      return;
+    }
+    try {
+      const r = await api.setValue(this.roomId, path, value);
+      toast(r.changed ? `${path} written` : 'Nothing changed', r.changed ? 'ok' : 'info');
+      this.afterWrite();
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
   }
 
   /** After a structured write: our own write (the watcher will tell too), reload the room and check. */
-  afterWrite() { this.ctx.ownWrite(); void this.load(); this.reloadFrame(); this.ctx.saved(); }
+  afterWrite() {
+    this.ctx.ownWrite();
+    void this.load();
+    this.reloadFrame();
+    this.ctx.saved();
+  }
 
   // -------------------------------------------------------------- room-wide texts
 
@@ -563,30 +1084,119 @@ export class RoomsTab {
     if (!d) return;
     const hints = d.hints ?? [];
     this.roomSheetEl.replaceChildren(
-      h('section', null, h('h3', null, 'Room ', h('span', { class: 'muted small' }, this.data!.file)),
+      h(
+        'section',
+        null,
+        h('h3', null, 'Room ', h('span', { class: 'muted small' }, this.data!.file)),
         this.line('name', { label: 'name' }) ?? h('p', null, d.name),
         // 3.4: the stage (layers, lights, particles, transition, walk links' logic) as a form; its geometry is placed
         // in the view (the editor's Stage and Walk zones folders). The painter: DOM (the reference) or canvas.
-        h('div', { class: 'row' },
-          h('button', { class: 'small', onclick: () => this.editStage() }, d.stage ? `Stage… (${(d.stage.layers ?? []).length} layers)` : 'Stage…'),
-          h('label', { class: 'small' }, 'painter ', select([['', `game (${(this.ctx.info as unknown as { renderer?: string }).renderer ?? 'dom'})`], ['dom', 'DOM'], ['canvas', 'canvas']], d.renderer ?? '', (v) => this.writeValue('renderer', v || undefined))))),
-      h('section', null, h('h3', null, 'Hints ', h('span', { class: 'muted small' }, 'the first one whose condition is still false is given')),
-        hints.length ? hints.map((hd, i) => h('div', { class: 'rule' },
-          h('div', { class: 'rulehead' }, h('code', { class: 'cond' }, `until ${condText(hd.until)}`), h('span', { class: 'muted small' }, `hints[${i}]`)),
-          hd.lines.map((_, j) => this.line(`hints[${i}].lines[${j}]`, { deletable: hd.lines.length > 1 })),
-          this.appender(`hints[${i}].lines`, 'New hint line…')))
-        : h('p', { class: 'muted' }, 'No hints in this room.')),
-      h('section', null, h('h3', null, 'On enter'), d.onEnter?.length ? this.timed(d.onEnter, 'onEnter') : h('p', { class: 'muted' }, 'Nothing happens on entering.')),
-      h('section', null, h('h3', null, 'Scripts ', h('span', { class: 'muted small' }, 'run on their own while the player is here')),
-        d.scripts?.length ? d.scripts.map((sc, i) => h('div', { class: 'rule' },
-          h('div', { class: 'rulehead' }, h('code', null, sc.id), h('span', { class: 'muted small' }, `${sc.loop ? 'loop' : 'once'}${sc.while ? ` while ${condText(sc.while)}` : ''}`)),
-          this.timed(sc.do, `scripts[${i}].do`)))
-        : h('p', { class: 'muted' }, 'No scripts in this room.')),
-      h('section', null, h('h3', null, 'Events ', h('span', { class: 'muted small' }, 'listeners of { emit }')),
-        d.events?.length ? d.events.map((ev, i) => h('div', { class: 'rule' },
-          h('div', { class: 'rulehead' }, h('code', null, `on ${ev.on}`), h('span', { class: 'muted small' }, `${ev.once ? 'once' : ''}${ev.if ? ` if ${condText(ev.if)}` : ''}`)),
-          this.cmds(ev.do, `events[${i}].do`)))
-        : h('p', { class: 'muted' }, 'No listeners in this room.')),
+        h(
+          'div',
+          { class: 'row' },
+          h(
+            'button',
+            { class: 'small', onclick: () => this.editStage() },
+            d.stage ? `Stage… (${(d.stage.layers ?? []).length} layers)` : 'Stage…',
+          ),
+          h(
+            'label',
+            { class: 'small' },
+            'painter ',
+            select(
+              [
+                ['', `game (${(this.ctx.info as unknown as { renderer?: string }).renderer ?? 'dom'})`],
+                ['dom', 'DOM'],
+                ['canvas', 'canvas'],
+              ],
+              d.renderer ?? '',
+              (v) => this.writeValue('renderer', v || undefined),
+            ),
+          ),
+        ),
+      ),
+      h(
+        'section',
+        null,
+        h(
+          'h3',
+          null,
+          'Hints ',
+          h('span', { class: 'muted small' }, 'the first one whose condition is still false is given'),
+        ),
+        hints.length
+          ? hints.map((hd, i) =>
+              h(
+                'div',
+                { class: 'rule' },
+                h(
+                  'div',
+                  { class: 'rulehead' },
+                  h('code', { class: 'cond' }, `until ${condText(hd.until)}`),
+                  h('span', { class: 'muted small' }, `hints[${i}]`),
+                ),
+                hd.lines.map((_, j) => this.line(`hints[${i}].lines[${j}]`, { deletable: hd.lines.length > 1 })),
+                this.appender(`hints[${i}].lines`, 'New hint line…'),
+              ),
+            )
+          : h('p', { class: 'muted' }, 'No hints in this room.'),
+      ),
+      h(
+        'section',
+        null,
+        h('h3', null, 'On enter'),
+        d.onEnter?.length
+          ? this.timed(d.onEnter, 'onEnter')
+          : h('p', { class: 'muted' }, 'Nothing happens on entering.'),
+      ),
+      h(
+        'section',
+        null,
+        h('h3', null, 'Scripts ', h('span', { class: 'muted small' }, 'run on their own while the player is here')),
+        d.scripts?.length
+          ? d.scripts.map((sc, i) =>
+              h(
+                'div',
+                { class: 'rule' },
+                h(
+                  'div',
+                  { class: 'rulehead' },
+                  h('code', null, sc.id),
+                  h(
+                    'span',
+                    { class: 'muted small' },
+                    `${sc.loop ? 'loop' : 'once'}${sc.while ? ` while ${condText(sc.while)}` : ''}`,
+                  ),
+                ),
+                this.timed(sc.do, `scripts[${i}].do`),
+              ),
+            )
+          : h('p', { class: 'muted' }, 'No scripts in this room.'),
+      ),
+      h(
+        'section',
+        null,
+        h('h3', null, 'Events ', h('span', { class: 'muted small' }, 'listeners of { emit }')),
+        d.events?.length
+          ? d.events.map((ev, i) =>
+              h(
+                'div',
+                { class: 'rule' },
+                h(
+                  'div',
+                  { class: 'rulehead' },
+                  h('code', null, `on ${ev.on}`),
+                  h(
+                    'span',
+                    { class: 'muted small' },
+                    `${ev.once ? 'once' : ''}${ev.if ? ` if ${condText(ev.if)}` : ''}`,
+                  ),
+                ),
+                this.cmds(ev.do, `events[${i}].do`),
+              ),
+            )
+          : h('p', { class: 'muted' }, 'No listeners in this room.'),
+      ),
     );
     const notes = this.ctx.notesBlock?.(this.roomId);
     if (notes) this.roomSheetEl.append(notes);
@@ -599,20 +1209,53 @@ export class RoomsTab {
     const d = this.data?.def as RoomDef | undefined;
     let kind: EntityKind = 'prop';
     let img = '';
-    const id = h('input', { type: 'text', required: true, pattern: '[A-Za-z_][A-Za-z0-9_]*', placeholder: 'e.g. vase', 'aria-label': 'Id' });
+    const id = h('input', {
+      type: 'text',
+      required: true,
+      pattern: '[A-Za-z_][A-Za-z0-9_]*',
+      placeholder: 'e.g. vase',
+      'aria-label': 'Id',
+    });
     const name = h('input', { type: 'text', placeholder: 'e.g. blue vase', 'aria-label': 'Name' });
-    const look = h('input', { type: 'text', placeholder: 'What the hero says when looking at it', 'aria-label': 'Look line' });
+    const look = h('input', {
+      type: 'text',
+      placeholder: 'What the hero says when looking at it',
+      'aria-label': 'Look line',
+    });
     const chars = Object.entries(info.characters);
-    const char = select(chars.map(([k, c]) => [k, `${c.name} (${k})`]), chars[0]?.[0] ?? '', () => undefined, { 'aria-label': 'Character' });
+    const char = select(
+      chars.map(([k, c]) => [k, `${c.name} (${k})`]),
+      chars[0]?.[0] ?? '',
+      () => undefined,
+      { 'aria-label': 'Character' },
+    );
     const imgSearch = h('input', { type: 'search', placeholder: 'Filter images…', 'aria-label': 'Filter images' });
     const grid = h('div', { class: 'imggrid' });
     const picked = h('span', { class: 'muted small' }, 'no image');
     const drawGrid = () => {
       const q = imgSearch.value.trim().toLowerCase();
-      const ids = Object.keys(info.images).filter((k) => !q || k.toLowerCase().includes(q)).slice(0, 240);
-      grid.replaceChildren(...ids.map((k) => h('button', { class: `imgpick${k === img ? ' on' : ''}`, title: k, type: 'button',
-        onclick: () => { img = img === k ? '' : k; picked.textContent = img || 'no image'; drawGrid(); } },
-        h('img', { src: imgUrl(k), loading: 'lazy', alt: k }), h('span', null, k))));
+      const ids = Object.keys(info.images)
+        .filter((k) => !q || k.toLowerCase().includes(q))
+        .slice(0, 240);
+      grid.replaceChildren(
+        ...ids.map((k) =>
+          h(
+            'button',
+            {
+              class: `imgpick${k === img ? ' on' : ''}`,
+              title: k,
+              type: 'button',
+              onclick: () => {
+                img = img === k ? '' : k;
+                picked.textContent = img || 'no image';
+                drawGrid();
+              },
+            },
+            h('img', { src: imgUrl(k), loading: 'lazy', alt: k }),
+            h('span', null, k),
+          ),
+        ),
+      );
     };
     imgSearch.addEventListener('input', drawGrid);
     const imgRow = h('div', { class: 'field' }, h('span', null, 'Image ', picked), imgSearch, grid);
@@ -623,32 +1266,70 @@ export class RoomsTab {
       charRow.hidden = kind !== 'actor';
       nameLabel.textContent = kind === 'actor' ? 'Name (optional)' : 'Name';
     };
-    const kinds = h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Kind' }, (['prop', 'hotspot', 'actor'] as EntityKind[]).map((k) => {
-      const b = h('button', { type: 'button', role: 'radio', 'aria-checked': k === kind ? 'true' : 'false', class: k === kind ? 'on' : '',
-        onclick: () => { kind = k; kinds.querySelectorAll('button').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', x === b ? 'true' : 'false'); }); sync(); } }, KIND_LABEL[k]);
-      return b;
-    }));
+    const kinds = h(
+      'div',
+      { class: 'seg', role: 'radiogroup', 'aria-label': 'Kind' },
+      (['prop', 'hotspot', 'actor'] as EntityKind[]).map((k) => {
+        const b = h(
+          'button',
+          {
+            type: 'button',
+            role: 'radio',
+            'aria-checked': k === kind ? 'true' : 'false',
+            class: k === kind ? 'on' : '',
+            onclick: () => {
+              kind = k;
+              kinds.querySelectorAll('button').forEach((x) => {
+                x.classList.toggle('on', x === b);
+                x.setAttribute('aria-checked', x === b ? 'true' : 'false');
+              });
+              sync();
+            },
+          },
+          KIND_LABEL[k],
+        );
+        return b;
+      }),
+    );
     const err = h('p', { class: 'error' });
-    const form = h('form', { class: 'addform' },
+    const form = h(
+      'form',
+      { class: 'addform' },
       kinds,
       h('label', { class: 'field' }, h('span', null, 'Id'), id),
       h('label', { class: 'field' }, nameLabel, name),
-      imgRow, charRow,
+      imgRow,
+      charRow,
       h('label', { class: 'field' }, h('span', null, 'Look line'), look),
-      h('p', { class: 'muted small' }, 'It is placed in the middle of the room: drag it into place in the view, then Save layout.'),
+      h(
+        'p',
+        { class: 'muted small' },
+        'It is placed in the middle of the room: drag it into place in the view, then Save layout.',
+      ),
       err,
-      h('div', { class: 'actions' }, h('button', { type: 'submit', class: 'primary' }, 'Add to the room')));
+      h('div', { class: 'actions' }, h('button', { type: 'submit', class: 'primary' }, 'Add to the room')),
+    );
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       err.textContent = '';
       const nid = id.value.trim();
-      if (d && [d.props, d.actors, d.hotspots].some((o) => o && nid in o)) { err.textContent = `"${nid}" already exists in this room.`; return; }
+      if (d && [d.props, d.actors, d.hotspots].some((o) => o && nid in o)) {
+        err.textContent = `"${nid}" already exists in this room.`;
+        return;
+      }
       const at: [number, number] = kind === 'hotspot' ? [320, 200] : [320, 320];
       try {
         await this.flushEditor();
         this.ctx.ownWrite();
-        const r = await api.add(this.roomId, { kind, id: nid, name: name.value.trim() || undefined, img: kind === 'prop' ? img || undefined : undefined,
-          char: kind === 'actor' ? char.value : undefined, at, look: look.value.trim() || undefined });
+        const r = await api.add(this.roomId, {
+          kind,
+          id: nid,
+          name: name.value.trim() || undefined,
+          img: kind === 'prop' ? img || undefined : undefined,
+          char: kind === 'actor' ? char.value : undefined,
+          at,
+          look: look.value.trim() || undefined,
+        });
         close();
         toast(`Added ${kind} ${nid} · line ${r.line}`);
         this.ctx.saved();
@@ -658,8 +1339,12 @@ export class RoomsTab {
         this.post({ source: 'web-scumm-studio', type: 'select', kind, id: nid });
         // The view reloads by itself (the room module changed); force it if it doesn't.
         const since = Date.now();
-        setTimeout(() => { if (this.lastReady < since) this.reloadFrame(); }, 1500);
-      } catch (x) { err.textContent = (x as Error).message; }
+        setTimeout(() => {
+          if (this.lastReady < since) this.reloadFrame();
+        }, 1500);
+      } catch (x) {
+        err.textContent = (x as Error).message;
+      }
     });
     sync();
     drawGrid();

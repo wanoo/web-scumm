@@ -2,39 +2,91 @@
 // by the storyboard page (storyboard.ts), the Studio core (POST storyboard/markdown) and the Studio UI.
 import type { GameDef } from '../../src/engine/core/types';
 
-export interface SbLine { who: string; text: string }
-export interface SbPanel { id: string; title: string; action?: string; lines?: SbLine[]; sfx?: string[] }
-export interface SbTopic { topic: string; lines?: SbLine[] }
-export interface SbReaction { action: string; lines?: SbLine[] }
+export interface SbLine {
+  who: string;
+  text: string;
+}
+export interface SbPanel {
+  id: string;
+  title: string;
+  action?: string;
+  lines?: SbLine[];
+  sfx?: string[];
+}
+export interface SbTopic {
+  topic: string;
+  lines?: SbLine[];
+}
+export interface SbReaction {
+  action: string;
+  lines?: SbLine[];
+}
 export interface SbBoard {
-  id: string; title: string; room?: string; goal?: string; music?: string;
-  arrival?: SbLine[]; panels: SbPanel[]; hints?: string[];
+  id: string;
+  title: string;
+  room?: string;
+  goal?: string;
+  music?: string;
+  arrival?: SbLine[];
+  panels: SbPanel[];
+  hints?: string[];
   /** Talk topics per character id. */
   talks?: Record<string, SbTopic[]>;
   /** Optional reactions (not needed to finish the game). */
   reactions?: SbReaction[];
   exit?: string;
 }
-export interface Storyboard { title?: string; intro?: string; boards: SbBoard[] }
+export interface Storyboard {
+  title?: string;
+  intro?: string;
+  boards: SbBoard[];
+}
 
 /** Normalises a parsed storyboard.json (tolerates a few aliases: `talk`, `optional`, talk lists, `{ q, answer }`). */
 export function normalizeStoryboard(raw: any): Storyboard {
-  const lines = (v: any): SbLine[] => (Array.isArray(v) ? v : []).map((l: any) =>
-    Array.isArray(l) ? { who: String(l[0]), text: String(l[1] ?? '') } : typeof l === 'string' ? { who: 'hero', text: l } : { who: String(l.who ?? 'hero'), text: String(l.text ?? '') });
-  const topics = (v: any): SbTopic[] => (Array.isArray(v) ? v : []).map((t: any) => ({ topic: String(t.topic ?? t.q ?? ''), lines: lines(t.lines ?? t.answer ?? t.do) }));
+  const lines = (v: any): SbLine[] =>
+    (Array.isArray(v) ? v : []).map((l: any) =>
+      Array.isArray(l)
+        ? { who: String(l[0]), text: String(l[1] ?? '') }
+        : typeof l === 'string'
+          ? { who: 'hero', text: l }
+          : { who: String(l.who ?? 'hero'), text: String(l.text ?? '') },
+    );
+  const topics = (v: any): SbTopic[] =>
+    (Array.isArray(v) ? v : []).map((t: any) => ({
+      topic: String(t.topic ?? t.q ?? ''),
+      lines: lines(t.lines ?? t.answer ?? t.do),
+    }));
   return {
-    title: raw?.title, intro: raw?.intro,
+    title: raw?.title,
+    intro: raw?.intro,
     boards: (raw?.boards ?? []).map((b: any): SbBoard => {
       let talks: Record<string, SbTopic[]> | undefined;
       const t = b.talks ?? b.talk;
       if (Array.isArray(t)) talks = Object.fromEntries(t.map((x: any) => [String(x.who ?? x.actor), topics(x.topics)]));
-      else if (t && typeof t === 'object') talks = Object.fromEntries(Object.entries(t).map(([k, v]) => [k, topics(v)]));
+      else if (t && typeof t === 'object')
+        talks = Object.fromEntries(Object.entries(t).map(([k, v]) => [k, topics(v)]));
       return {
-        id: String(b.id), title: String(b.title ?? b.id), room: b.room, goal: b.goal, music: b.music, exit: b.exit,
+        id: String(b.id),
+        title: String(b.title ?? b.id),
+        room: b.room,
+        goal: b.goal,
+        music: b.music,
+        exit: b.exit,
         arrival: b.arrival ? lines(b.arrival) : undefined,
-        panels: (b.panels ?? []).map((p: any) => ({ id: String(p.id), title: String(p.title ?? p.id), action: p.action, lines: lines(p.lines), sfx: p.sfx })),
-        hints: b.hints, talks,
-        reactions: (b.reactions ?? b.optional)?.map((r: any) => ({ action: String(r.action ?? r[0] ?? ''), lines: lines(r.lines ?? (r[1] ? [{ who: 'hero', text: r[1] }] : [])) })),
+        panels: (b.panels ?? []).map((p: any) => ({
+          id: String(p.id),
+          title: String(p.title ?? p.id),
+          action: p.action,
+          lines: lines(p.lines),
+          sfx: p.sfx,
+        })),
+        hints: b.hints,
+        talks,
+        reactions: (b.reactions ?? b.optional)?.map((r: any) => ({
+          action: String(r.action ?? r[0] ?? ''),
+          lines: lines(r.lines ?? (r[1] ? [{ who: 'hero', text: r[1] }] : [])),
+        })),
       };
     }),
   };
@@ -54,9 +106,14 @@ export function storyboardMarkdown(ctx: { game: SbGame }, sb: Storyboard): strin
   const g = ctx.game;
   const who = (w: string) => (w === 'action' ? 'ACTION' : w === 'stage' ? 'STAGE' : speakerName(g, w).toUpperCase());
   const ln = (l: SbLine, pad = '') => `${pad}- ${who(l.who)}: ${l.text}`;
-  const md = [`# ${sb.title ?? g.title}: storyboard`, '',
-    'Generated from `storyboard.json` by `npm run page:storyboard -- --md` (or the Studio\'s Export Markdown). Do not edit: edit the JSON.', '',
-    'Legend: ACTION = what the player does; STAGE = stage direction; otherwise NAME: line.', ''];
+  const md = [
+    `# ${sb.title ?? g.title}: storyboard`,
+    '',
+    "Generated from `storyboard.json` by `npm run page:storyboard -- --md` (or the Studio's Export Markdown). Do not edit: edit the JSON.",
+    '',
+    'Legend: ACTION = what the player does; STAGE = stage direction; otherwise NAME: line.',
+    '',
+  ];
   if (sb.intro) md.push(sb.intro, '');
   sb.boards.forEach((b, i) => {
     const room = g.rooms.find((r) => r.id === b.room);

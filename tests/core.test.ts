@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import { check } from '@engine/core/cond';
-import type { GameDef, GameState, Layout } from '@engine/core/types';
+import type { GameDef, GameState } from '@engine/core/types';
 import { validate } from '@engine/tools/validate';
 import { solve } from '@engine/tools/solve';
 import { migrate } from '@engine/core/migrate';
@@ -31,7 +31,9 @@ describe('conditions', () => {
   it('evaluates flags, items, negations and combinations', () => {
     const { e } = boot();
     const s = e.fresh();
-    s.flags.a = true; s.inventory = ['coin']; s.props['house.lamp'] = 'on';
+    s.flags.a = true;
+    s.inventory = ['coin'];
+    s.props['house.lamp'] = 'on';
     expect(check('a', s)).toBe(true);
     expect(check('!a', s)).toBe(false);
     expect(check({ has: 'coin' }, s)).toBe(true);
@@ -156,12 +158,15 @@ describe('validator', () => {
     ]);
   });
 
-  it('checks the skin\'s images and sounds, and the sealed ending', () => {
+  it("checks the skin's images and sounds, and the sealed ending", () => {
     const g = structuredClone(game);
     g.skin.icons.spark = 'ui/nope';
     g.skin.sounds = { phone: 'ring', jingle: 'tada' };
     g.ending = { file: 'data/x.bin', password: { given: 'X' }, scratch: {} };
-    const { errors } = validate(g, layouts, { minigameParams, assets: { images: { 'ui/map': [1, 1], 'ui/pause': [1, 1], 'ui/music': [1, 1] } } });
+    const { errors } = validate(g, layouts, {
+      minigameParams,
+      assets: { images: { 'ui/map': [1, 1], 'ui/pause': [1, 1], 'ui/music': [1, 1] } },
+    });
     expect(errors.filter((x) => x.startsWith('skin') || x.startsWith('ending'))).toEqual([
       'skin.icons.spark › image not found: "ui/nope"',
       'skin.sounds.phone › unknown sound effect: "ring"',
@@ -174,7 +179,6 @@ describe('validator', () => {
 // ---------------------------------------------------------------------------
 // Dummy game: two-way phone call, used items, actor cutscene.
 // ---------------------------------------------------------------------------
-
 
 function bootMini() {
   const ui = new FakePresenter();
@@ -203,7 +207,10 @@ describe('two-way phone call', () => {
 
   it('the validator checks each caller', () => {
     const g = mini();
-    g.rooms[0].onEnter = [{ phone: ['ann', 'bea'], do: [] }, { phone: ['ann', 'inconnue'], do: [] }];
+    g.rooms[0].onEnter = [
+      { phone: ['ann', 'bea'], do: [] },
+      { phone: ['ann', 'inconnue'], do: [] },
+    ];
     const { errors } = validate(g, miniLayouts);
     expect(errors).toEqual(['a.onEnter[1] › unknown character: "inconnue"']);
   });
@@ -258,7 +265,11 @@ describe('actor cutscene', () => {
   it('walk and anim work for an actor in the front pose', async () => {
     const { e, ui } = bootMini();
     await e.newGame();
-    await e.script([{ walk: [300, 380], who: 'uncle' }, { anim: ['uncle', 'attack'], ms: 600 }, { face: 'left', who: 'uncle' }]);
+    await e.script([
+      { walk: [300, 380], who: 'uncle' },
+      { anim: ['uncle', 'attack'], ms: 600 },
+      { face: 'left', who: 'uncle' },
+    ]);
     expect(ui.log).toContain('walk uncle 300,380');
     expect(e.state.actors['a.uncle']).toMatchObject({ x: 300, y: 380, facing: 'left' });
     const { errors, warnings } = validate(mini(), miniLayouts);
@@ -270,7 +281,6 @@ describe('actor cutscene', () => {
 // ---------------------------------------------------------------------------
 // The world lives: a moving character, events, scripts.
 // ---------------------------------------------------------------------------
-
 
 function bootWorld(g: GameDef = world()) {
   const ui = new FakePresenter();
@@ -343,7 +353,9 @@ describe('the world lives', () => {
 
   it('scripts pause while the engine is busy, and the while condition rewinds them', async () => {
     const g = world();
-    g.rooms[0].scripts = [{ id: 'guard', loop: true, while: '!dinner', do: [{ set: 'step1' }, { wait: 10 }, { set: 'step2' }] }];
+    g.rooms[0].scripts = [
+      { id: 'guard', loop: true, while: '!dinner', do: [{ set: 'step1' }, { wait: 10 }, { set: 'step2' }] },
+    ];
     const { e } = bootWorld(g);
     await e.newGame();
     expect(await e.advance('guard')).toBe('ran');
@@ -389,7 +401,6 @@ describe('the world lives', () => {
 // Scale: declared exits, the world's map, chapters and invariants, migrations, the profiler.
 // ---------------------------------------------------------------------------
 
-
 describe('scale: exits, chapters, saves', () => {
   it('a declared exit is a hotspot with a goto rule, locked until its condition holds', async () => {
     const ui = new FakePresenter();
@@ -412,8 +423,13 @@ describe('scale: exits, chapters, saves', () => {
   it('the validator and the world graph see unreachable rooms and missing ways back', () => {
     const g = worldGraph(scale());
     expect(g.unreachable).toEqual(['cellar']);
-    expect(g.edges.filter((e) => e.kind === 'exit').map((e) => `${e.from}>${e.to}`)).toEqual(['hall>yard', 'yard>hall']);
-    expect(g.edges.filter((e) => e.kind === 'goto').map((e) => `${e.from}>${e.to}:${e.via}`)).toEqual(['yard>attic:on[0][1]']);
+    expect(g.edges.filter((e) => e.kind === 'exit').map((e) => `${e.from}>${e.to}`)).toEqual([
+      'hall>yard',
+      'yard>hall',
+    ]);
+    expect(g.edges.filter((e) => e.kind === 'goto').map((e) => `${e.from}>${e.to}:${e.via}`)).toEqual([
+      'yard>attic:on[0][1]',
+    ]);
     expect(toDot(g)).toContain('"yard" -> "attic"');
     expect(toSvg(g)).toContain('unreachable');
     const { errors, warnings } = validate(scale(), scaleLayouts);
@@ -425,7 +441,9 @@ describe('scale: exits, chapters, saves', () => {
     g2.rooms[1].on = [];
     expect(validate(g2, scaleLayouts).warnings.filter((w) => w.includes('no way back'))).toEqual([]);
     g2.rooms[1].exits = {};
-    expect(validate(g2, scaleLayouts).warnings).toContain('hall.exits.door › no way back from yard to hall (add oneWay: true if intended)');
+    expect(validate(g2, scaleLayouts).warnings).toContain(
+      'hall.exits.door › no way back from yard to hall (add oneWay: true if intended)',
+    );
     g2.rooms[0].hotspots!.door = { name: 'twice' };
     expect(validate(g2, scaleLayouts).errors).toContain('hall.exits.door › "door" is both an exit and a hotspot');
   });
@@ -445,7 +463,20 @@ describe('scale: exits, chapters, saves', () => {
 
   it('migrates an old save step by step, and refuses one with no path', () => {
     const g = scale();
-    const old = { v: 1, room: 'lobby', inventory: ['cle'], flags: { found: true, tmp: 1 }, props: {}, actors: {}, hero: { lobby: [1, 2] as [number, number] }, unlocked: [], visited: { lobby: 1 }, counters: {}, seen: {}, started: 0 };
+    const old = {
+      v: 1,
+      room: 'lobby',
+      inventory: ['cle'],
+      flags: { found: true, tmp: 1 },
+      props: {},
+      actors: {},
+      hero: { lobby: [1, 2] as [number, number] },
+      unlocked: [],
+      visited: { lobby: 1 },
+      counters: {},
+      seen: {},
+      started: 0,
+    };
     const s = migrate(g, old as GameState)!;
     expect(s.v).toBe(3);
     expect(s.room).toBe('hall');
@@ -462,9 +493,14 @@ describe('scale: exits, chapters, saves', () => {
     expect(errors).toEqual([]);
     expect(warnings.filter((w) => w.startsWith('migrations'))).toEqual([]);
     g.migrations = [{ from: 1 }];
-    expect(validate(g, scaleLayouts).warnings).toContain('migrations › no migration from version 2: those saves start a new game');
+    expect(validate(g, scaleLayouts).warnings).toContain(
+      'migrations › no migration from version 2: those saves start a new game',
+    );
     g.migrations = [{ from: 3, renameItem: { a: 'nope' } }];
-    expect(validate(g, scaleLayouts).errors).toEqual(['migrations[0] › from 3 is not below saveVersion 3', 'migrations[0] › renamed item does not exist: "nope"']);
+    expect(validate(g, scaleLayouts).errors).toEqual([
+      'migrations[0] › from 3 is not below saveVersion 3',
+      'migrations[0] › renamed item does not exist: "nope"',
+    ]);
   });
 
   it('the content report counts what matters', () => {
@@ -484,14 +520,20 @@ describe('scale: exits, chapters, saves', () => {
 // Picture: camera, prop animations with frame events, voice.
 // ---------------------------------------------------------------------------
 
-
 describe('picture: camera, prop animations, frame events, voice', () => {
   it('plays a prop animation frame by frame, running the frame commands, then restores the prop', async () => {
     const ui = new FakePresenter();
     const e = new Engine(picture(), pictureLayouts, ui, new MemoryStore());
     await e.newGame();
     expect(await e.act({ verb: 'use', a: 'door' })).toBe('rule');
-    expect(ui.log.slice(-6)).toEqual(['frame door p/a', 'frame door p/b', 'sfx latch', 'frame door p/a', 'frame door -', 'hero: Locked.']);
+    expect(ui.log.slice(-6)).toEqual([
+      'frame door p/a',
+      'frame door p/b',
+      'sfx latch',
+      'frame door p/a',
+      'frame door -',
+      'hero: Locked.',
+    ]);
   });
 
   it('camera commands are saved in the state, clamped to the room, and follow again', async () => {
@@ -517,7 +559,11 @@ describe('picture: camera, prop animations, frame events, voice', () => {
     expect(errors).toEqual([]);
     expect(warnings.filter((w) => w.includes('camera'))).toEqual([]);
     const g = picture();
-    g.rooms[0].on![0].do = [{ play: ['door', 'nope'] }, { say: ['hero', 'x'], voice: 'v9' }, { anim: ['hero', 'jump'], at: { x: ['a'] } as never }];
+    g.rooms[0].on![0].do = [
+      { play: ['door', 'nope'] },
+      { say: ['hero', 'x'], voice: 'v9' },
+      { anim: ['hero', 'jump'], at: { x: ['a'] } as never },
+    ];
     g.rooms[0].props!.door.anims!.glow.at = { 5: ['late'] };
     const v = validate(g, { street: { ...pictureLayouts.street, width: 600 } });
     expect(v.errors).toEqual([
@@ -538,7 +584,6 @@ describe('picture: camera, prop animations, frame events, voice', () => {
 // Cast: several playable characters.
 // ---------------------------------------------------------------------------
 
-
 describe('cast: several playable characters', () => {
   it('each player has a room, position and inventory; switching brings theirs up', async () => {
     const ui = new FakePresenter();
@@ -551,7 +596,9 @@ describe('cast: several playable characters', () => {
     expect(e.heroId()).toBe('bob');
     expect(e.state.room).toBe('cellar');
     expect(e.state.inventory).toEqual(['rope']);
-    expect(e.state.players).toEqual({ ann: { room: 'hall', inventory: [], hero: { hall: [100, 350] }, used: undefined } });
+    expect(e.state.players).toEqual({
+      ann: { room: 'hall', inventory: [], hero: { hall: [100, 350] }, used: undefined },
+    });
     expect(ui.log).toContain('enter cellar');
     expect(check({ player: 'bob' }, e.state)).toBe(true);
     expect(await e.act({ verb: 'take', a: 'chest' })).toBe('rule');

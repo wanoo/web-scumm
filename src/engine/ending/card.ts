@@ -5,7 +5,7 @@ import type { EndingPayload } from './seal';
 
 export const DEFAULT_ACCENT = '#d4145a';
 
-const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]!));
+const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
 
 /** "Your guess: … Nice call!": only judged if the sealed file knows the outcome. */
 export function verdict(game: GameDef, flags: Record<string, Value>, p: EndingPayload): string {
@@ -35,23 +35,58 @@ export interface CardHost {
 export function showCard(h: CardHost, p: EndingPayload): Promise<void> {
   const accent = h.game.ending?.card?.accent ?? DEFAULT_ACCENT;
   const fallback = h.game.skin.icons.cardFallback;
-  const el = (tag: string, cls?: string, html?: string) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+  const el = (tag: string, cls?: string, html?: string) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html != null) e.innerHTML = html;
+    return e;
+  };
   return new Promise((res) => {
     const ov = el('div', 'overlay');
     ov.style.background = 'rgba(10,6,18,.8)';
     const card = el('div');
-    Object.assign(card.style, { position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: '66%', maxHeight: '92%', overflow: 'auto', background: '#fbf7ee', color: '#2b1d3a', borderRadius: '10px', padding: '3% 4%', boxShadow: '0 10px 30px rgba(0,0,0,.6)', textAlign: 'center', border: `4px double ${accent}` });
-    const photos = (p.photos ?? []).map((src) => `<img src="${src}" alt="" style="max-width:40%;max-height:9em;margin:.3em;border-radius:4px;transform:rotate(-2deg)">`).join('');
+    Object.assign(card.style, {
+      position: 'absolute',
+      left: '50%',
+      top: '50%',
+      transform: 'translate(-50%,-50%)',
+      width: '66%',
+      maxHeight: '92%',
+      overflow: 'auto',
+      background: '#fbf7ee',
+      color: '#2b1d3a',
+      borderRadius: '10px',
+      padding: '3% 4%',
+      boxShadow: '0 10px 30px rgba(0,0,0,.6)',
+      textAlign: 'center',
+      border: `4px double ${accent}`,
+    });
+    const photos = (p.photos ?? [])
+      .map(
+        (src) =>
+          `<img src="${src}" alt="" style="max-width:40%;max-height:9em;margin:.3em;border-radius:4px;transform:rotate(-2deg)">`,
+      )
+      .join('');
     const lines = (p.lines ?? []).map((l) => `<div style="color:#6a5a7a">${esc(l)}</div>`).join('');
     const ver = verdict(h.game, h.flags(), p);
     const fb = fallback ? `<img src="${h.img(fallback)}" alt="" style="width:24%;transform:rotate(-3deg)">` : '';
     card.innerHTML = `<div style="font-size:1.25em;margin-bottom:.4em">${esc(p.headline)}</div>${ver}${photos || fb}${lines}${p.message ? `<p style="white-space:pre-line;margin:.6em 0">${esc(p.message)}</p>` : ''}`;
-    const row = el('div'); Object.assign(row.style, { display: 'flex', gap: '3%', justifyContent: 'center', marginTop: '.6em' });
-    const again = el('button', 'bigbtn', esc(h.game.ui.replay)); Object.assign(again.style, { color: '#7f5fb0', fontSize: '.5em', background: '#fff' });
-    const cred = el('button', 'bigbtn', esc(h.game.ui.credits)); Object.assign(cred.style, { color: '#2c6a9a', fontSize: '.5em', background: '#fff' });
-    again.onclick = () => { ov.remove(); res(); h.replay(); };
+    const row = el('div');
+    Object.assign(row.style, { display: 'flex', gap: '3%', justifyContent: 'center', marginTop: '.6em' });
+    const again = el('button', 'bigbtn', esc(h.game.ui.replay));
+    Object.assign(again.style, { color: '#7f5fb0', fontSize: '.5em', background: '#fff' });
+    const cred = el('button', 'bigbtn', esc(h.game.ui.credits));
+    Object.assign(cred.style, { color: '#2c6a9a', fontSize: '.5em', background: '#fff' });
+    again.onclick = () => {
+      ov.remove();
+      res();
+      h.replay();
+    };
     cred.onclick = () => h.credits();
-    row.append(again, cred); card.append(row); ov.append(card); h.scene.append(ov);
+    row.append(again, cred);
+    card.append(row);
+    ov.append(card);
+    h.scene.append(ov);
     h.endMusic();
   });
 }

@@ -24,7 +24,7 @@ export interface PageContext {
 /** Builds the context for a game folder. `mod` may be passed in (tests import the module themselves). */
 export async function loadContext(opts: { gameDir?: string; mod?: GameModule } = {}): Promise<PageContext> {
   const gameDir = resolve(opts.gameDir ?? GAME_DIR);
-  const mod = opts.mod ?? (await import(pathToFileURL(join(gameDir, 'index.ts')).href) as GameModule);
+  const mod = opts.mod ?? ((await import(pathToFileURL(join(gameDir, 'index.ts')).href)) as GameModule);
   const disk = readLayouts(gameDir);
   // Disk wins; the module's layouts (filled when the module imports its JSON, like the test fixture) fill the gaps.
   const layouts = { ...(mod.layouts ?? {}), ...disk };
@@ -74,12 +74,20 @@ export function isMain(metaUrl: string): boolean {
 // ---------------------------------------------------------------------------
 
 export function esc(s: unknown): string {
-  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 /** JSON safe to put inside a <script> element. */
 export function jsonForScript(v: unknown): string {
-  return JSON.stringify(v).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+  return JSON.stringify(v)
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }
 
 /** A database document id: letters, digits and `_ - . ~ : @ +` only. */
@@ -93,13 +101,28 @@ export function docId(s: string): string {
 // ---------------------------------------------------------------------------
 
 const IMG_EXT = ['.png', '.webp', '.jpg', '.jpeg', '.gif'];
-const MIME: Record<string, string> = { '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif',
-  '.mp3': 'audio/mpeg', '.ogg': 'audio/ogg', '.wav': 'audio/wav', '.m4a': 'audio/mp4' };
+const MIME: Record<string, string> = {
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.mp3': 'audio/mpeg',
+  '.ogg': 'audio/ogg',
+  '.wav': 'audio/wav',
+  '.m4a': 'audio/mp4',
+};
 
-export function isImageFile(f: string): boolean { return IMG_EXT.includes(extname(f).toLowerCase()); }
+export function isImageFile(f: string): boolean {
+  return IMG_EXT.includes(extname(f).toLowerCase());
+}
 
 function readJson(file: string): any {
-  try { return JSON.parse(readFileSync(file, 'utf8')); } catch { return undefined; }
+  try {
+    return JSON.parse(readFileSync(file, 'utf8'));
+  } catch {
+    return undefined;
+  }
 }
 
 /**
@@ -117,7 +140,8 @@ export function imageSource(gameDir: string, id: string): string | undefined {
       if (p && existsSync(rel(p))) return rel(p);
     }
   }
-  const pats = (v: unknown): string[] => (Array.isArray(v) ? v : v ? [v] : []).map((x: any) => (typeof x === 'string' ? x : x?.path)).filter(Boolean);
+  const pats = (v: unknown): string[] =>
+    (Array.isArray(v) ? v : v ? [v] : []).map((x: any) => (typeof x === 'string' ? x : x?.path)).filter(Boolean);
   const name = id.startsWith('decor/') ? id.slice(6) : '';
   for (const p of name ? pats(src.decors) : pats(src.images)) {
     const f = rel(p.replace('{name}', name).replace('{id}', id));
@@ -141,7 +165,12 @@ export function dataUri(file: string): string {
 let pilOk: boolean | undefined;
 function hasPil(): boolean {
   if (pilOk === undefined) {
-    try { execFileSync('python3', ['-c', 'import PIL'], { stdio: 'ignore' }); pilOk = true; } catch { pilOk = false; }
+    try {
+      execFileSync('python3', ['-c', 'import PIL'], { stdio: 'ignore' });
+      pilOk = true;
+    } catch {
+      pilOk = false;
+    }
   }
   return pilOk;
 }
@@ -169,7 +198,11 @@ for src, dst, mx, trim in jobs:
 print(json.dumps(out))
 `;
 
-export interface Thumb { uri: string; w: number; h: number }
+export interface Thumb {
+  uri: string;
+  w: number;
+  h: number;
+}
 
 /**
  * Thumbnails as data: URIs, longest side ≤ `max` px. Cached in .cache/pages/. Without python3 + Pillow, the source
@@ -189,11 +222,14 @@ export function thumbs(files: string[], max: number, opts: { trim?: boolean } = 
     mkdirSync(cacheDir, { recursive: true });
     for (const f of uniq) {
       const k = keyOf(f);
-      if (!existsSync(join(cacheDir, k + '.webp')) || !existsSync(join(cacheDir, k + '.json'))) todo.push([f, join(cacheDir, k + '.webp'), max, !!opts.trim]);
+      if (!existsSync(join(cacheDir, k + '.webp')) || !existsSync(join(cacheDir, k + '.json')))
+        todo.push([f, join(cacheDir, k + '.webp'), max, !!opts.trim]);
     }
     for (let i = 0; i < todo.length; i += 400) {
       const chunk = todo.slice(i, i + 400);
-      const dims = JSON.parse(execFileSync('python3', ['-c', PY_THUMBS], { input: JSON.stringify(chunk), maxBuffer: 64 << 20 }).toString()) as ([number, number] | null)[];
+      const dims = JSON.parse(
+        execFileSync('python3', ['-c', PY_THUMBS], { input: JSON.stringify(chunk), maxBuffer: 64 << 20 }).toString(),
+      ) as ([number, number] | null)[];
       chunk.forEach(([, dst], j) => writeFileSync(dst.replace(/\.webp$/, '.json'), JSON.stringify(dims[j])));
     }
   }
@@ -201,7 +237,10 @@ export function thumbs(files: string[], max: number, opts: { trim?: boolean } = 
     if (usePil) {
       const k = keyOf(f);
       const dims = readJson(join(cacheDir, k + '.json')) as [number, number] | null;
-      if (dims) { res.set(f, { uri: dataUri(join(cacheDir, k + '.webp')), w: dims[0], h: dims[1] }); continue; }
+      if (dims) {
+        res.set(f, { uri: dataUri(join(cacheDir, k + '.webp')), w: dims[0], h: dims[1] });
+        continue;
+      }
     }
     const [w, h] = pngSize(f) ?? [max, max];
     res.set(f, { uri: dataUri(f), w, h });
@@ -324,7 +363,13 @@ export const PERSIST_JS = String.raw`
 `;
 
 /** A complete document. `body` is trusted HTML (already escaped by the caller). */
-export function pageShell(o: { title: string; description?: string; css: string; body: string; script: string }): string {
+export function pageShell(o: {
+  title: string;
+  description?: string;
+  css: string;
+  body: string;
+  script: string;
+}): string {
   return `<!doctype html>
 <html lang="en">
 <head>

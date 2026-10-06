@@ -19,16 +19,23 @@ async function record() {
   ui.picks = [1];
   const p = e.newGame();
   await tick();
-  await e.act({ verb: 'look', a: 'pantry' }); await tick();
-  ui.picks = [0]; await e.act({ verb: 'talk', a: 'grandma' }); await tick();
-  await e.act({ verb: 'take', a: 'shell' }); await p;
+  await e.act({ verb: 'look', a: 'pantry' });
+  await tick();
+  ui.picks = [0];
+  await e.act({ verb: 'talk', a: 'grandma' });
+  await tick();
+  await e.act({ verb: 'take', a: 'shell' });
+  await p;
   // Three times the same useless action: a stall.
   for (let i = 0; i < 3; i++) await e.act({ verb: 'use', a: 'shell_phone', b: 'armchair' });
   // A hint.
   await e.act({ verb: 'talk', a: 'shell_phone' });
   // An interrupted walk: the presenter refuses once.
   const walk = ui.walk.bind(ui);
-  ui.walk = (async () => { ui.walk = walk; return null; }) as unknown as typeof ui.walk;
+  ui.walk = (async () => {
+    ui.walk = walk;
+    return null;
+  }) as unknown as typeof ui.walk;
   await e.act({ verb: 'open', a: 'armchair' });
   return e;
 }
@@ -44,7 +51,12 @@ describe('playtests', () => {
     expect(JSON.stringify(file)).not.toContain('smells like the sea');
     const r = await analyzePlaytests(demo, demoLayouts, [{ name: 'phone-1', file }], { commands });
     expect(r.files[0].divergedAt).toBeUndefined();
-    expect(r.stalls[0]).toMatchObject({ file: 'phone-1', room: 'house', action: 'use shell_phone armchair', repeats: 3 });
+    expect(r.stalls[0]).toMatchObject({
+      file: 'phone-1',
+      room: 'house',
+      action: 'use shell_phone armchair',
+      repeats: 3,
+    });
     expect(Object.keys(r.hints).some((k) => k.startsWith('hint:house/'))).toBe(true);
     expect(r.rooms.house.hints).toBe(1);
     expect(r.aborts).toBe(1);
@@ -69,7 +81,7 @@ describe('playtests', () => {
     expect(r.files[0].divergedAt).toBeDefined();
   });
 
-  it('without a clock, nothing is timestamped: the solver\'s steps stay as before', async () => {
+  it("without a clock, nothing is timestamped: the solver's steps stay as before", async () => {
     const s = await solve(demo, demoLayouts, { commands });
     expect(s.steps.every((en) => en.t === undefined)).toBe(true);
     const e = new Engine(structuredClone(demo), demoLayouts, new FakePresenter(), new MemoryStore(), { commands });
@@ -98,10 +110,20 @@ describe('the committed demo playtest', () => {
   it('near misses (3.8): summed over the sessions by room and target, ids only, a malformed key dropped', async () => {
     const { readFileSync } = await import('node:fs');
     const raw = JSON.parse(readFileSync('games/demo/playtests/walkthrough-hesitant.session.json', 'utf8'));
-    const a = parseSessionFile(JSON.stringify({ ...raw, misses: { 'house/pantry': 2, 'house/armchair': 1, 'bad key': 4 } }));
+    const a = parseSessionFile(
+      JSON.stringify({ ...raw, misses: { 'house/pantry': 2, 'house/armchair': 1, 'bad key': 4 } }),
+    );
     const b = parseSessionFile(JSON.stringify({ ...raw, misses: { 'house/pantry': 3 } }));
     expect(a.misses).toEqual({ 'house/pantry': 2, 'house/armchair': 1 });
-    const r = await analyzePlaytests(demo, demoLayouts, [{ name: 'a', file: a }, { name: 'b', file: b }], { commands });
+    const r = await analyzePlaytests(
+      demo,
+      demoLayouts,
+      [
+        { name: 'a', file: a },
+        { name: 'b', file: b },
+      ],
+      { commands },
+    );
     expect(r.misses).toEqual({ 'house/pantry': 5, 'house/armchair': 1 });
     expect(playtestsMarkdown(r, demo)).toMatch(/## Near misses[\s\S]*\| pantry \| 5 \|/);
   });
@@ -113,19 +135,31 @@ describe('the field quotas (3.7.1)', () => {
     expect(quotaShortfalls([], {})).toEqual([]);
   });
   it('zero sessions miss every quota asked', () => {
-    expect(quotaShortfalls([], { sessions: 5, completed: 3, devices: 2 })).toEqual(['0 session(s), 5 asked', '0 played to the end, 3 asked', '0 device families, 2 asked']);
+    expect(quotaShortfalls([], { sessions: 5, completed: 3, devices: 2 })).toEqual([
+      '0 session(s), 5 asked',
+      '0 played to the end, 3 asked',
+      '0 device families, 2 asked',
+    ]);
   });
   it('a diverged session counts for nothing; devices are families, counted once', () => {
     const files = [f(true, 'ios'), f(true, 'ios'), f(false, 'android', 4), f(true, 'desktop'), f(false)];
     expect(quotaShortfalls(files, { sessions: 4, completed: 3, devices: 2 })).toEqual([]);
-    expect(quotaShortfalls(files, { sessions: 5, completed: 4, devices: 3 })).toEqual(['4 session(s), 5 asked', '3 played to the end, 4 asked', '2 device families, 3 asked']);
+    expect(quotaShortfalls(files, { sessions: 5, completed: 4, devices: 3 })).toEqual([
+      '4 session(s), 5 asked',
+      '3 played to the end, 4 asked',
+      '2 device families, 3 asked',
+    ]);
   });
   it('a session file says its device family, nothing finer', () => {
     expect(deviceFamily('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)')).toBe('ios');
     expect(deviceFamily('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', 5)).toBe('ios');
     expect(deviceFamily('Mozilla/5.0 (Linux; Android 15; Pixel 9)')).toBe('android');
     expect(deviceFamily('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')).toBe('desktop');
-    expect(parseSessionFile(JSON.stringify({ session: { log: [], start: { kind: 'new' } }, device: 'android' })).device).toBe('android');
-    expect(parseSessionFile(JSON.stringify({ session: { log: [], start: { kind: 'new' } }, device: 'Pixel 9' })).device).toBeUndefined();
+    expect(
+      parseSessionFile(JSON.stringify({ session: { log: [], start: { kind: 'new' } }, device: 'android' })).device,
+    ).toBe('android');
+    expect(
+      parseSessionFile(JSON.stringify({ session: { log: [], start: { kind: 'new' } }, device: 'Pixel 9' })).device,
+    ).toBeUndefined();
   });
 });
