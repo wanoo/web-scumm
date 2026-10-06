@@ -1,5 +1,6 @@
 // Scaffolds games/<id> from games/_template and makes it the current game.
 // Usage: npm run new-game <id> ["Working title"]
+import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -50,9 +51,8 @@ const walk = (d) => {
 };
 walk(dir);
 
-const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-pkg.config = { ...(pkg.config ?? {}), game: id };
-writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+// The current game is a link in .cache (tools/select-game.ts), never a change to package.json (4.1.6).
+execFileSync('npx', ['tsx', 'tools/select-game.ts'], { stdio: 'inherit', env: { ...process.env, GAME: id } });
 
 console.log(`games/${id} created ("${title}") and set as the current game.
 Next:

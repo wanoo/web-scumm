@@ -2254,3 +2254,21 @@ Platform"; human gates reported, not blocking (D12).
   sheet says so).
 
 → next: Claude · pull request, merge on green, tag v4.1.5; then 4.1.6 "Outil de studio"
+
+## #102 · 2026-10-06 · Claude · release · 4.1.6 "Studio Tool"
+
+- One branch, `fix/studio-tool`, three batches on 4.1.5: the current game as a link in `.cache` (tsconfig.json and
+  package.json untouched by `dev`, `check`, `build`, `new-game`), `build` without Python, doctor's optional checks,
+  the MCP version, 44 px verbs, a zoomable page; then the Vite plugins in `tools/vite`, `cross-env`, pinned Python
+  modules, `set_layout` guarded, reduced motion complete; then `web-scumm doctor` and `mcp`, the pipeline's Windows
+  message. `release/4.1.6` on top.
+- Found on the way: PR #16 (4.1.5) failed the reference game's French replay because the e2e harness's visibility
+  test read `view.toScreen`, gone with the split, so every point counted as seen and a wide room's target was tapped
+  at the screen's edge (bisected to the room split; fixed on `release/4.1.5`). The step table's mutants, measured
+  with the core set's tests, are 106/260 killed and the scheduler's 23/32: both measured in MUTANTS.md, neither
+  gated. `tests/lint.test.ts` failed once with ECONNREFUSED :3000 under a concurrent run and passed alone.
+- Not done (D12): the field passes, a Windows pass, the reality survivors, a signed tag; and of the plan's 4.1.6
+  list, the twelve-verb script table, the Studio tabs' split and tests, the Check tab's wording (the passes sheet
+  says so).
+
+→ next: Claude · pull request, merge on green, tag v4.1.6; then 4.1.7 "Docs pour un studio" (a README worth reading)

@@ -17,6 +17,14 @@ vérifie, le prouve et le publie en jeu web jouable hors ligne. Il est né comme
 
 ![The Pantry Key : la maison de Grand-mère, neuf verbes, le sac](docs/img/v36-hero.webp)
 
+**Nouveau en v4.1.6 « Outil de studio » :** ce qu'un studio touche tous les jours. `dev`, `check`, `build` et
+`new-game` n'écrivent plus aucun fichier suivi (le jeu courant est un lien dans `.cache`) ; `npm run build` n'a plus
+besoin de Python ; `npm run doctor` distingue requis et optionnel et sort 0 quand seuls Python, ffmpeg ou WebKit
+manquent ; les scripts tournent sous Windows (`cross-env`, plus de `mkdir -p`) ; les plugins Vite ont leur module ;
+`set_layout` est validé et repris comme `set_value` ; le serveur MCP connaît sa version ; `web-scumm doctor` et
+`web-scumm mcp` ; des verbes de 44 px sur téléphone, une page qui zoome, un mouvement réduit complet
+([CHANGELOG](CHANGELOG.md)).
+
 **Nouveau en v4.1.5 « Cœur réel » :** rien dans le contenu, tout dans qui possède quoi à l'intérieur du moteur.
 `step()` est une table de handlers, une fonction par commande ; les boucles de scripts, la session, la caméra et la
 marche d'une pièce ont leurs propres propriétaires (`ScriptScheduler`, `SessionLog`, `Camera`, `Walker`) au lieu de
@@ -113,7 +121,7 @@ et un deuxième jeu, « Le Marché de nuit ».
 | Un jeu fait sur la release précédente, mis à jour, sa sauvegarde jouée jusqu'à la fin en 4.0 | un job de CI à chaque push (`npm run upgrade-check`) |
 | « Le Phare », le jeu indépendant : 5 lieux, anglais et français | `release --commercial` vert : preuve sur 85 états, 202 textes par langue, 62 fichiers verrouillés |
 | L'API publique | 92 noms dans 4 entrées, 23 outils Studio/MCP, tenus par `tests/api-surface.test.ts` |
-| Les sauvegardes | une par release de la 3.0.0 à la 4.1.5 se charge et atteint la fin |
+| Les sauvegardes | une par release de la 3.0.0 à la 4.1.6 se charge et atteint la fin |
 | La première visite du joueur | 122 Ko de JavaScript compressé (153 en 3.7.0), tenus par `initialJsKB` |
 | L'archive | chaque fichier justifié : code, assets verrouillés, polices, icônes, `licenses/` |
 | Le corpus de nuit | 1 503 jeux aléatoires en quatre tranches, 910 comparés à la recherche explicite, 0 divergence |
@@ -173,13 +181,13 @@ un Assistant qui fonctionne avec n'importe quel modèle.
 
 ## Créer son jeu
 
-Il faut Node 22+, Python 3 pour les outils d'image (`pip install -r requirements.txt`) et ffmpeg pour le son.
+Il faut Node 22+. Python 3 (`pip install -r requirements.txt`) sert aux outils d'image et ffmpeg au son : optionnels, `npm run doctor` dit lequel manque, et `npm run build` n'a besoin ni de l'un ni de l'autre (4.1.6).
 
 **Dans son propre projet** (3.9, [PACKAGE](docs/fr/PACKAGE.md)) : le moteur s'installe depuis l'archive d'une release
 (la publication sur npm viendra, puis `npx create-web-scumm mon-jeu`) :
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.5/web-scumm-4.1.5.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.6/web-scumm-4.1.6.tgz
 npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # puis npm run verify, npm run build, npm run release
@@ -189,7 +197,7 @@ npm run assets && npm run dev        # puis npm run verify, npm run build, npm r
 
 ```bash
 npm install
-npm run doctor                       # vérifie Node, les modules Python, ffmpeg et les navigateurs de test
+npm run doctor                       # vérifie Node et Chromium (requis), les modules Python, ffmpeg, WebKit (optionnels)
 npm run new-game my-game "My Game"   # games/my-game depuis le modèle, devient le jeu courant
 npm run assets                       # prépare les images provisoires
 npm run studio                       # le Studio : lieux, histoire, assets, vérifications, jeu
@@ -266,10 +274,10 @@ assistant.
 
 ## Releases
 
-Release actuelle : [v4.1.5 « Cœur réel »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.5) : la découpe
-annoncée par la 4.1.0, faite : `step()` en table, des propriétaires pour les boucles de scripts, la session, la
-caméra et la marche, un rendu diffé plutôt que reconstruit, `room.ts` sous la limite ; comportement identique à la
-4.1.4. L'histoire de la v1.3 à la v4.1 est dans la
+Release actuelle : [v4.1.6 « Outil de studio »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.6) : l'outil
+quotidien d'un petit studio : rien de suivi écrit par `dev` ou `new-game`, un build sans Python, un `doctor` qui
+distingue requis et optionnel, des scripts qui tournent sous Windows, un `set_layout` validé, des verbes de 44 px ;
+sur le cœur réel de la 4.1.5. L'histoire de la v1.3 à la v4.1 est dans la
 [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt

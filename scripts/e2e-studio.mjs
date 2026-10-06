@@ -4,14 +4,24 @@
 // change" shows the diff; "Apply" writes the room file (validated by the server); the game sees the stage; the
 // painter select and the timeline are there; "Undo" puts the file back as it was. The room file is restored either
 // way. Usage: node scripts/e2e-studio.mjs [http://127.0.0.1:5317/__studio/] [--room=garden]. Exit 0 / 1.
+import { readlinkSync } from 'node:fs';
 import { chromium } from 'playwright';
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
+
+/** The game `.cache/game` links to (npm run game), else package.json's config.game, else demo (tools/game.ts' rule). */
+function currentGame() {
+  try {
+    return readlinkSync('.cache/game').split(/[\\/]/).filter(Boolean).pop();
+  } catch {
+    return JSON.parse(readFileSync('package.json', 'utf8')).config?.game;
+  }
+}
 import { join } from 'node:path';
 
 const url = process.argv.slice(2).find((a) => !a.startsWith('--')) ?? 'http://127.0.0.1:5317/__studio/';
 const room = process.argv.find((a) => a.startsWith('--room='))?.split('=')[1] ?? 'garden';
-const game = JSON.parse(readFileSync('package.json', 'utf8')).config?.game ?? 'demo';
+const game = currentGame() ?? 'demo';
 const file = join('games', process.env.GAME || game, 'rooms', `${room}.ts`);
 const original = readFileSync(file, 'utf8');
 const hash = (s) => createHash('sha256').update(s).digest('hex').slice(0, 12);

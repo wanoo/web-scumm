@@ -35,6 +35,10 @@ def setup():
         subprocess.run(['curl', '-sL', '-o', tgz, base + f'furnace-{FURNACE_VERSION}-linux-x86_64.tar.gz'], check=True)
         subprocess.run(['tar', 'xzf', tgz, '-C', TOOLS, '--strip-components=1'], check=True)
         os.remove(tgz)
+    elif platform.system() not in ('Darwin', 'Linux'):
+        # Windows: no automatic download (Furnace ships a zip there); the rest of the pipeline is unchanged.
+        raise SystemExit(f'mdpipe: install Furnace {FURNACE_VERSION} yourself on {platform.system()} and put its '
+                         f'executable in {TOOLS} (the Mega Drive pipeline downloads it on macOS and Linux only)')
     sf = os.path.join(TOOLS, 'GeneralUser-GS.sf2')
     if not os.path.exists(sf):
         subprocess.run(['curl', '-sL', '-o', sf, 'https://github.com/mrbumpy409/GeneralUser-GS/raw/main/GeneralUser-GS.sf2'], check=True)

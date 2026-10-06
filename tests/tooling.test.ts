@@ -21,13 +21,18 @@ describe('doctor', () => {
       'Playwright WebKit',
     ]);
     expect(bad.every((c) => !c.ok && c.fix)).toBe(true);
-    expect(doctorReport(bad).failed).toBe(6);
+    // Node and Chromium are required; Python, its modules, ffmpeg and WebKit are optional (4.1.6): said, not fatal.
+    expect(doctorReport(bad)).toMatchObject({ failed: 2, optional: 4 });
     expect(doctorReport(bad).text).toContain('npx playwright install webkit');
+    expect(doctorReport(bad).text).toContain('○  Python: not found (optional)');
+    const only = collectChecks({ ...probes(true), command: () => ({ ok: false, stdout: '' }) });
+    expect(doctorReport(only)).toMatchObject({ failed: 0, optional: 3 });
+    expect(doctorReport(only).text).toContain('3 optional ones missing');
   });
   it('is quiet when everything is there', () => {
     const good = collectChecks(probes(true));
     expect(good.every((c) => c.ok)).toBe(true);
-    expect(doctorReport(good)).toMatchObject({ failed: 0 });
+    expect(doctorReport(good)).toMatchObject({ failed: 0, optional: 0 });
     expect(good.find((c) => c.name === 'ffmpeg')?.detail).toBe('ffmpeg version 8.0');
   });
 });

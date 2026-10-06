@@ -257,3 +257,11 @@ Nothing to change in a game, and nothing in a host that uses the public API: `en
 or `sessionT0` finds them on `engine.sessions` (`feed`, `open`, `t0`); one that reached the room view's `toScreen`,
 `toLogical`, `setCamera`, `followHero`, `onCamera` or `cam` finds them on `view.camera`, and `walkTo`, `motion` and
 `clampFloor` (now `clamp`) on `view.walker`. A 4.1.4 save loads unchanged.
+
+## 18. From 4.1.5 to 4.1.6 "Studio Tool"
+
+Nothing to change in a game. In a checkout, tsconfig.json's `@game` paths look through `.cache/game`, the link `npm run
+game` makes (`dev`, `check` and `build` make it too), and fall back to `games/demo` when there is none; a
+`package.json` whose `config.game` named a game still counts, after the link and `GAME`. `npm run build` no longer runs the pixel tests (`npm test` and CI
+do). `npm run doctor` exits 0 when only Python, ffmpeg or WebKit are missing. `requirements.txt` pins its modules:
+`pip install -r requirements.txt` again if yours are older. A 4.1.5 save loads unchanged.

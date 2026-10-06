@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 4.1.6 — 2026-10-06
+
+"Studio Tool" (LOG #102): the plan's fifth release; what a studio touches every day, made to leave the tree clean,
+run without Python and on Windows, and say what is optional. What the plan listed and this release does not do is in
+the LOG and the passes sheet.
+
+### Changes
+
+- **The studio's tool** (4.1.6, the plan's fifth release). No tracked file is written by `dev`, `check`, `build` or
+  `new-game` any more: the current game is `.cache/game`, a symbolic link `npm run game` points (tsconfig.json's
+  `@game` paths look there; 4.1.5 rewrote tsconfig.json). `npm run build` no longer needs Python: the pixel tests
+  stay in `npm test` and CI. `npm run doctor` tells required (Node, Chromium) from optional (Python and its modules,
+  ffmpeg, WebKit): exit 0 when only optional ones are missing. The MCP server reports the engine's version. The
+  verbs are 44 px high at least on a phone; the page may be zoomed (no `maximum-scale`, no `user-scalable=no`).
+  `packageManager` and `.nvmrc` pin npm and Node. The scripts that set a variable go through `cross-env` and the one
+  that made a directory through Node: they run on Windows. `requirements.txt` pins its three modules. The Vite
+  plugins (the layout writer, the Studio's demo snapshot, the sealed build, the assets' version, `site.json`) live
+  in `tools/vite/plugins.ts`; `vite.config.ts` is the configuration. `prefers-reduced-motion` stops every animation
+  (the call frame's, the map's news, the credits, the rotate hint included); the focused target's label is 12 px.
+  `web-scumm doctor` and `web-scumm mcp` join the command line. The Mega Drive pipeline says what to do on Windows
+  instead of failing on a missing download. The e2e harness reads the camera through `view.camera` (the 4.1.5 split
+  left its visibility test reading a field that was gone, so a wide room's target was tapped at the screen's edge).
 - **CI without silly timeouts** (4.1.7). Every install step of the workflows (Playwright's browsers, pip, apt,
   `npm ci`) is retried three times and held to 8 minutes: a download that hangs no longer keeps a job for its
   45-minute limit (a `playwright install` did, on 6 October, for 45 minutes).

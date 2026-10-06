@@ -102,7 +102,9 @@ async function playPipes(h) {
   // The box fades in and redraws its tiles after every tap: let it settle, and tap where the tile is even if a
   // transition still covers it (a slow CI runner otherwise retries until the tile is replaced).
   await h.page.waitForTimeout(400);
-  const tapTile = (loc) => loc.tap({ force: true, timeout: 5000 });
+  // The box removes itself once solved, sometimes while a tap waits for its tile: the tap gives up, and the count
+  // check at the top of the next turn is what says "solved" (a CI runner hit that race once in 4.1.6).
+  const tapTile = (loc) => loc.tap({ force: true, timeout: 5000 }).catch(() => {});
   for (let i = 0; i < 16; i++) {
     if (!(await h.page.locator(tileSel).count())) return; // solved already, by chance
     await tapTile(h.page.locator(tileSel).first());

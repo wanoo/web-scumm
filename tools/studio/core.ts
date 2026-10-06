@@ -294,22 +294,32 @@ export function createStudio(opts: StudioOptions = {}) {
       const diff = r.changed ? lineDiff(before, r.code) : '';
       if (!r.changed || o.dry)
         return { ok: true as const, line: r.line, changed: r.changed, diff, ...(o.dry ? { dry: true as const } : {}) };
-      const was = new Set((await validateNow()).errors);
-      writeRoomCode(file, r.code, `${id}: ${path}`);
-      const added = (await validateNow()).errors.filter((e) => !was.has(e));
-      if (added.length) {
-        const c = undoStack.pop()!;
-        writeAtomic(c.file, c.before);
-        throw Object.assign(
-          new StudioError(
-            `refused: the edit adds ${added.length} validation error(s): ${added.slice(0, 3).join('; ')}`,
-            422,
-          ),
-          { body: { errors: added, diff } },
-        );
-      }
+      await guarded(() => writeRoomCode(file, r.code, `${id}: ${path}`), diff);
       return { ok: true as const, line: r.line, changed: true, diff };
     });
+  }
+
+  /**
+   * Writes through `write`, validates the game as it is then on disk, and takes the write back (422, with the
+   * errors) when it adds a validation error. `setValue` since 3.4; `setLayout` since 4.1.6, which wrote unchecked.
+   */
+  async function guarded(write: () => void, diff = ''): Promise<void> {
+    const was = new Set((await validateNow()).errors);
+    const depth = undoStack.length;
+    write();
+    const added = (await validateNow()).errors.filter((e) => !was.has(e));
+    if (!added.length) return;
+    if (undoStack.length > depth) {
+      const c = undoStack.pop()!;
+      writeAtomic(c.file, c.before);
+    }
+    throw Object.assign(
+      new StudioError(
+        `refused: the edit adds ${added.length} validation error(s): ${added.slice(0, 3).join('; ')}`,
+        422,
+      ),
+      { body: { errors: added, diff } },
+    );
   }
 
   const wrap = <T>(fn: () => T): T => {
@@ -369,11 +379,11 @@ export function createStudio(opts: StudioOptions = {}) {
   // ------------------------------------------------------------------ writing
 
   function setLayout(id: string, layout: unknown): Promise<{ ok: true }> {
-    return serial(() => {
+    return serial(async () => {
       roomFile(id);
       if (!layout || typeof layout !== 'object' || Array.isArray(layout))
         throw new StudioError('the layout must be an object');
-      commit(layoutFile(id), JSON.stringify(layout, null, 2) + '\n', `${id}: layout`);
+      await guarded(() => commit(layoutFile(id), JSON.stringify(layout, null, 2) + '\n', `${id}: layout`));
       return { ok: true as const };
     });
   }

@@ -13,9 +13,10 @@ The repo can hold several games, each in `games/<id>/`. The current game is, in 
 The rule is coded once, in `tools/game.ts`, and read by `vite.config.ts` (the `@game` alias → `games/<GAME>/index.ts`,
 the editor's layouts written to `games/<GAME>/layout/`), `tools/validate.ts`, `tools/solve.ts`, `tools/refs.ts`; `tools/assets.py` does the same reading in Python.
 
-`tsconfig.json` cannot read an environment variable: `npm run game` (`tools/select-game.ts`) rewrites its two `@game` and `@game/*` paths
-to the current game. `npm run dev` and `npm run build` run it first; after a `GAME=… npm run build`, `tsconfig.json` points at that game
-(reset to the default game with `npm run game`). Vite and Vitest don't need it: they resolve the alias in `vite.config.ts`.
+`tsconfig.json` cannot read an environment variable: its `@game` and `@game/*` paths look in `.cache/game`, a symbolic link that
+`npm run game` (`tools/select-game.ts`) points at the current game, with `games/demo` as the fallback when no link exists yet (4.1.6; until
+4.1.5 it rewrote `tsconfig.json`, a tracked file, on every `dev` and `build`). `npm run dev`, `npm run check` and `npm run build` run it first; `GAME=<id> npm run game` and `npm run new-game`
+switch the game, and the tools read the link when `GAME` is not set. Vite and Vitest don't need it: they resolve the alias in `vite.config.ts`.
 
 Tests don't depend on the current game: the engine's tests run on `tests/fixture/` (a tiny game), a game's own tests import
 its files directly (`tests/demo.test.ts`, `tests/walkthrough.test.ts`).

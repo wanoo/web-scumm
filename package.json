@@ -1,14 +1,14 @@
 {
   "name": "web-scumm",
   "private": true,
-  "version": "4.1.5",
+  "version": "4.1.6",
   "type": "module",
   "scripts": {
     "dev": "tsx tools/select-game.ts && vite",
     "dev:lan": "tsx tools/select-game.ts && tsx tools/serve.ts --lan",
-    "studio": "tsx tools/select-game.ts && STUDIO=1 vite --open /__studio/",
+    "studio": "tsx tools/select-game.ts && cross-env STUDIO=1 vite --open /__studio/",
     "studio:lan": "tsx tools/select-game.ts && tsx tools/serve.ts --lan --studio",
-    "build": "npm run check && npm run test:assets && npm run build:game",
+    "build": "npm run check && npm run build:game",
     "preview": "vite preview --host 127.0.0.1",
     "start": "sirv dist --host 0.0.0.0 --port ${PORT:-8080} --maxage 3600",
     "test": "npm run test:node",
@@ -44,7 +44,7 @@
     "format:check": "biome format .",
     "quality": "npm run format:check && npm run lint:code && knip --no-progress && tsc --noEmit && tsc --noEmit -p tsconfig.strictest.json && npm run lint:content",
     "mcp": "tsx tools/mcp/server.ts",
-    "assets": "mkdir -p .cache && tsx --tsconfig tsconfig.json tools/refs.ts > .cache/refs.json && python3 tools/assets.py",
+    "assets": "node -e \"require('node:fs').mkdirSync('.cache',{recursive:true})\" && tsx --tsconfig tsconfig.json tools/refs.ts > .cache/refs.json && python3 tools/assets.py",
     "game": "tsx tools/select-game.ts",
     "seal": "tsx scripts/seal.ts",
     "check:spoilers": "tsx scripts/check-spoilers.ts",
@@ -56,7 +56,7 @@
     "prompts": "tsx --tsconfig tsconfig.json tools/prompts.ts",
     "audio": "python3 tools/audio.py",
     "build:web": "vite build",
-    "build:studio-demo": "tsx tools/select-game.ts && STUDIO=1 VITE_STUDIO_DEMO=1 vite build",
+    "build:studio-demo": "tsx tools/select-game.ts && cross-env STUDIO=1 VITE_STUDIO_DEMO=1 vite build",
     "studio-snapshot": "tsx tools/studio/snapshot.ts",
     "studio-apply": "tsx tools/studio/apply.ts",
     "new-game": "node scripts/new-game.mjs",
@@ -100,6 +100,7 @@
     "@types/howler": "^2.2.13",
     "@types/node": "^22.10.0",
     "@vitest/coverage-v8": "^5.0.3",
+    "cross-env": "^7.0.3",
     "esbuild": "^0.28.2",
     "fake-indexeddb": "^6.2.5",
     "fast-check": "^4.10.2",
@@ -124,5 +125,6 @@
     "node": ">=22"
   },
   "description": "Mobile-first SCUMM-style point-and-click engine with authoring tools and an AI-friendly workflow",
-  "license": "MIT"
+  "license": "MIT",
+  "packageManager": "npm@10.9.2"
 }
