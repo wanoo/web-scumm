@@ -10,7 +10,9 @@
   the room view's camera (`dom/camera.ts`) and walking (`dom/walker.ts`) are owners of their own, the entity type has
   its module, and `dom/room.ts` is under the 800-line limit without an exception (1026 → 744). Hosts that reached
   `view.toScreen`, `view.setCamera`, `view.walkTo`… use `view.camera.*` and `view.walker.*` (the dev overlay, the
-  e2e harness and the perf probe do).
+  e2e harness and the perf probe do). The session has an owner, `Engine.sessions` (`SessionLog` in
+  `core/session-runtime.ts`: the entries, their feed on replay, the clock's origin), where 4.1.0 kept those fields on
+  the Engine for functions to mutate; `engine.session`, `begin`, `choose`, `rand`… are unchanged.
 
 ## 4.1.4 — 2026-10-06
 

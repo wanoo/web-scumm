@@ -4,7 +4,6 @@ import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import type { GameDef } from '@engine/core/types';
-import { begin, end } from '@engine/core/session-runtime';
 import { emit } from '@engine/core/event-runtime';
 import { advance, scriptState } from '@engine/core/script-runtime';
 import { fill, findRule } from '@engine/core/interactions';
@@ -32,8 +31,8 @@ describe('the modules of the engine, called directly', () => {
     const e = await engine();
     e.digestOn = true;
     const before = e.session?.log.length ?? 0;
-    begin(e, { travel: 'b' });
-    end(e);
+    e.sessions.begin({ travel: 'b' });
+    e.sessions.end();
     const last = e.session?.log.at(-1);
     expect(e.session?.log.length).toBe(before + 1);
     expect(last).toMatchObject({ travel: 'b' });

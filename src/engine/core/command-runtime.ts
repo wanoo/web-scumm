@@ -51,7 +51,7 @@ export async function exec(eng: Engine, cmds: Cmd[] | undefined, ctx: Ctx): Prom
 }
 
 export async function step(eng: Engine, c: Cmd, ctx: Ctx): Promise<void> {
-  const o = eng.cur;
+  const o = eng.sessions.cur;
   if (o) {
     if (o.src?.skipAt === o.steps) eng.skipping = true;
     o.steps++;

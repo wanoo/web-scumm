@@ -64,16 +64,7 @@ import {
   teleport as teleportImpl,
 } from './movement';
 import type { ReceiveResult } from './reality-runtime';
-import {
-  begin as beginImpl,
-  newSession as newSessionImpl,
-  end as endImpl,
-  ran as ranImpl,
-  feedSession as feedSessionImpl,
-  choose as chooseImpl,
-  pickPlace as pickPlaceImpl,
-  rand as randImpl,
-} from './session-runtime';
+import { SessionLog } from './session-runtime';
 import { emit as emitImpl } from './event-runtime';
 import {
   scriptDef as scriptDefImpl,
@@ -150,21 +141,25 @@ export class Engine {
   random: () => number = Math.random;
   /** A clock (ms) for the session's `t` timestamps; none in the solver and the tests, so their sessions stay byte-identical. */
   clock: (() => number) | null = null;
-  /** @internal Read by the modules of core/ (4.1.0). */
-  sessionT0 = 0;
+  /** The session's owner (4.1.5, core/session-runtime.ts): the entries, their feed on replay, the clock's origin. */
+  readonly sessions = new SessionLog(this);
   /**
    * The session: the player's inputs since the game started or a save was loaded, with the answers given on the way
    * (`SessionEntry`). Always recorded: exported with a save, it is the bug report `replay()` reproduces.
    */
-  session: Session | null = null;
+  get session(): Session | null {
+    return this.sessions.session;
+  }
+  set session(s: Session | null) {
+    this.sessions.session = s;
+  }
   /** Store a digest of the state after every input (the browser app does; the solver has no use for it). */
-  digestOn = false;
-  /** Replay: the recorded entries to take the answers from, in order (`feed()`). */
-  /** @internal Read by the modules of core/ (4.1.0). */
-  feed: SessionEntry[] | null = null;
-  /** The open entries (an input can resume a pending one: the tutorial step the intro waits for). */
-  /** @internal Read by the modules of core/ (4.1.0). */
-  open: { entry: SessionEntry; src?: SessionEntry; pi: number; mi: number; ri: number; steps: number }[] = [];
+  get digestOn() {
+    return this.sessions.digestOn;
+  }
+  set digestOn(on: boolean) {
+    this.sessions.digestOn = on;
+  }
   /** Condition atoms read since the last `reads = new Set()` (the solver's independence analysis); null: not collected. */
   reads: Set<string> | null = null;
   /**
@@ -178,39 +173,35 @@ export class Engine {
 
   /** Opens an entry of the session (and takes its recorded twin when replaying). */
   begin(entry: SessionEntry) {
-    return beginImpl(this, entry);
+    this.sessions.begin(entry);
   }
   /** A fresh session from the current state; the clock, when set, dates it and its entries. */
   newSession(start: Session['start']): Session {
-    return newSessionImpl(this, start);
+    return this.sessions.newSession(start);
   }
 
   end() {
-    return endImpl(this);
-  }
-  /** @internal Read by the modules of core/ (4.1.0). */
-  get cur() {
-    return this.open.length ? this.open[this.open.length - 1] : undefined;
+    this.sessions.end();
   }
   /** Records what answered (a rule, a topic, a listener, a script step: the puzzle graph's ids). */
   ran(id: string) {
-    return ranImpl(this, id);
+    this.sessions.ran(id);
   }
   /** Replays a session: the engine takes the recorded answers instead of asking the presenter. */
   feedSession(s: Session) {
-    return feedSessionImpl(this, s);
+    this.sessions.feedSession(s);
   }
   /** A choice, recorded (and fed back when replaying). */
-  async choose(options: { text: string; seen?: boolean; global?: boolean }[], who?: Id): Promise<number> {
-    return chooseImpl(this, options, who);
+  choose(options: { text: string; seen?: boolean; global?: boolean }[], who?: Id): Promise<number> {
+    return this.sessions.choose(options, who);
   }
   /** The map's answer, recorded. */
-  async pickPlace(): Promise<Id | null> {
-    return pickPlaceImpl(this);
+  pickPlace(): Promise<Id | null> {
+    return this.sessions.pickPlace();
   }
   /** A random draw, recorded. */
   rand(): number {
-    return randImpl(this);
+    return this.sessions.rand();
   }
   /** A condition, with its atoms collected when `reads` is on. */
   /** @internal Read by the modules of core/ (4.1.0). */
@@ -550,7 +541,7 @@ export class Engine {
     }
     try {
       // Replaying a walk the player interrupted: nothing happened then, nothing happens now.
-      if (this.cur?.src && 'act' in this.cur.src && this.cur.src.aborted) {
+      if (this.sessions.cur?.src && 'act' in this.sessions.cur.src && this.sessions.cur.src.aborted) {
         entry.aborted = true;
         return null;
       }
@@ -613,7 +604,7 @@ export class Engine {
   /** Skip the current cutscene. */
   skip() {
     this.skipping = true;
-    const o = this.cur;
+    const o = this.sessions.cur;
     if (o) o.entry.skipAt = o.steps;
   }
 
