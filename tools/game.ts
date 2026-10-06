@@ -1,6 +1,7 @@
-// The current game: GAME environment variable, otherwise package.json → "config": { "game": … }, otherwise "demo".
+// The current game: GAME environment variable, otherwise the game `.cache/game` links to (`npm run game`,
+// `npm run new-game`; 4.1.6), otherwise package.json → "config": { "game": … }, otherwise "demo".
 // Used by vite.config.ts, the tools (validate, solve, refs) and tools/select-game.ts.
-import { readFileSync } from 'node:fs';
+import { readFileSync, readlinkSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import type { GameDef, Layout } from '../src/engine/core/types';
@@ -13,6 +14,12 @@ export const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
 export function gameId(): string {
   const env = process.env.GAME?.trim();
   if (env) return env;
+  try {
+    const linked = basename(readlinkSync(resolve(ROOT, '.cache', 'game')));
+    if (linked) return linked;
+  } catch {
+    /* no link: nothing selected since the checkout */
+  }
   try {
     const pkg = JSON.parse(readFileSync(resolve(ROOT, 'package.json'), 'utf8'));
     if (typeof pkg.config?.game === 'string' && pkg.config.game) return pkg.config.game;

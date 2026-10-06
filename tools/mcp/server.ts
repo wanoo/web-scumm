@@ -2,6 +2,7 @@
 // any AI assistant (Claude Code, Claude Desktop, Cursor, Codex, Gemini CLI…) can read and edit a game the way the
 // Studio does. Started by `npm run mcp` in the repository; the game is GAME / GAME_DIR as for every tool (tools/game.ts).
 // stdout carries the protocol: everything else goes to stderr. A failing operation is a tool error, never a crash.
+import { readFileSync } from 'node:fs';
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { GAME, GAME_DIR, ROOT } from '../game';
@@ -17,8 +18,11 @@ console.debug = console.error;
 const studio = createStudio({ gameDir: GAME_DIR, root: ROOT });
 const DEV_URL = process.env.WEB_SCUMM_DEV_URL?.trim() || 'http://localhost:5173/';
 
+/** The engine's version, read from package.json (4.1.6): the server said 0.1.0 whatever the release. */
+const VERSION = String(JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version);
+
 const server = new McpServer(
-  { name: 'web-scumm', version: '0.1.0' },
+  { name: 'web-scumm', version: VERSION },
   {
     instructions:
       `web-scumm game "${GAME}" (${GAME_DIR}). A game is data: rooms in rooms/<id>.ts, geometry in layout/<id>.json, ` +

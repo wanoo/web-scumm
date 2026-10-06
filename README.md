@@ -165,7 +165,7 @@ explainer and session replay, shared notes with the AI, and an Assistant that wo
 
 ## Make your own game
 
-Needs Node 22+, Python 3 for the art tools (`pip install -r requirements.txt`) and ffmpeg for sound.
+Needs Node 22+. Python 3 (`pip install -r requirements.txt`) is for the art tools and ffmpeg for sound: optional, `npm run doctor` says which is missing, and `npm run build` needs neither (4.1.6).
 
 **In its own project** (3.9, [PACKAGE](docs/en/PACKAGE.md)): the engine installs from a release's tarball (npm
 publishing to come, then `npx create-web-scumm my-game`):
@@ -181,7 +181,7 @@ npm run assets && npm run dev        # then npm run verify, npm run build, npm r
 
 ```bash
 npm install
-npm run doctor                       # checks Node, Python modules, ffmpeg and the test browsers
+npm run doctor                       # checks Node and Chromium (required), Python modules, ffmpeg, WebKit (optional)
 npm run new-game my-game "My Game"   # games/my-game from the template, set as the current game
 npm run assets                       # prepares the placeholder art
 npm run studio                       # the Studio: rooms, story, assets, checks, play

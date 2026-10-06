@@ -175,7 +175,7 @@ export function layout(app: App) {
     const colW = (sideW - 16) / 3;
     app.verbsEl.style.fontSize = `${Math.max(10, Math.min(16, Math.floor(colW / 4.1)))}px`;
     for (const b of app.verbsEl.children)
-      (b as HTMLElement).style.height = `${Math.max(26, Math.min(44, Math.round(H * 0.1)))}px`;
+      (b as HTMLElement).style.height = `${Math.max(44, Math.min(56, Math.round(H * 0.12)))}px`; // a touch target: 44 px at least (4.1.6)
     if (app.sbar.parentElement !== app.scene) app.scene.append(app.sbar);
   }
   Object.assign(app.scene.style, {

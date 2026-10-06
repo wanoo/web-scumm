@@ -8,7 +8,7 @@
     "dev:lan": "tsx tools/select-game.ts && tsx tools/serve.ts --lan",
     "studio": "tsx tools/select-game.ts && STUDIO=1 vite --open /__studio/",
     "studio:lan": "tsx tools/select-game.ts && tsx tools/serve.ts --lan --studio",
-    "build": "npm run check && npm run test:assets && npm run build:game",
+    "build": "npm run check && npm run build:game",
     "preview": "vite preview --host 127.0.0.1",
     "start": "sirv dist --host 0.0.0.0 --port ${PORT:-8080} --maxage 3600",
     "test": "npm run test:node",
@@ -124,5 +124,6 @@
     "node": ">=22"
   },
   "description": "Mobile-first SCUMM-style point-and-click engine with authoring tools and an AI-friendly workflow",
-  "license": "MIT"
+  "license": "MIT",
+  "packageManager": "npm@10.9.2"
 }

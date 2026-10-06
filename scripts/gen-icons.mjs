@@ -1,8 +1,18 @@
 // Generates public/icons/icon-192.png, icon-512.png and public/og.png with no dependency (minimal PNG encoder).
 // Texts come from games/<id>/site.json (`title`, optional `ogLines`: up to three lines drawn above the title).
+import { readlinkSync } from 'node:fs';
 import { deflateSync } from 'node:zlib';
+
+/** The game `.cache/game` links to (npm run game), else package.json's config.game, else demo (tools/game.ts' rule). */
+function currentGame() {
+  try {
+    return readlinkSync('.cache/game').split(/[\\/]/).filter(Boolean).pop();
+  } catch {
+    return JSON.parse(readFileSync('package.json', 'utf8')).config?.game;
+  }
+}
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
-const GAME = process.env.GAME || JSON.parse(readFileSync('package.json', 'utf8')).config?.game || 'demo';
+const GAME = process.env.GAME || currentGame() || 'demo';
 let site = {};
 try {
   site = JSON.parse(readFileSync(`games/${GAME}/site.json`, 'utf8'));

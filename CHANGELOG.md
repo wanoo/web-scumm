@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- **The studio's tool** (4.1.6, the plan's fifth release). No tracked file is written by `dev`, `check`, `build` or
+  `new-game` any more: the current game is `.cache/game`, a symbolic link `npm run game` points (tsconfig.json's
+  `@game` paths look there; 4.1.5 rewrote tsconfig.json). `npm run build` no longer needs Python: the pixel tests
+  stay in `npm test` and CI. `npm run doctor` tells required (Node, Chromium) from optional (Python and its modules,
+  ffmpeg, WebKit): exit 0 when only optional ones are missing. The MCP server reports the engine's version. The
+  verbs are 44 px high at least on a phone; the page may be zoomed (no `maximum-scale`, no `user-scalable=no`).
+  `packageManager` and `.nvmrc` pin npm and Node.
+
 ## 4.1.5 — 2026-10-06
 
 "Real Core" (LOG #101): the plan's fourth release; the split that 4.1.0 announced, done behind the baseline, one

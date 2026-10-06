@@ -13,9 +13,11 @@ Le dépôt peut contenir plusieurs jeux, chacun dans `games/<id>/`. Le jeu coura
 La règle est codée une seule fois, dans `tools/game.ts`, et lue par `vite.config.ts` (alias `@game` → `games/<GAME>/index.ts`,
 écriture des layouts de l'éditeur dans `games/<GAME>/layout/`), `tools/validate.ts`, `tools/solve.ts`, `tools/refs.ts` ; `tools/assets.py` refait la même lecture en Python.
 
-`tsconfig.json` ne peut pas lire une variable : `npm run game` (`tools/select-game.ts`) réécrit ses deux chemins `@game` et `@game/*`
-vers le jeu courant. `npm run dev` et `npm run build` le lancent d'abord ; après un `GAME=… npm run build`, `tsconfig.json` pointe sur ce jeu
-(remettre le jeu par défaut avec `npm run game`). Vite et Vitest n'en ont pas besoin : ils résolvent l'alias dans `vite.config.ts`.
+`tsconfig.json` ne peut pas lire une variable : ses chemins `@game` et `@game/*` regardent dans `.cache/game`, un lien symbolique que
+`npm run game` (`tools/select-game.ts`) pointe vers le jeu courant (4.1.6 ; jusqu'à la 4.1.5 il réécrivait `tsconfig.json`, un fichier
+suivi, à chaque `dev` et `build`). `npm run dev`, `npm run check` et `npm run build` le lancent d'abord ; `GAME=<id> npm run game` et
+`npm run new-game` changent de jeu, et les outils lisent le lien quand `GAME` n'est pas défini. Vite et Vitest n'en ont pas besoin : ils
+résolvent l'alias dans `vite.config.ts`.
 
 Les tests ne dépendent pas du jeu courant : les tests du moteur tournent sur `tests/fixture/` (un jeu minuscule), ceux d'un jeu importent
 ses fichiers directement (`tests/demo.test.ts`, `tests/walkthrough.test.ts`).

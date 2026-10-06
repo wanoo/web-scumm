@@ -26,10 +26,10 @@
         "src/engine/*"
       ],
       "@game": [
-        "games/demo/index.ts"
+        ".cache/game/index.ts"
       ],
       "@game/*": [
-        "games/demo/*"
+        ".cache/game/*"
       ]
     },
     "types": [

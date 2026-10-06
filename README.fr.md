@@ -173,7 +173,7 @@ un Assistant qui fonctionne avec n'importe quel modèle.
 
 ## Créer son jeu
 
-Il faut Node 22+, Python 3 pour les outils d'image (`pip install -r requirements.txt`) et ffmpeg pour le son.
+Il faut Node 22+. Python 3 (`pip install -r requirements.txt`) sert aux outils d'image et ffmpeg au son : optionnels, `npm run doctor` dit lequel manque, et `npm run build` n'a besoin ni de l'un ni de l'autre (4.1.6).
 
 **Dans son propre projet** (3.9, [PACKAGE](docs/fr/PACKAGE.md)) : le moteur s'installe depuis l'archive d'une release
 (la publication sur npm viendra, puis `npx create-web-scumm mon-jeu`) :
@@ -189,7 +189,7 @@ npm run assets && npm run dev        # puis npm run verify, npm run build, npm r
 
 ```bash
 npm install
-npm run doctor                       # vérifie Node, les modules Python, ffmpeg et les navigateurs de test
+npm run doctor                       # vérifie Node et Chromium (requis), les modules Python, ffmpeg, WebKit (optionnels)
 npm run new-game my-game "My Game"   # games/my-game depuis le modèle, devient le jeu courant
 npm run assets                       # prépare les images provisoires
 npm run studio                       # le Studio : lieux, histoire, assets, vérifications, jeu
