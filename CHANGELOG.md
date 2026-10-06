@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 4.1.3 — 2026-10-06
+
+"Honest Gates" (LOG #99): the plan's second release, nothing in the game, everything in what guards it; the CI made
+worthy of trust before the refactorings of 4.1.4 and 4.1.5 lean on it.
+
 ### Changes
 
 - **The gates, made trustworthy before the refactorings** (4.1.3, the plan's second release). The workflows read only

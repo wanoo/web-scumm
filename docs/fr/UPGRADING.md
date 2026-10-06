@@ -243,3 +243,10 @@ tant qu'`init` n'a pas écrit un `root.key`) ; derrière un proxy inverse, lance
 limites par adresse voient l'adresse du client ; `doctor` lit le journal, `compact` le réduit, Bridge arrêté. Le paquet
 `web-scumm-bridge` tourne sur Node seul désormais (sans `tsx`). Une sauvegarde 4.1.1 se charge ; elle reçoit l'id de son
 joueur au signal suivant.
+
+## 15. De la 4.1.2 à la 4.1.3 « Gates honnêtes »
+
+Rien à changer dans un jeu ni un Bridge. Dans ce dépôt : `npm test` ne lance plus les tests lourds du solveur
+(`npm run test:heavy` le fait, chaque nuit) ; `npm run build:game` construit un jeu sans la suite unitaire ;
+`release-check` est plus long (couverture, cross-check Rust, mutation du cœur). Les contributions à `main` passent par
+une pull request.

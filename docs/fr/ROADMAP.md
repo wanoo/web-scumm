@@ -519,6 +519,15 @@ d'erreur, un déterminisme par l'horloge seule, des hooks plutôt que des patchs
 4.1.6 l'outillage qu'un studio touche, 4.1.7 la documentation, puis la 4.2.0 finale (paquet compilé, npm, une API
 hôte).
 
+## v4.1.3 « Gates honnêtes » (livrée le 6 octobre 2026) : la CI rendue fiable
+
+Rien dans le jeu, tout dans ce qui le garde : des workflows qui lisent seulement, annulent, s'arrêtent et épinglent ;
+la suite unitaire une fois par push et les tests lourds du solveur chaque nuit (toute l'instabilité de la suite au
+push) ; des cliquets de couverture et de baseline qui disent ce qu'ils pourraient tenir ; `release-check` tel que la
+CI le lance ; un ruleset sur `main` (les gates requises, pas de force-push, pas de suppression) et des fusions par
+pull request ; alertes Dependabot actives, 233 branches fusionnées et 52 worktrees disparus. Les refactorisations
+de 4.1.4 et 4.1.5 s'appuient sur ces gates.
+
 ## Après la 4.0 (pas encore planifié)
 
 - Les passes terrain, puis ce qu'elles trouvent (D12).

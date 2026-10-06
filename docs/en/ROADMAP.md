@@ -539,6 +539,14 @@ topic at a frozen scope: 4.1.3 the gates (a ruleset on `main`, build once, the h
 core's real split, 4.1.6 the tooling a studio touches, 4.1.7 the documentation, then 4.2.0 final (a compiled
 package, npm, a host API).
 
+## v4.1.3 "Honest Gates" (shipped 6 October 2026): the CI made trustworthy
+
+Nothing in the game, everything in what guards it: workflows that read only, cancel, stop and pin; the unit suite
+once per push and the CPU-bound solver tests nightly (the push suite's whole instability); coverage and baseline
+ratchets that say what they could hold; `release-check` as CI runs it; a ruleset on `main` (the gates required, no
+force push, no deletion) and merges by pull request; Dependabot alerts on, 233 merged branches and 52 worktrees gone.
+The refactorings of 4.1.4 and 4.1.5 lean on these gates.
+
 ## After 4.0 (not planned yet)
 
 - The field passes, then what they find (D12).

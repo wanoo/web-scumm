@@ -17,6 +17,12 @@ single day with an AI assistant.
 
 ![The Pantry Key: Grandma's house, nine verbs, the bag](docs/img/v36-hero.webp)
 
+**New in v4.1.3 "Honest Gates":** nothing in the game, everything in what guards it. The workflows read only, cancel
+what a newer push supersedes, stop after a deadline, run on a named image and pin every action to a commit; the unit
+suite runs once per push and the CPU-bound solver tests run every night; a tool names a coverage floor the tests
+left behind, the frozen baseline says what a rewrite moves; `release-check` runs what CI runs; `main` is protected by
+a ruleset and merges by pull request ([CHANGELOG](CHANGELOG.md)).
+
 **New in v4.1.2 "Reliable Bridge":** the Reality Bridge after an outside review of 4.1.1, checked against the code:
 proposals are taken one at a time per player (no shared sequence, one acceptance per `dedupeKey`); a save is bound
 to its player, and one under another link is neither changed nor acknowledged; a rotation signs what waits again
@@ -85,7 +91,7 @@ Market".
 | A game made on the previous release, upgraded, its save played to the end on 4.0 | a CI job on every push (`npm run upgrade-check`) |
 | "The Lighthouse", the independent game: 5 places, English and French | `release --commercial` green: proof over 85 states, 202 texts per language, 62 locked files |
 | The public API | 92 names in 4 entries, 23 Studio/MCP tools, held by `tests/api-surface.test.ts` |
-| Saves | one per release from 3.0.0 to 4.1.2 loads and reaches the ending |
+| Saves | one per release from 3.0.0 to 4.1.3 loads and reaches the ending |
 | The player's first visit | 122 KB of JavaScript, gzipped (153 in 3.7.0), held by `initialJsKB` |
 | The archive | every file accounted for: code, locked assets, fonts, icons, `licenses/` |
 | The nightly corpus | 1 503 random games in four shards, 910 compared to the explicit search, 0 divergences |
@@ -150,7 +156,7 @@ Needs Node 22+, Python 3 for the art tools (`pip install -r requirements.txt`) a
 publishing to come, then `npx create-web-scumm my-game`):
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.2/web-scumm-4.1.2.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.3/web-scumm-4.1.3.tgz
 npx --package=$T web-scumm create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # then npm run verify, npm run build, npm run release
@@ -233,9 +239,9 @@ Every page also exists in French under `docs/fr/`. `docs/dev/` holds the log of 
 
 ## Releases
 
-Current release: [v4.1.2 "Reliable Bridge"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.2): the Reality Bridge
-made reliable after an outside review (proposals atomic, a save bound to its player, rotation that strands nobody, a
-bounded surface, a proved fallback, mutation and properties on what a signal rests on), on 4.1.1's Reality Bridge. The
+Current release: [v4.1.3 "Honest Gates"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.3): the CI made
+trustworthy before the refactorings (read-only workflows pinned to commits, the unit suite once per push, the heavy
+solver tests nightly, coverage and baseline ratchets, a ruleset on `main`), on 4.1.2's reliable Bridge. The
 story from v1.3 to v4.1 is in the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map

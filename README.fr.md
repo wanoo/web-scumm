@@ -17,6 +17,13 @@ vérifie, le prouve et le publie en jeu web jouable hors ligne. Il est né comme
 
 ![The Pantry Key : la maison de Grand-mère, neuf verbes, le sac](docs/img/v36-hero.webp)
 
+**Nouveau en v4.1.3 « Gates honnêtes » :** rien dans le jeu, tout dans ce qui le garde. Les workflows lisent
+seulement, annulent ce qu'un push plus récent remplace, s'arrêtent après un délai, tournent sur une image nommée et
+épinglent chaque action sur un commit ; la suite unitaire tourne une fois par push et les tests lourds du solveur
+chaque nuit ; un outil nomme un plancher de couverture que les tests ont dépassé, la baseline figée dit ce qu'une
+réécriture déplace ; `release-check` lance ce que la CI lance ; `main` est protégée par un ruleset et fusionne par
+pull request ([CHANGELOG](CHANGELOG.md)).
+
 **Nouveau en v4.1.2 « Bridge fiable » :** le Reality Bridge après une revue extérieure de la 4.1.1, vérifiée contre le
 code : les propositions sont prises une par une par joueur (pas de séquence partagée, une acceptation par
 `dedupeKey`) ; une sauvegarde est liée à son joueur, et sous un autre lien elle n'est ni changée ni acquittée ; une
@@ -89,7 +96,7 @@ et un deuxième jeu, « Le Marché de nuit ».
 | Un jeu fait sur la release précédente, mis à jour, sa sauvegarde jouée jusqu'à la fin en 4.0 | un job de CI à chaque push (`npm run upgrade-check`) |
 | « Le Phare », le jeu indépendant : 5 lieux, anglais et français | `release --commercial` vert : preuve sur 85 états, 202 textes par langue, 62 fichiers verrouillés |
 | L'API publique | 92 noms dans 4 entrées, 23 outils Studio/MCP, tenus par `tests/api-surface.test.ts` |
-| Les sauvegardes | une par release de la 3.0.0 à la 4.1.2 se charge et atteint la fin |
+| Les sauvegardes | une par release de la 3.0.0 à la 4.1.3 se charge et atteint la fin |
 | La première visite du joueur | 122 Ko de JavaScript compressé (153 en 3.7.0), tenus par `initialJsKB` |
 | L'archive | chaque fichier justifié : code, assets verrouillés, polices, icônes, `licenses/` |
 | Le corpus de nuit | 1 503 jeux aléatoires en quatre tranches, 910 comparés à la recherche explicite, 0 divergence |
@@ -155,7 +162,7 @@ Il faut Node 22+, Python 3 pour les outils d'image (`pip install -r requirements
 (la publication sur npm viendra, puis `npx create-web-scumm mon-jeu`) :
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.2/web-scumm-4.1.2.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.3/web-scumm-4.1.3.tgz
 npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # puis npm run verify, npm run build, npm run release
@@ -242,11 +249,10 @@ assistant.
 
 ## Releases
 
-Release actuelle : [v4.1.2 « Bridge fiable »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.2) : le Reality Bridge
-rendu fiable après une revue extérieure (propositions atomiques, sauvegarde liée à son joueur, rotation qui ne bloque
-personne, surface bornée, fallback prouvé, mutation et propriétés sur ce dont un signal dépend) ; en 4.1.1, un jeu réagit
-au monde extérieur par un ensemble fini de signaux signés (`docs/fr/REALITY.md`), sur le code clarifié de la 4.1.0.
-L'histoire de la v1.3 à la v4.1 est dans la
+Release actuelle : [v4.1.3 « Gates honnêtes »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.3) : la CI rendue
+fiable avant les refactorisations (workflows en lecture seule épinglés sur des commits, la suite unitaire une fois par
+push, les tests lourds du solveur en nightly, cliquets de couverture et de baseline, un ruleset sur `main`), sur le
+Bridge fiable de la 4.1.2. L'histoire de la v1.3 à la v4.1 est dans la
 [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt
