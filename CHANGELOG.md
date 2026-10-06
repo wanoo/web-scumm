@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- **CI without silly timeouts** (4.1.7). Every install step of the workflows (Playwright's browsers, pip, apt,
+  `npm ci`) is retried three times and held to 8 minutes: a download that hangs no longer keeps a job for its
+  45-minute limit (a `playwright install` did, on 6 October, for 45 minutes).
+
 ## 4.1.5 — 2026-10-06
 
 "Real Core" (LOG #101): the plan's fourth release; the split that 4.1.0 announced, done behind the baseline, one
