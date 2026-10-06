@@ -137,7 +137,13 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      # The same prerequisites as `check`: the unit suite runs the art tools and probes the stems (tests/tooling.test.ts).
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
       - run: npm ci
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - run: npm run quality
       - run: npm run test:node
   # A second game, as `npm run new-game` makes it: every gate the sample game passes (check, verify:game, prove:game,
