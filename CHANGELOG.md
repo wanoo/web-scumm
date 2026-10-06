@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+### Fixed
+
+- **A signal handed over and not acknowledged was lost to its connection** (P0 of 4.1.8, reproduced by the
+  maintainer on 4.1.7 in polling). The transport asked the Bridge from the sequence it had *delivered*, so after
+  signal 1 was handed to the game the next request said `after=1` whether or not the game had applied and saved
+  it; a transient refusal, a save that failed or a crash before the acknowledgement left the signal waiting on the
+  Bridge until a full reconnection. The port now keeps three cursors, received, delivered and durable, and every
+  poll or reconnection asks from the durable one (the acknowledged sequence): the signal is delivered again, with a
+  wait that grows up to a minute while nothing settles (`docs/en/REALITY.md`). The reproduction tests of #22 are
+  the fix's tests.
+
+### Changes
+
+- **The Reality transport and the Bridge, bounded** (4.1.8): the SSE parser accepts lines ending with CRLF or CR,
+  removes one space after `data:` as the specification says, and drops a stream whose event is over 64 KiB or that
+  holds over 1 MiB without an event's end (the port reopens it from the durable cursor); the Bridge's cache of
+  signals signed again after a rotation is an LRU of 10 000 (`limits.resignedCache`); every line of the journal is
+  checked whole against the events' schema (a line that is JSON but not an event is corruption); one Bridge per
+  journal (`journal.jsonl.lock` with the owner's pid; a lock left by a crash is taken over and said).
+
 ## 4.1.7 — 2026-10-06
 
 "Docs for a Studio" (LOG #103): the plan's sixth release, the last before 4.2; the documentation a studio reads

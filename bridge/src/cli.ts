@@ -224,7 +224,11 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     // Rewrites the journal without what nobody needs any more (docs/en/REALITY-OPS.md): the Bridge must be stopped,
     // as a running one appends to the file this command replaces.
     const file = read();
-    const store = new JsonlBridgeStore(resolve(dir, file.journal), { onRepair: (what) => console.log(`⚠  ${what}`) });
+    // A stopped Bridge's journal, read by a tool: no lock to take (4.1.8).
+    const store = new JsonlBridgeStore(resolve(dir, file.journal), {
+      onRepair: (what) => console.log(`⚠  ${what}`),
+      lock: false,
+    });
     const days = Number(arg(args, 'retention-days') ?? 90);
     const r = store.compact({ retentionMs: days * 24 * 3_600_000 });
     console.log(

@@ -2292,3 +2292,23 @@ Platform"; human gates reported, not blocking (D12).
   per API name; external links.
 
 → next: Claude · pull request, merge on green, tag v4.1.7; then 4.2.0 "Finale"
+
+## #106 · 2026-10-07 · Claude · proposal · `fix/418-reality-integrity`: the P0, and the transport bounded
+
+- The defect (#105's reproduction, the maintainer's on 4.1.7): `http-port.ts` kept one cursor and moved it at
+  delivery, so the next request asked from what was handed over, not from what was applied and saved. Fixed with
+  three cursors, received / delivered / durable, every request asking from the durable one; the reader's
+  acknowledgement moves it. A signal refused for a while comes back at every poll, with a wait that doubles up to a
+  minute while nothing settles; an acknowledged one never comes back. The three red cases of #22 are plain tests
+  here (`got` shows the repeat: `s1, s1`), with the backoff, the three cursors reported, and the parser's cases.
+- SSE parser: CRLF and CR line ends (a CR ending a chunk waits for the next one, flushed at the stream's end), one
+  space after `data:`, an event over `maxFrameBytes` (64 KiB) or a buffer over `maxBufferBytes` (1 MiB) ends the
+  stream, which the port reopens from the durable cursor; `Last-Event-ID` sent with the durable cursor.
+- Bridge: `resigned` is an LRU bounded by `limits.resignedCache` (10 000); every journal line is checked against
+  `BridgeEventSchema` (zod, every field; `WorldSignalV1Schema` for the payload); `JournalLock` (`<journal>.lock`
+  with the pid, a live owner refuses the second start, a dead one is taken over and said; `lock: false` for
+  `doctor` and `compact`); `JsonlBridgeStore.close()`.
+- Not done, said as such: the 88 reality survivors and the gate by input hash are the next branch
+  (`test/418-reality-mutants`), not this one; the Bridge's own backlog bound (`streamBufferBytes`) was already there.
+
+→ next: Claude · `test/418-reality-mutants` (the 88 survivors killed or named; `--set=reality` gated by `mutationInputHash`)

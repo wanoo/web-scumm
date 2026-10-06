@@ -110,8 +110,12 @@ long as players may be offline with signals to receive; then a player re-pairs.
 - `DELETE /v1/admin/players/<p-…>`: deletes it, the journal file rewritten without a line about that player (each
   line read as an event, never matched as text).
 - `web-scumm-bridge doctor`: reads the journal and says what it holds. A last line cut short by a crash is dropped
-  at the next start, and said in the log (`journal.repaired`); any other line that does not parse is corruption, and
-  the Bridge refuses to start rather than guess.
+  at the next start, and said in the log (`journal.repaired`); any other line that does not parse, or parses but is
+  not an event of the journal's shape (every field checked, 4.1.8), is corruption, and the Bridge refuses to start
+  rather than guess.
+- One Bridge per journal (4.1.8): the running Bridge holds `journal.jsonl.lock` with its process id; a second start
+  on the same file refuses while that process lives, and takes over a lock left by a crash (said in the log). Stop
+  the Bridge before `compact`.
 - `web-scumm-bridge compact [--retention-days=90]`, the Bridge stopped: rewrites the journal without the pairings
   past their time, the earlier versions of a player's line, and the signals acknowledged and older than the
   retention; a player's last signal always stays (its next sequence is counted from it), and so does everything not

@@ -1,7 +1,7 @@
 // The reference Bridge (4.1.1, bridge/src/), over real HTTP on a free port: pairing, signals proposed under a
 // Biscuit or by a signed webhook, deduplication, the fetch by cursor and SSE, acknowledgements, revocation, quotas,
 // sizes, export and deletion by player, a restart on its journal, and a log with no secret.
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -17,7 +17,13 @@ import { Bridge, type BridgeConfig, type BridgeLog } from '../bridge/src/bridge'
 import { biscuitLib } from '../bridge/src/biscuit';
 import { grantToken } from '../bridge/src/policy';
 import { bridgeServer, type ServeOptions, webhookSignature } from '../bridge/src/server';
-import { inspectJournal, JsonlBridgeStore, MemoryBridgeStore, type BridgeStore } from '../bridge/src/store';
+import {
+  inspectJournal,
+  JournalLock,
+  JsonlBridgeStore,
+  MemoryBridgeStore,
+  type BridgeStore,
+} from '../bridge/src/store';
 import { signals, signalsLayouts } from './fixtures/signals';
 import { createHash } from 'node:crypto';
 
@@ -752,5 +758,68 @@ describe('web-scumm bridge init', () => {
       rotated.eventKey.kid,
       file.eventKey.kid,
     ]);
+  });
+});
+
+describe('bounded, validated, one per journal (4.1.8)', () => {
+  it('the re-sign cache is an LRU bounded by limits.resignedCache; a delivery still signs every signal with the current key', async () => {
+    const store = new MemoryBridgeStore();
+    const before = await setup({ store });
+    const link = await before.pair();
+    await before.propose(link.playerId, 'mail.answer.correct', 'mail:1');
+    await before.propose(link.playerId, 'mail.answer.wrong', 'mail:2');
+    const after = await setup({
+      store,
+      kid: 'k2',
+      previousKeys: [{ kid: 'k1', raw: before.raw, notAfter: Date.now() - 24 * 3_600_000 }],
+      limits: { resignedCache: 1 },
+    });
+    for (let round = 0; round < 3; round++) {
+      const delivered = await after.bridge.signals(link.capability, 0);
+      expect(delivered.map((d) => JSON.parse(atob(d.jws.split('.')[0]!)).kid)).toEqual(['k2', 'k2']);
+      expect(after.bridge.resignedCount()).toBe(1);
+    }
+  });
+
+  it('a journal line that is JSON but not an event of the schema is corruption: the Bridge refuses to start', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-schema-'));
+    temps.push(dir);
+    const file = join(dir, 'journal.jsonl');
+    writeFileSync(file, `${JSON.stringify({ t: 'ack', playerId: 'p-1', through: 'two' })}\n`);
+    expect(() => new JsonlBridgeStore(file, { lock: false })).toThrow(/journal line 1 is not an event \(through/);
+    writeFileSync(file, `${JSON.stringify({ t: 'player', p: { playerId: 'p-1', gameId: 'signals' } })}\n`);
+    expect(() => new JsonlBridgeStore(file, { lock: false })).toThrow(
+      /journal line 1 is not an event \(p\.capabilityHash/,
+    );
+    writeFileSync(file, `${JSON.stringify({ t: 'ack', playerId: 'p-1', through: 2 })}\n`);
+    expect(new JsonlBridgeStore(file, { lock: false }).acked('p-1')).toBe(2);
+  });
+
+  it('one Bridge per journal: a live owner refuses the second, a dead one is taken over and said', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-lock-'));
+    temps.push(dir);
+    const journal = join(dir, 'journal.jsonl');
+    const first = new JournalLock(journal, { pid: 1234, alive: () => true });
+    first.acquire();
+    expect(readFileSync(`${journal}.lock`, 'utf8').trim()).toBe('1234');
+    const second = new JournalLock(journal, { pid: 5678, alive: () => true });
+    expect(() => second.acquire()).toThrow(/journal in use by process 1234/);
+    const taken: number[] = [];
+    const afterCrash = new JournalLock(journal, {
+      pid: 5678,
+      alive: () => false,
+      onTakeover: (pid) => taken.push(pid),
+    });
+    afterCrash.acquire();
+    expect(taken).toEqual([1234]);
+    expect(readFileSync(`${journal}.lock`, 'utf8').trim()).toBe('5678');
+    afterCrash.release();
+    expect(existsSync(`${journal}.lock`)).toBe(false);
+    // The store takes the lock itself, and `doctor` / `compact` read without one.
+    const store = new JsonlBridgeStore(journal);
+    expect(existsSync(`${journal}.lock`)).toBe(true);
+    expect(() => new JsonlBridgeStore(journal, { lock: false })).not.toThrow();
+    store.close();
+    expect(existsSync(`${journal}.lock`)).toBe(false);
   });
 });

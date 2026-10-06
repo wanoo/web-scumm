@@ -226,7 +226,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `BridgeKey` | `type { kid, key, notBefore, notAfter }` | One verification key of the Bridge: its id, the key, and when it may sign (epoch ms; rotation overlaps). |
 | `Fault` | `type { delayMs, duplicate, badSignature, expired }` |  |
 | `httpPort` | `(o: HttpPortOptions): WorldSignalPort` |  |
-| `HttpPortOptions` | `type { url, capability, fetch, retryMs, mode, onStatus }` |  |
+| `HttpPortOptions` | `type { url, capability, fetch, retryMs, mode, onStatus, … 3 more }` |  |
 | `importBridgeKey` | `(kid: string, raw: string, window?: Omit<BridgeKey, "kid" \| "key">): Promise<BridgeKey>` | An Ed25519 public key from its 32 raw bytes in base64url (a manifest's or a Bridge's configuration). |
 | `Keyring` | `type { length, toString, toLocaleString, pop, push, concat, … 29 more }` |  |
 | `manifestHash` | `(m: RealityManifest): Promise<string>` | The manifest's hash: SHA-256 of its JSON (keys in this fixed order), hex. |

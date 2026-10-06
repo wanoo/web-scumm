@@ -115,8 +115,12 @@ tant que des joueurs peuvent être hors ligne avec des signaux à recevoir ; ens
 - `DELETE /v1/admin/players/<p-…>` : le supprime, le fichier du journal réécrit sans aucune ligne sur ce joueur
   (chaque ligne lue comme un événement, jamais comparée comme du texte).
 - `web-scumm-bridge doctor` : lit le journal et dit ce qu'il contient. Une dernière ligne coupée par un plantage est
-  abandonnée au démarrage suivant, et dite dans le log (`journal.repaired`) ; toute autre ligne illisible est une
-  corruption, et le Bridge refuse de démarrer plutôt que de deviner.
+  retirée au démarrage suivant, et dite dans le log (`journal.repaired`) ; toute autre ligne qui ne se lit pas, ou
+  qui se lit mais n'est pas un événement de la forme du journal (chaque champ vérifié, 4.1.8), est une corruption,
+  et le Bridge refuse de démarrer plutôt que de deviner.
+- Un Bridge par journal (4.1.8) : le Bridge en marche tient `journal.jsonl.lock` avec l'identifiant de son
+  processus ; un second démarrage sur le même fichier refuse tant que ce processus vit, et reprend un verrou laissé
+  par un plantage (dit dans le log). Arrêtez le Bridge avant `compact`.
 - `web-scumm-bridge compact [--retention-days=90]`, Bridge arrêté : réécrit le journal sans les appairages
   périmés, les versions antérieures de la ligne d'un joueur, et les signaux acquittés plus vieux que la rétention ;
   le dernier signal d'un joueur reste toujours (sa prochaine séquence se compte depuis lui), ainsi que tout ce qui
