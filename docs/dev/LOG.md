@@ -2242,6 +2242,11 @@ Platform"; human gates reported, not blocking (D12).
   line as a tap on the scene does); `npm run new-game second` of a local check had written `games/second` and
   `config.game` into the tree and the menu fix of 4.1.4 committed them, so CI played the second game (removed on
   `release/4.1.4`; that `new-game` and `dev` write tracked files is a 4.1.6 item).
+- 4.1.5's tag, twice: the first v4.1.5 was tagged on a green `main` and its release failed on `release-check`'s
+  mutation gate (the session's owner made `cur`'s `this.open.length` an equivalent mutant nobody had named; I had
+  measured only the new files, not the whole core set). The tag was deleted unreleased, the mutant named, three
+  names the code of 4.1.4 already kills removed, the whole set measured (342/345, 0 unexplained) and `main` tagged
+  again after the fix. The lint test that runs the demo's proof gets a timeout a loaded runner survives.
 - 4.1.3's chain: the first merge reached `main` before the two node-24 fixes, its CI failed and the release skipped;
   the tag was deleted without a release and the branch's tested head re-proposed by pull request (#15).
 - Not done (D12): the field passes, the reality survivors, a signed tag; and of the plan's 4.1.5 list, the `Busy`
