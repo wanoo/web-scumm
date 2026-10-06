@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Changes
+
+- **The baseline of 4.1.7, before 4.1.8 touches the toolchain.** `docs/dev/baselines/4.1.7.md` freezes what the
+  last release measured (tests, coverage, mutation, bundle and weights, proofs, build and release times, file
+  sizes), each number with its source. `tests/reality-cursor.test.ts` is the reproduction of the Reality cursor
+  defect (the transport asks the Bridge for `after=1` once signal 1 is handed over, acknowledged or not; in polling
+  and in SSE), kept red on purpose (`it.fails`) until the fix; `tests/formats.test.ts` and `tests/fixtures/formats/`
+  freeze the four formats the engine writes and reads (a session file, a save envelope, a signed world signal, a
+  solver report). `docs/dev/MIGRATION-4.1.8.md` lists what TypeScript 7, Vite 8 and vite-plugin-pwa 2 change, read
+  before any of them is touched.
+
 ## 4.1.7 — 2026-10-06
 
 "Docs for a Studio" (LOG #103): the plan's sixth release, the last before 4.2; the documentation a studio reads
