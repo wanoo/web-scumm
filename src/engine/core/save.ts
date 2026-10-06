@@ -3,6 +3,7 @@
 import * as z from 'zod/mini';
 import type { GameDef, GameState, Id } from './types';
 import { migrate } from './migrate';
+import { splitRoomKey } from './keys';
 
 const id = z.string().check(z.minLength(1));
 const num = () => z.number();
@@ -92,13 +93,13 @@ export interface SaveEnvelopeV3 {
   state: GameState;
 }
 
-export function saveEnvelope(game: GameDef, state: GameState): SaveEnvelopeV3 {
+export function saveEnvelope(game: GameDef, state: GameState, now = Date.now()): SaveEnvelopeV3 {
   return {
     format: 'web-scumm-save',
     schema: 3,
     gameId: game.id,
     gameSaveVersion: game.saveVersion,
-    savedAt: Date.now(),
+    savedAt: now,
     state: structuredClone(state),
   };
 }
@@ -178,18 +179,17 @@ export function parseSave(game: GameDef, input: unknown, opts: ParseSaveOptions 
     pruneKeys(p.hero, (id) => rooms.has(id), `state.players.${pid}.hero`);
   }
   for (const [key, propState] of Object.entries(state.props)) {
-    const cut = key.indexOf('.');
-    const r = cut > 0 ? rooms.get(key.slice(0, cut)) : undefined;
-    const p = cut > 0 ? r?.props?.[key.slice(cut + 1)] : undefined;
+    const parts = splitRoomKey(key);
+    const p = parts ? rooms.get(parts[0])?.props?.[parts[1]] : undefined;
     if (!p || !p.states || !p.states[propState]) {
       delete state.props[key];
       drop('state.props', key);
     }
   }
   for (const key of Object.keys(state.actors)) {
-    const cut = key.indexOf('.');
-    const r = cut > 0 ? rooms.get(key.slice(0, cut)) : undefined;
-    if (!r?.actors?.[key.slice(cut + 1)] && !r?.props?.[key.slice(cut + 1)]) {
+    const parts = splitRoomKey(key);
+    const r = parts ? rooms.get(parts[0]) : undefined;
+    if (!parts || (!r?.actors?.[parts[1]] && !r?.props?.[parts[1]])) {
       delete state.actors[key];
       drop('state.actors', key);
     }

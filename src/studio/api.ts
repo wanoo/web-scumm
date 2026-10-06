@@ -145,7 +145,7 @@ export const serverApi: Api = {
 };
 
 /** The backend in use (a live binding: the tabs read it at call time). Set once at start by main.ts. */
-export let api: Api = serverApi;
+export let api: Api = { ...serverApi }; // its own object: the server's one is the default, not an alias
 export function useApi(a: Api) {
   api = a;
 }

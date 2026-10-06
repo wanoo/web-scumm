@@ -250,3 +250,10 @@ Rien à changer dans un jeu ni un Bridge. Dans ce dépôt : `npm test` ne lance 
 (`npm run test:heavy` le fait, chaque nuit) ; `npm run build:game` construit un jeu sans la suite unitaire ;
 `release-check` est plus long (couverture, cross-check Rust, mutation du cœur). Les contributions à `main` passent par
 une pull request.
+
+## 16. De la 4.1.3 à la 4.1.4 « Moteur honnête »
+
+Rien à changer dans un jeu. Un hôte qui embarque le moteur ou le joueur gagne `destroy()` pour les terminer, `onError`
+pour entendre ce qui échoue, et `beforeSave` / `onLoad` là où il remplaçait `store.save` ou `engine.load` (ne le
+faites plus : les hooks se composent). Les lignes de repli, de sorte et de don peuvent utiliser `{item}`, `{target}`,
+`{name}` ; `{objet}`, `{cible}`, `{nom}` marchent toujours. Une sauvegarde 4.1.3 se charge telle quelle.

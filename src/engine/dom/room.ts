@@ -414,7 +414,7 @@ export class RoomView {
 
   destroy() {
     cancelAnimationFrame(this.raf);
-    this.r.dispose();
+    for (const d of [this.r, this.palettes]) d.dispose(); // the painter, and the blob URLs of the recoloured images
   }
 
   /**

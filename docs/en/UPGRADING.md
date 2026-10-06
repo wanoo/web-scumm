@@ -242,3 +242,10 @@ signal.
 Nothing to change in a game or a Bridge. In this repository: `npm test` no longer runs the CPU-bound solver tests
 (`npm run test:heavy` does, nightly); `npm run build:game` builds a game without the unit suite; `release-check` is
 longer (coverage, the Rust cross-check, mutation of the core). Contributions to `main` go through a pull request.
+
+## 16. From 4.1.3 to 4.1.4 "Honest Engine"
+
+Nothing to change in a game. A host that embeds the engine or the player gains `destroy()` to end them, `onError` to
+hear what fails, and `beforeSave` / `onLoad` where it used to replace `store.save` or `engine.load` (do that no
+more: the hooks compose). Fallback, kind and give lines may use `{item}`, `{target}`, `{name}`; `{objet}`,
+`{cible}`, `{nom}` still work. A 4.1.3 save loads unchanged.

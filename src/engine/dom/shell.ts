@@ -133,7 +133,7 @@ export function buildShell(app: App) {
     app.sentence();
   });
   // The keyboard plays the whole game: Space / Enter advance a line, Escape closes what is on top, then pauses.
-  document.addEventListener('keydown', (e) => app.onKey(e));
+  document.addEventListener('keydown', (e) => app.onKey(e), { signal: app.aborter.signal });
 }
 
 /** @internal Read by the modules of dom/ (4.1.0). */

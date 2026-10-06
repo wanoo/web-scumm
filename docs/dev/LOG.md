@@ -2214,3 +2214,19 @@ Platform"; human gates reported, not blocking (D12).
 - Not done (D12): the field passes, the 88 reality mutants, a signed tag.
 
 → next: Claude · merge on green CI, the ruleset, tag v4.1.3; then 4.1.4 "Moteur honnête"
+
+## #100 · 2026-10-06 · Claude · release · 4.1.4 "Honest Engine"
+
+- Two branches on 4.1.3: `fix/engine-honesty` (destroy, the error port, the clock, the hooks, dead code, knip) and
+  `fix/state-keys` (`core/keys.ts`, English placeholders, the four `once`s documented). Both green; `release/4.1.4`
+  on top. The first release merged by pull request under the ruleset.
+- Found on the way: `FakePresenter.wait` resolves at once, so a looping script with `wait` starves a test's timers
+  (the honesty tests use a presenter whose waits take time); the mini fixture has no `ui` texts (the player test takes
+  the sample game's); `knip` reads `playtests -- --require=5` as Node's own `--require` (ignored by name); Biome's
+  configuration was a version behind (`biome migrate`).
+- CI from here: the workflow runs on pull requests and on `main` and tags only, one run per push (the branch's push
+  and the pull request's run were two).
+- Not done (D12): the field passes, the 88 reality mutants, the 216 unused exports knip lists (its exports rule stays
+  off until they are judged), a signed tag.
+
+→ next: Claude · pull request, merge on green, tag v4.1.4; then 4.1.5 "Cœur réel"

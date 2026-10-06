@@ -9,6 +9,7 @@ import type { Cmd, Id, Point, RoomDef, Value } from './types';
 
 import { HERO, type Ctx } from './engine-shared';
 import type { Engine } from './engine';
+import { roomKey, seenKey } from './keys';
 
 export async function say(eng: Engine, who: Id, text: string, ctx: Ctx, shout = false, voice?: Id) {
   await eng.ui.say(eng.who(who), text, { shout, fast: ctx.fast, voice });
@@ -22,7 +23,7 @@ export function point(eng: Engine, t: Id | Point, room: RoomDef): Point {
 }
 
 export function actorKey(_eng: Engine, who: Id, room: RoomDef) {
-  return `${room.id}.${who}`;
+  return roomKey(room.id, who);
 }
 
 /** Where a thing stands, for a motion's ends: a prop's or an actor's feet, a hotspot's centre, else its approach point. */
@@ -43,6 +44,8 @@ export function spot(eng: Engine, t: Id | Point, room: RoomDef): Point {
 export async function exec(eng: Engine, cmds: Cmd[] | undefined, ctx: Ctx): Promise<void> {
   if (!cmds) return;
   for (const c of cmds) {
+    // A destroyed engine runs nothing more (4.1.4): what was waiting ends, what followed never starts.
+    if (eng.destroyed) return;
     if (eng.skipping && !ctx.fast) ctx = { ...ctx, fast: true };
     await eng.step(c, ctx);
     if (eng.state.done) return;
@@ -226,7 +229,7 @@ export async function step(eng: Engine, c: Cmd, ctx: Ctx): Promise<void> {
   }
   if ('prop' in c) {
     const [id, st] = c.prop;
-    const key = id.includes('.') ? id : `${room.id}.${id}`;
+    const key = id.includes('.') ? id : roomKey(room.id, id);
     s.props[key] = st;
     if (key.startsWith(`${s.room}.`)) eng.ui.prop(key.slice(s.room.length + 1), st);
     return;
@@ -324,7 +327,17 @@ export async function step(eng: Engine, c: Cmd, ctx: Ctx): Promise<void> {
   }
   if ('emit' in c) return eng.emit(c.emit, ctx);
   if ('waitUntil' in c) {
-    for (let guard = 0; guard < 100000 && !eng.cond(c.waitUntil, room.id); guard++) await eng.ui.wait(250, ctx.fast);
+    // Woken by the next state change (4.1.4), with the presenter's wait as a bound: a condition met is seen at once,
+    // never a quarter of a second later; the guard keeps a condition nothing can meet from waiting for ever.
+    for (let guard = 0; guard < 100000 && !eng.cond(c.waitUntil, room.id) && !eng.destroyed; guard++) {
+      let woken = () => {};
+      const change = new Promise<void>((ok) => {
+        woken = ok;
+        eng.waiters.add(ok);
+      });
+      await Promise.race([eng.ui.wait(250, ctx.fast), change]);
+      eng.waiters.delete(woken);
+    }
     return;
   }
   if ('waitEvent' in c) return; // only meaningful at the top level of a script (advance); elsewhere it is a no-op
@@ -375,7 +388,7 @@ export async function step(eng: Engine, c: Cmd, ctx: Ctx): Promise<void> {
         if (diff.length) {
           const msg = `custom "${c.custom}" changed ${diff.join(', ')} outside its declared effects`;
           eng.log('action', msg);
-          console.warn(msg);
+          eng.onError(new Error(msg), `custom ${c.custom}`);
         }
       }
     }
@@ -437,7 +450,7 @@ export async function step(eng: Engine, c: Cmd, ctx: Ctx): Promise<void> {
     return;
   }
   if ('choice' in c) {
-    const choiceKey = (o: (typeof c.choice)[number]) => `choice.${o.id ?? `${room.id}.${o.text}`}`;
+    const choiceKey = (o: (typeof c.choice)[number]) => seenKey.choice(o, room.id);
     const opts = c.choice
       .map((o, i) => ({ o, i }))
       .filter(({ o }) => {

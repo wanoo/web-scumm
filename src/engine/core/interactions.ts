@@ -7,6 +7,7 @@ import type { Action, ListLine, Id, RoomDef, Rule, VerbId } from './types';
 
 import { HERO, type Ctx, type Source } from './engine-shared';
 import type { Engine } from './engine';
+import { seenKey } from './keys';
 
 // ------------------------------------------------------------------ resolution
 /** Finds the reaction to an action and executes it. */
@@ -52,7 +53,7 @@ export async function resolve(eng: Engine, act: Action, ctx: Ctx): Promise<Sourc
       !eng.game.players?.sharedInventory
     ) {
       eng.transfer(a, b);
-      await eng.say(HERO, eng.fill(eng.game.players?.give ?? 'Here, {nom}: the {objet}.', a, b), ctx);
+      await eng.say(HERO, eng.fill(eng.game.players?.give ?? 'Here, {name}: the {item}.', a, b), ctx);
       return 'rule';
     }
     const char = room.actors?.[b]?.char;
@@ -112,13 +113,24 @@ export function findKind(
   return hit ?? null;
 }
 
+/**
+ * The placeholders of a fallback, kind or give line (4.1.4): `{item}` the thing acted on, `{target}` what it is used
+ * on (empty without one), `{name}` the target or, failing that, the item. `{objet}`, `{cible}` and `{nom}` are the
+ * same three under the names of 4.0, kept for every game written with them.
+ */
+export const PLACEHOLDERS: Record<string, 'item' | 'target' | 'name'> = {
+  item: 'item',
+  target: 'target',
+  name: 'name',
+  objet: 'item',
+  cible: 'target',
+  nom: 'name',
+};
+
 export function fill(eng: Engine, text: string, a: Id, b?: Id): string {
   const room = eng.room();
-  const target = b ?? a;
-  return text
-    .replaceAll('{objet}', eng.nameOf(a, room))
-    .replaceAll('{cible}', b ? eng.nameOf(b, room) : '')
-    .replaceAll('{nom}', eng.nameOf(target, room));
+  const value = { item: eng.nameOf(a, room), target: b ? eng.nameOf(b, room) : '', name: eng.nameOf(b ?? a, room) };
+  return text.replace(/\{(\w+)\}/g, (m, k: string) => (PLACEHOLDERS[k] ? value[PLACEHOLDERS[k]] : m));
 }
 
 /** A line's voice clip: its id, when `audio.voices` has a clip under it (the rule of `say` lines). */
@@ -168,8 +180,7 @@ export async function talkLoop(eng: Engine, actor: Id, ctx: Ctx) {
   const g = eng.game.globalTalk ?? {};
   for (;;) {
     const topics = (room.talk?.[actor] ?? []).map((t, i) => ({ t, i })).filter(({ t }) => eng.cond(t.if, room.id));
-    const topicKey = (t: (typeof topics)[number]['t'], i: number) =>
-      t.id ? `topic.${t.id}` : `${room.id}.${actor}.${i}`;
+    const topicKey = (t: (typeof topics)[number]['t'], i: number) => seenKey.topic(t, room.id, actor, i);
     const opts = topics.map(({ i, t }) => ({ text: t.topic, seen: !!eng.state.seen[topicKey(t, i)] }));
     if (g.hug) opts.push({ text: g.hug, seen: false, global: true } as never);
     opts.push({ text: g.bye ?? '…', seen: false, global: true } as never);

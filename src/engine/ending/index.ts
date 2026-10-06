@@ -24,8 +24,7 @@ export interface EndingHost {
   credits(): void;
 }
 
-const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]!);
+import { esc, sleep } from '../dom/app-shared';
 
 export class Ending {
   private payload: EndingPayload | null = null;

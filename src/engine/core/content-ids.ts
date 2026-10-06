@@ -4,6 +4,7 @@ import { listPathSeg, listText } from './list-lines';
 import type { Choice, Cmd, EventRule, GameDef, Id, ListLine, Rule, ScriptDef, TalkTopic } from './types';
 import { assignKeys } from './define';
 import { must } from './must';
+import { seenKey } from './keys';
 
 // ------------------------------------------------------------------ action ids (engine `ran`, puzzle graph, solver)
 
@@ -217,7 +218,7 @@ export function assignIds(source: GameDef, options: AssignOptions = {}): Assigne
           const oldSeg = `${was}${choicePathSeg(j, oldChoice?.[j] ?? { text: opt.text, do: [] })}`;
           if (!opt.id) {
             opt.id = give(choiceIdFor(owner, opt));
-            if (room) map.seen[`choice.${room}.${opt.text}`] = `choice.${opt.id}`;
+            if (room) map.seen[seenKey.choice({ text: opt.text }, room)] = seenKey.choiceOf(opt.id);
           }
           map.paths[oldSeg] = `${here}${choicePathSeg(j, opt)}`;
           walk(opt.do, oldChoice?.[j]?.do, opt.id!, `${oldSeg}.do`, `${here}${choicePathSeg(j, opt)}.do`, room);
@@ -276,7 +277,7 @@ export function assignIds(source: GameDef, options: AssignOptions = {}): Assigne
     list?.forEach((ev, i) => {
       if (!ev.id) {
         ev.id = give(listenerIdFor(scope, ev));
-        map.seen[`event.${scope}.${i}`] = `event.${ev.id}`;
+        map.seen[seenKey.event({}, scope, i)] = seenKey.eventOf(ev.id);
         map.labels[`listener:${scope}/events[${i}]`] = `listener:${ev.id}`;
       }
       const oldSeg = `${pathBase}${eventPathSeg(i, oldList?.[i] ?? ev)}`;
@@ -308,7 +309,7 @@ export function assignIds(source: GameDef, options: AssignOptions = {}): Assigne
       topics.forEach((t, i) => {
         if (!t.id) {
           t.id = give(topicIdFor(r.id, actor, t));
-          map.seen[`${r.id}.${actor}.${i}`] = `topic.${t.id}`;
+          map.seen[seenKey.topic({}, r.id, actor, i)] = seenKey.topicOf(t.id);
           map.labels[`topic:${r.id}/${actor}[${i}]`] = `topic:${t.id}`;
         }
         const oldSeg = `${P}${topicPathSeg(actor, i, o.talk?.[actor]?.[i] ?? t)}`;

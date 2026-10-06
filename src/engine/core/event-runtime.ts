@@ -5,6 +5,7 @@ import type { EventRule, Id } from './types';
 
 import { type Ctx } from './engine-shared';
 import type { Engine } from './engine';
+import { seenKey } from './keys';
 
 /** Fires an event: moves the scripts waiting for it, then runs the listeners of the room, then of the game. */
 export async function emit(eng: Engine, id: Id, ctx: Ctx) {
@@ -27,7 +28,7 @@ export async function emit(eng: Engine, id: Id, ctx: Ctx) {
     for (const [i, ev] of list.entries()) {
       if (ev.on !== id || !eng.cond(ev.if, ctx.room.id)) continue;
       if (ev.once) {
-        const k = `event.${ev.id ?? `${scope}.${i}`}`;
+        const k = seenKey.event(ev, scope, i);
         eng.reads?.add(`seen:${k}`);
         if (s.seen[k]) continue;
         s.seen[k] = 1;

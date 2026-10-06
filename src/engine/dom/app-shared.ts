@@ -18,7 +18,8 @@ export const NEAR_MISS = 24;
 export const DOUBLE_TAP_MS = 400;
 
 /** A frame counter fixed in the top-left corner: frames in the last second, and the lowest second since it started. */
-export function fpsMeter() {
+/** Returns what stops it (4.1.4): the frame loop ended, the box removed. */
+export function fpsMeter(): () => void {
   const box = document.createElement('div');
   box.className = 'fps-meter';
   box.setAttribute('aria-hidden', 'true');
@@ -37,6 +38,7 @@ export function fpsMeter() {
   let frames = 0,
     low = Infinity,
     t0 = performance.now();
+  let raf = 0;
   const tick = (t: number) => {
     frames++;
     if (t - t0 >= 1000) {
@@ -46,9 +48,13 @@ export function fpsMeter() {
       frames = 0;
       t0 = t;
     }
-    requestAnimationFrame(tick);
+    raf = requestAnimationFrame(tick);
   };
-  requestAnimationFrame(tick);
+  raf = requestAnimationFrame(tick);
+  return () => {
+    cancelAnimationFrame(raf);
+    box.remove();
+  };
 }
 
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -65,4 +71,6 @@ export interface RealityLinkLike {
   status: string;
   statusText(): string;
   menu(m: HTMLElement, back: () => void): void;
+  /** Ends the link's client and releases its lock without forgetting the link (`App.destroy`, 4.1.4). */
+  stop?(): Promise<void>;
 }

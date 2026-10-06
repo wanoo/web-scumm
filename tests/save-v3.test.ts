@@ -82,6 +82,7 @@ describe('golden saves', () => {
     '4.1.1',
     '4.1.2',
     '4.1.3',
+    '4.1.4',
   ])('a save made by the demo at %s loads on this engine and still reaches the ending', async (version) => {
     const { readFileSync } = await import('node:fs');
     const { replay } = await import('@engine/tools/replay');

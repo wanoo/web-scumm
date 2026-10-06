@@ -6,6 +6,7 @@
 // Part of the Engine (4.1.1): its method `receive` forwards here.
 import type { Engine } from './engine';
 import type { ExternalEntry, RealityState, SessionEntry } from './types';
+import { seenKey } from './keys';
 
 /** How many ids may wait above the cursor (deliveries out of order): beyond, a delivery is refused, never dropped silently. */
 export const MAX_PENDING = 1024;
@@ -46,7 +47,7 @@ export async function receive(eng: Engine, x: ExternalEntry): Promise<ReceiveRes
       compact(st);
       eng.writes?.add('reality');
       if (x.skipped || !def) return;
-      const once = `reality.${x.signal}`;
+      const once = seenKey.reality(x.signal);
       if (def.once !== false) {
         eng.reads?.add(`seen:${once}`);
         if (eng.state.seen[once]) return;

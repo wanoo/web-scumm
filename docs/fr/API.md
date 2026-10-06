@@ -74,7 +74,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 
 | Nom | Quoi |
 |---|---|
-| `Engine` | le moteur sans page (ses membres marqués `@internal` sont lus par les modules de `core/` depuis la 4.1.0 : hors contrat) |
+| `Engine` | le moteur sans page (ses membres marqués `@internal` sont lus par les modules de `core/` depuis la 4.1.0 : hors contrat). Depuis la 4.1.4 : `destroy()` le termine (boucles arrêtées, attentes libérées, plus aucun rappel) ; `onError(error, where)` entend un script qui a levé (arrêté, `scripts[id].off`) ou une commande custom qui a changé plus qu'elle ne déclarait ; `beforeSave(state)` façonne ce que le store écrit, `onLoad.before/after` encadrent un chargement ; `clock` est le seul temps qu'il connaît (`started`, la trace, la date d'une session) |
 | `FakePresenter` · `MemoryStore` | une interface qui répond par script, un stockage de sauvegarde en mémoire |
 | `solve` · `SolveOptions` · `SolveResult` | le solveur : un chemin vers la fin, les blocages avec `prove` |
 | `parseSave` · `saveEnvelope` · `SaveEnvelopeV3` | l'enveloppe d'une sauvegarde : l'écrire, la relire (migrations appliquées) |

@@ -23,7 +23,8 @@ contenu, celui de la sauvegarde, l'entrée de session d'un signal, l'argument `r
 serait une mineure. La lignée 4.1.x est celle où le projet reste jusqu'à la 4.2, la version finale. Chaque ajout est
 optionnel, et rien de la 4.1.0 ne change. La 4.1.2 ajoute de la même façon (des champs optionnels sur
 `RealityClientOptions`, `ExternalEntry` et les routes du Bridge, un résultat `mismatch`, un code de lint, deux commandes
-du Bridge) : la même exception, rien de la 4.1.1 ne change.
+du Bridge) : la même exception, rien de la 4.1.1 ne change. La 4.1.4 ajoute `destroy`, `onError`, `beforeSave` et
+`onLoad` sur `Engine`, et `destroy` sur `App` : la même encore.
 
 Suivies : la dernière mineure de la majeure en cours reçoit les correctifs ; la mineure précédente reçoit les
 correctifs de sécurité trois mois après la sortie de la suivante. La lignée 3.x s'est terminée avec la 3.9 ; ses jeux

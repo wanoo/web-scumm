@@ -63,19 +63,20 @@ export function pauseMenu(app: App) {
   m.setAttribute('role', 'dialog');
   m.setAttribute('aria-modal', 'true');
   m.setAttribute('aria-label', ui.pause);
-  const remove = d.remove.bind(d);
-  d.remove = () => {
-    release();
-    remove();
+  // What closing the menu undoes (4.1.4): the focus trap, the listeners the rows below add, then the focus given back.
+  const cleanups: (() => void)[] = [];
+  const close = () => {
+    for (const c of cleanups.splice(0)) c();
+    d.remove();
     previousFocus?.focus();
   };
-  const release = trapFocus(m, { onEscape: () => d.remove(), restore: false });
+  cleanups.push(trapFocus(m, { onEscape: close, restore: false }));
   const row = (t: string, v: string, cls = '') => {
     const b = el('button', cls, `<span>${esc(t)}</span><span>${esc(v)}</span>`);
     m.append(b);
     return b;
   };
-  row(ui.resume, '▶').onclick = () => d.remove();
+  row(ui.resume, '▶').onclick = () => close();
   const mu = row(ui.music, app.audio.musicOn ? ui.on : ui.off);
   mu.onclick = () => {
     app.audio.setMusic(!app.audio.musicOn);
@@ -95,11 +96,7 @@ export function pauseMenu(app: App) {
     const stop = app.onOffline((s) => {
       off.lastElementChild!.textContent = offlineText(s, labels);
     });
-    const prevRemove = d.remove;
-    d.remove = () => {
-      stop();
-      prevRemove();
-    };
+    cleanups.push(stop);
     off.onclick = () => {
       if (app.offlineStatus.state === 'partial' || app.offlineStatus.state === 'skipped') void app.warmAll(true);
     };
@@ -110,19 +107,19 @@ export function pauseMenu(app: App) {
     row(app.t('load'), '📂').onclick = () => void app.slotMenu(d, m, 'load', slots);
   }
   const link = app.reality;
-  if (link) row(link.statusText(), '⇄').onclick = () => link.menu(m, () => d.remove());
+  if (link) row(link.statusText(), '⇄').onclick = () => link.menu(m, () => close());
   if (app.game.settings) row(app.t('settings'), '⚙').onclick = () => app.settingsMenu(d, m);
   row(ui.credits, '★').onclick = () => {
-    d.remove();
+    close();
     app.credits();
   };
   row(ui.restart, '!', 'warn').onclick = () => {
     m.innerHTML = `<h3>!</h3><p>${esc(ui.confirmErase)}</p>`;
     const y = el('button', 'warn', `<span>${esc(ui.yes)}</span><span>!</span>`),
       n = el('button', '', `<span>${esc(ui.no)}</span><span>▶</span>`);
-    n.onclick = () => d.remove();
+    n.onclick = () => close();
     y.onclick = () => {
-      d.remove();
+      close();
       void app.restart();
     };
     m.append(y, n);

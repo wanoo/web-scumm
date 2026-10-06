@@ -2,6 +2,7 @@
 // save reaches the game's `saveVersion`. Pure: returns the migrated copy, or null when a step is missing (the engine
 // then starts a new game, as it always did for a save of another version).
 import type { GameDef, GameState, Migration } from './types';
+import { roomKey, splitRoomKey } from './keys';
 
 function renameKeys<T>(o: Record<string, T>, map: Record<string, string> | undefined): Record<string, T> {
   if (!map) return o;
@@ -25,10 +26,8 @@ export function applyMigration(s: GameState, m: Migration): GameState {
     const prefix = (o: Record<string, unknown>) =>
       Object.fromEntries(
         Object.entries(o).map(([k, v]) => {
-          const i = k.indexOf('.');
-          if (i < 0) return [k, v];
-          const r = k.slice(0, i);
-          return [`${m.renameRoom![r] ?? r}${k.slice(i)}`, v];
+          const parts = splitRoomKey(k);
+          return parts ? [roomKey(m.renameRoom![parts[0]] ?? parts[0], parts[1]), v] : [k, v];
         }),
       );
     s.props = prefix(s.props) as GameState['props'];

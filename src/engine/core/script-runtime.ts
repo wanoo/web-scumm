@@ -132,12 +132,15 @@ export function startScripts(eng: Engine, session: boolean) {
 export async function loop(eng: Engine, id: Id, global: boolean, gen: number) {
   eng.loops.add(id);
   try {
-    while (eng.state && !eng.state.done && gen === (global ? eng.sessionGen : eng.roomGen)) {
+    while (eng.state && !eng.state.done && !eng.destroyed && gen === (global ? eng.sessionGen : eng.roomGen)) {
       let r: Awaited<ReturnType<Engine['advance']>>;
       try {
         r = await eng.advance(id);
       } catch (e) {
-        console.error(`script ${id}:`, e);
+        // A script that throws is stopped, and the save says so (`off`): it does not look alive while it is dead.
+        const st = eng.state.scripts?.[id];
+        if (st) st.off = true;
+        eng.onError(e, `script ${id}`);
         return;
       }
       if (r === 'done' || r === 'off') return;
