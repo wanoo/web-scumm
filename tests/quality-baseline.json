@@ -264,11 +264,11 @@
   }
  },
  "surface": {
-  "api": "42dbfd40b6e99fe7"
+  "api": "cbff48b56ac07ceb"
  },
  "tests": {
-  "files": 75,
-  "declarations": 460
+  "files": 83,
+  "declarations": 519
  },
  "bundle": {
   "initialJsKB": 122
