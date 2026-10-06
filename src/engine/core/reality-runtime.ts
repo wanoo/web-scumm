@@ -10,7 +10,8 @@ import type { ExternalEntry, RealityState, SessionEntry } from './types';
 /** How many ids may wait above the cursor (deliveries out of order): beyond, a delivery is refused, never dropped silently. */
 export const MAX_PENDING = 1024;
 
-export type ReceiveResult = 'applied' | 'duplicate' | 'busy' | 'unknown' | 'overflow';
+/** `mismatch` (4.1.2): the save is bound to another player than the delivery's; nothing applied, nothing to acknowledge. */
+export type ReceiveResult = 'applied' | 'duplicate' | 'busy' | 'unknown' | 'overflow' | 'mismatch';
 
 /** Moves the cursor over the sequences now contiguous, and forgets their ids. */
 export function compact(st: RealityState): void {
@@ -29,6 +30,9 @@ export const seenBefore = (st: RealityState | undefined, x: Pick<ExternalEntry, 
 export async function receive(eng: Engine, x: ExternalEntry): Promise<ReceiveResult> {
   const def = eng.game.reality?.signals.find((s) => s.id === x.signal);
   if (!def && !x.skipped) return 'unknown';
+  // Before the duplicate test: another player's sequence 1 is not "already applied", it is not this save's stream.
+  const bound = eng.state.reality?.playerId;
+  if (x.playerId && bound && bound !== x.playerId) return 'mismatch';
   if (seenBefore(eng.state.reality, x)) return 'duplicate';
   if (eng.busy) return 'busy';
   const st: RealityState = (eng.state.reality ??= { cursor: 0, applied: {} });
@@ -37,6 +41,7 @@ export async function receive(eng: Engine, x: ExternalEntry): Promise<ReceiveRes
   eng.begin(entry);
   try {
     await eng.run(async () => {
+      if (x.playerId && !st.playerId) st.playerId = x.playerId;
       st.applied[x.id] = x.sequence;
       compact(st);
       eng.writes?.add('reality');

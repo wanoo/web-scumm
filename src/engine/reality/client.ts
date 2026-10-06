@@ -20,6 +20,11 @@ export interface RealityClientOptions {
   /** A refusal, for the status line and the diagnostics (never the payload). */
   onRefused?: (code: RefusalCode, reason: string) => void;
   onApplied?: (x: ExternalEntry) => void;
+  /**
+   * The game in progress is bound to another player than this link (a save imported from elsewhere, a save from
+   * before an unlink): the client stops, applies nothing and acknowledges nothing. `saved` is the save's player.
+   */
+  onMismatch?: (saved: string) => void;
 }
 
 /** Refusals of a signal the Bridge did sign that will never become valid: recorded as skipped, so the cursor moves on. */
@@ -42,9 +47,22 @@ export class RealityClient {
     while (!this.o.engine.state && !this.stopped) await new Promise((ok) => setTimeout(ok, this.o.retryMs ?? 250));
   }
 
+  /**
+   * Whether the game in progress belongs to another player than this link. Checked before any acknowledgement and
+   * before any signal is handed to the engine: a loaded save names its player (`GameState.reality.playerId`), and
+   * acknowledging its cursor for someone else would settle signals that save never applied.
+   */
+  private mismatch(): boolean {
+    const bound = this.o.engine.state.reality?.playerId;
+    if (!bound || bound === this.o.playerId) return false;
+    this.o.onMismatch?.(bound);
+    return true;
+  }
+
   async run(): Promise<void> {
     await this.ready();
     if (this.stopped) return;
+    if (this.mismatch()) return;
     const after = this.o.engine.state.reality?.cursor ?? 0;
     // What the loaded game holds was saved: acknowledge it first. A crash after a save and before its acknowledgement
     // leaves the Bridge waiting, and connecting after the cursor would never deliver that signal again to settle it.
@@ -79,6 +97,7 @@ export class RealityClient {
         signal: s.signal,
         source: s.source,
         receivedAt: s.receivedAt,
+        playerId: this.o.playerId,
         ...(s.evidenceHash ? { evidenceHash: s.evidenceHash } : {}),
       };
     } else {
@@ -94,6 +113,7 @@ export class RealityClient {
         signal: payload.signal,
         source: payload.source,
         receivedAt: payload.receivedAt,
+        playerId: this.o.playerId,
         skipped,
       };
     }
@@ -102,9 +122,16 @@ export class RealityClient {
       await new Promise((ok) => setTimeout(ok, this.o.retryMs ?? 250));
       r = await this.o.engine.receive(entry);
     }
+    if (r === 'mismatch') {
+      // Another save was loaded under this link meanwhile: nothing applied, nothing acknowledged, the link stops.
+      this.mismatch();
+      await this.stop();
+      return 'refused';
+    }
     if (r === 'unknown' || r === 'overflow' || r === 'busy') return 'refused';
     // Durable before acknowledged: a crash between the two makes the Bridge deliver it again, and it is a duplicate.
     await this.o.store.whenIdle?.();
+    if (this.mismatch()) return 'refused';
     const through = this.o.engine.state.reality?.cursor ?? 0;
     if (through > 0) await this.o.port.acknowledge({ playerId: this.o.playerId, through });
     if (r === 'applied') this.o.onApplied?.(entry);

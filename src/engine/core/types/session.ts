@@ -62,6 +62,12 @@ export interface ExternalEntry {
   signal: Id;
   source: string;
   receivedAt: number;
+  /**
+   * The pseudonymous player the Bridge delivered it to (`p-…`, 4.1.2). The first delivery binds the save to it
+   * (`GameState.reality.playerId`); a delivery for another player is refused as `mismatch`, so a save imported on a
+   * device linked to someone else is neither changed nor acknowledged. Absent in the solver's worlds.
+   */
+  playerId?: string;
   evidenceHash?: string;
   /**
    * Signed by the Bridge but refused for good (expired, a signal the game no longer declares): recorded so the

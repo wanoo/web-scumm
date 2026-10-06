@@ -71,15 +71,23 @@ et accuser réception des signaux de ce jeu, sous `<jeu>:reality-link` dans le l
 sauvegarde ni une session. Une nouvelle partie sur le même appareil garde le lien.
 
 Les textes de l'interface sont `realityLink`, `realityStart`, `realityCode`, `realityWaiting`, `realityOpen`,
-`realityOffline`, `realityRevoked`, `realityNone`, `realitySimulated`, `realityUnlink` dans le `ui` du jeu
-(valeurs anglaises par défaut dans `src/engine/dom/reality-ui.ts`).
+`realityOffline`, `realityRevoked`, `realityNone`, `realitySimulated`, `realityUnlink`, `realityMismatch`,
+`realityRelink` dans le `ui` du jeu (valeurs anglaises par défaut dans `src/engine/dom/reality-ui.ts`).
 
 ## Ce que la session et la sauvegarde gardent
 
-Un signal est une entrée de la session (`{ external: { id, sequence, signal, source, receivedAt } }`) :
+Un signal est une entrée de la session (`{ external: { id, sequence, signal, source, receivedAt, playerId } }`) :
 `npm run replay` l'applique hors ligne, sans Bridge. La sauvegarde garde la dernière séquence reçue sans trou et les
 ids au-delà (`GameState.reality`) : un signal livré de nouveau (le Bridge livre au moins une fois) est reconnu et pas
 appliqué deux fois.
+
+Le premier signal lie la sauvegarde à son joueur pseudonyme (`GameState.reality.playerId`, le `p-…` donné par le
+Bridge à la liaison ; jamais la capacité). Une sauvegarde qui arrive sur un appareil lié comme quelqu'un d'autre
+(importée d'un autre appareil, ou faite avant un « Délier » puis une nouvelle liaison) est une **discordance**
+(`mismatch`) : rien n'en est appliqué ni acquitté, la partie continue, et le « Lien au monde » du menu pause propose
+d'utiliser le lien de cet appareil avec cette sauvegarde ; son état de lien repart alors pour ce joueur (curseur 0),
+et les signaux dont la sauvegarde a déjà l'effet ne sont pas appliqués de nouveau. Les mondes du solveur ne nomment
+aucun joueur : ils ne lient rien.
 
 ## L'API
 

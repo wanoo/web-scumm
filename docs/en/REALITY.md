@@ -69,15 +69,22 @@ acknowledge this game's signals, under `<game>:reality-link` in localStorage. Th
 a session. A new game on the same device keeps the link.
 
 The interface texts are `realityLink`, `realityStart`, `realityCode`, `realityWaiting`, `realityOpen`,
-`realityOffline`, `realityRevoked`, `realityNone`, `realitySimulated`, `realityUnlink` in the game's `ui`
-(English defaults in `src/engine/dom/reality-ui.ts`).
+`realityOffline`, `realityRevoked`, `realityNone`, `realitySimulated`, `realityUnlink`, `realityMismatch`,
+`realityRelink` in the game's `ui` (English defaults in `src/engine/dom/reality-ui.ts`).
 
 ## What the session and the save hold
 
-A signal is an entry of the session (`{ external: { id, sequence, signal, source, receivedAt } }`): `npm run replay`
-applies it offline, with no Bridge. The save keeps the last sequence received without a gap and the ids above it
-(`GameState.reality`), so a signal delivered again (the Bridge delivers at least once) is recognised and not applied
-twice.
+A signal is an entry of the session (`{ external: { id, sequence, signal, source, receivedAt, playerId } }`):
+`npm run replay` applies it offline, with no Bridge. The save keeps the last sequence received without a gap and the
+ids above it (`GameState.reality`), so a signal delivered again (the Bridge delivers at least once) is recognised and
+not applied twice.
+
+The first signal binds the save to its pseudonymous player (`GameState.reality.playerId`, the `p-…` the Bridge gave
+at pairing; never the capability). A save that reaches a device linked as someone else (imported from another
+device, or saved before an unlink and a new pairing) is a **mismatch**: nothing of it is applied or acknowledged,
+the game plays on, and the pause menu's "World link" offers to use this device's link with that save; its link
+state then starts over for this player (cursor 0), and the signals whose effect the save already has are not
+applied again. The solver's worlds name no player, so they bind nothing.
 
 ## The API
 

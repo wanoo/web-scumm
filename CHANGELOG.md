@@ -11,6 +11,14 @@
   run under a lock per player (`bridge/src/lock.ts`), where the player and the token are checked again: a proposal
   that overlaps a revocation is refused. A pairing code confirmed twice at once is confirmed once (409 for the other).
   Found by an outside review of 4.1.1 (the first of its four P0s), reproduced in `tests/bridge.test.ts`.
+- **A save is bound to its player.** In 4.1.1 the client acknowledged a loaded save's cursor with whatever link the
+  device held, so a save imported from another device (or saved before an unlink and a new pairing) could
+  acknowledge, for the new player, signals that save never applied, or loop on a refused acknowledgement. The first
+  signal now writes the Bridge's pseudonymous player id into the save (`GameState.reality.playerId`, the field 4.1.1
+  declared and never filled; a session entry carries it too, so a replay is exact); a signal for another player is
+  `mismatch`: nothing applied, nothing acknowledged, the link idles with that status and the pause menu offers to
+  use this device's link with that save (its link state starts over, cursor 0). The outside review's second P0.
+  `docs/en/REALITY.md`, two interface texts (`realityMismatch`, `realityRelink`).
 
 ## 4.1.1 — 2026-10-06
 

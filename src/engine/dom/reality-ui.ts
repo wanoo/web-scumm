@@ -26,10 +26,13 @@ export const REALITY_UI = {
   realityNone: 'not linked',
   realitySimulated: 'simulated',
   realityUnlink: 'Unlink this game',
+  realityMismatch: 'this save belongs to another link',
+  realityRelink: 'Use this link with this save',
 } as const;
 type Key = keyof typeof REALITY_UI;
 
-export type LinkStatus = 'none' | 'pairing' | 'connecting' | 'open' | 'retrying' | 'revoked' | 'simulated';
+/** `mismatch` (4.1.2): the game in progress was linked as another player; it plays on, the link waits for a choice. */
+export type LinkStatus = 'none' | 'pairing' | 'connecting' | 'open' | 'retrying' | 'revoked' | 'simulated' | 'mismatch';
 interface LinkRecord {
   bridge: string;
   playerId: string;
@@ -86,6 +89,7 @@ export class RealityLink {
       retrying: 'realityOffline',
       revoked: 'realityRevoked',
       simulated: 'realitySimulated',
+      mismatch: 'realityMismatch',
     };
     return this.t(k[this.status]);
   }
@@ -114,6 +118,8 @@ export class RealityLink {
       port,
       keyring,
       playerId,
+      // The game in progress belongs to another player: the link idles until the pause menu's choice (`relink`).
+      onMismatch: () => this.set('mismatch'),
     });
     this.client = client;
     void client.run().catch((e: unknown) => {
@@ -121,7 +127,8 @@ export class RealityLink {
       // from the saved cursor, and what was not acknowledged comes again.
       this.lastError = e instanceof Error ? e.message : String(e);
       console.warn(`Reality link: ${this.lastError}`);
-      if (this.client !== client || this.status === 'revoked' || this.status === 'none') return;
+      if (this.client !== client || this.status === 'revoked' || this.status === 'none' || this.status === 'mismatch')
+        return;
       this.set('retrying');
       setTimeout(() => this.run(port, keyring, playerId, attempt + 1), Math.min(60_000, 1000 * 2 ** attempt));
     });
@@ -221,6 +228,22 @@ export class RealityLink {
     this.set('none');
   }
 
+  /**
+   * Binds the game in progress to this device's link (after a `mismatch`): its link state starts over for this
+   * player (cursor 0, nothing pending), as a loaded game, so the session and its replay stay exact. The signals whose
+   * effect the save already has (`once`) are not applied again; the Bridge delivers this player's own from the start.
+   */
+  async relink(): Promise<void> {
+    const r = this.record();
+    if (!r || this.status !== 'mismatch') return;
+    await this.client?.stop();
+    this.releaseLock?.();
+    const s = JSON.parse(JSON.stringify(this.app.engine.state)) as typeof this.app.engine.state;
+    s.reality = { playerId: r.playerId, cursor: 0, applied: {} };
+    await this.app.engine.load(s);
+    await this.connect(r);
+  }
+
   /** The pause menu's page: the state of the link and what can be done with it. */
   menu(m: HTMLElement, back: () => void): void {
     m.innerHTML = `<h3>${esc(this.t('realityLink').toUpperCase())}</h3>`;
@@ -240,6 +263,14 @@ export class RealityLink {
         button(this.t('realityStart'), '⇄').onclick = () => {
           void this.pair((code) => (status.textContent = this.t('realityCode', { code })), ctrl.signal);
         };
+    } else if (this.status === 'mismatch') {
+      button(this.t('realityRelink'), '⇄').onclick = () => {
+        void this.relink().then(() => {
+          stop();
+          back();
+        });
+      };
+      button(this.t('realityUnlink'), '✕').onclick = () => void this.unlink();
     } else if (this.status !== 'simulated') button(this.t('realityUnlink'), '✕').onclick = () => void this.unlink();
     button(this.app.game.ui.resume, '▶').onclick = () => {
       ctrl.abort();
