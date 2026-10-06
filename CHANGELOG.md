@@ -31,6 +31,15 @@
   accepted while a stream opens is held and sent after the backlog (the review's third P0 could not happen: the
   backlog and the subscription were one synchronous tick; the stream now registers first, and a test proposes while
   it opens). `docs/en/REALITY-OPS.md` "Keys and rotation" rewritten.
+- **The journal survives a crash and is read, never matched.** A last line cut short by a crash (no newline, not
+  JSON) stopped the Bridge from starting; it is dropped and said in the log (`journal.repaired`), while any other
+  line that does not parse is still refused as corruption, with its number. Forgetting a player rewrote the file
+  by matching its id as text, which took another player's line whose `dedupeKey` was that id; each line is now read
+  as an event. The rewrite fsyncs the directory after the rename where the system allows. Two commands:
+  `web-scumm-bridge doctor` (what the journal holds, torn or corrupt) and `web-scumm-bridge compact
+  [--retention-days=90]` (pairings past their time, earlier versions of a player's line and signals acknowledged and
+  older than the retention dropped; a player's last signal and everything unacknowledged kept). The review's P1s on
+  the store.
 
 ## 4.1.1 — 2026-10-06
 

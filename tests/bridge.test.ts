@@ -16,7 +16,7 @@ import { Bridge, type BridgeConfig, type BridgeLog } from '../bridge/src/bridge'
 import { biscuitLib } from '../bridge/src/biscuit';
 import { grantToken } from '../bridge/src/policy';
 import { bridgeServer, webhookSignature } from '../bridge/src/server';
-import { JsonlBridgeStore, MemoryBridgeStore, type BridgeStore } from '../bridge/src/store';
+import { inspectJournal, JsonlBridgeStore, MemoryBridgeStore, type BridgeStore } from '../bridge/src/store';
 import { signals, signalsLayouts } from './fixtures/signals';
 import { createHash } from 'node:crypto';
 
@@ -434,6 +434,75 @@ describe('the reference Bridge', () => {
   });
 });
 
+describe('the journal file', () => {
+  it('drops a last line cut short by a crash and says so; refuses a corrupt line; forgets by reading, not matching', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-journal-'));
+    temps.push(dir);
+    const file = join(dir, 'journal.jsonl');
+    const t = await setup({ store: new JsonlBridgeStore(file) });
+    const a = await t.pair();
+    const b = await t.pair();
+    await t.propose(a.playerId, 'mail.answer.correct', 'mail:1');
+    // B's dedupeKey is A's id: a deletion that matched text would take B's line with A's.
+    await t.propose(b.playerId, 'mail.answer.correct', a.playerId);
+    const { appendFileSync, writeFileSync } = await import('node:fs');
+    appendFileSync(file, '{"t":"signal","e":{"playerId":"p-00');
+    const repairs: string[] = [];
+    const again = new JsonlBridgeStore(file, { onRepair: (w) => repairs.push(w) });
+    expect(repairs).toEqual([expect.stringMatching(/cut short by a crash/)]);
+    expect(readFileSync(file, 'utf8').endsWith('}\n')).toBe(true);
+    expect(again.signals(a.playerId, 0)).toHaveLength(1);
+    expect(inspectJournal(file)).toMatchObject({ players: 2, signals: 2, torn: false });
+    const whole = readFileSync(file, 'utf8');
+    writeFileSync(file, `${whole}not json\n`);
+    expect(inspectJournal(file).corrupt).toMatch(/line \d+ is not an event/);
+    expect(() => new JsonlBridgeStore(file)).toThrow(/line \d+ is not an event/);
+    writeFileSync(file, whole);
+    const bridge = await Bridge.start(t.bridge.config, new JsonlBridgeStore(file), { log: () => {} });
+    bridge.forgetPlayer(t.admin, a.playerId);
+    expect(readFileSync(file, 'utf8')).not.toContain(`"${a.playerId}"`.replace(/"/g, '"playerId":"'));
+    const after = new JsonlBridgeStore(file);
+    expect(after.player(a.playerId)).toBeUndefined();
+    expect(after.signals(b.playerId, 0)).toHaveLength(1);
+  });
+
+  it('compaction keeps what a player may still need: its unacknowledged signals, its last sequence', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-compact-'));
+    temps.push(dir);
+    const file = join(dir, 'journal.jsonl');
+    const t = await setup({ store: new JsonlBridgeStore(file) });
+    const link = await t.pair();
+    for (const k of ['1', '2', '3']) await t.propose(link.playerId, 'mail.answer.wrong', `mail:${k}`);
+    await t.call('v1/ack', { method: 'POST', token: link.capability, body: JSON.stringify({ through: 2 }) });
+    const store = new JsonlBridgeStore(file);
+    const r = store.compact({ now: Date.now() + 100 * 24 * 3_600_000, retentionMs: 90 * 24 * 3_600_000 });
+    expect(r.after).toBeLessThan(r.before);
+    const fresh = new JsonlBridgeStore(file);
+    expect(fresh.lastSequence(link.playerId)).toBe(3);
+    expect(fresh.acked(link.playerId)).toBe(2);
+    expect(fresh.signals(link.playerId, 2).map((e) => e.sequence)).toEqual([3]);
+    expect(fresh.playerByCapability(createHash('sha256').update(link.capability).digest('hex'))).toBeDefined();
+    // Still a Bridge: the next proposal takes sequence 4, the recent duplicate is still known.
+    const bridge = await Bridge.start(t.bridge.config, fresh, { log: () => {} });
+    expect(
+      await bridge.propose(t.mail, {
+        playerId: link.playerId,
+        signal: 'mail.answer.wrong',
+        source: 'mail',
+        dedupeKey: 'mail:3',
+      }),
+    ).toMatchObject({ duplicate: true });
+    expect(
+      await bridge.propose(t.mail, {
+        playerId: link.playerId,
+        signal: 'mail.answer.wrong',
+        source: 'mail',
+        dedupeKey: 'mail:4',
+      }),
+    ).toMatchObject({ sequence: 4 });
+  });
+});
+
 describe('web-scumm bridge init', () => {
   it('writes a configuration only its owner reads, from which a Bridge starts', async () => {
     const { main, loadBridge } = await import('../bridge/src/cli');
@@ -457,6 +526,13 @@ describe('web-scumm bridge init', () => {
     console.log = () => {};
     try {
       expect(await main(['rotate', `--dir=${dir}`, '--keep-days=2'])).toBe(0);
+    } finally {
+      console.log = log;
+    }
+    console.log = () => {};
+    try {
+      expect(await main(['doctor', `--dir=${dir}`])).toBe(0);
+      expect(await main(['compact', `--dir=${dir}`])).toBe(0);
     } finally {
       console.log = log;
     }

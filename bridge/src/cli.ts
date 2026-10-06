@@ -5,6 +5,8 @@
 //   grant --connector=<id> --source=<s> --signals=a,b [--players=any|p-…,p-…] [--pair] [--days=30]   a connector's token
 //   rotate [--keep-days=30]                                                                   a new event-signing key
 //   revoke --url=<bridge> (--player=<p-…> | --token=<revocation id>)                         asks the running Bridge
+//   doctor [--dir=…]                                                                           reads the journal, says what it holds
+//   compact [--dir=…] [--retention-days=90]                                                    rewrites the journal (Bridge stopped)
 // Every secret `init` makes is written under --dir (not committed: .cache/ is ignored), never printed but the paths.
 import { createHash, randomBytes, webcrypto } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -14,7 +16,7 @@ import { Bridge, type BridgeConfig } from './bridge';
 import { biscuitLib } from './biscuit';
 import { grantToken } from './policy';
 import { bridgeServer, type WebhookConfig } from './server';
-import { JsonlBridgeStore } from './store';
+import { inspectJournal, JsonlBridgeStore } from './store';
 
 /** What `init` writes: everything a Bridge needs, the private halves included (file mode 0600). */
 export interface BridgeFile {
@@ -53,7 +55,10 @@ export async function loadBridge(file: BridgeFile, dir: string): Promise<Bridge>
     adminTokenHash: file.adminTokenHash,
     policyVersion: '1',
   };
-  return Bridge.start(config, new JsonlBridgeStore(resolve(dir, file.journal)));
+  const store = new JsonlBridgeStore(resolve(dir, file.journal), {
+    onRepair: (what) => console.log(JSON.stringify({ event: 'journal.repaired', what })),
+  });
+  return Bridge.start(config, store);
 }
 
 export async function main(args: string[], game?: { manifest: RealityManifest | null }): Promise<number> {
@@ -174,6 +179,32 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     );
     return 0;
   }
+  if (cmd === 'doctor') {
+    // The journal read without a change: its lines, its players and signals, a last line cut short, corruption.
+    const file = read();
+    const r = inspectJournal(resolve(dir, file.journal));
+    console.log(JSON.stringify({ event: 'journal', ...r }));
+    if (r.corrupt) {
+      console.error(`✖  ${r.corrupt}: the Bridge will not start on it`);
+      return 1;
+    }
+    console.log(
+      r.torn ? '⚠  the last line was cut short by a crash: `serve` drops it and says so' : '✔  journal readable',
+    );
+    return 0;
+  }
+  if (cmd === 'compact') {
+    // Rewrites the journal without what nobody needs any more (docs/en/REALITY-OPS.md): the Bridge must be stopped,
+    // as a running one appends to the file this command replaces.
+    const file = read();
+    const store = new JsonlBridgeStore(resolve(dir, file.journal), { onRepair: (what) => console.log(`⚠  ${what}`) });
+    const days = Number(arg(args, 'retention-days') ?? 90);
+    const r = store.compact({ retentionMs: days * 24 * 3_600_000 });
+    console.log(
+      `✔  journal compacted: ${r.before} → ${r.after} lines (signals acknowledged and older than ${days} days dropped)`,
+    );
+    return 0;
+  }
   if (cmd === 'revoke') {
     const url = arg(args, 'url') ?? 'http://127.0.0.1:8787/';
     const admin = readFileSync(resolve(dir, 'admin-token'), 'utf8').trim();
@@ -185,6 +216,6 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     console.log(r.ok ? '✔  revoked' : `✖  ${r.status} ${await r.text()}`);
     return r.ok ? 0 : 1;
   }
-  console.error('usage: npm run bridge -- <init|serve|grant|rotate|revoke> (bridge/src/cli.ts)');
+  console.error('usage: web-scumm-bridge <init|serve|grant|rotate|revoke|doctor|compact> (bridge/src/cli.ts)');
   return 2;
 }

@@ -97,7 +97,16 @@ tant que des joueurs peuvent être hors ligne avec des signaux à recevoir ; ens
 
 - `GET /v1/admin/players/<p-…>` (jeton de l'opérateur) : tout ce qui est gardé sur un joueur (son lien sans la
   capacité, ses signaux, son accusé).
-- `DELETE /v1/admin/players/<p-…>` : le supprime, le fichier du journal réécrit sans aucune ligne sur ce joueur.
+- `DELETE /v1/admin/players/<p-…>` : le supprime, le fichier du journal réécrit sans aucune ligne sur ce joueur
+  (chaque ligne lue comme un événement, jamais comparée comme du texte).
+- `web-scumm-bridge doctor` : lit le journal et dit ce qu'il contient. Une dernière ligne coupée par un plantage est
+  abandonnée au démarrage suivant, et dite dans le log (`journal.repaired`) ; toute autre ligne illisible est une
+  corruption, et le Bridge refuse de démarrer plutôt que de deviner.
+- `web-scumm-bridge compact [--retention-days=90]`, Bridge arrêté : réécrit le journal sans les appairages
+  périmés, les versions antérieures de la ligne d'un joueur, et les signaux acquittés plus vieux que la rétention ;
+  le dernier signal d'un joueur reste toujours (sa prochaine séquence se compte depuis lui), ainsi que tout ce qui
+  n'est pas encore acquitté. Le journal ne grossit qu'avec ce qui attend encore, ou assez récent pour qu'un
+  connecteur le répète.
 
 ## Ce qui n'est pas là (4.1.1)
 
