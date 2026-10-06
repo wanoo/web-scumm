@@ -79,6 +79,17 @@
   signal needs a scenario that sends it. The validator: signal ids, sources, modes, a required signal's `fallback`
   matching a rule, and in a game with `reality` an event listened to that nothing emits nor declares is an error. The
   puzzle graph shows each signal as produced from outside.
+- **The reference Reality Bridge** (lot E, `bridge/src/`, `npm run bridge -- init|serve|grant|revoke`, `web-scumm
+  bridge`): pseudonymous pairing by an 8-character code a connector confirms; signals proposed under a Biscuit or by
+  an HMAC-signed webhook mapped to a finite signal; the manifest checked (and its hash at start), deduplication by
+  the connector's key, a sequence per player, Ed25519 signatures with a key id and previous keys for rotation; the
+  fetch by cursor and Server-Sent Events (read with fetch, so the capability travels in a header, never a URL); the
+  player's capability only reads and acknowledges, and lives 30 days from its last acknowledgement; revocation of a
+  player or a token; quotas per connector, a limit of signals waiting per player, a body limit; CORS for the game's
+  origins; export and deletion of a player's data (the JSON-lines journal is rewritten without it); a log with no
+  secret. `init` writes its keys and tokens with mode 600 under `.cache/bridge/`. The player's transport:
+  `src/engine/reality/http-port.ts`. `npm run doctor` checks Ed25519 and Biscuit. The Bridge imports nothing but
+  the protocol it shares with the player (`tests/boundaries.test.ts`).
 
 ## 4.0.0 — 2026-10-05
 

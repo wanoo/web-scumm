@@ -21,6 +21,8 @@ export interface Grant {
   /** Pseudonymous player ids, or every player of the game. */
   players: string[] | 'any';
   audience: string;
+  /** May confirm pairing codes for this game (`bridge/policy/pair.datalog`). */
+  pair?: boolean;
   /**
    * Epoch ms from which the token is refused. Biscuit's dates are whole seconds: the token holds strictly before
    * that second (an expiry at 13:00:00.500 refuses from 13:00:00).
@@ -55,6 +57,7 @@ export async function grantToken(rootPrivateKey: string, g: Grant): Promise<stri
     ...g.sources.map((s) => `source(${lit(s)});`),
     ...g.signals.map((s) => `signal(${lit(s)});`),
     ...(g.players === 'any' ? ['any_player(true);'] : g.players.map((p) => `player(${lit(p)});`)),
+    ...(g.pair ? ['pair(true);'] : []),
     `check if time($t), $t < ${new Date(g.expiresAt).toISOString()};`,
   ];
   const builder = b.Biscuit.builder();
