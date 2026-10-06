@@ -43,6 +43,14 @@
   `storyboardProblems`: the page generator, the Studio's server, its in-browser demo and the MCP's `set_storyboard`
   refuse an invalid storyboard with the same sentences (`tests/diagnostics-parity.test.ts`). A panel without an id no
   longer becomes `"undefined"` in one reader and `""` in the other.
+- **Reality Bridge, the spike** (4.1.1's lot A, `docs/dev/reality-spike.md`): Ed25519 is in WebCrypto in Node,
+  Chromium and WebKit; the player's verifier of a compact JWS is 381 bytes gzipped (D15); Biscuit runs on the Bridge
+  from its WebAssembly build, loaded without an experimental flag (`bridge/src/biscuit.ts`), 0.24 ms to authorise
+  (D16); delivery by Server-Sent Events and a fetch by cursor (D17). `npm run reality:xcheck`: Biscuit's official
+  samples (vendored with their licence in `bridge/test-vectors/biscuit`) give the specification's verdict in
+  JavaScript and in the Rust crate (`bridge/xcheck`), 49 validations, in a CI job of their own. `npm run
+  reality:spike` reproduces the measures. `docs/dev/THREAT-MODEL.md`. The engine never imports the Bridge
+  (`tests/boundaries.test.ts`).
 
 ## 4.0.0 — 2026-10-05
 

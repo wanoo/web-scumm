@@ -106,4 +106,13 @@ describe("the engine's layers", () => {
     for (const f of all) if (!state.has(f)) visit(f);
     expect(cycles).toEqual([]);
   });
+
+  it('the engine never imports the Bridge (4.1.1): Biscuit, keys and the server stay out of every game', () => {
+    const offending = files(ROOT).flatMap((f) =>
+      imports(f)
+        .filter((d) => /(^|\/)bridge\//.test(d.to) || d.to.includes('biscuit'))
+        .map((d) => `${relative(ROOT, f)} → ${d.to}`),
+    );
+    expect(offending).toEqual([]);
+  });
 });

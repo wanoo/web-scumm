@@ -72,6 +72,8 @@
     "verify:release": "npm run validate -- --release && npm run weight -- --release && npm run i18n -- status && npm run voices -- check --release && npm run playtests -- --strict",
     "verify:commercial": "npm run verify:release && npm run validate -- --commercial --errors && npm run verify:dist",
     "quality:baseline": "tsx tools/quality-baseline.ts",
+    "reality:spike": "node scripts/reality-spike.mjs",
+    "reality:xcheck": "tsx tools/reality-xcheck.ts",
     "verify:dist": "tsx tools/dist.ts",
     "verify:field": "npm run verify:commercial && npm run playtests -- --strict --require=5 --require-completed=3 --require-devices=2",
     "provenance": "tsx tools/provenance.ts",
@@ -85,6 +87,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@biomejs/biome": "^2.5.15",
+    "@biscuit-auth/biscuit-wasm": "^0.6.0",
     "@modelcontextprotocol/sdk": "^1.32.0",
     "@tweakpane/core": "^2.0.5",
     "@types/howler": "^2.2.13",

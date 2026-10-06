@@ -15,6 +15,7 @@
       "scripts/**/*.ts",
       "games/**/*.ts",
       "cli/**/*.mjs",
+      "bridge/**/*.ts",
       "vite.config.ts",
       "vitest.config.ts",
       "!legacy",
@@ -22,7 +23,8 @@
       "!public",
       "!.cache",
       "!tools/audio/.venv",
-      "!tools/audio/.furnace"
+      "!tools/audio/.furnace",
+      "!bridge/xcheck/target"
     ]
   },
   "formatter": {

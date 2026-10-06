@@ -1,0 +1,30 @@
+# Reality Bridge: threat model (4.1.1)
+
+What can go wrong between the world outside and a game's state, and what answers it. From
+`docs/dev/PLAN-4.1-REALITY-BRIDGE.md` §9; each answer names where it is implemented and tested.
+
+**Assets.** The game's state and saves (integrity); the player's pseudonymous link (`playerId`) and capability; the
+Bridge's root Biscuit key and its event-signing key; the connectors' Biscuits; the journal.
+
+**Trust boundaries.** (1) the world → a connector (a webhook, later email, SSH…): untrusted; (2) a connector → the
+Bridge: authorised by a Biscuit; (3) the Bridge → the player: signed events over TLS; (4) the player's engine:
+applies only verified, declared, finite signals.
+
+| Threat | Answer | Where |
+|---|---|---|
+| A compromised connector | Its Biscuit is attenuated to one game, player family, source, signal list, audience and expiry; the Bridge checks the Datalog policy before anything else | `bridge/policy/`, `tests/bridge.test.ts` |
+| A stolen bearer token | Short expiry, revocation by id, rotation, TLS; the player's capability can only read and acknowledge | `bridge/src/`, `docs/en/REALITY-OPS.md` |
+| A modified signal | The Ed25519 signature covers the exact bytes; the player verifies before decoding | `src/engine/reality/protocol.ts`, the conformance corpus |
+| A replay over the network | `id`, `sequence`, `dedupeKey`; the engine's `applied` set: an id seen is a no-op | `core/` `receive`, the crash tests |
+| An event for another player | `gameId` + `playerId` checked by the policy on the Bridge and by the player on every event | policy tests, protocol tests |
+| An old manifest | The manifest's hash is in the Bridge's configuration; an unknown signal is refused | `bridge/src/`, manifest tests |
+| Flooding | Quotas per source and player, bounded payload and queue, timeouts; overflow is visible, never dropped silently | `bridge/src/`, `tests/bridge.test.ts` |
+| A leak through a session or a save | Sessions and saves hold ids, sequences and the signal's name; never a token, an email, a credential or a raw payload | session tests, `tests/reality-engine.test.ts` |
+| A script injected in the game (XSS) | The capability in the browser is minimal and revocable; no emission or administration right reaches the browser | `docs/en/REALITY-OPS.md` |
+| The Bridge down | The journal is durable, delivery resumes from the cursor, the game declares a fallback for a required signal | proof (`closed`, `scenario`), e2e |
+| A compromised key | `kid` on every event, a keyring with an overlap period, rotation and revocation documented, a retention horizon | protocol tests, ops guide |
+| Hostile text from outside | The engine receives an identifier from a finite, declared alphabet; nothing from the payload reaches a condition, a line or HTML | content types, validator |
+
+**Out of scope for 4.1.1.** Verifying a credential's content (Open Badges), real email and SSH connectors, a hosted
+multi-tenant Bridge. Biscuit says who may submit a verdict, never whether the verdict is true: a connector stays
+responsible for checking what it claims.

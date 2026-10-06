@@ -20,3 +20,6 @@ tests/fixtures/release-tmp-*/
 tests/visual/**/*.actual.png
 __pycache__/
 *.pyc
+
+# The Rust cross-check builds here (bridge/xcheck, npm run reality:xcheck)
+bridge/xcheck/target/
