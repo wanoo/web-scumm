@@ -577,20 +577,50 @@ anglaise, section par section ; chaque lien relatif vérifié ; chaque script np
 tel ; `AGENTS.md` et `CLAUDE.md` sans le travail en binôme de la v3 ; des notes de release sans les numéros du
 journal ; un code de conduite, un modèle de pull request, un modèle d'issue de fonctionnalité, le wiki fermé. Laissé
 pour plus tard, dit comme tel : la référence d'API porte des signatures et des premières lignes de doc, pas un exemple
-par nom ; aucun vérificateur de liens ne va chercher les URL externes. La suivante est la 4.2.0, la finale : le
-paquet compilé sur npm, une API d'hôte plus étroite avec des événements typés, les mises à jour de dépendances, un
-tag signé.
+par nom ; aucun vérificateur de liens ne va chercher les URL externes. La suite était prévue comme la 4.2.0
+« Finale » ; le 7 octobre 2026 le mainteneur l'a remplacée par le programme ci-dessous (D18), et « Finale » en est
+devenue la dernière étape, la 4.2.0 « Stable World ».
+
+## Le programme 4.1.8 → 4.1.15 (décidé le 7 octobre 2026, D18) : finir les ruptures avant de geler les contrats
+
+Aucun jeu de production ne dépend encore de web-scumm (le jeu du mainteneur reste en 3.1.0, D8) : les sauvegardes, les
+projets et l'API publique de la lignée 4.1 sont des oracles de comportement, pas un parc à préserver à tout prix. Le
+programme profite de cette fenêtre pour terminer les ruptures d'architecture avant que la 4.2 ne gèle les contrats.
+Sa source est `docs/dev/PLAN-4.1.8-4.1.15.md` (en français, les décisions) ; `docs/dev/PROGRAM-4.1.md` le résume en
+anglais. Règles de chaque version : une fixture ou un test qui expose le besoin avant le code ; une ADR pour tout contrat
+transversal ; le cœur déterministe, le contenu déclaratif ; toute primitive atteint le runtime, le validateur, le
+solveur, le replay, le Studio, le MCP et la doc ; jamais `proved`, `verified` ni `delivered` quand un budget a été
+coupé ; bundle, mémoire, build, preuve et couverture mesurés contre la version précédente ; les archives emballées
+testées, pas seulement le checkout ; une fiche de passes humaines par release (D12) ; la version suivante ne s'ouvre
+qu'une fois les bloqueurs de la courante fermés.
+
+| Version | Nom de travail | Résultat attendu |
+|---|---|---|
+| 4.1.8 | **Foundation Reset** | TypeScript 7, Vite 8, PWA 2, le curseur Reality corrigé (le curseur local du port avançait avant l'acquittement : reproduit en polling), des contrôles qui prédisent la release, une release candidate d'abord |
+| 4.1.9 | **Gateways** | connecteurs email, SSH, Telnet et Open Badges sur un SDK commun, hors du joueur, expérimentaux jusqu'à un passage réel |
+| 4.1.10 | **Constellation** | un Bridge durable, répliqué et isolé par tenant ; le signal peut devenir `SignalV2` si l'analyse de menace le demande |
+| 4.1.11 | **Viewport** | un renderer séparé de la logique du jeu, derrière une `SceneFrame` immuable ; un journal sémantique possédé par le cœur |
+| 4.1.12 | **Language** | le DSL et une représentation intermédiaire (`GameIR`, une empreinte de jeu) façonnés par Gateways et Viewport ; le socle stabilisé |
+| 4.1.13 | **Proof at Scale** | une classe documentée de jeux ouverts à trois personnages prouvée dans des budgets publiés, ou nommée « Solver Research » |
+| 4.1.14 | **Time Attack** | catégories de speedrun, RTA et temps logique, splits sémantiques, un paquet de preuve vérifiable, ghosts, LiveSplit et OBS en outils locaux |
+| 4.1.15 | **Remix** | une variance contrôlée du jeu, déterministe par seed, à solvabilité prouvable ; le DSL gelé après elle |
+| 4.2.0 | **Stable World** | les contrats gelés, le paquet compilé sur npm, les passes humaines faites, un premier vrai jeu de référence |
+
+L'ordre est voulu : les dépendances et l'intégrité avant les connecteurs ; les connecteurs éprouvent le Bridge avant sa
+distribution ; le renderer avant les primitives de mise en scène ; le DSL stabilisé avant de réinvestir le solveur ; le
+speedrun réutilise le replay, le solveur et le Bridge une fois stables ; Remix réutilise ses seeds, ses preuves et ses
+paquets. Les passes humaines restent rapportées, non bloquantes, pendant la 4.1.x (D12), et deviennent bloquantes pour
+la 4.2.0 sur chaque surface annoncée comme supportée.
 
 ## Après la 4.0 (pas encore planifié)
 
-- Les passes terrain, puis ce qu'elles trouvent (D12).
-- Publier `web-scumm` et `create-web-scumm` sur npm ; Le Phare dans un dépôt public.
+- Les passes terrain, puis ce qu'elles trouvent (D12) ; bloquantes pour la 4.2.0 (D18).
+- Publier `web-scumm` et `create-web-scumm` sur npm : la 4.2.0 « Stable World » ; Le Phare dans un dépôt public.
 - Vite 8 et TypeScript 7 (écartés en 4.0 : le bundler de Vite 8 casse un import par défaut CommonJS, TypeScript 7
-  retire `baseUrl` et les `paths` non relatifs) : une mineure à part, avec le `tsconfig.json` du modèle de projet.
+  retire `baseUrl` et les `paths` non relatifs) : la 4.1.8 « Foundation Reset », avec le `tsconfig.json` du modèle de projet.
 - Les traductions chargées à la demande (la seconde langue pèse ~10 % du JavaScript de la première visite) : un
   changement du contrat du module de jeu, donc une mineure avec une dépréciation, pas un correctif.
-- La matrice ouverte à trois personnages : une dominance exacte par la pertinence des objets et des positions, auditée
-  contre la recherche explicite sur le corpus.
+- La matrice ouverte à trois personnages : la 4.1.13 « Proof at Scale », avec les deux seuils de sa fiche.
 - Les repères de synchronisation labiale dans la table des voix (restés de la 3.4).
 
 ## Hors plan (décisions explicites)
@@ -599,7 +629,7 @@ tag signé.
   scène, le DOM restant la référence tant qu'ils ne concordent pas ; WebGL seulement pour un effet que Canvas 2D ne
   tient pas, mesuré.
 - Pas de format de dialogue parallèle au DSL.
-- Pas de paquet npm avant qu'une seconde personne le demande (inchangé).
+- Pas de paquet npm avant la 4.2.0 « Stable World » (D18 ; avant elle, aucune seconde personne n'en avait demandé).
 
 ## Vérification (à chaque jalon)
 
