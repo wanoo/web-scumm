@@ -39,7 +39,8 @@ describe("the engine's layers", () => {
   it('reads the imports it checks (a static one, a dynamic one)', () => {
     const app = imports(join(ROOT, 'dom/app.ts'));
     expect(app).toContainEqual({ to: 'core/engine', dynamic: false });
-    expect(app).toContainEqual({ to: 'tools/replay', dynamic: true });
+    // The session export moved with the pause menu (4.1.0, dom/menus.ts).
+    expect(imports(join(ROOT, 'dom/menus.ts'))).toContainEqual({ to: 'tools/replay', dynamic: true });
   });
 
   it('core imports nothing but core and plain packages: no DOM, no tools, no dev, no minigames', () => {
