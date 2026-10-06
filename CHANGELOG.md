@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **Docs for a studio** (4.1.7, the plan's sixth release). The READMEs rewritten in both languages: one pitch,
+  three commands, what each role gets, the screenshots taken again from the current build, one table of numbers,
+  the current release in one paragraph (the release-by-release stack is the CHANGELOG's), a non-affiliation note
+  (also in CREDITS.md). `docs/en/TUTORIAL.md` and its French twin: a first room in fifteen minutes. `API.md` carries
+  the public API's signatures, generated from the sources (`tools/api-doc.ts`, held by `tests/api-doc.test.ts`).
+  SUPPORT.md says the 4.1.x policy once and has a support matrix (what CI checks, what only people check). STUDIO.md
+  in French has the three sections it summarised (Assets, Demo, Assistant); a test keeps every French page within a
+  third of its English twin, section by section; another checks every relative link in the docs. AGENTS.md loses
+  the rules of the pair work that ended with v3; CLAUDE.md points at the right pages. The release notes drop the
+  work log's entry and decision numbers. `CODE_OF_CONDUCT.md`, a pull request template and a feature issue template;
+  the wiki is off.
+
 ## 4.1.6 — 2026-10-06
 
 "Studio Tool" (LOG #102): the plan's fifth release; what a studio touches every day, made to leave the tree clean,

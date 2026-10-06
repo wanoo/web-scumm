@@ -13,8 +13,9 @@ game folder `games/<id>/` (TypeScript objects + JSON layouts + art). The sample 
   `layout/*.json` (geometry, written by the editor), `art/` (cut sprites, `<sheet>/r<row>c<col>.png`), `audio/`,
   `storyboard.json` (the script), `site.json` (title, description), `index.ts` (what the engine loads).
 - `docs/en/` — CONTENT_GUIDE (how to write a room), ENGINE, TOOLS, WORKFLOW (the method), PROMPTS (art generation),
-  PAGES (phone-friendly review pages), PRODUCTION.template (plan for sub-agents), UPGRADING (v2 → v3), AUDIO,
-  CLASSICS, BENCH. `docs/fr/` mirrors it in French. `docs/dev/` is the exchange with the other assistant.
+  PAGES (phone-friendly review pages), PRODUCTION.template (plan for sub-agents), UPGRADING (one section per release),
+  AUDIO, CLASSICS, BENCH, TUTORIAL (a first room in fifteen minutes). `docs/fr/` mirrors it in French. `docs/dev/` is
+  the work log (LOG.md, the decisions, the passes of each release).
 - `tools/` — validate, solve, refs, assets.py, cut-sheet.py, talk-kit/apply/normalize, pages/, audit-assets.
 
 ## Commands

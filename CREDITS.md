@@ -23,3 +23,9 @@ Rendered for the project with the Mega Drive audio pipeline in `tools/audio` (do
 - DotGothic16, by Fontworks. SIL Open Font License 1.1 (no Reserved Font Name). The engine ships it whole
   (`public/fonts/`) and as a Latin subset made by `tools/subset-font.py` (`src/engine/dom/fonts/`).
 - Press Start 2P, by CodeMan38. SIL Open Font License 1.1.
+
+## Not affiliated
+
+web-scumm is an independent project. "SCUMM-style" describes a kind of game (verbs, a bag, rooms, dialogue with
+choices); the project is not affiliated with, endorsed by or derived from LucasArts, Lucasfilm, Disney or the ScummVM
+project, and ships none of their code, data or art.

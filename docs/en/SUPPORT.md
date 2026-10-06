@@ -18,20 +18,31 @@ Semantic versioning on the public API:
 - a **minor** (4.x) adds; it may deprecate, never remove;
 - a **major** (5.0) may remove what a minor deprecated, and says how to move in `docs/en/UPGRADING.md`.
 
-One exception, chosen by the maintainer (D14): **4.1.1 adds** (the entry `web-scumm/reality`, the content's `reality`,
-the save's `reality`, the session's signal entry, the MCP's `solve` argument `reality`), which would be a minor. The
-4.1.x line is where the project stays until 4.2, the final version. Every addition is optional, and nothing of 4.1.0
-changes. 4.1.2 adds in the same way (optional fields on `RealityClientOptions`, `ExternalEntry` and the Bridge's
-routes, a `mismatch` result, a lint code, two Bridge commands): the same exception, nothing of 4.1.1 changes. 4.1.4 adds
-`destroy`, `onError`, `beforeSave` and `onLoad` on `Engine`, and `destroy` on `App`: the same again. 4.1.5 adds
-`sessions` on `Engine` and `camera` and `walker` on the room view, and moves `@internal` members only: the same again.
-4.1.6 adds two commands to the command line, an `optional` field to doctor's checks and `tools/vite/plugins.ts`,
-and changes no API: the same again.
+**The 4.1.x line is the exception, said once (D14).** Since 4.1.1 the project stays on 4.1.x until 4.2, the final
+version, and a 4.1.x release may *add*: an optional entry, field, route, command, hook or sub-object (4.1.1's
+`web-scumm/reality`, 4.1.2's Bridge options, 4.1.4's `destroy` and hooks, 4.1.5's `sessions`, `camera` and `walker`,
+4.1.6's two commands). What it may not do is what a patch may not do either: change or remove a public name or a
+format. Every addition is optional, nothing of 4.1.0 changes, and a game or a host written against any 4.1.x runs on
+every later 4.1.x. `docs/en/UPGRADING.md` has one section per release that says what, if anything, a host must know.
 
 Supported: the current major's last minor gets fixes; the previous minor gets security fixes for three months after
 the next one. The 3.x line ended with 3.9; its games move to 4.0 with `web-scumm migrate` (nothing to rewrite for a
 game already on schema 3).
 
+## Support matrix
+
+What the automated gates run on every change, and what only people check (`docs/en/FIELD.md`):
+
+| | Checked by CI on every change | Checked by people (not yet done) |
+|---|---|---|
+| Player, phone | Chromium and WebKit at a phone's size, touch and keyboard, offline (Chromium), French | a real Android phone, a real iPhone, Safari offline on the device |
+| Player, desktop | Chromium, mouse and keyboard | — |
+| Player, screen reader | axe-core on every screen (not a WCAG claim) | a VoiceOver or NVDA pass |
+| Firefox | not in CI | nothing claimed |
+| Node | 22 and 24 on Ubuntu; macOS for the maintainer's daily use | — |
+| Windows | the scripts run (`cross-env`, no `mkdir -p`); not in CI | `npm run doctor`, `npm run dev` on Windows |
+| Python | optional: the art tools and the audio pipeline, Pillow, NumPy, SciPy pinned in `requirements.txt` | — |
+| Reality Bridge | Node 22+, Chromium and WebKit e2e, a Rust cross-check of the protocol | a Bridge behind HTTPS with a real connector |
 ## Deprecation
 
 A name or an option to be removed is first **deprecated** in a minor: marked `@deprecated` in its type (editors show

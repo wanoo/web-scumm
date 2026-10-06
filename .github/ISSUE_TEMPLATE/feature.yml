@@ -1,0 +1,28 @@
+name: Feature
+description: Ask for something the engine, the Studio or the tools do not do yet
+title: "[feature] "
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What you are trying to make
+      description: The game, the scene or the workflow this is for; a concrete example beats a general wish.
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: What you do today instead
+      description: The rule, script, event or tool you tried (docs/en/CLASSICS.md lists what the DSL already does).
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How it could look in the content format, the Studio or the command line, if you have an idea.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before asking
+      options:
+        - label: I read docs/en/CLASSICS.md and docs/en/CONTENT_GUIDE.md and this is not already a combination of what exists
+        - label: This is not a new primitive the 4.1.x line's frozen scope rules out (docs/en/ROADMAP.md), or I say why it is worth 4.2

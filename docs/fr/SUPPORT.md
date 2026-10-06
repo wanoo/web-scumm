@@ -18,21 +18,34 @@ Versionnage sémantique de l'API publique :
 - une **mineure** (4.x) ajoute ; elle peut déprécier, jamais retirer ;
 - une **majeure** (5.0) peut retirer ce qu'une mineure a déprécié, et dit comment passer dans `docs/fr/UPGRADING.md`.
 
-Une exception, choisie par le mainteneur (D14) : **la 4.1.1 ajoute** (l'entrée `web-scumm/reality`, le `reality` du
-contenu, celui de la sauvegarde, l'entrée de session d'un signal, l'argument `reality` du `solve` du MCP), ce qui
-serait une mineure. La lignée 4.1.x est celle où le projet reste jusqu'à la 4.2, la version finale. Chaque ajout est
-optionnel, et rien de la 4.1.0 ne change. La 4.1.2 ajoute de la même façon (des champs optionnels sur
-`RealityClientOptions`, `ExternalEntry` et les routes du Bridge, un résultat `mismatch`, un code de lint, deux commandes
-du Bridge) : la même exception, rien de la 4.1.1 ne change. La 4.1.4 ajoute `destroy`, `onError`, `beforeSave` et
-`onLoad` sur `Engine`, et `destroy` sur `App` : la même encore. La 4.1.5 ajoute `sessions` sur `Engine`, `camera` et
-`walker` sur la vue de pièce, et ne déplace que des membres `@internal` : la même encore. La 4.1.6 ajoute deux
-commandes à la ligne de commande, un champ `optional` aux vérifications de doctor et `tools/vite/plugins.ts`, et ne
-change aucune API : la même encore.
+**La lignée 4.1.x est l'exception, dite une fois (D14).** Depuis la 4.1.1 le projet reste en 4.1.x jusqu'à la 4.2, la
+version finale, et une release 4.1.x peut *ajouter* : une entrée, un champ, une route, une commande, un hook ou un
+sous-objet optionnels (le `web-scumm/reality` de la 4.1.1, les options du Bridge de la 4.1.2, `destroy` et les hooks
+de la 4.1.4, `sessions`, `camera` et `walker` de la 4.1.5, les deux commandes de la 4.1.6). Ce qu'elle ne peut pas
+faire est ce qu'un correctif ne peut pas faire non plus : changer ou retirer un nom public ou un format. Chaque ajout
+est optionnel, rien de la 4.1.0 ne change, et un jeu ou un hôte écrit pour n'importe quelle 4.1.x tourne sur chaque
+4.1.x suivante. `docs/fr/UPGRADING.md` a une section par release qui dit ce qu'un hôte doit savoir, s'il y a quelque
+chose.
 
 Suivies : la dernière mineure de la majeure en cours reçoit les correctifs ; la mineure précédente reçoit les
 correctifs de sécurité trois mois après la sortie de la suivante. La lignée 3.x s'est terminée avec la 3.9 ; ses jeux
 passent en 4.0 avec `web-scumm migrate` (rien à réécrire pour un jeu déjà en schéma 3).
 
+## Matrice de support
+
+Ce que les gates automatiques exécutent à chaque changement, et ce que seules des personnes vérifient
+(`docs/fr/FIELD.md`) :
+
+| | Vérifié par la CI à chaque changement | Vérifié par des personnes (pas encore fait) |
+|---|---|---|
+| Joueur, téléphone | Chromium et WebKit à la taille d'un téléphone, tactile et clavier, hors ligne (Chromium), français | un vrai téléphone Android, un vrai iPhone, Safari hors ligne sur l'appareil |
+| Joueur, bureau | Chromium, souris et clavier | — |
+| Joueur, lecteur d'écran | axe-core sur chaque écran (pas une conformité WCAG) | une passe VoiceOver ou NVDA |
+| Firefox | pas en CI | rien de promis |
+| Node | 22 et 24 sur Ubuntu ; macOS pour l'usage quotidien du mainteneur | — |
+| Windows | les scripts tournent (`cross-env`, plus de `mkdir -p`) ; pas en CI | `npm run doctor`, `npm run dev` sous Windows |
+| Python | optionnel : les outils d'image et le pipeline audio, Pillow, NumPy, SciPy épinglés dans `requirements.txt` | — |
+| Reality Bridge | Node 22+, e2e Chromium et WebKit, une contre-vérification Rust du protocole | un Bridge derrière HTTPS avec un vrai connecteur |
 ## Dépréciation
 
 Un nom ou une option à retirer est d'abord **déprécié** dans une mineure : marqué `@deprecated` dans son type (les

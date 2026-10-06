@@ -187,36 +187,122 @@ les rechargements complets de Vite causés par les fichiers du jeu (la vue du mo
 qu'on est en train de taper et suit le changement via `events`).
 
 ## Onglet Assets
-À gauche, l'arbre : Characters (une entrée par planche de sprites), Objects, Backgrounds, Furniture, Talk kits, Sounds,
-avec des pastilles (rouge : référencé sans fichier ; orange : pas encore préparé ; gris : découpé mais inutilisé). Au
-centre, la planche en vignettes avec l'usage de chaque case et des filtres ; au-dessus, le **prompt** de la planche
-(bouton **Copy prompt**, variante « cases manquantes seulement », bloc Style partagé) et **Upload generated sheet…**,
-qui découpe l'image avec `tools/cut-sheet.py` sans jamais redécouper une case existante sans la cocher. À droite, la
-case en grand, où elle sert, **Replace…** (l'ancien fichier est gardé en `<case>_v<N>.png`) et ses sauvegardes. Les
-décors s'affichent avec les zones du lieu par-dessus ; les sons ont un lecteur. **Prepare assets** lance
-`npm run assets` et affiche sa sortie. En démo, tout est en lecture seule. Points d'accès et détails :
-docs/en/STUDIO.md, « Assets tab ».
+L'onglet liste tout ce qui se trouve sous `games/<id>/art/` et `audio/` face à ce que le jeu référence (`tools/refs.ts`),
+avec les prompts de `npm run prompts` (`tools/prompts.ts`, docs/fr/PROMPTS.md). Côté serveur : `tools/studio/assets.ts`,
+monté sur `/__studio/api/assets` par le plugin ; interface : `src/studio/assets.ts`.
 
+- **Arbre** (à gauche) : Characters (une entrée par planche de sprites, nommée d'après le personnage dont elle porte
+  les poses), Objects, Backgrounds, Furniture, Talk kits, Sounds (musiques, bruitages). Pastilles : rouge = cases que
+  le jeu référence sans fichier, orange = utilisées mais pas préparées (ou plus anciennes que leur source), gris =
+  découpées mais inutilisées.
+- **Planche** (au centre) : les cases en vignettes avec leur id et ce qui les utilise (`walk`, `portrait`, `items.key`,
+  `house.props.pantry`…) ; filtres All / Used / Unused / Missing. Au-dessus, le panneau **Prompt** : la section de la
+  planche dans les prompts avec **Copy prompt** (copie le bloc pour le modèle d'image), **Copy prompt for missing cells
+  only** quand des cases manquent, et le bloc Style partagé (replié) avec son propre Copy. **Upload generated sheet…**
+  envoie l'image à `POST assets/sheet` avec l'id et la grille de la planche ; si des cases existent déjà, une boîte de
+  dialogue les liste, chacune avec une case « recut » (décochée : conservée ; seules les nouvelles cases sont
+  découpées), puis le résultat de la découpe s'affiche. **Upload sheet into a new sheet id…** (barre d'outils) fait de
+  même pour une planche qui n'a pas encore de dossier.
+- **Case** (à droite) : aperçu en grand, fichier, taille, ids d'image, préparée ou non, où elle sert (avec « Open
+  room »), **Replace…** (détourage : un fond uni est détouré par défaut, ou toujours, ou jamais), et les sauvegardes.
+- **Backgrounds** : le décor avec les hotspots, les props (pied et hauteur), les acteurs et la zone de marche du lieu
+  dessinés par-dessus, et la bande de sol en pointillés que le prompt demande de laisser vide ; Replace… et « +
+  background ». **Sounds** : un lecteur par fichier, où il sert, Replace… (même extension) et Add sound….
+- **Prepare assets (npm run assets)** (barre d'outils) lance le pipeline avec sa sortie en direct dans un tiroir ; le
+  compte à côté est ce qu'il traiterait. Ensuite la vue Rooms se recharge. Une case remplacée apparaît dans le jeu une
+  fois préparée.
+- Rien n'est jamais supprimé, et une case validée n'est jamais redécoupée par accident : écraser demande la case
+  nommée, et l'ancien fichier est gardé en `<nom>_v<N>`. Les sauvegardes ne sont pas des cases (la liste et les prompts
+  les ignorent).
+- **Mode démo** : la liste vient de l'instantané (`assets` dans `snapshot.json`), les vignettes et les sons des
+  fichiers préparés de `public/assets` (les cases inutilisées n'ont pas d'aperçu) ; les envois et Prepare sont cachés.
 ## Mode démo
-Le Studio tourne aussi sans serveur, sur un hébergement statique : https://wanoo.github.io/web-scumm/studio.html est le
-Studio du jeu d'exemple, construit par la CI. Même interface, même vue du moteur et même éditeur de placement ; les
-modifications restent dans le navigateur (`localStorage`, une liste de patchs rejouée sur un instantané du jeu écrit
-au build, `public/studio-demo/snapshot.json`). Validate et Solve tournent dans la page sur le vrai jeu modifié ; les
-captures d'écran demandent le serveur de dev. Le bandeau propose **Download patch** (un fichier JSON) et **Reset
-demo** ; `npm run studio-apply patch.json` applique ce fichier à ta copie via le cœur du Studio. Build :
-`npm run build:studio-demo` (`STUDIO=1 VITE_STUDIO_DEMO=1`). Détails dans `docs/en/STUDIO.md`, « Demo mode ».
+Le Studio tourne aussi sans aucun serveur, sur un hébergement statique : https://wanoo.github.io/web-scumm/studio.html
+est le Studio du jeu d'exemple, construit par la CI. Même interface, même vue du moteur et même éditeur de placement ;
+les modifications restent dans le navigateur.
 
+- **Build** : `npm run build:studio-demo` (= `cross-env STUDIO=1 VITE_STUDIO_DEMO=1 vite build`) ; la CI pose les deux
+  variables sur son `npm run build`. Avec `STUDIO=1`, le build écrit d'abord `public/studio-demo/snapshot.json`
+  (`tools/studio/snapshot.ts`, aussi `npm run studio-snapshot` ; ignoré par git) : `{ game, rooms: { <id>: { def,
+  layout, texts, file } }, storyboard, notes, docs: { CONTENT_GUIDE }, assets }`, tout ce que le Studio lit dans
+  l'API. Sans `STUDIO=1`, ni `studio.html` ni l'instantané n'atteignent `dist/`. Le code du Studio et des outils de dev
+  va dans `dist/assets/tools/`, hors du précache du service worker.
+- **Backend** : `src/studio/api.ts` définit l'interface `Api` ; celle du serveur de dev est la valeur par défaut. Celle
+  du navigateur (`src/studio/api-browser.ts`) sert quand le build le dit (`VITE_STUDIO_DEMO=1`) ou quand `GET
+  /__studio/api/game` répond 404 (ou une page à la place du JSON). Elle charge l'instantané et rejoue les
+  modifications gardées dans `localStorage` sous `web-scumm.studio-demo.<game>` : une liste de patchs `{ kind:
+  'text', room, path, value }` (remplacement, `[+]` ajout, `null` suppression, avec les mêmes décalages de chemin que
+  le fichier de la pièce), `{ kind: 'layout', room, layout }`, `{ kind: 'entity', room, entity }` (Add prop / hotspot /
+  actor), `{ kind: 'storyboard', storyboard }`, `{ kind: 'note', note }`, `{ kind: 'note-edit', id, text, about?,
+  edited }`, `{ kind: 'note-delete', id }`. Un layout ou un storyboard plus récent remplace le précédent ; modifier ou
+  supprimer une note ajoutée en démo réécrit son patch `note`.
+- **Vérifications** : Validate et Solve tournent dans la page (`src/engine/tools/validate.ts`, `solve.ts`) sur le vrai
+  module du jeu avec les modifications appliquées : layouts, entités ajoutées, et chaque texte dont le chemin atteint
+  une chaîne de la pièce compilée (lignes look, noms, indices, sujets, lignes de `on`/`talk`/`onEnter`…). Un texte que
+  la pièce construit par du code (une constante partagée, une fonction) n'est validé que dans la version serveur. Les
+  captures d'écran demandent le serveur de dev : le panneau est caché. Export Markdown télécharge `storyboard.md`.
+  Pas d'événements (rien sur disque à surveiller).
+- **Vue du moteur** : dans un build démo, les outils de dev se chargent aussi avec `?edit` / `?dev` (et seulement
+  alors : le jeu du joueur est le même). Ils appliquent les mêmes patchs au jeu et aux layouts au démarrage. Save
+  layout dans l'éditeur envoie le layout au Studio qui l'entoure (`postMessage`, message `saved` avec `layout`), qui
+  le garde comme patch `layout` ; l'éditeur ouvert seul écrit le patch dans `localStorage` lui-même. Sur le serveur de
+  dev, l'éditeur écrit toujours `layout/<room>.json` ; il se rabat sur le même chemin seulement quand `/__layout`
+  n'existe pas.
+- **Bandeau** : « Demo: your edits stay in this browser », **Download patch** (`studio-patch-<game>.json` : `{ format:
+  'web-scumm-studio-patch', version, game, created, patches }`) et **Reset demo** (abandonne chaque modification).
+- **Appliquer** : `npm run studio-apply patch.json` rejoue un patch téléchargé sur votre copie à travers le cœur
+  (`setText`, `setLayout`, `addEntity`, `setStoryboard`, `addNote`, `editNote`, `deleteNote`, dans l'ordre) et imprime
+  une ligne par patch et un résumé ; un patch qui échoue est signalé, les autres s'appliquent quand même (code de
+  sortie 1 si l'un a échoué). `GAME=<id>` ou `GAME_DIR=<dossier>` choisissent le jeu, comme pour chaque outil.
 ## Assistant
-Le bouton **Assistant** de la barre du haut (ou la touche `a` hors d'un champ) ouvre un tiroir à droite. On y demande
-à n'importe quel modèle de conversation (OpenAI, Anthropic, Ollama, Mistral, tout point d'accès compatible OpenAI)
-d'aider à compléter le jeu. Il a les mêmes outils que le serveur MCP (registre commun `tools/studio/tools.ts`) et part
-de l'élément sélectionné (pièce et entité, panneau du storyboard, ou le jeu entier). Le serveur du Studio relaie la
-conversation (`POST /__studio/api/assistant/chat`, événements SSE, 12 tours d'outils au plus). La clé d'API reste dans
-le `sessionStorage` de cet onglet (effacée à sa fermeture) et n'est jamais écrite sur disque ni journalisée. Sans clé, **Send as a task**
-écrit une note `task: true` dans `notes.json`, qu'un agent connecté en MCP reprend avec `get_notes`. En mode démo, la
-page appelle le fournisseur elle-même (Ollama local conseillé ; OpenAI refuse parfois les appels depuis un navigateur).
-Détails : docs/en/STUDIO.md, section « Assistant ».
+Le bouton **Assistant** de la barre du haut (ou la touche `a` quand aucun champ n'a le focus) ouvre un tiroir à droite
+où l'on demande à un modèle de conversation d'aider à compléter le jeu. Il marche avec n'importe quel fournisseur, et il
+a les mêmes outils que le serveur MCP (`list_rooms`, `get_room`, `set_text`, `add_entity`, `set_layout`,
+`get_storyboard`, `set_storyboard`, `get_notes`, `add_note`, `validate`, `solve`, `screenshot`, `read_doc`,
+`run_tests`, `asset_prompts`). Un seul registre, `tools/studio/tools.ts`, les définit (nom, description, schéma zod,
+handler sur un backend), et le serveur MCP comme l'Assistant s'en servent.
 
+- **Comment ça marche.** La page envoie la conversation à `POST /__studio/api/assistant/chat` avec `{ provider: {
+  kind, baseUrl, model, apiKey? }, messages: [{ role, content }], context }`. Le relais (`tools/studio/assistant.ts`,
+  boucle dans `tools/studio/assistant-loop.ts`) construit un prompt système à partir d'`AGENTS.md`, du jeu (pièces,
+  personnages, objets, checkpoints) et de la sélection courante avec ses textes. Il appelle le modèle, exécute les
+  appels d'outils sur les fichiers du jeu (12 tours au plus), et renvoie des événements SSE : `{ type: 'text', delta
+  }`, `{ type: 'tool_call', id, name, args }`, `{ type: 'tool_result', id, name, result, isError? }` (résultat coupé à
+  4 Ko), `{ type: 'error', message }`, puis `{ type: 'done', usage?, wrote?, stopped? }`. Le modèle a pour consigne de
+  demander avant un changement destructif et de garder la voix du jeu. **Stop** interrompt la requête, et le serveur
+  interrompt aussi l'appel au fournisseur.
+- **Contexte.** Le composeur montre sur quoi porte la demande : `house › pantry (prop)` (la pièce et l'entité
+  sélectionnées dans Rooms), `storyboard › <board> › <panel> (panel)` (le panneau sélectionné, tel qu'édité, même non
+  enregistré), ou le jeu entier. Les actions rapides s'en servent : *Write 3 look lines*, *Suggest a puzzle for this
+  room*, *Write the talk topics for this character*, *Find what's missing (validate + solve)*, *Draft the hint chain*,
+  *Generate the art prompts for this sheet*.
+- **La conversation.** Les réponses sont rendues en markdown léger (paragraphes, listes, code). Chaque appel d'outil
+  est une puce que l'on déplie pour voir ses arguments et son résultat. **New chat** repart de zéro. Les tours
+  précédents sont renvoyés sous forme de texte seulement. Après un tour qui a écrit quelque chose, le Studio recharge
+  la pièce, le storyboard (un bandeau s'il a des modifications non enregistrées) ou les notes, et relance Check. Le
+  surveillant de fichiers montre les mêmes changements.
+- **Fournisseurs** (icône d'engrenage). *OpenAI* (`https://api.openai.com`), *Anthropic* (`https://api.anthropic.com`,
+  modèle par défaut `claude-sonnet-5`), *Ollama* (`http://localhost:11434`, `llama3.1`, sans clé ; choisir un modèle qui
+  gère les outils), *Mistral* (`https://api.mistral.ai`), ou *Custom* : toute base URL compatible OpenAI. Deux formats
+  de câble, pas de SDK : `POST <base>/v1/chat/completions` compatible OpenAI avec `tools` et `stream: true` (OpenAI,
+  Mistral, Ollama, la plupart des autres), et `POST <base>/v1/messages` d'Anthropic avec `tools`, `x-api-key` et
+  `anthropic-version: 2023-06-01`. Les réponses en flux sont lues comme des événements SSE. Un fournisseur qui répond
+  en JSON simple marche aussi.
+- **Sûreté de la clé.** La clé n'est gardée que dans le `localStorage` de ce navigateur (les réglages l'avertissent)
+  et envoyée à chaque requête. Le relais la garde en mémoire le temps de la requête : jamais écrite sur disque, jamais
+  journalisée, retirée des messages d'erreur. Utilisez une clé à plafond de dépense ; « Forget the key » la retire.
+- **Sans clé : des tâches pour un agent MCP.** Sans clé (et hors Ollama), le composeur propose **Send as a task to the
+  AI agent**. `POST /__studio/api/assistant/task` `{ about, text }` ajoute une note avec `author: "you"` et `task:
+  true` à `notes.json`, à propos de la sélection courante. Un agent connecté en MCP (`docs/fr/MCP.md`) la lit avec
+  `get_notes` et fait le travail, et le Studio montre ses modifications en direct. L'onglet Notes étiquette ces notes
+  « task ».
+- **Mode démo.** Pas de relais sur un hébergement statique : la page exécute la même boucle elle-même, avec les outils
+  sur le backend navigateur (modifications gardées comme patchs de démo ; `screenshot`, `run_tests` et `asset_prompts`
+  ne sont pas disponibles, et `read_doc` n'a que CONTENT_GUIDE). Le navigateur appelle le fournisseur directement.
+  Anthropic reçoit son en-tête `anthropic-dangerous-direct-browser-access`. OpenAI refuse les appels depuis un
+  navigateur d'origine inconnue pour certaines clés, et l'erreur le dit. Utilisez Ollama sur votre machine
+  (`OLLAMA_ORIGINS=<l'origine de la page> ollama serve`) ou le Studio local (`npm run studio`), dont le serveur relaie
+  l'appel. Les tâches vont dans les notes de la démo (et son patch).
 ## N'importe quelle IA, pas une seule IA
 - `AGENTS.md` à la racine du dépôt est le manuel d'exploitation neutre vis-à-vis du fournisseur (`CLAUDE.md` y
   renvoie).
