@@ -17,7 +17,15 @@ vérifie, le prouve et le publie en jeu web jouable hors ligne. Il est né comme
 
 ![The Pantry Key : la maison de Grand-mère, neuf verbes, le sac](docs/img/v36-hero.webp)
 
-**Nouveau en v4.0 « Stable Platform » :** le moteur est un paquet avec une API publique qu'il promet de garder. Un jeu
+**Nouveau en v4.1 « Clarity » :** une release de maintenance qui rend web-scumm plus facile à lire, relire et
+contribuer. Elle ne change ni le gameplay ni un contrat public : le moteur, le joueur et le solveur sont découpés en
+modules d'une responsabilité chacun, chaque accès indexé de `src/` est vérifié, les données venues de l'extérieur
+commencent en `unknown`, le code est formaté et vérifié par Biome, et le comportement de la 4.0.0 (témoins, preuves,
+sauvegardes de référence, surface publique) est figé par `npm run quality:baseline`. Des planchers de couverture, des
+tests de propriétés et du mutation testing disent la solidité des tests. On commence par
+[ARCHITECTURE](docs/fr/ARCHITECTURE.md) et la [visite du code](docs/fr/CODE_TOUR.md) d'une demi-heure.
+
+**v4.0 « Stable Platform » :** le moteur est un paquet avec une API publique qu'il promet de garder. Un jeu
 vit dans son propre projet (`web-scumm create`, puis `npm run dev`, `verify`, `build`, `release`), importe quatre
 entrées (`web-scumm/content`, `/player`, `/minigames`, `/testing`), et passe à une nouvelle release avec
 `web-scumm migrate` : la CI crée un jeu sur la release précédente, y sauvegarde, le met à jour et joue l'ancienne
@@ -63,7 +71,7 @@ et un deuxième jeu, « Le Marché de nuit ».
 | Un jeu fait sur la release précédente, mis à jour, sa sauvegarde jouée jusqu'à la fin en 4.0 | un job de CI à chaque push (`npm run upgrade-check`) |
 | « Le Phare », le jeu indépendant : 5 lieux, anglais et français | `release --commercial` vert : preuve sur 85 états, 202 textes par langue, 62 fichiers verrouillés |
 | L'API publique | 92 noms dans 4 entrées, 23 outils Studio/MCP, tenus par `tests/api-surface.test.ts` |
-| Les sauvegardes | une par release de la 3.0.0 à la 4.0.0 se charge et atteint la fin |
+| Les sauvegardes | une par release de la 3.0.0 à la 4.1.0 se charge et atteint la fin |
 | La première visite du joueur | 122 Ko de JavaScript compressé (153 en 3.7.0), tenus par `initialJsKB` |
 | L'archive | chaque fichier justifié : code, assets verrouillés, polices, icônes, `licenses/` |
 | Le corpus de nuit | 1 503 jeux aléatoires en quatre tranches, 910 comparés à la recherche explicite, 0 divergence |
@@ -129,7 +137,7 @@ Il faut Node 22+, Python 3 pour les outils d'image (`pip install -r requirements
 (la publication sur npm viendra, puis `npx create-web-scumm mon-jeu`) :
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.0.0/web-scumm-4.0.0.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.0/web-scumm-4.1.0.tgz
 npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # puis npm run verify, npm run build, npm run release
@@ -208,6 +216,7 @@ tous dans un même style. `npm run assets` découpe les planches générées en 
 | [ENGINE](docs/fr/ENGINE.md) · [BENCH](docs/fr/BENCH.md) · [FIELD](docs/fr/FIELD.md) | le fonctionnement du moteur, ce que la preuve sait faire et ne sait pas faire, ce que seuls des gens et de vrais appareils vérifient |
 | [PROMPTS](docs/fr/PROMPTS.md) · [AUDIO](docs/fr/AUDIO.md) · [PAGES](docs/fr/PAGES.md) | les images, le son, les pages de relecture |
 | [PACKAGE](docs/fr/PACKAGE.md) · [API](docs/fr/API.md) · [SUPPORT](docs/fr/SUPPORT.md) | un jeu dans son propre projet (`npx create-web-scumm`), l'API publique, ce qui reste stable |
+| [ARCHITECTURE](docs/fr/ARCHITECTURE.md) · [CODE_TOUR](docs/fr/CODE_TOUR.md) · [CONTRIBUTING](CONTRIBUTING.md) | comment le code est construit, une visite d'une demi-heure, comment le modifier (et les décisions dans `docs/dev/adr/`) |
 | [ROADMAP](docs/fr/ROADMAP.md) · [CHANGELOG](CHANGELOG.md) · [UPGRADING](docs/fr/UPGRADING.md) | d'où il vient, chaque release, passer à une nouvelle version |
 
 Chaque page existe aussi en anglais sous `docs/en/`. `docs/dev/` contient le journal du travail avec l'autre
@@ -215,9 +224,9 @@ assistant.
 
 ## Releases
 
-Release actuelle : [v4.0.0 « Stable Platform »](https://github.com/wanoo/web-scumm/releases/tag/v4.0.0) : un paquet
-avec une API publique qu'il garde (`docs/fr/SUPPORT.md`), des jeux dans leurs propres projets, des mises à jour
-prouvées en CI. L'histoire de la v1.3 à la v4.0 est dans la
+Release actuelle : [v4.1.0 « Clarity »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.0) : le même moteur, plus
+facile à lire, relire et contribuer (`docs/fr/ARCHITECTURE.md`, `docs/fr/CODE_TOUR.md`). L'histoire de la v1.3 à la
+v4.1 est dans la
 [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt

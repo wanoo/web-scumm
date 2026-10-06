@@ -494,13 +494,19 @@ on 4.0.0 and its 3.9.0 save played to the end; one save per release from 3.0.0 t
 Reported, not done (D12): the seven field passes (`docs/en/FIELD.md`), a game by someone else, publishing to npm, a
 signed tag, GitHub's immutable releases setting.
 
-## v4.1.0 "Clarity" (planned, D14): easier to read, review and contribute to
+## v4.1.0 "Clarity" (shipped 6 October 2026, D14): easier to read, review and contribute to
 
 Codex's plan `docs/dev/PLAN-4.1.1-CLARITY.md`: no gameplay change, no change to the public API, the content or the
 saves. A behaviour baseline first (digests, solver verdicts, API surface), then Biome and stricter TypeScript, the four
 files over 1,000 lines split by responsibility (engine, types, player, solver), typed data boundaries, coverage and
 mutation testing, `ARCHITECTURE.md`, `CODE_TOUR.md`, ADRs and a contribution guide. Reported (D12): a review by
 someone who did not build the engine.
+
+As measured at the tag: the four files over 1,000 lines split (`engine.ts` 795, `app.ts` 780, `solve.ts` a facade
+over five modules, `types.ts` a facade over six), seven files of `src/` over 800 lines kept with their reason and
+capped; 464 index accesses checked in `src/`; no explicit `any` in `src/` or `tools/`; the same witnesses, proofs and
+golden saves as 4.0.0 on 15 games and 13 saves; proof time +1%; first visit 122 → 120 KB; coverage floors with every
+branch of conditions, saves, migrations and diffs; 340 of 348 mutants killed, the 8 others explained.
 
 ## v4.1.1 "Reality Bridge" (planned, D14): a game reacts to the world outside
 
