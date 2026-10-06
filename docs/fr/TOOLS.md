@@ -420,6 +420,7 @@ Les scripts ci-dessus sont ceux dont un jeu a besoin. Le reste de `package.json`
 | `npm run build:studio-demo`, `studio-snapshot`, `studio-apply <patch>` | le build statique du Studio, son instantané seul, un patch de démo appliqué à votre copie (`docs/fr/STUDIO.md`, « Mode démo ») |
 | `npm run pack` | les archives `web-scumm` et `web-scumm-bridge` qu'une release livre (`docs/fr/PACKAGE.md`) |
 | `npm run fresh-install`, `upgrade-check` | un jeu créé depuis l'archive et joué jusqu'à sa fin ; un jeu fait sur la release précédente mis à niveau et joué (la CI lance les deux) |
+| `npm run ship -- <checks\|merge\|main\|tag\|watch\|verify\|chain> …` | la chaîne de release en commandes (4.1.8) : attendre les checks d'une pull request (une relance d'un job en échec), la fusionner, attendre la CI de `main` sur la fusion, taguer et pousser, suivre la CI du tag puis le run de release, télécharger la release et vérifier ses sommes et ses attestations ; `chain <pr> <version>` enchaîne tout. Chaque commande écrit son PID dans `.cache/pids/` |
 | `npm run page:storyboard`, `page:review`, `page:placement`, `import-layout` | les pages de relecture pour téléphone et l'import de la page de placement (`docs/fr/PAGES.md`) |
 | `npm run bridge -- …` | la ligne de commande du Reality Bridge (`docs/fr/REALITY-OPS.md`) |
 | `npm run solve:reality`, `reality:spike`, `reality:xcheck` | le solveur sous chaque scénario de réalité, une sonde de charge du Bridge, la contre-vérification Rust du protocole (`docs/fr/REALITY.md`) |

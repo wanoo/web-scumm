@@ -24,8 +24,18 @@ sous-objet optionnels (le `web-scumm/reality` de la 4.1.1, les options du Bridge
 de la 4.1.4, `sessions`, `camera` et `walker` de la 4.1.5, les deux commandes de la 4.1.6). Ce qu'elle ne peut pas
 faire est ce qu'un correctif ne peut pas faire non plus : changer ou retirer un nom public ou un format. Chaque ajout
 est optionnel, rien de la 4.1.0 ne change, et un jeu ou un hôte écrit pour n'importe quelle 4.1.x tourne sur chaque
-4.1.x suivante. `docs/fr/UPGRADING.md` a une section par release qui dit ce qu'un hôte doit savoir, s'il y a quelque
-chose.
+4.1.x suivante, **jusqu'à la 4.1.7**. `docs/fr/UPGRADING.md` a une section par release qui dit ce qu'un hôte doit
+savoir, s'il y a quelque chose.
+
+**À partir de la 4.1.8, la lignée 4.1.x est une lignée d'incubation (D18, 7 octobre 2026).** Aucun jeu de production
+ne dépend du moteur (le jeu du mainteneur reste en 3.1.0, D8) : une release du programme `docs/dev/PROGRAM-4.1.md`
+(4.1.8 à 4.1.15) peut casser un nom public ou un format quand le programme l'exige. Chaque rupture est listée sous
+« Breaking » dans le CHANGELOG, livrée avec une migration des jeux fournis et des sauvegardes quand elles sont
+concernées, et a sa section dans `docs/fr/UPGRADING.md` ; une surface dont les passes humaines ne sont pas faites est
+marquée expérimentale ici. Le socle du DSL est stabilisé en 4.1.12 et gelé après la 4.1.15. **La 4.2.0 « Stable
+World » rétablit le SemVer strict** : à partir d'elle, une mineure ajoute et une majeure retire, comme ci-dessus. Les
+versions les plus risquées ont d'abord une release candidate (`4.1.8-rc.1`, une pré-release GitHub avec les mêmes
+fichiers et les mêmes contrôles).
 
 Suivies : la dernière mineure de la majeure en cours reçoit les correctifs ; la mineure précédente reçoit les
 correctifs de sécurité trois mois après la sortie de la suivante. La lignée 3.x s'est terminée avec la 3.9 ; ses jeux

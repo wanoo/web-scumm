@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Changes
+
+- **The 4.1.8 → 4.1.15 programme** (D18, 7 October 2026). After 4.1.7 the project does not go to 4.2.0 "Finale": it
+  runs eight more releases first (Foundation Reset, Gateways, Constellation, Viewport, Language, Proof at Scale, Time
+  Attack, Remix), then 4.2.0 "Stable World" takes what "Finale" planned. `docs/dev/PLAN-4.1.8-4.1.15.md` is the
+  programme (French, the source); `docs/dev/PROGRAM-4.1.md` its English page; the ROADMAP and SUPPORT say what it
+  changes for a host: from 4.1.8 the 4.1.x line is an incubation line where a release may break a public name or a
+  format, documented and with a migration, until 4.2.0 restores strict SemVer.
+- **The release chain as commands.** `npm run ship -- <checks|merge|main|tag|watch|verify|chain>`
+  (`tools/release/ship.mjs`): what the 4.1.2 → 4.1.7 releases were run with, kept in the repository instead of a
+  session's scratchpad; one re-run of a failed job, a tag never moved, the release downloaded and its sums and
+  attestations verified. A pre-release tag (`v4.1.8-rc.1`) is published as a GitHub pre-release and its notes say
+  which version it candidates for.
+
 ## 4.1.7 — 2026-10-06
 
 "Docs for a Studio" (LOG #103): the plan's sixth release, the last before 4.2; the documentation a studio reads

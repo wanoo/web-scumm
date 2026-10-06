@@ -2292,3 +2292,30 @@ Platform"; human gates reported, not blocking (D12).
   per API name; external links.
 
 → next: Claude · pull request, merge on green, tag v4.1.7; then 4.2.0 "Finale"
+
+## #104 · 2026-10-07 · Claude · decision · the 4.1.8 → 4.1.15 programme (D18)
+
+- After the six releases of 6–7 October (4.1.2 → 4.1.7, each verified: sums, attestations) the next step was 4.2.0
+  "Finale". The maintainer brought a programme instead, `docs/dev/PLAN-4.1.8-4.1.15.md` (French; 1 036 lines when it arrived, 1 077 with §11.13, the code wheel they
+  added the same day): eight
+  releases that use the absence of a production game (D8) to finish the architecture breaks before 4.2 freezes the
+  contracts; "Finale" becomes 4.2.0 "Stable World". Their decisions, taken on the plan: the whole programme in order;
+  nothing cut, human and infrastructure passes delivered testable and reported (D12), blocking only for 4.2.0; every
+  pull request read by a second automated context before it merges; release candidates on the risky versions.
+- The maintainer's review of the plan corrected it before the first commit: the Reality cursor defect is **reproduced**
+  (polling: `after=0`, signal 1 delivered and not acknowledged, next request `after=1`), so 4.1.8 carries a P0 fix,
+  not a hypothesis; Time Attack needs its own clock (RTA monotone, a logical time in integer ticks, Active IGT per
+  category), a chunked and hash-chained journal instead of a raised `SESSION_MAX`, a hash chain of the whole run and a
+  verification worker isolated from the Bridge's HTTP process; integrity is not authenticity; the Reality protocol is
+  not frozen before the multi-tenant threat analysis; 4.1.13 ships on two thresholds or is named "Solver Research";
+  the three biggest Studio files are `storyboard.ts`, `assets.ts`, `rooms.ts` (1 377, 1 364, 1 358 lines on v4.1.7);
+  mutation reports are keyed by a hash of their inputs, not by the commit; `release.yml` is not made faster in 4.1.8.
+- This entry's commits: the plan committed as received, then its §11.13; `docs/dev/PROGRAM-4.1.md` (English), D18, the ROADMAP's programme
+  section, SUPPORT's incubation paragraph, `tools/release/ship.mjs` (`npm run ship`: the chain of 4.1.2 → 4.1.7,
+  rewritten in Node from a scratchpad that died with its session), `release.yml` publishing a `-rc.N` tag as a
+  pre-release, release notes that say which version a candidate is for.
+- Not done, said as such: nothing of the engine changes here. The 4.1.8 lots follow, one branch each: the baseline of
+  4.1.7 and the red Reality test, the P0 fix and the reality mutation set gated, TypeScript 7, Vite 8, PWA 2, the honest
+  release checks, the Studio split, the docs' contradictions, then `release/4.1.8` and `v4.1.8-rc.1`.
+
+→ next: Claude · `test/418-baseline` (measures of 4.1.7, the Reality reproduction as a test)

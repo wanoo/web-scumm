@@ -1,12 +1,19 @@
 #!/usr/bin/env node
-// node scripts/release-notes.mjs v3.1.0 [CHANGELOG.md]: prints the CHANGELOG section of that version (the release
+// node scripts/release-notes.mjs v3.1.0 [CHANGELOG.md]: prints the CHANGELOG section of that version (a `-rc.N` tag reads
+// the version's section and says it is a candidate; the release
 // workflow uses it as the GitHub release notes), then what was checked by hand (docs/dev/passes/<version>.md, D12: a
 // release ships on its automated gates and says which manual pass was not done). Exit 1 when the version has no section.
 import { existsSync, readFileSync } from 'node:fs';
 
 /** The body of the `## <version> …` section, without its heading. */
 export function releaseNotes(changelog, tag) {
-  const version = tag.replace(/^v/, '');
+  // A release candidate (`v4.1.8-rc.1`, 4.1.8) carries the section of the version it candidates for, and says so.
+  const full = tag.replace(/^v/, '');
+  const version = full.replace(/-.*$/, '');
+  const candidate =
+    full === version
+      ? ''
+      : `**Release candidate ${full.slice(version.length + 1)} of ${version}**: a pre-release for a cycle of observation; the final tag may differ.\n\n`;
   const lines = changelog.split('\n');
   const start = lines.findIndex((l) =>
     new RegExp(`^## ${version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\s|$)`).test(l),
@@ -15,13 +22,15 @@ export function releaseNotes(changelog, tag) {
   let end = lines.findIndex((l, i) => i > start && /^## /.test(l));
   if (end < 0) end = lines.length;
   return (
+    candidate +
     lines
       .slice(start + 1, end)
       .join('\n')
       // The notes are read by people outside the work log (4.1.7): its entry numbers and decision ids stay in the CHANGELOG.
       .replace(/ ?\(LOG #\d+(?:,[^)]*)?\)/g, '')
       .replace(/ ?\(D\d+(?:[–-]D?\d+)?\)/g, '')
-      .trim() + '\n'
+      .trim() +
+    '\n'
   );
 }
 
@@ -46,9 +55,10 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop()
   }
   const notes = releaseNotes(readFileSync(process.argv[3] ?? 'CHANGELOG.md', 'utf8'), tag);
   if (notes === null) {
-    console.error(`no "## ${tag.replace(/^v/, '')}" section in the changelog`);
+    console.error(`no "## ${tag.replace(/^v/, '').replace(/-.*$/, '')}" section in the changelog`);
     process.exit(1);
   }
-  const sheet = `docs/dev/passes/${tag.replace(/^v/, '')}.md`;
+  // The sheet of the version a candidate is for (4.1.8): `v4.1.8-rc.1` reads `docs/dev/passes/4.1.8.md`.
+  const sheet = `docs/dev/passes/${tag.replace(/^v/, '').replace(/-.*$/, '')}.md`;
   process.stdout.write(`${notes}\n${manualPasses(existsSync(sheet) ? readFileSync(sheet, 'utf8') : null)}`);
 }
