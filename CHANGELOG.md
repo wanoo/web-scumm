@@ -71,6 +71,14 @@
   it holds first. A crash before applying, after applying, after the save: delivered again, applied once
   (`tests/reality-engine.test.ts`). Biscuit authorises under explicit run limits (200 ms on the Bridge), so a slow
   machine never refuses a valid token as a timeout. `core/movement.ts` keeps `engine.ts` under 800 lines.
+- **Reality Bridge in the proof** (lot D): `SolveOptions.reality` is `closed` (the default: the game on its own),
+  a scenario (its signals in order, each able to arrive at any point after the previous one) or `adversarial` (any
+  declared signal, at any point, again); every result says which world it holds in (`SolveResult.reality`). `npm run
+  solve:reality`, in `prove:game` and the packaged `web-scumm release`: closed, each scenario of
+  `games/<id>/reality/scenarios/*.json`, and adversarial, all proved without a softlock, never truncated; a required
+  signal needs a scenario that sends it. The validator: signal ids, sources, modes, a required signal's `fallback`
+  matching a rule, and in a game with `reality` an event listened to that nothing emits nor declares is an error. The
+  puzzle graph shows each signal as produced from outside.
 
 ## 4.0.0 — 2026-10-05
 

@@ -54,4 +54,9 @@ export function signals(): GameDef {
     ui: {} as GameDef['ui'],
   };
 }
-export const signalsLayouts: Record<string, Layout> = { hall: { entries: { default: [320, 360] } } };
+export const signalsLayouts: Record<string, Layout> = {
+  hall: {
+    entries: { default: [320, 360] },
+    hotspots: { vault: { rect: [100, 100, 80, 80] }, radio: { rect: [400, 100, 60, 60] } },
+  },
+};

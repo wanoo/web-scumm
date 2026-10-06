@@ -66,6 +66,7 @@ as in the core:
 | `tools/solve/expansion.ts` | `makeExpander`: every action worth trying from a state, run on the real engine; the no-op memo |
 | `tools/solve/abstractions.ts` | what a state is made of (dimensions), the canonical forms (players, mobility, ownership), dominance |
 | `tools/solve/model.ts` | options, `SearchNode`, `Expansion` and a transition (`TryRecord`), with their invariants |
+| `tools/solve/scenarios.ts` | signals from outside in a search: closed, a scenario, adversarial (4.1.1) |
 | `tools/solve/report.ts` | the result, its profile, paths as labels and as session entries |
 
 The path of a proof reads `solve()` → `solveOnce()` (search) → `makeExpander()` (expansion) → the engine's `act()` →

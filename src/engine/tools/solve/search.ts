@@ -639,5 +639,16 @@ export async function solveOnce(
     errors: uniqueErrors,
     broken,
     profile,
+    ...(game.reality ? { reality: realityLabel(opts.reality) } : {}),
   };
+}
+
+/**
+ * Which world a verdict holds in (4.1.1): "proved without the outside world", "under scenario X", or against any
+ * order and repetition of the declared signals. The report says it, so a proof never assumes a service cooperated.
+ */
+export function realityLabel(p: SolveOptions['reality']): string {
+  if (!p || p === 'closed') return 'closed: without the world outside';
+  if (p === 'adversarial') return 'adversarial: any declared signal, at any point, again';
+  return `scenario ${p.scenario}: ${p.signals.join(' → ') || 'no signal'}`;
 }

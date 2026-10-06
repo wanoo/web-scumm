@@ -1,5 +1,6 @@
 // Content validator: checks that everything referenced exists, and flags what's missing for a good experience.
 // Pure TypeScript (no DOM): runs in node (npm run validate) and in tests.
+import { eventChecks } from './validate-events';
 import { inPolygon, rendererOf, stageOf } from '../core/stage';
 import { listId, listText } from '../core/list-lines';
 import { condFlags } from '../core/cond';
@@ -1162,12 +1163,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
 
   // Events and scripts
   for (const [id, where] of scriptRefs) if (!scriptIds.has(id)) err(where, `unknown script: "${id}"`);
-  for (const [ev, where] of emitted)
-    if (!listened.has(ev) && !waited.has(ev)) warn(where, `event "${ev}" is emitted but nothing listens to it`);
-  for (const [ev, where] of listened)
-    if (!emitted.has(ev)) warn(where, `event "${ev}" is listened to but never emitted`);
-  for (const [ev, where] of waited)
-    if (!emitted.has(ev)) warn(where, `script waits for event "${ev}", which is never emitted`);
+  eventChecks(game, { emitted, listened, waited }, err, warn);
 
   // Flags
   for (const [f, where] of flagsRead) if (!flagsSet.has(f)) warn(where, `flag "${f}" is read but never set`);
