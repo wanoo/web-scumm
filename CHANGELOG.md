@@ -26,6 +26,10 @@
   method in the same order of effects. `core/types.ts` re-exports `core/types/{content,game,stage,audio,state,session}.ts`.
   The public surface is unchanged (`tests/api-surface.json`, which now follows nested re-exports), and so is the
   behaviour (`quality:baseline`). `tests/boundaries.test.ts` refuses any cycle of static imports.
+- **The player split the same way** (`BOUNDARIES.md`, "Inside the player"): `dom/app.ts` (2,343 lines once
+  formatted) keeps `App`, the `Presenter` and the orchestration (780 lines); the shell, input, speech, map, menus,
+  settings, offline and update, and the localStorage store each have a module. The production e2e (Chromium and
+  WebKit, keyboard, saves, axe, offline, the double tap, the Canvas painter) give the same results.
 
 ## 4.0.0 — 2026-10-05
 

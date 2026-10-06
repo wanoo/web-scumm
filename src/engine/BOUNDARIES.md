@@ -35,3 +35,21 @@ of its own, a function taking the engine as its first argument:
 
 The modules import `Engine` as a type only; `tests/core-runtime.test.ts` calls each directly.
 
+## Inside the player (4.1.0 "Clarity")
+
+`App` (`dom/app.ts`) is the `Presenter` and the orchestration: its state, the constructor, the small presenter calls
+(walk, pose, music, toast…), the minigame and the ending. The rest lives in modules called through forwarding methods,
+as in the core:
+
+| Module | What it does |
+|---|---|
+| `dom/shell.ts` | the shell's elements, their layout for the screen, the accessible targets |
+| `dom/input.ts` | verbs, the inventory bar, taps and double taps (`verbFor`, `nearMiss`), the keyboard, the action line |
+| `dom/speech.ts` | lines with their voice, the transcript, phone calls, the choice of responses |
+| `dom/map-view.ts` | the map and the travel animation |
+| `dom/menus.ts` | title, pause (and the session export, through `import()`), save slots, restart, credits |
+| `dom/settings.ts` | the player's preferences, their defaults and menu |
+| `dom/update.ts` | the offline warm-ups and status, the update offered after a verified save |
+| `dom/storage.ts` | the localStorage autosave and slots (when IndexedDB is missing) |
+| `dom/app-shared.ts` | small helpers (element factory, tap timings, the FPS meter) |
+
