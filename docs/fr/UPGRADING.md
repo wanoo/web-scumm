@@ -274,3 +274,10 @@ a pas ; un `package.json` dont `config.game` nommait un jeu compte toujours, apr
 `npm run build` ne lance plus les tests pixel (`npm test` et la CI le font). `npm run doctor` sort 0 quand seuls
 Python, ffmpeg ou WebKit manquent. `requirements.txt` épingle ses modules : `pip install -r requirements.txt` à
 nouveau si les vôtres sont plus anciens. Une sauvegarde 4.1.5 se charge telle quelle.
+
+## 19. De la 4.1.6 à la 4.1.7 « Docs pour un studio »
+
+Rien à changer dans un jeu ni dans un hôte : la 4.1.7 change la documentation, les tests et les modèles du dépôt,
+aucun code qu'un jeu exécute. Une sauvegarde 4.1.6 se charge telle quelle. Si vous gardez une copie d'`AGENTS.md`, sa
+règle 14 et la section « Working in pairs » ont disparu ; `docs/fr/TUTORIAL.md` est la page à donner à un nouveau
+venu.

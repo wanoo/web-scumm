@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 4.1.7 — 2026-10-06
+
+"Docs for a Studio" (LOG #103): the plan's sixth release, the last before 4.2; the documentation a studio reads
+first, after the code it describes. What this release does not do is in the LOG and the passes sheet.
+
+### Changes
+
 - **Docs for a studio** (4.1.7, the plan's sixth release). The READMEs rewritten in both languages: one pitch,
   three commands, what each role gets, the screenshots taken again from the current build, one table of numbers,
   the current release in one paragraph (the release-by-release stack is the CHANGELOG's), a non-affiliation note

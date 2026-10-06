@@ -9,7 +9,9 @@ describe('every npm script is documented', () => {
   for (const page of ['docs/en/TOOLS.md', 'docs/fr/TOOLS.md'])
     it(page, () => {
       const md = readFileSync(page, 'utf8');
-      const missing = scripts.filter((s) => !new RegExp(`(npm run (-s )?|npm |\`|, )${s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\b|\`)`).test(md));
+      const missing = scripts.filter(
+        (s) => !new RegExp(`(npm run (-s )?|npm |\`|, )${s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(\\b|\`)`).test(md),
+      );
       expect(missing).toEqual([]);
     });
 });

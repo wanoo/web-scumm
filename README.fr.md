@@ -103,7 +103,7 @@ contenu.
 publication npm est prévue pour la 4.2, puis `npx create-web-scumm mon-jeu`) :
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.6/web-scumm-4.1.6.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.7/web-scumm-4.1.7.tgz
 npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # puis npm run verify, npm run build, npm run release
@@ -131,9 +131,9 @@ Mesuré sur la release courante, par les gates automatiques qui tournent à chaq
 
 | Quoi | Résultat |
 |---|---|
-| Tests unitaires | 830, sous Node 22 et 24, avec des planchers de couverture par module et des tests de mutation sur ce dont dépendent une sauvegarde, une session, une condition et un signal |
+| Tests unitaires | 910, sous Node 22 et 24, avec des planchers de couverture par module et des tests de mutation sur ce dont dépendent une sauvegarde, une session, une condition et un signal |
 | Tests navigateur | le jeu d'exemple joué jusqu'à sa fin au tactile et au clavier dans Chromium et WebKit à la taille d'un téléphone, en anglais et en français, avec le peintre DOM et le peintre Canvas ; un second jeu et le jeu de référence aussi ; chaque mini-jeu gagné au clavier ; axe-core sur chaque écran |
-| Sauvegardes | une sauvegarde figée par release de la 3.0.0 à la 4.1.6 se charge et atteint la fin |
+| Sauvegardes | une sauvegarde figée par release de la 3.0.0 à la 4.1.7 se charge et atteint la fin |
 | Preuve | chaque état atteignable du jeu d'exemple en quelques secondes ; un jeu de référence de 40 pièces en 578 états ; 1 503 jeux aléatoires comparés à une recherche explicite chaque nuit, 0 divergence ([BENCH](docs/fr/BENCH.md)) |
 | Un nouveau jeu | empaqueté, créé depuis l'archive, installé, vérifié, construit et joué jusqu'à sa fin par la CI ; un jeu fait sur la release précédente mis à niveau et sa sauvegarde jouée jusqu'à la fin |
 | La première visite du joueur | 122 Ko de JavaScript, gzippés, tenus par un budget ; chaque octet téléchargé prédit par le graphe des assets |
@@ -161,10 +161,10 @@ journal du travail.
 
 ## Releases
 
-Release actuelle : [v4.1.6 « Outil de studio »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.6) : l'outil
-quotidien d'un petit studio : rien de suivi écrit par `dev` ou `new-game`, un build sans Python, un `doctor` qui
-distingue requis et optionnel, des scripts qui tournent sous Windows, un `set_layout` validé, des verbes de 44 px ;
-sur le cœur réel de la 4.1.5. Depuis la 4.1.1 le projet reste sur la lignée 4.1.x jusqu'à la 4.2, la version finale :
+Release actuelle : [v4.1.7 « Docs pour un studio »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.7) : cette
+page, un tutoriel de première pièce, les signatures de l'API générées depuis le code, une matrice de support, les
+pages françaises tenues à moins d'un tiers des anglaises par un test, chaque script documenté, les fichiers de
+gouvernance ; sur l'outil quotidien de la 4.1.6. Depuis la 4.1.1 le projet reste sur la lignée 4.1.x jusqu'à la 4.2, la version finale :
 chaque release n'ajoute que de l'optionnel, et un jeu écrit pour n'importe quelle 4.1.x tourne sur chaque suivante
 ([SUPPORT](docs/fr/SUPPORT.md)). L'histoire de la v1.3 à aujourd'hui est dans la [ROADMAP](docs/fr/ROADMAP.md),
 chaque changement dans le [CHANGELOG](CHANGELOG.md).

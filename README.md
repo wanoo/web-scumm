@@ -98,7 +98,7 @@ which is why it can prove the game: the same `Engine`, the same `resolve`, no se
 is planned for 4.2, then `npx create-web-scumm my-game`):
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.6/web-scumm-4.1.6.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.7/web-scumm-4.1.7.tgz
 npx --package=$T web-scumm create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # then npm run verify, npm run build, npm run release
@@ -126,9 +126,9 @@ Measured on the current release, by the automated gates that run on every change
 
 | What | Result |
 |---|---|
-| Unit tests | 830, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
+| Unit tests | 910, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
 | Browser tests | the sample game played to its ending by touch and by keyboard in Chromium and WebKit at a phone's size, in English and French, with the DOM and the Canvas painter; a second game and the reference game too; every minigame won at the keyboard; axe-core on every screen |
-| Saves | one frozen save per release from 3.0.0 to 4.1.6 loads and reaches the ending |
+| Saves | one frozen save per release from 3.0.0 to 4.1.7 loads and reaches the ending |
 | Proof | the sample game's every reachable state in seconds; a 40-room reference game in 578 states; 1 503 random games compared to an explicit search every night, 0 divergences ([BENCH](docs/en/BENCH.md)) |
 | A new game | packed, created from the tarball, installed, verified, built and played to its end by CI; a game made on the previous release upgraded and its save played to the end |
 | The player's first visit | 122 KB of JavaScript, gzipped, held by a budget; every byte fetched predicted by the asset graph |
@@ -155,9 +155,9 @@ Every page also exists in French under `docs/fr/`, and a test keeps the two in s
 
 ## Releases
 
-Current release: [v4.1.6 "Studio Tool"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.6): the day-to-day
-tool of a small studio: nothing tracked written by `dev` or `new-game`, a build without Python, a `doctor` that tells
-required from optional, scripts that run on Windows, a validated `set_layout`, 44 px verbs; on 4.1.5's real core.
+Current release: [v4.1.7 "Docs for a Studio"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.7): this page,
+a first-room tutorial, the API's signatures generated from the code, a support matrix, the French pages held within a
+third of the English ones by a test, every script documented, the governance files; on 4.1.6's day-to-day tool.
 Since 4.1.1 the project stays on the 4.1.x line until 4.2, the final version: every release adds only what is
 optional, and a game written against any 4.1.x runs on every later one ([SUPPORT](docs/en/SUPPORT.md)). The story
 from v1.3 to here is in the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).

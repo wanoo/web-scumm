@@ -566,6 +566,21 @@ Check parle encore la langue du solveur ; `sirv-cli` reste où il est. La suivan
 un studio : un README qui donne envie, la référence d'API depuis le TSDoc, un tutoriel « première pièce », la parité
 française vérifiée, les fichiers de gouvernance.
 
+## v4.1.7 « Docs pour un studio » (livrée le 6 octobre 2026) : la documentation qu'un studio lit en premier
+
+Les READMEs réécrits dans les deux langues (un pitch, trois commandes, ce que chaque rôle obtient, les captures
+reprises, une table de chiffres, la release en un paragraphe, une note de non-affiliation) ; `TUTORIAL.md`, une
+première pièce en quinze minutes ; `API.md` avec les signatures de l'API publique générées depuis les sources
+(`tools/api-doc.ts`, tenues par un test) ; `SUPPORT.md` avec la politique 4.1.x dite une fois et une matrice de
+support ; le `STUDIO.md` français complet, et un test qui tient chaque page française à moins d'un tiers de sa jumelle
+anglaise, section par section ; chaque lien relatif vérifié ; chaque script npm documenté dans `TOOLS.md` et testé
+tel ; `AGENTS.md` et `CLAUDE.md` sans le travail en binôme de la v3 ; des notes de release sans les numéros du
+journal ; un code de conduite, un modèle de pull request, un modèle d'issue de fonctionnalité, le wiki fermé. Laissé
+pour plus tard, dit comme tel : la référence d'API porte des signatures et des premières lignes de doc, pas un exemple
+par nom ; aucun vérificateur de liens ne va chercher les URL externes. La suivante est la 4.2.0, la finale : le
+paquet compilé sur npm, une API d'hôte plus étroite avec des événements typés, les mises à jour de dépendances, un
+tag signé.
+
 ## Après la 4.0 (pas encore planifié)
 
 - Les passes terrain, puis ce qu'elles trouvent (D12).

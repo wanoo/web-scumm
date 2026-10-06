@@ -2267,3 +2267,20 @@ Platform"; human gates reported, not blocking (D12).
   says so).
 
 → next: Claude · pull request, merge on green, tag v4.1.6; then 4.1.7 "Docs pour un studio" (a README worth reading)
+
+## #103 · 2026-10-06 · Claude · release · 4.1.7 "Docs for a Studio"
+
+- One branch, `docs/studio-docs`, on 4.1.6: the READMEs rewritten (the user asked for a README worth reading, not
+  only an exact one), TUTORIAL.md, the API's signatures from the TypeScript compiler, SUPPORT.md's policy and
+  matrix, STUDIO.md's three French sections, the parity, link and scripts tests, AGENTS.md and CLAUDE.md cleaned,
+  release notes without LOG numbers, the governance files; `release/4.1.7` on top.
+- Found on the way, in 4.1.6 (fixed on `release/4.1.6`): a fresh checkout's `npm run quality` type-checked before any
+  `.cache/game` link existed (tsconfig's `@game` paths now fall back to `games/demo`); `tools/assets.py` and
+  `cut-sheet.py` did not read the link, so after `new-game second` the assets prepared were the demo's and the second
+  game's validation found no image (the link comes before package.json in both, as in `tools/game.ts`).
+- Measured, not claimed: English/French parity by words per section (30 %, sections of 60 words or more), 83 scripts,
+  175 signatures, 910 unit tests.
+- Not done (D12): the field passes, a newcomer's pass of the tutorial, the reality survivors, a signed tag; examples
+  per API name; external links.
+
+→ next: Claude · pull request, merge on green, tag v4.1.7; then 4.2.0 "Finale"
