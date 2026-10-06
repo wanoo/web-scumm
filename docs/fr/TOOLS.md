@@ -151,7 +151,9 @@ npm run solve -- --from=<checkpoint> --max=50000
 npm run solve -- --prove --workers=4 [--batch=64] [--time=60]   # workers de preuve (3.5) : le même résultat quel que soit leur nombre ; une grosse preuve ×2,5 avec 4 (BENCH.md « 3.5 »)
 npm run solve -- --prove --ownership=off   # sans le propriétaire canonique (qui porte un objet libre, mis en commun dans les preuves depuis la 3.5)
 npm run solve -- --dominance             # un témoin avec dominance (3.5 ; n'élague rien sur les jeux fournis, BENCH.md)
-npm test           # tests Node du moteur, des outils et du jeu sélectionné
+npm test           # tests Node du moteur, des outils et du jeu sélectionné (sans les tests lourds du solveur, 4.1.3)
+npm run test:heavy # les tests du solveur gourmands en CPU (audits des abstractions, propriétaire canonique, preuves memo et ownership, preuve du chapitre de référence) : chaque nuit, des minutes chacun
+npm run test:coverage   # la suite sous couverture V8, contre les planchers de vite.config.ts ; puis `npx tsx tools/coverage-ratchet.ts` nomme un plancher d'au moins trois points sous ce que les tests atteignent
 npm run quality:baseline -- --check [--dist]   # le comportement de la 4.0.0 conservé (4.1.0) : témoins, preuves, sauvegardes de référence, surface publique, première visite (tests/quality-baseline.json ; sans --check : l'écrit)
 npm run test:assets # tests Python des images et du pipeline d'assets
 npm run e2e        # parcours dans Chromium en paysage téléphone (serveur de dev lancé)
@@ -206,9 +208,10 @@ npm run lint [-- --prove | --static | --json]   # lint de contenu : conditions i
 npm run quality   # code du moteur (4.1.0) : formatage et lint Biome, tsconfig.json et tsconfig.strictest.json, puis le lint de contenu
 npm run doctor                     # vérifie Node, modules Python, ffmpeg et navigateurs Playwright
 npm run check                      # vérifie les types et lance les tests Node
+npm run build:game                 # les portes du jeu (verify:game), le bundle, verify:dist, le contrôle des spoilers, l'audit des assets : ni tsc ni suite unitaire (la CI les lance une fois)
 npm run verify:game                # validation, témoins globaux/par chapitre et couverture des traductions
 npm run prove:game                 # preuve exhaustive globale/par chapitre ; échoue sur softlock ou troncature
-npm run release-check              # prérequis, build, preuve et audit des dépendances de production
+npm run release-check              # ce que la CI lance, d'un coup : prérequis, quality, build, couverture, verify:release, preuves, le cross-check Rust, la mutation du cœur, les audits de dépendances
 ```
 
 **Lint.** `npm run lint` dit ce que `validate` ne peut pas dire (il vérifie formes et références) et ce que `solve`

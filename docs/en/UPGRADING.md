@@ -236,3 +236,9 @@ root key from it until `init` writes a `root.key`); behind a reverse proxy, star
 per address see the client's address; `doctor` reads the journal, `compact` shrinks it with the Bridge stopped. The
 package `web-scumm-bridge` runs on Node alone now (no `tsx`). A 4.1.1 save loads; it gets its player id on the next
 signal.
+
+## 15. From 4.1.2 to 4.1.3 "Honest Gates"
+
+Nothing to change in a game or a Bridge. In this repository: `npm test` no longer runs the CPU-bound solver tests
+(`npm run test:heavy` does, nightly); `npm run build:game` builds a game without the unit suite; `release-check` is
+longer (coverage, the Rust cross-check, mutation of the core). Contributions to `main` go through a pull request.

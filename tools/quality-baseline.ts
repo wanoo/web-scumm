@@ -31,7 +31,7 @@ interface GameCase {
 const fx = (id: string, file: string, make: string, lay: string, ...a: unknown[]): GameCase => ({
   id,
   load: async () => {
-    const m = await import(`../tests/fixtures/${file}`);
+    const m = await import(`../tests/fixtures/${file}.ts`);
     return { game: m[make](...a), layouts: m[lay] };
   },
 });
@@ -124,6 +124,16 @@ async function measure(): Promise<Baseline> {
   return b;
 }
 
+/** The policy parts that got better than the baseline (4.1.3): said, so the baseline is ratcheted on purpose. */
+export function improvements(want: Baseline, got: Baseline): string[] {
+  const out: string[] = [];
+  if (got.tests.declarations > want.tests.declarations)
+    out.push(`tests: ${want.tests.declarations} → ${got.tests.declarations} declarations`);
+  if (want.bundle && got.bundle && got.bundle.initialJsKB < want.bundle.initialJsKB)
+    out.push(`first visit's JavaScript: ${want.bundle.initialJsKB} → ${got.bundle.initialJsKB} KB gzipped`);
+  return out;
+}
+
 /** What moved between two baselines, one line each. Tests may only grow; the first visit may only shrink. */
 export function differences(want: Baseline, got: Baseline): string[] {
   const out: string[] = [];
@@ -166,6 +176,13 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
   if (!check) {
     const prev = existsSync(OUT) ? (JSON.parse(readFileSync(OUT, 'utf8')) as Baseline) : undefined;
     if (!got.bundle && prev?.bundle) got.bundle = prev.bundle;
+    // A rewrite says what it moves (4.1.3): a digest or a verdict that changes here is a behaviour change to own in
+    // the CHANGELOG, never a side effect of "refreshing the baseline".
+    if (prev) {
+      const moved = differences(prev, got).filter((d) => !d.startsWith('tests:'));
+      for (const d of moved) console.log('  ⚠ behaviour moved: ' + d);
+      for (const d of improvements(prev, got)) console.log('  ✔ ratcheted: ' + d);
+    }
     writeFileSync(OUT, JSON.stringify(got, null, 1) + '\n');
     console.log(
       `✔  tests/quality-baseline.json written: ${Object.keys(got.games).length} games, ${Object.keys(got.saves).length} golden saves, ${got.tests.declarations} test declarations`,
@@ -175,6 +192,8 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
     const want = JSON.parse(readFileSync(OUT, 'utf8')) as Baseline;
     const diff = differences(want, got);
     for (const d of diff) console.log('  ✖ ' + d);
+    for (const d of improvements(want, got))
+      console.log(`  ⚠ better than the baseline, ratchet it (npm run quality:baseline): ${d}`);
     console.log(
       diff.length
         ? `✖  behaviour moved from tests/quality-baseline.json (${diff.length})`

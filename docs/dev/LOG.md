@@ -2195,3 +2195,22 @@ Platform"; human gates reported, not blocking (D12).
   installs the package's two dependencies for real (`fix/release-sbom`), and the tag goes on the commit CI tests next.
 
 → next: Claude · merge on green CI, tag v4.1.2 again; then 4.1.3 "Gates honnêtes" (the plan's second release)
+
+## #99 · 2026-10-06 · Claude · release · 4.1.3 "Honest Gates"
+
+- The plan's second release, on one branch (`fix/ci-gates`; a first push as `ci/gates` ran no CI: the workflow only
+  triggers on the charter's kinds). Workflows: `permissions: contents: read`, `concurrency` per ref, `timeout-minutes`
+  everywhere, `ubuntu-24.04`, every action pinned to a commit, a `node-24` job. The unit suite once per push:
+  `build:game` for the second game and the reference chapter. The 14 CPU-bound solver tests to `nightly`
+  (`test:heavy`), out of `test` and `test:coverage`; measured without them the global coverage stays above its floors
+  (57.4 / 56.6 / 52.0 / 57.6). `tools/coverage-ratchet.ts` raised five floors. `quality:baseline` says what a rewrite
+  moves. `release-check` runs what CI runs. CODEOWNERS. On GitHub: Dependabot alerts and security updates on,
+  auto-delete of merged branches, ten topics, 120 remote and 113 local merged branches deleted, 52 worktrees of the
+  previous sessions removed. The ruleset on `main` is set right after this release merges, so 4.1.4 is the first
+  release that merges by pull request.
+- Left aside from the plan's 4.1.3: path filters for docs-only pushes (a required check that never runs blocks a
+  pull request), a "build once" by artifact (the bundle takes a minute, the duplicated unit suite took five: that
+  one is gone), a separate UX measures script (the e2e weight, perf and a11y jobs already measure).
+- Not done (D12): the field passes, the 88 reality mutants, a signed tag.
+
+→ next: Claude · merge on green CI, the ruleset, tag v4.1.3; then 4.1.4 "Moteur honnête"

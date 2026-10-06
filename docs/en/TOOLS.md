@@ -158,7 +158,9 @@ npm run solve -- --from=<checkpoint> --max=50000
 npm run solve -- --prove --workers=4 [--batch=64] [--time=60]   # proof workers (3.5): the same result for any number of workers; a large proof ×2.5 with 4 (BENCH.md "3.5")
 npm run solve -- --prove --ownership=off   # without the canonical owner (who holds a free item, pooled in proofs since 3.5)
 npm run solve -- --dominance             # a witness with dominance (3.5; prunes nothing on the bundled games, BENCH.md)
-npm test           # Node engine/tool tests and the selected game's tests
+npm test           # Node engine/tool tests and the selected game's tests (the heavy solver tests excluded, 4.1.3)
+npm run test:heavy # the CPU-bound solver tests (abstraction audits, canonical owner, memo and ownership proofs, the reference chapter's proof): nightly, minutes each
+npm run test:coverage   # the suite under V8 coverage, against the floors of vite.config.ts; then `npx tsx tools/coverage-ratchet.ts` names a floor at least three points behind what the tests reach
 npm run quality:baseline -- --check [--dist]   # the behaviour of 4.0.0 kept (4.1.0): witnesses, proofs, golden saves, public surface, first visit (tests/quality-baseline.json; without --check: write it)
 npm run test:assets # Python-backed image and asset-pipeline tests
 npm run e2e        # a playthrough in Chromium, phone landscape (dev server already running)
@@ -213,9 +215,10 @@ npm run lint [-- --prove | --static | --json]   # content lint: conditions nothi
 npm run quality   # engine code (4.1.0): Biome formatting and lint, tsconfig.json and tsconfig.strictest.json, then the content lint
 npm run doctor                     # checks Node, Python modules, ffmpeg and Playwright browsers
 npm run check                      # type-check and Node tests
+npm run build:game                 # the game's gates (verify:game), the bundle, verify:dist, the spoiler check, the asset audit: no tsc, no unit suite (CI runs those once)
 npm run verify:game                # validation, global/chapter witnesses and translation coverage
 npm run prove:game                 # global/chapter exhaustive proof; fails on softlocks or truncation
-npm run release-check              # prerequisites, build, proof and production dependency audit
+npm run release-check              # what CI runs, in one go: prerequisites, quality, build, coverage, verify:release, proofs, the Rust cross-check, mutation of the core, the dependency audits
 ```
 
 **Lint.** `npm run lint` says what `validate` cannot (it checks shapes and references) and what `solve` does not say

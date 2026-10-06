@@ -406,15 +406,15 @@ export default defineConfig({
         'src/engine/tools/replay.ts': { branches: 99 },
         // Eleven fallbacks for an old entry that `assignIds` always finds (critical-ids lists them).
         'src/engine/core/content-ids.ts': { branches: 96 },
-        // What a signal from the world outside rests on (4.1.2): measured at 4.1.2, may only rise. The player's menu
+        // What a signal from the world outside rests on (4.1.2; ratcheted in 4.1.3 by tools/coverage-ratchet.ts), may only rise. The player's menu
         // (dom/reality-ui.ts), the Studio's simulator and panel are covered by e2e:reality, not here.
-        'src/engine/core/reality-runtime.ts': { lines: 100, branches: 96 },
+        'src/engine/core/reality-runtime.ts': { lines: 100, branches: 100 },
         'src/engine/reality/protocol.ts': { lines: 95, branches: 95 },
-        'src/engine/reality/client.ts': { lines: 90, branches: 74 },
+        'src/engine/reality/client.ts': { lines: 90, branches: 81 },
         'src/engine/reality/http-port.ts': { lines: 96, branches: 65 },
-        'bridge/src/bridge.ts': { lines: 94, branches: 76 },
-        'bridge/src/store.ts': { lines: 90, branches: 80 },
-        'bridge/src/server.ts': { lines: 92, branches: 78 },
+        'bridge/src/bridge.ts': { lines: 94, branches: 88 },
+        'bridge/src/store.ts': { lines: 90, branches: 84 },
+        'bridge/src/server.ts': { lines: 92, branches: 82 },
         'bridge/src/policy.ts': { lines: 100, branches: 80 },
         'bridge/src/lock.ts': { lines: 100, branches: 100 },
         'bridge/src/cli.ts': { lines: 75, branches: 60 },
