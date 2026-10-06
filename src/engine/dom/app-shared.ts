@@ -59,3 +59,10 @@ export const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<
 export function someCaption(game: GameDef): boolean {
   return cmdLists(game).some(({ list }) => someCmd(list, (c) => 'sfx' in c && !!c.caption));
 }
+
+/** What the App knows of its world link (4.1.1): the module itself (dom/reality-ui.ts) is loaded only when needed. */
+export interface RealityLinkLike {
+  status: string;
+  statusText(): string;
+  menu(m: HTMLElement, back: () => void): void;
+}

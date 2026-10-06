@@ -169,6 +169,11 @@ export async function bootGame(o: BootOptions): Promise<App> {
   });
   opened?.attach(app);
   if (o.expose !== false) (globalThis as unknown as { __game?: App }).__game = app;
+  // The world link (4.1.1): its module only for a game that declares `reality`; simulated in the dev tools.
+  if (game.reality)
+    void import('./dom/reality-ui').then(async ({ startReality }) => {
+      app.reality = await startReality(app, { simulated: dev || q.get('reality') === 'sim' });
+    });
 
   if (dev) {
     app.engine.traceOn = true;

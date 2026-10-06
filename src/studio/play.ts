@@ -14,6 +14,7 @@ import {
 } from '@engine/tools/replay';
 import { BASE, type GameInfo } from './api';
 import { download, h, select, toast } from './ui';
+import { RealityPanel } from './reality-panel';
 
 type GameWindow = Window & { __game?: { engine: Engine; game: GameDef } };
 
@@ -32,6 +33,9 @@ export class PlayTab {
   private timer: ReturnType<typeof setInterval> | undefined;
   /** A session being replayed in the frame: the file, how far, and what the replay gave. */
   private rep: { file: SessionFile; upTo: number; result?: ReplayResult; busy?: boolean } | null = null;
+
+  /** Signals from outside, simulated (4.1.1): shown for a game that declares `reality`. */
+  private reality = new RealityPanel(() => this.frame.contentWindow);
 
   constructor(private info: GameInfo) {
     this.verb = info.verbs[0]?.id ?? '';
@@ -69,11 +73,12 @@ export class PlayTab {
             h('a', { href: `${BASE}?dev`, target: '_blank', rel: 'noopener' }, 'Open in a new tab ↗'),
           ),
         ),
-        h('div', { class: 'playside' }, this.state, this.why, this.journal),
+        h('div', { class: 'playside' }, this.state, this.reality.el, this.why, this.journal),
       ),
     );
     this.timer = setInterval(() => {
       this.refresh();
+      this.reality.refresh();
       this.measure();
     }, 700);
   }

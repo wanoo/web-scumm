@@ -212,6 +212,8 @@ export interface SolveData {
   broken?: { invariant: number; path: string[] }[];
   from: string | null;
   ms: number;
+  /** A game with `reality` (4.1.1): the world the verdict holds in (closed, a scenario, adversarial). */
+  reality?: string;
   /** What the states are made of and what the search cost (`profileText` renders it). */
   profile?: SolveProfile;
 }

@@ -45,6 +45,9 @@ export function eventChecks(
     if (!emitted.has(sg.id)) emitted.set(sg.id, w);
     if (!listened.has(sg.id) && !waited.has(sg.id)) warn(w, `signal "${sg.id}" is declared but nothing listens to it`);
   });
+  const bridge = game.reality?.bridge;
+  if (bridge !== undefined && !/^(https:\/\/[^\s/]+|http:\/\/(127\.0\.0\.1|localhost)(:\d+)?)(\/[^\s]*)?$/.test(bridge))
+    err('reality.bridge', `"${bridge}": an https:// URL (http:// only for 127.0.0.1 or localhost)`);
   for (const [ev, where] of emitted)
     if (!listened.has(ev) && !waited.has(ev) && !game.reality?.signals.some((x) => x.id === ev))
       warn(where, `event "${ev}" is emitted but nothing listens to it`);

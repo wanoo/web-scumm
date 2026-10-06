@@ -103,6 +103,31 @@
   "saveEnvelope",
   "solve"
  ],
+ "reality": [
+  "BridgeKey",
+  "Fault",
+  "HttpPortOptions",
+  "Keyring",
+  "MAX_SIGNAL_CHARS",
+  "RealityClient",
+  "RealityClientOptions",
+  "RealityManifest",
+  "RefusalCode",
+  "SignalExpectation",
+  "SignalSimulator",
+  "SignedWorldSignalV1",
+  "SimulatedDelivery",
+  "VerifyResult",
+  "WorldSignalPort",
+  "WorldSignalV1",
+  "WorldSignalV1Schema",
+  "httpPort",
+  "importBridgeKey",
+  "manifestHash",
+  "realityManifest",
+  "signSignal",
+  "verifySignal"
+ ],
  "mcp": {
   "list_rooms": {
    "required": [],
@@ -185,7 +210,8 @@
    "optional": [
     "from",
     "profile",
-    "prove"
+    "prove",
+    "reality"
    ]
   },
   "content_report": {

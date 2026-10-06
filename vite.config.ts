@@ -222,6 +222,29 @@ const tsxCli = () => createRequire(import.meta.url).resolve('tsx/cli');
 const tsconfig = () =>
   PROJECT && existsSync(resolve(PROJECT, 'tsconfig.json')) ? resolve(PROJECT, 'tsconfig.json') : r('./tsconfig.json');
 
+/** The Reality Bridge's player code (4.1.1): its own chunk, under assets/reality/. */
+const isRealityModule = (id: string) =>
+  /[\\/]src[\\/]engine[\\/](reality[\\/]|dom[\\/]reality-ui\.ts|core[\\/]reality-runtime\.ts)/.test(id);
+/**
+ * Whether the game declares `reality` (a `reality:` key in its sources): a game that does not never downloads the
+ * Reality chunk, not even into the offline cache. A false positive (the word in a comment) only precaches it.
+ */
+const gameUsesReality = (() => {
+  const walk = (d: string): string[] =>
+    existsSync(d)
+      ? readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+          e.isDirectory()
+            ? e.name === 'tests'
+              ? []
+              : walk(join(d, e.name))
+            : e.name.endsWith('.ts')
+              ? [join(d, e.name)]
+              : [],
+        )
+      : [];
+  return walk(GAME_DIR).some((f) => /\breality\s*:/.test(readFileSync(f, 'utf8')));
+})();
+
 /** Deploy under a sub-path (GitHub Pages: /<repo>/) with BASE_PATH=/<repo>/ ; default '/'. */
 const BASE = process.env.BASE_PATH ?? '/';
 
@@ -252,6 +275,7 @@ export default defineConfig({
           'assets/tools/**',
           'studio-demo/**',
           'fonts/**',
+          ...(gameUsesReality ? [] : ['assets/reality/**']),
         ],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
@@ -345,7 +369,9 @@ export default defineConfig({
         chunkFileNames: (c: { moduleIds: string[] }) =>
           c.moduleIds.length && c.moduleIds.every(isToolModule)
             ? 'assets/tools/[name]-[hash].js'
-            : 'assets/[name]-[hash].js',
+            : c.moduleIds.length && c.moduleIds.every(isRealityModule)
+              ? 'assets/reality/[name]-[hash].js'
+              : 'assets/[name]-[hash].js',
       },
     },
   },

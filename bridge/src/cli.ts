@@ -3,6 +3,7 @@
 //   init [--dir=.cache/bridge] [--audience=bridge.local] [--origin=http://127.0.0.1:5173]  keys, tokens, a config
 //   serve [--dir=…] [--port=8787] [--host=127.0.0.1]                                         the Bridge over HTTP
 //   grant --connector=<id> --source=<s> --signals=a,b [--players=any|p-…,p-…] [--pair] [--days=30]   a connector's token
+//   rotate [--keep-days=30]                                                                   a new event-signing key
 //   revoke --url=<bridge> (--player=<p-…> | --token=<revocation id>)                         asks the running Bridge
 // Every secret `init` makes is written under --dir (not committed: .cache/ is ignored), never printed but the paths.
 import { createHash, randomBytes, webcrypto } from 'node:crypto';
@@ -149,6 +150,24 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     process.stdout.write(`${token}\n`);
     return 0;
   }
+  if (cmd === 'rotate') {
+    // A new event key; the current one stays trusted by the players until --keep-days have passed (signals it signed
+    // and not yet delivered are delivered again under the new key after that). Restart the Bridge to use it.
+    const file = read();
+    const ev = (await webcrypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify'])) as CryptoKeyPair;
+    const notAfter = Date.now() + Number(arg(args, 'keep-days') ?? 30) * 24 * 3_600_000;
+    file.previousKeys = [...file.previousKeys, { kid: file.eventKey.kid, raw: file.eventKey.raw, notAfter }];
+    file.eventKey = {
+      kid: `k-${randomBytes(4).toString('hex')}`,
+      pkcs8: Buffer.from(await webcrypto.subtle.exportKey('pkcs8', ev.privateKey)).toString('base64url'),
+      raw: Buffer.from(await webcrypto.subtle.exportKey('raw', ev.publicKey)).toString('base64url'),
+    };
+    writeFileSync(cfgFile, `${JSON.stringify(file, null, 1)}\n`, { mode: 0o600 });
+    console.log(
+      `✔  new event key ${file.eventKey.kid}; the previous one trusted until ${new Date(notAfter).toISOString()} (restart the Bridge)`,
+    );
+    return 0;
+  }
   if (cmd === 'revoke') {
     const url = arg(args, 'url') ?? 'http://127.0.0.1:8787/';
     const admin = readFileSync(resolve(dir, 'admin-token'), 'utf8').trim();
@@ -160,6 +179,6 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     console.log(r.ok ? '✔  revoked' : `✖  ${r.status} ${await r.text()}`);
     return r.ok ? 0 : 1;
   }
-  console.error('usage: npm run bridge -- <init|serve|grant|revoke> (bridge/src/cli.ts)');
+  console.error('usage: npm run bridge -- <init|serve|grant|rotate|revoke> (bridge/src/cli.ts)');
   return 2;
 }

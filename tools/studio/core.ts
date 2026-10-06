@@ -9,7 +9,7 @@ import ts from 'typescript';
 import type { Layout, Point } from '../../src/engine/core/types';
 import { validate as validateGame } from '../../src/engine/tools/validate';
 import { normalizeExits } from '../../src/engine/core/define';
-import { solve as solveGame } from '../../src/engine/tools/solve';
+import { solve as solveGame, type RealityPolicy } from '../../src/engine/tools/solve';
 import { report as reportGame, reportMarkdown } from '../../src/engine/tools/report';
 import { toDot, toSvg, worldGraph } from '../../src/engine/tools/graph';
 import {
@@ -648,6 +648,7 @@ export function createStudio(opts: StudioOptions = {}) {
     from?: string | null,
     maxStates = 20000,
     mode: 'witness' | 'prove' = 'witness',
+    reality?: RealityPolicy,
   ): Promise<SolveData> {
     const t0 = Date.now();
     const mod = await loadModule();
@@ -658,6 +659,7 @@ export function createStudio(opts: StudioOptions = {}) {
       start: from ? { checkpoint: from } : 'new',
       commands: mod.commands,
       mode,
+      ...(reality ? { reality } : {}),
     });
     return {
       status: r.status,
@@ -680,6 +682,7 @@ export function createStudio(opts: StudioOptions = {}) {
       from: from ?? null,
       ms: Date.now() - t0,
       profile: r.profile,
+      ...(r.reality ? { reality: r.reality } : {}),
     };
   }
 

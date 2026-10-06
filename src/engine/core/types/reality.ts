@@ -26,6 +26,11 @@ export interface SignalDef {
 
 export interface RealityDef {
   signals: SignalDef[];
+  /**
+   * The Reality Bridge this game links to (`https://…`; `http://127.0.0.1` or `localhost` while developing): the
+   * pause menu's "World link" pairs with it. Public, not a secret. Absent: signals only in the Studio's simulator.
+   */
+  bridge?: string;
 }
 
 /** What a save keeps of the link (`GameState.reality`): no token, no email, no payload. */

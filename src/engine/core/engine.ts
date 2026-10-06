@@ -63,7 +63,7 @@ import {
   openMap as openMapImpl,
   teleport as teleportImpl,
 } from './movement';
-import { receive as receiveImpl, type ReceiveResult } from './reality-runtime';
+import type { ReceiveResult } from './reality-runtime';
 import {
   begin as beginImpl,
   newSession as newSessionImpl,
@@ -718,7 +718,8 @@ export class Engine {
    * state. `busy`: the engine is running something (a dialogue, a cutscene, a minigame), deliver it again when idle.
    */
   async receive(x: ExternalEntry): Promise<ReceiveResult> {
-    return receiveImpl(this, x);
+    // Loaded on the first signal: a game without `reality` never downloads it (4.1.1).
+    return (await import('./reality-runtime')).receive(this, x);
   }
 
   async emit(id: Id, ctx: Ctx) {

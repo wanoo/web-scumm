@@ -73,6 +73,7 @@ writeFileSync(
         './player': './src/engine/api/player.ts',
         './minigames': './src/engine/api/minigames.ts',
         './testing': './src/engine/api/testing.ts',
+        './reality': './src/engine/api/reality.ts',
         './cli/*': './cli/*',
         './package.json': './package.json',
       },

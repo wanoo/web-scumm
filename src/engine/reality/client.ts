@@ -37,7 +37,14 @@ export class RealityClient {
   }
 
   /** Reads the port until it ends or `stop()`. */
+  /** A game in progress: on the title screen there is no state yet to apply a signal to, so the link waits. */
+  private async ready(): Promise<void> {
+    while (!this.o.engine.state && !this.stopped) await new Promise((ok) => setTimeout(ok, this.o.retryMs ?? 250));
+  }
+
   async run(): Promise<void> {
+    await this.ready();
+    if (this.stopped) return;
     const after = this.o.engine.state.reality?.cursor ?? 0;
     // What the loaded game holds was saved: acknowledge it first. A crash after a save and before its acknowledgement
     // leaves the Bridge waiting, and connecting after the cursor would never deliver that signal again to settle it.
@@ -55,6 +62,7 @@ export class RealityClient {
 
   /** One signed signal: verified, applied (or recognised), saved, acknowledged. Returns what happened to it. */
   async handle(jws: string): Promise<'applied' | 'duplicate' | 'skipped' | 'refused'> {
+    await this.ready();
     const now = this.o.now?.() ?? Date.now();
     const v = await verifySignal(jws, this.o.keyring, {
       gameId: this.o.engine.game.id,

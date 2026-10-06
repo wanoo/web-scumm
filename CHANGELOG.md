@@ -90,6 +90,19 @@
   secret. `init` writes its keys and tokens with mode 600 under `.cache/bridge/`. The player's transport:
   `src/engine/reality/http-port.ts`. `npm run doctor` checks Ed25519 and Biscuit. The Bridge imports nothing but
   the protocol it shares with the player (`tests/boundaries.test.ts`).
+- **Reality Bridge for players, authors and the Studio** (lot F): `GameDef.reality.bridge` names the Bridge; the pause
+  menu's "World link" pairs the game with an 8-character code, shows the link's state (announced politely) and
+  unlinks; `dom/reality-ui.ts` runs the client, one tab at a time (Web Locks), waits for a game in progress, and starts
+  again after a failure. The Studio's Play tab has a Reality panel: a simulated Bridge (`SignalSimulator`) with faults
+  (delay, duplicate, bad signature, expiry, order, a cut), through the same verification and save as a real one. The
+  MCP's `solve` takes `reality`. A new public entry, `web-scumm/reality` (API). The sample game `games/signals/`:
+  proved closed, under two scenarios and adversarial. `npm run e2e:reality` runs the plan's scenario on its production
+  build in Chromium and WebKit (pair, the browser closed, the same webhook twice, offline, online, applied once, the
+  session replayed with the Bridge stopped; WebKit cannot reopen offline under automation, as in `e2e:pwa`), in CI.
+  A game without `reality` pays nothing: the engine's `receive`, the client and the link are a lazy chunk under
+  `assets/reality/`, left out of its offline cache. `docs/en/REALITY.md` (authors) and `docs/en/REALITY-OPS.md`
+  (operators: init, connectors, keys and `bridge rotate`, revocation, quotas, retention, export and deletion), in
+  French too.
 
 ## 4.0.0 — 2026-10-05
 

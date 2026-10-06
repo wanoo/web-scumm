@@ -778,7 +778,7 @@ export class AssistantPanel {
       notes: () => demo.notes(),
       addNote: (n) => demo.addNote(n),
       validate: () => demo.validate(),
-      solve: (from) => demo.solve(from),
+      solve: (from, prove, reality) => demo.solve(from, prove, undefined, reality),
       author: () => provider.model,
       readDoc: async (name: DocName) => {
         const d = demo.doc(name);

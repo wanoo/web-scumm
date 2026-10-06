@@ -4,7 +4,7 @@
 // the Studio core (tools/studio/backend.ts), the demo binds the browser backend (src/studio/api-browser.ts).
 // No node import here: this file is bundled into the Studio page.
 import { z } from 'zod';
-import { profileText } from '../../src/engine/tools/solve';
+import { profileText, type RealityPolicy } from '../../src/engine/tools/solve';
 import { dialogueText, dialogueTree } from '../../src/engine/tools/dialogue';
 import type { Layout } from '../../src/engine/core/types';
 import type {
@@ -38,7 +38,7 @@ export interface ToolBackend {
   addNote(n: NewNote): Promise<unknown>;
   validate(): Promise<ValidateResult>;
   /** `prove`: the exhaustive search (softlocks), slow on a big game. */
-  solve(from?: string, prove?: boolean): Promise<SolveData>;
+  solve(from?: string, prove?: boolean, reality?: RealityPolicy): Promise<SolveData>;
   /** The content profiler (rooms, items, characters: what is thin). */
   report?(): Promise<ReportData>;
   /** The world's map: rooms, exits, gotos, unreachable rooms. */
@@ -319,11 +319,18 @@ export const TOOLS: ToolDef[] = [
         .describe(
           'Exhaustive search: every reachable state and the softlocks (slow on a big game; default: the fast witness).',
         ),
+      reality: z
+        .union([z.enum(['closed', 'adversarial']), z.object({ scenario: z.string(), signals: z.array(z.string()) })])
+        .optional()
+        .describe(
+          'A game with reality.signals (4.1.1): the world to solve in. `closed` (default) no signal, a scenario ' +
+            '{ scenario, signals } in that order, `adversarial` any declared signal at any point. A simulation: no service is contacted.',
+        ),
     },
     annotations: { readOnlyHint: true },
-    run: ({ from, profile, prove }, b) =>
+    run: ({ from, profile, prove, reality }, b) =>
       op(async () => {
-        const r = await b.solve(from, prove);
+        const r = await b.solve(from, prove, reality);
         if (!profile) {
           const { profile: _p, ...rest } = r;
           return rest;

@@ -72,7 +72,7 @@ import {
 } from './shell';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
 import { LocalSlotStore, LocalStore, withPhase } from './storage';
-import { el, esc, fpsMeter, sleep } from './app-shared';
+import { el, esc, fpsMeter, sleep, type RealityLinkLike } from './app-shared';
 export type { Settings } from './settings';
 export { LocalSlotStore } from './storage';
 
@@ -104,6 +104,8 @@ export class App implements Presenter {
   readonly bank: AssetBank;
   readonly audio: Audio;
   readonly game: GameDef;
+  /** The world link (4.1.1, dom/reality-ui.ts), when the game declares `reality`. */
+  reality?: RealityLinkLike;
   /** @internal Read by the modules of dom/ (4.1.0). */
   mg: Record<Id, Minigame>;
   private sealed!: Ending;

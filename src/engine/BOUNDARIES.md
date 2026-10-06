@@ -55,6 +55,7 @@ as in the core:
 | `dom/update.ts` | the offline warm-ups and status, the update offered after a verified save |
 | `dom/storage.ts` | the localStorage autosave and slots (when IndexedDB is missing) |
 | `dom/app-shared.ts` | small helpers (element factory, tap timings, the FPS meter) |
+| `dom/reality-ui.ts` | the world link (4.1.1): pairing, status, the client; loaded by `import()` only for a game with `reality` |
 
 ## Inside the solver (4.1.0 "Clarity")
 

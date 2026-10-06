@@ -23,7 +23,7 @@ export const distPath = (key: string): string | null => {
 };
 
 // A Vite output name: its name, a dash, eight characters of hash.
-const HASHED = /^assets\/(tools\/)?[\w.-]+-[\w-]{8}\.(js|css)$/;
+const HASHED = /^assets\/(tools\/|reality\/)?[\w.-]+-[\w-]{8}\.(js|css)$/;
 const FONT = /^(assets\/[\w.-]+-[\w-]{8}|fonts\/[\w.-]+)\.(ttf|woff2?|otf)$/;
 const SHELL = new Set([
   'index.html',

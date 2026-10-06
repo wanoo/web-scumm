@@ -312,5 +312,18 @@ describe('web-scumm bridge init', () => {
     expect(Object.keys(file.webhooks).sort()).toEqual(['mail', 'webhook']);
     const bridge = await loadBridge(file, dir);
     expect(bridge.keys()[0]!.kid).toBe(file.eventKey.kid);
+    console.log = () => {};
+    try {
+      expect(await main(['rotate', `--dir=${dir}`, '--keep-days=2'])).toBe(0);
+    } finally {
+      console.log = log;
+    }
+    const rotated = JSON.parse(readFileSync(join(dir, 'config.json'), 'utf8'));
+    expect(rotated.eventKey.kid).not.toBe(file.eventKey.kid);
+    expect(rotated.previousKeys[0].kid).toBe(file.eventKey.kid);
+    expect((await loadBridge(rotated, dir)).keys().map((k) => k.kid)).toEqual([
+      rotated.eventKey.kid,
+      file.eventKey.kid,
+    ]);
   });
 });
