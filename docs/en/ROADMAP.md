@@ -1,6 +1,6 @@
-# Roadmap: from a reactive engine to a world engine (v1.3 → v2.0)
+# Roadmap: from v1.3 to the 4.1.x line, and 4.2
 
-*Written on 3 October 2026 from an external audit of v1.2.1; M1 shipped in v1.3.0. French version: [docs/fr/ROADMAP.md](../fr/ROADMAP.md).*
+*Started on 3 October 2026 from an external audit of v1.2.1 as "from a reactive engine to a world engine (v1.3 → v2.0)"; every release since has its section below, the newest last. French version: [docs/fr/ROADMAP.md](../fr/ROADMAP.md).*
 
 ## Context
 

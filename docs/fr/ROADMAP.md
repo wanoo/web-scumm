@@ -1,6 +1,6 @@
-# Feuille de route : du moteur réactif au moteur de monde (v1.3 → v2.0)
+# Feuille de route : de la v1.3 à la lignée 4.1.x, et la 4.2
 
-*Rédigée le 3 octobre 2026 à partir d'un audit externe de la v1.2.1 ; M1 est livré en v1.3.0. Version anglaise : [docs/en/ROADMAP.md](../en/ROADMAP.md).*
+*Commencée le 3 octobre 2026 à partir d'un audit externe de la v1.2.1 sous le titre « du moteur réactif au moteur de monde (v1.3 → v2.0) » ; chaque release depuis a sa section ci-dessous, la plus récente en dernier. Version anglaise : [docs/en/ROADMAP.md](../en/ROADMAP.md).*
 
 ## Contexte
 
