@@ -1,0 +1,13 @@
+# Architecture decision records
+
+Decisions that look surprising without their context (4.1.0 "Clarity"). One file each: the context, the decision,
+what it costs, what would change it. The maintainer's decisions themselves are dated in `docs/dev/DECISIONS.md`.
+
+| # | Decision |
+|---|---|
+| [0001](0001-dom-renderer.md) | The DOM is the reference renderer |
+| [0002](0002-declarative-content.md) | Content is data; code a game needs is trusted and named |
+| [0003](0003-solver-runs-the-engine.md) | The solver runs the real engine |
+| [0004](0004-session-unit-of-reproduction.md) | A session is the unit of reproduction |
+| [0005](0005-indexeddb-read-back.md) | A save is read back before it counts |
+| [0006](0006-double-tap-default-verb.md) | A double tap acts with the verb a player means |

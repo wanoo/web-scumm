@@ -51,6 +51,14 @@
   twice is once. `npm run test:mutation:core` (`tools/mutate.ts`): 348 mutants of the critical core, 340 killed, the 8
   others equivalent and explained in `docs/dev/MUTANTS.md`; a new survivor fails it; nightly, with its report.
   Stryker was tried and dropped: under Vitest 5 it never activated its mutants.
+- **For a reader new to the code**: `docs/en/ARCHITECTURE.md` (the layers, the life of an action from a tap to the
+  autosave and the render, trusted content and untrusted input, storage and replay, the solver on the real engine,
+  public and internal), `docs/en/CODE_TOUR.md` (seven steps, half an hour, each with its files and tests), both in
+  French too; six ADRs in `docs/dev/adr/` (the DOM renderer, declarative content, the solver on the real engine, the
+  session as the unit of reproduction, saves read back, the double tap); `CONTRIBUTING.md` gains how to read the code
+  and the checklist for changing a command end to end, with `shake` as the worked example.
+  `tests/docs-truth.test.ts` fails when one of these guides names a file that does not exist. The outside review's
+  protocol: `docs/dev/passes/clarity-review.md` (D12, reported).
 
 ## 4.0.0 — 2026-10-05
 
