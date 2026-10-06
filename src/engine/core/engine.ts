@@ -414,9 +414,8 @@ export class Engine {
 
   /** @internal Releases whoever waits for a state change (4.1.4). */
   wake(): void {
-    const w = [...this.waiters];
+    for (const f of [...this.waiters]) f(); // each continues on a microtask, after the set is cleared below
     this.waiters.clear();
-    for (const f of w) f();
   }
 
   get busy() {
