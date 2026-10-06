@@ -1,7 +1,8 @@
 // The formats 4.1.7 writes and reads, frozen before 4.1.8 changes the toolchain (programme rule: capture the
 // artefact formats before migrating): a session file, a save envelope, a signed world signal, a solver report. Each
-// fixture is parsed by the code that reads it in production, and its shape is listed here, so a change of format is
-// a change of this test, said in the CHANGELOG. Regenerate `session.json` and `solve.json` from the `signals` fixture
+// fixture is parsed by the code that reads it in production (the session by `parseSessionFile`, the save by its zod
+// schema, the signal by `verifySignal`; the solver report has no reader beyond a cast, so its keys are listed), so a
+// change of format is a change of this test, said in the CHANGELOG. Regenerate `session.json` and `solve.json` from the `signals` fixture
 // game (an Engine with one received signal, `sessionFile()`; `solve(…, { mode: 'prove' })`) when a format moves on
 // purpose; `demo-4.1.7.json` is the golden save of `tools/golden-save.ts`; the signal is `conformance.json`'s first.
 import { readFileSync } from 'node:fs';

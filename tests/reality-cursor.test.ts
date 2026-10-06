@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { httpPort } from '@engine/reality/http-port';
 
 /** A Bridge of `n` signals, `s1`…`sn`, as the two routes the port reads, and the `after` of every request it saw. */
-function fakeBridge(n: number, o: { streamClosesAfter?: number } = {}) {
+function fakeBridge(n: number) {
   const asked: { route: string; after: number }[] = [];
   const acked: number[] = [];
   const all = Array.from({ length: n }, (_, i) => ({ sequence: i + 1, jws: `s${i + 1}` }));
@@ -17,7 +17,7 @@ function fakeBridge(n: number, o: { streamClosesAfter?: number } = {}) {
     const url = new URL(String(input));
     if (url.pathname.endsWith('/v1/ack')) {
       acked.push((JSON.parse(String(init?.body)) as { through: number }).through);
-      return new Response('{}', { status: 200 });
+      return new Response(null, { status: 204 });
     }
     const after = Number(url.searchParams.get('after') ?? 0);
     const pending = all.filter((s) => s.sequence > after);
@@ -27,9 +27,9 @@ function fakeBridge(n: number, o: { streamClosesAfter?: number } = {}) {
     }
     if (url.pathname.endsWith('/v1/events')) {
       asked.push({ route: 'events', after });
-      // The stream carries the pending signals, then ends (a proxy's timeout, a network cut): the port reconnects.
-      const sent = pending.slice(0, o.streamClosesAfter ?? pending.length);
-      const body = sent.map((s) => `id: ${s.sequence}\ndata: ${s.jws}\n\n`).join('');
+      // The stream carries the pending signals as the server writes them, then ends (a proxy's timeout, a network
+      // cut): the port reconnects.
+      const body = pending.map((s) => `id: ${s.sequence}\nevent: signal\ndata: ${s.jws}\n\n`).join('');
       return new Response(body, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
     }
     return new Response('not found', { status: 404 });
@@ -60,26 +60,29 @@ async function readThen(
   ctrl.abort();
   await port.close();
   await reading;
-  return { got, next: bridge.asked.at(-1)! };
+  // The harness itself: the next request did arrive (a slow runner would otherwise hand back request 1 as "next").
+  expect(bridge.asked.length).toBeGreaterThanOrEqual(requestsBefore + 2);
+  return { got, next: bridge.asked[requestsBefore + 1]! };
 }
 
 describe('the port resumes from the acknowledged cursor, not from the delivered one (P0, 4.1.8)', () => {
   it.fails('polling: a signal handed over and not acknowledged is asked for again (reproduced on 4.1.7: after=1)', async () => {
     const b = fakeBridge(1);
     const { got, next } = await readThen(b, 'poll', () => null);
-    expect(got).toEqual(['s1']);
-    expect(b.acked).toEqual([]);
+    // 4.1.7 asks `after=1`: signal 1 is never delivered again on this connection. (With the fix it is handed over
+    // again, so `got` is read by its first element, not as a whole.)
     expect(next.route).toBe('signals');
-    // 4.1.7 asks `after=1`: signal 1 is never delivered again on this connection.
     expect(next.after).toBe(0);
+    expect(got[0]).toBe('s1');
+    expect(b.acked).toEqual([]);
   });
 
   it.fails('SSE: after the stream ends, the reconnection asks from the acknowledged cursor (reproduced: after=1)', async () => {
     const b = fakeBridge(1);
     const { got, next } = await readThen(b, 'sse', () => null);
-    expect(got).toEqual(['s1']);
     expect(next.route).toBe('events');
     expect(next.after).toBe(0);
+    expect(got[0]).toBe('s1');
   });
 
   it('polling: an acknowledged signal is not asked for again', async () => {
@@ -101,9 +104,9 @@ describe('the port resumes from the acknowledged cursor, not from the delivered 
   it.fails('polling: two signals, the first acknowledged and the second not: the next request starts at 1', async () => {
     const b = fakeBridge(2);
     const { got, next } = await readThen(b, 'poll', (i) => (i === 1 ? 1 : null));
-    expect(got).toEqual(['s1', 's2']);
-    expect(b.acked).toEqual([1]);
     // 4.1.7 asks `after=2`: signal 2, handed over and not acknowledged, is lost to this connection.
     expect(next.after).toBe(1);
+    expect(got.slice(0, 2)).toEqual(['s1', 's2']);
+    expect(b.acked).toEqual([1]);
   });
 });

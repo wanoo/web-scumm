@@ -9,8 +9,9 @@
   sizes), each number with its source. `tests/reality-cursor.test.ts` is the reproduction of the Reality cursor
   defect (the transport asks the Bridge for `after=1` once signal 1 is handed over, acknowledged or not; in polling
   and in SSE), kept red on purpose (`it.fails`) until the fix; `tests/formats.test.ts` and `tests/fixtures/formats/`
-  freeze the four formats the engine writes and reads (a session file, a save envelope, a signed world signal, a
-  solver report). `docs/dev/MIGRATION-4.1.8.md` lists what TypeScript 7, Vite 8 and vite-plugin-pwa 2 change, read
+  freeze the four formats the engine writes and reads (a session file, a save envelope and a signed world signal
+  parsed by their production readers; a solver report by its keys). The baseline's test count ratchets (728 → 734
+  declarations; `it.fails` is not counted). `docs/dev/MIGRATION-4.1.8.md` lists what TypeScript 7, Vite 8 and vite-plugin-pwa 2 change, read
   before any of them is touched.
 
 ## 4.1.7 — 2026-10-06

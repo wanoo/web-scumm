@@ -36,7 +36,7 @@ is explicit in the repo (`vite/client`, `node`), so the `types: []` default chan
 `tools/mutate.ts`, `tools/studio/core.ts`, `tools/studio/source.ts` (syntax only: `createSourceFile`, `forEachChild`,
 `createScanner`, `SyntaxKind`, the `is*` guards, `flattenDiagnosticMessageText`; the Studio's parsing of a game's
 sources depends on them). `tsc --noEmit` itself would fail on these files (no types for `'typescript'` in 7.0).
-Tooling: `knip` 6.39 carries its own `typescript@7.0.2`; `tsx`, `vitest`, `vite` do not depend on `typescript`;
+Tooling: `tsx`, `vitest`, `vite` and `knip` do not depend on `typescript` (knip parses with `oxc-parser`);
 `tsx` reads `paths` through `get-tsconfig`, which already implements the no-`baseUrl` rule (relative `paths` work);
 Vitest type-strips with Vite's transformer (esbuild under Vite 6, Oxc under Vite 8).
 
@@ -92,8 +92,8 @@ routing can stay (renamed to `rolldownOptions`). `define`, `resolve.alias` (rege
 ## 3. vite-plugin-pwa 2
 
 Releases: 1.0.0 (2025-03-29, workbox ^7.3), 1.0.1 (Vite 7 peer), 1.2.0 (2025-11-27, workbox ^7.4), **1.3.0
-(2026-05-05: Vite 8 peer dependency, `onNeedReload`, workbox-build/window ^7.4.1)**, **2.0.0 (2026-10-03)**: the only
-listed breaking change is the `@vite-pwa/assets-generator ^2.0.0` peer; `engines.node` goes to `>=20.19.0`; peer
+(2026-05-05: Vite 8 peer dependency, `onNeedReload`, workbox-build/window ^7.4.1)**, **2.0.0 (2026-10-03)**: its notes list one
+change, the `@vite-pwa/assets-generator` peer now `^1.0.0 || ^2.0.0`; `engines.node` goes to `>=20.19.0`; peer
 `vite` still `^3.1 … ^8.0`; workbox stays ^7.4.1. No change to `registerType`, `strategies`, `injectManifest` /
 `generateSW`, `devOptions`, `manifest`, the virtual module names or `sw.js` in any 1.x / 2.0 note. The plugin "will
 remain frozen in maintenance mode" (issue #933, 2026-05-16); a workbox fork `@vite-pwa/workbox` and a modular
@@ -109,8 +109,8 @@ false`, five `runtimeCaching` entries (`jeu-images`, `jeu-sons`, `jeu-videos`, `
 onNeedRefresh })`, `updateSW(true)`); `src/env.d.ts` references `vite-plugin-pwa/client`. Caches are named
 `<prefix>-<name>-<suffix>` by Workbox, the precache `workbox-precache-v2` + the scope (`setCacheNameDetails()` to
 change); `scripts/e2e-pwa.mjs` asserts a cache starting with `workbox-precache`; entries are versioned by the content
-hash in the file name or a `revision`; `cleanupOutdatedCaches` deletes older precache caches. `tools/dist.ts` and
-`tools/weight.ts` read `dist/sw.js` and the `workbox-*.js` runtime; `src/engine/tools/inventory.ts` classifies both as
+hash in the file name or a `revision`; `cleanupOutdatedCaches` deletes older precache caches. `tools/weight.ts` reads
+`dist/sw.js` and the `workbox-*.js` runtime (`tools/dist.ts` lists the workbox packages for the licences); `src/engine/tools/inventory.ts` classifies both as
 code. A field report with Vite 8 + 1.3.0 (LibreChat #15654) says the plugin globs `dist/` from `closeBundle`, so
 files other plugins write in `closeBundle` (`sealBuild` runs `tools/dist.ts seal` there) may be missed or precached
 before removal: re-check the precache list after the upgrade.
@@ -134,7 +134,7 @@ should become `">=22.12"`.
   editor read tsconfig.json"); `tools/vite/plugins.ts` passes `--tsconfig` to `tsx`; `npm run assets|prompts|i18n|
   bench|page:*|import-layout` run `tsx --tsconfig tsconfig.json`.
 - `typescript` importers: `tools/api-doc.ts`, `tools/ids/codemod.ts`, `tools/mutate.ts`, `tools/studio/core.ts`,
-  `tools/studio/source.ts`; `scripts/` import none. `npm run check` and `quality` run `tsc --noEmit` twice.
+  `tools/studio/source.ts`; `scripts/` import none. `npm run check` runs `tsc --noEmit` once, `quality` twice (with `tsconfig.strictest.json`).
 - Vite config: `build.rollupOptions` (input, `entryFileNames`, `chunkFileNames` by `moduleIds`), the plugins of §2,
   the `test` block, `define`, `base`.
 - CommonJS: `src/engine/dom/walk.ts` (`navmesh`); `tools/dist.ts` notes "navmesh holds javascript-astar" for licences.

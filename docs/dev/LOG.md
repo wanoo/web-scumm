@@ -2298,7 +2298,8 @@ Platform"; human gates reported, not blocking (D12).
 - Programme rule 1 and §4.2 of the plan: the baseline first. `docs/dev/baselines/4.1.7.md` reads the release run of
   v4.1.7 (37540093503), `main`'s ci on the same commit (37537456862), the nightly and a local run of the suite:
   914 tests in 96 files; coverage 60.86 / 58.15 / 55.61 / 61.37 % (statements, branches, functions, lines; floors
-  56 / 56 / 51 / 56); mutation core 342/345, reality 382/484 with 88 unexplained; first visit 123 KB gzipped
+  56 / 56 / 51 / 56); mutation core 342/345 (reality 382/484 with 88 unexplained is 4.1.2's nightly figure, said so: the tag has no
+  reality run); first visit 123 KB gzipped
   (main chunk 125.72); demo proof 3 480 states, reference 288, chapters 3.2 s and 5.5 s; `release-check` 17 min
   49 s on the runner, merge → release ≈ 45–50 min. `mutants.json` (15) and MUTANTS.md (3 + 14) disagree: for
   `docs/418-truth`.
@@ -2313,6 +2314,8 @@ Platform"; human gates reported, not blocking (D12).
   signal; each parsed by its production reader, its keys listed. `docs/dev/MIGRATION-4.1.8.md`: the known
   incompatibilities of TypeScript 7, Vite 8 and vite-plugin-pwa 2, with the reasons the Dependabot PRs were closed
   in 4.0.
+- The baseline's test count ratchets, 728 → 734 declarations (`it.fails` is not counted: three more when the fix
+  flips them).
 - Not done, said as such: the replay of the generated game from a fresh install already exists (`fresh-install`
   plays it to its end); the private game is not measured (D8); the Mac's build time is not in the baseline.
 
