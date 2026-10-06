@@ -30,6 +30,13 @@
   formatted) keeps `App`, the `Presenter` and the orchestration (780 lines); the shell, input, speech, map, menus,
   settings, offline and update, and the localStorage store each have a module. The production e2e (Chromium and
   WebKit, keyboard, saves, axe, offline, the double tap, the Canvas painter) give the same results.
+- **The solver split** (`BOUNDARIES.md`, "Inside the solver"): `tools/solve.ts` (2,333 lines once formatted) is now
+  `tools/solve/{search,expansion,abstractions,model,report}.ts` and re-exports what it did. The internal `Node` is
+  `SearchNode`, and the search's types document their invariants. Same verdicts on every fixture, the demo's proof,
+  its chapters, `--audit-abstractions` and 120 corpus games; the demo's proof with the audit takes 10.6 s against
+  10.5 s on 4.0.0 (+1%).
+- `tests/file-size.test.ts`: no file of `src/` over 800 lines, but seven listed with their reason (three Studio tabs,
+  the validator, the room view, the dev editor, the Studio assistant), each capped at its size.
 
 ## 4.0.0 — 2026-10-05
 

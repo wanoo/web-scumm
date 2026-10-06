@@ -53,3 +53,19 @@ as in the core:
 | `dom/storage.ts` | the localStorage autosave and slots (when IndexedDB is missing) |
 | `dom/app-shared.ts` | small helpers (element factory, tap timings, the FPS meter) |
 
+## Inside the solver (4.1.0 "Clarity")
+
+`tools/solve.ts` re-exports what it exported before; the solver lives in `tools/solve/`:
+
+| Module | What it does |
+|---|---|
+| `tools/solve/search.ts` | `solve()`: the frontier, the proof workers, termination and the verdict |
+| `tools/solve/expansion.ts` | `makeExpander`: every action worth trying from a state, run on the real engine; the no-op memo |
+| `tools/solve/abstractions.ts` | what a state is made of (dimensions), the canonical forms (players, mobility, ownership), dominance |
+| `tools/solve/model.ts` | options, `SearchNode`, `Expansion` and a transition (`TryRecord`), with their invariants |
+| `tools/solve/report.ts` | the result, its profile, paths as labels and as session entries |
+
+The path of a proof reads `solve()` → `solveOnce()` (search) → `makeExpander()` (expansion) → the engine's `act()` →
+a `TryRecord` merged into the frontier → the verdict. No file of `src/` is over 800 lines but the exceptions
+`tests/file-size.test.ts` lists with their reason, capped at their size.
+
