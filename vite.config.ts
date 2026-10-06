@@ -349,5 +349,38 @@ export default defineConfig({
       },
     },
   },
-  test: { environment: 'node', include: ['tests/**/*.test.ts', `games/${GAME}/tests/**/*.test.ts`] },
+  test: {
+    environment: 'node',
+    include: ['tests/**/*.test.ts', `games/${GAME}/tests/**/*.test.ts`],
+    // npm run test:coverage (4.1.0 "Clarity"): what the tests run of src/; the floors below are the level measured at
+    // 4.1.0 and may only rise. Lines run are not a proof: tests/properties.test.ts and npm run test:mutation:core say
+    // whether the tests tell a right result from a wrong one.
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.ts'],
+      exclude: ['src/**/*.d.ts'],
+      reporter: ['text-summary', 'json-summary', 'html'],
+      reportsDirectory: '.cache/coverage',
+      thresholds: {
+        // The floor measured at 4.1.0 (the browser-only parts of src/, the player's UI and the Studio's, are covered
+        // by the e2e, not here).
+        lines: 56,
+        statements: 56,
+        functions: 51,
+        branches: 56,
+        // What a save, a session, a condition and a migration rest on: every branch.
+        'src/engine/core/cond.ts': { branches: 100 },
+        'src/engine/core/diff.ts': { branches: 100 },
+        'src/engine/core/migrate.ts': { branches: 100 },
+        'src/engine/core/save.ts': { branches: 100 },
+        // 93: v8 counts the presenter's side of `choose` / `pickPlace` as the calls that went to the presenter minus
+        // those fed by a replay, which the rest of the suite outnumbers; both sides are tested (critical-session).
+        'src/engine/core/session-runtime.ts': { branches: 93 },
+        // The one branch left is `?? 0` on a session that always exists by then.
+        'src/engine/tools/replay.ts': { branches: 99 },
+        // Eleven fallbacks for an old entry that `assignIds` always finds (critical-ids lists them).
+        'src/engine/core/content-ids.ts': { branches: 96 },
+      },
+    },
+  },
 });

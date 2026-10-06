@@ -68,3 +68,25 @@ jobs:
             corpus.json
             corpus.txt
           if-no-files-found: ignore
+  # Mutation testing of the critical core (4.1.0, tools/mutate.ts): every mutant of conditions, saves, sessions and
+  # migrations killed by a test, or one of the equivalent mutants docs/dev/MUTANTS.md explains. The report is kept.
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:mutation:core | tee mutation.txt
+        shell: bash
+      - if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mutation
+          path: |
+            mutation.txt
+            .cache/mutation/report.json
+          if-no-files-found: ignore
