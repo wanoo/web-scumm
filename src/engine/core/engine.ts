@@ -81,8 +81,6 @@ import {
   scriptState as scriptStateImpl,
   advance as advanceImpl,
   runScript as runScriptImpl,
-  startScripts as startScriptsImpl,
-  loop as loopImpl,
   script as scriptImpl,
 } from './script-runtime';
 import {
@@ -106,6 +104,7 @@ import {
   step as stepImpl,
 } from './command-runtime';
 import { atomKey, HERO, SESSION_MAX, type Ctx, type Source, type TraceEntry } from './engine-shared';
+import { ScriptScheduler } from './scheduler';
 import { roomKey } from './keys';
 export { atomKey, describeCmd } from './engine-shared';
 export type { Source, TraceEntry } from './engine-shared';
@@ -225,14 +224,8 @@ export class Engine {
    * with `runScript` / `advance`.
    */
   autoScripts = false;
-  /** Generations of the running script loops: a new room (room scripts) or a new session (game scripts) stops the old ones. */
-  /** @internal Read by the modules of core/ (4.1.0). */
-  roomGen = 0;
-  /** @internal Read by the modules of core/ (4.1.0). */
-  sessionGen = 0;
-  /** Scripts whose loop is running (auto mode). */
-  /** @internal Read by the modules of core/ (4.1.0). */
-  loops = new Set<Id>();
+  /** The running loops of the world's scripts and the generations that end them (4.1.5, `core/scheduler.ts`). */
+  readonly scheduler = new ScriptScheduler(this);
 
   constructor(
     game: GameDef,
@@ -356,8 +349,7 @@ export class Engine {
     this.guideWait = null;
     this.ui.guide(null);
     this.busyCount = 0;
-    this.sessionGen++;
-    this.roomGen++;
+    this.scheduler.next(true);
   }
 
   /** Loads a checkpoint (dev mode, solver). */
@@ -404,9 +396,7 @@ export class Engine {
    */
   destroy(): void {
     this.destroyed = true;
-    this.roomGen++;
-    this.sessionGen++;
-    this.loops.clear();
+    this.scheduler.stopAll();
     this.wake();
     this.onChange = () => {};
     this.onError = () => {};
@@ -745,11 +735,7 @@ export class Engine {
 
   /** Starts the loops of the scripts in scope (auto mode): the room's on each room entry, the game's too on a new session. */
   startScripts(session: boolean) {
-    return startScriptsImpl(this, session);
-  }
-
-  async loop(id: Id, global: boolean, gen: number) {
-    return loopImpl(this, id, global, gen);
+    this.scheduler.start(session);
   }
 
   /** Fires an event: moves the scripts waiting for it, then runs the listeners of the room, then of the game. */

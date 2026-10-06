@@ -31,7 +31,7 @@ describe('a script that throws', () => {
     for (let i = 0; i < 20 && !errors.length; i++) await tick();
     expect(errors).toEqual(['script broken: unknown script: ghost']);
     expect(e.state.scripts?.broken).toMatchObject({ off: true });
-    expect(e.loops.has('broken')).toBe(false);
+    expect(e.scheduler.has('broken')).toBe(false);
     await e.act({ verb: 'look', a: 'door' });
     expect(e.state.room).toBe('hall');
     e.destroy();
@@ -88,7 +88,7 @@ describe('destroy', () => {
     e.onChange = () => changes++;
     await e.newGame();
     await tick();
-    expect(e.loops.has('hall_clock')).toBe(true);
+    expect(e.scheduler.has('hall_clock')).toBe(true);
     const waiting = e.act({ verb: 'look', a: 'gong' });
     await tick();
     expect(e.waiters.size).toBeGreaterThan(0);
@@ -96,7 +96,7 @@ describe('destroy', () => {
     e.destroy();
     await Promise.race([waiting, tick(200).then(() => 'late')]).then((r) => expect(r).not.toBe('late'));
     await tick(20);
-    expect(e.loops.size).toBe(0);
+    expect(e.scheduler.size).toBe(0);
     expect(e.destroyed).toBe(true);
     expect(e.state.flags.after_wait).toBeUndefined();
     await e.act({ verb: 'look', a: 'door' });
