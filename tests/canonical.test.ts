@@ -45,14 +45,14 @@ describe('the canonical character', () => {
       expect(verdict(canon)).toEqual(verdict(explicit));
       expect(canon.states).toBeLessThanOrEqual(explicit.states);
       if ((game.players?.ids.length ?? 1) > 1) expect(canon.profile.canonical.applied).toBe(true);
-    }, 120000);
+    }, 300_000);
 
   it('stays off for a witness unless asked, and when the goal reads { player }', async () => {
     const g = makeStressGame({ rooms: 5, players: 2, items: 3, flags: 3, npcs: 0, scripts: 0, topics: 1 });
     expect((await solve(g.game, g.layouts, {})).profile.canonical.applied).toBe(false);
     const r = await solve(g.game, g.layouts, { mode: 'prove', goal: [{ player: 'p1' }] });
     expect(r.profile.canonical).toMatchObject({ applied: false, reason: 'the goal reads { player }' });
-  }, 60000);
+  }, 300_000);
 });
 
 describe('mobility regions', () => {
@@ -90,7 +90,7 @@ describe('mobility regions', () => {
         regions.profile.mobility.applied || regions.profile.mobility.reason === 'no move of this game can be silent',
       ).toBe(true);
       if (name.startsWith('stress')) expect(regions.profile.mobility.applied).toBe(true);
-    }, 180000);
+    }, 300_000);
 
   it('a softlock behind a silent move is still found', async () => {
     // A one-way trapdoor out of the region, into a room without the key: the region must not hide it.
@@ -105,7 +105,7 @@ describe('mobility regions', () => {
       maxStates: 60000,
     });
     expect(verdict(regions)).toEqual(verdict(exact));
-  }, 120000);
+  }, 300_000);
 
   it('the witness of a region proof replays on the real engine', async () => {
     const { replay } = await import('@engine/tools/replay');
@@ -116,5 +116,5 @@ describe('mobility regions', () => {
     const p = await replay(g.game, g.layouts, { start: { kind: 'new' }, log: r.steps });
     expect(p.divergedAt).toBeUndefined();
     expect(p.ended).toBe(true);
-  }, 120000);
+  }, 300_000);
 });

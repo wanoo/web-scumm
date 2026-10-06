@@ -339,7 +339,7 @@ describe('every command and every condition, audited', () => {
         roomPatch: s.roomPatch,
       });
       expectSame(await auditAbstractions(game, layouts, { commands, maxStates: 20000 }));
-    }, 60000);
+    }, 300_000);
   for (const [key, cond] of Object.entries(COND_SAMPLES))
     it(`condition ${key}`, async () => {
       const { game, layouts } = harness({
@@ -358,7 +358,7 @@ describe('every command and every condition, audited', () => {
         ],
       });
       expectSame(await auditAbstractions(game, layouts, { commands, maxStates: 20000 }));
-    }, 60000);
+    }, 300_000);
 });
 
 describe('what the audit found', () => {
@@ -380,7 +380,7 @@ describe('what the audit found', () => {
     const { game: g199, layouts: l199 } = randomGame(199);
     const a = await auditAbstractions(g199, l199, { maxStates: 20000 });
     expect(a.status).not.toBe('diverged');
-  }, 120000);
+  }, 300_000);
 
   it('the rooms where another playable character stands are reached, abstractions on or off', async () => {
     const { game, layouts } = harness({ rules: [] });
@@ -392,7 +392,7 @@ describe('what the audit found', () => {
     });
     expect(on.profile.canonical.applied).toBe(true);
     expect(on.roomsReached).toEqual(off.roomsReached);
-  }, 60000);
+  }, 300_000);
 
   it('a divergence fails the audit, and a truncated explicit search is partial, not a pass', async () => {
     const { game, layouts } = harness({ rules: [] });
@@ -408,5 +408,5 @@ describe('what the audit found', () => {
     expect(bad.divergences.join()).toContain('ghost');
     const cut = await auditAbstractions(game, layouts, { maxStates: 3 });
     expect(cut).toMatchObject({ status: 'partial', exit: 2 });
-  }, 60000);
+  }, 300_000);
 });

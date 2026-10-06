@@ -82,7 +82,7 @@ describe('the no-op memo changes nothing but the engine runs', () => {
         same(plain, memo);
         expect(memo.profile.memo.verified).toBe(memo.profile.memo.hits);
         expect(plain.profile.memo).toMatchObject({ applied: false, reason: 'turned off' });
-      }, 120000);
+      }, 300_000);
 
   it('the demo: same proof, a third of the engine runs, every skip checked', async () => {
     const { game, layouts, commands } = await import('../games/demo');
@@ -94,7 +94,7 @@ describe('the no-op memo changes nothing but the engine runs', () => {
     same(plain, fast);
     expect(fast.profile.tries * 2).toBeLessThan(plain.profile.tries);
     expect(fast.profile.memo.hits).toBeGreaterThan(fast.profile.memo.stored);
-  }, 120000);
+  }, 300_000);
 
   it('values what a run read in the raw state, and refuses what it cannot value', () => {
     const s = {

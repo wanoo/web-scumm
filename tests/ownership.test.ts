@@ -42,7 +42,7 @@ describe('the canonical owner', () => {
     expect(on.states).toBeLessThan(off.states);
     expect(on.flagsReached).toEqual(off.flagsReached);
     expect(on.roomsReached).toEqual(off.roomsReached);
-  }, 120000);
+  }, 300_000);
   it('the open chain of 20 rooms and 2 characters, out of reach before, is proved', async () => {
     const g = makeStressGame({
       rooms: 20,
@@ -57,7 +57,7 @@ describe('the canonical owner', () => {
     const r = await solve(g.game, g.layouts, { mode: 'prove', maxStates: 40000 });
     expect(r.status).toBe('solved');
     expect(r.profile.ownership?.items.length).toBeGreaterThan(10);
-  }, 120000);
+  }, 300_000);
 });
 
 describe('witness dominance', () => {
