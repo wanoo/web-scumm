@@ -73,7 +73,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 
 | Name | What |
 |---|---|
-| `Engine` | the engine without a page |
+| `Engine` | the engine without a page (its members marked `@internal` are read by the modules of `core/` since 4.1.0: not part of the contract) |
 | `FakePresenter` · `MemoryStore` | a front end that answers by script, a save store in memory |
 | `solve` · `SolveOptions` · `SolveResult` | the solver: a way to the end, softlocks with `prove` |
 | `parseSave` · `saveEnvelope` · `SaveEnvelopeV3` | a save's envelope: write it, read it back (migrations applied) |

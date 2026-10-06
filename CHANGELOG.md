@@ -20,6 +20,12 @@
 - The Canvas painter (`dom/render-canvas.ts`) is loaded the first time a room asks for it: a game that paints with
   the DOM no longer downloads it. The demo's first visit: 122 → 120 KB of JavaScript gzipped, the index guards above
   included (+0.5 KB). It stays in the offline precache.
+- **The core split by responsibility** (`src/engine/BOUNDARIES.md`, "Inside the core"): `core/engine.ts` (1,667 lines
+  once formatted) keeps the `Engine` facade, its state and lifecycle (795 lines); sessions, events, scripts,
+  interactions, commands, world queries and players each live in a module of their own, called through a forwarding
+  method in the same order of effects. `core/types.ts` re-exports `core/types/{content,game,stage,audio,state,session}.ts`.
+  The public surface is unchanged (`tests/api-surface.json`, which now follows nested re-exports), and so is the
+  behaviour (`quality:baseline`). `tests/boundaries.test.ts` refuses any cycle of static imports.
 
 ## 4.0.0 — 2026-10-05
 
