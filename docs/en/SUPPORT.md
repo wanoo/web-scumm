@@ -23,7 +23,16 @@ version, and a 4.1.x release may *add*: an optional entry, field, route, command
 `web-scumm/reality`, 4.1.2's Bridge options, 4.1.4's `destroy` and hooks, 4.1.5's `sessions`, `camera` and `walker`,
 4.1.6's two commands). What it may not do is what a patch may not do either: change or remove a public name or a
 format. Every addition is optional, nothing of 4.1.0 changes, and a game or a host written against any 4.1.x runs on
-every later 4.1.x. `docs/en/UPGRADING.md` has one section per release that says what, if anything, a host must know.
+every later 4.1.x, **up to 4.1.7**. `docs/en/UPGRADING.md` has one section per release that says what, if anything, a host must know.
+
+**From 4.1.8 the 4.1.x line is an incubation line (D18, 7 October 2026).** No production game depends on the engine
+(the maintainer's own game stays on 3.1.0, D8), so a release of the programme `docs/dev/PROGRAM-4.1.md` (4.1.8 to
+4.1.15) may break a public name or a format when the programme needs it. Each break is listed under "Breaking" in the
+CHANGELOG, ships with a migration of the bundled games and of the saves where they are concerned, and has its section
+in `docs/en/UPGRADING.md`; a surface whose human passes are not done is marked experimental here. The DSL's core is
+stabilised in 4.1.12 and frozen after 4.1.15. **4.2.0 "Stable World" restores strict SemVer**: from it on, a minor
+adds and a major removes, as above. The riskiest versions get a release candidate first (`4.1.8-rc.1`, a GitHub
+pre-release with the same files and checks).
 
 Supported: the current major's last minor gets fixes; the previous minor gets security fixes for three months after
 the next one. The 3.x line ended with 3.9; its games move to 4.0 with `web-scumm migrate` (nothing to rewrite for a
