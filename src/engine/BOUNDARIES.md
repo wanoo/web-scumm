@@ -40,6 +40,10 @@ of its own, a function taking the engine as its first argument:
 | `core/engine-shared.ts` | the context of a command, the journal's entry, small helpers |
 | `core/journal.ts` | the semantic journal (4.1.11): what happened, in ids, numbered; emitted by the core alone |
 | `core/busy.ts` | the busy owner (4.1.11): runs in progress, the tutorial step waited for, a skip |
+| `core/run-clock.ts` | the run clock (4.1.14, ADR 0016): logical steps and time, told by the session and the commands; it never writes the state |
+| `core/prng.ts` | the seeded generator (4.1.14): xoshiro128**, a stream per purpose; `engine.random` draws from `logic` |
+| `core/run-tape.ts` | a run's links (4.1.14): each entry with its events and the clock after it, the same live and replayed |
+| `core/journal-chunks.ts` | the run's chunks chained by SHA-256 (4.1.14), written to a `ChunkStore`, read back checked |
 | `core/types/*.ts` | the content format by subject; `core/types.ts` re-exports every name |
 
 The modules import `Engine` as a type only; `tests/core-runtime.test.ts` calls each directly.
@@ -66,6 +70,8 @@ methods, as in the core:
 | `dom/storage.ts` | the localStorage autosave and slots (when IndexedDB is missing) |
 | `dom/app-shared.ts` | small helpers (element factory, tap timings, the FPS meter) |
 | `dom/reality-ui.ts` | the world link (4.1.1): pairing, status, the client; loaded by `import()` only for a game with `reality` |
+| `dom/run-store.ts` | the runs' IndexedDB store (4.1.14, `web-scumm-runs`): chunks and heads in one transaction, local records |
+| `dom/speedrun-ui.ts` | the speedrun mode (4.1.14): the recorder on the app's engine, its timer, records, ghost, export; loaded by `import()` (it reaches `tools/speedrun/` the same way) |
 
 ## Inside the solver (4.1.0 "Clarity")
 

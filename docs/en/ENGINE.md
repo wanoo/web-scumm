@@ -198,6 +198,24 @@ the asset manifest) and `engine` (its version and `prngVersion`, reserved). The 
 on demand, on the game as written (before a translation), and shows the first eight digits of each; the
 objectives row (`ui.objectives`) opens the quest journal (`dom/objectives-menu.ts`).
 
+## The run clock, the seeded generator and the run's journal (4.1.14)
+
+ADR 0016, D24. `core/run-clock.ts` `EngineRunClock` (`Engine.runClock`) is told by the core of every session entry
+(one logical step), every command before it runs (its declared logical duration, from `core/timing.ts`,
+`TIMING_VERSION = 1`), every line said (a fixed 2.2 s, whatever its text, language or the text speed), every approach
+walk that arrived (its distance between logical anchors over `WALK_SPEED`), every room entered at a point and every
+cutscene entered and left (what runs inside is IGT but not Active IGT). It keeps its own counters (`bigint`
+microticks) and never writes the state; `monotonicNow()` is RTA, never an authority. `Engine.clock` keeps its meaning
+(the milliseconds of an entry's `t`). `core/prng.ts` is the seeded generator: xoshiro128** (`PRNG_VERSION = 1`),
+`derive(seed, stream)` for the streams `logic`, `cosmetic`, `minigame:<id>`, `copy-protection`; `engine.random` draws
+from the run's `logic` stream (`Engine.sessions.seed`, `nextSeed` for a host that chooses it; `Session.seed` written
+then); a new game or a checkpoint reseeds, a load continues. `rnd[]` stays the trace a seeded replay must reproduce.
+`core/run-tape.ts` turns each entry into a link (the entry, the semantic events from its beginning to the next one's,
+the clock after it); `core/journal-chunks.ts` chains the links by SHA-256 into chunks of `SESSION_MAX` (now 500, also
+the session's rollover) written one transaction at a time (`dom/run-store.ts`, IndexedDB `web-scumm-runs`) and read
+back checked. The speedrun itself (categories, splits, the `.wsrun`, the verifier) is in `tools/speedrun/` and
+`docs/en/SPEEDRUN.md`.
+
 ## Walking and motions
 
 `dom/walk.ts` walks a character over its room's walk zones (`walkZones`, one polygon with holes each, its own depth

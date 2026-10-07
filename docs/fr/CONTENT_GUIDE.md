@@ -524,6 +524,11 @@ rien ne donne), un `parent` inconnu et un cycle de parents. Les titres se tradui
 `set_value` de MCP les écrit avec `id: "@game"`. Chaque condition et chaque commande, avec sa forme, est dans la
 référence générée (`docs/fr/DSL.md`).
 
+`speedrun` (4.1.14) déclare des catégories et des splits de speedrun dans le contenu : des déclencheurs sur les
+événements sémantiques (un lieu atteint, un objet acquis, un objectif accompli, la fin), les règles de chaque
+catégorie (sauvegardes, pauses, indices, rechargements, Reality, les composants d'empreinte qu'un run doit égaler, les
+entrées), la version des règles. `npm run validate` le vérifie ; `docs/fr/SPEEDRUN.md` est le guide.
+
 ### Emplacements de sauvegarde et migrations
 
 ```ts
@@ -737,7 +742,8 @@ clés que le moteur affiche lui-même ont une **valeur anglaise par défaut** qu
 `verbs` (le libellé ARIA de la barre des verbes), `saveFailed`, `saveAdjusted`, `updateAvailable`, `updateNow`, `advance`, `jump`,
 `duck`, `offlineStatus`, `offlineComplete`, `offlineRetry`, `save`, `load`, `slot`, `emptySlot`, `confirmOverwrite`,
 `exportSave`, `importSave`, `exportSession`, `shareSession`, `settings`, `textSpeed`, `textSize`, `slow`, `normal`,
-`fast`, `large`, `reduceMotion`, `readableFont`, `language`, `volumeMusic`, `volumeSfx`, `volumeVoice`. Un jeu dans une
+`fast`, `large`, `reduceMotion`, `readableFont`, `language`, `volumeMusic`, `volumeSfx`, `volumeVoice`, et depuis 4.1.14
+`speedrun`, `exportRun`, `abandonRun` (les lignes speedrun du menu pause). Un jeu dans une
 autre langue les fournit toutes : `npm run i18n -- status` liste les clés laissées aux valeurs par défaut, et
 `npm run e2e -- --lang <xx>` échoue dès que l'une d'elles est visible.
 

@@ -513,6 +513,11 @@ unknown `parent` and a cycle of parents. The titles are translated like every te
 menu's row is `ui.objectives`. The Studio's **Language** tab edits them; MCP's `set_value` writes them with
 `id: "@game"`. Every condition and command, with its shape, is in the generated reference (`docs/en/DSL.md`).
 
+`speedrun` (4.1.14) declares speedrun categories and splits as content: triggers on the semantic events (a room
+entered, an item acquired, an objective completed, the ending), the rules of each category (saves, pauses, hints,
+reloads, Reality, the fingerprint components a run must match, the inputs), the rules' version. `npm run validate`
+checks it; `docs/en/SPEEDRUN.md` is the guide.
+
 ### Save slots and migrations
 
 ```ts
@@ -728,7 +733,8 @@ keys the engine shows itself have an **English default** when the game leaves th
 `verbs` (the verb bar's ARIA label), `saveFailed`, `saveAdjusted`, `updateAvailable`, `updateNow`, `advance`, `jump`,
 `duck`, `offlineStatus`, `offlineComplete`, `offlineRetry`, `save`, `load`, `slot`, `emptySlot`, `confirmOverwrite`,
 `exportSave`, `importSave`, `exportSession`, `shareSession`, `settings`, `textSpeed`, `textSize`, `slow`, `normal`,
-`fast`, `large`, `reduceMotion`, `readableFont`, `language`, `volumeMusic`, `volumeSfx`, `volumeVoice`. A game in
+`fast`, `large`, `reduceMotion`, `readableFont`, `language`, `volumeMusic`, `volumeSfx`, `volumeVoice`, and since 4.1.14
+`speedrun`, `exportRun`, `abandonRun` (the pause menu's speedrun rows). A game in
 another language provides them all: `npm run i18n -- status` lists the keys left to the defaults, and
 `npm run e2e -- --lang <xx>` fails when one is visible.
 
