@@ -130,6 +130,8 @@ export class RealityLink {
       playerId,
       // The game in progress belongs to another player: the link idles until the pause menu's choice (`relink`).
       onMismatch: () => this.set('mismatch'),
+      // A speedrun in progress keeps each signal's JWS as its Reality proof (4.1.14).
+      onSigned: (jws, x) => this.app.speedrun?.recorder.realitySignal(jws, x),
     });
     this.client = client;
     void client.run().catch((e: unknown) => {

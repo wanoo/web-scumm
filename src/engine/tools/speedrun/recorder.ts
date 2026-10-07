@@ -10,8 +10,15 @@ import type { ClockSnapshot } from '../../core/run-clock';
 import { ChunkedJournal, type ChunkStore, readRun } from '../../core/journal-chunks';
 import { newSeed } from '../../core/prng';
 import { RunTape, type TapeLink } from '../../core/run-tape';
-import type { GameState, SpeedrunCategory, SpeedrunManifest } from '../../core/types';
-import { type ExcludedInterval, headHash, sealEnvelope, type SpeedrunEnvelope } from './envelope';
+import type { ExternalEntry, GameState, SpeedrunCategory, SpeedrunManifest } from '../../core/types';
+import {
+  type ExcludedInterval,
+  headHash,
+  type RecordedRealitySignal,
+  sealEnvelope,
+  type SpeedrunEnvelope,
+} from './envelope';
+import { sha256Hex } from '../../core/fingerprint';
 import type { RunLoad } from './replay-run';
 import { type SplitSignal, SplitTracker } from './splits';
 import { matches } from './triggers';
@@ -28,6 +35,8 @@ export interface ResumePoint {
   inputs: string[];
   /** The digest after each entry the run reached (the loads it may make). */
   digests: [string, number][];
+  /** The signals from outside recorded so far (their JWS: the Reality proof). */
+  signals: RecordedRealitySignal[];
 }
 
 export interface RecorderOptions {
@@ -66,6 +75,8 @@ export class SpeedrunRecorder {
   /** Hears every split signal and the sealed envelope (the HUD, the overlay bridge, LiveSplit). */
   readonly listeners = new Set<(s: SplitSignal | { kind: 'sealed'; envelope: SpeedrunEnvelope }) => void>();
   private sealing: Promise<SpeedrunEnvelope> | null = null;
+  private pendingSignals: Promise<RecordedRealitySignal>[] = [];
+  private signals: RecordedRealitySignal[] = [];
   /** Why sealing failed (a store that refused the last chunk), if it did. */
   failure: Error | null = null;
   /** The finish trigger fired: the tape is sealed as soon as no entry is open. */
@@ -154,6 +165,7 @@ export class SpeedrunRecorder {
       loads: structuredClone(this.loads),
       inputs: [...this.inputs],
       digests: [...this.digests.entries()],
+      signals: structuredClone(this.signals),
     };
   }
 
@@ -187,6 +199,32 @@ export class SpeedrunRecorder {
     if (at === undefined) return;
     this.openIntervals.delete(kind);
     this.excluded.push({ kind, entry: this.tape?.size ?? 0, atMs: at, durationMs: Math.max(0, this.rtaMs() - at) });
+  }
+
+  /** A signal from outside, with its signed JWS (the Reality client's `onSigned`): the run's Reality proof. */
+  realitySignal(jws: string, x: ExternalEntry): void {
+    const kid = (() => {
+      try {
+        const h = jws.split('.')[0] ?? '';
+        return (JSON.parse(atob(h.replace(/-/g, '+').replace(/_/g, '/'))) as { kid?: string }).kid;
+      } catch {
+        return undefined;
+      }
+    })();
+    this.pendingSignals.push(
+      sha256Hex(jws).then((hash) => ({
+        id: x.id,
+        sequence: x.sequence,
+        signal: x.signal,
+        source: x.source,
+        receivedAt: x.receivedAt,
+        jws,
+        ...(kid ? { kid } : {}),
+        hash,
+        verdict: x.skipped ? ('skipped' as const) : ('ok' as const),
+      })),
+    );
+    void this.pendingSignals.at(-1)!.then((sig) => this.signals.push(sig));
   }
 
   /** A manual save into a slot (the autosave is not one). */
@@ -224,6 +262,7 @@ export class SpeedrunRecorder {
       excluded: this.excluded,
       loads: this.loads,
       inputsUsed: [...this.inputs] as SpeedrunEnvelope['inputsUsed'],
+      realitySignals: await Promise.all(this.pendingSignals),
       finalState: eng.state,
     });
     this.envelope = envelope;
@@ -266,6 +305,8 @@ export class SpeedrunRecorder {
     r.loads = point.loads;
     r.inputs = new Set(point.inputs);
     r.digests = new Map(point.digests);
+    r.signals = point.signals ?? [];
+    r.pendingSignals = r.signals.map((x) => Promise.resolve(x));
     for (const c of run.chunks) for (const l of c.links) r.tracker.feed(l, null);
     r.journal = new ChunkedJournal<ResumePoint>(
       o.store,
