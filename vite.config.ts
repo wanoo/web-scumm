@@ -212,7 +212,7 @@ export default defineConfig({
         // What a signal from the world outside rests on (4.1.2; ratcheted in 4.1.3 by tools/coverage-ratchet.ts), may only rise. The player's menu
         // (dom/reality-ui.ts), the Studio's simulator and panel are covered by e2e:reality, not here.
         'src/engine/core/reality-runtime.ts': { lines: 100, branches: 100 },
-        'src/engine/reality/protocol.ts': { lines: 95, branches: 95 },
+        'src/engine/reality/protocol.ts': { lines: 95, branches: 96 },
         'src/engine/reality/client.ts': { lines: 98, branches: 89 },
         'src/engine/reality/http-port.ts': { lines: 98, branches: 95 },
         'bridge/src/bridge.ts': { lines: 97, branches: 95 },
