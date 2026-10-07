@@ -11,6 +11,10 @@
 // stream itself after a wait (doubling up to a minute) and reconnect from `durable`, which asks for it again.
 import type { WorldSignalPort } from '../core/ports';
 
+/**
+ * How `httpPort` reaches a Bridge: its URL, the pairing's capability, the fetch to use, the retry delay and the mode.
+ * @public
+ */
 export interface HttpPortOptions {
   /** The Bridge's base URL (`https://bridge.example/`). */
   url: string;
@@ -30,7 +34,7 @@ export interface HttpPortOptions {
   maxBufferBytes?: number;
 }
 
-export interface PortCursors {
+interface PortCursors {
   received: number;
   delivered: number;
   durable: number;
@@ -102,6 +106,10 @@ export async function* sseEvents(
   }
 }
 
+/**
+ * The transport to a Bridge, as a WorldSignalPort: Server-Sent Events read with fetch, or a fetch by cursor.
+ * @public
+ */
 export function httpPort(o: HttpPortOptions): WorldSignalPort {
   const f = o.fetch ?? fetch;
   const base = o.url.endsWith('/') ? o.url : `${o.url}/`;

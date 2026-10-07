@@ -13,7 +13,7 @@ const value = z.union([z.boolean(), num(), z.string()]);
 const point = z.tuple([num(), num()]);
 
 /** Runtime schema for every persisted GameState field. Unknown fields are retained for forward-compatible imports. */
-export const GameStateSchema = z.looseObject({
+const GameStateSchema = z.looseObject({
   v: count(),
   room: id,
   inventory: z.array(id),
@@ -84,6 +84,7 @@ export interface SlotMeta {
   v: number;
 }
 
+/** A save as written: the state with the format, the schema, the game's id and save version and the date. @public */
 export interface SaveEnvelopeV3 {
   format: 'web-scumm-save';
   schema: 3;
@@ -93,6 +94,7 @@ export interface SaveEnvelopeV3 {
   state: GameState;
 }
 
+/** Wraps a state in the save envelope (format, schema, game id and save version, date) a store writes. @public */
 export function saveEnvelope(game: GameDef, state: GameState, now = Date.now()): SaveEnvelopeV3 {
   return {
     format: 'web-scumm-save',
@@ -112,6 +114,7 @@ export interface ParseSaveOptions {
  * Parses an envelope (or a legacy raw state). Structural corruption and references needed to resume (the current room
  * and active player) are rejected. Stale, non-essential content references are pruned so an ordinary content update
  * does not destroy Continue; the caller receives one warning listing what changed.
+ * @public
  */
 export function parseSave(game: GameDef, input: unknown, opts: ParseSaveOptions = {}): GameState {
   let raw: unknown = input;

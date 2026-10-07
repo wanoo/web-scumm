@@ -8,6 +8,11 @@ import type { SaveStore, WorldSignalPort } from '../core/ports';
 import type { ExternalEntry } from '../core/types';
 import { verifySignal, type Keyring, type RefusalCode } from './protocol';
 
+/**
+ * What a RealityClient is built with: the engine, the store, the port, the keyring, and how it refreshes keys and
+ * reports.
+ * @public
+ */
 export interface RealityClientOptions {
   engine: Engine;
   store: SaveStore;
@@ -35,6 +40,11 @@ export interface RealityClientOptions {
 /** Refusals of a signal the Bridge did sign that will never become valid: recorded as skipped, so the cursor moves on. */
 const FINAL: Partial<Record<RefusalCode, ExternalEntry['skipped']>> = { expired: 'expired', signal: 'signal' };
 
+/**
+ * The player's side of the Reality Bridge: reads signed signals from a port, verifies each, hands it to the engine,
+ * waits for the durable save, then acknowledges.
+ * @public
+ */
 export class RealityClient {
   private stopped = false;
   private ctrl = new AbortController();

@@ -3,6 +3,10 @@
 // never as text from outside (docs/en/REALITY.md). (core/types.ts re-exports every name.)
 import type { Cmd, Id } from './content';
 
+/**
+ * A signal the game may receive from the world outside: its id, source, availability, replay mode and fallback.
+ * @public
+ */
 export interface SignalDef {
   /** The signal's identifier, also the event it emits: `mail.answer.correct`. */
   id: Id;
@@ -24,6 +28,7 @@ export interface SignalDef {
   fallback?: { verb: Id; a: Id; b?: Id; do?: Cmd[] };
 }
 
+/** The game's link to the world outside: the signals it declares and the Reality Bridge it pairs with. @public */
 export interface RealityDef {
   signals: SignalDef[];
   /**
@@ -33,7 +38,7 @@ export interface RealityDef {
   bridge?: string;
 }
 
-/** What a save keeps of the link (`GameState.reality`): no token, no email, no payload. */
+/** What a save keeps of the link (`GameState.reality`): no token, no email, no payload. @public */
 export interface RealityState {
   /** The pseudonymous id the Bridge gave this game when it was paired. */
   playerId?: string;

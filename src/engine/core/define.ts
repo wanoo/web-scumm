@@ -1,6 +1,8 @@
 import type { Cmd, GameDef, Layout, RoomDef, Rule, VerbId } from './types';
 
+/** A game as its sources write it: a `GameDef` before compilation. @public */
 export type GameSource = GameDef;
+/** A game as `compileGame` returns it: normalised and, for schema 3, frozen. @public */
 export type CompiledGame = Readonly<GameDef>;
 
 const compiled = new WeakSet<object>();
@@ -13,12 +15,12 @@ function deepFreeze<T>(value: T, seen = new WeakSet<object>()): T {
   return Object.freeze(value);
 }
 
-/** Declares a room. Does nothing but type it: autocomplete guides the writing. */
+/** Declares a room. Does nothing but type it: autocomplete guides the writing. @public */
 export function defineRoom(room: RoomDef): RoomDef {
   return room;
 }
 
-/** Declares the full game. */
+/** Declares the full game. @public */
 export function defineGame(game: GameDef): GameDef {
   return game;
 }
@@ -129,6 +131,7 @@ export function assignKeys(game: GameDef): GameDef {
 /**
  * Compiles authoring data once into the single normalised representation consumed by the engine and tools.
  * The source is never mutated; generated exits and legacy persistence keys exist only on the frozen result.
+ * @public
  */
 export function compileGame(source: GameSource): CompiledGame {
   if (compiled.has(source)) return source;
@@ -139,11 +142,11 @@ export function compileGame(source: GameSource): CompiledGame {
   return out.schemaVersion === 3 ? deepFreeze(out) : out;
 }
 
-/** Empty layout, when the room hasn't been placed in the editor yet. */
+/** Empty layout, when the room hasn't been placed in the editor yet. @public */
 export const EMPTY_LAYOUT: Layout = { entries: { default: [320, 360] } };
 
-/** Default floor bottom (logical y), when the layout doesn't give `floor`. */
+/** Default floor bottom (logical y), when the layout doesn't give `floor`. @public */
 export const FLOOR = 395;
 
-/** Distance (logical units) beyond which a saved approach point is considered stale and recomputed. */
+/** Distance (logical units) beyond which a saved approach point is considered stale and recomputed. @public */
 export const NEAR = 150;

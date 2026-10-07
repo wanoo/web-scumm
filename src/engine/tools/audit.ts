@@ -8,7 +8,7 @@ import type { CustomCommands } from '../core/custom';
 import type { GameDef, Layout } from '../core/types';
 import { solve, type SolveOptions, type SolveResult } from './solve';
 
-export type AuditStatus = 'same' | 'diverged' | 'partial';
+type AuditStatus = 'same' | 'diverged' | 'partial';
 
 export interface AuditResult {
   /** `same`: the abstractions gave the explicit search's verdict, every memo hit identical. `diverged`: they did not.
@@ -36,7 +36,7 @@ export interface AuditResult {
 type Solver = (game: GameDef, layouts: Record<string, Layout>, opts: SolveOptions) => Promise<SolveResult>;
 
 /** What the abstractions must not change. States, paths and their labels may differ: they are what the abstractions fold. */
-export function verdictOf(r: SolveResult) {
+function verdictOf(r: SolveResult) {
   return {
     status: r.status,
     finished: r.finished,

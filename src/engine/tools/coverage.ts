@@ -12,11 +12,11 @@ import { normalizeExits } from '../core/define';
 import { must } from '../core/must';
 
 /** The storyboard, normalised (`normalizeStoryboard` in tools/pages/storyboard-data.ts): only what the checker reads. */
-export interface CoverLine {
+interface CoverLine {
   who: string;
   text: string;
 }
-export interface CoverBoard {
+interface CoverBoard {
   id: string;
   title: string;
   room?: string;

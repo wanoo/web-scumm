@@ -22,7 +22,7 @@ export interface VoiceRow {
 }
 
 /** The clips of a language: `audio.voices` for the game's own, `audio.voicesByLang[lang]` for the others. */
-export function clipsOf(game: GameDef, lang: string): Record<Id, string> {
+function clipsOf(game: GameDef, lang: string): Record<Id, string> {
   return lang === (game.lang ?? 'en') ? (game.audio?.voices ?? {}) : (game.audio?.voicesByLang?.[lang] ?? {});
 }
 

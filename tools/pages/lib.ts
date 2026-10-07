@@ -31,7 +31,7 @@ export async function loadContext(opts: { gameDir?: string; mod?: GameModule } =
   return { gameId: opts.gameDir ? basename(gameDir) : GAME, gameDir, mod, game: mod.game, layouts };
 }
 
-export function readLayouts(gameDir: string): Record<string, Layout> {
+function readLayouts(gameDir: string): Record<string, Layout> {
   return loadLayouts(join(gameDir, 'layout'));
 }
 
@@ -53,7 +53,7 @@ export function outPath(out: string | undefined, name: string): string {
   return resolve(out ?? join(ROOT, 'dist-pages'), name);
 }
 
-export const LIMIT_BYTES = 16 * 1024 * 1024;
+const LIMIT_BYTES = 16 * 1024 * 1024;
 
 export function writePage(file: string, html: string): void {
   mkdirSync(dirname(file), { recursive: true });
@@ -168,7 +168,7 @@ export function imageSource(gameDir: string, id: string): string | undefined {
   return undefined;
 }
 
-export function dataUri(file: string): string {
+function dataUri(file: string): string {
   const mime = MIME[extname(file).toLowerCase()] ?? 'application/octet-stream';
   return `data:${mime};base64,${readFileSync(file).toString('base64')}`;
 }
@@ -276,7 +276,7 @@ export function charImageId(c: CharacterDef | undefined): string | undefined {
 // ---------------------------------------------------------------------------
 
 /** Colour tokens (dark by default, light when the viewer asks) and the shared controls. */
-export const BASE_CSS = `
+const BASE_CSS = `
 :root { --bg:#14111c; --panel:#1d1828; --panel2:#262036; --line:#3a3150; --ink:#eee8da; --dim:#a69cb6; --accent:#f0c040;
   --accent-ink:#14111c; --ok:#7fd49a; --err:#ff7a7a; --warn:#ffb86b; --field:#0f0c16; --check1:#3a3550; --check2:#2c283e; color-scheme: dark; }
 @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --bg:#f6f3ec; --panel:#ffffff; --panel2:#f0ebe0; --line:#d8cfbf;
@@ -309,7 +309,7 @@ textarea:focus, input:focus, select:focus { outline: 2px solid var(--accent); bo
  * Modes: "db" (published artifact with the db capability), "local" (plain file: localStorage + Export JSON),
  * "readonly" (db rejects writes: edits stay on this device, Export JSON still works).
  */
-export const PERSIST_JS = String.raw`
+const PERSIST_JS = String.raw`
 (function () {
   var S = { mode: 'local', db: null, key: '', cols: [], data: {}, onDoc: null };
   var bar = function () { return document.getElementById('ps-state'); };

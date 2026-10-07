@@ -5,7 +5,7 @@
 import { assetPath, type ProvenanceLock } from './provenance';
 import { must } from '../core/must';
 
-export type FileKind = 'code' | 'asset' | 'data' | 'font' | 'shell' | 'licence';
+type FileKind = 'code' | 'asset' | 'data' | 'font' | 'shell' | 'licence';
 
 /** The notices every build carries under licenses/ (tools/dist.ts writes them). */
 export const NOTICES = [
@@ -17,7 +17,7 @@ export const NOTICES = [
 ] as const;
 
 /** The built folder of a game's assets (dist/assets/…): `assetPath` of a key, under `assets/`. */
-export const distPath = (key: string): string | null => {
+const distPath = (key: string): string | null => {
   const p = assetPath(key);
   return p ? `assets/${p}` : null;
 };
@@ -55,12 +55,7 @@ export interface InventoryReport {
   changed: string[];
 }
 
-export function classify(
-  path: string,
-  assets: Map<string, string>,
-  data: Set<string>,
-  studio = false,
-): FileKind | null {
+function classify(path: string, assets: Map<string, string>, data: Set<string>, studio = false): FileKind | null {
   if (path.startsWith('licenses/')) return 'licence';
   if (assets.has(path)) return 'asset';
   if (data.has(path)) return 'data';
@@ -149,7 +144,7 @@ export function manifestMatches(manifest: ManifestEntry[], lock: ProvenanceLock)
 }
 
 /** The scripts a first visit runs before anything is asked for (3.9): the page's module entry and preloads. */
-export function entryScripts(html: string): string[] {
+function entryScripts(html: string): string[] {
   const out: string[] = [];
   for (const m of html.matchAll(/<script[^>]*type="module"[^>]*src="([^"]+)"/g)) out.push(must(m[1], 'script src'));
   for (const m of html.matchAll(/<link[^>]*rel="modulepreload"[^>]*href="([^"]+)"/g))

@@ -81,14 +81,14 @@ export class NotesStore {
 
 export const newestFirst = (a: Note, b: Note) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0);
 
-export function getAuthor(): string {
+function getAuthor(): string {
   try {
     return localStorage.getItem('studio.author') || 'you';
   } catch {
     return 'you';
   }
 }
-export function setAuthor(v: string) {
+function setAuthor(v: string) {
   try {
     localStorage.setItem('studio.author', v.trim() || 'you');
   } catch {
@@ -97,7 +97,7 @@ export function setAuthor(v: string) {
 }
 
 /** "just now", "5 min ago", "3 h ago", else the local date and time. */
-export function when(iso: string): string {
+function when(iso: string): string {
   const d = new Date(iso);
   const s = (Date.now() - d.getTime()) / 1000;
   if (s < 0 || Number.isNaN(s)) return d.toLocaleString();

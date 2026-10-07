@@ -118,7 +118,7 @@ export interface AssistantCtx {
 // ------------------------------------------------------------------------------------------- markdown-lite
 
 /** Paragraphs, fenced code, lists, headings, `code` and **bold**: built as DOM nodes (never innerHTML). */
-export function renderMarkdown(src: string): DocumentFragment {
+function renderMarkdown(src: string): DocumentFragment {
   const frag = document.createDocumentFragment();
   const inline = (s: string): (Node | string)[] =>
     s

@@ -44,7 +44,7 @@ export function stemAssets(game: GameDef): string[] {
 }
 
 /** The largest score decoded, in bytes (its declared `pcmBytes`; 0 without scores, null when one does not say). */
-export function decodedAudio(game: GameDef): number | null {
+function decodedAudio(game: GameDef): number | null {
   const pcm = Object.values(game.audio?.scores ?? {}).map((s) => s.pcmBytes);
   return pcm.includes(undefined) ? null : Math.max(0, ...(pcm as number[]));
 }

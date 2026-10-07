@@ -31,7 +31,7 @@ export interface ExpandPool {
 }
 
 /** `auto`: one per core but one, at most 8. */
-export function workerCount(w: number | 'auto' | undefined): number {
+function workerCount(w: number | 'auto' | undefined): number {
   if (w === 'auto') return Math.max(1, Math.min(8, cpus().length - 1));
   return Math.max(1, Math.floor(w ?? 1));
 }
@@ -42,7 +42,7 @@ function workerOpts(opts: SolveOptions) {
   return { mode, goal, canonicalPlayers, mobility, ownership, memo, memoVerify, por, unsafeReduction };
 }
 
-export async function openPool(
+async function openPool(
   n: number | 'auto',
   gameIn: GameDef,
   layouts: Record<string, Layout>,

@@ -6,7 +6,7 @@
 import type { Cmd, Cond, GameDef, Layout, RoomDef } from '@engine/core/types';
 
 /** mulberry32: a tiny seeded generator, the same numbers on every machine. */
-export function rng(seed: number) {
+function rng(seed: number) {
   let a = seed >>> 0;
   const next = () => {
     a = (a + 0x6d2b79f5) >>> 0;

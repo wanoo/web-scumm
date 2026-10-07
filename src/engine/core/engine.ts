@@ -97,9 +97,14 @@ import {
 import { atomKey, HERO, SESSION_MAX, type Ctx, type Source, type TraceEntry } from './engine-shared';
 import { ScriptScheduler } from './scheduler';
 import { roomKey } from './keys';
-export { atomKey, describeCmd } from './engine-shared';
+export { describeCmd } from './engine-shared';
 export type { Source, TraceEntry } from './engine-shared';
 
+/**
+ * The engine without a page: it runs a game against a Presenter and a SaveStore, in the browser, in node tests and in
+ * the solver.
+ * @public
+ */
 export class Engine {
   readonly game: GameDef;
   readonly layouts: Record<Id, Layout>;

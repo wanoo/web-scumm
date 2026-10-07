@@ -33,7 +33,7 @@ import { type SolveProfile, label } from './report';
  * engine wins (3.6). A search runs in microtasks and never reaches the timers' phase: before this, every uncleared
  * tick stayed queued, with its promise, until the process went idle (15 MB per audit, out of memory over a corpus).
  */
-export const raceTick = async (settled: Promise<unknown>) => {
+const raceTick = async (settled: Promise<unknown>) => {
   let t: ReturnType<typeof setTimeout> | undefined;
   try {
     await Promise.race([

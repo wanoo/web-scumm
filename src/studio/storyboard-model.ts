@@ -61,7 +61,7 @@ export function findPanel(doc: Doc | undefined, id: string): { bi: number; pi: n
 }
 
 /** Every panel id of the document, in play order (duplicates included). */
-export function panelIds(doc: Doc): string[] {
+function panelIds(doc: Doc): string[] {
   return doc.boards.flatMap((b) => b.panels.map((p) => p.id));
 }
 

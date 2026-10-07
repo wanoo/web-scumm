@@ -109,9 +109,6 @@ export const CHANGES: ReadonlySet<CmdKey> = new Set<CmdKey>([
   'end',
 ]);
 
-/** Commands that carry a text the player reads (`choice` holds one per option, a plain string is a line). */
-export const TEXTS: ReadonlySet<CmdKey> = new Set<CmdKey>(['say', 'toast', 'guide', 'choice']);
-
 /** Keys of the commands that hold nested command lists. */
 export const CONTAINERS: ReadonlySet<CmdKey> = new Set<CmdKey>([
   'if',

@@ -14,7 +14,7 @@ import { roomKey, seenKey } from './keys';
 
 type CmdObj = Exclude<Cmd, string>;
 /** The command variants that carry the key `K`. */
-export type CmdOf<K extends CmdKey> = K extends unknown ? Extract<CmdObj, Record<K, unknown>> : never;
+type CmdOf<K extends CmdKey> = K extends unknown ? Extract<CmdObj, Record<K, unknown>> : never;
 export type Handler<K extends CmdKey> = (eng: Engine, c: CmdOf<K>, ctx: Ctx) => Promise<void> | void;
 type Handlers = { [K in CmdKey]: Handler<K> };
 

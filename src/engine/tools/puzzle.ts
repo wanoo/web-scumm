@@ -43,7 +43,7 @@ export interface PuzzleNode {
   label: string /** The room (actions), or where it is defined. */;
   where?: string;
 }
-export interface PuzzleEdge {
+interface PuzzleEdge {
   from: string;
   to: string;
   /** `requires`: a gate of the action (its `if`, the items it takes); `reads`: a condition inside its commands; `produces` / `consumes`: an effect. */

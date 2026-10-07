@@ -5,8 +5,7 @@ import { showCard } from './card';
 import { unseal, type EndingPayload } from './seal';
 import { must } from '../core/must';
 
-export { DEFAULT_ACCENT, showCard, verdict } from './card';
-export { seal, unseal, normalizePassword, type EndingPayload, type RevealPayload } from './seal';
+export type { EndingPayload } from './seal';
 
 export interface EndingHost {
   game: GameDef;

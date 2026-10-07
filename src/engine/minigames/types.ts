@@ -1,6 +1,10 @@
 // Minigame contract: the host provides a zone (the scene), the minigame fills it then ends.
 // A minigame never fails: the promise resolves when you win or skip.
 
+/**
+ * What the host hands a minigame: its zone, the unit scale, images and sounds, parameters, labels and an abort signal.
+ * @extension
+ */
 export interface MinigameCtx {
   /** Element covering the scene (relative position, 16:10 format). The minigame fills it and cleans it up. */
   root: HTMLElement;
@@ -21,6 +25,7 @@ export interface MinigameCtx {
   fonts?: { ui: string; pixel: string };
 }
 
+/** A minigame: `run(ctx)` until it is won or skipped, and what the validator reads of its params. @extension */
 export interface Minigame {
   run(ctx: MinigameCtx): Promise<void>;
   /** Required params: the validator flags a `{ minigame }` that doesn't provide them. */
