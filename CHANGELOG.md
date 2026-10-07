@@ -14,7 +14,26 @@
   that wait and reopened from the durable cursor (`docs/en/REALITY.md`). The reproduction tests of #22 are the
   fix's tests.
 
+- **The update never activated from the title screen of a game with a save** (4.1.8, found by the new PWA
+  scenarios). The banner's "update now" saved before activating, and on the title screen there is no game running:
+  `save()` on nothing threw inside `beforeSave`, the failure was reported as a storage error and the old version kept
+  running, whatever the player clicked. The banner saves only a game in progress, still waits for any pending write,
+  then activates (`tests/dom/update-offer.test.ts`).
+- **The offline warm-up could fill nothing** (4.1.8). Its fetches reach the caches through the service worker, and
+  on a first visit the worker did not control the page yet (`clientsClaim` was off): Firefox reported 218 files
+  "complete" with 111 of them absent from the cache. The worker now claims the page at its first activation (an
+  update still waits for the banner), and the warm-up waits, at most five seconds, for that control before it starts.
+
 ### Changes
+
+- **The PWA proven in three browsers, update included** (4.1.8, programme §4.5). `npm run e2e:pwa -- --serve=dist
+  --update --interrupted --reinstall` serves the build itself, publishes a second one and checks: the banner after a
+  durable save and the new worker in charge with the save kept; an update whose worker fetch fails (no banner, the
+  old worker keeps serving, the game runs); a reinstall (worker and caches gone, installed again, the save kept);
+  then the whole game opened offline. Chromium and WebKit in the `e2e` job, Firefox in the new `pwa-firefox` job
+  (Firefox's only gate; `docs/en/SUPPORT.md`). WebKit still cannot navigate offline under Playwright: that step is
+  reported skipped, never counted; installing from Safari on an iPhone and updating there remain a person's check
+  before each release (`docs/dev/passes/`).
 
 - **The Reality transport and the Bridge, bounded** (4.1.8): the SSE parser accepts lines ending with CRLF or CR,
   removes one space after `data:` as the specification says, and drops a stream whose event is over 64 KiB or that

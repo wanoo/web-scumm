@@ -79,7 +79,9 @@ export default defineConfig({
         ],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
-        clientsClaim: false,
+        // The worker claims the page at its first activation (the warm-up's fetches must pass through it to be cached);
+        // an update never activates on its own: the banner asks, after a durable save (dom/update.ts).
+        clientsClaim: true,
         skipWaiting: false,
         runtimeCaching: [
           {

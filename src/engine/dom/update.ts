@@ -17,11 +17,10 @@ export function offerUpdate(app: App, activate: () => Promise<void>) {
     button.disabled = true;
     app.saveError = null;
     try {
-      // On the untouched title screen there is no progress to persist; do not create a misleading Continue save.
-      if (app.engine.hasSave()) {
-        app.engine.save();
-        await app.engine.store.whenIdle?.();
-      }
+      // A game in progress is saved first. On the title screen there is no live state: the autosave on disk is the
+      // progress (writing one from nothing would throw, or create a misleading Continue); a pending write still lands.
+      if (app.engine.state) app.engine.save();
+      await app.engine.store.whenIdle?.();
       if (app.saveError) throw new Error(app.saveError);
       await activate();
     } catch (e) {
@@ -102,6 +101,9 @@ export async function warmAll(app: App, retry = false) {
       set({ state: 'off', done: 0, total: 0, failed: [] });
       return;
     }
+    // The fetches below reach the caches through the service worker, so only once it controls this page (the first
+    // install claims it at activation; Firefox was found warming 218 files into nothing before that).
+    await controlled(app);
     const b = app.bank;
     const plan = offlinePlan(app.game, b.manifest);
     let estimate: { usage?: number; quota?: number } | undefined;
@@ -149,6 +151,24 @@ export async function warmAll(app: App, retry = false) {
   } finally {
     if (first) app.offlineDone(app.offlineStatus);
   }
+}
+
+/** Waits, bounded, for the service worker to control this page: a registration without a controller yet (first install). */
+async function controlled(app: App, ms = 5000): Promise<void> {
+  const sw = typeof navigator === 'undefined' ? undefined : navigator.serviceWorker;
+  if (!sw || sw.controller || app.aborter.signal.aborted) return;
+  if (!(await sw.getRegistration().catch(() => undefined))) return; // no worker here (dev, a test): nothing to wait for
+  await new Promise<void>((r) => {
+    const done = () => {
+      clearTimeout(timer);
+      sw.removeEventListener('controllerchange', done);
+      app.aborter.signal.removeEventListener('abort', done);
+      r();
+    };
+    const timer = setTimeout(done, ms);
+    sw.addEventListener('controllerchange', done);
+    app.aborter.signal.addEventListener('abort', done);
+  });
 }
 
 export function offlineUrl(app: App, kind: string, id: string) {
