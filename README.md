@@ -134,7 +134,7 @@ the three figures from `tests/quality-baseline.json`):
 | Saves | one frozen save per release from 3.0.0 to 4.1.15 loads and reaches the ending |
 | Proof | the sample game's every reachable state in seconds; a 40-room reference game in <!-- metric:referenceStates -->288<!-- /metric --> states; 500 random games of each of three kinds compared to an explicit search every night, 0 divergences ([BENCH](docs/en/BENCH.md)) |
 | A new game | packed, created from the tarball, installed, verified, built and played to its end by CI; a game made on the previous release upgraded and its save played to the end |
-| The player's first visit | <!-- metric:initialJsKB -->125<!-- /metric --> KB of JavaScript, gzipped, held by a budget; every byte fetched predicted by the asset graph |
+| The player's first visit | <!-- metric:initialJsKB -->132<!-- /metric --> KB of JavaScript, gzipped, held by a budget; every byte fetched predicted by the asset graph |
 | The release | built from the commit CI tested, every file accounted for with its licence, SBOM, SHA-256 sums and a provenance attestation, never replaced once published |
 
 What only people and real devices can check is listed, not claimed: [FIELD](docs/en/FIELD.md), and each release's
