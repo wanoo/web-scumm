@@ -17,7 +17,7 @@ import { createHash, randomBytes, webcrypto } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { manifestHash, type RealityManifest } from '../../src/engine/reality/manifest';
-import { Bridge, type BridgeConfig } from './bridge';
+import { Bridge, type BridgeConfig, type Limits } from './bridge';
 import { biscuitLib } from './biscuit';
 import { grantToken } from './policy';
 import { opt, openStore, storeCommand, storeSpec } from './cli-store';
@@ -50,6 +50,8 @@ export interface BridgeFile {
   signalVersion?: 1 | 2;
   /** The `Host` names that reach this tenant when one server holds several. */
   hosts?: string[];
+  /** Limits other than the defaults (4.1.10: a load test, a busy tenant). */
+  limits?: Partial<Limits>;
 }
 
 const arg = opt;
@@ -92,6 +94,7 @@ export async function loadBridge(
     previousKeys: file.previousKeys,
     adminTokenHash: file.adminTokenHash,
     policyVersion: '1',
+    ...(file.limits ? { limits: file.limits } : {}),
   };
   hold.store ??= await openStore(storeSpec(file, []), dir, file, {
     onRepair: (what) => console.log(JSON.stringify({ event: 'journal.repaired', what })),
