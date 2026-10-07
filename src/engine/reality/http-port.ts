@@ -34,7 +34,7 @@ export interface HttpPortOptions {
   maxBufferBytes?: number;
 }
 
-interface PortCursors {
+export interface PortCursors {
   received: number;
   delivered: number;
   durable: number;
