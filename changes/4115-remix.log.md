@@ -62,4 +62,8 @@
   (budget 140); the "1 thing the provenance does not account for" was that budget line. `core/save.ts` back to 100 %
   of its branches (`tests/save-world.test.ts`, measured with vitest coverage on the five save test files). Not run:
   the full `test:coverage` and `coverage-ratchet` (one-file-at-a-time rule of this machine), the e2e.
+- After the rerun on 18647c4: `pwa-firefox` passed every scenario then reported "error loading dynamically imported
+  module …/virtual_pwa-register-*.js". `src/main.ts` now imports the register module statically (it was its own lazy
+  chunk; it was in the precache, `dist/sw.js`), so that chunk no longer exists; first visit unchanged (demo 132 KB,
+  reference 137 KB). The cause in Firefox was not reproduced here (no e2e on this machine).
 → next: Claude · `release/4.1.15`
