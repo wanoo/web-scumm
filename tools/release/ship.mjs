@@ -38,6 +38,13 @@ const RERUN_ONCE = new Set();
 /** Re-runs the failed jobs of a run once; false when it was already re-run (the second failure is final). */
 function rerunOnce(runId, why) {
   if (RERUN_ONCE.has(runId)) return false;
+  // A job failed while its run still goes on (other jobs pending): GitHub re-runs nothing until the run is over.
+  // Wait for it (the caller polls again), re-run once it is complete.
+  const run = ghJson(['run', 'view', String(runId), '--json', 'status']);
+  if (run.status !== 'completed') {
+    say(`${why}: run ${runId} still has jobs running; re-run once it is over`);
+    return true;
+  }
   RERUN_ONCE.add(runId);
   say(`${why}: re-running the failed jobs of run ${runId} once`);
   gh(['run', 'rerun', String(runId), '--failed']);
