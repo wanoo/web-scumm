@@ -13,9 +13,9 @@ entries, its room and bag (each interned: the same strings are stored once), and
 a number, sorted, written as a short string: equal exactly when the dimensions are equal, as the JSON key was, so no
 hash collision can merge two states. The engine state is kept only while the node waits in the frontier, and for the
 goal states a chapter's next proof starts from. A 64-bit hash (FNV-1a 64 of each pair, summed, so a transition updates
-it by what it changed) exists for the workers' shared visited table (`search/partition.ts`), where it is never the
+it by what it changed) exists for the workers' shared visited table (`solve/search/partition.ts`), where it is never the
 authority: a worker's "already stored" the exact keys do not confirm is expanded again. The flat columns are also what
-the checkpoint writes (`search/checkpoint.ts`). `representation: 'objects'` keeps the 4.1.8 storage, for the
+the checkpoint writes (`solve/search/checkpoint.ts`). `representation: 'objects'` keeps the 4.1.8 storage, for the
 partial-order reduction (which expands a stored state again) and as the reference of the differential tests.
 
 **Checked.** `tests/solver-oracle.test.ts`: the sample game, the reference game and 200 generated games give, with the

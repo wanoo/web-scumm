@@ -106,3 +106,65 @@ was at 1.0–2.8 GB of 4 when the clock stopped them).
 - **Release objective**: the twelve instances finish within their budget with a verdict.
 - The minimum without the objective: the release is called **"Solver Research"**, with the gap report (section 8).
   Not even the minimum: no release, the work stays on its branch.
+
+## 7. 4.1.13, measured (7 October 2026, the Mac)
+
+The same command, the same budget, the 4.1.13 sources (compact representation, no workers). Details per instance in
+`docs/en/BENCH.md` ("4.1.13"); the explosion profile of each instance in [PROOF-PROFILE.md](PROOF-PROFILE.md).
+
+| Id | Verdict | States | Time | States/s (4.1.8 → 4.1.13) | Peak heap (4.1.8 → 4.1.13) |
+|---|---|---|---|---|---|
+| c11 | `proved` | 5 385 | 31.7 s | 168 → 170 | 233 → 81 MB |
+| c12 | `softlock` | 7 333 | 47.7 s | 157 → 154 | 333 → 87 MB |
+| c13 | `softlock` | 341 | 0.8 s | 425 → 409 | 24 → 30 MB |
+| c14 | `proved` | 1 871 | 6.1 s | 314 → 307 | 71 → 64 MB |
+| c15 | `proved` | 1 605 | 8.0 s | 205 → 202 | 89 → 68 MB |
+| c16 | `softlock` | 259 | 0.6 s | 410 → 411 | 28 → 30 MB |
+| o21 | `proved` | 80 967 | 419.1 s | 175 → 193 | 2 556 → 127 MB |
+| o22 | `unknown` (time) | 36 399 | 591.0 s | 57 → 62 | 1 998 → 297 MB |
+| o23 | `unknown` (time) | 89 266 | 590.0 s | 135 → 151 | 2 598 → 141 MB |
+| o24 | `unknown` (time) | 17 079 | 590.6 s | 29 → 29 | 894 → 104 MB |
+| o25 | `unknown` (time) | 75 246 | 590.0 s | 137 → 128 | 1 896 → 115 MB |
+| o26 | `softlock` | 8 638 | 57.5 s | 149 → 150 | 349 → 86 MB |
+
+No false verdict: every instance with a verdict gives the expected one, with the same number of states as 4.1.8.
+
+**The thresholds.**
+
+| Criterion | Measured | Met |
+|---|---|---|
+| ×3 states/s **or** ÷3 memory on the matrix | states/s ×1.03 (geometric mean; ×0.93 to ×1.12); memory ÷9.0 in peak heap (11 069 → 1 230 MB, the twelve summed), ÷4.5 in peak RSS (13 247 → 2 926 MB); ÷16 to ÷20 on o21, o23, o25 | **yes, by memory** |
+| The compact representation | `search/compact.ts`, ADR 0015; the 4.1.8 oracle reproduced on 203 searches | yes |
+| Checkpoint and resume | `--checkpoint`, `--resume`; a real process killed at 30 % resumes to the same verdict and witness | yes |
+| The explicit search's verdict on the small games | `npm run audit:corpus`, 500 seeds × 3 kinds on this code: 1 500 games, 909 compared, 0 divergence (591 partial: the explicit search hit its 3 000 states) | yes |
+| No false proof | a cut budget (states, time, memory) gives `truncated`, tested; no false verdict on the matrix | yes |
+| **Objective: the twelve within the budget** | **8 of 12** (the same eight as 4.1.8) | **no** |
+
+The minimum is met and the objective is not: **4.1.13 is "Solver Research"**.
+
+## 8. The gap report (4.1.13)
+
+| Instance | Budget that stopped it | States reached | What multiplies the states | What costs the time |
+|---|---|---|---|---|
+| o22 (39 rooms) | time, 590 s (heap 297 MB of 4 096) | 36 399, frontier still growing | the bags (517 distinct bags and pools in 2 758 states) | 78 tries that change nothing per state; one region spans all 39 rooms |
+| o23 (27) | time (141 MB) | 89 266; with 4 workers 237 618, still growing | the bags (13 171 of 16 395 states would merge without them) | 26 no-op tries per state |
+| o24 (38) | time (104 MB) | 17 079 | the bags, then the dialogues | 49 no-op tries per state, 29 states/s |
+| o25 (29) | time (115 MB) | 75 246 | the dialogues and the flags, then the bags | 58 no-op tries per state |
+
+Profiles at two minutes (PROOF-PROFILE.md); "no-op tries per state" is the profile's tries that changed nothing over
+its states. What this says:
+
+- **Memory is no longer the limit** (it was not the binding one on the Mac's ten minutes either, but it was the wall
+  for longer runs: 4.1.8 needed 31.6 KB per state on o21, 4.1.13 1.6 KB). A proof can now run for hours under 4 GB,
+  checkpointed, and be taken up again; the runner's nightly measures the 20-minute budget.
+- **Time is the limit, and it is the engine's runs on tries that change nothing.** In an open instance a character's
+  mobility region is the whole map, so every state tries every room's actions, through a hand-over when the item is
+  pooled; the no-op memo refuses to keep most of those runs (they read what it cannot value). The next lever is there:
+  a memo that values the reads of a macro move and of a hand-over, or a static filter of the tries no rule of the
+  target room can answer. Workers multiply the speed (×2.7 with four on o23) without changing the shape.
+- **The states that remain are who carries which key.** The canonical owner pools only the items no condition reads;
+  the keys are read by the doors, so their carrier stays in the state. An abstraction of "a key any character of the
+  group could bring to its door" would need its own audit; it is not attempted here.
+- **Not tried in 4.1.13**: a symbolic backend (BDD, SAT/SMT, CEGAR; the sheet's branch 6), dominance in proofs (it
+  changes 1 verdict in 43 generated games, so it stays off), proving independent sub-puzzles separately (reported by
+  the profile, not applied).

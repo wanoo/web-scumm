@@ -153,6 +153,12 @@ npm run solve -- --from=<checkpoint> --max=50000
 npm run solve -- --prove --workers=4 [--batch=64] [--time=60]   # workers de preuve (3.5) : le même résultat quel que soit leur nombre ; une grosse preuve ×2,5 avec 4 (BENCH.md « 3.5 »)
 npm run solve -- --prove --ownership=off   # sans le propriétaire canonique (qui porte un objet libre, mis en commun dans les preuves depuis la 3.5)
 npm run solve -- --dominance             # un témoin avec dominance (3.5 ; n'élague rien sur les jeux fournis, BENCH.md)
+npm run solve -- --prove --profile       # le profil, avec le profil d'explosion (4.1.13) : les états attribués aux positions, inventaires, flags, dialogues, scripts ; symétries, no-ops, permutations
+npm run solve -- --prove --checkpoint=p.ckpt [--checkpoint-every=300] [--resume]   # la preuve écrite au fil de l'eau (4.1.13), reprise avec --resume : le même verdict et le même témoin ; une preuve finie supprime le fichier
+npm run solve -- --prove --mem=3500      # s'arrête en `truncated` quand le tas dépasse 3 500 Mo (4.1.13), jamais une preuve
+npm run solve -- --prove --symmetry      # replie les objets symétriques, deux objets que le jeu traite pareil (4.1.13, désactivé par défaut ; SOLVER.md)
+npm run solve -- --prove --representation=objects   # le stockage des états de la 4.1.8 (la référence des tests différentiels ; compact par défaut, 4.1.13)
+npm run prove:matrix [-- --only=c11,o21 --time=600 --mem=4096 --json=m.json --profile=docs/dev/PROOF-PROFILE.md]   # la matrice de preuve (4.1.13, docs/dev/PROOF-MATRIX.md) : douze jeux à trois personnages sous les budgets publiés ; 1 sur un faux verdict ; la nuit seulement
 npm test           # tests Node du moteur, des outils et du jeu sélectionné (sans les tests lourds du solveur, 4.1.3)
 npm run test:heavy # les tests du solveur gourmands en CPU (audits des abstractions, propriétaire canonique, preuves memo et ownership, preuve du chapitre de référence) : chaque nuit, des minutes chacun
 npm run test:coverage   # la suite sous couverture V8, contre les planchers de vite.config.ts ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher d'au moins trois points sous ce que les tests atteignent (CI et release-check, 4.1.8)

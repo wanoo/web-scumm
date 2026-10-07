@@ -112,3 +112,35 @@ jobs:
             mutation.txt
             .cache/mutation/report-*.json
           if-no-files-found: ignore
+  # The proof matrix of 4.1.13 (docs/dev/PROOF-MATRIX.md, tools/prove-matrix.ts): each of the twelve instances proved
+  # in its own job under the runner's budget (20 min, 10 000 000 states, 4 GB of heap). A false verdict fails the job;
+  # an instance out of budget is `unknown`, the gap report, not a failure. Never on a pull request.
+  matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [c11, c12, c13, c14, c15, c16, o21, o22, o23, o24, o25, o26]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - shell: bash
+        run: npm run prove:matrix -- --only=${{ matrix.instance }} --time=1200 --mem=4096 --json=matrix-${{ matrix.instance }}.json --profile=profile-${{ matrix.instance }}.md | tee matrix-${{ matrix.instance }}.txt
+      - if: always()
+        shell: bash
+        run: |
+          if [ -f matrix-${{ matrix.instance }}.txt ]; then { echo '```'; cat matrix-${{ matrix.instance }}.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"; fi
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: matrix-${{ matrix.instance }}
+          path: |
+            matrix-${{ matrix.instance }}.*
+            profile-${{ matrix.instance }}.md
+          if-no-files-found: ignore

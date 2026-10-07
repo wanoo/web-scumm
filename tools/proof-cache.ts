@@ -92,8 +92,8 @@ export const cacheOn = () => process.env.PROOF_CACHE !== '0' && !process.argv.in
 // With workers, the result depends on the batch, never on how many workers expanded it (solve-pool.ts): the key keeps
 // the batch and drops the count and the module path.
 const normal = (o: SolveOptions): SolveOptions => {
-  const { workers, gameModule, batch, ...rest } = o;
-  void gameModule;
+  const { workers, gameModule, batch, representation, onProgress, keepReachable, sharedVisited, ...rest } = o;
+  void gameModule, representation, onProgress, keepReachable, sharedVisited;
   return {
     maxStates: 20000,
     mode: 'witness',
@@ -123,8 +123,9 @@ export async function cachedSolve(
   layouts: Record<string, Layout>,
   opts: SolveOptions = {},
 ): Promise<Cached> {
-  // A search stopped by the clock is not a verdict to keep (the next one may get further).
-  if (!cacheOn() || opts.timeLimitMs) return solve(game, layouts, opts);
+  // A search stopped by the clock is not a verdict to keep (the next one may get further); one that writes or takes up
+  // a checkpoint is about that search, not a cached answer (4.1.13).
+  if (!cacheOn() || opts.timeLimitMs || opts.checkpoint || opts.maxMemoryMb) return solve(game, layouts, opts);
   const key = proofKey(game, layouts, opts);
   const dir = cacheDir();
   const file = join(dir, `${key}.json`);

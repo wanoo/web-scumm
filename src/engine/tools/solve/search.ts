@@ -1,14 +1,16 @@
 // The search: the frontier, the proof workers, termination and the verdict (solved, softlocks, unsolved, truncated).
+// Since 4.1.13 the states seen live in a store by index (search/compact.ts), the search can be written down and taken
+// up again (search/checkpoint.ts), dominance and symmetries have their own file (search/dominance.ts), and the
+// workers share the visited table (search/partition.ts).
 import { exitOf, solveHeadline } from '../status';
 import { check } from '../../core/cond';
 import { cmdLists, eachCmd } from '../../core/cmds';
 import { atomDim, stubbornKeys, type RW } from '../por';
-import type { GameDef, GameState, Id, Layout } from '../../core/types';
+import type { GameDef, GameState, Layout } from '../../core/types';
 import { Frontier } from '../frontier';
 import type { ExpandPool } from '../solve-pool';
 import { must } from '../../core/must';
 import {
-  type Dims,
   MobilityError,
   OwnershipError,
   dominanceThings,
@@ -16,9 +18,22 @@ import {
   monotonicThings,
   splits,
 } from './abstractions';
-import { drive, makeExpander } from './expansion';
+import { makeExpander } from './expansion';
+import { drive } from './drive';
 import { type Expansion, type SearchNode, type NodeInput, type SolveOptions, mergeStats } from './model';
-import { type SolveProfile, type SolveResult, label, pathOf, stepsOf } from './report';
+import { type SolveProfile, type SolveResult, label } from './report';
+import { type NodeMeta, StateStore } from './search/compact';
+import { Dominance } from './search/dominance';
+import { explosion } from './explosion';
+import { classify } from './search/classify';
+import {
+  type SearchSnapshot,
+  decodeSnapshot,
+  encodeSnapshot,
+  fingerprint,
+  statsFromJson,
+  statsToJson,
+} from './search/checkpoint';
 
 /**
  * The worker pool, when a Node tool loaded it (`import '@engine/tools/solve-pool'` registers it): this file stays free
@@ -101,6 +116,12 @@ async function solveAbstracted(
   }
 }
 
+/** The heap in use, in MB, where a runtime tells it (Node); null elsewhere (a browser). */
+const heapMb = (): number | null => {
+  const p = (globalThis as { process?: { memoryUsage?: () => { heapUsed: number } } }).process;
+  return p?.memoryUsage ? p.memoryUsage().heapUsed / 1048576 : null;
+};
+
 async function solveOnce(
   gameIn: GameDef,
   layouts: Record<string, Layout>,
@@ -114,6 +135,7 @@ async function solveOnce(
     canonInfo,
     mobInfo,
     ownInfo,
+    symInfo,
     dimsOf,
     makeEngine,
     reached,
@@ -126,9 +148,18 @@ async function solveOnce(
     now,
   } = X;
   const { timing } = stats;
-  const errors: string[] = [];
-  const unlocked = new Set<string>();
-  const deadEnds: SolveResult['deadEnds'] = [];
+  // The store (4.1.13): compact unless asked otherwise, or the partial-order reduction expands a state again.
+  const compact = (opts.representation ?? 'compact') === 'compact' && !por;
+  const repReason =
+    (opts.representation ?? 'compact') === 'compact' && por
+      ? 'the partial-order reduction expands a state again: it keeps every state'
+      : undefined;
+  let store = new StateStore(compact);
+  /** `objects`: every node, as 4.1.8 kept them (the partial-order reduction reaches a stored one again). */
+  const live = compact ? null : new Map<number, SearchNode>();
+  let errors: string[] = [];
+  let unlocked = new Set<string>();
+  let deadEnds: SolveResult['deadEnds'] = [];
   // The profile
   const t0 = Date.now();
   let postponed = 0,
@@ -138,7 +169,7 @@ async function solveOnce(
     triesSum = 0,
     triesMax = 0;
   let worst: SolveProfile['branching']['worst'];
-  const perRoom = new Map<string, number>();
+  let perRoom = new Map<string, number>();
   const loopStart = { t: 0 };
   // Workers (solve-pool.ts): the frontier is expanded a batch at a time, each node by whichever worker is free, and
   // merged in the batch's order. The result depends on the batch, never on the number of workers.
@@ -150,7 +181,7 @@ async function solveOnce(
         : threadPool(X, 'no worker pool here (a Node tool loads solve-pool.ts): this thread expands');
   const batch = pool ? Math.max(1, opts.batch ?? 64) : 1;
   const deadline = opts.timeLimitMs ? t0 + opts.timeLimitMs : Infinity;
-  let stoppedBy: 'states' | 'time' | undefined;
+  let stoppedBy: 'states' | 'time' | 'memory' | undefined;
 
   // Starting state
   const { e: e0, ui: ui0 } = makeEngine();
@@ -165,8 +196,8 @@ async function solveOnce(
         structuredClone('states' in opts.start ? must(opts.start.states[0], 'first start state') : opts.start.state),
       );
   } else await drive(e0, e0.newGame(), (a) => startPath.push(`(tutorial) ${label(game, a)}`));
-  const broken: SolveResult['broken'] = [];
-  const brokenSeen = new Set<number>();
+  let broken: SolveResult['broken'] = [];
+  let brokenSeen = new Set<number>();
   const checkInvariants = (s: GameState, path: () => string[]) => {
     (game.invariants ?? []).forEach((c, i) => {
       if (!brokenSeen.has(i) && check(c, s)) {
@@ -175,16 +206,19 @@ async function solveOnce(
       }
     });
   };
-
-  const seen = new Map<string, SearchNode>();
-  const start: SearchNode = {
-    state: structuredClone(e0.state),
-    tail: startPath,
-    tailSteps: e0.session?.log ?? [],
-    len: startPath.length,
-    dims: dimsOf(e0.state),
-    sleep: new Map(),
-    expanded: false,
+  const keepGoals = mode === 'prove' && !!opts.goal;
+  /** Stores a node (and what the end of the search reads of it: the items it holds, its state when it is a goal). */
+  const put = (n: SearchNode, m: NodeMeta) => {
+    store.insert(n.i, m);
+    live?.set(n.i, n);
+    pool?.remember?.(m.dims);
+    for (const it of m.state.inventory) stats.gained.add(it);
+  };
+  /** A goal state: kept by index, its engine state with it when a chapter's boundaries are asked for (the stored one). */
+  const goal = (i: number, s: GameState | undefined) => {
+    store.goals.add(i);
+    const st = live?.get(i)?.state ?? s;
+    if (keepGoals && st && !store.goalStates.has(i)) store.goalStates.set(i, st);
   };
   // Best-first: the more a state has progressed, the earlier it's explored. At equal progress, the shortest path first.
   const score = (n: SearchNode) =>
@@ -193,33 +227,31 @@ async function solveOnce(
     n.state.inventory.length * 2 -
     n.len * 0.01;
   // A heap in the order of the old sorted list (score, then arrival): same witnesses, O(log n) instead of O(n).
-  const queue = new Frontier<SearchNode>(score);
-  queue.push(start);
+  let queue = new Frontier<SearchNode>(score);
   const enqueue = (n: SearchNode) => queue.push(n);
-  seen.set(JSON.stringify(start.dims), start);
-  let finish: SearchNode | null = reached(ui0, e0.state) ? start : null;
-  const startHash = JSON.stringify(start.dims);
-  const goals = new Set<string>(finish ? [startHash] : []);
+  /** A root of the search: the start, another start state, an intro choice. */
+  const root = (state: GameState, tail: string[], tailSteps: NodeMeta['tailSteps'], len: number) => {
+    const dims = dimsOf(state);
+    const i = store.ref(store.keyOf(dims));
+    if (store.isSeen(i)) return undefined;
+    const n: SearchNode = { i, state: structuredClone(state), dims, len, sleep: new Map(), expanded: false };
+    put(n, { parent: -1, len, tail, tailSteps, state: n.state, dims });
+    enqueue(n);
+    return n;
+  };
+  const start = must(root(e0.state, startPath, e0.session?.log ?? [], startPath.length), 'start');
+  let finish: number | null = null;
+  if (reached(ui0, e0.state)) {
+    finish = start.i;
+    goal(start.i, start.state);
+  }
   for (const [k, st0] of extraStarts.entries()) {
     const { e } = makeEngine();
     await e.load(structuredClone(st0));
-    const dims = dimsOf(e.state);
-    const h = JSON.stringify(dims);
-    if (seen.has(h)) continue;
-    const n: SearchNode = {
-      state: structuredClone(e.state),
-      tail: [`(start ${k + 2} of ${extraStarts.length + 1})`],
-      tailSteps: [],
-      len: 1,
-      dims,
-      sleep: new Map(),
-      expanded: false,
-    };
-    seen.set(h, n);
-    enqueue(n);
-    if (opts.goal ? goalHolds(e.state) : e.state.done) {
-      goals.add(h);
-      finish ??= n;
+    const n = root(e.state, [`(start ${k + 2} of ${extraStarts.length + 1})`], [], 1);
+    if (n && (opts.goal ? goalHolds(e.state) : e.state.done)) {
+      goal(n.i, n.state);
+      finish ??= n.i;
     }
   }
   // A proof from "New game" branches over the intro's choices too (the silent presenter picks the last option by
@@ -232,91 +264,128 @@ async function solveOnce(
         ui.picks = [...ui0.asked.slice(0, j).map((a) => a.n - 1), o];
         const path: string[] = [`New game › "${must(ui0.asked[j], 'intro prompt').texts[o]}"`];
         await drive(e, e.newGame(), (a) => path.push(`(tutorial) ${label(game, a)}`));
-        const dims = dimsOf(e.state);
-        const h = JSON.stringify(dims);
-        if (seen.has(h)) continue;
-        const alt: SearchNode = {
-          state: structuredClone(e.state),
-          tail: path,
-          tailSteps: e.session?.log ?? [],
-          len: path.length,
-          dims,
-          sleep: new Map(),
-          expanded: false,
-        };
-        seen.set(h, alt);
-        enqueue(alt);
-        if (reached(ui, e.state)) {
-          goals.add(h);
-          finish ??= alt;
+        const alt = root(e.state, path, e.session?.log ?? [], path.length);
+        if (alt && reached(ui, e.state)) {
+          goal(alt.i, alt.state);
+          finish ??= alt.i;
         }
       }
   }
-  const edges = new Map<string, Set<string>>();
-  // Witness dominance: states indexed by everything but their dominance things; a new one whose things are a subset of
-  // a seen one's, with the rest equal, has nothing more to offer a witness.
-  const dom = opts.dominance && mode === 'witness' ? dominanceThings(game) : null;
-  const domIndex = new Map<string, Set<string>[]>();
-  let pruned = 0;
-  const domSplit = (d: Dims) => {
-    const mono = new Set<string>();
-    const rest: Dims = [];
-    for (const [k, v] of d)
-      (k.startsWith('flag:') && v === 'true' && dom!.flags.has(k.slice(5))) ||
-      (k.startsWith('item:') && dom!.items.has(k.slice(5)))
-        ? mono.add(k)
-        : rest.push([k, v]);
-    return { key: JSON.stringify(rest), mono };
-  };
-  /** Some state seen has all of this one's progress (`strict`: and more), everything else equal. */
-  const dominated = (d: Dims, strict = false) => {
-    const { key, mono } = domSplit(d);
-    return !!domIndex.get(key)?.some((m) => m.size >= mono.size + (strict ? 1 : 0) && [...mono].every((x) => m.has(x)));
-  };
-  const remember = (d: Dims) => {
-    const { key, mono } = domSplit(d);
-    (domIndex.get(key) ?? (domIndex.set(key, []), domIndex.get(key)!)).push(mono);
-  };
-  if (dom) for (const n of seen.values()) remember(n.dims);
+  // Witness dominance (search/dominance.ts); in a proof only for the differential tests (`unsafeReduction`): it
+  // changes softlock verdicts there (tests/dominance.test.ts).
+  const dom =
+    opts.dominance && (mode === 'witness' || opts.unsafeReduction) ? new Dominance(dominanceThings(game)) : null;
+  if (dom) for (const i of store.order.slice()) dom.remember(store.dimsOf(i));
   let limitReached = false;
-  let last: SearchNode = start;
-  checkInvariants(start.state, () => pathOf(start));
+  let last = start.i;
+  checkInvariants(start.state, () => store.path(start.i));
+
+  // Checkpoint and resume (search/checkpoint.ts): only the compact store is written down.
+  const ck = opts.checkpoint;
+  const print = fingerprint(gameIn, layouts, opts, batch);
+  const ckInfo: NonNullable<SolveProfile['checkpoint']> = { written: 0 };
+  let msBefore = 0;
+  if (ck?.resume && dom) ckInfo.refused = 'dominance keeps an index a checkpoint does not write';
+  else if (ck?.resume) {
+    const snap = decodeSnapshot(ck.resume);
+    if (!compact) ckInfo.refused = 'a checkpoint needs the compact representation';
+    else if (!snap) ckInfo.refused = 'not a snapshot of a search';
+    else if (snap.header.fingerprint !== print) ckInfo.refused = 'a snapshot of another search (game or options)';
+    else {
+      store = StateStore.restore(snap.store);
+      queue = Frontier.restore(score, snap.frontier, (v): SearchNode => ({ ...v, sleep: new Map(), expanded: false }));
+      const L = snap.loop;
+      ({ postponed, hashHits, maxQueue, expansions, triesSum, triesMax } = L);
+      worst = L.worst;
+      perRoom = new Map(L.perRoom);
+      unlocked = new Set(L.unlocked);
+      deadEnds = L.deadEnds;
+      broken = L.broken;
+      brokenSeen = new Set(L.brokenSeen);
+      errors = L.errors;
+      finish = L.finish;
+      last = L.last;
+      if (dom) dom.pruned = L.pruned;
+      statsFromJson(snap.stats, stats);
+      msBefore = snap.header.ms;
+      ckInfo.resumedAt = { states: store.seenCount, expansions };
+      if (pool?.remember) for (const i of store.order.slice()) pool.remember(store.dimsOf(i));
+    }
+  }
+  const snapshot = (): SearchSnapshot => ({
+    header: { v: 1, fingerprint: print, states: store.seenCount, expansions, ms: msBefore + Date.now() - t0 },
+    store: store.snapshot(),
+    frontier: queue.snapshot((n) => ({ i: n.i, state: n.state, dims: n.dims, len: n.len })),
+    loop: {
+      postponed,
+      hashHits,
+      maxQueue,
+      expansions,
+      triesSum,
+      triesMax,
+      pruned: dom?.pruned ?? 0,
+      ...(worst ? { worst } : {}),
+      perRoom: [...perRoom],
+      unlocked: [...unlocked],
+      deadEnds,
+      broken,
+      brokenSeen: [...brokenSeen],
+      errors,
+      finish,
+      last,
+    },
+    stats: statsToJson(stats),
+  });
+  let ckAt = { t: Date.now(), n: expansions };
+  const writeCheckpoint = () => {
+    if (!ck || !compact || dom) return;
+    ck.save(encodeSnapshot(snapshot()));
+    ckInfo.written++;
+    ckAt = { t: Date.now(), n: expansions };
+  };
 
   /** What popping a node counts (the rooms, flags, places and items the search has been through). */
   const visit = (node: SearchNode) => {
     const s = node.state;
-    last = node;
+    last = node.i;
     stats.roomsReached.add(s.room);
     perRoom.set(s.room, (perRoom.get(s.room) ?? 0) + 1);
     Object.entries(s.flags).forEach(([k, v]) => v && stats.flags.add(k));
     s.unlocked.forEach((u) => unlocked.add(u));
     s.inventory.forEach((i) => stats.itemsSeen.add(i));
   };
-  /** An expansion's records into the search: goals, edges, new states, the frontier. Reads `seen`; the expansion never did. */
+  /** The store's index of a record's state (a no-op is the node itself). */
+  const indexOf = (node: SearchNode, r: Expansion['records'][number]) =>
+    r.noop ? node.i : store.ref(compact ? store.keyOf(r.dims!) : r.h);
+  /** An expansion's records into the search: goals, edges, new states, the frontier. Reads the store; the expansion never did. */
   const merge = (node: SearchNode, exp: Expansion) => {
     const s = node.state;
-    const h0 = JSON.stringify(node.dims);
+    const i0 = node.i;
     for (const b of exp.broken)
       if (!brokenSeen.has(b.invariant)) {
         brokenSeen.add(b.invariant);
-        broken.push({ invariant: b.invariant, path: [...pathOf(node), ...b.suffix] });
+        broken.push({ invariant: b.invariant, path: [...store.path(i0), ...b.suffix] });
       }
     errors.push(...exp.errors);
-    const children: { key: string; next: SearchNode; h: string }[] = [];
+    const children: { key: string; next: SearchNode; meta: NodeMeta }[] = [];
+    const out = new Set<number>();
     let anyHit = false;
     for (const r of exp.records) {
-      const h = r.h;
-      if (r.hitGoal) goals.add(h);
+      const i = indexOf(node, r);
+      if (r.hitGoal) goal(i, r.noop ? s : r.state);
       if (r.noop) continue;
-      (edges.get(h0) ?? (edges.set(h0, new Set()), edges.get(h0)!)).add(h);
+      if (!out.has(i)) {
+        out.add(i);
+        store.edge(i0, i);
+      }
       const sleep = r.sleep ?? new Map<string, RW>();
-      if (seen.has(h) || children.some((c) => c.h === h)) {
+      if (store.isSeen(i) || children.some((c) => c.next.i === i)) {
         hashHits++;
         anyHit = true;
-        if (por === 'sleep' && seen.has(h)) {
+        if (por === 'sleep' && store.isSeen(i)) {
           // The same state, reached with a different sleep set: only what both paths sleep stays asleep; what this path
           // frees is still to be tried there.
-          const stored = seen.get(h)!;
+          const stored = must(live?.get(i), 'stored node');
           const freed = [...stored.sleep.keys()].filter((k) => !sleep.has(k));
           if (freed.length) {
             for (const k of freed) stored.sleep.delete(k);
@@ -331,36 +400,35 @@ async function solveOnce(
         }
         continue;
       }
-      const next: SearchNode = {
-        state: r.state!,
-        prev: node,
+      const state = must(r.state, 'the state of a new record');
+      const next: SearchNode = { i, state, dims: r.dims!, len: node.len + r.path!.length, sleep, expanded: false };
+      const meta: NodeMeta = {
+        parent: i0,
+        len: next.len,
         tail: r.path!,
         tailSteps: r.tailSteps!,
-        len: node.len + r.path!.length,
-        dims: r.dims!,
-        sleep,
-        expanded: false,
-        parent: h0,
         via: r.label,
+        state,
+        dims: r.dims!,
       };
-      checkInvariants(next.state, () => pathOf(next));
+      checkInvariants(state, () => [...store.path(i0), ...r.path!]);
       if (r.hitGoal) {
-        seen.set(h, next);
-        finish ??= next;
+        put(next, meta);
+        finish ??= i;
         if (mode === 'witness') break;
         // The ending is terminal. Keep trying the other actions from the source state, but do not expand past it.
         continue;
       }
       if (dom) {
-        if (dominated(next.dims)) {
-          pruned++;
+        if (dom.dominated(next.dims)) {
+          dom.pruned++;
           continue;
         }
-        remember(next.dims);
+        dom.remember(next.dims);
       }
-      children.push({ key: r.key, next, h });
+      children.push({ key: r.key, next, meta });
     }
-    if (mode === 'prove' || !finish) {
+    if (mode === 'prove' || finish === null) {
       // Stubborn mode: of the commuting actions, one at a time. The content's actions no try stands for (a hidden
       // topic, a rule on something not shown yet) count as held-back transitions too.
       let keep: Set<string> | null = null;
@@ -382,10 +450,10 @@ async function solveOnce(
       }
       for (const c of children) {
         if (keep && !keep.has(c.key)) continue;
-        seen.set(c.h, c.next);
+        put(c.next, c.meta);
         timed('queue', () => enqueue(c.next));
         maxQueue = Math.max(maxQueue, queue.size);
-        if (seen.size >= maxStates) {
+        if (store.seenCount >= maxStates) {
           if (queue.size) limitReached = true;
           break;
         }
@@ -405,18 +473,22 @@ async function solveOnce(
       };
     }
     if (!exp.progressed && deadEnds.length < 20)
-      deadEnds.push({ path: pathOf(node), room: s.room, inventory: [...s.inventory] });
+      deadEnds.push({ path: store.path(i0), room: s.room, inventory: [...s.inventory] });
   };
   const input = (node: SearchNode): NodeInput => {
     const only = node.only;
     node.only = undefined;
     return { state: node.state, dims: node.dims, sleep: node.sleep, ...(only ? { only } : {}) };
   };
+  /** A worker said "stored already" of a state the store does not have (a 64-bit collision): expand it here. */
+  const collided = (node: SearchNode, exp: Expansion) =>
+    exp.records.some((r) => r.known && !store.isSeen(indexOf(node, r)));
+  let collisions = 0;
 
   loopStart.t = now();
   try {
-    while (queue.size && (mode === 'prove' || !finish)) {
-      if (seen.size >= maxStates) {
+    while (queue.size && (mode === 'prove' || finish === null)) {
+      if (store.seenCount >= maxStates) {
         limitReached = true;
         stoppedBy = 'states';
         break;
@@ -427,14 +499,17 @@ async function solveOnce(
         break;
       }
       const nodes: SearchNode[] = [];
+      const entries: { v: SearchNode; score: number; seq: number }[] = [];
       while (nodes.length < batch && queue.size) {
-        const n = timed('queue', () => queue.pop()!);
+        const en = timed('queue', () => queue.popEntry()!);
+        const n = en.v;
         // Witness dominance: a state that a better one (more progress, the rest equal) has overtaken since it was queued.
-        if (dom && dominated(n.dims, true)) {
-          pruned++;
+        if (dom && dom.dominated(n.dims, true)) {
+          dom.pruned++;
           continue;
         }
         nodes.push(n);
+        entries.push(en);
       }
       if (!nodes.length) continue;
       const exps = pool
@@ -443,23 +518,44 @@ async function solveOnce(
       for (let k = 0; k < nodes.length; k++) {
         // The batch is taken from the frontier at once; the rest of it is dropped as the one-at-a-time search would
         // have stopped before it (the budget, a witness found).
-        if (k > 0 && (seen.size >= maxStates || (mode === 'witness' && finish))) {
-          if (seen.size >= maxStates) {
+        if (k > 0 && (store.seenCount >= maxStates || (mode === 'witness' && finish !== null))) {
+          if (store.seenCount >= maxStates) {
             limitReached = true;
             stoppedBy = 'states';
+            // Back to the frontier, in their places: a checkpoint written now must hold them (no state lost).
+            for (const en of entries.slice(k)) queue.pushEntry(en);
           }
           break;
         }
         if (!exps[k]) {
           limitReached = true;
           stoppedBy = 'time';
+          for (const en of entries.slice(k)) queue.pushEntry(en);
           break;
         }
         const node = must(nodes[k], 'batch node');
+        let exp = exps[k]!;
+        if (collided(node, exp)) {
+          collisions++;
+          exp = await X.expandNode({ state: node.state, dims: node.dims, sleep: node.sleep });
+        }
         visit(node);
-        merge(node, exps[k]!);
+        merge(node, exp);
+        if (expansions % 256 === 0) {
+          opts.onProgress?.({ states: store.seenCount, expansions, queue: queue.size, ms: Date.now() - t0 });
+          const mb = opts.maxMemoryMb ? heapMb() : null;
+          if (mb !== null && mb > opts.maxMemoryMb!) {
+            limitReached = true;
+            stoppedBy = 'memory';
+          }
+        }
       }
       if (limitReached) break;
+      if (
+        ck &&
+        (expansions - ckAt.n >= (ck.everyExpansions ?? Infinity) || Date.now() - ckAt.t >= (ck.everyMs ?? 300000))
+      )
+        writeCheckpoint();
     }
   } finally {
     if (pool) {
@@ -469,8 +565,9 @@ async function solveOnce(
     }
   }
   if (limitReached && !stoppedBy) stoppedBy = 'states';
-  const { itemsInRules, itemsSeen, flags, gained, roomsReached, attempted, perAction, fallbackByRoom, n: cnt } = stats;
-  void itemsSeen;
+  // A budget stopped it: written down, so a later run with more budget takes it up from here.
+  if (limitReached && queue.size) writeCheckpoint();
+  const { itemsInRules, flags, gained, roomsReached, attempted, perAction, fallbackByRoom, n: cnt } = stats;
   canonInfo.folded = stats.canon.folded;
   canonInfo.explicit = stats.canon.explicit;
   if (mobInfo.applied) {
@@ -483,20 +580,13 @@ async function solveOnce(
     0,
     loopMs - timing.tries - timing.engine - timing.clone - timing.run - timing.hash - timing.queue,
   );
-  const all = seen.size <= 50000 ? [...seen.values()].map((n) => n.dims) : [];
+  const seenOrder = Array.from(store.order.slice());
+  const all = store.seenCount <= 50000 ? seenOrder.map((i) => store.dimsOf(i)) : [];
   const dims = splits(all).slice(0, 30);
-  const positions = new Set(
-    [...seen.values()].map(
-      (n) =>
-        `${n.state.active ?? ''}|${n.state.room}|${Object.entries(n.state.players ?? {})
-          .map(([k, p]) => `${k}:${p.room}`)
-          .sort()
-          .join(',')}`,
-    ),
-  ).size;
+  const shared = pool?.shared?.();
   const profile: SolveProfile = {
     ms: Date.now() - t0,
-    states: seen.size,
+    states: store.seenCount,
     tries: cnt.tries,
     skipped: cnt.skipped,
     slept: cnt.slept,
@@ -513,16 +603,21 @@ async function solveOnce(
     monotonic: monotonicThings(game),
     independent: independentGroups(all, dims),
     timing,
-    positions,
+    positions: store.positions,
     canonical: canonInfo,
     mobility: mobInfo,
     ownership: ownInfo,
     dominance: {
       applied: !!dom,
-      pruned,
+      pruned: dom?.pruned ?? 0,
       ...(dom
         ? {}
-        : { reason: mode === 'prove' ? 'a proof cannot prune by dominance' : 'not asked for (--dominance)' }),
+        : {
+            reason:
+              mode === 'prove'
+                ? 'off in proofs: it changes softlock verdicts on generated games (tests/dominance.test.ts)'
+                : 'not asked for (--dominance)',
+          }),
     },
     memo: {
       applied: memoOn,
@@ -536,57 +631,42 @@ async function solveOnce(
       ? { workers: pool.size, batch, ...(pool.reason ? { reason: pool.reason } : {}) }
       : { workers: 1, batch: 1 },
     ...(stoppedBy ? { stoppedBy } : {}),
+    representation: {
+      mode: compact ? 'compact' : 'objects',
+      bytes: compact ? store.bytes() : 0,
+      ...(repReason ? { reason: repReason } : {}),
+    },
+    ...(ck ? { checkpoint: ckInfo } : {}),
+    symmetry: symInfo,
+    ...(pool
+      ? {
+          shared: shared
+            ? { ...shared, collisions }
+            : { applied: false, known: 0, collisions, reason: 'no shared table in this pool' },
+        }
+      : {}),
   };
 
+  if (opts.explosion)
+    profile.explosion = explosion(
+      seenOrder.slice(0, 50000).map((i) => store.dimsOf(i)),
+      game,
+      profile,
+    );
   const tClassify = now();
-  // In proof mode, a state is safe iff a goal is reachable from it. Reverse reachability classifies cycles as well as
-  // immediate dead ends, which the old `progressed` test could not do.
-  const canReachGoal = new Set<string>();
-  if (mode === 'prove' && !limitReached && goals.size) {
-    const reverse = new Map<string, Set<string>>();
-    for (const [from, tos] of edges)
-      for (const to of tos) (reverse.get(to) ?? (reverse.set(to, new Set()), reverse.get(to)!)).add(from);
-    const todo = [...goals];
-    while (todo.length) {
-      const h = todo.pop()!;
-      if (canReachGoal.has(h)) continue;
-      canReachGoal.add(h);
-      for (const p of reverse.get(h) ?? []) todo.push(p);
-    }
-  }
-  const unsafe =
-    mode === 'prove' && !limitReached && finish ? [...seen.entries()].filter(([h]) => !canReachGoal.has(h)) : [];
-  const softlocks = [...unsafe]
-    .sort(([, a], [, b]) => a.len - b.len)
-    .slice(0, 20)
-    .map(([, n]) => ({ path: pathOf(n), room: n.state.room, inventory: [...n.state.inventory] }));
-  // The step that lost the game: walk each unsafe state up to the first unsafe one whose parent is safe (or the start).
-  const causes = new Map<string, { action: string; room: Id; count: number; len: number; node: SearchNode }>();
-  for (const [, n] of unsafe) {
-    let cur: SearchNode = n;
-    while (cur.parent && !canReachGoal.has(cur.parent) && seen.has(cur.parent)) cur = seen.get(cur.parent)!;
-    const action = cur.via ?? '(start)';
-    const room = cur.parent ? seen.get(cur.parent)!.state.room : cur.state.room;
-    const key = `${room}\u0000${action}`;
-    const c = causes.get(key);
-    if (c) {
-      c.count++;
-      if (cur.len < c.len) {
-        c.len = cur.len;
-        c.node = cur;
-      }
-    } else causes.set(key, { action, room, count: 1, len: cur.len, node: cur });
-  }
-  const softlockCauses = [...causes.values()]
-    .sort((a, b) => b.count - a.count || a.action.localeCompare(b.action))
-    .map(({ action, room, count, node }) => ({ action, room, count, sample: pathOf(node) }));
+  const { unsafe, softlocks, softlockCauses } = classify(
+    store,
+    seenOrder,
+    mode === 'prove' && !limitReached && store.goals.size > 0,
+    mode === 'prove' && !limitReached && finish !== null,
+  );
   timing.classify = now() - tClassify;
   const boundaries =
     mode === 'prove' && opts.goal && !limitReached
-      ? [...goals]
-          .map((h) => seen.get(h)!)
-          .filter(Boolean)
-          .map((n) => structuredClone(n.state))
+      ? [...store.goals]
+          .map((i) => store.goalStates.get(i))
+          .filter((x): x is GameState => !!x)
+          .map((x) => structuredClone(x))
       : [];
   const assumptions = new Set<string>();
   for (const { list } of cmdLists(game))
@@ -600,20 +680,19 @@ async function solveOnce(
       ? 'broken'
       : limitReached
         ? 'truncated'
-        : !finish
+        : finish === null
           ? 'unsolved'
           : softlocks.length
             ? 'softlocks'
             : 'solved';
-
-  for (const n of seen.values()) n.state.inventory.forEach((i) => gained.add(i));
+  const end = finish ?? last;
   return {
     status,
     exit: exitOf(status),
     headline: solveHeadline({
       status,
       mode,
-      states: seen.size,
+      states: store.seenCount,
       softlockCount: unsafe.length,
       broken,
       errors: uniqueErrors,
@@ -621,10 +700,10 @@ async function solveOnce(
       stoppedBy,
     }),
     mode,
-    finished: !!finish,
-    path: pathOf(finish ?? last),
-    steps: stepsOf(finish ?? last),
-    states: seen.size,
+    finished: finish !== null,
+    path: store.path(end),
+    steps: store.steps(end),
+    states: store.seenCount,
     truncated: limitReached,
     flagsReached: [...flags].sort(),
     liveFlags: [...X.keys.live.flags].sort(),
@@ -644,6 +723,7 @@ async function solveOnce(
     broken,
     profile,
     ...(game.reality ? { reality: realityLabel(opts.reality) } : {}),
+    ...(opts.keepReachable ? { reachable: seenOrder.map((i) => store.jsonKey(i)).sort() } : {}),
   };
 }
 
