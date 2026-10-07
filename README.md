@@ -108,7 +108,7 @@ npm run assets && npm run dev        # then npm run verify, npm run build, npm r
 
 ```bash
 npm install
-npm run doctor                       # Node and Chromium required; Python modules, ffmpeg, WebKit optional
+npm run doctor                       # Node and Chromium required; Python modules, ffmpeg, Firefox, WebKit optional
 npm run new-game my-game "My Game"   # games/my-game from the template, set as the current game
 npm run assets                       # prepares the placeholder art
 npm run studio                       # the Studio: rooms, story, assets, checks, play
@@ -123,14 +123,14 @@ is the whole method.
 ## In numbers
 
 Measured on this commit of `main`, by the automated gates that run on every change (`npm run quality:baseline` writes
-the two figures from `tests/quality-baseline.json`):
+the three figures from `tests/quality-baseline.json`):
 
 | What | Result |
 |---|---|
 | Unit tests | <!-- metric:tests -->788<!-- /metric --> declarations, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
 | Browser tests | the sample game played to its ending by touch and by keyboard in Chromium and WebKit at a phone's size, in English and French, with the DOM and the Canvas painter; a second game and the reference game too; every minigame won at the keyboard; axe-core on every screen |
 | Saves | one frozen save per release from 3.0.0 to 4.1.7 loads and reaches the ending |
-| Proof | the sample game's every reachable state in seconds; a 40-room reference game in 578 states; 500 random games of each of three kinds compared to an explicit search every night, 0 divergences ([BENCH](docs/en/BENCH.md)) |
+| Proof | the sample game's every reachable state in seconds; a 40-room reference game in <!-- metric:referenceStates -->288<!-- /metric --> states; 500 random games of each of three kinds compared to an explicit search every night, 0 divergences ([BENCH](docs/en/BENCH.md)) |
 | A new game | packed, created from the tarball, installed, verified, built and played to its end by CI; a game made on the previous release upgraded and its save played to the end |
 | The player's first visit | <!-- metric:initialJsKB -->120<!-- /metric --> KB of JavaScript, gzipped, held by a budget; every byte fetched predicted by the asset graph |
 | The release | built from the commit CI tested, every file accounted for with its licence, SBOM, SHA-256 sums and a provenance attestation, never replaced once published |

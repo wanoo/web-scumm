@@ -25,7 +25,8 @@ Start with `docs/en/ARCHITECTURE.md` (the layers, the life of an action, what is
 `docs/en/CODE_TOUR.md` (half an hour). `src/engine/BOUNDARIES.md` says what each folder may import and where each
 responsibility of the engine, the player and the solver lives; `docs/dev/adr/` explains the decisions that look
 surprising. A behaviour-preserving change keeps `npm run quality:baseline -- --check` green: the same witnesses,
-proofs, golden saves and public surface.
+proofs, golden saves and public surface. A new test or a lighter bundle is a ratchet: run `npm run quality:baseline`,
+which rewrites the JSON and the READMEs' figures with it, and commit them.
 
 ## Changing a command, end to end
 

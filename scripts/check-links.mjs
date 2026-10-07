@@ -5,7 +5,8 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 const ROOT = resolve(import.meta.dirname, '..');
-const timeout = Number(process.argv.find((a) => a.startsWith('--timeout='))?.split('=')[1] ?? 10000);
+const asked = Number(process.argv.find((a) => a.startsWith('--timeout='))?.split('=')[1]);
+const timeout = Number.isFinite(asked) && asked > 0 ? asked : 10000;
 const FILES = [
   'README.md',
   'README.fr.md',
@@ -35,7 +36,7 @@ for (const f of files) {
   const text = readFileSync(f, 'utf8');
   for (const m of text.matchAll(/https?:\/\/[^\s)<>"'`\]]+/g)) {
     const url = m[0].replace(/[.,;:!?]+$/, '');
-    if (/\.example\b|<[^>]*>|\$\{|%7B/.test(url)) continue; // placeholders, templates
+    if (/\.example\b|\$\{|%7B/.test(url)) continue; // placeholders, templates
     if (!URL.canParse(url)) continue; // a host written as an example (`https://[::1`…), not a link
     if (text[m.index + m[0].length] === '<') continue; // cut by a placeholder (`…/download/v<version>/…`)
     if (/^(127\.0\.0\.1|localhost|0\.0\.0\.0|\[::1\])(:|$)/.test(new URL(url).host)) continue; // a dev server's address

@@ -124,12 +124,19 @@ async function measure(): Promise<Baseline> {
   return b;
 }
 
-/** The policy parts that got better than the baseline (4.1.3): said, so the baseline is ratcheted on purpose. */
-/** The READMEs' two figures (`<!-- metric:tests -->…<!-- /metric -->`, `metric:initialJsKB`), written by the baseline. */
+/**
+ * The READMEs' figures (`<!-- metric:tests -->…<!-- /metric -->`, `metric:initialJsKB`, `metric:referenceStates`),
+ * written by the baseline with the JSON (4.1.8): they move with the code, and `--check` fails when they lag.
+ */
 const READMES = ['README.md', 'README.fr.md'];
 const METRIC = /(<!-- metric:(\w+) -->)([^<]*)(<!-- \/metric -->)/g;
 export function metricsOf(b: Baseline): Record<string, string> {
-  return { tests: String(b.tests.declarations), ...(b.bundle ? { initialJsKB: String(b.bundle.initialJsKB) } : {}) };
+  const reference = b.games.reference?.proof.states;
+  return {
+    tests: String(b.tests.declarations),
+    ...(b.bundle ? { initialJsKB: String(b.bundle.initialJsKB) } : {}),
+    ...(reference !== undefined ? { referenceStates: String(reference) } : {}),
+  };
 }
 export function withMetrics(page: string, m: Record<string, string>): string {
   return page.replace(METRIC, (all, open: string, name: string, _v: string, close: string) =>
@@ -137,6 +144,7 @@ export function withMetrics(page: string, m: Record<string, string>): string {
   );
 }
 
+/** The policy parts that got better than the baseline (4.1.3): said, so the baseline is ratcheted on purpose. */
 export function improvements(want: Baseline, got: Baseline): string[] {
   const out: string[] = [];
   if (got.tests.declarations > want.tests.declarations)

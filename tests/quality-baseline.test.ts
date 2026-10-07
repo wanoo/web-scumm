@@ -21,6 +21,7 @@ describe('quality baseline', () => {
       const page = readFileSync(r, 'utf8');
       expect(page).toContain('<!-- metric:tests -->');
       expect(page).toContain('<!-- metric:initialJsKB -->');
+      expect(page).toContain('<!-- metric:referenceStates -->');
       expect(withMetrics(page, metricsOf(base()))).toBe(page); // the figures are the baseline's
     }
   });

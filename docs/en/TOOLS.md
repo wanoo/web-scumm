@@ -162,7 +162,7 @@ npm run solve -- --dominance             # a witness with dominance (3.5; prunes
 npm test           # Node engine/tool tests and the selected game's tests (the heavy solver tests excluded, 4.1.3)
 npm run test:heavy # the CPU-bound solver tests (abstraction audits, canonical owner, memo and ownership proofs, the reference chapter's proof): nightly, minutes each
 npm run test:coverage   # the suite under V8 coverage, against the floors of vite.config.ts; then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach (CI and release-check, 4.1.8)
-npm run quality:baseline -- --check [--dist]   # the behaviour of 4.0.0 kept (4.1.0): witnesses, proofs, golden saves, public surface, first visit (tests/quality-baseline.json; without --check: write it)
+npm run quality:baseline -- --check [--dist]   # the behaviour of 4.0.0 kept (4.1.0): witnesses, proofs, golden saves, public surface, first visit (tests/quality-baseline.json; without --check: write it, and the READMEs' three figures with it: a new test or a lighter bundle means running it, 4.1.8)
 npm run test:assets # Python-backed image and asset-pipeline tests
 npm run e2e        # a playthrough in Chromium, phone landscape (dev server already running)
 ```
@@ -216,7 +216,7 @@ npm run docs:links [-- --timeout=10000]                       # every external l
 npx tsx tools/api-doc.ts [--check]                            # the public API's signatures into docs/en/API.md and docs/fr/API.md (4.1.7; tests/api-doc.test.ts fails when a page is behind)
 npm run lint [-- --prove | --static | --json]   # content lint: conditions nothing can satisfy, hidden rules, red herrings, stuck hints, actions never run (alias of lint:content since 4.1.0)
 npm run quality   # engine code (4.1.0): Biome formatting and lint, tsconfig.json and tsconfig.strictest.json, then the content lint
-npm run doctor [-- --release]      # checks Node, Python modules, ffmpeg and Playwright browsers; --release (4.1.8) requires Python, its modules and ffmpeg, as release-check does (it opens no browser: Firefox and WebKit stay optional)
+npm run doctor [-- --release]      # checks Node, Python modules, ffmpeg and Playwright browsers; --release (4.1.8) requires Python, its modules and ffmpeg, as release-check does, and Chromium as always (release-check opens no browser: Firefox and WebKit stay optional)
 npm run check                      # type-check and Node tests
 npm run tsc -- …                   # the TypeScript 7 compiler itself (4.1.8; the `tsc` bin link may belong to the tools' typescript6 package): `npm run check` and `quality` call it
 npm run build:game                 # the game's gates (verify:game), the bundle, verify:dist, the spoiler check, the asset audit: no tsc, no unit suite (CI runs those once)

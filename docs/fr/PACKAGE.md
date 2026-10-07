@@ -2,7 +2,7 @@
 
 Depuis la 3.9, un jeu n'a plus à vivre dans ce dépôt. Le moteur est empaqueté en `web-scumm` (le moteur, ses pages,
 ses outils et la commande `web-scumm`, le modèle de jeu), `create-web-scumm` (`npx create-web-scumm`) et, depuis la
-4.1.2, `web-scumm-bridge` (le Reality Bridge de référence, `docs/fr/REALITY-OPS.md`).
+4.1.1, `web-scumm-bridge` (le Reality Bridge de référence, `docs/fr/REALITY-OPS.md`).
 
 ## Un nouveau jeu
 

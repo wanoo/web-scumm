@@ -113,7 +113,7 @@ npm run assets && npm run dev        # puis npm run verify, npm run build, npm r
 
 ```bash
 npm install
-npm run doctor                       # Node et Chromium requis ; modules Python, ffmpeg, WebKit optionnels
+npm run doctor                       # Node et Chromium requis ; modules Python, ffmpeg, Firefox, WebKit optionnels
 npm run new-game mon-jeu "Mon jeu"   # games/mon-jeu depuis le modèle, choisi comme jeu courant
 npm run assets                       # prépare les images de remplacement
 npm run studio                       # le Studio : pièces, histoire, assets, vérifications, jeu
@@ -128,14 +128,14 @@ statique). `npm run dev` joue votre jeu sur cet ordinateur, `npm run dev:lan` su
 ## En chiffres
 
 Mesuré sur ce commit de `main`, par les gates automatiques qui tournent à chaque changement (`npm run quality:baseline`
-écrit les deux chiffres depuis `tests/quality-baseline.json`) :
+écrit les trois chiffres depuis `tests/quality-baseline.json`) :
 
 | Quoi | Résultat |
 |---|---|
 | Tests unitaires | <!-- metric:tests -->788<!-- /metric --> déclarations, sous Node 22 et 24, avec des planchers de couverture par module et des tests de mutation sur ce dont dépendent une sauvegarde, une session, une condition et un signal |
 | Tests navigateur | le jeu d'exemple joué jusqu'à sa fin au tactile et au clavier dans Chromium et WebKit à la taille d'un téléphone, en anglais et en français, avec le peintre DOM et le peintre Canvas ; un second jeu et le jeu de référence aussi ; chaque mini-jeu gagné au clavier ; axe-core sur chaque écran |
 | Sauvegardes | une sauvegarde figée par release de la 3.0.0 à la 4.1.7 se charge et atteint la fin |
-| Preuve | chaque état atteignable du jeu d'exemple en quelques secondes ; un jeu de référence de 40 pièces en 578 états ; 500 jeux aléatoires de chacune de trois sortes comparés à une recherche explicite chaque nuit, 0 divergence ([BENCH](docs/fr/BENCH.md)) |
+| Preuve | chaque état atteignable du jeu d'exemple en quelques secondes ; un jeu de référence de 40 pièces en <!-- metric:referenceStates -->288<!-- /metric --> états ; 500 jeux aléatoires de chacune de trois sortes comparés à une recherche explicite chaque nuit, 0 divergence ([BENCH](docs/fr/BENCH.md)) |
 | Un nouveau jeu | empaqueté, créé depuis l'archive, installé, vérifié, construit et joué jusqu'à sa fin par la CI ; un jeu fait sur la release précédente mis à niveau et sa sauvegarde jouée jusqu'à la fin |
 | La première visite du joueur | <!-- metric:initialJsKB -->120<!-- /metric --> Ko de JavaScript, gzippés, tenus par un budget ; chaque octet téléchargé prédit par le graphe des assets |
 | La release | construite depuis le commit testé par la CI, chaque fichier justifié avec sa licence, SBOM, sommes SHA-256 et attestation de provenance, jamais remplacée une fois publiée |

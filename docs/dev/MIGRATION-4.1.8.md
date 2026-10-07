@@ -5,7 +5,7 @@ Read before any of them is touched (programme §4.2: document the known incompat
 `happy-dom` 20.14.5, `playwright` 1.63.0, `tsx` 4.23.15, `esbuild` 0.28.2, `rollup` 4.63.5, `workbox-build` 7.4.1),
 the npm registry and the official release notes; what could not be confirmed is marked "unverified". The Dependabot
 pull requests of 4.0 said why they were closed: TypeScript 7.0.2 removes `baseUrl` and non-relative `paths` (TS5102,
-TS5090), which the repository and the generated project use, "and the PWA build breaks with it"; Vite 8.3.3's bundler
+TS5090), which the repository and the generated project use, "and the PWA build breaks with it"; Vite 8.3.2's bundler (8.3.2 then; 8.3.3 today)
 breaks a CommonJS default import in the built game (`TypeError: Bn.default is not a constructor`).
 
 ## 1. TypeScript 7 (the native compiler)

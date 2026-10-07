@@ -2,7 +2,7 @@
 
 Since 3.9 a game does not have to live in this repository. The engine is packed as `web-scumm` (the engine, its
 pages, its tools and the `web-scumm` command, the game template), `create-web-scumm` (`npx create-web-scumm`) and,
-since 4.1.2, `web-scumm-bridge` (the reference Reality Bridge, `docs/en/REALITY-OPS.md`).
+since 4.1.1, `web-scumm-bridge` (the reference Reality Bridge, `docs/en/REALITY-OPS.md`).
 
 ## A new game
 
