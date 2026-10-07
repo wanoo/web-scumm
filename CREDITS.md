@@ -1,7 +1,8 @@
 # Credits
 
 ## Code
-web-scumm engine and tools: MIT License, (c) 2026 Wano. Built with Vite, Vitest, Howler, earcut, navmesh, Tweakpane, Playwright.
+web-scumm engine and tools: MIT License, (c) 2026 Wano. Built with Vite, Vitest, Howler, earcut, navmesh, Tweakpane, Playwright, zod.
+The Biscuit test vectors under `bridge/test-vectors/biscuit/` come from the Biscuit project (Apache-2.0, their `LICENSE` beside them).
 
 ## Sample game artwork (games/demo/art)
 Backgrounds, characters, objects and interface icons: generated for the project with an image model from written prompts

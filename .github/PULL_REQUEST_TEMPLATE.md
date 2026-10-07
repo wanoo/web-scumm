@@ -8,7 +8,7 @@
 
 - [ ] `npm run quality` and `npm test` pass locally
 - [ ] docs in both languages (`docs/en`, `docs/fr`) and the CHANGELOG's `Unreleased` say what changed
-- [ ] a behaviour change moved the baseline on purpose (`npm run quality:baseline`), or the baseline is identical
+- [ ] a behaviour change moved the baseline on purpose (`npm run quality:baseline`, which also writes the READMEs' figures), or the baseline is identical
 - [ ] a visual change has a screenshot in this description
 
 ## Not done, said as such

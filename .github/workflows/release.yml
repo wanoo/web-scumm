@@ -54,12 +54,13 @@ jobs:
           python-version: '3.12'
       - run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
-      # `npm run doctor -- --release` (first step of release-check) requires ffmpeg and the three browsers (4.1.8).
+      # `npm run doctor -- --release` (first step of release-check) requires ffmpeg and Chromium (4.1.8); release-check
+      # opens no browser, so the other two are not installed here.
       - run: for i in 1 2 3; do (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
-      - run: for i in 1 2 3; do (npx playwright install --with-deps chromium firefox webkit) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (npx playwright install --with-deps chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
       # The mutation report of these very inputs, measured by ci (4.1.8): release-check reuses it, or runs both sets.
       - id: inputs
