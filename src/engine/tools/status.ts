@@ -22,7 +22,7 @@ export function solveHeadline(r: {
   broken: unknown[];
   errors: unknown[];
   goal?: boolean;
-  stoppedBy?: 'states' | 'time';
+  stoppedBy?: 'states' | 'time' | 'memory';
 }): string {
   const end = r.goal ? 'the goal' : 'the ending';
   switch (r.status) {
@@ -35,7 +35,7 @@ export function solveHeadline(r: {
     case 'unsolved':
       return `unsolved: ${end} is not reached from any of the ${r.states} states explored`;
     case 'truncated':
-      return `truncated: the search stopped at ${r.states} states, nothing is proved (${r.stoppedBy === 'time' ? 'out of time: raise --time' : 'raise --max'})`;
+      return `truncated: the search stopped at ${r.states} states, nothing is proved (${r.stoppedBy === 'time' ? 'out of time: raise --time' : r.stoppedBy === 'memory' ? 'out of memory: raise --mem, or resume from the checkpoint' : 'raise --max'})`;
     case 'broken':
       return `broken: ${r.broken.length} invariant(s) broken on a reachable state`;
     case 'error':

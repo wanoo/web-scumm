@@ -20,11 +20,18 @@ import {
   type SolveOptions,
   type makeExpander,
 } from './solve';
+import { SharedVisited, nextFor, ownerOf } from './solve/search/partition';
+import { stateHash } from './solve/search/compact';
+import type { Dims } from './solve/abstractions';
 
 export interface ExpandPool {
   size: number;
   reason?: string;
   expand(inputs: NodeInput[], deadline: number): Promise<(Expansion | null)[]>;
+  /** The shared visited table (4.1.13, search/partition.ts): whether it is on, the records sent back without a state. */
+  shared?(): { applied: boolean; known: number; reason?: string };
+  /** The search stored a state: into the shared visited table. */
+  remember?(d: Dims): void;
   /** What the workers counted (the search's own expansions are in its stats already). */
   stats(): Promise<ExpandStats | null>;
   close(): Promise<void>;
@@ -38,8 +45,8 @@ function workerCount(w: number | 'auto' | undefined): number {
 
 /** Options a worker needs (functions do not cross: custom commands come from the game's module). */
 function workerOpts(opts: SolveOptions) {
-  const { mode, goal, canonicalPlayers, mobility, ownership, memo, memoVerify, por, unsafeReduction } = opts;
-  return { mode, goal, canonicalPlayers, mobility, ownership, memo, memoVerify, por, unsafeReduction };
+  const { mode, goal, canonicalPlayers, mobility, ownership, memo, memoVerify, por, unsafeReduction, symmetry } = opts;
+  return { mode, goal, canonicalPlayers, mobility, ownership, memo, memoVerify, por, unsafeReduction, symmetry };
 }
 
 async function openPool(
@@ -61,11 +68,14 @@ async function openPool(
     return threadPool(X, `the game cannot be sent to a worker (${(e as Error).message})`);
   }
   const workers: Worker[] = [];
+  // The shared visited table (4.1.13): sized for the state budget, half full at most.
+  const visited = opts.sharedVisited === false ? null : new SharedVisited(opts.maxStates ?? 20000);
+  let known = 0;
   try {
     for (let i = 0; i < n; i++) {
       const crash = opts.workerCrash && [i, 'all'].includes(opts.workerCrash.worker) ? opts.workerCrash : undefined;
       const w = new Worker(new URL('./solve-worker.mjs', import.meta.url), {
-        workerData: { ...data, opts: workerOpts(opts), module: opts.gameModule, crash },
+        workerData: { ...data, opts: workerOpts(opts), module: opts.gameModule, crash, visited: visited?.buf },
       });
       workers.push(w);
     }
@@ -92,7 +102,8 @@ async function openPool(
     { resolve: (e: Expansion | null) => void; reject: (e: Error) => void; input: NodeInput; deadline: number }
   >();
   const idle: Worker[] = [...workers];
-  const queue: number[] = [];
+  // One queue per worker (4.1.13): a node goes to the worker its room hashes to; an idle one steals from the others.
+  const queues: number[][] = workers.map(() => []);
   const busy = new Map<Worker, number>();
   /** Workers that stopped: out of the pool for good (never sent a node, never asked for their stats). */
   const dead = new Set<Worker>();
@@ -105,13 +116,14 @@ async function openPool(
   };
   const dispatch = () => {
     if (!live().length) {
-      for (const id of queue.splice(0)) here(id);
+      for (const q of queues) for (const id of q.splice(0)) here(id);
       return;
     }
-    while (idle.length && queue.length) {
-      const id = queue.shift()!,
-        w = idle.shift()!,
-        p = pending.get(id)!;
+    for (const w of [...idle]) {
+      const id = nextFor(workers.indexOf(w), queues);
+      if (id === undefined) break;
+      idle.splice(idle.indexOf(w), 1);
+      const p = pending.get(id)!;
       busy.set(w, id);
       w.postMessage({ type: 'expand', id, input: p.input, deadline: p.deadline });
     }
@@ -127,7 +139,7 @@ async function openPool(
     if (i >= 0) idle.splice(i, 1);
     const id = busy.get(w);
     busy.delete(w);
-    if (id !== undefined) queue.unshift(id);
+    if (id !== undefined) queues[workers.indexOf(w)]!.unshift(id);
     void w.terminate();
     dispatch();
   };
@@ -151,7 +163,10 @@ async function openPool(
             p.reject(
               m.mobility ? mobilityError(m.message!) : m.ownership ? ownershipError(m.message!) : new Error(m.message),
             );
-          else p.resolve(m.exp ?? null);
+          else {
+            for (const r of m.exp?.records ?? []) if (r.known) known++;
+            p.resolve(m.exp ?? null);
+          }
         }
         if (dead.has(w)) return;
         idle.push(w);
@@ -190,11 +205,17 @@ async function openPool(
           new Promise<Expansion | null>((resolve, reject) => {
             const id = seq++;
             pending.set(id, { resolve, reject, input, deadline });
-            queue.push(id);
+            queues[ownerOf(input.dims, n)]!.push(id);
           }),
       );
       dispatch();
       return Promise.all(ps);
+    },
+    shared() {
+      return visited ? { applied: true, known } : { applied: false, known: 0, reason: 'turned off (sharedVisited)' };
+    },
+    remember(d) {
+      visited?.add(stateHash(d));
     },
     async stats() {
       const all = await Promise.all(live().map((w) => ask(w, 2000)));

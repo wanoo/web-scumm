@@ -611,6 +611,25 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.1.13 "Solver Research" (shipped 7 October 2026): the solver measured, lighter, resumable; not yet at scale
+
+The programme's sixth release, named by the two thresholds `docs/dev/plans/4.1.13-proof-at-scale.md` fixed before any
+code: the minimum (a measured gain, a compact representation, checkpoint and resume, identical verdicts to the
+exhaustive search on the small instances, no false proof) is met, the release objective (the matrix within budget) is
+not, so the version does not call itself "Proof at Scale". `docs/dev/PROOF-MATRIX.md` was frozen first: twelve
+generated games of 20 to 40 rooms and three characters, six constrained and six open, with budgets and expected
+verdicts; ADR 0015. The search stores its states by index with exact interned keys and keeps an engine copy only while
+a state waits to be expanded: peak heap ÷9 over the twelve instances, ÷16 to ÷20 on the open ones, the time per state
+unchanged (the engine's runs), verdicts and paths those of 4.1.8 state for state (a 203-search oracle, 909 corpus
+games, 0 divergence). `--checkpoint`/`--resume`/`--mem` stop and take up a proof to the same verdict and witness, even
+killed mid-expansion (the second reading found and fixed a budget cut that lost states); `--profile` attributes the
+states to positions, inventories, flags, dialogues and scripts; `--symmetry` folds twin items (off by default, limits
+in the ADR); `--workers` share the visited table with work stealing, the result independent of their number; `npm run
+prove:matrix` runs nightly. Eight of twelve instances finish within budget, as with 4.1.8: the gap report names the
+lever (a memo for macro moves and hand-overs, who carries which key). Left for later, said as such: that memo, the
+symbolic spike (not tried), dominance in proofs, the runner's numbers (the nightly's), the new modules in the mutation
+core set.
+
 ## v4.1.12 "Language" (shipped 7 October 2026): the game as data, its fingerprint, its objectives
 
 The programme's fifth release. `compileIR` turns a compiled game into its logic as plain data (rooms, entities, rules,
@@ -702,7 +721,7 @@ release (D12); the next version opens only when the current one's blockers are c
 | 4.1.10 | **Constellation** (shipped 7 October 2026) | a durable Bridge, replicated and isolated by tenant; the signal may become `SignalV2` if the threat analysis asks |
 | 4.1.11 | **Viewport** (shipped 7 October 2026) | a renderer separate from the game logic, behind an immutable `SceneFrame`; a semantic journal owned by the core |
 | 4.1.12 | **Language** (shipped 7 October 2026) | the DSL and an intermediate representation (`GameIR`, a game fingerprint) shaped by Gateways and Viewport; the core stabilised |
-| 4.1.13 | **Proof at Scale** | a documented class of open three-character games proved within published budgets, or named "Solver Research" |
+| 4.1.13 | **Solver Research** (shipped 7 October 2026; "Proof at Scale" not reached) | a documented class of open three-character games proved within published budgets, or named "Solver Research" |
 | 4.1.14 | **Time Attack** | speedrun categories, RTA and logical time, semantic splits, a verifiable proof package, ghosts, LiveSplit and OBS as local tools |
 | 4.1.15 | **Remix** | controlled variance of a game, deterministic by seed, with provable solvability; the DSL frozen after it |
 | 4.2.0 | **Stable World** | the contracts frozen, the compiled package on npm, the human passes done, a first real reference game |
@@ -720,7 +739,8 @@ not blocking, through 4.1.x (D12), and become blocking for 4.2.0 on every surfac
   `baseUrl` and non-relative `paths`): 4.1.8 "Foundation Reset", with the project template's `tsconfig.json`.
 - Translations loaded on demand (the second language is ~10% of the first visit's JavaScript): a change to the game
   module's contract, so a minor with a deprecation, not a patch.
-- The open matrix of three characters: 4.1.13 "Proof at Scale", with the two thresholds of its sheet.
+- The open matrix of three characters: not reached in 4.1.13 "Solver Research" (8 of 12 within budget); the memo
+  for macro moves and hand-overs the gap report names is the lever left.
 - Lip-sync markers in the voice table (left from 3.4).
 
 ## Out of scope (explicit decisions)

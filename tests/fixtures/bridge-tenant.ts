@@ -29,6 +29,8 @@ export async function tenantBridge(
     hosts?: string[];
     telemetry?: Telemetry;
     pollMs?: number;
+    /** The Bridge's clock (by default, `Date.now`). */
+    now?: () => number;
     /** Bind the connector's token to this tenant (a check in its authority block). */
     bindToken?: boolean;
   } = {},
@@ -61,6 +63,7 @@ export async function tenantBridge(
   const bridge = await Bridge.start(config, store, {
     log: (l) => logs.push(l),
     ...(o.telemetry ? { telemetry: o.telemetry } : {}),
+    ...(o.now ? { now: o.now } : {}),
     pollMs: o.pollMs ?? 0,
   });
   const mail = await grantToken(rootPrivate, {

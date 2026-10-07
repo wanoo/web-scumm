@@ -599,6 +599,27 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.1.13 « Solver Research » (livrée le 7 octobre 2026) : le solveur mesuré, allégé, reprenable ; pas encore à l'échelle
+
+La sixième release du programme, nommée par les deux seuils que `docs/dev/plans/4.1.13-proof-at-scale.md` a fixés
+avant tout code : le minimum (un gain mesuré, une représentation compacte, checkpoint et reprise, des verdicts
+identiques à la recherche exhaustive sur les petites instances, aucune fausse preuve) est atteint, l'objectif de
+release (la matrice dans son budget) ne l'est pas, donc la version ne s'appelle pas « Proof at Scale ».
+`docs/dev/PROOF-MATRIX.md` a été figée d'abord : douze jeux générés de 20 à 40 salles et trois personnages, six
+contraints et six ouverts, avec budgets et verdicts attendus ; ADR 0015. La recherche range ses états par index avec
+des clés internées exactes et ne garde une copie du moteur que le temps qu'un état attende son expansion : pic de tas
+÷9 sur les douze instances, ÷16 à ÷20 sur les ouvertes, le temps par état inchangé (les runs du moteur), verdicts et
+chemins ceux de la 4.1.8 état pour état (un oracle de 203 recherches, 909 jeux du corpus, 0 divergence).
+`--checkpoint`/`--resume`/`--mem` arrêtent et reprennent une preuve au même verdict et au même témoin, même tuée en
+pleine expansion (la seconde lecture a trouvé et corrigé une coupe de budget qui perdait des états) ; `--profile`
+attribue les états aux positions, inventaires, drapeaux, dialogues et scripts ; `--symmetry` replie les objets jumeaux
+(désactivé par défaut, limites dans l'ADR) ; `--workers` partagent la table des états vus avec vol de travail, le
+résultat indépendant de leur nombre ; `npm run prove:matrix` tourne la nuit. Huit instances sur douze tiennent dans
+leur budget, comme avec la 4.1.8 : le rapport d'écart nomme le levier (un mémo pour les macro-mouvements et les
+passages d'objets, qui porte quelle clé). Laissé pour plus tard, dit comme tel : ce mémo, le spike symbolique (non
+tenté), la dominance en preuve, les chiffres du runner (ceux de la nuit), les nouveaux modules dans le set de mutation
+core.
+
 ## v4.1.12 « Language » (livrée le 7 octobre 2026) : le jeu en données, son empreinte, ses objectifs
 
 La cinquième release du programme. `compileIR` transforme un jeu compilé en sa logique sous forme de données (salles,
@@ -697,7 +718,7 @@ qu'une fois les bloqueurs de la courante fermés.
 | 4.1.10 | **Constellation** (livrée le 7 octobre 2026) | un Bridge durable, répliqué et isolé par tenant ; le signal peut devenir `SignalV2` si l'analyse de menace le demande |
 | 4.1.11 | **Viewport** (livrée le 7 octobre 2026) | un renderer séparé de la logique du jeu, derrière une `SceneFrame` immuable ; un journal sémantique possédé par le cœur |
 | 4.1.12 | **Language** (livrée le 7 octobre 2026) | le DSL et une représentation intermédiaire (`GameIR`, une empreinte de jeu) façonnés par Gateways et Viewport ; le socle stabilisé |
-| 4.1.13 | **Proof at Scale** | une classe documentée de jeux ouverts à trois personnages prouvée dans des budgets publiés, ou nommée « Solver Research » |
+| 4.1.13 | **Solver Research** (livrée le 7 octobre 2026 ; « Proof at Scale » non atteint) | une classe documentée de jeux ouverts à trois personnages prouvée dans des budgets publiés, ou nommée « Solver Research » |
 | 4.1.14 | **Time Attack** | catégories de speedrun, RTA et temps logique, splits sémantiques, un paquet de preuve vérifiable, ghosts, LiveSplit et OBS en outils locaux |
 | 4.1.15 | **Remix** | une variance contrôlée du jeu, déterministe par seed, à solvabilité prouvable ; le DSL gelé après elle |
 | 4.2.0 | **Stable World** | les contrats gelés, le paquet compilé sur npm, les passes humaines faites, un premier vrai jeu de référence |
@@ -716,7 +737,8 @@ la 4.2.0 sur chaque surface annoncée comme supportée.
   retire `baseUrl` et les `paths` non relatifs) : la 4.1.8 « Foundation Reset », avec le `tsconfig.json` du modèle de projet.
 - Les traductions chargées à la demande (la seconde langue pèse ~10 % du JavaScript de la première visite) : un
   changement du contrat du module de jeu, donc une mineure avec une dépréciation, pas un correctif.
-- La matrice ouverte à trois personnages : la 4.1.13 « Proof at Scale », avec les deux seuils de sa fiche.
+- La matrice ouverte à trois personnages : non atteinte en 4.1.13 « Solver Research » (8 instances sur 12 dans leur
+  budget) ; le mémo des macro-mouvements et des passages d'objets nommé par le rapport d'écart reste le levier.
 - Les repères de synchronisation labiale dans la table des voix (restés de la 3.4).
 
 ## Hors plan (décisions explicites)

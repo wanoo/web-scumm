@@ -3031,3 +3031,110 @@ Platform"; human gates reported, not blocking (D12).
   the new core files; the human passes.
 
 → next: Claude · `release/4.1.13` (Proof at Scale), then 4.1.14 (PR #48), 4.1.15
+
+## #129 · 2026-10-07 · Claude · proposal · `feature/4113-proof-at-scale`: the proof matrix, the explosion profile, a compact store, checkpoints, dominance and symmetries measured, partitioned workers ("Solver Research")
+
+- One branch for the sheet's branches 1–5 and 7 (`docs/dev/plans/4.1.13-proof-at-scale.md`), at the orchestrator's
+  request. The matrix was committed first, before any code (`docs/dev/PROOF-MATRIX.md`, `matrixGame` in
+  `tests/gen/random-game.ts`, ADR 0015), its expected verdicts measured on the 4.1.8 sources. The tests were written
+  with the code, in the same commit, not strictly before it: said as such.
+- Delivered: `solve --profile` with the explosion profile (`solve/explosion.ts`, `docs/dev/PROOF-PROFILE.md`); the
+  compact store (`solve/search/compact.ts`: interned exact keys, parents and steps by index, FNV-1a 64 summed hash,
+  edges as columns; `--representation=objects` keeps 4.1.8's); checkpoint and resume (`--checkpoint`, `--resume`,
+  `--mem`; `solve/search/checkpoint.ts`, `tools/checkpoint.ts`); symmetric items (`--symmetry`, off by default) and
+  dominance measured against the explicit search (`solve/search/dominance.ts`); the workers' shared visited table,
+  partition by room and work stealing (`solve/search/partition.ts`); `npm run prove:matrix` and its nightly job;
+  softlock causes carry their session entries (replayable). `search.ts` 738 lines (classification moved to
+  `search/classify.ts`, the engine driver to `solve/drive.ts`).
+- Measured (Mac M5, Node 22.14, 590 s per instance, one at a time): verdicts and states identical to 4.1.8 where both
+  finish; states/s ×1.03 (geometric mean); peak heap 11 069 → 1 230 MB over the twelve (÷9), RSS ÷4.5, ÷16–20 on
+  o21/o23/o25. 8/12 instances within budget, as with 4.1.8 (o22–o25 truncated by time). With 4 workers o23 reaches
+  237 618 states (×2.7), still truncated. Oracle: 203 searches identical to the 4.1.8 fixture. Corpus on this code:
+  500 seeds × 3 kinds, 909 compared, 0 divergence. Symmetry on 30 twin games: 0 divergence, ÷1.3 states. Dominance in
+  proofs: 1 verdict changed in 43, so off in proofs. Checkpoint of o23: about 180 bytes a state.
+- Threshold: the **minimum** is met (by memory, not by speed); the **objective** is not (8/12): the release is
+  "Solver Research"; the gap report is PROOF-MATRIX §8 (time spent on no-op tries over whole-map regions, the
+  memo refusing them; who carries which key stays in the state).
+- Commands behind the figures (this machine, 7 October 2026). The oracle fixture: `ORACLE_WRITE=1 npx vitest run
+  tests/solver-oracle.test.ts --maxWorkers=1` on the 4.1.8 sources (4f0d91b) plus only the `keepReachable` and
+  `onProgress` hooks, before any change to the search (the test file and `tests/gen/oracle.ts` written for it). The
+  matrix: `npx tsx tools/prove-matrix.ts --only=<id> --time=590 --json=…`, one instance per process, the "before" run
+  from a copy of 4f0d91b with only the generator, the tool and those hooks added (`.cache/before`, not committed).
+  The corpus: `npx tsx tools/audit-corpus.ts --shard=<0..3>/4 --total=500 --json=corpus-<s>.json`, then
+  `npx tsx tools/audit-corpus.ts --merge corpus-0.json … corpus-3.json --total=500` (1 500 games, 909 compared, 0
+  divergence). The mutation: `npx tsx tools/mutate.ts --file=src/engine/tools/solve/search/compact.ts` with a
+  temporary set `solver` (that file, judged by `tests/compact.test.ts`) in `tools/mutation-sets.ts`, not committed.
+- PROOF-MATRIX §7 (the results table) and §8 (the gap report) were appended after the code; §1–6 (the family, the
+  seeds, the budgets, the machines, the command, the expected verdicts) are unchanged since the first commit.
+- Mutation: `search/compact.ts` measured with a temporary set judged by `tests/compact.test.ts`: 78/86 killed, 8
+  survivors (a sort comparator on unique keys, the `bytes()` estimate, a snapshot branch). Not added to the core set.
+- Run: tsc, biome, knip; `tests/compact`, `checkpoint`, `explosion`, `dominance`, `partition`, `solver-oracle`,
+  `workers`, `frontier`, `status`, `proof-cache`, `solver-contract`, `por`, `replay`, `api-surface`,
+  `reference-chapter`, `reality-proof`, `bench`, `boundaries`, `file-size`, `scripts-documented`, `docs-truth`,
+  `docs-links`, one file group at a time with `--maxWorkers=1`. Not run here: the full suite, coverage, the e2e,
+  the build, `quality:baseline`.
+- Not done: the symbolic spike (branch 6: BDD, SAT/SMT, CEGAR, not tried); dominance in proofs and sub-puzzle
+  proofs (reported only); a memo for macro moves and hand-overs (the gap report's lever); the runner's numbers (the
+  nightly, median of three nights after merge); the new modules in the mutation core set.
+
+- After the second reading (Opus, PR #51). Blocking, fixed: a state budget that fell inside a node's expansion left
+  its other children unstored while the node counted as expanded, so a checkpoint lacked them and a resume with a
+  bigger budget could end `solved` without them. With a checkpoint, the node's other children are now stored and
+  queued before the search stops (the snapshot holds the frontier the uncut search had); without one the search ends
+  `truncated` as before (the 4.1.8 oracle unchanged). New test: 30 generated games cut at 2, 3, 5 and 8 states and
+  resumed give the uncut proof, verdict and witness (43 of them differed before the fix). Should, done: the
+  checkpoint's fingerprint includes the custom commands' source; symmetric items keep apart an item a layout or a
+  custom command names (ADR 0015 says the limits); the oracle test fails after `ORACLE_WRITE=1` and compares the case
+  names both ways; the CHANGELOG fragment no longer says "a twentieth" for the whole matrix; the commands above.
+  Nit: the headers say 4.1.13 "Solver Research". Then PR #51's `coverage` job timed out (300 s) on the c12 resume
+  under instrumentation: that case moved to `tests/checkpoint-matrix.test.ts`, in `test:heavy` (nightly) and out of
+  `test:node` and `test:coverage`; `tests/checkpoint.test.ts` keeps the sample game, the budgets, the 30-game cut
+  property and the killed process. The `windows` job then failed the killed-process case: the checkpoint is now
+  flushed (`fsync`) before its rename, and the case is skipped on Windows (the test reads the snapshot while the child
+  renames over it, which Windows refuses; SIGKILL is TerminateProcess there); the other checkpoint cases run there.
+
+→ next: Claude · `release/4.1.13`
+
+
+## #130 · 2026-10-07 · Claude · proposal · `fix/4110-coverage-floors`: the floors the candidate's strict ratchet refused
+
+- The `v4.1.10-rc.1` tag's `coverage` job failed on `coverage-ratchet --strict`: five floors three points or more below
+  the measure (lines 64 vs 67.91, statements 63 vs 67.21, functions 59 vs 63.31, branches 61 vs 64.09, `protocol.ts`
+  branches 95 vs 98.75). On #45 and #47 the same ratchet was a warning (lot 0), and main's run of the merge commit was
+  cancelled by the next merge before its coverage job ran. Raised to 66 / 65 / 61 / 62 and 96 (the values Viewport's
+  branch already carries). The unpublished candidate tag is deleted and made again on the merge of this fix.
+- Lesson for the cadence: a tag's strict ratchet can refuse what a pull request only warned about; the release branch
+  runs `coverage-ratchet --strict` locally before its pull request from now on (the method of a lot, point 6).
+→ next: Claude · `v4.1.10-rc.1` again on this merge, then `v4.1.10`
+
+
+## #131 · 2026-10-07 · Claude · proposal · `fix/4111-coverage-floors`: the floors 4.1.11's tag needs
+
+- Read on PR #42's coverage job (run 37632244078): nine floors at least three points below the measure after the
+  Viewport lot. Raised to within three points; `v4.1.11` is tagged on this merge, not on the release commit (99413a0),
+  because a tag's `coverage` job runs the ratchet strictly. From 4.1.12 the release commit itself carries the floors
+  read on the lot's pull request (the method of a lot, point 6).
+→ next: Claude · `v4.1.11-rc.1` on this merge
+
+
+## #132 · 2026-10-07 · Claude · proposal · `fix/e2e-reality-gate`: the gate acted on while the engine was busy
+
+- Seen on the `v4.1.11-rc.1` tag (WebKit, 16:30 UTC): the replays' signals applied and the shed door open at 16:30:39,
+  `use gate` sent at once, the ending not reached at 16:32:39 after the 120 s of PR #52: not a slow cutscene, a
+  dropped input. The harness now waits for `engine.busy` to clear and retries. Not reproduced locally (no e2e here).
+→ next: Claude · the tags of 4.1.10 and 4.1.11 on commits carrying this
+
+## #133 · 2026-10-07 · Claude · release · 4.1.13 "Solver Research"
+
+- The programme's sixth release, no release candidate; named "Solver Research" by the sheet's thresholds (#129
+  above: the minimum met through memory, the release objective not, 8 of 12 instances). Merged: #51 (the second
+  reading's blocking finding, a states-budget cut that could later report `solved`, fixed with a 30-game cut/resume
+  property; the nightly's jobs reconciled after a merge that had dropped two of main's). The release commit on the
+  lot's branch: the fragments assembled, the version, the golden save `demo-4.1.13.json` (27), the READMEs, ROADMAP
+  en/fr, UPGRADING §25, the pass sheet, the baseline sheet; no floor to raise (#51's coverage job: one point of slack).
+- Measured on #51's final run (37654193805): `node-24` 149 files, 1 503 tests (+4 skipped); `coverage` 151 files, 1 520 tests (+4 skipped); the solver's figures in #129 and the
+  baseline sheet.
+- Not done, said as such: the symbolic spike, dominance in proofs, the macro-move memo, the runner's numbers, the new
+  modules in the mutation core set; the human passes.
+
+→ next: Claude · `release/4.1.14` (Time Attack, PR #48, with a candidate), then 4.1.15

@@ -365,6 +365,15 @@ preuves du solveur est indexé par `canonicalJson` : les entrées de 4.1.11 ne s
 remplit de nouveau. Le DSL est stabilisé (D22, `docs/dev/DSL-STABILITY.md`) : désormais, changer un nom ou un sens
 stable s'accompagne de sa migration.
 
+## 25. De la 4.1.12 à la 4.1.13 « Solver Research »
+
+Une sauvegarde, un jeu et un Bridge 4.1.12 continuent de fonctionner ; aucun nom public n'a bougé
+(`tests/api-surface.json` additif). La commande du solveur gagne `--checkpoint=<fichier>`, `--checkpoint-every`,
+`--resume`, `--mem=<Mo>`, `--profile`, `--symmetry`, `--workers` et `--representation=objects` (le stockage de la
+4.1.8, pour comparer) ; une recherche coupée par un budget est `truncated`, jamais `proved`, avant comme après une
+reprise. `npm run test:heavy` gagne le cas checkpoint de la matrice et `npm run prove:matrix` (le job `matrix` de la
+nuit) prouve les douze instances de `docs/dev/PROOF-MATRIX.md`. Une cause de softlock dans `npm run solve -- --json`
+porte désormais ses entrées de session, que `npm run replay` rejoue.
 ## 26. De la 4.1.13 à la 4.1.14 « Time Attack »
 
 Pas de changement du format d'écriture : un jeu 4.1.13 et ses sauvegardes se chargent tels quels, et `speedrun` est un

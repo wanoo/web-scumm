@@ -2,7 +2,7 @@
 import type { ExitCode, SolveStatus } from '../status';
 import type { Action } from '../../core/engine';
 import type { GameDef, GameState, Id, SessionEntry } from '../../core/types';
-import type { SearchNode } from './model';
+import { type Explosion, explosionText } from './explosion';
 
 /** What the solver measured: where the states come from, what the search cost (`npm run solve -- --profile`). */
 export interface SolveProfile {
@@ -63,8 +63,18 @@ export interface SolveProfile {
   ownership?: { applied: boolean; items: Id[]; handovers: number; reason?: string };
   /** Proof workers (`workers`): how many expanded, the batch, and why this thread expanded instead when it did. */
   workers?: { workers: number; batch: number; reason?: string };
-  /** Why the search stopped early: the state budget (`maxStates`) or the time (`timeLimitMs`). */
-  stoppedBy?: 'states' | 'time';
+  /** Why the search stopped early: the state budget (`maxStates`), the time (`timeLimitMs`) or the memory (`maxMemoryMb`). */
+  stoppedBy?: 'states' | 'time' | 'memory';
+  /** How the states were stored (4.1.13): the representation, the bytes its tables hold (compact), why `objects`. */
+  representation?: { mode: 'compact' | 'objects'; bytes: number; reason?: string };
+  /** Checkpoint and resume (4.1.13): where this search was taken up, how many snapshots it wrote, why a resume was refused. */
+  checkpoint?: { resumedAt?: { states: number; expansions: number }; written: number; refused?: string };
+  /** Symmetric items (4.1.13): the classes found, and whether they were applied. */
+  symmetry?: { applied: boolean; classes: string[][]; reason?: string };
+  /** Workers' shared visited table (4.1.13): records sent back without their state, collisions re-expanded here. */
+  shared?: { applied: boolean; known: number; collisions: number; reason?: string };
+  /** With `explosion` (4.1.13): the states attributed to the dimensions of the matrix's sheet (explosion.ts). */
+  explosion?: Explosion;
 }
 
 /**
@@ -114,24 +124,19 @@ export interface SolveResult {
   /** Proof mode: how many reachable states cannot reach the goal any more (`softlocks` holds at most 20 samples). */
   softlockCount: number;
   /** Proof mode: the softlocks grouped by the step that lost the game (the first action from a safe state into an unsafe one). */
-  softlockCauses: { action: string; room: Id; count: number; sample: string[] }[];
+  softlockCauses: {
+    action: string;
+    room: Id;
+    count: number;
+    sample: string[];
+    /** The sample as session entries (4.1.13): `npm run replay` plays the way into the softlock. */
+    steps?: SessionEntry[];
+  }[];
   /** Proof mode with a `goal`: every reachable state where the goal holds (a chapter's boundary; `proveChapters` starts the next chapter from each). */
   boundaries: GameState[];
   profile: SolveProfile;
-}
-
-/** The labelled path to a node, rebuilt from its parents. */
-export function pathOf(n: SearchNode): string[] {
-  const parts: string[][] = [];
-  for (let x: SearchNode | undefined = n; x; x = x.prev) parts.push(x.tail);
-  return parts.reverse().flat();
-}
-
-/** The session entries to a node, rebuilt from its parents. */
-export function stepsOf(n: SearchNode): SessionEntry[] {
-  const parts: SessionEntry[][] = [];
-  for (let x: SearchNode | undefined = n; x; x = x.prev) parts.push(x.tailSteps);
-  return parts.reverse().flat();
+  /** With `keepReachable` (4.1.13): the key of every state the search reached, sorted (the differential oracle). */
+  reachable?: string[];
 }
 
 export function label(game: GameDef, a: Action): string {
@@ -146,7 +151,7 @@ function abstractionLines(p: SolveProfile): string[] {
     `  canonical character   ${p.canonical.applied ? `${p.canonical.folded} switches folded, ${p.canonical.explicit} kept explicit` : off(p.canonical.reason)}`,
     `  mobility regions      ${p.mobility.applied ? `${p.mobility.moves} macro moves, largest region ${p.mobility.largest} rooms` : off(p.mobility.reason)}`,
     `  no-op memo            ${p.memo.applied ? `${p.memo.hits} runs skipped (${p.memo.verified} of them run anyway and identical), ${p.memo.stored} kept, ${p.memo.refused} refused` : off(p.memo.reason)}`,
-    ...(p.dominance?.applied || p.dominance?.pruned
+    ...(p.dominance
       ? [
           `  witness dominance     ${p.dominance.applied ? `${p.dominance.pruned} states not explored` : off(p.dominance.reason)}`,
         ]
@@ -161,10 +166,37 @@ function abstractionLines(p: SolveProfile): string[] {
           `  workers               ${p.workers.workers} expanding batches of ${p.workers.batch}${p.workers.reason ? ` (${p.workers.reason})` : ''}; times below are summed over them`,
         ]
       : []),
+    ...(p.symmetry
+      ? [
+          `  symmetric items       ${p.symmetry.applied ? `${p.symmetry.classes.length} class(es): ${p.symmetry.classes.map((c) => c.join(' = ')).join('; ')}` : off(p.symmetry.reason)}`,
+        ]
+      : []),
+    ...(p.representation
+      ? [
+          `  representation        ${p.representation.mode}${p.representation.mode === 'compact' ? `, ${Math.round(p.representation.bytes / 1024)} KB of tables` : ''}${p.representation.reason ? ` (${p.representation.reason})` : ''}`,
+        ]
+      : []),
+    ...(p.checkpoint
+      ? [
+          `  checkpoint            ${p.checkpoint.written} written${p.checkpoint.resumedAt ? `, taken up at ${p.checkpoint.resumedAt.states} states` : ''}${p.checkpoint.refused ? `, not taken up (${p.checkpoint.refused})` : ''}`,
+        ]
+      : []),
+    ...(p.shared
+      ? [
+          `  shared visited table  ${p.shared.applied ? `${p.shared.known} states came back without their engine state, ${p.shared.collisions} collision(s) expanded again` : off(p.shared.reason)}`,
+        ]
+      : []),
     ...(p.stoppedBy
-      ? [`  stopped by            ${p.stoppedBy === 'time' ? 'the time limit (--time)' : 'the state budget (--max)'}`]
+      ? [
+          `  stopped by            ${p.stoppedBy === 'time' ? 'the time limit (--time)' : p.stoppedBy === 'memory' ? 'the memory budget (--mem)' : 'the state budget (--max)'}`,
+        ]
       : []),
   ];
+}
+
+/** What each abstraction did and, when measured, the explosion profile (docs/dev/PROOF-PROFILE.md, 4.1.13). */
+export function proofProfileLines(p: SolveProfile): string[] {
+  return [...abstractionLines(p), ...(p.explosion ? ['', ...explosionText(p.explosion)] : [])];
 }
 
 /** The profile as text (`npm run solve -- --profile`, the Studio, the `solve` tool). */
@@ -197,6 +229,7 @@ export function profileText(p: SolveProfile, game?: GameDef): string {
     }`,
   );
   out.push('', 'Abstractions (what each one did, or why it is off):', ...abstractionLines(p));
+  if (p.explosion) out.push('', ...explosionText(p.explosion));
   if (p.dims.length) {
     out.push('', 'What splits the states (states that would merge without it):');
     for (const d of p.dims.filter((x) => x.split > 0).slice(0, 15))

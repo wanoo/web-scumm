@@ -350,7 +350,7 @@ describe('export and restore', () => {
     expect(await store.exportTenant('acme')).toEqual(before);
     await store.importTenant(before, { replace: true });
     expect(await store.exportTenant('acme')).toEqual(before);
-  });
+  }, 30000); // SQLite on the Windows runner: three times over 5 s on 7 October 2026
 });
 
 describe('the edges the coverage floor asked for', () => {

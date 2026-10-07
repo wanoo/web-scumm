@@ -160,6 +160,12 @@ npm run solve -- --from=<checkpoint> --max=50000
 npm run solve -- --prove --workers=4 [--batch=64] [--time=60]   # proof workers (3.5): the same result for any number of workers; a large proof ×2.5 with 4 (BENCH.md "3.5")
 npm run solve -- --prove --ownership=off   # without the canonical owner (who holds a free item, pooled in proofs since 3.5)
 npm run solve -- --dominance             # a witness with dominance (3.5; prunes nothing on the bundled games, BENCH.md)
+npm run solve -- --prove --profile       # the profile, with the explosion profile (4.1.13): states attributed to positions, inventories, flags, dialogues, scripts; symmetries, no-ops, permutations
+npm run solve -- --prove --checkpoint=p.ckpt [--checkpoint-every=300] [--resume]   # the proof written down as it goes (4.1.13), and taken up again with --resume: the same verdict and witness; a finished proof removes the file
+npm run solve -- --prove --mem=3500      # stop as `truncated` once the heap passes 3 500 MB (4.1.13), never a proof
+npm run solve -- --prove --symmetry      # fold symmetric items, two items the game treats alike (4.1.13, off by default; SOLVER.md)
+npm run solve -- --prove --representation=objects   # the 4.1.8 storage of the states (the reference of the differential tests; compact by default, 4.1.13)
+npm run prove:matrix [-- --only=c11,o21 --time=600 --mem=4096 --json=m.json --profile=docs/dev/PROOF-PROFILE.md]   # the proof matrix (4.1.13, docs/dev/PROOF-MATRIX.md): twelve three-character games under the published budgets; exit 1 on a false verdict; nightly only
 npm test           # Node engine/tool tests and the selected game's tests (the heavy solver tests excluded, 4.1.3)
 npm run test:heavy # the CPU-bound solver tests (abstraction audits, canonical owner, memo and ownership proofs, the reference chapter's proof): nightly, minutes each
 npm run test:coverage   # the suite under V8 coverage, against the floors of vite.config.ts; then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach (CI on main and tags, release-check, 4.1.8; on a pull request it warns, 4.1.9)
