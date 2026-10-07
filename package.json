@@ -88,6 +88,7 @@
     "e2e:a11y": "node scripts/e2e-a11y.mjs",
     "docs:screenshots": "node scripts/docs-screenshots.mjs",
     "docs:links": "node scripts/check-links.mjs",
+    "ci:plan": "tsx tools/ci-plan.ts",
     "test:heavy": "vitest run tests/ownership.test.ts tests/audit.test.ts tests/canonical.test.ts tests/memo.test.ts tests/reference-proof.test.ts",
     "build:game": "npm run verify:game && vite build && npm run verify:dist && npm run check:spoilers && npm run audit:assets"
   },

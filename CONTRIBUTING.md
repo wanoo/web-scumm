@@ -28,6 +28,19 @@ surprising. A behaviour-preserving change keeps `npm run quality:baseline -- --c
 proofs, golden saves and public surface. A new test or a lighter bundle is a ratchet: run `npm run quality:baseline`,
 which rewrites the JSON and the READMEs' figures with it, and commit them.
 
+## What CI runs
+
+A pull request runs in tiers (`.github/workflows/ci.yml`, 4.1.9). The fast tier runs on every change: `plan`, then
+`check` (formatting, lint, knip, both TypeScript configurations, the sample game's gates and build, the baseline, its
+proof, `audit:deps` when the lockfile moved) beside `coverage` (the unit suite, once, under coverage; a floor that could
+rise is a warning on a pull request). The second tier waits for `check` and runs only what the change can break, as
+`tools/ci-plan.ts` reads the diff (`npm run ci:plan` shows it locally): a Bridge change runs Reality, a painter the
+browser rows and the reference chapter, the template the packaging jobs, a docs-only change none of them. A job the
+plan spares still appears and succeeds with "not needed by the plan". The workflow itself, the plan, a shared
+configuration (`package.json`, the lockfile, `vite.config.ts`, the tsconfigs), the engine's core and any path the plan
+does not know run everything. On `main` and on a tag everything runs, the coverage ratchet is strict and the mutation
+sets run; label a pull request `full-ci` (then push) to get the same before merging. `pr-gate` sums every job up.
+
 ## Changing a command, end to end
 
 A command (`Cmd`) is read by the engine, the validator, the solver, the puzzle graph, the texts, the Studio and the
