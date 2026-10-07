@@ -129,7 +129,7 @@ describe.each(STORES)('two tenants on one $name store', ({ open }) => {
       }),
       { numRuns: 12 },
     );
-  });
+  }, 30000); // SQLite on the Windows runner: three times over 5 s on 7 October 2026
 
   it('quotas and keys are each tenant’s own', async () => {
     const store = await open();

@@ -15,6 +15,9 @@ and the gap report (`docs/dev/PROOF-MATRIX.md` §8) says why. Measured against 4
 
 ### Changes
 
+- **Three SQLite tests of the Bridge get 30 s on the runner (4.1.13)**: a tenancy property, a restore and a pairing sweep
+  took more than vitest's 5 s on the Windows runner three times on 7 October 2026 and passed every time elsewhere.
+
 - **A proof needs nine times less heap over the proof matrix, up to twenty times less on the open instances** (4.1.13,
   ADR 0015). The search stores the states it has seen by index, with exact interned keys, parents and steps in flat
   columns, and keeps a state's engine copy only while it waits to be expanded. Over the twelve instances of the new
