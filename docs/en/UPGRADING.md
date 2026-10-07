@@ -276,6 +276,6 @@ section are gone; `docs/en/TUTORIAL.md` is the page to hand a newcomer.
 
 A 4.1.7 save loads unchanged. A project's `tsconfig.json` written by `create-web-scumm` before 4.1.8 has `baseUrl: "."`
 and non-relative `paths`, which TypeScript 7 refuses (TS5102, TS5090): `web-scumm migrate` rewrites it (the same
-configuration, said relative to the file), `--check` says when it is due. The engine's type checks run on TypeScript 7
+configuration, said relative to the file; a comment the file had is not kept), `--check` says when it is due. The engine's type checks run on TypeScript 7
 (`npm run tsc`); a tool of yours that imports the compiler API (`import ts from 'typescript'`) finds no API in
 `typescript@7` and imports `@typescript/typescript6` instead until 7.1 (docs/dev/MIGRATION-4.1.8.md).

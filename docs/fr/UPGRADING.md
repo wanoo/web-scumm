@@ -286,7 +286,7 @@ venu.
 
 Une sauvegarde 4.1.7 se charge telle quelle. Le `tsconfig.json` d'un projet écrit par `create-web-scumm` avant la 4.1.8
 a `baseUrl: "."` et des `paths` non relatifs, que TypeScript 7 refuse (TS5102, TS5090) : `web-scumm migrate` le
-réécrit (la même configuration, dite relativement au fichier), `--check` dit quand c'est dû. Les vérifications de types
+réécrit (la même configuration, dite relativement au fichier ; un commentaire du fichier n'est pas gardé), `--check` dit quand c'est dû. Les vérifications de types
 du moteur tournent sur TypeScript 7 (`npm run tsc`) ; un outil à vous qui importe l'API du compilateur (`import ts from
 'typescript'`) ne trouve pas d'API dans `typescript@7` et importe `@typescript/typescript6` à la place jusqu'à la 7.1
 (docs/dev/MIGRATION-4.1.8.md).

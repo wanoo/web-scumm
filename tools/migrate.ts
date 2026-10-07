@@ -5,14 +5,14 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { GAME, loadGameModule } from './game';
+import { GAME, loadGameModule, PROJECT } from './game';
 import { tsconfigWithoutBaseUrl } from './migrate-tsconfig';
 
 export const CURRENT_SCHEMA = 3;
 
 // The project's own tsconfig (project mode, 3.9): brought to what TypeScript 7 accepts, whatever the schema says.
-const tsconfig = resolve(process.cwd(), 'tsconfig.json');
-if (process.env.WEB_SCUMM_PROJECT && existsSync(tsconfig)) {
+const tsconfig = PROJECT ? resolve(PROJECT, 'tsconfig.json') : null;
+if (tsconfig && existsSync(tsconfig)) {
   const next = tsconfigWithoutBaseUrl(readFileSync(tsconfig, 'utf8'));
   if (next && process.argv.includes('--check')) {
     console.error(
@@ -22,7 +22,9 @@ if (process.env.WEB_SCUMM_PROJECT && existsSync(tsconfig)) {
   }
   if (next) {
     writeFileSync(tsconfig, next);
-    console.log('✔  tsconfig.json: `baseUrl` removed, its `paths` made relative (TypeScript 7, 4.1.8)');
+    console.log(
+      '✔  tsconfig.json: `baseUrl` removed, its `paths` made relative (TypeScript 7, 4.1.8); a comment it had is not kept',
+    );
   }
 }
 const { game } = await loadGameModule();

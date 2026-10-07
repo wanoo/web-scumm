@@ -2362,6 +2362,11 @@ Platform"; human gates reported, not blocking (D12).
 - `src/engine/dom/walk.ts`: `import { NavMesh } from 'navmesh'` (the named export its d.ts declares) instead of the
   default import Rolldown hands whole: the one CommonJS default import of `src/`, the blocker Vite 8 hit in 4.0,
   removed under Vite 6 first (MIGRATION §6, step 2).
+- The second reading's two blockers, fixed: the package `scripts/pack.mjs` builds carried `typescript` and not
+  `@typescript/typescript6`, so `web-scumm ids`, `mcp` and a schema-2 `migrate` would have failed in every game
+  project (`fresh-install` now runs `web-scumm ids` from the tarball); `upgrade-check` ran `migrate --check` on a
+  4.1.7 project, which now has a migration due (it runs `migrate`, then `--check`). Also: a tsconfig with comments
+  is read as TypeScript reads it, and `migrate` rewrites the project's file, not the current folder's.
 - Not done, said as such: Vite 8 and vite-plugin-pwa 2 are the next two branches; the export classification
   (`@public | @extension | @internal`) and the API test on it are a branch of their own after them; the editor's
   TypeScript (the native extension) is each developer's.

@@ -37,4 +37,13 @@ describe('a project tsconfig for TypeScript 7', () => {
     ).toBeNull();
     expect(tsconfigWithoutBaseUrl('{}')).toBeNull();
   });
+
+  it('reads comments and trailing commas as TypeScript does, and refuses what is not a tsconfig at all', () => {
+    const jsonc = `{\n  // the project's own\n  "compilerOptions": { "baseUrl": ".", "paths": { "@game": ["game/index.ts"], }, },\n}\n`;
+    const after = JSON.parse(tsconfigWithoutBaseUrl(jsonc)!) as {
+      compilerOptions: { paths: Record<string, string[]> };
+    };
+    expect(after.compilerOptions.paths).toEqual({ '@game': ['./game/index.ts'] });
+    expect(tsconfigWithoutBaseUrl('not json at all')).toBeNull();
+  });
 });
