@@ -54,7 +54,9 @@ opens no browser, no Windows runner and no Node 24 (`CONTRIBUTING.md`, "What CI 
 | Node | 22.12 or newer: 22 and 24 on Ubuntu; macOS for the maintainer's daily use | — |
 | Windows | a `windows-latest` job (4.1.8; on a pull request, when code changed): `doctor`, the type checks, the unit suite but six files that assume POSIX (file modes, `/` in paths; named in `ci.yml`), `build`, the production server answering | `npm run dev` and the Studio on Windows; the six test files, ported |
 | Python | optional: the art tools and the audio pipeline, Pillow, NumPy, SciPy pinned in `requirements.txt` | — |
-| Reality Bridge | Node 22.12+, Chromium and WebKit e2e, a Rust cross-check of the protocol | a Bridge behind HTTPS with a real connector |
+| Reality Bridge | Node 22.12+, Chromium and WebKit e2e, a Rust cross-check of the protocol (`SignalV2` included) | a Bridge behind HTTPS with a real connector |
+| Bridge, `local` profile (4.1.10) | SQLite through `node:sqlite` (Node 22.13+): the store contract, tenants crossed in property tests, three processes on one file with one killed during 1 000 proposals, backup and restore rehearsed; a load run of 50 000 proposals every night | a long-running install on a real machine |
+| Bridge, `distributed` profile (4.1.10, `experimental`) | Postgres 16 in CI (`bridge-postgres`): the same contract, tenants and fan-out between instances; the nightly load run | a real deployment: until one, `experimental` |
 ## Deprecation
 
 A name or an option to be removed is first **deprecated** in a minor: marked `@deprecated` in its type (editors show

@@ -12,7 +12,7 @@ keeps the JSON report (`bridge-load-sqlite`, `bridge-load-postgres` artifacts).
 
 | Store | Machine | Proposals | Time | Throughput | Accepted latency p50 / p95 / p99 / max | Refused or failed | Journal | Streams |
 |---|---|---|---|---|---|---|---|---|
-| SQLite (one file, WAL, `synchronous = FULL`) | Apple M5, 10 cores, 32 GB, macOS 26 (Darwin 25.5.0, arm64), Node 22.14.0 | 50 000 | 49.6 s | 1 008 / s | 40.1 / 193.6 / 260.2 / 1 872.8 ms | none (50 000 × 202) | 50 000 rows, 0 gaps | 50 / 50 complete |
+| SQLite (one file, WAL, `synchronous = FULL`) | Apple M5, 10 cores, 32 GB, macOS (Darwin 25.5.0, arm64), Node 22.14.0 | 50 000 | 49.6 s | 1 008 / s | 40.1 / 193.6 / 260.2 / 1 872.8 ms | none (50 000 × 202) | 50 000 rows, 0 gaps | 50 / 50 complete |
 
 Source: one local run on 7 October 2026 (`npx tsx tools/bridge-load.ts --out=…`, the report above copied from its
 JSON), the maintainer's machine, nothing else heavy running. One run, not a distribution: the figures say the order of

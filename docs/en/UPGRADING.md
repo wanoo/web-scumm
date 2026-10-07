@@ -288,3 +288,24 @@ requires Python, its modules and ffmpeg; `npm run quality:baseline` writes the R
 so a new test is followed by that command. A signal delivered and not acknowledged is delivered again from the
 durable cursor: a custom transport implementing `WorldSignalPort` keeps the acknowledged sequence, not the received
 one (`docs/en/REALITY.md`).
+
+## 22. From 4.1.9 to 4.1.10 "Constellation"
+
+A 4.1.9 save, game and Bridge configuration keep working. **The player** accepts `WorldSignalV1` and the new
+`WorldSignalV2` (ADR 0010: the signal names its tenant, environment, origin, link and key; `verifySignal` refuses a
+V2 signed for another context with `audience-mismatch`, and a `keyId` other than the header's with `key`). A custom
+verifier or transport that reads the payload sees `schema: 2` from a multi-tenant Bridge or from the Studio's
+simulator, which signs V2 by default (`signalVersion: 1` keeps V1). `verifySignal`'s expectation takes `versions`,
+`tenantId`, `environment`, `audience` and `sessionId`; `RealityClient` takes them as `context` and checks the page's
+origin by default. **Announced break (4.1.12):** a single-tenant Bridge signs V1 by default during 4.1.10 and
+4.1.11 (`init --signal-version=2` opts in); from 4.1.12 every Bridge signs V2 and the player accepts V2 only. A game
+on 4.1.10 or later handles both, so upgrade the game before the Bridge.
+
+**The Bridge** reads and writes through `RealityStore` (ADR 0009): code that called `Bridge` methods directly awaits
+them now (`startPairing`, `claimPairing`, `revoke`, `forgetPlayer`, `exportPlayer`, `ack`, `unlink`, `subscribe`,
+`streamAlive`, `playerOf`); the HTTP routes `/v1/*` are unchanged. `Bridge.start` accepts a 4.1.9 `BridgeStore` (as
+the tenant `default`) or a `RealityStore`. The capability is drawn when the player claims its code (the claim also
+returns the link's `sessionId`). A 4.1.9 `config.json` serves from its journal as before; `npm run bridge -- migrate
+--from=jsonl --to=sqlite` (the Bridge stopped) moves it into SQLite, which needs Node 22.13 (`node:sqlite`).
+`--trust-proxy` alone now trusts the loopback only; name other proxies with `--trust-proxy=<addresses or networks>`.
+Several tenants and several instances: `docs/en/REALITY-OPS.md`.

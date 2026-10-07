@@ -58,7 +58,9 @@ aucun runner Windows ni Node 24 (`CONTRIBUTING.md`, « What CI runs ») :
 | Node | 22.12 ou plus : 22 et 24 sur Ubuntu ; macOS pour l'usage quotidien du mainteneur | — |
 | Windows | un job `windows-latest` (4.1.8 ; sur une pull request, quand du code a changé) : `doctor`, les types, la suite unitaire moins six fichiers qui supposent POSIX (modes de fichier, `/` dans les chemins ; nommés dans `ci.yml`), `build`, le serveur de production qui répond | `npm run dev` et le Studio sous Windows ; les six fichiers de tests, portés |
 | Python | optionnel : les outils d'image et le pipeline audio, Pillow, NumPy, SciPy épinglés dans `requirements.txt` | — |
-| Reality Bridge | Node 22.12+, e2e Chromium et WebKit, une contre-vérification Rust du protocole | un Bridge derrière HTTPS avec un vrai connecteur |
+| Reality Bridge | Node 22.12+, e2e Chromium et WebKit, une contre-vérification Rust du protocole (`SignalV2` compris) | un Bridge derrière HTTPS avec un vrai connecteur |
+| Bridge, profil `local` (4.1.10) | SQLite via `node:sqlite` (Node 22.13+) : le contrat du store, les tenants croisés en tests de propriété, trois processus sur un fichier dont un tué pendant 1 000 propositions, sauvegarde et restauration répétées ; une charge de 50 000 propositions chaque nuit | une installation de longue durée sur une vraie machine |
+| Bridge, profil `distributed` (4.1.10, `experimental`) | Postgres 16 en CI (`bridge-postgres`) : le même contrat, les tenants et la diffusion entre instances ; la charge de nuit | un vrai déploiement : jusque-là, `experimental` |
 ## Dépréciation
 
 Un nom ou une option à retirer est d'abord **déprécié** dans une mineure : marqué `@deprecated` dans son type (les

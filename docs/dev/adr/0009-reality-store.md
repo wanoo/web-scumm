@@ -20,7 +20,7 @@ the callback rolls the transaction back. Unique constraints on `(tenant_id, play
 - `SqliteRealityStore` (`bridge/src/store-sqlite.ts`): `node:sqlite` (Node 22.13+, no native dependency), WAL, `BEGIN
   IMMEDIATE` for `appendSignal`; several processes on one file are safe (the `kill -9` test runs three).
 - `PostgresRealityStore` (`bridge/src/store-postgres.ts`): `pg`, loaded only when used; `pg_advisory_xact_lock` per
-  player for `appendSignal`; `LISTEN/NOTIFY` to wake the other instances' streams.
+  player for `appendSignal`; `LISTEN` and `NOTIFY` to wake the other instances' streams.
 
 The schema is versioned in `bridge/migrations/` (`0001.up.sql`, `0001.down.sql`), one dialect-neutral file per step,
 applied in order by `bridge/src/migrations.ts` and recorded in `schema_migrations`. The JSON-lines journal stays an

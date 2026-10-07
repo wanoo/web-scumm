@@ -1,9 +1,19 @@
 // web-scumm/reality (4.1.1): signals from the world outside, for a game, a test or a custom transport. The signed
 // signal and its verification, the player's client and its HTTP transport, the Studio's simulator, a game's manifest.
 // Public (docs/en/SUPPORT.md); the reference Bridge itself is the separate package web-scumm-bridge.
-export { verifySignal, signSignal, importBridgeKey, MAX_SIGNAL_CHARS, WorldSignalV1Schema } from '../reality/protocol';
+export {
+  verifySignal,
+  signSignal,
+  importBridgeKey,
+  MAX_SIGNAL_CHARS,
+  WorldSignalV1Schema,
+  WorldSignalV2Schema,
+} from '../reality/protocol';
 export type {
   WorldSignalV1,
+  WorldSignalV2,
+  WorldSignal,
+  SignalEnvironment,
   SignedWorldSignalV1,
   BridgeKey,
   Keyring,

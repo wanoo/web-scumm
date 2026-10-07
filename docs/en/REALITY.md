@@ -82,6 +82,11 @@ minutes of tolerance for the device's clock (`CLOCK_SKEW_MS` in `src/engine/real
 Rust cross-check). When a signal names a key the keyring does not hold (the Bridge rotated while the link was open),
 the client asks for the keys once before refusing it.
 
+Since 4.1.10 a signal may be a `WorldSignalV2` (ADR 0010): it names the tenant, the environment, the origin the
+player paired from, the link and the key it was signed for, and the player refuses one signed for another context
+(`audience-mismatch`), the page's origin checked by default. A Bridge with several tenants signs V2 only; a single
+Bridge signs V1 until 4.1.12, when V2 becomes the only version (`docs/en/UPGRADING.md` §22).
+
 ## What the session and the save hold
 
 A signal is an entry of the session (`{ external: { id, sequence, signal, source, receivedAt, playerId } }`):
