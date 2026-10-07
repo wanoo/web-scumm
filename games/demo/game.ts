@@ -192,6 +192,6 @@ export const game = defineGame({
     verbs: 'Verbs', jump: '▲', duck: '▼', exportSession: 'Export session',
     settings: 'Settings', textSpeed: 'Text speed', textSize: 'Text size', reduceMotion: 'Reduce motion', readableFont: 'Readable font', captions: 'Sound captions',
     volumeMusic: 'Music volume', volumeSfx: 'Sound volume', volumeVoice: 'Voice volume', slow: 'slow', normal: 'normal', fast: 'fast', large: 'large',
-    language: 'Language',
+    language: 'Language', fingerprint: 'Build', objectives: 'Objectives',
   },
 });

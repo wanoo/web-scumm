@@ -109,6 +109,18 @@ export function pauseMenu(app: App) {
   const link = app.reality;
   if (link) row(link.statusText(), '⇄').onclick = () => link.menu(m, () => close());
   if (app.game.settings) row(app.t('settings'), '⚙').onclick = () => app.settingsMenu(d, m);
+  // The game's fingerprint (4.1.12, ADR 0013): logic, trusted extensions, presentation, engine, eight digits each.
+  const fp = row(app.t('fingerprint'), '…', 'fingerprint');
+  fp.setAttribute('aria-live', 'polite');
+  void Promise.all([app.fingerprint(), import('../core/fingerprint')]).then(
+    ([f, { shortFingerprint }]) => {
+      fp.lastElementChild!.textContent = shortFingerprint(f);
+      fp.title = `logic ${f.logic}\ntrusted extensions ${f.trustedExtensions || '(unknown)'}\npresentation ${f.presentation}\nengine ${f.engine}`;
+    },
+    () => {
+      fp.lastElementChild!.textContent = '?';
+    },
+  );
   row(ui.credits, '★').onclick = () => {
     close();
     app.credits();

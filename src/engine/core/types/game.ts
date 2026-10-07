@@ -460,6 +460,10 @@ export interface UiTexts {
   volumeVoice?: string;
   /** Language row of the settings menu (when the game ships translations). */
   language?: string;
+  /** The pause menu's fingerprint row (4.1.12, ADR 0013): the build a player runs, in four short hashes. English default "Build". */
+  fingerprint?: string;
+  /** The pause menu's quest journal (4.1.12, `GameDef.objectives`). English default "Objectives". */
+  objectives?: string;
   /** Values of text speed / size: slow, normal, fast, large. */
   slow?: string;
   normal?: string;
