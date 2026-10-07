@@ -28,6 +28,15 @@
 
 ### Changes
 
+- **The Studio's three biggest files split into model, IO and views** (4.1.8, programme §4.7). `src/studio/storyboard.ts`
+  (1377 lines), `assets.ts` (1364) and `rooms.ts` (1358) were the three exceptions to the 800-line rule the Studio
+  had kept; each is now a tab of 285 to 609 lines over pure modules (`*-model.ts`, `rooms-text.ts`), the IO
+  (`assets-io.ts`, the editor iframe's `rooms-bridge.ts`) and views that receive a small host interface
+  (`storyboard-view.ts`, `storyboard-preview.ts`, `assets-sheets.ts`, `assets-decors.ts`, `assets-sounds.ts`,
+  `assets-view.ts`, `rooms-lines.ts`, `rooms-sheet.ts`), the largest 663 lines. Same DOM, same texts, same API
+  calls and message payloads; twelve happy-dom test files (105 tests) now cover what the tabs render and send,
+  which nothing tested before. `tests/file-size.test.ts` keeps three exceptions (the validator, the layout editor,
+  the Studio assistant), not six.
 - **The PWA proven in three browsers, update included** (4.1.8, programme §4.5). `npm run e2e:pwa -- --serve=dist
   --update --interrupted --reinstall` serves the build itself, publishes a second one and checks: the banner after a
   durable save and the new worker in charge with the save kept; an update whose worker fetch fails (no banner, the

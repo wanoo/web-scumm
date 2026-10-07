@@ -189,7 +189,10 @@ qu'on est en train de taper et suit le changement via `events`).
 ## Onglet Assets
 L'onglet liste tout ce qui se trouve sous `games/<id>/art/` et `audio/` face à ce que le jeu référence (`tools/refs.ts`),
 avec les prompts de `npm run prompts` (`tools/prompts.ts`, docs/fr/PROMPTS.md). Côté serveur : `tools/studio/assets.ts`,
-monté sur `/__studio/api/assets` par le plugin ; interface : `src/studio/assets.ts`.
+monté sur `/__studio/api/assets` par le plugin ; interface : `src/studio/assets.ts` (l'onglet) avec son modèle, ses
+entrées-sorties et ses vues à côté (`assets-model.ts`, `assets-io.ts`, `assets-view.ts`, `assets-sheets.ts`,
+`assets-decors.ts`, `assets-sounds.ts` ; les onglets Storyboard et Rooms sont découpés de même depuis 4.1.8, chaque
+fichier sous 800 lignes).
 
 - **Arbre** (à gauche) : Characters (une entrée par planche de sprites, nommée d'après le personnage dont elle porte
   les poses), Objects, Backgrounds, Furniture, Talk kits, Sounds (musiques, bruitages). Pastilles : rouge = cases que
