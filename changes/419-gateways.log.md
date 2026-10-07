@@ -17,7 +17,8 @@
   Telnet and SSH share the source `terminal` in the sample game, which is what makes "one key from two connectors"
   meaningful. The `connectors` mutation set is outside `all`, so the gated sets and their cache key do not move.
 - Measured (this machine, Node 22.14, 7 October 2026). `npx vitest run tests/connectors-*.test.ts
-  tests/dist-no-server-code.test.ts --maxWorkers=1`: 8 files, 96 tests, 0 failed, under 6 s. Tests overall 1 002
+  tests/dist-no-server-code.test.ts --maxWorkers=1`: 8 files, 96 tests passed and 1 skipped (the check of `dist/`, no build present; it
+  passed on the signals game's build), under 6 s. Tests overall 1 002
   declarations in 134 files (945 in 126 at 4.1.8; README figures and `tests/quality-baseline.json` written by hand
   with the baseline's own count, not by `npm run quality:baseline`, which was not run). Proposal connector → Bridge
   accepted, 1 000 local proposals (memory store, one player): p50 0.42 ms, p95 0.86 ms (to the Bridge's acceptance,

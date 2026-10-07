@@ -6,7 +6,6 @@
     "src/engine/tools/solve-worker.ts",
     "bridge/bin.mjs",
     "bridge/src/cli.ts",
-    "connectors/bin.mjs",
     "connectors/src/sdk.ts",
     "connectors/src/run.ts",
     "connectors/src/email/mime-worker.ts",

@@ -17,7 +17,7 @@ mailbox replaying old messages; a player trying another player's signal.
 | A MIME bomb (nested multiparts, a huge part, a base64 that inflates) | The raw message is refused above `maxBytes` (256 KB by default) before parsing; the parser runs in a worker thread with a 64 MB heap and a 2 s budget, then is replaced; at most 3 levels of multipart, 64 parts, 256 KB of decoded text | `tests/connectors-email.test.ts` (fixtures `hostile-*.eml`), the fuzz harness |
 | Recursive attachments (`message/rfc822` inside `message/rfc822`) | Attachments are refused by default: a message with one is rejected, never opened; an embedded message is an attachment | `hostile-nested-rfc822.eml` |
 | HTML (scripts, tracking pixels, hidden text) | HTML is reduced to inert text (tags dropped, entities decoded, no URL fetched); the text is used for matching words only and never leaves the connector | `html-only.eml`, `hostile-script.eml` |
-| Spoofed headers (`From` claiming another player) | The player is never derived from `From`: the recipient tag (`+p-…`) or a pairing code links it; `From` is not used at all, only hashed in the payload | `spoofed-from.eml` |
+| Spoofed headers (`From` claiming another player) | A player is bound by the recipient tag (`+p-…`) or by a pairing code; `From` counts only once a pairing code came from that very address (kept as a salted hash, in memory, `linkDays`). A spoofed `From` can then send a signal *to* that player, never take one from them or reach another; a stranger's `From` routes nothing | `spoofed-from.eml`, `tests/connectors-email.test.ts` |
 | A replayed message (same `Message-ID`, a webhook posted twice, a mailbox reread) | `dedupeKey = sha256('email:' + Message-ID)`: the Bridge answers `duplicate`; a webhook more than 5 minutes old (timestamp) is refused | contract tests, `tests/connectors-email.test.ts` |
 | A forged webhook | HMAC-SHA256 of `<timestamp>.<raw body>`, compared in constant time; the secret is read from a file | `tests/connectors-email.test.ts` |
 | A message without `Message-ID` | Refused (no idempotence possible) | `no-message-id.eml` |
@@ -27,6 +27,7 @@ mailbox replaying old messages; a player trying another player's signal.
 | Retention | `keep: 0` (default): a message is deleted from the mailbox once its proposal is accepted or found duplicate; `keep: N`: deleted after N days; a refused message is flagged and kept for the operator | `tests/connectors-email.test.ts` |
 
 **Residual risks.** A provider whose own signature scheme differs needs a small adapter in front (not shipped). DKIM
-and SPF are not checked by the connector: an address tag can be guessed only by someone who knows the playerId, which
-is pseudonymous and never shown to other players; a game that needs stronger proof uses a pairing code per message.
+and SPF are not checked by the connector (not done in 4.1.9): a linked sender's address can be spoofed by someone who
+knows it, and an address tag by someone who knows the pseudonymous playerId; either only sends that player a signal
+the game declared. A game that needs stronger proof keeps such signals optional or uses a pairing code per message.
 Charsets beyond what Node's `TextDecoder` knows are read as Latin-1.

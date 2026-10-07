@@ -17,7 +17,7 @@ hostile terminals, huge lines.
 | Shell syntax (`$(…)`, backticks, `;`, `&&`, NUL bytes) | Not a shell: a line is words looked up in a table; NUL and control bytes are dropped | hostile commands test |
 | A 1 MB line | 512 bytes per line; beyond, discarded | test |
 | Brute force | 3 authentication attempts per connection; a password is accepted only as an 8-character pairing code or a resume word | test |
-| Terminal resizing abuse | `pty-req` and `window-change` are clamped (10–500 columns, 5–200 rows) and only used to wrap output | test |
+| Terminal resizing abuse | `pty-req` and `window-change`: the width is clamped (10 to 500 columns) and only used to wrap output; nothing else of them is read | `tests/connectors-ssh.test.ts` |
 | Escape sequences in output | The output is the game's own text and the disk's; nothing typed is printed back but the line being edited (printable characters only) | — |
 | Long sessions, many sessions | 30 minutes per session, 60 s idle before the first line, 20 connections | test (shortened limits) |
 | Leaking the host key or codes | The host key is read from a file (mode 600 recommended), never logged; the log names events and counts only | log test |
