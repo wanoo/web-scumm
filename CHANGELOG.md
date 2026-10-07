@@ -78,8 +78,6 @@
   attestations verified. A pre-release tag (`v4.1.8-rc.1`) is published as a GitHub pre-release and its notes say
   which version it candidates for.
 
-### Changes
-
 - **The mutation gate, honest and cheap to carry** (4.1.8). `tools/mutate.ts` writes a report keyed by the hash of
   its inputs (the set's sources and tests, the two configurations, the tool, the named survivors, the lockfile;
   `--hash` prints it) and reuses a report of the same inputs instead of running again (`--fresh` runs anyway): a
