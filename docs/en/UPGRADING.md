@@ -288,3 +288,12 @@ requires Python, its modules and ffmpeg; `npm run quality:baseline` writes the R
 so a new test is followed by that command. A signal delivered and not acknowledged is delivered again from the
 durable cursor: a custom transport implementing `WorldSignalPort` keeps the acknowledged sequence, not the received
 one (`docs/en/REALITY.md`).
+
+## 21. From 4.1.8 to 4.1.9 "Gateways"
+
+A 4.1.8 save loads unchanged; no public name of the five entries moved (`tests/api-surface.json` identical). A game
+may declare `reality.connectors` (the words its connectors may propose: optional, validated). The connectors are a
+fourth package, `web-scumm-connectors`, installed beside the Bridge on a server, never in the player: `npm run build`
+now refuses a game's JavaScript that carries server code (`verify:dist`). `ssh2`'s install script attempts a native
+build and fails for lack of headers: no `.node` file results, and `--ignore-scripts` is the documented install
+(`docs/en/CONNECTORS.md`). A contributor writes `changes/<slug>.md` instead of editing the CHANGELOG (`changes/README.md`).
