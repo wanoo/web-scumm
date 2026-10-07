@@ -66,7 +66,7 @@ jobs:
         timeout-minutes: 8
       # A pull request that changes the code carries its CHANGELOG and LOG fragment (changes/README.md, 4.1.9); the
       # step waits for the tool to be on the branch.
-      - if: github.event_name == 'pull_request' && hashFiles('tools/changes.ts') != ''
+      - if: github.event_name == 'pull_request'
         run: npm run changes -- --check --base=origin/main
       # Formatting, code lint, knip, both TypeScript configurations, content lint (4.1.0 "Clarity").
       - run: npm run quality
@@ -116,6 +116,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0 # the fragments' check diffs against main's merge base (tools/changes.ts, 4.1.9)
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
