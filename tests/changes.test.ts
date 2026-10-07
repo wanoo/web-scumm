@@ -1,11 +1,15 @@
 // The CHANGELOG and LOG fragments (4.1.9, lot 0, tools/changes.ts): a branch writes changes/<slug>.md and the
-// assembly on main folds them in order, under the right section, numbering the LOG entries after the last one.
+// assembly on main folds them in order, under the right section, numbering the LOG entries after the last one. Only
+// the Unreleased block is rebuilt: the rest of the page is byte for byte the same.
 import { describe, expect, it } from 'vitest';
 import { appendLog, lastLogNumber, logEntryOf, mergeChangelog, needsFragment, sectionsOf } from '../tools/changes';
 
+const tail = '## 4.1.8 — 2026-10-07\n\n- older\n\n\n- a double blank line an old release keeps\n\n```\ncode\n```\n';
 const changelog = `# Changelog
 
 ## Unreleased
+
+An intro paragraph the release keeps.
 
 ### Fixed
 
@@ -15,31 +19,50 @@ const changelog = `# Changelog
 
 - **An old change** (4.1.9).
 
-## 4.1.8 — 2026-10-07
-
-- older
-`;
+${tail}`;
 
 describe('fragments of the CHANGELOG', () => {
-  it('reads the sections of a fragment, in any order, ignoring blank lines', () => {
-    expect(sectionsOf('### Changes\n\n- a\n- b\n\n### Fixed\n- c\n')).toEqual({
-      Changes: '- a\n- b\n',
-      Fixed: '- c\n',
+  it('reads the sections of a fragment, in any order, blank lines inside kept, the ends trimmed', () => {
+    expect(sectionsOf('### Changes\n\n- a\n  continued\n\n  a second paragraph\n- b\n\n### Fixed\n- c\n')).toEqual({
+      Changes: '- a\n  continued\n\n  a second paragraph\n- b',
+      Fixed: '- c',
     });
-    expect(sectionsOf('- no heading\n')).toEqual({});
   });
-  it('adds the bullets under their section of Unreleased, in the order given, and leaves the older releases alone', () => {
+  it('refuses a heading the CHANGELOG does not use, and text before the first heading', () => {
+    expect(() => sectionsOf('### Added\n- x\n')).toThrow(/### Breaking \| ### Fixed \| ### Changes/);
+    expect(() => sectionsOf('- no heading\n')).toThrow(/starts with its heading/);
+    expect(() =>
+      mergeChangelog('# C\n\n## Unreleased\n\n### Security\n\n- s\n', [{ changelog: '### Fixed\n- x\n' }]),
+    ).toThrow(/### Security/);
+  });
+  it('adds the bullets under their section of Unreleased, in the order given, keeps the intro, and leaves the rest byte for byte', () => {
     const out = mergeChangelog(changelog, [
-      { changelog: '### Changes\n- **first** (4.1.9).\n' },
+      { changelog: '### Changes\n- **first** (4.1.9).\n  continued\n' },
       { changelog: '### Fixed\n- **second fix** (4.1.9).\n### Changes\n- **second** (4.1.9).\n' },
     ]);
-    const unreleased = out.slice(out.indexOf('## Unreleased'), out.indexOf('## 4.1.8'));
-    expect(unreleased.indexOf('An old fix')).toBeLessThan(unreleased.indexOf('second fix'));
-    expect(unreleased.indexOf('### Fixed')).toBeLessThan(unreleased.indexOf('### Changes'));
-    expect(unreleased.indexOf('An old change')).toBeLessThan(unreleased.indexOf('**first**'));
-    expect(unreleased.indexOf('**first**')).toBeLessThan(unreleased.indexOf('**second**'));
-    expect(out.endsWith('## 4.1.8 — 2026-10-07\n\n- older\n')).toBe(true);
-    expect(out).not.toMatch(/\n{3,}/);
+    expect(out).toBe(`# Changelog
+
+## Unreleased
+
+An intro paragraph the release keeps.
+
+### Fixed
+
+- **An old fix** (4.1.9).
+
+- **second fix** (4.1.9).
+
+### Changes
+
+- **An old change** (4.1.9).
+
+- **first** (4.1.9).
+  continued
+
+- **second** (4.1.9).
+
+${tail}`);
+    expect(out.slice(out.indexOf('## 4.1.8'))).toBe(tail);
   });
   it('creates a missing section where it belongs: Breaking before Fixed before Changes', () => {
     const out = mergeChangelog('# C\n\n## Unreleased\n\n## 4.1.8 — d\n', [
@@ -47,6 +70,12 @@ describe('fragments of the CHANGELOG', () => {
       { changelog: '### Breaking\n- b\n' },
     ]);
     expect(out).toBe('# C\n\n## Unreleased\n\n### Breaking\n\n- b\n\n### Changes\n\n- c\n\n## 4.1.8 — d\n');
+  });
+  it('applied twice, adds the bullets twice: the assembly deletes the fragments it folded', () => {
+    const once = mergeChangelog('# C\n\n## Unreleased\n', [{ changelog: '### Fixed\n- x\n' }]);
+    expect(mergeChangelog(once, [{ changelog: '### Fixed\n- x\n' }])).toBe(
+      '# C\n\n## Unreleased\n\n### Fixed\n\n- x\n\n- x\n',
+    );
   });
   it('refuses a CHANGELOG without an Unreleased section', () => {
     expect(() => mergeChangelog('# C\n\n## 4.1.8\n', [{ changelog: '### Fixed\n- x\n' }])).toThrow(/Unreleased/);
@@ -80,11 +109,13 @@ describe('fragments of the LOG', () => {
 });
 
 describe('the check of a pull request', () => {
-  it('asks a fragment of a branch that changes the code without one, not of a docs branch nor of a release that edits the CHANGELOG', () => {
+  it('asks a fragment of a branch that changes the code without one; a .log.md alone, the README or a docs change are none', () => {
     expect(needsFragment(['src/engine/core/engine.ts', 'tests/x.test.ts'])).toBe(true);
     expect(needsFragment(['src/engine/core/engine.ts', 'changes/fix-x.md'])).toBe(false);
-    expect(needsFragment(['src/engine/core/engine.ts', 'CHANGELOG.md'])).toBe(false);
-    expect(needsFragment(['docs/en/README.md', 'docs/dev/LOG.md'])).toBe(false);
+    expect(needsFragment(['src/engine/core/engine.ts', 'changes/fix-x.log.md'])).toBe(true);
+    expect(needsFragment(['src/engine/core/engine.ts', 'CHANGELOG.md'])).toBe(false); // a release branch
+    expect(needsFragment(['docs/en/README.md', 'docs/dev/LOG.md', 'tests/x.test.ts'])).toBe(false);
+    expect(needsFragment(['games/demo/game.ts'])).toBe(true); // the bundled games ship
     expect(needsFragment(['src/x.ts', 'changes/README.md'])).toBe(true);
   });
 });
