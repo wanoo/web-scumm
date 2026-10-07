@@ -166,14 +166,14 @@ journal du travail.
 
 Release actuelle : [v4.1.10 « Constellation »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.10), la troisième
 du programme 4.1.8 → 4.1.15 : un Bridge durable derrière une interface de store unique (SQLite en local, Postgres pour
-plusieurs instances), des instances sans état propre qui partagent un journal, des tenants isolés par clé et par ligne,
-un signal qui nomme son contexte (`SignalV2`), des routes de santé, sauvegarde et restauration. Sur les connecteurs de
-la 4.1.9 (email, Telnet, SSH, Open Badges sur un SDK commun, expérimentaux jusqu'à un passage réel) et la fondation de
-la 4.1.8 (TypeScript 7, Vite 8, la PWA prouvée dans trois navigateurs). De la 4.1.1 à la 4.1.7 chaque release n'a ajouté que de l'optionnel, et un jeu écrit pour l'une
-tournait sur la suivante ; depuis la 4.1.8 la lignée 4.1.x est une lignée d'incubation, où une release peut rompre un
-nom public ou un format, documenté et avec une migration, jusqu'à la 4.2.0 qui rétablit le SemVer strict
-([SUPPORT](docs/fr/SUPPORT.md)). L'histoire de la v1.3 à aujourd'hui est dans la [ROADMAP](docs/fr/ROADMAP.md),
-chaque changement dans le [CHANGELOG](CHANGELOG.md).
+plusieurs instances), des instances sans état propre qui partagent un journal, des tenants isolés par clé et par
+ligne, un signal qui nomme son contexte (`SignalV2`), des routes de santé, sauvegarde et restauration. Sur les
+connecteurs de la 4.1.9 (email, Telnet, SSH, Open Badges sur un SDK commun, expérimentaux jusqu'à un passage réel) et
+la fondation de la 4.1.8 (TypeScript 7, Vite 8, la PWA prouvée dans trois navigateurs). De la 4.1.1 à la 4.1.7 chaque
+release n'a ajouté que de l'optionnel, et un jeu écrit pour l'une tournait sur la suivante ; depuis la 4.1.8 la lignée
+4.1.x est une lignée d'incubation, où une release peut rompre un nom public ou un format, documenté et avec une
+migration, jusqu'à la 4.2.0 qui rétablit le SemVer strict ([SUPPORT](docs/fr/SUPPORT.md)). L'histoire de la v1.3 à
+aujourd'hui est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt
 

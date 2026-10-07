@@ -601,7 +601,7 @@ assistant.
 
 ## v4.1.10 « Constellation » (livrée le 7 octobre 2026) : un Bridge durable, plusieurs instances, plusieurs tenants
 
-La troisième release du programme, la première avec une release candidate (`v4.1.10-rc.1`, puis `v4.1.10` sur le
+La troisième release du programme, la première depuis la 4.1.8 avec une release candidate (`v4.1.10-rc.1`, puis `v4.1.10` sur le
 même commit). Le Bridge lit et écrit à travers `RealityStore` (ADR 0009), chaque méthode prenant le tenant en premier,
 une seule transaction décidant la déduplication, la séquence, les quotas et la signature : SQLite par `node:sqlite`
 pour une machine, Postgres par `pg` pour plusieurs instances (expérimental jusqu'à un déploiement réel), le journal

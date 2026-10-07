@@ -2872,10 +2872,10 @@ Platform"; human gates reported, not blocking (D12).
 
 ## #123 · 2026-10-07 · Claude · release · 4.1.10 "Constellation"
 
-- The programme's third release, the first with a release candidate (`v4.1.10-rc.1` on the merge commit, then
+- The programme's third release, the first since 4.1.8 with a release candidate (`v4.1.10-rc.1` on the merge commit, then
   `v4.1.10` on the same commit once the candidate's assets were installed and verified). Merged: #45 Constellation
   (#122 above: the store interface, SQLite and Postgres, tenants, stateless instances, `SignalV2`, the second
-  reading's eight items applied before the merge; a last Windows-only fix, the SQLite 0600 check held on POSIX only).
+  reading's findings applied before the merge; a last Windows-only fix, the SQLite 0600 check held on POSIX only).
   `release/4.1.10`: the fragment assembled, the version, the golden save `demo-4.1.10.json` (24), the READMEs,
   ROADMAP en/fr, UPGRADING §22 (written with the lot), the pass sheet (seven rows, three new human passes for the
   Bridge), the baseline sheet.

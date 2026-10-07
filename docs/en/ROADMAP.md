@@ -613,7 +613,7 @@ written by the baseline; a links script. Left for later, said as such: the human
 
 ## v4.1.10 "Constellation" (shipped 7 October 2026): a durable Bridge, several instances, several tenants
 
-The programme's third release, the first with a release candidate (`v4.1.10-rc.1`, then `v4.1.10` on the same
+The programme's third release, the first since 4.1.8 with a release candidate (`v4.1.10-rc.1`, then `v4.1.10` on the same
 commit). The Bridge reads and writes through `RealityStore` (ADR 0009), every method taking the tenant first, one
 transaction deciding deduplication, sequence, quotas and signature: SQLite through `node:sqlite` for one machine,
 Postgres through `pg` for several instances (experimental until a real deployment), the 4.1.9 journal still served and

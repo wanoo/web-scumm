@@ -163,6 +163,10 @@ the 4.1.8 → 4.1.15 programme: a durable Bridge behind one store interface (SQL
 instances), stateless instances sharing one journal, tenants isolated by key and by row, a signal that names its
 context (`SignalV2`), health routes, backup and restore. On 4.1.9's connectors (email, Telnet, SSH, Open Badges on one
 SDK, experimental until a real pass) and 4.1.8's foundation (TypeScript 7, Vite 8, the PWA proven in three browsers).
+From 4.1.1 to 4.1.7 every release added only what was optional, and a game written against one ran on the next;
+from 4.1.8 the 4.1.x line is an incubation line, where a release may break a public name or a format, documented
+and with a migration, until 4.2.0 restores strict SemVer ([SUPPORT](docs/en/SUPPORT.md)). The story
+from v1.3 to here is in the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map
 
