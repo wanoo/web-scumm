@@ -5,7 +5,13 @@ export { FakePresenter, MemoryStore } from '../core/ports';
 export { parseSave, saveEnvelope, SaveWorldMismatch, savedWorld, upgradeEnvelope } from '../core/save';
 export type { SaveEnvelopeV3, SaveEnvelopeV4 } from '../core/save';
 // 4.1.15 (ADR 0018, D26): what a verifier checks of a run's world, and the leaderboard it goes to.
-export { leaderboardKey, REMIX_CATEGORIES, seedCommitment, worldVerdict } from '../core/remix/categories';
+export {
+  leaderboardKey,
+  MYSTERY_START_WINDOW_MS,
+  REMIX_CATEGORIES,
+  seedCommitment,
+  worldVerdict,
+} from '../core/remix/categories';
 export type { RemixCategoryRules, SpeedrunSeedPolicy, WorldEvidence } from '../core/remix/categories';
 export { logicalKey } from '../core/remix/compile';
 export { solve } from '../tools/solve';

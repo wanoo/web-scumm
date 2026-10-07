@@ -44,7 +44,18 @@ export interface WorldEvidence {
   /** Mystery: the commitment published before the start, and the reveal (seed and nonce) after. */
   commitment?: string;
   reveal?: { seed: string; nonce: string };
+  /** Mystery: when the Bridge first revealed the seed (epoch ms, its signed record) and when the run started. */
+  revealedAt?: number;
+  runStartedAt?: number;
 }
+
+/**
+ * How long a Mystery run may start after its seed was first revealed (D26, after the second reading): the client must
+ * build the world to play it, so the reveal comes first; a run that starts later had time to look at the world and
+ * pick another commitment. Commits are rate-limited per client on the Bridge (`bridge/src/daily.ts`).
+ * @public
+ */
+export const MYSTERY_START_WINDOW_MS = 60_000;
 
 /**
  * Whether a run's world is the one its category allows: empty when it is, else the reasons (a verifier refuses the
@@ -67,6 +78,12 @@ export function worldVerdict(rules: RemixCategoryRules, v: WorldVariant, e: Worl
     else if (seedCommitment(e.reveal.seed, e.reveal.nonce) !== e.commitment)
       out.push('the revealed seed does not match the commitment');
     else if (normalizeSeed(e.reveal.seed) !== v.seed) out.push('the run was not played on the revealed seed');
+    if (e.revealedAt === undefined || e.runStartedAt === undefined)
+      out.push('a Mystery run needs the time of the reveal and of its start');
+    else if (e.runStartedAt < e.revealedAt || e.runStartedAt - e.revealedAt > MYSTERY_START_WINDOW_MS)
+      out.push(
+        `a Mystery run starts within ${MYSTERY_START_WINDOW_MS / 1000} s of its reveal, not after looking at the world`,
+      );
   }
   return out;
 }

@@ -87,7 +87,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `solve` · `SolveOptions` · `SolveResult` | le solveur : un chemin vers la fin, les blocages avec `prove` |
 | `parseSave` · `saveEnvelope` · `SaveEnvelopeV3` | l'enveloppe d'une sauvegarde : l'écrire, la relire (migrations appliquées) |
 | `SaveEnvelopeV4` · `upgradeEnvelope` · `SaveWorldMismatch` · `savedWorld` | (4.1.15) l'enveloppe de sauvegarde avec son monde, la migration v3 → v4 (le monde histoire), l'erreur qui nomme le monde d'une sauvegarde, le monde que nomme une sauvegarde brute |
-| `worldVerdict` · `leaderboardKey` · `REMIX_CATEGORIES` · `RemixCategoryRules` · `SpeedrunSeedPolicy` · `WorldEvidence` · `seedCommitment` · `logicalKey` | (4.1.15, D26) le monde d'une course vérifié contre sa catégorie (Story, Fixed, Random, Mystery, Daily), le classement où elle va, un engagement Mystery, la clé sous laquelle un certificat de preuve est rangé |
+| `worldVerdict` · `MYSTERY_START_WINDOW_MS` · `leaderboardKey` · `REMIX_CATEGORIES` · `RemixCategoryRules` · `SpeedrunSeedPolicy` · `WorldEvidence` · `seedCommitment` · `logicalKey` | (4.1.15, D26) le monde d'une course vérifié contre sa catégorie (Story, Fixed, Random, Mystery, Daily), le classement où elle va, un engagement Mystery, la clé sous laquelle un certificat de preuve est rangé |
 | `SemanticEvent` · `SemanticJournal` | (4.1.11) `Engine.journal` : ce qui s'est passé dans le jeu, en identifiants, numéroté (lieux, objets avec le joueur qui les perd ou les gagne, drapeaux, `null` pour un drapeau retiré, un changement de joueur, la fin, chargements et sauvegardes), émis par le cœur seul et identique au replay |
 | `RunClock` | (4.1.14, ADR 0016) `Engine.runClock` : le RTA (`monotonicNow`, jamais une autorité), `logicalSteps` et `logicalTime` (bigints, microticks) ; elle observe le cœur, n'écrit jamais l'état |
 | `verifyRun` · `VerifyContext` · `SpeedrunVerifyResult` · `SpeedrunVerdict` · `isRankable` | (4.1.14, ADR 0017) un `.wsrun` rejoué contre le jeu approuvé : un verdict, un code, une raison, la confiance accordée ; seul `valid` est classé, `inconclusive` jamais |
@@ -191,7 +191,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `Layout` | `interface { width, floor, walk, scale, entries, hotspots, … 8 more }` | public | A room's geometry, written by the placement editor: walk areas, entries, and where every hotspot, prop, actor, layer and light stands. |
 | `LightDef` | `interface { id, kind, color, intensity, blend, visible }` | public | A light of the staged room: a radial pool at its layout position, or an ambient colour over the whole room. |
 | `ListLine` | `type ListLine = string \| { id: Id; text: string; }` | public | One line of a list the engine draws from (a look list, a hint, the fallback answers): a plain string, keyed by its position in translations, |
-| `loadVariant` | `(c: CompiledManifest, stored: WorldVariant): { variant: WorldVariant; stale: boolean; }` | public | A stored variant (a save's, a session's, a speedrun's) checked and kept as it is: its hash must match its content; it is never regenerated,  |
+| `loadVariant` | `(c: CompiledManifest, input: unknown): { variant: WorldVariant; stale: boolean; }` | public | A stored variant (a save's, a session's, a speedrun's) checked and kept as it is: its hash must match its content; it is never regenerated,  |
 | `logicView` | `(ir: GameIR): Omit<GameIR, "engine" \| "provenance">` | public | The part of the IR the fingerprint's `logic` hashes: everything but the engine's version, the provenance (a line added above a rule moves no |
 | `MapDef` | `interface { regions, start, places, music, vehicles }` | public | The travel map: its regions, its places and the region shown first. |
 | `MapRegion` | `interface { name, image, parent, frame }` | public | A region of the travel map: its image, its parent region and its frame on it. |
@@ -237,7 +237,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `storyVariant` | `(manifest: VariationManifest \| undefined, world: RemixWorld): WorldVariant` | public | The story world of a game: every dimension at its story value (an empty manifest gives an empty assignment). |
 | `TalkTopic` | `interface { id, topic, if, do }` | public | A conversation topic offered when talking to an actor: its line, when it is offered, what it runs. |
 | `TransitionKind` | `type TransitionKind = 'cut' \| 'fade' \| 'wipe'` | public | How a room appears when entered: a cut, a fade or a wipe. |
-| `UiTexts` | `interface { walkTo, newGame, continue, confirmErase, yes, no, … 79 more }` | public | Every text the interface shows (menus, confirmations, settings), so a game speaks its own language. |
+| `UiTexts` | `interface { walkTo, newGame, continue, confirmErase, yes, no, … 82 more }` | public | Every text the interface shows (menus, confirmations, settings), so a game speaks its own language. |
 | `Value` | `type Value = boolean \| number \| string` | public | What a flag holds: a boolean, a number or a string. |
 | `variantFlag` | `(dimension: string, group?: string): string` | public | The reserved flag a logical dimension writes (`remix.<id>`; a puzzle order writes `remix.<id>.<group>`). |
 | `VariationConstraint` | `type VariationConstraint = union of 3` | public | A constraint between dimensions: `exclusive` (no two of them take the same value), `requires` (`a` and `b` are `<dimension>=<value>`: when ` |
@@ -303,6 +303,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `leaderboardKey` | `(categoryId: string, rules: RemixCategoryRules, v: WorldVariant): string` | public | The leaderboard a run goes to: its category, and for a Fixed or a Daily its seed (a Daily's seed names its day). Random and Mystery rank eve |
 | `logicalKey` | `(c: CompiledManifest, v: WorldVariant): string` | public | A key for proofs: two variants with the same logical world share a proof certificate. |
 | `MemoryStore` | `class MemoryStore` | public | A save store in memory, for the tests and the solver: nothing survives the process. |
+| `MYSTERY_START_WINDOW_MS` | `number` | public | How long a Mystery run may start after its seed was first revealed (D26, after the second reading): the client must build the world to play  |
 | `parseSave` | `(game: GameDef, input: unknown, opts?: ParseSaveOptions): GameState` | public | Parses an envelope (or a legacy raw state). Structural corruption and references needed to resume (the current room and active player) are r |
 | `presentationOf` | `(game: CompiledGame \| GameDef, manifest?: unknown): unknown` | public | What the fingerprint's `presentation` hashes: the asset manifest, and every field core/ir-fields.ts classes as presentation (whole) or both  |
 | `REMIX_CATEGORIES` | `Readonly<Record<string, RemixCategoryRules>>` | public | The five categories a Remix game offers by default. |
@@ -329,7 +330,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `upgradeEnvelope` | `(game: GameDef, env: SaveEnvelopeV3 \| SaveEnvelopeV4): SaveEnvelopeV4` | public | A v3 envelope as a v4 one (the save migration of 4.1.15): every save made before Remix was played in the story world, so it receives the gam |
 | `VerifyContext` | `interface { game, layouts, commands, fingerprint, engineVersion, keyring, … 3 more }` | public | The approved game a run is checked against: its content, layouts, fingerprint, engine, the Bridge's keys. |
 | `verifyRun` | `(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerifyResult>` | public | Verifies a run (`.wsrun` text or object) against the approved game: never throws, every failure is a verdict. |
-| `WorldEvidence` | `interface { dailySeed, commitment, reveal }` | public | What a run's world must match, given the category and what the Bridge published (the day's seed, a commitment). |
+| `WorldEvidence` | `interface { dailySeed, commitment, reveal, revealedAt, runStartedAt }` | public | What a run's world must match, given the category and what the Bridge published (the day's seed, a commitment). |
 | `worldVerdict` | `(rules: RemixCategoryRules, v: WorldVariant, e?: WorldEvidence): string[]` | public | Whether a run's world is the one its category allows: empty when it is, else the reasons (a verifier refuses the run with them). The world i |
 
 ### web-scumm/reality

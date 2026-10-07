@@ -39,6 +39,8 @@ export interface DailyOptions {
   secret: string;
   store?: DailyStore;
   now?: () => number;
+  /** Mystery commits one client may ask per game and per hour (default 3): shopping for a seed costs that much. */
+  commitsPerHour?: number;
 }
 
 export interface DailyRequest {
@@ -46,6 +48,8 @@ export interface DailyRequest {
   /** The path and query, e.g. `/v1/daily?game=reference`. */
   url: string;
   body?: unknown;
+  /** Who asks (the server passes the client's address): Mystery commits are counted per client. */
+  client?: string;
 }
 export interface DailyResponse {
   status: number;
@@ -103,11 +107,19 @@ export function dailyRoutes(o: DailyOptions) {
     return { status: 200, body: { token: store.get(k) } };
   }
 
-  async function commit(body: unknown): Promise<DailyResponse> {
+  const commits = new Map<string, number[]>();
+  async function commit(body: unknown, client = 'anonymous'): Promise<DailyResponse> {
     const b = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
     const gameId = typeof b.game === 'string' ? b.game : '';
     const game = o.games[gameId];
     if (!game) return { status: 404, body: { error: 'unknown game' } };
+    // Shopping for a Mystery seed (commit, reveal, look, commit again) is bounded: so many commits per client and hour.
+    const t = now();
+    const k = `${client}|${gameId}`;
+    const recent = (commits.get(k) ?? []).filter((x) => t - x < 3_600_000);
+    if (recent.length >= (o.commitsPerHour ?? 3))
+      return { status: 429, body: { error: 'too many Mystery seeds this hour' } };
+    commits.set(k, [...recent, t]);
     const mode = game.mystery ?? game.daily;
     // Drawn here, before anything of the run exists; the body names the game, nothing else is read.
     const r = randomBytes(5);
@@ -128,7 +140,9 @@ export function dailyRoutes(o: DailyOptions) {
     const kept = store.get(`commit|${id}`);
     if (!kept) return { status: 404, body: { error: 'unknown commitment' } };
     const { seed, nonce } = JSON.parse(kept) as { seed: string; nonce: string };
-    return { status: 200, body: { id, seed, nonce } };
+    // The first reveal is recorded (a Mystery run must start within a minute of it: `worldVerdict`).
+    if (!store.get(`revealed|${id}`)) store.put(`revealed|${id}`, String(now()));
+    return { status: 200, body: { id, seed, nonce, revealedAt: Number(store.get(`revealed|${id}`)) } };
   }
 
   return {
@@ -136,7 +150,7 @@ export function dailyRoutes(o: DailyOptions) {
       const u = new URL(req.url, 'http://bridge.local');
       if (req.method === 'GET' && u.pathname === '/v1/daily')
         return daily(u.searchParams.get('game') ?? '', u.searchParams.get('date') ?? isoDay(now()));
-      if (req.method === 'POST' && u.pathname === '/v1/commit') return commit(req.body);
+      if (req.method === 'POST' && u.pathname === '/v1/commit') return commit(req.body, req.client);
       const m = /^\/v1\/reveal\/([\w-]{1,64})$/.exec(u.pathname);
       if (req.method === 'GET' && m) return reveal(m[1]!);
       return null;

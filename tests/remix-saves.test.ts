@@ -17,7 +17,13 @@ import {
 } from '@engine/core/save';
 import { applyVariant, compileGameManifest } from '@engine/core/remix/apply';
 import { compileVariant, storyVariant } from '@engine/core/remix/compile';
-import { leaderboardKey, REMIX_CATEGORIES, seedCommitment, worldVerdict } from '@engine/core/remix/categories';
+import {
+  leaderboardKey,
+  MYSTERY_START_WINDOW_MS,
+  REMIX_CATEGORIES,
+  seedCommitment,
+  worldVerdict,
+} from '@engine/core/remix/categories';
 import { encodeSeedCode } from '@engine/core/remix/seed-code';
 import { remixWorld } from '@engine/core/remix/apply';
 import { solve } from '@engine/tools/solve';
@@ -134,11 +140,20 @@ describe('speedrun categories', () => {
   it('a Mystery run is valid only on the seed its commitment hid', () => {
     const m = { ...v, mode: 'mystery' };
     const commitment = seedCommitment(v.seed, 'n0nce');
+    const times = { revealedAt: 1_000_000, runStartedAt: 1_010_000 };
     expect(
-      worldVerdict(REMIX_CATEGORIES.mystery!, m, { commitment, reveal: { seed: v.seed, nonce: 'n0nce' } }),
+      worldVerdict(REMIX_CATEGORIES.mystery!, m, { commitment, reveal: { seed: v.seed, nonce: 'n0nce' }, ...times }),
     ).toEqual([]);
     expect(
-      worldVerdict(REMIX_CATEGORIES.mystery!, m, { commitment, reveal: { seed: v.seed, nonce: 'other' } }),
+      worldVerdict(REMIX_CATEGORIES.mystery!, m, { commitment, reveal: { seed: v.seed, nonce: 'other' }, ...times }),
     ).toEqual(['the revealed seed does not match the commitment']);
+    // A run that starts long after its reveal had time to look at the world (and shop for another): refused.
+    const late = { revealedAt: 1_000_000, runStartedAt: 1_000_000 + MYSTERY_START_WINDOW_MS + 1 };
+    expect(
+      worldVerdict(REMIX_CATEGORIES.mystery!, m, { commitment, reveal: { seed: v.seed, nonce: 'n0nce' }, ...late }),
+    ).toEqual([expect.stringMatching(/starts within 60 s of its reveal/)]);
+    expect(
+      worldVerdict(REMIX_CATEGORIES.mystery!, m, { commitment, reveal: { seed: v.seed, nonce: 'n0nce' } }),
+    ).toEqual(['a Mystery run needs the time of the reveal and of its start']);
   });
 });

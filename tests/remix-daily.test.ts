@@ -84,7 +84,16 @@ describe('Mystery: commit, then reveal', () => {
     };
     if (c.ok) expect(revealMatches(c.token, reveal)).toBe(true);
     expect((await b.handle({ method: 'GET', url: `/v1/reveal/${id}` }))!.body).toEqual({ id, ...reveal });
+    expect((reveal as unknown as { revealedAt: number }).revealedAt).toBe(T);
     if (c.ok) expect(revealMatches(c.token, { ...reveal, nonce: 'x' })).toBe(false);
+  });
+  it('shopping for a Mystery seed is bounded: three commits per client, game and hour', async () => {
+    const b = await bridge();
+    const ask = (client: string) =>
+      b.handle({ method: 'POST', url: '/v1/commit', body: { game: 'reference' }, client });
+    for (let i = 0; i < 3; i++) expect((await ask('1.2.3.4'))!.status).toBe(201);
+    expect((await ask('1.2.3.4'))!.status).toBe(429);
+    expect((await ask('5.6.7.8'))!.status).toBe(201);
   });
   it('never chooses a seed after seeing actions: what a player sends later moves neither seed', async () => {
     const b = await bridge();
