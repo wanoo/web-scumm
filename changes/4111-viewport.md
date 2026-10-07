@@ -33,3 +33,6 @@
 - **API (4.1.11), additive.** `web-scumm/player`: `SceneFrame`, `Renderer`, `Intent` (`@extension`).
   `web-scumm/testing`: `SemanticEvent`, `SemanticJournal` (`@public`). `Engine.journal` and `Engine.sessionSeq` are new
   members of `Engine`.
+- **The first visit's JavaScript goes from 120 to 122 KB gzipped** (4.1.11): the scene frame, the presenter, the
+  intents and the journal are in the player's main chunk; the budget (`initialJsKB` 140) is untouched and the
+  baseline moved on purpose.

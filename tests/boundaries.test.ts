@@ -115,7 +115,10 @@ describe("the engine's layers", () => {
 
   it('a painter never reaches the engine (4.1.11, D21): the render modules import neither the engine nor its state', () => {
     // Types included: a painter that could name the Engine could be handed one. It is given frames and specs only.
-    const painters = files(join(ROOT, 'dom')).filter((f) => /\/(render-[\w-]+|renderer|frame-renderer)\.ts$/.test(f));
+    // Paths as git names them: Windows's separators would match nothing (the `windows` job ran this first).
+    const painters = files(join(ROOT, 'dom')).filter((f) =>
+      /\/(render-[\w-]+|renderer|frame-renderer)\.ts$/.test(f.replace(/\\/g, '/')),
+    );
     expect(painters.length).toBeGreaterThanOrEqual(3);
     const reach = painters.flatMap((f) =>
       [...readFileSync(f, 'utf8').matchAll(/(?:from\s+|import\(\s*)'([^']+)'/g)]

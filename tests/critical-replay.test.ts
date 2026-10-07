@@ -312,6 +312,15 @@ describe('sessionFile', () => {
     expect(f.trace).not.toBe(e.trace);
     expect((f.session.log[2] as { script: unknown[] }).script).toHaveLength(2);
   });
+  it('a session that outgrew the journal window is exported truncated, without a journal to compare', async () => {
+    const { e } = await record();
+    // The window is the journal's capacity (10 000 events by default): the test shrinks it after the recording, so
+    // the session's first events are no longer there, which is what a very long playtest does.
+    (e.journal as { capacity: number }).capacity = 1;
+    const f = sessionFile('scale', e);
+    expect(f.journal).toBeUndefined();
+    expect(f.journalTruncated).toBe(true);
+  });
   it('dates the file by its session when it has a date', async () => {
     const { e } = await record();
     e.session!.at = 4242;
