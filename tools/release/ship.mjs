@@ -38,6 +38,13 @@ const RERUN_ONCE = new Set();
 /** Re-runs the failed jobs of a run once; false when it was already re-run (the second failure is final). */
 function rerunOnce(runId, why) {
   if (RERUN_ONCE.has(runId)) return false;
+  // A job failed while its run still goes on (other jobs pending): GitHub re-runs nothing until the run is over.
+  // Wait for it (the caller polls again), re-run once it is complete.
+  const run = ghJson(['run', 'view', String(runId), '--json', 'status']);
+  if (run.status !== 'completed') {
+    say(`${why}: run ${runId} still has jobs running; re-run once it is over`);
+    return true;
+  }
   RERUN_ONCE.add(runId);
   say(`${why}: re-running the failed jobs of run ${runId} once`);
   gh(['run', 'rerun', String(runId), '--failed']);
@@ -96,7 +103,26 @@ async function merge(pr) {
   const subject = `Merge ${view.headRefName}: ${view.title}`;
   const trailers = ['Agent: Claude', process.env.SHIP_TRAILERS ?? ''].filter(Boolean).join('\n');
   say(`merging #${pr} (${view.headRefName})`);
-  gh(['pr', 'merge', String(pr), '--merge', '--subject', subject, '--body', trailers]);
+  // Right after another merge into main, GitHub recomputes mergeability and `gh pr merge` fails for a moment
+  // (seen on #24, merged seconds after #22): asked again while the state is UNKNOWN, up to ten times.
+  await until(
+    () => {
+      const st = ghJson(['pr', 'view', String(pr), '--json', 'mergeStateStatus,state']);
+      if (st.state === 'MERGED') return true;
+      if (st.mergeStateStatus === 'UNKNOWN') {
+        say('mergeability being recomputed: asking again');
+        return undefined;
+      }
+      try {
+        gh(['pr', 'merge', String(pr), '--merge', '--subject', subject, '--body', trailers]);
+        return true;
+      } catch (e) {
+        if (/UNKNOWN|not mergeable|Base branch was modified/i.test(String(e))) return undefined;
+        throw e;
+      }
+    },
+    { everyMs: 15_000, deadlineMs: 5 * 60_000, what: `the merge command of #${pr}` },
+  );
   const after = await until(
     () => {
       const v = ghJson(['pr', 'view', String(pr), '--json', 'state,mergeCommit']);
