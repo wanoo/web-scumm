@@ -2477,35 +2477,6 @@ Platform"; human gates reported, not blocking (D12).
 
 → next: Claude · `feature/418-pwa-e2e`
 
-## #115 · 2026-10-07 · Claude · proposal · `refactor/418-exports`: stability tags, readable aliases, unused exports
-
-- Rule written at the top of `tools/api-doc.ts`: each symbol the five entries re-export carries `@public` or
-  `@extension` and a first sentence on its original declaration; internal = not re-exported, no tag; `@internal` on
-  Engine's members unchanged. Measured: 119 rows (101 public, 18 extension, the page's hand tables above the block
-  untouched), 65 descriptions written, two orphaned doc blocks moved to their owner (`Cmd`, `PropDef`). `apiRows()`
-  exported for the test; aliases printed from the alias declaration's source text (the checker prints the alias's own
-  name, or expands `Record` into a mapped type), 160 characters, else `union of N` (`Cmd` 56, `RefusalCode` 13).
-- knip: 44 exports + 27 types on main; deleted where used nowhere (`TOAST_MS`, `cmds.ts TEXTS`, `solve/report.ts
-  Step`), 19 re-exports nobody imported removed (`ending/index.ts` keeps `EndingPayload` only; `solve.ts` no longer
-  re-exports its helpers, its header says so), `export` dropped on ~55 symbols used in their own file; kept as
-  `@public` with a sentence: Bridge `DEFAULT_LIMITS`, `POLICY`, `BridgeEventSchema` (knip ignores a `@public` export,
-  so the engine's tags are knip-consistent, and a `@public` tag on an internal symbol would silence knip too: the
-  rule header says it). `knip.json` `ignore`: `games/signals/cast.ts` (a cast offered to the author) and
-  `src/studio/rooms.ts` (its `condText` re-export, which PR #35 keeps and nothing imports: the entry stays). The four
-  export rules are `error`; PR #35 was built with them off and exports an unused `Group` type in
-  `src/studio/assets-model.ts`: whichever of the two merges second answers knip on the merge.
-- Judgement calls for the reader: `Migration` is `@public` (declarative data in `GameDef.migrations`, nothing
-  implemented); `tests/gen/random-game.ts rng` and `scripts/e2e/lib.mjs AXE_ACCEPTED` un-exported (nothing imports
-  them; the docs still name the second).
-- The second reading (PR #37): the counts were 93 public where the pages hold 101 (corrected here and in the
-  CHANGELOG); `--check` printed a tagless export but exited 0 (now it fails); `RevealDef` lost its deprecation in the
-  table (now `public (deprecated)`); the alias printed from source text showed `z.infer<typeof …>` for
-  `WorldSignalV1` where main showed its members, and would have leaked an inner comment (a `typeof`/`infer` side is
-  summarised, the printer drops comments); both tags at once is a test failure; `MINIGAME_CSS` prints `string`, not
-  its CSS; a doc cell stops at a bullet list. Follow-up, not here: `SlotMeta` is returned by `SlotStore`
-  (`@extension`) yet exported by no entry, so a host implementing the store cannot name it.
-
-→ next: Claude · `release/4.1.8` (version, CHANGELOG, ROADMAP, SUPPORT, pass sheet, measures vs 4.1.7, logo, `v4.1.8-rc.1`)
 ## #112 · 2026-10-07 · Claude · proposal · `feature/418-pwa-e2e`: the PWA's three levels, two defects found
 
 - `scripts/e2e-pwa.mjs` serves the build itself (`--serve=dist`, a static server whose root can switch and whose
@@ -2542,3 +2513,33 @@ Platform"; human gates reported, not blocking (D12).
   close): console errors are collected until the checks end, not during the teardown.
 
 → next: Claude · `refactor/418-studio-split` (storyboard, assets, rooms into model / IO / view)
+
+## #115 · 2026-10-07 · Claude · proposal · `refactor/418-exports`: stability tags, readable aliases, unused exports
+
+- Rule written at the top of `tools/api-doc.ts`: each symbol the five entries re-export carries `@public` or
+  `@extension` and a first sentence on its original declaration; internal = not re-exported, no tag; `@internal` on
+  Engine's members unchanged. Measured: 119 rows (101 public, 18 extension, the page's hand tables above the block
+  untouched), 65 descriptions written, two orphaned doc blocks moved to their owner (`Cmd`, `PropDef`). `apiRows()`
+  exported for the test; aliases printed from the alias declaration's source text (the checker prints the alias's own
+  name, or expands `Record` into a mapped type), 160 characters, else `union of N` (`Cmd` 56, `RefusalCode` 13).
+- knip: 44 exports + 27 types on main; deleted where used nowhere (`TOAST_MS`, `cmds.ts TEXTS`, `solve/report.ts
+  Step`), 19 re-exports nobody imported removed (`ending/index.ts` keeps `EndingPayload` only; `solve.ts` no longer
+  re-exports its helpers, its header says so), `export` dropped on ~55 symbols used in their own file; kept as
+  `@public` with a sentence: Bridge `DEFAULT_LIMITS`, `POLICY`, `BridgeEventSchema` (knip ignores a `@public` export,
+  so the engine's tags are knip-consistent, and a `@public` tag on an internal symbol would silence knip too: the
+  rule header says it). `knip.json` `ignore`: `games/signals/cast.ts` (a cast offered to the author) and
+  `src/studio/rooms.ts` (its `condText` re-export, which PR #35 keeps and nothing imports: the entry stays). The four
+  export rules are `error`; PR #35 was built with them off and exports an unused `Group` type in
+  `src/studio/assets-model.ts`: whichever of the two merges second answers knip on the merge.
+- Judgement calls for the reader: `Migration` is `@public` (declarative data in `GameDef.migrations`, nothing
+  implemented); `tests/gen/random-game.ts rng` and `scripts/e2e/lib.mjs AXE_ACCEPTED` un-exported (nothing imports
+  them; the docs still name the second).
+- The second reading (PR #37): the counts were 93 public where the pages hold 101 (corrected here and in the
+  CHANGELOG); `--check` printed a tagless export but exited 0 (now it fails); `RevealDef` lost its deprecation in the
+  table (now `public (deprecated)`); the alias printed from source text showed `z.infer<typeof …>` for
+  `WorldSignalV1` where main showed its members, and would have leaked an inner comment (a `typeof`/`infer` side is
+  summarised, the printer drops comments); both tags at once is a test failure; `MINIGAME_CSS` prints `string`, not
+  its CSS; a doc cell stops at a bullet list. Follow-up, not here: `SlotMeta` is returned by `SlotStore`
+  (`@extension`) yet exported by no entry, so a host implementing the store cannot name it.
+
+→ next: Claude · `release/4.1.8` (version, CHANGELOG, ROADMAP, SUPPORT, pass sheet, measures vs 4.1.7, logo, `v4.1.8-rc.1`)
