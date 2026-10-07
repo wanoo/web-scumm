@@ -177,7 +177,9 @@ view reloads, the Studio keeps what you are typing and follows the change throug
 ## Assets tab
 The tab lists everything under `games/<id>/art/` and `audio/` against what the game references (`tools/refs.ts`), with
 the prompts of `npm run prompts` (`tools/prompts.ts`, docs/en/PROMPTS.md). Server side: `tools/studio/assets.ts`, mounted
-at `/__studio/api/assets` by the plugin; UI: `src/studio/assets.ts`.
+at `/__studio/api/assets` by the plugin; UI: `src/studio/assets.ts` (the tab) with its model, IO and views beside it
+(`assets-model.ts`, `assets-io.ts`, `assets-view.ts`, `assets-sheets.ts`, `assets-decors.ts`, `assets-sounds.ts`;
+the Storyboard and Rooms tabs are laid out the same way since 4.1.8, every file under 800 lines).
 
 - **Tree** (left): Characters (one entry per sprite sheet, named after the character whose poses it holds), Objects,
   Backgrounds, Furniture, Talk kits, Sounds (music, sound effects). Badges: red = cells the game references without a

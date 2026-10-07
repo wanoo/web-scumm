@@ -1,23 +1,27 @@
 // Storyboard tab: edits storyboard.json (boards, panels in play order, lines, sfx, arrival, hints, talks, reactions)
 // in memory; Save writes the whole document (PUT storyboard). Beside the editor, the selected panel composed like a
 // storyboard frame (room decor, speakers' portraits, the lines as the game shows them) and the notes about it.
+// Since 4.1.8 (programme §4.7: the Studio's biggest owners split into model / IO / view) this file keeps the state,
+// the IO against the API and the orchestration of the rendering; the rules live in `storyboard-model.ts`, the editor
+// blocks in `storyboard-view.ts` and the frame in `storyboard-preview.ts`.
+import type { SbBoard, SbPanel } from '../../tools/pages/storyboard-data';
+import { api, type CoverageData, type GameInfo } from './api';
+import type { NotesStore } from './notes';
 import {
-  sbLines,
-  sbReactions,
-  sbTalks,
-  type SbBoard,
-  type SbLine,
-  type SbPanel,
-  type SbReaction,
-  type SbTopic,
-} from '../../tools/pages/storyboard-data';
-import { api, imgUrl, type CoverageData, type GameInfo } from './api';
-import type { BoardCoverage, Check, CoverStatus, PanelCoverage } from '@engine/tools/coverage';
-import { composer, liveBlock, newestFirst, noteItem, type NotesStore } from './notes';
-import { autoGrow, h, toast } from './ui';
+  boardCov,
+  type Doc,
+  findPanel,
+  idProblem,
+  move,
+  nextBoardId,
+  nextPanelId,
+  normDoc,
+  panelList,
+} from './storyboard-model';
+import { previewContent } from './storyboard-preview';
+import { badge, hintsBlock, input, lines, panelCard, reactionsBlock, type SbHost, talksBlock } from './storyboard-view';
+import { h, toast } from './ui';
 import { must } from '../engine/core/must';
-
-type Doc = Record<string, unknown> & { title?: string; intro?: string; boards: SbBoard[] };
 
 export interface StoryboardCtx {
   info: GameInfo;
@@ -27,47 +31,9 @@ export interface StoryboardCtx {
   openRoom(id: string): void;
 }
 
-const STAGE = new Set(['action', 'stage']);
-
-/**
- * Light normalisation in place: lines, `talk` / talk lists, `optional`, through the page generator's helpers with the
- * other fields kept (`tools/pages/storyboard-data.ts`, 4.1.0: one normalisation for the page, the Studio and the MCP).
- */
-function normDoc(raw: unknown): Doc {
-  const doc = (raw && typeof raw === 'object' ? raw : {}) as Doc;
-  if (!Array.isArray(doc.boards)) doc.boards = [];
-  for (const b of doc.boards as unknown as Record<string, unknown>[]) {
-    if (!Array.isArray(b.panels)) b.panels = [];
-    for (const p of b.panels as Record<string, unknown>[]) {
-      if (p.lines !== undefined) p.lines = sbLines(p.lines, true);
-      if (p.id === undefined) p.id = '';
-      if (p.title === undefined) p.title = '';
-    }
-    if (b.arrival !== undefined) b.arrival = sbLines(b.arrival, true);
-    if (b.talk !== undefined && b.talks === undefined) {
-      b.talks = b.talk;
-      delete b.talk;
-    }
-    if (b.talks !== undefined) b.talks = sbTalks(b.talks, true) ?? b.talks;
-    if (b.optional !== undefined && b.reactions === undefined) {
-      b.reactions = b.optional;
-      delete b.optional;
-    }
-    if (Array.isArray(b.reactions)) b.reactions = sbReactions(b.reactions, true);
-  }
-  return doc;
-}
-
-function move<T>(list: T[], i: number, d: number): boolean {
-  const j = i + d;
-  if (j < 0 || j >= list.length) return false;
-  [list[i], list[j]] = [must(list[j], 'item to swap'), must(list[i], 'item to move')];
-  return true;
-}
-
 export class StoryboardTab {
   readonly el = h('section', { class: 'tab sb' });
-  private doc: Doc | null = null;
+  private doc: Doc | undefined;
   private savedJson = '';
   private bi = 0;
   private pi = 0;
@@ -87,6 +53,8 @@ export class StoryboardTab {
   /** The saved storyboard checked against the content (badges on boards and panels). */
   private cov: CoverageData | null = null;
   private covEl = h('span', { class: 'muted small' });
+  /** What the editor blocks and the preview see of this tab (storyboard-view.ts). */
+  private readonly host: SbHost;
 
   constructor(private ctx: StoryboardCtx) {
     this.el.append(
@@ -119,6 +87,43 @@ export class StoryboardTab {
         e.returnValue = '';
       }
     });
+    const tab = this;
+    this.host = {
+      info: ctx.info,
+      notes: ctx.notes,
+      get doc() {
+        return must(tab.doc, 'storyboard document while editing');
+      },
+      get cov() {
+        return tab.cov;
+      },
+      get board() {
+        return tab.board;
+      },
+      get panel() {
+        return tab.panel;
+      },
+      get pi() {
+        return tab.pi;
+      },
+      set pi(v) {
+        tab.pi = v;
+      },
+      get li() {
+        return tab.li;
+      },
+      set li(v) {
+        tab.li = v;
+      },
+      changed: (structure) => this.changed(structure),
+      focus: (key) => {
+        this.focusKey = key;
+      },
+      openRoom: (id) => ctx.openRoom(id),
+      selectPanel: (i, li) => this.selectPanel(i, li),
+      renderList: () => this.renderList(),
+      renderPreview: () => this.renderPreview(),
+    };
   }
 
   get dirty() {
@@ -127,9 +132,7 @@ export class StoryboardTab {
 
   /** Panels in play order: [id, title, board title] (for the Notes tab). */
   panels(): [string, string, string][] {
-    return (this.doc?.boards ?? []).flatMap((b) =>
-      b.panels.map((p) => [p.id, p.title, b.title] as [string, string, string]),
-    );
+    return panelList(this.doc);
   }
 
   /** First load (later calls keep the in-memory edits; use reload()). */
@@ -161,16 +164,6 @@ export class StoryboardTab {
       this.renderList();
       this.renderEditor();
     }
-  }
-
-  private boardCov(id: string): BoardCoverage | undefined {
-    return this.cov?.coverage.boards.find((b) => b.id === id);
-  }
-  private panelCov(id: string): PanelCoverage | undefined {
-    return this.cov?.coverage.boards.flatMap((b) => b.panels).find((p) => p.id === id);
-  }
-  private badge(status: CoverStatus, title: string): HTMLElement {
-    return h('span', { class: `cov ${status}`, title }, { ok: '✓', partial: '~', missing: '✗', unknown: '?' }[status]);
   }
 
   async reload(silent = false) {
@@ -233,10 +226,10 @@ export class StoryboardTab {
 
   /** Selects a panel by id (from the Notes tab). */
   showPanel(id: string) {
-    const bi = this.doc?.boards.findIndex((b) => b.panels.some((p) => p.id === id)) ?? -1;
-    if (bi < 0) return;
-    this.bi = bi;
-    this.pi = must(this.doc!.boards[bi], 'board just found').panels.findIndex((p) => p.id === id);
+    const at = findPanel(this.doc, id);
+    if (!at) return;
+    this.bi = at.bi;
+    this.pi = at.pi;
     this.li = 0;
     this.renderAll();
     requestAnimationFrame(() => this.editEl.querySelector('.card.on')?.scrollIntoView({ block: 'center' }));
@@ -244,14 +237,9 @@ export class StoryboardTab {
 
   async save() {
     if (!this.doc) return;
-    const ids = this.doc.boards.flatMap((b) => b.panels.map((p) => p.id));
-    const dup = ids.find((x, i) => ids.indexOf(x) !== i);
-    if (dup) {
-      toast(`Two panels have the id "${dup}": notes are attached to panel ids, make them unique.`, 'error');
-      return;
-    }
-    if (ids.some((x) => !x.trim())) {
-      toast('A panel has no id.', 'error');
+    const problem = idProblem(this.doc);
+    if (problem) {
+      toast(problem, 'error');
       return;
     }
     try {
@@ -314,6 +302,17 @@ export class StoryboardTab {
     this.renderPreview();
   }
 
+  /** Selects panel `i` (and its line `li`) by toggling the cards' `on` class; redraws the preview. */
+  private selectPanel(i: number, li?: number) {
+    if (this.pi !== i) {
+      this.pi = i;
+      this.editEl.querySelectorAll('.card').forEach((c, k) => c.classList.toggle('on', k === i));
+    }
+    if (li !== undefined) this.li = li;
+    else if (this.pi !== i) this.li = 0;
+    this.renderPreview();
+  }
+
   private renderAll() {
     this.updateState();
     if (this.error) {
@@ -358,8 +357,8 @@ export class StoryboardTab {
                 { class: 'btitle' },
                 `${i + 1}. ${b.title || b.id}`,
                 (() => {
-                  const c = this.boardCov(b.id);
-                  return c ? this.badge(c.status, `${Math.round(c.score * 100)}% of this board is in the game`) : null;
+                  const c = boardCov(this.cov, b.id);
+                  return c ? badge(c.status, `${Math.round(c.score * 100)}% of this board is in the game`) : null;
                 })(),
               ),
               h(
@@ -426,10 +425,14 @@ export class StoryboardTab {
   }
 
   private addBoard() {
-    const doc = this.doc!;
-    let n = doc.boards.length + 1;
-    while (doc.boards.some((b) => b.id === `board-${n}`)) n++;
-    doc.boards.push({ id: `board-${n}`, title: 'New board', room: this.ctx.info.rooms[0]?.id, goal: '', panels: [] });
+    const doc = must(this.doc, 'storyboard document to add a board to');
+    doc.boards.push({
+      id: nextBoardId(doc),
+      title: 'New board',
+      room: this.ctx.info.rooms[0]?.id,
+      goal: '',
+      panels: [],
+    });
     this.bi = doc.boards.length - 1;
     this.pi = 0;
     this.focusKey = 'board.title';
@@ -437,189 +440,18 @@ export class StoryboardTab {
   }
 
   private deleteBoard(i: number) {
-    const b = must(this.doc!.boards[i], 'board to delete');
+    const doc = must(this.doc, 'storyboard document to delete a board from');
+    const b = must(doc.boards[i], 'board to delete');
     if (
       !confirm(
         `Delete the board "${b.title}" and its ${b.panels.length} panel(s)? (Nothing is written until you save.)`,
       )
     )
       return;
-    this.doc!.boards.splice(i, 1);
-    this.bi = Math.max(0, Math.min(this.bi, this.doc!.boards.length - 1));
+    doc.boards.splice(i, 1);
+    this.bi = Math.max(0, Math.min(this.bi, doc.boards.length - 1));
     this.pi = 0;
     this.changed(true);
-  }
-
-  // -------------------------------------------------------------- inputs
-
-  /** A text input bound to `obj[key]` (an empty optional field is removed). */
-  private input(
-    target: object,
-    key: string,
-    opts: {
-      placeholder?: string;
-      label: string;
-      area?: boolean;
-      optional?: boolean;
-      fk?: string;
-      cls?: string;
-      onInput?: () => void;
-    },
-  ) {
-    const obj = target as Record<string, unknown>;
-    const el = opts.area
-      ? autoGrow(
-          h('textarea', {
-            rows: 1,
-            value: String(obj[key] ?? ''),
-            placeholder: opts.placeholder,
-            'aria-label': opts.label,
-            class: opts.cls,
-            dataset: { fk: opts.fk ?? '' },
-          }),
-        )
-      : h('input', {
-          type: 'text',
-          value: String(obj[key] ?? ''),
-          placeholder: opts.placeholder,
-          'aria-label': opts.label,
-          class: opts.cls,
-          dataset: { fk: opts.fk ?? '' },
-        });
-    el.addEventListener('input', () => {
-      if (opts.optional && !el.value) delete obj[key];
-      else obj[key] = el.value;
-      opts.onInput?.();
-      this.changed();
-    });
-    return el;
-  }
-
-  private speakerOptions(current: string): [string, string][] {
-    const { characters, hero } = this.ctx.info;
-    const opts: [string, string][] = [
-      ['hero', `hero (${characters[hero]?.name ?? hero})`],
-      ['action', 'action'],
-      ['stage', 'stage'],
-    ];
-    for (const [id, c] of Object.entries(characters))
-      if (id !== hero) opts.push([id, c.name === id ? id : `${c.name} (${id})`]);
-    if (!opts.some(([v]) => v === current)) opts.push([current, `${current} (unknown)`]);
-    return opts;
-  }
-
-  private colorOf(who: string): string | undefined {
-    if (STAGE.has(who)) return undefined;
-    return this.ctx.info.characters[who === 'hero' ? this.ctx.info.hero : who]?.color;
-  }
-
-  /** Editable list of lines at `owner[field]` (created on the first added line). */
-  private lines(owner: object, field: string, fk: string, onLine?: (i: number) => void): HTMLElement {
-    const rec = owner as Record<string, unknown>;
-    const list = (rec[field] as SbLine[] | undefined) ?? [];
-    const box = h('div', { class: 'sblines' });
-    list.forEach((l, i) => {
-      const who = h(
-        'select',
-        { 'aria-label': `Speaker of line ${i + 1}`, class: 'who' },
-        this.speakerOptions(l.who).map(([v, t]) => h('option', { value: v, selected: v === l.who }, t)),
-      );
-      const paint = () => {
-        who.style.color = this.colorOf(l.who) ?? '';
-        row.classList.toggle('stage', STAGE.has(l.who));
-      };
-      const text = autoGrow(
-        h('textarea', {
-          rows: 1,
-          value: l.text,
-          placeholder: STAGE.has(l.who) ? 'What happens…' : 'Line…',
-          'aria-label': `Line ${i + 1}`,
-          dataset: { fk: `${fk}.${i}` },
-        }),
-      );
-      text.addEventListener('input', () => {
-        l.text = text.value;
-        this.changed();
-      });
-      text.addEventListener('focus', () => onLine?.(i));
-      who.addEventListener('change', () => {
-        l.who = who.value;
-        paint();
-        this.changed();
-      });
-      const row = h(
-        'div',
-        { class: 'sbline' },
-        who,
-        text,
-        h(
-          'span',
-          { class: 'lops' },
-          h(
-            'button',
-            {
-              class: 'icon',
-              title: 'Move up',
-              'aria-label': `Move line ${i + 1} up`,
-              disabled: i === 0,
-              onclick: () => {
-                move(list, i, -1);
-                this.focusKey = `${fk}.${i - 1}`;
-                this.changed(true);
-              },
-            },
-            '↑',
-          ),
-          h(
-            'button',
-            {
-              class: 'icon',
-              title: 'Move down',
-              'aria-label': `Move line ${i + 1} down`,
-              disabled: i === list.length - 1,
-              onclick: () => {
-                move(list, i, 1);
-                this.focusKey = `${fk}.${i + 1}`;
-                this.changed(true);
-              },
-            },
-            '↓',
-          ),
-          h(
-            'button',
-            {
-              class: 'icon del',
-              title: 'Delete line',
-              'aria-label': `Delete line ${i + 1}`,
-              onclick: () => {
-                list.splice(i, 1);
-                this.changed(true);
-              },
-            },
-            '✕',
-          ),
-        ),
-      );
-      paint();
-      box.append(row);
-    });
-    box.append(
-      h(
-        'button',
-        {
-          class: 'add small',
-          onclick: () => {
-            const arr = (rec[field] ??= []) as SbLine[];
-            arr.push({ who: arr.at(-1)?.who ?? 'hero', text: '' });
-            this.focusKey = `${fk}.${arr.length - 1}`;
-            onLine?.(arr.length - 1);
-            this.changed(true);
-          },
-        },
-        '+ line',
-      ),
-    );
-    return box;
   }
 
   // -------------------------------------------------------------- the board editor
@@ -658,9 +490,9 @@ export class StoryboardTab {
           'label',
           { class: 'field wide' },
           h('span', null, 'Board title'),
-          this.input(b, 'title', { label: 'Board title', fk: 'board.title', onInput: () => this.renderList() }),
+          input(this.host, b, 'title', { label: 'Board title', fk: 'board.title', onInput: () => this.renderList() }),
         ),
-        h('label', { class: 'field' }, h('span', null, 'Id'), this.input(b, 'id', { label: 'Board id' })),
+        h('label', { class: 'field' }, h('span', null, 'Id'), input(this.host, b, 'id', { label: 'Board id' })),
         h(
           'label',
           { class: 'field' },
@@ -685,7 +517,7 @@ export class StoryboardTab {
           'label',
           { class: 'field wide' },
           h('span', null, 'Goal'),
-          this.input(b, 'goal', {
+          input(this.host, b, 'goal', {
             label: 'Goal',
             area: true,
             optional: true,
@@ -697,7 +529,7 @@ export class StoryboardTab {
           'label',
           { class: 'field wide' },
           h('span', null, 'Exit'),
-          this.input(b, 'exit', { label: 'Exit', optional: true, placeholder: 'How the board ends (optional)' }),
+          input(this.host, b, 'exit', { label: 'Exit', optional: true, placeholder: 'How the board ends (optional)' }),
         ),
       ),
     );
@@ -715,10 +547,10 @@ export class StoryboardTab {
       b.arrival?.length ?? 0,
       !!b.arrival?.length,
       h('p', { class: 'muted small' }, 'Lines said on entering the room the first time.'),
-      this.lines(b, 'arrival', 'arrival'),
+      lines(this.host, b, 'arrival', 'arrival'),
     );
 
-    const cards = b.panels.map((p, i) => this.card(b, p, i));
+    const cards = b.panels.map((p, i) => panelCard(this.host, b, p, i));
     const panels = h(
       'section',
       { class: 'sbpanels' },
@@ -732,20 +564,20 @@ export class StoryboardTab {
       b.hints?.length ?? 0,
       !!b.hints?.length,
       h('p', { class: 'muted small' }, 'From vague to precise: the first one whose step is not done yet is given.'),
-      this.hints(b),
+      hintsBlock(this.host, b),
     );
     const talks = section(
       'Talk topics',
       Object.values(b.talks ?? {}).reduce((n, t) => n + t.length, 0),
       !!b.talks && Object.keys(b.talks).length > 0,
-      this.talks(b),
+      talksBlock(this.host, b),
     );
     const reactions = section(
       'Reactions',
       b.reactions?.length ?? 0,
       !!b.reactions?.length,
       h('p', { class: 'muted small' }, 'Optional: not needed to finish the game.'),
-      this.reactions(b),
+      reactionsBlock(this.host, b),
     );
 
     this.editEl.replaceChildren(head, arrival, panels, hints, talks, reactions);
@@ -757,621 +589,21 @@ export class StoryboardTab {
     }
   }
 
-  private uniquePanelId(base: string): string {
-    const ids = new Set(this.doc!.boards.flatMap((x) => x.panels.map((p) => p.id)));
-    if (!ids.has(base)) return base;
-    let n = 2;
-    while (ids.has(`${base}${n}`)) n++;
-    return `${base}${n}`;
-  }
-
   private addPanel(b: SbBoard) {
-    const ids = new Set(this.doc!.boards.flatMap((x) => x.panels.map((p) => p.id)));
-    let n = b.panels.length + 1;
-    while (ids.has(`${b.id}-${n}`)) n++;
-    b.panels.push({ id: `${b.id}-${n}`, title: '', lines: [] });
+    b.panels.push({
+      id: nextPanelId(must(this.doc, 'storyboard document to add a panel to'), b),
+      title: '',
+      lines: [],
+    });
     this.pi = b.panels.length - 1;
     this.li = 0;
     this.focusKey = `p${this.pi}.title`;
     this.changed(true);
   }
 
-  private card(b: SbBoard, p: SbPanel, i: number): HTMLElement {
-    const on = i === this.pi;
-    const select = (li?: number) => {
-      if (this.pi !== i) {
-        this.pi = i;
-        this.editEl.querySelectorAll('.card').forEach((c, k) => c.classList.toggle('on', k === i));
-      }
-      if (li !== undefined) this.li = li;
-      else if (this.pi !== i) this.li = 0;
-      this.renderPreview();
-    };
-    const sfx = p.sfx ?? [];
-    const known = this.ctx.info.sfx ?? [];
-    const addSfx = h(
-      'select',
-      { 'aria-label': 'Add a sound effect', class: 'addsfx' },
-      h('option', { value: '' }, '+ sfx'),
-      known.filter((s) => !sfx.includes(s)).map((s) => h('option', { value: s }, s)),
-    );
-    addSfx.addEventListener('change', () => {
-      if (!addSfx.value) return;
-      (p.sfx ??= []).push(addSfx.value);
-      this.changed(true);
-    });
-    const idIn = this.input(p, 'id', { label: `Panel ${i + 1} id`, cls: 'pid', onInput: () => this.renderPreview() });
-    const pc = this.panelCov(p.id);
-    const notOk = (list: Check[]) => list.filter((x) => x.status === 'partial' || x.status === 'missing');
-    const issues = pc ? notOk([...(pc.action ? [pc.action] : []), ...pc.lines, ...pc.sfx]) : [];
-    const card = h(
-      'article',
-      { class: `card${on ? ' on' : ''}`, onfocusin: () => select(), onclick: () => select() },
-      h(
-        'header',
-        null,
-        h('span', { class: 'num' }, String(i + 1)),
-        pc
-          ? this.badge(
-              pc.status,
-              pc.status === 'ok'
-                ? 'Everything in this panel is in the game'
-                : `${Math.round(pc.score * 100)}% of this panel is in the game (saved version)`,
-            )
-          : null,
-        this.input(p, 'title', {
-          label: `Panel ${i + 1} title`,
-          placeholder: 'Panel title',
-          cls: 'ptitle',
-          fk: `p${i}.title`,
-        }),
-        idIn,
-        h(
-          'span',
-          { class: 'cops' },
-          h(
-            'button',
-            {
-              class: 'icon',
-              title: 'Move panel up',
-              'aria-label': `Move panel ${i + 1} up`,
-              disabled: i === 0,
-              onclick: (e: Event) => {
-                e.stopPropagation();
-                move(b.panels, i, -1);
-                this.pi = i - 1;
-                this.changed(true);
-              },
-            },
-            '↑',
-          ),
-          h(
-            'button',
-            {
-              class: 'icon',
-              title: 'Move panel down',
-              'aria-label': `Move panel ${i + 1} down`,
-              disabled: i === b.panels.length - 1,
-              onclick: (e: Event) => {
-                e.stopPropagation();
-                move(b.panels, i, 1);
-                this.pi = i + 1;
-                this.changed(true);
-              },
-            },
-            '↓',
-          ),
-          h(
-            'button',
-            {
-              class: 'icon',
-              title: 'Duplicate panel',
-              'aria-label': `Duplicate panel ${i + 1}`,
-              onclick: (e: Event) => {
-                e.stopPropagation();
-                const copy: SbPanel = JSON.parse(JSON.stringify(p));
-                copy.id = this.uniquePanelId(`${p.id}-copy`);
-                copy.title = p.title ? `${p.title} (copy)` : '';
-                b.panels.splice(i + 1, 0, copy);
-                this.pi = i + 1;
-                this.changed(true);
-              },
-            },
-            '⧉',
-          ),
-          h(
-            'button',
-            {
-              class: 'icon del',
-              title: 'Delete panel',
-              'aria-label': `Delete panel ${i + 1}`,
-              onclick: (e: Event) => {
-                e.stopPropagation();
-                const n = this.ctx.notes.about(p.id).length;
-                if (
-                  !confirm(
-                    `Delete panel ${p.id} "${p.title}"?${n ? ` Its ${n} note(s) stay in notes.json.` : ''} (Nothing is written until you save.)`,
-                  )
-                )
-                  return;
-                b.panels.splice(i, 1);
-                this.pi = Math.max(0, Math.min(this.pi, b.panels.length - 1));
-                this.changed(true);
-              },
-            },
-            '✕',
-          ),
-        ),
-      ),
-      h(
-        'label',
-        { class: 'act' },
-        h('span', null, 'Action'),
-        this.input(p, 'action', {
-          label: `Panel ${i + 1} action`,
-          optional: true,
-          placeholder: 'What the player does (empty: it just happens)',
-        }),
-      ),
-      this.lines(p, 'lines', `p${i}`, (li) => select(li)),
-      h(
-        'div',
-        { class: 'sfx' },
-        h('span', { class: 'muted small' }, 'SFX'),
-        sfx.map((s, k) =>
-          h(
-            'span',
-            {
-              class: `chipx${known.length && !known.includes(s) ? ' unknown' : ''}`,
-              title: known.includes(s) ? s : `${s}: not in audio.sfx`,
-            },
-            s,
-            h(
-              'button',
-              {
-                class: 'icon',
-                'aria-label': `Remove sound ${s}`,
-                onclick: () => {
-                  sfx.splice(k, 1);
-                  this.changed(true);
-                },
-              },
-              '✕',
-            ),
-          ),
-        ),
-        addSfx,
-      ),
-      issues.length
-        ? h(
-            'ul',
-            { class: 'covlist' },
-            issues.map((x) =>
-              h(
-                'li',
-                { class: x.status, title: x.path ?? '' },
-                `${x.status === 'missing' ? '✗' : '~'} ${x.what}${x.detail ? ` — ${x.detail}` : ''}`,
-              ),
-            ),
-          )
-        : null,
-      this.ctx.notes.about(p.id).length
-        ? h('span', { class: 'ncount', title: 'Notes about this panel' }, `✎ ${this.ctx.notes.about(p.id).length}`)
-        : null,
-    );
-    return card;
-  }
-
-  private hints(b: SbBoard): HTMLElement {
-    const list = b.hints ?? [];
-    return h(
-      'div',
-      { class: 'sblines' },
-      list.map((t, i) => {
-        const ta = autoGrow(
-          h('textarea', { rows: 1, value: t, 'aria-label': `Hint ${i + 1}`, dataset: { fk: `hint.${i}` } }),
-        );
-        ta.addEventListener('input', () => {
-          list[i] = ta.value;
-          this.changed();
-        });
-        return h(
-          'div',
-          { class: 'sbline' },
-          h('span', { class: 'num' }, String(i + 1)),
-          ta,
-          h(
-            'span',
-            { class: 'lops' },
-            h(
-              'button',
-              {
-                class: 'icon',
-                'aria-label': `Move hint ${i + 1} up`,
-                disabled: i === 0,
-                onclick: () => {
-                  move(list, i, -1);
-                  this.changed(true);
-                },
-              },
-              '↑',
-            ),
-            h(
-              'button',
-              {
-                class: 'icon',
-                'aria-label': `Move hint ${i + 1} down`,
-                disabled: i === list.length - 1,
-                onclick: () => {
-                  move(list, i, 1);
-                  this.changed(true);
-                },
-              },
-              '↓',
-            ),
-            h(
-              'button',
-              {
-                class: 'icon del',
-                'aria-label': `Delete hint ${i + 1}`,
-                onclick: () => {
-                  list.splice(i, 1);
-                  this.changed(true);
-                },
-              },
-              '✕',
-            ),
-          ),
-        );
-      }),
-      h(
-        'button',
-        {
-          class: 'add small',
-          onclick: () => {
-            (b.hints ??= []).push('');
-            this.focusKey = `hint.${b.hints.length - 1}`;
-            this.changed(true);
-          },
-        },
-        '+ hint',
-      ),
-    );
-  }
-
-  private talks(b: SbBoard): HTMLElement {
-    const info = this.ctx.info;
-    const talks = b.talks ?? {};
-    const box = h('div', { class: 'talks' });
-    for (const [c, topics] of Object.entries(talks)) {
-      const ch = info.characters[c];
-      box.append(
-        h(
-          'div',
-          { class: 'talk' },
-          h(
-            'div',
-            { class: 'talkhead' },
-            h('b', { style: ch?.color ? { color: ch.color } : undefined }, ch?.name ?? c),
-            h('code', null, c),
-            h(
-              'button',
-              {
-                class: 'icon del',
-                title: `Remove ${c}'s topics`,
-                'aria-label': `Remove the topics of ${c}`,
-                onclick: () => {
-                  if (topics.length && !confirm(`Remove the ${topics.length} topic(s) of ${ch?.name ?? c}?`)) return;
-                  delete talks[c];
-                  this.changed(true);
-                },
-              },
-              '✕',
-            ),
-          ),
-          topics.map((t: SbTopic, i) =>
-            h(
-              'div',
-              { class: 'topic' },
-              h(
-                'div',
-                { class: 'inrow' },
-                h('span', { class: 'muted small' }, '“'),
-                this.input(t, 'topic', {
-                  label: `Topic ${i + 1} of ${c}`,
-                  placeholder: 'What the hero asks',
-                  fk: `talk.${c}.${i}`,
-                }),
-                h(
-                  'span',
-                  { class: 'lops' },
-                  h(
-                    'button',
-                    {
-                      class: 'icon',
-                      'aria-label': `Move topic ${i + 1} up`,
-                      disabled: i === 0,
-                      onclick: () => {
-                        move(topics, i, -1);
-                        this.changed(true);
-                      },
-                    },
-                    '↑',
-                  ),
-                  h(
-                    'button',
-                    {
-                      class: 'icon',
-                      'aria-label': `Move topic ${i + 1} down`,
-                      disabled: i === topics.length - 1,
-                      onclick: () => {
-                        move(topics, i, 1);
-                        this.changed(true);
-                      },
-                    },
-                    '↓',
-                  ),
-                  h(
-                    'button',
-                    {
-                      class: 'icon del',
-                      'aria-label': `Delete topic ${i + 1}`,
-                      onclick: () => {
-                        topics.splice(i, 1);
-                        this.changed(true);
-                      },
-                    },
-                    '✕',
-                  ),
-                ),
-              ),
-              this.lines(t, 'lines', `talk.${c}.${i}.l`),
-            ),
-          ),
-          h(
-            'button',
-            {
-              class: 'add small',
-              onclick: () => {
-                topics.push({ topic: '', lines: [{ who: c, text: '' }] });
-                this.focusKey = `talk.${c}.${topics.length - 1}`;
-                this.changed(true);
-              },
-            },
-            '+ topic',
-          ),
-        ),
-      );
-    }
-    const free = Object.keys(info.characters).filter((c) => !(c in talks) && c !== info.hero);
-    if (free.length) {
-      const add = h(
-        'select',
-        { 'aria-label': 'Add topics for a character' },
-        h('option', { value: '' }, '+ character…'),
-        free.map((c) => h('option', { value: c }, `${must(info.characters[c], 'listed character').name} (${c})`)),
-      );
-      add.addEventListener('change', () => {
-        if (!add.value) return;
-        (b.talks ??= {})[add.value] = [{ topic: '', lines: [{ who: add.value, text: '' }] }];
-        this.focusKey = `talk.${add.value}.0`;
-        this.changed(true);
-      });
-      box.append(add);
-    }
-    return box;
-  }
-
-  private reactions(b: SbBoard): HTMLElement {
-    const list: SbReaction[] = b.reactions ?? [];
-    return h(
-      'div',
-      { class: 'reactions' },
-      list.map((r, i) =>
-        h(
-          'div',
-          { class: 'topic' },
-          h(
-            'div',
-            { class: 'inrow' },
-            this.input(r, 'action', {
-              label: `Reaction ${i + 1} action`,
-              placeholder: 'Player action, e.g. Push garden gnome',
-              fk: `react.${i}`,
-            }),
-            h(
-              'span',
-              { class: 'lops' },
-              h(
-                'button',
-                {
-                  class: 'icon',
-                  'aria-label': `Move reaction ${i + 1} up`,
-                  disabled: i === 0,
-                  onclick: () => {
-                    move(list, i, -1);
-                    this.changed(true);
-                  },
-                },
-                '↑',
-              ),
-              h(
-                'button',
-                {
-                  class: 'icon',
-                  'aria-label': `Move reaction ${i + 1} down`,
-                  disabled: i === list.length - 1,
-                  onclick: () => {
-                    move(list, i, 1);
-                    this.changed(true);
-                  },
-                },
-                '↓',
-              ),
-              h(
-                'button',
-                {
-                  class: 'icon del',
-                  'aria-label': `Delete reaction ${i + 1}`,
-                  onclick: () => {
-                    list.splice(i, 1);
-                    this.changed(true);
-                  },
-                },
-                '✕',
-              ),
-            ),
-          ),
-          this.lines(r, 'lines', `react.${i}.l`),
-        ),
-      ),
-      h(
-        'button',
-        {
-          class: 'add small',
-          onclick: () => {
-            (b.reactions ??= []).push({ action: '', lines: [{ who: 'hero', text: '' }] });
-            this.focusKey = `react.${b.reactions.length - 1}`;
-            this.changed(true);
-          },
-        },
-        '+ reaction',
-      ),
-    );
-  }
-
   // -------------------------------------------------------------- preview
 
   private renderPreview() {
-    const b = this.board;
-    const p = this.panel;
-    if (!b || !p) {
-      this.previewEl.replaceChildren(h('p', { class: 'muted pad' }, b ? 'This board has no panel yet.' : ''));
-      return;
-    }
-    const info = this.ctx.info;
-    const room = info.rooms.find((r) => r.id === b.room);
-    const lines = p.lines ?? [];
-    this.li = Math.max(0, Math.min(this.li, lines.length - 1));
-    const cur = lines[this.li];
-    const charOf = (who: string) => (who === 'hero' ? info.hero : who);
-    const speakers = [...new Set(lines.filter((l) => !STAGE.has(l.who)).map((l) => charOf(l.who)))];
-    const curId = cur && !STAGE.has(cur.who) ? charOf(cur.who) : '';
-    const name = (who: string) => info.characters[charOf(who)]?.name ?? who;
-
-    const frame = h(
-      'div',
-      { class: 'sbframe' },
-      room
-        ? h('img', { class: 'decor', src: imgUrl(room.decor), alt: room.name })
-        : h('div', { class: 'nodecor' }, 'no room'),
-      h(
-        'div',
-        { class: 'portraits' },
-        speakers.map((id) => {
-          const c = info.characters[id];
-          return c?.portrait
-            ? h(
-                'figure',
-                { class: `pt${id === curId ? ' on' : ''}`, title: c.name },
-                h('img', { src: imgUrl(c.portrait), alt: c.name }),
-                h('figcaption', { style: { color: c.color } }, c.name),
-              )
-            : null;
-        }),
-      ),
-      cur
-        ? STAGE.has(cur.who)
-          ? h('div', { class: 'stagecap' }, cur.who === 'action' ? '▶ ' : '', cur.text || '…')
-          : h('div', { class: 'speech', style: { color: this.colorOf(cur.who) ?? '#ddd' } }, cur.text || '…')
-        : null,
-      p.action ? h('div', { class: 'sbaction' }, h('b', null, p.action)) : null,
-    );
-
-    const step = (d: number) => {
-      this.li = Math.max(0, Math.min(lines.length - 1, this.li + d));
-      this.renderPreview();
-    };
-    const notes = liveBlock(this.ctx.notes, 'pnotes', (el) => {
-      const list = this.ctx.notes.about(p.id).sort(newestFirst);
-      const c = composer(this.ctx.notes, p.id, `A note about ${p.id}…`);
-      el.replaceChildren(
-        h('h3', null, 'Notes ', h('span', { class: 'muted' }, `about ${p.id} · ${list.length}`)),
-        list.length
-          ? h(
-              'ul',
-              { class: 'notes' },
-              list.map((n) => noteItem(n, this.ctx.notes, { onReply: () => c.text.focus() })),
-            )
-          : h('p', { class: 'muted small' }, 'No notes about this panel yet.'),
-        c.el,
-      );
-    });
-
-    this.previewEl.replaceChildren(
-      h(
-        'header',
-        { class: 'pvhead' },
-        h(
-          'div',
-          null,
-          h('div', { class: 'muted small' }, `${b.title} · panel ${this.pi + 1}/${b.panels.length}`),
-          h('h2', null, p.title || p.id),
-          h('code', null, p.id),
-        ),
-        b.room ? h('button', { class: 'small', onclick: () => this.ctx.openRoom(b.room!) }, `Open in Rooms ›`) : null,
-      ),
-      frame,
-      lines.length > 1
-        ? h(
-            'div',
-            { class: 'stepper' },
-            h(
-              'button',
-              { class: 'small', 'aria-label': 'Previous line', disabled: this.li === 0, onclick: () => step(-1) },
-              '‹',
-            ),
-            h('span', { class: 'muted small' }, `line ${this.li + 1} / ${lines.length}`),
-            h(
-              'button',
-              {
-                class: 'small',
-                'aria-label': 'Next line',
-                disabled: this.li >= lines.length - 1,
-                onclick: () => step(1),
-              },
-              '›',
-            ),
-          )
-        : '',
-      h(
-        'ol',
-        { class: 'script' },
-        lines.map((l, i) =>
-          h(
-            'li',
-            {
-              class: `${i === this.li ? 'on' : ''}${STAGE.has(l.who) ? ' stage' : ''}`,
-              onclick: () => {
-                this.li = i;
-                this.renderPreview();
-              },
-            },
-            STAGE.has(l.who)
-              ? h('i', null, `${l.who.toUpperCase()}: ${l.text}`)
-              : [h('b', { style: { color: this.colorOf(l.who) } }, name(l.who)), ' ', h('span', null, l.text)],
-          ),
-        ),
-      ),
-      p.sfx?.length
-        ? h(
-            'div',
-            { class: 'sfx' },
-            h('span', { class: 'muted small' }, 'SFX'),
-            p.sfx.map((s) => h('span', { class: 'chipx' }, s)),
-          )
-        : '',
-      notes,
-    );
+    this.previewEl.replaceChildren(...previewContent(this.host));
   }
 }

@@ -2476,3 +2476,24 @@ Platform"; human gates reported, not blocking (D12).
   (SUPPORT's matrix says so); the runner's Python is not asked to rebuild the assets there.
 
 → next: Claude · `feature/418-pwa-e2e`
+
+## #113 · 2026-10-07 · Claude · proposal · `refactor/418-studio-split`: storyboard, assets, rooms into model / IO / view
+
+- Three agents, one file each, in one worktree, no shared file touched (the file-size exceptions, CHANGELOG and this
+  LOG are the orchestrator's). Shapes: Storyboard = tab 609 + model 148 + view 663 + preview 149; Assets = tab 285 +
+  model 145 + io 64 + view 102 + sheets 486 + decors 282 + sounds 128; Rooms = tab 538 + text 120 + bridge 158 +
+  lines 347 + sheet 378. Each view takes a small host interface built by its tab (getters over private state and the
+  callbacks `changed`, `select`, `reload`, `ownWrite`, `saved`), never the tab itself; `main.ts` unchanged;
+  `condText` still exported from `./rooms`.
+- Said as such by the agents and kept: `this.x!` became `must(this.x, …)` (an `internal:` error where a TypeError
+  was impossible anyway); a `Doc | null` became `Doc | undefined` for `must`; one storyboard card closure is a tab
+  method; one unused `const info` dropped; one happy-dom assertion on a pre-selected `<option>` replaced by the painted
+  colour (happy-dom mis-tracks that state). Every single-line string literal of the three originals appears in the new
+  files (the agents diffed them).
+- Tests: 12 new files under `tests/dom/studio-*.test.ts`, 105 tests (fake `Api` through `useApi`, `fetch` stubbed for
+  the uploads, a fake iframe `contentWindow` for the editor bridge). `npm run quality`, `npm run test:node` (113 files,
+  1080 tests), baseline same behaviour (892 declarations, ratcheted). Three exceptions remain in
+  `tests/file-size.test.ts`: `validate.ts` 1183, `dev/editor.ts` 847, `studio/assistant.ts` 845 (programme §4.7 said
+  "if time allows" for the assistant: not in this lot).
+
+→ next: Claude · `docs/418-truth` and the export classification (`@public | @extension | @internal`), then `release/4.1.8`
