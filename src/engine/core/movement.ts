@@ -8,8 +8,8 @@ import type { Engine } from './engine';
 /** Walk to a point on the floor. */
 export async function walkTo(eng: Engine, p: Point): Promise<void> {
   if (eng.busy) return;
-  if (eng.guideWait) {
-    const g = eng.guideWait;
+  const g = eng.busyState.guide;
+  if (g) {
     await eng.run(async () => {
       await eng.ui.say(eng.heroId(), g.say, {});
     });

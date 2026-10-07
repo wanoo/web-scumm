@@ -48,7 +48,7 @@ describe('the keyboard targets', () => {
     const [id, b] = [...app.a11yButtons][0]!;
     b.focus();
     let ended = false;
-    const line = app.say(app.engine.heroId(), 'A line long enough to wait for a key.', {}).then(() => {
+    const line = app.presenter.say(app.engine.heroId(), 'A line long enough to wait for a key.', {}).then(() => {
       ended = true;
     });
     expect(app.speechEl).not.toBeNull();
@@ -77,7 +77,7 @@ describe('the inventory slots', () => {
     await app.engine.run(async () => {
       app.engine.state.inventory.push(item);
     });
-    app.inventory(app.engine.state.inventory, app.engine.state.used);
+    app.presenter.inventory(app.engine.state.inventory, app.engine.state.used);
     expect([...app.invEl.children]).toEqual(slots);
     expect((app.invEl.children[0] as HTMLElement).dataset.id).toBe(item);
     app.destroy();

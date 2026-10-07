@@ -12,8 +12,9 @@ import { rendererOf, stageOf } from '../core/stage';
 import { check } from '../core/cond';
 import { defaultVerb } from '../core/default-verb';
 import type { SceneRenderer, SpriteSpec, StageSpec } from './renderer';
-import { hitTest, sceneFrame, spritesOfFrame, stageOfFrame, type SceneFrame } from '../scene/frame';
+import { hitTest, sceneFrame, stageOfFrame, type SceneFrame } from '../scene/frame';
 import { stageKey, stageSpecOf } from './room-stage';
+import { PainterRenderer } from './frame-renderer';
 
 /**
  * The scene model of a room: backdrop, props, characters, depth sort, walking, poses, the camera and the hit test, in
@@ -28,7 +29,12 @@ export class RoomView {
   get el(): HTMLElement {
     return this.r.el;
   }
-  r: SceneRenderer;
+  /** The painter (the DOM reference or the Canvas one), as the scene frame's `Renderer` (dom/frame-renderer.ts). */
+  readonly out: PainterRenderer;
+  /** The painter itself (its surface, its paint counter). */
+  get r(): SceneRenderer {
+    return this.out.painter;
+  }
   /** Which painter draws the current room (`RoomDef.renderer`, else `GameDef.renderer`, else the DOM reference). */
   painter: 'dom' | 'canvas' = 'dom';
   /** Forces a painter for every room (`?renderer=canvas|dom`: the visual parity check, the Studio's comparison). */
@@ -77,7 +83,7 @@ export class RoomView {
     private bank: AssetBank,
     renderer?: SceneRenderer,
   ) {
-    this.r = renderer ?? new DomRenderer();
+    this.out = new PainterRenderer(renderer ?? new DomRenderer());
     this.custom = !!renderer;
   }
   /** A painter given by the caller (tests): kept for every room. */
@@ -131,14 +137,13 @@ export class RoomView {
     );
   }
 
-  /** Paints a whole frame: a new room for the painter, its stage, then every sprite in arrival order. */
+  /** Paints a whole frame (a room built): its renderer resets the painter, gives the stage, every sprite in order. */
   private paintFrame(f: SceneFrame) {
     const st = stageOfFrame(f);
-    this.r.reset(st.backdrop.url, f.camera.width);
-    this.r.stage(st);
     this.stageNow = st;
     this.stageKey = stageKey(st);
-    for (const sp of spritesOfFrame(f)) this.r.sprite(sp);
+    this.out.invalidate();
+    this.out.render(f);
   }
 
   /** How the room appears (`stage.transition`): a fade or a wipe of the painter's surface, a cut with reduced motion. */
@@ -163,8 +168,7 @@ export class RoomView {
     if (want === this.painter) return;
     const next = want === 'canvas' ? new (await import('./render-canvas')).CanvasRenderer() : new DomRenderer();
     const old = this.r.el;
-    this.r.dispose();
-    this.r = next;
+    this.out.swap(next);
     this.painter = want;
     this.r.resize(this.u);
     this.onSurface?.(this.r.el, old);
@@ -313,7 +317,8 @@ export class RoomView {
 
   destroy() {
     cancelAnimationFrame(this.raf);
-    for (const d of [this.r, this.palettes]) d.dispose(); // the painter, and the blob URLs of the recoloured images
+    this.out.unmount(); // the painter
+    this.palettes.dispose(); // the blob URLs of the recoloured images
   }
 
   /**
@@ -396,7 +401,7 @@ export class RoomView {
 
   /** Resolves an entity's sprite now and paints it: its part of the frame. */
   private draw(e: Ent) {
-    this.r.sprite(this.spriteOf(e));
+    this.out.sprite(this.spriteOf(e));
   }
 
   /** An entity's sprite as it is now (its image, size, depth, look), and the box a tap is tested against. */
@@ -601,7 +606,7 @@ export class RoomView {
       if (key !== this.stageKey) {
         this.stageKey = key;
         this.stageNow = st;
-        this.r.stage(st);
+        this.out.stage(st);
       }
     }
     for (const e of this.ents.values()) {

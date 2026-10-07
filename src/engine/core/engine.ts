@@ -66,6 +66,7 @@ import {
 import type { ReceiveResult } from './reality-runtime';
 import { SessionLog } from './session-runtime';
 import { Journal } from './journal';
+import { Busy } from './busy';
 import { emit as emitImpl } from './event-runtime';
 import {
   scriptDef as scriptDefImpl,
@@ -113,12 +114,8 @@ export class Engine {
   private rooms: Map<Id, RoomDef>;
   /** @internal Read by the modules of core/ (4.1.0). */
   lastFallback: Record<string, number> = {};
-  /** @internal Read by the modules of core/ (4.1.0). */
-  busyCount = 0;
-  /** @internal Read by the modules of core/ (4.1.0). */
-  guideWait: { verb: VerbId; target: Id; say: string; resolve: () => void } | null = null;
-  /** @internal Read by the modules of core/ (4.1.0). */
-  skipping = false;
+  /** @internal The busy owner (4.1.11, core/busy.ts): runs in progress, the tutorial step waited for, a skip. */
+  readonly busyState = new Busy();
   /** Called on every state change relevant to the UI (inventory, room, busy state). */
   onChange: () => void = () => {};
   /**
@@ -356,9 +353,8 @@ export class Engine {
 
   /** Forgets a pending tutorial step (game session change). */
   private dropGuide() {
-    this.guideWait = null;
+    this.busyState.reset();
     this.ui.guide(null);
-    this.busyCount = 0;
     this.scheduler.next(true);
   }
 
@@ -420,10 +416,10 @@ export class Engine {
   }
 
   get busy() {
-    return this.busyCount > 0 && !this.guideWait;
+    return this.busyState.busy;
   }
   get guiding() {
-    return this.guideWait ? { verb: this.guideWait.verb, target: this.guideWait.target } : null;
+    return this.busyState.guiding;
   }
   room(id: Id = this.state.room): RoomDef {
     const r = this.rooms.get(id);
@@ -542,10 +538,9 @@ export class Engine {
   async act(act: Action): Promise<Source | null> {
     if (this.busy) return null;
     // Guided tutorial: only one action is accepted, others repeat the instruction.
-    if (this.guideWait) {
-      const g = this.guideWait;
-      const ok = g.verb === act.verb && (act.a === g.target || act.b === g.target);
-      if (!ok) {
+    const g = this.busyState.guide;
+    if (g) {
+      if (!this.busyState.accepts(act)) {
         await this.run(async () => {
           await this.ui.say(this.heroId(), g.say, {});
         });
@@ -590,13 +585,11 @@ export class Engine {
     } finally {
       this.end();
     }
-    if (this.guideWait && src !== null) {
-      const g = this.guideWait;
-      if (g.verb === act.verb && (act.a === g.target || act.b === g.target)) {
-        this.guideWait = null;
-        this.ui.guide(null);
-        g.resolve();
-      }
+    const step = this.busyState.guide;
+    if (step && src !== null && this.busyState.accepts(act)) {
+      this.busyState.guide = null;
+      this.ui.guide(null);
+      step.resolve();
     }
     return src;
   }
@@ -623,20 +616,19 @@ export class Engine {
 
   /** Skip the current cutscene. */
   skip() {
-    this.skipping = true;
+    this.busyState.skipping = true;
     const o = this.sessions.cur;
     if (o) o.entry.skipAt = o.steps;
   }
 
   /** @internal Read by the modules of core/ (4.1.0). */
   async run(fn: () => Promise<void>) {
-    this.busyCount++;
+    this.busyState.enter();
     this.onChange();
     try {
       await fn();
     } finally {
-      this.busyCount--;
-      if (this.busyCount === 0) {
+      if (this.busyState.leave()) {
         this.save();
         this.journal.saved();
       }

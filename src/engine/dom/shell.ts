@@ -87,10 +87,8 @@ export function buildShell(app: App) {
     };
     app.toolsEl.append(b);
   }
-  tool(icons.map, app.game.ui.mapTitle, () => {
-    if (!app.engine.busy && !app.speechEl) void app.engine.openMap();
-  });
-  tool(icons.pause, app.game.ui.pause, () => app.pauseMenu());
+  tool(icons.map, app.game.ui.mapTitle, () => void app.presenter.intent({ kind: 'open', what: 'map' }));
+  tool(icons.pause, app.game.ui.pause, () => void app.presenter.intent({ kind: 'open', what: 'menu' }));
   tool(icons.music, app.game.ui.music, (b) => {
     const on = !app.audio.musicOn;
     app.audio.setMusic(on);

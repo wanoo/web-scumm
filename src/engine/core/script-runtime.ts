@@ -50,7 +50,7 @@ export async function advance(eng: Engine, id: Id): Promise<'ran' | 'blocked' | 
   eng.reads?.add(`script:${id}`);
   if (st.off) return 'off';
   if (st.done) return 'done';
-  if (eng.busyCount > 0 || s.done) return 'blocked';
+  if (eng.busyState.count > 0 || s.done) return 'blocked';
   const room = eng.room();
   if (def.while && !eng.cond(def.while, room.id)) {
     if (st.pc) {
@@ -96,7 +96,7 @@ export async function advance(eng: Engine, id: Id): Promise<'ran' | 'blocked' | 
     eng.end();
   }
   eng.log('script', `${id} ran ${describeCmd(c)} → ${st.pc >= def.do.length ? (def.loop ? 'loops' : 'done') : st.pc}`);
-  if (eng.busyCount === 0) eng.save();
+  if (eng.busyState.count === 0) eng.save();
   eng.onChange();
   return 'ran';
 }

@@ -72,7 +72,7 @@ for (let k = 0; k < 10 && (await page.locator('.side .choices .choice').count())
 await page.evaluate(() => {
   const g = window.__game;
   g.engine.state.inventory.push('cable');
-  g.inventory(g.engine.state.inventory);
+  g.presenter.inventory(g.engine.state.inventory);
 });
 const slot = page
   .locator(`.slot[aria-label="${await page.evaluate(() => window.__game.engine.game.items.cable.name)}"]`)
@@ -88,7 +88,7 @@ say(
 await page.evaluate(() => {
   const g = window.__game;
   if (!g.engine.state.inventory.includes('cable')) g.engine.state.inventory.push('cable');
-  g.inventory(g.engine.state.inventory);
+  g.presenter.inventory(g.engine.state.inventory);
 });
 await slot.click();
 await target('map').click();

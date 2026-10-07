@@ -379,11 +379,11 @@ const random: Handler<'random'> = (eng, c, ctx) => {
 
 const cutscene: Handler<'cutscene'> = async (eng, c, ctx) => {
   eng.ui.cutscene(true);
-  eng.skipping = false;
+  eng.busyState.skipping = false;
   try {
     await eng.exec(c.cutscene, ctx);
   } finally {
-    eng.skipping = false;
+    eng.busyState.skipping = false;
     eng.ui.cutscene(false);
   }
 };
@@ -428,7 +428,7 @@ const guide: Handler<'guide'> = async (eng, c, ctx) => {
   if (ctx.fast) return;
   await eng.say(HERO, g.say, ctx);
   await new Promise<void>((resolve) => {
-    eng.guideWait = { ...g, resolve };
+    eng.busyState.guide = { ...g, resolve };
     eng.ui.guide({ verb: g.verb, target: g.target });
     eng.onChange();
   });

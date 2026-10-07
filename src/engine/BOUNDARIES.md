@@ -38,19 +38,25 @@ of its own, a function taking the engine as its first argument:
 | `core/movement.ts` | walking, entering a room, the map and its travel, a teleport (4.1.1) |
 | `core/reality-runtime.ts` | a signal from outside: applied at most once, the cursor, the session entry (4.1.1) |
 | `core/engine-shared.ts` | the context of a command, the journal's entry, small helpers |
+| `core/journal.ts` | the semantic journal (4.1.11): what happened, in ids, numbered; emitted by the core alone |
+| `core/busy.ts` | the busy owner (4.1.11): runs in progress, the tutorial step waited for, a skip |
 | `core/types/*.ts` | the content format by subject; `core/types.ts` re-exports every name |
 
 The modules import `Engine` as a type only; `tests/core-runtime.test.ts` calls each directly.
 
 ## Inside the player (4.1.0 "Clarity")
 
-`App` (`dom/app.ts`) is the `Presenter` and the orchestration: its state, the constructor, the small presenter calls
-(walk, pose, music, toast…), the minigame and the ending. The rest lives in modules called through forwarding methods,
-as in the core:
+`App` (`dom/app.ts`) is the orchestration (4.1.11): its state, the constructor, and the composition of the engine, a
+`Presenter` (`dom/presenter.ts`) and the room view's renderer. The rest lives in modules called through forwarding
+methods, as in the core:
 
 | Module | What it does |
 |---|---|
-| `dom/shell.ts` | the shell's elements, their layout for the screen, the accessible targets |
+| `dom/presenter.ts` | the `Presenter` the engine talks to (4.1.11): the scene's calls, lines, overlays, minigames, the ending; `intent()`, the one door of the player's input |
+| `dom/room.ts` | the scene model: entities, walking, the camera; it makes the `SceneFrame` (`scene/frame.ts`) and paints it |
+| `dom/room-stage.ts` | a room's stage for the painter: conditions evaluated, images placed on the backdrop (4.1.11) |
+| `dom/frame-renderer.ts` | a painter (DOM or Canvas) as a `Renderer`: whole frames, an unchanged one skipped, a changed one by its differences |
+| `dom/shell.ts` | the shell's elements, their layout for the screen, the accessible targets (from the frame's targets) |
 | `dom/input.ts` | verbs, the inventory bar, taps and double taps (`verbFor`, `nearMiss`), the keyboard, the action line |
 | `dom/speech.ts` | lines with their voice, the transcript, phone calls, the choice of responses |
 | `dom/map-view.ts` | the map and the travel animation |

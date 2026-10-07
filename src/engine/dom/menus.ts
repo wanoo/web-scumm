@@ -167,7 +167,7 @@ export async function slotMenu(app: App, d: HTMLElement, m: HTMLElement, mode: '
         const write = async () => {
           if (!(await app.slots.putSlot(n, app.withMusic(structuredClone(app.engine.state)), meta()))) return;
           d.remove();
-          app.toast(`${slotName(n)} ✓`);
+          app.presenter.toast(`${slotName(n)} ✓`);
         };
         if (!s) return void write();
         m.innerHTML = `<h3>?</h3><p>${esc(app.t('confirmOverwrite'))}</p>`;
@@ -181,11 +181,11 @@ export async function slotMenu(app: App, d: HTMLElement, m: HTMLElement, mode: '
       b.onclick = async () => {
         const state = await app.slots.getSlot(n);
         if (!state) {
-          app.toast(app.t('saveFailed'));
+          app.presenter.toast(app.t('saveFailed'));
           return;
         }
         d.remove();
-        void app.engine.load(state).catch((e) => app.toast(String((e as Error).message)));
+        void app.engine.load(state).catch((e) => app.presenter.toast(String((e as Error).message)));
       };
   });
   if (mode === 'save')
@@ -272,11 +272,11 @@ export async function slotMenu(app: App, d: HTMLElement, m: HTMLElement, mode: '
               }))
             )
               return;
-            app.toast(`${slotName(free + 1)} ✓`);
+            app.presenter.toast(`${slotName(free + 1)} ✓`);
           }
           await app.engine.load(st);
         } catch (e) {
-          app.toast(String((e as Error).message));
+          app.presenter.toast(String((e as Error).message));
         }
       };
       inp.click();
@@ -287,7 +287,7 @@ export async function slotMenu(app: App, d: HTMLElement, m: HTMLElement, mode: '
 /** "Restart from the beginning": the autosave must go first; when the browser refuses, the player keeps the game. */
 export async function restart(app: App) {
   if (!(await app.engine.store.clear())) {
-    app.toast(app.t('saveFailed'));
+    app.presenter.toast(app.t('saveFailed'));
     return;
   }
   await app.engine.newGame();
@@ -365,7 +365,7 @@ export async function showTitle(app: App) {
     app.layoutTitle(false);
     if (fresh) {
       if (!(await app.engine.store.clear())) {
-        app.toast(app.t('saveFailed'));
+        app.presenter.toast(app.t('saveFailed'));
         if (app.engine.hasSave()) {
           await app.engine.continueGame();
           return;
