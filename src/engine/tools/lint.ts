@@ -12,7 +12,7 @@ import { listenerActionId, ruleActionId, topicActionId } from '../core/content-i
 import type { SolveResult } from './solve';
 import { must } from '../core/must';
 
-export type Severity = 'error' | 'warning' | 'info';
+type Severity = 'error' | 'warning' | 'info';
 
 export interface Finding {
   code: string;

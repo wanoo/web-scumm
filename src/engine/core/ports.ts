@@ -5,6 +5,7 @@ import type { GameState, Id, Point, RoomDef, VerbId } from './types';
  * What the core asks the display for. The DOM renderer implements it for the browser,
  * FakePresenter implements it for node (tests, solver). All async methods
  * receive `fast`: true when skipping a cutscene, in which case it must finish right away.
+ * @extension
  */
 export interface Presenter {
   enterRoom(room: RoomDef, state: GameState): Promise<void>;
@@ -48,6 +49,7 @@ export interface Presenter {
   end(): void;
 }
 
+/** The autosave store a host provides: load, save, clear, and when the latest write is durable. @extension */
 export interface SaveStore {
   load(): GameState | null;
   save(s: GameState): void;
@@ -61,6 +63,7 @@ export interface SaveStore {
  * Where signals from the world outside come from (4.1.1, Reality Bridge): the Bridge's transport (Server-Sent Events,
  * a fetch by cursor), or the Studio's simulator; injected like the stores, so the engine never touches the network.
  * Each item is a signed signal (a compact JWS) the player verifies before anything reads it.
+ * @extension
  */
 export interface WorldSignalPort {
   connect(input: { gameId: string; playerId: string; after: number; signal?: AbortSignal }): AsyncIterable<string>;
@@ -77,7 +80,7 @@ export interface SlotMeta {
   v: number;
 }
 
-/** Manual save slots (`GameDef.saves.slots`), durable and verified like the autosave. Numbered from 1. */
+/** Manual save slots (`GameDef.saves.slots`), durable and verified like the autosave. Numbered from 1. @extension */
 export interface SlotStore {
   listSlots(count: number): Promise<(SlotMeta | null)[]>;
   getSlot(n: number): Promise<GameState | null>;
@@ -87,6 +90,7 @@ export interface SlotStore {
   clearSlot(n: number): Promise<boolean>;
 }
 
+/** A save store in memory, for the tests and the solver: nothing survives the process. @public */
 export class MemoryStore implements SaveStore {
   data: GameState | null = null;
   load() {
@@ -101,7 +105,7 @@ export class MemoryStore implements SaveStore {
   }
 }
 
-/** Silent presenter for node: everything finishes immediately, and everything is logged to `log`. */
+/** Silent presenter for node: everything finishes immediately, and everything is logged to `log`. @public */
 export class FakePresenter implements Presenter {
   log: string[] = [];
   /** Answers to give to choices, in order (otherwise 0, then "Bye"). */

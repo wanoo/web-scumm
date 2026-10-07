@@ -7,7 +7,7 @@ import type { GameDef, GameState } from '../../core/types';
 import type { RealityPolicy } from './model';
 
 /** The signals a search offers in a state (4.1.1): none when closed, the scenario's next one, or every declared one. */
-export function pendingSignals(game: GameDef, policy: RealityPolicy | undefined, s: GameState): string[] {
+function pendingSignals(game: GameDef, policy: RealityPolicy | undefined, s: GameState): string[] {
   if (!game.reality || !policy || policy === 'closed') return [];
   if (policy === 'adversarial') return game.reality.signals.map((x) => x.id);
   const next = policy.signals[s.reality?.cursor ?? 0];

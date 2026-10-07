@@ -11,13 +11,22 @@ import type { EditorOptions } from './dev/editor';
 import { FONT_PIXEL, FONT_UI } from './dom/fonts';
 import { applyLocale } from './tools/i18n';
 
+/** The translations a game ships, by language then by text path (`locales/<lang>.json`). @public */
 export type Locales = Record<string, Record<string, string>>;
 
-/** `registerSW` of `virtual:pwa-register` (vite-plugin-pwa), injected so the engine never imports a virtual module. */
+/**
+ * `registerSW` of `virtual:pwa-register` (vite-plugin-pwa), injected so the engine never imports a virtual module.
+ * @extension
+ */
 export interface SwModule {
   registerSW(o: { immediate?: boolean; onNeedRefresh?: () => void }): (reloadPage?: boolean) => Promise<void>;
 }
 
+/**
+ * What `bootGame` starts the game with: the game, its layouts and manifest, minigames, commands, locales, root, store
+ * and service worker.
+ * @public
+ */
 export interface BootOptions {
   game: GameDef;
   layouts: Record<Id, Layout>;
@@ -50,7 +59,7 @@ export interface BootOptions {
   query?: URLSearchParams;
 }
 
-/** `?lang=`, then the player's saved choice, then the browser's language when the game ships it. */
+/** `?lang=`, then the player's saved choice, then the browser's language when the game ships it. @public */
 export function pickLanguage(
   _written: GameDef,
   locales: Locales | undefined,
@@ -78,6 +87,7 @@ export function waitFonts(
   );
 }
 
+/** How a host supplies the save store `openStore` opens, in place of the verified IndexedDB one. @extension */
 export type StoreOpener = (game: GameDef, fail: (e: Error) => void, warn: (m: string) => void) => Promise<SaveStore>;
 const defaultOpener: StoreOpener = async (game, fail, warn) =>
   (await import('./dom/save-store')).IndexedDbSaveStore.open(game, fail, warn);
@@ -85,6 +95,7 @@ const defaultOpener: StoreOpener = async (game, fail, warn) =>
 /**
  * Opens the verified store and keeps its early errors and warnings until an App can show them. Without IndexedDB the
  * App's verified localStorage adapter is used (`store` undefined).
+ * @public
  */
 export async function openStore(
   game: GameDef,
@@ -119,7 +130,10 @@ export async function openStore(
   };
 }
 
-/** Boots the game in the page and returns the App (after the title screen is shown, or the dev tools started). */
+/**
+ * Boots the game in the page and returns the App (after the title screen is shown, or the dev tools started).
+ * @public
+ */
 export async function bootGame(o: BootOptions): Promise<App> {
   const q = o.query ?? new URLSearchParams(globalThis.location?.search ?? '');
   const written = o.game;

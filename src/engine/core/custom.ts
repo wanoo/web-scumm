@@ -5,6 +5,11 @@
 import type { Presenter } from './ports';
 import type { Cmd, GameDef, GameState, RoomDef } from './types';
 
+/**
+ * What a custom command's `run` receives: the game, its state, the room, the arguments, the presenter and the scene
+ * element.
+ * @extension
+ */
 export interface CustomContext {
   game: GameDef;
   /** The live state: read it; change it only through `effects`. */
@@ -18,6 +23,10 @@ export interface CustomContext {
   fast: boolean;
 }
 
+/**
+ * A command a game defines in code: its effects on the state as plain commands, and its browser-only `run`.
+ * @extension
+ */
 export interface CustomCommand {
   /** What it does to the game, as commands: run first, in the browser and in the solver. */
   effects?: Cmd[];
@@ -27,4 +36,5 @@ export interface CustomCommand {
   run?(ctx: CustomContext): Promise<void> | void;
 }
 
+/** A game's custom commands by name, as `games/<id>/index.ts` exports them. @extension */
 export type CustomCommands = Record<string, CustomCommand>;

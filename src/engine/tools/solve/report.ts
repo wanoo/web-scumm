@@ -4,10 +4,6 @@ import type { Action } from '../../core/engine';
 import type { GameDef, GameState, Id, SessionEntry } from '../../core/types';
 import type { SearchNode } from './model';
 
-export interface Step {
-  label: string;
-}
-
 /** What the solver measured: where the states come from, what the search cost (`npm run solve -- --profile`). */
 export interface SolveProfile {
   ms: number;
@@ -71,6 +67,11 @@ export interface SolveProfile {
   stoppedBy?: 'states' | 'time';
 }
 
+/**
+ * The verdict of a search: its status, exit code and headline, the path found, the softlocks and the search's
+ * statistics.
+ * @public
+ */
 export interface SolveResult {
   /** Honest outcome of the requested search. `solved` in witness mode means that at least one path exists. */
   status: SolveStatus;
@@ -139,7 +140,7 @@ export function label(game: GameDef, a: Action): string {
 }
 
 /** What each abstraction of the search did: one line each, the same in the text profile, the Studio and the tools. */
-export function abstractionLines(p: SolveProfile): string[] {
+function abstractionLines(p: SolveProfile): string[] {
   const off = (r?: string) => `off${r ? ` (${r})` : ''}`;
   return [
     `  canonical character   ${p.canonical.applied ? `${p.canonical.folded} switches folded, ${p.canonical.explicit} kept explicit` : off(p.canonical.reason)}`,

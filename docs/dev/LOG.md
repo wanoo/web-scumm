@@ -2476,3 +2476,24 @@ Platform"; human gates reported, not blocking (D12).
   (SUPPORT's matrix says so); the runner's Python is not asked to rebuild the assets there.
 
 → next: Claude · `feature/418-pwa-e2e`
+
+## #115 · 2026-10-07 · Claude · proposal · `refactor/418-exports`: stability tags, readable aliases, unused exports
+
+- Rule written at the top of `tools/api-doc.ts`: each symbol the five entries re-export carries `@public` or
+  `@extension` and a first sentence on its original declaration; internal = not re-exported, no tag; `@internal` on
+  Engine's members unchanged. Measured: 119 rows (93 public, 18 extension, the page's hand tables above the block
+  untouched), 65 descriptions written, two orphaned doc blocks moved to their owner (`Cmd`, `PropDef`). `apiRows()`
+  exported for the test; aliases printed from the alias declaration's source text (the checker prints the alias's own
+  name, or expands `Record` into a mapped type), 160 characters, else `union of N` (`Cmd` 56, `RefusalCode` 13).
+- knip: 44 exports + 27 types on main; deleted where used nowhere (`TOAST_MS`, `cmds.ts TEXTS`, `solve/report.ts
+  Step`), 19 re-exports nobody imported removed (`ending/index.ts` keeps `EndingPayload` only; `solve.ts` no longer
+  re-exports its helpers, its header says so), `export` dropped on ~55 symbols used in their own file; kept as
+  `@public` with a sentence: Bridge `DEFAULT_LIMITS`, `POLICY`, `BridgeEventSchema` (knip ignores a `@public` export,
+  so the engine's tags are knip-consistent). `knip.json` `ignore`: `games/signals/cast.ts` (a cast offered to the
+  author) and `src/studio/rooms.ts` (`condText`, replaced by PR #35: the entry leaves with that merge). The four export
+  rules are `error`.
+- Judgement calls for the reader: `Migration` is `@public` (declarative data in `GameDef.migrations`, nothing
+  implemented); `tests/gen/random-game.ts rng` and `scripts/e2e/lib.mjs AXE_ACCEPTED` un-exported (nothing imports
+  them; the docs still name the second).
+
+→ next: Claude · `release/4.1.8` (version, CHANGELOG, ROADMAP, SUPPORT, pass sheet, measures vs 4.1.7, logo, `v4.1.8-rc.1`)

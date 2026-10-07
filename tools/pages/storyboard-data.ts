@@ -66,7 +66,7 @@ export function sbLines(v: unknown, keep = false): SbLine[] {
 }
 
 /** Talk topics: `{ topic, lines }`, also `{ q, answer }` and `do` for the lines. `keep`: other fields stay. */
-export function sbTopics(v: unknown, keep = false): SbTopic[] {
+function sbTopics(v: unknown, keep = false): SbTopic[] {
   return list(v).map((t) => {
     const { q, answer, ...rest } = isObj(t) ? t : {};
     return {
@@ -164,7 +164,7 @@ export function normalizeStoryboard(raw: unknown): Storyboard {
 export type SbGame = Pick<GameDef, 'title' | 'hero' | 'rooms' | 'characters'>;
 
 /** A speaker's display name (`hero` is the game's hero; unknown ids are shown as they are). */
-export function speakerName(game: SbGame, who: string): string {
+function speakerName(game: SbGame, who: string): string {
   const id = who === 'hero' ? game.hero : who;
   return game.characters[id]?.name ?? who;
 }

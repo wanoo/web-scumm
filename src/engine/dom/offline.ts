@@ -4,7 +4,7 @@ import type { GameDef } from '../core/types';
 import { assetGraph, splitKey } from '../core/asset-graph';
 import type { AssetManifest, WarmResult } from './assets';
 
-export type BatchKind = 'img' | 'sfx' | 'voice' | 'music' | 'video';
+type BatchKind = 'img' | 'sfx' | 'voice' | 'music' | 'video';
 export interface Batch {
   kind: BatchKind;
   ids: string[];

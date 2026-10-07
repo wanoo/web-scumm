@@ -6,6 +6,10 @@ import type { WorldSignalPort } from '../core/ports';
 import type { GameDef } from '../core/types';
 import { b64url, CLOCK_SKEW_MS, importBridgeKey, signSignal, type Keyring, type WorldSignalV1 } from './protocol';
 
+/**
+ * What the simulator does wrong on purpose with one delivery: a delay, a duplicate, a bad signature, an expiry.
+ * @public
+ */
 export interface Fault {
   /** Deliver it this many milliseconds later. */
   delayMs?: number;
@@ -17,6 +21,7 @@ export interface Fault {
   expired?: boolean;
 }
 
+/** One delivery the simulator made: its sequence, its signal, its fault and when. @public */
 export interface SimulatedDelivery {
   sequence: number;
   signal: string;
@@ -24,6 +29,10 @@ export interface SimulatedDelivery {
   at: number;
 }
 
+/**
+ * A Bridge in the browser, for the Studio and the tests: signs and delivers a game's signals, with faults on demand.
+ * @public
+ */
 export class SignalSimulator {
   readonly playerId: string;
   readonly history: SimulatedDelivery[] = [];

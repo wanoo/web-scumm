@@ -14,6 +14,11 @@ import type { SolveProfile } from './report';
  */
 export type RealityPolicy = 'closed' | 'adversarial' | { scenario: string; signals: string[] };
 
+/**
+ * What a search is told: its mode, where it starts and stops, the custom commands, the world's signals and its
+ * budgets.
+ * @public
+ */
 export interface SolveOptions {
   /** Signals from the world outside (4.1.1). Default `closed`. */
   reality?: RealityPolicy;
@@ -129,7 +134,7 @@ export interface NodeInput {
  * the next state's `dims`; `noop` with `hitGoal` is a goal reached without a change. The merge (which reads `seen`, the
  * frontier and the goals) decides what becomes of it; the expansion never looks at them.
  */
-export interface TryRecord {
+interface TryRecord {
   key: string;
   label: string;
   h: string;

@@ -38,7 +38,7 @@ export interface Provenance {
 }
 
 /** One shipped file as reviewed: its content and the claims its entry made then. */
-export interface LockEntry {
+interface LockEntry {
   sha256: string;
   bytes: number;
   match: string;

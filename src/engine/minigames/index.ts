@@ -19,6 +19,7 @@ const LOAD: Record<keyof typeof MINIGAME_META, () => Promise<Minigame>> = {
  * Minigames provided by the engine. A game can add others with the same interface. What tools read (`required`,
  * `textParams`, `bindings`) is here at once; `run` loads the minigame's code first (precached by the service worker,
  * so it works offline).
+ * @public
  */
 export const minigames: Record<string, Minigame> = Object.fromEntries(
   (Object.keys(MINIGAME_META) as (keyof typeof MINIGAME_META)[]).map((k) => [

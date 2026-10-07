@@ -105,145 +105,145 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 <!-- api-doc:begin -->
 ### web-scumm/content
 
-| Name | Signature | Doc |
-|---|---|---|
-| `Action` | `type { verb, a, b }` | A player action: VERB a (with/to b). `a` can be an inventory item, `b` is always a target. |
-| `ActorDef` | `type { defaultVerb, char, interactive, pose, facing, visible, … 1 more }` |  |
-| `AudioDef` | `type { music, sfx, voices, voicesByLang, scores, maxDecodedMB, … 1 more }` |  |
-| `CharacterDef` | `type { name, description, color, height, sprites, portrait, … 11 more }` |  |
-| `Choice` | `type { id, text, if, once, do }` |  |
-| `Cmd` | `type union of 56` |  |
-| `CompiledGame` | `type { schemaVersion, id, title, lang, saveVersion, renderer, … 31 more }` |  |
-| `compileGame` | `(source: GameSource): CompiledGame` | Compiles authoring data once into the single normalised representation consumed by the engine and tools. The source is never mutated; genera |
-| `Cond` | `type union of 13` | A condition. - `'flag'`: the flag is true; `'!flag'`: the flag is false or absent. - `{ has: 'item' }`: the item is in the inventory. - `{ f |
-| `CustomCommand` | `type { effects, pure, run }` |  |
-| `CustomCommands` | `type CustomCommands` |  |
-| `CustomContext` | `type { game, state, room, args, ui, scene, … 1 more }` |  |
-| `defineGame` | `(game: GameDef): GameDef` | Declares the full game. |
-| `defineRoom` | `(room: RoomDef): RoomDef` | Declares a room. Does nothing but type it: autocomplete guides the writing. |
-| `EmitterDef` | `type { id, kind, image, color, rate, visible }` |  |
-| `EMPTY_LAYOUT` | `Layout` | Empty layout, when the room hasn't been placed in the editor yet. |
-| `EndingDef` | `type { file, password, guess, scratch, card }` | Sealed ending (`ending` module): encrypted content, decrypted at the end of the game and shown on a card. |
-| `EventRule` | `type { id, on, if, once, do }` | A listener: when `on` is emitted (`{ emit }`) and the condition holds, `do` runs. `once`: only the first time. |
-| `ExitDef` | `type { defaultVerb, name, to, entry, if, locked, … 5 more }` | A way out of the room, declared rather than written as a hotspot plus a rule. The engine turns it into exactly that (core/define.ts `normali |
-| `ExternalEntry` | `type { id, sequence, signal, source, receivedAt, playerId, … 2 more }` | What a session keeps of a signal from outside (4.1.1): its id and sequence on the Bridge, the signal, the source and when it arrived. Never  |
-| `FLOOR` | `395` | Default floor bottom (logical y), when the layout doesn't give `floor`. |
-| `GameDef` | `type { schemaVersion, id, title, lang, saveVersion, renderer, … 31 more }` |  |
-| `GameRules` | `type { fallbacks, kinds, on }` |  |
-| `GameSource` | `type { schemaVersion, id, title, lang, saveVersion, renderer, … 31 more }` |  |
-| `GameState` | `type { v, room, inventory, flags, props, actors, … 15 more }` |  |
-| `HintDef` | `type { id, until, lines }` |  |
-| `HotspotDef` | `type { defaultVerb, name, kind, visible, exit }` |  |
-| `Id` | `type { toString, charAt, charCodeAt, concat, indexOf, lastIndexOf, … 44 more }` |  |
-| `ItemDef` | `type { name, icon, look, kind }` |  |
-| `KindRule` | `type { id, verb, kind, target, item, say }` | Reaction by "kind": applies to anything with this `kind` (e.g. `person`, `cat`), before fallback responses. `target` targets a specific id ( |
-| `Layout` | `type { width, floor, walk, scale, entries, hotspots, … 8 more }` |  |
-| `LightDef` | `type { id, kind, color, intensity, blend, visible }` |  |
-| `ListLine` | `type union of 2` | One line of a list the engine draws from (a look list, a hint, the fallback answers): a plain string, keyed by its position in translations, |
-| `MapDef` | `type { regions, start, places, music, vehicles }` |  |
-| `MapRegion` | `type { name, image, parent, frame }` |  |
-| `Migration` | `type { from, renameFlag, renameItem, renameRoom, renameProp, renameActor, … 12 more }` | One step of save migration: from version `from` to `from + 1`. Keys are old ids, values new ones. |
-| `MouthSet` | `type { closed, open, blink, smile }` | Mouth images for a pose: the body doesn't move while speaking, only the mouth changes. `closed` replaces the idle pose's image (t1), `open`  |
-| `NEAR` | `150` | Distance (logical units) beyond which a saved approach point is considered stale and recomputed. |
-| `PlaceDef` | `type { name, room, region, pos, portrait, vehicle, … 1 more }` |  |
-| `Point` | `type { 0, 1, length, toString, toLocaleString, pop, … 31 more }` | Logical coordinates of a backdrop: 640 × 400, origin top-left. |
-| `PropAnim` | `type { frames, fps, loop, at }` | A prop animation: images in order at `fps` (default 8); `at` = commands run when a frame is reached (index). |
-| `PropDef` | `type { defaultVerb, img, states, anims, initial, name, … 2 more }` |  |
-| `RealityDef` | `type { signals, bridge }` |  |
-| `RealityState` | `type { playerId, cursor, applied }` | What a save keeps of the link (`GameState.reality`): no token, no email, no payload. |
-| `RevealDef` | `type { file, password, guess, scratch, card }` |  |
-| `RoomDef` | `type { id, name, decor, description, furniture, music, … 14 more }` |  |
-| `Rule` | `type { id, verb, a, b, if, do, … 1 more }` | A written reaction: "when VERB is done on A (with/to B), if CONDITION, then …". `a` and `b` accept a list: the rule works with any of them.  |
-| `ScoreDef` | `type { stems, bpm, beatsPerBar, loop, states, quantize, … 4 more }` |  |
-| `ScoreState` | `type { if, stems }` | Which stems sound in a given state: the first entry whose condition holds wins (`if` absent: always). |
-| `ScriptDef` | `type { id, while, loop, do, stepIds }` | A script of the world: it runs on its own, without a player action, one command at a time, in the gaps between the player's actions (never d |
-| `Session` | `type { v, start, base, log, at }` |  |
-| `SessionEntry` | `type union of 9` | One input of a session (`Engine.session`). The answers given while it ran (`picks`, `maps`, `rnd`) are what makes it replayable; `ran` lists |
-| `SignalDef` | `type { id, source, availability, replay, once, fallback }` |  |
-| `SkinDef` | `type { icons, sounds, fonts, heights, callPoses, pixelArt }` | UI skin: everything the engine shows or plays without the content referencing it. Image ids come from the manifest; sounds are ids from `aud |
-| `SpriteSet` | `type SpriteSet` | A set of images for a character: pose → list of images (looped). |
-| `StageDef` | `type { layers, lights, emitters, transition, links }` |  |
-| `StageLayer` | `type { id, image, role, visible }` | A picture of the room: `backdrop` behind everything, `scenery` among the characters (depth from its layout `z`), `foreground` in front of th |
-| `TalkTopic` | `type { id, topic, if, do }` |  |
-| `TransitionKind` | `type union of 3` |  |
-| `UiTexts` | `type { walkTo, newGame, continue, confirmErase, yes, no, … 62 more }` |  |
-| `Value` | `type union of 4` |  |
-| `VerbDef` | `type { id, label, color, join }` |  |
-| `VerbId` | `type { toString, charAt, charCodeAt, concat, indexOf, lastIndexOf, … 44 more }` | Verb id, free-form: the game's own `verbs` declare them. Four ids have meaning to the engine: `look` ("Look" text for rooms and items), `tal |
-| `WalkTarget` | `type union of 2` | Target of a move: a hotspot, an actor or a prop in the room (its approach point), or a point. |
-| `Who` | `type { toString, charAt, charCodeAt, concat, indexOf, lastIndexOf, … 44 more }` | Who speaks or acts. `'hero'` always designates the hero, whatever their id. |
+| Name | Signature | Stability | Doc |
+|---|---|---|---|
+| `Action` | `interface { verb, a, b }` | public | A player action: VERB a (with/to b). `a` can be an inventory item, `b` is always a target. |
+| `ActorDef` | `interface { defaultVerb, char, interactive, pose, facing, visible, … 1 more }` | public | A character standing in a room: which one, its pose and facing, and when it shows. |
+| `AudioDef` | `interface { music, sfx, voices, voicesByLang, scores, maxDecodedMB, … 1 more }` | public | The game's music, sounds and voice clips by id, its scores in stems and the transitions between them. |
+| `CharacterDef` | `interface { name, description, color, height, sprites, portrait, … 11 more }` | public | A character: its name, dialogue colour, poses, mouths and portrait, its kinds, and the variants its state selects. |
+| `Choice` | `interface { id, text, if, once, do }` | public | One answer the player may pick in a `{ choice }` command: its text, when it is offered, what it runs. |
+| `Cmd` | `type Cmd = union of 56` | public | A command. A plain string = the hero says this line. Command lists run in order, each one waiting for the previous one to finish. |
+| `CompiledGame` | `type CompiledGame = Readonly<GameDef>` | public | A game as `compileGame` returns it: normalised and, for schema 3, frozen. |
+| `compileGame` | `(source: GameSource): CompiledGame` | public | Compiles authoring data once into the single normalised representation consumed by the engine and tools. The source is never mutated; genera |
+| `Cond` | `type Cond = union of 13` | public | A condition. - `'flag'`: the flag is true; `'!flag'`: the flag is false or absent. - `{ has: 'item' }`: the item is in the inventory. - `{ f |
+| `CustomCommand` | `interface { effects, pure, run }` | extension | A command a game defines in code: its effects on the state as plain commands, and its browser-only `run`. |
+| `CustomCommands` | `type CustomCommands = Record<string, CustomCommand>` | extension | A game's custom commands by name, as `games/<id>/index.ts` exports them. |
+| `CustomContext` | `interface { game, state, room, args, ui, scene, … 1 more }` | extension | What a custom command's `run` receives: the game, its state, the room, the arguments, the presenter and the scene element. |
+| `defineGame` | `(game: GameDef): GameDef` | public | Declares the full game. |
+| `defineRoom` | `(room: RoomDef): RoomDef` | public | Declares a room. Does nothing but type it: autocomplete guides the writing. |
+| `EmitterDef` | `interface { id, kind, image, color, rate, visible }` | public | A particle source of the staged room (dust, rain, snow, sparks, smoke, leaves) and its rate. |
+| `EMPTY_LAYOUT` | `Layout` | public | Empty layout, when the room hasn't been placed in the editor yet. |
+| `EndingDef` | `interface { file, password, guess, scratch, card }` | public | Sealed ending (`ending` module): encrypted content, decrypted at the end of the game and shown on a card. |
+| `EventRule` | `interface { id, on, if, once, do }` | public | A listener: when `on` is emitted (`{ emit }`) and the condition holds, `do` runs. `once`: only the first time. |
+| `ExitDef` | `interface { defaultVerb, name, to, entry, if, locked, … 5 more }` | public | A way out of the room, declared rather than written as a hotspot plus a rule. The engine turns it into exactly that (core/define.ts `normali |
+| `ExternalEntry` | `interface { id, sequence, signal, source, receivedAt, playerId, … 2 more }` | public | What a session keeps of a signal from outside (4.1.1): its id and sequence on the Bridge, the signal, the source and when it arrived. Never  |
+| `FLOOR` | `395` | public | Default floor bottom (logical y), when the layout doesn't give `floor`. |
+| `GameDef` | `interface { schemaVersion, id, title, lang, saveVersion, renderer, … 31 more }` | public | The whole game as written: verbs, characters, items, rooms, rules, audio, skin, budgets, migrations and texts. |
+| `GameRules` | `interface { fallbacks, kinds, on }` | public | The rules shared by every room: fallback responses per verb, reactions by kind, rules valid everywhere. |
+| `GameSource` | `type GameSource = GameDef` | public | A game as its sources write it: a `GameDef` before compilation. |
+| `GameState` | `interface { v, room, inventory, flags, props, actors, … 15 more }` | public | The state of a game in progress, serialised as-is in a save: room, inventory, flags, props, actors, counters, scripts. |
+| `HintDef` | `interface { id, until, lines }` | public | A hint the hint item gives while its `until` condition is false, as lines said in order. |
+| `HotspotDef` | `interface { defaultVerb, name, kind, visible, exit }` | public | A named zone of the room the player can act on; its geometry lives in the layout. |
+| `Id` | `type Id = string` | public | An identifier in the content (a room, an item, a flag, a character, a prop…): a plain string the game chooses. |
+| `ItemDef` | `interface { name, icon, look, kind }` | public | An inventory item: its name, its icon, its look lines and its kinds. |
+| `KindRule` | `interface { id, verb, kind, target, item, say }` | public | Reaction by "kind": applies to anything with this `kind` (e.g. `person`, `cat`), before fallback responses. `target` targets a specific id ( |
+| `Layout` | `interface { width, floor, walk, scale, entries, hotspots, … 8 more }` | public | A room's geometry, written by the placement editor: walk areas, entries, and where every hotspot, prop, actor, layer and light stands. |
+| `LightDef` | `interface { id, kind, color, intensity, blend, visible }` | public | A light of the staged room: a radial pool at its layout position, or an ambient colour over the whole room. |
+| `ListLine` | `type ListLine = string \| { id: Id; text: string }` | public | One line of a list the engine draws from (a look list, a hint, the fallback answers): a plain string, keyed by its position in translations, |
+| `MapDef` | `interface { regions, start, places, music, vehicles }` | public | The travel map: its regions, its places and the region shown first. |
+| `MapRegion` | `interface { name, image, parent, frame }` | public | A region of the travel map: its image, its parent region and its frame on it. |
+| `Migration` | `interface { from, renameFlag, renameItem, renameRoom, renameProp, renameActor, … 12 more }` | public | One step of save migration: from version `from` to `from + 1`. Keys are old ids, values new ones. |
+| `MouthSet` | `interface { closed, open, blink, smile }` | public | Mouth images for a pose: the body doesn't move while speaking, only the mouth changes. `closed` replaces the idle pose's image (t1), `open`  |
+| `NEAR` | `150` | public | Distance (logical units) beyond which a saved approach point is considered stale and recomputed. |
+| `PlaceDef` | `interface { name, room, region, pos, portrait, vehicle, … 1 more }` | public | A place on the travel map: the room it opens, its region and position, its vehicle and its news marker. |
+| `Point` | `type Point = [number, number]` | public | Logical coordinates of a backdrop: 640 × 400, origin top-left. |
+| `PropAnim` | `interface { frames, fps, loop, at }` | public | A prop animation: images in order at `fps` (default 8); `at` = commands run when a frame is reached (index). |
+| `PropDef` | `interface { defaultVerb, img, states, anims, initial, name, … 2 more }` | public | A prop in the scenery, with states (e.g. amp off/on). Its position comes from the layout. |
+| `RealityDef` | `interface { signals, bridge }` | public | The game's link to the world outside: the signals it declares and the Reality Bridge it pairs with. |
+| `RealityState` | `interface { playerId, cursor, applied }` | public | What a save keeps of the link (`GameState.reality`): no token, no email, no payload. |
+| `RevealDef` | `type RevealDef = EndingDef` | public | The old name of `EndingDef`. |
+| `RoomDef` | `interface { id, name, decor, description, furniture, music, … 14 more }` | public | A room: its backdrop or stage, props, actors, hotspots, exits, look lines, reactions, topics, hints and scripts. |
+| `Rule` | `interface { id, verb, a, b, if, do, … 1 more }` | public | A written reaction: "when VERB is done on A (with/to B), if CONDITION, then …". `a` and `b` accept a list: the rule works with any of them.  |
+| `ScoreDef` | `interface { stems, bpm, beatsPerBar, loop, states, quantize, … 4 more }` | public | A score in stems: its files, its tempo and loop, and which stems sound in each game state. |
+| `ScoreState` | `interface { if, stems }` | public | Which stems sound in a given state: the first entry whose condition holds wins (`if` absent: always). |
+| `ScriptDef` | `interface { id, while, loop, do, stepIds }` | public | A script of the world: it runs on its own, without a player action, one command at a time, in the gaps between the player's actions (never d |
+| `Session` | `interface { v, start, base, log, at }` | public | A player's inputs since the game started or a save was loaded, with the state they started from: enough to replay them. |
+| `SessionEntry` | `type SessionEntry = union of 9` | public | One input of a session (`Engine.session`). The answers given while it ran (`picks`, `maps`, `rnd`) are what makes it replayable; `ran` lists |
+| `SignalDef` | `interface { id, source, availability, replay, once, fallback }` | public | A signal the game may receive from the world outside: its id, source, availability, replay mode and fallback. |
+| `SkinDef` | `interface { icons, sounds, fonts, heights, callPoses, pixelArt }` | public | UI skin: everything the engine shows or plays without the content referencing it. Image ids come from the manifest; sounds are ids from `aud |
+| `SpriteSet` | `type SpriteSet = Record<string, Id[]>` | public | A set of images for a character: pose → list of images (looped). |
+| `StageDef` | `interface { layers, lights, emitters, transition, links }` | public | What a room shows beyond its backdrop: layers, lights, particles, its transition and the logic of its walk links. |
+| `StageLayer` | `interface { id, image, role, visible }` | public | A picture of the room: `backdrop` behind everything, `scenery` among the characters (depth from its layout `z`), `foreground` in front of th |
+| `TalkTopic` | `interface { id, topic, if, do }` | public | A conversation topic offered when talking to an actor: its line, when it is offered, what it runs. |
+| `TransitionKind` | `type TransitionKind = 'cut' \| 'fade' \| 'wipe'` | public | How a room appears when entered: a cut, a fade or a wipe. |
+| `UiTexts` | `interface { walkTo, newGame, continue, confirmErase, yes, no, … 62 more }` | public | Every text the interface shows (menus, confirmations, settings): the engine hardcodes none of them. |
+| `Value` | `type Value = boolean \| number \| string` | public | What a flag holds: a boolean, a number or a string. |
+| `VerbDef` | `interface { id, label, color, join }` | public | A verb as the interface shows it: its id, its label, its colour and the joining word of a two-term sentence. |
+| `VerbId` | `type VerbId = string` | public | Verb id, free-form: the game's own `verbs` declare them. Four ids have meaning to the engine: `look` ("Look" text for rooms and items), `tal |
+| `WalkTarget` | `type WalkTarget = Id \| Point` | public | Target of a move: a hotspot, an actor or a prop in the room (its approach point), or a point. |
+| `Who` | `type Who = Id` | public | Who speaks or acts. `'hero'` always designates the hero, whatever their id. |
 
 ### web-scumm/player
 
-| Name | Signature | Doc |
-|---|---|---|
-| `AssetManifest` | `type { images, audio, videos }` | Catalogue of images and sounds prepared by `npm run assets`. |
-| `bootGame` | `(o: BootOptions): Promise<App>` | Boots the game in the page and returns the App (after the title screen is shown, or the dev tools started). |
-| `BootOptions` | `type { game, layouts, manifest, minigames, commands, locales, … 7 more }` |  |
-| `EmitterSpec` | `type { id, kind, url, color, rate, area, … 1 more }` |  |
-| `LayerSpec` | `type { id, url, role, x, y, w, … 6 more }` | A stage layer, resolved: its image, its box in the room (logical units, before parallax), its depth and look. |
-| `LightSpec` | `type { id, kind, color, intensity, blend, at, … 2 more }` |  |
-| `Locales` | `type Locales` |  |
-| `OccluderSpec` | `type { id, z, polygon, mask, layer, feather, … 1 more }` | What hides a character deeper than `z`: the backdrop's pixels (or a layer's) inside a polygon, a mask image or a layer's alpha. |
-| `openStore` | `(game: GameDef, open?: StoreOpener): Promise<{ store?: SaveStore; attach: (app: App) => void; }>` | Opens the verified store and keeps its early errors and warnings until an App can show them. Without IndexedDB the App's verified localStora |
-| `pickLanguage` | `(_written: GameDef, locales: Locales \| undefined, o?: { query?: string \| null; stored?: string \| null; navigatorLang?: string; }): string \| undefined` | `?lang=`, then the player's saved choice, then the browser's language when the game ships it. |
-| `Presenter` | `type { enterRoom, say, walk, face, pose, anim, … 21 more }` | What the core asks the display for. The DOM renderer implements it for the browser, FakePresenter implements it for node (tests, solver). Al |
-| `SaveStore` | `type { load, save, clear, whenIdle }` |  |
-| `SceneRenderer` | `type { el, reset, sprite, camera, resize, stage, … 1 more }` |  |
-| `SlotStore` | `type { listSlots, getSlot, putSlot, clearSlot }` | Manual save slots (`GameDef.saves.slots`), durable and verified like the autosave. Numbered from 1. |
-| `SpriteSpec` | `type { id, url, fx, fy, w, h, … 9 more }` | One thing drawn in the scene, in logical units. `fx, fy`: its feet (bottom centre), the pivot of rotations. |
-| `StageSpec` | `type { backdrop, layers, occluders, lights, emitters, reduceMotion }` | Everything a room shows besides its sprites (`RoomDef.stage`, normalized by `stageOf`, conditions evaluated by the model). |
-| `StoreOpener` | `type StoreOpener` |  |
-| `SwModule` | `type { registerSW }` | `registerSW` of `virtual:pwa-register` (vite-plugin-pwa), injected so the engine never imports a virtual module. |
+| Name | Signature | Stability | Doc |
+|---|---|---|---|
+| `AssetManifest` | `interface { images, audio, videos }` | public | Catalogue of images and sounds prepared by `npm run assets`. |
+| `bootGame` | `(o: BootOptions): Promise<App>` | public | Boots the game in the page and returns the App (after the title screen is shown, or the dev tools started). |
+| `BootOptions` | `interface { game, layouts, manifest, minigames, commands, locales, … 7 more }` | public | What `bootGame` starts the game with: the game, its layouts and manifest, minigames, commands, locales, root, store and service worker. |
+| `EmitterSpec` | `interface { id, kind, url, color, rate, area, … 1 more }` | extension | A particle source, resolved for the painter: its kind, image, colour, rate and area. |
+| `LayerSpec` | `interface { id, url, role, x, y, w, … 6 more }` | extension | A stage layer, resolved: its image, its box in the room (logical units, before parallax), its depth and look. |
+| `LightSpec` | `interface { id, kind, color, intensity, blend, at, … 2 more }` | extension | A light, resolved for the painter: its kind, colour, intensity and blend, and for a radial one its centre and radius. |
+| `Locales` | `type Locales = Record<string, Record<string, string>>` | public | The translations a game ships, by language then by text path (`locales/<lang>.json`). |
+| `OccluderSpec` | `interface { id, z, polygon, mask, layer, feather, … 1 more }` | extension | What hides a character deeper than `z`: the backdrop's pixels (or a layer's) inside a polygon, a mask image or a layer's alpha. |
+| `openStore` | `(game: GameDef, open?: StoreOpener): Promise<{ store?: SaveStore; attach: (app: App) => void; }>` | public | Opens the verified store and keeps its early errors and warnings until an App can show them. Without IndexedDB the App's verified localStora |
+| `pickLanguage` | `(_written: GameDef, locales: Locales \| undefined, o?: { query?: string \| null; stored?: string \| null; navigatorLang?: string; }): string \| undefined` | public | `?lang=`, then the player's saved choice, then the browser's language when the game ships it. |
+| `Presenter` | `interface { enterRoom, say, walk, face, pose, anim, … 21 more }` | extension | What the core asks the display for. The DOM renderer implements it for the browser, FakePresenter implements it for node (tests, solver). Al |
+| `SaveStore` | `interface { load, save, clear, whenIdle }` | extension | The autosave store a host provides: load, save, clear, and when the latest write is durable. |
+| `SceneRenderer` | `interface { el, reset, sprite, camera, resize, stage, … 1 more }` | extension | The painter contract: a surface, sprites and a stage to draw, a camera to follow; the DOM and canvas painters implement it. |
+| `SlotStore` | `interface { listSlots, getSlot, putSlot, clearSlot }` | extension | Manual save slots (`GameDef.saves.slots`), durable and verified like the autosave. Numbered from 1. |
+| `SpriteSpec` | `interface { id, url, fx, fy, w, h, … 9 more }` | extension | One thing drawn in the scene, in logical units. `fx, fy`: its feet (bottom centre), the pivot of rotations. |
+| `StageSpec` | `interface { backdrop, layers, occluders, lights, emitters, reduceMotion }` | extension | Everything a room shows besides its sprites (`RoomDef.stage`, normalized by `stageOf`, conditions evaluated by the model). |
+| `StoreOpener` | `type StoreOpener = (game: GameDef, fail: (e: Error) => void, warn: (m: string) => void) => Promise<SaveStore>` | extension | How a host supplies the save store `openStore` opens, in place of the verified IndexedDB one. |
+| `SwModule` | `interface { registerSW }` | extension | `registerSW` of `virtual:pwa-register` (vite-plugin-pwa), injected so the engine never imports a virtual module. |
 
 ### web-scumm/minigames
 
-| Name | Signature | Doc |
-|---|---|---|
-| `Minigame` | `type { run, required, textParams, bindings }` |  |
-| `MINIGAME_CSS` | `"\n.mg{position:absolute;inset:0;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;font-family:var(--font-ui,'DotGothic16'),monospace;` |  |
-| `MinigameCtx` | `type { root, u, img, size, sfx, instruct, … 4 more }` |  |
-| `minigames` | `Record<string, Minigame>` | Minigames provided by the engine. A game can add others with the same interface. What tools read (`required`, `textParams`, `bindings`) is h |
+| Name | Signature | Stability | Doc |
+|---|---|---|---|
+| `Minigame` | `interface { run, required, textParams, bindings }` | extension | A minigame: `run(ctx)` until it is won or skipped, and what the validator reads of its params. |
+| `MINIGAME_CSS` | `"\n.mg{position:absolute;inset:0;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;font-family:var(--font-ui,'DotGothic16'),monospace;` | public | The shared styles of the minigames, injected once by the host. |
+| `MinigameCtx` | `interface { root, u, img, size, sfx, instruct, … 4 more }` | extension | What the host hands a minigame: its zone, the unit scale, images and sounds, parameters, labels and an abort signal. |
+| `minigames` | `Record<string, Minigame>` | public | Minigames provided by the engine. A game can add others with the same interface. What tools read (`required`, `textParams`, `bindings`) is h |
 
 ### web-scumm/testing
 
-| Name | Signature | Doc |
-|---|---|---|
-| `Engine` | `class Engine` |  |
-| `FakePresenter` | `class FakePresenter` | Silent presenter for node: everything finishes immediately, and everything is logged to `log`. |
-| `MemoryStore` | `class MemoryStore` |  |
-| `parseSave` | `(game: GameDef, input: unknown, opts?: ParseSaveOptions): GameState` | Parses an envelope (or a legacy raw state). Structural corruption and references needed to resume (the current room and active player) are r |
-| `saveEnvelope` | `(game: GameDef, state: GameState, now?: number): SaveEnvelopeV3` |  |
-| `SaveEnvelopeV3` | `type { format, schema, gameId, gameSaveVersion, savedAt, state }` |  |
-| `solve` | `(gameIn: GameDef, layouts: Record<string, Layout>, opts?: SolveOptions): Promise<SolveResult>` |  |
-| `SolveOptions` | `type { reality, maxStates, mode, start, goal, commands, … 13 more }` |  |
-| `SolveResult` | `type { status, exit, headline, mode, reality, finished, … 19 more }` |  |
+| Name | Signature | Stability | Doc |
+|---|---|---|---|
+| `Engine` | `class Engine` | public | The engine without a page: it runs a game against a Presenter and a SaveStore, in the browser, in node tests and in the solver. |
+| `FakePresenter` | `class FakePresenter` | public | Silent presenter for node: everything finishes immediately, and everything is logged to `log`. |
+| `MemoryStore` | `class MemoryStore` | public | A save store in memory, for the tests and the solver: nothing survives the process. |
+| `parseSave` | `(game: GameDef, input: unknown, opts?: ParseSaveOptions): GameState` | public | Parses an envelope (or a legacy raw state). Structural corruption and references needed to resume (the current room and active player) are r |
+| `saveEnvelope` | `(game: GameDef, state: GameState, now?: number): SaveEnvelopeV3` | public | Wraps a state in the save envelope (format, schema, game id and save version, date) a store writes. |
+| `SaveEnvelopeV3` | `interface { format, schema, gameId, gameSaveVersion, savedAt, state }` | public | A save as written: the state with the format, the schema, the game's id and save version and the date. |
+| `solve` | `(gameIn: GameDef, layouts: Record<string, Layout>, opts?: SolveOptions): Promise<SolveResult>` | public | Searches the game for a way to its ending (`witness`), or explores every reachable state for softlocks (`prove`). |
+| `SolveOptions` | `interface { reality, maxStates, mode, start, goal, commands, … 13 more }` | public | What a search is told: its mode, where it starts and stops, the custom commands, the world's signals and its budgets. |
+| `SolveResult` | `interface { status, exit, headline, mode, reality, finished, … 19 more }` | public | The verdict of a search: its status, exit code and headline, the path found, the softlocks and the search's statistics. |
 
 ### web-scumm/reality
 
-| Name | Signature | Doc |
-|---|---|---|
-| `BridgeKey` | `type { kid, key, notBefore, notAfter }` | One verification key of the Bridge: its id, the key, and when it may sign (epoch ms; rotation overlaps). |
-| `Fault` | `type { delayMs, duplicate, badSignature, expired }` |  |
-| `httpPort` | `(o: HttpPortOptions): WorldSignalPort` |  |
-| `HttpPortOptions` | `type { url, capability, fetch, retryMs, mode, onStatus, … 3 more }` |  |
-| `importBridgeKey` | `(kid: string, raw: string, window?: Omit<BridgeKey, "kid" \| "key">): Promise<BridgeKey>` | An Ed25519 public key from its 32 raw bytes in base64url (a manifest's or a Bridge's configuration). |
-| `Keyring` | `type { length, toString, toLocaleString, pop, push, concat, … 29 more }` |  |
-| `manifestHash` | `(m: RealityManifest): Promise<string>` | The manifest's hash: SHA-256 of its JSON (keys in this fixed order), hex. |
-| `MAX_SIGNAL_CHARS` | `4096` | The largest signed signal accepted, in characters: a signal is an identifier, not a document. |
-| `RealityClient` | `class RealityClient` |  |
-| `RealityClientOptions` | `type { engine, store, port, keyring, refreshKeys, playerId, … 5 more }` |  |
-| `realityManifest` | `(game: GameDef): RealityManifest \| null` |  |
-| `RealityManifest` | `type { format, schema, gameId, signals }` |  |
-| `RefusalCode` | `type union of 13` | Why a signal was refused, as a code (the conformance corpus and the Rust cross-check compare codes) and a sentence. |
-| `SignalExpectation` | `type { gameId, playerId, signals, now }` | What a signal must match besides its signature. |
-| `SignalSimulator` | `class SignalSimulator` |  |
-| `SignedWorldSignalV1` | `type { toString, charAt, charCodeAt, concat, indexOf, lastIndexOf, … 44 more }` | A signed signal as it travels: the compact JWS string. |
-| `signSignal` | `(payload: WorldSignalV1, key: CryptoKey, kid: string): Promise<SignedWorldSignalV1>` | Signs a payload as the Bridge does (the Bridge, the tests, the Studio's simulator). |
-| `SimulatedDelivery` | `type { sequence, signal, fault, at }` |  |
-| `VerifyResult` | `type union of 2` |  |
-| `verifySignal` | `(jws: unknown, keyring: Keyring, expect: SignalExpectation): Promise<VerifyResult>` | Checks a signed signal, then what it says. The reason of a refusal is a short sentence (logged, never shown raw). |
-| `WorldSignalPort` | `type { connect, acknowledge, close }` | Where signals from the world outside come from (4.1.1, Reality Bridge): the Bridge's transport (Server-Sent Events, a fetch by cursor), or t |
-| `WorldSignalV1` | `type { format, schema, id, sequence, gameId, playerId, … 8 more }` |  |
-| `WorldSignalV1Schema` | `z.ZodMiniObject<{ format: z.ZodMiniLiteral<"web-scumm-world-signal">; schema: z.ZodMiniLiteral<1>; id: z.ZodMiniString<string>; sequence: z.ZodMiniInt; gameId: ` | The payload the Bridge signs: one accepted fact from outside, as a finite identifier (§4.1). |
+| Name | Signature | Stability | Doc |
+|---|---|---|---|
+| `BridgeKey` | `interface { kid, key, notBefore, notAfter }` | public | One verification key of the Bridge: its id, the key, and when it may sign (epoch ms; rotation overlaps). |
+| `Fault` | `interface { delayMs, duplicate, badSignature, expired }` | public | What the simulator does wrong on purpose with one delivery: a delay, a duplicate, a bad signature, an expiry. |
+| `httpPort` | `(o: HttpPortOptions): WorldSignalPort` | public | The transport to a Bridge, as a WorldSignalPort: Server-Sent Events read with fetch, or a fetch by cursor. |
+| `HttpPortOptions` | `interface { url, capability, fetch, retryMs, mode, onStatus, … 3 more }` | public | How `httpPort` reaches a Bridge: its URL, the pairing's capability, the fetch to use, the retry delay and the mode. |
+| `importBridgeKey` | `(kid: string, raw: string, window?: Omit<BridgeKey, "kid" \| "key">): Promise<BridgeKey>` | public | An Ed25519 public key from its 32 raw bytes in base64url (a manifest's or a Bridge's configuration). |
+| `Keyring` | `type Keyring = BridgeKey[]` | public | The Bridge's verification keys the player trusts (several during a rotation). |
+| `manifestHash` | `(m: RealityManifest): Promise<string>` | public | The manifest's hash: SHA-256 of its JSON (keys in this fixed order), hex. |
+| `MAX_SIGNAL_CHARS` | `4096` | public | The largest signed signal accepted, in characters: a signal is an identifier, not a document. |
+| `RealityClient` | `class RealityClient` | public | The player's side of the Reality Bridge: reads signed signals from a port, verifies each, hands it to the engine, waits for the durable save |
+| `RealityClientOptions` | `interface { engine, store, port, keyring, refreshKeys, playerId, … 5 more }` | public | What a RealityClient is built with: the engine, the store, the port, the keyring, and how it refreshes keys and reports. |
+| `realityManifest` | `(game: GameDef): RealityManifest \| null` | public | The manifest of a game that declares `reality`, null otherwise. |
+| `RealityManifest` | `interface { format, schema, gameId, signals }` | public | A game's Reality manifest: the signals it declares, with no secret, as the Bridge checks them. |
+| `RefusalCode` | `type RefusalCode = union of 13` | public | Why a signal was refused, as a code (the conformance corpus and the Rust cross-check compare codes) and a sentence. |
+| `SignalExpectation` | `interface { gameId, playerId, signals, now }` | public | What a signal must match besides its signature. |
+| `SignalSimulator` | `class SignalSimulator` | public | A Bridge in the browser, for the Studio and the tests: signs and delivers a game's signals, with faults on demand. |
+| `SignedWorldSignalV1` | `type SignedWorldSignalV1 = string` | public | A signed signal as it travels: the compact JWS string. |
+| `signSignal` | `(payload: WorldSignalV1, key: CryptoKey, kid: string): Promise<SignedWorldSignalV1>` | public | Signs a payload as the Bridge does (the Bridge, the tests, the Studio's simulator). |
+| `SimulatedDelivery` | `interface { sequence, signal, fault, at }` | public | One delivery the simulator made: its sequence, its signal, its fault and when. |
+| `VerifyResult` | `type VerifyResult = { ok: true; signal: WorldSignalV1 } \| { ok: false; code: RefusalCode; reason: string }` | public | The outcome of `verifySignal`: the signal it accepted, or the refusal's code and reason. |
+| `verifySignal` | `(jws: unknown, keyring: Keyring, expect: SignalExpectation): Promise<VerifyResult>` | public | Checks a signed signal, then what it says. The reason of a refusal is a short sentence (logged, never shown raw). |
+| `WorldSignalPort` | `interface { connect, acknowledge, close }` | extension | Where signals from the world outside come from (4.1.1, Reality Bridge): the Bridge's transport (Server-Sent Events, a fetch by cursor), or t |
+| `WorldSignalV1` | `type WorldSignalV1 = z.infer<typeof WorldSignalV1Schema>` | public | The signed payload, as `WorldSignalV1Schema` types it. |
+| `WorldSignalV1Schema` | `z.ZodMiniObject<{ format: z.ZodMiniLiteral<"web-scumm-world-signal">; schema: z.ZodMiniLiteral<1>; id: z.ZodMiniString<string>; sequence: z.ZodMiniInt; gameId: ` | public | The payload the Bridge signs: one accepted fact from outside, as a finite identifier (§4.1). |
 <!-- api-doc:end -->

@@ -4,7 +4,7 @@ import type { Cmd, GameDef, Id } from '../core/types';
 import { eachCmd } from '../core/cmds';
 import { layeredSvg, type SvgEdge, type SvgNode } from './svg';
 
-export interface WorldEdge {
+interface WorldEdge {
   from: Id;
   to: Id;
   /** `exit` (declared), `goto` (a command in a rule, a topic, a script…), `map` (a place of the world map). */

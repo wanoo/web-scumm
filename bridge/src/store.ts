@@ -92,6 +92,7 @@ const JournalEntrySchema = z.object({
 /**
  * Every line of the journal, whole (4.1.8): a line that is JSON but not an event of this shape is corruption too,
  * and the Bridge refuses to start on it rather than build its state from half-read lines.
+ * @public
  */
 export const BridgeEventSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('pairing'), p: PairingSchema }),

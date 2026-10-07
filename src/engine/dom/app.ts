@@ -74,7 +74,6 @@ import { DEFAULT_SETTINGS, type Settings } from './settings';
 import { LocalSlotStore, LocalStore, withPhase } from './storage';
 import { el, esc, fpsMeter, sleep, type RealityLinkLike } from './app-shared';
 export type { Settings } from './settings';
-export { LocalSlotStore } from './storage';
 
 export interface AppOptions {
   root: HTMLElement;
