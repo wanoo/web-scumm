@@ -12,8 +12,6 @@ import type { GameDef } from '../core/types';
 import { trapFocus } from './a11y';
 import { el, esc } from './app-shared';
 import type { UiKey } from './ui-defaults';
-import { b64url, importBridgeKey } from '../reality/protocol';
-import { verifyDayToken } from '../reality/daily';
 
 /** What the menu needs of the player (an `App` is one). */
 export interface RemixHost {
@@ -176,6 +174,11 @@ export async function copyWorld(host: RemixHost): Promise<void> {
 export async function dailyWorldOf(game: GameDef, token: string, now = Date.now()): Promise<WorldVariant> {
   const d = game.remix?.daily;
   if (!d) throw new RemixSeedError('this game has no daily challenge');
+  // The Reality chunk only for a daily challenge (a game without `reality` does not precache it: the boot never needs it).
+  const [{ importBridgeKey }, { verifyDayToken }] = await Promise.all([
+    import('../reality/protocol'),
+    import('../reality/daily'),
+  ]);
   const r = await verifyDayToken(token, await importBridgeKey(d.kid, d.publicKey), game.id, now);
   if (!r.ok) throw new RemixSeedError(r.reason);
   return worldOf(game, r.token.seed, d.mode);
@@ -192,9 +195,20 @@ export function dailyFetcher(game: GameDef): (() => Promise<WorldVariant>) | und
   };
 }
 
+const toB64url = (bytes: Uint8Array) => {
+  let s = '';
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+const fromB64url = (s: string) => {
+  if (!/^[\w-]*$/.test(s)) throw new RemixSeedError('this link names no world');
+  const bin = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (s.length % 4)) % 4));
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+};
+
 /** A frozen world as a link's parameter (`?world=`): its JSON in base64url (the Studio's export, a bug report). */
 export function frozenParam(v: WorldVariant): string {
-  return b64url.encode(new TextEncoder().encode(JSON.stringify(v)));
+  return toB64url(new TextEncoder().encode(JSON.stringify(v)));
 }
 
 /**
@@ -210,7 +224,7 @@ export async function worldFromQuery(
   const frozen = q.get('world');
   // A frozen world is checked like a save's: its shape here, its hash and every value against the game by applyVariant.
   if (frozen) {
-    const r = WorldVariantSchema.safeParse(JSON.parse(new TextDecoder().decode(b64url.decode(frozen))));
+    const r = WorldVariantSchema.safeParse(JSON.parse(new TextDecoder().decode(fromB64url(frozen))));
     if (!r.success) throw new RemixSeedError('this link names no world');
     return loadVariant(compileGameManifest(game), r.data).variant;
   }

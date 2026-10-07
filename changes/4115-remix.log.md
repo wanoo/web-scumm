@@ -55,4 +55,11 @@
   without WebCrypto (`core/prng.ts`, one function, asked by the reading); (9) a stored world of another algorithm
   version is applied as stored when it passes the checks (decided, ADR 0018); (10) a malformed link is said on the
   title; (11) `npm run code-wheel` takes a game id only; (12) non-ASCII seed codes refused.
+- After PR #50's CI run (37635494627): the save envelope's story world no longer pulls the compiler into the first
+  chunk (`core/remix/story.ts`, equal to `storyVariant`, tested); `dom/remix-menu.ts` imports the Reality code only
+  for a daily challenge (the demo, without `reality`, does not precache that chunk: the offline PWA boot and
+  `e2e:weight` failed on it). Measured with `npx vite build` + `npx tsx tools/dist.ts`: demo 132 KB, reference 136 KB
+  (budget 140); the "1 thing the provenance does not account for" was that budget line. `core/save.ts` back to 100 %
+  of its branches (`tests/save-world.test.ts`, measured with vitest coverage on the five save test files). Not run:
+  the full `test:coverage` and `coverage-ratchet` (one-file-at-a-time rule of this machine), the e2e.
 → next: Claude · `release/4.1.15`

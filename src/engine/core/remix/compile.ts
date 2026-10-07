@@ -5,7 +5,6 @@
 // `verify:variants`), never in a player's game. A malformed seed or an unknown algorithm version is an explicit error,
 // never a silent fallback to another world. Draws come from core/prng.ts only (one stream per dimension, `logic` for
 // the logical dimensions and `cosmetic` for presentation, D27); `Math` is not used in this folder (biome.json).
-import * as z from 'zod/mini';
 import { canonicalJson } from '../canonical';
 import { condFlags } from '../cond';
 import { eachCmd } from '../cmds';
@@ -21,36 +20,14 @@ import {
 } from './manifest';
 import { normalizeSeed, RemixSeedError, STORY_SEED } from './seed-code';
 import { sha256HexSync } from './sha256';
+import { EMPTY_MANIFEST, variantHash, type WorldVariant, WorldVariantSchema } from './story';
 
 /** The largest catalogue a mode may enumerate (D25): beyond it, the mode is a generator with a published sample. @public */
 export const CATALOGUE_MAX = 10_000;
 
-/**
- * One world instance: the seed it came from, the algorithm and its version, the manifest's hash, the mode, one value
- * per dimension, and the hash of all that (`canonicalJson`, SHA-256). Stored in a save and a speedrun envelope, never
- * regenerated with another algorithm version.
- * @public
- */
-export interface WorldVariant {
-  seed: string;
-  algorithm: string;
-  algorithmVersion: number;
-  manifestHash: string;
-  mode: string;
-  assignments: Readonly<Record<string, unknown>>;
-  hash: string;
-}
+export type { WorldVariant } from './story';
 
-/** A world as stored (a save, a link, a session): its shape, checked before anything reads it. */
-export const WorldVariantSchema = z.strictObject({
-  seed: z.string().check(z.minLength(1), z.maxLength(64)),
-  algorithm: z.string().check(z.minLength(1)),
-  algorithmVersion: z.int().check(z.positive()),
-  manifestHash: z.string().check(z.maxLength(64)),
-  mode: z.string().check(z.minLength(1), z.maxLength(64)),
-  assignments: z.record(z.string(), z.unknown()),
-  hash: z.string().check(z.regex(/^[0-9a-f]{64}$/)),
-});
+export { WorldVariantSchema } from './story';
 
 /** A manifest that cannot produce a world: a build error, with every reason. @public */
 export class RemixManifestError extends Error {
@@ -397,11 +374,6 @@ const GENERATORS: Readonly<
   },
 };
 
-/** The hash of a variant's content (everything but `hash`). */
-function variantHash(v: Omit<WorldVariant, 'hash'>): string {
-  return sha256HexSync(canonicalJson(v));
-}
-
 /**
  * The world of a seed: `GameIR + VariationManifest + seed + algorithmVersion → WorldVariant` (ADR 0018). `story` (the
  * seed or the mode) gives every dimension its story value. A malformed seed, an unknown mode or an unknown algorithm
@@ -442,14 +414,7 @@ export function storyVariant(manifest: VariationManifest | undefined, world: Rem
   return compileVariant(world, manifest ?? EMPTY_MANIFEST, STORY_SEED);
 }
 
-/** The manifest of a game that declares none: no mode, no dimension. */
-export const EMPTY_MANIFEST: VariationManifest = {
-  schema: 1,
-  algorithm: REMIX_ALGORITHM,
-  modes: [],
-  dimensions: [],
-  constraints: [],
-};
+export { EMPTY_MANIFEST } from './story';
 
 /**
  * A stored variant (a save's, a session's, a speedrun's) checked and kept as it is: its hash must match its content;

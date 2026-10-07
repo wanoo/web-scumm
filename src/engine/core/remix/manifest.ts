@@ -100,10 +100,10 @@ export interface VariationManifest {
   daily?: { kid: string; publicKey: string; mode: string };
 }
 
-/** The algorithm's name and its versions this engine can generate with. A stored variant of another is loaded, never regenerated. */
-export const REMIX_ALGORITHM = 'web-scumm-remix-1';
-/** The generator's version: bumped when a single assignment of a given seed would change (ADR 0018). @public */
-export const REMIX_ALGORITHM_VERSION = 1;
+// The algorithm's name and the generator's version live with the story world (core/remix/story.ts: the player's first
+// chunk carries them without the compiler).
+import { REMIX_ALGORITHM, REMIX_ALGORITHM_VERSION } from './story';
+export { REMIX_ALGORITHM, REMIX_ALGORITHM_VERSION };
 
 /** The reserved flag a logical dimension writes (`remix.<id>`; a puzzle order writes `remix.<id>.<group>`). @public */
 export const variantFlag = (dimension: string, group?: string): string =>

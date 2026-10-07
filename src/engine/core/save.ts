@@ -4,8 +4,7 @@ import * as z from 'zod/mini';
 import type { GameDef, GameState, Id } from './types';
 import { migrate } from './migrate';
 import { splitRoomKey } from './keys';
-import { storyVariant, type WorldVariant, WorldVariantSchema } from './remix/compile';
-import { remixWorld } from './remix/apply';
+import { storyWorld, type WorldVariant, WorldVariantSchema } from './remix/story';
 
 const id = z.string().check(z.minLength(1));
 const num = () => z.number();
@@ -123,7 +122,7 @@ export interface SaveEnvelopeV4 {
 
 /** The world a game is: the one `applyVariant` recorded, else its story world. */
 function worldOf(game: GameDef): WorldVariant {
-  return game.variant ?? storyVariant(game.remix, remixWorld(game));
+  return game.variant ?? storyWorld(game.remix);
 }
 
 /**
@@ -148,7 +147,7 @@ export function saveEnvelope(game: GameDef, state: GameState, now = Date.now()):
  */
 export function upgradeEnvelope(game: GameDef, env: SaveEnvelopeV3 | SaveEnvelopeV4): SaveEnvelopeV4 {
   if (env.schema === 4) return env;
-  return { ...env, schema: 4, variant: storyVariant(game.remix, remixWorld(game)) };
+  return { ...env, schema: 4, variant: storyWorld(game.remix) };
 }
 
 /**
