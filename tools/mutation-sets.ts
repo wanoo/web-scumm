@@ -18,6 +18,16 @@ export const SETS = {
     'bridge/src/lock.ts',
     'bridge/src/policy.ts',
   ],
+  // The connectors' pure parts (4.1.9): a set of its own, so the Reality set does not double in time; run with
+  // `--set=connectors`, not in `all` (not gated) until its survivors are measured and named (plan 4.1.9 §7).
+  connectors: [
+    'connectors/src/sdk.ts',
+    'connectors/src/email/mime.ts',
+    'connectors/src/terminal/line.ts',
+    'connectors/src/terminal/vfs.ts',
+    'connectors/src/badges/crypto.ts',
+    'connectors/src/badges/fetch.ts',
+  ],
 };
 export type MutationSet = keyof typeof SETS;
 
@@ -38,7 +48,10 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/scheduler.test.ts',
   ],
   reality: ['tests/reality-*.test.ts', 'tests/bridge*.test.ts'],
+  connectors: ['tests/connectors-*.test.ts'],
 };
 
-export const setsOf = (set: MutationSet | 'all'): MutationSet[] =>
-  set === 'all' ? (Object.keys(SETS) as MutationSet[]) : [set];
+/** The sets `all` runs and the gate judges; `connectors` runs on its own until it is gated. */
+const GATED: MutationSet[] = ['core', 'reality'];
+
+export const setsOf = (set: MutationSet | 'all'): MutationSet[] => (set === 'all' ? GATED : [set]);

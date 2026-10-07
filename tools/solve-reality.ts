@@ -1,8 +1,9 @@
 // npm run solve:reality [-- --json] (4.1.1, Reality Bridge): a game that takes signals from outside is proved in
 // every world it may meet. Closed: finishable on its own, through each required signal's fallback, with no softlock.
 // Each scenario of games/<id>/reality/scenarios/*.json ({ "signals": [...] }): finishable with those signals, in that
-// order. Adversarial: any declared signal at any point, again and again, creates no softlock. A truncated search is
-// a failure, never a proof. No service is contacted. A game without `reality`: nothing to do. In prove:game.
+// order; each recorded replay of games/<id>/replays/*.json (4.1.9) too. Adversarial: any declared signal at any point,
+// again and again, creates no softlock. A truncated search is a failure, never a proof. No service is contacted. A
+// game without `reality`: nothing to do. In prove:game.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { solve, type RealityPolicy } from '../src/engine/tools/solve';
@@ -18,16 +19,21 @@ if (!game.reality) {
   await flushExit(0);
 }
 const layouts = loadLayouts(resolve(GAME_DIR, 'layout'));
-const dir = resolve(GAME_DIR, 'reality', 'scenarios');
-const scenarios = existsSync(dir)
-  ? readdirSync(dir)
-      .filter((f) => f.endsWith('.json'))
-      .sort()
-      .map((f) => ({
-        scenario: basename(f, '.json'),
-        signals: (JSON.parse(readFileSync(resolve(dir, f), 'utf8')) as { signals: string[] }).signals,
-      }))
-  : [];
+// The scenarios, then the replays the connectors recorded (4.1.9, games/<id>/replays/*.json: their `signals`, in order).
+const read = (dir: string, prefix: string) =>
+  existsSync(dir)
+    ? readdirSync(dir)
+        .filter((f) => f.endsWith('.json'))
+        .sort()
+        .map((f) => ({
+          scenario: `${prefix}${basename(f, '.json')}`,
+          signals: (JSON.parse(readFileSync(resolve(dir, f), 'utf8')) as { signals: string[] }).signals,
+        }))
+    : [];
+const scenarios = [
+  ...read(resolve(GAME_DIR, 'reality', 'scenarios'), ''),
+  ...read(resolve(GAME_DIR, 'replays'), 'replay '),
+];
 const declared = new Set(game.reality!.signals.map((s) => s.id));
 const problems: string[] = [];
 for (const s of scenarios)

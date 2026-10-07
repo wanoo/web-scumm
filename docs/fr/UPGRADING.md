@@ -300,6 +300,15 @@ des README avec le JSON, donc un test de plus est suivi de cette commande. Un si
 de nouveau depuis le curseur durable : un transport maison qui implémente `WorldSignalPort` garde la séquence
 acquittée, pas la séquence reçue (`docs/fr/REALITY.md`).
 
+## 21. De la 4.1.8 à la 4.1.9 « Gateways »
+
+Une sauvegarde 4.1.8 se charge telle quelle ; aucun nom public des cinq entrées n'a bougé (`tests/api-surface.json`
+identique). Un jeu peut déclarer `reality.connectors` (les mots que ses connecteurs peuvent proposer : optionnel,
+validé). Les connecteurs sont un quatrième paquet, `web-scumm-connectors`, installé à côté du Bridge sur un serveur,
+jamais dans le joueur : `npm run build` refuse désormais le JavaScript d'un jeu qui porte du code serveur
+(`verify:dist`). Le script d'installation de `ssh2` tente une compilation native et échoue faute d'en-têtes : aucun
+fichier `.node` n'en résulte, et `--ignore-scripts` est l'installation documentée (`docs/fr/CONNECTORS.md`). Un
+contributeur écrit `changes/<slug>.md` au lieu de modifier le CHANGELOG (`changes/README.md`).
 ## 23. De 4.1.11 à 4.1.12 « Language »
 
 Aucun format d'écriture ne change : `web-scumm migrate --check` trouve à jour les jeux fournis et le gabarit

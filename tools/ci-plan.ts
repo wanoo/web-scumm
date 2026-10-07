@@ -34,7 +34,7 @@ export const JOB_OF: Record<Gate, string> = {
   node24: 'node-24',
   e2e: 'e2e (the six rows)',
   reference: 'reference (chromium, webkit)',
-  reality: 'reality-xcheck, reality (chromium, webkit)',
+  reality: 'reality-xcheck, connectors, reality (chromium, webkit)',
   pwaFirefox: 'pwa-firefox',
   windows: 'windows',
   secondGame: 'second-game',
