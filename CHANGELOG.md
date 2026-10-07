@@ -22,7 +22,8 @@
   signals signed again after a rotation is an LRU of 10 000 (`limits.resignedCache`); every line of the journal is
   checked whole against the events' schema (a line that is JSON but not an event is corruption); one Bridge per
   journal (`journal.jsonl.lock` with the owner's pid, created atomically; a lock left by a crash is taken over and
-  said, a lock that is not a pid is refused; `compact` takes it too; `serve` releases it on SIGINT and SIGTERM).
+  said, a lock that is not a pid is refused; `compact` takes it too; `serve` ends its streams, closes and then
+  releases it on SIGINT and SIGTERM).
 
 ## 4.1.7 — 2026-10-06
 

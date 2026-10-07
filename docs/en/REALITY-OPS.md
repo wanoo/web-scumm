@@ -117,6 +117,8 @@ long as players may be offline with signals to receive; then a player re-pairs.
   on the same file refuses while that process lives, and takes over a lock left by a crash (said in the log). A stop
   by Ctrl-C or SIGTERM releases the lock. `compact` takes the lock too, so it refuses while the Bridge runs. A lock
   whose process id was reused by an unrelated process since the crash is refused as "in use": look, then delete it.
+  The lock is a hard link, so the journal's folder must be on a file system that holds them (APFS, ext4, NTFS do;
+  FAT and some network mounts do not).
 - `web-scumm-bridge compact [--retention-days=90]`, the Bridge stopped: rewrites the journal without the pairings
   past their time, the earlier versions of a player's line, and the signals acknowledged and older than the
   retention; a player's last signal always stays (its next sequence is counted from it), and so does everything not

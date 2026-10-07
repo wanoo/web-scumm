@@ -114,28 +114,34 @@ export function httpPort(o: HttpPortOptions): WorldSignalPort {
     cursors.delivered = Math.max(cursors.delivered, sequence);
     moved();
   };
+  /** `close()` aborts it: the sleep, a poll in flight and the stream all listen to it, with the reader's own signal. */
+  const own = new AbortController();
   /** The stream being read (SSE), ended by the port itself when a signal it handed over is not settled in time. */
   let stream: AbortController | undefined;
-  /** The sequence waiting for its acknowledgement, and the timer that ends the stream to ask for it again. */
-  let unsettled: { sequence: number; timer: ReturnType<typeof setTimeout> } | undefined;
+  /** The timer that ends the stream while something handed over is not yet acknowledged. */
+  let unsettled: ReturnType<typeof setTimeout> | undefined;
+  /** Whether the port ended the stream itself (then it reconnects at once: the Bridge is fine, a signal is stuck). */
+  let endedByPort = false;
   const settle = () => {
-    if (unsettled && cursors.durable >= unsettled.sequence) {
-      clearTimeout(unsettled.timer);
+    if (unsettled && cursors.durable >= cursors.delivered) {
+      clearTimeout(unsettled);
       unsettled = undefined;
     }
   };
   return {
-    async *connect({ after, signal }) {
+    async *connect({ after, signal: readerSignal }) {
+      const signal = readerSignal ? AbortSignal.any([readerSignal, own.signal]) : own.signal;
       cursors.durable = Math.max(cursors.durable, after);
       cursors.received = Math.max(cursors.received, after);
       cursors.delivered = Math.max(cursors.delivered, after);
       moved();
       let wait = o.retryMs ?? 1000;
-      while (!closed && !signal?.aborted) {
+      while (!closed && !signal.aborted) {
         o.onStatus?.('connecting');
         // What the reader settled before this request: a request that hands signals over and settles none backs off.
         const settledBefore = cursors.durable;
         let handedOver = 0;
+        endedByPort = false;
         try {
           if (o.mode === 'poll') {
             const r = await f(`${base}v1/signals?after=${cursors.durable}`, { headers: auth, signal });
@@ -152,7 +158,7 @@ export function httpPort(o: HttpPortOptions): WorldSignalPort {
           } else {
             stream = new AbortController();
             const onAbort = () => stream?.abort();
-            signal?.addEventListener('abort', onAbort, { once: true });
+            signal.addEventListener('abort', onAbort, { once: true });
             try {
               const r = await f(`${base}v1/events?after=${cursors.durable}`, {
                 headers: { ...auth, Accept: 'text/event-stream', 'Last-Event-ID': String(cursors.durable) },
@@ -167,31 +173,35 @@ export function httpPort(o: HttpPortOptions): WorldSignalPort {
                 handed(sequence);
                 handedOver++;
                 yield e.data;
-                // Handed over and not settled when the reader comes back for the next one: a stream the Bridge keeps
-                // open would never deliver it again. The port ends the stream itself after `wait` (doubling while
-                // nothing settles) and reconnects from the durable cursor, which asks for it again.
-                if (cursors.durable < sequence && !unsettled) {
+                // Something handed over and not settled when the reader comes back for the next one: a stream the
+                // Bridge keeps open would never deliver it again. The port ends the stream itself after `wait`
+                // (doubling while nothing settles) and reconnects from the durable cursor, which asks for it again.
+                if (cursors.durable < cursors.delivered && !unsettled) {
                   const ended = stream;
-                  unsettled = { sequence, timer: setTimeout(() => ended?.abort(), wait) };
+                  unsettled = setTimeout(() => {
+                    endedByPort = true;
+                    ended?.abort();
+                  }, wait);
                 }
               }
             } finally {
-              signal?.removeEventListener('abort', onAbort);
-              if (unsettled) clearTimeout(unsettled.timer);
+              signal.removeEventListener('abort', onAbort);
+              if (unsettled) clearTimeout(unsettled);
               unsettled = undefined;
               stream = undefined;
             }
           }
         } catch (e) {
-          if (signal?.aborted || closed) break;
+          if (signal.aborted || closed) break;
           void e;
         }
-        if (closed || signal?.aborted) break;
+        if (closed || signal.aborted) break;
         // Nothing settled out of what was handed over: the same signals come back; wait longer each time, up to a minute.
         const stuck = handedOver > 0 && cursors.durable === settledBefore;
         wait = stuck ? Math.min(wait * 2, MAX_WAIT_MS) : (o.retryMs ?? 1000);
         o.onStatus?.('retrying');
-        await sleep(wait, signal);
+        // A stream the port ended itself already waited `wait` before ending it: the Bridge is fine, reconnect now.
+        if (!endedByPort) await sleep(wait, signal);
       }
       o.onStatus?.('closed');
     },
@@ -210,6 +220,7 @@ export function httpPort(o: HttpPortOptions): WorldSignalPort {
     },
     async close() {
       closed = true;
+      own.abort();
       stream?.abort();
     },
   };

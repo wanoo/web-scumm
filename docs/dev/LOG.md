@@ -2311,7 +2311,8 @@ Platform"; human gates reported, not blocking (D12).
   `BridgeEventSchema` (zod, every field; `WorldSignalV1Schema` for the payload); `JournalLock` (`<journal>.lock`
   with the pid, created atomically by `link` from a private file so a reader never sees it half written; a live
   owner refuses the second start, a dead one is taken over and said, a content that is not a pid is refused;
-  `lock: false` for `doctor` only, `compact` writes and locks; `serve` releases the lock on SIGINT and SIGTERM);
+  a take-over is a `rename` over the lock, read back; `lock: false` for `doctor` only, `compact` writes and locks;
+  `serve` ends its streams and closes its server on SIGINT and SIGTERM, then releases the lock, five seconds at most);
   `JsonlBridgeStore.close()`; the stream cancelled on the player's side when the parser drops it.
 - Not done, said as such: the 88 reality survivors and the gate by input hash are the next branch
   (`test/418-reality-mutants`), not this one; the Bridge's own backlog bound (`streamBufferBytes`) was already there.

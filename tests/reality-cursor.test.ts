@@ -223,4 +223,63 @@ describe('the port resumes from the acknowledged cursor, not from the delivered 
     expect(b.asked.length).toBe(requestsAtAck);
     expect(b.acked).toEqual([1]);
   });
+
+  it('SSE, two signals not settled, the first acknowledged from outside the loop: the second is asked for again', async () => {
+    const b = fakeBridge(2, { streamStaysOpen: true });
+    const port = httpPort({ url: 'http://bridge.test/', capability: 'cap', fetch: b.fetch, mode: 'sse', retryMs: 5 });
+    const ctrl = new AbortController();
+    const got: string[] = [];
+    const reading = (async () => {
+      for await (const jws of port.connect({ gameId: 'signals', playerId: 'p', after: 0, signal: ctrl.signal })) {
+        got.push(jws);
+        // The reader settles nothing here; the first acknowledgement lands later, from outside the loop.
+        if (got.length === 2) setTimeout(() => void port.acknowledge({ playerId: 'p', through: 1 }), 1);
+      }
+    })();
+    for (let i = 0; i < 400 && !b.asked.some((a) => a.after === 1); i++) await new Promise((r) => setTimeout(r, 5));
+    for (let i = 0; i < 400 && got.filter((x) => x === 's2').length < 2; i++)
+      await new Promise((r) => setTimeout(r, 5));
+    ctrl.abort();
+    await port.close();
+    await reading;
+    expect(got.slice(0, 2)).toEqual(['s1', 's2']);
+    // Signal 1 settled, signal 2 still handed over and not acknowledged: the stream was ended and reopened from 1.
+    expect(b.asked.some((a) => a.route === 'events' && a.after === 1)).toBe(true);
+    expect(got.filter((x) => x === 's2').length).toBeGreaterThanOrEqual(2);
+    expect(got.filter((x) => x === 's1').length).toBe(1);
+  });
+
+  it('close() alone ends a connection that is sleeping or streaming', async () => {
+    const b = fakeBridge(0, { streamStaysOpen: true });
+    const port = httpPort({
+      url: 'http://bridge.test/',
+      capability: 'cap',
+      fetch: b.fetch,
+      mode: 'sse',
+      retryMs: 60_000,
+    });
+    const statuses: string[] = [];
+    const port2 = httpPort({
+      url: 'http://bridge.test/',
+      capability: 'cap',
+      fetch: b.fetch,
+      mode: 'poll',
+      retryMs: 60_000,
+      onStatus: (x) => statuses.push(x),
+    });
+    const reading = (async () => {
+      for await (const _ of port.connect({ gameId: 'signals', playerId: 'p', after: 0 })) void _;
+    })();
+    const polling = (async () => {
+      for await (const _ of port2.connect({ gameId: 'signals', playerId: 'p', after: 0 })) void _;
+    })();
+    await new Promise((r) => setTimeout(r, 20));
+    await port.close();
+    await port2.close();
+    await Promise.race([
+      Promise.all([reading, polling]),
+      new Promise((_, no) => setTimeout(() => no(new Error('still connected after close()')), 1000)),
+    ]);
+    expect(statuses.at(-1)).toBe('closed');
+  });
 });

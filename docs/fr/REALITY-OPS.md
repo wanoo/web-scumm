@@ -122,7 +122,9 @@ tant que des joueurs peuvent être hors ligne avec des signaux à recevoir ; ens
   processus ; un second démarrage sur le même fichier refuse tant que ce processus vit, et reprend un verrou laissé
   par un plantage (dit dans le log). Un arrêt par Ctrl-C ou SIGTERM libère le verrou. `compact` prend le verrou lui
   aussi : il refuse tant que le Bridge tourne. Un verrou dont l'identifiant de processus a été réutilisé par un autre
-  processus depuis le plantage est refusé comme « en cours d'usage » : regardez, puis supprimez-le.
+  processus depuis le plantage est refusé comme « en cours d'usage » : regardez, puis supprimez-le. Le verrou est un
+  lien dur : le dossier du journal doit être sur un système de fichiers qui les tient (APFS, ext4, NTFS oui ; FAT et
+  certains montages réseau non).
 - `web-scumm-bridge compact [--retention-days=90]`, Bridge arrêté : réécrit le journal sans les appairages
   périmés, les versions antérieures de la ligne d'un joueur, et les signaux acquittés plus vieux que la rétention ;
   le dernier signal d'un joueur reste toujours (sa prochaine séquence se compte depuis lui), ainsi que tout ce qui
