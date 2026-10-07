@@ -172,57 +172,64 @@ describe('checkpoint and resume', () => {
     expect(objects.profile.checkpoint?.refused).toContain('compact');
   }, 120_000);
 
-  it('a real process killed (SIGKILL) at 30 % and run again with --resume: the same verdict and witness', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'ckpt-'));
-    const file = join(dir, 'demo.ckpt');
-    const run = (extra: string[], killAt?: number) =>
-      new Promise<{ code: number | null; out: string; killed: boolean }>((done) => {
-        const p = spawn(
-          process.execPath,
-          ['--import', 'tsx', 'tools/solve.ts', '--prove', '--json', '--no-cache', ...extra],
-          { env: { ...process.env, GAME: 'demo' }, stdio: ['ignore', 'pipe', 'ignore'] },
-        );
-        let out = '';
-        let killed = false;
-        p.stdout.on('data', (d) => (out += d));
-        const poll =
-          killAt === undefined
-            ? undefined
-            : setInterval(() => {
-                if (!existsSync(file)) return;
-                const h = snapshotHeader(readFileSync(file, 'utf8'));
-                if (h && h.states >= killAt) {
-                  killed = true;
-                  p.kill('SIGKILL');
-                }
-              }, 5);
-        p.on('close', (code) => {
-          if (poll) clearInterval(poll);
-          done({ code, out, killed });
+  // Not on Windows: there SIGKILL is TerminateProcess and the test's reader holds the snapshot open while the child
+  // renames a new one over it, which Windows refuses (the child fails, nothing is killed at 30 %). The durability of
+  // the write (fsync, then rename) is the same code on every system; the other cases here run everywhere.
+  it.skipIf(process.platform === 'win32')(
+    'a real process killed (SIGKILL) at 30 % and run again with --resume: the same verdict and witness',
+    async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'ckpt-'));
+      const file = join(dir, 'demo.ckpt');
+      const run = (extra: string[], killAt?: number) =>
+        new Promise<{ code: number | null; out: string; killed: boolean }>((done) => {
+          const p = spawn(
+            process.execPath,
+            ['--import', 'tsx', 'tools/solve.ts', '--prove', '--json', '--no-cache', ...extra],
+            { env: { ...process.env, GAME: 'demo' }, stdio: ['ignore', 'pipe', 'ignore'] },
+          );
+          let out = '';
+          let killed = false;
+          p.stdout.on('data', (d) => (out += d));
+          const poll =
+            killAt === undefined
+              ? undefined
+              : setInterval(() => {
+                  if (!existsSync(file)) return;
+                  const h = snapshotHeader(readFileSync(file, 'utf8'));
+                  if (h && h.states >= killAt) {
+                    killed = true;
+                    p.kill('SIGKILL');
+                  }
+                }, 5);
+          p.on('close', (code) => {
+            if (poll) clearInterval(poll);
+            done({ code, out, killed });
+          });
         });
-      });
-    try {
-      const whole = JSON.parse((await run([])).out) as SolveResult;
-      const first = await run([`--checkpoint=${file}`, '--checkpoint-every=0.05'], Math.floor(whole.states * 0.3));
-      expect(first.killed).toBe(true);
-      expect(first.out).toBe('');
-      const h = snapshotHeader(readFileSync(file, 'utf8'))!;
-      expect(h.states).toBeGreaterThanOrEqual(Math.floor(whole.states * 0.3));
-      expect(h.states).toBeLessThan(whole.states);
-      const second = await run([`--checkpoint=${file}`, '--resume']);
-      const resumed = JSON.parse(second.out) as SolveResult;
-      expect(resumed.profile.checkpoint?.resumedAt?.states).toBe(h.states);
-      expect([resumed.status, resumed.states, resumed.path, resumed.steps, resumed.softlockCount]).toEqual([
-        whole.status,
-        whole.states,
-        whole.path,
-        whole.steps,
-        whole.softlockCount,
-      ]);
-      // A finished search removes its snapshot.
-      expect(existsSync(file)).toBe(false);
-    } finally {
-      rmSync(dir, { recursive: true, force: true });
-    }
-  }, 180_000);
+      try {
+        const whole = JSON.parse((await run([])).out) as SolveResult;
+        const first = await run([`--checkpoint=${file}`, '--checkpoint-every=0.05'], Math.floor(whole.states * 0.3));
+        expect(first.killed).toBe(true);
+        expect(first.out).toBe('');
+        const h = snapshotHeader(readFileSync(file, 'utf8'))!;
+        expect(h.states).toBeGreaterThanOrEqual(Math.floor(whole.states * 0.3));
+        expect(h.states).toBeLessThan(whole.states);
+        const second = await run([`--checkpoint=${file}`, '--resume']);
+        const resumed = JSON.parse(second.out) as SolveResult;
+        expect(resumed.profile.checkpoint?.resumedAt?.states).toBe(h.states);
+        expect([resumed.status, resumed.states, resumed.path, resumed.steps, resumed.softlockCount]).toEqual([
+          whole.status,
+          whole.states,
+          whole.path,
+          whole.steps,
+          whole.softlockCount,
+        ]);
+        // A finished search removes its snapshot.
+        expect(existsSync(file)).toBe(false);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    },
+    180_000,
+  );
 });

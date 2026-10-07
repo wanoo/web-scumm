@@ -55,6 +55,8 @@
   Nit: the headers say 4.1.13 "Solver Research". Then PR #51's `coverage` job timed out (300 s) on the c12 resume
   under instrumentation: that case moved to `tests/checkpoint-matrix.test.ts`, in `test:heavy` (nightly) and out of
   `test:node` and `test:coverage`; `tests/checkpoint.test.ts` keeps the sample game, the budgets, the 30-game cut
-  property and the killed process.
+  property and the killed process. The `windows` job then failed the killed-process case: the checkpoint is now
+  flushed (`fsync`) before its rename, and the case is skipped on Windows (the test reads the snapshot while the child
+  renames over it, which Windows refuses; SIGKILL is TerminateProcess there); the other checkpoint cases run there.
 
 → next: Claude · `release/4.1.13`
