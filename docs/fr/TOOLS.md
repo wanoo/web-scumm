@@ -219,6 +219,7 @@ npm run build:game                 # les portes du jeu (verify:game), le bundle,
 npm run verify:game                # validation, témoins globaux/par chapitre et couverture des traductions
 npm run prove:game                 # preuve exhaustive globale/par chapitre ; échoue sur softlock ou troncature
 npm run release-check              # ce que la CI lance, d'un coup : doctor --release, quality, build, couverture et son ratchet strict, verify:release, preuves, le cross-check Rust, la mutation du cœur, les paquets avec `npm publish --dry-run`, les audits de dépendances
+npm run release-check:ci           # la même chose sans les sets de mutation (4.1.10) : release.yml les lance en deux jobs à côté, core et reality, chacun bloquant la release
 ```
 
 **Lint.** `npm run lint` dit ce que `validate` ne peut pas dire (il vérifie formes et références) et ce que `solve`
