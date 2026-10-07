@@ -41,6 +41,9 @@ export const DEFAULT_UI = {
   volumeVoice: 'Voice volume',
   fingerprint: 'Build',
   objectives: 'Objectives',
+  speedrun: 'Speedrun',
+  exportRun: 'Export run',
+  abandonRun: 'Abandon run',
 } as const;
 
 export type UiKey = keyof typeof DEFAULT_UI;

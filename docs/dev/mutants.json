@@ -7,6 +7,13 @@
   "why": "`cur`: with no open entry, `this.open[this.open.length - 1]` is `this.open[-1]`, undefined, which is what the condition returned"
  },
  {
+  "file": "src/engine/core/session-runtime.ts",
+  "operator": "boolean",
+  "from": "false",
+  "to": "true",
+  "why": "`chosen`'s initial value is never read: the first `newSession` (or a first `draw`) always reseeds, and `reseed` sets `chosen` from `nextSeed` before anything writes the session (4.1.14)"
+ },
+ {
   "file": "src/engine/core/migrate.ts",
   "operator": "condition true",
   "from": "st.step",

@@ -151,3 +151,5 @@ body { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .tool.player span { font-family: var(--font-pixel); font-size: .9em; color: #ffd640; }
 /* `{ sfx, caption }` with the captions setting on: a sound that matters, in writing (3.4). */
 .caption { position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%); z-index: 60; padding: .2em .6em; border-radius: 6px; background: rgba(10, 6, 20, .78); color: #ffe9a8; font-size: .8em; pointer-events: none; white-space: nowrap; }
+/* The speedrun timer (4.1.14, dom/speedrun-ui.ts): a corner of the scene, never over the verbs. */
+.speedrun-hud { position: absolute; top: .4em; left: 50%; transform: translateX(-50%); z-index: 30; pointer-events: none; padding: .15em .6em; border-radius: .4em; background: rgba(0,0,0,.55); color: #fff; font: 12px/1.3 var(--font-ui, monospace); font-variant-numeric: tabular-nums; white-space: nowrap; }

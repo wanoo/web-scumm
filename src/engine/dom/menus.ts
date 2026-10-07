@@ -71,12 +71,19 @@ export function pauseMenu(app: App) {
     previousFocus?.focus();
   };
   cleanups.push(trapFocus(m, { onEscape: close, restore: false }));
+  // A speedrun's clock hears the pause (4.1.14): an interval its category's rules read.
+  const run = app.speedrun;
+  if (run) {
+    run.paused(true);
+    cleanups.push(() => run.paused(false));
+  }
   const row = (t: string, v: string, cls = '') => {
     const b = el('button', cls, `<span>${esc(t)}</span><span>${esc(v)}</span>`);
     m.append(b);
     return b;
   };
   row(ui.resume, '▶').onclick = () => close();
+  if (app.game.speedrun) speedrunRows(app, m, row, close);
   const mu = row(ui.music, app.audio.musicOn ? ui.on : ui.off);
   mu.onclick = () => {
     app.audio.setMusic(!app.audio.musicOn);
@@ -140,6 +147,41 @@ export function pauseMenu(app: App) {
   };
   d.append(m);
   app.scene.append(d);
+}
+
+/** The speedrun rows (4.1.14): start a category, or export / abandon the attempt in progress. */
+function speedrunRows(
+  app: App,
+  m: HTMLElement,
+  row: (t: string, v: string, cls?: string) => HTMLElement,
+  close: () => void,
+) {
+  const run = app.speedrun;
+  if (!run) {
+    row(app.t('speedrun'), '⏱').onclick = () => {
+      m.innerHTML = `<h3>${esc(app.t('speedrun').toUpperCase())}</h3>`;
+      for (const c of app.game.speedrun!.categories)
+        row(c.name, '▶', 'speedrun-category').onclick = () => {
+          close();
+          void import('./speedrun-ui').then(async ({ SpeedrunSession }) => {
+            app.speedrun?.destroy();
+            app.speedrun = await SpeedrunSession.start(app, c.id).catch((e) => {
+              app.presenter.toast(String((e as Error).message));
+              return null;
+            });
+          });
+        };
+    };
+    return;
+  }
+  if (run.envelope) row(app.t('exportRun'), '⤓').onclick = () => void run.exportRun();
+  else
+    row(app.t('abandonRun'), '✕', 'warn').onclick = () => {
+      close();
+      void run.abandon().then(() => {
+        if (app.speedrun === run) app.speedrun = null;
+      });
+    };
 }
 
 /** The save / load menu: one row per slot, export and import as a JSON file. */

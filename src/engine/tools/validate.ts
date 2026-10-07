@@ -5,6 +5,7 @@ import { rendererOf, stageOf } from '../core/stage';
 import { stageLayoutChecks } from './validate-stage';
 import { migrationChecks } from './validate/migrations';
 import { objectiveChecks } from './validate/objectives';
+import { speedrunChecks } from './validate/speedrun';
 import { listId, listText } from '../core/list-lines';
 import { condFlags } from '../core/cond';
 import { subLists } from '../core/cmds';
@@ -1089,12 +1090,11 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       for (const i of p.inventory ?? []) if (!items[i]) err(`${w}.players.${pid}`, `unknown item: "${i}"`);
     }
   }
-
-  // Events and scripts
+  // Events and scripts, objectives, the speedrun manifest (4.1.14)
   for (const [id, where] of scriptRefs) if (!scriptIds.has(id)) err(where, `unknown script: "${id}"`);
   eventChecks(game, { emitted, listened, waited }, err, warn);
   objectiveChecks(game, { cond, err, warn, commands: opts.commands });
-
+  speedrunChecks(game, { err, warn, flags: new Set(flagsSet.keys()) });
   // Flags
   for (const [f, where] of flagsRead) if (!flagsSet.has(f)) warn(where, `flag "${f}" is read but never set`);
   // A decorative flag kept on purpose: `lint.ignore` names it (`flag-never-read` or `flag-never-read:<flag>`), like the lint's codes.

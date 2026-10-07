@@ -61,10 +61,15 @@
   "ScoreDef",
   "ScoreState",
   "ScriptDef",
+  "SemanticTrigger",
   "Session",
   "SessionEntry",
   "SignalDef",
   "SkinDef",
+  "SpeedrunCategory",
+  "SpeedrunManifest",
+  "SpeedrunSplit",
+  "SpeedrunTrigger",
   "SpriteSet",
   "StageDef",
   "StageLayer",
@@ -119,20 +124,28 @@
   "FakePresenter",
   "GameFingerprint",
   "MemoryStore",
+  "RunClock",
   "SaveEnvelopeV3",
   "SemanticEvent",
   "SemanticJournal",
   "SolveOptions",
   "SolveResult",
+  "SpeedrunEnvelope",
+  "SpeedrunVerdict",
+  "SpeedrunVerifyResult",
+  "TrustLevel",
+  "VerifyContext",
   "fingerprint",
   "fingerprintGame",
   "hashSources",
+  "isRankable",
   "parseSave",
   "presentationOf",
   "saveEnvelope",
   "sha256Hex",
   "shortFingerprint",
-  "solve"
+  "solve",
+  "verifyRun"
  ],
  "reality": [
   "BridgeKey",
@@ -311,6 +324,13 @@
    "required": [],
    "optional": [
     "missing"
+   ]
+  },
+  "speedrun_verify": {
+   "required": [],
+   "optional": [
+    "envelope",
+    "path"
    ]
   }
  }

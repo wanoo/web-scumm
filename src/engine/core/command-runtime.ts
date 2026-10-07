@@ -10,6 +10,7 @@ import type { Engine } from './engine';
 import { roomKey } from './keys';
 
 export async function say(eng: Engine, who: Id, text: string, ctx: Ctx, shout = false, voice?: Id) {
+  eng.runClock.line(ctx.fast);
   await eng.ui.say(eng.who(who), text, { shout, fast: ctx.fast, voice });
 }
 
@@ -69,6 +70,8 @@ export async function step(eng: Engine, c: Cmd, ctx: Ctx): Promise<void> {
             ? `flag:${c.inc}`
             : '*',
     );
+  // The run clock observes (4.1.14, D24): the command's logical duration, before it runs.
+  eng.runClock.command(c, ctx, (w) => eng.who(w));
   // The table (command-handlers.ts, 4.1.5): one function per command, typed by its key.
   await (HANDLERS[k] as Handler<CmdKey>)(eng, c as never, ctx);
 }

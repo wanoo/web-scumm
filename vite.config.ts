@@ -201,10 +201,10 @@ export default defineConfig({
       thresholds: {
         // The floor measured at 4.1.0 (the browser-only parts of src/, the player's UI and the Studio's, are covered
         // by the e2e, not here).
-        lines: 69,
-        statements: 68,
-        functions: 65,
-        branches: 64,
+        lines: 70,
+        statements: 69,
+        functions: 66,
+        branches: 65,
         // What a save, a session, a condition and a migration rest on: every branch.
         'src/engine/core/cond.ts': { branches: 100 },
         'src/engine/core/diff.ts': { branches: 100 },
@@ -212,7 +212,7 @@ export default defineConfig({
         'src/engine/core/save.ts': { branches: 100 },
         // 93: v8 counts the presenter's side of `choose` / `pickPlace` as the calls that went to the presenter minus
         // those fed by a replay, which the rest of the suite outnumbers; both sides are tested (critical-session).
-        'src/engine/core/session-runtime.ts': { branches: 93 },
+        'src/engine/core/session-runtime.ts': { branches: 94 },
         // The one branch left is `?? 0` on a session that always exists by then.
         'src/engine/tools/replay.ts': { branches: 99 },
         // Eleven fallbacks for an old entry that `assignIds` always finds (critical-ids lists them).

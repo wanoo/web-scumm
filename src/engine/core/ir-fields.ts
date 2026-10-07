@@ -59,6 +59,8 @@ const game: Classes<GameDef> = {
   assetBudgets: 'meta',
   migrations: 'logic',
   objectives: 'logic',
+  // Speedrun rules carry their own `rulesVersion` (4.1.14, ADR 0016): a new category never changes the game's logic.
+  speedrun: 'meta',
   ui: 'presentation',
   titleScreen: 'presentation',
   creditsScreen: 'presentation',

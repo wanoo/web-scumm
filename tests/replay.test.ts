@@ -1,12 +1,13 @@
 // Replay: the solver's solution is a session the engine plays again; a recorded session comes back identical,
 // through JSON, and a tampered one says where it stops matching.
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import type { GameDef, Layout, Session } from '@engine/core/types';
 import { solve } from '@engine/tools/solve';
 import { labelOf, replay } from '@engine/tools/replay';
 import { stateDigest } from '@engine/core/diff';
+import { mini, miniLayouts } from './fixtures/mini';
 import { game as demo } from '../games/demo/game';
 import { commands } from '../games/demo/index';
 import house from '../games/demo/layout/house.json';
@@ -133,5 +134,35 @@ describe('a recorded session', () => {
     expect(e.session?.log).toEqual([]);
     const q = await replay(demo, demoLayouts, e.session!, { commands });
     expect(q.state.room).toBe(saved.room);
+  });
+});
+
+describe('replay across a rollover and an engine that throws (4.1.14)', () => {
+  it('a log longer than SESSION_MAX replays whole: the entry after the rollover is the new session’s first', async () => {
+    const log: Session['log'] = [
+      { start: 'new' },
+      ...Array.from({ length: 520 }, (_, i) => ({ act: { verb: 'look', a: i % 2 ? 'valise' : 'uncle' } })),
+    ];
+    const r = await replay(mini(), miniLayouts, { start: { kind: 'new' }, log });
+    expect(r.divergedAt).toBeUndefined();
+    expect(r.played).toBe(520);
+    expect(r.session.log.length).toBeLessThan(500);
+    expect(r.errors).toEqual([]);
+  }, 60000);
+
+  it('what the engine throws while replaying is kept, an Error by its message, anything else as a string', async () => {
+    const log: Session['log'] = [{ start: 'new' }, { act: { verb: 'look', a: 'valise' } }];
+    for (const [thrown, kept] of [
+      ['boom', 'boom'],
+      [new Error('bang'), 'bang'],
+    ] as const) {
+      const act = vi.spyOn(Engine.prototype, 'act').mockRejectedValueOnce(thrown);
+      try {
+        const r = await replay(mini(), miniLayouts, { start: { kind: 'new' }, log });
+        expect(r.errors).toEqual([kept]);
+      } finally {
+        act.mockRestore();
+      }
+    }
   });
 });

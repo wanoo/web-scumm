@@ -2,7 +2,7 @@
 // Assistant relay of the dev server run the tools against. Node only.
 import { execFile } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 import { buildPrompts } from '../prompts';
 import type { Studio } from './core';
 import { errorResult, jsonResult, textResult, type ToolBackend, type ToolResult } from './tools';
@@ -35,6 +35,20 @@ export function coreBackend(studio: Studio, o: CoreBackendOptions): ToolBackend 
     puzzle: (id) => studio.puzzle(id),
     coverage: () => studio.coverage(),
     playtests: () => studio.playtests(),
+    speedrunVerify: async (wsrun) => {
+      const { approvedContext } = await import('../speedrun/package');
+      const { verifyRun } = await import('../../src/engine/tools/speedrun/verify');
+      // A path stays inside the repository or project: never a file of the machine the client chose.
+      let text = wsrun;
+      if (wsrun.startsWith('@file:')) {
+        const rel = wsrun.slice(6);
+        const abs = resolve(o.root, rel);
+        if (!abs.startsWith(resolve(o.root) + sep) || !abs.endsWith('.wsrun'))
+          throw new Error('a .wsrun file under the repository or project');
+        text = readFileSync(abs, 'utf8');
+      }
+      return verifyRun(text, await approvedContext(studio.gameDir));
+    },
     lint: (prove) => studio.lint(prove),
     solve: (from, prove, reality) => studio.solve(from, undefined, prove ? 'prove' : 'witness', reality),
     author: o.author,

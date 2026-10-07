@@ -384,9 +384,11 @@ const random: Handler<'random'> = (eng, c, ctx) => {
 const cutscene: Handler<'cutscene'> = async (eng, c, ctx) => {
   eng.ui.cutscene(true);
   eng.busyState.skipping = false;
+  eng.runClock.cutscene(true);
   try {
     await eng.exec(c.cutscene, ctx);
   } finally {
+    eng.runClock.cutscene(false);
     eng.busyState.skipping = false;
     eng.ui.cutscene(false);
   }

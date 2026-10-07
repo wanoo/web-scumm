@@ -71,6 +71,7 @@ import { LocalSlotStore, LocalStore, withPhase } from './storage';
 import { fpsMeter, type RealityLinkLike } from './app-shared';
 import { DomPresenter } from './presenter';
 import { objectivesMenu as objectivesMenuImpl } from './objectives-menu';
+import type { SpeedrunSession } from './speedrun-ui';
 import type { Renderer } from '../scene/frame';
 export type { Settings } from './settings';
 
@@ -194,6 +195,12 @@ export class App {
   inCutscene = false;
   /** @internal Read by the modules of dom/ (4.1.0). */
   saveError: string | null = null;
+  /** The speedrun attempt in progress (4.1.14, dom/speedrun-ui.ts, loaded on demand), or none. */
+  speedrun: SpeedrunSession | null = null;
+  /** The engine's version the build declares (the fingerprint's and a speedrun's). */
+  get buildEngine(): string | undefined {
+    return this.o.build?.engine;
+  }
   /** @internal Read by the modules of dom/ (4.1.0). */
   warmedAll = false;
   /** Set by boot when a service worker is registered: the warm-up waits for it to control the page (dom/update.ts). */

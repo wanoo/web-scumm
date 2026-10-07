@@ -599,6 +599,30 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.1.14 « Time Attack » (livrée le 7 octobre 2026) : un run, son horloge, sa preuve, son vérificateur
+
+La septième release du programme, la troisième avec une release candidate (`v4.1.14-rc.1`, puis `v4.1.14` sur le même
+commit). Une catégorie de speedrun se déclare dans le contenu (`GameDef.speedrun` : chronométrage en RTA, IGT ou IGT
+actif, départ et arrivée sur des événements sémantiques, sauvegardes, pauses, indices, rechargements, politique
+Reality, composants de l'empreinte qu'un run doit égaler, seed fixe ou aléatoire ; splits ; version des règles),
+validée par `npm run validate`, sans changer le moteur ; le chapitre de référence déclare Any%, Any% No Hints et Real
+Time. `Engine.runClock` (ADR 0016, D24) lit le RTA (jamais une autorité), les pas logiques et le temps logique en
+microticks depuis les durées déclarées ; il observe le moteur et n'écrit jamais l'état. `core/prng.ts` (xoshiro128**,
+versionné, un flux par usage, vecteurs de test) sème `engine.random`, une rupture avec sa migration (UPGRADING §26),
+comme `SESSION_MAX` 500, la taille d'un morceau de run : un run est un journal chaîné dans IndexedDB qui reprend après
+un onglet fermé ou un plantage. Un `.wsrun` chaîne chaque entrée par SHA-256 depuis les règles de la catégorie jusqu'à
+une preuve finale ; `npm run speedrun:verify`, la CLI et l'outil MCP le rejouent avec sa seed vers un seul verdict
+avec un code (trente altérations chacune refusée) ; les catégories Reality gardent le JWS de chaque signal. Intégrité
+n'est pas authenticité : `replay-valid` admet les runs assistés et les reprises après plantage, une seed aléatoire est
+le choix du client, seul un témoin ou un modérateur en dit plus (ADR 0017, SPEEDRUN). Records locaux, un fantôme sur
+cibles sémantiques, routes `.wsroute`, le panneau speedrun du Studio ; OBS et LiveSplit en outils locaux (D23) ; sur
+le Bridge, `runsRoute` (une file, un worker de vérification isolé à tas et temps bornés, sans secret, des refus réseau
+en processus qui ne sont pas une isolation, des classements par catégorie et type de seed, modération, rétention, un
+run identifié par ses entrées). Un run Any% complet du chapitre de référence est joint à la release et vérifié par
+`release.yml`. Laissé pour plus tard, dit comme tel : le niveau témoin serveur, le rejeu à version épinglée,
+l'isolation OS du worker, un store SQL des runs et le montage `/v1/runs`, `e2e:speedrun` en CI, les sets de mutation
+des nouveaux modules du cœur, de vraies sessions OBS et LiveSplit et les tests de terrain de speedrunners.
+
 ## v4.1.13 « Solver Research » (livrée le 7 octobre 2026) : le solveur mesuré, allégé, reprenable ; pas encore à l'échelle
 
 La sixième release du programme, nommée par les deux seuils que `docs/dev/plans/4.1.13-proof-at-scale.md` a fixés
@@ -719,7 +743,7 @@ qu'une fois les bloqueurs de la courante fermés.
 | 4.1.11 | **Viewport** (livrée le 7 octobre 2026) | un renderer séparé de la logique du jeu, derrière une `SceneFrame` immuable ; un journal sémantique possédé par le cœur |
 | 4.1.12 | **Language** (livrée le 7 octobre 2026) | le DSL et une représentation intermédiaire (`GameIR`, une empreinte de jeu) façonnés par Gateways et Viewport ; le socle stabilisé |
 | 4.1.13 | **Solver Research** (livrée le 7 octobre 2026 ; « Proof at Scale » non atteint) | une classe documentée de jeux ouverts à trois personnages prouvée dans des budgets publiés, ou nommée « Solver Research » |
-| 4.1.14 | **Time Attack** | catégories de speedrun, RTA et temps logique, splits sémantiques, un paquet de preuve vérifiable, ghosts, LiveSplit et OBS en outils locaux |
+| 4.1.14 | **Time Attack** (livrée le 7 octobre 2026) | catégories de speedrun, RTA et temps logique, splits sémantiques, un paquet de preuve vérifiable, ghosts, LiveSplit et OBS en outils locaux |
 | 4.1.15 | **Remix** | une variance contrôlée du jeu, déterministe par seed, à solvabilité prouvable ; le DSL gelé après elle |
 | 4.2.0 | **Stable World** | les contrats gelés, le paquet compilé sur npm, les passes humaines faites, un premier vrai jeu de référence |
 
