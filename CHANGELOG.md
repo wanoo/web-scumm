@@ -26,7 +26,7 @@ the passes sheet (`docs/dev/passes/4.1.15.md`).
 
 ### Changes
 
-- **The first visit's JavaScript goes from 125 to 132 KB gzipped in the sample game (136 in the reference chapter),
+- **The first visit's JavaScript goes from 125 to 132 KB gzipped in the sample game (137 in the reference chapter),
   and the reference chapter's witness changes (4.1.15)**: the save envelope carries the story world (a SHA-256 written
   out and the world's schema, `core/remix/story.ts`) and the minigames draw from the run's seed; the world's compiler,
   the Remix menu and the daily challenge's Reality code load only when a game with a manifest boots or a daily link is
@@ -35,7 +35,6 @@ the passes sheet (`docs/dev/passes/4.1.15.md`).
   baseline moved on purpose, every golden save still loads.
 - **The French locales of the two bundled games say « vendeur » where the Remix lines said a word the asset audit
   blocks (4.1.15)**: `npm run audit:assets` is part of `build:game`, and CI refused the build.
-
 - **Remix: several worlds of one game (4.1.15, ADR 0018).** A game may declare a variation manifest (`remix`) and
   tagged anchors in its rooms: an item among anchors, a character's starting room, his round among scripts, a code
   coupled with its hint (`{code:<id>}`, `{hint:<id>}` in every language), an order of puzzle groups, alternative lines,

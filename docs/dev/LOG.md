@@ -3298,21 +3298,22 @@ Platform"; human gates reported, not blocking (D12).
 
 ## #138 · 2026-10-07 · Claude · release · 4.1.15 "Remix"
 
-- The programme's eighth and last release, the fourth with a release candidate (`v4.1.15-rc.1` on the merge commit,
-  then `v4.1.15` on the same commit once the candidate's assets were installed and verified); the release candidate
-  of 4.2 (D28). Merged: #50 (#137 above; the Opus security reading's twelve findings applied before the merge: a
+- The programme's eighth and last release, the fourth with a release candidate (`v4.1.15-rc.1` to be tagged on the
+  merge commit, then `v4.1.15` on the same commit once the candidate's assets are installed and verified); the release
+  candidate of 4.2 (D28). Written on PR #50 before its merge (#137 above; the Opus security reading's twelve findings applied before the merge: a
   link never replaces a saved game silently, every stored or linked world checked against the game, the generator
   backtracks, Mystery shopping limited and said, honest cross-runtime wording, `Math.random` out of the minigames;
   then the bundle back under budget through a story-world module, the Reality and register chunks on the main path
   again, `save.ts` branches tested). The release commit on the lot's branch: the fragments assembled, the version, the
   golden save `demo-4.1.15.json` (29), the reference run re-recorded, the READMEs, ROADMAP en/fr, the pass sheet, the
-  baseline sheet, the coverage floors read on #50's coverage job, the `core` mutation survivors of `save.ts` and
-  `migrate.ts` killed or named.
+  baseline sheet, the coverage floors read on #50's coverage job (the `core` mutation survivors of `save.ts` and
+  `migrate.ts` were killed or named in the lot, #137).
 - Measured on #50's final run (37676406236): `node-24` 185 files, 1 851 tests (+4 skipped); `coverage` 187 files, 1 868 tests (+4 skipped); the lot's local figures in #137.
 - Not done, said as such: `e2e:remix`, `e2e:a11y` over the wheel, the five human seeds, the daily module's mount, the
   `.wsrun` `variant`, the wheel's record and `story` ending; the human passes of every lot, blocking before 4.2.0 (D18).
-- The programme 4.1.8 → 4.1.15 is complete on the day it was asked for the whole of: eight releases, each tagged on
-  the commit its CI tested, each with its candidate where the programme named one. §14 of the programme opens 4.2.0
-  "Stable World".
+- With this tag the programme 4.1.8 → 4.1.15 is complete: eight releases, each tagged on the commit its CI tested,
+  each with its candidate where the programme named one; the tags of 4.1.13, 4.1.14 and 4.1.15 were still in their
+  chains when this entry was written (the release list is the record). §14 of the programme opens 4.2.0 "Stable
+  World".
 
 → next: Claude · 4.2.0 "Stable World": the human passes first (D18), then §14 of `docs/dev/PLAN-4.1.8-4.1.15.md`

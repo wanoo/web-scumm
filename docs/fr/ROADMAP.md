@@ -605,7 +605,8 @@ La huitième et dernière release du programme, la quatrième avec une release c
 sur le même commit), et la release candidate de la 4.2 : le DSL et l'IR sont gelés (D28, `docs/dev/DSL-STABILITY.md`).
 Un jeu peut déclarer un manifeste de variation (`remix` : dimensions, domaines, contraintes, ancres taguées) ; `GameIR
 + VariationManifest + seed + algorithmVersion` donnent un `WorldVariant` immuable (ADR 0018), le même sous Node et
-dans les navigateurs (testé sous Node ; la vérification multi-runtime est écrite, pas encore en CI), une seed
+dans les navigateurs (testé sous Node ; la vérification multi-runtime dans
+les navigateurs est écrite, non lancée), une seed
 malformée ou une version inconnue une erreur explicite, jamais un monde par défaut silencieux. Les objets se placent
 parmi des ancres que le validateur vérifie (atteignables, pas derrière leur propre objet), les salles de départ et les
 rondes des acteurs varient, un indice et sa réponse sont une affectation couplée, l'ordre des énigmes est un graphe de
