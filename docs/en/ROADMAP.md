@@ -616,8 +616,8 @@ written by the baseline; a links script. Left for later, said as such: the human
 The programme's eighth and last release, the fourth with a release candidate (`v4.1.15-rc.1`, then `v4.1.15` on the
 same commit), and the release candidate of 4.2: the DSL and the IR are frozen (D28, `docs/dev/DSL-STABILITY.md`). A
 game may declare a variation manifest (`remix`: dimensions, domains, constraints, tagged anchors); `GameIR +
-VariationManifest + seed + algorithmVersion` give an immutable `WorldVariant` (ADR 0018), the same on Node and in the
-browsers (Node-tested; the cross-runtime check is written, not yet in CI), a malformed seed or an unknown version an
+VariationManifest + seed + algorithmVersion` give an immutable `WorldVariant` (ADR 0018), deterministic (tested in
+Node; the cross-runtime check in the browsers is written, not run), a malformed seed or an unknown version an
 explicit error, never a silent default. Items sit among anchors the validator checks (reachable, not behind their own
 item), actors' starting rooms and rounds vary, a hint and its answer are one coupled assignment, puzzle order is a
 dependency graph (the rules are never reordered), presentation draws from its own stream and never writes a flag

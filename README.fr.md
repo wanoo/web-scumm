@@ -166,10 +166,11 @@ journal du travail.
 
 Release actuelle : [v4.1.15 « Remix »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.15), la huitième et
 dernière du programme 4.1.8 → 4.1.15 et la release candidate de la 4.2 : un jeu, plusieurs mondes depuis un manifeste
-et une seed, les mêmes sur chaque runtime et chaque monde d'un catalogue prouvé ; une sauvegarde qui porte son monde ;
-des codes de seed, le défi quotidien et les seeds Mystery ; la roue de code ; l'onglet Remix du Studio ; le DSL et
-l'IR gelés. Sur les runs et les preuves de la 4.1.14, le solveur de la 4.1.13, le jeu en données de la 4.1.12, la
-scène de la 4.1.11, le Bridge durable de la 4.1.10, les connecteurs de la 4.1.9 et la fondation de la 4.1.8. De la 4.1.1 à la 4.1.7 chaque
+et une seed, déterministes (testés sous Node, la vérification multi-runtime écrite et pas encore lancée) et chaque
+monde d'un catalogue prouvé ; une sauvegarde qui porte son monde ; des codes de seed, le défi quotidien et les seeds
+Mystery ; la roue de code ; l'onglet Remix du Studio ; le DSL et l'IR gelés. Sur les runs et les preuves de la 4.1.14,
+le solveur de la 4.1.13, le jeu en données de la 4.1.12, la scène de la 4.1.11, le Bridge durable de la 4.1.10, les
+connecteurs de la 4.1.9 et la fondation de la 4.1.8. De la 4.1.1 à la 4.1.7 chaque
 release n'a ajouté que de l'optionnel, et un jeu écrit pour l'une tournait sur la suivante ; depuis la 4.1.8 la lignée
 4.1.x est une lignée d'incubation, où une release peut rompre un nom public ou un format, documenté et avec une
 migration, jusqu'à la 4.2.0 qui rétablit le SemVer strict ([SUPPORT](docs/fr/SUPPORT.md)). L'histoire de la v1.3 à

@@ -7,7 +7,8 @@
 "Remix" (LOG #138): the programme's eighth and last release, the fourth with a release candidate, and the release
 candidate of 4.2 (D28: the DSL and the IR are frozen). One game, several worlds: a variation manifest and a seed give
 an immutable world (items among tagged anchors, actors' starting rooms and rounds, coupled hints and answers, puzzle
-order, presentation on its own stream), the same on every runtime, every world of a catalogue proved
+order, presentation on its own stream), deterministic (tested in Node; the cross-runtime check is written, not run),
+every world of a catalogue proved
 (`verify:variants`), `Math.random` banned from the logical path; the save envelope v4 carries the world and a v3 save
 gets the story (breaking, with its migration); the title screen's Remix, seed codes with a check symbol, the daily
 challenge and Mystery seeds committed by the Bridge and checked offline; the code wheel, a playful reconstruction with

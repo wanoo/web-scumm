@@ -160,10 +160,10 @@ Every page also exists in French under `docs/fr/`, and a test keeps the two in s
 
 Current release: [v4.1.15 "Remix"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.15), the eighth and last of
 the 4.1.8 → 4.1.15 programme and the release candidate of 4.2: one game, several worlds from a manifest and a seed,
-the same on every runtime and every world of a catalogue proved; a save that carries its world; seed codes, the daily
-challenge and Mystery seeds; the code wheel; the Studio's Remix tab; the DSL and the IR frozen. On 4.1.14's runs and
-proofs, 4.1.13's solver, 4.1.12's game-as-data, 4.1.11's scene frame, 4.1.10's durable Bridge, 4.1.9's connectors and
-4.1.8's foundation.
+deterministic (tested in Node, the cross-runtime check written and not yet run) and every world of a catalogue proved;
+a save that carries its world; seed codes, the daily challenge and Mystery seeds; the code wheel; the Studio's Remix
+tab; the DSL and the IR frozen. On 4.1.14's runs and proofs, 4.1.13's solver, 4.1.12's game-as-data, 4.1.11's scene
+frame, 4.1.10's durable Bridge, 4.1.9's connectors and 4.1.8's foundation.
 From 4.1.1 to 4.1.7 every release added only what was optional, and a game written against one ran on the next;
 from 4.1.8 the 4.1.x line is an incubation line, where a release may break a public name or a format, documented
 and with a migration, until 4.2.0 restores strict SemVer ([SUPPORT](docs/en/SUPPORT.md)). The story
