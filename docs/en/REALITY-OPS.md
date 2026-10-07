@@ -55,6 +55,8 @@ attenuate its own token (fewer players, an earlier expiry) before handing it on;
   demonstration webhook; `event` must be one it knows, `id` names the delivery (deduplication).
 
 A connector checks what it claims (a credential's proof, an email's sender): Biscuit only says who may propose.
+The connectors of 4.1.9 (email, Telnet, SSH, Open Badges; experimental) run as processes beside the Bridge, each
+with its own token: `docs/en/CONNECTORS.md`.
 
 ## The player's side
 
