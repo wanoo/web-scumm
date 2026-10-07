@@ -124,6 +124,26 @@ async function measure(): Promise<Baseline> {
   return b;
 }
 
+/**
+ * The READMEs' figures (`<!-- metric:tests -->…<!-- /metric -->`, `metric:initialJsKB`, `metric:referenceStates`),
+ * written by the baseline with the JSON (4.1.8): they move with the code, and `--check` fails when they lag.
+ */
+const READMES = ['README.md', 'README.fr.md'];
+const METRIC = /(<!-- metric:(\w+) -->)([^<]*)(<!-- \/metric -->)/g;
+export function metricsOf(b: Baseline): Record<string, string> {
+  const reference = b.games.reference?.proof.states;
+  return {
+    tests: String(b.tests.declarations),
+    ...(b.bundle ? { initialJsKB: String(b.bundle.initialJsKB) } : {}),
+    ...(reference !== undefined ? { referenceStates: String(reference) } : {}),
+  };
+}
+export function withMetrics(page: string, m: Record<string, string>): string {
+  return page.replace(METRIC, (all, open: string, name: string, _v: string, close: string) =>
+    name in m ? `${open}${m[name]}${close}` : all,
+  );
+}
+
 /** The policy parts that got better than the baseline (4.1.3): said, so the baseline is ratcheted on purpose. */
 export function improvements(want: Baseline, got: Baseline): string[] {
   const out: string[] = [];
@@ -184,6 +204,16 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
       for (const d of improvements(prev, got)) console.log('  ✔ ratcheted: ' + d);
     }
     writeFileSync(OUT, JSON.stringify(got, null, 1) + '\n');
+    // The READMEs say the same two figures (4.1.8, docs/418-truth): they moved with the code, not with a release.
+    for (const r of READMES) {
+      const file = resolve(ROOT, r);
+      const page = readFileSync(file, 'utf8');
+      const next = withMetrics(page, metricsOf(got));
+      if (next !== page) {
+        writeFileSync(file, next);
+        console.log(`  ✔ ${r}: the figures written`);
+      }
+    }
     console.log(
       `✔  tests/quality-baseline.json written: ${Object.keys(got.games).length} games, ${Object.keys(got.saves).length} golden saves, ${got.tests.declarations} test declarations`,
     );
@@ -191,6 +221,11 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith
   } else {
     const want = JSON.parse(readFileSync(OUT, 'utf8')) as Baseline;
     const diff = differences(want, got);
+    for (const r of READMES) {
+      const page = readFileSync(resolve(ROOT, r), 'utf8');
+      if (withMetrics(page, metricsOf({ ...got, bundle: got.bundle ?? want.bundle })) !== page)
+        diff.push(`${r}: a figure is behind the baseline (npm run quality:baseline writes it)`);
+    }
     for (const d of diff) console.log('  ✖ ' + d);
     for (const d of improvements(want, got))
       console.log(`  ⚠ better than the baseline, ratchet it (npm run quality:baseline): ${d}`);

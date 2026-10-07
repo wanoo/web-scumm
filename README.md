@@ -108,7 +108,7 @@ npm run assets && npm run dev        # then npm run verify, npm run build, npm r
 
 ```bash
 npm install
-npm run doctor                       # Node and Chromium required; Python modules, ffmpeg, WebKit optional
+npm run doctor                       # Node and Chromium required; Python modules, ffmpeg, Firefox, WebKit optional
 npm run new-game my-game "My Game"   # games/my-game from the template, set as the current game
 npm run assets                       # prepares the placeholder art
 npm run studio                       # the Studio: rooms, story, assets, checks, play
@@ -122,16 +122,17 @@ is the whole method.
 
 ## In numbers
 
-Measured on the current release, by the automated gates that run on every change:
+Measured on this commit of `main`, by the automated gates that run on every change (`npm run quality:baseline` writes
+the three figures from `tests/quality-baseline.json`):
 
 | What | Result |
 |---|---|
-| Unit tests | 910, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
+| Unit tests | <!-- metric:tests -->901<!-- /metric --> declarations, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
 | Browser tests | the sample game played to its ending by touch and by keyboard in Chromium and WebKit at a phone's size, in English and French, with the DOM and the Canvas painter; a second game and the reference game too; every minigame won at the keyboard; axe-core on every screen |
 | Saves | one frozen save per release from 3.0.0 to 4.1.7 loads and reaches the ending |
-| Proof | the sample game's every reachable state in seconds; a 40-room reference game in 578 states; 1 503 random games compared to an explicit search every night, 0 divergences ([BENCH](docs/en/BENCH.md)) |
+| Proof | the sample game's every reachable state in seconds; a 40-room reference game in <!-- metric:referenceStates -->288<!-- /metric --> states; 500 random games of each of three kinds compared to an explicit search every night, 0 divergences ([BENCH](docs/en/BENCH.md)) |
 | A new game | packed, created from the tarball, installed, verified, built and played to its end by CI; a game made on the previous release upgraded and its save played to the end |
-| The player's first visit | 123 KB of JavaScript, gzipped, held by a budget; every byte fetched predicted by the asset graph |
+| The player's first visit | <!-- metric:initialJsKB -->120<!-- /metric --> KB of JavaScript, gzipped, held by a budget; every byte fetched predicted by the asset graph |
 | The release | built from the commit CI tested, every file accounted for with its licence, SBOM, SHA-256 sums and a provenance attestation, never replaced once published |
 
 What only people and real devices can check is listed, not claimed: [FIELD](docs/en/FIELD.md), and each release's
@@ -158,8 +159,9 @@ Every page also exists in French under `docs/fr/`, and a test keeps the two in s
 Current release: [v4.1.7 "Docs for a Studio"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.7): this page,
 a first-room tutorial, the API's signatures generated from the code, a support matrix, the French pages held within a
 third of the English ones by a test, every script documented, the governance files; on 4.1.6's day-to-day tool.
-Since 4.1.1 the project stays on the 4.1.x line until 4.2, the final version: every release adds only what is
-optional, and a game written against any 4.1.x runs on every later one ([SUPPORT](docs/en/SUPPORT.md)). The story
+From 4.1.1 to 4.1.7 every release added only what was optional, and a game written against one ran on the next;
+from 4.1.8 the 4.1.x line is an incubation line, where a release may break a public name or a format, documented
+and with a migration, until 4.2.0 restores strict SemVer ([SUPPORT](docs/en/SUPPORT.md)). The story
 from v1.3 to here is in the [ROADMAP](docs/en/ROADMAP.md), every change in the [CHANGELOG](CHANGELOG.md).
 
 ## Repository map

@@ -2540,3 +2540,31 @@ Platform"; human gates reported, not blocking (D12).
   nits taken (a tautological selector, the foreign-origin guard now proven through the status text).
 
 → next: Claude · `docs/418-truth` and the export classification (`@public | @extension | @internal`), then `release/4.1.8`
+
+## #114 · 2026-10-07 · Claude · proposal · `docs/418-truth`: the contradictions, found by a read-only audit
+
+- A read-only agent read every page against the code, the workflows, the lockfile and the licence files, and ranked
+  ten findings. Taken: MUTANTS.md vs mutants.json (left to PR #32, which regenerates the page from the JSON); the
+  READMEs' 910 tests, 123 KB and the reference game's "578 states" (288 since 3.5; now `<!-- metric:tests -->`,
+  `<!-- metric:initialJsKB -->` and `<!-- metric:referenceStates -->` markers written by
+  `tools/quality-baseline.ts` with the JSON, checked by `--check`, so the figures move with the code; the sentence
+  above the table says "this commit of main", not "the current release"); "1 503 random games" (nightly.yml runs 500
+  seeds × 3 kinds; no file held 1 503); the non-commercial music gone since 3.7 but still excepted in SECURITY.md,
+  TOOLS en/fr and `provenance.ts`'s comment; the "every 4.1.x runs on every later one" promise, bounded to 4.1.7 in
+  the READMEs and CONTRIBUTING (D18); PACKAGE.md en/fr with two packages where `pack.mjs` builds three; CREDITS
+  without zod and without the Biscuit vectors' Apache-2.0; MIGRATION-4.1.8 "8.3.2". Not taken: the MCP tables were
+  said to miss two tools, but `add_note` and `set_storyboard` share their rows with `get_notes` and
+  `get_storyboard` (21 rows, 23 tools: the audit counted rows).
+- `release.yml` installed the three browsers and `doctor --release` required them, yet `release-check` opens none
+  (its browser work is CI's e2e on every change): Firefox and WebKit are optional in release mode too, `release.yml`
+  installs Chromium alone (the doctor's constant requirement), `tests/tooling.test.ts` counts 5 required + 1 optional.
+- `scripts/check-links.mjs` (`npm run docs:links`): 13 external URLs in 107 files, 3 of them provider base hosts
+  quoted in STUDIO.md (404/421, marked as such, not counted), the 10 pages all reachable; a dev server's address and a URL cut by
+  a placeholder are skipped. The audit's one-shot `curl` pass found the same.
+
+- The second reading (PR #36): the Dependabot quote is about Vite 8.3.2 (kept, 8.3.3 noted beside it); the Bridge
+  package dates from 4.1.1, not 4.1.2; the reference game's states became the third marker; the ratchet's new
+  duty (a new test rewrites the READMEs) is said in TOOLS en/fr, CONTRIBUTING and the PR template; `--timeout=abc`
+  no longer means one millisecond; the doctor row says Chromium is required as always.
+
+→ next: Claude · `release/4.1.8`

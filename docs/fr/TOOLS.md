@@ -156,7 +156,7 @@ npm run solve -- --dominance             # un témoin avec dominance (3.5 ; n'é
 npm test           # tests Node du moteur, des outils et du jeu sélectionné (sans les tests lourds du solveur, 4.1.3)
 npm run test:heavy # les tests du solveur gourmands en CPU (audits des abstractions, propriétaire canonique, preuves memo et ownership, preuve du chapitre de référence) : chaque nuit, des minutes chacun
 npm run test:coverage   # la suite sous couverture V8, contre les planchers de vite.config.ts ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher d'au moins trois points sous ce que les tests atteignent (CI et release-check, 4.1.8)
-npm run quality:baseline -- --check [--dist]   # le comportement de la 4.0.0 conservé (4.1.0) : témoins, preuves, sauvegardes de référence, surface publique, première visite (tests/quality-baseline.json ; sans --check : l'écrit)
+npm run quality:baseline -- --check [--dist]   # le comportement de la 4.0.0 conservé (4.1.0) : témoins, preuves, sauvegardes de référence, surface publique, première visite (tests/quality-baseline.json ; sans --check : l'écrit, et avec lui les trois chiffres des README : un test de plus ou un bundle plus léger demande de le lancer, 4.1.8)
 npm run test:assets # tests Python des images et du pipeline d'assets
 npm run e2e        # parcours dans Chromium en paysage téléphone (serveur de dev lancé)
 ```
@@ -206,10 +206,11 @@ npm run e2e:visual -- <url> [--update] # chaque lieu, figé, contre tests/visual
 npm run e2e -- <url> --lang fr           # le jeu entier dans cette langue ; échoue sur tout texte anglais par défaut du moteur visible
 npm run e2e:a11y -- <url> [--only=axe,keys,storage] [--allow-skip]   # axe sur la conversation, la carte, les emplacements, les confirmations, chaque mini-jeu ; chaque mini-jeu gagné au clavier ; une ancienne sauvegarde mise à niveau (E2E_BROWSER=chromium|webkit ; sortie 3 : une vérification que le navigateur ne peut pas automatiser)
 npm run docs:screenshots [-- --only=game|studio --keep-png]   # les images du README depuis le bundle de production et le Studio, en WebP dans docs/img/ (Python avec Pillow)
+npm run docs:links [-- --timeout=10000]                       # chaque lien externe des docs demandé une fois, statuts par domaine ; une personne le lance avant une release, jamais la CI (le réseau n'est pas un test)
 npx tsx tools/api-doc.ts [--check]                            # les signatures de l'API publique dans docs/en/API.md et docs/fr/API.md (4.1.7 ; tests/api-doc.test.ts échoue quand une page est en retard)
 npm run lint [-- --prove | --static | --json]   # lint de contenu : conditions insatisfaisables, règles masquées, faux indices, indices bloqués, actions jamais jouées (alias de lint:content depuis la 4.1.0)
 npm run quality   # code du moteur (4.1.0) : formatage et lint Biome, tsconfig.json et tsconfig.strictest.json, puis le lint de contenu
-npm run doctor [-- --release]      # vérifie Node, modules Python, ffmpeg et navigateurs Playwright ; --release (4.1.8) les exige tous, comme release-check
+npm run doctor [-- --release]      # vérifie Node, modules Python, ffmpeg et navigateurs Playwright ; --release (4.1.8) exige Python, ses modules et ffmpeg, comme release-check, et Chromium comme toujours (release-check n'ouvre aucun navigateur : Firefox et WebKit restent optionnels)
 npm run check                      # vérifie les types et lance les tests Node
 npm run tsc -- …                   # le compilateur TypeScript 7 lui-même (4.1.8 ; le lien `tsc` peut appartenir au paquet typescript6 des outils) : `npm run check` et `quality` l'appellent
 npm run build:game                 # les portes du jeu (verify:game), le bundle, verify:dist, le contrôle des spoilers, l'audit des assets : ni tsc ni suite unitaire (la CI les lance une fois)
@@ -339,7 +340,7 @@ reste a aussi ses budgets :
 visite dans Chromium, préchargements coupés : chaque requête dans la portée initiale prédite, les octets à 10 % près ou
 en dessous.
 `npm run new-game` en écrit un pour les images empruntées à la démo
-(toutes provisoires, CC BY 4.0) ; celui de la démo excepte nommément sa musique non commerciale.
+(toutes provisoires, CC BY 4.0) ; celui de la démo n'a aucune exception : chacun de ses assets est CC BY 4.0 depuis la 3.7.
 `npm run verify:release` (validate `--release`, `i18n -- status`, playtests stricts) est une étape de
 `npm run release-check`, donc le workflow de release le lance. Ce qu'une exception laisse passer est affiché par son
 nom comme accepté, pas comme un avertissement à corriger. **Une release commerciale.** Un `verify:release` vert ne veut

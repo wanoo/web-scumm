@@ -308,7 +308,7 @@
  },
  "tests": {
   "files": 122,
-  "declarations": 900
+  "declarations": 901
  },
  "bundle": {
   "initialJsKB": 120
