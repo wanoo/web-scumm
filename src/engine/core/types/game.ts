@@ -1,6 +1,7 @@
 // A game and its rooms: the room, the map, the rules, the ending, the skin, the game itself, its migrations and its interface texts. (core/types.ts re-exports every name; 4.1.0 "Clarity".)
 import type { AudioDef } from './audio';
 import type { RealityDef } from './reality';
+import type { SpeedrunManifest } from './speedrun';
 import type {
   ActorDef,
   CharacterDef,
@@ -266,6 +267,8 @@ export interface GameDef {
    * objective that is not `optional`). Keyed by a stable id; `parent` nests a step under another objective.
    */
   objectives?: Record<Id, ObjectiveDef>;
+  /** Speedrun categories, splits and the rules' version (4.1.14, `docs/en/SPEEDRUN.md`). */
+  speedrun?: SpeedrunManifest;
   /** Manual save slots (pause menu: save, load, export, import). Absent or 0: autosave only. */
   saves?: { slots: number };
   /**
