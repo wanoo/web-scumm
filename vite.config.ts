@@ -7,6 +7,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { GAME, GAME_DIR, PROJECT } from './tools/game';
 import { studioPlugin } from './tools/studio/plugin';
 import { assetsVersion, BASE, layoutWriter, sealBuild, sitePlugin, studioDemo } from './tools/vite/plugins';
+import { engineVersion, trustedExtensionsHash } from './tools/extensions';
 
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
@@ -52,7 +53,14 @@ export default defineConfig({
   // The engine's pages (index.html, studio.html) are next to this file, wherever it is installed.
   root: r('.'),
   base: BASE,
-  define: { __ASSETS_VERSION__: JSON.stringify(assetsVersion()), __GAME__: JSON.stringify(GAME) },
+  // The fingerprint's parts the player cannot compute from the content (4.1.12, ADR 0013): the hash of the game's
+  // trusted extensions and the engine's version, the same values `sealBuild` writes into the built site.json.
+  define: {
+    __ASSETS_VERSION__: JSON.stringify(assetsVersion()),
+    __GAME__: JSON.stringify(GAME),
+    __TRUSTED_EXTENSIONS__: JSON.stringify(trustedExtensionsHash(GAME_DIR)),
+    __ENGINE_VERSION__: JSON.stringify(engineVersion()),
+  },
   plugins: [
     sitePlugin(),
     layoutWriter(),
