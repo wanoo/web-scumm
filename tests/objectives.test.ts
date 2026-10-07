@@ -60,6 +60,45 @@ describe('the validator reads objectives', () => {
   });
 });
 
+describe('the validator reads what an objective depends on', () => {
+  const warns = (g: GameDef) => validate(g, questLayouts).warnings.filter((e) => e.startsWith('objectives'));
+
+  it('warns when the content can take a `done` back (100 % is every objective at once)', () => {
+    expect(warns(quest())).toEqual([]);
+    const g = quest();
+    g.rooms[0]!.on!.push({
+      id: 'hall.use-key-rug',
+      verb: 'use',
+      a: 'key',
+      b: 'rug',
+      do: [{ unset: 'key_found' }, { lose: 'key' }],
+    });
+    g.objectives!.chest!.done = { all: ['chest_open', { has: 'key' }] };
+    const w = warns(g);
+    expect(w).toContainEqual(
+      expect.stringMatching(/^objectives\.key\.done › flag "key_found" can be unset: .*at once/),
+    );
+    expect(w).toContainEqual(expect.stringMatching(/^objectives\.chest\.done › item "key" can be lost/));
+    // A side objective is not part of 100 %: no warning.
+    g.objectives!.bell!.done = 'key_found';
+    expect(warns(g).some((x) => x.startsWith('objectives.bell'))).toBe(false);
+  });
+
+  it('a flag only a custom command without declared effects sets: the error says to declare them', () => {
+    const g = quest();
+    g.rooms[0]!.on!.push({ id: 'hall.use-bell-2', verb: 'use', a: 'bell', b: 'key', do: [{ custom: 'magic' }] });
+    g.objectives!.bell!.done = 'magic_done';
+    const e = validate(g, questLayouts, { commands: { magic: {} } }).errors.filter((x) => x.startsWith('objectives'));
+    expect(e).toContainEqual(
+      expect.stringMatching(
+        /^objectives\.bell\.done › can never hold: flag "magic_done" is never set \(unless a custom command does it: "magic" declares no `effects`, declare the command's effects\)/,
+      ),
+    );
+    const ok = validate(g, questLayouts, { commands: { magic: { effects: [{ set: 'magic_done' }] } } }).errors;
+    expect(ok.filter((x) => x.startsWith('objectives'))).toEqual([]);
+  });
+});
+
 describe('the engine completes objectives once, in the journal', () => {
   it('after the action that makes `done` hold, in declaration order, parents after their steps', async () => {
     const e = engine();
@@ -78,6 +117,15 @@ describe('the engine completes objectives once, in the journal', () => {
     const all = e.journal.since(from).map((x) => x.kind);
     expect(all.lastIndexOf('objectiveCompleted')).toBeLessThan(all.indexOf('endingReached'));
     expect([...e.objectives.completed()].sort()).toEqual(['chest', 'escape', 'key']);
+  });
+
+  it('right after the event that completes it, even inside a cutscene, before what follows', async () => {
+    const e = engine();
+    await e.newGame();
+    const from = e.journal.seq;
+    await e.script([{ cutscene: [{ set: 'rang' }, 'Ding.', { gain: 'key' }, { set: 'key_found' }, 'Found it.'] }]);
+    const kinds = e.journal.since(from).map((x) => (x.kind === 'objectiveCompleted' ? `done:${x.objective}` : x.kind));
+    expect(kinds).toEqual(['flagChanged', 'done:bell', 'itemAcquired', 'flagChanged', 'done:key', 'saveMade']);
   });
 
   it('never twice: an objective whose condition stops holding and holds again is not completed again', async () => {

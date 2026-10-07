@@ -1093,7 +1093,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
   // Events and scripts
   for (const [id, where] of scriptRefs) if (!scriptIds.has(id)) err(where, `unknown script: "${id}"`);
   eventChecks(game, { emitted, listened, waited }, err, warn);
-  objectiveChecks(game, { cond, err, commands: opts.commands });
+  objectiveChecks(game, { cond, err, warn, commands: opts.commands });
 
   // Flags
   for (const [f, where] of flagsRead) if (!flagsSet.has(f)) warn(where, `flag "${f}" is read but never set`);

@@ -17,6 +17,11 @@ function reachable(game: GameDef, commands: Record<string, { effects?: unknown[]
   const places = new Set(game.start.unlocked ?? []);
   const where = new Set<string>();
   const players = new Set([game.hero, ...(game.players?.ids ?? [])]);
+  // What the content can take back (a flag unset, an item lost or handed away), and the custom commands used without
+  // declared effects (what they do to the state is invisible here).
+  const unset = new Set<string>();
+  const lost = new Set<string>();
+  const undeclared = new Set<string>();
   for (const r of game.rooms)
     for (const [pid, p] of Object.entries(r.props ?? {}))
       if (p.states) props.add(`${r.id}.${pid}:${p.initial ?? Object.keys(p.states)[0]}`);
@@ -31,11 +36,31 @@ function reachable(game: GameDef, commands: Record<string, { effects?: unknown[]
         props.add(`${c.prop[0].includes('.') ? c.prop[0] : `${room}.${c.prop[0]}`}:${c.prop[1]}`);
       else if ('unlock' in c) places.add(c.unlock);
       else if ('moveActor' in c) where.add(`${c.moveActor[0]}:${c.moveActor[1]}`);
-      else if ('custom' in c) see(commands[c.custom]?.effects as Cmd[] | undefined, room);
+      else if ('unset' in c) unset.add(c.unset);
+      else if ('lose' in c) lost.add(c.lose);
+      else if ('transfer' in c) lost.add(c.transfer[0]);
+      else if ('custom' in c) {
+        const effects = commands[c.custom]?.effects as Cmd[] | undefined;
+        if (!effects && !(commands[c.custom] as { pure?: boolean } | undefined)?.pure) undeclared.add(c.custom);
+        see(effects, room);
+      }
     });
   for (const l of cmdLists(game)) see(l.list, l.room?.id);
   for (const s of game.reality?.signals ?? []) see(s.fallback?.do);
-  return { flags, items, props, places, where, players };
+  return { flags, items, props, places, where, players, unset, lost, undeclared };
+}
+
+/** What in a condition the content can make false again once true (a flag unset, an item lost), or null. */
+function takenBack(c: Cond, can: ReturnType<typeof reachable>): string | null {
+  if (typeof c === 'string') return !c.startsWith('!') && can.unset.has(c) ? `flag "${c}" can be unset` : null;
+  if ('flag' in c) return can.unset.has(c.flag) ? `flag "${c.flag}" can be unset` : null;
+  if ('has' in c) return can.lost.has(c.has) ? `item "${c.has}" can be lost` : null;
+  if ('all' in c) return c.all.map((x) => takenBack(x, can)).find(Boolean) ?? null;
+  if ('any' in c) {
+    const all = c.any.map((x) => takenBack(x, can));
+    return all.every(Boolean) ? (all[0] ?? null) : null;
+  }
+  return null;
 }
 
 /** Why a condition can never hold, or null when it can. */
@@ -80,6 +105,7 @@ export function objectiveChecks(
   o: {
     cond: (c: Cond | undefined, where: string) => void;
     err: (where: string, msg: string) => void;
+    warn: (where: string, msg: string) => void;
     commands?: Record<string, { effects?: unknown[] }>;
   },
 ): void {
@@ -97,7 +123,23 @@ export function objectiveChecks(
     }
     o.cond(x.done, `${w}.done`);
     const why = never(x.done, can, rooms);
-    if (why) o.err(`${w}.done`, `can never hold: ${why}`);
+    if (why)
+      o.err(
+        `${w}.done`,
+        `can never hold: ${why}${
+          can.undeclared.size && /flag|item|prop|place/.test(why)
+            ? ` (unless a custom command does it: ${[...can.undeclared].map((n) => `"${n}"`).join(', ')} declares no \`effects\`, declare the command's effects)`
+            : ''
+        }`,
+      );
+    // 100 % (`--goal=100%`) is every objective holding at once: a `done` the content can take back may make it
+    // unreachable even though each was completed once.
+    const back = takenBack(x.done, can);
+    if (!x.optional && back)
+      o.warn(
+        `${w}.done`,
+        `${back}: the journal keeps it completed, but --goal=100% needs every objective to hold at once (write a flag set once)`,
+      );
     if (x.parent !== undefined && !all[x.parent]) o.err(w, `unknown parent objective "${x.parent}"`);
   }
   // A cycle of parents: reported once, on the first objective of it met in order.
