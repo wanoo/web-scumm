@@ -4,8 +4,9 @@
 
 ### Changes
 
-- **Windows in CI** (4.1.8). A `windows-latest` job runs the doctor, the type checks and the unit suite, builds the
-  sample game and asks the production server for a page; `npm start` is a Node launcher (`scripts/start.mjs`) instead
+- **Windows in CI** (4.1.8). A `windows-latest` job runs the doctor, the type checks and the unit suite (six test
+  files that assume POSIX left out, named in the workflow: file modes, `/` in paths), builds the sample game and asks
+  the production server for a page; `npm start` is a Node launcher (`scripts/start.mjs`) instead
   of a shell line with a Unix expansion that cmd.exe and PowerShell did not know. The job is reported, not yet among
   the checks the ruleset requires (the maintainer's).
 - **Vite 8 and vite-plugin-pwa 2** (4.1.8). The bundler is Rolldown: the sample game builds in half a second where

@@ -49,7 +49,7 @@ What the automated gates run on every change, and what only people check (`docs/
 | Player, screen reader | axe-core on every screen (not a WCAG claim) | a VoiceOver or NVDA pass |
 | Firefox | not in CI | nothing claimed |
 | Node | 22.12 or newer: 22 and 24 on Ubuntu; macOS for the maintainer's daily use | — |
-| Windows | a `windows-latest` job on every change (4.1.8): `doctor`, `check` (types and the unit suite), `build`, the production server answering | `npm run dev` and the Studio on Windows |
+| Windows | a `windows-latest` job on every change (4.1.8): `doctor`, the type checks, the unit suite but six files that assume POSIX (file modes, `/` in paths; named in `ci.yml`), `build`, the production server answering | `npm run dev` and the Studio on Windows; the six test files, ported |
 | Python | optional: the art tools and the audio pipeline, Pillow, NumPy, SciPy pinned in `requirements.txt` | — |
 | Reality Bridge | Node 22.12+, Chromium and WebKit e2e, a Rust cross-check of the protocol | a Bridge behind HTTPS with a real connector |
 ## Deprecation

@@ -179,9 +179,11 @@ jobs:
       - run: for i in 1 2 3; do (npx playwright install chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
       - run: npm run doctor
-      # `check` (the junction, the type checks, the unit suite), then the game's gates and the build: `build` would run
-      # `check` a second time.
-      - run: npm run check
+      # The junction, the type checks, then the unit suite without six files that assume POSIX (file modes 0600,
+      # `/` in paths, the shell's tools): named here, said in SUPPORT, ported by `fix/418-windows-tests`. Then the
+      # game's gates and the build (`build` would run `check` a second time).
+      - run: npx tsx tools/select-game.ts && npm run -s tsc -- --noEmit
+      - run: npm run test:node -- --exclude tests/bridge.test.ts --exclude tests/file-size.test.ts --exclude tests/prompts.test.ts --exclude tests/status.test.ts --exclude tests/studio-demo.test.ts --exclude tests/tooling.test.ts
       - run: npm run build:game
       - name: The production server answers
         run: |
