@@ -8,7 +8,7 @@
 // names each one (file, operator, from, to) with its reason, docs/dev/MUTANTS.md explains them, and any survivor
 // not named there fails the run, whatever the count. The source file is restored after each mutant, and on exit. (Stryker 10 does not activate its mutants under Vitest 5 here: 739 of 749
 // survived, a block emptied included; this tool runs each mutant as plain source.)
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
@@ -265,18 +265,39 @@ export function mutants(file: string, src: string): Mutant[] {
 
 export const apply = (src: string, m: Mutant) => src.slice(0, m.start) + m.to + src.slice(m.end);
 
-function runTests(set: MutationSet | 'all'): 'killed' | 'survived' | 'timeout' {
-  try {
-    execFileSync('npx', ['vitest', 'run', '--config', 'vitest.mutation.config.ts', '--bail', '1'], {
+/**
+ * The set's tests against the source as it stands. A run that exceeds three minutes is a timeout, counted as killed;
+ * the whole process group goes with it (vitest's forked workers included: a timed-out parent alone left orphans that
+ * slowed CI's runner to a crawl, 4.1.8).
+ */
+function runTests(set: MutationSet | 'all'): Promise<'killed' | 'survived' | 'timeout'> {
+  return new Promise((done) => {
+    const child = spawn('npx', ['vitest', 'run', '--config', 'vitest.mutation.config.ts', '--bail', '1'], {
       cwd: ROOT,
       stdio: 'ignore',
-      timeout: 180_000,
+      detached: true,
       env: { ...process.env, MUTATION_SET: set },
     });
-    return 'survived';
-  } catch (e) {
-    return (e as { signal?: string }).signal === 'SIGTERM' ? 'timeout' : 'killed';
-  }
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      if (child.pid) {
+        try {
+          process.kill(-child.pid, 'SIGKILL');
+        } catch {
+          child.kill('SIGKILL');
+        }
+      }
+    }, 180_000);
+    child.on('error', () => {
+      clearTimeout(timer);
+      done('killed');
+    });
+    child.on('exit', (code) => {
+      clearTimeout(timer);
+      done(timedOut ? 'timeout' : code === 0 ? 'survived' : 'killed');
+    });
+  });
 }
 
 if (process.argv[1]?.endsWith('mutate.ts')) {
@@ -316,7 +337,7 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
     restore();
     process.exit(130);
   });
-  if (runTests(set) !== 'survived') {
+  if ((await runTests(set)) !== 'survived') {
     console.error('✖  the tests fail before any mutation: fix them first');
     process.exit(2);
   }
@@ -326,9 +347,12 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
       const src = originals.get(f)!;
       const ms = mutants(f, src);
       console.log(`${f}: ${ms.length} mutants`);
+      // A mutant is judged by the tests of its own set (`all` runs the sets one after the other, as the nightly did):
+      // running both sets' tests on every mutant doubled CI's time and said nothing more.
+      const judge = set === 'all' ? setOf(f) : set;
       for (const m of ms) {
         writeFileSync(resolve(ROOT, f), apply(src, m));
-        const status = runTests(set);
+        const status = await runTests(judge);
         results.push({ ...m, status });
         if (status === 'survived') console.log(`  survived ${f}:${m.line} ${m.operator}: ${m.from} → ${m.to}`);
       }

@@ -137,8 +137,10 @@
   `--hash` prints it) and reuses a report of the same inputs instead of running again (`--fresh` runs anyway): a
   commit of docs or of a version does not re-run the sets. CI gains a `mutation` job on both sets, cached by that
   hash; `release.yml` restores the cache before `release-check`, which runs `--set=all`; the nightly runs both sets
-  fresh and gated (no `continue-on-error`). The sets' sources and tests live in `tools/mutation-sets.ts`, read by the
-  tool and by `vitest.mutation.config.ts`. A named survivor may name the source line it sits on (`context`), so it
+  fresh and gated (no `continue-on-error`). A mutant is judged by the tests of its own set (`all` runs the sets one
+  after the other), and a run that exceeds three minutes is killed with its whole process group (vitest's forked
+  workers included: the orphans of a killed parent had slowed CI's runner to a 90-minute cancellation). The sets'
+  sources and tests live in `tools/mutation-sets.ts`, read by the tool and by `vitest.mutation.config.ts`. A named survivor may name the source line it sits on (`context`), so it
   never covers another mutant of the same file; `--doc` writes the table of named survivors into MUTANTS.md and a
   test keeps the two equal. **The Reality set's unexplained survivors are gone**, and `http-port.ts` (the player's
   transport, rewritten by the P0 fix) joins the set: 121 killed by four new test files (`tests/bridge-mutants.test.ts`,

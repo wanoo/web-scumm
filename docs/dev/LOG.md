@@ -2418,6 +2418,13 @@ Platform"; human gates reported, not blocking (D12).
   says so since 4.1.5); the `mutation` CI job is not among the ruleset's required checks until the maintainer adds
   it; `ship`'s merge retry (#25) and this branch's base (the fix branch, #23) merge before it.
 
+- CI's first full run of the job (`--set=all`, 7 October, 04:31) was cancelled by its 90-minute limit with the
+  reality set barely begun: every mutant was judged by both sets' tests, and a mutant whose run exceeded three
+  minutes left vitest's forked workers alive (the runner's cancellation listed eleven orphan `node` processes), the
+  same orphans that heated the maintainer's Mac. Now a mutant is judged by its own set's tests (`all` = the sets one
+  after the other), the runner spawns vitest detached and kills the whole process group on a timeout, the job has
+  150 minutes, and `npm run ship -- checks` waits up to four hours.
+
 → next: Claude · `refactor/418-typescript-7` (paths without `baseUrl`, the generated project's tsconfig; the compiler itself decided per MIGRATION-4.1.8.md)
 ## #108 · 2026-10-07 · Claude · proposal · `refactor/418-typescript-7`: the compiler, the paths, the CommonJS import
 
