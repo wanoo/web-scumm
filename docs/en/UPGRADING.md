@@ -271,3 +271,11 @@ do). `npm run doctor` exits 0 when only Python, ffmpeg or WebKit are missing. `r
 Nothing to change in a game or a host: 4.1.7 changes documentation, tests and the repository's templates, no code a
 game runs. A 4.1.6 save loads unchanged. If you keep a fork of `AGENTS.md`, its rule 14 and the "Working in pairs"
 section are gone; `docs/en/TUTORIAL.md` is the page to hand a newcomer.
+
+## 20. From 4.1.7 to 4.1.8 "Foundation Reset"
+
+A 4.1.7 save loads unchanged. A project's `tsconfig.json` written by `create-web-scumm` before 4.1.8 has `baseUrl: "."`
+and non-relative `paths`, which TypeScript 7 refuses (TS5102, TS5090): `web-scumm migrate` rewrites it (the same
+configuration, said relative to the file), `--check` says when it is due. The engine's type checks run on TypeScript 7
+(`npm run tsc`); a tool of yours that imports the compiler API (`import ts from 'typescript'`) finds no API in
+`typescript@7` and imports `@typescript/typescript6` instead until 7.1 (docs/dev/MIGRATION-4.1.8.md).

@@ -211,6 +211,7 @@ npm run lint [-- --prove | --static | --json]   # lint de contenu : conditions i
 npm run quality   # code du moteur (4.1.0) : formatage et lint Biome, tsconfig.json et tsconfig.strictest.json, puis le lint de contenu
 npm run doctor                     # vérifie Node, modules Python, ffmpeg et navigateurs Playwright
 npm run check                      # vérifie les types et lance les tests Node
+npm run tsc -- …                   # le compilateur TypeScript 7 lui-même (4.1.8 ; le lien `tsc` peut appartenir au paquet typescript6 des outils) : `npm run check` et `quality` l'appellent
 npm run build:game                 # les portes du jeu (verify:game), le bundle, verify:dist, le contrôle des spoilers, l'audit des assets : ni tsc ni suite unitaire (la CI les lance une fois)
 npm run verify:game                # validation, témoins globaux/par chapitre et couverture des traductions
 npm run prove:game                 # preuve exhaustive globale/par chapitre ; échoue sur softlock ou troncature

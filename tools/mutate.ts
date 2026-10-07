@@ -11,7 +11,7 @@
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import ts from 'typescript';
+import ts from '@typescript/typescript6';
 import { ROOT } from './game';
 
 export const SETS = {

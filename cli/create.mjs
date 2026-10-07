@@ -114,12 +114,12 @@ writeFileSync(
         isolatedModules: true,
         noEmit: true,
         resolveJsonModule: true,
-        baseUrl: '.',
+        // Relative to this file, no `baseUrl` (removed by TypeScript 7, 4.1.8).
         paths: {
-          '@engine/*': ['node_modules/web-scumm/src/engine/*'],
-          'web-scumm/*': ['node_modules/web-scumm/src/engine/api/*'],
-          '@game': ['game/index.ts'],
-          '@game/*': ['game/*'],
+          '@engine/*': ['./node_modules/web-scumm/src/engine/*'],
+          'web-scumm/*': ['./node_modules/web-scumm/src/engine/api/*'],
+          '@game': ['./game/index.ts'],
+          '@game/*': ['./game/*'],
         },
         types: ['vite/client', 'node'],
       },

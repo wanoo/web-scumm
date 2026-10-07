@@ -2347,3 +2347,23 @@ Platform"; human gates reported, not blocking (D12).
   plays it to its end); the private game is not measured (D8); the Mac's build time is not in the baseline.
 
 → next: Claude · `fix/418-reality-integrity` (the P0: three cursors, the reality mutation set gated)
+
+## #108 · 2026-10-07 · Claude · proposal · `refactor/418-typescript-7`: the compiler, the paths, the CommonJS import
+
+- The decision MIGRATION-4.1.8.md left open: `typescript@7.0.2` as the compiler, `@typescript/typescript6` (6.0.2)
+  as the API of the five tools, until 7.1 (stable planned 2026-11-24). Measured: `tsc --noEmit` on the whole
+  repository 0.47 s, the strictest configuration 0.56 s (4.1.7: about ten seconds each). Found on the way:
+  `@typescript/typescript6` depends on `@typescript/old`, a renamed `typescript@6.0.3` whose `tsc` bin link wins in
+  `node_modules/.bin`, so `tsc` on the command line is 6.0.3 while `node node_modules/typescript/bin/tsc` is 7.0.2;
+  the scripts call the latter through `npm run tsc` (TOOLS.md), said in the row.
+- `tsconfig.json` without `baseUrl`, every path relative (TypeScript 5.9 accepted it, 7 requires it; `tsx` through
+  `get-tsconfig` already followed the rule); `cli/create.mjs` writes the project's the same way; `web-scumm migrate`
+  rewrites an older project's (`tsconfigWithoutBaseUrl`, pure, tested), `--check` reports it; UPGRADING §20 en/fr.
+- `src/engine/dom/walk.ts`: `import { NavMesh } from 'navmesh'` (the named export its d.ts declares) instead of the
+  default import Rolldown hands whole: the one CommonJS default import of `src/`, the blocker Vite 8 hit in 4.0,
+  removed under Vite 6 first (MIGRATION §6, step 2).
+- Not done, said as such: Vite 8 and vite-plugin-pwa 2 are the next two branches; the export classification
+  (`@public | @extension | @internal`) and the API test on it are a branch of their own after them; the editor's
+  TypeScript (the native extension) is each developer's.
+
+→ next: Claude · `refactor/418-vite-8`

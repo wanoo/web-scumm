@@ -281,3 +281,12 @@ Rien à changer dans un jeu ni dans un hôte : la 4.1.7 change la documentation,
 aucun code qu'un jeu exécute. Une sauvegarde 4.1.6 se charge telle quelle. Si vous gardez une copie d'`AGENTS.md`, sa
 règle 14 et la section « Working in pairs » ont disparu ; `docs/fr/TUTORIAL.md` est la page à donner à un nouveau
 venu.
+
+## 20. De la 4.1.7 à la 4.1.8 « Foundation Reset »
+
+Une sauvegarde 4.1.7 se charge telle quelle. Le `tsconfig.json` d'un projet écrit par `create-web-scumm` avant la 4.1.8
+a `baseUrl: "."` et des `paths` non relatifs, que TypeScript 7 refuse (TS5102, TS5090) : `web-scumm migrate` le
+réécrit (la même configuration, dite relativement au fichier), `--check` dit quand c'est dû. Les vérifications de types
+du moteur tournent sur TypeScript 7 (`npm run tsc`) ; un outil à vous qui importe l'API du compilateur (`import ts from
+'typescript'`) ne trouve pas d'API dans `typescript@7` et importe `@typescript/typescript6` à la place jusqu'à la 7.1
+(docs/dev/MIGRATION-4.1.8.md).
