@@ -2372,3 +2372,21 @@ Platform"; human gates reported, not blocking (D12).
   TypeScript (the native extension) is each developer's.
 
 → next: Claude · `refactor/418-vite-8`
+
+## #109 · 2026-10-07 · Claude · proposal · `refactor/418-vite-8`: Rolldown, the PWA plugin's 2.0
+
+- On the TypeScript 7 branch (the `navmesh` named import was its step 2, for this): `vite@8.3.3`,
+  `vite-plugin-pwa@2.0.0`, `rollupOptions` → `rolldownOptions` (the two file-name functions read `moduleIds` as
+  before), `engines.node >= 22.12`. Measured, Vite 8 build of the sample game: 216–477 ms (Vite 6 on the runner:
+  seconds); `index` chunk 388.20 kB / 123.61 kB gzipped (4.1.7: 391.27 / 125.72); `verify:dist` 254 files, first
+  visit 120 KB gzipped (budget 140; 4.1.7: 123); `weight --release` within every budget; the PWA's precache 22
+  entries (679 KiB), `sw.js` and the Workbox runtime where the tools read them; the tools' and Reality's chunks in
+  their folders. The `initialJsKB` ratchet moves down with it (the baseline is written by the branch's run).
+- Vite 8 warns that its future native configuration loader will not resolve imports without a file extension
+  (`vite.config.ts`, `tools/game.ts`, `tools/vite/plugins.ts`, `tools/studio/plugin.ts`): left as a warning, said
+  in the CHANGELOG; a pass adding `.ts` extensions to the config's import graph is a branch of its own when that
+  loader becomes the default (`allowImportingTsExtensions` would go with it).
+- Not done, said as such: the Windows smoke job and the portable `start` (programme §4.4) are the next branch
+  (`feature/418-windows-smoke`); the PWA e2e's three levels (programme §4.5) are `feature/418-pwa-e2e`.
+
+→ next: Claude · `feature/418-pwa-e2e` (caches named and versioned, the update that never reloads before a durable save, the three levels of the e2e)
