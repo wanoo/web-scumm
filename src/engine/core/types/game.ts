@@ -506,6 +506,10 @@ export interface UiTexts {
   remixHidden?: string;
   remixCopied?: string;
   remixNoBridge?: string;
+  /** The title's question when a link names another world than the saved game's (4.1.15). */
+  remixConflict?: string;
+  remixKeepSaved?: string;
+  remixStartLinked?: string;
   /** Values of text speed / size: slow, normal, fast, large. */
   slow?: string;
   normal?: string;

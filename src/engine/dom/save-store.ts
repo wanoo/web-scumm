@@ -1,6 +1,6 @@
 import type { SaveStore, SlotMeta, SlotStore } from '../core/ports';
 import type { GameDef, GameState } from '../core/types';
-import { parseSave, parseSlot, saveEnvelope, type SlotRecord } from '../core/save';
+import { parseSave, parseSlot, SaveWorldMismatch, saveEnvelope, type SlotRecord } from '../core/save';
 
 const DB = 'web-scumm-saves';
 const STORE = 'slots';
@@ -36,6 +36,8 @@ export class IndexedDbSaveStore implements SaveStore, SlotStore {
   private value: GameState | null = null;
   private pending: Promise<void> = Promise.resolve();
   private lastError: Error | null = null;
+  /** The autosave belongs to another world (4.1.15): kept, never overwritten until `clear()` (the player's choice). */
+  private foreign: SaveWorldMismatch | null = null;
   private constructor(
     private db: IDBDatabase,
     private game: GameDef,
@@ -57,7 +59,15 @@ export class IndexedDbSaveStore implements SaveStore, SlotStore {
     const tx = db.transaction(STORE, 'readonly');
     const saved = await request(tx.objectStore(STORE).get(`${game.id}:auto`));
     await transaction(tx);
-    if (saved !== undefined) out.value = parseSave(game, saved, { warn });
+    if (saved !== undefined)
+      try {
+        out.value = parseSave(game, saved, { warn });
+      } catch (e) {
+        // A save of another world (4.1.15): kept as it is; this page cannot resume it, nor write over it.
+        if (!(e instanceof SaveWorldMismatch)) throw e;
+        out.foreign = e;
+        warn(e.message);
+      }
     else {
       // One-time import of the v2 localStorage autosave. It is removed only after IndexedDB verifies the copy.
       let legacy: string | null = null;
@@ -186,6 +196,10 @@ export class IndexedDbSaveStore implements SaveStore, SlotStore {
   }
 
   save(state: GameState): void {
+    if (this.foreign) {
+      this.fail(new Error(`${this.foreign.message}; it is kept, not overwritten`));
+      return;
+    }
     this.value = structuredClone(state);
     const snapshot = structuredClone(state);
     this.lastError = null;
@@ -199,6 +213,7 @@ export class IndexedDbSaveStore implements SaveStore, SlotStore {
 
   clear(): Promise<boolean> {
     const previous = this.value;
+    this.foreign = null;
     this.value = null;
     this.lastError = null;
     const done = this.pending

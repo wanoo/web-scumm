@@ -10,6 +10,7 @@ import type { Minigame } from './minigames';
 import type { EditorOptions } from './dev/editor';
 import { FONT_PIXEL, FONT_UI } from './dom/fonts';
 import { applyLocale } from './tools/i18n';
+import { uiText } from './dom/ui-defaults';
 
 /** The translations a game ships, by language then by text path (`locales/<lang>.json`). @public */
 export type Locales = Record<string, Record<string, string>>;
@@ -156,29 +157,35 @@ export async function bootGame(o: BootOptions): Promise<App> {
   });
   const texts = lang && o.locales?.[lang] ? applyLocale(written, o.locales[lang], o.minigames) : written;
   // Remix (4.1.15): the world this page plays, applied after the translation so that every language says the same
-  // code. A link's world (`?seed=`, `?daily=`) becomes this browser's (the title then offers its New game); else the
-  // one chosen before; else the story. A save made in another world names it (`SaveWorldMismatch`).
+  // code. The autosave's world first (Continue never disappears), else a link's (`?seed=`, `?daily=`, `?world=`), else
+  // the one chosen before, else the story; a link to another world than the saved game's is asked on the title screen
+  // (dom/remix-boot.ts), never adopted silently.
   let translated = texts;
   if (written.remix) {
     const remix = await import('./dom/remix-menu');
+    const rb = await import('./dom/remix-boot');
     const { applyVariant, applyStory } = await import('./core/remix/apply');
-    let world = remix.storedWorld(written.id);
+    let linked: Awaited<ReturnType<typeof remix.worldFromQuery>>;
     try {
-      const linked = await remix.worldFromQuery(written, q);
-      if (linked && linked.hash !== world?.hash) {
-        remix.keepWorld(written.id, linked);
-        world = linked;
-      }
+      linked = await remix.worldFromQuery(written, q);
     } catch (e) {
-      console.warn('this link names no world of the game', e);
+      rb.setPendingNotice(`${uiText(written.ui, 'remixInvalid')}: ${(e as Error).message}`);
     }
+    const choice = rb.decideWorld({
+      linked,
+      stored: remix.storedWorld(written.id),
+      saved: await rb.peekSavedWorld(written.id),
+      start: remix.hasPendingStart(written.id),
+    });
+    if (choice.keep) remix.keepWorld(written.id, choice.world);
+    rb.setPendingConflict(choice.conflict);
     try {
-      translated = world
-        ? applyVariant(texts, world, { lang: lang ?? written.lang })
+      translated = choice.world
+        ? applyVariant(texts, choice.world, { lang: lang ?? written.lang })
         : applyStory(texts, { lang: lang ?? written.lang });
     } catch (e) {
-      // A world this version of the game no longer has: the story, said once.
-      console.warn('the stored world cannot be rebuilt; playing the story', e);
+      // A world this version of the game no longer has (or a forged one): the story, said to the player.
+      rb.setPendingNotice(`${uiText(written.ui, 'remixInvalid')}: ${(e as Error).message}`);
       remix.keepWorld(written.id, undefined);
       translated = applyStory(texts, { lang: lang ?? written.lang });
     }

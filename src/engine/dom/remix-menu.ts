@@ -54,6 +54,15 @@ export function keepWorld(gameId: string, v: WorldVariant | undefined, start = f
   }
 }
 
+/** Whether a new game in a chosen world is waiting for this page (not consumed: the boot reads it). */
+export function hasPendingStart(gameId: string): boolean {
+  try {
+    return storage()?.getItem(PENDING(gameId)) === '1';
+  } catch {
+    return false;
+  }
+}
+
 /** Whether the page was reloaded to start a new game in a world just chosen (read once). */
 export function takePendingStart(gameId: string): boolean {
   const s = storage();

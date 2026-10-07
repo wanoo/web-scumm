@@ -1,7 +1,7 @@
 // Where a game is saved in the browser without IndexedDB: the autosave and the slots in localStorage. (4.1.0 "Clarity", from dom/app.ts.)
 import type { SaveStore, SlotMeta, SlotStore } from '../core/ports';
 import type { GameDef, GameState } from '../core/types';
-import { parseSave, parseSlot, saveEnvelope, type SlotRecord } from '../core/save';
+import { parseSave, parseSlot, SaveWorldMismatch, saveEnvelope, type SlotRecord } from '../core/save';
 
 /** A state with the music's phase, as a save keeps it (3.6). */
 export const withPhase = (s: GameState, phase: { id: string; at: number } | null): GameState => {
@@ -25,12 +25,21 @@ export class LocalStore implements SaveStore {
       const v = localStorage.getItem(this.key);
       return v ? parseSave(this.game, JSON.parse(v), { warn: this.warn }) : null;
     } catch (e) {
-      this.fail(e as Error);
+      if (e instanceof SaveWorldMismatch) this.warn(e.message);
+      else this.fail(e as Error);
       return null;
     }
   }
   save(s: GameState) {
     try {
+      // A save of another world (4.1.15) is kept: only `clear()` (the player's choice) makes room for this one.
+      const before = localStorage.getItem(this.key);
+      if (before)
+        try {
+          parseSave(this.game, JSON.parse(before), { warn: () => {} });
+        } catch (e) {
+          if (e instanceof SaveWorldMismatch) throw new Error(`${e.message}; it is kept, not overwritten`);
+        }
       const raw = JSON.stringify(saveEnvelope(this.game, s));
       localStorage.setItem(this.key, raw);
       const check = localStorage.getItem(this.key);
