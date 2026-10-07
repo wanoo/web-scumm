@@ -116,4 +116,42 @@ describe('the validator and signals', () => {
     expect(e).toMatch(/`availability`/);
     expect(e).toMatch(/`replay` is "record"/);
   });
+
+  it("reality.connectors (4.1.9): declared signals, plain words, commands that are not the terminal's, paths inside", () => {
+    const g = signals();
+    g.reality!.connectors = {
+      email: { answers: [{ words: ['open'], signal: 'mail.answer.correct' }], otherwise: 'mail.answer.wrong' },
+      telnet: { commands: [{ says: 'ring bell', reply: 'Ding.', signal: 'hook.bell' }] },
+      ssh: { commands: [], files: { '/notes/a.txt': 'a' } },
+      'open-badge': { issuers: ['https://badges.example.org/issuer'], valid: 'hook.bell' },
+    };
+    expect(errs(g)).toEqual([]);
+    g.reality!.connectors = {
+      email: { answers: [{ words: ['two words', ''], signal: 'nope' }] },
+      telnet: {
+        commands: [
+          { says: 'ls -la', reply: 'x' },
+          { says: 'cat notes', reply: 'x' },
+          { says: 'Rm; reboot', reply: 'x' },
+          { says: 'ring', reply: 'x'.repeat(2001) },
+          { says: 'ring', reply: 'y', signal: 'ghost' },
+        ],
+      },
+      ssh: { commands: [], files: { '../etc/passwd': 'x', '/a/../b': 'y', '/big': 'z'.repeat(17_000) } },
+      'open-badge': { issuers: [], valid: 'missing' },
+    };
+    const e = errs(g).join('\n');
+    expect(e).toMatch(/answers\[0\].*`words`/);
+    expect(e).toMatch(/signal "nope" is not declared/);
+    expect(e).toMatch(/"cat notes": help, exit, quit, clear, ls, cd, cat, pwd are the terminal's own commands/);
+    expect(e).toMatch(/commands\[0\].*`says`/);
+    expect(e).toMatch(/"ring" is declared twice/);
+    expect(e).toMatch(/`reply`: plain text, at most 2000/);
+    expect(e).toMatch(/signal "ghost" is not declared/);
+    expect(e).toMatch(/"\.\.\/etc\/passwd": an absolute path/);
+    expect(e).toMatch(/"\/a\/\.\.\/b": an absolute path/);
+    expect(e).toMatch(/"\/big": at most 16 KB/);
+    expect(e).toMatch(/`issuers`/);
+    expect(e).toMatch(/signal "missing" is not declared/);
+  });
 });

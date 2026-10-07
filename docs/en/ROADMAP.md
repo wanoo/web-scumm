@@ -611,6 +611,22 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.1.9 "Gateways" (shipped 7 October 2026): the world outside, through four connectors
+
+The programme's second release, the same day as the first. A package `web-scumm-connectors` (the fourth tarball) with
+one SDK (a connector receives, validates, binds to a player, carries a deduplication key, proposes with its own
+attenuated Biscuit; at least once, applied once; the payload never leaves the connector, the Bridge gets its hash) and
+four connectors, each with its threat model written before its code and its abuse tests: email (an HMAC webhook, or a
+bounded IMAP client; MIME read in a worker under limits; HTML inert; attachments refused), Telnet (a virtual shell of
+the game's declared commands, limits per address and per session), SSH (`ssh2`, a pairing code or a declared key, a
+virtual terminal and disk, nothing of the host), Open Badges (OB2 and OB3 verified, revocation and status lists, every
+fetch through an SSRF-safe fetcher). A game's build refuses server code; `games/signals` plays a chapter through an
+email and a terminal, from recorded replays the solver proves. All four are `experimental` in SUPPORT until a real
+provider, a real badge, a controlled exposure of SSH and Telnet have been tried by people. The cadence itself: the
+CHANGELOG and the LOG as fragments per branch (`changes/`), the CI in three tiers sized by the change (`plan`,
+`pr-gate`), the mutation job off the pull request path. Left for later, said as such: email replies, DKIM/SPF, IMAP
+STARTTLS and IDLE; a coverage floor and a mutation gate for `connectors/`; the human passes.
+
 ## The 4.1.8 → 4.1.15 programme (decided 7 October 2026, D18): finish the breaks before the contracts freeze
 
 No production game depends on web-scumm yet (the maintainer's own game stays on 3.1.0, D8): the saves, projects and
@@ -627,7 +643,7 @@ release (D12); the next version opens only when the current one's blockers are c
 | Version | Working name | Expected result |
 |---|---|---|
 | 4.1.8 | **Foundation Reset** (shipped 7 October 2026) | TypeScript 7, Vite 8, PWA 2, the Reality cursor fixed (the port's local cursor moved before the acknowledgement: reproduced in polling), release checks that predict the release, a release candidate first |
-| 4.1.9 | **Gateways** | email, SSH, Telnet and Open Badges connectors on one SDK, out of the player, experimental until a real pass |
+| 4.1.9 | **Gateways** (shipped 7 October 2026) | email, SSH, Telnet and Open Badges connectors on one SDK, out of the player, experimental until a real pass |
 | 4.1.10 | **Constellation** | a durable Bridge, replicated and isolated by tenant; the signal may become `SignalV2` if the threat analysis asks |
 | 4.1.11 | **Viewport** | a renderer separate from the game logic, behind an immutable `SceneFrame`; a semantic journal owned by the core |
 | 4.1.12 | **Language** | the DSL and an intermediate representation (`GameIR`, a game fingerprint) shaped by Gateways and Viewport; the core stabilised |

@@ -37,7 +37,43 @@ export const game = defineGame({
       { id: 'mail.answer.correct', source: 'mail', availability: 'required', replay: 'record', fallback: { verb: 'use', a: 'bench' } },
       { id: 'mail.answer.wrong', source: 'mail', availability: 'optional', replay: 'record' },
       { id: 'hook.bell', source: 'webhook', availability: 'optional', replay: 'record', once: false },
+      // "The mailbox and the terminal" (4.1.9, docs/en/CONNECTORS.md): the real connectors' signals, all optional.
+      { id: 'letter.door', source: 'email', availability: 'optional', replay: 'record' },
+      { id: 'letter.unclear', source: 'email', availability: 'optional', replay: 'record', once: false },
+      { id: 'terminal.lamp', source: 'terminal', availability: 'optional', replay: 'record' },
+      { id: 'badge.valid', source: 'badge', availability: 'optional', replay: 'record' },
+      { id: 'badge.refused', source: 'badge', availability: 'optional', replay: 'record', once: false },
     ],
+    // What each connector may turn into a signal: words of a letter, the commands of the shed's terminal (Telnet and
+    // SSH, one source), the files of its disk, the badge issuers this game trusts.
+    connectors: {
+      email: { answers: [{ words: ['open', 'door'], signal: 'letter.door' }], otherwise: 'letter.unclear' },
+      telnet: {
+        banner: 'GARDEN SHED TERMINAL. Mind the spiders.',
+        prompt: 'shed> ',
+        commands: [
+          { says: 'lamp on', reply: 'Click. Somewhere in the garden, a lamp glows.', signal: 'terminal.lamp' },
+          { says: 'status', reply: 'Lamp: ask it. Door: ask the post. Coffee: cold.' },
+        ],
+      },
+      ssh: {
+        banner: 'GARDEN SHED TERMINAL (secure edition). Same spiders.',
+        prompt: 'shed$ ',
+        commands: [{ says: 'lamp on', reply: 'Click. Somewhere in the garden, a lamp glows.', signal: 'terminal.lamp' }],
+        files: {
+          '/notes/lamp.txt': 'The lamp obeys two words: lamp on.',
+          '/notes/door.txt': 'The shed door opens for a letter that says: open the door.',
+        },
+      },
+      'open-badge': {
+        issuers: ['https://badges.example.org/issuer'],
+        valid: 'badge.valid',
+        invalid: 'badge.refused',
+        expired: 'badge.refused',
+        revoked: 'badge.refused',
+        indeterminate: 'badge.refused',
+      },
+    },
   },
   checkpoints: { ...startCp },
   audio: { music: {}, sfx: {} },
