@@ -59,6 +59,13 @@ jobs:
         timeout-minutes: 8
       - run: for i in 1 2 3; do (npx playwright install --with-deps chromium firefox webkit) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
+      # The mutation report of these very inputs, measured by ci (4.1.8): release-check reuses it, or runs both sets.
+      - id: inputs
+        run: echo "hash=$(npx tsx tools/mutate.ts --set=all --hash)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/mutation
+          key: mutation-all-${{ steps.inputs.outputs.hash }}
       - run: npm run release-check
       - run: node scripts/release-notes.mjs "$TAG" > notes.md
       - name: Build archive, checksum and SBOM

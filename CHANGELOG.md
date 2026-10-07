@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Changes
+
+- **The mutation gate, honest and cheap to carry** (4.1.8). `tools/mutate.ts` writes a report keyed by the hash of
+  its inputs (the set's sources and tests, the two configurations, the tool, the named survivors, the lockfile;
+  `--hash` prints it) and reuses a report of the same inputs instead of running again (`--fresh` runs anyway): a
+  commit of docs or of a version does not re-run the sets. CI gains a `mutation` job on both sets, cached by that
+  hash; `release.yml` restores the cache before `release-check`, which runs `--set=all`; the nightly runs both sets
+  fresh and gated (no `continue-on-error`). The sets' sources and tests live in `tools/mutation-sets.ts`, read by the
+  tool and by `vitest.mutation.config.ts`. A named survivor may name the source line it sits on (`context`), so it
+  never covers another mutant of the same file; `--doc` writes the table of named survivors into MUTANTS.md and a
+  test keeps the two equal. **The Reality set's 96 unexplained survivors are gone**: 89 killed by three new test
+  files (`tests/bridge-mutants.test.ts`, `tests/bridge-store.test.ts`, `tests/reality-client.test.ts`: the exact
+  edges of expiries and quotas, revocations landing inside the lock, the journal's retention and rewrite, the
+  client's refusals and its stop), 7 named as equivalent with their reason; two old equivalents, now killed, left the
+  list. Measured on the branch: __KILLED__ of 514 mutants killed, every survivor named.
+
 ### Fixed
 
 - **A signal handed over and not acknowledged was lost to its connection** (P0 of 4.1.8, reproduced by the

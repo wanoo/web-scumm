@@ -2312,3 +2312,30 @@ Platform"; human gates reported, not blocking (D12).
   (`test/418-reality-mutants`), not this one; the Bridge's own backlog bound (`streamBufferBytes`) was already there.
 
 → next: Claude · `test/418-reality-mutants` (the 88 survivors killed or named; `--set=reality` gated by `mutationInputHash`)
+
+## #107 · 2026-10-07 · Claude · proposal · `test/418-reality-mutants`: the 96 survivors, and a gate keyed by its inputs
+
+- Measured first (`npx tsx tools/mutate.ts --set=reality` on the fix commit 4592e73, 43 min on the Mac): 404/514
+  killed, 14 explained, **96 unexplained** (store 45, bridge 34, client 12, policy 3, protocol 2; 88 at 4.1.7 plus
+  the new lock and schema). Then three agents, one group each, one new test file each, never the suite, never the
+  mutation tool: bridge + policy 35/37 (`tests/bridge-mutants.test.ts`, a store hook that opens the window between a
+  proposal's check before the lock and the one inside it; `propose(token, null)`; the exact instants of expiries and
+  the quota window; `ack(1.5)`), store 40/45 (`tests/bridge-store.test.ts`: retention at the boundary, the last
+  signal kept, `forget` keeping the other player's lines, the lock's liveness with pids 1 and 2147483647, a journal
+  folder without write permission), client + protocol 14/14 (`tests/reality-client.test.ts`: `stop()` while the
+  engine is busy or has no game, `unknown`/`overflow`/`busy` never acknowledged, the mismatch that closes the port,
+  the size limit at 4096/4097, the refusal's wording that reaches `onRefused`). The 7 equivalents are named with
+  their reason; the kills were verified by each agent on a throwaway copy, mutant by mutant.
+- The gate: a report keyed by `inputHash` (sources, tests, both configurations, the tool, mutants.json, the
+  lockfile), reused when nothing changed, `--fresh` otherwise; CI job `mutation` on both sets behind `actions/cache`
+  keyed by the hash; `release.yml` restores it before `release-check` (`--set=all`); nightly both sets, fresh,
+  gated. `tools/mutation-sets.ts` holds the sets for the tool and the vitest config. `KnownSurvivor.context`: an
+  entry names its source line, so a `+ → -` named once no longer covers every `+ → -` of the file (the store agent's
+  finding); `tests/mutants-doc.test.ts` keeps MUTANTS.md's table (`--doc`) equal to the JSON and every context line
+  present in its file.
+- Measured after, on the branch (`--set=reality --fresh`): __KILLED__/514 killed, every survivor named: the Reality
+  set gates. Not done, said as such: `command-handlers.ts` and `scheduler.ts` stay out of the gated sets (MUTANTS.md
+  says so since 4.1.5); the `mutation` CI job is not among the ruleset's required checks until the maintainer adds
+  it; `ship`'s merge retry (#25) and this branch's base (the fix branch, #23) merge before it.
+
+→ next: Claude · `refactor/418-typescript-7` (paths without `baseUrl`, the generated project's tsconfig; the compiler itself decided per MIGRATION-4.1.8.md)

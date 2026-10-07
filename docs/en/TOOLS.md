@@ -401,7 +401,7 @@ line (4.1.7; a script missing from this page fails `tests/scripts-documented.tes
 | `npm run preview` | serves `dist/` on 127.0.0.1 (what the e2e scripts are pointed at after a build) |
 | `npm start` | serves `dist/` on every interface at `$PORT` (8080 by default) with `sirv`: what a host such as Clever Cloud runs |
 | `npm run test:node` | the unit suite without the Python-bound and the CPU-bound tests (`npm run check` runs it; the heavy ones run nightly) |
-| `npm run test:mutation:core [-- --set=core\|reality\|all --file=…]` | mutation testing of the modules a save, a session, a condition or a signal rest on (`docs/dev/MUTANTS.md`) |
+| `npm run test:mutation:core [-- --set=core\|reality\|all --file=… --fresh --hash --doc]` | mutation testing of the modules a save, a session, a condition or a signal rest on (`docs/dev/MUTANTS.md`); a report whose input hash (sources, tests, configurations, lockfile) is the current one is reused unless `--fresh`; `--hash` prints that hash (the CI cache's key); `--doc` writes the named survivors' table into MUTANTS.md |
 | `npm run e2e:smoke` | the generic playthrough of the production build (the solver's path replayed by touch) |
 | `npm run e2e:pwa`, `e2e:studio`, `e2e:taps`, `e2e:reality` | the offline cache, the Studio, the default verbs, the Reality Bridge, each in a real browser |
 | `npm run migrate` | a game project moved to this release (`web-scumm migrate`; `docs/en/UPGRADING.md`) |

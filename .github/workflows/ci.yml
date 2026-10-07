@@ -54,6 +54,37 @@ jobs:
         if: github.ref == 'refs/heads/main'
         with:
           path: dist
+  # Mutation testing of both sets (4.1.8, tools/mutate.ts): every mutant of the core and of the Reality code killed by a
+  # test, or named in docs/dev/mutants.json. The verdict depends on the sources, the tests, the configurations and the
+  # lockfile, hashed by `--hash`: a cache keyed by that hash carries the report to the next commit that changes none of
+  # them (docs, a version), and to the release, which reuses it instead of running the sets again.
+  mutation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - id: inputs
+        run: echo "hash=$(npx tsx tools/mutate.ts --set=all --hash)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/mutation
+          key: mutation-all-${{ steps.inputs.outputs.hash }}
+      - run: npm run test:mutation:core -- --set=all | tee mutation.txt
+        shell: bash
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: mutation
+          path: |
+            mutation.txt
+            .cache/mutation/report-*.json
+          if-no-files-found: ignore
   # Biscuit's official samples in the JavaScript build the Bridge runs and in the Rust crate (4.1.1, D16): the same
   # verdict as the specification in both. The runner image has cargo.
   reality-xcheck:
