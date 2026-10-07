@@ -5,6 +5,7 @@ import { stateDigest } from '@engine/core/diff';
 import { SESSION_MAX } from '@engine/core/engine-shared';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import type { Session, SessionEntry } from '@engine/core/types';
+import { derive } from '@engine/core/prng';
 import { mini, miniLayouts } from './fixtures/mini';
 
 const engine = async () => {
@@ -215,5 +216,70 @@ describe('answers', () => {
     expect(await e.sessions.pickPlace()).toBe('b');
     expect(e.sessions.rand()).toBe(0.7);
     expect(e.sessions.open[0]).toMatchObject({ pi: 0, mi: 0, ri: 0 });
+  });
+});
+
+// 4.1.14 (ADR 0016): the session owns the run's seed, its logic stream and the run clock; its listeners hear entries.
+describe('the session’s seed, stream, clock and listeners (4.1.14)', () => {
+  const engine = () => new Engine(mini(), miniLayouts, new FakePresenter(), new MemoryStore());
+
+  it('a draw before any session seeds the stream once and goes on along it', () => {
+    const e = engine();
+    expect(e.sessions.drawState()).toBeNull();
+    e.sessions.nextSeed = 'early';
+    const ref = derive('early', 'logic');
+    expect([e.random(), e.random(), e.random()]).toEqual([ref.next(), ref.next(), ref.next()]);
+    expect(e.sessions.drawState()).toMatchObject({ seed: 'early' });
+  });
+
+  it('a new game reseeds and resets the clock; a load keeps the stream and the clock', async () => {
+    const e = engine();
+    e.sessions.nextSeed = 'one';
+    await e.newGame();
+    expect(e.session?.seed).toBe('one');
+    const ref = derive('one', 'logic');
+    expect(e.random()).toBe(ref.next());
+    await e.act({ verb: 'look', a: 'valise' });
+    const steps = e.runClock.logicalSteps();
+    const time = e.runClock.logicalTime();
+    const draws = e.sessions.drawState();
+    expect(time).toBeGreaterThan(0n);
+    e.sessions.nextSeed = 'ignored-by-a-load';
+    await e.load(structuredClone(e.state));
+    expect(e.sessions.seed).toBe('one');
+    expect(e.sessions.drawState()).toEqual(draws);
+    expect(e.runClock.logicalSteps()).toBe(steps);
+    expect(e.runClock.logicalTime()).toBe(time);
+    e.sessions.nextSeed = 'two';
+    await e.newGame();
+    expect(e.sessions.seed).toBe('two');
+    expect(e.session?.seed).toBe('two');
+    expect(e.runClock.logicalSteps()).toBe(1n);
+    expect(e.random()).toBe(derive('two', 'logic').next());
+  });
+
+  it('a first session that is a load takes nextSeed; a session nobody seeded writes no seed', async () => {
+    const e = engine();
+    e.sessions.nextSeed = 'loaded';
+    await e.load(e.fresh());
+    expect(e.session?.seed).toBe('loaded');
+    expect(e.random()).toBe(derive('loaded', 'logic').next());
+    const f = engine();
+    await f.newGame();
+    expect(f.session && 'seed' in f.session).toBe(false);
+  });
+
+  it('listeners hear each entry begin and end; an end with nothing open is ignored', async () => {
+    const e = engine();
+    const heard: string[] = [];
+    e.sessions.listeners.add({
+      begin: (x) => heard.push(`b:${Object.keys(x)[0]}`),
+      end: (x) => heard.push(`e:${Object.keys(x)[0]}`),
+    });
+    await e.newGame();
+    await e.act({ verb: 'look', a: 'valise' });
+    expect(heard).toEqual(['b:start', 'e:start', 'b:act', 'e:act']);
+    expect(() => e.sessions.end()).not.toThrow();
+    expect(heard).toHaveLength(4);
   });
 });

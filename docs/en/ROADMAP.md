@@ -611,6 +611,29 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.1.14 "Time Attack" (shipped 7 October 2026): a run, its clock, its proof, its verifier
+
+The programme's seventh release, the third with a release candidate (`v4.1.14-rc.1`, then `v4.1.14` on the same
+commit). A speedrun category is declared in content (`GameDef.speedrun`: timing on RTA, IGT or Active IGT, start and
+finish on semantic events, saves, pauses, hints, reloads, the Reality policy, the fingerprint components a run must
+match, a fixed or random seed; splits; the rules' version), validated by `npm run validate`, with no change of the
+engine; the reference chapter declares Any%, Any% No Hints and Real Time. `Engine.runClock` (ADR 0016, D24) reads RTA
+(never an authority), logical steps and logical time in microticks from the declared durations; it observes the engine
+and never writes the state. `core/prng.ts` (xoshiro128**, versioned, a stream per purpose, test vectors) seeds
+`engine.random`, a breaking change with its migration (UPGRADING §26), as is `SESSION_MAX` 500, the size of a run's
+chunk: a run is a chained journal in IndexedDB that resumes after a closed tab or a crash. A `.wsrun` chains every
+input by SHA-256 from the category's rules to a final proof; `npm run speedrun:verify`, the CLI and the MCP tool
+replay it with its seed to one verdict with a code (thirty alterations each refused); Reality categories keep each
+signal's JWS. Integrity is not authenticity: `replay-valid` admits tool-assisted runs and crash resumes, a random seed
+is the client's choice, only a witness or a moderator says more (ADR 0017, SPEEDRUN). Local records, a ghost on
+semantic targets, `.wsroute` routes, the Studio's speedrun panel; OBS and LiveSplit as local tools (D23); on the
+Bridge, `runsRoute` (a queue, an isolated verification worker with bounded heap and time, no secret, in-process
+network refusals that are not an isolation, leaderboards per category and seed kind, moderation, retention, a run
+identified by its inputs). A complete Any% run of the reference chapter is attached to the release and verified by
+`release.yml`. Left for later, said as such: the server-witnessed level, the pinned-version replay, OS-level isolation
+of the worker, a SQL run store and the `/v1/runs` mount, `e2e:speedrun` in CI, the mutation sets for the new core
+modules, real OBS and LiveSplit sessions and speedrunners' field tests.
+
 ## v4.1.13 "Solver Research" (shipped 7 October 2026): the solver measured, lighter, resumable; not yet at scale
 
 The programme's sixth release, named by the two thresholds `docs/dev/plans/4.1.13-proof-at-scale.md` fixed before any
@@ -722,7 +745,7 @@ release (D12); the next version opens only when the current one's blockers are c
 | 4.1.11 | **Viewport** (shipped 7 October 2026) | a renderer separate from the game logic, behind an immutable `SceneFrame`; a semantic journal owned by the core |
 | 4.1.12 | **Language** (shipped 7 October 2026) | the DSL and an intermediate representation (`GameIR`, a game fingerprint) shaped by Gateways and Viewport; the core stabilised |
 | 4.1.13 | **Solver Research** (shipped 7 October 2026; "Proof at Scale" not reached) | a documented class of open three-character games proved within published budgets, or named "Solver Research" |
-| 4.1.14 | **Time Attack** | speedrun categories, RTA and logical time, semantic splits, a verifiable proof package, ghosts, LiveSplit and OBS as local tools |
+| 4.1.14 | **Time Attack** (shipped 7 October 2026) | speedrun categories, RTA and logical time, semantic splits, a verifiable proof package, ghosts, LiveSplit and OBS as local tools |
 | 4.1.15 | **Remix** | controlled variance of a game, deterministic by seed, with provable solvability; the DSL frozen after it |
 | 4.2.0 | **Stable World** | the contracts frozen, the compiled package on npm, the human passes done, a first real reference game |
 

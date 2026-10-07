@@ -12,7 +12,8 @@ import {
   type ReplayResult,
   type SessionFile,
 } from '@engine/tools/replay';
-import { BASE, type GameInfo } from './api';
+import { api, BASE, type GameInfo } from './api';
+import { SpeedrunPanel, type SpeedrunFrame } from './speedrun-panel';
 import { download, h, select, toast } from './ui';
 import { RealityPanel } from './reality-panel';
 
@@ -36,6 +37,15 @@ export class PlayTab {
 
   /** Signals from outside, simulated (4.1.1): shown for a game that declares `reality`. */
   private reality = new RealityPanel(() => this.frame.contentWindow);
+  /** Speedrun categories, splits, routes, preview and export (4.1.14): shown for a game that declares `speedrun`. */
+  private speedrun = new SpeedrunPanel(() => this.game() as SpeedrunFrame | null, {
+    ...(api.setValue ? { write: (m) => api.setValue!('@game', 'speedrun', m) } : {}),
+    witness: async () => {
+      const g = this.game()!;
+      const { solve } = await import('@engine/tools/solve');
+      return (await solve(structuredClone(g.game), g.engine.layouts, { maxStates: 50000 })).steps;
+    },
+  });
 
   constructor(private info: GameInfo) {
     this.verb = info.verbs[0]?.id ?? '';
@@ -73,12 +83,13 @@ export class PlayTab {
             h('a', { href: `${BASE}?dev`, target: '_blank', rel: 'noopener' }, 'Open in a new tab ↗'),
           ),
         ),
-        h('div', { class: 'playside' }, this.state, this.reality.el, this.why, this.journal),
+        h('div', { class: 'playside' }, this.state, this.reality.el, this.speedrun.el, this.why, this.journal),
       ),
     );
     this.timer = setInterval(() => {
       this.refresh();
       this.reality.refresh();
+      this.speedrun.refresh();
       this.measure();
     }, 700);
   }

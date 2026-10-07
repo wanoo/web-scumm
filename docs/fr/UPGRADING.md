@@ -374,3 +374,30 @@ Une sauvegarde, un jeu et un Bridge 4.1.12 continuent de fonctionner ; aucun nom
 reprise. `npm run test:heavy` gagne le cas checkpoint de la matrice et `npm run prove:matrix` (le job `matrix` de la
 nuit) prouve les douze instances de `docs/dev/PROOF-MATRIX.md`. Une cause de softlock dans `npm run solve -- --json`
 porte désormais ses entrées de session, que `npm run replay` rejoue.
+## 26. De la 4.1.13 à la 4.1.14 « Time Attack »
+
+Pas de changement du format d'écriture : un jeu 4.1.13 et ses sauvegardes se chargent tels quels, et `speedrun` est un
+champ facultatif (`docs/fr/SPEEDRUN.md`). Ce qu'un hôte ou un outil peut voir changer :
+
+- **`SESSION_MAX` vaut 500, plus 5 000.** La 501e entrée d'une session ouvre une nouvelle session depuis l'état courant
+  (de genre `load`), comme la 5 001e le faisait. Un hôte qui lit `Engine.session` (ou `Engine.sessions`) pour exporter
+  un rapport de bug obtient au plus les 500 dernières entrées : un long playtest fait plusieurs fichiers de session, et
+  un speedrun garde tout son historique en chunks chaînés de 500 (`web-scumm-runs` dans IndexedDB). `replay()` suit
+  désormais une session au travers de son renouvellement.
+- **`engine.random` est à graine par défaut.** Il tire dans le flux `logic` du run (xoshiro128**, `core/prng.ts`), plus
+  dans `Math.random`. Un hôte ou un test qui veut l'ancien comportement pose `engine.random = Math.random` ; celui qui
+  veut une suite connue pose `engine.sessions.nextSeed = '<graine>'` avant `newGame()` ou `checkpoint()` (la session
+  écrit alors `Session.seed`). Une session que personne n'a semée s'écrit comme avant (sans `seed`), et les tirages
+  enregistrés (`rnd[]`) la rejouent toujours.
+- **L'horloge du run** (`Engine.runClock`) est nouvelle et ne fait qu'observer ; `Engine.clock` garde son sens.
+- **`RealityClientOptions.onSigned(jws, entry)`** est appelé avec le JWS signé de chaque signal avant qu'il soit
+  appliqué (le speedrun le garde comme preuve Reality) ; un client à soi peut l'ignorer.
+- **De nouveaux textes d'interface** pour un jeu avec `speedrun` : `ui.speedrun`, `ui.exportRun`, `ui.abandonRun`
+  (valeurs anglaises par défaut « Speedrun », « Export run », « Abandon run ») ; un jeu dans une autre langue les ajoute.
+- **La release porte un neuvième fichier**, `web-scumm-<tag>-reference-any.wsrun` : un run Any% complet du chapitre de
+  référence, vérifié par `npm run speedrun:verify` avant d'être attaché. Un outil qui compte les fichiers d'une release
+  le compte.
+- **Nouveaux noms publics** : `SpeedrunManifest`, `SpeedrunCategory`, `SpeedrunSplit`, `SpeedrunTrigger`,
+  `SemanticTrigger` (content), `RunClock`, `verifyRun`, `isRankable`, `VerifyContext`, `SpeedrunVerifyResult`,
+  `SpeedrunVerdict`, `SpeedrunEnvelope`, `TrustLevel` (testing) ; l'outil MCP `speedrun_verify` ; le
+  `web-scumm speedrun verify` de la CLI.

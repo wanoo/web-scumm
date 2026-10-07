@@ -20,3 +20,5 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0013](0013-game-ir-and-fingerprint.md) | One intermediate representation of a game (GameIR) and its fingerprint (4.1.12) |
 | [0014](0014-objectives.md) | Objectives and the quest journal, the one primitive family admitted in 4.1.12 |
 | [0015](0015-compact-state.md) | A search stores its states by index, with exact interned keys (4.1.13) |
+| [0016](0016-run-clock-and-envelope.md) | A run clock that observes, a seeded generator, a chained proof of a run (4.1.14) |
+| [0017](0017-speedrun-verdicts-and-trust.md) | Speedrun verdicts and trust levels (4.1.14) |

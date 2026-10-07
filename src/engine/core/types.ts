@@ -9,3 +9,4 @@ export type * from './types/audio';
 export type * from './types/state';
 export type * from './types/session';
 export type * from './types/reality';
+export type * from './types/speedrun';

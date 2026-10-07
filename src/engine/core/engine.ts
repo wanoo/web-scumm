@@ -141,12 +141,16 @@ export class Engine {
     this.trace.push({ t: this.clock?.() ?? Date.now(), kind, text, room: this.state.room });
     if (this.trace.length > 200) this.trace.splice(0, this.trace.length - 200);
   }
-  /** Injectable randomness (the solver makes it deterministic). */
-  random: () => number = Math.random;
+  /** Injectable randomness (the solver makes it deterministic); by default the run's seeded `logic` stream (4.1.14). */
+  random: () => number = () => this.sessions.draw();
   /** A clock (ms) for the session's `t` timestamps; none in the solver and the tests, so their sessions stay byte-identical. */
   clock: (() => number) | null = null;
   /** The session's owner (4.1.5, core/session-runtime.ts): the entries, their feed on replay, the clock's origin. */
   readonly sessions = new SessionLog(this);
+  /** The run clock (4.1.14, ADR 0016, core/run-clock.ts): it observes the core and never writes the state (D24). */
+  get runClock() {
+    return this.sessions.runClock;
+  }
   /** What happened, in ids (4.1.11, core/journal.ts): emitted by the core alone, the same on a replay. */
   readonly journal = new Journal();
   /** The objectives completed in this session (4.1.12, core/objectives.ts), checked at every save. */
@@ -213,8 +217,7 @@ export class Engine {
   rand(): number {
     return this.sessions.rand();
   }
-  /** A condition, with its atoms collected when `reads` is on. */
-  /** @internal Read by the modules of core/ (4.1.0). */
+  /** @internal Read by the modules of core/ (4.1.0): a condition, with its atoms collected when `reads` is on. */
   cond(c: Cond | undefined, room?: Id): boolean {
     if (this.reads && c !== undefined)
       for (const a of condAtoms(c, room ?? this.state.room)) this.reads.add(atomKey(a));
@@ -464,14 +467,12 @@ export class Engine {
     return switchToImpl(this, id);
   }
 
-  /** Stores the active player's flat fields, loads the other's (no display). */
-  /** @internal Read by the modules of core/ (4.1.0). */
+  /** @internal Read by the modules of core/ (4.1.0): stores the active player's fields, loads the other's. */
   async swap(id: Id) {
     return swapImpl(this, id);
   }
 
-  /** Hands an item to another player's inventory (shared inventory: nothing to do). */
-  /** @internal Read by the modules of core/ (4.1.0). */
+  /** @internal Read by the modules of core/ (4.1.0): hands an item to another player's inventory. */
   transfer(item: Id, to: Id) {
     return transferImpl(this, item, to);
   }
@@ -578,6 +579,7 @@ export class Engine {
               return;
             }
             this.state.hero[room.id] = end;
+            this.runClock.walk(room.id, this.heroId(), ap);
           }
         }
         if (inScene) {

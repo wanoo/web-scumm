@@ -3138,3 +3138,85 @@ Platform"; human gates reported, not blocking (D12).
   modules in the mutation core set; the human passes.
 
 → next: Claude · `release/4.1.14` (Time Attack, PR #48, with a candidate), then 4.1.15
+
+## #134 · 2026-10-07 · Claude · proposal · `feature/4114-time-attack`: speedruns: the run clock, the seeded generator, the chained run, the verifier, the local tools and the Bridge's worker (4.1.14 "Time Attack", one pull request)
+
+- **Delivered**, in the sheet's order (`docs/dev/plans/4.1.14-time-attack.md`), each with its tests first: ADR 0016
+  (clock, generator, chunks, chain H0…Hn, reload policies, integrity ≠ authenticity), ADR 0017 (verdicts, trust), D23,
+  D24, `docs/{en,fr}/SPEEDRUN.md`; `core/run-clock.ts` + `TIMING_VERSION`; `core/prng.ts` + vectors; `core/run-tape.ts`,
+  `core/journal-chunks.ts`, `dom/run-store.ts`; `GameDef.speedrun` + validator + the fixture category with no change
+  under `src/`; splits, records, routes, ghost (`src/engine/tools/speedrun/`); the envelope and the recorder; the
+  verifier, `speedrun:verify`, the CLI command, the MCP tool; Reality policies; `tools/speedrun/{overlay,livesplit}.mjs`;
+  `bridge/src/runs.ts` + `tools/speedrun/worker.ts`; the Studio's speedrun panel; `scripts/e2e-speedrun.mjs`; the
+  reference run committed (`tests/fixtures/speedrun/reference-any.wsrun`) and the release's ninth asset.
+- **Measured** (local, 7 Oct 2026): the reference Any% run: 49 steps, IGT 2:35.234, active 2:23.434;
+  `npm run speedrun:verify` on it 77 ms of replay (0.37 s with `tsx`); the isolated worker, spawn included, 272 ms (budget
+  60 s); the clock's property on 200 generated games, live then replayed, 2.8 s for the file. `npm run build` and the
+  bundle's weight were not run here (machine rule): the first visit now carries `core/run-clock.ts` and `core/prng.ts`
+  statically, the speedrun mode is loaded on demand.
+- **Decided**: `Engine.clock` keeps its meaning, the run clock is `Engine.runClock`; a line's logical cost is fixed
+  (2.2 s) whatever its language or text speed (a translation is presentation), refusing the sheet's `f(length)`; a walk's
+  logical length is measured between logical anchors (the presenter's end of a walk and the taps on the floor are not
+  inputs); `finalProof` also seals the summary (timing, splits, final state, loads, signals), not only Hn; a resume after
+  a crash is a load of the run's own state, allowed by every reload policy; `SESSION_MAX` 500 is both the chunk and the
+  session's rollover; the `.mjs` local tools post only cleaned events (the `JSON.stringify` lint covers the TypeScript of
+  `tools/speedrun/`); the speedrun manifest is `meta` in the IR (rules carry their own version); `core/fingerprint.ts`'s
+  own `PRNG_VERSION` (0) is to import `core/prng.ts`'s (1): left to the 4.1.15 lot, which owns that line.
+- **Not done**: the live witness (`server-witnessed` is reserved); the pinned-version replay in the worker (another
+  engine version is `unsupported-version`); the worker's network is refused in-process (fetch, WebSocket, sockets), the
+  OS isolation is the deployment's; a SQL `RunStore` (memory only) and the `/v1/runs` mount in `bridge/src/server.ts`
+  (4.1.10 owns it); `e2e:speedrun` written but not run here and not in `ci.yml`; real OBS and LiveSplit sessions,
+  speedrunners' field tests (human passes); the mutation sets do not yet include `run-clock.ts`, `prng.ts`,
+  `journal-chunks.ts`; `.wsrun` names and the speedrun category names are not translated; the committed reference run
+  must be re-recorded (`npx tsx tools/speedrun/reference-run.ts`) after `npm version` at the release.
+- **After the second reading** (Opus, security, 18 findings): fixed: UPGRADING §26 (en, fr); `segment` reserved and
+  refused; the worker spawned in its own process group, killed with it at its budget, settled on `exit` (a hung runner
+  no longer blocks the queue; tested with a runner whose child sleeps past the budget), the worker exits after its line;
+  a failed verification marks the run `inconclusive`/`crash` and logs; the purge scheduled hourly (unref'd); a run's
+  key derived from its game, category, seed and inputs without `t` (re-spaced or re-stamped copies refused, the first
+  submitter wins); a per-client rate limit (`perMinute`, default 10); the envelope dropped once judged; `Object.hasOwn`
+  on the approved games; `ranked` null unless `valid`; `Math.sqrt` instead of `Math.hypot` (the reference run's IGT
+  unchanged, not regenerated); an empty chunk refused; UDP and DNS refused in the worker too, and the wording says the
+  in-process refusals are not an isolation; the local tools' origin allow-list; the docs' limits (random seed, TAS and
+  resumes under `replay-valid`, unauthenticated pseudonyms); ADR 0016's `finalProof` names `realitySignals`; the
+  "RTA" rows of the alteration table renamed (integrity only). Kept: `core/fingerprint.ts`'s `PRNG_VERSION` (4.1.15).
+  Not done: real isolation of the worker (child processes, worker threads and the filesystem stay open in-process: the
+  deployment's container); authenticated pseudonyms.
+- **Mutation of the set files this lot rewrote** (local, 7 Oct 2026, `npx tsx tools/mutate.ts --set=<set> --file=<f> --fresh`):
+  `src/engine/core/session-runtime.ts` first 36/56 killed, 19 unexplained (the seed paths were tested only in
+  `tests/prng.test.ts`, outside the `core` set); after tests in `tests/critical-session.test.ts`, one equivalent mutant
+  named in `docs/dev/mutants.json` (`chosen`'s initial value) and `drawState` simplified: `✔  53/55 mutants killed, 2
+  survivors explained, 0 not`. `src/engine/reality/client.ts` (the `onSigned` hook): `✔  64/65 mutants killed, 1
+  survivors explained, 0 not`.
+
+→ next: Claude · `release/4.1.14`
+
+
+## #135 · 2026-10-07 · Claude · proposal · `fix/4110-reality-mutants`: the reality set's 20 unnamed survivors
+
+- The `v4.1.10-rc.1` release run: `673/717 mutants killed, 24 survivors explained, 20 not` (18 in
+  `bridge/src/bridge.ts`, 2 in `bridge/src/lock.ts:22`). 19 killed by `tests/bridge-mutants-tenant.test.ts` (12 tests;
+  the tenant fixture takes a clock); `bridge.ts:113 condition true` named in `docs/dev/mutants.json`, MUTANTS.md
+  regenerated (`npx tsx tools/mutate.ts --doc`, 29 named).
+- `npx tsx tools/mutate.ts --set=reality --file=bridge/src/bridge.ts`: `230/233 mutants killed, 3 survivors
+  explained, 0 not`. `--file=bridge/src/lock.ts`: `2/3 mutants killed, 1 survivors explained, 0 not`. One run at a
+  time; the bridge.ts run takes more than ten minutes.
+→ next: Claude · the full `--set=reality` on the next candidate tag
+
+## #136 · 2026-10-07 · Claude · release · 4.1.14 "Time Attack"
+
+- The programme's seventh release, the third with a release candidate (`v4.1.14-rc.1` on the merge commit, then
+  `v4.1.14` on the same commit once the candidate's assets were installed and verified). Merged: #48 (#134 above;
+  the Opus security reading's eighteen findings applied before the merge: the worker killed by process group, the
+  unhandled rejection, duplicate runs by content, the hourly purge, `Math.sqrt`, the honest "no network" wording,
+  UPGRADING §26; then two CI-only fixes: `session-runtime.ts` and `replay.ts` branch floors held by new tests, the
+  Windows temp path, the DSL page regenerated). The release commit on the lot's branch: the fragments assembled, the
+  version, the golden save `demo-4.1.14.json` (28), the reference run re-recorded on this version, the READMEs,
+  ROADMAP en/fr, the pass sheet, the baseline sheet, the coverage floors read on #48's coverage job, the `core`
+  mutation survivors of `session-runtime.ts` killed or named.
+- Measured on #48's final run (37662450111): `node-24` 172 files, 1 727 tests (+4 skipped); `coverage` 174 files, 1 744 tests (+4 skipped); the lot's local figures in #134.
+- Not done, said as such: the server-witnessed level, the pinned-version replay, OS-level isolation of the worker, a
+  SQL run store and the `/v1/runs` mount, `e2e:speedrun` in CI, the mutation sets for the new core modules, real OBS
+  and LiveSplit sessions, speedrunners' field tests; the human passes.
+
+→ next: Claude · `release/4.1.15` (Remix, PR #50, with a candidate): the programme's last

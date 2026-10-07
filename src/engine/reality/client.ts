@@ -35,6 +35,8 @@ export interface RealityClientOptions {
   /** A refusal, for the status line and the diagnostics (never the payload). */
   onRefused?: (code: RefusalCode, reason: string) => void;
   onApplied?: (x: ExternalEntry) => void;
+  /** A signal about to be applied, with its signed JWS (4.1.14: a speedrun records it as its Reality proof). */
+  onSigned?: (jws: string, x: ExternalEntry) => void;
   /**
    * The game in progress is bound to another player than this link (a save imported from elsewhere, a save from
    * before an unlink): the client stops, applies nothing and acknowledges nothing. `saved` is the save's player.
@@ -153,6 +155,7 @@ export class RealityClient {
         skipped,
       };
     }
+    this.o.onSigned?.(jws, entry);
     let r = await this.o.engine.receive(entry);
     while (r === 'busy' && !this.stopped) {
       await new Promise((ok) => setTimeout(ok, this.o.retryMs ?? 250));

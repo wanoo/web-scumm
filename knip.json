@@ -15,6 +15,7 @@
     "scripts/*.ts",
     "tools/*.ts",
     "tools/studio/*.ts",
+    "tools/speedrun/*.ts",
     "tests/**/*.test.ts",
     "tests/fixtures/connectors/no-eval-run.ts",
     "tests/fixtures/**/index.ts",

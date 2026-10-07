@@ -73,6 +73,7 @@ export async function enter(eng: Engine, id: Id, at: Id | Point | undefined, run
   const L = eng.layout(id);
   if (at) eng.state.hero[id] = Array.isArray(at) ? at : (L.entries?.[at] ?? L.entries?.default ?? [320, 360]);
   else eng.state.hero[id] ??= L.entries?.default ?? [320, 360];
+  eng.runClock.enter(id, at);
   eng.state.visited[id] = (eng.state.visited[id] ?? 0) + 1;
   eng.save();
   await eng.ui.enterRoom(room, eng.state);
