@@ -31,8 +31,12 @@ export interface Ctx {
 
 export const HERO = 'hero';
 
-/** A session holds at most this many entries: the next input starts a new one from the current state (`Engine.SESSION_MAX`). */
-export const SESSION_MAX = 5000;
+/**
+ * A session holds at most this many entries: the next input starts a new one from the current state
+ * (`Engine.SESSION_MAX`). Since 4.1.14 (ADR 0016) it is also the size of a run's journal chunk
+ * (`core/journal-chunks.ts`): a long run is many chunks chained by their hashes, never one unbounded session.
+ */
+export const SESSION_MAX = 500;
 
 export const near = (a: Point, b: Point) => Math.hypot(a[0] - b[0], a[1] - b[1]) <= NEAR;
 

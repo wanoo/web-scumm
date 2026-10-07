@@ -35,6 +35,16 @@ export interface ReplayOptions {
   commands?: CustomCommands;
   /** Called after each entry (a Studio scrubber shows the state as it goes). */
   onEntry?: (i: number, e: Engine) => void;
+  /**
+   * 4.1.14 (ADR 0016): replay with the run's seeded generator instead of the recorded draws. The `rnd[]` of the log are
+   * not fed: the engine draws from the seed's `logic` stream, and the replay's own entries say what it drew (the
+   * speedrun verifier compares them with the recording).
+   */
+  seed?: string;
+  /** Called once on the new engine, before it starts (a listener on its session, the run clock's source). */
+  attach?: (e: Engine) => void;
+  /** Called before entry `i` is played (a speedrun's load restores a state here). */
+  beforeEntry?: (i: number, e: Engine) => Promise<void> | void;
 }
 
 const tick = () => new Promise<void>((r) => setTimeout(r, 0));
@@ -110,12 +120,15 @@ export async function replay(
   const e = new Engine(game, layouts, ui, new MemoryStore(), { commands: opts.commands });
   e.traceOn = true;
   e.digestOn = true;
-  e.random = () => 0; // every draw was recorded; a missing one is deterministic anyway
+  if (opts.seed === undefined)
+    e.random = () => 0; // every draw was recorded; a missing one is deterministic anyway
+  else e.sessions.nextSeed = opts.seed;
+  opts.attach?.(e);
   e.feedSession({
     v: session.v ?? game.saveVersion,
     start: session.start,
     base: session.base ?? (null as unknown as GameState),
-    log: session.log,
+    log: opts.seed === undefined ? session.log : session.log.map(({ rnd: _, ...en }) => en as SessionEntry),
   });
   const pending: Promise<unknown>[] = [];
   const log = session.log;
@@ -136,7 +149,9 @@ export async function replay(
     const en = must(log[i], 'log entry');
     // A pending call (the intro waiting for a tutorial step) gets to continue before the next input, as in the game.
     for (let guard = 0; guard < 100 && (guard === 0 || e.busy); guard++) await tick();
-    const n0 = e.session?.log.length ?? 0;
+    await opts.beforeEntry?.(i, e);
+    const s0 = e.session;
+    const n0 = s0?.log.length ?? 0;
     const run =
       'act' in en
         ? e.act(en.act).then(() => undefined)
@@ -158,7 +173,8 @@ export async function replay(
     await settle(e, run, pending);
     played++;
     opts.onEntry?.(i, e);
-    const mine = e.session?.log[n0];
+    // A session that reached SESSION_MAX rolled over into a new one: the entry is the new one's first.
+    const mine = e.session === s0 ? s0?.log[n0] : e.session?.log[0];
     if (!mine) {
       divergedAt = i;
       divergence = `${labelOf(game, en)}: nothing happened`;
