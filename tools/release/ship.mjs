@@ -111,7 +111,9 @@ async function merge(pr) {
       if (st.state === 'MERGED') return true;
       // A branch behind main with a conflict will not merge however long we wait (seen on #23): say it at once.
       if (st.mergeable === 'CONFLICTING' || st.mergeStateStatus === 'DIRTY')
-        throw new Error(`#${pr} conflicts with main (${st.mergeStateStatus}): merge main into the branch, push, run again`);
+        throw new Error(
+          `#${pr} conflicts with main (${st.mergeStateStatus}): merge main into the branch, push, run again`,
+        );
       if (st.mergeStateStatus === 'UNKNOWN') {
         say('mergeability being recomputed: asking again');
         return undefined;
