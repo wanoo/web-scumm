@@ -12,9 +12,9 @@
     "preview": "vite preview --host 127.0.0.1",
     "start": "node scripts/start.mjs",
     "test": "npm run test:node",
-    "test:coverage": "vitest run --coverage --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts",
+    "test:coverage": "vitest run --coverage --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts",
     "test:mutation:core": "tsx tools/mutate.ts",
-    "test:node": "vitest run --exclude tests/pixel.test.ts --exclude tests/studio-assets.test.ts --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts",
+    "test:node": "vitest run --exclude tests/pixel.test.ts --exclude tests/studio-assets.test.ts --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts",
     "test:assets": "vitest run tests/pixel.test.ts tests/studio-assets.test.ts",
     "doctor": "tsx tools/doctor.ts",
     "tsc": "node node_modules/typescript/bin/tsc",
@@ -95,7 +95,7 @@
     "docs:links": "node scripts/check-links.mjs",
     "changes": "tsx tools/changes.ts",
     "ci:plan": "tsx tools/ci-plan.ts",
-    "test:heavy": "vitest run tests/ownership.test.ts tests/audit.test.ts tests/canonical.test.ts tests/memo.test.ts tests/reference-proof.test.ts tests/solver-oracle.test.ts tests/dominance.test.ts tests/partition.test.ts",
+    "test:heavy": "vitest run tests/ownership.test.ts tests/audit.test.ts tests/canonical.test.ts tests/memo.test.ts tests/reference-proof.test.ts tests/solver-oracle.test.ts tests/dominance.test.ts tests/partition.test.ts tests/checkpoint-matrix.test.ts",
     "build:game": "npm run verify:game && vite build && npm run verify:dist && npm run check:spoilers && npm run audit:assets"
   },
   "config": {

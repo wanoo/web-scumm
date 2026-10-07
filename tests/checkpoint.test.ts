@@ -47,17 +47,10 @@ async function interrupted(game: typeof demo, layouts: typeof demoLayouts, opts:
 }
 
 describe('checkpoint and resume', () => {
+  // The matrix instance c12 (softlocks, 7 333 states) is tests/checkpoint-matrix.test.ts, a heavy test: too slow
+  // under the coverage instrumentation on the runner. The softlocks are resumed here by the 30-game cut below.
   const cases = [
     { name: 'the sample game', game: demo, layouts: demoLayouts, opts: { mode: 'prove', commands } as SolveOptions },
-    (() => {
-      const g = matrixGame(12, { characters: 3, rooms: [20, 40] });
-      return {
-        name: 'matrix c12 (softlocks)',
-        game: g.game,
-        layouts: g.layouts,
-        opts: { mode: 'prove' } as SolveOptions,
-      };
-    })(),
   ];
   for (const c of cases)
     it(`${c.name}: stopped at 30 %, taken up again, the same proof`, async () => {

@@ -52,6 +52,9 @@
   checkpoint's fingerprint includes the custom commands' source; symmetric items keep apart an item a layout or a
   custom command names (ADR 0015 says the limits); the oracle test fails after `ORACLE_WRITE=1` and compares the case
   names both ways; the CHANGELOG fragment no longer says "a twentieth" for the whole matrix; the commands above.
-  Nit: the headers say 4.1.13 "Solver Research".
+  Nit: the headers say 4.1.13 "Solver Research". Then PR #51's `coverage` job timed out (300 s) on the c12 resume
+  under instrumentation: that case moved to `tests/checkpoint-matrix.test.ts`, in `test:heavy` (nightly) and out of
+  `test:node` and `test:coverage`; `tests/checkpoint.test.ts` keeps the sample game, the budgets, the 30-game cut
+  property and the killed process.
 
 → next: Claude · `release/4.1.13`
