@@ -581,6 +581,24 @@ par nom ; aucun vérificateur de liens ne va chercher les URL externes. La suite
 « Finale » ; le 7 octobre 2026 le mainteneur l'a remplacée par le programme ci-dessous (D18), et « Finale » en est
 devenue la dernière étape, la 4.2.0 « Stable World ».
 
+## v4.1.8 « Foundation Reset » (livrée le 7 octobre 2026) : la fondation modernisée, les gates rendues bloquantes
+
+La première release du programme ci-dessous. La chaîne d'outils : TypeScript 7 natif (les vérifications de types en
+une demi-seconde, plus de `baseUrl` ; `web-scumm migrate` réécrit le tsconfig d'un projet plus ancien), Vite 8 sur
+Rolldown (le jeu d'exemple construit en une demi-seconde, la première visite à 120 Ko gzippés), vite-plugin-pwa 2,
+Node 22.12. Le P0 : un signal remis au jeu et non acquitté était perdu avec sa connexion ; le port garde trois curseurs
+et redemande depuis le durable (reproduit en polling par le mainteneur, corrigé avec sa reproduction pour test). La PWA
+prouvée dans Chromium, WebKit et Firefox : installation, mise à jour après une sauvegarde durable, mise à jour dont le
+chargement échoue, réinstallation ; deux défauts trouvés par ces scénarios corrigés (la mise à jour depuis l'écran
+titre, le préchargement avant le contrôle du worker). Le contrôle de release prédit la release (`doctor --release`,
+seuls les fichiers suivis dans les paquets, les trois archives installées, le ratchet de couverture strict, la release
+vérifiée après publication) ; la gate de mutation à clé d'entrées sur les deux sets, chaque survivant nommé ; Windows
+en CI ; `npm run ship` comme chaîne de release. Les trois plus gros fichiers du Studio découpés en modèle, E/S et vues
+avec 105 tests ; chaque export public porte `@public` ou `@extension` et une phrase ; les chiffres des README écrits
+par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : les passes humaines de la fiche
+(`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
+assistant.
+
 ## Le programme 4.1.8 → 4.1.15 (décidé le 7 octobre 2026, D18) : finir les ruptures avant de geler les contrats
 
 Aucun jeu de production ne dépend encore de web-scumm (le jeu du mainteneur reste en 3.1.0, D8) : les sauvegardes, les
@@ -596,7 +614,7 @@ qu'une fois les bloqueurs de la courante fermés.
 
 | Version | Nom de travail | Résultat attendu |
 |---|---|---|
-| 4.1.8 | **Foundation Reset** | TypeScript 7, Vite 8, PWA 2, le curseur Reality corrigé (le curseur local du port avançait avant l'acquittement : reproduit en polling), des contrôles qui prédisent la release, une release candidate d'abord |
+| 4.1.8 | **Foundation Reset** (livrée le 7 octobre 2026) | TypeScript 7, Vite 8, PWA 2, le curseur Reality corrigé (le curseur local du port avançait avant l'acquittement : reproduit en polling), des contrôles qui prédisent la release, une release candidate d'abord |
 | 4.1.9 | **Gateways** | connecteurs email, SSH, Telnet et Open Badges sur un SDK commun, hors du joueur, expérimentaux jusqu'à un passage réel |
 | 4.1.10 | **Constellation** | un Bridge durable, répliqué et isolé par tenant ; le signal peut devenir `SignalV2` si l'analyse de menace le demande |
 | 4.1.11 | **Viewport** | un renderer séparé de la logique du jeu, derrière une `SceneFrame` immuable ; un journal sémantique possédé par le cœur |
