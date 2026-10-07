@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Fixed
+
+- **A Bridge on SQLite no longer exits on "database is locked" when several start at once (4.1.14)**: the opening's
+  `PRAGMA journal_mode = WAL` ran outside the store's busy wait, so of several `serve` processes opening one fresh
+  file the one that met another's lock exited (1). Every statement now waits (the opening's pragmas, the statements
+  inside a transaction, the connection's own `timeout` too), and past its wait answers `StoreBusyError` (a 503), never
+  a crash; a poll of the other instances' acceptances that stays busy is logged once (`store.poll.failed`) and tried
+  again.
+
+### Changes
+
+- **The release workflow's install steps get 20 minutes instead of 8 (4.1.15)**: the `v4.1.10-rc.1` release job timed
+  out on `apt-get install ffmpeg` on 7 October 2026, as CI's jobs had a dozen times that day (ci.yml got the same in 4.1.14).
+- **ffmpeg on the runners through `scripts/ci-ffmpeg.sh` (4.1.15)**: apt first, bounded to four minutes an attempt,
+  then a static build from GitHub's CDN (BtbN/FFmpeg-Builds) when the apt mirror hangs, as it did for twenty minutes
+  without a byte on 7 October 2026. Every ci.yml job that needs ffmpeg uses it; release.yml carries the same logic inline, because it runs from `main`
+  while checking out a tag's commit that may predate the script.
+
 ## 4.1.15 — 2026-10-07
 
 "Remix" (LOG #138): the programme's eighth and last release, the fourth with a release candidate, and the release
