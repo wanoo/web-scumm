@@ -139,9 +139,16 @@ jobs:
           (cd pack/web-scumm-bridge && npm install --omit=dev --ignore-scripts --no-audit --no-fund >/dev/null && npm sbom --sbom-format cyclonedx --omit dev) > "web-scumm-bridge-$TAG-sbom.cdx.json"
           # A complete speedrun of the reference chapter (4.1.14, its ninth asset): verified by the very tool a
           # leaderboard runs before it is attached; a run the engine of this tag refuses stops the release.
-          GAME=reference npm run -s speedrun:verify -- tests/fixtures/speedrun/reference-any.wsrun
-          cp tests/fixtures/speedrun/reference-any.wsrun "web-scumm-$TAG-reference-any.wsrun"
-          sha256sum "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" "web-scumm-$TAG-reference-any.wsrun" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz > "web-scumm-$TAG-SHA256SUMS"
+          # This workflow runs from main's copy while it checks out the tag's commit: a tag older than 4.1.14 has no
+          # speedrun to verify or attach, and its list of files says so (4.1.15).
+          extra=""
+          if [ -f tests/fixtures/speedrun/reference-any.wsrun ]; then
+            GAME=reference npm run -s speedrun:verify -- tests/fixtures/speedrun/reference-any.wsrun
+            cp tests/fixtures/speedrun/reference-any.wsrun "web-scumm-$TAG-reference-any.wsrun"
+            extra="web-scumm-$TAG-reference-any.wsrun"
+          fi
+          sha256sum "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" $extra web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz > "web-scumm-$TAG-SHA256SUMS"
+          echo "EXTRA_ASSETS=$extra" >> "$GITHUB_ENV"
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
           # Every file the release carries (4.1.2): the archives and packages, the manifests, both SBOMs, the sums.
@@ -150,7 +157,7 @@ jobs:
             web-scumm-${{ env.TAG }}-assets-manifest.json
             web-scumm-${{ env.TAG }}-sbom.cdx.json
             web-scumm-bridge-${{ env.TAG }}-sbom.cdx.json
-            web-scumm-${{ env.TAG }}-reference-any.wsrun
+            web-scumm-*-reference-any.wsrun
             web-scumm-${{ env.TAG }}-SHA256SUMS
             web-scumm-[0-9]*.tgz
             create-web-scumm-*.tgz
@@ -159,7 +166,7 @@ jobs:
           # A pre-release tag (`v4.1.8-rc.1`, 4.1.8) is published as a GitHub pre-release: same files, same checks.
           pre=""; case "$TAG" in *-*) pre="--prerelease";; esac
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes-file notes.md $pre
-          gh release upload "$TAG" "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" "web-scumm-$TAG-reference-any.wsrun" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz "web-scumm-$TAG-SHA256SUMS"
+          gh release upload "$TAG" "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" $EXTRA_ASSETS web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz "web-scumm-$TAG-SHA256SUMS"
         env:
           GH_TOKEN: ${{ github.token }}
       # What was published, read back (4.1.8): every file downloaded, the sums checked, every attestation verified.
