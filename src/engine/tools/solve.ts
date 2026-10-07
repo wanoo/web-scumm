@@ -7,7 +7,7 @@
 // re-exports what the rest of the code imports from the solver, so those imports stay as they were (4.1.8: the names
 // nobody imported left the list; knip holds it).
 
-export { profileText } from './solve/report';
+export { profileText, proofProfileLines } from './solve/report';
 export type { SolveProfile, SolveResult } from './solve/report';
 export { mergeStats } from './solve/model';
 export type { SolveOptions, NodeInput, Expansion, ExpandStats, RealityPolicy } from './solve/model';

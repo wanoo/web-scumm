@@ -599,6 +599,86 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.1.13 « Solver Research » (livrée le 7 octobre 2026) : le solveur mesuré, allégé, reprenable ; pas encore à l'échelle
+
+La sixième release du programme, nommée par les deux seuils que `docs/dev/plans/4.1.13-proof-at-scale.md` a fixés
+avant tout code : le minimum (un gain mesuré, une représentation compacte, checkpoint et reprise, des verdicts
+identiques à la recherche exhaustive sur les petites instances, aucune fausse preuve) est atteint, l'objectif de
+release (la matrice dans son budget) ne l'est pas, donc la version ne s'appelle pas « Proof at Scale ».
+`docs/dev/PROOF-MATRIX.md` a été figée d'abord : douze jeux générés de 20 à 40 salles et trois personnages, six
+contraints et six ouverts, avec budgets et verdicts attendus ; ADR 0015. La recherche range ses états par index avec
+des clés internées exactes et ne garde une copie du moteur que le temps qu'un état attende son expansion : pic de tas
+÷9 sur les douze instances, ÷16 à ÷20 sur les ouvertes, le temps par état inchangé (les runs du moteur), verdicts et
+chemins ceux de la 4.1.8 état pour état (un oracle de 203 recherches, 909 jeux du corpus, 0 divergence).
+`--checkpoint`/`--resume`/`--mem` arrêtent et reprennent une preuve au même verdict et au même témoin, même tuée en
+pleine expansion (la seconde lecture a trouvé et corrigé une coupe de budget qui perdait des états) ; `--profile`
+attribue les états aux positions, inventaires, drapeaux, dialogues et scripts ; `--symmetry` replie les objets jumeaux
+(désactivé par défaut, limites dans l'ADR) ; `--workers` partagent la table des états vus avec vol de travail, le
+résultat indépendant de leur nombre ; `npm run prove:matrix` tourne la nuit. Huit instances sur douze tiennent dans
+leur budget, comme avec la 4.1.8 : le rapport d'écart nomme le levier (un mémo pour les macro-mouvements et les
+passages d'objets, qui porte quelle clé). Laissé pour plus tard, dit comme tel : ce mémo, le spike symbolique (non
+tenté), la dominance en preuve, les chiffres du runner (ceux de la nuit), les nouveaux modules dans le set de mutation
+core.
+
+## v4.1.12 « Language » (livrée le 7 octobre 2026) : le jeu en données, son empreinte, ses objectifs
+
+La cinquième release du programme. `compileIR` transforme un jeu compilé en sa logique sous forme de données (salles,
+entités, règles, scripts, objectifs, politiques Reality, les extensions de confiance par nom, un emplacement de
+variante réservé à la 4.1.15), déterministe, avec le `fichier:ligne` qui écrit chaque id ; chaque champ d'un jeu,
+d'une salle et d'une entité est classé logique, présentation, les deux ou outillage dans une table que le compilateur
+vérifie (ADR 0013) ; le runtime continue de lire le jeu compilé, l'IR est une projection. L'empreinte est quatre
+SHA-256 calculés avec WebCrypto : `logic`, `trustedExtensions` (le code du jeu, haché par le build dans `site.json`),
+`presentation`, `engine` ; une règle changée ne bouge que `logic`, un décor que `presentation`. `canonicalJson` (NFC,
+clés triées, pas de `-0`, grands entiers en chaînes décimales, tout ce qui perd refusé) est une fonction unique pour
+l'empreinte, le cache de preuves et, dès la 4.1.14, l'enveloppe speedrun, tenue à cinquante valeurs limites sous Node
+; `npm run e2e:canonical` les compare dans Chromium, WebKit et Firefox, écrit dans ce lot et pas encore en CI. Les objectifs (ADR 0014) sont la seule primitive
+admise : `objectives` dans un jeu, le journal de quêtes du menu pause, `objectiveCompleted` dans le journal sémantique
+une fois et jamais plus, `npm run solve -- --goal=100%`, les refus du validateur ; chaque autre candidate du programme
+est refusée avec sa preuve dans `docs/dev/DSL-STABILITY.md`. Le Studio génère ses formulaires depuis les schémas et
+écrit les objectifs avec un diff prévisualisé et Undo ; MCP gagne `get_ir` ; la référence du DSL (`docs/fr/DSL.md`,
+en) est générée depuis les schémas et tenue par un test. D22 : le DSL et l'IR sont stabilisés ici, gelés après Remix.
+Laissé pour plus tard, dit comme tel : `e2e:canonical` dans les lignes de la CI, le mode démo du Studio qui écrit des
+objectifs, `IrVariantSlot` rempli par la 4.1.15.
+
+## v4.1.11 « Viewport » (livrée le 7 octobre 2026) : le rendu derrière une scène, le journal dans le cœur
+
+La quatrième release du programme, la deuxième avec une release candidate (`v4.1.11-rc.1`, puis `v4.1.11` sur le même
+commit). Le journal sémantique appartient au cœur (`Engine.journal`, ADR 0011) : une session commencée, une salle
+entrée, un objet acquis ou perdu, un drapeau changé, un personnage choisi, une fin atteinte, un chargement, la
+sauvegarde automatique qui suit, numérotés et émis par les gestionnaires de commandes et le cycle de vie du moteur,
+jamais par le DOM ; rejouer une session donne le même journal sur le jeu d'exemple, le chapitre de référence et 200
+jeux générés, `npm run replay` le compare, un fichier de session le porte (une fenêtre bornée de 10 000 événements,
+dite comme telle quand elle est dépassée). La vue de salle produit une `SceneFrame` immuable par une fonction pure
+(caméra, couches, personnages, cibles avec leurs polygones de hit, effets, un hash) puis la peint ; chaque salle des
+deux jeux livrés, dans trois états, peint le même DOM qu'avant. `App` compose un `Presenter` et un `Renderer` ; un
+verbe, une marche, un choix, un saut, un écran ouvert est une `Intent` (D21 : le rendu n'est pas une source d'état),
+et les mêmes clics sur le DOM et sur le peintre Canvas enregistrent la même session et le même journal aux ratios de
+pixels 1, 2 et 3. Le peintre Canvas survit à un contexte perdu ; la route entre zones de marche est celle du cœur. Le
+Studio édite les couches, masques, zones et portails d'une salle sur le décor ; le validateur refuse un masque qui ne
+ferme aucune surface et une zone qu'aucun lien ne joint. ADR 0012 : Canvas 2D reste le backend complet, WebGL/Pixi non
+mesuré dans ce lot. Laissé pour plus tard, dit comme tel : chaque mesure navigateur de ce lot (`e2e:perf` sur les deux
+peintres, budgets CPU et mémoire, un vrai téléphone), le spike WebGL, `objectiveCompleted` (4.1.12).
+
+## v4.1.10 « Constellation » (livrée le 7 octobre 2026) : un Bridge durable, plusieurs instances, plusieurs tenants
+
+La troisième release du programme, la première depuis la 4.1.8 avec une release candidate (`v4.1.10-rc.1`, puis `v4.1.10` sur le
+même commit). Le Bridge lit et écrit à travers `RealityStore` (ADR 0009), chaque méthode prenant le tenant en premier,
+une seule transaction décidant la déduplication, la séquence, les quotas et la signature : SQLite par `node:sqlite`
+pour une machine, Postgres par `pg` pour plusieurs instances (expérimental jusqu'à un déploiement réel), le journal
+de la 4.1.9 toujours servi et migré par `npm run bridge -- migrate`. Les instances ne gardent aucun état propre : un
+flux sur l'une reçoit ce qu'une autre a accepté, réveillé par `NOTIFY` ou un court sondage ; trois processus dont un
+tué pendant 1 000 propositions ne perdent rien (testé). Un serveur sert plusieurs tenants, routés par `Host`, chacun
+avec ses clés, sa racine, ses quotas, sa rotation et ses révocations ; un modèle de menace écrit d'abord
+(`docs/dev/threat-models/constellation.md`) a demandé un signal qui nomme son contexte, d'où `SignalV2` qui porte
+tenant, environnement, origine, lien et clé (ADR 0010 ; le joueur accepte V1 et V2 jusqu'à la 4.1.12, un Bridge
+multi-tenant ne signe que V2). Exploitation : `/livez`, `/readyz`, `/healthz`, métriques OpenTelemetry quand l'API
+est installée, `tenant export|delete`, `backup`, `restore`, quarantaine des lignes qui ne se vérifient plus, 503 avec
+`Retry-After` d'un store occupé, `--trust-proxy` par liste d'autorisation (D20). Mesuré : 1 008 propositions par
+seconde sur trois instances SQLite en local (`docs/dev/BENCH-BRIDGE.md`). Laissé pour plus tard, dit comme tel : les
+chiffres de charge Postgres (ceux de la nuit), la rétention sur un store SQL, la sécurité par ligne par tenant, une
+limite de débit par connecteur partagée entre instances ; le passage humain d'un vrai déploiement multi-instance
+derrière HTTPS.
+
 ## v4.1.9 « Gateways » (livrée le 7 octobre 2026) : le monde extérieur, par quatre connecteurs
 
 La deuxième release du programme, le même jour que la première. Un paquet `web-scumm-connectors` (la quatrième
@@ -635,10 +715,10 @@ qu'une fois les bloqueurs de la courante fermés.
 |---|---|---|
 | 4.1.8 | **Foundation Reset** (livrée le 7 octobre 2026) | TypeScript 7, Vite 8, PWA 2, le curseur Reality corrigé (le curseur local du port avançait avant l'acquittement : reproduit en polling), des contrôles qui prédisent la release, une release candidate d'abord |
 | 4.1.9 | **Gateways** (livrée le 7 octobre 2026) | connecteurs email, SSH, Telnet et Open Badges sur un SDK commun, hors du joueur, expérimentaux jusqu'à un passage réel |
-| 4.1.10 | **Constellation** | un Bridge durable, répliqué et isolé par tenant ; le signal peut devenir `SignalV2` si l'analyse de menace le demande |
-| 4.1.11 | **Viewport** | un renderer séparé de la logique du jeu, derrière une `SceneFrame` immuable ; un journal sémantique possédé par le cœur |
-| 4.1.12 | **Language** | le DSL et une représentation intermédiaire (`GameIR`, une empreinte de jeu) façonnés par Gateways et Viewport ; le socle stabilisé |
-| 4.1.13 | **Proof at Scale** | une classe documentée de jeux ouverts à trois personnages prouvée dans des budgets publiés, ou nommée « Solver Research » |
+| 4.1.10 | **Constellation** (livrée le 7 octobre 2026) | un Bridge durable, répliqué et isolé par tenant ; le signal peut devenir `SignalV2` si l'analyse de menace le demande |
+| 4.1.11 | **Viewport** (livrée le 7 octobre 2026) | un renderer séparé de la logique du jeu, derrière une `SceneFrame` immuable ; un journal sémantique possédé par le cœur |
+| 4.1.12 | **Language** (livrée le 7 octobre 2026) | le DSL et une représentation intermédiaire (`GameIR`, une empreinte de jeu) façonnés par Gateways et Viewport ; le socle stabilisé |
+| 4.1.13 | **Solver Research** (livrée le 7 octobre 2026 ; « Proof at Scale » non atteint) | une classe documentée de jeux ouverts à trois personnages prouvée dans des budgets publiés, ou nommée « Solver Research » |
 | 4.1.14 | **Time Attack** | catégories de speedrun, RTA et temps logique, splits sémantiques, un paquet de preuve vérifiable, ghosts, LiveSplit et OBS en outils locaux |
 | 4.1.15 | **Remix** | une variance contrôlée du jeu, déterministe par seed, à solvabilité prouvable ; le DSL gelé après elle |
 | 4.2.0 | **Stable World** | les contrats gelés, le paquet compilé sur npm, les passes humaines faites, un premier vrai jeu de référence |
@@ -657,7 +737,8 @@ la 4.2.0 sur chaque surface annoncée comme supportée.
   retire `baseUrl` et les `paths` non relatifs) : la 4.1.8 « Foundation Reset », avec le `tsconfig.json` du modèle de projet.
 - Les traductions chargées à la demande (la seconde langue pèse ~10 % du JavaScript de la première visite) : un
   changement du contrat du module de jeu, donc une mineure avec une dépréciation, pas un correctif.
-- La matrice ouverte à trois personnages : la 4.1.13 « Proof at Scale », avec les deux seuils de sa fiche.
+- La matrice ouverte à trois personnages : non atteinte en 4.1.13 « Solver Research » (8 instances sur 12 dans leur
+  budget) ; le mémo des macro-mouvements et des passages d'objets nommé par le rapport d'écart reste le levier.
 - Les repères de synchronisation labiale dans la table des voix (restés de la 3.4).
 
 ## Hors plan (décisions explicites)

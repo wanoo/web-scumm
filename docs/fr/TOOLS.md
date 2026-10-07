@@ -154,6 +154,12 @@ npm run solve -- --from=<checkpoint> --max=50000
 npm run solve -- --prove --workers=4 [--batch=64] [--time=60]   # workers de preuve (3.5) : le même résultat quel que soit leur nombre ; une grosse preuve ×2,5 avec 4 (BENCH.md « 3.5 »)
 npm run solve -- --prove --ownership=off   # sans le propriétaire canonique (qui porte un objet libre, mis en commun dans les preuves depuis la 3.5)
 npm run solve -- --dominance             # un témoin avec dominance (3.5 ; n'élague rien sur les jeux fournis, BENCH.md)
+npm run solve -- --prove --profile       # le profil, avec le profil d'explosion (4.1.13) : les états attribués aux positions, inventaires, flags, dialogues, scripts ; symétries, no-ops, permutations
+npm run solve -- --prove --checkpoint=p.ckpt [--checkpoint-every=300] [--resume]   # la preuve écrite au fil de l'eau (4.1.13), reprise avec --resume : le même verdict et le même témoin ; une preuve finie supprime le fichier
+npm run solve -- --prove --mem=3500      # s'arrête en `truncated` quand le tas dépasse 3 500 Mo (4.1.13), jamais une preuve
+npm run solve -- --prove --symmetry      # replie les objets symétriques, deux objets que le jeu traite pareil (4.1.13, désactivé par défaut ; SOLVER.md)
+npm run solve -- --prove --representation=objects   # le stockage des états de la 4.1.8 (la référence des tests différentiels ; compact par défaut, 4.1.13)
+npm run prove:matrix [-- --only=c11,o21 --time=600 --mem=4096 --json=m.json --profile=docs/dev/PROOF-PROFILE.md]   # la matrice de preuve (4.1.13, docs/dev/PROOF-MATRIX.md) : douze jeux à trois personnages sous les budgets publiés ; 1 sur un faux verdict ; la nuit seulement
 npm test           # tests Node du moteur, des outils et du jeu sélectionné (sans les tests lourds du solveur, 4.1.3)
 npm run test:heavy # les tests du solveur gourmands en CPU (audits des abstractions, propriétaire canonique, preuves memo et ownership, preuve du chapitre de référence) : chaque nuit, des minutes chacun
 npm run test:coverage   # la suite sous couverture V8, contre les planchers de vite.config.ts ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher d'au moins trois points sous ce que les tests atteignent (CI sur main et les tags, release-check, 4.1.8 ; sur une pull request il avertit, 4.1.9)
@@ -222,6 +228,7 @@ npm run build:game                 # les portes du jeu (verify:game), le bundle,
 npm run verify:game                # validation, témoins globaux/par chapitre et couverture des traductions
 npm run prove:game                 # preuve exhaustive globale/par chapitre ; échoue sur softlock ou troncature
 npm run release-check              # ce que la CI lance, d'un coup : doctor --release, quality, build, couverture et son ratchet strict, verify:release, preuves, le cross-check Rust, la mutation du cœur, les paquets avec `npm publish --dry-run`, les audits de dépendances
+npm run release-check:ci           # la même chose sans les sets de mutation (4.1.10) : release.yml les lance en deux jobs à côté, core et reality, chacun bloquant la release
 ```
 
 **Lint.** `npm run lint` dit ce que `validate` ne peut pas dire (il vérifie formes et références) et ce que `solve`
@@ -439,7 +446,8 @@ Les scripts ci-dessus sont ceux dont un jeu a besoin. Le reste de `package.json`
 | `npm run fresh-install`, `upgrade-check` | un jeu créé depuis l'archive et joué jusqu'à sa fin, `create-web-scumm` installé depuis sa propre archive et lancé, le Bridge installé et servant, les connecteurs installés sans code natif et répondant à `--help` ; un jeu fait sur la release précédente migré, mis à niveau et joué (la CI lance les deux) |
 | `npm run ship -- <checks\|merge\|main\|tag\|watch\|verify\|chain> …` | la chaîne de release en commandes (4.1.8) : attendre les checks d'une pull request (une relance d'un job en échec), la fusionner, attendre la CI de `main` sur la fusion, taguer et pousser, suivre la CI du tag puis le run de release, télécharger la release et vérifier ses sommes et ses attestations ; `chain <pr> <version>` enchaîne tout. Chaque commande écrit son PID dans `.cache/pids/` |
 | `npm run page:storyboard`, `page:review`, `page:placement`, `import-layout` | les pages de relecture pour téléphone et l'import de la page de placement (`docs/fr/PAGES.md`) |
-| `npm run bridge -- …` | la ligne de commande du Reality Bridge (`docs/fr/REALITY-OPS.md`) |
+| `npm run bridge -- …` | la ligne de commande du Reality Bridge (`docs/fr/REALITY-OPS.md`) : `init`, `serve` (`--tenants=a,b`, `--store=`, `--trust-proxy=<liste>`, `--tenant-header`), `grant`, `rotate`, `revoke`, `doctor`, `compact` ; depuis la 4.1.10 `migrate --from=jsonl --to=sqlite` et `migrate --schema=N`, `tenant export\|delete`, `backup --out=`, `restore --from=` |
+| `npm run bridge:load [-- --instances=3 --players=1000 --proposals=50000 --concurrency=64 --streams=50 --out=<fichier>]` | le Bridge sous charge (4.1.10, `docs/dev/BENCH-BRIDGE.md`) : trois processus `serve` sur un même store (SQLite, ou Postgres avec `BRIDGE_STORE`), débit et latence p50/p95/p99, le journal et les flux vérifiés après coup (sortie 1 sur un signal perdu, doublé ou désordonné) ; la nuit le lance sur les deux stores |
 | `npm run solve:reality`, `reality:spike`, `reality:xcheck` | le solveur sous chaque scénario de réalité (et chaque replay enregistré de `games/<id>/replays/`, 4.1.9), une sonde de charge du Bridge, la contre-vérification Rust du protocole (`docs/fr/REALITY.md`) |
 | `npm run connector -- <email\|telnet\|ssh\|open-badge> --config <fichier.json>` | un connecteur du monde extérieur, comme processus à part, depuis les sources du dépôt (4.1.9, `docs/fr/CONNECTORS.md`) : santé et métriques sur un port local, SIGTERM vide et sort avec 0 ; la commande du paquet est `web-scumm-connector` |
 | `npm run fuzz:connectors [-- --connector=… --cases=10000 --seconds=60 --seed=1 --json]` | les analyseurs des connecteurs sous mutations à graine de leur corpus, sans réseau : chaque entrée a sa réponse, aucun plantage, la RSS avant et après (4.1.9 ; la nuit une minute par connecteur, la CI une demi-minute) |

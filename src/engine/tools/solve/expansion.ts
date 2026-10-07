@@ -1,6 +1,6 @@
 // Expansion: from a state, every action worth trying, run on the real engine, each one's transition and what it read and wrote (the no-op memo included).
 
-import { Engine, type Action, type Source } from '../../core/engine';
+import { Engine, type Source } from '../../core/engine';
 import { FakePresenter, MemoryStore } from '../../core/ports';
 import { check } from '../../core/cond';
 import { cmdLists, eachCmd } from '../../core/cmds';
@@ -26,56 +26,9 @@ import {
 } from './abstractions';
 import type { ExpandStats, Expansion, NodeInput, SolveOptions } from './model';
 import { signalTries } from './scenarios';
+import { symmetricItems, symmetryDims } from './search/dominance';
 import { type SolveProfile, label } from './report';
-
-/**
- * The engine's promise or the next turn of the event loop, whichever comes first; the timer is cleared when the
- * engine wins (3.6). A search runs in microtasks and never reaches the timers' phase: before this, every uncleared
- * tick stayed queued, with its promise, until the process went idle (15 MB per audit, out of memory over a corpus).
- */
-const raceTick = async (settled: Promise<unknown>) => {
-  let t: ReturnType<typeof setTimeout> | undefined;
-  try {
-    await Promise.race([
-      settled,
-      new Promise<void>((r) => {
-        t = setTimeout(r, 0);
-      }),
-    ]);
-  } finally {
-    clearTimeout(t);
-  }
-};
-
-/**
- * Waits for an engine promise to settle, playing the guided-tutorial steps whenever one is pending.
- * `onGuide` receives the action played (for the path).
- */
-export async function drive(engine: Engine, p: Promise<unknown>, onGuide: (a: Action) => void): Promise<void> {
-  let done = false;
-  let error: unknown;
-  const settled = p.then(
-    () => {
-      done = true;
-    },
-    (e) => {
-      done = true;
-      error = e;
-    },
-  );
-  for (let guard = 0; !done && guard < 500; guard++) {
-    // The silent presenter resolves everything in microtasks: without a tutorial, we never wait on the timer.
-    await raceTick(settled);
-    const g = engine.guiding;
-    if (g && !done) {
-      const act: Action = { verb: g.verb, a: g.target };
-      onGuide(act);
-      await engine.act(act);
-    }
-  }
-  if (!done) throw new Error('the engine never yields control back (tutorial or stuck choice?)');
-  if (error) throw error;
-}
+import { drive } from './drive';
 
 /**
  * Everything one expansion needs, derived from the game and the options alone: the state keys, the abstractions, the
@@ -164,8 +117,21 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
     canonical
       ? canonicalDims(stateDims(st, keys), st, keys, game.hero, shared, pool, groupsOf(st))
       : stateDims(st, keys);
-  const dimsOf = (st: GameState): Dims =>
+  // Symmetric items (4.1.13, search/dominance.ts): asked for only; a state and its swapped twin get the same dims.
+  // Read on the game as written: compiling gives each rule an id from its place, which would tell twins apart.
+  const symClasses = opts.symmetry ? symmetricItems(gameIn, opts.goal, { layouts, commands: opts.commands }) : [];
+  const symInfo: NonNullable<SolveProfile['symmetry']> = {
+    applied: symClasses.length > 0,
+    classes: symClasses,
+    ...(opts.symmetry
+      ? symClasses.length
+        ? {}
+        : { reason: 'no two items the game treats alike' }
+      : { reason: 'not asked for (--symmetry)' }),
+  };
+  const regionOf = (st: GameState): Dims =>
     model ? regionDims(baseDims(st), st, model, game.hero, shared) : baseDims(st);
+  const dimsOf = (st: GameState): Dims => (symClasses.length ? symmetryDims(regionOf(st), symClasses) : regionOf(st));
   const stats: ExpandStats = {
     itemsInRules: new Set(),
     itemsSeen: new Set(),
@@ -785,6 +751,7 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
     model,
     mobInfo,
     ownInfo,
+    symInfo,
     dimsOf,
     makeEngine,
     reached,

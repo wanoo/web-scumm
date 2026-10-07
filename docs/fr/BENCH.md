@@ -582,3 +582,60 @@ Il faut une abstraction des personnages qui ne peuvent pas se rejoindre, la ques
 
 Pas fait du plan 3.6 : retirer les objets qu'aucune condition restante ne lit (le groupe était le levier que le profil
 désignait), et compter le trafic entre workers.
+
+## 4.1.13 : la matrice de preuve, un stockage compact, des points de reprise (7 octobre 2026)
+
+`docs/dev/PROOF-MATRIX.md` fixe la classe de jeux sur laquelle le solveur est mesuré, avant tout code de la 4.1.13 :
+douze jeux générés (`matrixGame`, `tests/gen/random-game.ts`) de 20 à 40 lieux et trois personnages jouables, six
+contraints et six ouverts, avec des puzzles de clés croisés, des dialogues, un script et un événement par zone, des
+babioles libres et un four. Budget par instance : 10 000 000 d'états, 10 minutes sur le Mac du mainteneur (Apple M5,
+Node 22.14 ; mesuré avec `--time=590`), 4 Go de tas. `npm run prove:matrix -- --only=<id> --time=590 --json=…`, une
+instance par processus, une à la fois. « Avant », c'est le solveur de la 4.1.8 (ses sources avec seulement le
+générateur et l'outil de la matrice ajoutés) ; « après », cette version, stockage compact, sans workers.
+
+| Instance | Avant : verdict, états, temps | Après : verdict, états, temps | États/s | Pic de tas | Pic de RSS |
+|---|---|---|---|---|---|
+| c11 (39 lieux) | prouvé, 5 385, 32,1 s | prouvé, 5 385, 31,7 s | 168 → 170 | 233 → 81 Mo | 392 → 236 Mo |
+| c12 (37) | softlock, 7 333, 46,7 s | softlock, 7 333, 47,7 s | 157 → 154 | 333 → 87 Mo | 535 → 240 Mo |
+| c13 (20) | softlock, 341, 0,8 s | softlock, 341, 0,8 s | 425 → 409 | 24 → 30 Mo | 168 → 167 Mo |
+| c14 (25) | prouvé, 1 871, 6,0 s | prouvé, 1 871, 6,1 s | 314 → 307 | 71 → 64 Mo | 219 → 208 Mo |
+| c15 (37) | prouvé, 1 605, 7,8 s | prouvé, 1 605, 8,0 s | 205 → 202 | 89 → 68 Mo | 266 → 227 Mo |
+| c16 (21) | softlock, 259, 0,6 s | softlock, 259, 0,6 s | 410 → 411 | 28 → 30 Mo | 165 → 165 Mo |
+| o21 (26) | prouvé, 80 967, 461 s | prouvé, 80 967, 419 s | 175 → 193 | 2 556 → 127 Mo | 2 721 → 267 Mo |
+| o22 (39) | tronqué (temps), 33 498 | tronqué (temps), 36 399 | 57 → 62 | 1 998 → 297 Mo | 2 263 → 415 Mo |
+| o23 (27) | tronqué (temps), 79 822 | tronqué (temps), 89 266 | 135 → 151 | 2 598 → 141 Mo | 2 800 → 272 Mo |
+| o24 (38) | tronqué (temps), 16 900 | tronqué (temps), 17 079 | 29 → 29 | 894 → 104 Mo | 1 094 → 253 Mo |
+| o25 (29) | tronqué (temps), 81 071 | tronqué (temps), 75 246 | 137 → 128 | 1 896 → 115 Mo | 2 078 → 229 Mo |
+| o26 (22) | softlock, 8 638, 58,0 s | softlock, 8 638, 57,5 s | 149 → 150 | 349 → 86 Mo | 546 → 247 Mo |
+
+**Mémoire : ÷9 en tas, ÷4,5 en RSS sur la matrice** (les douze pics additionnés : 11 069 → 1 230 Mo de tas, 13 247 →
+2 926 Mo de RSS ; le RSS contient environ 160 Mo de Node et du moteur quelle que soit la recherche). Sur les grosses
+preuves ouvertes, le tas baisse de 16 à 20 fois : o21 tenait 31,6 Ko par état, il en tient 1,6. **Temps : inchangé**
+(×0,93 à ×1,12 selon l'instance, ×1,03 en moyenne géométrique) : le temps par état, ce sont les exécutions du moteur,
+qu'une représentation ne touche pas. Les verdicts et les nombres d'états sont les mêmes là où les deux ont fini
+(l'oracle, plus bas). **L'objectif n'est pas atteint** : les mêmes huit instances sur douze finissent dans le budget ;
+o22 à o25 manquent toujours de temps, désormais avec 4 Go de tas presque intacts. La 4.1.13 s'appelle donc « Solver
+Research » ; le rapport d'écart est la section 8 de `docs/dev/PROOF-MATRIX.md`.
+
+Avec quatre workers (`--workers=4`, la table des états vus partagée), o23 atteint 237 618 états dans les mêmes 590 s
+(403 états/s, ×2,7 sur un seul thread ; 787 Mo de RSS avec les quatre moteurs) et reste tronquée, sa frontière en
+croissance (2 920 états en file à la fin).
+
+**L'oracle.** `tests/solver-oracle.test.ts` : le jeu d'exemple (témoin et preuve), la preuve du jeu de référence et 200
+jeux générés (preuves dans 3 000 états) donnent, avec le stockage compact, exactement ce que l'implémentation de la
+4.1.8 a écrit dans `tests/fixtures/solver-oracle.json` avant tout changement : le verdict, le chemin et ses entrées de
+session, les softlocks et leurs causes, les impasses, les flags et lieux atteints et tout l'ensemble atteignable, état
+pour état (203 recherches, 90 s). `tests/compact.test.ts` compare compact et `objects` champ par champ sur le jeu
+d'exemple, 40 jeux générés et deux instances de la matrice.
+
+**Le reste du lot, mesuré.** Le corpus de la nuit sur ce code (`npm run audit:corpus`, 500 graines × 3 sortes en quatre
+tranches de 250 à 278 s) : 1 500 jeux, 909 comparés à la recherche explicite, 0 divergence (591 partiels). Un point de
+reprise d'o23 pèse 1,7 Mo à 8 796 états et 3,2 Mo à 17 968 (environ 180 octets par état, états moteur de la frontière
+compris) ; reprise avec un second budget de 60 s, la recherche est passée de 8 796 à 17 968 états. Les objets
+symétriques (`--symmetry`), sur 30 jeux générés avec des pièces jumelles : 0 divergence contre la recherche explicite
+(14 comparés, 16 partiels), 11 616 → 8 802 états sur les 19 qui ont fini dans les deux cas (÷1,3) ; aucun dans les jeux
+fournis ni dans la matrice, il reste donc désactivé par défaut. La dominance dans une preuve (`--dominance` avec
+l'option de test `unsafeReduction`) : 1 verdict changé sur 43 jeux générés comparés, elle reste donc désactivée dans
+les preuves. La table des états vus partagée renvoie les états des workers sans leur état moteur (la ligne `shared` du
+profil les compte) ; le résultat est le même pour 1, 2 et 4 workers (`tests/partition.test.ts`). Pas fait : le backend
+symbolique (BDD, SAT/SMT, CEGAR) n'a pas été essayé.

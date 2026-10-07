@@ -25,6 +25,11 @@ export interface Grant {
   /** May confirm pairing codes for this game (`bridge/policy/pair.datalog`). */
   pair?: boolean;
   /**
+   * The tenant the token is for (4.1.10): a check in its authority block, so the token is refused by any other
+   * tenant's Bridge even if two tenants were given one root key. Absent: any tenant whose root signed it.
+   */
+  tenantId?: string;
+  /**
    * Epoch ms from which the token is refused. Biscuit's dates are whole seconds: the token holds strictly before
    * that second (an expiry at 13:00:00.500 refuses from 13:00:00).
    */
@@ -38,6 +43,8 @@ export interface Proposal {
   source: string;
   signal: string;
   audience: string;
+  /** The tenant of the Bridge asked (4.1.10): `default` when absent. */
+  tenantId?: string;
 }
 
 export type Authorization =
@@ -59,6 +66,7 @@ export async function grantToken(rootPrivateKey: string, g: Grant): Promise<stri
     ...g.signals.map((s) => `signal(${lit(s)});`),
     ...(g.players === 'any' ? ['any_player(true);'] : g.players.map((p) => `player(${lit(p)});`)),
     ...(g.pair ? ['pair(true);'] : []),
+    ...(g.tenantId ? [`check if request_tenant(${lit(g.tenantId)});`] : []),
     `check if time($t), $t < ${new Date(g.expiresAt).toISOString()};`,
   ];
   const builder = b.Biscuit.builder();
@@ -119,6 +127,9 @@ export async function authorize(
     },
     {},
   );
+  // The tenant asked, as a fact a tenant-bound token checks (4.1.10); not in propose.datalog, which the Rust
+  // cross-check runs as it is.
+  a.addCodeWithParameters('request_tenant({tenant});', { tenant: p.tenantId ?? 'default' }, {});
   try {
     a.buildAuthenticated(t).authorizeWithLimits(LIMITS);
   } catch (e) {

@@ -84,9 +84,16 @@ methods, as in the core:
 | `tools/solve/abstractions.ts` | what a state is made of (dimensions), the canonical forms (players, mobility, ownership), dominance |
 | `tools/solve/model.ts` | options, `SearchNode`, `Expansion` and a transition (`TryRecord`), with their invariants |
 | `tools/solve/scenarios.ts` | signals from outside in a search: closed, a scenario, adversarial (4.1.1) |
-| `tools/solve/report.ts` | the result, its profile, paths as labels and as session entries |
+| `tools/solve/report.ts` | the result, its profile, the profile as text |
+| `tools/solve/drive.ts` | an engine promise awaited, the guided tutorial's steps played meanwhile |
+| `tools/solve/explosion.ts` | the explosion profile (4.1.13): the states attributed to positions, inventories, flags, dialogues, scripts |
+| `tools/solve/search/compact.ts` | the store of the states seen (4.1.13, ADR 0015): by index, interned keys, parents, paths and session entries |
+| `tools/solve/search/checkpoint.ts` | a search written down and taken up again (4.1.13): snapshot, header, fingerprint |
+| `tools/solve/search/classify.ts` | the verdict of a proof over the stored states: reverse reachability, softlocks and their causes |
+| `tools/solve/search/dominance.ts` | dominance, symmetric items, independent sub-puzzles (4.1.13) |
+| `tools/solve/search/partition.ts` | the workers' shared visited table, the partition of a batch and work stealing (4.1.13) |
 
 The path of a proof reads `solve()` → `solveOnce()` (search) → `makeExpander()` (expansion) → the engine's `act()` →
-a `TryRecord` merged into the frontier → the verdict. No file of `src/` is over 800 lines but the exceptions
+a `TryRecord` merged into the store and the frontier → the verdict. No file of `src/` is over 800 lines but the exceptions
 `tests/file-size.test.ts` lists with their reason, capped at their size.
 

@@ -549,3 +549,58 @@ abstraction of characters who cannot meet, the open question since 3.3.
 
 Not done from the 3.6 plan: removing items no remaining condition reads (the group was the lever that the profile
 pointed to), and counting the traffic between workers.
+
+## 4.1.13: the proof matrix, a compact store, checkpoints (7 October 2026)
+
+`docs/dev/PROOF-MATRIX.md` fixes the class of games the solver is measured on, before any code of 4.1.13: twelve
+generated games (`matrixGame`, `tests/gen/random-game.ts`) of 20 to 40 rooms and three playable characters, six
+constrained and six open, with crossed key puzzles, dialogues, a script and an event per zone, free trinkets and a
+furnace. Budget per instance: 10 000 000 states, 10 minutes on the maintainer's Mac (Apple M5, Node 22.14; measured with
+`--time=590`), 4 GB of heap. `npm run prove:matrix -- --only=<id> --time=590 --json=…`, one instance per process, one
+at a time. "Before" is the 4.1.8 solver (its sources with only the matrix's generator and tool added); "after" is this
+release, compact representation, no workers.
+
+| Instance | Before: verdict, states, time | After: verdict, states, time | States/s | Peak heap | Peak RSS |
+|---|---|---|---|---|---|
+| c11 (39 rooms) | proved, 5 385, 32.1 s | proved, 5 385, 31.7 s | 168 → 170 | 233 → 81 MB | 392 → 236 MB |
+| c12 (37) | softlock, 7 333, 46.7 s | softlock, 7 333, 47.7 s | 157 → 154 | 333 → 87 MB | 535 → 240 MB |
+| c13 (20) | softlock, 341, 0.8 s | softlock, 341, 0.8 s | 425 → 409 | 24 → 30 MB | 168 → 167 MB |
+| c14 (25) | proved, 1 871, 6.0 s | proved, 1 871, 6.1 s | 314 → 307 | 71 → 64 MB | 219 → 208 MB |
+| c15 (37) | proved, 1 605, 7.8 s | proved, 1 605, 8.0 s | 205 → 202 | 89 → 68 MB | 266 → 227 MB |
+| c16 (21) | softlock, 259, 0.6 s | softlock, 259, 0.6 s | 410 → 411 | 28 → 30 MB | 165 → 165 MB |
+| o21 (26) | proved, 80 967, 461 s | proved, 80 967, 419 s | 175 → 193 | 2 556 → 127 MB | 2 721 → 267 MB |
+| o22 (39) | truncated (time), 33 498 | truncated (time), 36 399 | 57 → 62 | 1 998 → 297 MB | 2 263 → 415 MB |
+| o23 (27) | truncated (time), 79 822 | truncated (time), 89 266 | 135 → 151 | 2 598 → 141 MB | 2 800 → 272 MB |
+| o24 (38) | truncated (time), 16 900 | truncated (time), 17 079 | 29 → 29 | 894 → 104 MB | 1 094 → 253 MB |
+| o25 (29) | truncated (time), 81 071 | truncated (time), 75 246 | 137 → 128 | 1 896 → 115 MB | 2 078 → 229 MB |
+| o26 (22) | softlock, 8 638, 58.0 s | softlock, 8 638, 57.5 s | 149 → 150 | 349 → 86 MB | 546 → 247 MB |
+
+**Memory: ÷9 in heap, ÷4.5 in RSS over the matrix** (the twelve peaks summed: 11 069 → 1 230 MB of heap, 13 247 →
+2 926 MB of RSS; the RSS holds about 160 MB of Node and the engine whatever the search). On the large open proofs the
+heap falls by 16 to 20 times: o21 held 31.6 KB per state, it holds 1.6 KB. **Time: unchanged** (×0.93 to ×1.12 per
+instance, ×1.03 in geometric mean): the time per state is the engine's runs, which a representation does not touch.
+The verdicts and state counts are the same where both finished (the oracle, below). **The objective is not met**: the
+same eight instances of twelve finish within the budget; o22 to o25 still run out of time, now with 4 GB of heap
+almost untouched. 4.1.13 is therefore "Solver Research"; the gap report is section 8 of `docs/dev/PROOF-MATRIX.md`.
+
+With four workers (`--workers=4`, the shared visited table on), o23 reaches 237 618 states in the same 590 s (403
+states/s, ×2.7 on one thread; 787 MB of RSS with the four engines) and is still truncated, its frontier growing (2 920
+states queued at the end).
+
+**The oracle.** `tests/solver-oracle.test.ts`: the sample game (witness and proof), the reference game's proof and 200
+generated games (proofs within 3 000 states) give, with the compact store, exactly what the 4.1.8 implementation wrote
+in `tests/fixtures/solver-oracle.json` before any change: the verdict, the path and its session entries, the softlocks
+and their causes, the dead ends, the flags and rooms reached and the whole reachable set, state for state (203
+searches, 90 s). `tests/compact.test.ts` compares compact and `objects` field for field on the sample game, 40
+generated games and two matrix instances.
+
+**The rest of the lot, measured.** The nightly corpus on this code (`npm run audit:corpus`, 500 seeds × 3 kinds in four
+shards of 250–278 s): 1 500 games, 909 compared to the explicit search, 0 divergence (591 partial). A checkpoint of o23
+weighs 1.7 MB at 8 796 states and 3.2 MB at 17 968 (about 180 bytes a state, the frontier's engine states included);
+taken up with a second budget of 60 s, the search went on from 8 796 to 17 968 states. Symmetric items
+(`--symmetry`), on 30 generated games with twin coins: 0 divergence against the explicit search (14 compared, 16
+partial), 11 616 → 8 802 states on the 19 that finished both ways (÷1.3); none in the bundled games nor the matrix, so
+it stays off by default. Dominance in a proof (`--dominance` with the test-only `unsafeReduction`): 1 verdict changed in
+43 generated games compared, so it stays off in proofs. The shared visited table sends states back from the workers
+without their engine state (the profile's `shared` line counts them); the result is the same for 1, 2 and 4 workers
+(`tests/partition.test.ts`). Not done: the symbolic backend (BDD, SAT/SMT, CEGAR) was not tried.

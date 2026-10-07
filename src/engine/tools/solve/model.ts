@@ -90,35 +90,62 @@ export interface SolveOptions {
   gameModule?: string;
   /** Stop after this long (milliseconds): the result is `truncated`, `profile.stoppedBy` says why. */
   timeLimitMs?: number;
+  /**
+   * Called every 256 expansions with where the search stands (4.1.13: `npm run prove:matrix` samples the memory
+   * there). It reads, never steers: the search is the same with or without it.
+   */
+  onProgress?: (p: { states: number; expansions: number; queue: number; ms: number }) => void;
+  /** The explosion profile (4.1.13, explosion.ts) in `profile.explosion`: `npm run solve -- --profile` asks for it. */
+  explosion?: boolean;
+  /** Tests and the matrix (4.1.13): the result lists every reachable state's key (`SolveResult.reachable`, sorted). */
+  keepReachable?: boolean;
+  /**
+   * How the states seen are stored (4.1.13, docs/dev/adr/0015-compact-state.md). `compact` (the default): interned
+   * keys, parents and steps by index, the engine state dropped once expanded. `objects`: everything of every state,
+   * as 4.1.8 did, the reference of the differential tests. The partial-order reduction needs `objects` (it expands a
+   * state again), so it gets it.
+   */
+  representation?: 'compact' | 'objects';
+  /**
+   * Checkpoint and resume (4.1.13): `save` gets the search written down every `everyMs` (default 5 min) or every
+   * `everyExpansions`, and when a budget stops it; `resume` is such a text to take up again (a snapshot of another
+   * search, or of another representation, is ignored and the profile says so). Compact representation only.
+   */
+  checkpoint?: { save: (text: string) => void; resume?: string | null; everyMs?: number; everyExpansions?: number };
+  /** Stop (`truncated`, `stoppedBy: 'memory'`) once the heap passes this many MB (Node only: read every 256 expansions). */
+  maxMemoryMb?: number;
+  /**
+   * Symmetric items (4.1.13, search/dominance.ts): items the game treats alike, swapped, give the same game; a proof
+   * keeps one state of each swapped pair. Off unless asked for; measured against the explicit search
+   * (tests/dominance.test.ts).
+   */
+  symmetry?: boolean;
+  /**
+   * Workers only (4.1.13, search/partition.ts): a visited table shared with the workers, so a state the search has
+   * already stored comes back from a worker without its engine state. Default on with workers.
+   */
+  sharedVisited?: boolean;
   /** Tests only: worker `worker` (or every one) stops after `after` expansions, by exiting or by an uncaught error (tests/workers.test.ts). */
   workerCrash?: { worker: number | 'all'; after: number; how: 'exit' | 'throw' };
 }
 
 /**
- * A state of the search (4.1.0: was `Node`). Invariants: `dims` is `stateDims` of `state` under the search's keys, so
- * two nodes with the same hash of `dims` are the same node (`seen` holds one); `len` is the number of steps from the
- * start, the length of `pathOf(node)`; `prev` chains back to the start node, whose `prev`, `tail` and `tailSteps` are
- * empty; `expanded` turns true once, when its expansion is merged; `sleep` and `only` only ever shrink what is tried.
+ * A state of the search's frontier (4.1.0: was `Node`; 4.1.13: what is stored of a state seen lives in the store,
+ * search/compact.ts, by index). Invariants: `dims` is `stateDims` of `state` under the search's keys, and `i` is the
+ * store's index of their key, so two nodes with the same key are the same node; `len` is the number of steps from the
+ * start, the length of the store's path to `i`; `expanded` turns true once, when its expansion is merged; `sleep` and
+ * `only` only ever shrink what is tried.
  */
 export interface SearchNode {
+  i: number;
   state: GameState;
   dims: Dims;
-  /**
-   * The way here, kept as a pointer and the last step only (a copied path per state cost memory and time in the long
-   * proofs): `pathOf` / `stepsOf` rebuild it on demand. `len` is the path's length (the best-first score reads it).
-   */
-  prev?: SearchNode;
-  tail: string[];
-  tailSteps: SessionEntry[];
   len: number;
   /** Sleep set: actions not to try here (an independent one was tried before them on the way), with what they read and wrote. */
   sleep: Map<string, RW>;
   expanded: boolean;
   /** A node seen again with a smaller sleep set: only these actions are still to try. */
   only?: Set<string>;
-  /** How it was first reached: the parent's hash and the step's label (the softlock causes walk this). */
-  parent?: string;
-  via?: string;
 }
 
 /** The node an expansion starts from: what it needs of it, nothing of the search around it (a worker gets this). */
@@ -142,7 +169,10 @@ interface TryRecord {
   /** The state did not change (a goal state all the same: kept for the goals only). */
   noop: boolean;
   dims?: Dims;
+  /** Absent when a worker knew the state was stored already (`known`, the shared visited table). */
   state?: GameState;
+  /** The worker found the state in the shared visited table and left its engine state and steps out. */
+  known?: true;
   path?: string[];
   tailSteps?: SessionEntry[];
   rw?: RW | null;

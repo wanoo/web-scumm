@@ -349,3 +349,75 @@ describe("the client and the engine's verdicts", () => {
     expect(b.acks).toEqual([1]);
   });
 });
+
+describe("the client's V2 context (4.1.10)", () => {
+  /** Hands each signal to a client built as in a page of `origin` (none: Node), with `context`; the refusal codes. */
+  async function verdicts(
+    o: { origin?: string; context?: { sessionId?: string } },
+    make: (b: Awaited<ReturnType<typeof fakeBridge>>) => Promise<string[]>,
+  ) {
+    const b = await fakeBridge();
+    const jws = await make(b);
+    const refused: string[] = [];
+    const g = globalThis as { location?: unknown };
+    const had = 'location' in g;
+    const before = g.location;
+    if (o.origin !== undefined) g.location = { origin: o.origin };
+    try {
+      const e = await engine();
+      const client = new RealityClient({
+        engine: e,
+        store: e.store,
+        port: b.port(),
+        keyring: [b.key],
+        playerId: PLAYER,
+        now: () => NOW,
+        onRefused: (code) => void refused.push(code),
+        ...(o.context ? { context: o.context } : {}),
+      });
+      const out: string[] = [];
+      for (const j of jws) out.push(await client.handle(j));
+      return { out, refused };
+    } finally {
+      if (had) g.location = before;
+      else delete g.location;
+    }
+  }
+  const v2 = (
+    b: Awaited<ReturnType<typeof fakeBridge>>,
+    sequence: number,
+    o: { audience: string; sessionId?: string },
+  ) =>
+    b.signRaw({
+      ...b.payload(sequence, 'hook.bell'),
+      schema: 2,
+      tenantId: 't-1',
+      environment: 'prod',
+      sessionId: o.sessionId ?? 's-1',
+      keyId: 'k1',
+      audience: o.audience,
+    });
+
+  it("checks the page's origin by default", async () => {
+    const r = await verdicts({ origin: 'https://game.example' }, async (b) => [
+      await v2(b, 1, { audience: 'https://game.example' }),
+      await v2(b, 2, { audience: 'https://other.example' }),
+    ]);
+    expect(r).toEqual({ out: ['applied', 'refused'], refused: ['audience-mismatch'] });
+  });
+
+  it('an opaque origin ("null") is not an expectation', async () => {
+    const r = await verdicts({ origin: 'null' }, async (b) => [
+      await v2(b, 1, { audience: 'https://anything.example' }),
+    ]);
+    expect(r).toEqual({ out: ['applied'], refused: [] });
+  });
+
+  it("takes the link's session from its context", async () => {
+    const r = await verdicts({ context: { sessionId: 's-1' } }, async (b) => [
+      await v2(b, 1, { audience: 'x', sessionId: 's-1' }),
+      await v2(b, 2, { audience: 'x', sessionId: 's-0' }),
+    ]);
+    expect(r).toEqual({ out: ['applied', 'refused'], refused: ['audience-mismatch'] });
+  });
+});

@@ -4,7 +4,15 @@
 // reversed, a bad signature, an expired signal, the connection cut then resumed. No network.
 import type { WorldSignalPort } from '../core/ports';
 import type { GameDef } from '../core/types';
-import { b64url, CLOCK_SKEW_MS, importBridgeKey, signSignal, type Keyring, type WorldSignalV1 } from './protocol';
+import {
+  b64url,
+  CLOCK_SKEW_MS,
+  importBridgeKey,
+  signSignal,
+  type Keyring,
+  type WorldSignal,
+  type WorldSignalV1,
+} from './protocol';
 
 /**
  * What the simulator does wrong on purpose with one delivery: a delay, a duplicate, a bad signature, an expiry.
@@ -42,6 +50,8 @@ export class SignalSimulator {
   private cutOff = false;
   private sequence = 0;
   private acked = 0;
+  /** The version it signs (4.1.10): V2 by default, as a multi-tenant Bridge does; 1 to try a player against a 4.1.9 Bridge. */
+  private version: 1 | 2 = 2;
 
   private constructor(
     private game: GameDef,
@@ -55,19 +65,20 @@ export class SignalSimulator {
 
   static async create(
     game: GameDef,
-    o: { playerId?: string; now?: () => number; after?: number } = {},
+    o: { playerId?: string; now?: () => number; after?: number; signalVersion?: 1 | 2 } = {},
   ): Promise<SignalSimulator> {
     const kp = (await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify'])) as CryptoKeyPair;
     const raw = b64url.encode(new Uint8Array(await crypto.subtle.exportKey('raw', kp.publicKey)));
     const sim = new SignalSimulator(
       game,
       kp.privateKey,
-      [await importBridgeKey('studio', raw)],
+      [await importBridgeKey('studio', raw, { tenantId: 'studio', environment: 'dev' })],
       o.playerId ?? 'p-studio',
       o.now ?? Date.now,
     );
     sim.sequence = o.after ?? 0;
     sim.acked = o.after ?? 0;
+    sim.version = o.signalVersion ?? 2;
     return sim;
   }
 
@@ -83,7 +94,7 @@ export class SignalSimulator {
   async inject(signal: string, f: Fault = {}): Promise<void> {
     const def = this.game.reality?.signals.find((s) => s.id === signal);
     const seq = ++this.sequence;
-    const payload: WorldSignalV1 = {
+    const v1: WorldSignalV1 = {
       format: 'web-scumm-world-signal',
       schema: 1,
       id: `studio-${seq}`,
@@ -97,6 +108,20 @@ export class SignalSimulator {
       policyVersion: 'studio',
       ...(f.expired ? { expiresAt: this.now() - CLOCK_SKEW_MS - 1 } : {}),
     };
+    // V2 names its context (ADR 0010): the simulator is its own tenant, in `dev`, for the page that runs it.
+    const origin = (globalThis as { location?: { origin?: string } }).location?.origin;
+    const payload: WorldSignal =
+      this.version === 1
+        ? v1
+        : {
+            ...v1,
+            schema: 2,
+            tenantId: 'studio',
+            environment: 'dev',
+            audience: origin && origin !== 'null' ? origin : 'studio',
+            sessionId: 'studio',
+            keyId: 'studio',
+          };
     let jws = await signSignal(payload, this.key, 'studio');
     if (f.badSignature) {
       const [h, p, s] = jws.split('.') as [string, string, string];

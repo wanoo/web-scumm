@@ -2836,3 +2836,305 @@ Platform"; human gates reported, not blocking (D12).
   4.1.11, 4.1.14 and 4.1.15 for that): `v4.1.9` is tagged on the merge commit after its main run.
 
 → next: Claude · `release/4.1.10` (Constellation, in progress), then 4.1.11 (Viewport, PR #42 held for the tag order)
+
+## #122 · 2026-10-07 · Claude · proposal · `feature/4110-constellation`: the Bridge behind RealityStore, SQLite and Postgres, tenants, stateless instances, SignalV2
+
+- Decided first, written before the code: `docs/dev/threat-models/constellation.md` (a V1 signal replays across two
+  tenants that share a key; a capability looked up without its tenant reads another tenant; keys per tenant; the
+  audience alone is not enough), ADR 0009 (`RealityStore`), ADR 0010 (`SignalV2` retained: V1 and V2 accepted by the
+  player until 4.1.12, V2 only from a multi-tenant Bridge), D20 (SQLite local, Postgres distributed and experimental,
+  JSONL import and audit, `trust-proxy` by allowlist). `init` still writes the journal's configuration by default
+  (`--store=sqlite` opts in): the engine declares Node 22.12 and `node:sqlite` is unflagged from 22.13.
+- Measured (one local run, 7 October 2026, Apple M5, 10 cores, 32 GB, Node 22.14.0; `npx tsx tools/bridge-load.ts`):
+  SQLite, three instances, 1 000 players, 50 000 proposals from 64 clients: 49.6 s, 1 008 proposals/s, accepted
+  latency p50 40.1 ms, p95 193.6 ms, p99 260.2 ms, max 1 872.8 ms, 50 000 rows, 0 gaps, 50/50 streams complete. The
+  `kill -9` test: 1 000 proposals over three processes, one killed after 300, every key once, sequences contiguous.
+- Run locally against a throwaway PostgreSQL 17.9 server (no Docker daemon): the store contract, the tenancy and the
+  fan-out tests with `BRIDGE_PG_URL`. CI runs them on Postgres 16 (`bridge-postgres`, service container pinned by
+  digest). The Rust cross-check (`cargo`) agrees on the 32 V1 cases and the 18 V2 vectors.
+- After the second reading (PR #45, security): a stream's read catches a store error (logged, counted, read again
+  by the next wake-up or pass) instead of an unhandled rejection that ended the process; a committed proposal cannot
+  fail on its delivery. A V1 signal under a tenant-bound key is refused, a V1 Bridge's keys bind no tenant, the
+  player keeps the link's `sessionId` and passes it; the origin is recorded at pairing whenever the browser sends it,
+  and a V2 signal naming the Bridge's own audience is accepted under its keys. SQLite waits 50 ms synchronously, then
+  backs off asynchronously for 5 s and answers 503; its files are 0600. Postgres listens on one connection, listens
+  again with a backoff after a drop, releases a client whose ROLLBACK failed with its error; an export is one
+  REPEATABLE READ snapshot; a restore replaces a tenant in one transaction; pairings are exported. The `kill -9`
+  test now keeps sending to the dead instance (232–240 retries locally), replays a sample of accepted keys elsewhere
+  (200, the same sequence) and resumes the killed instance's stream from its cursor on another. `bridge.ts` branch
+  coverage 97.0 % locally (floor 95). The load figures in BENCH-BRIDGE were measured before the busy change.
+- Not done: the Postgres load figures (the nightly's `bridge-load (postgres)` publishes the first; the spawned
+  processes cannot load `pg` from outside the repository here), the `kill -9` test on Postgres (CI only), a mutation
+  run of the refactored `bridge.ts` (gated set `reality`: survivors possible, read on the next nightly) and of the new
+  `reality-store` set (not gated), retention on a SQL store, row-level security per tenant, a rate limit per
+  connector shared between instances, the `4.1.10-rc.1` and the release branch.
+→ next: Claude · `release/4.1.10`
+
+## #123 · 2026-10-07 · Claude · release · 4.1.10 "Constellation"
+
+- The programme's third release, the first since 4.1.8 with a release candidate (`v4.1.10-rc.1` on the merge commit, then
+  `v4.1.10` on the same commit once the candidate's assets were installed and verified). Merged: #45 Constellation
+  (#122 above: the store interface, SQLite and Postgres, tenants, stateless instances, `SignalV2`, the second
+  reading's findings applied before the merge; a last Windows-only fix, the SQLite 0600 check held on POSIX only).
+  `release/4.1.10`: the fragment assembled, the version, the golden save `demo-4.1.10.json` (24), the READMEs,
+  ROADMAP en/fr, UPGRADING §22 (written with the lot), the pass sheet (seven rows, three new human passes for the
+  Bridge), the baseline sheet.
+- Measured on #45's last full run (37610478763): `node-24` 135 files, 1 383 tests; `coverage` 137 files, 1 400 tests;
+  `bridge-postgres` 3 files, 49 tests on Postgres 16; `connectors` 106; the lot's own figures (1 008 proposals/s on
+  three SQLite instances, the `kill -9` test) in `docs/dev/BENCH-BRIDGE.md` and the baseline sheet.
+- Not done, said as such: the Postgres load figures, the mutation of the refactored `bridge.ts`, retention and
+  row-level security on SQL, a rate limit per connector shared between instances, the human passes (a real
+  multi-instance deployment behind HTTPS first).
+
+→ next: Claude · `release/4.1.11` (Viewport, PR #42 merged after this tag), then 4.1.12 (Language, PR #46)
+
+## #124 · 2026-10-07 · Claude · proposal · `feature/4111-viewport`: the scene frame, the intentions and the semantic journal (4.1.11 "Viewport", one pull request)
+
+- Delivered, in the sheet's order (`docs/dev/plans/4.1.11-viewport.md`), each with its tests written first: the
+  semantic journal owned by the core (`core/journal.ts`, `Engine.journal`, replay ⇒ the same journal on `demo`,
+  `reference` and 200 generated games; the dev panel and `npm run replay` read it); `SceneFrame`
+  (`scene/frame.ts`, pure, hit polygons precomputed; `room.ts` makes then paints it; the DOM of 33 room × state pairs
+  held to its golden written on the code before the change); the presenter split (`dom/presenter.ts`, `intent()`,
+  `dom/frame-renderer.ts`, `scene/null-renderer.ts`, `core/busy.ts`; `app.ts` 799 → 594 lines, `room.ts` 745 → 717);
+  the Canvas painter's context-loss restore and the zone graph in `core/motion.ts`; "intentions DOM = intentions
+  Canvas" as a happy-dom test (DPR 1/2/3, phone and desktop, reduced motion); the Studio's stage editor
+  (`src/studio/rooms-stage.ts`) and the validator's two refusals (`tools/validate-stage.ts`, `validate.ts` 1183 →
+  1140 lines). ADR 0011 and 0012, D21, ENGINE/STUDIO/TOOLS/API en + fr.
+- Measured (local, 7 Oct 2026, this worktree): `npx vitest run` on the 11 new test files, 86 tests, plus
+  `boundaries`, `file-size`, `api-surface`, `api-doc`, the 23 existing DOM test files, `replay`, `critical-replay`,
+  `properties`, `core`, `core-runtime`, `demo-walkthrough`, `walk-topology`, `motion`, `reference-chapter`,
+  `solver-contract`, `reality-engine`, `save-v3`, `lint`, `stage`, `scheduler`, `classics`, `tools`, `studio`: green.
+  `tsc --noEmit`, `biome check` (468 files), `knip`: clean. The reference chapter's proof (`solve`, `prove`, 288
+  states, three runs): 1 383–1 684 ms with the journal, 1 378–1 565 ms without (base 4f0d91b): no difference above
+  the noise. `npm run validate` on demo, reference, signals: clean (`_template` fails on its uncut bucket image, as on
+  main).
+- Decided: the journal is a bounded window (10 000 events); `saveMade` is the autosave that follows a semantic event
+  (a tutorial's refused tap, which no session records, adds none); no slot on `saveMade`/`loadMade` (a slot is not
+  in a session, a replay could not reproduce it); the full frame is painted when a room is built and an entity that
+  changes paints its own sprite between builds (ADR 0011, property 6); the DOM and Canvas painters own no input, so
+  their `onIntent` is wired but never called by them (property 4).
+- Second reading (PR #42), five "should" applied: the `validate.ts` cap lowered to 1140; `transfer` journals the
+  loss and the acquisition with each `player`, a switch journals `playerSwitched`; `unset` journals `value: null`
+  apart from `set(k, false)`; a session outgrowing the 10 000-event window is exported `journalTruncated: true` and
+  `npm run replay` says it compared no journal; `RoomView.frame()` is memoised by a version (two taps, one frame). The
+  nit taken: the painter boundary rule also reads `import()` and `core/players|save`.
+- Not done: the WebGL/Pixi spike and every browser measure (`e2e:perf` on DOM and Canvas, CPU and memory budgets with
+  `measureUserAgentSpecificMemory`, DPR in a real browser, `e2e:visual`, `e2e:a11y` on both painters, `e2e:studio` for
+  the stage editor): this session may run no e2e; ADR 0012 says "not measured". Not run here: the full suite,
+  `test:coverage`, mutation, `npm run build`, `quality:baseline` (CI runs them). `objectiveCompleted` waits for
+  4.1.12. The CHANGELOG and LOG are this fragment and `changes/4111-viewport.md`.
+
+→ next: Claude · `release/4.1.11`
+
+## #125 · 2026-10-07 · Claude · release · 4.1.11 "Viewport"
+
+- The programme's fourth release, the second with a release candidate (`v4.1.11-rc.1` on the merge commit, then
+  `v4.1.11` on the same commit once the candidate's assets were installed and verified). Merged: #42 Viewport
+  (#124 above: the semantic journal in the core, the scene frame, the presenter split, the Canvas painter's lost
+  context, the Studio's stage editor, the validator's two refusals; the second reading's five items applied before
+  the merge). Held until the 4.1.10 tag for the tag order. `release/4.1.11`: the fragment assembled, the version, the
+  golden save `demo-4.1.11.json` (25), the READMEs, ROADMAP en/fr, UPGRADING §23, the pass sheet (six rows, two of
+  them open on measures this lot did not make), the baseline sheet.
+- Measured on #42's final run (37614116609): `node-24` 140 files, 1 388 tests (+1 skipped); `coverage` 142 files, 1 405 tests (+1 skipped); the lot's local figures in #124 and the
+  baseline sheet. The reading of this release (a second automated context) is in the pull request.
+- Not done, said as such: every browser measure of the sheet (`e2e:perf` on both painters, the budgets, a real
+  phone), the WebGL spike, `e2e:a11y` and `e2e:studio` for the new surfaces, the mutation of the new core files; the
+  human passes.
+
+→ next: Claude · `release/4.1.12` (Language, PR #46), then 4.1.13, 4.1.14, 4.1.15
+
+## #126 · 2026-10-07 · Claude · proposal · `feature/4112-language`: GameIR, GameFingerprint, objectives, generated forms and DSL page (4.1.12 "Language", one pull request)
+
+- Delivered, in the sheet's order (`docs/dev/plans/4.1.12-language.md`), one commit per branch, each with its tests
+  written with or before its code: (1) ADR 0013, D22, `docs/dev/DSL-STABILITY.md` with the candidate primitives;
+  (2) `core/canonical.ts` `canonicalJson`, the proof cache keyed by it, `scripts/e2e-canonical.mjs`
+  (`npm run e2e:canonical`); (3) `core/ir.ts` `compileIR`, `core/ir-schema.ts` (zod), `core/ir-fields.ts` (every field
+  classified, compiler-checked), `core/source-keys.ts` (provenance), `npm run ir`; (4) `core/fingerprint.ts`,
+  `sealBuild` writing the built `site.json`, `__TRUSTED_EXTENSIONS__`/`__ENGINE_VERSION__`, the pause menu's row;
+  (5) objectives (`GameDef.objectives`, `tools/validate/objectives.ts`, `core/objectives.ts`, `--goal=100%`, the quest
+  journal, MCP `set_value` on `@game`, five objectives in `demo` and in `reference`, translated), ADR 0014; (6) and
+  (7) nothing admitted, said in DSL-STABILITY; (8) `src/studio/forms-gen.ts`, the Language tab, `get_ir`;
+  (10) `tools/dsl-doc.ts`, `docs/{en,fr}/DSL.md`; (9) `tests/propagation.test.ts` (committed after 10: its doc
+  assertion reads the generated page); (11) API surface, UPGRADING §23, docs en + fr, TOOLS rows,
+  `tests/migrate-official.test.ts`.
+- Decided. The runtime does not consume the IR and `CompiledGame` does not derive from it: the IR is a projection
+  (ADR 0013). Measured on this branch: 641 reads of the game object in `src/engine` (core 171 in 19 files, dom 132 in
+  14, tools 300 in 20); the IR leaves presentation out by design, so either other path rewrites those reads and loses
+  the logic/presentation split the fingerprint needs. Text is logic; the fingerprint is computed on the game as
+  written. Objectives completed live with the session, not the save (ADR 0014): no save migration, no solver state.
+  `trustedExtensions` hashes the game's code files by convention (every `.ts/.js/.mjs` outside `rooms/`, the four
+  content files and the asset/test folders); `''` when the build said nothing, shown `????????`.
+- Primitives. Admitted: objectives and the quest journal (the sheet's family, 4.1.14 needs named steps). Refused or
+  already there, each with its game or fixture in DSL-STABILITY: wait for a signal (listeners, `waitEvent`), delay and
+  expiry (a script's `wait` then `if`), correlation and capability and consent (outside the DSL, D19), single
+  consumption (`SignalDef.once`), offline fallback (`SignalDef.fallback`), indeterminate (`connectors['open-badge']`),
+  conditional layers (`visible`), camera, timelines (`anim.at`, `path`, `parallel`), interruptible sequences
+  (`cutscene`), audio-cue sync and rendezvous (no proof), named dialogue states (topic `if` + `nth` + `seen`).
+- Measured (local, 7 Oct 2026, this worktree). `npm run solve -- --goal=100%`: demo solved, 35 states; reference
+  solved, 1 447 states, 0.8 s. `validate.ts` 1 140 → 1 113 lines (cap lowered); `core/engine.ts` 792 → 797. New test
+  files 12, 119 tests: canonical-json 56, ir 11, fingerprint 8, objectives 12, propagation 8, dsl-doc 6,
+  migrate-official 5, studio-objectives 3, dom/studio-forms-gen 4, dom/pause-fingerprint 2, dom/quest-journal 2,
+  dom/propagation-forms 2; all green, each run alone. Existing files run alone, green: journal (its expected kinds now
+  include `objectiveCompleted`), core, core-runtime, tools, studio, studio-structured, studio-assistant (tool counts
+  24 and 20), mcp, i18n, lint, replay, critical-replay, solver-contract, reference-chapter, demo-walkthrough,
+  properties, critical-session, save-v3, engine-honesty, boot, pages, formats, content-ids, stable-ids, dom/a11y,
+  dom/presenter, dom/intent-equivalence, dom/app-destroy, boundaries, file-size, api-surface, api-doc,
+  scripts-documented, docs-truth, quality-baseline, changes. `npm run validate`: demo, reference, signals clean.
+  `npm run i18n -- status`: demo and reference 100 % in fr. tsc, biome, knip clean; `api-doc --check` and
+  `dsl-doc --check` up to date.
+- Not done, said as such: `npm run e2e:canonical` was written, not run (this machine runs no e2e; CI's engine gate is
+  to wire it in its e2e rows); bundle weight and `quality:baseline` not measured (no build here; the fingerprint's code
+  is a lazy chunk, the objectives' tracker and menu are in the main chunk); `upgrade-check --from=4.1.11` not run;
+  the full suite, coverage and mutation not run (CI). No content migration step was added to `web-scumm migrate`:
+  4.1.12 changes no authoring format. The Studio's demo mode shows the IR without provenance and cannot write
+  objectives (the dev server can). `IrVariantSlot` is a reserved type only.
+- After the second reading of #46: Biome formatting fixed (`ir-schema.ts`, `migrate-official.test.ts`; `biome
+  check .` clean); objectives are now checked after every state event of the journal as well as at each save (the
+  `set`, `unset` and `lose` handlers change the state before journalling it), with a test that pins
+  `objectiveCompleted` inside a cutscene; 100 % is said to mean "all at once" (CLI, `completionGoal`, ADR 0014) and
+  the validator warns about a `done` the content can take back; a flag only an undeclared custom command could set
+  says "declare the command's effects"; the field-classification test walks every section of the compiled bundled
+  games and fifty generated ones; a computed or spread id has no provenance (tested).
+
+→ next: Claude · `release/4.1.12`
+
+
+## #127 · 2026-10-07 · Claude · proposal · `chore/release-speed`: the mutation sets beside release-check, the tag at the merge
+
+- Measured on v4.1.9 (7 October 2026): the tag's `ci` run 15 min, then `release` 70 min, of which the two mutation
+  sets about 50 in sequence inside `release-check` (the cache of lot 0 only helps when a `full-ci` pull request or the
+  nightly ran the same inputs, which a release changes). The programme's remaining tags (nine, with the candidates)
+  would have paid that nine times.
+- Done: `mutation` matrix job in `release.yml` (`core`, `reality`), `release` needs it, `npm run release-check:ci`
+  (TOOLS en + fr), `ship tag --now`. The guarantee "the tag is the commit ci tested" is unchanged: release.yml still
+  checks the tag's own run, its head SHA, the absence of a published release. Not changed: `release-check` for a person
+  (both sets, as before); the nightly.
+- Not measured here: the new chain's duration (the first tag after this merge measures it; written in the next
+  release's baseline sheet).
+→ next: Claude · `release/4.1.10` candidate, then the final tag with this chain
+
+## #128 · 2026-10-07 · Claude · release · 4.1.12 "Language"
+
+- The programme's fifth release, no release candidate (the programme names 4.1.10, 4.1.11, 4.1.14 and 4.1.15 for
+  that). Merged: #46 Language (#126 above: the IR, the fingerprint, `canonicalJson`, objectives and the quest
+  journal, the generated forms and DSL page, D22; the second reading's items applied before the merge; two
+  CI-only fixes after it, the IR test's POSIX source keys on Windows and Firefox's reinstall cache miss bounded).
+  `release/4.1.12` on the lot's branch: the fragment assembled, the version, the golden save `demo-4.1.12.json`
+  (26), the READMEs, ROADMAP en/fr, UPGRADING §24 (the lot wrote it as §23; 4.1.11 took that number), the pass
+  sheet, the baseline sheet; the coverage floors raised in the same commit (69 / 68 / 65 / 64, the measure of #46's
+  coverage job on the release commit) so the tag's strict ratchet holds, the lesson of 4.1.10 and 4.1.11. The CHANGELOG section of 4.1.12
+  also carries the release-chain entry (#127) whose code shipped on main before 4.1.11's tag; its fragment was
+  assembled here.
+- Measured on #46's final run (37615375247): `node-24` 152 files, 1 515 tests (+1 skipped); `coverage` 154 files, 1 532 tests (+1 skipped); the lot's local figures in #126 and
+  the baseline sheet.
+- Not done, said as such: the Studio's demo mode writing objectives, `e2e:canonical` on this machine, the mutation of
+  the new core files; the human passes.
+
+→ next: Claude · `release/4.1.13` (Proof at Scale), then 4.1.14 (PR #48), 4.1.15
+
+## #129 · 2026-10-07 · Claude · proposal · `feature/4113-proof-at-scale`: the proof matrix, the explosion profile, a compact store, checkpoints, dominance and symmetries measured, partitioned workers ("Solver Research")
+
+- One branch for the sheet's branches 1–5 and 7 (`docs/dev/plans/4.1.13-proof-at-scale.md`), at the orchestrator's
+  request. The matrix was committed first, before any code (`docs/dev/PROOF-MATRIX.md`, `matrixGame` in
+  `tests/gen/random-game.ts`, ADR 0015), its expected verdicts measured on the 4.1.8 sources. The tests were written
+  with the code, in the same commit, not strictly before it: said as such.
+- Delivered: `solve --profile` with the explosion profile (`solve/explosion.ts`, `docs/dev/PROOF-PROFILE.md`); the
+  compact store (`solve/search/compact.ts`: interned exact keys, parents and steps by index, FNV-1a 64 summed hash,
+  edges as columns; `--representation=objects` keeps 4.1.8's); checkpoint and resume (`--checkpoint`, `--resume`,
+  `--mem`; `solve/search/checkpoint.ts`, `tools/checkpoint.ts`); symmetric items (`--symmetry`, off by default) and
+  dominance measured against the explicit search (`solve/search/dominance.ts`); the workers' shared visited table,
+  partition by room and work stealing (`solve/search/partition.ts`); `npm run prove:matrix` and its nightly job;
+  softlock causes carry their session entries (replayable). `search.ts` 738 lines (classification moved to
+  `search/classify.ts`, the engine driver to `solve/drive.ts`).
+- Measured (Mac M5, Node 22.14, 590 s per instance, one at a time): verdicts and states identical to 4.1.8 where both
+  finish; states/s ×1.03 (geometric mean); peak heap 11 069 → 1 230 MB over the twelve (÷9), RSS ÷4.5, ÷16–20 on
+  o21/o23/o25. 8/12 instances within budget, as with 4.1.8 (o22–o25 truncated by time). With 4 workers o23 reaches
+  237 618 states (×2.7), still truncated. Oracle: 203 searches identical to the 4.1.8 fixture. Corpus on this code:
+  500 seeds × 3 kinds, 909 compared, 0 divergence. Symmetry on 30 twin games: 0 divergence, ÷1.3 states. Dominance in
+  proofs: 1 verdict changed in 43, so off in proofs. Checkpoint of o23: about 180 bytes a state.
+- Threshold: the **minimum** is met (by memory, not by speed); the **objective** is not (8/12): the release is
+  "Solver Research"; the gap report is PROOF-MATRIX §8 (time spent on no-op tries over whole-map regions, the
+  memo refusing them; who carries which key stays in the state).
+- Commands behind the figures (this machine, 7 October 2026). The oracle fixture: `ORACLE_WRITE=1 npx vitest run
+  tests/solver-oracle.test.ts --maxWorkers=1` on the 4.1.8 sources (4f0d91b) plus only the `keepReachable` and
+  `onProgress` hooks, before any change to the search (the test file and `tests/gen/oracle.ts` written for it). The
+  matrix: `npx tsx tools/prove-matrix.ts --only=<id> --time=590 --json=…`, one instance per process, the "before" run
+  from a copy of 4f0d91b with only the generator, the tool and those hooks added (`.cache/before`, not committed).
+  The corpus: `npx tsx tools/audit-corpus.ts --shard=<0..3>/4 --total=500 --json=corpus-<s>.json`, then
+  `npx tsx tools/audit-corpus.ts --merge corpus-0.json … corpus-3.json --total=500` (1 500 games, 909 compared, 0
+  divergence). The mutation: `npx tsx tools/mutate.ts --file=src/engine/tools/solve/search/compact.ts` with a
+  temporary set `solver` (that file, judged by `tests/compact.test.ts`) in `tools/mutation-sets.ts`, not committed.
+- PROOF-MATRIX §7 (the results table) and §8 (the gap report) were appended after the code; §1–6 (the family, the
+  seeds, the budgets, the machines, the command, the expected verdicts) are unchanged since the first commit.
+- Mutation: `search/compact.ts` measured with a temporary set judged by `tests/compact.test.ts`: 78/86 killed, 8
+  survivors (a sort comparator on unique keys, the `bytes()` estimate, a snapshot branch). Not added to the core set.
+- Run: tsc, biome, knip; `tests/compact`, `checkpoint`, `explosion`, `dominance`, `partition`, `solver-oracle`,
+  `workers`, `frontier`, `status`, `proof-cache`, `solver-contract`, `por`, `replay`, `api-surface`,
+  `reference-chapter`, `reality-proof`, `bench`, `boundaries`, `file-size`, `scripts-documented`, `docs-truth`,
+  `docs-links`, one file group at a time with `--maxWorkers=1`. Not run here: the full suite, coverage, the e2e,
+  the build, `quality:baseline`.
+- Not done: the symbolic spike (branch 6: BDD, SAT/SMT, CEGAR, not tried); dominance in proofs and sub-puzzle
+  proofs (reported only); a memo for macro moves and hand-overs (the gap report's lever); the runner's numbers (the
+  nightly, median of three nights after merge); the new modules in the mutation core set.
+
+- After the second reading (Opus, PR #51). Blocking, fixed: a state budget that fell inside a node's expansion left
+  its other children unstored while the node counted as expanded, so a checkpoint lacked them and a resume with a
+  bigger budget could end `solved` without them. With a checkpoint, the node's other children are now stored and
+  queued before the search stops (the snapshot holds the frontier the uncut search had); without one the search ends
+  `truncated` as before (the 4.1.8 oracle unchanged). New test: 30 generated games cut at 2, 3, 5 and 8 states and
+  resumed give the uncut proof, verdict and witness (43 of them differed before the fix). Should, done: the
+  checkpoint's fingerprint includes the custom commands' source; symmetric items keep apart an item a layout or a
+  custom command names (ADR 0015 says the limits); the oracle test fails after `ORACLE_WRITE=1` and compares the case
+  names both ways; the CHANGELOG fragment no longer says "a twentieth" for the whole matrix; the commands above.
+  Nit: the headers say 4.1.13 "Solver Research". Then PR #51's `coverage` job timed out (300 s) on the c12 resume
+  under instrumentation: that case moved to `tests/checkpoint-matrix.test.ts`, in `test:heavy` (nightly) and out of
+  `test:node` and `test:coverage`; `tests/checkpoint.test.ts` keeps the sample game, the budgets, the 30-game cut
+  property and the killed process. The `windows` job then failed the killed-process case: the checkpoint is now
+  flushed (`fsync`) before its rename, and the case is skipped on Windows (the test reads the snapshot while the child
+  renames over it, which Windows refuses; SIGKILL is TerminateProcess there); the other checkpoint cases run there.
+
+→ next: Claude · `release/4.1.13`
+
+
+## #130 · 2026-10-07 · Claude · proposal · `fix/4110-coverage-floors`: the floors the candidate's strict ratchet refused
+
+- The `v4.1.10-rc.1` tag's `coverage` job failed on `coverage-ratchet --strict`: five floors three points or more below
+  the measure (lines 64 vs 67.91, statements 63 vs 67.21, functions 59 vs 63.31, branches 61 vs 64.09, `protocol.ts`
+  branches 95 vs 98.75). On #45 and #47 the same ratchet was a warning (lot 0), and main's run of the merge commit was
+  cancelled by the next merge before its coverage job ran. Raised to 66 / 65 / 61 / 62 and 96 (the values Viewport's
+  branch already carries). The unpublished candidate tag is deleted and made again on the merge of this fix.
+- Lesson for the cadence: a tag's strict ratchet can refuse what a pull request only warned about; the release branch
+  runs `coverage-ratchet --strict` locally before its pull request from now on (the method of a lot, point 6).
+→ next: Claude · `v4.1.10-rc.1` again on this merge, then `v4.1.10`
+
+
+## #131 · 2026-10-07 · Claude · proposal · `fix/4111-coverage-floors`: the floors 4.1.11's tag needs
+
+- Read on PR #42's coverage job (run 37632244078): nine floors at least three points below the measure after the
+  Viewport lot. Raised to within three points; `v4.1.11` is tagged on this merge, not on the release commit (99413a0),
+  because a tag's `coverage` job runs the ratchet strictly. From 4.1.12 the release commit itself carries the floors
+  read on the lot's pull request (the method of a lot, point 6).
+→ next: Claude · `v4.1.11-rc.1` on this merge
+
+
+## #132 · 2026-10-07 · Claude · proposal · `fix/e2e-reality-gate`: the gate acted on while the engine was busy
+
+- Seen on the `v4.1.11-rc.1` tag (WebKit, 16:30 UTC): the replays' signals applied and the shed door open at 16:30:39,
+  `use gate` sent at once, the ending not reached at 16:32:39 after the 120 s of PR #52: not a slow cutscene, a
+  dropped input. The harness now waits for `engine.busy` to clear and retries. Not reproduced locally (no e2e here).
+→ next: Claude · the tags of 4.1.10 and 4.1.11 on commits carrying this
+
+## #133 · 2026-10-07 · Claude · release · 4.1.13 "Solver Research"
+
+- The programme's sixth release, no release candidate; named "Solver Research" by the sheet's thresholds (#129
+  above: the minimum met through memory, the release objective not, 8 of 12 instances). Merged: #51 (the second
+  reading's blocking finding, a states-budget cut that could later report `solved`, fixed with a 30-game cut/resume
+  property; the nightly's jobs reconciled after a merge that had dropped two of main's). The release commit on the
+  lot's branch: the fragments assembled, the version, the golden save `demo-4.1.13.json` (27), the READMEs, ROADMAP
+  en/fr, UPGRADING §25, the pass sheet, the baseline sheet; no floor to raise (#51's coverage job: one point of slack).
+- Measured on #51's final run (37654193805): `node-24` 149 files, 1 503 tests (+4 skipped); `coverage` 151 files, 1 520 tests (+4 skipped); the solver's figures in #129 and the
+  baseline sheet.
+- Not done, said as such: the symbolic spike, dominance in proofs, the macro-move memo, the runner's numbers, the new
+  modules in the mutation core set; the human passes.
+
+→ next: Claude · `release/4.1.14` (Time Attack, PR #48, with a candidate), then 4.1.15

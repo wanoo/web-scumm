@@ -77,11 +77,12 @@
   "why": "forgetting an idle key is bookkeeping (the map would only grow): with the entry kept, the next section still waits on a settled promise"
  },
  {
-  "file": "bridge/src/bridge.ts",
+  "file": "bridge/src/streams.ts",
   "operator": "condition true",
-  "from": "this.streams.delete(s)",
+  "from": "this.open.delete(s)",
   "to": "true",
-  "why": "ending a stream already ended calls `res.end()` a second time, which Node ignores"
+  "why": "ending a stream already ended calls `res.end()` a second time, which Node ignores",
+  "context": "if (this.open.delete(s)) s.close(why);"
  },
  {
   "file": "bridge/src/store.ts",
@@ -126,9 +127,9 @@
  {
   "file": "bridge/src/bridge.ts",
   "operator": "condition false",
-  "from": "p",
+  "from": "jws !== undefined",
   "to": "false",
-  "context": "if (p) {",
+  "context": "if (jws !== undefined) {",
   "why": "a miss on the re-sign cache only signs the payload again: Ed25519 is deterministic, so the JWS is byte-identical, and the count is the same whether the entry was found or set again under the same key"
  },
  {
@@ -138,6 +139,14 @@
   "to": "false",
   "context": "if (oldest === undefined) break;",
   "why": "the eviction loop runs only while the map holds more than `limits.resignedCache` entries, so its first key always exists; the guard is reached by no limit the configuration accepts"
+ },
+ {
+  "file": "bridge/src/bridge.ts",
+  "operator": "condition true",
+  "from": "this.timer",
+  "to": "true",
+  "context": "if (this.timer) clearInterval(this.timer);",
+  "why": "`close` of a Bridge started with `pollMs: 0` has no timer: `clearInterval(undefined)` does nothing (HTML and Node timers alike), so the guard changes nothing observable"
  },
  {
   "file": "src/engine/reality/http-port.ts",

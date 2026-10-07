@@ -4,6 +4,7 @@
 import { parentPort, workerData } from 'node:worker_threads';
 import { pathToFileURL } from 'node:url';
 import { isMobilityError, isOwnershipError, makeExpander, type NodeInput } from './solve';
+import { SharedVisited } from './solve/search/partition';
 
 const init = workerData as {
   game: unknown;
@@ -11,7 +12,10 @@ const init = workerData as {
   opts: Record<string, unknown>;
   module?: string;
   crash?: { after: number; how: 'exit' | 'throw' };
+  visited?: SharedArrayBuffer;
 };
+// The search's visited table (4.1.13, search/partition.ts): a state it stored goes back without its engine state.
+const visited = init.visited ? new SharedVisited(init.visited) : null;
 let expanded = 0;
 let X: ReturnType<typeof makeExpander>;
 try {
@@ -42,7 +46,15 @@ parentPort!.on(
       return;
     }
     try {
-      parentPort!.postMessage({ type: 'expanded', id: m.id, exp: await X.expandNode(m.input) });
+      const exp = await X.expandNode(m.input);
+      if (visited)
+        for (const r of exp.records)
+          if (!r.noop && r.dims && r.state && visited.hasDims(r.dims)) {
+            r.state = undefined;
+            r.tailSteps = undefined;
+            r.known = true;
+          }
+      parentPort!.postMessage({ type: 'expanded', id: m.id, exp });
     } catch (e) {
       parentPort!.postMessage({
         type: 'error',
