@@ -49,7 +49,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
-        timeout-minutes: 8
+        timeout-minutes: 20
       - id: inputs
         run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -100,15 +100,15 @@ jobs:
         with:
           python-version: '3.12'
       - run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
-        timeout-minutes: 8
+        timeout-minutes: 20
       # `npm run doctor -- --release` (first step of release-check) requires ffmpeg and Chromium (4.1.8); release-check
       # opens no browser, so the other two are not installed here.
       - run: for i in 1 2 3; do (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
-        timeout-minutes: 8
+        timeout-minutes: 20
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
-        timeout-minutes: 8
+        timeout-minutes: 20
       - run: for i in 1 2 3; do (npx playwright install --with-deps chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
-        timeout-minutes: 8
+        timeout-minutes: 20
       # The mutation sets ran in the `mutation` jobs this one waits for (4.1.10): release-check without them.
       - run: npm run release-check:ci
       - run: node scripts/release-notes.mjs "$TAG" > notes.md
