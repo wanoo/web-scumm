@@ -2824,8 +2824,8 @@ Platform"; human gates reported, not blocking (D12).
   #41 the CI in three tiers, #43 Gateways (one blocking test race and eight security findings from its second reading
   applied before the merge). `release/4.1.9`: the fragments assembled (#118–#120 above, the first assembly), the
   version, the golden save `demo-4.1.9.json` (23), the READMEs, ROADMAP en/fr, UPGRADING §21, the pass sheet (twelve
-  rows, four for the connectors), the baseline sheet.
-- Measured on #43's final run: `node-24` 129 files, 1 292 tests; coverage 66.66 / 65.98 / 61.74 / 63.39 %;
+  rows, five for the connectors and the Bridge), the baseline sheet.
+- Measured on #43's final run: `node-24` 129 files, 1 292 tests; coverage lines 66.66, statements 65.98, functions 61.74, branches 63.39 %;
   `connectors` 106 tests; `check` 1 min under the fast tier (4 min before), `reference (chromium)` 11 min; the rc of
   4.1.8 went from tag to pre-release in 19 minutes once its main run (an hour, the last with the mutation) was green.
 - The rc of 4.1.8, verified locally: 8 files, sums ok, 8 attestations verified, then `ship verify` failed on the
