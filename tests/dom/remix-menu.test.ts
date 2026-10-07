@@ -91,6 +91,14 @@ describe('Which world?', () => {
     expect((await worldFromQuery(reference, new URLSearchParams({ seed: encodeSeedCode(9) })))!.seed).toBe(
       encodeSeedCode(9),
     );
+    // A frozen world: its own, kept; a forged one (out of domain, self-hashed) refused.
+    const w = worldOf(reference, encodeSeedCode(4));
+    expect((await worldFromQuery(reference, new URLSearchParams({ world: frozenParam(w) })))!.hash).toBe(w.hash);
+    const { hash: _h, ...body } = { ...w, assignments: { ...w.assignments, 'seller-start': 'cellar' } };
+    const forged = { ...body, hash: sha256HexSync(canonicalJson(body)) };
+    await expect(worldFromQuery(reference, new URLSearchParams({ world: frozenParam(forged) }))).rejects.toThrow(
+      /does not exist/,
+    );
   });
 });
 
