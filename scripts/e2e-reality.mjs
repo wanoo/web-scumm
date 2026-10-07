@@ -251,9 +251,11 @@ if (started) {
   await page.evaluate(async () => {
     await window.__game.engine.act({ verb: 'use', a: 'gate' });
   });
+  // The ending is a cutscene of timed lines: 30 s was short on a runner carrying five runs (twice on 7 October 2026,
+  // Chromium and WebKit, every other check green); 120 s waits for the cutscene, not for a faster machine.
   await page
     .waitForFunction(() => window.__game.engine.state.done || window.__game.engine.state.flags.ended, null, {
-      timeout: 30000,
+      timeout: 120000,
     })
     .catch(() => {});
   const ended = await page.evaluate(() => !!window.__game.engine.state.flags.ended);
