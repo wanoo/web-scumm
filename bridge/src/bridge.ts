@@ -174,6 +174,8 @@ export class Bridge {
       { now: { date: new Date(this.now()).toISOString() }, game: p.gameId, audience: this.config.audience },
       {},
     );
+    // A token bound to a tenant checks it (4.1.10): the tenant asked, as a fact (policy.ts says the same for proposals).
+    a.addCodeWithParameters('request_tenant({tenant});', { tenant: this.tenantId }, {});
     try {
       a.buildAuthenticated(t).authorizeWithLimits(LIMITS);
     } catch (e) {
