@@ -2,6 +2,7 @@
 // HTTP on a free port, tokens minted per connector, pairing codes asked as the game would, the journal counted. Every
 // line a connector logs is kept, so a test can grep the fixtures in it ("a log without content").
 import { createHash } from 'node:crypto';
+import ssh2 from 'ssh2';
 import type { AddressInfo } from 'node:net';
 import { Bridge, type BridgeConfig } from '../../../bridge/src/bridge';
 import { biscuitLib } from '../../../bridge/src/biscuit';
@@ -113,4 +114,17 @@ export async function contextFor(
     ...(o.limits ? { limits: o.limits } : {}),
   });
   return { ctx, lines, token };
+}
+
+/**
+ * An ed25519 key pair ssh2 can read back (4.1.11): `generateKeyPairSync` now and then writes a private key its own
+ * `parseKey` calls "Malformed OpenSSH private key" (seen on CI, node-24 and the connectors job, one run in ten),
+ * so the pair is drawn again until it parses. Never more than a few draws.
+ */
+export function sshKeyPair(): { private: string; public: string } {
+  for (let i = 0; i < 20; i++) {
+    const k = ssh2.utils.generateKeyPairSync('ed25519');
+    if (!(ssh2.utils.parseKey(k.private) instanceof Error)) return k;
+  }
+  throw new Error('ssh2 produced no readable ed25519 key in 20 draws');
 }

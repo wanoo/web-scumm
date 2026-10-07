@@ -28,6 +28,9 @@ applies only verified, declared, finite signals.
 | Hostile text from outside | The engine receives an identifier from a finite, declared alphabet; nothing from the payload reaches a condition, a line or HTML | content types, validator |
 | The Bridge's host read (its configuration, its journal) | `config.json` holds no Biscuit root private half (`root.key`, for `grant` only, can live elsewhere); the journal holds hashes of capabilities, never tokens. The event-signing key does live on the Bridge: a compromised host can sign, so no key pin in the game would add to TLS's naming of the host; a compromise is answered by rotation and by granting every connector a new token | `bridge/src/cli.ts`, `docs/en/REALITY-OPS.md` |
 
+**Several instances and several tenants (4.1.10)** have their own analysis: `docs/dev/threat-models/constellation.md`
+(cross-tenant replay, `SignalV2`, keys per tenant, the shared store, the fan-out).
+
 **Out of scope for 4.1.1.** Verifying a credential's content (Open Badges), real email and SSH connectors, a hosted
 multi-tenant Bridge. Biscuit says who may submit a verdict, never whether the verdict is true: a connector stays
 responsible for checking what it claims.

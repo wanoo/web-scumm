@@ -611,6 +611,61 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.1.12 "Language" (shipped 7 October 2026): the game as data, its fingerprint, its objectives
+
+The programme's fifth release. `compileIR` turns a compiled game into its logic as plain data (rooms, entities, rules,
+scripts, objectives, Reality policies, the trusted extensions by name, a variant slot reserved for 4.1.15),
+deterministic, with the `file:line` that writes each id; every field of a game, a room and an entity is classified
+logic, presentation, both or tooling in one table the compiler checks (ADR 0013); the runtime keeps reading the
+compiled game, the IR is a projection. The fingerprint is four SHA-256 computed with WebCrypto: `logic`,
+`trustedExtensions` (the game's code, hashed by the build into `site.json`), `presentation`, `engine`; a rule changed
+moves `logic` only, a decor `presentation` only. `canonicalJson` (NFC, sorted keys, no `-0`, big integers as decimal
+strings, anything lossy refused) is one function for the fingerprint, the proof cache and, from 4.1.14, the speedrun
+envelope, held to fifty edge values in Node; `npm run e2e:canonical` compares them in Chromium, WebKit and Firefox, written in this lot and not yet in CI. Objectives
+(ADR 0014) are the one primitive admitted: `objectives` in a game, the pause menu's quest journal,
+`objectiveCompleted` in the semantic journal once and never again, `npm run solve -- --goal=100%`, the validator's
+refusals; every other candidate of the programme is refused with its proof in `docs/dev/DSL-STABILITY.md`. The Studio
+generates its forms from the schemas and writes objectives with a previewed diff and Undo; MCP gains `get_ir`; the
+DSL's reference (`docs/en/DSL.md`, fr) is generated from the schemas and held by a test. D22: the DSL and the IR are
+stabilised here, frozen after Remix. Left for later, said as such: `e2e:canonical` in CI's rows, the Studio's demo
+mode writing objectives, `IrVariantSlot` filled by 4.1.15.
+
+## v4.1.11 "Viewport" (shipped 7 October 2026): the rendering behind a scene frame, the journal in the core
+
+The programme's fourth release, the second with a release candidate (`v4.1.11-rc.1`, then `v4.1.11` on the same
+commit). The semantic journal belongs to the core (`Engine.journal`, ADR 0011): a session started, a room entered, an
+item acquired or lost, a flag changed, a character switched, an ending reached, a load, the autosave that follows,
+numbered and emitted by the command handlers and the engine's lifecycle, never by the DOM; replaying a session yields
+the same journal on the sample game, the reference chapter and 200 generated games, `npm run replay` compares it, a
+session file carries it (a bounded window of 10 000 events, said as such when exceeded). The room view makes an
+immutable `SceneFrame` with a pure function (camera, layers, characters, targets with their hit polygons, effects, a
+hash) then paints it; every room of the two bundled games in three states paints the same DOM as before. `App`
+composes a `Presenter` and a `Renderer`; a verb, a walk, a choice, a skip, a screen opened is an `Intent` (D21: the
+rendering is not a source of state), and the same clicks on the DOM and on the Canvas painter record the same session
+and journal at device pixel ratios 1, 2 and 3. The Canvas painter survives a lost context; the route between walk
+zones is the core's. The Studio edits a room's layers, masks, zones and portals on the backdrop; the validator refuses
+a mask that closes no surface and a zone no link joins. ADR 0012: Canvas 2D stays the complete backend, WebGL/Pixi not
+measured in this lot. Left for later, said as such: every browser measure of this lot (`e2e:perf` on both painters,
+CPU and memory budgets, a real phone), the WebGL spike, `objectiveCompleted` (4.1.12).
+
+## v4.1.10 "Constellation" (shipped 7 October 2026): a durable Bridge, several instances, several tenants
+
+The programme's third release, the first since 4.1.8 with a release candidate (`v4.1.10-rc.1`, then `v4.1.10` on the same
+commit). The Bridge reads and writes through `RealityStore` (ADR 0009), every method taking the tenant first, one
+transaction deciding deduplication, sequence, quotas and signature: SQLite through `node:sqlite` for one machine,
+Postgres through `pg` for several instances (experimental until a real deployment), the 4.1.9 journal still served and
+migrated by `npm run bridge -- migrate`. Instances keep no state of their own: a stream on one receives what another
+accepted, woken by `NOTIFY` or a short poll; three processes with one killed during 1 000 proposals lose nothing
+(tested). One server serves several tenants, routed by `Host`, each with its keys, root, quotas, rotation and
+revocations; a threat model written first (`docs/dev/threat-models/constellation.md`) asked for a signal that names its
+context, so `SignalV2` carries tenant, environment, origin, link and key (ADR 0010; the player accepts V1 and V2 until
+4.1.12, a multi-tenant Bridge signs V2 only). Operations: `/livez`, `/readyz`, `/healthz`, OpenTelemetry metrics when
+the API is installed, `tenant export|delete`, `backup`, `restore`, quarantine of rows that no longer verify, 503 with
+`Retry-After` from a busy store, `--trust-proxy` by allowlist (D20). Measured: 1 008 proposals a second on three
+SQLite instances locally (`docs/dev/BENCH-BRIDGE.md`). Left for later, said as such: the Postgres load figures (the
+nightly's), retention on a SQL store, row-level security per tenant, a rate limit per connector shared between
+instances; the human pass of a real multi-instance deployment behind HTTPS.
+
 ## v4.1.9 "Gateways" (shipped 7 October 2026): the world outside, through four connectors
 
 The programme's second release, the same day as the first. A package `web-scumm-connectors` (the fourth tarball) with
@@ -644,9 +699,9 @@ release (D12); the next version opens only when the current one's blockers are c
 |---|---|---|
 | 4.1.8 | **Foundation Reset** (shipped 7 October 2026) | TypeScript 7, Vite 8, PWA 2, the Reality cursor fixed (the port's local cursor moved before the acknowledgement: reproduced in polling), release checks that predict the release, a release candidate first |
 | 4.1.9 | **Gateways** (shipped 7 October 2026) | email, SSH, Telnet and Open Badges connectors on one SDK, out of the player, experimental until a real pass |
-| 4.1.10 | **Constellation** | a durable Bridge, replicated and isolated by tenant; the signal may become `SignalV2` if the threat analysis asks |
-| 4.1.11 | **Viewport** | a renderer separate from the game logic, behind an immutable `SceneFrame`; a semantic journal owned by the core |
-| 4.1.12 | **Language** | the DSL and an intermediate representation (`GameIR`, a game fingerprint) shaped by Gateways and Viewport; the core stabilised |
+| 4.1.10 | **Constellation** (shipped 7 October 2026) | a durable Bridge, replicated and isolated by tenant; the signal may become `SignalV2` if the threat analysis asks |
+| 4.1.11 | **Viewport** (shipped 7 October 2026) | a renderer separate from the game logic, behind an immutable `SceneFrame`; a semantic journal owned by the core |
+| 4.1.12 | **Language** (shipped 7 October 2026) | the DSL and an intermediate representation (`GameIR`, a game fingerprint) shaped by Gateways and Viewport; the core stabilised |
 | 4.1.13 | **Proof at Scale** | a documented class of open three-character games proved within published budgets, or named "Solver Research" |
 | 4.1.14 | **Time Attack** | speedrun categories, RTA and logical time, semantic splits, a verifiable proof package, ghosts, LiveSplit and OBS as local tools |
 | 4.1.15 | **Remix** | controlled variance of a game, deterministic by seed, with provable solvability; the DSL frozen after it |

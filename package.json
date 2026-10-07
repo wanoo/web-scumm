@@ -1,7 +1,7 @@
 {
   "name": "web-scumm",
   "private": true,
-  "version": "4.1.9",
+  "version": "4.1.12",
   "type": "module",
   "scripts": {
     "dev": "tsx tools/select-game.ts && vite",
@@ -33,6 +33,7 @@
     "e2e:speedrun": "node scripts/e2e-speedrun.mjs",
     "e2e:canonical": "node scripts/e2e-canonical.mjs",
     "release-check": "npm run doctor -- --release && npm run quality && npm run build && npm run test:coverage && npx tsx tools/coverage-ratchet.ts --strict && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && npm run test:mutation:core -- --set=all && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high",
+    "release-check:ci": "npm run doctor -- --release && npm run quality && npm run build && npm run test:coverage && npx tsx tools/coverage-ratchet.ts --strict && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high",
     "ship": "node tools/release/ship.mjs",
     "e2e": "node scripts/e2e.mjs",
     "validate": "tsx tools/validate.ts",
@@ -84,6 +85,7 @@
     "verify:commercial": "npm run verify:release && npm run validate -- --commercial --errors && npm run verify:dist",
     "quality:baseline": "tsx tools/quality-baseline.ts",
     "bridge": "tsx tools/bridge.ts",
+    "bridge:load": "tsx tools/bridge-load.ts",
     "solve:reality": "tsx tools/solve-reality.ts",
     "reality:spike": "node scripts/reality-spike.mjs",
     "reality:xcheck": "tsx tools/reality-xcheck.ts",
@@ -122,6 +124,7 @@
     "happy-dom": "^20.14.5",
     "knip": "^6.39.0",
     "nan": "file:connectors/vendor/refused-native",
+    "pg": "^8.23.1",
     "playwright": "^1.63.0",
     "ssh2": "^1.17.0",
     "tsx": "^4.19.0",

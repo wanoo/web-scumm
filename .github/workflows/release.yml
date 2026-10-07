@@ -4,7 +4,8 @@ name: release
 # commit ci tested (`head_sha`), and refuses a tag that no longer points there (moved since). It then re-runs the
 # release checks (doctor --release, build, coverage and its strict ratchet, proof, strict playtests, the mutation sets, the
 # packages' publish dry run, dependency audits, the dist inventory) and creates the
-# release with the matching CHANGELOG section and the manual passes of docs/dev/passes/. Attached: the built game
+# release with the matching CHANGELOG section and the manual passes of docs/dev/passes/; the two mutation sets run as jobs
+# beside it (4.1.10). Attached: the built game
 # (dist, its licences inside), its assets manifest, the engine's npm packages (web-scumm, create-web-scumm, 3.9;
 # web-scumm-bridge, 4.1.1), a complete speedrun of the reference chapter verified by `speedrun:verify` (4.1.14),
 # SHA-256 sums, an SBOM of the shipped dependencies (CycloneDX) and
@@ -20,7 +21,53 @@ permissions:
   id-token: write
   attestations: write
 jobs:
+  # The two mutation sets beside release-check instead of inside it (4.1.10): each set is a job of its own, about half
+  # an hour, and the release waits for both; the hour they took in sequence, after release-check's twenty minutes, was
+  # the longest part of a tag's chain. A report of these very inputs left by a previous tag on the same commit (the
+  # final after its candidate) is reused through the cache (tools/mutate.ts); ci's and the nightly's `--set=all` reports
+  # are keyed by the hash of both sets, so they are not. Neither job installs Python, ffmpeg or a browser: the nightly
+  # runs both sets with this bare setup.
+  mutation:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && startsWith(github.event.workflow_run.head_branch, 'v') && contains(github.event.workflow_run.head_branch, '.')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        set: [core, reality]
+    env:
+      TAG: ${{ github.event.workflow_run.head_branch }}
+    steps:
+      - name: A SemVer tag
+        run: |
+          echo "$TAG" | grep -Eq '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$' || { echo "::notice::$TAG is not a release tag"; exit 1; }
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - id: inputs
+        run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/mutation
+          key: mutation-${{ matrix.set }}-${{ steps.inputs.outputs.hash }}
+      - run: npm run test:mutation:core -- --set=${{ matrix.set }} | tee mutation-${{ matrix.set }}.txt
+        shell: bash
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: mutation-${{ matrix.set }}
+          path: |
+            mutation-${{ matrix.set }}.txt
+            .cache/mutation/report-${{ matrix.set }}.json
+          if-no-files-found: ignore
   release:
+    needs: mutation
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && startsWith(github.event.workflow_run.head_branch, 'v') && contains(github.event.workflow_run.head_branch, '.')
     runs-on: ubuntu-24.04
     timeout-minutes: 120
@@ -62,15 +109,8 @@ jobs:
         timeout-minutes: 8
       - run: for i in 1 2 3; do (npx playwright install --with-deps chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
-      # The mutation report of these very inputs (4.1.8), left by a `full-ci` pull request or the nightly: release-check
-      # reuses it, or runs both sets (about an hour, 4.1.9 lot 0).
-      - id: inputs
-        run: echo "hash=$(npx tsx tools/mutate.ts --set=all --hash)" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .cache/mutation
-          key: mutation-all-${{ steps.inputs.outputs.hash }}
-      - run: npm run release-check
+      # The mutation sets ran in the `mutation` jobs this one waits for (4.1.10): release-check without them.
+      - run: npm run release-check:ci
       - run: node scripts/release-notes.mjs "$TAG" > notes.md
       - name: Build archive, checksum and SBOM
         run: |

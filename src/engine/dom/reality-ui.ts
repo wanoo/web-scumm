@@ -38,6 +38,8 @@ interface LinkRecord {
   playerId: string;
   capability: string;
   pairedAt: number;
+  /** The link's id (4.1.10): a V2 signal of another link is refused. Absent in a link made before 4.1.10. */
+  sessionId?: string;
 }
 
 export class RealityLink {
@@ -120,6 +122,7 @@ export class RealityLink {
     playerId: string,
     refreshKeys?: () => Promise<Keyring>,
     attempt = 0,
+    sessionId?: string,
   ) {
     const client = new RealityClient({
       engine: this.app.engine,
@@ -128,6 +131,8 @@ export class RealityLink {
       keyring,
       ...(refreshKeys ? { refreshKeys } : {}),
       playerId,
+      // A V2 signal names the link it was signed for (ADR 0010); the page's origin is checked by the client itself.
+      ...(sessionId ? { context: { sessionId } } : {}),
       // The game in progress belongs to another player: the link idles until the pause menu's choice (`relink`).
       onMismatch: () => this.set('mismatch'),
       // A speedrun in progress keeps each signal's JWS as its Reality proof (4.1.14).
@@ -143,7 +148,7 @@ export class RealityLink {
         return;
       this.set('retrying');
       this.retry = setTimeout(
-        () => this.run(port, keyring, playerId, refreshKeys, attempt + 1),
+        () => this.run(port, keyring, playerId, refreshKeys, attempt + 1, sessionId),
         Math.min(60_000, 1000 * 2 ** attempt),
       );
     });
@@ -187,7 +192,7 @@ export class RealityLink {
       },
     });
     // The keys again when a signal names one this keyring does not hold: the Bridge rotated while the link was open.
-    this.run(port, keyring, r.playerId, () => fetchKeys(r.bridge));
+    this.run(port, keyring, r.playerId, () => fetchKeys(r.bridge), 0, r.sessionId);
   }
 
   /** Links this game: a code to give to the game's connector, then the link collected when it confirms it. */
@@ -208,9 +213,18 @@ export class RealityLink {
         status: string;
         playerId?: string;
         capability?: string;
+        sessionId?: string;
       };
       if (r.status === 'paired' && r.playerId && r.capability) {
-        const rec: LinkRecord = { bridge, playerId: r.playerId, capability: r.capability, pairedAt: Date.now() };
+        const rec: LinkRecord = {
+          bridge,
+          playerId: r.playerId,
+          capability: r.capability,
+          pairedAt: Date.now(),
+          ...(typeof r.sessionId === 'string' && /^[\w.:-]{1,128}$/.test(r.sessionId)
+            ? { sessionId: r.sessionId }
+            : {}),
+        };
         try {
           localStorage.setItem(this.storageKey, JSON.stringify(rec));
         } catch {
@@ -321,9 +335,30 @@ export class RealityLink {
 async function fetchKeys(bridge: string): Promise<Keyring> {
   const res = await fetch(new URL('v1/keys', bridge));
   const { keys } = (await res.json()) as {
-    keys: { kid: string; raw: string; notBefore?: number; notAfter?: number }[];
+    keys: {
+      kid: string;
+      raw: string;
+      notBefore?: number;
+      notAfter?: number;
+      tenantId?: string;
+      environment?: 'prod' | 'staging' | 'dev';
+      audience?: string;
+    }[];
   };
-  return Promise.all(keys.map(({ kid, raw, ...w }) => importBridgeKey(kid, raw, w)));
+  // The fields a key may carry, picked one by one: nothing else of the response reaches the keyring.
+  return Promise.all(
+    keys.map((k) =>
+      importBridgeKey(k.kid, k.raw, {
+        ...(typeof k.notBefore === 'number' ? { notBefore: k.notBefore } : {}),
+        ...(typeof k.notAfter === 'number' ? { notAfter: k.notAfter } : {}),
+        ...(typeof k.tenantId === 'string' ? { tenantId: k.tenantId } : {}),
+        ...(k.environment === 'prod' || k.environment === 'staging' || k.environment === 'dev'
+          ? { environment: k.environment }
+          : {}),
+        ...(typeof k.audience === 'string' ? { audience: k.audience } : {}),
+      }),
+    ),
+  );
 }
 
 /** Starts the link of a game that declares `reality` (bootGame, after the App exists). */

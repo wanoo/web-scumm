@@ -7,15 +7,15 @@ import { join } from 'node:path';
 import ssh2, { type ClientChannel } from 'ssh2';
 import { afterAll, describe, expect, it } from 'vitest';
 import { SshConnector, wrap } from '../connectors/src/ssh/connector';
-import { contextFor, startBridge, type TestBridge } from './fixtures/connectors/harness';
+import { contextFor, sshKeyPair, startBridge, type TestBridge } from './fixtures/connectors/harness';
 
 const cleanup: (() => Promise<unknown> | void)[] = [];
 afterAll(async () => {
   for (const f of cleanup.reverse()) await f();
 });
 
-const host = ssh2.utils.generateKeyPairSync('ed25519');
-const player = ssh2.utils.generateKeyPairSync('ed25519');
+const host = sshKeyPair();
+const player = sshKeyPair();
 
 async function sshServer(
   t: TestBridge,
@@ -159,7 +159,7 @@ describe('the SSH connector', () => {
     const keyed = await login(c.port, { privateKey: player.private });
     if ('error' in keyed) throw keyed.error;
     keyed.client.end();
-    const stranger = await login(c.port, { privateKey: ssh2.utils.generateKeyPairSync('ed25519').private });
+    const stranger = await login(c.port, { privateKey: sshKeyPair().private });
     expect('error' in stranger).toBe(true);
   }, 30_000);
 

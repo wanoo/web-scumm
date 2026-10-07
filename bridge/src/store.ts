@@ -17,7 +17,7 @@ import {
 } from 'node:fs';
 import { dirname } from 'node:path';
 import { z } from 'zod/mini';
-import { WorldSignalV1Schema, type WorldSignalV1 } from '../../src/engine/reality/protocol';
+import { WorldSignalV1Schema, WorldSignalV2Schema, type WorldSignal } from '../../src/engine/reality/protocol';
 
 export interface Pairing {
   code: string;
@@ -27,6 +27,10 @@ export interface Pairing {
   playerId?: string;
   /** The capability handed to the player once, when it fetches the confirmed pairing (then forgotten in clear). */
   capability?: string;
+  /** The origin that asked for the code (4.1.10): a V2 signal's `audience`. */
+  origin?: string;
+  /** The capability was handed out (4.1.10): a second claim is refused. Never written to the journal. */
+  claimed?: boolean;
 }
 export interface Player {
   playerId: string;
@@ -36,6 +40,10 @@ export interface Player {
   /** When the link was made (4.1.2): a capability lives at most `capabilityMaxMs` from it, renewals included. */
   issuedAt?: number;
   revoked?: boolean;
+  /** The link's id (4.1.10): a V2 signal's `sessionId`, new at each pairing. */
+  sessionId?: string;
+  /** The origin the player paired from (4.1.10): a V2 signal's `audience`. */
+  origin?: string;
 }
 export interface JournalEntry {
   playerId: string;
@@ -50,7 +58,7 @@ export interface JournalEntry {
    * The payload as signed (4.1.2): after a rotation the Bridge signs it again with its current key at delivery, so a
    * signal waiting for a player never outlives the key that first signed it. Absent in a 4.1.1 line: delivered as is.
    */
-  payload?: WorldSignalV1;
+  payload?: WorldSignal;
 }
 
 export type BridgeEvent =
@@ -70,6 +78,7 @@ const PairingSchema = z.object({
   expiresAt: time,
   playerId: z.optional(ident),
   capability: z.optional(z.string()),
+  origin: z.optional(z.string().check(z.maxLength(256))),
 });
 const PlayerSchema = z.object({
   playerId: ident,
@@ -78,6 +87,8 @@ const PlayerSchema = z.object({
   capabilityExpiresAt: time,
   issuedAt: z.optional(time),
   revoked: z.optional(z.boolean()),
+  sessionId: z.optional(ident),
+  origin: z.optional(z.string().check(z.maxLength(256))),
 });
 const JournalEntrySchema = z.object({
   playerId: ident,
@@ -87,7 +98,7 @@ const JournalEntrySchema = z.object({
   jws: z.string().check(z.minLength(1), z.maxLength(64 * 1024)),
   at: time,
   kid: z.optional(ident),
-  payload: z.optional(WorldSignalV1Schema),
+  payload: z.optional(z.union([WorldSignalV1Schema, WorldSignalV2Schema])),
 });
 /**
  * Every line of the journal, whole (4.1.8): a line that is JSON but not an event of this shape is corruption too,
@@ -153,6 +164,10 @@ export class MemoryBridgeStore implements BridgeStore {
   }
   revokedTokens() {
     return this.revoked;
+  }
+  /** Every player held (4.1.10: a tenant's export). */
+  allPlayers(): Player[] {
+    return [...this.players.values()];
   }
   write(e: BridgeEvent): void {
     this.apply(e);

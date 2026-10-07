@@ -309,7 +309,44 @@ jamais dans le joueur : `npm run build` refuse désormais le JavaScript d'un jeu
 (`verify:dist`). Le script d'installation de `ssh2` tente une compilation native et échoue faute d'en-têtes : aucun
 fichier `.node` n'en résulte, et `--ignore-scripts` est l'installation documentée (`docs/fr/CONNECTORS.md`). Un
 contributeur écrit `changes/<slug>.md` au lieu de modifier le CHANGELOG (`changes/README.md`).
-## 23. De 4.1.11 à 4.1.12 « Language »
+
+## 22. De la 4.1.9 à la 4.1.10 « Constellation »
+
+Une sauvegarde, un jeu et une configuration de Bridge 4.1.9 continuent de fonctionner. **Le joueur** accepte
+`WorldSignalV1` et le nouveau `WorldSignalV2` (ADR 0010 : le signal nomme son tenant, son environnement, son origine,
+son lien et sa clé ; `verifySignal` refuse un V2 signé pour un autre contexte avec `audience-mismatch`, et un `keyId`
+autre que celui de l'en-tête avec `key`). Un vérificateur ou un transport à vous qui lit le contenu voit `schema: 2`
+venant d'un Bridge multi-tenant ou du simulateur du Studio, qui signe en V2 par défaut (`signalVersion: 1` garde le
+V1). L'attente de `verifySignal` prend `versions`, `tenantId`, `environment`, `audience` et `sessionId` ;
+`RealityClient` les prend en `context` et vérifie l'origine de la page par défaut. **Rupture annoncée (4.1.12) :** un
+Bridge à un seul tenant signe en V1 par défaut pendant la 4.1.10 et la 4.1.11 (`init --signal-version=2` pour passer
+au V2) ; à partir de la 4.1.12 tout Bridge signe en V2 et le joueur n'accepte plus que le V2. Un jeu en 4.1.10 ou plus
+gère les deux : mettre à jour le jeu avant le Bridge.
+
+**Le Bridge** lit et écrit par `RealityStore` (ADR 0009) : un code qui appelait directement les méthodes de `Bridge`
+les attend désormais (`startPairing`, `claimPairing`, `revoke`, `forgetPlayer`, `exportPlayer`, `ack`, `unlink`,
+`subscribe`, `streamAlive`, `playerOf`) ; les routes HTTP `/v1/*` ne changent pas. `Bridge.start` accepte un
+`BridgeStore` de la 4.1.9 (comme tenant `default`) ou un `RealityStore`. La capacité est tirée quand le joueur réclame
+son code (la réclamation renvoie aussi le `sessionId` du lien). Un `config.json` de la 4.1.9 sert depuis son journal
+comme avant ; `npm run bridge -- migrate --from=jsonl --to=sqlite` (Bridge arrêté) le déplace dans SQLite, qui demande
+Node 22.13 (`node:sqlite`). `--trust-proxy` seul ne fait plus confiance qu'à la boucle locale ; nommer les autres
+proxies avec `--trust-proxy=<adresses ou réseaux>`. **Derrière un proxy qui n'est pas sur la boucle locale (le routeur d'un PaaS, un
+répartiteur sur un autre hôte), tous les clients tombent désormais dans l'unique compartiment du proxy** (60 requêtes
+anonymes par minute pour tout le monde) tant que `--trust-proxy=<son réseau>` ne le nomme pas. Plusieurs tenants et plusieurs instances : `docs/fr/REALITY-OPS.md`.
+
+## 23. De la 4.1.10 à la 4.1.11 « Viewport »
+
+Une sauvegarde 4.1.10 se charge telle quelle ; les noms des cinq entrées sont additifs (`SceneFrame`, `Renderer`,
+`Intent` sur `web-scumm/player` en `@extension` ; `SemanticEvent`, `SemanticJournal` sur `web-scumm/testing` ;
+`Engine.journal`, `Engine.sessionSeq`). Ce qui a bougé : le crochet de test de la page `window.__game.inventory(…)`
+devient `window.__game.presenter.inventory(…)` (un script e2e à vous qui l'appelait change une ligne) ; un fichier de
+session porte désormais le journal sémantique et `npm run replay` sort en 1 quand celui du rejeu diffère (une session
+de plus de 10 000 événements est exportée avec `journalTruncated: true` et sans journal) ; `npm run validate` refuse
+une mise en page dont le polygone de masque d'occlusion ne ferme aucune surface (points colinéaires, arêtes qui se
+croisent) ou dont une salle a une zone de marche qu'aucun lien ne joint, là où la 4.1.10 l'acceptait : corrigez la
+mise en page dans l'onglet Rooms du Studio (couches, masques, zones, portails) ou à la main. Le JavaScript de la
+première visite pèse 122 Ko gzippés (120 en 4.1.10).
+## 24. De la 4.1.11 à la 4.1.12 « Language »
 
 Aucun format d'écriture ne change : `web-scumm migrate --check` trouve à jour les jeux fournis et le gabarit
 (`tests/migrate-official.test.ts` ; un projet 4.1.11 n'a rien à migrer non plus), et une sauvegarde 4.1.11 se charge telle quelle (les objectifs accomplis ne sont pas dans la sauvegarde : ce
