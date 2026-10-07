@@ -53,7 +53,7 @@ release does not do is in the LOG and the passes sheet (`docs/dev/passes/4.1.8.m
 - **The documentation says one thing** (4.1.8, programme §4.8). An audit of every page against the code and the
   workflows found and fixed: the READMEs' test count, first-visit weight and the reference game's states now come from
   `tests/quality-baseline.json` (`npm run quality:baseline` writes them between markers and `--check` fails when they
-  lag: 788 declarations, 120 KB and 288 states today, where the pages said 910, 123 and 578); the nightly corpus is 500 random games of each of three kinds, not
+  lag: 788 declarations at the audit and 945 at the tag, 120 KB and 288 states, where the pages said 910, 123 and 578); the nightly corpus is 500 random games of each of three kinds, not
   "1 503"; the sample game has had no non-commercial music since 3.7 (SECURITY.md, TOOLS en/fr and a code comment
   still excepted it); the SemVer promise of the READMEs and CONTRIBUTING is bounded to 4.1.7, with the incubation
   line after it; PACKAGE.md names the third package, `web-scumm-bridge`; CREDITS names zod and the Biscuit test
@@ -87,7 +87,8 @@ release does not do is in the LOG and the passes sheet (`docs/dev/passes/4.1.8.m
   of a shell line with a Unix expansion that cmd.exe and PowerShell did not know. The job is reported, not yet among
   the checks the ruleset requires (the maintainer's).
 - **A release check that predicts the release** (4.1.8). `npm run doctor -- --release` requires every prerequisite
-  `release-check` runs (Python and its modules, ffmpeg, the three browsers), and `release-check` starts with it. The
+  `release-check` runs (Python and its modules, ffmpeg, and Chromium as always; the other browsers since the
+  docs-truth lot), and `release-check` starts with it. The
   packages are made from tracked files only: an untracked file under a shipped root refuses `npm run pack` rather
   than travel or vanish silently; `--publish-dry-run` shows what `npm publish` would send for each of the three,
   and `release-check` runs it. `fresh-install` installs `create-web-scumm` from its own tarball and runs it, beside
@@ -158,8 +159,9 @@ release does not do is in the LOG and the passes sheet (`docs/dev/passes/4.1.8.m
   `tests/bridge-store.test.ts`, `tests/reality-client.test.ts`, `tests/reality-port.test.ts`: the exact edges of
   expiries, quotas and size limits, revocations landing inside the lock, the journal's retention and rewrite, the
   client's refusals and its stop, the port's backoff, cursors and parser), 16 named as equivalent with their reason
-  and the source line they sit on (29 names for 25 survivors, one per line); two old equivalents, now killed, left the list. Measured on the branch:
-  579 of 604 mutants killed, every survivor named.
+  and the source line they sit on (25 names, one per line); two old equivalents, now killed, left the list. Measured at
+  the tag (the lock's races tested on purpose after CI's runner never reached them): 589 of 614 mutants killed,
+  every survivor named.
 
 ## 4.1.7 — 2026-10-06
 

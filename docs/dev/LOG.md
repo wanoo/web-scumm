@@ -2679,7 +2679,7 @@ Platform"; human gates reported, not blocking (D12).
 
 ## #117 · 2026-10-07 · Claude · release · 4.1.8 "Foundation Reset"
 
-- The programme's first release, ten lots in eighteen pull requests (#21 to #39, #22 the baseline, #23 the P0, #32
+- The programme's first release, ten lots in eighteen pull requests (#21 to #38, #22 the baseline, #23 the P0, #32
   the mutation gate last to land): `release/4.1.8` carries the version, the golden save `demo-4.1.8.json` (22 golden
   saves), the logo at the head of both READMEs (`docs/img/logo.png`, 256 px, the maintainer's file reduced), the
   release paragraphs, ROADMAP en/fr (the section "shipped" and the row), UPGRADING §20, the pass sheet, the baseline
