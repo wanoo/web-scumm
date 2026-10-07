@@ -11,7 +11,6 @@ import { matches } from './triggers';
 /**
  * A split as a run recorded it: the link it fired in (null: missed), its logical and active times since the run's
  * start, and the RTA milliseconds the player's clock read (null when not timed live).
- * @public
  */
 export interface RecordedSplit {
   id: string;

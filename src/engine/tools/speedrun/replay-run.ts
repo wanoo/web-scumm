@@ -8,7 +8,7 @@ import type { GameDef, GameState, Id, Layout, SessionEntry, SpeedrunCategory } f
 import { replay, type ReplayResult } from '../replay';
 import { SplitTracker } from './splits';
 
-/** A load during a run: before entry `before`, the state was restored to what it was after entry `from`. @public */
+/** A load during a run: before entry `before`, the state was restored to what it was after entry `from`. */
 export interface RunLoad {
   before: number;
   from: number;

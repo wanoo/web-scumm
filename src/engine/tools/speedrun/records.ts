@@ -7,10 +7,10 @@ import { type RecordedSplit, rankedTime } from './splits';
 
 /** How far a run is believed (ADR 0017): raised only by someone other than the player's client. @public */
 export type TrustLevel = 'local' | 'replay-valid' | 'server-witnessed' | 'moderator-verified';
-export const TRUST_LEVELS: readonly TrustLevel[] = ['local', 'replay-valid', 'server-witnessed', 'moderator-verified'];
+const TRUST_LEVELS: readonly TrustLevel[] = ['local', 'replay-valid', 'server-witnessed', 'moderator-verified'];
 
 /** One run as the history keeps it. */
-export interface RunSummary {
+interface RunSummary {
   runId: string;
   at: number;
   status: 'finished' | 'abandoned';

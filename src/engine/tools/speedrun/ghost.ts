@@ -6,7 +6,7 @@
 import type { TapeLink } from '../../core/run-tape';
 import type { Id } from '../../core/types';
 
-/** What the ghost is doing at a moment. @public */
+/** What the ghost is doing at a moment. */
 export interface GhostFrame {
   /** The link the ghost has reached. */
   index: number;

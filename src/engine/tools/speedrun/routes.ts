@@ -6,7 +6,7 @@ import type { SessionEntry } from '../../core/types';
 import { canonicalJson } from '../../core/canonical';
 import type { RecordedSplit } from './splits';
 
-/** A route file. `kind: 'logical'` comes from the solver and is never shown as a record. @public */
+/** A route file. `kind: 'logical'` comes from the solver and is never shown as a record. */
 export interface SpeedrunRoute {
   format: 'web-scumm-route';
   schema: 1;

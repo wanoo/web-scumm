@@ -20,7 +20,6 @@ import type { RecordedSplit } from './splits';
 /**
  * A stretch of real time the client declares (a pause, a menu, the tab in the background, a load, a manual save):
  * where in the run (`entry`: the next entry's index), when (`atMs` since the start, monotonic) and how long.
- * @public
  */
 export interface ExcludedInterval {
   kind: 'pause' | 'menu' | 'background' | 'load' | 'save';
@@ -29,7 +28,7 @@ export interface ExcludedInterval {
   durationMs: number;
 }
 
-/** A signal from outside as a run keeps it: the Bridge's signed JWS, its key, its hash and the client's verdict. @public */
+/** A signal from outside as a run keeps it: the Bridge's signed JWS, its key, its hash and the client's verdict. */
 export interface RecordedRealitySignal {
   id: string;
   sequence: number;
@@ -43,7 +42,7 @@ export interface RecordedRealitySignal {
   verdict: 'ok' | 'skipped';
 }
 
-/** One chunk of the envelope: its entries and the chain's hashes before and after them. @public */
+/** One chunk of the envelope: its entries and the chain's hashes before and after them. */
 export interface EnvelopeChunk {
   index: number;
   prevHash: string;

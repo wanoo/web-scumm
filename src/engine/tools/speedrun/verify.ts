@@ -44,7 +44,7 @@ export interface SpeedrunVerifyResult {
   };
 }
 
-/** The approved game a run is checked against. */
+/** The approved game a run is checked against: its content, layouts, fingerprint, engine, the Bridge's keys. @public */
 export interface VerifyContext {
   game: GameDef;
   layouts: Record<Id, Layout>;
@@ -126,7 +126,7 @@ export function parseEnvelope(input: unknown): SpeedrunEnvelope {
   return e as SpeedrunEnvelope;
 }
 
-/** Verifies a run. Never throws: every failure is a verdict. */
+/** Verifies a run (`.wsrun` text or object) against the approved game: never throws, every failure is a verdict. @public */
 export async function verifyRun(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerifyResult> {
   try {
     return await check(input, ctx);

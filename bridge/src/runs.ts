@@ -14,7 +14,7 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypt
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 /** How far a run is believed (ADR 0017). */
-export type RunTrust = 'local' | 'replay-valid' | 'server-witnessed' | 'moderator-verified';
+type RunTrust = 'local' | 'replay-valid' | 'server-witnessed' | 'moderator-verified';
 
 /** A submitted run as the Bridge keeps it. */
 export interface RunRecord {
@@ -41,7 +41,7 @@ export interface RunRecord {
 }
 
 /** Where runs are kept, per tenant. */
-export interface RunStore {
+interface RunStore {
   put(r: RunRecord): Promise<void>;
   get(tenantId: string, id: string): Promise<RunRecord | undefined>;
   list(tenantId: string, f?: { gameId?: string; categoryId?: string }): Promise<RunRecord[]>;
@@ -112,7 +112,7 @@ export interface RunsOptions {
   now?: () => number;
 }
 
-export class RunsError extends Error {
+class RunsError extends Error {
   constructor(
     readonly status: number,
     readonly code: string,
@@ -254,7 +254,7 @@ export class RunQueue {
 }
 
 /** What anyone may read of a run: never the envelope's hash of a token, never anything but the pseudonym. */
-export function publicView(r: RunRecord) {
+function publicView(r: RunRecord) {
   return {
     id: r.id,
     gameId: r.gameId,

@@ -11,6 +11,7 @@
     "scripts/*.ts",
     "tools/*.ts",
     "tools/studio/*.ts",
+    "tools/speedrun/*.ts",
     "tests/**/*.test.ts",
     "tests/fixtures/**/index.ts",
     "games/*/index.ts",
