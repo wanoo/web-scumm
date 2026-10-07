@@ -26,6 +26,8 @@ import { parseSessionFile } from '../../src/engine/tools/replay';
 import { lintContent, lintMarkdown } from '../../src/engine/tools/lint';
 import { loadAssets, loadLayouts, loadLocales } from '../../src/engine/tools/load';
 import { GAME_DIR, ROOT, type GameModule } from '../game';
+import { gameIR } from '../extensions';
+import type { GameIR } from '../../src/engine/core/ir';
 import { normalizeStoryboard, storyboardMarkdown, storyboardProblems } from '../pages/storyboard-data';
 import {
   addToSection,
@@ -380,6 +382,11 @@ export function createStudio(opts: StudioOptions = {}) {
       ...t,
       file: rel(file),
     }));
+  }
+
+  /** The game's IR (4.1.12, ADR 0013), with the file and line of each id and the trusted extensions' hash. */
+  async function ir(): Promise<GameIR> {
+    return gameIR(await loadModule(), dir);
   }
 
   async function getRoom(id: string): Promise<RoomData> {
@@ -815,6 +822,7 @@ export function createStudio(opts: StudioOptions = {}) {
     /** The game module, imported fresh (for tools that read the whole game, e.g. asset prompts). */
     loadGame: loadModule,
     gameInfo,
+    ir,
     getRoom,
     texts,
     getLayout,

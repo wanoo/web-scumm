@@ -166,10 +166,3 @@ const stage: Classes<StageDef> = {
 
 /** The classification of every field, by type. */
 export const FIELD_CLASSES = { game, room, prop, actor, hotspot, exit, item, character, stage } as const;
-
-/** The fields of one table that carry a class (`both` counts for both sides). */
-export function fieldsOf(table: Readonly<Record<string, FieldClass>>, side: 'logic' | 'presentation'): string[] {
-  return Object.entries(table)
-    .filter(([, c]) => c === side || c === 'both')
-    .map(([k]) => k);
-}

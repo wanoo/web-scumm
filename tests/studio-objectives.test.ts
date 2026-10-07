@@ -55,4 +55,13 @@ describe('objectives as code in the game file', () => {
     await studio.undo();
     expect(gameTs()).not.toContain('extra:');
   }, 60000);
+
+  it('the IR the Language tab and get_ir read: the objectives with the line that writes them', async () => {
+    const ir = await studio.ir();
+    expect(ir.objectives.map((o) => o.id)).toEqual(['guess', 'key', 'tank', 'lou', 'pantry']);
+    const at = ir.provenance['objective:pantry'];
+    expect(at?.file).toMatch(/studio-objectives-[^/]+\/game\.ts$/);
+    expect(gameTs().split('\n')[at!.line - 1]).toContain('pantry:');
+    expect(ir.extensions.trusted).toMatch(/^[0-9a-f]{64}$/);
+  });
 });
