@@ -2348,6 +2348,37 @@ Platform"; human gates reported, not blocking (D12).
 
 → next: Claude · `fix/418-reality-integrity` (the P0: three cursors, the reality mutation set gated)
 
+## #106 · 2026-10-07 · Claude · proposal · `fix/418-reality-integrity`: the P0, and the transport bounded
+
+- The defect (#105's reproduction, the maintainer's on 4.1.7): `http-port.ts` kept one cursor and moved it at
+  delivery, so the next request asked from what was handed over, not from what was applied and saved. Fixed with
+  three cursors, received / delivered / durable, every request asking from the durable one; the reader's
+  acknowledgement moves it. A signal refused for a while comes back at every poll, with a wait that doubles up to a
+  minute while nothing settles; an acknowledged one never comes back. In SSE mode the Bridge keeps the stream open
+  (the second reading's first finding): a signal not settled when the next event is read makes the port end the
+  stream after `wait` and reopen it from the durable cursor, so the re-delivery happens on the same link, not at a
+  proxy's timeout. The three red cases of #22 are plain tests
+  here (`got` shows the repeat: `s1, s1`), with the backoff, the three cursors reported, and the parser's cases.
+- SSE parser: CRLF and CR line ends (a CR ending a chunk waits for the next one, flushed at the stream's end), one
+  space after `data:`, an event over `maxFrameBytes` (64 KiB) or a buffer over `maxBufferBytes` (1 MiB) ends the
+  stream, which the port reopens from the durable cursor. (A `Last-Event-ID` header was tried and removed: a header
+  beyond the simple ones makes the browser preflight the cross-origin request, which the Bridge's CORS answer refuses;
+  the e2e in both browsers caught it. `after` in the query is what the Bridge reads.)
+- Bridge: `resigned` is an LRU bounded by `limits.resignedCache` (10 000); every journal line is checked against
+  `BridgeEventSchema` (zod, every field; `WorldSignalV1Schema` for the payload); `JournalLock` (`<journal>.lock`
+  with the pid, created atomically by `link` from a private file so a reader never sees it half written; a live
+  owner refuses the second start, a dead one is taken over and said, a content that is not a pid is refused;
+  a take-over is a `rename` over the lock, read back; `lock: false` for `doctor` only, `compact` writes and locks;
+  `serve` ends its streams and closes its server on SIGINT and SIGTERM, then releases the lock, five seconds at most);
+  `JsonlBridgeStore.close()`; the stream cancelled on the player's side when the parser drops it.
+- Coverage: the new code took `bridge.ts`, `store.ts` and `cli.ts` under their floors (CI said so). Two of the next
+  branch's test files come in here already, `tests/bridge-mutants.test.ts` and `tests/bridge-store.test.ts` (the
+  survivors' tests of #107, written against this code), and `serve` is stopped in-process by its handler in a test
+  (the spawned one proves the real signal, but v8 does not count a child's lines): 97 %, 89 %, 85 %.
+- Not done, said as such: the 88 reality survivors and the gate by input hash are the next branch
+  (`test/418-reality-mutants`), not this one; the Bridge's own backlog bound (`streamBufferBytes`) was already there.
+
+→ next: Claude · `test/418-reality-mutants` (the 88 survivors killed or named; `--set=reality` gated by `mutationInputHash`)
 ## #108 · 2026-10-07 · Claude · proposal · `refactor/418-typescript-7`: the compiler, the paths, the CommonJS import
 
 - The decision MIGRATION-4.1.8.md left open: `typescript@7.0.2` as the compiler, `@typescript/typescript6` (6.0.2)

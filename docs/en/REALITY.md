@@ -89,6 +89,14 @@ A signal is an entry of the session (`{ external: { id, sequence, signal, source
 ids above it (`GameState.reality`), so a signal delivered again (the Bridge delivers at least once) is recognised and
 not applied twice.
 
+The transport keeps three cursors (4.1.8): *received*, the last sequence the Bridge sent; *delivered*, the last one
+handed to the game; *durable*, the last one acknowledged, after the save. Every request to the Bridge, a poll or a
+reconnection, asks from the durable one: a signal handed over and not acknowledged (a refusal that may pass later, a
+save that failed, a crash before the acknowledgement) is delivered again on the same connection, with a wait that
+grows up to a minute while nothing settles: a poll asks again; a stream the Bridge keeps open is ended by the player
+after that wait and reopened from the durable cursor. Before 4.1.8 the transport asked from the delivered cursor, so such a
+signal waited for a full reconnection.
+
 The first signal binds the save to its pseudonymous player (`GameState.reality.playerId`, the `p-…` the Bridge gave
 at pairing; never the capability). A save that reaches a device linked as someone else (imported from another
 device, or saved before an unlink and a new pairing) is a **mismatch**: nothing of it is applied or acknowledged,

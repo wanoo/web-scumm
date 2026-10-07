@@ -50,6 +50,8 @@ export interface Limits {
   pendingPairings: number;
   /** The longest a capability lives, renewals included: then the player pairs again. */
   capabilityMaxMs: number;
+  /** Signals signed again after a rotation and kept in memory (4.1.8): beyond, the least recently used is forgotten. */
+  resignedCache: number;
 }
 export const DEFAULT_LIMITS: Limits = {
   bodyBytes: 8192,
@@ -61,6 +63,7 @@ export const DEFAULT_LIMITS: Limits = {
   streamBufferBytes: 64 * 1024,
   pendingPairings: 1000,
   capabilityMaxMs: 180 * 24 * 3_600_000,
+  resignedCache: 10_000,
 };
 
 /** An open event stream of a player: what it receives, and how the Bridge ends it (revocation, expiry). */
@@ -98,8 +101,12 @@ export class Bridge {
   private pending = new Map<string, Pairing>();
   /** One section at a time per player (`propose`) and per pairing code (`confirmPairing`): see `lock.ts`. */
   private locks = new KeyedLock();
-  /** Signals signed again under the current key after a rotation, by `<id>:<kid>` (the journal keeps the first). */
+  /** Signals signed again under the current key after a rotation, by `<id>:<kid>` (the journal keeps the first); LRU, bounded by `limits.resignedCache`. */
   private resigned = new Map<string, Promise<string>>();
+  /** How many signals were signed again (diagnostics, tests). */
+  resignedCount(): number {
+    return this.resigned.size;
+  }
 
   private constructor(
     readonly config: BridgeConfig,
@@ -328,9 +335,19 @@ export class Bridge {
     if (!e.payload || e.kid === kid) return Promise.resolve(e.jws);
     const k = `${e.id}:${kid}`;
     let p = this.resigned.get(k);
-    if (!p) {
-      p = signSignal(e.payload, privateKey, kid);
+    if (p) {
+      // Least recently used at the front: a hit moves to the back.
+      this.resigned.delete(k);
       this.resigned.set(k, p);
+      return p;
+    }
+    p = signSignal(e.payload, privateKey, kid);
+    this.resigned.set(k, p);
+    // Bounded (4.1.8): a Bridge with many players and a rotation is not a cache that grows with every delivery.
+    while (this.resigned.size > this.limits.resignedCache) {
+      const oldest = this.resigned.keys().next().value;
+      if (oldest === undefined) break;
+      this.resigned.delete(oldest);
     }
     return p;
   }
