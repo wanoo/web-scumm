@@ -18,7 +18,7 @@
   258); (14)–(16) the `code-wheel` minigame and its core, `npm run code-wheel` (SVG, PDF with Pillow), accessibility;
   (17) the reference's Story + Remix + daily (published test key) + wheel; (18) `scripts/e2e-remix.mjs`; (19) twenty
   playtest seeds (`games/reference/playtests/remix-*.session.json`, `npm run remix -- --record=20`); (20) DSL-STABILITY
-  frozen, the API surface and its tables, UPGRADING §26, TOOLS, REMIX en/fr, the release step publishing the proved
+  frozen, the API surface and its tables, UPGRADING §27, TOOLS, REMIX en/fr, the release step publishing the proved
   catalogues.
 - Decided. D25 per mode: `demo` `story` and `remix` are catalogues (1 and 3 logical worlds); `reference` `story`,
   `remix`, `daily`, `mystery` are catalogues (1, 24, 24, 24, the last three the same 24 worlds); no bundled generator

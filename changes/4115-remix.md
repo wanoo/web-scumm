@@ -1,10 +1,16 @@
+
+- **The first visit's JavaScript goes from 125 to 136 KB gzipped, and the reference chapter's witness changes
+  (4.1.15)**: the save envelope pulls the world's compiler into the main chunk (the budget, `initialJsKB` 140, holds;
+  the lazy chunk for Remix is the next lot's work), and the reference chapter's content moved (the password and the
+  wheel are optional puzzles, the seller's round varies): the baseline moved on purpose, every golden save still loads.
+
 ### Breaking
 
 - **The save envelope v4 (4.1.15, ADR 0018).** A save is written as `SaveEnvelopeV4` (`schema: 4`): the v3 envelope
   and the `WorldVariant` the game was played in. `parseSave` reads v3 and v4; a v3 save migrates to the story world
   (`upgradeEnvelope`) and loads as before, and the golden saves of 3.0.0 to 4.1.9 still reach the ending. A save from
   another world is refused with `SaveWorldMismatch`, which names the world to rebuild. A host that wrote or checked
-  `schema: 3` itself sees `schema: 4` and a `variant` field (UPGRADING §26); a 4.1.15 save does not load on 4.1.14.
+  `schema: 3` itself sees `schema: 4` and a `variant` field (UPGRADING §27); a 4.1.15 save does not load on 4.1.14.
 
 ### Changes
 
