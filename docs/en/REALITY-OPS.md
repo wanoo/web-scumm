@@ -1,8 +1,10 @@
 # Running a Reality Bridge
 
-The reference Bridge (`bridge/src/`, the package `web-scumm-bridge`) serves one game. It is a small Node service:
+The reference Bridge (`bridge/src/`, the package `web-scumm-bridge`) serves a game. It is a small Node service:
 pairing, connectors under Biscuit capabilities, a demonstration webhook, a journal, signed events, Server-Sent
-Events. For authors: `docs/en/REALITY.md`. For why: `docs/dev/THREAT-MODEL.md`.
+Events. Since 4.1.10 it keeps its state in a store (the 4.1.9 journal, SQLite, or Postgres), and one deployment may
+run several instances and serve several tenants. For authors: `docs/en/REALITY.md`. For why:
+`docs/dev/THREAT-MODEL.md` and `docs/dev/threat-models/constellation.md`.
 
 ## Start one
 
@@ -21,19 +23,24 @@ npm run bridge -- serve [--dir=.cache/bridge] [--port=8787] [--host=127.0.0.1]
 - `admin-token`: the operator's token, the only copy in clear.
 
 Nothing secret is printed or committed (`.cache/` is ignored). In a game project the command is `web-scumm bridge`.
-The package `web-scumm-bridge` (the release's tarball) is one JavaScript module plus its Datalog policies: it needs
-Node 22.12 or newer, Biscuit's WebAssembly and zod, nothing else, and `web-scumm-bridge` is its command.
+The package `web-scumm-bridge` (the release's tarball) is one JavaScript module plus its Datalog policies and its SQL
+schema: it needs Node 22.12 or newer (22.13 for SQLite), Biscuit's WebAssembly and zod; `pg` only for Postgres,
+`@opentelemetry/api` only for the measures; `web-scumm-bridge` is its command.
 
 Behind HTTPS: run `serve` on `127.0.0.1` behind a reverse proxy that terminates TLS and does not buffer
 `text/event-stream` responses, with `--trust-proxy` so the per-address limits see the client's address
-(`X-Forwarded-For`). `--origin` lists the game's site (CORS); the player's routes answer it only. Set the game's
+(`X-Forwarded-For`). `--trust-proxy` alone trusts the loopback; `--trust-proxy=10.0.0.0/8,192.0.2.7` names the
+proxies (addresses or IPv4 networks): the header is read only from them, and the client is its rightmost address
+that is not one of them. Since 4.1.10 a proxy elsewhere than on the loopback (a PaaS's router) must be named: without
+it, every client shares the proxy's address and its one rate bucket. `--origin` lists the game's site (CORS); the player's routes answer it only. Set the game's
 `reality.bridge` to the public URL. On the Internet, `init --no-demo-webhooks` and one `grant` per connector, each
 as narrow as its job.
 
 Per address, the routes anyone may call (a code, its state, the keys, the manifest) answer 60 requests a minute, and
 60 failed authentications a minute on the others refuse every request of that address for a while (429,
-`Retry-After`). Codes waiting for a confirmation live in memory only, 1000 at most across players: nothing is
-written for a code nobody confirms.
+`Retry-After`). Codes waiting for a confirmation are 1000 at most across players and swept once expired: in memory
+on the journal (a restart forgets them), in the `pairings` table on SQLite and Postgres (any instance can confirm or
+claim one). No capability waits anywhere: it is drawn when the player claims the code, and only its hash is kept.
 
 ## Connectors
 
@@ -55,6 +62,8 @@ attenuate its own token (fewer players, an earlier expiry) before handing it on;
   demonstration webhook; `event` must be one it knows, `id` names the delivery (deduplication).
 
 A connector checks what it claims (a credential's proof, an email's sender): Biscuit only says who may propose.
+The connectors of 4.1.9 (email, Telnet, SSH, Open Badges; experimental) run as processes beside the Bridge, each
+with its own token: `docs/en/CONNECTORS.md`.
 
 ## The player's side
 
@@ -124,7 +133,92 @@ long as players may be offline with signals to receive; then a player re-pairs.
   retention; a player's last signal always stays (its next sequence is counted from it), and so does everything not
   yet acknowledged. The journal grows only with what is still waiting, or recent enough for a connector to repeat.
 
-## What is not here (4.1.1)
+## Stores and profiles
 
-A real email or SSH connector, a hosted multi-tenant Bridge, high availability. The reference Bridge is for a game,
-a developer, a small event; the protocol is what stays.
+| Profile | Store | For |
+|---|---|---|
+| `local` | SQLite (`node:sqlite`, Node 22.13+, one file, WAL) | one machine, one or a few processes; the profile of `npm run bridge` |
+| (4.1.9) | the JSON-lines journal | a configuration written before 4.1.10 keeps serving from it; one process |
+| `distributed` (`experimental`) | Postgres (`pg`) | several instances behind a load balancer; experimental until a real deployment |
+
+`init --store=sqlite` writes `"store": "sqlite:bridge.sqlite"` in `config.json`; without it `init` still writes the
+journal's configuration in 4.1.10 (the default moves to SQLite when the engine requires Node 22.13, D20). A database
+URL is not written in the file: `serve --store=postgres://…` or `BRIDGE_STORE=postgres://…`. The schema is versioned
+(`bridge/migrations/`): a SQL store brings it up when it opens; `migrate --schema=N` goes up or down by hand, and a
+database newer than the Bridge is refused. The SQLite file and its `-wal` and `-shm` are mode 0600; a write that
+waits more than 5 s for another process's lock is answered 503 with `Retry-After` (the connector repeats it).
+
+```sh
+npm run bridge -- migrate --from=jsonl --to=sqlite [--tenant=<id>]   # the Bridge stopped; the journal is kept
+npm run bridge -- doctor                                              # a store read without a change
+```
+
+`migrate --from=jsonl` reads the journal under its lock, writes every player, signal, acknowledgement and revocation
+into the new store, reads them back, then names the new store in `config.json` (not for a URL). `doctor` on a SQL
+store prints its schema version and, per tenant, the players, the signals, any gap in a player's sequence (exit 1)
+and the quarantined rows. `compact` is the journal's command; a SQL store keeps every signal in 4.1.10.
+
+## Several tenants, several instances
+
+A tenant is one operator's game in one environment: its own directory (`init --tenant=<id>
+--environment=prod|staging|dev --hosts=bridge.a.example`), its own Biscuit root, event key, operator token, quotas,
+rotation and revocations. One server holds several on one SQL store:
+
+```sh
+BRIDGE_STORE=postgres://… npm run bridge -- serve --tenants=/srv/bridge/a,/srv/bridge/b [--tenant-header]
+```
+
+A request is routed by its `Host` (each tenant's `hosts`), or by `X-Web-Scumm-Tenant` with `--tenant-header`, before
+anything is read; no tenant, a 404. Every row of the store carries its tenant and every query filters on it. A tenant
+of a shared deployment signs `SignalV2` (ADR 0010: the signal names its tenant, environment, origin, link and key) and
+its connectors' tokens are bound to it (`grant` adds the tenant), so neither a token nor a signal of one tenant is
+accepted by another even when two of them were (wrongly) given one key.
+
+Instances are stateless: start as many `serve` as needed on the same store, with no sticky sessions. Sequences,
+deduplication and acknowledgements are decided in one database transaction; a signal accepted by one instance reaches
+a stream held by another, which reads the store when woken (Postgres `NOTIFY`, a 250 ms poll on SQLite, and a pass
+every 5 s should a wake-up be lost). Delivery is at least once and applied once (D20). Each instance bounds its open
+streams (`streamsPerInstance`, 10 000; then 429) and its per-connector minute (with N instances a connector may
+propose N times its quota). A stored row that no longer verifies is quarantined, never delivered, and `doctor` lists it.
+
+## Health, measures, backups
+
+- `GET /livez`: the process answers. `GET /readyz`: the store answers (503 otherwise). `GET /healthz`: both, with
+  the tenants, the store's kind and the open streams. No token, no tenant's data.
+- Measures: acceptances, duplicates, refusals by code, acknowledgements, store retries, quarantine, refused streams,
+  the backlog and a proposal's latency. In the process always; through OpenTelemetry's metrics API when
+  `@opentelemetry/api` is installed beside the Bridge, exported over OTLP when `OTEL_EXPORTER_OTLP_ENDPOINT` is set and
+  `@opentelemetry/sdk-node` is installed. Attributes: the tenant and a code, never a player or a payload.
+- `npm run bridge -- backup --out=<file>` writes every tenant (one transaction each) to a file of mode 600: hashes of
+  capabilities, never a capability or a key. `restore --from=<file>` writes it into an empty store (`--force`
+  replaces the tenants it holds). Both are rehearsed by `tests/bridge-ops.test.ts`. On Postgres, `pg_dump` remains
+  the backup of the database itself.
+- `tenant export --tenant=<id> [--out=<file>]`, `tenant delete --tenant=<id> --yes`: one tenant's rows, in every table.
+
+## Procedures
+
+**An event key compromised (one tenant).** `rotate --dir=<tenant>`, then remove the compromised key from
+`previousKeys` in that tenant's `config.json`, and restart its instances. Players refuse what it signed from
+then on; what waits for them is signed again under the new key at delivery. The other tenants are untouched.
+
+**A Biscuit root compromised.** `init --force` is too much: make a new root (`init` in a scratch directory, copy its
+`biscuitRoot` and `root.key`), grant every connector of the tenant a new token, restart, then revoke the old tokens'
+ids (`revoke --token=`) for the window before the restart.
+
+**An instance or its host compromised.** It held every private key of the tenants it served: rotate each tenant's
+event key, make each tenant a new root, change the database password and the operator tokens, and read the store's
+`quarantine` and the logs since the compromise.
+
+**Rotation, routinely.** Per tenant, at its own pace: `rotate --dir=<tenant> --keep-days=30`, restart its instances
+one by one (the others keep serving; the store is the same).
+
+**Recovery.** An instance killed or crashed: start another; nothing is lost (a transaction is committed or not there,
+`tests/bridge-fanout.test.ts` kills one of three during 1 000 proposals). The database lost: `restore` the last backup
+into a new one, then `doctor`; connectors repeat what they sent since (their `dedupeKey` makes it idempotent), and
+players keep their cursors. A journal that will not start: `doctor` names the line.
+
+## What is not here (4.1.10)
+
+A real email or SSH connector, a deployment of the `distributed` profile (it stays `experimental` until one), row-level
+security per tenant in Postgres, retention on a SQL store, a rate limit per connector shared between instances. The
+reference Bridge is for a game, a developer, an event or a small studio's games; the protocol is what stays.

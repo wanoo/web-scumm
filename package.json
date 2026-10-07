@@ -1,7 +1,7 @@
 {
   "name": "web-scumm",
   "private": true,
-  "version": "4.1.8",
+  "version": "4.1.10",
   "type": "module",
   "scripts": {
     "dev": "tsx tools/select-game.ts && vite",
@@ -32,6 +32,7 @@
     "e2e:taps": "node scripts/e2e-taps.mjs",
     "e2e:reality": "node scripts/e2e-reality.mjs",
     "release-check": "npm run doctor -- --release && npm run quality && npm run build && npm run test:coverage && npx tsx tools/coverage-ratchet.ts --strict && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && npm run test:mutation:core -- --set=all && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high",
+    "release-check:ci": "npm run doctor -- --release && npm run quality && npm run build && npm run test:coverage && npx tsx tools/coverage-ratchet.ts --strict && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high",
     "ship": "node tools/release/ship.mjs",
     "e2e": "node scripts/e2e.mjs",
     "validate": "tsx tools/validate.ts",
@@ -79,9 +80,12 @@
     "verify:commercial": "npm run verify:release && npm run validate -- --commercial --errors && npm run verify:dist",
     "quality:baseline": "tsx tools/quality-baseline.ts",
     "bridge": "tsx tools/bridge.ts",
+    "bridge:load": "tsx tools/bridge-load.ts",
     "solve:reality": "tsx tools/solve-reality.ts",
     "reality:spike": "node scripts/reality-spike.mjs",
     "reality:xcheck": "tsx tools/reality-xcheck.ts",
+    "connector": "node connectors/bin.mjs",
+    "fuzz:connectors": "tsx tools/fuzz-connectors.ts",
     "verify:dist": "tsx tools/dist.ts",
     "verify:field": "npm run verify:commercial && npm run playtests -- --strict --require=5 --require-completed=3 --require-devices=2",
     "provenance": "tsx tools/provenance.ts",
@@ -89,6 +93,8 @@
     "e2e:a11y": "node scripts/e2e-a11y.mjs",
     "docs:screenshots": "node scripts/docs-screenshots.mjs",
     "docs:links": "node scripts/check-links.mjs",
+    "changes": "tsx tools/changes.ts",
+    "ci:plan": "tsx tools/ci-plan.ts",
     "test:heavy": "vitest run tests/ownership.test.ts tests/audit.test.ts tests/canonical.test.ts tests/memo.test.ts tests/reference-proof.test.ts tests/solver-oracle.test.ts tests/dominance.test.ts tests/partition.test.ts",
     "build:game": "npm run verify:game && vite build && npm run verify:dist && npm run check:spoilers && npm run audit:assets"
   },
@@ -105,13 +111,17 @@
     "@types/node": "^22.10.0",
     "@typescript/typescript6": "^6.0.2",
     "@vitest/coverage-v8": "^5.0.3",
+    "cpu-features": "file:connectors/vendor/refused-native",
     "cross-env": "^7.0.3",
     "esbuild": "^0.28.2",
     "fake-indexeddb": "^6.2.5",
     "fast-check": "^4.10.2",
     "happy-dom": "^20.14.5",
     "knip": "^6.39.0",
+    "nan": "file:connectors/vendor/refused-native",
+    "pg": "^8.23.1",
     "playwright": "^1.63.0",
+    "ssh2": "^1.17.0",
     "tsx": "^4.19.0",
     "tweakpane": "^4.0.5",
     "typescript": "^7.0.2",
@@ -125,6 +135,10 @@
     "navmesh": "^2.3.1",
     "sirv-cli": "^3.0.1",
     "zod": "^4.6.5"
+  },
+  "overrides": {
+    "cpu-features": "$cpu-features",
+    "nan": "$nan"
   },
   "engines": {
     "node": ">=22.12"

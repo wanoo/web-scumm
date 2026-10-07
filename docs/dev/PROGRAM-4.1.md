@@ -23,8 +23,8 @@ series. A chosen break must be simpler to explain, easier to test and cheaper to
 | Version | Working name | Expected result |
 |---|---|---|
 | 4.1.8 | Foundation Reset (shipped 7 October 2026) | TypeScript 7, Vite 8, PWA 2; the Reality cursor fixed (P0, reproduced); mutation and coverage gates that block; `doctor --release` predicting `release-check`; only tracked files packed; the three biggest Studio tabs split |
-| 4.1.9 | Gateways | email, SSH, Telnet and Open Badges connectors on one SDK, out of the game's process, with a threat model and fuzzing each; experimental until a real pass |
-| 4.1.10 | Constellation | a durable Bridge (SQLite locally, PostgreSQL distributed), stateless instances, tenants isolated, at-least-once delivery with idempotent application; `SignalV2` if the threat analysis asks |
+| 4.1.9 | Gateways (shipped 7 October 2026) | email, SSH, Telnet and Open Badges connectors on one SDK, out of the game's process, with a threat model and fuzzing each; experimental until a real pass |
+| 4.1.10 | Constellation (shipped 7 October 2026) | a durable Bridge (SQLite locally, PostgreSQL distributed), stateless instances, tenants isolated, at-least-once delivery with idempotent application; `SignalV2` if the threat analysis asks |
 | 4.1.11 | Viewport | an immutable `SceneFrame` the renderer draws, intentions back; a semantic journal emitted by the core (room entered, item acquired, objective completed, ending reached) that the presentation subscribes to; the backend chosen after a measured prototype |
 | 4.1.12 | Language | `GameIR`, one target for runtime, solver, replay, Studio and docs; a `GameFingerprint` (logic, trusted extensions, presentation, engine); the primitives Gateways and Viewport asked for; the core of the DSL stabilised |
 | 4.1.13 | Proof at Scale | a reference matrix fixed before the code (seeds, budgets, machine); compact states, checkpoints, dominance audited against the exhaustive search; two thresholds: a minimum to ship, the matrix within budget as the goal, else the release is named "Solver Research" |

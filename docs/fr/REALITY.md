@@ -84,6 +84,11 @@ cinq minutes de tolérance pour l'horloge de l'appareil (`CLOCK_SKEW_MS` dans `s
 même valeur dans le cross-check Rust). Quand un signal nomme une clé que le trousseau n'a pas (le Bridge a fait
 tourner sa clé pendant que le lien était ouvert), le client redemande les clés une fois avant de le refuser.
 
+Depuis la 4.1.10 un signal peut être un `WorldSignalV2` (ADR 0010) : il nomme le tenant, l'environnement, l'origine
+d'où le joueur s'est appairé, le lien et la clé pour lesquels il a été signé, et le joueur en refuse un signé pour un
+autre contexte (`audience-mismatch`), l'origine de la page vérifiée par défaut. Un Bridge à plusieurs tenants ne signe
+qu'en V2 ; un Bridge seul signe en V1 jusqu'à la 4.1.12, où le V2 devient la seule version (`docs/fr/UPGRADING.md` §22).
+
 ## Ce que la session et la sauvegarde gardent
 
 Un signal est une entrée de la session (`{ external: { id, sequence, signal, source, receivedAt, playerId } }`) :

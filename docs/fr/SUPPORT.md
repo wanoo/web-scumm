@@ -43,19 +43,25 @@ passent en 4.0 avec `web-scumm migrate` (rien à réécrire pour un jeu déjà e
 
 ## Matrice de support
 
-Ce que les gates automatiques exécutent à chaque changement, et ce que seules des personnes vérifient
-(`docs/fr/FIELD.md`) :
+Ce que les gates automatiques exécutent, et ce que seules des personnes vérifient (`docs/fr/FIELD.md`). Depuis la 4.1.9,
+la CI exécute chaque ligne ci-dessous sur `main` et sur chaque tag ; une pull request exécute le niveau rapide (lint,
+types, la suite unitaire, le build et la preuve du jeu d'exemple) et seulement les lignes que son changement peut
+toucher, selon le classement du diff par `tools/ci-plan.ts` : une pull request de docs seules n'ouvre aucun navigateur,
+aucun runner Windows ni Node 24 (`CONTRIBUTING.md`, « What CI runs ») :
 
-| | Vérifié par la CI à chaque changement | Vérifié par des personnes (pas encore fait) |
+| | Vérifié par la CI (sur `main` et les tags ; sur une pull request quand son changement peut le toucher) | Vérifié par des personnes (pas encore fait) |
 |---|---|---|
 | Joueur, téléphone | Chromium et WebKit à la taille d'un téléphone, tactile et clavier, français ; la PWA installée, mise à jour après une sauvegarde durable, réinstallée, dans Chromium, WebKit et Firefox ; le jeu ouvert hors ligne (Chromium, Firefox) | un vrai téléphone Android, un vrai iPhone installé depuis Safari et mis à jour, Safari hors ligne sur l'appareil |
 | Joueur, bureau | Chromium, souris et clavier | — |
 | Joueur, lecteur d'écran | axe-core sur chaque écran (pas une conformité WCAG) | une passe VoiceOver ou NVDA |
 | Firefox | la PWA seulement : installation, mise à jour, réinstallation, hors ligne (`npm run e2e:pwa`, le job `pwa-firefox`) ; le refus occasionnel par son worker d'une image en cache hors ligne est signalé par le job, pas compté | Firefox hors ligne sur une vraie machine ; rien d'autre de promis |
 | Node | 22.12 ou plus : 22 et 24 sur Ubuntu ; macOS pour l'usage quotidien du mainteneur | — |
-| Windows | un job `windows-latest` à chaque changement (4.1.8) : `doctor`, les types, la suite unitaire moins six fichiers qui supposent POSIX (modes de fichier, `/` dans les chemins ; nommés dans `ci.yml`), `build`, le serveur de production qui répond | `npm run dev` et le Studio sous Windows ; les six fichiers de tests, portés |
+| Windows | un job `windows-latest` (4.1.8 ; sur une pull request, quand du code a changé) : `doctor`, les types, la suite unitaire moins six fichiers qui supposent POSIX (modes de fichier, `/` dans les chemins ; nommés dans `ci.yml`) et, depuis 4.1.9, les tests Telnet et SSH, `build`, le serveur de production qui répond | `npm run dev` et le Studio sous Windows ; les six fichiers de tests, portés |
 | Python | optionnel : les outils d'image et le pipeline audio, Pillow, NumPy, SciPy épinglés dans `requirements.txt` | — |
-| Reality Bridge | Node 22.12+, e2e Chromium et WebKit, une contre-vérification Rust du protocole | un Bridge derrière HTTPS avec un vrai connecteur |
+| Reality Bridge | Node 22.12+, e2e Chromium et WebKit, une contre-vérification Rust du protocole (`SignalV2` compris) | un Bridge derrière HTTPS avec un vrai connecteur |
+| Bridge, profil `local` (4.1.10) | SQLite via `node:sqlite` (Node 22.13+) : le contrat du store, les tenants croisés en tests de propriété, trois processus sur un fichier dont un tué pendant 1 000 propositions, sauvegarde et restauration répétées ; une charge de 50 000 propositions chaque nuit | une installation de longue durée sur une vraie machine |
+| Bridge, profil `distributed` (4.1.10, `experimental`) | Postgres 16 en CI (`bridge-postgres`) : le même contrat, les tenants et la diffusion entre instances ; la charge de nuit | un vrai déploiement : jusque-là, `experimental` |
+| Connecteurs (4.1.9), **expérimental** (D19) | email (webhook signé, IMAP), Telnet, SSH, Open Badges 2 et 3 : le même contrat pour les quatre, tests d'abus et de fuzz, une exécution sous `--disallow-code-generation-from-strings`, les replays du chapitre d'exemple ; les tests Telnet et SSH pas encore sous Windows | un vrai fournisseur d'email, un vrai badge d'un vrai émetteur, SSH et Telnet exposés dans un environnement contrôlé |
 ## Dépréciation
 
 Un nom ou une option à retirer est d'abord **déprécié** dans une mineure : marqué `@deprecated` dans son type (les

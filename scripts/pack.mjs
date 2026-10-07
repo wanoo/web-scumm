@@ -1,5 +1,6 @@
 // node scripts/pack.mjs [--out=.cache/pack] [--publish-dry-run] (3.9): the engine as npm packages, from the files git tracks. 4.1.1:
 // `web-scumm-bridge`, the reference Reality Bridge, a package of its own (a game that does not run one never installs it).
+// 4.1.9: `web-scumm-connectors`, the connectors of the world outside, a fourth package (an operator's, never a game's).
 // `web-scumm`: the engine (src/), its pages, its tools and the `web-scumm` command, the game template; never a game
 // of this repository, a test, a doc page or a build. `create-web-scumm`: `npx create-web-scumm <folder>`, which runs
 // `web-scumm create`. Both are packed (`npm pack`) into <out>/, ready for `npm install <tarball>` or `npm publish`.
@@ -26,7 +27,13 @@ const SHIP = [
   /^LICENSE$/,
 ];
 // The Bridge's development tools (Biscuit's samples, the Rust cross-check) stay in the repository.
-const SKIP = [/__pycache__|\.pyc$/, /^tools\/audit-assets\.ts$/, /^tools\/reality-(xcheck|fixtures)\.ts$/];
+const SKIP = [
+  /__pycache__|\.pyc$/,
+  /^tools\/audit-assets\.ts$/,
+  /^tools\/reality-(xcheck|fixtures)\.ts$/,
+  // The connectors' fuzz harness reads the repository's corpus and sample game (4.1.9): a development tool.
+  /^tools\/fuzz-connectors\.ts$/,
+];
 const shipped = (list) =>
   list.split('\n').filter((f) => f && SHIP.some((r) => r.test(f)) && !SKIP.some((r) => r.test(f)));
 const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' });
@@ -144,6 +151,9 @@ execFileSync(
     '--external:@biscuit-auth/biscuit-wasm',
     '--external:zod',
     '--external:zod/*',
+    // Optional (4.1.10): loaded by name only when the distributed profile or OpenTelemetry is used.
+    '--external:pg',
+    '--external:@opentelemetry/*',
   ],
   { cwd: ROOT, stdio: 'inherit' },
 );
@@ -151,9 +161,14 @@ for (const f of readdirSync(join(ROOT, 'bridge', 'policy')).filter((f) => f.ends
   mkdirSync(join(bridge, 'policy'), { recursive: true });
   cpSync(join(ROOT, 'bridge', 'policy', f), join(bridge, 'policy', f));
 }
+// The store's schema (4.1.10), where `new URL('../migrations/', import.meta.url)` finds it from src/cli.mjs.
+for (const f of readdirSync(join(ROOT, 'bridge', 'migrations')).filter((f) => f.endsWith('.sql'))) {
+  mkdirSync(join(bridge, 'migrations'), { recursive: true });
+  cpSync(join(ROOT, 'bridge', 'migrations', f), join(bridge, 'migrations', f));
+}
 writeFileSync(
   join(bridge, 'bin.mjs'),
-  `#!/usr/bin/env node\n// web-scumm-bridge <init|serve|grant|rotate|revoke|doctor|compact>: the reference Reality Bridge on its own, for a\n// game that is already built: \`init --manifest=<game>/dist/reality-manifest.json\`, then \`serve\`. docs/en/REALITY-OPS.md.\nconst { main } = await import('./src/cli.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
+  `#!/usr/bin/env node\n// web-scumm-bridge <init|serve|grant|rotate|revoke|doctor|compact|migrate|tenant|backup|restore>: the reference Reality Bridge on its own, for a\n// game that is already built: \`init --manifest=<game>/dist/reality-manifest.json\`, then \`serve\`. docs/en/REALITY-OPS.md.\nconst { main } = await import('./src/cli.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
 );
 writeFileSync(
   join(bridge, 'package.json'),
@@ -173,6 +188,10 @@ writeFileSync(
         '@biscuit-auth/biscuit-wasm': root.devDependencies['@biscuit-auth/biscuit-wasm'],
         zod: root.dependencies.zod,
       },
+      // Optional (4.1.10): `pg` for the distributed profile (Postgres), OpenTelemetry's API for the measures. npm does
+      // not install an optional peer: the `local` profile (SQLite, node:sqlite) needs neither.
+      peerDependencies: { pg: root.devDependencies.pg, '@opentelemetry/api': '^1.9.0' },
+      peerDependenciesMeta: { pg: { optional: true }, '@opentelemetry/api': { optional: true } },
     },
     null,
     2,
@@ -184,17 +203,70 @@ writeFileSync(
   `# web-scumm-bridge\n\nThe reference Reality Bridge for a web-scumm game. \`npx web-scumm-bridge init --manifest=dist/reality-manifest.json\`, then \`npx web-scumm-bridge serve\`; \`doctor\` and \`compact\` for the journal. Documentation: https://github.com/wanoo/web-scumm (docs/en/REALITY-OPS.md).\n`,
 );
 
-for (const d of [engine, create, bridge])
+// The connectors (4.1.9, docs/en/CONNECTORS.md): the SDK, `web-scumm-connector` and the four connectors bundled into
+// one module (src/run.mjs), the MIME reader's worker beside it (src/mime-worker.mjs, where `new URL('./mime-worker.mjs',
+// import.meta.url)` finds it), `ssh2` a dependency. A game never installs it; an operator runs it next to a Bridge.
+const connectors = join(out, 'web-scumm-connectors');
+mkdirSync(join(connectors, 'src'), { recursive: true });
+for (const [entry, outfile] of [
+  ['connectors/src/run.ts', 'run.mjs'],
+  ['connectors/src/email/mime-worker.ts', 'mime-worker.mjs'],
+])
+  execFileSync(
+    join(ROOT, 'node_modules', '.bin', 'esbuild'),
+    [
+      entry,
+      '--bundle',
+      '--platform=node',
+      '--format=esm',
+      '--target=node22',
+      '--log-level=warning',
+      `--outfile=${join(connectors, 'src', outfile)}`,
+      '--external:ssh2',
+    ],
+    { cwd: ROOT, stdio: 'inherit' },
+  );
+writeFileSync(
+  join(connectors, 'bin.mjs'),
+  `#!/usr/bin/env node\n// web-scumm-connector <email|telnet|ssh|open-badge> --config <file.json>: one connector of the world outside, as its own\n// process, beside a web-scumm-bridge. docs/en/CONNECTORS.md.\nconst { main } = await import('./src/run.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
+);
+writeFileSync(
+  join(connectors, 'package.json'),
+  JSON.stringify(
+    {
+      name: 'web-scumm-connectors',
+      version: root.version,
+      description:
+        'Connectors of the world outside for web-scumm games (email, Telnet, SSH, Open Badges): each its own process, proposing signals to a web-scumm-bridge. Experimental.',
+      license: 'MIT',
+      type: 'module',
+      engines: root.engines,
+      repository: { type: 'git', url: 'git+https://github.com/wanoo/web-scumm.git' },
+      bin: { 'web-scumm-connector': 'bin.mjs' },
+      exports: { './run': './src/run.mjs', './package.json': './package.json' },
+      dependencies: { ssh2: root.devDependencies.ssh2 },
+    },
+    null,
+    2,
+  ) + '\n',
+);
+cpSync(join(ROOT, 'LICENSE'), join(connectors, 'LICENSE'));
+writeFileSync(
+  join(connectors, 'README.md'),
+  `# web-scumm-connectors\n\nConnectors of the world outside for a web-scumm game: email, Telnet, SSH and Open Badges, each its own process, each proposing the signals its game declares to a \`web-scumm-bridge\` under its own Biscuit. Experimental (4.1.9). Install without native code: \`npm install --omit=optional --ignore-scripts web-scumm-connectors\`. Then \`npx web-scumm-connector <email|telnet|ssh|open-badge> --config connector.json\`. Documentation: https://github.com/wanoo/web-scumm (docs/en/CONNECTORS.md).\n`,
+);
+
+for (const d of [engine, create, bridge, connectors])
   execFileSync('npm', ['pack', '--pack-destination', out, '--silent'], {
     cwd: d,
     stdio: ['ignore', 'inherit', 'inherit'],
   });
 console.log(
-  `packed into ${out}: web-scumm ${root.version} (${files.length} files), create-web-scumm, web-scumm-bridge (one module, its policies)`,
+  `packed into ${out}: web-scumm ${root.version} (${files.length} files), create-web-scumm, web-scumm-bridge (one module, its policies), web-scumm-connectors (one module, its MIME worker)`,
 );
 // --publish-dry-run (4.1.8): what `npm publish` would send, for each package, without sending it (release-check).
 if (process.argv.includes('--publish-dry-run'))
-  for (const dir of [engine, create, bridge]) {
+  for (const dir of [engine, create, bridge, connectors]) {
     execFileSync('npm', ['publish', '--dry-run', '--ignore-scripts'], {
       cwd: dir,
       stdio: 'inherit',

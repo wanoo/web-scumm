@@ -105,7 +105,7 @@ contenu.
 publication npm est prévue pour la 4.2, puis `npx create-web-scumm mon-jeu`) :
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.8/web-scumm-4.1.8.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.10/web-scumm-4.1.10.tgz
 npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # puis npm run verify, npm run build, npm run release
@@ -134,9 +134,9 @@ Mesuré sur ce commit de `main`, par les gates automatiques qui tournent à chaq
 
 | Quoi | Résultat |
 |---|---|
-| Tests unitaires | <!-- metric:tests -->945<!-- /metric --> déclarations, sous Node 22 et 24, avec des planchers de couverture par module et des tests de mutation sur ce dont dépendent une sauvegarde, une session, une condition et un signal |
+| Tests unitaires | <!-- metric:tests -->1077<!-- /metric --> déclarations, sous Node 22 et 24, avec des planchers de couverture par module et des tests de mutation sur ce dont dépendent une sauvegarde, une session, une condition et un signal |
 | Tests navigateur | le jeu d'exemple joué jusqu'à sa fin au tactile et au clavier dans Chromium et WebKit à la taille d'un téléphone, en anglais et en français, avec le peintre DOM et le peintre Canvas ; un second jeu et le jeu de référence aussi ; chaque mini-jeu gagné au clavier ; axe-core sur chaque écran |
-| Sauvegardes | une sauvegarde figée par release de la 3.0.0 à la 4.1.8 se charge et atteint la fin |
+| Sauvegardes | une sauvegarde figée par release de la 3.0.0 à la 4.1.10 se charge et atteint la fin |
 | Preuve | chaque état atteignable du jeu d'exemple en quelques secondes ; un jeu de référence de 40 pièces en <!-- metric:referenceStates -->288<!-- /metric --> états ; 500 jeux aléatoires de chacune de trois sortes comparés à une recherche explicite chaque nuit, 0 divergence ([BENCH](docs/fr/BENCH.md)) |
 | Un nouveau jeu | empaqueté, créé depuis l'archive, installé, vérifié, construit et joué jusqu'à sa fin par la CI ; un jeu fait sur la release précédente mis à niveau et sa sauvegarde jouée jusqu'à la fin |
 | La première visite du joueur | <!-- metric:initialJsKB -->120<!-- /metric --> Ko de JavaScript, gzippés, tenus par un budget ; chaque octet téléchargé prédit par le graphe des assets |
@@ -164,17 +164,16 @@ journal du travail.
 
 ## Releases
 
-Release actuelle : [v4.1.8 « Foundation Reset »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.8), la
-première du programme 4.1.8 → 4.1.15 : TypeScript 7, Vite 8 et la 2.0 du plugin PWA ; un signal du monde extérieur
-n'est plus perdu avec sa connexion (le curseur Reality, reproduit puis corrigé) ; l'installation, la mise à jour et la
-réinstallation de la PWA prouvées dans trois navigateurs ; un contrôle de release qui prédit la release ; les gates
-de mutation et de couverture bloquantes ; les trois plus gros fichiers du Studio découpés ; chaque export public avec
-sa stabilité ; la documentation qui dit une seule chose, ses chiffres écrits par la baseline. Sur les pages de la
-4.1.7. De la 4.1.1 à la 4.1.7 chaque release n'a ajouté que de l'optionnel, et un jeu écrit pour l'une
-tournait sur la suivante ; depuis la 4.1.8 la lignée 4.1.x est une lignée d'incubation, où une release peut rompre un
-nom public ou un format, documenté et avec une migration, jusqu'à la 4.2.0 qui rétablit le SemVer strict
-([SUPPORT](docs/fr/SUPPORT.md)). L'histoire de la v1.3 à aujourd'hui est dans la [ROADMAP](docs/fr/ROADMAP.md),
-chaque changement dans le [CHANGELOG](CHANGELOG.md).
+Release actuelle : [v4.1.10 « Constellation »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.10), la troisième
+du programme 4.1.8 → 4.1.15 : un Bridge durable derrière une interface de store unique (SQLite en local, Postgres pour
+plusieurs instances), des instances sans état propre qui partagent un journal, des tenants isolés par clé et par
+ligne, un signal qui nomme son contexte (`SignalV2`), des routes de santé, sauvegarde et restauration. Sur les
+connecteurs de la 4.1.9 (email, Telnet, SSH, Open Badges sur un SDK commun, expérimentaux jusqu'à un passage réel) et
+la fondation de la 4.1.8 (TypeScript 7, Vite 8, la PWA prouvée dans trois navigateurs). De la 4.1.1 à la 4.1.7 chaque
+release n'a ajouté que de l'optionnel, et un jeu écrit pour l'une tournait sur la suivante ; depuis la 4.1.8 la lignée
+4.1.x est une lignée d'incubation, où une release peut rompre un nom public ou un format, documenté et avec une
+migration, jusqu'à la 4.2.0 qui rétablit le SemVer strict ([SUPPORT](docs/fr/SUPPORT.md)). L'histoire de la v1.3 à
+aujourd'hui est dans la [ROADMAP](docs/fr/ROADMAP.md), chaque changement dans le [CHANGELOG](CHANGELOG.md).
 
 ## Plan du dépôt
 

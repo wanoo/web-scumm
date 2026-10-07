@@ -6,9 +6,11 @@
 //   ship merge <pr>              `checks`, then merge (merge commit, the only method the ruleset allows); prints the SHA
 //   ship main <sha>              wait for the `ci` run of main on that SHA to be green (re-run once)
 //   ship tag <version> <sha>     `main`, then an annotated tag v<version> on the SHA, pushed; then `watch`
+//                                (`--now`, 4.1.10: without waiting for main's run; the tag's own `ci` run, the same
+//                                suite on the same commit, is what release.yml checks)
 //   ship watch <version>         wait for the tag's `ci` run, then for the `release` run; exit by its conclusion
 //   ship verify <version>        download the release, check the SHA-256 sums and every provenance attestation
-//   ship chain <pr> <version>    merge → tag → watch → verify
+//   ship chain <pr> <version>    merge → tag → watch → verify (`--now` passes to tag)
 //
 // A pre-release version (`4.1.8-rc.1`) is tagged the same way; release.yml marks it a pre-release on GitHub.
 // Every command writes its PID to `.cache/pids/ship-<command>.pid` (`SHIP_PIDS` to choose the folder): stop that
@@ -32,7 +34,7 @@ import {
   writePid,
 } from './lib.mjs';
 
-const [command, ...rest] = process.argv.slice(2);
+const [command, ...rest] = process.argv.slice(2).filter((a) => !a.startsWith('--')); // flags are read from argv
 
 const RERUN_ONCE = new Set();
 /** Re-runs the failed jobs of a run once; false when it was already re-run (the second failure is final). */
@@ -196,8 +198,9 @@ async function main(sha) {
 async function tag(versionArg, sha) {
   const version = versionOf(versionArg);
   const name = `v${version}`;
+  git(['fetch', '--quiet', 'origin']); // the merge commit `chain` just made is on origin, not here yet (seen on 4.1.9, 4.1.10)
   const full = localCommit(sha);
-  if (!full) throw new Error(`${sha}: not a commit here (fetch first)`);
+  if (!full) throw new Error(`${sha}: not a commit on origin either`);
   const onOrigin = originTagCommit(name);
   if (onOrigin) {
     if (onOrigin !== full)
@@ -206,7 +209,9 @@ async function tag(versionArg, sha) {
       );
     say(`${name} already on origin at ${full.slice(0, 7)}`);
   } else {
-    await main(full);
+    if (process.argv.includes('--now'))
+      say(`tagging without waiting for main's run (--now): the tag's run is the gate`);
+    else await main(full);
     const local = localCommit(name);
     if (local && local !== full)
       throw new Error(
@@ -292,7 +297,9 @@ async function verify(versionArg) {
     attested++;
   }
   say(`${name}: ${files.length} files, sums ok, ${attested} attestations verified`);
-  if (!existsSync(join(dir, `web-scumm-${version}.tgz`))) throw new Error(`${name}: web-scumm-${version}.tgz missing`);
+  // The tarballs carry package.json's version, never a tag's pre-release suffix (v4.1.8-rc.1 ships web-scumm-4.1.8.tgz).
+  const packed = version.replace(/-.*$/, '');
+  if (!existsSync(join(dir, `web-scumm-${packed}.tgz`))) throw new Error(`${name}: web-scumm-${packed}.tgz missing`);
   return { files, attested };
 }
 

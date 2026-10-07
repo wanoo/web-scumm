@@ -2,10 +2,12 @@
 // docs/dev/PLAN-4.1-REALITY-BRIDGE.md §13 on the production build of games/signals and a real reference Bridge:
 // pair the game from its pause menu, close the browser, receive the same webhook twice, reopen the game offline, come
 // back online, apply the signal once, save, export the session, stop the Bridge, replay the session to the same end.
-// Starts its own Bridge (npm run bridge, GAME=signals) on 127.0.0.1:8787, the URL the game declares. Exit 3: WebKit
-// could not reopen offline (not automatable, as in e2e:pwa); `--allow-skip` accepts it with an explicit line.
+// Starts its own Bridge (npm run bridge, GAME=signals) on 127.0.0.1:8787, the URL the game declares. 4.1.9: two
+// connectors send one key three times each (one effect), and the sample chapter's recorded replays are proposed.
+// Exit 3: WebKit could not reopen offline (not automatable, as in e2e:pwa); `--allow-skip` accepts it with an
+// explicit line.
 import { spawn, execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createHmac } from 'node:crypto';
@@ -177,6 +179,75 @@ if (started) {
     (await hook('answer.correct', 'delivery-1', playerId)) === 200,
     'a third delivery of the same webhook: a duplicate',
   );
+
+  // 4b. (4.1.9, D19) Two connectors of one source (Telnet and SSH both propose `terminal.lamp`) send the same key three
+  // times each: one sequence, one logical effect in the game. One token is the demonstration one of the `terminal`
+  // source, the other minted by `grant`, as an operator gives each connector its own.
+  const minted = execFileSync(
+    'npm',
+    [
+      'run',
+      '--silent',
+      'bridge',
+      '--',
+      'grant',
+      `--dir=${dir}`,
+      '--connector=ssh',
+      '--source=terminal',
+      '--signals=terminal.lamp',
+    ],
+    { env, encoding: 'utf8' },
+  ).trim();
+  const propose = async (token, signal, source, dedupeKey) =>
+    (
+      await fetch(new URL('v1/signals', BRIDGE), {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId, signal, source, dedupeKey }),
+      })
+    ).status;
+  const statuses = [];
+  for (let i = 0; i < 3; i++)
+    for (const token of [config.webhooks.terminal.token, minted])
+      statuses.push(await propose(token, 'terminal.lamp', 'terminal', 'e2e:lamp:1'));
+  say(
+    statuses.filter((x) => x === 202).length === 1 && statuses.filter((x) => x === 200).length === 5,
+    `one key from two connectors, three times each: accepted once (${statuses.join(' ')})`,
+  );
+  const lit = await page
+    .waitForFunction(() => window.__game.engine.state.flags.lamp_on === true && !window.__game.engine.busy, null, {
+      timeout: 60000,
+    })
+    .then(
+      () => true,
+      () => false,
+    );
+  const entries = await page.evaluate(() => (window.__game.engine.session?.log ?? []).filter((e) => e.external).length);
+  say(lit && entries === 2, `the lamp lit, applied once (${entries} signal entries in the session)`);
+
+  // 4c. (4.1.9) The sample chapter's recorded replays, their signals proposed as their connectors made them (the email
+  // source's token for a letter, the terminal's for a command): accepted, and the game shows their effect.
+  const tokenOf = { email: config.webhooks.email.token, terminal: config.webhooks.terminal.token };
+  const sourceOf = (signal) => (signal.startsWith('letter.') ? 'email' : 'terminal');
+  let proposed = 0;
+  for (const f of readdirSync(new URL('../games/signals/replays/', import.meta.url)).filter((x) =>
+    x.endsWith('.json'),
+  )) {
+    const replay = JSON.parse(readFileSync(new URL(`../games/signals/replays/${f}`, import.meta.url), 'utf8'));
+    for (const [i, signal] of replay.signals.entries()) {
+      const status = await propose(tokenOf[sourceOf(signal)], signal, sourceOf(signal), `e2e:replay:${f}:${i}`);
+      if (status === 202) proposed++;
+    }
+  }
+  const opened = await page
+    .waitForFunction(() => window.__game.engine.state.flags.shed_open === true && !window.__game.engine.busy, null, {
+      timeout: 60000,
+    })
+    .then(
+      () => true,
+      () => false,
+    );
+  say(proposed > 0 && opened, `the recorded replays proposed (${proposed} signals) and the shed door open in the game`);
   await page.evaluate(async () => {
     await window.__game.engine.act({ verb: 'use', a: 'gate' });
   });
@@ -187,12 +258,18 @@ if (started) {
     .catch(() => {});
   const ended = await page.evaluate(() => !!window.__game.engine.state.flags.ended);
   say(ended, 'the game reaches its end');
-  const acked = await (
-    await fetch(new URL(`v1/admin/players/${playerId}`, BRIDGE), {
-      headers: { Authorization: `Bearer ${readFileSync(join(dir, 'admin-token'), 'utf8').trim()}` },
-    })
-  ).json();
-  say(acked.acked === 1, `the Bridge holds the acknowledgement (${acked.acked})`);
+  // Every signal acknowledged: the first, the lamp, and the replays' (4.1.9); the player acknowledges after its save.
+  const expected = 2 + proposed;
+  let acked = { acked: 0 };
+  for (let i = 0; i < 60 && acked.acked !== expected; i++) {
+    acked = await (
+      await fetch(new URL(`v1/admin/players/${playerId}`, BRIDGE), {
+        headers: { Authorization: `Bearer ${readFileSync(join(dir, 'admin-token'), 'utf8').trim()}` },
+      })
+    ).json();
+    if (acked.acked !== expected) await new Promise((r) => setTimeout(r, 500));
+  }
+  say(acked.acked === expected, `the Bridge holds the acknowledgements (${acked.acked} of ${expected})`);
 
   // 5. The session exported, the Bridge stopped, the session replayed offline to the same end.
   const session = await page.evaluate(() => ({

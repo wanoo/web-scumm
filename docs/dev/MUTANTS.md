@@ -15,9 +15,8 @@ sections below.
 
 | Where | Mutant | Why it is equivalent |
 |---|---|---|
+| `bridge/src/bridge.ts` (`if (jws !== undefined) {`) | `condition false`: `jws !== undefined` → `false` | a miss on the re-sign cache only signs the payload again: Ed25519 is deterministic, so the JWS is byte-identical, and the count is the same whether the entry was found or set again under the same key |
 | `bridge/src/bridge.ts` (`if (oldest === undefined) break;`) | `condition false`: `oldest === undefined` → `false` | the eviction loop runs only while the map holds more than `limits.resignedCache` entries, so its first key always exists; the guard is reached by no limit the configuration accepts |
-| `bridge/src/bridge.ts` (`if (p) {`) | `condition false`: `p` → `false` | a miss on the re-sign cache only signs the payload again: Ed25519 is deterministic, so the JWS is byte-identical, and the count is the same whether the entry was found or set again under the same key |
-| `bridge/src/bridge.ts` | `condition true`: `this.streams.delete(s)` → `true` | ending a stream already ended calls `res.end()` a second time, which Node ignores |
 | `bridge/src/lock.ts` | `condition false`: `this.tails.get(key) === tail` → `false` | forgetting an idle key is bookkeeping (the map would only grow): with the entry kept, the next section still waits on a settled promise |
 | `bridge/src/store.ts` (`parseLine(tail, complete.length + 1);`) | `operator`: `+` → `-` | inspectJournal: the tail's line number appears only in parseLine's error message, which the caller discards (torn) |
 | `bridge/src/store.ts` (`this.apply(parseLine(tail, complete.length + 1));`) | `operator`: `+` → `-` | JsonlBridgeStore: the tail's line number appears only in parseLine's error message, which the constructor discards (truncate) |
@@ -27,6 +26,7 @@ sections below.
 | `bridge/src/store.ts` (`r.corrupt ??= err instanceof Error ? err.message : String(err);`) | `condition true`: `err instanceof Error` → `true` | inspectJournal: only the wording of the corruption message (`err.message` or a fallback); the line number and the refusal are the same |
 | `bridge/src/store.ts` (`throw new Error(`journal line ${n} is not an event (${err instanceof Error ? err.message : 'unreadable'})`);`) | `condition false`: `err instanceof Error` → `false` | parseLine: only the wording of the corruption message (`err.message` or a fallback); the line number and the refusal are the same |
 | `bridge/src/store.ts` (``journal line ${n} is not an event (${issue ? `${issue.path.join('.') \|\| 't'}: ${issue.message}` : 'invalid'})`,`) | `condition true`: `issue` → `true` | parseLine: a failed safeParse always carries at least one issue, so the 'invalid' branch is never taken |
+| `bridge/src/streams.ts` (`if (this.open.delete(s)) s.close(why);`) | `condition true`: `this.open.delete(s)` → `true` | ending a stream already ended calls `res.end()` a second time, which Node ignores |
 | `src/engine/core/migrate.ts` | `condition true`: `s.active` → `true` | players: with no active player, renamePlayer[undefined] is undefined and the value stays undefined |
 | `src/engine/core/migrate.ts` | `condition true`: `st.step` → `true` | script steps: with no step, renameScriptStep[id][undefined] is looked up and is undefined, so st.step stays undefined |
 | `src/engine/core/reality-runtime.ts` | `operator`: `&&` → `||` | binding the save to its player: with `||`, a bound save is written again with the same id (a different one returned `mismatch` just above), and a delivery without a player writes undefined over nothing |

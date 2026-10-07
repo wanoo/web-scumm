@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// web-scumm-bridge <init|serve|grant|rotate|revoke|doctor|compact> (4.1.1): the reference Reality Bridge on its own, for a game that
+// web-scumm-bridge <init|serve|grant|rotate|revoke|doctor|compact|migrate|tenant|backup|restore> (4.1.1; 4.1.10): the reference Reality Bridge on its own, for a game that
 // is already built: `init --manifest=<game>/dist/reality-manifest.json`, then `serve`. docs/en/REALITY-OPS.md.
 import { tsImport } from 'tsx/esm/api';
 

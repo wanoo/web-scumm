@@ -17,7 +17,7 @@ Before opening a pull request:
 4. For browser or visual changes, run the production build and `npm run e2e:smoke -- http://127.0.0.1:5173/`; inspect the screenshots.
 5. Never add private source assets or material with unclear commercial rights.
 
-Keep changes small and include a regression test for bug fixes. Public DSL, save and plugin contracts follow SemVer from v3 onward, except on the 4.1.8–4.1.15 incubation line (`docs/en/SUPPORT.md`: a break is documented, with a migration); internal modules are not compatibility promises unless documented otherwise.
+Keep changes small and include a regression test for bug fixes. A branch that changes the code writes its CHANGELOG bullets and its LOG entry as a fragment under `changes/` (`changes/README.md`), not in `CHANGELOG.md` or `docs/dev/LOG.md` directly (a release branch is the exception: it assembles the fragments and edits the CHANGELOG itself): the assembly on `main` orders and numbers them. Public DSL, save and plugin contracts follow SemVer from v3 onward, except on the 4.1.8–4.1.15 incubation line (`docs/en/SUPPORT.md`: a break is documented, with a migration); internal modules are not compatibility promises unless documented otherwise.
 
 ## Reading the code
 
@@ -27,6 +27,19 @@ responsibility of the engine, the player and the solver lives; `docs/dev/adr/` e
 surprising. A behaviour-preserving change keeps `npm run quality:baseline -- --check` green: the same witnesses,
 proofs, golden saves and public surface. A new test or a lighter bundle is a ratchet: run `npm run quality:baseline`,
 which rewrites the JSON and the READMEs' figures with it, and commit them.
+
+## What CI runs
+
+A pull request runs in tiers (`.github/workflows/ci.yml`, 4.1.9). The fast tier runs on every change: `plan`, then
+`check` (formatting, lint, knip, both TypeScript configurations, the sample game's gates and build, the baseline, its
+proof, `audit:deps` when the lockfile moved) beside `coverage` (the unit suite, once, under coverage; a floor that could
+rise is a warning on a pull request). The second tier waits for `check` and runs only what the change can break, as
+`tools/ci-plan.ts` reads the diff (`npm run ci:plan` shows it locally): a Bridge change runs Reality, a painter the
+browser rows and the reference chapter, the template the packaging jobs, a docs-only change none of them. A job the
+plan spares still appears and succeeds with "not needed by the plan". The workflow itself, the plan, a shared
+configuration (`package.json`, the lockfile, `vite.config.ts`, the tsconfigs), the engine's core and any path the plan
+does not know run everything. On `main` and on a tag everything runs, the coverage ratchet is strict and the mutation
+sets run; label a pull request `full-ci` (then push) to get the same before merging. `pr-gate` sums every job up.
 
 ## Changing a command, end to end
 
