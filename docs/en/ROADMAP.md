@@ -616,7 +616,8 @@ written by the baseline; a links script. Left for later, said as such: the human
 No production game depends on web-scumm yet (the maintainer's own game stays on 3.1.0, D8): the saves, projects and
 public API of the 4.1 line are oracles of behaviour, not a park to preserve at any cost. The programme uses that window
 to finish the architecture breaks before 4.2 freezes the contracts. Its source is `docs/dev/PLAN-4.1.8-4.1.15.md`
-(French, the decisions); `docs/dev/PROGRAM-4.1.md` summarises it in English. Rules of every version: a fixture or a test
+(French, the decisions); `docs/dev/PROGRAM-4.1.md` summarises it in English; `docs/dev/plans/` holds one execution
+sheet per release (what exists, the decisions, the contracts, the branches in order with their tests first, the gates). Rules of every version: a fixture or a test
 that shows the need before the code; an ADR for every transversal contract; the core deterministic, the content
 declarative; every primitive reaches the runtime, the validator, the solver, the replay, the Studio, the MCP and the
 docs; never `proved`, `verified` or `delivered` when a budget was cut; bundle, memory, build, proof and coverage

@@ -605,7 +605,8 @@ Aucun jeu de production ne dépend encore de web-scumm (le jeu du mainteneur res
 projets et l'API publique de la lignée 4.1 sont des oracles de comportement, pas un parc à préserver à tout prix. Le
 programme profite de cette fenêtre pour terminer les ruptures d'architecture avant que la 4.2 ne gèle les contrats.
 Sa source est `docs/dev/PLAN-4.1.8-4.1.15.md` (en français, les décisions) ; `docs/dev/PROGRAM-4.1.md` le résume en
-anglais. Règles de chaque version : une fixture ou un test qui expose le besoin avant le code ; une ADR pour tout contrat
+anglais ; `docs/dev/plans/` tient une fiche d'exécution par release (l'existant, les décisions, les contrats, les
+branches dans l'ordre avec leurs tests d'abord, les gates). Règles de chaque version : une fixture ou un test qui expose le besoin avant le code ; une ADR pour tout contrat
 transversal ; le cœur déterministe, le contenu déclaratif ; toute primitive atteint le runtime, le validateur, le
 solveur, le replay, le Studio, le MCP et la doc ; jamais `proved`, `verified` ni `delivered` quand un budget a été
 coupé ; bundle, mémoire, build, preuve et couverture mesurés contre la version précédente ; les archives emballées
