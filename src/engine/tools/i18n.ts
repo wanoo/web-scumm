@@ -22,6 +22,18 @@ const BUILTIN_TEXT_PARAMS: Record<string, string[]> = {
   stroke: ['intro', 'win', 'tooFast'],
   cables: ['intro', 'win', 'windowsText'],
   scratch: ['intro'],
+  'code-wheel': [
+    'question',
+    'wrong.*',
+    'pass',
+    'win',
+    'list',
+    'turnLeft',
+    'turnRight',
+    'actors.*.label',
+    'symbols.*.label',
+    'answers.*',
+  ],
 };
 
 /** Visits a string at a dotted minigame-param path; `*` visits array items or object values. */
@@ -29,6 +41,15 @@ function paramText(value: unknown, parts: string[], path: string, fn: Fn): void 
   if (!parts.length) return;
   const [head = '', ...tail] = parts; // never the default: `parts` is not empty
   if (head === '*') {
+    // A list of strings (`answers.*`, 4.1.15): each item is a text.
+    if (!tail.length && Array.isArray(value)) {
+      value.forEach((v, i) => {
+        if (typeof v !== 'string') return;
+        const r = fn(`${path}[${i}]`, v);
+        if (r !== undefined) value[i] = r;
+      });
+      return;
+    }
     if (Array.isArray(value)) value.forEach((v, i) => paramText(v, tail, `${path}[${i}]`, fn));
     else if (value && typeof value === 'object')
       for (const [k, v] of Object.entries(value)) paramText(v, tail, `${path}.${k}`, fn);

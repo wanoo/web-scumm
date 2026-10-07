@@ -15,6 +15,34 @@ export default defineRoom({
     neighbor: 'Lou, festival organiser. He has a whistle and a clipboard.',
     out: 'Back to the street.',
   },
+  on: [
+    // The code wheel (4.1.15, docs/en/REMIX.md): an optional, playful pirate check before Lou lets Pixel near his map.
+    // Its combination comes from the world's seed (the `copy-protection` stream); `parody`: three wrong answers and Lou
+    // gives up. Not a protection of anything: a joke the player is in on.
+    { id: 'hall.use-map', verb: ['use', 'push', 'open'], a: 'map', if: '!pirate_checked', do: [
+      { id: 'hall.use-map.l-not-so-fast', say: ['neighbor', 'Not so fast! First, the Extremely Legitimate Pirate Check. Festival rules.'] },
+      { minigame: 'code-wheel', params: {
+        mode: 'parody', tries: 3,
+        actors: [
+          { id: 'pixel', label: 'Pixel', img: 'hero/r1c1' }, { id: 'biscuit', label: 'Biscuit', img: 'cat/r1c2' },
+          { id: 'grandma', label: 'Grandma', img: 'grandma/r1c2' }, { id: 'lou', label: 'Lou', img: 'neighbor/r1c2' },
+          { id: 'seller', label: 'the seller', img: 'seller/r1c2' },
+        ],
+        symbols: [
+          { id: 'key', label: 'the key', img: 'items/r2c4' }, { id: 'token', label: 'the token', img: 'items/r2c2' },
+          { id: 'oil', label: 'the oil', img: 'items/r2c3' }, { id: 'matches', label: 'the matches', img: 'items/r1c6' },
+          { id: 'cable', label: 'the cable', img: 'items/r1c2' },
+        ],
+        answers: ['STREET', 'MARKET', 'ALLEY', 'YARD', 'CELLAR'],
+        wrong: ['Arr. That is not what the wheel says.', 'Nope. Did you turn the small disc?', 'A pirate would never.'],
+        pass: 'Fine. You look legitimate enough. Go on.',
+        win: 'Legitimate! Welcome aboard the festival.',
+      }, then: [
+        { set: 'pirate_checked' },
+        { id: 'hall.use-map.l-our-street-is', say: ['neighbor', 'Our street is not on the map either. I checked. Twice.'] },
+      ] },
+    ] },
+  ],
   talk: {
     neighbor: [
       { id: 'hall.neighbor.what-does-the-festival', topic: 'What does the festival need?', do: [

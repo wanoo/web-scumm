@@ -13,6 +13,7 @@ const LOAD: Record<keyof typeof MINIGAME_META, () => Promise<Minigame>> = {
   runner: () => import('./runner').then((m) => m.runner),
   scratch: () => import('./scratch').then((m) => m.scratch),
   cables: () => import('./cables').then((m) => m.cables),
+  'code-wheel': () => import('./code-wheel').then((m) => m.codeWheel),
 };
 
 /**

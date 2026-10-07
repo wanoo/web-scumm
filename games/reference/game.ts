@@ -71,6 +71,7 @@ export const game = defineGame({
     board: { title: 'Hang the festival board', done: 'board_hung' },
     radio: { title: 'Make Grandma dance', done: 'radio_on', optional: true },
     password: { title: 'Tell Lou the festival password', done: 'password_ok', optional: true },
+    pirate: { title: 'Pass the Extremely Legitimate Pirate Check', done: 'pirate_checked', optional: true },
   },
   // Remix (4.1.15, docs/en/REMIX.md): where the seller starts and which round he walks, whether Lou hands the board
   // before or after the lights, the festival password and its riddle, how Pixel greets the night. Every mode is a
@@ -144,6 +145,6 @@ export const game = defineGame({
   // 3.7: two scores' stems (3.9 MB), the full warm-up (9.2 MB), the most decoded at once during a transition (128 MB:
   // both scores and a bridge).
   assetBudgets: { initialKB: 3000, roomKB: 3000, chapterKB: 6000, backgroundScoreKB: 4800, offlineTotalKB: 11000, decodedAudioMB: 128, transitionPeakMB: 150, initialJsKB: 140 },
-  i18n: { same: demo.i18n?.same?.filter((p) => p.startsWith('ui/') || p === 'char:hero/name' || p === 'char:biscuit/name' || p === 'char:neighbor/name').concat(['room:kitchen/props.radio.name', ...['317', '542', '868'].map((n) => `room:hall/talk.neighbor.hall.neighbor.i-know-the-password.do[1].choice.hall.neighbor.i-know-the-password.c-${n}.text`)]) },
+  i18n: { same: demo.i18n?.same?.filter((p) => p.startsWith('ui/') || p === 'char:hero/name' || p === 'char:biscuit/name' || p === 'char:neighbor/name').concat(['room:kitchen/props.radio.name', ...[0, 1, 3].map((i) => `room:hall/on.hall.use-map.do[1].params.actors[${i}].label`), ...['317', '542', '868'].map((n) => `room:hall/talk.neighbor.hall.neighbor.i-know-the-password.do[1].choice.hall.neighbor.i-know-the-password.c-${n}.text`)]) },
   ui: demo.ui,
 });

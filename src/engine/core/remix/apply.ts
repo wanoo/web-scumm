@@ -203,8 +203,22 @@ export function applyVariant(game: GameDef, variant: WorldVariant, o: ApplyOptio
       applyPresentation(g, dim, dim.values[value as number], lang);
   }
   rewriteStrings(g, (s) => (s.includes('{code:') || s.includes('{hint:') ? fillCodes(s, c, variant, lang) : s));
+  seedWheels(g, variant.seed);
   g.variant = variant;
   return g;
+}
+
+/** Every code wheel of the game (`{ minigame: 'code-wheel' }`) takes the world's seed, unless its author fixed one. */
+function seedWheels(x: unknown, seed: string): void {
+  if (Array.isArray(x)) for (const y of x) seedWheels(y, seed);
+  else if (x && typeof x === 'object') {
+    const o = x as Record<string, unknown>;
+    if (o.minigame === 'code-wheel') {
+      const params = (o.params ?? {}) as Record<string, unknown>;
+      if (params.seed === undefined) o.params = { ...params, seed };
+    }
+    for (const v of Object.values(o)) seedWheels(v, seed);
+  }
 }
 
 /** The game's story world applied (codes and hints at their story values): what a game without a chosen seed plays. @public */

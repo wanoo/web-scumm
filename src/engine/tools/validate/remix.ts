@@ -10,6 +10,8 @@ import { compileGameManifest, presentationTargetExists, variantFlags } from '../
 import { parseManifest, variantFlag } from '../../core/remix/manifest';
 import type { GameDef } from '../../core/types';
 import { worldGraph } from '../graph';
+import { type CodeWheelParams, checkWheel, generateWheel, wheelProblems } from '../../core/remix/code-wheel';
+import { sampleSeed } from '../remix';
 
 interface Sink {
   err: (where: string, msg: string) => void;
@@ -43,8 +45,43 @@ function placeholders(x: unknown, out = new Set<string>()): Set<string> {
   return out;
 }
 
+/** Every code wheel of the game (`{ minigame: 'code-wheel' }`) with where it is written. */
+function wheels(
+  x: unknown,
+  where: string,
+  out: [Record<string, unknown>, string][] = [],
+): [Record<string, unknown>, string][] {
+  if (Array.isArray(x)) x.forEach((y, i) => wheels(y, `${where}[${i}]`, out));
+  else if (x && typeof x === 'object') {
+    const o = x as Record<string, unknown>;
+    if (o.minigame === 'code-wheel') out.push([(o.params ?? {}) as Record<string, unknown>, where]);
+    for (const [k, v] of Object.entries(o)) wheels(v, `${where}.${k}`, out);
+  }
+  return out;
+}
+
+/** A code wheel's parameters, and a solution for the story seed and 200 sampled seeds (§11.13: one per generated wheel). */
+function wheelChecks(game: GameDef, err: Sink['err']): void {
+  for (const [params, where] of wheels(game.rooms, 'rooms')) {
+    const p = params as unknown as CodeWheelParams;
+    const problems = wheelProblems(p);
+    if (problems.length) {
+      for (const x of problems) err(where, `code-wheel: ${x}`);
+      continue;
+    }
+    for (const seed of ['story', ...Array.from({ length: 200 }, (_, i) => sampleSeed(i))]) {
+      const bad = checkWheel(generateWheel(p, typeof p.seed === 'string' ? p.seed : seed));
+      if (bad.length) {
+        err(where, `code-wheel: the wheel of seed ${seed} has no single solution (${bad.join('; ')})`);
+        break;
+      }
+    }
+  }
+}
+
 export function remixChecks(game: GameDef, s: Sink): void {
   const { err, warn } = s;
+  wheelChecks(game, err);
   const anchorsDeclared = game.rooms.some((r) => r.anchors && Object.keys(r.anchors).length);
   const used = placeholders({ ...game, remix: undefined });
   if (!game.remix) {
