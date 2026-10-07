@@ -45,6 +45,7 @@ function host(o: Partial<AssetsHost> = {}): AssetsHost {
     demo: false,
     info: info(),
     data: () => listing(),
+    listing: () => listing(),
     sel: () => ({ type: 'sounds', kind: 'sfx' }),
     select: vi.fn(),
     url: (x) => (x.file ? `/f/${x.file}?v=${x.mtime}` : null),

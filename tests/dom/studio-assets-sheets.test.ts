@@ -60,6 +60,7 @@ function host(o: Partial<SheetsHost> = {}): SheetsHost {
     demo: false,
     info: info(),
     data: () => listing(),
+    listing: () => listing(),
     sel: () => ({ type: 'sheet', id: 'hero' }),
     select: vi.fn(),
     url: (x) => (x.file ? `/f/${x.file}?v=${x.mtime}` : null),

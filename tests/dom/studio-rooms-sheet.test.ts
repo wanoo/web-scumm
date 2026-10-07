@@ -188,7 +188,7 @@ describe('roomSheet', () => {
     expect(parts[1]?.querySelector('[data-path="hints[0].lines[0]"] .del')).toBeNull(); // a single line is kept
     expect(parts[1]?.querySelector('.line.add input')?.getAttribute('placeholder')).toBe('New hint line…');
     expect(parts[2]?.querySelector('p.muted')?.textContent).toBe('Nothing happens on entering.');
-    expect(text(parts, 'section:nth-of-type(1) .rulehead')).toEqual([]);
+    expect(parts[2]?.querySelector('.rulehead')).toBeNull(); // nothing happens on entering: no rule head
     expect(parts[3]?.querySelector('.rulehead code')?.textContent).toBe('tick');
     expect(parts[3]?.querySelector('.rulehead .muted')?.textContent).toBe('loop while awake');
     expect(parts[3]?.querySelector('.timed')).not.toBeNull();

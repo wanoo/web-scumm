@@ -2486,7 +2486,7 @@ Platform"; human gates reported, not blocking (D12).
   callbacks `changed`, `select`, `reload`, `ownWrite`, `saved`), never the tab itself; `main.ts` unchanged;
   `condText` still exported from `./rooms`.
 - Said as such by the agents and kept: `this.x!` became `must(this.x, …)` (an `internal:` error where a TypeError
-  was impossible anyway); a `Doc | null` became `Doc | undefined` for `must`; one storyboard card closure is a tab
+  was impossible anyway) and one `parentElement!` became `?.`; a `Doc | null` became `Doc | undefined` for `must`; one storyboard card closure is a tab
   method; one unused `const info` dropped; one happy-dom assertion on a pre-selected `<option>` replaced by the painted
   colour (happy-dom mis-tracks that state). Every single-line string literal of the three originals appears in the new
   files (the agents diffed them).
@@ -2495,5 +2495,11 @@ Platform"; human gates reported, not blocking (D12).
   1080 tests), baseline same behaviour (892 declarations, ratcheted). Three exceptions remain in
   `tests/file-size.test.ts`: `validate.ts` 1183, `dev/editor.ts` 847, `studio/assistant.ts` 845 (programme §4.7 said
   "if time allows" for the assistant: not in this lot).
+
+- The second reading (PR #35) walked the three originals method by method: Storyboard and Rooms faithful; one
+  deviation in Assets, where the sheet upload's conflict path (`sendSheet`, a 409) read the listing through `must`
+  where the original used `?.`: before the listing loaded, or after its load failed, a conflict would have thrown
+  inside the catch and left the dialog on "Cutting…". The host gives `listing()` (nullable) for that path. Two test
+  nits taken (a tautological selector, the foreign-origin guard now proven through the status text).
 
 → next: Claude · `docs/418-truth` and the export classification (`@public | @extension | @internal`), then `release/4.1.8`

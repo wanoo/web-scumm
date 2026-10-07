@@ -13,6 +13,8 @@ export interface AssetsHost {
   readonly info: GameInfo;
   /** The listing (the views only render once it is loaded). */
   data(): AssetsListing;
+  /** The listing or nothing yet: for the one path a view can reach before the load (the sheet upload's conflicts). */
+  listing(): AssetsListing | null;
   /** The current selection, read again after an await to drop a stale render. */
   sel(): Sel | null;
   /** Changes the selection, and the selected cell when `cell` is given, without rendering (the reload that follows renders). */

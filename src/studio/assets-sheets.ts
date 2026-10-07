@@ -397,7 +397,8 @@ async function sendSheet(
     const all = Array.from({ length: cols * rows }, (_, i) => `r${Math.floor(i / cols) + 1}c${(i % cols) + 1}`);
     const fresh = all.filter((c) => !conflicts.includes(c));
     const boxes = conflicts.map((c) => h('input', { type: 'checkbox', value: c, 'aria-label': `Recut ${c}` }));
-    const sh = sheetOf(host.data(), b.sheetId);
+    const d = host.listing(); // the upload bar is live before the listing loaded, or after its load failed
+    const sh = d ? sheetOf(d, b.sheetId) : undefined;
     status.className = 'warn';
     status.textContent = `${plural(conflicts.length, 'cell')} of ${b.sheetId} already exist. They are kept unless you tick them (a recut keeps the old file as a backup).`;
     return new Promise((ok) => {

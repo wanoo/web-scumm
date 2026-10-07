@@ -91,7 +91,7 @@ describe('EditorBridge', () => {
   });
 
   it("passes the view's selection to the tab only when it differs, and ignores messages from elsewhere", () => {
-    const { host, receive } = setup({ kind: 'prop', id: 'vase' });
+    const { host, bridge, receive } = setup({ kind: 'prop', id: 'vase' });
     receive({
       source: 'web-scumm-editor',
       type: 'select',
@@ -117,6 +117,7 @@ describe('EditorBridge', () => {
       'https://evil.test',
     );
     expect(host.select).toHaveBeenCalledTimes(1);
+    expect(bridge.status.textContent).toBe(''); // neither foreign message reached the handler
   });
 
   it('flush saves a dirty placement and waits for the view to confirm; a clean one returns at once', async () => {

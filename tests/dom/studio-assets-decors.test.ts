@@ -50,6 +50,7 @@ function host(o: Partial<AssetsHost> & { selected?: Sel | null } = {}): AssetsHo
     demo: false,
     info: info(),
     data: listing,
+    listing,
     sel: () => selected,
     select: vi.fn(),
     url: (x) => (x.file ? `/f/${x.file}?v=${x.mtime}` : null),

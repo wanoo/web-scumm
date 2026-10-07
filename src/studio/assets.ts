@@ -56,6 +56,7 @@ export class AssetsTab {
       demo: this.demo,
       info: ctx.info,
       data: () => must(tab.data ?? undefined, 'the assets listing'),
+      listing: () => tab.data,
       sel: () => tab.sel,
       select: (sel, cell) => {
         tab.sel = sel;
