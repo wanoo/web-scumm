@@ -87,10 +87,8 @@ export function buildShell(app: App) {
     };
     app.toolsEl.append(b);
   }
-  tool(icons.map, app.game.ui.mapTitle, () => {
-    if (!app.engine.busy && !app.speechEl) void app.engine.openMap();
-  });
-  tool(icons.pause, app.game.ui.pause, () => app.pauseMenu());
+  tool(icons.map, app.game.ui.mapTitle, () => void app.presenter.intent({ kind: 'open', what: 'map' }));
+  tool(icons.pause, app.game.ui.pause, () => void app.presenter.intent({ kind: 'open', what: 'menu' }));
   tool(icons.music, app.game.ui.music, (b) => {
     const on = !app.audio.musicOn;
     app.audio.setMusic(on);
@@ -210,9 +208,9 @@ export function renderA11yTargets(app: App) {
   }
   layer.setAttribute('aria-label', app.view.room.name);
   const wanted = new Set<string>();
-  for (const id of app.engine.targets(app.view.room)) {
-    const box = app.view.box(id);
-    if (!box) continue;
+  // The semantic layer is synchronised from the scene frame (4.1.11, ADR 0011): whatever paints the room, the buttons
+  // are the frame's targets, at their boxes, with their labels.
+  for (const { id, box, label } of app.view.frame().hotspots) {
     wanted.add(id);
     let b = app.a11yButtons.get(id);
     if (!b) {
@@ -240,7 +238,7 @@ export function renderA11yTargets(app: App) {
       layer.append(b);
       app.a11yButtons.set(id, b);
     }
-    const name = app.engine.nameOf(id);
+    const name = label;
     if (b.textContent !== name) {
       b.textContent = name;
       b.setAttribute('aria-label', name);

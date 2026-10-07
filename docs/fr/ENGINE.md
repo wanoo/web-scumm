@@ -14,8 +14,10 @@ src/engine/
     ports.ts      interface Presenter (ce que le cœur demande à l'affichage) + FakePresenter pour node
     cond.ts       évaluation des conditions
     define.ts     defineGame / defineRoom, clés stables des blocs once/nth/cycle/random
-  dom/          l'affichage navigateur (implémente Presenter)
-    app.ts        mise en page paysage, verbes, sac, répliques, menus, carte, mini-jeux, fin scellée, écran titre
+  scene/        la trame de scène (pure) : `SceneFrame`, le test de toucher, les contrats `Renderer` et `Intent` (4.1.11)
+  dom/          l'affichage navigateur
+    app.ts        mise en page paysage, verbes, sac, menus, écran titre ; compose le moteur, le presenter, le renderer
+    presenter.ts  le Presenter auquel parle le moteur (répliques, surcouches, carte, mini-jeux, fin scellée) et `intent()`
     fonts.ts      polices par défaut (DotGothic16, Press Start 2P), remplacées par `skin.fonts`
     room.ts       la scène : décor, accessoires, personnages, tri en profondeur, marche, poses
     walk.ts       zone marchable (triangulation earcut + chemins navmesh), échelle selon la profondeur
@@ -147,6 +149,48 @@ accessible restent dans le DOM, au-dessus du canvas. Mesuré sur la démo : ses 
 DOM, le jeu entier joué jusqu'à la fin avec lui, 60 images par seconde avec le CPU ralenti 4× (`npm run e2e:perf`),
 tout cela dans la ligne CI `chromium / canvas`.
 
+## La trame de scène, le renderer et le journal (4.1.11)
+
+ADR 0011 et décision D21 : le rendu n'est pas une source d'état. Trois contrats le portent.
+
+**La trame de scène.** `scene/frame.ts` `sceneFrame(state, layouts, anim)` est une fonction pure qui rend une
+`SceneFrame` immuable en unités logiques : la caméra, les calques (le fond, les calques de scène, les occulteurs, les
+accessoires), les personnages (où ils se tiennent, de quel côté ils regardent, s'ils parlent ou marchent, leur
+sprite), les cibles avec leurs polygones de clic précalculés (le polygone du layout, sinon la boîte de ce qui est
+dessiné, rotation comprise ; la plus petite l'emporte), les effets (lumières, particules, transition) et un `hash` de
+l'ensemble. `RoomView` résout chaque sprite, fait la trame et la peint quand un lieu est construit ; entre deux
+constructions, une entité qui change peint son propre sprite (sa part de la trame). Le test de toucher (`hitTest`) et
+les boutons accessibles lisent la trame : la couche DOM sémantique (boutons, focus, clavier, lecteur d'écran) suit ce
+qui peint le lieu, quel qu'il soit. `tests/dom/scene-frame.test.ts` garde le DOM de chaque lieu de la démo et du
+chapitre de référence, dans trois états, identique à ce qu'il était avant la trame.
+
+**Le renderer.** `Renderer` (`mount`, `render(frame)`, `onIntent`, `unmount`) est ce qui dessine une trame. Les
+peintres DOM et Canvas sont enveloppés en un seul (`dom/frame-renderer.ts` : une trame inchangée sautée grâce à son
+hash, un nouveau lieu peint en entier, une trame changée par ses différences) ; `scene/null-renderer.ts` ne dessine
+rien, pour les tests et l'exécution sans écran. La boucle de rendu, la conversion écran ↔ scène et les animations de
+présentation (cycles de marche, bouches, particules) sont du côté du renderer ; le moteur ne connaît pas les images.
+Un peintre n'importe jamais le moteur (`tests/boundaries.test.ts`).
+
+**Les intentions.** Une `Intent` est la seule chose qui remonte : `act` (un verbe sur une cible, un objet dessus),
+`walk` (un point du sol), `pick` (un choix), `skip`, `open` (la carte, le sac, le menu). La couche d'entrée
+(`dom/input.ts`) les fait à partir des touchers, des touches et des clics et les donne au presenter
+(`dom/presenter.ts` `intent()`), qui applique celles du moteur (`scene/intent.ts`) et répond aux siennes. `App`
+compose le moteur, le presenter et le renderer de la vue du lieu. Les mêmes clics sur le peintre DOM et sur le peintre
+Canvas enregistrent la même session et le même journal, à des densités de pixels 1, 2 et 3, sur un écran de téléphone
+et de bureau, avec et sans mouvement réduit (`tests/dom/intent-equivalence.test.ts`).
+
+**Le journal sémantique.** `Engine.journal` (`core/journal.ts`) numérote ce qui s'est passé, en identifiants :
+`sessionStarted`, `roomEntered` (et d'où), `itemAcquired`, `itemLost` (un objet passé d'un joueur à l'autre est les
+deux, chacun avec son `player`), `flagChanged` (seulement quand la valeur change ; `null` pour un drapeau retiré),
+`playerSwitched`, `endingReached`, `loadMade`, et `saveMade` pour l'autosauvegarde qui suit quelque chose de sémantique. Les
+handlers de commandes, l'entrée dans un lieu et le cycle de vie du moteur l'émettent ; rien dans le DOM, et un genre
+inconnu est refusé (ce n'est pas le bus de l'interface). `since(seq)` donne les événements après une séquence,
+`subscribe` les entend au fil de l'eau ; la fenêtre garde les 10 000 derniers (une session plus longue est exportée `journalTruncated`, et `npm run replay` dit qu'il n'a comparé aucun journal). Rejouer une session donne le même
+journal (`tests/journal.test.ts` : la démo, le chapitre de référence, 200 jeux générés) ; un fichier de session le
+porte, `npm run replay` l'affiche et échoue quand celui du replay diffère, le panneau de dev liste les derniers.
+`objectiveCompleted` attend 4.1.12, un emplacement sur `saveMade` et `loadMade` attend une sauvegarde qui fasse
+partie de la session.
+
 ## Marche et mouvements
 
 `dom/walk.ts` fait marcher un personnage sur les zones de marche de son lieu (`walkZones`, chacune un polygone avec
@@ -157,7 +201,11 @@ la marche est planifiée ; un lien fermé arrête la marche à son pied avec sa 
 demandé la marche s'exécute quand même (`npm run lint` avertit, `walk-link-gate`, quand une règle derrière une telle
 marche ne vérifie pas elle-même la condition). `core/motion.ts` donne `launch`, `spring`, `path` et `follow` en formes
 closes du temps : le même vol à toute cadence d'images, rien de simulé, rien de logique dedans ; un personnage
-reste là où son mouvement s'arrête, comme avec `place`.
+reste là où son mouvement s'arrête, comme avec `place`. Le trajet entre zones appartient au cœur depuis 4.1.11
+(`core/motion.ts` `zoneRoute`, pur : en largeur d'abord, un lien à sens unique seulement vers l'avant, un lien fermé
+nommé comme ce qui bloque) ; le marcheur le parcourt. L'onglet Rooms du Studio dessine masques, zones et liens sur le
+fond (`src/studio/rooms-stage.ts`), et le validateur refuse un polygone de masque qui ne ferme aucune surface et, dans
+un lieu à plusieurs zones, une zone qu'aucun lien ne rejoint.
 
 ## Assets : un seul graphe
 
@@ -218,7 +266,8 @@ sauvegardé.
 ## Cycle d'une action
 
 1. Le joueur choisit un verbe, puis touche une chose (ou un objet du sac, puis une cible).
-2. `App` appelle `engine.act({ verb, a, b })`.
+2. La couche d'entrée en fait une intention (`{ kind: 'act', verb, target, item }`) ; le presenter appelle
+   `engine.act({ verb, a, b })` (4.1.11).
 3. Le moteur fait marcher le héros jusqu'au point d'approche (layout), le tourne vers la cible.
 4. `resolve` cherche la réaction : règle du lieu → règle du jeu → Regarder → Parler (indices, conversation) → sorte → refus → repli.
 5. Les commandes s'exécutent une à une ; chacune appelle le Presenter (dire, marcher, changer un accessoire, jouer un son…).

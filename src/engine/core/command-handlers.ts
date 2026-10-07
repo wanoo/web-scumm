@@ -189,7 +189,10 @@ const showHide: Handler<'show' | 'hide'> = (eng, c, ctx) => {
 
 const gain: Handler<'gain'> = (eng, c) => {
   const s = eng.state;
-  if (!s.inventory.includes(c.gain)) s.inventory.push(c.gain);
+  if (!s.inventory.includes(c.gain)) {
+    s.inventory.push(c.gain);
+    eng.journal.emit({ kind: 'itemAcquired', item: c.gain });
+  }
   if (s.used?.includes(c.gain)) s.used = s.used.filter((x) => x !== c.gain);
   eng.ui.inventory(s.inventory, s.used);
   eng.onChange();
@@ -197,6 +200,7 @@ const gain: Handler<'gain'> = (eng, c) => {
 
 const lose: Handler<'lose'> = (eng, c) => {
   const s = eng.state;
+  if (s.inventory.includes(c.lose)) eng.journal.emit({ kind: 'itemLost', item: c.lose });
   s.inventory = s.inventory.filter((x) => x !== c.lose);
   eng.ui.inventory(s.inventory, s.used);
   eng.onChange();
@@ -212,16 +216,21 @@ const used: Handler<'used'> = (eng, c) => {
 
 const set: Handler<'set'> = (eng, c) => {
   const [k, v]: [Id, Value] = Array.isArray(c.set) ? c.set : [c.set, true];
+  if (eng.state.flags[k] !== v) eng.journal.emit({ kind: 'flagChanged', flag: k, value: v });
   eng.state.flags[k] = v;
 };
 
 const unset: Handler<'unset'> = (eng, c) => {
+  if (eng.state.flags[c.unset] !== undefined) eng.journal.emit({ kind: 'flagChanged', flag: c.unset, value: null });
   delete eng.state.flags[c.unset];
 };
 
 const inc: Handler<'inc'> = (eng, c) => {
   const s = eng.state;
-  s.flags[c.inc] = (typeof s.flags[c.inc] === 'number' ? (s.flags[c.inc] as number) : 0) + (c.by ?? 1);
+  const old = s.flags[c.inc];
+  const v = (typeof old === 'number' ? old : 0) + (c.by ?? 1);
+  s.flags[c.inc] = v;
+  if (old !== v) eng.journal.emit({ kind: 'flagChanged', flag: c.inc, value: v });
 };
 
 const unlock: Handler<'unlock'> = (eng, c) => {
@@ -370,11 +379,11 @@ const random: Handler<'random'> = (eng, c, ctx) => {
 
 const cutscene: Handler<'cutscene'> = async (eng, c, ctx) => {
   eng.ui.cutscene(true);
-  eng.skipping = false;
+  eng.busyState.skipping = false;
   try {
     await eng.exec(c.cutscene, ctx);
   } finally {
-    eng.skipping = false;
+    eng.busyState.skipping = false;
     eng.ui.cutscene(false);
   }
 };
@@ -419,7 +428,7 @@ const guide: Handler<'guide'> = async (eng, c, ctx) => {
   if (ctx.fast) return;
   await eng.say(HERO, g.say, ctx);
   await new Promise<void>((resolve) => {
-    eng.guideWait = { ...g, resolve };
+    eng.busyState.guide = { ...g, resolve };
     eng.ui.guide({ verb: g.verb, target: g.target });
     eng.onChange();
   });
@@ -431,7 +440,9 @@ const ending: Handler<'ending' | 'reveal'> = async (eng, c, ctx) => {
   // The sealed ending ends the game as `end` does: `state.done` is the one truth an e2e or a replay reads, the card
   // is only how it is shown.
   eng.state.done = true;
+  eng.journal.emit({ kind: 'endingReached', ending: 'sealed' });
   eng.save();
+  eng.journal.saved();
   return eng.ui.ending('card');
 };
 
@@ -500,7 +511,9 @@ export const HANDLERS: Handlers = {
   reveal: ending,
   end: (eng) => {
     eng.state.done = true;
+    eng.journal.emit({ kind: 'endingReached', ending: 'end' });
     eng.save();
+    eng.journal.saved();
     eng.ui.end();
   },
 };

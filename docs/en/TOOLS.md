@@ -57,7 +57,8 @@ URL parameters, dev server only (they are ignored in the production build):
   - **Map**: unlock a place, or **Unlock all**;
   - **World**: the room of each moving character (change it to `moveActor` them);
   - **Scripts**: the position of each script in scope (`next command / length`, done, stopped), with a stop / restart button;
-  - **Journal**: the last ten entries of the engine's journal (what answered, events, script steps, moves, switches; the Studio's Play tab shows it whole), and **Export session**: the inputs since the game started, for `npm run replay`;
+  - **Journal**: the last ten entries of the engine's journal (what answered, events, script steps, moves, switches; the Studio's Play tab shows it whole), and **Export session**: the inputs since the game started, with the session's semantic journal, for `npm run replay`;
+  - **Semantic journal** (4.1.11): the last twelve events the core numbered in this session (room entered, item acquired or lost, flag changed, ending, load, save), refreshed with the panel;
   - **Edit this room**: opens the editor on the room shown.
 
 ### The placement editor (`?edit=<room>`)
@@ -187,7 +188,7 @@ npm run audit:corpus -- --shard=1/4 --total=500 --json=s1.json  # shard 1 of 4 o
 npm run audit:corpus -- --merge s0.json s1.json … --total=500   # shards added up; fails on a seed missed or run twice (3.7.1)
 npm run solve -- --profile         # what the states are made of, what the search cost, what each abstraction did (docs/en/BENCH.md)
 npm run solve -- --por=stubborn    # partial-order reduction: commuting actions one at a time (fewer states, same proof)
-npm run replay -- session.json     # plays a session file on the real engine, prints the journal and the final state
+npm run replay -- session.json     # plays a session file on the real engine, prints the journal, the semantic journal (4.1.11) and the final state; exit 1 when the replay diverges or its semantic journal differs from the file's
 npm run ids [-- --write --map]     # stable ids (schema 3) written into the sources, locales renamed, the save migration step (docs/en/UPGRADING.md)
 npm run ids -- --lines [--write --map]   # an id on every say / toast / guide object, list line, hint and kind reaction (--lines=all: plain strings too, required for a translated or voiced release): translations and voices keyed by it (UPGRADING §9, §10)
 npm run i18n -- voices             # the lines with an id and no voice clip, the clips no line claims

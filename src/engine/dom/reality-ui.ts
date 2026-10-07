@@ -81,8 +81,9 @@ export class RealityLink {
     this.status = s;
     for (const f of this.listeners) f(s);
     // Announced politely, never over a line being said: a toast, not a dialogue.
-    if (s === 'open' && was !== 'retrying') this.app.toast(`${this.t('realityLink')}: ${this.t('realityOpen')}`);
-    if (s === 'revoked') this.app.toast(`${this.t('realityLink')}: ${this.t('realityRevoked')}`);
+    if (s === 'open' && was !== 'retrying')
+      this.app.presenter.toast(`${this.t('realityLink')}: ${this.t('realityOpen')}`);
+    if (s === 'revoked') this.app.presenter.toast(`${this.t('realityLink')}: ${this.t('realityRevoked')}`);
   }
   statusText(): string {
     const k: Record<LinkStatus, Key> = {

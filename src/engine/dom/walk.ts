@@ -5,6 +5,7 @@ import { NavMesh } from 'navmesh';
 import { must } from '../core/must';
 import type { Layout, Point } from '../core/types';
 import { inPolygon, stageOf, type NormalLink, type NormalZone } from '../core/stage';
+import { zoneRoute } from '../core/motion';
 
 /** A walkable zone: triangulated once, then shortest paths between two points. */
 export class WalkArea {
@@ -194,45 +195,21 @@ export class WalkTopology {
         .path(a, b)
         .map((p) => ({ to: p }));
     if (za.id === zb.id) return { steps: inZone(za, from, to) };
-    // Fewest links (breadth first), only through open ones; remember a closed one met on the way.
-    const prev = new Map<string, { zone: string; link: NormalLink; forward: boolean }>();
-    const seen = new Set([za.id]);
-    let blocked: NormalLink | undefined;
-    for (let frontier = [za.id]; frontier.length && !seen.has(zb.id); ) {
-      const next: string[] = [];
-      for (const zid of frontier)
-        for (const l of this.links)
-          for (const forward of [true, false]) {
-            if (!forward && l.oneWay) continue;
-            const [a, b] = forward ? [l.from.zone, l.to.zone] : [l.to.zone, l.from.zone];
-            if (a !== zid || seen.has(b)) continue;
-            if (!open(l)) {
-              blocked ??= l;
-              continue;
-            }
-            seen.add(b);
-            prev.set(b, { zone: a, link: l, forward });
-            next.push(b);
-          }
-      frontier = next;
-    }
+    // Fewest links (breadth first, core/motion.ts), only through open ones; remember a closed one met on the way.
+    const g = zoneRoute(this.links, za.id, zb.id, open);
+    const { seen, blocked } = g;
     // Unreachable: as far as the walk can go, the foot of the closed link in the way (else the nearest point of the
     // starting zone).
     let goal = zb.id,
       last: Point = to;
-    if (!seen.has(zb.id)) {
+    if (!g.reached) {
       const near =
         blocked && (seen.has(blocked.from.zone) ? blocked.from : seen.has(blocked.to.zone) ? blocked.to : null);
       if (!near) return { steps: inZone(za, from, this.areas.get(za.id)!.clamp(to)), ...(blocked ? { blocked } : {}) };
       goal = near.zone;
       last = near.at;
     }
-    const chain: { zone: string; link: NormalLink; forward: boolean }[] = [];
-    for (let z = goal; z !== za.id; ) {
-      const p = prev.get(z)!;
-      chain.unshift(p);
-      z = p.zone;
-    }
+    const chain = g.chainTo(goal);
     const steps: WalkStep[] = [];
     let at = from,
       zone = za;

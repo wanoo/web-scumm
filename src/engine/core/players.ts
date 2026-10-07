@@ -64,6 +64,7 @@ export async function swap(eng: Engine, id: Id) {
     s.used = p.used;
   }
   s.camera = { x: 0, follow: true };
+  eng.journal.emit({ kind: 'playerSwitched', player: id });
   eng.onChange();
 }
 
@@ -75,7 +76,9 @@ export function transfer(eng: Engine, item: Id, to: Id) {
   if (eng.game.players?.sharedInventory || to === eng.heroId() || !s.inventory.includes(item)) return;
   const p = ((s.players ??= {})[to] ??= { room: eng.game.start.room, inventory: [], hero: {} });
   s.inventory = s.inventory.filter((x) => x !== item);
+  eng.journal.emit({ kind: 'itemLost', item, player: eng.heroId() });
   if (!p.inventory.includes(item)) p.inventory.push(item);
+  eng.journal.emit({ kind: 'itemAcquired', item, player: to });
   if (s.used?.includes(item)) {
     s.used = s.used.filter((x) => x !== item);
     (p.used ??= []).push(item);

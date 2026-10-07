@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { labelOf, parseSessionFile, replay } from '../src/engine/tools/replay';
 import { flatState } from '../src/engine/core/diff';
+import { describeEvent, journalDiff } from '../src/engine/core/journal';
 import { loadLayouts } from '../src/engine/tools/load';
 import { GAME_DIR, loadGameModule } from './game';
 
@@ -25,6 +26,9 @@ if (f.v !== game.saveVersion)
   console.log(`⚠  the session was recorded with save version ${f.v}, the game is at ${game.saveVersion}`);
 const t0 = Date.now();
 const r = await replay(game, layouts, f.session, { commands, upTo });
+// The semantic journal (4.1.11): a file that carries the recording's is compared with the replay's, sequence aside.
+// Only a full replay can match it (`--upTo` stops early on purpose).
+const jd = f.journal && upTo === undefined ? journalDiff(f.journal, r.journal) : -1;
 
 if (process.argv.includes('--json')) {
   console.log(
@@ -35,9 +39,12 @@ if (process.argv.includes('--json')) {
       divergence: r.divergence ?? null,
       state: r.state,
       trace: r.trace,
+      journal: r.journal,
+      journalDivergedAt: jd < 0 ? null : jd,
+      journalCompared: !!f.journal && upTo === undefined,
     }),
   );
-  await flushExit(r.divergedAt === undefined ? 0 : 1);
+  await flushExit(r.divergedAt === undefined && jd < 0 ? 0 : 1);
 }
 const start = f.session.start;
 console.log(
@@ -50,6 +57,11 @@ f.session.log.forEach((en, i) =>
 );
 console.log(`\nJournal (${r.trace.length} lines):`);
 for (const t of r.trace) console.log(`  ${t.kind.padEnd(6)} ${t.room.padEnd(10)} ${t.text}`);
+console.log(`\nSemantic journal (${r.journal.length} events${f.journal ? `, ${f.journal.length} recorded` : ''}):`);
+for (const [i, e] of r.journal.entries())
+  console.log(
+    `  ${String(e.seq).padStart(4)} ${e.kind.padEnd(14)} ${describeEvent(e)}${i === jd ? '   ✖ differs from the recording' : ''}`,
+  );
 console.log(
   `\nState after ${r.played} entr${r.played === 1 ? 'y' : 'ies'} (${((Date.now() - t0) / 1000).toFixed(1)} s)${r.ended ? ', the ending reached' : ''}:`,
 );
@@ -58,4 +70,12 @@ if (r.divergedAt !== undefined) {
   console.log(`\n✖  Diverges at entry ${r.divergedAt + 1}: ${r.divergence}`);
   process.exit(1);
 }
-console.log(`\n✔  The replay matches the recording`);
+if (jd >= 0) {
+  console.log(`\n✖  The semantic journal differs from the recording at event ${jd + 1}`);
+  process.exit(1);
+}
+// A session longer than the journal's window was exported without its journal: the inputs matched, the journal
+// could not be compared, and saying "matches" would claim more than was checked.
+if (f.journalTruncated)
+  console.log(`\n•  The inputs replay as recorded; no journal comparison: the window was exceeded`);
+else console.log(`\n✔  The replay matches the recording`);

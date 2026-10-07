@@ -6,3 +6,5 @@ export { parseSave, saveEnvelope } from '../core/save';
 export type { SaveEnvelopeV3 } from '../core/save';
 export { solve } from '../tools/solve';
 export type { SolveOptions, SolveResult } from '../tools/solve';
+// 4.1.11 (ADR 0011): what the engine says happened, in ids (`Engine.journal`).
+export type { SemanticEvent, SemanticJournal } from '../core/journal';

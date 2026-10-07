@@ -1,4 +1,5 @@
 import type { Id } from '../core/types';
+import type { SpriteSpec } from './renderer';
 
 /** Something drawn in the scene: prop, actor or hero. */
 export interface Ent {
@@ -17,6 +18,8 @@ export interface Ent {
   /** Vertical mirror and rotation (degrees, clockwise, around the feet): props only, from the layout. */
   flipV?: boolean;
   rot?: number;
+  /** The sprite last resolved for it (its part of the scene frame, 4.1.11). */
+  spec?: SpriteSpec;
   /** Displayed box (logical units), rotation included: used for touch. */
   bbox?: [number, number, number, number];
   /** Character id (the sheet is re-read on every draw: its variants depend on the state). */
