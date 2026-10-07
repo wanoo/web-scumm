@@ -2676,3 +2676,26 @@ Platform"; human gates reported, not blocking (D12).
   from the worker) or Firefox's cache storage is at fault; to look at when it is seen locally.
 
 → next: Claude · `release/4.1.8`
+
+## #117 · 2026-10-07 · Claude · release · 4.1.8 "Foundation Reset"
+
+- The programme's first release, ten lots in eighteen pull requests (#21 to #39, #22 the baseline, #23 the P0, #32
+  the mutation gate last to land): `release/4.1.8` carries the version, the golden save `demo-4.1.8.json` (22 golden
+  saves), the logo at the head of both READMEs (`docs/img/logo.png`, 256 px, the maintainer's file reduced), the
+  release paragraphs, ROADMAP en/fr (the section "shipped" and the row), UPGRADING §20, the pass sheet, the baseline
+  sheet `docs/dev/baselines/4.1.8.md`, and the execution sheets of the seven next releases (`docs/dev/plans/`,
+  written at the maintainer's request so the next lots can be run from them; lot 0 reworked after the maintainer's
+  CI analysis the same morning).
+- Measured on the final run of #32 (the merge commit's `ci` run says the same): `test:node` 119 files, 1 133 tests;
+  coverage 66.59 % lines, 65.91 % statements, 61.67 % functions, 63.29 % branches (4.1.7: 61.37 / 60.86 / 55.61 /
+  58.15); mutation core 342/345 and reality 589/614, 28 survivors named, 0 unexplained; first visit 120 KB gzipped
+  (123); the sample game's build 0.3–0.5 s (seconds); TypeScript 7.0.2, Vite 8.3.3, vite-plugin-pwa 2.0.0, Vitest
+  5.0.3; `check` 4 min, `reference (chromium)` 11 min, a pull request's run 11–19 min.
+- Not done, said as such: the human passes (twelve rows, `docs/dev/passes/4.1.8.md`); the release workflow's
+  acceleration and the CI's three tiers (lot 0 of 4.1.9, `docs/dev/plans/README.md`); `src/studio/assistant.ts` at
+  845 lines; Firefox's worker refusing a cached image on CI, reported not counted; `SlotMeta` exported by no entry.
+- The cycle: tag `v4.1.8-rc.1` on the merge commit (a pre-release), the archives installed outside the repository
+  (`fresh-install`, `upgrade-check --from=4.1.7`), the golden saves, then `v4.1.8` on the same commit, verified
+  (`npm run ship -- verify 4.1.8`).
+
+→ next: Claude · `feature/419-cadence` (lot 0: the CI in three tiers), then `feature/419-connector-sdk` (`docs/dev/plans/4.1.9-gateways.md`)

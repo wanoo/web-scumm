@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 4.1.8 — 2026-10-07
+
+"Foundation Reset" (LOG #117): the first release of the 4.1.8 → 4.1.15 programme (D18), where the 4.1.x line becomes
+an incubation line; the toolchain modernised (TypeScript 7, Vite 8, the PWA plugin's 2.0, Node 22.12), the Reality
+cursor's P0 fixed with its reproduction, the PWA proven in three browsers, a release check that predicts the release,
+the mutation and coverage gates that block, the Studio's biggest files split, every public export with its
+stability, the documentation saying one thing. Measured against 4.1.7 in `docs/dev/baselines/4.1.8.md`; what this
+release does not do is in the LOG and the passes sheet (`docs/dev/passes/4.1.8.md`).
+
 ### Fixed
 
 - **A signal handed over and not acknowledged was lost to its connection** (P0 of 4.1.8, reproduced by the
@@ -119,7 +128,7 @@
   defect (the transport asks the Bridge for `after=1` once signal 1 is handed over, acknowledged or not; in polling
   and in SSE), kept red on purpose (`it.fails`) until the fix; `tests/formats.test.ts` and `tests/fixtures/formats/`
   freeze the four formats the engine writes and reads (a session file, a save envelope and a signed world signal
-  parsed by their production readers; a solver report by its keys). The baseline's test count ratchets (728 → 734
+  parsed by their production readers; a solver report by its keys). The baseline's test count ratchets (728 → 945 at the release
   declarations; `it.fails` is not counted). `docs/dev/MIGRATION-4.1.8.md` lists what TypeScript 7, Vite 8 and vite-plugin-pwa 2 change, read
   before any of them is touched.
 - **The 4.1.8 → 4.1.15 programme** (D18, 7 October 2026). After 4.1.7 the project does not go to 4.2.0 "Finale": it
