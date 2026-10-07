@@ -18,7 +18,7 @@
     "status": "solved",
     "finished": true,
     "inputs": 49,
-    "digests": "92034fd1d0b7a265"
+    "digests": "d3d29af7751673f1"
    },
    "proof": {
     "status": "solved",
@@ -314,13 +314,13 @@
   }
  },
  "surface": {
-  "api": "9885b8253a57de49"
+  "api": "1c806615f32f3a4f"
  },
  "tests": {
-  "files": 181,
-  "declarations": 1313
+  "files": 173,
+  "declarations": 1236
  },
  "bundle": {
-  "initialJsKB": 137
+  "initialJsKB": 125
  }
 }

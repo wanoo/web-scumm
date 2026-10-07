@@ -67,14 +67,14 @@ const raceTick = async (p: Promise<unknown>) => {
 };
 
 /** Waits for an engine call, unless it pauses on a tutorial step: the next input of the log is that step. */
-async function settle(e: Engine, p: Promise<unknown>, pending: Promise<unknown>[], errors?: string[]): Promise<void> {
+async function settle(e: Engine, p: Promise<unknown>, pending: Promise<unknown>[], errors: string[]): Promise<void> {
   let done = false;
   const q = p.then(
     () => {
       done = true;
     },
     (err) => {
-      errors?.push(err instanceof Error ? err.message : String(err));
+      errors.push(err instanceof Error ? err.message : String(err));
       done = true;
     },
   );
@@ -159,8 +159,9 @@ export async function replay(
     // A pending call (the intro waiting for a tutorial step) gets to continue before the next input, as in the game.
     for (let guard = 0; guard < 100 && (guard === 0 || e.busy); guard++) await tick();
     await opts.beforeEntry?.(i, e);
-    const s0 = e.session;
-    const n0 = s0?.log.length ?? 0;
+    // A session exists once the replay started (a new game, a checkpoint or a load opened it).
+    const s0 = e.session!;
+    const n0 = s0.log.length;
     const run =
       'act' in en
         ? e.act(en.act).then(() => undefined)
@@ -183,7 +184,7 @@ export async function replay(
     played++;
     opts.onEntry?.(i, e);
     // A session that reached SESSION_MAX rolled over into a new one: the entry is the new one's first.
-    const mine = e.session === s0 ? s0?.log[n0] : e.session?.log[0];
+    const mine = e.session === s0 ? s0.log[n0] : e.session!.log[0];
     if (!mine) {
       divergedAt = i;
       divergence = `${labelOf(game, en)}: nothing happened`;
