@@ -47,6 +47,9 @@ function rerunOnce(runId, why) {
 /** `gh pr checks --json`: every check's state. Exit 8 means pending, 1 a failing check; 1 with nothing on stdout is an error. */
 function prChecks(pr) {
   const r = spawn('gh', ['pr', 'checks', String(pr), '--json', 'name,state,bucket,link,workflow', '-R', REPO]);
+  // Right after a push GitHub has no check yet: gh says so on stderr with exit 1 and nothing on stdout. That is
+  // "not started", not an error; any other exit 1 without output is one (a wrong number, no auth).
+  if (r.status === 1 && !r.stdout && /no checks reported/i.test(r.stderr)) return [];
   if (![0, 1, 8].includes(r.status) || (r.status === 1 && !r.stdout))
     throw new Error(`gh pr checks ${pr} → ${r.status}: ${r.stderr || 'no output'}`);
   return JSON.parse(r.stdout || '[]');
