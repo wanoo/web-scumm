@@ -107,7 +107,7 @@ check` → `tsc --noEmit` failing on `baseUrl` (unverified).
 
 **Options in use** (`vite.config.ts`): `registerType: 'prompt'`, `injectRegister: false`, `manifest: false` (the
 manifest is `sitePlugin`'s), `workbox.globPatterns` / `globIgnores` (`assets/reality/**` unless the game declares
-`reality`), `navigateFallback: 'index.html'`, `cleanupOutdatedCaches: true`, `clientsClaim: false`, `skipWaiting:
+`reality`), `navigateFallback: 'index.html'`, `cleanupOutdatedCaches: true`, `clientsClaim: true` (since the PWA lot: `false` before it), `skipWaiting:
 false`, five `runtimeCaching` entries (`jeu-images`, `jeu-sons`, `jeu-videos`, `jeu-polices` CacheFirst;
 `jeu-donnees` NetworkFirst 4 s). Registration: `src/main.ts` → `src/engine/boot.ts` (`registerSW({ immediate: true,
 onNeedRefresh })`, `updateSW(true)`); `src/env.d.ts` references `vite-plugin-pwa/client`. Caches are named
