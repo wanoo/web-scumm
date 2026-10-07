@@ -87,7 +87,7 @@ args = ["--prefix", "/path/to/web-scumm", "run", "-s", "mcp"]
 
 ### Any other client
 Command `npm run -s mcp` (or `npx tsx tools/mcp/server.ts`) with the repository as working directory, transport stdio.
-Node 22+.
+Node 22.12+.
 
 ## A typical session
 1. `read_doc CONTENT_GUIDE`, `list_rooms`, `get_storyboard`, `get_notes`.

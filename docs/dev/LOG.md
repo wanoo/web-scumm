@@ -2382,11 +2382,17 @@ Platform"; human gates reported, not blocking (D12).
   visit 120 KB gzipped (budget 140; 4.1.7: 123); `weight --release` within every budget; the PWA's precache 22
   entries (679 KiB), `sw.js` and the Workbox runtime where the tools read them; the tools' and Reality's chunks in
   their folders. The `initialJsKB` ratchet moves down with it (the baseline is written by the branch's run).
-- Vite 8 warns that its future native configuration loader will not resolve imports without a file extension
-  (`vite.config.ts`, `tools/game.ts`, `tools/vite/plugins.ts`, `tools/studio/plugin.ts`): left as a warning, said
-  in the CHANGELOG; a pass adding `.ts` extensions to the config's import graph is a branch of its own when that
-  loader becomes the default (`allowImportingTsExtensions` would go with it).
+- Vite 8 warns that its future native configuration loader (still experimental) will not resolve imports without
+  a file extension: measured by the second reading, 308 warnings in 68 files, because `tools/studio/plugin.ts`
+  pulls `tools/studio/assets.ts`, which pulls `src/engine/tools/*` and the core into the configuration's import
+  graph; three of those files use constructor parameter properties, which Node's type stripping (what the native
+  loader relies on) rejects. Left as a warning, said in the CHANGELOG; the pass that readies the graph (`.ts`
+  extensions with `allowImportingTsExtensions`, which `tsc` 7 accepts with `noEmit`; the three constructors
+  rewritten) is a branch of its own when that loader becomes the default.
 - Not done, said as such: the Windows smoke job and the portable `start` (programme §4.4) are the next branch
   (`feature/418-windows-smoke`); the PWA e2e's three levels (programme §4.5) are `feature/418-pwa-e2e`.
+
+- The second reading also found "Node 22 or newer" in nine pages (README en/fr, CONTRIBUTING, SUPPORT, MCP,
+  REALITY-OPS en/fr): 22.12 now, the floor of Vite 8 and Vitest 5; the lockfile's own `engines` refreshed.
 
 → next: Claude · `feature/418-pwa-e2e` (caches named and versioned, the update that never reloads before a durable save, the three levels of the e2e)
