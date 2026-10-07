@@ -4,6 +4,8 @@ import * as z from 'zod/mini';
 import type { GameDef, GameState, Id } from './types';
 import { migrate } from './migrate';
 import { splitRoomKey } from './keys';
+import { storyVariant, type WorldVariant } from './remix/compile';
+import { remixWorld } from './remix/apply';
 
 const id = z.string().check(z.minLength(1));
 const num = () => z.number();
@@ -68,14 +70,36 @@ export const SaveEnvelopeV3Schema = z.strictObject({
   state: GameStateSchema,
 });
 
-/** A manual slot as stored: what the menu shows, and the envelope. v2 slots were `{ meta, state }`. */
+/** A world instance as a save stores it (4.1.15, ADR 0018): never regenerated, its hash checked on load. */
+const WorldVariantSchema = z.strictObject({
+  seed: z.string().check(z.minLength(1)),
+  algorithm: id,
+  algorithmVersion: z.int().check(z.positive()),
+  manifestHash: z.string(),
+  mode: id,
+  assignments: z.record(z.string(), z.unknown()),
+  hash: z.string().check(z.regex(/^[0-9a-f]{64}$/)),
+});
+
+/** The save envelope of 4.1.15: the v3 envelope and the world it was played in. */
+export const SaveEnvelopeV4Schema = z.strictObject({
+  format: z.literal('web-scumm-save'),
+  schema: z.literal(4),
+  gameId: id,
+  gameSaveVersion: count(),
+  savedAt: num(),
+  state: GameStateSchema,
+  variant: WorldVariantSchema,
+});
+
+/** A manual slot as stored: what the menu shows, and the envelope (v4 since 4.1.15, v3 still read). v2 slots were `{ meta, state }`. */
 export const SlotRecordSchema = z.strictObject({
   meta: z.looseObject({ at: num(), room: id, roomName: z.string(), v: count() }),
-  envelope: z.lazy(() => SaveEnvelopeV3Schema),
+  envelope: z.lazy(() => z.union([SaveEnvelopeV4Schema, SaveEnvelopeV3Schema])),
 });
 export interface SlotRecord {
   meta: SlotMeta;
-  envelope: SaveEnvelopeV3;
+  envelope: SaveEnvelopeV4 | SaveEnvelopeV3;
 }
 export interface SlotMeta {
   at: number;
@@ -84,7 +108,7 @@ export interface SlotMeta {
   v: number;
 }
 
-/** A save as written: the state with the format, the schema, the game's id and save version and the date. @public */
+/** A save as written until 4.1.14: the state with the format, the schema, the game's id and save version and the date. @public */
 export interface SaveEnvelopeV3 {
   format: 'web-scumm-save';
   schema: 3;
@@ -94,16 +118,68 @@ export interface SaveEnvelopeV3 {
   state: GameState;
 }
 
-/** Wraps a state in the save envelope (format, schema, game id and save version, date) a store writes. @public */
-export function saveEnvelope(game: GameDef, state: GameState, now = Date.now()): SaveEnvelopeV3 {
+/**
+ * A save as written since 4.1.15 (ADR 0018): the v3 envelope and the `WorldVariant` the game was played in, so that a
+ * load rebuilds the same world (its assignment, never regenerated with another algorithm version). @public
+ */
+export interface SaveEnvelopeV4 {
+  format: 'web-scumm-save';
+  schema: 4;
+  gameId: string;
+  gameSaveVersion: number;
+  savedAt: number;
+  state: GameState;
+  variant: WorldVariant;
+}
+
+/** The world a game is: the one `applyVariant` recorded, else its story world. */
+function worldOf(game: GameDef): WorldVariant {
+  return game.variant ?? storyVariant(game.remix, remixWorld(game));
+}
+
+/**
+ * Wraps a state in the save envelope a store writes (v4: format, schema, game id and save version, date, and the
+ * world the game is played in). @public
+ */
+export function saveEnvelope(game: GameDef, state: GameState, now = Date.now()): SaveEnvelopeV4 {
   return {
     format: 'web-scumm-save',
-    schema: 3,
+    schema: 4,
     gameId: game.id,
     gameSaveVersion: game.saveVersion,
     savedAt: now,
     state: structuredClone(state),
+    variant: structuredClone(worldOf(game)),
   };
+}
+
+/**
+ * A v3 envelope as a v4 one (the save migration of 4.1.15): every save made before Remix was played in the story world,
+ * so it receives the game's story instance. A v4 envelope is returned as it is. @public
+ */
+export function upgradeEnvelope(game: GameDef, env: SaveEnvelopeV3 | SaveEnvelopeV4): SaveEnvelopeV4 {
+  if (env.schema === 4) return env;
+  return { ...env, schema: 4, variant: storyVariant(game.remix, remixWorld(game)) };
+}
+
+/**
+ * A save made in another world than the game it is loaded into (another seed, another mode): the caller rebuilds the
+ * game with `applyVariant(game, error.variant)` and loads again; nothing is regenerated. @public
+ */
+export class SaveWorldMismatch extends Error {
+  constructor(readonly variant: WorldVariant) {
+    super(`this save was played in another world (seed ${variant.seed}, mode ${variant.mode}): load it in that world`);
+    this.name = 'SaveWorldMismatch';
+  }
+}
+
+/** The world a raw save names (a v4 envelope, a slot record holding one), or undefined (v3, a raw state). @public */
+export function savedWorld(input: unknown): WorldVariant | undefined {
+  const o = input && typeof input === 'object' ? (input as Record<string, unknown>) : undefined;
+  const env = o && 'envelope' in o ? (o.envelope as Record<string, unknown> | undefined) : o;
+  if (!env || env.schema !== 4) return undefined;
+  const r = WorldVariantSchema.safeParse(env.variant);
+  return r.success ? (r.data as WorldVariant) : undefined;
 }
 
 export interface ParseSaveOptions {
@@ -119,9 +195,22 @@ export interface ParseSaveOptions {
 export function parseSave(game: GameDef, input: unknown, opts: ParseSaveOptions = {}): GameState {
   let raw: unknown = input;
   if (input && typeof input === 'object' && 'format' in input) {
-    const env = SaveEnvelopeV3Schema.parse(input);
+    const env =
+      (input as { schema?: unknown }).schema === 4
+        ? SaveEnvelopeV4Schema.parse(input)
+        : SaveEnvelopeV3Schema.parse(input);
     if (env.gameId !== game.id) throw new Error(`save belongs to game "${env.gameId}", not "${game.id}"`);
     if (env.gameSaveVersion !== env.state.v) throw new Error('save envelope and state versions disagree');
+    // The world (4.1.15): a story save loads into the story world whatever the manifest's hash; any other into the very
+    // world it names (its hash), else the caller rebuilds that world first.
+    if (env.schema === 4) {
+      const saved = env.variant as WorldVariant;
+      const here = game.variant;
+      const bothStory = saved.mode === 'story' && (!here || here.mode === 'story');
+      if (!bothStory && saved.hash !== here?.hash) throw new SaveWorldMismatch(saved);
+    } else if (game.variant && game.variant.mode !== 'story')
+      // A v3 save was played in the story world (the migration of 4.1.15).
+      throw new SaveWorldMismatch(upgradeEnvelope(game, env).variant);
     raw = env.state;
   }
   const parsed = GameStateSchema.parse(raw) as GameState;

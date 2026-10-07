@@ -8,9 +8,10 @@ import { canonicalJson } from './canonical';
 import { type CompiledGame, compileGame } from './define';
 import { compileIR, type ExtensionHashes, type GameIR, logicView } from './ir';
 import type { GameDef, Id } from './types';
+import { PRNG_VERSION } from './prng';
 
-/** The random generator's version, part of `engine`: 0 until 4.1.14 fixes the generator. */
-export const PRNG_VERSION = 0;
+/** The random generator's version, part of `engine`: core/prng.ts's (4.1.14, ADR 0016). */
+export { PRNG_VERSION } from './prng';
 
 /**
  * A game's fingerprint: SHA-256 in hex of its logic, its trusted extensions, its presentation and its engine (an empty

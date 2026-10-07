@@ -1,6 +1,7 @@
 // Inputs and sessions: what a player did, replayable. (core/types.ts re-exports every name; 4.1.0 "Clarity".)
 import type { Cmd, Id, VerbId } from './content';
 import type { GameState } from './state';
+import type { WorldVariant } from '../remix/compile';
 
 // ---------------------------------------------------------------------------
 // Session: the player's inputs since the game started (or a save was loaded), enough to replay them
@@ -61,6 +62,11 @@ export interface Session {
    * checkpoint takes a new one, a load continues the run's. Absent in a session recorded before 4.1.14.
    */
   seed?: string;
+  /**
+   * The world the session was played in (4.1.15, ADR 0018), when the game was compiled from a variant: a replay and a
+   * speedrun verifier rebuild that very world from it (its assignment, never regenerated).
+   */
+  variant?: WorldVariant;
 }
 
 /**

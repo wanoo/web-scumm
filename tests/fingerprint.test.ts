@@ -76,7 +76,8 @@ describe('the fingerprint', () => {
     const a = await fingerprint(ir, { presentation, engine: '4.1.12' });
     const b = await fingerprint(ir, { presentation, engine: '4.1.13' });
     expect(changed(a, b)).toEqual(['engine']);
-    expect(PRNG_VERSION).toBe(0);
+    // The generator's version since 4.1.14 (core/prng.ts), no longer fingerprint.ts's own 0.
+    expect(PRNG_VERSION).toBe(1);
     // Unknown extensions are said as such: an empty component, never a hash of nothing.
     expect(a.trustedExtensions).toBe('');
   });
