@@ -100,7 +100,7 @@ which is why it can prove the game: the same `Engine`, the same `resolve`, no se
 is planned for 4.2, then `npx create-web-scumm my-game`):
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.12/web-scumm-4.1.12.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.13/web-scumm-4.1.13.tgz
 npx --package=$T web-scumm create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # then npm run verify, npm run build, npm run release
@@ -131,7 +131,7 @@ the three figures from `tests/quality-baseline.json`):
 |---|---|
 | Unit tests | <!-- metric:tests -->1245<!-- /metric --> declarations, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
 | Browser tests | the sample game played to its ending by touch and by keyboard in Chromium and WebKit at a phone's size, in English and French, with the DOM and the Canvas painter; a second game and the reference game too; every minigame won at the keyboard; axe-core on every screen |
-| Saves | one frozen save per release from 3.0.0 to 4.1.12 loads and reaches the ending |
+| Saves | one frozen save per release from 3.0.0 to 4.1.13 loads and reaches the ending |
 | Proof | the sample game's every reachable state in seconds; a 40-room reference game in <!-- metric:referenceStates -->288<!-- /metric --> states; 500 random games of each of three kinds compared to an explicit search every night, 0 divergences ([BENCH](docs/en/BENCH.md)) |
 | A new game | packed, created from the tarball, installed, verified, built and played to its end by CI; a game made on the previous release upgraded and its save played to the end |
 | The player's first visit | <!-- metric:initialJsKB -->124<!-- /metric --> KB of JavaScript, gzipped, held by a budget; every byte fetched predicted by the asset graph |
@@ -158,11 +158,11 @@ Every page also exists in French under `docs/fr/`, and a test keeps the two in s
 
 ## Releases
 
-Current release: [v4.1.12 "Language"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.12), the fifth of the 4.1.8
-→ 4.1.15 programme: the game's logic as plain data (`GameIR`), a fingerprint in four hashes the build seals and the
-pause menu shows, one canonical text per value (a script compares it in three browsers, not yet in CI), objectives and a quest journal, the
-Studio's forms and the DSL's reference generated from the schemas, the DSL stabilised. On 4.1.11's scene frame and
-semantic journal, 4.1.10's durable Bridge, 4.1.9's connectors and 4.1.8's foundation.
+Current release: [v4.1.13 "Solver Research"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.13), the sixth of
+the 4.1.8 → 4.1.15 programme: a proof needs nine times less heap, stops and resumes to the same verdict, says what
+multiplies its states, and shares its work across workers; eight of the twelve instances of the published proof matrix
+finish within budget, as before, and the gap report says why. On 4.1.12's game-as-data, 4.1.11's scene frame, 4.1.10's
+durable Bridge, 4.1.9's connectors and 4.1.8's foundation.
 From 4.1.1 to 4.1.7 every release added only what was optional, and a game written against one ran on the next;
 from 4.1.8 the 4.1.x line is an incubation line, where a release may break a public name or a format, documented
 and with a migration, until 4.2.0 restores strict SemVer ([SUPPORT](docs/en/SUPPORT.md)). The story
