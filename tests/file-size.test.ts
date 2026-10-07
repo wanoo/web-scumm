@@ -8,12 +8,6 @@ import { describe, expect, it } from 'vitest';
 
 const LIMIT = 800;
 const EXCEPTIONS: Record<string, { cap: number; why: string }> = {
-  'src/studio/storyboard.ts': {
-    cap: 1388,
-    why: 'the storyboard editor: one form per kind of beat, sharing its drawing state',
-  },
-  'src/studio/assets.ts': { cap: 1364, why: 'the assets tab: sheets, cutting, keys and reviews in one view' },
-  'src/studio/rooms.ts': { cap: 1358, why: 'the rooms tab: one panel per part of a room, sharing the selection' },
   'src/engine/tools/validate.ts': {
     cap: 1187,
     why: 'the validator: one check after another over the same indexes, read top to bottom',
