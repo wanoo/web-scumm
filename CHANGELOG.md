@@ -2,6 +2,64 @@
 
 ## Unreleased
 
+## 4.1.13 — 2026-10-07
+
+"Solver Research" (LOG #133): the programme's sixth release, named by the two thresholds its sheet fixed before any
+code was written. The minimum is met: a proof needs nine times less heap over the proof matrix (up to twenty times
+less on the open instances), a long proof stops and resumes to the same verdict and witness, the proof profile says
+what multiplies the states, workers share what the search has seen, and every verdict is the one 4.1.8 gave, state
+for state. The release objective is not met: eight of the twelve matrix instances finish within budget, as with 4.1.8,
+and the gap report (`docs/dev/PROOF-MATRIX.md` §8) says why. Measured against 4.1.12 in
+`docs/dev/baselines/4.1.13.md`; what this release does not do is in the LOG and the passes sheet
+(`docs/dev/passes/4.1.13.md`).
+
+### Changes
+
+- **A proof needs nine times less heap over the proof matrix, up to twenty times less on the open instances** (4.1.13,
+  ADR 0015). The search stores the states it has seen by index, with exact interned keys, parents and steps in flat
+  columns, and keeps a state's engine copy only while it waits to be expanded. Over the twelve instances of the new
+  proof matrix the peak heap falls ÷9 (÷4.5 in RSS), and ÷16 to ÷20 on the large open ones o21, o23 and o25 (1.6 KB a
+  state instead of 31.6 on o21); the time per state, the engine's runs, does not change. The verdicts, paths, softlocks and reachable sets are those of 4.1.8, state for state, on the sample game,
+  the reference game and 200 generated games (`tests/solver-oracle.test.ts`). `--representation=objects` keeps the
+  4.1.8 storage.
+- **A long proof can be stopped and taken up again** (4.1.13). `npm run solve -- --prove --checkpoint=<file>` writes
+  the search down every five minutes (`--checkpoint-every`) and when a budget stops it; `--resume` takes it up to the
+  same verdict and the same witness, even after the process was killed or a budget stopped it inside a state's
+  expansion. `--mem=<MB>` stops a search as `truncated`
+  past a heap size. A budget that cuts a search never gives `proved`.
+- **The proof profile says what multiplies the states** (4.1.13). `npm run solve -- --prove --profile` attributes the
+  states to positions, inventories, flags, dialogues and scripts (how many would merge without each), counts the
+  symmetries folded, the tries that changed nothing and the orders merged, and names every abstraction with what it did
+  or why it is off. A softlock cause now carries its session entries: `npm run replay` plays the way into it.
+- **The proof matrix** (4.1.13, `docs/dev/PROOF-MATRIX.md`, `npm run prove:matrix`, nightly). Twelve generated games of
+  20 to 40 rooms and three playable characters, six constrained and six open, with published budgets and expected
+  verdicts. 4.1.13 proves the same eight of twelve as 4.1.8 within ten minutes on the maintainer's Mac; four open ones
+  run out of time, and the gap report says why (the engine's runs on tries that change nothing, and who carries which
+  key). This release is therefore "Solver Research".
+- **Symmetric items, and workers that share what the search has seen** (4.1.13). `--symmetry` folds two items the game
+  treats alike (off by default: none in the bundled games). With `--workers`, a worker sends back a state the search
+  already stored without its engine copy, and nodes are dealt by room with work stealing; the result stays the same for
+  any number of workers.
+- **One checkpoint case fewer in the counted declarations (4.1.13)**: the killed-process resume is skipped on Windows
+  (the test reads the snapshot while the child renames a new one over it); the baseline's count moves by one on purpose.
+
+- **The coverage floors raised to within three points of what the tests reach (4.1.10)**: lines 66, statements 65,
+  functions 61, branches 62 (64 / 63 / 59 / 61 before), `reality/protocol.ts` branches 96. The strict ratchet on the
+  `v4.1.10-rc.1` tag refused the five floors Constellation's tests had left behind (measured 67.91 / 67.21 / 63.31 /
+  64.09 and 98.75); the pull request had only warned.
+- **`e2e:reality` waits two minutes for the ending cutscene after the gate (4.1.10)**, 30 s before: on a runner
+  carrying five runs the cutscene outlasted it twice today (Chromium and WebKit) with every other check green.
+
+- **The coverage floors raised again for 4.1.11's tag (4.1.11)**: lines 67, statements 67, functions 63, branches 63;
+  `reality/client.ts` branches 90, `bridge/src/server.ts` lines 94 and branches 85, `bridge/src/cli.ts` branches 66.
+  Viewport's tests brought the measure to 69.86 / 69.05 / 65.32 / 65.60 (PR #42's coverage job), and the strict
+  ratchet of a tag refuses a floor three points or more below it.
+
+- **`e2e:reality` acts on the gate again when the ending does not come (4.1.12)**: an input while the engine is busy is
+  dropped, as a player's tap is, and the shed's cutscene could still be running when the harness used the gate; the
+  check waited 120 s for an ending that never came (one WebKit run in three on 7 October 2026). Now: wait for the
+  engine to be free, act, and act again up to three times, 40 s each.
+
 ## 4.1.12 — 2026-10-07
 
 "Language" (LOG #128): the programme's fifth release. The game's logic as plain data (`GameIR`, deterministic, with
