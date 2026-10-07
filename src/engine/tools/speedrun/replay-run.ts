@@ -76,13 +76,15 @@ export async function replayRun(
       attach: track,
       beforeEntry: async (i, e) => {
         const l = byBefore.get(i);
-        if (!l || l.resume) return;
+        if (!l) return;
         const s = snapshots.get(l.from);
         if (!s || l.from >= l.before) {
           badLoads.push(l);
           return;
         }
-        await e.load(structuredClone(s));
+        // A resume loads the run's own state as the resumed page did, with the journal unheard (as it was there).
+        if (l.resume) await tape!.mute(() => e.load(structuredClone(s)));
+        else await e.load(structuredClone(s));
       },
     },
   );
