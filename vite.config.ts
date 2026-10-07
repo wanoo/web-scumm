@@ -193,10 +193,10 @@ export default defineConfig({
       thresholds: {
         // The floor measured at 4.1.0 (the browser-only parts of src/, the player's UI and the Studio's, are covered
         // by the e2e, not here).
-        lines: 66,
-        statements: 65,
-        functions: 61,
-        branches: 62,
+        lines: 67,
+        statements: 67,
+        functions: 63,
+        branches: 63,
         // What a save, a session, a condition and a migration rest on: every branch.
         'src/engine/core/cond.ts': { branches: 100 },
         'src/engine/core/diff.ts': { branches: 100 },
@@ -213,14 +213,14 @@ export default defineConfig({
         // (dom/reality-ui.ts), the Studio's simulator and panel are covered by e2e:reality, not here.
         'src/engine/core/reality-runtime.ts': { lines: 100, branches: 100 },
         'src/engine/reality/protocol.ts': { lines: 95, branches: 96 },
-        'src/engine/reality/client.ts': { lines: 98, branches: 89 },
+        'src/engine/reality/client.ts': { lines: 98, branches: 90 },
         'src/engine/reality/http-port.ts': { lines: 98, branches: 95 },
         'bridge/src/bridge.ts': { lines: 97, branches: 95 },
         'bridge/src/store.ts': { lines: 96, branches: 92 },
-        'bridge/src/server.ts': { lines: 92, branches: 82 },
+        'bridge/src/server.ts': { lines: 94, branches: 85 },
         'bridge/src/policy.ts': { lines: 100, branches: 98 },
         'bridge/src/lock.ts': { lines: 100, branches: 100 },
-        'bridge/src/cli.ts': { lines: 83, branches: 64 },
+        'bridge/src/cli.ts': { lines: 83, branches: 66 },
       },
     },
   },
