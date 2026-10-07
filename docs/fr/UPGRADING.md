@@ -346,7 +346,7 @@ une mise en page dont le polygone de masque d'occlusion ne ferme aucune surface 
 croisent) ou dont une salle a une zone de marche qu'aucun lien ne joint, là où la 4.1.10 l'acceptait : corrigez la
 mise en page dans l'onglet Rooms du Studio (couches, masques, zones, portails) ou à la main. Le JavaScript de la
 première visite pèse 122 Ko gzippés (120 en 4.1.10).
-## 23. De 4.1.11 à 4.1.12 « Language »
+## 24. De la 4.1.11 à la 4.1.12 « Language »
 
 Aucun format d'écriture ne change : `web-scumm migrate --check` trouve à jour les jeux fournis et le gabarit
 (`tests/migrate-official.test.ts` ; un projet 4.1.11 n'a rien à migrer non plus), et une sauvegarde 4.1.11 se charge telle quelle (les objectifs accomplis ne sont pas dans la sauvegarde : ce

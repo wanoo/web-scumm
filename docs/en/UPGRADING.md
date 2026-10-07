@@ -332,7 +332,7 @@ events is exported with `journalTruncated: true` and no journal); `npm run valid
 mask polygon closes no surface (collinear points, crossing edges) or whose room has a walk zone no link joins, where
 4.1.10 accepted it: fix the layout in the Studio's Rooms tab (layers, masks, zones, portals) or by hand. The first
 visit's JavaScript is 122 KB gzipped (120 in 4.1.10).
-## 23. From 4.1.11 to 4.1.12 "Language"
+## 24. From 4.1.11 to 4.1.12 "Language"
 
 No authoring format changes: `web-scumm migrate --check` finds the bundled games and the template up to date
 (`tests/migrate-official.test.ts`; a 4.1.11 project has nothing to migrate either), and a 4.1.11 save loads unchanged (objectives completed are not part of the save: what holds when it loads
