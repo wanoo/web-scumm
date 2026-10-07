@@ -155,7 +155,7 @@ npm run solve -- --prove --ownership=off   # sans le propriétaire canonique (qu
 npm run solve -- --dominance             # un témoin avec dominance (3.5 ; n'élague rien sur les jeux fournis, BENCH.md)
 npm test           # tests Node du moteur, des outils et du jeu sélectionné (sans les tests lourds du solveur, 4.1.3)
 npm run test:heavy # les tests du solveur gourmands en CPU (audits des abstractions, propriétaire canonique, preuves memo et ownership, preuve du chapitre de référence) : chaque nuit, des minutes chacun
-npm run test:coverage   # la suite sous couverture V8, contre les planchers de vite.config.ts ; puis `npx tsx tools/coverage-ratchet.ts` nomme un plancher d'au moins trois points sous ce que les tests atteignent
+npm run test:coverage   # la suite sous couverture V8, contre les planchers de vite.config.ts ; puis `npx tsx tools/coverage-ratchet.ts --strict` échoue sur un plancher d'au moins trois points sous ce que les tests atteignent (CI et release-check, 4.1.8)
 npm run quality:baseline -- --check [--dist]   # le comportement de la 4.0.0 conservé (4.1.0) : témoins, preuves, sauvegardes de référence, surface publique, première visite (tests/quality-baseline.json ; sans --check : l'écrit)
 npm run test:assets # tests Python des images et du pipeline d'assets
 npm run e2e        # parcours dans Chromium en paysage téléphone (serveur de dev lancé)
@@ -209,13 +209,13 @@ npm run docs:screenshots [-- --only=game|studio --keep-png]   # les images du RE
 npx tsx tools/api-doc.ts [--check]                            # les signatures de l'API publique dans docs/en/API.md et docs/fr/API.md (4.1.7 ; tests/api-doc.test.ts échoue quand une page est en retard)
 npm run lint [-- --prove | --static | --json]   # lint de contenu : conditions insatisfaisables, règles masquées, faux indices, indices bloqués, actions jamais jouées (alias de lint:content depuis la 4.1.0)
 npm run quality   # code du moteur (4.1.0) : formatage et lint Biome, tsconfig.json et tsconfig.strictest.json, puis le lint de contenu
-npm run doctor                     # vérifie Node, modules Python, ffmpeg et navigateurs Playwright
+npm run doctor [-- --release]      # vérifie Node, modules Python, ffmpeg et navigateurs Playwright ; --release (4.1.8) les exige tous, comme release-check
 npm run check                      # vérifie les types et lance les tests Node
 npm run tsc -- …                   # le compilateur TypeScript 7 lui-même (4.1.8 ; le lien `tsc` peut appartenir au paquet typescript6 des outils) : `npm run check` et `quality` l'appellent
 npm run build:game                 # les portes du jeu (verify:game), le bundle, verify:dist, le contrôle des spoilers, l'audit des assets : ni tsc ni suite unitaire (la CI les lance une fois)
 npm run verify:game                # validation, témoins globaux/par chapitre et couverture des traductions
 npm run prove:game                 # preuve exhaustive globale/par chapitre ; échoue sur softlock ou troncature
-npm run release-check              # ce que la CI lance, d'un coup : prérequis, quality, build, couverture, verify:release, preuves, le cross-check Rust, la mutation du cœur, les audits de dépendances
+npm run release-check              # ce que la CI lance, d'un coup : doctor --release, quality, build, couverture et son ratchet strict, verify:release, preuves, le cross-check Rust, la mutation du cœur, les paquets avec `npm publish --dry-run`, les audits de dépendances
 ```
 
 **Lint.** `npm run lint` dit ce que `validate` ne peut pas dire (il vérifie formes et références) et ce que `solve`
@@ -406,7 +406,7 @@ Les scripts ci-dessus sont ceux dont un jeu a besoin. Le reste de `package.json`
 | Script | Quoi |
 |---|---|
 | `npm run preview` | sert `dist/` sur 127.0.0.1 (ce vers quoi les scripts e2e sont pointés après un build) |
-| `npm start` | sert `dist/` sur toutes les interfaces au port `$PORT` (8080 par défaut) avec `sirv` : ce qu'un hébergeur comme Clever Cloud lance |
+| `npm start` | sert `dist/` sur toutes les interfaces au port `$PORT` (8080 par défaut) avec `sirv`, via `scripts/start.mjs` (un lanceur Node : il tourne aussi sous Windows, 4.1.8) : ce qu'un hébergeur comme Clever Cloud lance |
 | `npm run test:node` | la suite unitaire sans les tests liés à Python ni ceux qui saturent le processeur (`npm run check` la lance ; les lourds tournent la nuit) |
 | `npm run test:mutation:core [-- --set=core\|reality\|all --file=…]` | les tests de mutation des modules dont dépendent une sauvegarde, une session, une condition ou un signal (`docs/dev/MUTANTS.md`) |
 | `npm run e2e:smoke` | le parcours générique du build de production (le chemin du solveur rejoué au tactile) |
@@ -420,8 +420,8 @@ Les scripts ci-dessus sont ceux dont un jeu a besoin. Le reste de `package.json`
 | `npm run audit:assets` | chaque fichier de `dist/` justifié avec sa licence (`npm run build:game` le lance) |
 | `npm run audio -- …` | le pipeline de musique et de bruitages Mega Drive (`docs/fr/AUDIO.md`) |
 | `npm run build:studio-demo`, `studio-snapshot`, `studio-apply <patch>` | le build statique du Studio, son instantané seul, un patch de démo appliqué à votre copie (`docs/fr/STUDIO.md`, « Mode démo ») |
-| `npm run pack` | les archives `web-scumm` et `web-scumm-bridge` qu'une release livre (`docs/fr/PACKAGE.md`) |
-| `npm run fresh-install`, `upgrade-check` | un jeu créé depuis l'archive et joué jusqu'à sa fin ; un jeu fait sur la release précédente mis à niveau et joué (la CI lance les deux) |
+| `npm run pack [-- --publish-dry-run]` | les archives `web-scumm`, `create-web-scumm` et `web-scumm-bridge` qu'une release livre (`docs/fr/PACKAGE.md`), depuis les seuls fichiers suivis : un fichier non suivi sous une racine livrée fait refuser l'emballage (4.1.8) ; `--publish-dry-run` montre ce que `npm publish` enverrait |
+| `npm run fresh-install`, `upgrade-check` | un jeu créé depuis l'archive et joué jusqu'à sa fin, `create-web-scumm` installé depuis sa propre archive et lancé, le Bridge installé et servant ; un jeu fait sur la release précédente migré, mis à niveau et joué (la CI lance les deux) |
 | `npm run ship -- <checks\|merge\|main\|tag\|watch\|verify\|chain> …` | la chaîne de release en commandes (4.1.8) : attendre les checks d'une pull request (une relance d'un job en échec), la fusionner, attendre la CI de `main` sur la fusion, taguer et pousser, suivre la CI du tag puis le run de release, télécharger la release et vérifier ses sommes et ses attestations ; `chain <pr> <version>` enchaîne tout. Chaque commande écrit son PID dans `.cache/pids/` |
 | `npm run page:storyboard`, `page:review`, `page:placement`, `import-layout` | les pages de relecture pour téléphone et l'import de la page de placement (`docs/fr/PAGES.md`) |
 | `npm run bridge -- …` | la ligne de commande du Reality Bridge (`docs/fr/REALITY-OPS.md`) |

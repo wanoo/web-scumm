@@ -161,7 +161,7 @@ npm run solve -- --prove --ownership=off   # without the canonical owner (who ho
 npm run solve -- --dominance             # a witness with dominance (3.5; prunes nothing on the bundled games, BENCH.md)
 npm test           # Node engine/tool tests and the selected game's tests (the heavy solver tests excluded, 4.1.3)
 npm run test:heavy # the CPU-bound solver tests (abstraction audits, canonical owner, memo and ownership proofs, the reference chapter's proof): nightly, minutes each
-npm run test:coverage   # the suite under V8 coverage, against the floors of vite.config.ts; then `npx tsx tools/coverage-ratchet.ts` names a floor at least three points behind what the tests reach
+npm run test:coverage   # the suite under V8 coverage, against the floors of vite.config.ts; then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach (CI and release-check, 4.1.8)
 npm run quality:baseline -- --check [--dist]   # the behaviour of 4.0.0 kept (4.1.0): witnesses, proofs, golden saves, public surface, first visit (tests/quality-baseline.json; without --check: write it)
 npm run test:assets # Python-backed image and asset-pipeline tests
 npm run e2e        # a playthrough in Chromium, phone landscape (dev server already running)
@@ -215,13 +215,13 @@ npm run docs:screenshots [-- --only=game|studio --keep-png]   # the README image
 npx tsx tools/api-doc.ts [--check]                            # the public API's signatures into docs/en/API.md and docs/fr/API.md (4.1.7; tests/api-doc.test.ts fails when a page is behind)
 npm run lint [-- --prove | --static | --json]   # content lint: conditions nothing can satisfy, hidden rules, red herrings, stuck hints, actions never run (alias of lint:content since 4.1.0)
 npm run quality   # engine code (4.1.0): Biome formatting and lint, tsconfig.json and tsconfig.strictest.json, then the content lint
-npm run doctor                     # checks Node, Python modules, ffmpeg and Playwright browsers
+npm run doctor [-- --release]      # checks Node, Python modules, ffmpeg and Playwright browsers; --release (4.1.8) requires every one of them, as release-check does
 npm run check                      # type-check and Node tests
 npm run tsc -- …                   # the TypeScript 7 compiler itself (4.1.8; the `tsc` bin link may belong to the tools' typescript6 package): `npm run check` and `quality` call it
 npm run build:game                 # the game's gates (verify:game), the bundle, verify:dist, the spoiler check, the asset audit: no tsc, no unit suite (CI runs those once)
 npm run verify:game                # validation, global/chapter witnesses and translation coverage
 npm run prove:game                 # global/chapter exhaustive proof; fails on softlocks or truncation
-npm run release-check              # what CI runs, in one go: prerequisites, quality, build, coverage, verify:release, proofs, the Rust cross-check, mutation of the core, the dependency audits
+npm run release-check              # what CI runs, in one go: doctor --release, quality, build, coverage and its strict ratchet, verify:release, proofs, the Rust cross-check, mutation of the core, the packages with `npm publish --dry-run`, the dependency audits
 ```
 
 **Lint.** `npm run lint` says what `validate` cannot (it checks shapes and references) and what `solve` does not say
@@ -400,7 +400,7 @@ line (4.1.7; a script missing from this page fails `tests/scripts-documented.tes
 | Script | What |
 |---|---|
 | `npm run preview` | serves `dist/` on 127.0.0.1 (what the e2e scripts are pointed at after a build) |
-| `npm start` | serves `dist/` on every interface at `$PORT` (8080 by default) with `sirv`: what a host such as Clever Cloud runs |
+| `npm start` | serves `dist/` on every interface at `$PORT` (8080 by default) with `sirv`, through `scripts/start.mjs` (a Node launcher: it runs on Windows too, 4.1.8): what a host such as Clever Cloud runs |
 | `npm run test:node` | the unit suite without the Python-bound and the CPU-bound tests (`npm run check` runs it; the heavy ones run nightly) |
 | `npm run test:mutation:core [-- --set=core\|reality\|all --file=…]` | mutation testing of the modules a save, a session, a condition or a signal rest on (`docs/dev/MUTANTS.md`) |
 | `npm run e2e:smoke` | the generic playthrough of the production build (the solver's path replayed by touch) |
@@ -414,8 +414,8 @@ line (4.1.7; a script missing from this page fails `tests/scripts-documented.tes
 | `npm run audit:assets` | every file of `dist/` accounted for with its licence (`npm run build:game` runs it) |
 | `npm run audio -- …` | the Mega Drive music and sound-effect pipeline (`docs/en/AUDIO.md`) |
 | `npm run build:studio-demo`, `studio-snapshot`, `studio-apply <patch>` | the Studio's static build, its snapshot alone, a demo patch applied to your copy (`docs/en/STUDIO.md`, "Demo mode") |
-| `npm run pack` | the `web-scumm` and `web-scumm-bridge` tarballs a release ships (`docs/en/PACKAGE.md`) |
-| `npm run fresh-install`, `upgrade-check` | a game created from the tarball and played to its end; a game made on the previous release upgraded and played (CI runs both) |
+| `npm run pack [-- --publish-dry-run]` | the `web-scumm`, `create-web-scumm` and `web-scumm-bridge` tarballs a release ships (`docs/en/PACKAGE.md`), from tracked files only: an untracked file under a shipped root refuses the pack (4.1.8); `--publish-dry-run` shows what `npm publish` would send |
+| `npm run fresh-install`, `upgrade-check` | a game created from the tarball and played to its end, `create-web-scumm` installed from its own tarball and run, the Bridge installed and serving; a game made on the previous release migrated, upgraded and played (CI runs both) |
 | `npm run ship -- <checks\|merge\|main\|tag\|watch\|verify\|chain> …` | the release chain as commands (4.1.8): wait for a pull request's checks (one re-run of a failed job), merge it, wait for `main`'s CI on the merge, tag and push, follow the tag's CI and the release run, download the release and verify its sums and attestations; `chain <pr> <version>` does all of it. Each command writes its PID to `.cache/pids/` |
 | `npm run page:storyboard`, `page:review`, `page:placement`, `import-layout` | the phone-friendly review pages and the placement page's import (`docs/en/PAGES.md`) |
 | `npm run bridge -- …` | the Reality Bridge's command line (`docs/en/REALITY-OPS.md`) |

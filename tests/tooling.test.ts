@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { collectChecks, doctorReport } from '../tools/doctor-checks';
 import { serveArgs } from '../tools/serve-args';
 import { manualPasses, releaseNotes } from '../scripts/release-notes.mjs';
+import { runTool } from './run-tool';
 
 describe('doctor', () => {
   const probes = (ok: boolean) => ({
@@ -27,6 +28,10 @@ describe('doctor', () => {
     expect(doctorReport(bad).text).toContain('○  Python: not found (optional)');
     const only = collectChecks({ ...probes(true), command: () => ({ ok: false, stdout: '' }) });
     expect(doctorReport(only)).toMatchObject({ failed: 0, optional: 3 });
+    // --release (4.1.8): what release-check runs is required, nothing is optional.
+    const rel = collectChecks(probes(false), { release: true });
+    expect(doctorReport(rel)).toMatchObject({ failed: 6, optional: 0 });
+    expect(collectChecks(probes(true), { release: true }).every((c) => c.ok)).toBe(true);
     expect(doctorReport(only).text).toContain('3 optional ones missing');
   });
   it('is quiet when everything is there', () => {
@@ -105,9 +110,8 @@ describe('e2e: the solver verdict', () => {
 });
 
 describe('exit codes of the content tools', () => {
-  const { spawnSync } = require('node:child_process') as typeof import('node:child_process');
   const run = (args: string[], env: Record<string, string> = {}) =>
-    spawnSync('npx', ['tsx', ...args], { encoding: 'utf8', env: { ...process.env, GAME: 'demo', ...env } });
+    runTool(args, { env: { ...process.env, GAME: 'demo', ...env } });
 
   it('a release of the sample game has no warning and no exception left, and it may be sold (3.7: its own theme)', () => {
     const rel = run(['tools/validate.ts', '--release']);
@@ -143,10 +147,8 @@ describe('exit codes of the content tools', () => {
 });
 
 describe('the proof by chapters has one verdict in every output', () => {
-  const { spawnSync } = require('node:child_process') as typeof import('node:child_process');
   const run = (args: string[]) =>
-    spawnSync('npx', ['tsx', 'tools/solve.ts', ...args], {
-      encoding: 'utf8',
+    runTool(['tools/solve.ts', ...args], {
       env: { ...process.env, GAME: '', GAME_DIR: 'tests/fixtures/mismatch-game' },
     });
   it('an unreachable checkpoint fails the text output and --json alike, status checkpoint_mismatch', () => {

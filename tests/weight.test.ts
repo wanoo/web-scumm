@@ -1,12 +1,12 @@
 // What a player downloads (src/engine/tools/weight.ts, npm run weight): the images the engine preloads for a room,
 // its music and sound effects; the title, the column's icons and the first room before play; budgets in KB.
-import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { GameDef, RoomDef } from '@engine/core/types';
 import { initialAssets, roomAssets, stingerAssets, transitionPeak, weigh, weightReport } from '@engine/tools/weight';
+import { runTool } from './run-tool';
 
 const room = (id: string, extra: Partial<RoomDef> = {}): RoomDef =>
   ({ id, name: id, decor: `decor/${id}`, ...extra }) as RoomDef;
@@ -146,8 +146,7 @@ describe('weight', () => {
     // An empty DIST_DIR: the verdict never depends on a `dist` left by an earlier build (a Studio build carries a
     // whole font). The app shell is weighed on a fresh build in CI (`npm run weight -- --release` after `npm run build`).
     const dist = mkdtempSync(join(tmpdir(), 'weight-dist-'));
-    const r = spawnSync('npx', ['tsx', 'tools/weight.ts', '--release', '--json'], {
-      encoding: 'utf8',
+    const r = runTool(['tools/weight.ts', '--release', '--json'], {
       env: { ...process.env, GAME: 'demo', DIST_DIR: dist },
     });
     rmSync(dist, { recursive: true, force: true });

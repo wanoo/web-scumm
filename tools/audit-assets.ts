@@ -4,7 +4,7 @@
 // every token (lowercase runs of letters, digits and underscores, plus each underscore-separated part) is hashed and compared.
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, extname } from 'node:path';
+import { basename, join, extname } from 'node:path';
 
 const BLOCKED = new Set([
   '08d44dfdb361',
@@ -71,7 +71,7 @@ let hits = 0;
 function scan(p: string) {
   const st = statSync(p);
   if (st.isDirectory()) {
-    if (!SKIP.has(p.split('/').pop()!)) for (const e of readdirSync(p)) scan(join(p, e));
+    if (!SKIP.has(basename(p))) for (const e of readdirSync(p)) scan(join(p, e));
     return;
   }
   const w = hit(p);
