@@ -216,7 +216,7 @@ export default defineConfig({
         'src/engine/reality/client.ts': { lines: 98, branches: 89 },
         'src/engine/reality/http-port.ts': { lines: 98, branches: 95 },
         'bridge/src/bridge.ts': { lines: 97, branches: 95 },
-        'bridge/src/store.ts': { lines: 96, branches: 91 },
+        'bridge/src/store.ts': { lines: 96, branches: 92 },
         'bridge/src/server.ts': { lines: 92, branches: 82 },
         'bridge/src/policy.ts': { lines: 100, branches: 98 },
         'bridge/src/lock.ts': { lines: 100, branches: 100 },
