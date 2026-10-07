@@ -309,13 +309,13 @@
   }
  },
  "surface": {
-  "api": "f5daba9c313e6a1f"
+  "api": "175807e154669247"
  },
  "tests": {
-  "files": 139,
-  "declarations": 1027
+  "files": 151,
+  "declarations": 1092
  },
  "bundle": {
-  "initialJsKB": 120
+  "initialJsKB": 124
  }
 }
