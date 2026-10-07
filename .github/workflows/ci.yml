@@ -148,7 +148,9 @@ jobs:
   # pull request the sets would run for an hour whenever the core or Reality moved (7 October 2026: 90 then 52 min);
   # the nightly and release-check measure them, and release-check reuses a report of the same inputs.
   mutation:
-    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci')
+    # Not on a push to main either (4.1.9, lot 0): a main run must stay short, since the release chain waits for the run
+    # of the exact commit it tags and a later merge cancels a run still going. The nightly and release-check measure.
+    if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     steps:
