@@ -481,6 +481,22 @@ export interface UiTexts {
   fingerprint?: string;
   /** The pause menu's quest journal (4.1.12, `GameDef.objectives`). English default "Objectives". */
   objectives?: string;
+  /**
+   * Remix (4.1.15): the title's Remix button, its menu (which world: the story, a new one, a typed seed, the daily
+   * challenge) and the pause menu's world row (the seed to copy, or "hidden until the end" in a masked mode).
+   */
+  remix?: string;
+  remixTitle?: string;
+  remixStory?: string;
+  remixRandom?: string;
+  remixSeed?: string;
+  remixDaily?: string;
+  remixPlay?: string;
+  remixInvalid?: string;
+  remixWorld?: string;
+  remixHidden?: string;
+  remixCopied?: string;
+  remixNoBridge?: string;
   /** Values of text speed / size: slow, normal, fast, large. */
   slow?: string;
   normal?: string;

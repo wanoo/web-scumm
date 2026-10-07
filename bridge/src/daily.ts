@@ -11,9 +11,7 @@
 // (memory here; the Bridge's own store backs it when the server mounts it).
 import { createHmac, randomBytes } from 'node:crypto';
 import { b64url } from '../../src/engine/reality/protocol';
-import { seedCommitment } from '../../src/engine/core/remix/categories';
-import { encodeSeedCode } from '../../src/engine/core/remix/seed-code';
-import { REMIX_ALGORITHM_VERSION } from '../../src/engine/core/remix/manifest';
+import { encodeSeedCode, REMIX_ALGORITHM_VERSION, seedCommitment } from '../../src/engine/reality/daily';
 
 /** What the daily routes keep: the day tokens issued, the Mystery seeds behind their commitments. */
 export interface DailyStore {

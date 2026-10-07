@@ -154,7 +154,35 @@ export async function bootGame(o: BootOptions): Promise<App> {
     stored,
     navigatorLang: globalThis.navigator?.language,
   });
-  const translated = lang && o.locales?.[lang] ? applyLocale(written, o.locales[lang], o.minigames) : written;
+  const texts = lang && o.locales?.[lang] ? applyLocale(written, o.locales[lang], o.minigames) : written;
+  // Remix (4.1.15): the world this page plays, applied after the translation so that every language says the same
+  // code. A link's world (`?seed=`, `?daily=`) becomes this browser's (the title then offers its New game); else the
+  // one chosen before; else the story. A save made in another world names it (`SaveWorldMismatch`).
+  let translated = texts;
+  if (written.remix) {
+    const remix = await import('./dom/remix-menu');
+    const { applyVariant, applyStory } = await import('./core/remix/apply');
+    let world = remix.storedWorld(written.id);
+    try {
+      const linked = await remix.worldFromQuery(written, q);
+      if (linked && linked.hash !== world?.hash) {
+        remix.keepWorld(written.id, linked);
+        world = linked;
+      }
+    } catch (e) {
+      console.warn('this link names no world of the game', e);
+    }
+    try {
+      translated = world
+        ? applyVariant(texts, world, { lang: lang ?? written.lang })
+        : applyStory(texts, { lang: lang ?? written.lang });
+    } catch (e) {
+      // A world this version of the game no longer has: the story, said once.
+      console.warn('the stored world cannot be rebuilt; playing the story', e);
+      remix.keepWorld(written.id, undefined);
+      translated = applyStory(texts, { lang: lang ?? written.lang });
+    }
+  }
   // The voices of the chosen language (`audio.voicesByLang`), else the game's own: a translated line keeps its id.
   const byLang = lang && lang !== (written.lang ?? 'en') ? written.audio?.voicesByLang?.[lang] : undefined;
   const localized = byLang ? { ...translated, audio: { ...translated.audio, voices: byLang } } : translated;

@@ -41,6 +41,19 @@ export const DEFAULT_UI = {
   volumeVoice: 'Voice volume',
   fingerprint: 'Build',
   objectives: 'Objectives',
+  // Remix (4.1.15): the title's Remix button and its menu, the pause menu's world row.
+  remix: 'Remix',
+  remixTitle: 'Which world?',
+  remixStory: 'Story',
+  remixRandom: 'A new world',
+  remixSeed: 'Type a seed',
+  remixDaily: 'Daily challenge',
+  remixPlay: 'Play',
+  remixInvalid: 'Not a seed code',
+  remixWorld: 'World',
+  remixHidden: 'hidden until the end',
+  remixCopied: 'Copied',
+  remixNoBridge: 'needs the Bridge',
 } as const;
 
 export type UiKey = keyof typeof DEFAULT_UI;

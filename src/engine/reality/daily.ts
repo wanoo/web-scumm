@@ -8,6 +8,11 @@ import { b64url, type BridgeKey } from './protocol';
 import { seedCommitment } from '../core/remix/categories';
 import { normalizeSeed } from '../core/remix/seed-code';
 
+// What the Bridge's daily module shares with the player (the Bridge reaches the engine only through reality/).
+export { seedCommitment } from '../core/remix/categories';
+export { encodeSeedCode } from '../core/remix/seed-code';
+export { REMIX_ALGORITHM_VERSION } from '../core/remix/manifest';
+
 const DayTokenSchema = z.strictObject({
   format: z.literal('web-scumm-daily'),
   v: z.literal(1),
