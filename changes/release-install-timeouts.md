@@ -4,4 +4,5 @@
   out on `apt-get install ffmpeg` on 7 October 2026, as CI's jobs had a dozen times that day (ci.yml got the same in 4.1.14).
 - **ffmpeg on the runners through `scripts/ci-ffmpeg.sh` (4.1.15)**: apt first, bounded to four minutes an attempt,
   then a static build from GitHub's CDN (BtbN/FFmpeg-Builds) when the apt mirror hangs, as it did for twenty minutes
-  without a byte on 7 October 2026. Every ci.yml and release.yml job that needs ffmpeg uses it.
+  without a byte on 7 October 2026. Every ci.yml job that needs ffmpeg uses it; release.yml carries the same logic inline, because it runs from `main`
+  while checking out a tag's commit that may predate the script.

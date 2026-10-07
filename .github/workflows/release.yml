@@ -103,7 +103,20 @@ jobs:
         timeout-minutes: 20
       # `npm run doctor -- --release` (first step of release-check) requires ffmpeg and Chromium (4.1.8); release-check
       # opens no browser, so the other two are not installed here.
-      - run: bash scripts/ci-ffmpeg.sh
+      # ffmpeg (4.1.15): this workflow runs from main while it checks out the tag's commit, which may predate
+      # scripts/ci-ffmpeg.sh, so the same logic is inline here: apt bounded, then a static build from GitHub's CDN.
+      - run: |
+          command -v ffmpeg >/dev/null 2>&1 && exit 0
+          for i in 1 2; do
+            if timeout 240 sudo apt-get update -qq && timeout 240 sudo apt-get install -y -qq ffmpeg; then exit 0; fi
+            echo "apt attempt $i failed or hung; retrying" >&2; sleep 10
+          done
+          echo "apt gave up: a static build from GitHub (BtbN/FFmpeg-Builds)" >&2
+          tmp=$(mktemp -d)
+          curl -fsSL --retry 3 --max-time 600 https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz -o "$tmp/ffmpeg.tar.xz"
+          tar -xJf "$tmp/ffmpeg.tar.xz" -C "$tmp"
+          sudo install -m 0755 "$tmp"/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg "$tmp"/ffmpeg-master-latest-linux64-gpl/bin/ffprobe /usr/local/bin/
+          ffmpeg -version | head -1
         timeout-minutes: 20
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
