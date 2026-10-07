@@ -41,5 +41,11 @@
   "RTA" rows of the alteration table renamed (integrity only). Kept: `core/fingerprint.ts`'s `PRNG_VERSION` (4.1.15).
   Not done: real isolation of the worker (child processes, worker threads and the filesystem stay open in-process: the
   deployment's container); authenticated pseudonyms.
+- **Mutation of the set files this lot rewrote** (local, 7 Oct 2026, `npx tsx tools/mutate.ts --set=<set> --file=<f> --fresh`):
+  `src/engine/core/session-runtime.ts` first 36/56 killed, 19 unexplained (the seed paths were tested only in
+  `tests/prng.test.ts`, outside the `core` set); after tests in `tests/critical-session.test.ts`, one equivalent mutant
+  named in `docs/dev/mutants.json` (`chosen`'s initial value) and `drawState` simplified: `✔  53/55 mutants killed, 2
+  survivors explained, 0 not`. `src/engine/reality/client.ts` (the `onSigned` hook): `✔  64/65 mutants killed, 1
+  survivors explained, 0 not`.
 
 → next: Claude · `release/4.1.14`

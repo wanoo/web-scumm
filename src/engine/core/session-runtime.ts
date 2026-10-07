@@ -72,7 +72,8 @@ export class SessionLog {
 
   /** Where the `logic` stream stands (a resumed run restores it with `restoreDraws`). */
   drawState(): { seed: string; state: [number, number, number, number] } | null {
-    return this.logic && this.seed ? { seed: this.seed, state: this.logic.state() } : null;
+    // The stream and its seed are set together (`reseed`).
+    return this.logic ? { seed: this.seed!, state: this.logic.state() } : null;
   }
   restoreDraws(d: { seed: string; state: readonly [number, number, number, number] }) {
     this.nextSeed = d.seed;
