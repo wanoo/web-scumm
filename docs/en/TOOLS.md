@@ -174,6 +174,7 @@ exhaustive softlock gate, and `npm run release-check` includes it.
 
 ```bash
 npm run solve -- --chapters        # one bounded search per checkpoint with `goals`, then from the last one to the ending
+npm run solve -- --goal=100%       # the search's goal is every objective that is not optional (GameDef.objectives, 4.1.12) instead of the ending; exit 2 for a game that declares none
 npm run solve -- --prove --chapters   # the proof by chapters: each chapter proved from EVERY reachable boundary state of the previous one; a checkpoint that matches none is an error
 npm run validate -- --report       # the content profiler: rooms, items, characters, what is thin (Markdown)
 npm run page:world                 # the map of the world as a page (exits, gotos, unreachable rooms, DOT source)
@@ -217,6 +218,7 @@ npm run changes -- --check [--base=origin/main] | --assemble [--date=YYYY-MM-DD]
 npm run docs:links [-- --timeout=10000]                       # every external link of the docs asked once, statuses by domain; a person runs it before a release, CI never does (the network is not a test)
 npm run ci:plan [-- --base=origin/main | --files=a,b | --all]   # which of CI's heavier jobs a change needs (4.1.9, tools/ci-plan.ts): each changed file classified by the first rule that matches, one line of JSON (a boolean per gate: node24, e2e, reference, reality, pwaFirefox, windows, secondGame, freshInstall, upgrade, auditDeps); the workflow, the plan, a shared configuration, the engine's core and a path no rule knows run everything; read-only
 npx tsx tools/api-doc.ts [--check]                            # the public API's signatures and stability (@public | @extension, 4.1.8) into docs/en/API.md and docs/fr/API.md; tests/api-doc.test.ts fails when a page is behind or an export has no description or stability
+npx tsx tools/dsl-doc.ts [--check]                            # the DSL's reference (every condition, command, objective field and how each field counts for the IR) generated from the schemas into docs/en/DSL.md and docs/fr/DSL.md (4.1.12); tests/dsl-doc.test.ts fails when a page is behind
 npm run lint [-- --prove | --static | --json]   # content lint: conditions nothing can satisfy, hidden rules, red herrings, stuck hints, actions never run (alias of lint:content since 4.1.0)
 npm run quality   # engine code (4.1.0): Biome formatting and lint, tsconfig.json and tsconfig.strictest.json, then the content lint
 npm run doctor [-- --release]      # checks Node, Python modules, ffmpeg and Playwright browsers; --release (4.1.8) requires Python, its modules and ffmpeg, as release-check does, and Chromium as always (release-check opens no browser: Firefox and WebKit stay optional)

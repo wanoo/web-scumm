@@ -475,40 +475,48 @@ export function logicView(ir: GameIR): Omit<GameIR, 'engine' | 'provenance'> {
 
 /**
  * Where each id of the IR is written in the sources (path → text), read from their object-literal keys
- * (core/source-keys.ts, strings and comments skipped): `id: '<id>'` for rooms, rules, topics, listeners and scripts;
- * the key itself for items and characters, for objectives and checkpoints (after the `objectives:` or `checkpoints:`
- * key), and, inside the room's own file, for its props, actors and hotspots. An id not found has no entry (it was
- * generated, or written by code): never a guessed line. Files are read in path order.
+ * (core/source-keys.ts: strings and comments skipped, each key with the key or variable that owns its object):
+ * `id: '<id>'` for rooms, rules, topics, listeners and scripts; the key itself under `items`, `characters`,
+ * `objectives` and `checkpoints`, and, inside the room's own file, under its `props`, `actors`, `hotspots` and
+ * `exits` (a declared exit gives its line to the hotspot and the rules generated from it). An id not found has no
+ * entry (written by code, not literally): never a guessed line. Files are read in path order.
  * @public
  */
 export function provenanceOf(ir: GameIR, sources: Readonly<Record<string, string>>): Record<string, IrSource> {
   const files = Object.keys(sources).sort();
   const keys = new Map(files.map((f) => [f, sourceKeys(sources[f]!)]));
   const out: Record<string, IrSource> = {};
-  const first = (pick: (k: SourceKey, i: number, all: SourceKey[]) => boolean, only?: string): IrSource | undefined => {
+  const first = (pick: (k: SourceKey) => boolean, only?: string): IrSource | undefined => {
     for (const file of only ? [only] : files) {
-      const all = keys.get(file) ?? [];
-      const i = all.findIndex((k, j) => pick(k, j, all));
-      if (i >= 0) return { file, line: all[i]!.line };
+      const hit = (keys.get(file) ?? []).find(pick);
+      if (hit) return { file, line: hit.line };
     }
     return undefined;
   };
   const byId = (id: string) => first((k) => k.key === 'id' && k.value === id);
-  const byKey = (key: string, only?: string) => first((k) => k.key === key, only);
-  /** The key after a section key (`objectives:`, `checkpoints:`) of the same file. */
-  const after = (section: string, key: string) =>
-    first((k, i, all) => k.key === key && all.slice(0, i).some((x) => x.key === section));
+  const under = (parents: readonly string[], key: string, only?: string) =>
+    first((k) => k.key === key && parents.includes(k.parent ?? ''), only);
   const put = (id: string, at: IrSource | undefined) => {
     if (at && !(id in out)) out[id] = at;
   };
   for (const r of ir.rooms) put(r.id, byId(r.id));
-  for (const r of ir.rules) if (!(r.kind === 'rule' && r.exit) && r.kind !== 'fallback') put(r.id, byId(r.id));
+  const roomFile = (room: string | undefined) => (room ? out[room]?.file : undefined);
+  for (const r of ir.rules)
+    if (r.kind === 'rule' && r.exit) {
+      // Generated from a declared exit: where the exit is written.
+      const file = roomFile(r.scope);
+      if (file) put(r.id, under(['exits'], r.exit, file));
+    } else if (r.kind !== 'fallback') put(r.id, byId(r.id));
   for (const s of ir.scripts) if (s.trigger === 'world') put(s.id, byId(s.id));
   for (const e of ir.entities) {
-    if (e.kind === 'item' || e.kind === 'character') put(e.key, byKey(e.id));
-    else if (!e.exit && e.room && out[e.room]) put(e.key, byKey(e.id, out[e.room]!.file));
+    if (e.kind === 'item') put(e.key, under(['items'], e.id));
+    else if (e.kind === 'character') put(e.key, under(['characters'], e.id));
+    else {
+      const file = roomFile(e.room);
+      if (file) put(e.key, under(e.exit ? ['exits', 'hotspots'] : ['props', 'actors', 'hotspots'], e.id, file));
+    }
   }
-  for (const x of ir.objectives) put(`objective:${x.id}`, after('objectives', x.id));
-  for (const id of Object.keys(ir.world.checkpoints)) put(`checkpoint:${id}`, after('checkpoints', id));
+  for (const x of ir.objectives) put(`objective:${x.id}`, under(['objectives'], x.id));
+  for (const id of Object.keys(ir.world.checkpoints)) put(`checkpoint:${id}`, under(['checkpoints'], id));
   return out;
 }

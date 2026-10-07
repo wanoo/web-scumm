@@ -8,3 +8,13 @@ export { solve } from '../tools/solve';
 export type { SolveOptions, SolveResult } from '../tools/solve';
 // 4.1.11 (ADR 0011): what the engine says happened, in ids (`Engine.journal`).
 export type { SemanticEvent, SemanticJournal } from '../core/journal';
+// 4.1.12 (ADR 0013): the game's fingerprint, what a run or a build is compared on.
+export {
+  fingerprint,
+  fingerprintGame,
+  hashSources,
+  presentationOf,
+  sha256Hex,
+  shortFingerprint,
+} from '../core/fingerprint';
+export type { GameFingerprint } from '../core/fingerprint';

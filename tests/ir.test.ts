@@ -135,11 +135,17 @@ describe('provenance', () => {
     expect(p[`garden.${prop}`]?.file).toBe('games/demo/rooms/garden.ts');
   });
 
-  it('gives no line rather than a wrong one for an id not written literally', () => {
-    expect(provenanceOf(ir(demo), {})).toEqual({});
-    // Generated exit rules are not in the sources.
+  it("gives a declared exit's line to what is generated from it, and no line rather than a wrong one", () => {
     const exitRule = ir(demo).rules.find((r) => r.kind === 'rule' && r.exit);
-    expect(exitRule && p[exitRule.id]).toBeUndefined();
+    expect(exitRule).toBeDefined();
+    const room = exitRule!.kind === 'rule' ? exitRule!.scope : '';
+    const exitId = exitRule!.kind === 'rule' ? exitRule!.exit! : '';
+    const file = `games/demo/rooms/${room}.ts`;
+    expect(p[exitRule!.id]).toEqual({ file, line: lineOf(file, `${exitId}: {`) });
+    expect(p[`${room}.${exitId}`]).toEqual(p[exitRule!.id]);
+    // Without the sources, nothing; an id the sources do not write, nothing.
+    expect(provenanceOf(ir(demo), {})).toEqual({});
+    expect(p['nothing.like.this']).toBeUndefined();
   });
 });
 

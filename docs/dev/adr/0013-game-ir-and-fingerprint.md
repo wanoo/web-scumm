@@ -51,9 +51,12 @@ classified, and `tests/ir.test.ts` checks that every `logic` field of the bundle
 **Cost.** One more pass over the game when a fingerprint is asked for (the pause menu computes it on demand, in a
 chunk loaded then). Text is logic: a line's wording lives in its command, so fixing a typo moves `logic` (4.1.14
 chooses per category which components a run must match; a text-free view can be added then, additively). The
-fingerprint is computed on the game as written, before a translation is applied. Provenance is found by searching the
-sources for each id (`id: '<id>'`, or `<key>:` inside the room's own file): an id written by a helper function, not
-literally, has none, and says so (`provenance` lacks it) rather than pointing at a wrong line.
+fingerprint is computed on the game as written, before a translation is applied. Provenance is read from the sources'
+object keys by a small scanner that skips strings and comments and knows which key or variable owns each object
+(`core/source-keys.ts`): `id: '<id>'`, or the key under `items`, `characters`, `objectives`, `checkpoints`, or a
+room's `props`, `actors`, `hotspots` and `exits` in that room's file. No TypeScript compiler in the core (it runs in
+the browser too). An id written by a helper function, not literally, has none, and says so (`provenance` lacks it)
+rather than pointing at a wrong line.
 
 **Evidence.** `tests/canonical-json.test.ts` (50 edge values, the expected texts written out; `scripts/e2e-canonical.mjs`
 compares the same 50 in Chromium, WebKit and Firefox, run by CI's e2e gate), `tests/ir.test.ts` (determinism on
