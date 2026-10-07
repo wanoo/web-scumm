@@ -2293,6 +2293,61 @@ Platform"; human gates reported, not blocking (D12).
 
 → next: Claude · pull request, merge on green, tag v4.1.7; then 4.2.0 "Finale"
 
+## #104 · 2026-10-07 · Claude · decision · the 4.1.8 → 4.1.15 programme (D18)
+
+- After the six releases of 6–7 October (4.1.2 → 4.1.7, each verified: sums, attestations) the next step was 4.2.0
+  "Finale". The maintainer brought a programme instead, `docs/dev/PLAN-4.1.8-4.1.15.md` (French; 1 036 lines when it arrived, 1 077 with §11.13, the code wheel they
+  added the same day): eight
+  releases that use the absence of a production game (D8) to finish the architecture breaks before 4.2 freezes the
+  contracts; "Finale" becomes 4.2.0 "Stable World". Their decisions, taken on the plan: the whole programme in order;
+  nothing cut, human and infrastructure passes delivered testable and reported (D12), blocking only for 4.2.0; every
+  pull request read by a second automated context before it merges; release candidates on the risky versions.
+- The maintainer's review of the plan corrected it before the first commit: the Reality cursor defect is **reproduced**
+  (polling: `after=0`, signal 1 delivered and not acknowledged, next request `after=1`), so 4.1.8 carries a P0 fix,
+  not a hypothesis; Time Attack needs its own clock (RTA monotone, a logical time in integer ticks, Active IGT per
+  category), a chunked and hash-chained journal instead of a raised `SESSION_MAX`, a hash chain of the whole run and a
+  verification worker isolated from the Bridge's HTTP process; integrity is not authenticity; the Reality protocol is
+  not frozen before the multi-tenant threat analysis; 4.1.13 ships on two thresholds or is named "Solver Research";
+  the three biggest Studio files are `storyboard.ts`, `assets.ts`, `rooms.ts` (1 377, 1 364, 1 358 lines on v4.1.7);
+  mutation reports are keyed by a hash of their inputs, not by the commit; `release.yml` is not made faster in 4.1.8.
+- This entry's commits: the plan committed as received, then its §11.13; `docs/dev/PROGRAM-4.1.md` (English), D18, the ROADMAP's programme
+  section, SUPPORT's incubation paragraph, `tools/release/ship.mjs` (`npm run ship`: the chain of 4.1.2 → 4.1.7,
+  rewritten in Node from a scratchpad that died with its session), `release.yml` publishing a `-rc.N` tag as a
+  pre-release, release notes that say which version a candidate is for.
+- Not done, said as such: nothing of the engine changes here. The 4.1.8 lots follow, one branch each: the baseline of
+  4.1.7 and the red Reality test, the P0 fix and the reality mutation set gated, TypeScript 7, Vite 8, PWA 2, the honest
+  release checks, the Studio split, the docs' contradictions, then `release/4.1.8` and `v4.1.8-rc.1`.
+
+→ next: Claude · `test/418-baseline` (measures of 4.1.7, the Reality reproduction as a test)
+
+## #105 · 2026-10-07 · Claude · proposal · `test/418-baseline`: measure before touching
+
+- Programme rule 1 and §4.2 of the plan: the baseline first. `docs/dev/baselines/4.1.7.md` reads the release run of
+  v4.1.7 (37540093503), `main`'s ci on the same commit (37537456862), the nightly and a local run of the suite:
+  914 tests in 96 files; coverage 60.86 / 58.15 / 55.61 / 61.37 % (statements, branches, functions, lines; floors
+  56 / 56 / 51 / 56); mutation core 342/345 (reality 382/484 with 88 unexplained is 4.1.2's nightly figure, said so: the tag has no
+  reality run); first visit 123 KB gzipped
+  (main chunk 125.72); demo proof 3 480 states, reference 288, chapters 3.2 s and 5.5 s; `release-check` 17 min
+  49 s on the runner, merge → release ≈ 45–50 min. `mutants.json` (15) and MUTANTS.md (3 + 14) disagree: for
+  `docs/418-truth`.
+- The Reality cursor defect as a test (`tests/reality-cursor.test.ts`), at the transport: a fake Bridge records
+  every `after` it is asked; the port hands signal 1 over, nobody acknowledges, and the next request says
+  `after=1` in polling (the maintainer's reproduction) and after an SSE reconnection too; with two signals and only
+  the first acknowledged, the next request says `after=2`. Three cases red on 4.1.7, marked `it.fails` so the gate
+  stays green until `fix/418-reality-integrity` flips them; two green cases hold what already works (an acknowledged
+  signal is not asked for again). The fix's contract is in the test's header: resume from the acknowledged cursor.
+- The formats frozen (`tests/formats.test.ts`, `tests/fixtures/formats/`): a session file and a solver report
+  generated from the `signals` fixture, the 4.1.7 golden save's envelope, the first conformance vector's signed
+  signal; each parsed by its production reader, its keys listed. `docs/dev/MIGRATION-4.1.8.md`: the known
+  incompatibilities of TypeScript 7, Vite 8 and vite-plugin-pwa 2, with the reasons the Dependabot PRs were closed
+  in 4.0.
+- The baseline's test count ratchets, 728 → 734 declarations (`it.fails` is not counted: three more when the fix
+  flips them).
+- Not done, said as such: the replay of the generated game from a fresh install already exists (`fresh-install`
+  plays it to its end); the private game is not measured (D8); the Mac's build time is not in the baseline.
+
+→ next: Claude · `fix/418-reality-integrity` (the P0: three cursors, the reality mutation set gated)
+
 ## #106 · 2026-10-07 · Claude · proposal · `fix/418-reality-integrity`: the P0, and the transport bounded
 
 - The defect (#105's reproduction, the maintainer's on 4.1.7): `http-port.ts` kept one cursor and moved it at

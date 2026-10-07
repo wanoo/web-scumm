@@ -76,6 +76,11 @@ describe('release notes', () => {
     expect(releaseNotes(log, 'v3.1.0')).toBe('### Added\n\n- a\n');
     expect(releaseNotes(log, '3.0.0')).toBe('- b\n');
     expect(releaseNotes(log, 'v3.2.0')).toBeNull();
+    // 4.1.8: a release candidate reads the section of the version it candidates for, and says it is one.
+    expect(releaseNotes(log, 'v3.1.0-rc.1')).toBe(
+      '**Release candidate rc.1 of 3.1.0**: a pre-release for a cycle of observation; the final tag may differ.\n\n### Added\n\n- a\n',
+    );
+    expect(releaseNotes(log, 'v3.2.0-rc.1')).toBeNull();
     // D12: the notes say which manual pass was done, or that none was.
     expect(manualPasses(null)).toContain('None recorded for this release');
     const sheet =

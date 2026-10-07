@@ -414,6 +414,7 @@ line (4.1.7; a script missing from this page fails `tests/scripts-documented.tes
 | `npm run build:studio-demo`, `studio-snapshot`, `studio-apply <patch>` | the Studio's static build, its snapshot alone, a demo patch applied to your copy (`docs/en/STUDIO.md`, "Demo mode") |
 | `npm run pack` | the `web-scumm` and `web-scumm-bridge` tarballs a release ships (`docs/en/PACKAGE.md`) |
 | `npm run fresh-install`, `upgrade-check` | a game created from the tarball and played to its end; a game made on the previous release upgraded and played (CI runs both) |
+| `npm run ship -- <checks\|merge\|main\|tag\|watch\|verify\|chain> …` | the release chain as commands (4.1.8): wait for a pull request's checks (one re-run of a failed job), merge it, wait for `main`'s CI on the merge, tag and push, follow the tag's CI and the release run, download the release and verify its sums and attestations; `chain <pr> <version>` does all of it. Each command writes its PID to `.cache/pids/` |
 | `npm run page:storyboard`, `page:review`, `page:placement`, `import-layout` | the phone-friendly review pages and the placement page's import (`docs/en/PAGES.md`) |
 | `npm run bridge -- …` | the Reality Bridge's command line (`docs/en/REALITY-OPS.md`) |
 | `npm run solve:reality`, `reality:spike`, `reality:xcheck` | the solver under every reality scenario, a load probe of the Bridge, the Rust cross-check of the protocol (`docs/en/REALITY.md`) |
