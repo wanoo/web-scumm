@@ -92,6 +92,9 @@ describe('release notes', () => {
       '| Pass | Status | Who | Device | Failed |\n|---|---|---|---|---|\n| Screen reader | done | Ann | iPhone | — |\n| Safari offline | not done | | | |\n';
     expect(manualPasses(sheet)).toContain('1 of 2 done.');
     expect(manualPasses(sheet)).toContain('| Safari offline | not done |');
+    // A sheet that opens with the release's own table (4.1.7+): only the rows after "## People's passes" count.
+    const full = `| # | It may not ship while… | At the tag |\n|---|---|---|\n| 1 | x | y |\n\n## People's passes\n\n${sheet}`;
+    expect(manualPasses(full)).toContain('1 of 2 done.');
   });
 });
 

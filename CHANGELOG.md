@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 4.1.8 — 2026-10-07
+
+"Foundation Reset" (LOG #117): the first release of the 4.1.8 → 4.1.15 programme (D18), where the 4.1.x line becomes
+an incubation line; the toolchain modernised (TypeScript 7, Vite 8, the PWA plugin's 2.0, Node 22.12), the Reality
+cursor's P0 fixed with its reproduction, the PWA proven in three browsers, a release check that predicts the release,
+the mutation and coverage gates that block, the Studio's biggest files split, every public export with its
+stability, the documentation saying one thing. Measured against 4.1.7 in `docs/dev/baselines/4.1.8.md`; what this
+release does not do is in the LOG and the passes sheet (`docs/dev/passes/4.1.8.md`).
+
 ### Fixed
 
 - **A signal handed over and not acknowledged was lost to its connection** (P0 of 4.1.8, reproduced by the
@@ -44,7 +53,7 @@
 - **The documentation says one thing** (4.1.8, programme §4.8). An audit of every page against the code and the
   workflows found and fixed: the READMEs' test count, first-visit weight and the reference game's states now come from
   `tests/quality-baseline.json` (`npm run quality:baseline` writes them between markers and `--check` fails when they
-  lag: 788 declarations, 120 KB and 288 states today, where the pages said 910, 123 and 578); the nightly corpus is 500 random games of each of three kinds, not
+  lag: 788 declarations at the audit and 945 at the tag, 120 KB and 288 states, where the pages said 910, 123 and 578); the nightly corpus is 500 random games of each of three kinds, not
   "1 503"; the sample game has had no non-commercial music since 3.7 (SECURITY.md, TOOLS en/fr and a code comment
   still excepted it); the SemVer promise of the READMEs and CONTRIBUTING is bounded to 4.1.7, with the incubation
   line after it; PACKAGE.md names the third package, `web-scumm-bridge`; CREDITS names zod and the Biscuit test
@@ -78,7 +87,8 @@
   of a shell line with a Unix expansion that cmd.exe and PowerShell did not know. The job is reported, not yet among
   the checks the ruleset requires (the maintainer's).
 - **A release check that predicts the release** (4.1.8). `npm run doctor -- --release` requires every prerequisite
-  `release-check` runs (Python and its modules, ffmpeg, the three browsers), and `release-check` starts with it. The
+  `release-check` runs (Python and its modules, ffmpeg, and Chromium as always; the other browsers since the
+  docs-truth lot), and `release-check` starts with it. The
   packages are made from tracked files only: an untracked file under a shipped root refuses `npm run pack` rather
   than travel or vanish silently; `--publish-dry-run` shows what `npm publish` would send for each of the three,
   and `release-check` runs it. `fresh-install` installs `create-web-scumm` from its own tarball and runs it, beside
@@ -119,7 +129,7 @@
   defect (the transport asks the Bridge for `after=1` once signal 1 is handed over, acknowledged or not; in polling
   and in SSE), kept red on purpose (`it.fails`) until the fix; `tests/formats.test.ts` and `tests/fixtures/formats/`
   freeze the four formats the engine writes and reads (a session file, a save envelope and a signed world signal
-  parsed by their production readers; a solver report by its keys). The baseline's test count ratchets (728 → 734
+  parsed by their production readers; a solver report by its keys). The baseline's test count ratchets (728 → 945 at the release
   declarations; `it.fails` is not counted). `docs/dev/MIGRATION-4.1.8.md` lists what TypeScript 7, Vite 8 and vite-plugin-pwa 2 change, read
   before any of them is touched.
 - **The 4.1.8 → 4.1.15 programme** (D18, 7 October 2026). After 4.1.7 the project does not go to 4.2.0 "Finale": it
@@ -149,8 +159,9 @@
   `tests/bridge-store.test.ts`, `tests/reality-client.test.ts`, `tests/reality-port.test.ts`: the exact edges of
   expiries, quotas and size limits, revocations landing inside the lock, the journal's retention and rewrite, the
   client's refusals and its stop, the port's backoff, cursors and parser), 16 named as equivalent with their reason
-  and the source line they sit on (29 names for 25 survivors, one per line); two old equivalents, now killed, left the list. Measured on the branch:
-  579 of 604 mutants killed, every survivor named.
+  and the source line they sit on (25 names, one per line); two old equivalents, now killed, left the list. Measured at
+  the tag (the lock's races tested on purpose after CI's runner never reached them): 589 of 614 mutants killed,
+  every survivor named.
 
 ## 4.1.7 — 2026-10-06
 

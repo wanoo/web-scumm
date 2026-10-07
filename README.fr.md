@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/img/logo.png" width="128" height="128" alt="Le logo de web-scumm : un aventurier en pixel art"></p>
+
 # web-scumm
 
 **Écrire un point-and-click comme des données, prouver qu'on peut le finir, le livrer sur un téléphone.**
@@ -103,7 +105,7 @@ contenu.
 publication npm est prévue pour la 4.2, puis `npx create-web-scumm mon-jeu`) :
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.7/web-scumm-4.1.7.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.8/web-scumm-4.1.8.tgz
 npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # puis npm run verify, npm run build, npm run release
@@ -134,7 +136,7 @@ Mesuré sur ce commit de `main`, par les gates automatiques qui tournent à chaq
 |---|---|
 | Tests unitaires | <!-- metric:tests -->945<!-- /metric --> déclarations, sous Node 22 et 24, avec des planchers de couverture par module et des tests de mutation sur ce dont dépendent une sauvegarde, une session, une condition et un signal |
 | Tests navigateur | le jeu d'exemple joué jusqu'à sa fin au tactile et au clavier dans Chromium et WebKit à la taille d'un téléphone, en anglais et en français, avec le peintre DOM et le peintre Canvas ; un second jeu et le jeu de référence aussi ; chaque mini-jeu gagné au clavier ; axe-core sur chaque écran |
-| Sauvegardes | une sauvegarde figée par release de la 3.0.0 à la 4.1.7 se charge et atteint la fin |
+| Sauvegardes | une sauvegarde figée par release de la 3.0.0 à la 4.1.8 se charge et atteint la fin |
 | Preuve | chaque état atteignable du jeu d'exemple en quelques secondes ; un jeu de référence de 40 pièces en <!-- metric:referenceStates -->288<!-- /metric --> états ; 500 jeux aléatoires de chacune de trois sortes comparés à une recherche explicite chaque nuit, 0 divergence ([BENCH](docs/fr/BENCH.md)) |
 | Un nouveau jeu | empaqueté, créé depuis l'archive, installé, vérifié, construit et joué jusqu'à sa fin par la CI ; un jeu fait sur la release précédente mis à niveau et sa sauvegarde jouée jusqu'à la fin |
 | La première visite du joueur | <!-- metric:initialJsKB -->120<!-- /metric --> Ko de JavaScript, gzippés, tenus par un budget ; chaque octet téléchargé prédit par le graphe des assets |
@@ -162,10 +164,13 @@ journal du travail.
 
 ## Releases
 
-Release actuelle : [v4.1.7 « Docs pour un studio »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.7) : cette
-page, un tutoriel de première pièce, les signatures de l'API générées depuis le code, une matrice de support, les
-pages françaises tenues à moins d'un tiers des anglaises par un test, chaque script documenté, les fichiers de
-gouvernance ; sur l'outil quotidien de la 4.1.6. De la 4.1.1 à la 4.1.7 chaque release n'a ajouté que de l'optionnel, et un jeu écrit pour l'une
+Release actuelle : [v4.1.8 « Foundation Reset »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.8), la
+première du programme 4.1.8 → 4.1.15 : TypeScript 7, Vite 8 et la 2.0 du plugin PWA ; un signal du monde extérieur
+n'est plus perdu avec sa connexion (le curseur Reality, reproduit puis corrigé) ; l'installation, la mise à jour et la
+réinstallation de la PWA prouvées dans trois navigateurs ; un contrôle de release qui prédit la release ; les gates
+de mutation et de couverture bloquantes ; les trois plus gros fichiers du Studio découpés ; chaque export public avec
+sa stabilité ; la documentation qui dit une seule chose, ses chiffres écrits par la baseline. Sur les pages de la
+4.1.7. De la 4.1.1 à la 4.1.7 chaque release n'a ajouté que de l'optionnel, et un jeu écrit pour l'une
 tournait sur la suivante ; depuis la 4.1.8 la lignée 4.1.x est une lignée d'incubation, où une release peut rompre un
 nom public ou un format, documenté et avec une migration, jusqu'à la 4.2.0 qui rétablit le SemVer strict
 ([SUPPORT](docs/fr/SUPPORT.md)). L'histoire de la v1.3 à aujourd'hui est dans la [ROADMAP](docs/fr/ROADMAP.md),

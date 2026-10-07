@@ -289,4 +289,13 @@ a `baseUrl: "."` et des `paths` non relatifs, que TypeScript 7 refuse (TS5102, T
 réécrit (la même configuration, dite relativement au fichier ; un commentaire du fichier n'est pas gardé), `--check` dit quand c'est dû. Les vérifications de types
 du moteur tournent sur TypeScript 7 (`npm run tsc`) ; un outil à vous qui importe l'API du compilateur (`import ts from
 'typescript'`) ne trouve pas d'API dans `typescript@7` et importe `@typescript/typescript6` à la place jusqu'à la 7.1
-(docs/dev/MIGRATION-4.1.8.md).
+(docs/dev/MIGRATION-4.1.8.md). Vite 8 et Vitest 5 demandent Node 22.12 ou plus. Le service worker prend le contrôle
+de la page à sa première activation (`clientsClaim`), donc le préchargement d'une première visite remplit les caches ;
+une mise à jour attend toujours la bannière, après une sauvegarde durable. Chaque nom de
+`web-scumm/{content,player,minigames,testing,reality}` porte `@public` ou `@extension` dans `docs/fr/API.md` : ce que
+`src/engine` exporte sans qu'une entrée le réexporte est interne, et environ quatre-vingts exports de ce genre ont
+été dé-exportés ou retirés (aucune des cinq entrées n'a changé ; `tests/api-surface.json` est identique).
+`npm run doctor -- --release` exige Python, ses modules et ffmpeg ; `npm run quality:baseline` écrit les trois chiffres
+des README avec le JSON, donc un test de plus est suivi de cette commande. Un signal livré et non acquitté est livré
+de nouveau depuis le curseur durable : un transport maison qui implémente `WorldSignalPort` garde la séquence
+acquittée, pas la séquence reçue (`docs/fr/REALITY.md`).

@@ -39,7 +39,9 @@ export function manualPasses(sheet) {
   const head = '### Manual passes (D12: reported, not blocking)\n\n';
   if (!sheet)
     return `${head}None recorded for this release: the screen reader, Safari offline, a real phone, playtesters, recorded voices, listening and a signed tag were not checked by hand (docs/en/FIELD.md, docs/dev/passes/TEMPLATE.md).\n`;
-  const rows = sheet
+  // A sheet since 4.1.7 opens with the release's own table ("It may not ship while…"): only the people's passes count.
+  const people = sheet.indexOf("## People's passes");
+  const rows = (people >= 0 ? sheet.slice(people) : sheet)
     .split('\n')
     .filter((l) => /^\|/.test(l) && !/^\|\s*-/.test(l))
     .slice(1);
