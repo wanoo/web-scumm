@@ -71,7 +71,7 @@ jobs:
       # Formatting, code lint, knip, both TypeScript configurations, content lint (4.1.0 "Clarity").
       - run: npm run quality
       # validate --release measures the stems with ffprobe (3.6).
-      - run: for i in 1 2 3; do (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
       # The game's gates (validate, solve, i18n, content lint, playtests), the bundle, verify:dist, spoilers, assets.
       - run: npm run build:game
@@ -130,7 +130,7 @@ jobs:
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       # validate --release measures the stems with ffprobe (tests/tooling.test.ts).
-      - run: for i in 1 2 3; do (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
       - run: npm run test:coverage
       - run: npx tsx tools/coverage-ratchet.ts ${{ github.event_name != 'pull_request' && '--strict' || '' }}
@@ -361,7 +361,7 @@ jobs:
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npm run test:node
@@ -453,7 +453,7 @@ jobs:
         run: npm run assets
       # validate --release measures the stems with ffprobe (3.6).
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
       # build:game (4.1.3): the game's own gates and the bundle, without the unit suite `coverage` runs.
       - if: env.RUN == 'true'
@@ -739,7 +739,7 @@ jobs:
         timeout-minutes: 20
       # validate --release measures the stems with ffprobe (3.6).
       - if: env.RUN == 'true'
-        run: for i in 1 2 3; do (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
       - if: env.RUN == 'true'
         run: npm run build:game
