@@ -107,8 +107,11 @@ async function merge(pr) {
   // (seen on #24, merged seconds after #22): asked again while the state is UNKNOWN, up to ten times.
   await until(
     () => {
-      const st = ghJson(['pr', 'view', String(pr), '--json', 'mergeStateStatus,state']);
+      const st = ghJson(['pr', 'view', String(pr), '--json', 'mergeStateStatus,state,mergeable']);
       if (st.state === 'MERGED') return true;
+      // A branch behind main with a conflict will not merge however long we wait (seen on #23): say it at once.
+      if (st.mergeable === 'CONFLICTING' || st.mergeStateStatus === 'DIRTY')
+        throw new Error(`#${pr} conflicts with main (${st.mergeStateStatus}): merge main into the branch, push, run again`);
       if (st.mergeStateStatus === 'UNKNOWN') {
         say('mergeability being recomputed: asking again');
         return undefined;
