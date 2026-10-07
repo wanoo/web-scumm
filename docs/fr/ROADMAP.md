@@ -599,6 +599,30 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.1.15 « Remix » (livrée le 7 octobre 2026) : un jeu, plusieurs mondes ; la release candidate de la 4.2
+
+La huitième et dernière release du programme, la quatrième avec une release candidate (`v4.1.15-rc.1`, puis `v4.1.15`
+sur le même commit), et la release candidate de la 4.2 : le DSL et l'IR sont gelés (D28, `docs/dev/DSL-STABILITY.md`).
+Un jeu peut déclarer un manifeste de variation (`remix` : dimensions, domaines, contraintes, ancres taguées) ; `GameIR
++ VariationManifest + seed + algorithmVersion` donnent un `WorldVariant` immuable (ADR 0018), le même sous Node et
+dans les navigateurs (testé sous Node ; la vérification multi-runtime est écrite, pas encore en CI), une seed
+malformée ou une version inconnue une erreur explicite, jamais un monde par défaut silencieux. Les objets se placent
+parmi des ancres que le validateur vérifie (atteignables, pas derrière leur propre objet), les salles de départ et les
+rondes des acteurs varient, un indice et sa réponse sont une affectation couplée, l'ordre des énigmes est un graphe de
+dépendances (les règles ne sont jamais réordonnées), la présentation tire sur son propre flux et n'écrit jamais un
+drapeau (D27) ; `Math.random` est banni du chemin logique par une règle de lint et deux tests. Chaque mode livré est
+un catalogue (D25) et `npm run verify:variants`, dans `verify:game`, prouve chaque monde avec un certificat.
+L'enveloppe de sauvegarde v4 porte le monde ; une sauvegarde v3 reçoit l'histoire ; une sauvegarde d'un autre monde
+est gardée, jamais écrasée sans le choix du joueur. L'écran titre propose Histoire, un nouveau monde, une seed tapée
+ou le défi quotidien ; les codes de seed portent un symbole de contrôle ; le Bridge s'engage sur la seed du jour et la
+révèle après, vérifiable hors ligne (D26 ; les seeds Mystery peuvent être « magasinées » dans des limites dites par le
+modèle de menace). La roue de code est une reconstitution ludique, accessible, imprimable (`npm run code-wheel`) ;
+l'onglet Remix du Studio prévisualise, verrouille, compare, mesure le biais ; le chapitre de référence se joue en
+Histoire, Remix et quotidien, avec vingt seeds de playtest rejouées. Laissé pour plus tard, dit comme tel :
+`e2e:remix` et `e2e:a11y` sur la roue (écrits, non lancés), les cinq seeds humaines, le montage du module quotidien
+sur le serveur du Bridge, le champ `variant` de l'enveloppe `.wsrun`, l'enregistrement de la roue dans la session, la
+fin `story` de la roue.
+
 ## v4.1.14 « Time Attack » (livrée le 7 octobre 2026) : un run, son horloge, sa preuve, son vérificateur
 
 La septième release du programme, la troisième avec une release candidate (`v4.1.14-rc.1`, puis `v4.1.14` sur le même
@@ -744,7 +768,7 @@ qu'une fois les bloqueurs de la courante fermés.
 | 4.1.12 | **Language** (livrée le 7 octobre 2026) | le DSL et une représentation intermédiaire (`GameIR`, une empreinte de jeu) façonnés par Gateways et Viewport ; le socle stabilisé |
 | 4.1.13 | **Solver Research** (livrée le 7 octobre 2026 ; « Proof at Scale » non atteint) | une classe documentée de jeux ouverts à trois personnages prouvée dans des budgets publiés, ou nommée « Solver Research » |
 | 4.1.14 | **Time Attack** (livrée le 7 octobre 2026) | catégories de speedrun, RTA et temps logique, splits sémantiques, un paquet de preuve vérifiable, ghosts, LiveSplit et OBS en outils locaux |
-| 4.1.15 | **Remix** | une variance contrôlée du jeu, déterministe par seed, à solvabilité prouvable ; le DSL gelé après elle |
+| 4.1.15 | **Remix** (livrée le 7 octobre 2026) | une variance contrôlée du jeu, déterministe par seed, à solvabilité prouvable ; le DSL gelé après elle |
 | 4.2.0 | **Stable World** | les contrats gelés, le paquet compilé sur npm, les passes humaines faites, un premier vrai jeu de référence |
 
 L'ordre est voulu : les dépendances et l'intégrité avant les connecteurs ; les connecteurs éprouvent le Bridge avant sa

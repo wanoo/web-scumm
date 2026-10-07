@@ -611,6 +611,27 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.1.15 "Remix" (shipped 7 October 2026): one game, several worlds; the release candidate of 4.2
+
+The programme's eighth and last release, the fourth with a release candidate (`v4.1.15-rc.1`, then `v4.1.15` on the
+same commit), and the release candidate of 4.2: the DSL and the IR are frozen (D28, `docs/dev/DSL-STABILITY.md`). A
+game may declare a variation manifest (`remix`: dimensions, domains, constraints, tagged anchors); `GameIR +
+VariationManifest + seed + algorithmVersion` give an immutable `WorldVariant` (ADR 0018), the same on Node and in the
+browsers (Node-tested; the cross-runtime check is written, not yet in CI), a malformed seed or an unknown version an
+explicit error, never a silent default. Items sit among anchors the validator checks (reachable, not behind their own
+item), actors' starting rooms and rounds vary, a hint and its answer are one coupled assignment, puzzle order is a
+dependency graph (the rules are never reordered), presentation draws from its own stream and never writes a flag
+(D27); `Math.random` is banned from the logical path by a lint rule and two tests. Every bundled mode is a catalogue
+(D25) and `npm run verify:variants`, inside `verify:game`, proves each world with a certificate. The save envelope v4
+carries the world; a v3 save gets the story; a save of another world is kept, never overwritten without the player's
+choice. The title screen offers Story, a new world, a typed seed or the daily challenge; seed codes carry a check
+symbol; the Bridge commits the day's seed and reveals it after, checked offline (D26; Mystery seeds can be shopped
+within limits said in the threat model). The code wheel is a playful reconstruction, accessible, printable (`npm run
+code-wheel`); the Studio's Remix tab previews, locks, compares, measures bias; the reference chapter plays in Story,
+Remix and daily, with twenty playtest seeds replayed. Left for later, said as such: `e2e:remix` and `e2e:a11y` over
+the wheel (written, not run), the five human seeds, the daily module's mount on the Bridge's server, the `variant`
+field in the `.wsrun` envelope, the wheel's record in the session, the wheel's `story` ending.
+
 ## v4.1.14 "Time Attack" (shipped 7 October 2026): a run, its clock, its proof, its verifier
 
 The programme's seventh release, the third with a release candidate (`v4.1.14-rc.1`, then `v4.1.14` on the same
@@ -746,7 +767,7 @@ release (D12); the next version opens only when the current one's blockers are c
 | 4.1.12 | **Language** (shipped 7 October 2026) | the DSL and an intermediate representation (`GameIR`, a game fingerprint) shaped by Gateways and Viewport; the core stabilised |
 | 4.1.13 | **Solver Research** (shipped 7 October 2026; "Proof at Scale" not reached) | a documented class of open three-character games proved within published budgets, or named "Solver Research" |
 | 4.1.14 | **Time Attack** (shipped 7 October 2026) | speedrun categories, RTA and logical time, semantic splits, a verifiable proof package, ghosts, LiveSplit and OBS as local tools |
-| 4.1.15 | **Remix** | controlled variance of a game, deterministic by seed, with provable solvability; the DSL frozen after it |
+| 4.1.15 | **Remix** (shipped 7 October 2026) | controlled variance of a game, deterministic by seed, with provable solvability; the DSL frozen after it |
 | 4.2.0 | **Stable World** | the contracts frozen, the compiled package on npm, the human passes done, a first real reference game |
 
 The order is meant: dependencies and integrity before connectors; connectors prove the Bridge before it is distributed;

@@ -18,7 +18,7 @@
     "status": "solved",
     "finished": true,
     "inputs": 49,
-    "digests": "d3d29af7751673f1"
+    "digests": "92034fd1d0b7a265"
    },
    "proof": {
     "status": "solved",
@@ -297,6 +297,11 @@
    "inputs": 7,
    "last": "23325ca7"
   },
+  "demo-4.1.15.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  },
   "demo-4.1.2.json": {
    "ended": true,
    "inputs": 7,
@@ -339,13 +344,13 @@
   }
  },
  "surface": {
-  "api": "4d6298a2b196967a"
+  "api": "9b180a2b60cccdae"
  },
  "tests": {
-  "files": 187,
-  "declarations": 1330
+  "files": 196,
+  "declarations": 1414
  },
  "bundle": {
-  "initialJsKB": 125
+  "initialJsKB": 132
  }
 }
