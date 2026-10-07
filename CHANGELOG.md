@@ -2,6 +2,83 @@
 
 ## Unreleased
 
+## 4.1.14 — 2026-10-07
+
+"Time Attack" (LOG #136): the programme's seventh release, the third with a release candidate. A speedrun category is
+content (`GameDef.speedrun`, validated, no change of the engine); the run clock reads real time, logical steps and
+logical time and never writes the state (D24); a seeded generator with streams replaces `Math.random` in the engine
+(breaking, with its migration); a run is a chained journal of 500-input chunks that resumes after a crash; a `.wsrun`
+chains every input to a final proof that `speedrun:verify` replays with one verdict and a code (thirty alterations
+each refused); OBS and LiveSplit are local tools (D23); leaderboards on the Bridge verify in an isolated worker;
+integrity is not authenticity, said as such. A complete Any% run of the reference chapter is attached to the release,
+verified first. Measured against 4.1.13 in `docs/dev/baselines/4.1.14.md`; what this release does not do is in the
+LOG and the passes sheet (`docs/dev/passes/4.1.14.md`).
+
+### Breaking
+
+- **A session holds 500 entries, not 5,000 (4.1.14, ADR 0016).** `SESSION_MAX` (`Engine.SESSION_MAX`) is now the size
+  of a run's journal chunk: the 501st input starts a new session from the current state, as the 5,001st did. A long
+  session file is several files (or a run's chunks); `replay()` follows a session across its rollover (it reported
+  "nothing happened" at the rollover before).
+- **`engine.random` draws from the run's seeded stream (4.1.14).** By default the engine no longer calls `Math.random`:
+  it draws from the `logic` stream of the run's seed (xoshiro128**, `core/prng.ts`). A host or a test that sets
+  `engine.random` is unchanged; a session whose host chose the seed (`Engine.sessions.nextSeed`) writes `Session.seed`.
+
+### Changes
+
+- **Speedrun categories as content (4.1.14, `docs/en/SPEEDRUN.md`).** `GameDef.speedrun` declares categories (timed on
+  RTA, IGT or Active IGT; start and finish on semantic events; saves, pauses, hints, reloads, Reality policy, the
+  fingerprint components a run must match, the inputs, a fixed or random seed), splits and the rules' version;
+  `npm run validate` checks them. A category needs no change of the engine. The reference chapter declares Any%,
+  Any% No Hints and Real Time.
+- **The run clock (4.1.14, ADR 0016, D24).** `Engine.runClock` reads RTA (`monotonicNow`, never an authority), logical
+  steps (one per input) and logical time (microticks: the declared durations of `core/timing.ts`, `TIMING_VERSION 1`;
+  a line costs the same whatever its language or the text speed); Active IGT leaves out the cutscenes. It observes the
+  engine and never writes the state; replayed, a session gives the same steps and times (200 generated games).
+- **A seeded generator with streams (4.1.14).** `core/prng.ts`: xoshiro128**, `PRNG_VERSION 1`, a stream per purpose
+  (`logic`, `cosmetic`, `minigame:<id>`, `copy-protection`), test vectors for every runtime
+  (`tests/fixtures/prng-vectors.json`). `rnd[]` stays the trace: a verifier draws again and demands the same numbers.
+- **Speedrun mode in the player (4.1.14).** Pause menu › Speedrun › a category: a new game with its seed, a timer,
+  automatic splits (a missed split never spoils the attempt), the pause menu and the background recorded as intervals,
+  **Export run** (`.wsrun`) at the finish, **Abandon run**; local records offline (personal best, best segments, sum of
+  best, attempts, abandons), a ghost of the PB on semantic targets (off the first time a category is played). The run
+  is written to IndexedDB (`web-scumm-runs`) in chained chunks of 500 inputs and resumes after a closed tab or a crash
+  from its last chunk. New interface texts: `ui.speedrun`, `ui.exportRun`, `ui.abandonRun`.
+- **The proof of a run and its verifier (4.1.14, ADR 0016, ADR 0017).** A `.wsrun` (schema 1) chains every input by
+  SHA-256 from the category's rules to a final proof, with the final state's hash; `npm run speedrun:verify`, the
+  CLI's `web-scumm speedrun verify` and the MCP tool `speedrun_verify` replay it with its seed and give one verdict
+  with a code and a reason (`valid`, `valid-unranked`, `invalid-category-rule`, `invalid-replay`, `modified-game`,
+  `missing-reality-proof`, `unsupported-version`, `inconclusive`, never valid). Thirty alterations (time, action,
+  seed, rules, signal, hash, chunk, shape) are each refused with their code. Reality categories keep each signal's
+  signed JWS and check it with the Bridge's keys. A complete Any% run of the reference chapter is attached to the
+  release, verified first.
+- **Routes, ghosts and the Studio (4.1.14).** `.wsroute` routes (exported, imported, compared); the solver's witness as
+  a logical route, never a record. The Studio's Play tab has a speedrun panel: categories and rules, a splits editor
+  written back to the game, a preview of the splits on the frame's session, routes, the run's export.
+- **OBS and LiveSplit, locally (4.1.14, D23).** `npm run speedrun:overlay` serves an OBS Browser Source (full, compact,
+  transparent); `npm run speedrun:livesplit` exports a LiveSplit splits file and drives LiveSplit through its own
+  WebSocket server. The game posts its run's events to them with `?speedrunTool=<port>`, nothing else.
+- **Leaderboards on the Bridge (4.1.14).** `bridge/src/runs.ts`: `POST /v1/runs`, a queue, an isolated verification
+  worker (its own process group, bounded heap and time, no secret, fetch, WebSocket, TCP, UDP and DNS refused in-process
+  (not an isolation: the deployment's container is), the package approved by fingerprint, its answer
+  signed with a one-time key), leaderboards per category and seed kind (valid runs, pseudonyms, trust levels),
+  moderation, deletion on request, 90-day retention purged hourly, a run identified by its inputs (the first submitter
+  keeps it), ten submissions a minute per client, the envelope dropped once judged. A module for the Bridge's host to
+  mount (`runsRoute`). Pseudonyms are not authenticated.
+- **After the second reading (4.1.14).** `reload: 'segment'` is reserved and refused by the validator (it was timed like
+  `allowed`); a walk's logical length uses `Math.sqrt`, not `Math.hypot`, exact alike in every engine; an empty chunk
+  is refused; the local overlay and autosplitter accept events from the game's origin only (`--origin`); a time is
+  ranked only for a `valid` run; SPEEDRUN, ADR 0016 and ADR 0017 say what `replay-valid` admits (tool-assisted runs,
+  crash resumes), that a random seed is the client's choice and that pseudonyms are not authenticated;
+  `docs/{en,fr}/UPGRADING.md` §26.
+
+- **The Bridge's `reality` mutation set is gated again (4.1.10)**: the 20 survivors the `v4.1.10-rc.1` run left
+  unnamed (18 in `bridge.ts`, 2 in `lock.ts`): 19 killed by tests (`tests/bridge-mutants-tenant.test.ts`: the slow
+  pass's timer and its `clearInterval`, a pairing's origin and session id, a code confirmed or claimed twice, a claim
+  racing a confirmation, the `backlog` and `propose.ms` values recorded, the V1 payload, a row whose sequence is not its
+  own, a fetch whose last page is exactly full, an export past 1000 rows, a third section queued on a keyed lock), 1
+  named with its reason (`if (this.timer)` forced true: `clearInterval(undefined)` does nothing).
+
 ## 4.1.13 — 2026-10-07
 
 "Solver Research" (LOG #133): the programme's sixth release, named by the two thresholds its sheet fixed before any
