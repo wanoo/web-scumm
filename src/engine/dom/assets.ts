@@ -66,8 +66,16 @@ export class AssetBank {
       return { ok: 0, failed: [], skipped: 'save-data' };
     // Music and video wait for a decent link: a background download must never fight the room's own loads.
     if (o.heavy && conn?.effectiveType === '3g') return { ok: 0, failed: [], skipped: 'slow' };
-    const result: WarmResult = { ok: urls.filter((u) => this.warmed.has(u)).length, failed: [], skipped: null };
-    const todo = urls.filter((u) => !this.warmed.has(u));
+    // With a Cache API the cache is the memory: a file warmed before the service worker controlled the page (the title's
+    // surroundings, at boot) is in no cache and is fetched again, through the worker this time. Without one (a test, a
+    // browser without caches) the set of what was warmed is all there is.
+    const inCache = 'caches' in globalThis;
+    const result: WarmResult = {
+      ok: inCache ? 0 : urls.filter((u) => this.warmed.has(u)).length,
+      failed: [],
+      skipped: null,
+    };
+    const todo = inCache ? [...urls] : urls.filter((u) => !this.warmed.has(u));
     todo.forEach((u) => this.warmed.add(u));
     const idle = () =>
       new Promise<void>((r) => {
