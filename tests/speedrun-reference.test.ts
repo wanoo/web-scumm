@@ -2,7 +2,9 @@
 // tests/fixtures/speedrun/ by tools/speedrun/reference-run.ts, is verified by `npm run speedrun:verify` as the release
 // workflow does before attaching it to the release (its ninth asset). A run is bound to its engine version and its
 // game's fingerprint: after `npm version` or a change of the reference game's logic, regenerate it.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { runTool } from './run-tool';
 
@@ -31,9 +33,15 @@ describe('the reference run', () => {
   it('an altered copy is refused, with its reason and exit code 1', () => {
     const env = JSON.parse(readFileSync(FILE, 'utf8'));
     env.timing.logicalTime = '1';
-    const tmp = `${process.env.TMPDIR ?? '/tmp'}/altered-${process.pid}.wsrun`;
+    const dir = mkdtempSync(join(tmpdir(), 'speedrun-'));
+    const tmp = join(dir, 'altered.wsrun');
     writeFileSync(tmp, JSON.stringify(env));
-    const r = runTool(['tools/speedrun/verify.ts', tmp], { env: { ...process.env, GAME: 'reference' } });
+    let r: ReturnType<typeof runTool>;
+    try {
+      r = runTool(['tools/speedrun/verify.ts', tmp], { env: { ...process.env, GAME: 'reference' } });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
     expect(r.status).toBe(1);
     expect(r.stdout).toMatch(/invalid-replay \(time-mismatch\)/);
   }, 120000);
