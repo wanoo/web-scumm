@@ -11,6 +11,7 @@ import { type FormCtx, objectEditor } from './forms';
 import { type BridgeHost, EditorBridge, focusPath } from './rooms-bridge';
 import { entitySheet, roomSheet, type SheetHost } from './rooms-sheet';
 import { entityDef, entityName, isInteractive, KIND_LABEL, type Sel } from './rooms-text';
+import { StageEditor } from './rooms-stage';
 import { RULE_FIELDS, STAGE_FIELDS } from './schema';
 import { structuredEdit } from './structured';
 import { h, modal, select, toast } from './ui';
@@ -45,6 +46,8 @@ export class RoomsTab {
   private sheetEl = h('div', { class: 'sheet' });
   private roomSheetEl = h('div', { class: 'roomsheet' });
   private pendingRender = false;
+  /** The room's layers, masks, zones and links, drawn on its backdrop (4.1.11, rooms-stage.ts). */
+  private readonly stageEditor: StageEditor;
 
   constructor(
     private ctx: RoomsCtx,
@@ -54,6 +57,12 @@ export class RoomsTab {
     this.roomId = rooms.some((r) => r.id === initialRoom) ? must(initialRoom, 'initial room') : (rooms[0]?.id ?? '');
     this.bridge = new EditorBridge(this.bridgeHost());
     this.host = this.sheetHost();
+    this.stageEditor = new StageEditor({
+      room: () => this.roomId,
+      data: () => this.data,
+      flushEditor: () => this.bridge.flush(),
+      written: () => this.afterWrite(),
+    });
     this.build();
   }
 
@@ -168,7 +177,14 @@ export class RoomsTab {
       this.renderList();
     });
     this.el.replaceChildren(
-      h('div', { class: 'stage' }, bar, h('div', { class: 'frame' }, this.bridge.frame), this.roomSheetEl),
+      h(
+        'div',
+        { class: 'stage' },
+        bar,
+        h('div', { class: 'frame' }, this.bridge.frame),
+        this.roomSheetEl,
+        this.stageEditor.el,
+      ),
       h(
         'aside',
         { class: 'side' },
@@ -210,6 +226,7 @@ export class RoomsTab {
       this.data = await api.room(this.roomId);
       this.byPath = new Map(this.data.texts.map((t) => [t.path, t]));
       if (this.sel && !entityDef(this.data.def, this.sel)) this.sel = null;
+      this.stageEditor.load();
       this.render();
     } catch (e) {
       this.sheetEl.replaceChildren(h('p', { class: 'error' }, (e as Error).message));

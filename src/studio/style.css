@@ -489,3 +489,18 @@ pre.diff .add { color: #8fe36a; } pre.diff .del { color: #ff7a7a; } pre.diff .hu
 .vtable { width: 100%; border-collapse: collapse; font-size: .9em; }
 .vtable th, .vtable td { border-bottom: 1px solid rgba(160, 140, 220, .15); padding: .25em .4em; text-align: left; vertical-align: top; }
 .vtable tr.v-approved td:first-child { box-shadow: inset 3px 0 #8fe36a; } .vtable tr.v-recorded td:first-child { box-shadow: inset 3px 0 #58c8ff; } .vtable tr.v-record td:first-child { box-shadow: inset 3px 0 #ffd84d; }
+
+/* 4.1.11: the stage editor (rooms-stage.ts): masks red, zones green, links and the polygon being drawn yellow. */
+.stage-editor { padding: 6px 0 0; }
+.stage-editor h3 { font: 9px var(--pixel); color: var(--yellow); margin: 14px 0 8px; letter-spacing: .5px; }
+.stage-editor h4 { margin: 10px 0 4px; font-size: 13px; }
+.stage-editor .block ul { list-style: none; padding: 0; margin: 0 0 6px; }
+.stage-editor .block li { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 2px 0; }
+.stage-editor input[type='number'] { width: 5em; }
+.stage-surface { width: 100%; aspect-ratio: 16 / 10; background: #000; border-radius: 6px; }
+.stage-surface.drawing { cursor: crosshair; }
+.stage-surface .mask { fill: rgba(255, 80, 80, .25); stroke: #ff5050; stroke-width: 2; }
+.stage-surface .zone { fill: rgba(80, 220, 120, .18); stroke: #50dc78; stroke-width: 2; }
+.stage-surface .link { stroke: var(--yellow); stroke-width: 3; stroke-dasharray: 6 4; }
+.stage-surface .drawing { fill: none; stroke: var(--yellow); stroke-width: 2; stroke-dasharray: 4 3; }
+.stage-editor .issues { margin: 6px 0; padding-left: 1.2em; }
