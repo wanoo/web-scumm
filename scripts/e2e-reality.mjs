@@ -248,17 +248,24 @@ if (started) {
       () => false,
     );
   say(proposed > 0 && opened, `the recorded replays proposed (${proposed} signals) and the shed door open in the game`);
-  await page.evaluate(async () => {
-    await window.__game.engine.act({ verb: 'use', a: 'gate' });
-  });
-  // The ending is a cutscene of timed lines: 30 s was short on a runner carrying five runs (twice on 7 October 2026,
-  // Chromium and WebKit, every other check green); 120 s waits for the cutscene, not for a faster machine.
-  await page
-    .waitForFunction(() => window.__game.engine.state.done || window.__game.engine.state.flags.ended, null, {
-      timeout: 120000,
-    })
-    .catch(() => {});
-  const ended = await page.evaluate(() => !!window.__game.engine.state.flags.ended);
+  // The gate ends the game. An input while the engine is busy (the shed's cutscene may still be running when the
+  // flag turns) is dropped by the engine, as a player's tap would be: wait for the engine to be free, act, and act
+  // again if nothing ended (seen on 7 October 2026: the ending never came on one WebKit run in three, 120 s or not).
+  // Each try then waits 40 s for the ending's cutscene.
+  let ended = false;
+  for (let attempt = 0; attempt < 3 && !ended; attempt++) {
+    await page.waitForFunction(() => !window.__game.engine.busy, null, { timeout: 30000 }).catch(() => {});
+    await page.evaluate(async () => {
+      await window.__game.engine.act({ verb: 'use', a: 'gate' });
+    });
+    await page
+      .waitForFunction(() => window.__game.engine.state.done || window.__game.engine.state.flags.ended, null, {
+        timeout: 40000,
+      })
+      .catch(() => {});
+    ended = await page.evaluate(() => !!window.__game.engine.state.flags.ended);
+    if (!ended) console.log(`e2e:reality: the gate did not end the game (try ${attempt + 1}), acting again`);
+  }
   say(ended, 'the game reaches its end');
   // Every signal acknowledged: the first, the lamp, and the replays' (4.1.9); the player acknowledges after its save.
   const expected = 2 + proposed;
