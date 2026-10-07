@@ -160,7 +160,8 @@ export default defineConfig({
     target: 'es2020',
     assetsInlineLimit: 0,
     ...(PROJECT ? { outDir: resolve(PROJECT, 'dist'), emptyOutDir: true } : {}),
-    rollupOptions: {
+    // Rolldown (Vite 8, 4.1.8): the option is `rolldownOptions`; `rollupOptions` is kept as a deprecated alias.
+    rolldownOptions: {
       input: { index: r('./index.html'), ...(process.env.STUDIO === '1' ? { studio: r('./studio.html') } : {}) },
       // Code only the Studio or the dev tools use goes to assets/tools/ (left out of the service worker's precache).
       output: {

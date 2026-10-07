@@ -25,7 +25,7 @@ npm run dev                                       # play it; npm run studio open
 npm run verify:game && npm run build              # checked, proved, built into dist/ for any static host
 ```
 
-Needs Node 22 or newer. Python 3 and ffmpeg serve the art tools and the sound pipeline: optional, and `npm run
+Needs Node 22.12 or newer. Python 3 and ffmpeg serve the art tools and the sound pipeline: optional, and `npm run
 doctor` says which one is missing. Windows, macOS and Linux ([SUPPORT](docs/en/SUPPORT.md) has the matrix).
 
 ## What you get

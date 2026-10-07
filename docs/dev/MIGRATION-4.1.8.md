@@ -89,6 +89,10 @@ Rolldown's `PreRenderedChunk` and `OutputChunk` expose `moduleIds`, so the `asse
 routing can stay (renamed to `rolldownOptions`). `define`, `resolve.alias` (regex `find`), `publicDir`, `cacheDir`,
 `server.fs.allow`, `assetsInlineLimit: 0` are unchanged.
 
+**Done in `refactor/418-vite-8` (LOG #109):** the build worked at the first try once the `navmesh` import was named;
+measured figures in the LOG. The native configuration loader's warning (imports without extension) is left as a
+warning.
+
 ## 3. vite-plugin-pwa 2
 
 Releases: 1.0.0 (2025-03-29, workbox ^7.3), 1.0.1 (Vite 7 peer), 1.2.0 (2025-11-27, workbox ^7.4), **1.3.0
