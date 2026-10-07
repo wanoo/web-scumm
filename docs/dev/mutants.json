@@ -211,13 +211,5 @@
   "to": "false",
   "why": "parseLine: only the wording of the corruption message (`err.message` or a fallback); the line number and the refusal are the same",
   "context": "throw new Error(`journal line ${n} is not an event (${err instanceof Error ? err.message : 'unreadable'})`);"
- },
- {
-  "file": "bridge/src/store.ts",
-  "operator": "condition false",
-  "from": "err instanceof Error",
-  "to": "false",
-  "why": "inspectJournal: only the wording of the corruption message (`err.message` or a fallback); the line number and the refusal are the same",
-  "context": "r.corrupt ??= err instanceof Error ? err.message : String(err);"
  }
 ]

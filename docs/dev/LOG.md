@@ -2425,6 +2425,13 @@ Platform"; human gates reported, not blocking (D12).
   after the other), the runner spawns vitest detached and kills the whole process group on a timeout, the job has
   150 minutes, and `npm run ship -- checks` waits up to four hours.
 
+- The second CI run (52 minutes, the sets one after the other) killed 924/959 and left seven survivors unexplained,
+  all in `JournalLock.acquire`'s races (`store.ts` 237–280: the lock released between our link and our read, a rival's
+  rename at the same instant, an error other than EEXIST or ENOENT): the Mac had reached them by chance under the real
+  races, the runner never did. `tests/bridge-lock-races.test.ts` scripts `readFileSync` and `linkSync` (the real
+  `node:fs` otherwise) and reaches each branch on purpose: 132/140 on the store, the seven dead; one named survivor
+  (`inspectJournal`'s `err instanceof Error → false`) is now killed by the same tests and leaves `mutants.json`.
+
 → next: Claude · `refactor/418-typescript-7` (paths without `baseUrl`, the generated project's tsconfig; the compiler itself decided per MIGRATION-4.1.8.md)
 ## #108 · 2026-10-07 · Claude · proposal · `refactor/418-typescript-7`: the compiler, the paths, the CommonJS import
 
