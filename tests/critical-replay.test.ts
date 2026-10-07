@@ -232,7 +232,7 @@ describe('replay', () => {
         log: [{ start: 'new' }, { script: [{ choice: [{ text: 'a', do: [] }] }] }],
       }),
     ).rejects.toThrow(/^the engine never yields control back \(stuck choice\?\)$/);
-  });
+  }, 30_000); // 500 ticks of the guard: a few hundred ms here, seconds on the Windows runner
 });
 
 describe('labelOf', () => {
