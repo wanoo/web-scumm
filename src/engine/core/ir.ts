@@ -22,7 +22,7 @@ import type {
   VerbId,
 } from './types';
 import type { CompiledGame } from './define';
-import type { AnchorDef } from './remix/manifest';
+import type { AnchorDef, VariationManifest } from './remix/manifest';
 import type { WorldVariant } from './remix/compile';
 
 /** The IR's schema: 1 since 4.1.12. A field added is additive; a field's meaning never changes within a schema. */
@@ -175,6 +175,8 @@ export interface IrWorld {
   checkpoints: NonNullable<GameDef['checkpoints']>;
   invariants: readonly Cond[];
   migrations: readonly Migration[];
+  /** What may vary between two games of this one (4.1.15, `GameDef.remix`): `compileVariant(ir, ir.world.remix, seed)`. */
+  remix?: VariationManifest;
 }
 
 /**
@@ -442,6 +444,7 @@ export function compileIR(game: CompiledGame, o: CompileIROptions): GameIR {
     checkpoints: game.checkpoints ?? {},
     invariants: game.invariants ?? [],
     migrations: game.migrations ?? [],
+    remix: game.remix,
   });
   const ext = o.extensions;
   const ir: GameIR = {

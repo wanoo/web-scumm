@@ -12,7 +12,7 @@ import type { GameDef } from '../core/types';
 import { trapFocus } from './a11y';
 import { el, esc } from './app-shared';
 import type { UiKey } from './ui-defaults';
-import { importBridgeKey } from '../reality/protocol';
+import { b64url, importBridgeKey } from '../reality/protocol';
 import { verifyDayToken } from '../reality/daily';
 
 /** What the menu needs of the player (an `App` is one). */
@@ -183,13 +183,23 @@ export function dailyFetcher(game: GameDef): (() => Promise<WorldVariant>) | und
   };
 }
 
-/** A world a link names: `?seed=WS-…` (the remix mode) or `?daily=<signed day token>`; undefined when none. */
+/** A frozen world as a link's parameter (`?world=`): its JSON in base64url (the Studio's export, a bug report). */
+export function frozenParam(v: WorldVariant): string {
+  return b64url.encode(new TextEncoder().encode(JSON.stringify(v)));
+}
+
+/**
+ * A world a link names: `?world=<frozen world>` (kept as it is; its hash is checked when it is applied), `?seed=WS-…`
+ * (the remix mode) or `?daily=<signed day token>`; undefined when none.
+ */
 export async function worldFromQuery(
   game: GameDef,
   q: URLSearchParams,
   now = Date.now(),
 ): Promise<WorldVariant | undefined> {
   if (!game.remix) return undefined;
+  const frozen = q.get('world');
+  if (frozen) return JSON.parse(new TextDecoder().decode(b64url.decode(frozen))) as WorldVariant;
   const daily = q.get('daily');
   if (daily) return dailyWorldOf(game, daily, now);
   const seed = q.get('seed');

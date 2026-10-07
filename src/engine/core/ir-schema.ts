@@ -210,6 +210,7 @@ export const gameIRSchema = z.strictObject({
     checkpoints: z.record(z.string(), loose),
     invariants: z.array(condSchema),
     migrations: z.array(loose),
+    remix: loose.optional(),
   }),
   rooms: z.array(room),
   entities: z.array(entity),
