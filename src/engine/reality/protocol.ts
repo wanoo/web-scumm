@@ -19,10 +19,9 @@ export const CLOCK_SKEW_MS = 5 * 60_000;
 const ident = z.string().check(z.minLength(1), z.maxLength(128), z.regex(/^[\w.:-]+$/));
 const time = z.int().check(z.nonnegative());
 
-/** The payload the Bridge signs: one accepted fact from outside, as a finite identifier (§4.1). @public */
-export const WorldSignalV1Schema = z.strictObject({
+/** The fields of a signed signal both versions share (4.1.1; 4.1.10 adds `WorldSignalV2`'s context). */
+const SIGNAL_FIELDS = {
   format: z.literal('web-scumm-world-signal'),
-  schema: z.literal(1),
   /** Unique per signal on the Bridge: what the engine remembers to apply it at most once. */
   id: ident,
   /** Per player, contiguous from 1: the cursor of delivery. */
@@ -40,9 +39,37 @@ export const WorldSignalV1Schema = z.strictObject({
   policyVersion: z.string().check(z.minLength(1), z.maxLength(64)),
   /** A hash of what the connector saw, kept by the Bridge; never the evidence itself. */
   evidenceHash: z.optional(z.string().check(z.regex(/^[a-f0-9]{64}$/))),
-});
+};
+
+/** The payload the Bridge signs: one accepted fact from outside, as a finite identifier (§4.1). @public */
+export const WorldSignalV1Schema = z.strictObject({ ...SIGNAL_FIELDS, schema: z.literal(1) });
 /** The signed payload, as `WorldSignalV1Schema` types it. @public */
 export type WorldSignalV1 = z.infer<typeof WorldSignalV1Schema>;
+
+/** Where a Bridge runs, as a signal names it (4.1.10): a signal of one environment is refused by another. @public */
+export type SignalEnvironment = 'prod' | 'staging' | 'dev';
+
+/**
+ * The payload of 4.1.10 (ADR 0010): V1's fields and the context it was signed for, so a signal of one tenant, one
+ * environment, one origin, one link or one key is refused by every other (`audience-mismatch`). @public
+ */
+export const WorldSignalV2Schema = z.strictObject({
+  ...SIGNAL_FIELDS,
+  schema: z.literal(2),
+  /** The tenant of the Bridge that signed it (one operator's game in one environment). */
+  tenantId: ident,
+  environment: z.enum(['prod', 'staging', 'dev']),
+  /** The origin the player paired from (`https://game.example`), or the Bridge's audience without one. */
+  audience: z.string().check(z.minLength(1), z.maxLength(256)),
+  /** The player's link (one pairing): a signal of an earlier link is not this one's. */
+  sessionId: ident,
+  /** The key that signed it: equal to the JWS header's `kid`. */
+  keyId: ident,
+});
+/** The signed payload of 4.1.10, as `WorldSignalV2Schema` types it. @public */
+export type WorldSignalV2 = z.infer<typeof WorldSignalV2Schema>;
+/** Either version of the signed payload. @public */
+export type WorldSignal = WorldSignalV1 | WorldSignalV2;
 
 /** A signed signal as it travels: the compact JWS string. @public */
 export type SignedWorldSignalV1 = string;
@@ -53,6 +80,10 @@ export interface BridgeKey {
   key: CryptoKey;
   notBefore?: number;
   notAfter?: number;
+  /** The tenant this key signs for (4.1.10, `GET /v1/keys`): a V2 signal of another tenant is refused. */
+  tenantId?: string;
+  /** The environment this key signs for (4.1.10): a V2 signal of another environment is refused. */
+  environment?: SignalEnvironment;
 }
 /** The Bridge's verification keys the player trusts (several during a rotation). @public */
 export type Keyring = BridgeKey[];
@@ -65,6 +96,16 @@ export interface SignalExpectation {
   signals: ReadonlySet<string>;
   /** Now, epoch ms (the engine's clock in a replay never reaches here: a replay applies recorded entries). */
   now: number;
+  /**
+   * The versions accepted (4.1.10): both by default; `[2]` for a player that talks to a multi-tenant Bridge, and for
+   * every player from 4.1.12 (ADR 0010).
+   */
+  versions?: readonly (1 | 2)[];
+  /** The tenant, environment, origin and link the player expects a V2 signal to name; each checked when given. */
+  tenantId?: string;
+  environment?: SignalEnvironment;
+  audience?: string;
+  sessionId?: string;
 }
 
 /**
@@ -84,9 +125,10 @@ export type RefusalCode =
   | 'game'
   | 'player'
   | 'signal'
-  | 'expired';
+  | 'expired'
+  | 'audience-mismatch';
 /** The outcome of `verifySignal`: the signal it accepted, or the refusal's code and reason. @public */
-export type VerifyResult = { ok: true; signal: WorldSignalV1 } | { ok: false; code: RefusalCode; reason: string };
+export type VerifyResult = { ok: true; signal: WorldSignal } | { ok: false; code: RefusalCode; reason: string };
 
 export const b64url = {
   encode(bytes: Uint8Array): string {
@@ -160,12 +202,27 @@ export async function verifySignal(jws: unknown, keyring: Keyring, expect: Signa
   } catch {
     return fail('payload', 'unreadable payload');
   }
-  if (payload && typeof payload === 'object' && (payload as { schema?: unknown }).schema !== 1)
-    return fail('schema', `unknown schema ${JSON.stringify((payload as { schema?: unknown }).schema)}`);
-  const parsed = WorldSignalV1Schema.safeParse(payload);
+  const versions = expect.versions ?? [1, 2];
+  const schema = payload && typeof payload === 'object' ? (payload as { schema?: unknown }).schema : undefined;
+  if (payload && typeof payload === 'object' && !versions.includes(schema as 1 | 2))
+    return fail('schema', `unknown schema ${JSON.stringify(schema)}`);
+  const parsed = (schema === 2 ? WorldSignalV2Schema : WorldSignalV1Schema).safeParse(payload);
   if (!parsed.success)
     return fail('payload', `not a world signal: ${parsed.error.issues[0]?.path.join('.') || 'shape'}`);
-  const sgn = parsed.data;
+  const sgn: WorldSignal = parsed.data;
+  if (sgn.schema === 2) {
+    // The context the signal was signed for (ADR 0010): its key by name, then the key's tenant and environment, then
+    // what the player expects. A V1 signal names none of it, which is why a multi-tenant player accepts V2 only.
+    if (sgn.keyId !== k.kid) return fail('key', `signed by ${k.kid}, names ${sgn.keyId}`);
+    const mismatch =
+      (k.tenantId !== undefined && sgn.tenantId !== k.tenantId) ||
+      (k.environment !== undefined && sgn.environment !== k.environment) ||
+      (expect.tenantId !== undefined && sgn.tenantId !== expect.tenantId) ||
+      (expect.environment !== undefined && sgn.environment !== expect.environment) ||
+      (expect.audience !== undefined && sgn.audience !== expect.audience) ||
+      (expect.sessionId !== undefined && sgn.sessionId !== expect.sessionId);
+    if (mismatch) return fail('audience-mismatch', 'signed for another tenant, environment, origin or link');
+  }
   if (sgn.gameId !== expect.gameId) return fail('game', `for game ${sgn.gameId}`);
   if (sgn.playerId !== expect.playerId) return fail('player', 'for another player');
   if (!expect.signals.has(sgn.signal)) return fail('signal', `signal ${sgn.signal} is not in the manifest`);
@@ -174,7 +231,7 @@ export async function verifySignal(jws: unknown, keyring: Keyring, expect: Signa
 }
 
 /** Signs a payload as the Bridge does (the Bridge, the tests, the Studio's simulator). @public */
-export async function signSignal(payload: WorldSignalV1, key: CryptoKey, kid: string): Promise<SignedWorldSignalV1> {
+export async function signSignal(payload: WorldSignal, key: CryptoKey, kid: string): Promise<SignedWorldSignalV1> {
   const enc = (o: unknown) => b64url.encode(new TextEncoder().encode(JSON.stringify(o)));
   const h = enc({ alg: 'EdDSA', kid });
   const p = enc(payload);

@@ -19,23 +19,35 @@ fn class(e: &Token) -> &'static str {
     }
 }
 
-/// `conformance <file>`: tests/fixtures/reality/conformance.json, one line per case with the Rust verdict.
+/// `conformance <file>`: tests/fixtures/reality/conformance.json (V1) or bridge/test-vectors/signal-v2/conformance.json
+/// (4.1.10), one line per case with the Rust verdict. A case's `expect` overrides the file's; a field set to null is
+/// left out of the expectation.
 fn conformance(file: &str) {
     use base64::Engine;
     let c: serde_json::Value = serde_json::from_str(&fs::read_to_string(file).unwrap()).unwrap();
+    let text = |v: &serde_json::Value| v.as_str().map(String::from);
     let keys: Vec<signal::Key> = c["keys"].as_array().unwrap().iter().map(|k| signal::Key {
         kid: k["kid"].as_str().unwrap().to_string(),
         raw: base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(k["raw"].as_str().unwrap()).unwrap(),
         not_before: k["notBefore"].as_f64(),
         not_after: k["notAfter"].as_f64(),
+        tenant: text(&k["tenantId"]),
+        environment: text(&k["environment"]),
     }).collect();
-    let e = &c["expect"];
     for case in c["cases"].as_array().unwrap() {
+        let mut e = c["expect"].as_object().unwrap().clone();
+        if let Some(o) = case["expect"].as_object() { for (k, v) in o { e.insert(k.clone(), v.clone()); } }
+        let e = serde_json::Value::Object(e);
         let exp = signal::Expect {
             game: e["gameId"].as_str().unwrap().into(),
             player: e["playerId"].as_str().unwrap().into(),
             signals: e["signals"].as_array().unwrap().iter().map(|s| s.as_str().unwrap().into()).collect(),
-            now: case["expect"]["now"].as_f64().unwrap_or(e["now"].as_f64().unwrap()),
+            now: e["now"].as_f64().unwrap(),
+            versions: e["versions"].as_array().map_or(vec![1, 2], |v| v.iter().filter_map(|n| n.as_i64()).collect()),
+            tenant: text(&e["tenantId"]),
+            environment: text(&e["environment"]),
+            audience: text(&e["audience"]),
+            session: text(&e["sessionId"]),
         };
         let v = signal::verify(case["jws"].as_str().unwrap(), &keys, &exp);
         println!("{}", serde_json::json!({ "name": case["name"], "verdict": v }));

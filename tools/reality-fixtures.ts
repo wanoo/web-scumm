@@ -1,5 +1,6 @@
-// npx tsx tools/reality-fixtures.ts: writes the conformance corpus of the signed signal
-// (tests/fixtures/reality/conformance.json, 4.1.1). Each case is a JWS, the keyring and the expectation the player
+// npx tsx tools/reality-fixtures.ts [--signals-only]: writes the conformance corpus of the signed signal
+// (tests/fixtures/reality/conformance.json, 4.1.1; bridge/test-vectors/signal-v2/conformance.json, 4.1.10, ADR 0010).
+// `--signals-only` leaves tests/fixtures/reality/policy.json as it is (its Biscuit blocks carry fresh keys at each run). Each case is a JWS, the keyring and the expectation the player
 // has, and the verdict: `ok` or a refusal code (src/engine/reality/protocol.ts). The keys come from fixed seeds that
 // are TEST KEYS ONLY, written here in the open: they sign nothing but this corpus. Ed25519 is deterministic, so the
 // file is the same at every run. tests/reality-protocol.test.ts checks every case in JavaScript, and
@@ -13,6 +14,7 @@ import {
   signSignal,
   type RefusalCode,
   type WorldSignalV1,
+  type WorldSignalV2,
 } from '../src/engine/reality/protocol';
 import { ROOT } from './game';
 import { attenuate, authorize, grantToken } from '../bridge/src/policy';
@@ -104,7 +106,7 @@ add(
   await rawJws({ alg: 'EdDSA', kid: 'k1' }, { ...base, pad: 'x'.repeat(MAX_SIGNAL_CHARS) }, k1.priv),
   'size',
 );
-add('a future schema', await rawJws({ alg: 'EdDSA', kid: 'k1' }, { ...base, schema: 2 }, k1.priv), 'schema');
+add('a future schema', await rawJws({ alg: 'EdDSA', kid: 'k1' }, { ...base, schema: 3 }, k1.priv), 'schema');
 add(
   'a field the schema does not know',
   await rawJws({ alg: 'EdDSA', kid: 'k1' }, { ...base, html: '<b>hi</b>' }, k1.priv),
@@ -178,6 +180,121 @@ writeFileSync(
   ) + '\n',
 );
 console.log(`tests/fixtures/reality/conformance.json: ${cases.length} cases`);
+
+// SignalV2 (4.1.10, ADR 0010): the context a signal names, checked against its key and what the player expects. The
+// same raw key k1 is listed for two tenants (the misconfiguration the threat model fears): only the context tells.
+const v2: WorldSignalV2 = {
+  ...base,
+  schema: 2,
+  tenantId: 'tenant-a',
+  environment: 'prod',
+  audience: 'https://game.example',
+  sessionId: 'sess-1',
+  keyId: 'ka',
+};
+const v2Keys = [
+  { kid: 'ka', raw: k1.raw, tenantId: 'tenant-a', environment: 'prod' },
+  { kid: 'kb', raw: k1.raw, tenantId: 'tenant-b', environment: 'prod' },
+  { kid: 'kx', raw: k2.raw },
+  { kid: 'k1', raw: k1.raw },
+];
+const v2Expect = {
+  ...expect,
+  versions: [1, 2],
+  tenantId: 'tenant-a',
+  environment: 'prod',
+  audience: 'https://game.example',
+  sessionId: 'sess-1',
+};
+type V2Case = { name: string; jws: string; verdict: 'ok' | RefusalCode; expect?: Record<string, unknown> };
+const v2Cases: V2Case[] = [];
+const add2 = (name: string, jws: string, verdict: V2Case['verdict'], e?: Record<string, unknown>) =>
+  v2Cases.push({ name, jws, verdict, ...(e ? { expect: e } : {}) });
+add2('valid V2 for tenant A', await signSignal(v2, k1.priv, 'ka'), 'ok');
+add2('valid V1 where both versions are accepted', good, 'ok', {
+  tenantId: null,
+  environment: null,
+  sessionId: null,
+  audience: null,
+  versions: [1, 2],
+});
+add2('V1 where only V2 is accepted (a multi-tenant player)', good, 'schema', { versions: [2] });
+add2('V2 where only V1 is accepted', await signSignal(v2, k1.priv, 'ka'), 'schema', { versions: [1] });
+add2('a future schema', await rawJws({ alg: 'EdDSA', kid: 'ka' }, { ...v2, schema: 3 }, k1.priv), 'schema');
+add2('keyId names another key than the header', await signSignal({ ...v2, keyId: 'kb' }, k1.priv, 'ka'), 'key');
+add2(
+  "tenant A's signal under tenant B's name for the same raw key",
+  await signSignal({ ...v2, keyId: 'kb' }, k1.priv, 'kb'),
+  'audience-mismatch',
+  { tenantId: 'tenant-b' },
+);
+add2(
+  "tenant A's signal presented to tenant B (its key bound to A)",
+  await signSignal(v2, k1.priv, 'ka'),
+  'audience-mismatch',
+  { tenantId: 'tenant-b' },
+);
+add2(
+  'another environment than its key',
+  await signSignal({ ...v2, environment: 'staging' }, k1.priv, 'ka'),
+  'audience-mismatch',
+);
+add2(
+  'another origin',
+  await signSignal({ ...v2, audience: 'https://evil.example' }, k1.priv, 'ka'),
+  'audience-mismatch',
+);
+add2('another link', await signSignal({ ...v2, sessionId: 'sess-0' }, k1.priv, 'ka'), 'audience-mismatch');
+add2('a key without a tenant, the expectation decides', await signSignal({ ...v2, keyId: 'kx' }, k2.priv, 'kx'), 'ok');
+add2(
+  'a key without a tenant, another tenant expected',
+  await signSignal({ ...v2, keyId: 'kx' }, k2.priv, 'kx'),
+  'audience-mismatch',
+  { tenantId: 'tenant-b' },
+);
+add2(
+  'the context left unchecked when the player knows none of it',
+  await signSignal(
+    { ...v2, keyId: 'kx', tenantId: 'zzz', environment: 'dev', audience: 'x', sessionId: 's' },
+    k2.priv,
+    'kx',
+  ),
+  'ok',
+  { tenantId: null, environment: null, sessionId: null, audience: null },
+);
+add2(
+  'V2 without its tenant',
+  await rawJws({ alg: 'EdDSA', kid: 'ka' }, { ...v2, tenantId: undefined }, k1.priv),
+  'payload',
+);
+add2(
+  'V2 in an unknown environment',
+  await rawJws({ alg: 'EdDSA', kid: 'ka' }, { ...v2, environment: 'qa' }, k1.priv),
+  'payload',
+);
+add2('V2 for another player', await signSignal({ ...v2, playerId: 'p-0000' }, k1.priv, 'ka'), 'player');
+add2(
+  'V2 with a field the schema does not know',
+  await rawJws({ alg: 'EdDSA', kid: 'ka' }, { ...v2, html: '<b>' }, k1.priv),
+  'payload',
+);
+const v2Out = resolve(ROOT, 'bridge/test-vectors/signal-v2');
+mkdirSync(v2Out, { recursive: true });
+writeFileSync(
+  resolve(v2Out, 'conformance.json'),
+  JSON.stringify(
+    {
+      note: 'Generated by tools/reality-fixtures.ts (SignalV2, ADR 0010); the keys are test keys only. An expectation field set to null is left out.',
+      keys: v2Keys,
+      expect: v2Expect,
+      cases: v2Cases,
+    },
+    null,
+    1,
+  ) + '\n',
+);
+console.log(`bridge/test-vectors/signal-v2/conformance.json: ${v2Cases.length} cases`);
+if (process.argv.includes('--signals-only')) process.exit(0);
 
 // The Bridge's policy (bridge/policy/propose.datalog): tokens and requests with their verdict, for the Rust
 // cross-check. The root key is a test key from a fixed seed; Biscuit's blocks carry fresh keys, so the tokens differ
