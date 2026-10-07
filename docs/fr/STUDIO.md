@@ -104,6 +104,14 @@ commandes personnalisées sont du code de confiance, pas des données isolées. 
   conditions et commandes (`src/studio/schema.ts`, vérifiée contre les types à la compilation) : une nouvelle commande
   sans formulaire ne compile pas. Ce qui n'a pas de champ simple (les paramètres d'un mini-jeu, les événements d'image
   d'une animation) est une case JSON.
+- **Calques, masques, zones (4.1.11).** Sous la fiche du lieu, l'éditeur de scène (`src/studio/rooms-stage.ts`)
+  montre le fond avec les masques d'occlusion (rouges), les zones de marche (vertes) et les liens entre zones : la
+  profondeur, la parallaxe, l'opacité et la fusion de chaque calque sont des champs ; **Draw a mask** et **Draw a
+  zone** prennent les coins cliqués sur le fond, puis **Close the polygon** (un polygone qui ne ferme aucune surface
+  n'est pas gardé) ; **Link them** relie deux zones par un escalier, une échelle, un saut, une téléportation ou une
+  marche, placé en deux clics. **Save stage** écrit cette géométrie sur le layout du lieu une fois la vue de placement
+  enregistrée ; il reste éteint tant qu'un masque ne ferme aucune surface ou qu'une zone n'a pas de lien, ce que le
+  validateur refuse aussi.
 - **Aperçu, puis application.** « Preview the change » montre le diff que le serveur écrirait (à blanc) ; « Apply »
   l'écrit en code dans le style du fichier (`set_value`, par l'analyseur TypeScript : les commentaires et le reste du
   fichier restent), puis le jeu est rechargé et validé : une modification qui ajoute une erreur de validation est reprise

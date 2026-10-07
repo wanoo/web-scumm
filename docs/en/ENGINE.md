@@ -14,8 +14,10 @@ src/engine/
     ports.ts      the Presenter interface (what the core asks of the display) + FakePresenter for node
     cond.ts       condition evaluation
     define.ts     defineGame / defineRoom, stable keys for once/nth/cycle/random blocks
-  dom/          the browser display (implements Presenter)
-    app.ts        landscape layout, verbs, inventory, lines, menus, map, minigames, sealed ending, title screen
+  scene/        the scene frame (pure): `SceneFrame`, the hit test, the `Renderer` and `Intent` contracts (4.1.11)
+  dom/          the browser display
+    app.ts        landscape layout, verbs, inventory, menus, title screen; composes the engine, the presenter, the renderer
+    presenter.ts  the Presenter the engine talks to (lines, overlays, map, minigames, sealed ending) and `intent()`
     fonts.ts      default fonts (DotGothic16, Press Start 2P), overridden by `skin.fonts`
     room.ts       the scene: background, props, characters, depth sorting, walking, poses
     walk.ts       walkable area (earcut triangulation + navmesh paths), scale by depth
@@ -139,6 +141,44 @@ forces one for every room. The UI, the dialogue and every accessible target stay
 on the sample game: its rooms within 0.31% of the DOM references, the whole game played to the end by it, 60 frames
 per second with the CPU slowed 4× (`npm run e2e:perf`), all in the CI's `chromium / canvas` row.
 
+## The scene frame, the renderer and the journal (4.1.11)
+
+ADR 0011 and decision D21: rendering is not a source of state. Three contracts carry it.
+
+**The scene frame.** `scene/frame.ts` `sceneFrame(state, layouts, anim)` is a pure function that returns an immutable
+`SceneFrame` in logical units: the camera, the layers (the backdrop, the stage layers, the occluders, the props), the
+characters (where they stand, which way they face, whether they speak or walk, their sprite), the targets with their
+hit polygons precomputed (the layout's polygon, else the box of what is drawn, rotation included; the smallest wins),
+the effects (lights, particles, the transition) and a `hash` of all of it. `RoomView` resolves every sprite, makes the
+frame and paints it when a room is built; between builds an entity that changes paints its own sprite (its part of
+the frame). The hit test (`hitTest`) and the accessible buttons read the frame, so the semantic DOM layer (buttons,
+focus, keyboard, screen reader) follows whatever paints the room. `tests/dom/scene-frame.test.ts` holds the DOM of
+every room of the sample game and of the reference chapter, in three states, to what it was before the frame.
+
+**The renderer.** `Renderer` (`mount`, `render(frame)`, `onIntent`, `unmount`) is what draws a frame. The DOM and
+Canvas painters are wrapped as one (`dom/frame-renderer.ts`: an unchanged frame skipped by its hash, a new room painted
+whole, a changed frame by its differences); `scene/null-renderer.ts` draws nothing, for tests and headless runs. The
+render loop, the screen-to-scene conversion and the presentation animations (walk cycles, mouths, particles) belong to
+the renderer side; the engine knows no frame. A painter never imports the engine (`tests/boundaries.test.ts`).
+
+**Intentions.** An `Intent` is the only thing that goes back: `act` (a verb on a target, an item on it), `walk` (a
+point of the floor), `pick` (a choice), `skip`, `open` (the map, the bag, the menu). The input layer (`dom/input.ts`)
+makes them from taps, keys and clicks and gives them to the presenter (`dom/presenter.ts` `intent()`), which applies
+the engine's (`scene/intent.ts`) and answers its own. `App` composes the engine, the presenter and the room view's
+renderer. The same clicks on the DOM and on the Canvas painter record the same session and the same journal, at device
+pixel ratios 1, 2 and 3, on a phone and a desktop screen, with and without reduced motion
+(`tests/dom/intent-equivalence.test.ts`).
+
+**The semantic journal.** `Engine.journal` (`core/journal.ts`) numbers what happened, in ids: `sessionStarted`,
+`roomEntered` (and from where), `itemAcquired`, `itemLost`, `flagChanged` (only when the value changes),
+`endingReached`, `loadMade`, and `saveMade` for the autosave that follows something semantic. The command handlers, a
+room's entry and the engine's lifecycle emit it; nothing in the DOM does, and a kind it does not know is refused (it is
+not the interface's bus). `since(seq)` gives the events after a sequence, `subscribe` hears them as they come; the
+window keeps the last 10,000. Replaying a session yields the same journal (`tests/journal.test.ts`: the sample game,
+the reference chapter, 200 generated games); a session file carries it, `npm run replay` prints it and fails when the
+replay's differs, the dev panel lists the latest. `objectiveCompleted` waits for 4.1.12, a slot on `saveMade` and
+`loadMade` for a save that is part of the session.
+
 ## Walking and motions
 
 `dom/walk.ts` walks a character over its room's walk zones (`walkZones`, one polygon with holes each, its own depth
@@ -148,7 +188,10 @@ an animation and a facing): the fewest links first, then the shortest path insid
 `locked` line, and the action that asked for the walk still runs (`npm run lint` warns, `walk-link-gate`, when a rule
 behind such a walk does not check the condition itself). `core/motion.ts` gives `launch`, `spring`, `path` and
 `follow` as closed forms of time: the same flight at any frame rate, nothing simulated, nothing logical inside; a
-character keeps where its motion ends, like `place`.
+character keeps where its motion ends, like `place`. The route between zones is the core's since 4.1.11
+(`core/motion.ts` `zoneRoute`, pure: breadth first, a one-way link forward only, a closed link named as what blocks);
+the walker walks it. The Studio's Rooms tab draws masks, zones and their links on the backdrop (`src/studio/rooms-stage.ts`),
+and the validator refuses a mask polygon that closes no surface and, in a room of several zones, a zone no link joins.
 
 ## Assets: one graph
 
@@ -219,7 +262,8 @@ saved point.
 ## The action cycle
 
 1. The player picks a verb, then taps something (or an inventory item, then a target).
-2. `App` calls `engine.act({ verb, a, b })`.
+2. The input layer turns it into an intention (`{ kind: 'act', verb, target, item }`); the presenter calls
+   `engine.act({ verb, a, b })` (4.1.11).
 3. The engine walks the hero to the approach point (layout), turns them toward the target.
 4. `resolve` looks for the reaction: room rule → game rule → Look → Talk (hints, conversation) → kind → refusal → fallback.
 5. The commands run one by one; each calls the Presenter (speak, walk, change a prop, play a sound…).

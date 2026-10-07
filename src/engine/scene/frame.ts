@@ -9,7 +9,7 @@ import type { GameState, Id, Layout, Point } from '../core/types';
 import type { EmitterSpec, LayerSpec, LightSpec, OccluderSpec, SpriteSpec, StageSpec } from '../dom/renderer';
 
 /** Where the camera looks: its left and top edges, its zoom, and the room's logical width. */
-export interface CameraState {
+interface CameraState {
   x: number;
   y: number;
   zoom: number;
@@ -17,14 +17,14 @@ export interface CameraState {
 }
 
 /** One layer of the frame, in the order a painter adds them (a painter sorts by `z` to draw). */
-export type RenderLayer =
+type RenderLayer =
   | { kind: 'backdrop'; id: Id; z: number; url: string; x: number; y: number; w: number; h: number }
   | { kind: 'layer'; id: Id; z: number; layer: LayerSpec }
   | { kind: 'occluder'; id: Id; z: number; occluder: OccluderSpec }
   | { kind: 'prop'; id: Id; z: number; order: number; sprite: SpriteSpec };
 
 /** A character in the frame: who, where, which way, whether it speaks or walks, and its sprite. */
-export interface RenderActor {
+interface RenderActor {
   id: Id;
   /** The character sheet it is drawn from. */
   cell?: Id;
@@ -42,7 +42,7 @@ export interface RenderActor {
  * of what is drawn, rotation included), the box the accessible button covers, the area that ranks overlapping
  * targets (the smallest wins), its default verb and its accessible label.
  */
-export interface RenderHotspot {
+interface RenderHotspot {
   id: Id;
   polygon: Point[];
   /** `poly`: the layout's polygon decides; `box`: the box, edges included (the rule since 3.4). */
@@ -54,7 +54,7 @@ export interface RenderHotspot {
 }
 
 /** What the stage adds over the picture: lights, particles, the transition the room enters with. */
-export type RenderEffect =
+type RenderEffect =
   | { kind: 'light'; light: LightSpec }
   | { kind: 'emitter'; emitter: EmitterSpec }
   | { kind: 'transition'; transition: { kind: 'cut' | 'fade' | 'wipe'; ms: number } };
