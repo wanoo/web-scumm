@@ -320,3 +320,15 @@ returns the link's `sessionId`). A 4.1.9 `config.json` serves from its journal a
 falls into the proxy's one rate bucket** (60 anonymous requests a minute for everyone) until `--trust-proxy=<its
 network>` names it.
 Several tenants and several instances: `docs/en/REALITY-OPS.md`.
+
+## 23. From 4.1.10 to 4.1.11 "Viewport"
+
+A 4.1.10 save loads unchanged; the five entries' names are additive (`SceneFrame`, `Renderer`, `Intent` on
+`web-scumm/player` as `@extension`; `SemanticEvent`, `SemanticJournal` on `web-scumm/testing`; `Engine.journal`,
+`Engine.sessionSeq`). What moved: the page's test hook `window.__game.inventory(…)` is
+`window.__game.presenter.inventory(…)` (an e2e script of your own that called it changes one line); a session file now
+carries the semantic journal and `npm run replay` exits 1 when the replay's differs (a session longer than 10 000
+events is exported with `journalTruncated: true` and no journal); `npm run validate` refuses a layout whose occlusion
+mask polygon closes no surface (collinear points, crossing edges) or whose room has a walk zone no link joins, where
+4.1.10 accepted it: fix the layout in the Studio's Rooms tab (layers, masks, zones, portals) or by hand. The first
+visit's JavaScript is 122 KB gzipped (120 in 4.1.10).
