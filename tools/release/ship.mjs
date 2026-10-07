@@ -96,7 +96,26 @@ async function merge(pr) {
   const subject = `Merge ${view.headRefName}: ${view.title}`;
   const trailers = ['Agent: Claude', process.env.SHIP_TRAILERS ?? ''].filter(Boolean).join('\n');
   say(`merging #${pr} (${view.headRefName})`);
-  gh(['pr', 'merge', String(pr), '--merge', '--subject', subject, '--body', trailers]);
+  // Right after another merge into main, GitHub recomputes mergeability and `gh pr merge` fails for a moment
+  // (seen on #24, merged seconds after #22): asked again while the state is UNKNOWN, up to ten times.
+  await until(
+    () => {
+      const st = ghJson(['pr', 'view', String(pr), '--json', 'mergeStateStatus,state']);
+      if (st.state === 'MERGED') return true;
+      if (st.mergeStateStatus === 'UNKNOWN') {
+        say('mergeability being recomputed: asking again');
+        return undefined;
+      }
+      try {
+        gh(['pr', 'merge', String(pr), '--merge', '--subject', subject, '--body', trailers]);
+        return true;
+      } catch (e) {
+        if (/UNKNOWN|not mergeable|Base branch was modified/i.test(String(e))) return undefined;
+        throw e;
+      }
+    },
+    { everyMs: 15_000, deadlineMs: 5 * 60_000, what: `the merge command of #${pr}` },
+  );
   const after = await until(
     () => {
       const v = ghJson(['pr', 'view', String(pr), '--json', 'state,mergeCommit']);
