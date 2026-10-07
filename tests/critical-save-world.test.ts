@@ -1,4 +1,4 @@
-// The save envelope v4's world (4.1.15): every branch of core/save.ts that reads a world, and the story world written
+// The save envelope v4's world (4.1.15, in the `core` mutation set as critical-*): every branch of core/save.ts that reads a world, and the story world written
 // without the compiler (core/remix/story.ts) equal to the compiler's. core/save.ts is held to 100 % of its branches.
 import { describe, expect, it } from 'vitest';
 import {
@@ -84,5 +84,18 @@ describe('parseSave and the world', () => {
     }
     expect((err as SaveWorldMismatch).variant.hash).toBe(v.hash);
     expect((err as Error).message).toMatch(/another world/);
+  });
+});
+
+describe('the session records its world', () => {
+  it('a game played in a world writes it into its session; a game without one writes no variant key', async () => {
+    const e = new Engine(mini(), miniLayouts, new FakePresenter(), new MemoryStore());
+    await e.newGame();
+    expect(e.session).not.toBeNull();
+    expect('variant' in e.session!).toBe(false);
+    const v = compileVariant(compileGameManifest(reference), reference.remix!, encodeSeedCode(5));
+    const w = new Engine(structuredClone(applyVariant(reference, v)), {}, new FakePresenter(), new MemoryStore());
+    await w.checkpoint('night_market');
+    expect(w.session!.variant).toEqual(v);
   });
 });

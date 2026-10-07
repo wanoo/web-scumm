@@ -218,5 +218,12 @@
   "to": "false",
   "why": "parseLine: only the wording of the corruption message (`err.message` or a fallback); the line number and the refusal are the same",
   "context": "throw new Error(`journal line ${n} is not an event (${err instanceof Error ? err.message : 'unreadable'})`);"
+ },
+ {
+  "file": "src/engine/core/save.ts",
+  "operator": "condition true",
+  "from": "r.success",
+  "to": "true",
+  "why": "`savedWorld`: a failed `safeParse` of zod/mini carries `data: undefined`, so returning `r.data` gives the same `undefined` the condition returned (4.1.15)"
  }
 ]

@@ -60,10 +60,15 @@
   for a daily challenge (the demo, without `reality`, does not precache that chunk: the offline PWA boot and
   `e2e:weight` failed on it). Measured with `npx vite build` + `npx tsx tools/dist.ts`: demo 132 KB, reference 136 KB
   (budget 140); the "1 thing the provenance does not account for" was that budget line. `core/save.ts` back to 100 %
-  of its branches (`tests/save-world.test.ts`, measured with vitest coverage on the five save test files). Not run:
+  of its branches (`tests/critical-save-world.test.ts`, measured with vitest coverage on the five save test files). Not run:
   the full `test:coverage` and `coverage-ratchet` (one-file-at-a-time rule of this machine), the e2e.
 - After the rerun on 18647c4: `pwa-firefox` passed every scenario then reported "error loading dynamically imported
   module …/virtual_pwa-register-*.js". `src/main.ts` now imports the register module statically (it was its own lazy
   chunk; it was in the precache, `dist/sw.js`), so that chunk no longer exists; first visit unchanged (demo 132 KB,
   reference 137 KB). The cause in Firefox was not reproduced here (no e2e on this machine).
+- Mutation gate (`npx tsx tools/mutate.ts --set=core --file=…`, local, one file at a time, after merging Time Attack's
+  7001866): `core/save.ts` 129/130 killed, 1 survivor named (`savedWorld`'s `r.success → true`: zod/mini's failed
+  parse carries `data: undefined`, equivalent); `core/session-runtime.ts` 55/57 (the 2 named before); `core/migrate.ts`
+  40/42 (the 2 named before): 0 unexplained. The world tests moved to `tests/critical-save-world.test.ts` so the `core`
+  set runs them, with a test that a session records its world (and no `variant` key without one).
 → next: Claude · `release/4.1.15`
