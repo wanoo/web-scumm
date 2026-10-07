@@ -6,6 +6,11 @@
     "src/engine/tools/solve-worker.ts",
     "bridge/bin.mjs",
     "bridge/src/cli.ts",
+    "connectors/bin.mjs",
+    "connectors/src/sdk.ts",
+    "connectors/src/run.ts",
+    "connectors/src/email/mime-worker.ts",
+    "connectors/src/email/mime-worker.boot.mjs",
     "cli/*.mjs",
     "scripts/*.mjs",
     "scripts/*.ts",
@@ -22,6 +27,7 @@
   "project": [
     "src/**/*.ts",
     "bridge/src/**/*.ts",
+    "connectors/src/**/*.ts",
     "cli/**/*.mjs",
     "scripts/**",
     "tools/**/*.ts",
@@ -34,7 +40,9 @@
     "src/studio/rooms.ts"
   ],
   "ignoreDependencies": [
-    "@tweakpane/core"
+    "@tweakpane/core",
+    "cpu-features",
+    "nan"
   ],
   "ignoreBinaries": [
     "ffmpeg",

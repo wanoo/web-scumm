@@ -44,7 +44,8 @@
     "tests",
     "tools",
     "scripts",
-    "bridge"
+    "bridge",
+    "connectors"
   ],
   "exclude": [
     "legacy",
