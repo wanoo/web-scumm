@@ -221,6 +221,8 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     const hold: { store?: RealityStore; telemetry?: Telemetry; signalVersion?: 1 | 2 } = {
       store: await openStore(spec, tenants[0]!, first, {
         onRepair: (what) => console.log(JSON.stringify({ event: 'journal.repaired', what })),
+        // A failed poll of the other instances' acceptances (SQLite busy past its wait): said, then tried again.
+        onPollError: (e) => console.log(JSON.stringify({ event: 'store.poll.failed', error: String(e) })),
       }),
       telemetry,
       ...(files.length > 1 ? { signalVersion: 2 as const } : {}),
