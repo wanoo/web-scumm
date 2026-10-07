@@ -107,7 +107,7 @@ code de liaison confirmé par deux connecteurs à la fois n'est confirmé qu'une
 ## Conservation, export, suppression
 
 Le journal (`journal.jsonl`) garde chaque signal accepté : son id, sa séquence, la clé du connecteur, l'enveloppe
-signée ; jamais un jeton, un email ni un contenu. Le log (stdout) est en lignes JSON sans secret. Garder le journal
+signée et, depuis la 4.1.2, la charge du signal telle qu'acceptée (pour la re-signer après une rotation) ; jamais un jeton ni un email. Le log (stdout) est en lignes JSON sans secret. Garder le journal
 tant que des joueurs peuvent être hors ligne avec des signaux à recevoir ; ensuite un joueur se relie.
 
 - `GET /v1/admin/players/<p-…>` (jeton de l'opérateur) : tout ce qui est gardé sur un joueur (son lien sans la
@@ -115,8 +115,16 @@ tant que des joueurs peuvent être hors ligne avec des signaux à recevoir ; ens
 - `DELETE /v1/admin/players/<p-…>` : le supprime, le fichier du journal réécrit sans aucune ligne sur ce joueur
   (chaque ligne lue comme un événement, jamais comparée comme du texte).
 - `web-scumm-bridge doctor` : lit le journal et dit ce qu'il contient. Une dernière ligne coupée par un plantage est
-  abandonnée au démarrage suivant, et dite dans le log (`journal.repaired`) ; toute autre ligne illisible est une
-  corruption, et le Bridge refuse de démarrer plutôt que de deviner.
+  retirée au démarrage suivant, et dite dans le log (`journal.repaired`) ; toute autre ligne qui ne se lit pas, ou
+  qui se lit mais n'est pas un événement de la forme du journal (chaque champ vérifié, 4.1.8), est une corruption,
+  et le Bridge refuse de démarrer plutôt que de deviner.
+- Un Bridge par journal (4.1.8) : le Bridge en marche tient `journal.jsonl.lock` avec l'identifiant de son
+  processus ; un second démarrage sur le même fichier refuse tant que ce processus vit, et reprend un verrou laissé
+  par un plantage (dit dans le log). Un arrêt par Ctrl-C ou SIGTERM libère le verrou. `compact` prend le verrou lui
+  aussi : il refuse tant que le Bridge tourne. Un verrou dont l'identifiant de processus a été réutilisé par un autre
+  processus depuis le plantage est refusé comme « en cours d'usage » : regardez, puis supprimez-le. Le verrou est un
+  lien dur : le dossier du journal doit être sur un système de fichiers qui les tient (APFS, ext4, NTFS oui ; FAT et
+  certains montages réseau non).
 - `web-scumm-bridge compact [--retention-days=90]`, Bridge arrêté : réécrit le journal sans les appairages
   périmés, les versions antérieures de la ligne d'un joueur, et les signaux acquittés plus vieux que la rétention ;
   le dernier signal d'un joueur reste toujours (sa prochaine séquence se compte depuis lui), ainsi que tout ce qui

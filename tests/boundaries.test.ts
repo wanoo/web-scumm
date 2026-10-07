@@ -121,6 +121,7 @@ describe("the engine's layers", () => {
   });
 
   it('the Bridge reaches neither the Studio, the tools, nor a game: only the protocol it shares with the player', () => {
+    // Plain packages the Bridge ships with (`zod/mini` for its journal's schema, 4.1.8; Biscuit) are not layers.
     const dir = resolve('bridge/src');
     const offending = readdirSync(dir)
       .filter((f) => f.endsWith('.ts'))
@@ -128,7 +129,9 @@ describe("the engine's layers", () => {
         [...readFileSync(join(dir, f), 'utf8').matchAll(/from '([^']+)'/g)]
           .map((m) => m[1]!)
           .filter(
-            (spec) => !/^(node:|\.\/|@biscuit-auth\/)/.test(spec) && !/^\.\.\/\.\.\/src\/engine\/reality\//.test(spec),
+            (spec) =>
+              !/^(node:|\.\/|@biscuit-auth\/|zod\/mini$)/.test(spec) &&
+              !/^\.\.\/\.\.\/src\/engine\/reality\//.test(spec),
           )
           .map((spec) => `bridge/src/${f} → ${spec}`),
       );

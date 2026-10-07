@@ -49,7 +49,11 @@ function rootPrivateKey(dir: string, file: BridgeFile): string {
   throw new Error(`${own} is missing: the root key signs connector tokens, and nothing else can`);
 }
 
-export async function loadBridge(file: BridgeFile, dir: string): Promise<Bridge> {
+export async function loadBridge(
+  file: BridgeFile,
+  dir: string,
+  hold: { store?: JsonlBridgeStore } = {},
+): Promise<Bridge> {
   const privateKey = await webcrypto.subtle.importKey(
     'pkcs8',
     Buffer.from(file.eventKey.pkcs8, 'base64url'),
@@ -71,6 +75,7 @@ export async function loadBridge(file: BridgeFile, dir: string): Promise<Bridge>
   const store = new JsonlBridgeStore(resolve(dir, file.journal), {
     onRepair: (what) => console.log(JSON.stringify({ event: 'journal.repaired', what })),
   });
+  hold.store = store;
   return Bridge.start(config, store);
 }
 
@@ -159,17 +164,44 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
   }
   if (cmd === 'serve') {
     const file = read();
-    const bridge = await loadBridge(file, dir);
+    const hold: { store?: JsonlBridgeStore } = {};
+    const bridge = await loadBridge(file, dir, hold);
     const port = Number(arg(args, 'port') ?? 8787);
     const host = arg(args, 'host') ?? '127.0.0.1';
-    bridgeServer(bridge, {
+    const server = bridgeServer(bridge, {
       origins: file.origins,
       webhooks: file.webhooks,
       trustProxy: args.includes('--trust-proxy'),
     }).listen(port, host, () =>
       console.log(JSON.stringify({ event: 'bridge.listening', url: `http://${host}:${port}/`, game: file.gameId })),
     );
-    return await new Promise<number>(() => {});
+    // A stop (Ctrl-C, systemd) closes the server and releases the journal's lock (4.1.8): the next start finds no
+    // lock to take over, and a lock left behind really means a crash.
+    return await new Promise<number>((done) => {
+      let stopping = false;
+      const onInt = () => stop('SIGINT');
+      const onTerm = () => stop('SIGTERM');
+      const stop = (sig: string) => {
+        if (stopping) return;
+        stopping = true;
+        process.off('SIGINT', onInt);
+        process.off('SIGTERM', onTerm);
+        console.log(JSON.stringify({ event: 'bridge.stopping', signal: sig }));
+        // The open streams are ended (their heartbeats stop with them), then the server closes; the lock goes last,
+        // once nothing of this process can still write the journal. A second signal, or five seconds, ends anyway.
+        server.closeAllConnections();
+        server.close(() => {
+          hold.store?.close();
+          done(0);
+        });
+        setTimeout(() => {
+          hold.store?.close();
+          done(0);
+        }, 5000).unref();
+      };
+      process.on('SIGINT', onInt);
+      process.on('SIGTERM', onTerm);
+    });
   }
   if (cmd === 'grant') {
     const file = read();
@@ -224,6 +256,7 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     // Rewrites the journal without what nobody needs any more (docs/en/REALITY-OPS.md): the Bridge must be stopped,
     // as a running one appends to the file this command replaces.
     const file = read();
+    // `compact` rewrites the journal: it takes the journal's lock (4.1.8) and refuses while a Bridge holds it.
     const store = new JsonlBridgeStore(resolve(dir, file.journal), { onRepair: (what) => console.log(`⚠  ${what}`) });
     const days = Number(arg(args, 'retention-days') ?? 90);
     const r = store.compact({ retentionMs: days * 24 * 3_600_000 });
