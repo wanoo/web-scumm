@@ -34,7 +34,8 @@
     "src/studio/rooms.ts"
   ],
   "ignoreDependencies": [
-    "@tweakpane/core"
+    "@tweakpane/core",
+    "pg"
   ],
   "ignoreBinaries": [
     "ffmpeg",

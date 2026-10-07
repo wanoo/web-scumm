@@ -145,11 +145,16 @@ describe('ci.yml and the plan', () => {
   });
 
   it('gates the work of a spared job inside it: no job-level `if` on a gated job, a step that succeeds instead', () => {
-    for (const id of ['node-24', 'reality-xcheck', 'reality', 'e2e', 'reference', 'pwa-firefox', 'windows'].concat([
-      'second-game',
-      'fresh-install',
-      'upgrade',
-    ])) {
+    for (const id of [
+      'node-24',
+      'reality-xcheck',
+      'bridge-postgres',
+      'reality',
+      'e2e',
+      'reference',
+      'pwa-firefox',
+      'windows',
+    ].concat(['second-game', 'fresh-install', 'upgrade'])) {
       const body = job(id);
       expect(body, id).not.toMatch(/^ {4}if:/m);
       expect(body, id).toMatch(/RUN: \$\{\{ fromJSON\(needs\.plan\.outputs\.plan\)\.\w+ \}\}/);

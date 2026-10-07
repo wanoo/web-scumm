@@ -201,6 +201,42 @@ jobs:
         timeout-minutes: 8
       - if: env.RUN == 'true'
         run: npm run reality:xcheck -- --require-rust
+  # The Bridge's distributed profile (4.1.10, D20): the store contract, the tenants crossed and the fan-out across
+  # instances, on a real Postgres 16 (a service container, pinned by digest). The truth for Postgres: the maintainer's
+  # machine runs it only with a local server (docs/en/REALITY-OPS.md). Gate: `reality`.
+  bridge-postgres:
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      RUN: ${{ fromJSON(needs.plan.outputs.plan).reality }}
+      BRIDGE_PG_URL: postgres://bridge:bridge@127.0.0.1:5432/bridge
+    services:
+      postgres:
+        image: postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+        env:
+          POSTGRES_USER: bridge
+          POSTGRES_PASSWORD: bridge
+          POSTGRES_DB: bridge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bridge" --health-interval 2s --health-timeout 5s --health-retries 30
+    steps:
+      - if: env.RUN != 'true'
+        run: echo "::notice::bridge-postgres not needed by the plan (no Reality path changed)"
+      - if: env.RUN == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - if: env.RUN == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - if: env.RUN == 'true'
+        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - if: env.RUN == 'true'
+        run: npx vitest run tests/bridge-reality-store.test.ts tests/bridge-fanout.test.ts tests/bridge-tenancy.test.ts --maxWorkers=1
   # Reality Bridge end to end (4.1.1, scripts/e2e-reality.mjs): the sample game games/signals built for production, a
   # reference Bridge, pairing from the pause menu, the same webhook twice, offline then online, applied once, the
   # session replayed with the Bridge stopped. WebKit cannot reopen offline under automation (as e2e:pwa). Its own build
@@ -701,7 +737,7 @@ jobs:
   # may be `skipped` where it does not run (an ordinary pull request). The candidate single required check: the
   # ruleset still requires the seventeen names until a few runs of this job have been green (the maintainer's move).
   pr-gate:
-    needs: [plan, check, coverage, mutation, reality-xcheck, reality, node-24, windows, second-game, e2e, pwa-firefox, fresh-install, upgrade, reference]
+    needs: [plan, check, coverage, mutation, reality-xcheck, bridge-postgres, reality, node-24, windows, second-game, e2e, pwa-firefox, fresh-install, upgrade, reference]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5
