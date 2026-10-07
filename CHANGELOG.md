@@ -8,6 +8,15 @@
   sample game and asks the production server for a page; `npm start` is a Node launcher (`scripts/start.mjs`) instead
   of a shell line with a Unix expansion that cmd.exe and PowerShell did not know. The job is reported, not yet among
   the checks the ruleset requires (the maintainer's).
+- **Vite 8 and vite-plugin-pwa 2** (4.1.8). The bundler is Rolldown: the sample game builds in half a second where
+  Vite 6 took several, the first visit's JavaScript goes from 123 to 120 KB gzipped (the main chunk 388 kB, 123.6 kB
+  gzipped, was 391 / 125.7), the chunks for the tools and for Reality keep their folders (`rolldownOptions`, the
+  same functions on `moduleIds`), every file of the build is accounted for and the weight budgets hold. The service
+  worker is still Workbox 7 through the plugin's 2.0 (one peer range changed, nothing in the options the game uses).
+  Node 22.12 or newer (`engines`, the READMEs, SUPPORT), what Vite 8 and Vitest 5 require. Vite's native
+  configuration loader, experimental and planned for a later major, warns about imports without a file extension in
+  the configuration's import graph (68 files, since the Studio plugin pulls the engine's tools): said, not silenced,
+  to be addressed when that loader becomes the default.
 
 - **TypeScript 7** (4.1.8). The type checks (`npm run check`, `npm run quality`) run on the native compiler, in half a
   second where 5.9 took ten; `npm run tsc` is its command (the `tsc` bin link belongs to the tools' package, below).
