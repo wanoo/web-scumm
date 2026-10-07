@@ -103,7 +103,7 @@ jobs:
         timeout-minutes: 20
       # `npm run doctor -- --release` (first step of release-check) requires ffmpeg and Chromium (4.1.8); release-check
       # opens no browser, so the other two are not installed here.
-      - run: for i in 1 2 3; do (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
