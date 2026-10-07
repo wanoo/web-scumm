@@ -1,4 +1,4 @@
-// Dominance, symmetries and sub-puzzles (4.1.13 "Proof at Scale", docs/dev/PROOF-MATRIX.md). Each rule is measured
+// Dominance, symmetries and sub-puzzles (4.1.13 "Solver Research", docs/dev/PROOF-MATRIX.md). Each rule is measured
 // against the explicit search on small generated games (tests/dominance.test.ts) and a rule that changes a verdict
 // there stays off in proofs; the profile says which ones applied and why the others did not.
 // - Dominance (3.5, moved here): a state with no more progress than one already seen (the same everything else, its
@@ -10,7 +10,7 @@
 // - Sub-puzzles: the live dimensions split into groups no transition of the content links (from the static
 //   transitions, rooms and characters left out): independent puzzles whose combinations multiply the states. Reported,
 //   not applied: proving each one alone needs a product argument the search does not make (said in the profile).
-import type { Cond, GameDef, Id } from '../../../core/types';
+import type { Cond, GameDef, Id, Layout } from '../../../core/types';
 import { staticTransitions } from '../../por';
 import { puzzleGraph } from '../../puzzle';
 import type { CustomCommands } from '../../../core/custom';
@@ -88,9 +88,14 @@ function gameText(v: unknown, swap?: [string, string]): string {
  * Classes of symmetric items: the game (its rules, conditions, start, invariants, item definitions but their names and
  * lines) is the same text with the two ids swapped, and so is the goal. Read on the game as written (compiling gives
  * each rule an id from its place). Conservative: a line that names the item, a rule for several targets, an item named
- * by a topic, a script, a listener or a block the engine keys by its place keep two items apart.
+ * by a topic, a script, a listener, a block the engine keys by its place, a layout or a custom command's source keep
+ * two items apart.
  */
-export function symmetricItems(game: GameDef, goal?: Cond[]): Id[][] {
+export function symmetricItems(
+  game: GameDef,
+  goal?: Cond[],
+  extra: { layouts?: Record<string, Layout>; commands?: CustomCommands } = {},
+): Id[][] {
   const ids = Object.keys(game.items).sort();
   if (ids.length < 2) return [];
   // The item definitions differ by their name, icon and look: those say nothing of the state.
@@ -110,6 +115,11 @@ export function symmetricItems(game: GameDef, goal?: Cond[]): Id[][] {
     game.events,
     game.start.intro,
     game.checkpoints,
+    // The layouts and the custom commands (their source) are not swapped: an item they name stays apart.
+    extra.layouts ?? null,
+    Object.entries(extra.commands ?? {}).map(([k, c]) =>
+      JSON.stringify([k, c], (_, v) => (typeof v === 'function' ? String(v) : v)),
+    ),
   ]);
   const keyed = (i: string) =>
     elsewhere.includes(`"${i}"`) || rules.some((r) => r.includes(`"${i}"`) && /"(once|nth|cycle|random)":/.test(r));

@@ -1,4 +1,4 @@
-// The search's states, stored (4.1.13 "Proof at Scale", docs/dev/adr/0015-compact-state.md). A state seen is an index;
+// The search's states, stored (4.1.13 "Solver Research", docs/dev/adr/0015-compact-state.md). A state seen is an index;
 // what the search keeps of it lives in typed arrays by index: its parent's index, its path length, its last step and
 // session entries (interned), its room and bag (interned). Its key is its (dimension, value) pairs, each interned to a
 // number, sorted, written as a short string: two states have the same key exactly when they have the same dimensions,

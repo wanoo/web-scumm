@@ -59,6 +59,11 @@ export function fingerprint(game: GameDef, layouts: Record<string, Layout>, opts
     layouts,
     o: { mode, start, goal, por, memo, canonicalPlayers, mobility, ownership, dominance, reality, symmetry, batch },
     rep: opts.representation ?? 'compact',
+    // The custom commands' effects change what the search finds: their source is part of the search.
+    commands: Object.entries(opts.commands ?? {}).map(([k, c]) => [
+      k,
+      JSON.stringify(c, (_, v) => (typeof v === 'function' ? String(v) : v)),
+    ]),
   });
   const [hi, lo] = fnv64(text);
   return `${hi.toString(16).padStart(8, '0')}${lo.toString(16).padStart(8, '0')}-${text.length}`;

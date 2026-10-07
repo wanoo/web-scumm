@@ -1,4 +1,4 @@
-# 0015 · A search stores its states by index, with exact interned keys
+# 0015 · A search stores its states by index, with exact interned keys (4.1.13 "Solver Research")
 
 **Context.** Up to 4.1.8 the search kept, for every state it had seen, a `SearchNode` object: the whole engine state
 (`GameState`), its dimensions as an array of pairs, the copied steps of its last move, and a key that was the JSON of
@@ -25,6 +25,11 @@ field for field.
 
 **Cost.** Decoding a stored state's dimensions (the profile, the `reachable` list) and a path (the witness, the softlock
 samples) costs a walk and a parse; both happen once, at the end. A checkpoint of a large search is a large file.
+
+**Limits said.** The checkpoint's fingerprint covers the game, its layouts, the custom commands' source and the options
+that change what is found, not `maxStates` (a resume may raise the budget: a node the budget cut inside is put back in
+the frontier unexpanded, so nothing is skipped). Symmetric items (`--symmetry`, opt-in) compare the game's text with
+two ids swapped; an item a layout or a custom command's source names is never a twin.
 
 **Would change it.** A proof whose frontier, not its stored states, fills the heap (the frontier keeps engine states);
 then the frontier's states would be stored as deltas against their parent.

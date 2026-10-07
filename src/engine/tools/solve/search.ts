@@ -448,13 +448,23 @@ async function solveOnce(
         keep = stubbornKeys(txs, stx, s, s.room, { all: anyHit });
         postponed += children.filter((c) => !keep!.has(c.key)).length;
       }
-      for (const c of children) {
+      let cutInside = false;
+      for (let ci = 0; ci < children.length; ci++) {
+        const c = must(children[ci], 'child');
         if (keep && !keep.has(c.key)) continue;
         put(c.next, c.meta);
         timed('queue', () => enqueue(c.next));
         maxQueue = Math.max(maxQueue, queue.size);
-        if (store.seenCount >= maxStates) {
-          if (queue.size) limitReached = true;
+        if (store.seenCount >= maxStates && !cutInside) {
+          // The budget falls inside this node. Without a checkpoint the search ends here (`truncated`). With one, the
+          // node's other children are stored and queued too, as the uncut search would have: the snapshot then holds
+          // the frontier that search had, and a resume with a bigger budget finds the same verdict and witness.
+          const left = children.slice(ci + 1).some((d) => !keep || keep.has(d.key));
+          if (queue.size || left) limitReached = true;
+          if (left && ck) {
+            cutInside = true;
+            continue;
+          }
           break;
         }
       }

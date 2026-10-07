@@ -172,7 +172,7 @@ jobs:
           name: bridge-load-${{ matrix.store }}
           path: bridge-load-${{ matrix.store }}.json
           if-no-files-found: ignore
-  # The proof matrix of 4.1.13 (docs/dev/PROOF-MATRIX.md, tools/prove-matrix.ts): each of the twelve instances proved
+  # The proof matrix of 4.1.13 "Solver Research" (docs/dev/PROOF-MATRIX.md, tools/prove-matrix.ts): each of the twelve instances proved
   # in its own job under the runner's budget (20 min, 10 000 000 states, 4 GB of heap). A false verdict fails the job;
   # an instance out of budget is `unknown`, the gap report, not a failure. Never on a pull request.
   matrix:

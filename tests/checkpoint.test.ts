@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { solve, type SolveOptions, type SolveResult } from '@engine/tools/solve';
 import { snapshotHeader } from '@engine/tools/solve/search/checkpoint';
 import { game as demo, layouts as demoLayouts, commands } from '../games/demo';
-import { matrixGame } from './gen/random-game';
+import { matrixGame, randomGame } from './gen/random-game';
 
 const sig = (r: SolveResult) => ({
   status: r.status,
@@ -117,6 +117,36 @@ describe('checkpoint and resume', () => {
     });
     expect(again.status).toBe('truncated');
   }, 120_000);
+
+  it('a budget that falls inside a node: its other children are written down too, the resumed proof is the uncut one', async () => {
+    // Tiny budgets cut the first expansions in the middle of their children (some reachable only from there).
+    let compared = 0;
+    const differ: string[] = [];
+    for (let seed = 1; seed <= 30; seed++) {
+      const { game, layouts } = randomGame(seed);
+      const o = { mode: 'prove', maxStates: 3000 } as SolveOptions;
+      const whole = await solve(structuredClone(game), layouts, o);
+      if (whole.truncated) continue;
+      for (const cut of [2, 3, 5, 8]) {
+        if (cut >= whole.states) continue;
+        let text: string | null = null;
+        const r = await solve(structuredClone(game), layouts, {
+          ...o,
+          maxStates: cut,
+          checkpoint: { save: (t) => (text = t), everyMs: 1e9 },
+        });
+        expect(r.status).toBe('truncated');
+        const resumed = await solve(structuredClone(game), layouts, {
+          ...o,
+          checkpoint: { save: () => {}, resume: text },
+        });
+        compared++;
+        if (JSON.stringify(sig(resumed)) !== JSON.stringify(sig(whole))) differ.push(`seed ${seed} cut at ${cut}`);
+      }
+    }
+    expect(compared).toBeGreaterThan(40);
+    expect(differ).toEqual([]);
+  }, 300_000);
 
   it('a snapshot of another search, or not a snapshot, is not taken up (and the profile says why)', async () => {
     const g = matrixGame(13, { characters: 3, rooms: [20, 40] });

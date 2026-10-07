@@ -119,7 +119,7 @@ export function makeExpander(gameIn: GameDef, layouts: Record<string, Layout>, o
       : stateDims(st, keys);
   // Symmetric items (4.1.13, search/dominance.ts): asked for only; a state and its swapped twin get the same dims.
   // Read on the game as written: compiling gives each rule an id from its place, which would tell twins apart.
-  const symClasses = opts.symmetry ? symmetricItems(gameIn, opts.goal) : [];
+  const symClasses = opts.symmetry ? symmetricItems(gameIn, opts.goal, { layouts, commands: opts.commands }) : [];
   const symInfo: NonNullable<SolveProfile['symmetry']> = {
     applied: symClasses.length > 0,
     classes: symClasses,

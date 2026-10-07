@@ -21,6 +21,17 @@
 - Threshold: the **minimum** is met (by memory, not by speed); the **objective** is not (8/12): the release is
   "Solver Research"; the gap report is PROOF-MATRIX §8 (time spent on no-op tries over whole-map regions, the
   memo refusing them; who carries which key stays in the state).
+- Commands behind the figures (this machine, 7 October 2026). The oracle fixture: `ORACLE_WRITE=1 npx vitest run
+  tests/solver-oracle.test.ts --maxWorkers=1` on the 4.1.8 sources (4f0d91b) plus only the `keepReachable` and
+  `onProgress` hooks, before any change to the search (the test file and `tests/gen/oracle.ts` written for it). The
+  matrix: `npx tsx tools/prove-matrix.ts --only=<id> --time=590 --json=…`, one instance per process, the "before" run
+  from a copy of 4f0d91b with only the generator, the tool and those hooks added (`.cache/before`, not committed).
+  The corpus: `npx tsx tools/audit-corpus.ts --shard=<0..3>/4 --total=500 --json=corpus-<s>.json`, then
+  `npx tsx tools/audit-corpus.ts --merge corpus-0.json … corpus-3.json --total=500` (1 500 games, 909 compared, 0
+  divergence). The mutation: `npx tsx tools/mutate.ts --file=src/engine/tools/solve/search/compact.ts` with a
+  temporary set `solver` (that file, judged by `tests/compact.test.ts`) in `tools/mutation-sets.ts`, not committed.
+- PROOF-MATRIX §7 (the results table) and §8 (the gap report) were appended after the code; §1–6 (the family, the
+  seeds, the budgets, the machines, the command, the expected verdicts) are unchanged since the first commit.
 - Mutation: `search/compact.ts` measured with a temporary set judged by `tests/compact.test.ts`: 78/86 killed, 8
   survivors (a sort comparator on unique keys, the `bytes()` estimate, a snapshot branch). Not added to the core set.
 - Run: tsc, biome, knip; `tests/compact`, `checkpoint`, `explosion`, `dominance`, `partition`, `solver-oracle`,
@@ -31,5 +42,16 @@
 - Not done: the symbolic spike (branch 6: BDD, SAT/SMT, CEGAR, not tried); dominance in proofs and sub-puzzle
   proofs (reported only); a memo for macro moves and hand-overs (the gap report's lever); the runner's numbers (the
   nightly, median of three nights after merge); the new modules in the mutation core set.
+
+- After the second reading (Opus, PR #51). Blocking, fixed: a state budget that fell inside a node's expansion left
+  its other children unstored while the node counted as expanded, so a checkpoint lacked them and a resume with a
+  bigger budget could end `solved` without them. With a checkpoint, the node's other children are now stored and
+  queued before the search stops (the snapshot holds the frontier the uncut search had); without one the search ends
+  `truncated` as before (the 4.1.8 oracle unchanged). New test: 30 generated games cut at 2, 3, 5 and 8 states and
+  resumed give the uncut proof, verdict and witness (43 of them differed before the fix). Should, done: the
+  checkpoint's fingerprint includes the custom commands' source; symmetric items keep apart an item a layout or a
+  custom command names (ADR 0015 says the limits); the oracle test fails after `ORACLE_WRITE=1` and compares the case
+  names both ways; the CHANGELOG fragment no longer says "a twentieth" for the whole matrix; the commands above.
+  Nit: the headers say 4.1.13 "Solver Research".
 
 → next: Claude · `release/4.1.13`

@@ -189,7 +189,7 @@ export function randomGame(
 }
 
 /**
- * The reference matrix of 4.1.13 "Proof at Scale" (docs/dev/PROOF-MATRIX.md): one family of games, open to three
+ * The reference matrix of 4.1.13 "Solver Research" (docs/dev/PROOF-MATRIX.md): one family of games, open to three
  * playable characters. `characters: 3` and `rooms: [20, 40]` are the family's two parameters; the seed draws the
  * rest. The rooms are a chain cut in three zones, one per character (ann, bob, cid), each starting in its own zone.
  * Locks close the way every few rooms; their keys lie earlier in the zone or in the zone before (a crossed puzzle:

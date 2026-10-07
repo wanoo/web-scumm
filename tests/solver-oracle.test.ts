@@ -23,9 +23,14 @@ async function run(extra: SolveOptions) {
 describe('the solver against the 4.1.8 oracle', () => {
   it('203 searches: the same verdicts, paths, softlocks and reachable sets', async () => {
     const now = await run({});
-    if (write) writeFileSync(FIXTURE, JSON.stringify(now, null, 1) + '\n');
+    if (write) {
+      writeFileSync(FIXTURE, JSON.stringify(now, null, 1) + '\n');
+      // A rewrite is never a pass: review the fixture's diff, then run again without ORACLE_WRITE.
+      expect('fixture rewritten, review the diff').toBe('fixture compared');
+    }
     const before = JSON.parse(readFileSync(FIXTURE, 'utf8')) as typeof now;
     expect(Object.keys(now).length).toBe(203);
+    expect(Object.keys(now).sort()).toEqual(Object.keys(before).sort());
     const diff = Object.keys(before).filter((k) => JSON.stringify(now[k]) !== JSON.stringify(before[k]));
     expect(diff).toEqual([]);
   }, 900_000);
