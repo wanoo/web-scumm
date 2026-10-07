@@ -11,7 +11,7 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import ts from '@typescript/typescript6';
 import { ROOT } from './game';
 import { SETS, setsOf, TESTS, type MutationSet } from './mutation-sets';
@@ -26,18 +26,22 @@ export const TARGETS = SETS.core;
  * A commit that changes none of these (docs, a release's version) keeps the hash, so the key is not the commit.
  */
 export function inputHash(set: MutationSet | 'all'): string {
-  const files = new Set<string>([
+  const roots = new Set<string>([
     'tools/mutate.ts',
     'tools/mutation-sets.ts',
     'vitest.mutation.config.ts',
     'vite.config.ts',
+    'tsconfig.json',
     'docs/dev/mutants.json',
-    'package-lock.json',
   ]);
   for (const k of setsOf(set)) {
-    for (const f of SETS[k]) files.add(f);
-    for (const g of TESTS[k]) for (const f of expand(g)) files.add(f);
+    for (const f of SETS[k]) roots.add(f);
+    for (const g of TESTS[k]) for (const f of expand(g)) roots.add(f);
   }
+  // Everything the tests and the sources import, statically, inside the repository (4.1.8, the second reading): a
+  // change in `engine.ts` or in the Bridge's server can turn a killed mutant of the set into a survivor, so it is an
+  // input of the verdict even though it is not mutated.
+  const files = importClosure([...roots]);
   const h = createHash('sha256');
   for (const f of [...files].sort()) {
     h.update(f);
@@ -45,8 +49,61 @@ export function inputHash(set: MutationSet | 'all'): string {
     h.update(existsSync(resolve(ROOT, f)) ? readFileSync(resolve(ROOT, f)) : 'missing');
     h.update('\0');
   }
+  // The lockfile says which dependencies the tests ran with; its own `version` fields move with every release and
+  // say nothing of the verdict, so they are left out (a version bump keeps the hash).
+  const lock = JSON.parse(readFileSync(resolve(ROOT, 'package-lock.json'), 'utf8')) as {
+    version?: string;
+    packages?: Record<string, { version?: string }>;
+  };
+  delete lock.version;
+  if (lock.packages?.['']) delete lock.packages[''].version;
+  h.update('package-lock.json\0');
+  h.update(JSON.stringify(lock));
   return h.digest('hex').slice(0, 16);
 }
+
+/** The repository files reachable from `files` through static imports (`from '…'`, `import('…')`), themselves included. */
+export function importClosure(files: string[]): Set<string> {
+  const seen = new Set<string>();
+  const queue = [...files];
+  while (queue.length) {
+    const f = queue.pop()!;
+    if (seen.has(f) || !existsSync(resolve(ROOT, f))) continue;
+    seen.add(f);
+    if (!/\.(ts|mts|mjs|js)$/.test(f)) continue;
+    const src = readFileSync(resolve(ROOT, f), 'utf8');
+    for (const m of src.matchAll(/(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g)) {
+      const target = resolveImport(f, m[1]!);
+      if (target) queue.push(target);
+    }
+  }
+  return seen;
+}
+
+/** A specifier of the repository (`@engine/*`, `web-scumm/*`, a relative path) as a file, or null for a package. */
+function resolveImport(from: string, spec: string): string | null {
+  let base: string;
+  if (spec.startsWith('@engine/')) base = `src/engine/${spec.slice('@engine/'.length)}`;
+  else if (spec.startsWith('web-scumm/')) base = `src/engine/api/${spec.slice('web-scumm/'.length)}`;
+  else if (spec.startsWith('.')) base = relative(ROOT, resolve(ROOT, dirname(from), spec)).replace(/\\/g, '/');
+  else return null;
+  for (const c of [base, `${base}.ts`, `${base}.mts`, `${base}.mjs`, `${base}.js`, `${base}/index.ts`])
+    if (existsSync(resolve(ROOT, c)) && !c.endsWith('/')) {
+      try {
+        if (readFileSync(resolve(ROOT, c)).length >= 0 && !isDir(resolve(ROOT, c))) return c;
+      } catch {
+        /* a folder */
+      }
+    }
+  return null;
+}
+const isDir = (p: string) => {
+  try {
+    return readdirSync(p) !== undefined;
+  } catch {
+    return false;
+  }
+};
 
 /** The files a vitest `include` glob of the form `dir/prefix-*.test.ts` names (one `*`, in the file name). */
 function expand(glob: string): string[] {

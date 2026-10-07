@@ -114,9 +114,9 @@ function read(
   return { got, done };
 }
 
-/** Waits (at most 400 × 5 ms, real timers) until `until()` holds. */
+/** Waits (at most 800 × 5 ms, real timers: four seconds, for a loaded runner) until `until()` holds. */
 async function until(cond: () => boolean) {
-  for (let i = 0; i < 400 && !cond(); i++) await new Promise((r) => setTimeout(r, 5));
+  for (let i = 0; i < 800 && !cond(); i++) await new Promise((r) => setTimeout(r, 5));
 }
 
 /** With fake timers: lets the promise chains settle (the fake's fetch, the stream's reads), by real macrotasks. */

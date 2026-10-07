@@ -2402,8 +2402,15 @@ Platform"; human gates reported, not blocking (D12).
   without `sequences` or `id`s, a 500 then a 200, the ack through a lower cursor): 32 killed, 7 named, two of them
   pointing at a redundancy in the loop (the catch's `break` doubled by the next line) worth a later clean-up.
 - Measured after, on the branch, in two runs (the whole set before the port's tests, 534/585 with 33 unexplained all
-  in `http-port.ts`; then the port alone on the fixed code, 83/90): 579/604 killed, 25 named, every survivor
-  explained, the Reality set gates. The CI job `mutation` measures both sets whole on this pull request. Not done, said as such: `command-handlers.ts` and `scheduler.ts` stay out of the gated sets (MUTANTS.md
+  in `http-port.ts`; then the port alone on the fixed code, 83/90): 579/604 killed, 25 survivors, every one
+  explained, the Reality set gates. The CI job `mutation` measures both sets whole on this pull request.
+- The second reading's findings, taken: the hash covers the static import closure of the sources and the tests
+  (`engine.ts`, the Bridge's `server.ts`, the fixtures: a change there can turn a kill into a survivor) and leaves
+  the lockfile's own `version` fields out (a version bump kept re-running everything); one context-less name covered
+  two mutants of `store.ts` (the two `err instanceof Error` lines): 29 names for the 25 survivors now, one per line;
+  MUTANTS.md's prose dated 4.1.2 is history and a 4.1.8 paragraph says the figures; the port tests' real-time wait is
+  four seconds for a loaded runner (a timeout under a mutation run counts as a kill: `--fresh` on the nightly is the
+  correction, said in the tool). Not done, said as such: `command-handlers.ts` and `scheduler.ts` stay out of the gated sets (MUTANTS.md
   says so since 4.1.5); the `mutation` CI job is not among the ruleset's required checks until the maintainer adds
   it; `ship`'s merge retry (#25) and this branch's base (the fix branch, #23) merge before it.
 

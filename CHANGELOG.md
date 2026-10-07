@@ -76,8 +76,8 @@
   transport, rewritten by the P0 fix) joins the set: 121 killed by four new test files (`tests/bridge-mutants.test.ts`,
   `tests/bridge-store.test.ts`, `tests/reality-client.test.ts`, `tests/reality-port.test.ts`: the exact edges of
   expiries, quotas and size limits, revocations landing inside the lock, the journal's retention and rewrite, the
-  client's refusals and its stop, the port's backoff, cursors and parser), 14 named as equivalent with their reason
-  and the source line they sit on; two old equivalents, now killed, left the list. Measured on the branch:
+  client's refusals and its stop, the port's backoff, cursors and parser), 16 named as equivalent with their reason
+  and the source line they sit on (29 names for 25 survivors, one per line); two old equivalents, now killed, left the list. Measured on the branch:
   579 of 604 mutants killed, every survivor named.
 
 ## 4.1.7 — 2026-10-06
