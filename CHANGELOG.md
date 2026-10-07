@@ -12,11 +12,13 @@
   fresh and gated (no `continue-on-error`). The sets' sources and tests live in `tools/mutation-sets.ts`, read by the
   tool and by `vitest.mutation.config.ts`. A named survivor may name the source line it sits on (`context`), so it
   never covers another mutant of the same file; `--doc` writes the table of named survivors into MUTANTS.md and a
-  test keeps the two equal. **The Reality set's 96 unexplained survivors are gone**: 89 killed by three new test
-  files (`tests/bridge-mutants.test.ts`, `tests/bridge-store.test.ts`, `tests/reality-client.test.ts`: the exact
-  edges of expiries and quotas, revocations landing inside the lock, the journal's retention and rewrite, the
-  client's refusals and its stop), 7 named as equivalent with their reason; two old equivalents, now killed, left the
-  list. Measured on the branch: __KILLED__ of 514 mutants killed, every survivor named.
+  test keeps the two equal. **The Reality set's unexplained survivors are gone**, and `http-port.ts` (the player's
+  transport, rewritten by the P0 fix) joins the set: 121 killed by four new test files (`tests/bridge-mutants.test.ts`,
+  `tests/bridge-store.test.ts`, `tests/reality-client.test.ts`, `tests/reality-port.test.ts`: the exact edges of
+  expiries, quotas and size limits, revocations landing inside the lock, the journal's retention and rewrite, the
+  client's refusals and its stop, the port's backoff, cursors and parser), 14 named as equivalent with their reason
+  and the source line they sit on; two old equivalents, now killed, left the list. Measured on the branch:
+  __KILLED__ of __TOTAL__ mutants killed, every survivor named.
 
 ### Fixed
 

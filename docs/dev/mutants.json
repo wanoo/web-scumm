@@ -111,8 +111,8 @@
   "operator": "operator",
   "from": "<",
   "to": "<=",
-  "context": "for (let attempt = 0; attempt < 2; attempt++) {",
-  "why": "JournalLock.acquire: a third attempt is reached only if another process re-creates the lock between our unlink and our link, a race no test can stage; the second attempt succeeds under both bounds"
+  "context": "for (let attempt = 0; attempt < 3; attempt++) {",
+  "why": "JournalLock.acquire: a fourth attempt is reached only if other processes keep re-creating the lock at the instant ours was released, a race no test can stage; the attempts within the bound succeed just the same"
  },
  {
   "file": "bridge/src/store.ts",
@@ -145,5 +145,61 @@
   "to": "false",
   "context": "if (oldest === undefined) break;",
   "why": "the eviction loop runs only while the map holds more than `limits.resignedCache` entries, so its first key always exists; the guard is reached by no limit the configuration accepts"
+ },
+ {
+  "file": "src/engine/reality/http-port.ts",
+  "operator": "boolean",
+  "from": "true",
+  "to": "false",
+  "context": "signal?.addEventListener('abort', () => (clearTimeout(t), ok()), { once: true });",
+  "why": "sleep: an AbortSignal fires `abort` at most once, so `once` only removes a listener that can never run again; nothing observable"
+ },
+ {
+  "file": "src/engine/reality/http-port.ts",
+  "operator": "boolean",
+  "from": "true",
+  "to": "false",
+  "context": "signal.addEventListener('abort', onAbort, { once: true });",
+  "why": "the stream's abort relay: the signal aborts at most once and the finally removes the listener anyway, so `once` changes nothing"
+ },
+ {
+  "file": "src/engine/reality/http-port.ts",
+  "operator": "boolean",
+  "from": "false",
+  "to": "true",
+  "context": "let endedByPort = false;",
+  "why": "the initial value is dead: every loop iteration sets `endedByPort = false` before the only read at `if (!endedByPort)`"
+ },
+ {
+  "file": "src/engine/reality/http-port.ts",
+  "operator": "condition true",
+  "from": "unsettled",
+  "to": "true",
+  "context": "if (unsettled) clearTimeout(unsettled);",
+  "why": "`clearTimeout(undefined)` is a no-op: clearing unconditionally is the same as clearing when armed"
+ },
+ {
+  "file": "src/engine/reality/http-port.ts",
+  "operator": "condition false",
+  "from": "signal.aborted || closed",
+  "to": "false",
+  "context": "if (signal.aborted || closed) break;",
+  "why": "the catch's break is redundant: with no await between them, the next line `if (closed || signal.aborted) break;` tests the same condition and breaks just the same"
+ },
+ {
+  "file": "src/engine/reality/http-port.ts",
+  "operator": "operator",
+  "from": "||",
+  "to": "&&",
+  "context": "if (signal.aborted || closed) break;",
+  "why": "same redundancy: whatever the catch decides, the line after it breaks on `closed || signal.aborted` with no await in between"
+ },
+ {
+  "file": "src/engine/reality/http-port.ts",
+  "operator": "boolean",
+  "from": "true",
+  "to": "false",
+  "context": "closed = true;",
+  "why": "close() also aborts `own`, and every `signal` the loop tests is `own.signal` or an `AbortSignal.any` over it; `closed` is only ever read alongside `signal.aborted`, which it never adds to"
  }
 ]
