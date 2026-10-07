@@ -82,6 +82,27 @@
   },
   "overrides": [
     {
+      "includes": ["src/engine/core/**", "src/engine/minigames/**"],
+      "plugins": ["./tools/biome/no-math-random.grit"]
+    },
+    {
+      "includes": ["src/engine/core/remix/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "Math": "Remix compiles a world with integers and core/prng.ts only (ADR 0018): no Math, so no Math.random"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "includes": ["tests/**", "scripts/**"],
       "linter": {
         "rules": {

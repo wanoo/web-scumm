@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseSave, saveEnvelope, SaveEnvelopeV3Schema } from '@engine/core/save';
+import { parseSave, saveEnvelope, SaveEnvelopeV3Schema, SaveEnvelopeV4Schema } from '@engine/core/save';
 import { Engine } from '@engine/core/engine';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
 import { mini, miniLayouts } from './fixtures/mini';
@@ -10,7 +10,11 @@ describe('save envelope v3', () => {
     const engine = new Engine(game, miniLayouts, new FakePresenter(), new MemoryStore());
     await engine.newGame();
     const envelope = saveEnvelope(game, engine.state);
-    expect(SaveEnvelopeV3Schema.parse(envelope).schema).toBe(3);
+    // Written as v4 since 4.1.15 (the world inside); a v3 envelope is still read (below).
+    expect(SaveEnvelopeV4Schema.parse(envelope).schema).toBe(4);
+    const { variant: _v, ...v3 } = { ...envelope, schema: 3 as const };
+    expect(SaveEnvelopeV3Schema.parse(v3).schema).toBe(3);
+    expect(parseSave(game, JSON.parse(JSON.stringify(v3)))).toEqual(engine.state);
     expect(parseSave(game, JSON.parse(JSON.stringify(envelope)))).toEqual(engine.state);
   });
 
@@ -93,6 +97,7 @@ describe('golden saves', () => {
     '4.1.12',
     '4.1.13',
     '4.1.14',
+    '4.1.15',
   ])('a save made by the demo at %s loads on this engine and still reaches the ending', async (version) => {
     const { readFileSync } = await import('node:fs');
     const { replay } = await import('@engine/tools/replay');

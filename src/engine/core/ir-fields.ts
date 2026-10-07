@@ -59,6 +59,9 @@ const game: Classes<GameDef> = {
   assetBudgets: 'meta',
   migrations: 'logic',
   objectives: 'logic',
+  // Remix (4.1.15): the manifest is what may vary, the variant what was chosen; both change what the game does.
+  remix: 'logic',
+  variant: 'logic',
   // Speedrun rules carry their own `rulesVersion` (4.1.14, ADR 0016): a new category never changes the game's logic.
   speedrun: 'meta',
   ui: 'presentation',
@@ -89,6 +92,7 @@ const room: Classes<RoomDef> = {
   // Layers, lights, emitters and the transition are presentation; the walk links' conditions are logic.
   stage: 'both',
   renderer: 'presentation',
+  anchors: 'logic',
 };
 
 const prop: Classes<PropDef> = {

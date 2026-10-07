@@ -46,7 +46,12 @@ export function speedrunChecks(
       err(w, `realityPolicy "${c.realityPolicy}": forbidden, recorded or live`);
     if (c.realityPolicy !== 'forbidden' && !game.reality)
       err(w, `realityPolicy "${c.realityPolicy}" needs the game's \`reality\` signals`);
-    if (c.seed !== undefined && c.seed !== 'fixed' && c.seed !== 'random') err(w, `seed "${c.seed}": fixed or random`);
+    if (c.seed !== undefined && !['fixed', 'random', 'mystery', 'daily'].includes(c.seed))
+      err(w, `seed "${c.seed}": fixed, random, mystery or daily`);
+    // Mystery and Daily name a Remix world (4.1.15, D26): the game declares a manifest, and Daily its Bridge key.
+    if ((c.seed === 'mystery' || c.seed === 'daily') && !game.remix)
+      err(w, `seed "${c.seed}" needs a \`remix\` manifest`);
+    if (c.seed === 'daily' && !game.remix?.daily) err(w, 'seed "daily" needs `remix.daily` (the Bridge key)');
     trigger(c.start, `${w}.start`);
     trigger(c.finish, `${w}.finish`);
     if (JSON.stringify(c.start) === JSON.stringify(c.finish)) err(w, 'the start and the finish are the same trigger');

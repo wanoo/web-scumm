@@ -45,17 +45,18 @@ afterEach(() => {
 });
 
 describe('saveEnvelope', () => {
-  it('wraps a copy of the state with the game id, its save version and the time', () => {
+  it('wraps a copy of the state with the game id, its save version, the time and its world (v4, 4.1.15)', () => {
     vi.spyOn(Date, 'now').mockReturnValue(1234);
     const s = state();
     const env = saveEnvelope(mini(), s);
     expect(env).toEqual({
       format: 'web-scumm-save',
-      schema: 3,
+      schema: 4,
       gameId: 'mini',
       gameSaveVersion: 1,
       savedAt: 1234,
       state: s,
+      variant: expect.objectContaining({ seed: 'story', mode: 'story', assignments: {} }),
     });
     expect(env.state).not.toBe(s);
   });

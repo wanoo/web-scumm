@@ -58,8 +58,12 @@ export interface SpeedrunCategory {
   fingerprint: readonly ('logic' | 'trustedExtensions' | 'presentation' | 'engine')[];
   /** The inputs allowed (an accessibility option is never an implicit cheat: a category says what it allows). */
   inputs: { mouse: boolean; touch: boolean; keyboard: boolean; gamepad: boolean; macros: 'forbidden' | 'allowed' };
-  /** `fixed`: every run draws from the same seed (`fixed:<category id>`); `random` (default): a fresh seed per run. */
-  seed?: 'fixed' | 'random';
+  /**
+   * `fixed`: every run draws from the same seed (`fixed:<category id>`); `random` (default): a fresh seed per run.
+   * 4.1.15 (Remix, D26): `mystery`, the world's seed committed by the Bridge before the run and revealed after;
+   * `daily`, the day's seed signed by the Bridge (`core/remix/categories.ts`, `worldVerdict`, separate leaderboards).
+   */
+  seed?: 'fixed' | 'random' | 'mystery' | 'daily';
 }
 
 /** A split: a semantic trigger, a name, and the split it is a step of. @public */

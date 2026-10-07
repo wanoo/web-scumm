@@ -118,6 +118,12 @@ export function pauseMenu(app: App) {
   if (app.game.settings) row(app.t('settings'), '⚙').onclick = () => app.settingsMenu(d, m);
   if (Object.keys(app.game.objectives ?? {}).length)
     row(app.t('objectives'), '☰').onclick = () => app.objectivesMenu(d, m);
+  // The world (4.1.15): its code to copy, or hidden until the end in a masked mode.
+  if (app.game.remix && app.game.variant)
+    void import('./remix-menu').then(({ copyWorld, worldRowText }) => {
+      const text = worldRowText(app, !!app.engine.state?.done);
+      if (text) row(app.t('remixWorld'), text).onclick = () => void copyWorld(app);
+    });
   // The game's fingerprint (4.1.12, ADR 0013): logic, trusted extensions, presentation, engine, eight digits each.
   const fp = row(app.t('fingerprint'), '…', 'fingerprint');
   fp.setAttribute('aria-live', 'polite');
@@ -391,6 +397,13 @@ export async function showTitle(app: App) {
   const has = app.engine.hasSave();
   (cb as HTMLButtonElement).disabled = !has;
   row.append(nb, cb);
+  // Remix (4.1.15): another world of the same game, after New game and Continue (whose places the e2e rely on).
+  const remixable = !!app.game.remix?.modes.some((x) => x.id !== 'story');
+  const rb = remixable ? el('button', 'bigbtn', esc(app.t('remix').toUpperCase())) : undefined;
+  if (rb) {
+    rb.style.color = '#c9a3ff';
+    row.append(rb);
+  }
   ov.append(row);
   queueMicrotask(() => nb.focus({ preventScroll: true }));
   if (T?.footer) {
@@ -430,10 +443,10 @@ export async function showTitle(app: App) {
       await app.engine.newGame();
     } else await app.engine.continueGame();
   };
-  nb.onclick = () => {
-    startMusic();
+  /** "Erase the saved game?" before anything replaces it (a New game, another world). */
+  const confirmErase = (onYes: () => void) => {
     if (!has) {
-      void launch(true);
+      onYes();
       return;
     }
     const d = el('div', 'dim');
@@ -442,17 +455,61 @@ export async function showTitle(app: App) {
       n = el('button', '', `<span>${esc(app.game.ui.no)}</span><span>▶</span>`);
     y.onclick = () => {
       d.remove();
-      void launch(true);
+      onYes();
     };
     n.onclick = () => d.remove();
     m.append(y, n);
     d.append(m);
     ov.append(d);
   };
+  nb.onclick = () => {
+    startMusic();
+    confirmErase(() => void launch(true));
+  };
   cb.onclick = () => {
     startMusic();
     void launch(false);
   };
+  if (rb)
+    rb.onclick = async () => {
+      startMusic();
+      const { chooseWorld, dailyFetcher, keepWorld } = await import('./remix-menu');
+      const v = await chooseWorld(app, ov, dailyFetcher(app.game));
+      if (!v) return;
+      // The world is built when the page starts: keep it, start again, and begin a new game in it at once; a saved game
+      // is replaced only once the player says so.
+      confirmErase(() => {
+        keepWorld(app.game.id, v, true);
+        globalThis.location?.reload();
+      });
+    };
+  // The page was started again for a world just chosen: its new game begins at once. A link to another world than the
+  // saved game's asks first (dom/remix-boot.ts); a link that named no world is said.
+  if (remixable)
+    void Promise.all([import('./remix-menu'), import('./remix-boot')]).then(async ([menu, boot]) => {
+      if (menu.takePendingStart(app.game.id)) {
+        void launch(true);
+        return;
+      }
+      const { conflict, notice } = boot.takePending();
+      if (notice) app.presenter.toast(notice);
+      if (!conflict) return;
+      const savedName =
+        app.game.variant && app.game.variant.mode !== 'story' ? app.game.variant.seed : app.t('remixStory');
+      const replace = await boot.askWorldConflict(
+        ov,
+        savedName,
+        conflict.mode === 'story' ? app.t('remixStory') : conflict.seed,
+        {
+          title: app.t('remixConflict'),
+          keep: app.t('remixKeepSaved'),
+          replace: app.t('remixStartLinked'),
+        },
+      );
+      if (!replace) return;
+      menu.keepWorld(app.game.id, conflict, true);
+      globalThis.location?.reload();
+    });
   void app.warmAround(app.engine.store.load()?.room ?? app.game.start.room, true).then(() => app.warmAll());
 }
 

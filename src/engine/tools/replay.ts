@@ -6,10 +6,11 @@ import type { CustomCommands } from '../core/custom';
 import { FakePresenter, MemoryStore } from '../core/ports';
 import type { GameDef, GameState, Id, Layout, Session, SessionEntry } from '../core/types';
 import { must } from '../core/must';
+import { applyVariant } from '../core/remix/apply';
 import { isSemanticEvent, type SemanticEvent } from '../core/journal';
 
 /** A session to replay: `base` is only needed when it starts from a save. */
-export type Replayable = Pick<Session, 'start' | 'log'> & Partial<Pick<Session, 'v' | 'base'>>;
+export type Replayable = Pick<Session, 'start' | 'log'> & Partial<Pick<Session, 'v' | 'base' | 'variant'>>;
 
 export interface ReplayResult {
   state: GameState;
@@ -118,7 +119,11 @@ export async function replay(
   session: Replayable,
   opts: ReplayOptions = {},
 ): Promise<ReplayResult> {
-  const game = structuredClone(gameIn);
+  // The world the session was played in (4.1.15, ADR 0018): rebuilt from its stored assignment, never regenerated.
+  const game =
+    session.variant && session.variant.hash !== gameIn.variant?.hash
+      ? applyVariant(gameIn, session.variant)
+      : structuredClone(gameIn);
   const ui = new FakePresenter();
   const e = new Engine(game, layouts, ui, new MemoryStore(), { commands: opts.commands });
   e.traceOn = true;

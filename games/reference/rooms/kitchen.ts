@@ -59,6 +59,9 @@ export default defineRoom({
         ] },
       ] },
       { id: 'kitchen.grandma.where-did-the-cellar-key', topic: 'Where did the cellar key go?', if: { all: ['knows_cellar', '!key_found'] }, do: [{ id: 'kitchen.grandma.where-did-the-cellar-key.l-over-the-market', say: ['grandma', 'Over the market fence, in the side alley. Only a very flexible cat could get it. A sleepy one, maybe.'] }] },
+      { id: 'kitchen.grandma.do-you-know-the-password', topic: 'Do you know the festival password?', do: [
+        { id: 'kitchen.grandma.do-you-know-the-password.l-lou-s-riddle', say: ['grandma', 'Lou\'s password is a riddle: "{hint:festival-password}" Count them in order, fluffball.'] },
+      ] },
       { id: 'kitchen.grandma.the-cellar-is-dark', topic: 'The cellar is dark.', if: 'cellar_open', do: [
         { id: 'kitchen.grandma.the-cellar-is-dark.l-take-a-lamp', say: ['grandma', 'Take a lamp, fluffball. The old one is on the garden wall. Oil at the market.'] },
       ] },

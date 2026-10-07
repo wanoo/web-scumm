@@ -30,3 +30,6 @@ export type { Fault, SimulatedDelivery } from '../reality/simulator';
 export { realityManifest, manifestHash } from '../reality/manifest';
 export type { RealityManifest } from '../reality/manifest';
 export type { WorldSignalPort } from '../core/ports';
+// 4.1.15 (D26): the daily challenge and the Mystery commitment, checked offline with the game's daily key.
+export { revealMatches, verifyCommitment, verifyDayToken } from '../reality/daily';
+export type { CommitToken, DayToken, TokenResult } from '../reality/daily';

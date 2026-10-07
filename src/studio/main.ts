@@ -13,12 +13,13 @@ import { CheckTab } from './check';
 import { NotesStore, NotesTab, roomNotesBlock } from './notes';
 import { PlayTab } from './play';
 import { IrTab } from './ir-tab';
+import { RemixTab } from './remix-tab';
 import { RoomsTab } from './rooms';
 import { StoryboardTab } from './storyboard';
 import { download, h, toast } from './ui';
 import { must } from '../engine/core/must';
 
-type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'music' | 'check' | 'play' | 'language' | 'notes';
+type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'music' | 'check' | 'play' | 'language' | 'remix' | 'notes';
 const TABS: [TabId, string][] = [
   ['rooms', 'Rooms'],
   ['storyboard', 'Storyboard'],
@@ -28,6 +29,7 @@ const TABS: [TabId, string][] = [
   ['check', 'Check'],
   ['play', 'Play'],
   ['language', 'Language'],
+  ['remix', 'Remix'],
   ['notes', 'Notes'],
 ];
 
@@ -214,6 +216,12 @@ async function start() {
   const voices = new VoicesTab();
   const music = new MusicTab(info);
   const language = new IrTab(info);
+  const remix = new RemixTab({
+    selection: () => ({
+      room: rooms.room,
+      entity: rooms.selection ? { kind: rooms.selection.kind, id: rooms.selection.id } : undefined,
+    }),
+  });
   const panes: Record<TabId, HTMLElement> = {
     rooms: rooms.el,
     storyboard: storyboard.el,
@@ -223,6 +231,7 @@ async function start() {
     check: check.el,
     play: play.el,
     language: language.el,
+    remix: remix.el,
     notes: notes.el,
   };
 
@@ -243,6 +252,7 @@ async function start() {
     if (t === 'voices') void voices.load();
     if (t === 'music') music.load();
     if (t === 'language') void language.load();
+    if (t === 'remix') void remix.load();
   };
   for (const [id, label] of TABS) {
     nav.append(

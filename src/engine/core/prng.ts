@@ -77,11 +77,11 @@ export function derive(seed: string, streamId: StreamId): Prng {
   return new Prng(`${seed}\u0000${streamId}`);
 }
 
-/** A fresh seed: 128 bits from WebCrypto as 32 hex digits (Math.random when there is no WebCrypto). */
+/** A fresh seed: 128 bits from WebCrypto as 32 hex digits; without WebCrypto, an error (never a guessable draw). */
 export function newSeed(): string {
   const words = new Uint32Array(4);
   const c = globalThis.crypto;
-  if (c?.getRandomValues) c.getRandomValues(words);
-  else for (let i = 0; i < 4; i++) words[i] = Math.floor(Math.random() * 4294967296);
+  if (!c?.getRandomValues) throw new Error('newSeed: no WebCrypto (crypto.getRandomValues) to draw a fresh seed');
+  c.getRandomValues(words);
   return [...words].map((w) => w.toString(16).padStart(8, '0')).join('');
 }

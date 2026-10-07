@@ -1,6 +1,6 @@
 import { MINIGAME_META } from './meta';
 import type { Minigame, MinigameCtx } from './types';
-import { arrowFocus, el, finisher, num, skipButton, stage, str } from './util';
+import { arrowFocus, el, finisher, num, random, skipButton, stage, str } from './util';
 import { must } from '../core/must';
 
 // Pipes: touching a tile rotates it a quarter turn. Water starts from the source (left of the middle row)
@@ -38,7 +38,7 @@ interface Cell {
 const cellAt = (grid: Cell[][], r: number, c: number): Cell => must(must(grid[r], 'grid row')[c], 'grid cell');
 
 /** Random path from left to right: in each column, go down or up to a chosen row, then exit to the right. */
-export function makeGrid(cols: number, rows: number, rnd: () => number = Math.random): Cell[][] {
+export function makeGrid(cols: number, rows: number, rnd: () => number): Cell[][] {
   const mid = Math.floor(rows / 2);
   const grid: Cell[][] = Array.from({ length: rows }, () =>
     Array.from({ length: cols }, () => ({ kind: 'straight' as Kind, rot: 0, need: null })),
@@ -102,7 +102,7 @@ export const pipes: Minigame = {
     box.style.background = str(p.background, 'radial-gradient(ellipse at 50% 40%,#3a2a1a,#140d08)');
     if (p.intro) ctx.instruct(str(p.intro, ''));
 
-    const grid = makeGrid(cols, rows);
+    const grid = makeGrid(cols, rows, random(ctx));
     const mid = Math.floor(rows / 2);
     const sw = 640 * ctx.u,
       sh = 400 * ctx.u;

@@ -120,6 +120,31 @@ export const game = defineGame({
     pantry: { title: 'Open the pantry', done: 'pantry_open' },
   },
   // Three manual save slots in the pause menu (export / import as a file too), and a Settings entry.
+  // Remix (4.1.15, docs/en/REMIX.md): where the seller leaves the pantry key, and how Pixel turns the oranges down.
+  // Both modes are catalogues (D25): three logical worlds, each proved by `npm run verify:variants`.
+  remix: {
+    schema: 1,
+    algorithm: 'web-scumm-remix-1',
+    modes: [
+      { id: 'story', strategy: 'catalogue', dimensions: [] },
+      { id: 'remix', strategy: 'catalogue', dimensions: ['key-spot', 'oranges-line'] },
+    ],
+    dimensions: [
+      {
+        id: 'key-spot', kind: 'item-placement', item: 'key', logical: true,
+        anchors: [{ room: 'market', anchor: 'stall' }, { room: 'market', anchor: 'oranges' }, { room: 'market', anchor: 'lantern' }],
+        story: { room: 'market', anchor: 'stall' },
+      },
+      {
+        id: 'oranges-line', kind: 'presentation', target: 'line:market.take-oranges.l-oranges-are-not', logical: false, story: 0,
+        values: [
+          { en: 'Oranges are not sardines. Nice try, oranges.', fr: 'Les oranges ne sont pas des sardines. Bien essayé, les oranges.' },
+          { en: 'An orange. Round, bright, and tragically not a fish.', fr: 'Une orange. Ronde, vive, et tragiquement pas un poisson.' },
+        ],
+      },
+    ],
+    constraints: [{ kind: 'not-behind', item: 'key', action: 'house.use-key-pantry' }],
+  },
   saves: { slots: 3 },
   // What a phone downloads (npm run weight, measured 4 Oct 2026: 2.0 MB before the first room, 2.4 MB for the market,
   // 3.7 MB for a chapter since the map opens every room), with about 20% of headroom. Since 3.6: the theme's stems
@@ -127,7 +152,7 @@ export const game = defineGame({
   // (79 MB).
   assetBudgets: { initialKB: 2500, roomKB: 3000, chapterKB: 4500, backgroundScoreKB: 3500, offlineTotalKB: 9000, decodedAudioMB: 128, initialJsKB: 140 },
   // Texts that stay the same in French on purpose: names, ▲ ▼, OK, words French borrowed (`npm run i18n -- status`).
-  i18n: { same: ['room:market/props.oranges.name', 'room:market/props.bouquet.name', 'item:bouquet/name', 'char:hero/name', 'char:biscuit/name', 'char:neighbor/name', 'ui/pause', 'ui/zoomIn', 'ui/ok', 'ui/jump', 'ui/duck', 'ui/normal', 'ui/speedrun'] },
+  i18n: { same: ['room:market/props.oranges.name', 'room:market/props.bouquet.name', 'item:bouquet/name', 'char:hero/name', 'char:biscuit/name', 'char:neighbor/name', 'ui/pause', 'ui/remix', 'ui/zoomIn', 'ui/ok', 'ui/jump', 'ui/duck', 'ui/normal', 'ui/speedrun'] },
   settings: true,
   // The music and the sound effects are Mega Drive renders built by `npm run audio` (docs/en/AUDIO.md): the theme is
   // the oboe theme of Tchaikovsky's Swan Lake (public domain) written out for the project (audio/projects/swan-theme),
@@ -199,6 +224,9 @@ export const game = defineGame({
     updateAvailable: 'A new version is ready.', updateNow: 'Save and update',
     offlineStatus: 'Offline', offlineComplete: 'whole game cached', offlineRetry: 'tap to retry',
     verbs: 'Verbs', jump: '▲', duck: '▼', exportSession: 'Export session',
+    remix: 'Remix', remixTitle: 'Which world?', remixStory: 'Story', remixRandom: 'A new world', remixSeed: 'Type a seed', remixDaily: 'Daily challenge',
+    remixPlay: 'Play', remixInvalid: 'Not a seed code', remixWorld: 'World', remixHidden: 'hidden until the end', remixCopied: 'Copied', remixNoBridge: 'needs the Bridge',
+    remixConflict: 'Your saved game lives in another world', remixKeepSaved: 'Continue the saved game', remixStartLinked: 'Start the link\'s world (replaces it)',
     settings: 'Settings', textSpeed: 'Text speed', textSize: 'Text size', reduceMotion: 'Reduce motion', readableFont: 'Readable font', captions: 'Sound captions',
     volumeMusic: 'Music volume', volumeSfx: 'Sound volume', volumeVoice: 'Voice volume', slow: 'slow', normal: 'normal', fast: 'fast', large: 'large',
     language: 'Language', fingerprint: 'Build', objectives: 'Objectives',

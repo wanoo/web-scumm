@@ -401,3 +401,31 @@ champ facultatif (`docs/fr/SPEEDRUN.md`). Ce qu'un hôte ou un outil peut voir c
   `SemanticTrigger` (content), `RunClock`, `verifyRun`, `isRankable`, `VerifyContext`, `SpeedrunVerifyResult`,
   `SpeedrunVerdict`, `SpeedrunEnvelope`, `TrustLevel` (testing) ; l'outil MCP `speedrun_verify` ; le
   `web-scumm speedrun verify` de la CLI.
+## 27. De la 4.1.14 à la 4.1.15 « Remix »
+
+**Une rupture de la ligne 4.1 : l'enveloppe de sauvegarde v4.** Une sauvegarde s'écrit désormais en
+`SaveEnvelopeV4` (`schema: 4`) : l'enveloppe v3 et le `WorldVariant` dans lequel la partie a été jouée. `parseSave` lit
+v3 et v4 ; une sauvegarde v3 (toute sauvegarde faite avant 4.1.15) migre vers le monde **histoire**
+(`upgradeEnvelope`) et se charge comme avant ; les sauvegardes de référence de 3.0.0 à 4.1.9 se chargent sur 4.1.15
+(`tests/save-v3.test.ts`). Ce qui casse : un code qui écrivait ou lisait lui-même `schema: 3` (un hôte qui range les
+sauvegardes ailleurs, un outil qui vérifie le schéma de l'enveloppe) voit maintenant `schema: 4` et un champ `variant` ;
+une sauvegarde faite dans un monde Remix refuse de se charger dans un autre monde (`SaveWorldMismatch`, qui nomme le
+monde à reconstruire avec `applyVariant`). Une sauvegarde 4.1.15 ne se charge pas sur 4.1.14 (son schéma y est
+inconnu) : revenir en arrière n'est pas pris en charge.
+
+**Tout le reste est additif.** Un jeu peut déclarer `remix` (un manifeste de variance) et ses salles `anchors`
+(`docs/fr/REMIX.md`) ; sans eux rien ne change : un seul monde, l'histoire, la même IR et la même empreinte. Les
+drapeaux réservés `remix.*` sont écrits par le moteur : un jeu qui utilisait déjà un drapeau nommé
+`remix.<quelque chose>` le renomme (le validateur refuse une commande qui en pose un ; aucun dans les jeux livrés). Un jeu avec un
+manifeste montre un bouton **Remix** sur son écran titre et une ligne de monde dans son menu pause : un jeu dont la
+langue de release n'est pas l'anglais ajoute les clés `ui.remix*` (`remix`, `remixTitle`, `remixStory`, `remixRandom`,
+`remixSeed`, `remixDaily`, `remixPlay`, `remixInvalid`, `remixWorld`, `remixHidden`, `remixCopied`, `remixNoBridge`) à
+son `ui` et à ses tables (`npm run i18n -- status` liste celles laissées à l'anglais). Les minijeux livrés gagnent
+`code-wheel`. Ils tirent de `MinigameCtx.random` (le flux `minigame:<id>`
+de la partie) au lieu de `Math.random` : le minijeu propre d'un jeu peut faire de même (`random(ctx)` se replie sur un
+flux fixe quand un hôte n'en donne pas). `Session.variant` et `IrVariantSlot.variant` sont de nouveaux champs optionnels ; `ir.world.remix` et
+`ir.rooms[].anchors` apparaissent quand un jeu les déclare. Nouvelles commandes : `npm run remix`, `npm run
+verify:variants` (dans `verify:game`), `npm run code-wheel`, `npm run e2e:remix`.
+
+**Le DSL et l'IR sont gelés** (D28, `docs/dev/DSL-STABILITY.md`) : 4.1.15 est la release candidate de 4.2. Désormais
+un changement de nom ou de sens du DSL ou de l'IR attend le SemVer strict de 4.2.0, avec sa migration.

@@ -1,6 +1,6 @@
 import { MINIGAME_META } from './meta';
 import type { Minigame, MinigameCtx } from './types';
-import { el, finisher, move, num, put, skipButton, stage, str, toast, keys } from './util';
+import { el, finisher, keys, move, num, put, random, skipButton, stage, str, toast } from './util';
 import { must } from '../core/must';
 
 // Runner: top of the screen = jump (ground obstacles), bottom = duck (hanging obstacles).
@@ -47,6 +47,7 @@ export const runner: Minigame = {
   ...MINIGAME_META.runner,
   run(ctx: MinigameCtx) {
     const p = ctx.params;
+    const rand = random(ctx);
     const seconds = num(p.seconds, 20);
     const f = finisher(ctx.signal);
     const box = stage(ctx);
@@ -190,8 +191,8 @@ export const runner: Minigame = {
       if (!done) {
         next -= dt;
         if (next <= 0) {
-          next = 1.7 + Math.random() * 0.6;
-          const type: Obs['type'] = count++ % 2 === 0 || Math.random() < 0.5 ? 'basket' : 'carpet';
+          next = 1.7 + rand() * 0.6;
+          const type: Obs['type'] = count++ % 2 === 0 || rand() < 0.5 ? 'basket' : 'carpet';
           obs.push({
             type,
             x: 700,

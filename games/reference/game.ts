@@ -31,7 +31,9 @@ export const game = defineGame({
   rules,
   // The seller walks his stall between the market and the alley in the dark; the lights bring him back to the market.
   scripts: [
-    { stepIds: ['seller_rounds.wait', 'seller_rounds.moveactor', 'seller_rounds.wait-2', 'seller_rounds.moveactor-2'], id: 'seller_rounds', loop: true, while: '!lights_on', do: [{ wait: 7000 }, { moveActor: ['seller', 'alley'] }, { wait: 7000 }, { moveActor: ['seller', 'market'] }] },
+    { stepIds: ['seller_rounds.wait', 'seller_rounds.moveactor', 'seller_rounds.wait-2', 'seller_rounds.moveactor-2'], id: 'seller_rounds', loop: true, while: { all: ['!lights_on', { not: { flag: 'remix.seller-route', eq: 'seller_rounds_late' } }] }, do: [{ wait: 7000 }, { moveActor: ['seller', 'alley'] }, { wait: 7000 }, { moveActor: ['seller', 'market'] }] },
+    // Remix (4.1.15, `seller-route`): a night owl's round, longer in the market and quick through the alley.
+    { stepIds: ['seller_rounds_late.wait', 'seller_rounds_late.moveactor', 'seller_rounds_late.wait-2', 'seller_rounds_late.moveactor-2'], id: 'seller_rounds_late', loop: true, while: { all: ['!lights_on', { flag: 'remix.seller-route', eq: 'seller_rounds_late' }] }, do: [{ wait: 12000 }, { moveActor: ['seller', 'alley'] }, { wait: 4000 }, { moveActor: ['seller', 'market'] }] },
   ],
   events: [
     { id: 'game.on-lights', on: 'lights', once: true, do: [{ moveActor: ['seller', 'market'] }, { id: 'game.on-lights.l-the-seller-ran', toast: 'The seller ran back to his stall in the market.' }] },
@@ -68,6 +70,44 @@ export const game = defineGame({
     cellar: { title: 'Open the cellar', done: 'cellar_open', parent: 'lights' },
     board: { title: 'Hang the festival board', done: 'board_hung' },
     radio: { title: 'Make Grandma dance', done: 'radio_on', optional: true },
+  },
+  // Remix (4.1.15, docs/en/REMIX.md): where the seller starts and which round he walks, whether Lou hands the board
+  // before or after the lights, the festival password and its riddle, how Pixel greets the night. Every mode is a
+  // catalogue (D25): 24 logical worlds, each validated and solved by `npm run verify:variants`. The daily challenge is
+  // the same catalogue, its seed signed by the Bridge (the key below is the reference's published TEST key: it shows
+  // the mechanism; a real game puts its Bridge's key here).
+  remix: {
+    schema: 1,
+    algorithm: 'web-scumm-remix-1',
+    modes: [
+      { id: 'story', strategy: 'catalogue', dimensions: [] },
+      { id: 'remix', strategy: 'catalogue', dimensions: ['seller-start', 'seller-route', 'festival-order', 'festival-password', 'night-line'] },
+      { id: 'daily', strategy: 'catalogue', dimensions: ['seller-start', 'seller-route', 'festival-order', 'festival-password', 'night-line'] },
+      { id: 'mystery', strategy: 'catalogue', dimensions: ['seller-start', 'seller-route', 'festival-order', 'festival-password', 'night-line'], mask: true },
+    ],
+    dimensions: [
+      { id: 'seller-start', kind: 'actor-start', actor: 'seller', rooms: ['market', 'alley'], story: 'market', logical: true },
+      { id: 'seller-route', kind: 'actor-route', actor: 'seller', routes: ['seller_rounds', 'seller_rounds_late'], story: 'seller_rounds', logical: true },
+      { id: 'festival-order', kind: 'puzzle-order', groups: ['lights', 'board'], graph: [], story: ['lights', 'board'], logical: true },
+      {
+        id: 'festival-password', kind: 'coupled', story: 0, logical: true,
+        pairs: [
+          { hint: { en: 'Three cats, one moon, seven stars.', fr: 'Trois chats, une lune, sept étoiles.' }, answer: '317' },
+          { hint: { en: 'Five lanterns, four drums, two dancers.', fr: 'Cinq lanternes, quatre tambours, deux danseurs.' }, answer: '542' },
+          { hint: { en: 'Eight stalls, six arches, eight more stalls.', fr: 'Huit étals, six arches, et encore huit étals.' }, answer: '868' },
+        ],
+      },
+      {
+        id: 'night-line', kind: 'presentation', target: 'line:game.intro.l-festival-night', logical: false, story: 0,
+        values: [
+          { en: 'Festival night. And every light in the market is out.', fr: 'Soir de fête. Et toutes les lumières du marché sont éteintes.' },
+          { en: 'Festival night, and the market is as dark as Biscuit\'s nap.', fr: 'Soir de fête, et le marché est aussi sombre que la sieste de Biscuit.' },
+          { en: 'The festival starts tonight. The lights, apparently, do not.', fr: 'La fête commence ce soir. Les lumières, apparemment, non.' },
+        ],
+      },
+    ],
+    constraints: [],
+    daily: { kid: 'reference-daily-test', publicKey: 'lbigQxp3ncZ_4aScu3-8hXDpy44WB55ZJ0yMy8BkE1o', mode: 'daily' },
   },
   // Speedrun categories (4.1.14, docs/en/SPEEDRUN.md): content only. Any% is ranked on the logical time; No Hints on
   // the active time (the cutscenes aside), without a hint, a save or a load; Real Time on the wall clock (unranked
@@ -121,6 +161,6 @@ export const game = defineGame({
   // 3.7: two scores' stems (3.9 MB), the full warm-up (9.2 MB), the most decoded at once during a transition (128 MB:
   // both scores and a bridge).
   assetBudgets: { initialKB: 3000, roomKB: 3000, chapterKB: 6000, backgroundScoreKB: 4800, offlineTotalKB: 11000, decodedAudioMB: 128, transitionPeakMB: 150, initialJsKB: 140 },
-  i18n: { same: demo.i18n?.same?.filter((p) => p.startsWith('ui/') || p === 'char:hero/name' || p === 'char:biscuit/name' || p === 'char:neighbor/name').concat(['room:kitchen/props.radio.name']) },
+  i18n: { same: demo.i18n?.same?.filter((p) => p.startsWith('ui/') || p === 'char:hero/name' || p === 'char:biscuit/name' || p === 'char:neighbor/name').concat(['room:kitchen/props.radio.name', ...[0, 1, 3].map((i) => `room:hall/on.hall.use-map.do[1].params.actors[${i}].label`), ...['317', '542', '868'].map((n) => `room:hall/talk.neighbor.hall.neighbor.i-know-the-password.do[1].choice.hall.neighbor.i-know-the-password.c-${n}.text`)]) },
   ui: demo.ui,
 });

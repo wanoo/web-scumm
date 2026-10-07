@@ -1,5 +1,6 @@
 import type { MinigameCtx } from './types';
 import { must } from '../core/must';
+import { derive } from '../core/prng';
 
 export function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
@@ -201,4 +202,21 @@ export function finisher(signal: AbortSignal) {
       return finished;
     },
   };
+}
+
+/** The minigame's draws: the host's seeded stream (`ctx.random`), else a fixed one; never an unseeded draw (4.1.15). */
+export function random(ctx: MinigameCtx): () => number {
+  if (ctx.random) return ctx.random;
+  const rng = derive('no-host-seed', 'minigame:local');
+  return () => rng.next();
+}
+
+/** A uniform shuffle (Fisher–Yates) drawn from `rnd`. */
+export function shuffled<T>(a: readonly T[], rnd: () => number): T[] {
+  const b = [...a];
+  for (let i = b.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [b[i], b[j]] = [must(b[j], 'shuffled item'), must(b[i], 'shuffled item')];
+  }
+  return b;
 }

@@ -1,6 +1,6 @@
 import { MINIGAME_META } from './meta';
 import type { Minigame, MinigameCtx } from './types';
-import { arrowFocus, el, finisher, sleep, skipButton, stage, str } from './util';
+import { arrowFocus, el, finisher, random, shuffled, skipButton, sleep, stage, str } from './util';
 
 // Pick the right image (a color, a flag…), round after round.
 // Wrong pick: a little shake and try again. Trap image (`decoy`): a funny line (`decoyLine`).
@@ -16,6 +16,7 @@ export const pick: Minigame = {
   ...MINIGAME_META.pick,
   async run(ctx: MinigameCtx) {
     const p = ctx.params;
+    const rand = random(ctx);
     const rounds = Array.isArray(p.rounds) ? (p.rounds as Round[]) : [];
     const decoy = typeof p.decoy === 'string' ? p.decoy : undefined;
     const decoyLine = str(p.decoyLine, '');
@@ -57,8 +58,8 @@ export const pick: Minigame = {
       if (f.finished) break;
       if (round.prompt) ctx.instruct(round.prompt);
       const opts = [...round.options.map((id, i) => ({ id, i })), ...(decoy ? [{ id: decoy, i: -1 }] : [])];
-      // shuffled order, stable during the round
-      opts.sort(() => Math.random() - 0.5);
+      // shuffled order (uniform, from the run's minigame stream), stable during the round
+      opts.splice(0, opts.length, ...shuffled(opts, rand));
       grid.innerHTML = '';
       const n = opts.length;
       const size = Math.min(150 * u, (560 * u) / Math.min(n, 4) - 12 * u, 190 * u);

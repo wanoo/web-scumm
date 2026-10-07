@@ -98,6 +98,18 @@ const room = z.strictObject({
   ),
   walkLinks: z.array(z.strictObject({ id, if: condSchema.optional(), locked: z.string().optional() })),
   entities: z.array(z.string()),
+  anchors: z
+    .record(
+      z.string(),
+      z.strictObject({
+        at: id,
+        visible: condSchema.optional(),
+        reachableBy: condSchema.optional(),
+        capacity: z.number().int().positive().optional(),
+        phase: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 
 const entity = z.strictObject({
@@ -198,6 +210,7 @@ export const gameIRSchema = z.strictObject({
     checkpoints: z.record(z.string(), loose),
     invariants: z.array(condSchema),
     migrations: z.array(loose),
+    remix: loose.optional(),
   }),
   rooms: z.array(room),
   entities: z.array(entity),
@@ -215,7 +228,7 @@ export const gameIRSchema = z.strictObject({
   }),
   variant: z.union([
     z.strictObject({ mode: z.literal('story') }),
-    z.strictObject({ mode: z.literal('variant'), id, manifest: loose }),
+    z.strictObject({ mode: z.literal('variant'), id, manifest: loose, variant: loose.optional() }),
   ]),
   provenance: z.record(z.string(), source),
 });

@@ -6,7 +6,8 @@
 import type { Cond, GameDef, Id, Layout, Point, Rule } from '../core/types';
 import { inPolygon, stageOf } from '../core/stage';
 import type { CustomCommands } from '../core/custom';
-import { condAtoms, type CondAtom } from '../core/cond';
+import { condAtoms, condFlags, type CondAtom } from '../core/cond';
+import { variantFlag } from '../core/remix/manifest';
 import { atomNodeId, liveClasses, puzzleGraph, puzzleIssues, type PuzzleGraph } from './puzzle';
 import { listenerActionId, ruleActionId, topicActionId } from '../core/content-ids';
 import type { SolveResult } from './solve';
@@ -52,6 +53,12 @@ function producers(game: GameDef, g: PuzzleGraph) {
   for (const [f, v] of Object.entries(game.start.flags ?? {})) if (v) produced.add(`flag:${f}`);
   for (const i of game.start.inventory ?? []) produced.add(`item:${i}`);
   for (const p of game.start.unlocked ?? []) produced.add(`place:${p}`);
+  // Remix (4.1.15): the world writes the reserved flags of its dimensions; each world is proved on its own
+  // (`npm run verify:variants`).
+  for (const d of game.remix?.dimensions ?? []) {
+    produced.add(`flag:${variantFlag(d.id)}`);
+    if (d.kind === 'puzzle-order') for (const g of d.groups) produced.add(`flag:${variantFlag(d.id, g)}`);
+  }
   for (const p of Object.values(game.players?.start ?? {}))
     for (const i of p.inventory ?? []) produced.add(`item:${i}`);
   for (const cp of Object.values(game.checkpoints ?? {})) {
@@ -318,12 +325,15 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
           solver: mode,
         });
     };
+    // A reaction gated on a world of Remix (a reserved `remix.*` flag) belongs to other worlds than the one searched
+    // here: `npm run verify:variants` searches each world.
+    const otherWorld = (c: Cond | undefined) => [...condFlags(c)].some((f) => f.startsWith('remix.'));
     for (const r of game.rooms) {
       r.on?.forEach((rule, i) => {
         if (rule.exit) return;
         const id = ruleActionId(r.id, i, rule);
         const where = { room: r.id, path: `on[${i}]`, id: rule.id };
-        if (live.has(id) && !ran.has(id))
+        if (live.has(id) && !ran.has(id) && !otherWorld(rule.if))
           add({
             code: 'rule-never-run',
             severity: sev,
@@ -338,7 +348,7 @@ export function lintContent(game: GameDef, layouts: Record<Id, Layout>, opts: Li
         topics.forEach((t, i) => {
           const id = topicActionId(r.id, actor, i, t);
           const where = { room: r.id, path: `talk.${actor}[${i}]`, id: t.id };
-          if (live.has(id) && !ran.has(id))
+          if (live.has(id) && !ran.has(id) && !otherWorld(t.if))
             add({
               code: 'rule-never-run',
               severity: sev,

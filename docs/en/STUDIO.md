@@ -86,6 +86,12 @@ A provider call never follows a redirect, gives up after 60 s, and reads at most
   back; a problem is named by file, id and field before anything is sent, and the validator's errors after. Then the
   IR (`npm run ir`): rooms, entities, rules, topics, listeners and scripts, each with where it is written, and the
   whole IR as JSON.
+- **Remix** (4.1.15, `docs/en/REMIX.md`): the game's dimensions with their values, story value and modes; **Preview**
+  a typed seed or a **New seed** (each dimension's value, the world's hash, a link that plays it in the game, a frozen
+  world to **Export**); **Lock** dimensions and **Reroll the others**; **Compare** with another seed; the order of a
+  puzzle-order dimension drawn; **Coverage and bias** over many seeds; the rooms' **Anchors**, and one added from the
+  Rooms tab's selection. A manifest that cannot make a world shows the validator's reasons. Computed with the engine's
+  compiler (`src/studio/remix-model.ts`): the Studio never shows a world the player would not play.
 - **Notes**: the shared log (`games/<id>/notes.json`), one entry per author ("you", or the AI's name), about a panel
   id, a room id, `room.entity`, or anything (empty: general). The whole log, newest first, grouped by `about` (tagged
   room / panel / entity, with "Open in Rooms" / "Open in Storyboard"); filters: free text, about (rooms with their

@@ -98,6 +98,13 @@ commandes personnalisées sont du code de confiance, pas des données isolées. 
   Undo de l'en-tête le reprend ; un problème est nommé par fichier, id et champ avant tout envoi, et les erreurs du
   validateur après. Puis l'IR (`npm run ir`) : salles, entités, règles, sujets, écouteurs et scripts, chacun avec
   l'endroit qui l'écrit, et l'IR entière en JSON.
+- **Remix** (4.1.15, `docs/fr/REMIX.md`) : les dimensions du jeu avec leurs valeurs, valeur histoire et modes ;
+  **Preview** d'une seed tapée ou **New seed** (la valeur de chaque dimension, l'empreinte du monde, un lien qui le joue
+  dans le jeu, un monde figé à **Export**) ; **Lock** des dimensions et **Reroll the others** ; **Compare** avec une
+  autre seed ; l'ordre d'une dimension puzzle-order dessiné ; **Coverage and bias** sur beaucoup de seeds ; les
+  **Anchors** des salles, et une ajoutée depuis la sélection de l'onglet Salles. Un manifeste qui ne peut faire de monde
+  montre les raisons du validateur. Calculé avec le compilateur du moteur (`src/studio/remix-model.ts`) : le Studio ne
+  montre jamais un monde que le joueur ne jouerait pas.
 - **Notes** : le journal partagé (`games/<id>/notes.json`), une entrée par auteur (« you », ou le nom de l'IA), à
   propos d'un id de case, d'un id de lieu, de `lieu.entité`, ou de n'importe quoi (vide : général). Le journal
   entier, le plus récent d'abord, groupé par `about` (lieu / case / entité étiquetés, avec « Open in Rooms » /

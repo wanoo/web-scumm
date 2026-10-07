@@ -24,3 +24,38 @@ export type {
   IrWorld,
 } from '../core/ir';
 export { completionGoal } from '../core/objectives';
+// 4.1.15 (ADR 0018): Remix. The variation manifest a game declares (`GameDef.remix`, `RoomDef.anchors`), the world a
+// seed makes, and the game as that world makes it; seed codes; the code wheel's parameters and the wheel of a seed.
+export type {
+  AnchorDef,
+  AnchorRef,
+  CoupledPair,
+  RemixText,
+  VariationConstraint,
+  VariationDimension,
+  VariationManifest,
+  VariationMode,
+} from '../core/remix/manifest';
+export { parseManifest, REMIX_ALGORITHM_VERSION, variantFlag } from '../core/remix/manifest';
+export type { CompiledManifest, RemixWorld, WorldVariant } from '../core/remix/compile';
+export {
+  CATALOGUE_MAX,
+  catalogue,
+  compileManifest,
+  compileVariant,
+  loadVariant,
+  RemixManifestError,
+  storyVariant,
+} from '../core/remix/compile';
+export type { ApplyOptions } from '../core/remix/apply';
+export { applyStory, applyVariant, compileGameManifest, remixWorld } from '../core/remix/apply';
+export {
+  encodeSeedCode,
+  isSeed,
+  newSeedCode,
+  normalizeSeed,
+  RemixSeedError,
+  STORY_SEED,
+} from '../core/remix/seed-code';
+export type { CodeWheel, CodeWheelMode, CodeWheelParams, WheelItem, WheelRecord } from '../core/remix/code-wheel';
+export { checkWheel, CODE_WHEEL_VERSION, generateWheel, wheelProblems, wheelTable } from '../core/remix/code-wheel';

@@ -35,4 +35,20 @@ export const MINIGAME_META = {
     required: ['board', 'knot', 'plugs'],
     textParams: ['intro', 'win', 'windowsText'],
   },
+  // 4.1.15: the diegetic code wheel (core/remix/code-wheel.ts), seeded by the world's `copy-protection` stream.
+  'code-wheel': {
+    required: ['actors', 'symbols', 'answers'],
+    textParams: [
+      'question',
+      'wrong.*',
+      'pass',
+      'win',
+      'list',
+      'turnLeft',
+      'turnRight',
+      'actors.*.label',
+      'symbols.*.label',
+      'answers.*',
+    ],
+  },
 } satisfies Record<string, Omit<Minigame, 'run'>>;

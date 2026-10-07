@@ -123,14 +123,14 @@ From `core/ir-fields.ts`: `logic` is in the IR and the fingerprint’s `logic`; 
 
 The game (`GameDef`):
 
-- **logic**: `schemaVersion`, `id`, `saveVersion`, `hero`, `players`, `hintItem`, `hintVoice`, `rules`, `scripts`, `events`, `globalTalk`, `start`, `reality`, `checkpoints`, `invariants`, `migrations`, `objectives`
+- **logic**: `schemaVersion`, `id`, `saveVersion`, `hero`, `players`, `hintItem`, `hintVoice`, `rules`, `scripts`, `events`, `globalTalk`, `start`, `reality`, `checkpoints`, `invariants`, `migrations`, `objectives`, `remix`, `variant`
 - **both**: `verbs`, `characters`, `items`, `rooms`, `map`
 - **presentation**: `title`, `renderer`, `audio`, `skin`, `ending`, `saves`, `settings`, `ui`, `titleScreen`, `creditsScreen`, `credits`
 - **meta**: `lang`, `offline`, `lint`, `i18n`, `assetBudgets`, `speedrun`
 
 A room (`RoomDef`):
 
-- **logic**: `id`, `name`, `hotspots`, `look`, `on`, `talk`, `hints`, `onEnter`, `scripts`, `events`, `hero`
+- **logic**: `id`, `name`, `hotspots`, `look`, `on`, `talk`, `hints`, `onEnter`, `scripts`, `events`, `hero`, `anchors`
 - **both**: `props`, `actors`, `exits`, `stage`
 - **presentation**: `decor`, `music`, `renderer`
 - **meta**: `description`, `furniture`

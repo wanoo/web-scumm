@@ -1,6 +1,6 @@
 import { MINIGAME_META } from './meta';
 import type { Minigame, MinigameCtx } from './types';
-import { el, finisher, num, skipButton, sleep, stage, str, operable } from './util';
+import { el, finisher, num, operable, random, shuffled, skipButton, sleep, stage, str } from './util';
 import { must } from '../core/must';
 
 // "The tangle of cables": four plugs on the left, a big knot in the middle, a panel of sockets on the right.
@@ -65,15 +65,6 @@ function smooth(pts: P[]): string {
   return d;
 }
 
-function shuffle<T>(a: T[]): T[] {
-  const b = [...a];
-  for (let i = b.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [b[i], b[j]] = [must(b[j], 'shuffled item'), must(b[i], 'shuffled item')];
-  }
-  return b;
-}
-
 const strMap = (v: unknown): Record<string, string> =>
   v && typeof v === 'object' && !Array.isArray(v)
     ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, String(x)]))
@@ -83,6 +74,7 @@ export const cables: Minigame = {
   ...MINIGAME_META.cables,
   run(ctx: MinigameCtx) {
     const p = ctx.params;
+    const rand = random(ctx);
     const plugs = strMap(p.plugs);
     const tints = strMap(p.tints);
     const HEX = (c: Color) => tints[c] ?? c;
@@ -212,8 +204,8 @@ export const cables: Minigame = {
     };
 
     // the order on the left must not match the sockets: otherwise there'd be nothing to follow
-    let left = shuffle(colors);
-    for (let k = 0; k < 5 && left.every((c, i) => c === colors[i]); k++) left = shuffle(colors);
+    let left = shuffled(colors, rand);
+    for (let k = 0; k < 5 && left.every((c, i) => c === colors[i]); k++) left = shuffled(colors, rand);
 
     const cablesList: Cable[] = left.map((c, i) => {
       const socket = socketOf(c);
@@ -221,11 +213,11 @@ export const cables: Minigame = {
       const inner: P[] = [0, 1, 2].map(
         (k) =>
           [
-            KNOT.cx - kw * 0.32 + k * kw * 0.3 + (Math.random() - 0.5) * 30,
-            KNOT.cy - KNOT.h * 0.33 + Math.random() * KNOT.h * 0.66,
+            KNOT.cx - kw * 0.32 + k * kw * 0.3 + (rand() - 0.5) * 30,
+            KNOT.cy - KNOT.h * 0.33 + rand() * KNOT.h * 0.66,
           ] as P,
       );
-      const exit: P = [KNOT.cx + kw * 0.48, socket[1] + (Math.random() - 0.5) * 8];
+      const exit: P = [KNOT.cx + kw * 0.48, socket[1] + (rand() - 0.5) * 8];
       const plug = el('img', 'mg-img') as HTMLImageElement;
       const plugId = must(plugs[c], 'plug of a listed color');
       plug.src = ctx.img(plugId);
@@ -334,7 +326,7 @@ export const cables: Minigame = {
     };
 
     const gag = async () => {
-      const kind = gagList[Math.floor(Math.random() * gagList.length)];
+      const kind = gagList[Math.floor(rand() * gagList.length)];
       const g = el('div');
       Object.assign(g.style, {
         position: 'absolute',

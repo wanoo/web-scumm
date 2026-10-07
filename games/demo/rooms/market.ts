@@ -24,6 +24,13 @@ export default defineRoom({
     seller: { char: 'seller', facing: 'left' },
   },
 
+  // Where Remix may put the pantry key (4.1.15, `remix` in game.ts): the seller's hand (the story), the oranges, the lantern.
+  anchors: {
+    stall: { at: 'stall', reachableBy: 'bouquet_given', phase: 'deposit' },
+    oranges: { at: 'oranges', reachableBy: 'bouquet_given', phase: 'deposit' },
+    lantern: { at: 'lantern', reachableBy: 'bouquet_given', phase: 'deposit' },
+  },
+
   hotspots: {
     alley: { name: 'alley' },
     blue_door: { name: 'blue door' },
@@ -68,14 +75,36 @@ export default defineRoom({
       { lose: 'bouquet' }, { set: 'bouquet_given' },
       { id: 'market.give-bouquet-seller.l-for-me-oh-no', say: ['seller', 'For me? ...Oh no. Today is my wedding anniversary!'] },
       { pose: ['seller', 'panic'] }, { id: 'market.give-bouquet-seller.l-i-forgot-you', say: ['seller', 'I forgot! You saved me, little cat.'] },
-      { pose: ['seller', 'offering'] }, { id: 'market.give-bouquet-seller.l-here-the-key-the', say: ['seller', 'Here: the key. The lantern is paid.'] },
-      { gain: 'key' }, { sfx: 'coins' }, { pose: ['seller', 'idle'] },
+      { pose: ['seller', 'offering'] },
+      // Remix (4.1.15): the key is handed over (the story), or hidden on the stall, under the oranges or in the lantern.
+      { if: { flag: 'remix.key-spot', eq: 'market.oranges' }, then: [
+        { id: 'market.give-bouquet-seller.l-under-the-oranges', say: ['seller', 'The key? I hid it under my oranges. Nobody steals oranges.'] },
+      ], else: [
+        { if: { flag: 'remix.key-spot', eq: 'market.lantern' }, then: [
+          { id: 'market.give-bouquet-seller.l-inside-the-lantern', say: ['seller', 'The key? Inside the lantern. Lou wants it, so I keep it safe.'] },
+        ], else: [
+          { id: 'market.give-bouquet-seller.l-here-the-key-the', say: ['seller', 'Here: the key. The lantern is paid.'] },
+          { gain: 'key' },
+        ] },
+      ] },
+      { sfx: 'coins' }, { pose: ['seller', 'idle'] },
       { pose: ['neighbor', 'celebrate'] }, { id: 'market.give-bouquet-seller.l-yes-my-lantern', say: ['neighbor', 'Yes! My lantern!'] },
       { say: ['hero', 'And my sardines!'], id: 'market.give-bouquet-seller.l-and-my-sardines' }, { pose: ['neighbor', 'idle'] },
       // The world hears it: Grandpa goes home (game.ts `events`).
-      { emit: 'key_found' },
+      { if: { not: { any: [{ flag: 'remix.key-spot', eq: 'market.oranges' }, { flag: 'remix.key-spot', eq: 'market.lantern' }] } }, then: [{ emit: 'key_found' }] },
     ] },
 
+    // Remix (4.1.15, the `key-spot` dimension): the key hidden on the stall, found once the bouquet is given.
+    { id: 'market.take-key-oranges', verb: ['take', 'push', 'open'], a: 'oranges', if: { all: ['bouquet_given', { flag: 'remix.key-spot', eq: 'market.oranges' }, '!hidden_key_found'] }, do: [
+      { gain: 'key' }, { set: 'hidden_key_found' }, { sfx: 'pluck' },
+      { say: ['hero', 'Under the oranges: the key! It smells of oranges now.'], id: 'market.take-key-oranges.l-under-the-oranges' },
+      { emit: 'key_found' },
+    ] },
+    { id: 'market.take-key-lantern', verb: ['take', 'open', 'use'], a: 'lantern', if: { all: ['bouquet_given', { flag: 'remix.key-spot', eq: 'market.lantern' }, '!hidden_key_found'] }, do: [
+      { gain: 'key' }, { set: 'hidden_key_found' }, { sfx: 'metal' },
+      { say: ['hero', 'Inside the lantern: the key! Lou gets his lantern, I get my key.'], id: 'market.take-key-lantern.l-inside-the-lantern' },
+      { emit: 'key_found' },
+    ] },
     { id: 'market.take-lantern', verb: 'take', a: 'lantern', do: [{ id: 'market.take-lantern.l-paws-off-that', say: ['seller', 'Paws off! That lantern is sold. Almost.'] }] },
     { id: 'market.take-oranges', verb: 'take', a: 'oranges', do: [{ say: ['hero', 'Oranges are not sardines. Nice try, oranges.'], id: 'market.take-oranges.l-oranges-are-not' }] },
     { id: 'market.use-alley', verb: ['use', 'open'], a: 'alley', do: [{ map: true }] },
@@ -120,6 +149,7 @@ export default defineRoom({
     { id: 'market.hint-2', until: { any: [{ has: 'token' }, 'flowers_done'] }, lines: [{ id: 'market.hint-2.l-did-you-search', text: 'Did you search Grandpa\'s armchair at home? It eats tokens.' }] },
     { id: 'market.hint-3', until: 'flowers_done', lines: [{ id: 'market.hint-3.l-give-your-market', text: 'Give your market token to the seller.' }] },
     { id: 'market.hint-4', until: { any: [{ has: 'bouquet' }, 'bouquet_given'] }, lines: [{ id: 'market.hint-4.l-your-bouquet-is', text: 'Your bouquet is on the stall. Take it.' }] },
+    { id: 'market.hint-key-spot', until: { any: [{ has: 'key' }, '!bouquet_given', 'hidden_key_found', { not: { any: [{ flag: 'remix.key-spot', eq: 'market.oranges' }, { flag: 'remix.key-spot', eq: 'market.lantern' }] } }] }, lines: [{ id: 'market.hint-key-spot.l-the-seller-hid', text: 'The seller hid the key on his stall. Ask him again, or look under things.' }] },
     { id: 'market.hint-5', until: { has: 'key' }, lines: [{ id: 'market.hint-5.l-give-the-bouquet', text: 'Give the bouquet to the seller.' }] },
     { id: 'market.hint-6', until: 'pantry_open', lines: [{ id: 'market.hint-6.l-you-have-the-key', text: 'You have the key! Come home and open the pantry.' }] },
   ],

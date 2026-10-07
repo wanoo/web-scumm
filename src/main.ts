@@ -4,6 +4,9 @@ import { bootGame } from '@engine/boot';
 import * as mod from '@game';
 import type { GameModule } from '../tools/game';
 import type { AssetManifest } from '@engine/dom/assets';
+// The service worker's register module, in the main chunk (4.1.15): as its own lazy chunk, Firefox failed to load it
+// once the update scenarios had replaced the build (`npm run e2e:pwa`, pwa-firefox); it weighs well under 1 KB.
+import { registerSW } from 'virtual:pwa-register';
 
 const { game, layouts, manifest, minigames, commands, locales } = mod as unknown as GameModule;
 const demo = import.meta.env.VITE_STUDIO_DEMO === '1';
@@ -51,5 +54,5 @@ void bootGame({
       },
     },
   },
-  sw: { register: () => import('virtual:pwa-register') },
+  sw: { register: async () => ({ registerSW }) },
 });

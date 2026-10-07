@@ -122,6 +122,8 @@ export class SessionLog {
       ...(host.clock ? { at: host.clock() } : {}),
       // Written when a host chose it (a speedrun, a verifier): a session nobody seeded stays as it was before 4.1.14.
       ...(this.chosen ? { seed: this.seed! } : {}),
+      // The world it is played in (4.1.15): a replay rebuilds it from this assignment.
+      ...(host.game.variant ? { variant: host.game.variant } : {}),
     };
     return this.session;
   }

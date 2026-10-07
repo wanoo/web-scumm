@@ -6,7 +6,7 @@ describe('pipes minigame', () => {
     for (let n = 0; n < 200; n++) {
       const cols = 3 + (n % 3),
         rows = 3;
-      const g = makeGrid(cols, rows);
+      const g = makeGrid(cols, rows, Math.random);
       const path = g.flat().filter((c) => c.need);
       expect(path.length).toBeGreaterThanOrEqual(cols);
       expect(path.every((c) => !fits(c))).toBe(true);
@@ -240,5 +240,24 @@ describe('a skip is reported to the host', () => {
     expect((seen as unknown as Event).bubbles).toBe(true);
     // the bare element stubs of the tests above have no dispatchEvent: nothing to report, nothing thrown
     expect(() => skipped({} as HTMLElement)).not.toThrow();
+  });
+});
+
+describe('the minigames draw from the run, not Math.random (4.1.15)', () => {
+  it('shuffled is uniform-shaped and the same for the same stream; random(ctx) prefers the host stream', async () => {
+    const { random, shuffled } = await import('@engine/minigames/util');
+    const { derive } = await import('@engine/core/prng');
+    const s = (seed: string) => {
+      const r = derive(seed, 'minigame:pick');
+      return () => r.next();
+    };
+    expect(shuffled([1, 2, 3, 4, 5], s('a'))).toEqual(shuffled([1, 2, 3, 4, 5], s('a')));
+    expect(shuffled([1, 2, 3, 4, 5], s('a')).sort()).toEqual([1, 2, 3, 4, 5]);
+    const host = s('b');
+    expect(random({ random: host } as never)).toBe(host);
+    const spy = vi.spyOn(Math, 'random');
+    random({} as never)();
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
   });
 });
