@@ -10,12 +10,15 @@ flags would need every game to re-declare which flags count, in code. The other 
 
 **Decision.** `GameDef.objectives?: Record<Id, { title, done: Cond, optional?, parent? }>`.
 
-- **Completion.** The engine completes an objective once, the first time its `done` holds after a transition: every
-  `Engine.save()` (the end of an action, a script's step, a room entered) and just before an ending
-  (`core/objectives.ts`). It emits `objectiveCompleted` in the semantic journal (ADR 0011), after the flag that
-  completed it and before the autosave's `saveMade`; several at once come deepest step first, then in declaration
-  order. A condition that stops holding never takes a completion back in the session. Evaluated with `check` directly,
-  never `Engine.cond`: the solver's read sets are not touched.
+- **Completion.** The engine completes an objective once, the first time its `done` holds after a transition
+  (`core/objectives.ts`): every state event of the journal (a flag changed, an item acquired or lost, a room entered,
+  a player switched; the handlers now change the state before they journal it) and every `Engine.save()` (what has no
+  event: a prop's state, a place unlocked, a script's step) and just before an ending. So `objectiveCompleted` lands
+  right after the event that completed it, even inside a cutscene, before what follows and before the autosave's
+  `saveMade` (`tests/objectives.test.ts` pins it); several at once come deepest step first, then in declaration
+  order. A condition that stops holding never takes a completion back in the session. Evaluated with `check`
+  directly, never `Engine.cond`: the solver's read sets are not touched. The cost: the objectives' conditions once
+  per state event (five in each bundled game).
 - **Not in the save.** What already holds when a game starts, loads or jumps to a checkpoint is done silently; the set
   lives with the session. The save format does not change (no migration), the solver's state does not grow, and a
   replay yields the same events. The cost: an objective whose condition held once and no longer does is open again
@@ -24,9 +27,13 @@ flags would need every game to re-declare which flags count, in code. The other 
 - **Validator** (`tools/validate/objectives.ts`, split out of `validate.ts` with the migrations' checks so the capped
   file shrinks, 1140 → 1113 lines): an id of letters, digits, `.`, `_`, `-`; a title; `done`'s references exist (the
   validator's condition check); `done` can hold at all (a flag some command sets, an item gained or held at the start,
-  a prop's state set or initial, a place unlocked: generous, static); a `parent` that exists, without a cycle.
+  a prop's state set or initial, a place unlocked: generous, static; a flag only a custom command without declared
+  `effects` could set is named as such, "declare the command's effects"); a `parent` that exists, without a cycle;
+  and a warning for a `done` the content can take back.
 - **Solver.** `npm run solve -- --goal=100%`: the search's goal is the `done` of every objective that is not
-  `optional` (`completionGoal`), instead of the ending. `demo`: 35 states; `reference`: 1 447 states, both solved
+  `optional` (`completionGoal`), **all holding at once in one state**, instead of the ending. The journal keeps an
+  objective completed forever, so a `done` the content can take back (a flag some `unset` clears, an item some `lose`
+  or hand-over removes) can make 100 % unreachable although each was completed once: the validator warns about it. `demo`: 35 states; `reference`: 1 447 states, both solved
   (local, 7 Oct 2026).
 - **Player.** The pause menu's **Objectives** row (`ui.objectives`, English default) opens the quest journal: each
   step under its parent, ✓ done or ○ open, side objectives in italics. Titles are translated
