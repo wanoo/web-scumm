@@ -21,6 +21,15 @@
   the production server for a page; `npm start` is a Node launcher (`scripts/start.mjs`) instead
   of a shell line with a Unix expansion that cmd.exe and PowerShell did not know. The job is reported, not yet among
   the checks the ruleset requires (the maintainer's).
+- **A release check that predicts the release** (4.1.8). `npm run doctor -- --release` requires every prerequisite
+  `release-check` runs (Python and its modules, ffmpeg, the three browsers), and `release-check` starts with it. The
+  packages are made from tracked files only: an untracked file under a shipped root refuses `npm run pack` rather
+  than travel or vanish silently; `--publish-dry-run` shows what `npm publish` would send for each of the three,
+  and `release-check` runs it. `fresh-install` installs `create-web-scumm` from its own tarball and runs it, beside
+  the engine's and the Bridge's. The coverage ratchet is strict in CI and the release (a floor three points under
+  the measure is red), with the floors raised to within three points of what the suite measures on this branch,
+  totals and per file (so a pull request that adds tests may have to raise a floor: the ratchet says which). After
+  a release is published, `release.yml` downloads it and verifies its sums and every attestation (`ship verify`).
 - **The Reality transport and the Bridge, bounded** (4.1.8): the SSE parser accepts lines ending with CRLF or CR,
   removes one space after `data:` as the specification says, and drops a stream whose event is over 64 KiB or that
   holds over 1 MiB without an event's end (the port reopens it from the durable cursor); the Bridge's cache of

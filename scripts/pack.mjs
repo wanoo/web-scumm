@@ -1,4 +1,4 @@
-// node scripts/pack.mjs [--out=.cache/pack] (3.9): the engine as npm packages, from the files git tracks. 4.1.1:
+// node scripts/pack.mjs [--out=.cache/pack] [--publish-dry-run] (3.9): the engine as npm packages, from the files git tracks. 4.1.1:
 // `web-scumm-bridge`, the reference Reality Bridge, a package of its own (a game that does not run one never installs it).
 // `web-scumm`: the engine (src/), its pages, its tools and the `web-scumm` command, the game template; never a game
 // of this repository, a test, a doc page or a build. `create-web-scumm`: `npx create-web-scumm <folder>`, which runs
@@ -27,12 +27,19 @@ const SHIP = [
 ];
 // The Bridge's development tools (Biscuit's samples, the Rust cross-check) stay in the repository.
 const SKIP = [/__pycache__|\.pyc$/, /^tools\/audit-assets\.ts$/, /^tools\/reality-(xcheck|fixtures)\.ts$/];
-const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard'], {
-  cwd: ROOT,
-  encoding: 'utf8',
-})
-  .split('\n')
-  .filter((f) => f && SHIP.some((r) => r.test(f)) && !SKIP.some((r) => r.test(f)));
+const shipped = (list) =>
+  list.split('\n').filter((f) => f && SHIP.some((r) => r.test(f)) && !SKIP.some((r) => r.test(f)));
+const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' });
+// Tracked files only (4.1.8): a package is what the repository holds, never a file of the machine that packs it. An
+// untracked file under a shipped root is refused rather than left out silently: either commit it or ignore it.
+const files = shipped(git(['ls-files', '--cached']));
+const untracked = shipped(git(['ls-files', '--others', '--exclude-standard']));
+if (untracked.length) {
+  console.error(
+    `✖  untracked file(s) under a shipped root: ${untracked.join(', ')} (git add or commit them, or add them to .gitignore)`,
+  );
+  process.exit(1);
+}
 
 // The tools, the dev server and the build run in the game project: what the repository has as devDependencies for
 // them is a dependency of the package (tests, Playwright and the MCP SDK stay out).
@@ -185,3 +192,11 @@ for (const d of [engine, create, bridge])
 console.log(
   `packed into ${out}: web-scumm ${root.version} (${files.length} files), create-web-scumm, web-scumm-bridge (one module, its policies)`,
 );
+// --publish-dry-run (4.1.8): what `npm publish` would send, for each package, without sending it (release-check).
+if (process.argv.includes('--publish-dry-run'))
+  for (const dir of [engine, create, bridge]) {
+    execFileSync('npm', ['publish', '--dry-run', '--ignore-scripts'], {
+      cwd: dir,
+      stdio: 'inherit',
+    });
+  }

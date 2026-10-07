@@ -28,6 +28,10 @@ describe('doctor', () => {
     expect(doctorReport(bad).text).toContain('○  Python: not found (optional)');
     const only = collectChecks({ ...probes(true), command: () => ({ ok: false, stdout: '' }) });
     expect(doctorReport(only)).toMatchObject({ failed: 0, optional: 3 });
+    // --release (4.1.8): what release-check runs is required, nothing is optional.
+    const rel = collectChecks(probes(false), { release: true });
+    expect(doctorReport(rel)).toMatchObject({ failed: 6, optional: 0 });
+    expect(collectChecks(probes(true), { release: true }).every((c) => c.ok)).toBe(true);
     expect(doctorReport(only).text).toContain('3 optional ones missing');
   });
   it('is quiet when everything is there', () => {
