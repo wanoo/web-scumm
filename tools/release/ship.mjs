@@ -198,8 +198,9 @@ async function main(sha) {
 async function tag(versionArg, sha) {
   const version = versionOf(versionArg);
   const name = `v${version}`;
+  git(['fetch', '--quiet', 'origin']); // the merge commit `chain` just made is on origin, not here yet (seen on 4.1.9, 4.1.10)
   const full = localCommit(sha);
-  if (!full) throw new Error(`${sha}: not a commit here (fetch first)`);
+  if (!full) throw new Error(`${sha}: not a commit on origin either`);
   const onOrigin = originTagCommit(name);
   if (onOrigin) {
     if (onOrigin !== full)

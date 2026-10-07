@@ -7,3 +7,5 @@
   minutes from the tag's green run to the published release instead of 70. `ship tag --now` (and `chain --now`) tags
   as soon as the pull request is merged instead of waiting for main's run of the same commit: the tag's own run, the
   same suite on the same commit, is what the release checks.
+- **`ship tag` fetches before reading the commit (4.1.10)**: `chain` tagged nothing twice (4.1.9, 4.1.10) because the
+  merge commit it had just made was on origin only ("not a commit here").
