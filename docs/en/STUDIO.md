@@ -73,6 +73,14 @@ A provider call never follows a redirect, gives up after 60 s, and reads at most
   Next to it, **Export session** downloads the inputs since the game started (with the journal: a bug report
   `npm run replay` plays back) and **Replay…** loads one: the engine plays it silently, the game lands where it ends,
   a slider scrubs through the entries (tap one to land there), and a divergence from the recording is flagged.
+- **Language** (4.1.12): the game as the tools see it. First its **objectives** (ADR 0014): id, title, condition,
+  parent, optional, and the `file:line` that writes each; **Edit** and **+ objective** open a form generated from the
+  objective's schema (`src/studio/forms-gen.ts`: each field with its description, the parent's id with the game's
+  objectives as suggestions, the condition with the DSL's editor). **Preview the change** shows the diff of the game
+  file, **Apply** writes it (validated by the server, taken back when it adds an error), the header's Undo takes it
+  back; a problem is named by file, id and field before anything is sent, and the validator's errors after. Then the
+  IR (`npm run ir`): rooms, entities, rules, topics, listeners and scripts, each with where it is written, and the
+  whole IR as JSON.
 - **Notes**: the shared log (`games/<id>/notes.json`), one entry per author ("you", or the AI's name), about a panel
   id, a room id, `room.entity`, or anything (empty: general). The whole log, newest first, grouped by `about` (tagged
   room / panel / entity, with "Open in Rooms" / "Open in Storyboard"); filters: free text, about (rooms with their
@@ -149,6 +157,8 @@ All paths are relative to the current game (`GAME`). Errors return `{ error }` w
 | POST `assets/sound` | `{ kind: 'music' \| 'sfx', file, data }` → `audio/<kind>/<file>` (any format ffmpeg reads), the old file kept as a backup; `{ ok, file, backup? }` |
 | POST `assets/prepare` | runs `npm run assets` → `{ ok, code, output }`; with `?stream=1`, the output as plain text while it runs, ending with `[exit <code>]` |
 | PUT `room/:id/value` | `{ path, value, dry? }` → `{ ok, line, changed, diff, dry? }`: a structured value written as code at `path` (3.4; `value` absent removes it); 422 `{ error, errors, diff }` when the write adds validation errors (it is taken back) |
+| PUT `room/@game/value` | the same for the game file's `defineGame({...})` (4.1.12), objectives only: `objectives`, `objectives.<id>` or one of its fields; any other path is 400 |
+| GET `ir` | the game's IR (4.1.12, `docs/en/DSL.md`): its logic as data with the `file:line` of each id (`provenance`) and the trusted extensions' hash; the same JSON as `npm run ir -- --json` |
 | POST `undo`, POST `redo`, GET `history` | → `{ ok, file, what }` or `{ ok: false, reason }`; 409 when the file changed since; `history` → `{ undo: [what], redo: [what] }` |
 | GET `voices[/:lang]`, PUT `voices/:lang/:id`, GET `voices/:lang/csv` | the voice table `{ lang, langs, statuses, rows }`; `{ status?, note?, actor? }` → `{ ok }` (into `voices.json`); `{ lang, csv }` |
 | GET `events` | server-sent events: `{ type: 'hello', game }` on connection, then `{ type: 'changed', file }` when a file of the game folder changes on disk (`file` relative to it, e.g. `rooms/house.ts`; dotfiles and `private/` are ignored; 150 ms debounce per file) |

@@ -12,12 +12,23 @@ export function structuredEdit(o: {
   editor: Ed;
   after?: () => void;
   remove?: boolean;
+  /** 4.1.12: the value's problems before anything is sent (a generated form's schema), each naming file, id, field. */
+  check?: (value: unknown) => string[];
+  /** 4.1.12: the server's validation errors said with the file, the id and the field (`explainErrors`). */
+  explain?: (errors: string[]) => string[];
 }) {
   const out = h('pre', { class: 'diff', hidden: true });
   const err = h('p', { class: 'error', hidden: true });
   const read = (): { ok: true; v: unknown } | { ok: false } => {
     try {
-      return { ok: true, v: o.editor.get() };
+      const v = o.editor.get();
+      const issues = o.check?.(v) ?? [];
+      if (issues.length) {
+        err.hidden = false;
+        err.textContent = issues.join('\n');
+        return { ok: false };
+      }
+      return { ok: true, v };
     } catch (e) {
       err.hidden = false;
       err.textContent = (e as Error).message;
@@ -53,7 +64,7 @@ export function structuredEdit(o: {
       err.hidden = false;
       const body = e as ApiError & { body?: { errors?: string[] } };
       err.textContent = e instanceof ApiError ? e.message : String(e);
-      if (body.body?.errors) err.textContent += `\n${body.body.errors.join('\n')}`;
+      if (body.body?.errors) err.textContent += `\n${(o.explain?.(body.body.errors) ?? body.body.errors).join('\n')}`;
     }
   };
   const body = h(

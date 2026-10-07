@@ -60,6 +60,15 @@ export const game = defineGame({
       goals: ['lights_on'],
     },
   },
+  // The quest journal of the pause menu (4.1.12, ADR 0014); npm run solve -- --goal=100% reaches every one that is not
+  // optional. Each is a flag set once on the chapter's path.
+  objectives: {
+    lights: { title: 'Bring the lights back', done: 'lights_on' },
+    ladder: { title: 'Get the ladder down from the wall', done: 'ladder_down', parent: 'lights' },
+    cellar: { title: 'Open the cellar', done: 'cellar_open', parent: 'lights' },
+    board: { title: 'Hang the festival board', done: 'board_hung' },
+    radio: { title: 'Make Grandma dance', done: 'radio_on', optional: true },
+  },
   saves: { slots: 3 },
   settings: true,
   // The demo's sounds, and its theme in stems with this chapter's own mixes (3.5): Biscuit's harp and bass, the night

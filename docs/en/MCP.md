@@ -17,11 +17,13 @@ the human sees the result live in `npm run studio` (it watches the files).
 
 | Tool | Arguments | Does |
 |---|---|---|
-| `list_rooms` | | game info: id, title, hero, rooms, characters, items, verbs, checkpoints, images |
+| `list_rooms` | | game info: id, title, hero, rooms, characters, items, verbs, checkpoints, objectives (4.1.12), images |
 | `get_room` | `id` | `{ def, layout, texts, file }`: every editable text with its JSON path |
 | `set_layout` | `id, layout` | writes `layout/<id>.json` (the whole Layout) |
 | `set_text` | `id, path, value \| null` | replaces a text literal in `rooms/<id>.ts`; `null` deletes a line; a path ending in `[+]` appends (`look.piano[+]`, `on[3].do[+]`) |
 | `set_value` | `id, path, value \| null, dry?` | writes a structured value as code in `rooms/<id>.ts` (3.4): a reaction (`on[3]`, `on[<length>]` adds one), a condition (`on[3].if`), a command list (`on[3].do`), the room's `stage` or `renderer`; `null` removes; `dry` returns the diff only; the game is validated after the write and an edit that adds an error is taken back |
+| `set_value` on the game | `id: "@game", path, value \| null, dry?` | the same in the game file's `defineGame({...})` (4.1.12), for its objectives only: `objectives.<id>` (`{ title, done, optional?, parent? }`) or one of its fields; validated the same way, so an objective whose `done` can never hold is refused |
+| `get_ir` | | the game's intermediate representation (4.1.12): rooms, entities, rules, topics, listeners, scripts, objectives, Reality policies, trusted extensions by name, each id with its `file:line` (`provenance`); the JSON of `npm run ir -- --json` |
 | `add_entity` | `id, kind, entityId, name?, img?, char?, at?, look?` | adds a prop / hotspot / actor to the room file and the layout (`at` defaults to `[320, 300]`) |
 | `get_storyboard` / `set_storyboard` | `storyboard` | reads / writes `storyboard.json` (`{ boards: [...] }`) |
 | `get_notes` / `add_note` | `about?, author?, text` | the shared log `notes.json`; `author` defaults to the MCP client's name, else `ai`; notes with `task: true` are requests the human sent from the Studio's Assistant |

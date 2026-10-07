@@ -105,7 +105,7 @@ contenu.
 publication npm est prévue pour la 4.2, puis `npx create-web-scumm mon-jeu`) :
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.11/web-scumm-4.1.11.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.12/web-scumm-4.1.12.tgz
 npx --package=$T web-scumm create mon-jeu "Mon jeu" --engine=$T
 cd mon-jeu && npm install
 npm run assets && npm run dev        # puis npm run verify, npm run build, npm run release
@@ -134,12 +134,12 @@ Mesuré sur ce commit de `main`, par les gates automatiques qui tournent à chaq
 
 | Quoi | Résultat |
 |---|---|
-| Tests unitaires | <!-- metric:tests -->1150<!-- /metric --> déclarations, sous Node 22 et 24, avec des planchers de couverture par module et des tests de mutation sur ce dont dépendent une sauvegarde, une session, une condition et un signal |
+| Tests unitaires | <!-- metric:tests -->1203<!-- /metric --> déclarations, sous Node 22 et 24, avec des planchers de couverture par module et des tests de mutation sur ce dont dépendent une sauvegarde, une session, une condition et un signal |
 | Tests navigateur | le jeu d'exemple joué jusqu'à sa fin au tactile et au clavier dans Chromium et WebKit à la taille d'un téléphone, en anglais et en français, avec le peintre DOM et le peintre Canvas ; un second jeu et le jeu de référence aussi ; chaque mini-jeu gagné au clavier ; axe-core sur chaque écran |
-| Sauvegardes | une sauvegarde figée par release de la 3.0.0 à la 4.1.11 se charge et atteint la fin |
+| Sauvegardes | une sauvegarde figée par release de la 3.0.0 à la 4.1.12 se charge et atteint la fin |
 | Preuve | chaque état atteignable du jeu d'exemple en quelques secondes ; un jeu de référence de 40 pièces en <!-- metric:referenceStates -->288<!-- /metric --> états ; 500 jeux aléatoires de chacune de trois sortes comparés à une recherche explicite chaque nuit, 0 divergence ([BENCH](docs/fr/BENCH.md)) |
 | Un nouveau jeu | empaqueté, créé depuis l'archive, installé, vérifié, construit et joué jusqu'à sa fin par la CI ; un jeu fait sur la release précédente mis à niveau et sa sauvegarde jouée jusqu'à la fin |
-| La première visite du joueur | <!-- metric:initialJsKB -->122<!-- /metric --> Ko de JavaScript, gzippés, tenus par un budget ; chaque octet téléchargé prédit par le graphe des assets |
+| La première visite du joueur | <!-- metric:initialJsKB -->124<!-- /metric --> Ko de JavaScript, gzippés, tenus par un budget ; chaque octet téléchargé prédit par le graphe des assets |
 | La release | construite depuis le commit testé par la CI, chaque fichier justifié avec sa licence, SBOM, sommes SHA-256 et attestation de provenance, jamais remplacée une fois publiée |
 
 Ce que seules des personnes et de vrais appareils peuvent vérifier est listé, pas revendiqué : [FIELD](docs/fr/FIELD.md),
@@ -164,12 +164,12 @@ journal du travail.
 
 ## Releases
 
-Release actuelle : [v4.1.11 « Viewport »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.11), la quatrième du
-programme 4.1.8 → 4.1.15 : le rendu n'est plus une source d'état (une scène immuable produite par une fonction pure,
-des peintres qui n'envoient que des intentions, la même session et le même journal depuis le DOM et le Canvas), un
-journal sémantique qui appartient au cœur et se rejoue à l'identique, le Studio qui édite couches, masques, zones et
-portails. Sur le Bridge durable de la 4.1.10 (SQLite, Postgres, tenants, `SignalV2`), les connecteurs de la 4.1.9 et
-la fondation de la 4.1.8. De la 4.1.1 à la 4.1.7 chaque
+Release actuelle : [v4.1.12 « Language »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.12), la cinquième du
+programme 4.1.8 → 4.1.15 : la logique du jeu en données (`GameIR`), une empreinte en quatre hachages que le build
+scelle et que le menu pause affiche, un texte canonique par valeur (un script le compare dans trois navigateurs, pas encore en CI), des objectifs et un
+journal de quêtes, les formulaires du Studio et la référence du DSL générés depuis les schémas, le DSL stabilisé. Sur
+la scène et le journal sémantique de la 4.1.11, le Bridge durable de la 4.1.10, les connecteurs de la 4.1.9 et la
+fondation de la 4.1.8. De la 4.1.1 à la 4.1.7 chaque
 release n'a ajouté que de l'optionnel, et un jeu écrit pour l'une tournait sur la suivante ; depuis la 4.1.8 la lignée
 4.1.x est une lignée d'incubation, où une release peut rompre un nom public ou un format, documenté et avec une
 migration, jusqu'à la 4.2.0 qui rétablit le SemVer strict ([SUPPORT](docs/fr/SUPPORT.md)). L'histoire de la v1.3 à

@@ -85,6 +85,14 @@ commandes personnalisées sont du code de confiance, pas des données isolées. 
   que `npm run replay` rejoue) et **Replay…** en charge une : le moteur la joue en silence, le jeu se pose là où elle
   finit, un curseur parcourt les entrées (en toucher une y pose le jeu), et une divergence avec l'enregistrement est
   signalée.
+- **Language** (4.1.12) : le jeu tel que le voient les outils. D'abord ses **objectifs** (ADR 0014) : id, titre,
+  condition, parent, optionnel, et le `fichier:ligne` qui écrit chacun ; **Edit** et **+ objective** ouvrent un
+  formulaire généré depuis le schéma d'un objectif (`src/studio/forms-gen.ts` : chaque champ avec sa description, l'id
+  du parent avec les objectifs du jeu en suggestions, la condition avec l'éditeur du DSL). **Preview the change**
+  montre le diff du fichier du jeu, **Apply** l'écrit (validé par le serveur, repris s'il ajoute une erreur), le bouton
+  Undo de l'en-tête le reprend ; un problème est nommé par fichier, id et champ avant tout envoi, et les erreurs du
+  validateur après. Puis l'IR (`npm run ir`) : salles, entités, règles, sujets, écouteurs et scripts, chacun avec
+  l'endroit qui l'écrit, et l'IR entière en JSON.
 - **Notes** : le journal partagé (`games/<id>/notes.json`), une entrée par auteur (« you », ou le nom de l'IA), à
   propos d'un id de case, d'un id de lieu, de `lieu.entité`, ou de n'importe quoi (vide : général). Le journal
   entier, le plus récent d'abord, groupé par `about` (lieu / case / entité étiquetés, avec « Open in Rooms » /
@@ -160,6 +168,8 @@ capture d'écran indisponible).
 | POST `lint` | `{ prove? }` → `{ lint, markdown, mode, ms }` : le lint de contenu après une passe du solveur (`src/engine/tools/lint.ts` ; `prove` : la recherche exhaustive d'abord) |
 | POST `solve` | `{ from?: checkpoint }` → `{ finished, states, truncated, path, roomsReached, unlockedReached, flagsReached, itemsNeverUsed, unusedItems, deadEnds: [{ room, inventory, path }], errors, from, ms, profile }` (400 pour un checkpoint inconnu) ; `profile` est le `SolveProfile` de `src/engine/tools/solve.ts` |
 | POST `screenshot` | `{ room, checkpoint? }` → `{ file, url }` : un PNG du lieu (overlays de l'éditeur masqués) sous `.cache/studio/<game>-<room>[-<checkpoint>].png`, servi à `url` (`GET screenshots/<name>.png`). 501 `{ unavailable: true, reason, error }` si Playwright ou son Chromium est manquant |
+| PUT `room/@game/value` | comme `set_value` pour le `defineGame({...})` du fichier du jeu (4.1.12), objectifs seulement : `objectives`, `objectives.<id>` ou un de ses champs ; tout autre chemin est un 400 |
+| GET `ir` | l'IR du jeu (4.1.12, `docs/fr/DSL.md`) : sa logique en données avec le `fichier:ligne` de chaque id (`provenance`) et l'empreinte des extensions de confiance ; le même JSON que `npm run ir -- --json` |
 | GET `events` | évènements envoyés par le serveur (SSE) : `{ type: 'hello', game }` à la connexion, puis `{ type: 'changed', file }` quand un fichier du dossier du jeu change sur le disque (`file` relatif à ce dossier, ex. `rooms/house.ts` ; les dotfiles et `private/` sont ignorés ; anti-rebond de 150 ms par fichier) |
 
 Les mêmes opérations existent comme de simples fonctions dans `tools/studio/core.ts`, utilisées par le plugin Vite,

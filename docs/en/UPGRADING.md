@@ -332,3 +332,20 @@ events is exported with `journalTruncated: true` and no journal); `npm run valid
 mask polygon closes no surface (collinear points, crossing edges) or whose room has a walk zone no link joins, where
 4.1.10 accepted it: fix the layout in the Studio's Rooms tab (layers, masks, zones, portals) or by hand. The first
 visit's JavaScript is 122 KB gzipped (120 in 4.1.10).
+## 24. From 4.1.11 to 4.1.12 "Language"
+
+No authoring format changes: `web-scumm migrate --check` finds the bundled games and the template up to date
+(`tests/migrate-official.test.ts`; a 4.1.11 project has nothing to migrate either), and a 4.1.11 save loads unchanged (objectives completed are not part of the save: what holds when it loads
+counts as done). What is new is additive. A game may declare `objectives` (ADR 0014, CONTENT_GUIDE "Objectives and
+the quest journal"): the pause menu lists them, the semantic journal says `objectiveCompleted`, `npm run solve --
+--goal=100%` reaches them, the validator refuses one that can never complete. A host that subscribes to
+`Engine.journal` sees that kind for such a game. The pause menu has a fingerprint row in every game (`ui.fingerprint`,
+English default "Build"): a game whose release language is not English adds that key, and `ui.objectives` when it
+declares objectives, to its `ui` and its tables (`npm run i18n -- status` lists the keys left to the English
+defaults). `web-scumm/content` gains `compileIR`, `canonicalJson`, `provenanceOf`, `logicView`, `completionGoal` and
+the IR's types; `web-scumm/testing` gains `fingerprint`, `fingerprintGame`, `presentationOf`, `hashSources`,
+`sha256Hex`, `shortFingerprint`; MCP gains `get_ir`, and `set_value` writes objectives with `id: "@game"`. A build now
+ships `site.json` (the game's own with the trusted extensions' hash and the engine's version), which `npm run
+verify:dist` expects. The solver's proof cache is keyed by `canonicalJson`: entries of 4.1.11 are not reused, the next
+run fills it again. The DSL is stabilised (D22, `docs/dev/DSL-STABILITY.md`): from here a change to a stable name or
+meaning ships with its migration.

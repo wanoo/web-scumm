@@ -10,6 +10,7 @@ import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import { GAME, GAME_DIR, PROJECT, WORK } from '../game';
 import { writeSnapshot } from '../studio/snapshot';
+import { engineVersion, trustedExtensionsHash } from '../extensions';
 import { authorizeStudioRequest } from '../studio/security';
 
 /** A path next to the engine's pages (index.html, studio.html), wherever it is installed. */
@@ -95,6 +96,10 @@ export function studioDemo(): Plugin {
  * the repository, so Vite copies the other games' assets too: `tools/dist.ts seal` removes them and writes
  * dist/licenses/ (the engine and asset licences, the credits, the notices of the packages the bundle took code from,
  * listed here from the chunks' modules, and the assets manifest). `npm run verify:dist` then checks every file.
+ * It also writes `site.json` (4.1.12, ADR 0013): the game's `site.json` with the build's `trustedExtensions` (the hash of
+ * the game's code beside its content, `tools/extensions.ts`) and the engine's version, the two parts of the game's
+ * fingerprint a player's copy cannot compute from the content; the player receives the same values as
+ * `__TRUSTED_EXTENSIONS__` and `__ENGINE_VERSION__` (vite.config.ts).
  */
 export function sealBuild(): Plugin {
   let outDir = 'dist';
@@ -106,6 +111,17 @@ export function sealBuild(): Plugin {
       outDir = resolve(c.root, c.build.outDir);
     },
     generateBundle(_o, bundle) {
+      let site: Record<string, unknown> = {};
+      try {
+        site = JSON.parse(readFileSync(resolve(GAME_DIR, 'site.json'), 'utf8'));
+      } catch {
+        /* no site.json: the fingerprint's parts alone */
+      }
+      this.emitFile({
+        type: 'asset',
+        fileName: 'site.json',
+        source: `${JSON.stringify({ ...site, trustedExtensions: trustedExtensionsHash(GAME_DIR), engine: engineVersion() }, null, 2)}\n`,
+      });
       for (const chunk of Object.values(bundle)) {
         if (chunk.type !== 'chunk') continue;
         for (const id of chunk.moduleIds) {

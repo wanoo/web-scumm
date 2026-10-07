@@ -611,6 +611,25 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.1.12 "Language" (shipped 7 October 2026): the game as data, its fingerprint, its objectives
+
+The programme's fifth release. `compileIR` turns a compiled game into its logic as plain data (rooms, entities, rules,
+scripts, objectives, Reality policies, the trusted extensions by name, a variant slot reserved for 4.1.15),
+deterministic, with the `file:line` that writes each id; every field of a game, a room and an entity is classified
+logic, presentation, both or tooling in one table the compiler checks (ADR 0013); the runtime keeps reading the
+compiled game, the IR is a projection. The fingerprint is four SHA-256 computed with WebCrypto: `logic`,
+`trustedExtensions` (the game's code, hashed by the build into `site.json`), `presentation`, `engine`; a rule changed
+moves `logic` only, a decor `presentation` only. `canonicalJson` (NFC, sorted keys, no `-0`, big integers as decimal
+strings, anything lossy refused) is one function for the fingerprint, the proof cache and, from 4.1.14, the speedrun
+envelope, held to fifty edge values in Node; `npm run e2e:canonical` compares them in Chromium, WebKit and Firefox, written in this lot and not yet in CI. Objectives
+(ADR 0014) are the one primitive admitted: `objectives` in a game, the pause menu's quest journal,
+`objectiveCompleted` in the semantic journal once and never again, `npm run solve -- --goal=100%`, the validator's
+refusals; every other candidate of the programme is refused with its proof in `docs/dev/DSL-STABILITY.md`. The Studio
+generates its forms from the schemas and writes objectives with a previewed diff and Undo; MCP gains `get_ir`; the
+DSL's reference (`docs/en/DSL.md`, fr) is generated from the schemas and held by a test. D22: the DSL and the IR are
+stabilised here, frozen after Remix. Left for later, said as such: `e2e:canonical` in CI's rows, the Studio's demo
+mode writing objectives, `IrVariantSlot` filled by 4.1.15.
+
 ## v4.1.11 "Viewport" (shipped 7 October 2026): the rendering behind a scene frame, the journal in the core
 
 The programme's fourth release, the second with a release candidate (`v4.1.11-rc.1`, then `v4.1.11` on the same
@@ -682,7 +701,7 @@ release (D12); the next version opens only when the current one's blockers are c
 | 4.1.9 | **Gateways** (shipped 7 October 2026) | email, SSH, Telnet and Open Badges connectors on one SDK, out of the player, experimental until a real pass |
 | 4.1.10 | **Constellation** (shipped 7 October 2026) | a durable Bridge, replicated and isolated by tenant; the signal may become `SignalV2` if the threat analysis asks |
 | 4.1.11 | **Viewport** (shipped 7 October 2026) | a renderer separate from the game logic, behind an immutable `SceneFrame`; a semantic journal owned by the core |
-| 4.1.12 | **Language** | the DSL and an intermediate representation (`GameIR`, a game fingerprint) shaped by Gateways and Viewport; the core stabilised |
+| 4.1.12 | **Language** (shipped 7 October 2026) | the DSL and an intermediate representation (`GameIR`, a game fingerprint) shaped by Gateways and Viewport; the core stabilised |
 | 4.1.13 | **Proof at Scale** | a documented class of open three-character games proved within published budgets, or named "Solver Research" |
 | 4.1.14 | **Time Attack** | speedrun categories, RTA and logical time, semantic splits, a verifiable proof package, ghosts, LiveSplit and OBS as local tools |
 | 4.1.15 | **Remix** | controlled variance of a game, deterministic by seed, with provable solvability; the DSL frozen after it |

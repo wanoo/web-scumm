@@ -260,6 +260,12 @@ export interface GameDef {
   >;
   /** Conditions that must never become true (the solver reports the path that makes one true). */
   invariants?: Cond[];
+  /**
+   * The player's objectives (4.1.12, ADR 0014): the pause menu's quest journal, the semantic journal's
+   * `objectiveCompleted` (once, the first time `done` holds after an action) and the solver's `--goal=100%` (every
+   * objective that is not `optional`). Keyed by a stable id; `parent` nests a step under another objective.
+   */
+  objectives?: Record<Id, ObjectiveDef>;
   /** Manual save slots (pause menu: save, load, export, import). Absent or 0: autosave only. */
   saves?: { slots: number };
   /**
@@ -324,6 +330,26 @@ export interface GameDef {
   creditsScreen?: { video?: string; decor?: Id };
   /** End credits, line by line (an empty line = a blank space). */
   credits?: string[];
+}
+
+/**
+ * An objective of the game (4.1.12, ADR 0014): its title in the quest journal, the condition that completes it,
+ * whether 100% needs it, and the objective it is a step of.
+ * @public
+ */
+export interface ObjectiveDef {
+  /** What the quest journal shows (translated under `objectives/<id>.title`). */
+  title: string;
+  /**
+   * Done the first time this holds after an action. A condition that stays true once true (a flag set once, an item
+   * kept) reads best: the journal never takes a completed objective back, but a game loaded later sees it open again
+   * if its condition no longer holds then.
+   */
+  done: Cond;
+  /** A side objective: not part of 100% (the solver's `--goal=100%`). */
+  optional?: boolean;
+  /** The objective this one is a step of: the journal shows it under its parent. */
+  parent?: Id;
 }
 
 /** One step of save migration: from version `from` to `from + 1`. Keys are old ids, values new ones. @public */
@@ -434,6 +460,10 @@ export interface UiTexts {
   volumeVoice?: string;
   /** Language row of the settings menu (when the game ships translations). */
   language?: string;
+  /** The pause menu's fingerprint row (4.1.12, ADR 0013): the build a player runs, in four short hashes. English default "Build". */
+  fingerprint?: string;
+  /** The pause menu's quest journal (4.1.12, `GameDef.objectives`). English default "Objectives". */
+  objectives?: string;
   /** Values of text speed / size: slow, normal, fast, large. */
   slow?: string;
   normal?: string;

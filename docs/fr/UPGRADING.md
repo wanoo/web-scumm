@@ -346,3 +346,21 @@ une mise en page dont le polygone de masque d'occlusion ne ferme aucune surface 
 croisent) ou dont une salle a une zone de marche qu'aucun lien ne joint, là où la 4.1.10 l'acceptait : corrigez la
 mise en page dans l'onglet Rooms du Studio (couches, masques, zones, portails) ou à la main. Le JavaScript de la
 première visite pèse 122 Ko gzippés (120 en 4.1.10).
+## 24. De la 4.1.11 à la 4.1.12 « Language »
+
+Aucun format d'écriture ne change : `web-scumm migrate --check` trouve à jour les jeux fournis et le gabarit
+(`tests/migrate-official.test.ts` ; un projet 4.1.11 n'a rien à migrer non plus), et une sauvegarde 4.1.11 se charge telle quelle (les objectifs accomplis ne sont pas dans la sauvegarde : ce
+qui est vrai au chargement compte comme fait). Ce qui est nouveau s'ajoute. Un jeu peut déclarer `objectives`
+(ADR 0014, CONTENT_GUIDE « Objectifs et journal de quêtes ») : le menu pause les liste, le journal sémantique dit
+`objectiveCompleted`, `npm run solve -- --goal=100%` les atteint, le validateur refuse celui qui ne peut jamais
+s'accomplir. Un hôte abonné à `Engine.journal` voit ce genre pour un tel jeu. Le menu pause a une ligne d'empreinte
+dans chaque jeu (`ui.fingerprint`, « Build » par défaut en anglais) : un jeu dont la langue de sortie n'est pas
+l'anglais ajoute cette clé, et `ui.objectives` s'il déclare des objectifs, à son `ui` et à ses tables
+(`npm run i18n -- status` liste les clés laissées aux valeurs anglaises). `web-scumm/content` gagne `compileIR`,
+`canonicalJson`, `provenanceOf`, `logicView`, `completionGoal` et les types de l'IR ; `web-scumm/testing` gagne
+`fingerprint`, `fingerprintGame`, `presentationOf`, `hashSources`, `sha256Hex`, `shortFingerprint` ; MCP gagne
+`get_ir`, et `set_value` écrit les objectifs avec `id: "@game"`. Un build livre désormais `site.json` (celui du jeu,
+avec l'empreinte des extensions de confiance et la version du moteur), que `npm run verify:dist` attend. Le cache de
+preuves du solveur est indexé par `canonicalJson` : les entrées de 4.1.11 ne sont pas reprises, le prochain passage le
+remplit de nouveau. Le DSL est stabilisé (D22, `docs/dev/DSL-STABILITY.md`) : désormais, changer un nom ou un sens
+stable s'accompagne de sa migration.

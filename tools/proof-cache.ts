@@ -16,6 +16,7 @@ import {
 } from 'node:fs';
 import { join, resolve } from 'node:path';
 import type { GameDef, Layout } from '../src/engine/core/types';
+import { canonicalJson } from '../src/engine/core/canonical';
 import { solve, type SolveOptions, type SolveResult } from '../src/engine/tools/solve';
 import { GAME_DIR, ROOT, WORK } from './game';
 
@@ -25,11 +26,16 @@ export const cacheDir = () =>
 /** Files kept: the oldest go first. */
 const KEEP = 300;
 
-/** JSON with sorted keys, functions as their source, undefined dropped: equal inputs give equal text. */
+/**
+ * The canonical text of a question (core/canonical.ts, 4.1.12): functions as their source, a non-finite number by
+ * its name (`maxStates: Infinity`), undefined dropped, the rest as `canonicalJson` writes it. Equal inputs give equal
+ * text, in any key order.
+ */
 export function stableJson(v: unknown): string {
   const seen = new WeakSet<object>();
   const walk = (x: unknown): unknown => {
     if (typeof x === 'function') return `fn:${x.toString()}`;
+    if (typeof x === 'number' && !Number.isFinite(x)) return `num:${x}`;
     if (x === null || typeof x !== 'object') return x;
     if (seen.has(x)) throw new Error('stableJson: a cycle');
     seen.add(x);
@@ -38,13 +44,12 @@ export function stableJson(v: unknown): string {
       : Object.fromEntries(
           Object.entries(x)
             .filter(([, y]) => y !== undefined)
-            .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
             .map(([k, y]) => [k, walk(y)]),
         );
     seen.delete(x);
     return out;
   };
-  return JSON.stringify(walk(v));
+  return canonicalJson(walk(v));
 }
 
 let engine: string | null = null;
