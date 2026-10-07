@@ -102,32 +102,42 @@ for (const t of samples.testcases)
     if (rs && r && j && r.revocation !== j.revocation)
       problems.push(`${tag}: revocation ids differ (JavaScript ${j.revocation}, Rust ${r.revocation})`);
   }
-// The signed signal's conformance corpus: the player's verifier (JavaScript) and the Rust one give each case's verdict.
-const CORPUS = resolve(ROOT, 'tests/fixtures/reality/conformance.json');
-const corpus = JSON.parse(readFileSync(CORPUS, 'utf8')) as {
-  keys: { kid: string; raw: string; notBefore?: number; notAfter?: number }[];
-  expect: { gameId: string; playerId: string; signals: string[]; now: number };
-  cases: { name: string; jws: string; verdict: string; expect?: { now?: number } }[];
+// The signed signal's conformance corpora (V1, and SignalV2 since 4.1.10): the player's verifier (JavaScript) and the
+// Rust one give each case's verdict. A case's `expect` overrides the file's; a field set to null is left out.
+type Corpus = {
+  keys: { kid: string; raw: string; notBefore?: number; notAfter?: number; tenantId?: string }[];
+  expect: Record<string, unknown> & { signals: string[] };
+  cases: { name: string; jws: string; verdict: string; expect?: Record<string, unknown> }[];
 };
-const keyring = await Promise.all(corpus.keys.map(({ kid, raw, ...w }) => importBridgeKey(kid, raw, w)));
-for (const c of corpus.cases) {
-  const r = await verifySignal(c.jws, keyring, {
-    ...corpus.expect,
-    signals: new Set(corpus.expect.signals),
-    ...c.expect,
-  });
-  const got = r.ok ? 'ok' : r.code;
-  if (got !== c.verdict) problems.push(`signal "${c.name}": JavaScript says ${got}, the corpus ${c.verdict}`);
-}
-if (rs) {
-  const out = execFileSync('cargo', ['run', '--quiet', '--release', '--', 'conformance', CORPUS], {
-    cwd: resolve(ROOT, 'bridge/xcheck'),
-    encoding: 'utf8',
-  });
-  for (const l of out.trim().split('\n')) {
-    const r = JSON.parse(l) as { name: string; verdict: string };
-    const want = corpus.cases.find((c) => c.name === r.name)?.verdict;
-    if (r.verdict !== want) problems.push(`signal "${r.name}": Rust says ${r.verdict}, the corpus ${want}`);
+const CORPORA = [
+  resolve(ROOT, 'tests/fixtures/reality/conformance.json'),
+  resolve(ROOT, 'bridge/test-vectors/signal-v2/conformance.json'),
+];
+let signalCases = 0;
+for (const file of CORPORA) {
+  const corpus = JSON.parse(readFileSync(file, 'utf8')) as Corpus;
+  signalCases += corpus.cases.length;
+  const keyring = await Promise.all(corpus.keys.map(({ kid, raw, ...w }) => importBridgeKey(kid, raw, w)));
+  for (const c of corpus.cases) {
+    const e: Record<string, unknown> = { ...corpus.expect, ...c.expect };
+    for (const [k, v] of Object.entries(e)) if (v === null) delete e[k];
+    const r = await verifySignal(c.jws, keyring, {
+      ...(e as unknown as Parameters<typeof verifySignal>[2]),
+      signals: new Set(corpus.expect.signals),
+    });
+    const got = r.ok ? 'ok' : r.code;
+    if (got !== c.verdict) problems.push(`signal "${c.name}": JavaScript says ${got}, the corpus ${c.verdict}`);
+  }
+  if (rs) {
+    const out = execFileSync('cargo', ['run', '--quiet', '--release', '--', 'conformance', file], {
+      cwd: resolve(ROOT, 'bridge/xcheck'),
+      encoding: 'utf8',
+    });
+    for (const l of out.trim().split('\n')) {
+      const r = JSON.parse(l) as { name: string; verdict: string };
+      const want = corpus.cases.find((c) => c.name === r.name)?.verdict;
+      if (r.verdict !== want) problems.push(`signal "${r.name}": Rust says ${r.verdict}, the corpus ${want}`);
+    }
   }
 }
 
@@ -163,6 +173,6 @@ const fail = problems.length > 0 || (!rs && process.argv.includes('--require-rus
 console.log(
   fail
     ? `✖  cross-check: ${problems.length} difference(s)`
-    : `✔  cross-check: Biscuit's ${checked} validations, the signal's ${corpus.cases.length} cases and the policy's ${policy.cases.length}, the expected verdict in JavaScript${rs ? ' and in Rust' : ''}`,
+    : `✔  cross-check: Biscuit's ${checked} validations, the signal's ${signalCases} cases and the policy's ${policy.cases.length}, the expected verdict in JavaScript${rs ? ' and in Rust' : ''}`,
 );
 await flushExit(fail ? 1 : 0);

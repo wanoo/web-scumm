@@ -28,9 +28,19 @@ export const SETS = {
     'connectors/src/badges/crypto.ts',
     'connectors/src/badges/fetch.ts',
   ],
+  // The Bridge's stores and its fan-out (4.1.10, ADR 0009): measured, not gated yet. The `reality` set would double
+  // with them (docs/dev/plans/4.1.10-constellation.md §6); its survivors are read and named or killed before the set
+  // joins `GATED`.
+  'reality-store': [
+    'bridge/src/store-memory.ts',
+    'bridge/src/store-sql.ts',
+    'bridge/src/store-sqlite.ts',
+    'bridge/src/migrations.ts',
+    'bridge/src/streams.ts',
+    'bridge/src/sign.ts',
+  ],
 };
 export type MutationSet = keyof typeof SETS;
-
 /** The tests a set's mutants are judged by (vitest `include` globs). */
 export const TESTS: Record<MutationSet, string[]> = {
   core: [
@@ -49,9 +59,10 @@ export const TESTS: Record<MutationSet, string[]> = {
   ],
   reality: ['tests/reality-*.test.ts', 'tests/bridge*.test.ts'],
   connectors: ['tests/connectors-*.test.ts'],
+  'reality-store': ['tests/bridge-reality-store.test.ts', 'tests/bridge-fanout.test.ts', 'tests/bridge.test.ts'],
 };
 
-/** The sets `all` runs and the gate judges; `connectors` runs on its own until it is gated. */
+/** The sets `all` runs and the gate judges; `connectors` and `reality-store` run on their own until they are gated. */
 const GATED: MutationSet[] = ['core', 'reality'];
 
 export const setsOf = (set: MutationSet | 'all'): MutationSet[] => (set === 'all' ? GATED : [set]);

@@ -42,7 +42,8 @@
   "ignoreDependencies": [
     "@tweakpane/core",
     "cpu-features",
-    "nan"
+    "nan",
+    "pg"
   ],
   "ignoreBinaries": [
     "ffmpeg",
