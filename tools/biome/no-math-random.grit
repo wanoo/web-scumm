@@ -1,0 +1,1 @@
+`Math.random` as $r where { register_diagnostic(span=$r, message="Math.random is forbidden in src/engine/core: draw from core/prng.ts (ADR 0016, ADR 0018: the same world on every runtime)") }

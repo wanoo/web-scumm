@@ -1,5 +1,7 @@
 // A game and its rooms: the room, the map, the rules, the ending, the skin, the game itself, its migrations and its interface texts. (core/types.ts re-exports every name; 4.1.0 "Clarity".)
 import type { AudioDef } from './audio';
+import type { AnchorDef, VariationManifest } from '../remix/manifest';
+import type { WorldVariant } from '../remix/compile';
 import type { RealityDef } from './reality';
 import type {
   ActorDef,
@@ -67,6 +69,11 @@ export interface RoomDef {
   stage?: StageDef;
   /** Which painter draws this room (D10): `dom` (the reference) or `canvas`; default `GameDef.renderer`, else `dom`. */
   renderer?: 'dom' | 'canvas';
+  /**
+   * Tagged spots where Remix may place an item (4.1.15, ADR 0018): `at` the prop or hotspot it stands on, `visible`,
+   * `reachableBy` (never a condition that needs the item placed there), `capacity` (default 1), `phase`.
+   */
+  anchors?: Record<Id, AnchorDef>;
   /** Narrator voice for the room, for offscreen comments. */
 }
 
@@ -266,6 +273,16 @@ export interface GameDef {
    * objective that is not `optional`). Keyed by a stable id; `parent` nests a step under another objective.
    */
   objectives?: Record<Id, ObjectiveDef>;
+  /**
+   * What may vary between two games of this one (4.1.15 "Remix", ADR 0018): dimensions with finite domains and story
+   * values, constraints, modes (`story`, `remix`, `daily`…) with their strategy (D25). Absent: one world, the story.
+   */
+  remix?: VariationManifest;
+  /**
+   * The world instance this game is (set by `applyVariant`, never written by an author): what a save, a session and a
+   * speedrun envelope record so that a load, a replay and a verifier rebuild the same world.
+   */
+  variant?: WorldVariant;
   /** Manual save slots (pause menu: save, load, export, import). Absent or 0: autosave only. */
   saves?: { slots: number };
   /**

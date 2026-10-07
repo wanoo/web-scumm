@@ -5,6 +5,7 @@ import { rendererOf, stageOf } from '../core/stage';
 import { stageLayoutChecks } from './validate-stage';
 import { migrationChecks } from './validate/migrations';
 import { objectiveChecks } from './validate/objectives';
+import { remixChecks } from './validate/remix';
 import { listId, listText } from '../core/list-lines';
 import { condFlags } from '../core/cond';
 import { subLists } from '../core/cmds';
@@ -1090,12 +1091,10 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     }
   }
 
-  // Events and scripts
   for (const [id, where] of scriptRefs) if (!scriptIds.has(id)) err(where, `unknown script: "${id}"`);
   eventChecks(game, { emitted, listened, waited }, err, warn);
   objectiveChecks(game, { cond, err, warn, commands: opts.commands });
-
-  // Flags
+  remixChecks(game, { err, warn, flagsSet, flagsRead });
   for (const [f, where] of flagsRead) if (!flagsSet.has(f)) warn(where, `flag "${f}" is read but never set`);
   // A decorative flag kept on purpose: `lint.ignore` names it (`flag-never-read` or `flag-never-read:<flag>`), like the lint's codes.
   const ignored = new Set(game.lint?.ignore ?? []);

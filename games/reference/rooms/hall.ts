@@ -25,6 +25,27 @@ export default defineRoom({
           { id: 'hall.neighbor.what-does-the-festival.c-where-is-a-lamp', text: 'Where is a lamp?', do: [{ id: 'hall.neighbor.what-does-the-festival.c-where-is-a-lamp.l-there-was-an-old', say: ['neighbor', 'There was an old one on Grandma\'s garden wall.'] }] },
         ] },
       ] },
+      // Remix (4.1.15, `festival-order`): in a world where the board comes first, Lou hands it over before the lights.
+      { id: 'hall.neighbor.can-i-have-the-board', topic: 'Can I have the board now?', if: { all: [{ flag: 'remix.festival-order.board', eq: 0 }, '!board_given'] }, do: [
+        { id: 'hall.neighbor.can-i-have-the-board.l-board-first-this', say: ['neighbor', 'Board first this year! The lights can wait. Hang it behind the tiled booth.'] },
+        { gain: 'board' }, { set: 'board_given' },
+      ] },
+      // Remix (`festival-password`): the password is Grandma's riddle; its answer and its riddle are drawn together.
+      { id: 'hall.neighbor.i-know-the-password', topic: 'I know the festival password!', if: '!password_ok', do: [
+        { id: 'hall.neighbor.i-know-the-password.l-go-on-then', say: ['neighbor', 'Go on then. Three digits.'] },
+        { choice: [
+          { id: 'hall.neighbor.i-know-the-password.c-317', text: '317', do: [{ if: { not: { any: [{ flag: 'remix.festival-password', eq: '542' }, { flag: 'remix.festival-password', eq: '868' }] } }, then: [{ set: 'password_ok' }] }] },
+          { id: 'hall.neighbor.i-know-the-password.c-542', text: '542', do: [{ if: { flag: 'remix.festival-password', eq: '542' }, then: [{ set: 'password_ok' }] }] },
+          { id: 'hall.neighbor.i-know-the-password.c-868', text: '868', do: [{ if: { flag: 'remix.festival-password', eq: '868' }, then: [{ set: 'password_ok' }] }] },
+        ] },
+        { if: 'password_ok', then: [
+          { pose: ['neighbor', 'thumbs'] },
+          { id: 'hall.neighbor.i-know-the-password.l-code-right', say: ['neighbor', '{code:festival-password}! Right. You are on the festival crew, Pixel.'] },
+          { pose: ['neighbor', 'idle'] },
+        ], else: [
+          { id: 'hall.neighbor.i-know-the-password.l-not-that-one', say: ['neighbor', 'Not that one. Grandma knows my riddle.'] },
+        ] },
+      ] },
       { id: 'hall.neighbor.the-lights-are-back', topic: 'The lights are back!', if: { all: ['lights_on', '!board_given'] }, do: [
         { pose: ['neighbor', 'celebrate'] },
         { id: 'hall.neighbor.the-lights-are-back.l-i-saw-here-the', say: ['neighbor', 'I saw! Here, the board. Hang it on the stage, behind the tiled booth.'] },

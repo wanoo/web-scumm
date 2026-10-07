@@ -22,6 +22,8 @@ import type {
   VerbId,
 } from './types';
 import type { CompiledGame } from './define';
+import type { AnchorDef } from './remix/manifest';
+import type { WorldVariant } from './remix/compile';
 
 /** The IR's schema: 1 since 4.1.12. A field added is additive; a field's meaning never changes within a schema. */
 export const IR_SCHEMA_VERSION = 1;
@@ -57,6 +59,8 @@ export interface IrRoom {
   walkLinks: readonly { id: Id; if?: Cond; locked?: string }[];
   /** The keys of its props, actors and hotspots (`<room>.<id>`), in content order. */
   entities: readonly string[];
+  /** Its tagged spots where Remix may place an item (4.1.15, `RoomDef.anchors`). */
+  anchors?: Readonly<Record<Id, AnchorDef>>;
 }
 
 /** A thing of the game: a prop, an actor or a hotspot of a room, an item, a character. @public */
@@ -140,11 +144,16 @@ export interface IrExtensions {
   plugins: readonly string[];
 }
 
-/** Reserved for 4.1.15 "Remix": a world variant of the story. Nothing produces one in 4.1.12. @public */
+/**
+ * A world variant of the story (4.1.15 "Remix", ADR 0018): filled when the game was compiled from an instance
+ * (`applyVariant`): `id` is the variant's hash, `manifest` the game's `VariationManifest`, `variant` the instance.
+ * @public
+ */
 export interface IrVariantSlot {
   mode: 'variant';
   id: Id;
   manifest: Readonly<Record<string, unknown>>;
+  variant?: WorldVariant;
 }
 
 /** The game's world: its hero and players, verbs, start, map, checkpoints, invariants, saves. @public */
@@ -328,6 +337,7 @@ export function compileIR(game: CompiledGame, o: CompileIROptions): GameIR {
         ),
         walkLinks: Object.entries(r.stage?.links ?? {}).map(([id, l]) => defined({ id, if: l.if, locked: l.locked })),
         entities: keys,
+        anchors: r.anchors,
       }),
     );
     (r.on ?? []).forEach((x, i) => rules.push(ruleOf(r.id, x, i)));
@@ -455,7 +465,14 @@ export function compileIR(game: CompiledGame, o: CompileIROptions): GameIR {
       minigames: [...(ext.minigames ?? [])].sort(),
       plugins: [...(ext.plugins ?? [])].sort(),
     },
-    variant: { mode: 'story' },
+    variant: game.variant
+      ? {
+          mode: 'variant',
+          id: game.variant.hash,
+          manifest: (game.remix ?? {}) as unknown as Record<string, unknown>,
+          variant: game.variant,
+        }
+      : { mode: 'story' },
     provenance: {},
   };
   if (o.sources) ir.provenance = provenanceOf(ir, o.sources);
