@@ -17,8 +17,8 @@ concurrency:
 # gates, the build, the baseline) and `coverage` (the unit suite, once). The second tier needs `check` and runs only
 # what the change can break, as `plan` (tools/ci-plan.ts) classifies the diff: a job it spares still runs, says "not
 # needed by the plan" and succeeds, because the ruleset requires each job by name and a skipped job is not a success.
-# On main, on a tag and on a pull request labelled `full-ci`: everything. The third tier (mutation on main and
-# `full-ci`, the nightly corpus and heavy proofs, release-check) is unchanged. `pr-gate` reads every job's result: the
+# On main, on a tag and on a pull request labelled `full-ci`: everything. The third tier (mutation on a `full-ci`
+# pull request, the nightly corpus and heavy proofs, release-check) runs off the pull request path. `pr-gate` reads every job's result: the
 # candidate single required check, once a few runs have been green.
 jobs:
   plan:
@@ -144,9 +144,10 @@ jobs:
   # test, or named in docs/dev/mutants.json. The verdict depends on the sources, the tests, the configurations and the
   # lockfile, hashed by `--hash`: a cache keyed by that hash carries the report to the next commit that changes none of
   # them (docs, a version), and to the release, which reuses it instead of running the sets again.
-  # Both sets, cached by the hash of their inputs: on main and on a pull request labelled `full-ci` only. On an ordinary
-  # pull request the sets would run for an hour whenever the core or Reality moved (7 October 2026: 90 then 52 min);
-  # the nightly and release-check measure them, and release-check reuses a report of the same inputs.
+  # Both sets, cached by the hash of their inputs: on a pull request labelled `full-ci` only. On an ordinary pull
+  # request the sets would run for an hour whenever the core or Reality moved (7 October 2026: 90 then 52 min); the
+  # nightly and release-check measure them. release-check reuses a report of the same inputs when a `full-ci` run
+  # (or the nightly, which writes the same cache) left one; without it, the release pays the hour.
   mutation:
     # Not on a push to main either (4.1.9, lot 0): a main run must stay short, since the release chain waits for the run
     # of the exact commit it tags and a later merge cancels a run still going. The nightly and release-check measure.
@@ -708,7 +709,7 @@ jobs:
       - name: Every job succeeded
         env:
           NEEDS: ${{ toJSON(needs) }}
-          MUTATION: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci') }}
+          MUTATION: ${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'full-ci') }}
         run: |
           bad=0
           for row in $(echo "$NEEDS" | jq -r 'to_entries[] | "\(.key)=\(.value.result)"'); do

@@ -12,4 +12,5 @@
   `full-ci` label, everything runs as before; a new `pr-gate` job sums every result up, the candidate single required
   check (`CONTRIBUTING.md`, "What CI runs"; `docs/en/SUPPORT.md` says what a pull request no longer checks). The `mutation` job no longer runs on a push to `main` either: a main run must stay short, since the release
   chain waits for the run of the exact commit it tags and a later merge cancels one still going; the nightly and
-  `release-check` measure the sets, a `full-ci` label on a pull request too.
+  `release-check` measure the sets, a `full-ci` label on a pull request too. The Firefox PWA job now plays the same build as the Chromium and WebKit PWA rows (the Studio demo included),
+  from the shared artefact.

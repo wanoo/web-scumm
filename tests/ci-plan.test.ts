@@ -176,3 +176,17 @@ describe('ci.yml and the plan', () => {
     expect(needs?.sort()).toEqual(ids.sort());
   });
 });
+
+describe('the workflow, lot 0 details', () => {
+  const yml = readFileSync('.github/workflows/ci.yml', 'utf8');
+  it("pr-gate tolerates a skipped mutation exactly when the mutation job's own `if` is false", () => {
+    const cond = "github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'full-ci')";
+    expect(yml).toContain(`    if: ${cond}`);
+    expect(yml).toContain(`MUTATION: \${{ ${cond} }}`);
+  });
+  it('the plan job reads two commits and diffs against HEAD^1, everything on main, a tag or a full-ci label', () => {
+    expect(yml).toMatch(/fetch-depth: 2/);
+    expect(yml).toContain('--base=HEAD^1');
+    expect(yml).toMatch(/--all/);
+  });
+});
