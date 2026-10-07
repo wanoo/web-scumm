@@ -2380,7 +2380,13 @@ Platform"; human gates reported, not blocking (D12).
   child's code. The `windows` CI job (`windows-latest`, bash shell): `npm ci`, Chromium, `doctor`, `check` (the
   junction `select-game` makes on Windows, tsc 7, the unit suite), `build`, `start` on a port and two `curl`s. Said
   as a job that reports until the maintainer adds it to the ruleset's required checks.
+- The second reading's findings, taken: `sirv-cli` exports only its package.json, so the command is found from it
+  (probed: page and manifest 200); five tests spawned `npx tsx`, which Node cannot run on Windows without a shell,
+  and run tsx's entry with this Node now (`tests/run-tool.ts`); `check` then `build:game` (not `build`, which runs
+  `check` again); a `trap` ends the server on the failure path; `check-spoilers` imports the ending's configuration
+  by file URL (a Windows path is read as a URL scheme); `audit-assets` skips folders by `basename` (backslashes);
+  `.gitattributes` keeps every text file LF on a Windows checkout.
 - Not done, said as such: `npm run dev` and the Studio on Windows stay people's passes (SUPPORT's matrix says so);
-  Python is not installed on that runner, so the assets are not rebuilt there.
+  the runner's Python is not asked to rebuild the assets there.
 
 → next: Claude · `feature/418-pwa-e2e`

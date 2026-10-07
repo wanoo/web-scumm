@@ -1,12 +1,12 @@
 // The persistent proof cache (tools/proof-cache.ts): the same engine, game sources, game and options give the same
 // key and the earlier result; anything else is a new run. Never a different verdict, only a faster one.
-import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { insults, insultsLayouts } from './fixtures/classics';
 import { cachedSolve, proofKey, stableJson } from '../tools/proof-cache';
+import { runTool } from './run-tool';
 
 const dir = mkdtempSync(join(tmpdir(), 'proofs-'));
 process.env.PROOF_CACHE_DIR = dir;
@@ -53,8 +53,7 @@ describe('the proof cache', () => {
   it('npm run solve says when it answers from the cache, and --no-cache runs again', () => {
     const run = (...a: string[]) =>
       JSON.parse(
-        spawnSync('npx', ['tsx', 'tools/solve.ts', '--json', ...a], {
-          encoding: 'utf8',
+        runTool(['tools/solve.ts', '--json', ...a], {
           env: { ...process.env, GAME: 'demo', PROOF_CACHE_DIR: dir },
         })
           .stdout.trim()

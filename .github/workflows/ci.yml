@@ -179,15 +179,17 @@ jobs:
       - run: for i in 1 2 3; do (npx playwright install chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
       - run: npm run doctor
+      # `check` (the junction, the type checks, the unit suite), then the game's gates and the build: `build` would run
+      # `check` a second time.
       - run: npm run check
-      - run: npm run build
+      - run: npm run build:game
       - name: The production server answers
         run: |
-          PORT=5191 node scripts/start.mjs &
+          PORT=5191 node scripts/start.mjs > server.log 2>&1 &
+          trap 'kill %1 2>/dev/null || true' EXIT
           for i in $(seq 1 30); do curl -fs http://127.0.0.1:5191/ >/dev/null && break; sleep 1; done
-          curl -fs http://127.0.0.1:5191/ | grep -q '<html' || { echo "::error::no page from the production server"; exit 1; }
+          curl -fs http://127.0.0.1:5191/ | grep -q '<html' || { echo "::error::no page from the production server"; cat server.log; exit 1; }
           curl -fs http://127.0.0.1:5191/manifest.webmanifest >/dev/null
-          kill %1
   # A second game, as `npm run new-game` makes it: every gate the sample game passes (check, verify:game, prove:game,
   # the build, the production e2e with axe and saves), without a single test written for it. A gate since 3.2.
   second-game:
