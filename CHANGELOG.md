@@ -16,6 +16,11 @@
 
 ### Changes
 
+- **Windows in CI** (4.1.8). A `windows-latest` job runs the doctor, the type checks and the unit suite (six test
+  files that assume POSIX left out, named in the workflow: file modes, `/` in paths), builds the sample game and asks
+  the production server for a page; `npm start` is a Node launcher (`scripts/start.mjs`) instead
+  of a shell line with a Unix expansion that cmd.exe and PowerShell did not know. The job is reported, not yet among
+  the checks the ruleset requires (the maintainer's).
 - **A release check that predicts the release** (4.1.8). `npm run doctor -- --release` requires every prerequisite
   `release-check` runs (Python and its modules, ffmpeg, the three browsers), and `release-check` starts with it. The
   packages are made from tracked files only: an untracked file under a shipped root refuses `npm run pack` rather

@@ -1,0 +1,13 @@
+# Text files are LF in the repository and in every checkout (4.1.8): a Windows checkout with core.autocrlf would
+# otherwise read CRLF where tests, hashes and the formatter expect LF.
+* text=auto eol=lf
+*.png binary
+*.webp binary
+*.ttf binary
+*.woff2 binary
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.mp4 binary
+*.webm binary
+*.bin binary

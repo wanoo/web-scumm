@@ -3,8 +3,8 @@
 // through the real CLI (`validate --release`, the first step of `verify:release`).
 import { afterAll, describe, expect, it } from 'vitest';
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
+import { runTool } from './run-tool';
 
 const CLEAN = 'tests/fixtures/release-game';
 const made: string[] = [];
@@ -18,8 +18,7 @@ const variant = (name: string, edit: (dir: string) => void) => {
   return dir;
 };
 const release = (dir: string) =>
-  spawnSync('npx', ['tsx', 'tools/validate.ts', '--release'], {
-    encoding: 'utf8',
+  runTool(['tools/validate.ts', '--release'], {
     env: { ...process.env, GAME: '', GAME_DIR: dir, ASSETS_DIR: join(dir, 'assets') },
   });
 afterAll(() => {
