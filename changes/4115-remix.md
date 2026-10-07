@@ -3,6 +3,8 @@
   (4.1.15)**: the save envelope pulls the world's compiler into the main chunk (the budget, `initialJsKB` 140, holds;
   the lazy chunk for Remix is the next lot's work), and the reference chapter's content moved (the password and the
   wheel are optional puzzles, the seller's round varies): the baseline moved on purpose, every golden save still loads.
+- **The French locales of the two bundled games say « vendeur » where the Remix lines said a word the asset audit
+  blocks (4.1.15)**: `npm run audit:assets` is part of `build:game`, and CI refused the build.
 
 ### Breaking
 
