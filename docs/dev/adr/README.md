@@ -14,3 +14,5 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0007](0007-biscuit-and-signed-events.md) | Biscuit authorises a connector; a signature attests an event (4.1.1) |
 | [0011](0011-scene-frame-intents-journal.md) | A scene frame, intentions and a semantic journal (4.1.11) |
 | [0012](0012-canvas-backend.md) | Canvas 2D stays the complete backend; WebGL/Pixi not measured in 4.1.11 |
+| [0013](0013-game-ir-and-fingerprint.md) | One intermediate representation of a game (GameIR) and its fingerprint (4.1.12) |
+| [0014](0014-objectives.md) | Objectives and the quest journal, the one primitive family admitted in 4.1.12 |
