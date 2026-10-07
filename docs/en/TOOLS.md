@@ -404,7 +404,8 @@ line (4.1.7; a script missing from this page fails `tests/scripts-documented.tes
 | `npm run test:node` | the unit suite without the Python-bound and the CPU-bound tests (`npm run check` runs it; the heavy ones run nightly) |
 | `npm run test:mutation:core [-- --set=core\|reality\|all --file=… --fresh --hash --doc]` | mutation testing of the modules a save, a session, a condition or a signal rest on (`docs/dev/MUTANTS.md`); a report whose input hash (sources, tests, configurations, lockfile) is the current one is reused unless `--fresh`; `--hash` prints that hash (the CI cache's key); `--doc` writes the named survivors' table into MUTANTS.md |
 | `npm run e2e:smoke` | the generic playthrough of the production build (the solver's path replayed by touch) |
-| `npm run e2e:pwa`, `e2e:studio`, `e2e:taps`, `e2e:reality` | the offline cache, the Studio, the default verbs, the Reality Bridge, each in a real browser |
+| `npm run e2e:pwa [-- --serve=dist --update --interrupted --reinstall --allow-skip]` | the PWA in a real browser (`E2E_BROWSER`): installed, the whole game warmed and opened offline; with `--serve=dist` the script serves the build itself and can publish a second one: `--update` (the banner, the save kept, the new worker in charge), `--interrupted` (the worker's fetch fails: no banner, the old one serves), `--reinstall` (worker and caches gone, installed again, the save kept); `--allow-skip` accepts WebKit's offline navigation, which Playwright cannot drive |
+| `npm run e2e:studio`, `e2e:taps`, `e2e:reality` | the Studio, the default verbs, the Reality Bridge, each in a real browser |
 | `npm run migrate` | a game project moved to this release (`web-scumm migrate`; `docs/en/UPGRADING.md`) |
 | `npm run lint:content`, `lint:code` | the content lint alone (`npm run lint` runs it with a solver pass), Biome's lint alone |
 | `npm run format`, `format:check` | Biome's formatting, written or checked (`npm run quality` checks) |

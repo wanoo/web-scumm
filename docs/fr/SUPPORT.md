@@ -48,10 +48,10 @@ Ce que les gates automatiques exécutent à chaque changement, et ce que seules 
 
 | | Vérifié par la CI à chaque changement | Vérifié par des personnes (pas encore fait) |
 |---|---|---|
-| Joueur, téléphone | Chromium et WebKit à la taille d'un téléphone, tactile et clavier, hors ligne (Chromium), français | un vrai téléphone Android, un vrai iPhone, Safari hors ligne sur l'appareil |
+| Joueur, téléphone | Chromium et WebKit à la taille d'un téléphone, tactile et clavier, français ; la PWA installée, mise à jour après une sauvegarde durable, réinstallée, dans Chromium, WebKit et Firefox ; le jeu ouvert hors ligne (Chromium, Firefox) | un vrai téléphone Android, un vrai iPhone installé depuis Safari et mis à jour, Safari hors ligne sur l'appareil |
 | Joueur, bureau | Chromium, souris et clavier | — |
 | Joueur, lecteur d'écran | axe-core sur chaque écran (pas une conformité WCAG) | une passe VoiceOver ou NVDA |
-| Firefox | pas en CI | rien de promis |
+| Firefox | la PWA seulement : installation, mise à jour, réinstallation, hors ligne (`npm run e2e:pwa`, le job `pwa-firefox`) | rien d'autre de promis |
 | Node | 22.12 ou plus : 22 et 24 sur Ubuntu ; macOS pour l'usage quotidien du mainteneur | — |
 | Windows | un job `windows-latest` à chaque changement (4.1.8) : `doctor`, les types, la suite unitaire moins six fichiers qui supposent POSIX (modes de fichier, `/` dans les chemins ; nommés dans `ci.yml`), `build`, le serveur de production qui répond | `npm run dev` et le Studio sous Windows ; les six fichiers de tests, portés |
 | Python | optionnel : les outils d'image et le pipeline audio, Pillow, NumPy, SciPy épinglés dans `requirements.txt` | — |

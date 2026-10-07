@@ -350,10 +350,18 @@ jobs:
         env:
           E2E_BROWSER: ${{ matrix.browser }}
           E2E_OUT: /tmp/e2e-${{ matrix.browser }}/a11y
-      # Chromium proves the offline game (every file of the plan in the cache). WebKit cannot navigate offline under
-      # Playwright: its run reports "skipped", accepted here, never counted as a proof; a person checks Safari offline
-      # before each release (docs/dev/SAFARI-OFFLINE.md, the result in docs/dev/passes/).
+      # The PWA (programme §4.5, since 4.1.8): the offline game (every file of the plan in the cache), the update
+      # (the banner, the save kept, the new worker in charge), an update whose fetch fails (no banner, the old worker
+      # keeps serving) and a reinstall (worker and caches gone, installed again, the save kept); the script serves
+      # the build itself to publish the second one. Chromium and WebKit here, Firefox in its own job below. WebKit
+      # cannot navigate offline under Playwright: that last step reports "skipped", accepted here, never counted as
+      # a proof; a person checks Safari offline before each release (docs/dev/SAFARI-OFFLINE.md, docs/dev/passes/).
+      - run: npm run e2e:pwa -- --serve=dist --update --interrupted --reinstall ${{ matrix.browser == 'webkit' && '--allow-skip' || '' }}
+        if: (matrix.browser == 'chromium' && matrix.mode == 'full') || (matrix.browser == 'webkit' && matrix.mode == 'generic')
+        env:
+          E2E_BROWSER: ${{ matrix.browser }}
       - run: npm run e2e:pwa -- http://127.0.0.1:5173/ ${{ matrix.browser == 'webkit' && '--allow-skip' || '' }}
+        if: "!((matrix.browser == 'chromium' && matrix.mode == 'full') || (matrix.browser == 'webkit' && matrix.mode == 'generic'))"
         env:
           E2E_BROWSER: ${{ matrix.browser }}
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -363,6 +371,25 @@ jobs:
           path: |
             /tmp/e2e-${{ matrix.browser }}
             tests/visual
+  # The PWA in Firefox (4.1.8): install, warm-up, update, interrupted update, reinstall and the offline game, the
+  # same script as the e2e job's; the only Firefox gate (SUPPORT says what the rest of the game claims there: nothing).
+  pwa-firefox:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: for i in 1 2 3; do (npx playwright install --with-deps firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: npm run build:web
+      - run: npm run e2e:pwa -- --serve=dist --update --interrupted --reinstall
+        env:
+          E2E_BROWSER: firefox
   # The engine as another project uses it (3.9): packed, a game created from the template outside the repository,
   # installed from the tarball, verified, built and played to its ending (scripts/fresh-install.mjs).
   fresh-install:
