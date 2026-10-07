@@ -3021,8 +3021,8 @@ Platform"; human gates reported, not blocking (D12).
   CI-only fixes after it, the IR test's POSIX source keys on Windows and Firefox's reinstall cache miss bounded).
   `release/4.1.12` on the lot's branch: the fragment assembled, the version, the golden save `demo-4.1.12.json`
   (26), the READMEs, ROADMAP en/fr, UPGRADING §24 (the lot wrote it as §23; 4.1.11 took that number), the pass
-  sheet, the baseline sheet; the coverage floors raised in the same commit (68 / 67 / 64 / 64, the measure of #46's
-  coverage job) so the tag's strict ratchet holds, the lesson of 4.1.10 and 4.1.11. The CHANGELOG section of 4.1.12
+  sheet, the baseline sheet; the coverage floors raised in the same commit (69 / 68 / 65 / 64, the measure of #46's
+  coverage job on the release commit) so the tag's strict ratchet holds, the lesson of 4.1.10 and 4.1.11. The CHANGELOG section of 4.1.12
   also carries the release-chain entry (#127) whose code shipped on main before 4.1.11's tag; its fragment was
   assembled here.
 - Measured on #46's final run (37615375247): `node-24` 152 files, 1 515 tests (+1 skipped); `coverage` 154 files, 1 532 tests (+1 skipped); the lot's local figures in #126 and
