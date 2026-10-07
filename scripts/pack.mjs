@@ -40,7 +40,8 @@ const RUNTIME_DEV = [
   'vite',
   'vite-plugin-pwa',
   'tsx',
-  'typescript',
+  // The compiler API the tools use (4.1.8): typescript@7 has none, so the package carries typescript6 instead.
+  '@typescript/typescript6',
   '@types/node',
   '@types/howler',
   'tweakpane',

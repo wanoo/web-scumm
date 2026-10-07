@@ -5,7 +5,7 @@ import { execFile } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, isAbsolute, join, relative, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import ts from 'typescript';
+import ts from '@typescript/typescript6';
 import type { Layout, Point } from '../../src/engine/core/types';
 import { validate as validateGame } from '../../src/engine/tools/validate';
 import { normalizeExits } from '../../src/engine/core/define';

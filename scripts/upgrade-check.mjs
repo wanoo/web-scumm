@@ -109,6 +109,9 @@ show(
   ['install', '--no-audit', '--no-fund', join(pack, `web-scumm-${newVersion}.tgz`)],
   game,
 );
+// A project of the previous release has what the new one migrates (4.1.8: a tsconfig with `baseUrl`): `migrate`
+// first, then `--check` says nothing is left; `--check` before a migration exits 1 on purpose.
+show('migrate', 'npx', ['web-scumm', 'migrate'], game);
 show('migrate --check', 'npx', ['web-scumm', 'migrate', '--check'], game);
 show(`assets on ${newVersion}`, 'npx', ['web-scumm', 'assets'], game);
 show(`verify on ${newVersion}`, 'npx', ['web-scumm', 'verify'], game);

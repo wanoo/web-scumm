@@ -24,6 +24,14 @@
   journal (`journal.jsonl.lock` with the owner's pid, created atomically; a lock left by a crash is taken over and
   said, a lock that is not a pid is refused; `compact` takes it too; `serve` ends its streams, closes and then
   releases it on SIGINT and SIGTERM).
+- **TypeScript 7** (4.1.8). The type checks (`npm run check`, `npm run quality`) run on the native compiler, in half a
+  second where 5.9 took ten; `npm run tsc` is its command (the `tsc` bin link belongs to the tools' package, below).
+  `tsconfig.json` and the project `create-web-scumm` writes have no `baseUrl` and relative `paths`, which 7 requires;
+  `web-scumm migrate` rewrites an older project's (`--check` says when). The five tools that use the compiler API
+  (`api-doc`, `ids`, `mutate`, the Studio's source reader and core) import `@typescript/typescript6` (6.0.2, the
+  last line with the API) until 7.1 ships one (`docs/dev/MIGRATION-4.1.8.md`). `src/engine/dom/walk.ts` imports
+  `navmesh`'s named export, not its default: a CommonJS module a bundler following Node's rule hands whole (Vite
+  8's blocker, removed ahead of it).
 
 - **The baseline of 4.1.7, before 4.1.8 touches the toolchain.** `docs/dev/baselines/4.1.7.md` freezes what the
   last release measured (tests, coverage, mutation, bundle and weights, proofs, build and release times, file

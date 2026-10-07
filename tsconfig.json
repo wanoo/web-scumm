@@ -17,21 +17,20 @@
     "isolatedModules": true,
     "noEmit": true,
     "resolveJsonModule": true,
-    "baseUrl": ".",
     "paths": {
       "web-scumm/*": [
-        "src/engine/api/*"
+        "./src/engine/api/*"
       ],
       "@engine/*": [
-        "src/engine/*"
+        "./src/engine/*"
       ],
       "@game": [
-        ".cache/game/index.ts",
-        "games/demo/index.ts"
+        "./.cache/game/index.ts",
+        "./games/demo/index.ts"
       ],
       "@game/*": [
-        ".cache/game/*",
-        "games/demo/*"
+        "./.cache/game/*",
+        "./games/demo/*"
       ]
     },
     "types": [

@@ -2,7 +2,7 @@
 // game, this file only finds the matching object literals and inserts `id: '…'` (or `stepIds: […]` on a script) as
 // their first property, keeping the file's quotes and indentation. Anything that is not a plain literal (a spread, a
 // `.map(...)`, an identifier) is skipped and reported with the id the engine expects, so the author adds it by hand.
-import ts from 'typescript';
+import ts from '@typescript/typescript6';
 import type {
   Cmd,
   EventRule,
