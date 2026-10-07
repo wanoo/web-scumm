@@ -1,11 +1,29 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { differences } from '../tools/quality-baseline';
+import { differences, metricsOf, withMetrics } from '../tools/quality-baseline';
 
 // The baseline of 4.1.0 "Clarity" (tools/quality-baseline.ts): what a behaviour-preserving change must not move.
 const base = () => JSON.parse(readFileSync('tests/quality-baseline.json', 'utf8'));
 
 describe('quality baseline', () => {
+  it("writes the READMEs' figures between their markers, and both READMEs carry them", () => {
+    const b = { ...base(), tests: { files: 1, declarations: 1234 }, bundle: { initialJsKB: 99 } };
+    expect(
+      withMetrics(
+        'a <!-- metric:tests -->1<!-- /metric --> b <!-- metric:initialJsKB -->2<!-- /metric -->',
+        metricsOf(b),
+      ),
+    ).toBe('a <!-- metric:tests -->1234<!-- /metric --> b <!-- metric:initialJsKB -->99<!-- /metric -->');
+    expect(withMetrics('<!-- metric:other -->x<!-- /metric -->', metricsOf(b))).toBe(
+      '<!-- metric:other -->x<!-- /metric -->',
+    );
+    for (const r of ['README.md', 'README.fr.md']) {
+      const page = readFileSync(r, 'utf8');
+      expect(page).toContain('<!-- metric:tests -->');
+      expect(page).toContain('<!-- metric:initialJsKB -->');
+      expect(withMetrics(page, metricsOf(base()))).toBe(page); // the figures are the baseline's
+    }
+  });
   it('names nothing when nothing moved', () => {
     expect(differences(base(), base())).toEqual([]);
   });

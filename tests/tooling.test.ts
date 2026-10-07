@@ -28,9 +28,9 @@ describe('doctor', () => {
     expect(doctorReport(bad).text).toContain('○  Python: not found (optional)');
     const only = collectChecks({ ...probes(true), command: () => ({ ok: false, stdout: '' }) });
     expect(doctorReport(only)).toMatchObject({ failed: 0, optional: 3 });
-    // --release (4.1.8): what release-check runs is required, nothing is optional.
+    // --release (4.1.8): what release-check runs is required; Firefox and WebKit stay optional, it opens no browser.
     const rel = collectChecks(probes(false), { release: true });
-    expect(doctorReport(rel)).toMatchObject({ failed: 6, optional: 0 });
+    expect(doctorReport(rel)).toMatchObject({ failed: 5, optional: 1 }); // WebKit is the one optional browser probed
     expect(collectChecks(probes(true), { release: true }).every((c) => c.ok)).toBe(true);
     expect(doctorReport(only).text).toContain('3 optional ones missing');
   });

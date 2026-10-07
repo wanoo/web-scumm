@@ -17,7 +17,7 @@ Before opening a pull request:
 4. For browser or visual changes, run the production build and `npm run e2e:smoke -- http://127.0.0.1:5173/`; inspect the screenshots.
 5. Never add private source assets or material with unclear commercial rights.
 
-Keep changes small and include a regression test for bug fixes. Public DSL, save and plugin contracts follow SemVer from v3 onward; internal modules are not compatibility promises unless documented otherwise.
+Keep changes small and include a regression test for bug fixes. Public DSL, save and plugin contracts follow SemVer from v3 onward, except on the 4.1.8–4.1.15 incubation line (`docs/en/SUPPORT.md`: a break is documented, with a migration); internal modules are not compatibility promises unless documented otherwise.
 
 ## Reading the code
 

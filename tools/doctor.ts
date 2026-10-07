@@ -1,5 +1,5 @@
 // npm run doctor [-- --release] — actionable prerequisites report. It never installs anything. The checks live in
-// doctor-checks.ts; `--release` requires what `release-check` runs (Python, ffmpeg, the three browsers).
+// doctor-checks.ts; `--release` requires what `release-check` runs (Python and its modules, ffmpeg; no browser).
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { chromium, firefox, webkit } from 'playwright';

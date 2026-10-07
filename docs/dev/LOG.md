@@ -2476,3 +2476,25 @@ Platform"; human gates reported, not blocking (D12).
   (SUPPORT's matrix says so); the runner's Python is not asked to rebuild the assets there.
 
 → next: Claude · `feature/418-pwa-e2e`
+
+## #114 · 2026-10-07 · Claude · proposal · `docs/418-truth`: the contradictions, found by a read-only audit
+
+- A read-only agent read every page against the code, the workflows, the lockfile and the licence files, and ranked
+  ten findings. Taken: MUTANTS.md vs mutants.json (left to PR #32, which regenerates the page from the JSON); the
+  READMEs' 910 tests and 123 KB (now `<!-- metric:tests -->` and `<!-- metric:initialJsKB -->` markers written by
+  `tools/quality-baseline.ts` with the JSON, checked by `--check`, so the figures move with the code; the sentence
+  above the table says "this commit of main", not "the current release"); "1 503 random games" (nightly.yml runs 500
+  seeds × 3 kinds; no file held 1 503); the non-commercial music gone since 3.7 but still excepted in SECURITY.md,
+  TOOLS en/fr and `provenance.ts`'s comment; the "every 4.1.x runs on every later one" promise, bounded to 4.1.7 in
+  the READMEs and CONTRIBUTING (D18); PACKAGE.md en/fr with two packages where `pack.mjs` builds three; CREDITS
+  without zod and without the Biscuit vectors' Apache-2.0; MIGRATION-4.1.8 "8.3.2". Not taken: the MCP tables were
+  said to miss two tools, but `add_note` and `set_storyboard` share their rows with `get_notes` and
+  `get_storyboard` (21 rows, 23 tools: the audit counted rows).
+- `release.yml` installed the three browsers and `doctor --release` required them, yet `release-check` opens none
+  (its browser work is CI's e2e on every change): Firefox and WebKit are optional in release mode too, `release.yml`
+  installs Chromium alone (the doctor's constant requirement), `tests/tooling.test.ts` counts 5 required + 1 optional.
+- `scripts/check-links.mjs` (`npm run docs:links`): 13 external links in 107 files, all reachable; three provider base
+  URLs quoted in STUDIO.md answer 404/421 and are marked as such, not counted; a dev server's address and a URL cut by
+  a placeholder are skipped. The audit's one-shot `curl` pass found the same.
+
+→ next: Claude · `release/4.1.8`

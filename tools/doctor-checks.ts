@@ -17,8 +17,9 @@ export interface Probes {
 }
 
 /**
- * `--release` (4.1.8): what `npm run release-check` needs, Python and its modules, ffmpeg and the three browsers,
- * is required, not optional: the doctor predicts the release instead of smiling at a machine that cannot make it.
+ * `--release` (4.1.8): what `npm run release-check` needs, Python and its modules and ffmpeg, is required, not
+ * optional: the doctor predicts the release instead of smiling at a machine that cannot make it. Firefox and WebKit
+ * stay optional there: release-check opens no browser (the e2e run in CI on every change); Chromium is always required.
  */
 export function collectChecks(p: Probes, o: { release?: boolean } = {}): Check[] {
   const checks: Check[] = [];
@@ -59,8 +60,9 @@ export function collectChecks(p: Probes, o: { release?: boolean } = {}): Check[]
       ok,
       detail: ok ? path : 'browser binary missing',
       fix: `Run: npx playwright install ${name.toLowerCase()}`,
-      // Chromium runs the e2e and the Studio's checks; the other browsers are the second opinion.
-      ...(name === 'Chromium' ? {} : optional),
+      // Chromium runs the e2e and the Studio's checks; the other browsers are the second opinion, and release-check
+      // opens none of them.
+      ...(name === 'Chromium' ? {} : { optional: true as const }),
     });
   }
   return checks;
