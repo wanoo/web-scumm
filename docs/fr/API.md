@@ -149,7 +149,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `Point` | `type Point = [number, number]` | public | Logical coordinates of a backdrop: 640 × 400, origin top-left. |
 | `PropAnim` | `interface { frames, fps, loop, at }` | public | A prop animation: images in order at `fps` (default 8); `at` = commands run when a frame is reached (index). |
 | `PropDef` | `interface { defaultVerb, img, states, anims, initial, name, … 2 more }` | public | A prop in the scenery, with states (e.g. amp off/on). Its position comes from the layout. |
-| `RealityDef` | `interface { signals, bridge }` | public | The game's link to the world outside: the signals it declares and the Reality Bridge it pairs with. |
+| `RealityDef` | `interface { signals, bridge, connectors }` | public | The game's link to the world outside: the signals it declares and the Reality Bridge it pairs with. |
 | `RealityState` | `interface { playerId, cursor, applied }` | public | What a save keeps of the link (`GameState.reality`): no token, no email, no payload. |
 | `RevealDef` | `type RevealDef = EndingDef` | public (deprecated) | The old name of `EndingDef`. |
 | `RoomDef` | `interface { id, name, decor, description, furniture, music, … 14 more }` | public | A room: its backdrop or stage, props, actors, hotspots, exits, look lines, reactions, topics, hints and scripts. |
@@ -234,7 +234,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `RealityClient` | `class RealityClient` | public | The player's side of the Reality Bridge: reads signed signals from a port, verifies each, hands it to the engine, waits for the durable save |
 | `RealityClientOptions` | `interface { engine, store, port, keyring, refreshKeys, playerId, … 5 more }` | public | What a RealityClient is built with: the engine, the store, the port, the keyring, and how it refreshes keys and reports. |
 | `realityManifest` | `(game: GameDef): RealityManifest \| null` | public | The manifest of a game that declares `reality`, null otherwise. |
-| `RealityManifest` | `interface { format, schema, gameId, signals }` | public | A game's Reality manifest: the signals it declares, with no secret, as the Bridge checks them. |
+| `RealityManifest` | `interface { format, schema, gameId, signals, connectors }` | public | A game's Reality manifest: the signals it declares, with no secret, as the Bridge checks them. |
 | `RefusalCode` | `type RefusalCode = union of 13` | public | Why a signal was refused, as a code (the conformance corpus and the Rust cross-check compare codes) and a sentence. |
 | `SignalExpectation` | `interface { gameId, playerId, signals, now }` | public | What a signal must match besides its signature. |
 | `SignalSimulator` | `class SignalSimulator` | public | A Bridge in the browser, for the Studio and the tests: signs and delivers a game's signals, with faults on demand. |

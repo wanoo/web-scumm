@@ -53,9 +53,10 @@ Ce que les gates automatiques exécutent à chaque changement, et ce que seules 
 | Joueur, lecteur d'écran | axe-core sur chaque écran (pas une conformité WCAG) | une passe VoiceOver ou NVDA |
 | Firefox | la PWA seulement : installation, mise à jour, réinstallation, hors ligne (`npm run e2e:pwa`, le job `pwa-firefox`) ; le refus occasionnel par son worker d'une image en cache hors ligne est signalé par le job, pas compté | Firefox hors ligne sur une vraie machine ; rien d'autre de promis |
 | Node | 22.12 ou plus : 22 et 24 sur Ubuntu ; macOS pour l'usage quotidien du mainteneur | — |
-| Windows | un job `windows-latest` à chaque changement (4.1.8) : `doctor`, les types, la suite unitaire moins six fichiers qui supposent POSIX (modes de fichier, `/` dans les chemins ; nommés dans `ci.yml`), `build`, le serveur de production qui répond | `npm run dev` et le Studio sous Windows ; les six fichiers de tests, portés |
+| Windows | un job `windows-latest` à chaque changement (4.1.8) : `doctor`, les types, la suite unitaire moins six fichiers qui supposent POSIX (modes de fichier, `/` dans les chemins ; nommés dans `ci.yml`) et, depuis 4.1.9, les tests Telnet et SSH, `build`, le serveur de production qui répond | `npm run dev` et le Studio sous Windows ; les six fichiers de tests, portés |
 | Python | optionnel : les outils d'image et le pipeline audio, Pillow, NumPy, SciPy épinglés dans `requirements.txt` | — |
 | Reality Bridge | Node 22.12+, e2e Chromium et WebKit, une contre-vérification Rust du protocole | un Bridge derrière HTTPS avec un vrai connecteur |
+| Connecteurs (4.1.9), **expérimental** (D19) | email (webhook signé, IMAP), Telnet, SSH, Open Badges 2 et 3 : le même contrat pour les quatre, tests d'abus et de fuzz, une exécution sous `--disallow-code-generation-from-strings`, les replays du chapitre d'exemple ; les tests Telnet et SSH pas encore sous Windows | un vrai fournisseur d'email, un vrai badge d'un vrai émetteur, SSH et Telnet exposés dans un environnement contrôlé |
 ## Dépréciation
 
 Un nom ou une option à retirer est d'abord **déprécié** dans une mineure : marqué `@deprecated` dans son type (les
