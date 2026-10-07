@@ -72,6 +72,12 @@ jobs:
           key: mutation-all-${{ steps.inputs.outputs.hash }}
       - run: npm run release-check
       - run: node scripts/release-notes.mjs "$TAG" > notes.md
+      # The Remix worlds of the bundled games (4.1.15, D25): each catalogue's every logical world proved (no softlock),
+      # the report published with the release (a generator mode would publish its sample, never "all seeds").
+      - name: Remix catalogues, proved
+        run: |
+          GAME=demo npx tsx tools/verify-variants.ts --prove --max=200000 --out="web-scumm-$TAG-remix-demo.json"
+          GAME=reference npx tsx tools/verify-variants.ts --prove --max=200000 --out="web-scumm-$TAG-remix-reference.json"
       - name: Build archive, checksum and SBOM
         run: |
           tar -czf "web-scumm-$TAG-dist.tar.gz" -C dist .
@@ -84,7 +90,7 @@ jobs:
           # (4.1.2): the root's SBOM lists the engine's runtime dependencies, not the Bridge's.
           # `npm sbom` reads the installed tree, not a lockfile: a real install of the package's two dependencies.
           (cd pack/web-scumm-bridge && npm install --omit=dev --ignore-scripts --no-audit --no-fund >/dev/null && npm sbom --sbom-format cyclonedx --omit dev) > "web-scumm-bridge-$TAG-sbom.cdx.json"
-          sha256sum "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz > "web-scumm-$TAG-SHA256SUMS"
+          sha256sum "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz "web-scumm-$TAG-remix-demo.json" "web-scumm-$TAG-remix-reference.json" > "web-scumm-$TAG-SHA256SUMS"
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
           # Every file the release carries (4.1.2): the archives and packages, the manifests, both SBOMs, the sums.
@@ -94,6 +100,8 @@ jobs:
             web-scumm-${{ env.TAG }}-sbom.cdx.json
             web-scumm-bridge-${{ env.TAG }}-sbom.cdx.json
             web-scumm-${{ env.TAG }}-SHA256SUMS
+            web-scumm-${{ env.TAG }}-remix-demo.json
+            web-scumm-${{ env.TAG }}-remix-reference.json
             web-scumm-[0-9]*.tgz
             create-web-scumm-*.tgz
             web-scumm-bridge-*.tgz
@@ -101,7 +109,7 @@ jobs:
           # A pre-release tag (`v4.1.8-rc.1`, 4.1.8) is published as a GitHub pre-release: same files, same checks.
           pre=""; case "$TAG" in *-*) pre="--prerelease";; esac
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes-file notes.md $pre
-          gh release upload "$TAG" "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz "web-scumm-$TAG-SHA256SUMS"
+          gh release upload "$TAG" "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz "web-scumm-$TAG-remix-demo.json" "web-scumm-$TAG-remix-reference.json" "web-scumm-$TAG-SHA256SUMS"
         env:
           GH_TOKEN: ${{ github.token }}
       # What was published, read back (4.1.8): every file downloaded, the sums checked, every attestation verified.

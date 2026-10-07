@@ -8,7 +8,7 @@ import type { CodeWheel, CodeWheelParams } from '../core/remix/code-wheel';
 import { readWindow, wheelTable } from '../core/remix/code-wheel';
 
 /** One thing to draw, in millimetres from the page's top-left corner. */
-export type Mark =
+type Mark =
   | { kind: 'circle'; cx: number; cy: number; r: number; cut?: boolean; fill?: string }
   | {
       kind: 'text';

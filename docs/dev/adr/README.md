@@ -18,3 +18,4 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0014](0014-objectives.md) | Objectives and the quest journal, the one primitive family admitted in 4.1.12 |
 | [0016](0016-run-clock-and-envelope.md) | A run clock that observes, a seeded generator, a chained proof of a run (4.1.14) |
 | [0017](0017-speedrun-verdicts-and-trust.md) | Speedrun verdicts and trust levels (4.1.14) |
+| [0018](0018-variation-manifest-and-world-variant.md) | A variation manifest compiles to an immutable world (4.1.15) |

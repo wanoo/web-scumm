@@ -36,7 +36,7 @@ export function compileGameManifest(game: GameDef): CompiledManifest {
   return compileManifest(game.remix ?? EMPTY_MANIFEST, remixWorld(game));
 }
 
-/** A text in a language: the language's own, else the game's, else the first one written. @public */
+/** A text in a language: the language's own, else the game's, else the first one written. */
 export function textIn(t: RemixText, lang: string | undefined, fallback = 'en'): string {
   if (typeof t === 'string') return t;
   return t[lang ?? fallback] ?? t[fallback] ?? Object.values(t)[0] ?? '';
@@ -47,7 +47,7 @@ const same = (a: unknown, b: unknown) => canonicalJson(a) === canonicalJson(b);
 /**
  * The reserved flags a variant writes: one per logical dimension away from its story value (`remix.<id>`), and a
  * puzzle order's position per group. The story world writes none.
- * @public
+ *
  */
 export function variantFlags(c: CompiledManifest, v: WorldVariant): Record<string, Value> {
   const out: Record<string, Value> = {};
@@ -83,7 +83,7 @@ function rewriteStrings(x: unknown, f: (s: string) => string): unknown {
 }
 
 /** The placeholders of the coupled dimensions, filled: `{code:<id>}` the answer, `{hint:<id>}` the hint. */
-export function fillCodes(text: string, c: CompiledManifest, v: WorldVariant, lang?: string): string {
+function fillCodes(text: string, c: CompiledManifest, v: WorldVariant, lang?: string): string {
   return text.replace(/\{(code|hint):([\w.-]+)\}/g, (m, what: string, id: string) => {
     const d = c.dims.get(id)?.dim;
     if (!d || d.kind !== 'coupled') return m;
@@ -116,14 +116,6 @@ function setLine(x: unknown, lineId: string, text: string): number {
   }
   return n;
 }
-
-/** The targets a presentation dimension may name (D27): what they replace is never read by a condition. */
-export const PRESENTATION_TARGETS = [
-  'line:<line id>',
-  'prop-img:<room>.<prop>',
-  'palette:<character>',
-  'minigame:<rule id>:<param>',
-] as const;
 
 /** Applies one presentation value; returns false when the target names nothing. */
 function applyPresentation(
@@ -175,6 +167,7 @@ function findMinigame(list: Cmd[]): { minigame: string; params?: Record<string, 
   return undefined;
 }
 
+/** Options of `applyVariant`: the language the texts are in. @public */
 export interface ApplyOptions {
   /** The language the game's texts are in (after `applyLocale`): which text of a hint or an alternative line. */
   lang?: string;
@@ -226,7 +219,7 @@ export function applyStory(game: GameDef, o: ApplyOptions = {}): GameDef {
   return applyVariant(game, storyVariant(game.remix, remixWorld(game)), o);
 }
 
-/** Whether a presentation dimension's target names something of the game (the validator's check). @public */
+/** Whether a presentation dimension's target names something of the game (the validator's check). */
 export function presentationTargetExists(
   game: GameDef,
   dim: Extract<VariationDimension, { kind: 'presentation' }>,

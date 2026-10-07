@@ -54,7 +54,7 @@ export interface RemixWorld {
 }
 
 /** A dimension compiled: its finite domain in a fixed order, and its story value. */
-export interface CompiledDimension {
+interface CompiledDimension {
   dim: VariationDimension;
   domain: readonly unknown[];
   story: unknown;
@@ -244,7 +244,7 @@ function splitTerm(t: string): [string, string | undefined] {
 }
 
 /** A value as a constraint's term writes it: a string as is, a number in decimal, an order joined by `>`. */
-export function valueText(v: unknown): string {
+function valueText(v: unknown): string {
   return Array.isArray(v) ? v.join('>') : String(v);
 }
 
@@ -447,8 +447,8 @@ export function loadVariant(c: CompiledManifest, stored: WorldVariant): { varian
   return { variant: stored, stale };
 }
 
-/** The logical part of a variant: what the solver's space depends on (presentation left out, D27). @public */
-export function logicalAssignments(c: CompiledManifest, v: WorldVariant): Record<string, unknown> {
+/** The logical part of a variant: what the solver's space depends on (presentation left out, D27). */
+function logicalAssignments(c: CompiledManifest, v: WorldVariant): Record<string, unknown> {
   return Object.fromEntries(Object.entries(v.assignments).filter(([id]) => c.dims.get(id)?.dim.logical));
 }
 

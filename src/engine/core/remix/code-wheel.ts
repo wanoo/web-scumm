@@ -126,17 +126,17 @@ export function generateWheel(p: CodeWheelParams, seed: string, id = 'wheel'): C
   return { ...w, answer: readWindow(w, challenge.actor, challenge.symbol) };
 }
 
-/** The rotation (in positions) of the small disc that puts `symbol` under `actor`. @public */
+/** The rotation (in positions) of the small disc that puts `symbol` under `actor`. */
 export function rotationFor(w: Pick<CodeWheel, 'n' | 'outer' | 'inner'>, actor: string, symbol: string): number {
   return mod(w.outer.indexOf(actor) - w.inner.indexOf(symbol), w.n);
 }
 
-/** What the window of the small disc's position `j` shows when the disc is turned by `rotation`. @public */
+/** What the window of the small disc's position `j` shows when the disc is turned by `rotation`. */
 export function windowAt(w: Pick<CodeWheel, 'n' | 'track' | 'windows'>, j: number, rotation: number): string {
   return w.track[mod(j + rotation + w.windows[j]!, w.n)]!;
 }
 
-/** What the window of `symbol` shows once `symbol` sits under `actor` (the printed wheel's reading). @public */
+/** What the window of `symbol` shows once `symbol` sits under `actor` (the printed wheel's reading). */
 export function readWindow(w: Omit<CodeWheel, 'answer'>, actor: string, symbol: string): string {
   return windowAt(w, w.inner.indexOf(symbol), rotationFor(w, actor, symbol));
 }
@@ -181,7 +181,7 @@ export interface WheelRecord {
 /**
  * The outcome of an answer under a mode: accepted (right, or `cosmetic`), refused, or let through (`parody` after
  * `tries` wrong answers; `story` after `tries`, the failure recorded for the story to read). `strict` never lets
- * through. @public
+ * through.
  */
 export function judge(
   w: CodeWheel,

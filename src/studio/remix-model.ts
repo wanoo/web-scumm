@@ -28,7 +28,7 @@ export interface DimensionRow {
 }
 
 /** A dimension's value as text: an anchor key, a room, a route, a pair's answer, an order `a > b`, a line's number. */
-export function valueLabel(c: CompiledManifest, id: string, v: unknown): string {
+function valueLabel(c: CompiledManifest, id: string, v: unknown): string {
   const d = c.dims.get(id)?.dim;
   if (d?.kind === 'coupled') return `${v} (${d.pairs[v as number]?.answer})`;
   if (Array.isArray(v)) return v.join(' > ');

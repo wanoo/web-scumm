@@ -225,7 +225,12 @@ describe('the validator reads the manifest', () => {
         { id: 'x', kind: 'presentation', target: 'line:no-such-line', values: ['a'], story: 0, logical: false },
       ],
     };
+    g.rooms[0]!.on = [
+      ...(g.rooms[0]!.on ?? []),
+      { id: 'house.cheat', verb: 'look', a: 'clock', do: [{ set: 'remix.key-spot' }] },
+    ];
     const text = errorsOf(g);
+    expect(text).toMatch(/"remix.key-spot" is a reserved Remix flag/);
     expect(text).toMatch(/\{code:time\}: "time" is not a coupled dimension/);
     expect(text).toMatch(/target "line:no-such-line" names nothing/);
   });

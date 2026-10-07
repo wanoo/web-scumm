@@ -79,9 +79,29 @@ function wheelChecks(game: GameDef, err: Sink['err']): void {
   }
 }
 
+/** Every flag a command sets (`set`, at any depth), with where. */
+function setFlags(x: unknown, where: string, out: [string, string][] = []): [string, string][] {
+  if (Array.isArray(x)) x.forEach((y, i) => setFlags(y, `${where}[${i}]`, out));
+  else if (x && typeof x === 'object') {
+    const o = x as Record<string, unknown>;
+    const f =
+      typeof o.set === 'string' ? o.set : Array.isArray(o.set) && typeof o.set[0] === 'string' ? o.set[0] : undefined;
+    if (f) out.push([f, where]);
+    for (const [k, v] of Object.entries(o)) if (k !== 'remix') setFlags(v, `${where}.${k}`, out);
+  }
+  return out;
+}
+
 export function remixChecks(game: GameDef, s: Sink): void {
   const { err, warn } = s;
   wheelChecks(game, err);
+  // The reserved flags are the world's: a command never sets one (nor does a checkpoint pretend to).
+  for (const [f, where] of setFlags(
+    { rooms: game.rooms, rules: game.rules, scripts: game.scripts, events: game.events, start: game.start.intro },
+    'game',
+  ))
+    if (f.startsWith('remix.'))
+      err(where, `"${f}" is a reserved Remix flag: the world writes it, a command never does`);
   const anchorsDeclared = game.rooms.some((r) => r.anchors && Object.keys(r.anchors).length);
   const used = placeholders({ ...game, remix: undefined });
   if (!game.remix) {

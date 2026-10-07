@@ -306,3 +306,27 @@ ships `site.json` (the game's own with the trusted extensions' hash and the engi
 verify:dist` expects. The solver's proof cache is keyed by `canonicalJson`: entries of 4.1.11 are not reused, the next
 run fills it again. The DSL is stabilised (D22, `docs/dev/DSL-STABILITY.md`): from here a change to a stable name or
 meaning ships with its migration.
+
+## 26. From 4.1.14 to 4.1.15 "Remix"
+
+**A break of the 4.1 line: the save envelope v4.** A save is now written as `SaveEnvelopeV4` (`schema: 4`): the v3
+envelope and the `WorldVariant` the game was played in. `parseSave` reads v3 and v4; a v3 save (every save made before
+4.1.15) migrates to the **story** world (`upgradeEnvelope`) and loads as before; the golden saves of 3.0.0 to 4.1.9
+load on 4.1.15 (`tests/save-v3.test.ts`). What breaks: code that wrote or read `schema: 3` itself (a host that stores
+saves elsewhere, a tool that checks the envelope's schema) now sees `schema: 4` and a `variant` field; a save made in a
+Remix world refuses to load into another world (`SaveWorldMismatch`, which names the world to rebuild with
+`applyVariant`). A 4.1.15 save does not load on 4.1.14 (its schema is unknown there): downgrades are not supported.
+
+**Everything else is additive.** A game may declare `remix` (a variation manifest) and its rooms `anchors`
+(`docs/en/REMIX.md`); without them nothing changes: one world, the story, the same IR and the same fingerprint. The
+reserved flags `remix.*` are written by the engine: a game that already used a flag named `remix.<something>` renames
+it (the validator refuses a command that sets one; none in the bundled games). A game with a manifest shows a **Remix** button on its
+title screen and a world row in its pause menu: a game whose release language is not English adds the `ui.remix*`
+keys (`remix`, `remixTitle`, `remixStory`, `remixRandom`, `remixSeed`, `remixDaily`, `remixPlay`, `remixInvalid`,
+`remixWorld`, `remixHidden`, `remixCopied`, `remixNoBridge`) to its `ui` and tables (`npm run i18n -- status` lists
+the ones left to English). The built-in minigames gain `code-wheel`. `Session.variant` and `IrVariantSlot.variant` are
+new optional fields; `ir.world.remix` and `ir.rooms[].anchors` appear when a game declares them. New commands:
+`npm run remix`, `npm run verify:variants` (part of `verify:game`), `npm run code-wheel`, `npm run e2e:remix`.
+
+**The DSL and the IR are frozen** (D28, `docs/dev/DSL-STABILITY.md`): 4.1.15 is the release candidate of 4.2. From
+here a change to a name or a meaning of the DSL or the IR waits for 4.2.0's strict SemVer, with its migration.

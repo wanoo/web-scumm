@@ -14,12 +14,12 @@ import { b64url } from '../../src/engine/reality/protocol';
 import { encodeSeedCode, REMIX_ALGORITHM_VERSION, seedCommitment } from '../../src/engine/reality/daily';
 
 /** What the daily routes keep: the day tokens issued, the Mystery seeds behind their commitments. */
-export interface DailyStore {
+interface DailyStore {
   get(key: string): string | undefined;
   put(key: string, value: string): void;
 }
 
-export class MemoryDailyStore implements DailyStore {
+class MemoryDailyStore implements DailyStore {
   private m = new Map<string, string>();
   get(key: string) {
     return this.m.get(key);

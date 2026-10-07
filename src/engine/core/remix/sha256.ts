@@ -19,7 +19,7 @@ const rotr = (x: number, n: number) => ((x >>> n) | (x << (32 - n))) >>> 0;
 /** The UTF-8 bytes of a string (TextEncoder exists in every runtime the engine supports). */
 const utf8 = (s: string): Uint8Array => new TextEncoder().encode(s);
 
-/** SHA-256 of a text's UTF-8 bytes, in lowercase hex, synchronously. @public */
+/** SHA-256 of a text's UTF-8 bytes, in lowercase hex, synchronously. */
 export function sha256HexSync(text: string): string {
   const msg = utf8(text);
   const bitLen = msg.length * 8;
