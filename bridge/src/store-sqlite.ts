@@ -3,6 +3,8 @@
 // transaction is `BEGIN IMMEDIATE` (the file's write lock), so two instances drawing a sequence for one player never
 // draw the same. `node:sqlite` waits synchronously, so SQLite itself waits 50 ms at most (the event loop is held that
 // long), then this store backs off asynchronously and tries again until `busyMs`; beyond, `StoreBusyError` (a 503).
+// Every statement goes through that wait, the opening's `PRAGMA`s and the migrations included (4.1.14: three processes
+// opening one fresh file at once raced on `PRAGMA journal_mode = WAL`, and the loser exited on "database is locked").
 // The file and its `-wal` and `-shm` are the owner's only (0600). The other instances' acceptances are seen by a short poll of the
 // journal's `rowid` (the wake-up; the Bridge reads the rows itself).
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -61,18 +63,20 @@ class SqliteDb implements SqlDb {
     }
     return s;
   }
+  /**
+   * Inside a transaction: each statement waits too (a read-only transaction takes its snapshot at its first `SELECT`,
+   * which may meet another process's recovery or checkpoint; a statement that failed busy did nothing, so it runs again).
+   */
   private direct: SqlQuery = {
-    all: async (sql, params) => {
+    all: (sql, params) => {
       const [text, args] = positional(sql, params);
-      return this.prepared(text).all(...(args.map(value) as never[])) as Row[];
+      return this.patiently(() => this.prepared(text).all(...(args.map(value) as never[])) as Row[]);
     },
-    run: async (sql, params) => {
+    run: (sql, params) => {
       const [text, args] = positional(sql, params);
-      return Number(this.prepared(text).run(...(args.map(value) as never[])).changes);
+      return this.patiently(() => Number(this.prepared(text).run(...(args.map(value) as never[])).changes));
     },
-    exec: async (sql) => {
-      this.db.exec(sql);
-    },
+    exec: (sql) => this.patiently(() => this.db.exec(sql)),
   };
   private serial<T>(fn: () => Promise<T>): Promise<T> {
     const run = this.chain.tail.then(fn, fn);
@@ -83,7 +87,7 @@ class SqliteDb implements SqlDb {
    * Runs `fn` until SQLite stops answering "busy", backing off asynchronously (the event loop free meanwhile), for
    * `busyMs` at most; then `StoreBusyError`.
    */
-  private async patiently<T>(fn: () => T): Promise<T> {
+  async patiently<T>(fn: () => T): Promise<T> {
     const start = Date.now();
     for (let attempt = 0; ; attempt++) {
       try {
@@ -108,6 +112,10 @@ class SqliteDb implements SqlDb {
   }
   exec(sql: string) {
     return this.serial(() => this.patiently(() => this.db.exec(sql)));
+  }
+  /** Any synchronous work on the connection, in this file's chain and through the busy wait (the opening's pragmas). */
+  apply<T>(fn: (db: DatabaseSync) => T): Promise<T> {
+    return this.serial(() => this.patiently(() => fn(this.db)));
   }
   tx<T>(_lockKey: string | undefined, fn: (q: SqlQuery) => Promise<T>, o: { readOnly?: boolean } = {}): Promise<T> {
     return this.serial(async () => {
@@ -144,17 +152,19 @@ export class SqliteRealityStore extends SqlRealityStore {
     private sqlite: SqliteDb,
     readonly file: string,
     private pollMs: number,
+    private onPollError?: (e: unknown) => void,
   ) {
     super(sqlite);
   }
 
   /**
    * Opens (or creates) the file and brings its schema to the latest version, unless `migrate: false` (`bridge
-   * migrate` and `doctor` look first). `pollMs`: how often the other processes' acceptances are looked for.
+   * migrate` and `doctor` look first). `pollMs`: how often the other processes' acceptances are looked for;
+   * `onPollError`: told when a poll fails (once, until one succeeds again; the next poll tries again).
    */
   static async open(
     file: string,
-    o: { migrate?: boolean; pollMs?: number; busyMs?: number } = {},
+    o: { migrate?: boolean; pollMs?: number; busyMs?: number; onPollError?: (e: unknown) => void } = {},
   ): Promise<SqliteRealityStore> {
     if (file !== ':memory:') {
       mkdirSync(dirname(file), { recursive: true });
@@ -164,15 +174,26 @@ export class SqliteRealityStore extends SqlRealityStore {
     // Loaded here, not at the top: a 4.1.9 configuration (the JSON-lines journal) never needs it, on any Node.
     const { DatabaseSync } = await import('node:sqlite');
     const busyMs = o.busyMs ?? 5000;
-    const db = new DatabaseSync(file);
+    // The connection's own busy wait (`timeout`, Node 22.16+; the pragma for older Nodes): it touches no page, so it
+    // cannot itself meet a lock.
+    const db = new DatabaseSync(file, { timeout: SYNC_WAIT_MS } as ConstructorParameters<typeof DatabaseSync>[1]);
     db.exec(`PRAGMA busy_timeout = ${SYNC_WAIT_MS}`);
-    if (file !== ':memory:') db.exec('PRAGMA journal_mode = WAL');
-    db.exec('PRAGMA synchronous = FULL');
-    const store = new SqliteRealityStore(
-      new SqliteDb(db, busyMs, file === ':memory:' ? file : resolve(file)),
-      file,
-      o.pollMs ?? 250,
-    );
+    const sqlite = new SqliteDb(db, busyMs, file === ':memory:' ? file : resolve(file));
+    try {
+      // Switching a fresh file to WAL takes its exclusive lock: another process opening it at the same moment waits.
+      if (file !== ':memory:')
+        await sqlite.apply((d) => {
+          const [r] = d.prepare('PRAGMA journal_mode = WAL').all() as Row[];
+          const mode = String(r?.journal_mode ?? '');
+          // SQLite answers the mode it kept when it could not switch: another process held the file; wait and ask again.
+          if (mode.toLowerCase() !== 'wal') throw new Error(`SQLITE_BUSY: the journal stayed in ${mode} mode`);
+        });
+      await sqlite.apply((d) => d.exec('PRAGMA synchronous = FULL'));
+    } catch (e) {
+      db.close();
+      throw e;
+    }
+    const store = new SqliteRealityStore(sqlite, file, o.pollMs ?? 250, o.onPollError);
     if (o.migrate !== false) await store.migrate();
     // The owner's only: hashes of capabilities, the journal, revocations (the WAL holds recent pages of the same).
     if (file !== ':memory:')
@@ -193,6 +214,7 @@ export class SqliteRealityStore extends SqlRealityStore {
     checkTenant(tenantId);
     let mark: number | undefined;
     let busy = false;
+    let failing = false;
     const look = async () => {
       if (busy) return;
       busy = true;
@@ -212,8 +234,11 @@ export class SqliteRealityStore extends SqlRealityStore {
           players.add(String(row.player_id));
         }
         for (const p of players) wake(p);
-      } catch {
-        /* the store is closing, or busy: the next poll looks again */
+        failing = false;
+      } catch (e) {
+        // The store is closing, or busy past its wait: never fatal, the next poll looks again. Said once per outage.
+        if (!failing && this.polls.size) this.onPollError?.(e);
+        failing = true;
       } finally {
         busy = false;
       }

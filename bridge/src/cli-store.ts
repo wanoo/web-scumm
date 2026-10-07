@@ -43,7 +43,7 @@ export async function openStore(
   spec: string,
   dir: string,
   file: StoreFile,
-  o: { lock?: boolean; migrate?: boolean; onRepair?: (what: string) => void } = {},
+  o: { lock?: boolean; migrate?: boolean; onRepair?: (what: string) => void; onPollError?: (e: unknown) => void } = {},
 ): Promise<RealityStore> {
   const s = normal(spec);
   if (s === 'jsonl') {
@@ -60,7 +60,10 @@ export async function openStore(
     return store;
   }
   if (s.startsWith('sqlite:'))
-    return SqliteRealityStore.open(resolve(dir, s.slice('sqlite:'.length)), { migrate: o.migrate ?? true });
+    return SqliteRealityStore.open(resolve(dir, s.slice('sqlite:'.length)), {
+      migrate: o.migrate ?? true,
+      ...(o.onPollError ? { onPollError: o.onPollError } : {}),
+    });
   if (/^postgres(ql)?:\/\//.test(s)) return PostgresRealityStore.open(s, { migrate: o.migrate ?? true });
   throw new Error(`unknown store "${spec}": jsonl, sqlite[:file] or postgres://…`);
 }
