@@ -65,8 +65,10 @@ export async function teleport(eng: Engine, id: Id): Promise<void> {
 /** Enters a room: state, display, music, then arrival script. */
 export async function enter(eng: Engine, id: Id, at: Id | Point | undefined, runEnter: boolean) {
   const room = eng.room(id);
+  const from = eng.state.room;
   if (eng.state.room !== id || at !== undefined) eng.state.camera = { x: 0, follow: true };
   eng.state.room = id;
+  eng.journal.emit({ kind: 'roomEntered', room: id, ...(from && from !== id ? { from } : {}) });
   eng.writes?.add('*');
   const L = eng.layout(id);
   if (at) eng.state.hero[id] = Array.isArray(at) ? at : (L.entries?.[at] ?? L.entries?.default ?? [320, 360]);

@@ -6,6 +6,7 @@ import type { CustomCommands } from '../core/custom';
 import { FakePresenter, MemoryStore } from '../core/ports';
 import type { GameDef, GameState, Id, Layout, Session, SessionEntry } from '../core/types';
 import { must } from '../core/must';
+import { isSemanticEvent, type SemanticEvent } from '../core/journal';
 
 /** A session to replay: `base` is only needed when it starts from a save. */
 export type Replayable = Pick<Session, 'start' | 'log'> & Partial<Pick<Session, 'v' | 'base'>>;
@@ -13,6 +14,8 @@ export type Replayable = Pick<Session, 'start' | 'log'> & Partial<Pick<Session, 
 export interface ReplayResult {
   state: GameState;
   trace: TraceEntry[];
+  /** The semantic journal of the replay (4.1.11): the same as the recording's when nothing diverged. */
+  journal: SemanticEvent[];
   /** The session the replay recorded (digests, what ran). */
   session: Session;
   /** How many entries were played. */
@@ -176,6 +179,7 @@ export async function replay(
   return {
     state: e.state,
     trace: e.trace,
+    journal: e.journal.since(0),
     session: e.session!,
     played,
     first,
@@ -205,6 +209,8 @@ export interface SessionFile {
   device?: DeviceFamily;
   /** Taps on nothing next to a target, by `room/target` (3.8): the hotspots players aim at and miss. */
   misses?: Record<string, number>;
+  /** The session's semantic journal (4.1.11), in ids: `npm run replay` checks the replay yields the same. */
+  journal?: SemanticEvent[];
 }
 
 export function sessionFile(
@@ -216,6 +222,8 @@ export function sessionFile(
   const session = structuredClone(e.session);
   // A playtest leaves the device with ids and indices only: no journal (its lines carry text), no dev-panel scripts.
   if (o.playtest) for (const en of session.log) if ('script' in en) en.script = [];
+  // The journal only when the window still holds the whole session (a very long one has dropped its first events).
+  const journal = e.journal.first <= e.sessionSeq + 1 ? e.journal.since(e.sessionSeq) : undefined;
   return {
     kind: 'web-scumm-session',
     game: gameId,
@@ -225,6 +233,7 @@ export function sessionFile(
     trace: o.playtest ? [] : [...e.trace],
     ...(o.device ? { device: o.device } : {}),
     ...(o.misses && Object.keys(o.misses).length ? { misses: { ...o.misses } } : {}),
+    ...(journal ? { journal } : {}),
   };
 }
 
@@ -249,5 +258,6 @@ export function parseSessionFile(text: string): SessionFile {
     trace: j.trace ?? [],
     ...(device ? { device } : {}),
     ...(Object.keys(misses).length ? { misses } : {}),
+    ...(Array.isArray(j.journal) ? { journal: j.journal.filter(isSemanticEvent) } : {}),
   };
 }

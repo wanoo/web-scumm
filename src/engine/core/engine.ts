@@ -65,6 +65,7 @@ import {
 } from './movement';
 import type { ReceiveResult } from './reality-runtime';
 import { SessionLog } from './session-runtime';
+import { Journal } from './journal';
 import { emit as emitImpl } from './event-runtime';
 import {
   scriptDef as scriptDefImpl,
@@ -148,6 +149,10 @@ export class Engine {
   clock: (() => number) | null = null;
   /** The session's owner (4.1.5, core/session-runtime.ts): the entries, their feed on replay, the clock's origin. */
   readonly sessions = new SessionLog(this);
+  /** What happened, in ids (4.1.11, core/journal.ts): emitted by the core alone, the same on a replay. */
+  readonly journal = new Journal();
+  /** The journal's sequence when the current session began: its events are `journal.since(sessionSeq)`. */
+  sessionSeq = 0;
   /**
    * The session: the player's inputs since the game started or a save was loaded, with the answers given on the way
    * (`SessionEntry`). Always recorded: exported with a save, it is the bug report `replay()` reproduces.
@@ -299,6 +304,7 @@ export class Engine {
     this.state = this.ensureState(this.fresh());
     this.store.save(this.state);
     this.newSession({ kind: 'new' });
+    this.startJournal('new');
     this.begin({ start: 'new' });
     this.ran('rule:game/start');
     try {
@@ -333,11 +339,19 @@ export class Engine {
       this.state = this.ensureState(s);
       this.save();
       this.newSession({ kind: 'load' });
+      this.startJournal('load', true);
       await this.enter(s.room, undefined, false);
       this.startScripts(true);
     } finally {
       this.onLoad.after?.();
     }
+  }
+
+  /** The journal's mark of a new session (a load is journalled first). */
+  private startJournal(session: string, load = false) {
+    this.sessionSeq = this.journal.seq;
+    if (load) this.journal.emit({ kind: 'loadMade' });
+    this.journal.emit({ kind: 'sessionStarted', session });
   }
 
   /** Forgets a pending tutorial step (game session change). */
@@ -378,6 +392,7 @@ export class Engine {
     }
     this.state = this.ensureState(s);
     this.newSession({ kind: 'checkpoint', id });
+    this.startJournal(`checkpoint:${id}`);
     await this.enter(c.room, undefined, false);
     this.startScripts(true);
   }
@@ -621,7 +636,10 @@ export class Engine {
       await fn();
     } finally {
       this.busyCount--;
-      if (this.busyCount === 0) this.save();
+      if (this.busyCount === 0) {
+        this.save();
+        this.journal.saved();
+      }
       this.onChange();
       this.wake();
     }

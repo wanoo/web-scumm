@@ -75,6 +75,7 @@ export function transfer(eng: Engine, item: Id, to: Id) {
   if (eng.game.players?.sharedInventory || to === eng.heroId() || !s.inventory.includes(item)) return;
   const p = ((s.players ??= {})[to] ??= { room: eng.game.start.room, inventory: [], hero: {} });
   s.inventory = s.inventory.filter((x) => x !== item);
+  eng.journal.emit({ kind: 'itemLost', item });
   if (!p.inventory.includes(item)) p.inventory.push(item);
   if (s.used?.includes(item)) {
     s.used = s.used.filter((x) => x !== item);

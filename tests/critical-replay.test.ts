@@ -297,7 +297,17 @@ describe('sessionFile', () => {
     e.trace.push({ kind: 'action', text: 'x' } as unknown as (typeof e.trace)[number]);
     vi.spyOn(Date, 'now').mockReturnValue(777);
     const f = sessionFile('scale', e);
-    expect(f).toEqual({ kind: 'web-scumm-session', game: 'scale', v: 3, at: 777, session: e.session, trace: e.trace });
+    expect(f).toEqual({
+      kind: 'web-scumm-session',
+      game: 'scale',
+      v: 3,
+      at: 777,
+      session: e.session,
+      trace: e.trace,
+      // 4.1.11: the session's semantic journal (ids only), from the session's own start.
+      journal: e.journal.since(e.sessionSeq),
+    });
+    expect(f.journal?.[0]).toMatchObject({ kind: 'sessionStarted' });
     expect(f.session).not.toBe(e.session);
     expect(f.trace).not.toBe(e.trace);
     expect((f.session.log[2] as { script: unknown[] }).script).toHaveLength(2);
