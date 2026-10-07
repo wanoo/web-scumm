@@ -35,7 +35,9 @@ const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' })
 const files = shipped(git(['ls-files', '--cached']));
 const untracked = shipped(git(['ls-files', '--others', '--exclude-standard']));
 if (untracked.length) {
-  console.error(`✖  untracked file(s) under a shipped root: ${untracked.join(', ')} (commit, or add to .gitignore)`);
+  console.error(
+    `✖  untracked file(s) under a shipped root: ${untracked.join(', ')} (git add or commit them, or add them to .gitignore)`,
+  );
   process.exit(1);
 }
 
@@ -193,7 +195,7 @@ console.log(
 // --publish-dry-run (4.1.8): what `npm publish` would send, for each package, without sending it (release-check).
 if (process.argv.includes('--publish-dry-run'))
   for (const dir of [engine, create, bridge]) {
-    execFileSync('npm', ['publish', '--dry-run', '--no-git-checks', '--ignore-scripts'], {
+    execFileSync('npm', ['publish', '--dry-run', '--ignore-scripts'], {
       cwd: dir,
       stdio: 'inherit',
     });

@@ -2384,8 +2384,14 @@ Platform"; human gates reported, not blocking (D12).
 - `fresh-install` exercised the engine's tarball and the Bridge's, never `create-web-scumm`'s: it now installs
   that one with the engine's beside it (npm takes the tarball for the dependency of the same version) and runs
   `npx create-web-scumm`.
-- The coverage ratchet `--strict` in CI's coverage job and in `release-check`; floors 59 / 58 / 53 / 56 (4.1.7
-  measured 61.37 / 60.86 / 55.61 / 58.15). `release.yml` ends with `ship verify` on what it published.
+- The coverage ratchet `--strict` in CI's coverage job and in `release-check`: the second reading noted that it
+  checks the per-file floors too, so the Bridge files, well above theirs since #23's tests, would turn it red; the
+  floors, totals and per file, are set from this branch's own `test:coverage` after main (with #23) is merged in,
+  each within three points of its measure. The rule from here on: a pull request that adds tests reads the
+  ratchet's warning and raises the floors it names. `release.yml` ends with `ship verify` on what it published,
+  with a retry on the download (the asset list may lag the upload). `--no-git-checks`, a pnpm flag npm ignores,
+  dropped from the dry run; `fresh-install` scans the project `create-web-scumm` made for repository paths and
+  checks it depends on this engine's tarball.
 - `test:node` and `test:assets` were already separate scripts (4.1.6): nothing to do, said here. Not done, said as
   such: the SBOM is produced and attested, not compared with the lockfile (a later lot); the Windows job is
   `feature/418-windows-smoke`.

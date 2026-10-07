@@ -52,8 +52,9 @@ mkdirSync(creator, { recursive: true });
 writeFileSync(join(creator, 'package.json'), '{ "name": "creator", "private": true }\n');
 step('create-web-scumm: install', 'npm', ['install', '--no-audit', '--no-fund', createTgz, tgz], creator);
 step('create-web-scumm: run', 'npx', ['create-web-scumm', 'beacon', 'The Beacon', `--engine=file:${tgz}`], creator);
-if (!existsSync(join(creator, 'beacon', 'package.json'))) {
-  console.error('✖ create-web-scumm made no project');
+const beacon = JSON.parse(readFileSync(join(creator, 'beacon', 'package.json'), 'utf8'));
+if (beacon.dependencies?.['web-scumm'] !== `file:${tgz}` || !existsSync(join(creator, 'beacon', 'game'))) {
+  console.error('✖ create-web-scumm made no project on this engine');
   process.exit(1);
 }
 
@@ -68,6 +69,7 @@ const scan = (d) => {
   }
 };
 scan(game);
+scan(join(creator, 'beacon'));
 if (leaks.length) {
   console.error(`✖ the project names the repository: ${leaks.join(', ')}`);
   process.exit(1);

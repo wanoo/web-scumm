@@ -10,7 +10,8 @@
   than travel or vanish silently; `--publish-dry-run` shows what `npm publish` would send for each of the three,
   and `release-check` runs it. `fresh-install` installs `create-web-scumm` from its own tarball and runs it, beside
   the engine's and the Bridge's. The coverage ratchet is strict in CI and the release (a floor three points under
-  the measure is red), with the floors raised to the 4.1.7 measures (lines 59, statements 58, functions 53). After
+  the measure is red), with the floors raised to within three points of what the suite measures on this branch,
+  totals and per file (so a pull request that adds tests may have to raise a floor: the ratchet says which). After
   a release is published, `release.yml` downloads it and verifies its sums and every attestation (`ship verify`).
 
 - **TypeScript 7** (4.1.8). The type checks (`npm run check`, `npm run quality`) run on the native compiler, in half a
