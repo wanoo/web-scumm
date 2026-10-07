@@ -1,4 +1,4 @@
-// npm run test:mutation:core [-- --set=core|reality|all] [--file=src/engine/core/cond.ts] [--json] (4.1.0 "Clarity",
+// npm run test:mutation:core [-- --set=core|reality|all] [--file=src/engine/core/cond.ts] [--fresh] [--hash] (4.1.0 "Clarity",
 // lot G; the sets and the gate by identity since 4.1.2): mutation testing of what a save, a session, a condition and
 // a migration rest on (`core`), and of what a signal from the world outside rests on (`reality`: the engine's
 // receive, the protocol, the client, the Bridge, its store, its lock and its policy). Each mutant changes one thing
@@ -8,31 +8,173 @@
 // names each one (file, operator, from, to) with its reason, docs/dev/MUTANTS.md explains them, and any survivor
 // not named there fails the run, whatever the count. The source file is restored after each mutant, and on exit. (Stryker 10 does not activate its mutants under Vitest 5 here: 739 of 749
 // survived, a block emptied included; this tool runs each mutant as plain source.)
-import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { execFileSync, spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, relative, resolve } from 'node:path';
 import ts from '@typescript/typescript6';
 import { ROOT } from './game';
+import { SETS, setsOf, TESTS, type MutationSet } from './mutation-sets';
 
-export const SETS = {
-  core: [
-    'src/engine/core/cond.ts',
-    'src/engine/core/save.ts',
-    'src/engine/core/session-runtime.ts',
-    'src/engine/core/migrate.ts',
-  ],
-  reality: [
-    'src/engine/core/reality-runtime.ts',
-    'src/engine/reality/protocol.ts',
-    'src/engine/reality/client.ts',
-    'bridge/src/bridge.ts',
-    'bridge/src/store.ts',
-    'bridge/src/lock.ts',
-    'bridge/src/policy.ts',
-  ],
-};
-export type MutationSet = keyof typeof SETS;
+export { SETS, type MutationSet };
 export const TARGETS = SETS.core;
+
+/**
+ * The hash of everything a run's verdict depends on (4.1.8): the set's sources and tests, the two configurations,
+ * this tool, the named survivors, the lockfile. A report whose `inputHash` is the current one says what a new run
+ * would say: the release reuses it instead of running the set again (`--reuse`, the default; `--fresh` runs anyway).
+ * A commit that changes none of these (docs, a release's version) keeps the hash, so the key is not the commit.
+ */
+export function inputHash(set: MutationSet | 'all'): string {
+  const roots = new Set<string>([
+    'tools/mutate.ts',
+    'tools/mutation-sets.ts',
+    'vitest.mutation.config.ts',
+    'vite.config.ts',
+    'tsconfig.json',
+    'docs/dev/mutants.json',
+  ]);
+  for (const k of setsOf(set)) {
+    for (const f of SETS[k]) roots.add(f);
+    for (const g of TESTS[k]) for (const f of expand(g)) roots.add(f);
+  }
+  // Everything the tests and the sources import, statically, inside the repository (4.1.8, the second reading): a
+  // change in `engine.ts` or in the Bridge's server can turn a killed mutant of the set into a survivor, so it is an
+  // input of the verdict even though it is not mutated.
+  const files = importClosure([...roots]);
+  const h = createHash('sha256');
+  for (const f of [...files].sort()) {
+    h.update(f);
+    h.update('\0');
+    h.update(existsSync(resolve(ROOT, f)) ? readFileSync(resolve(ROOT, f)) : 'missing');
+    h.update('\0');
+  }
+  // The lockfile says which dependencies the tests ran with; its own `version` fields move with every release and
+  // say nothing of the verdict, so they are left out (a version bump keeps the hash).
+  const lock = JSON.parse(readFileSync(resolve(ROOT, 'package-lock.json'), 'utf8')) as {
+    version?: string;
+    packages?: Record<string, { version?: string }>;
+  };
+  delete lock.version;
+  if (lock.packages?.['']) delete lock.packages[''].version;
+  h.update('package-lock.json\0');
+  h.update(JSON.stringify(lock));
+  return h.digest('hex').slice(0, 16);
+}
+
+/** The repository files reachable from `files` through static imports (`from '…'`, `import('…')`), themselves included. */
+export function importClosure(files: string[]): Set<string> {
+  const seen = new Set<string>();
+  const queue = [...files];
+  while (queue.length) {
+    const f = queue.pop()!;
+    if (seen.has(f) || !existsSync(resolve(ROOT, f))) continue;
+    seen.add(f);
+    if (!/\.(ts|mts|mjs|js)$/.test(f)) continue;
+    const src = readFileSync(resolve(ROOT, f), 'utf8');
+    for (const m of src.matchAll(/(?:from|import)\s*\(?\s*['"]([^'"]+)['"]/g)) {
+      const target = resolveImport(f, m[1]!);
+      if (target) queue.push(target);
+    }
+  }
+  return seen;
+}
+
+/** A specifier of the repository (`@engine/*`, `web-scumm/*`, a relative path) as a file, or null for a package. */
+function resolveImport(from: string, spec: string): string | null {
+  let base: string;
+  if (spec.startsWith('@engine/')) base = `src/engine/${spec.slice('@engine/'.length)}`;
+  else if (spec.startsWith('web-scumm/')) base = `src/engine/api/${spec.slice('web-scumm/'.length)}`;
+  else if (spec.startsWith('.')) base = relative(ROOT, resolve(ROOT, dirname(from), spec)).replace(/\\/g, '/');
+  else return null;
+  for (const c of [base, `${base}.ts`, `${base}.mts`, `${base}.mjs`, `${base}.js`, `${base}/index.ts`])
+    if (existsSync(resolve(ROOT, c)) && !c.endsWith('/')) {
+      try {
+        if (readFileSync(resolve(ROOT, c)).length >= 0 && !isDir(resolve(ROOT, c))) return c;
+      } catch {
+        /* a folder */
+      }
+    }
+  return null;
+}
+const isDir = (p: string) => {
+  try {
+    return readdirSync(p) !== undefined;
+  } catch {
+    return false;
+  }
+};
+
+/** The files a vitest `include` glob of the form `dir/prefix-*.test.ts` names (one `*`, in the file name). */
+function expand(glob: string): string[] {
+  if (!glob.includes('*')) return [glob];
+  const dir = dirname(glob);
+  const re = new RegExp(
+    `^${glob
+      .slice(dir.length + 1)
+      .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/\*/g, '.*')}$`,
+  );
+  return readdirSync(resolve(ROOT, dir))
+    .filter((f) => re.test(f))
+    .map((f) => `${dir}/${f}`)
+    .sort();
+}
+
+/** What a run writes (4.1.8): the set, its input hash, the commit, the verdict, and every mutant's fate. */
+export interface MutationReport {
+  v: 1;
+  set: MutationSet | 'all' | 'file';
+  inputHash: string;
+  commitSha: string;
+  at: string;
+  status: 'passed' | 'failed';
+  killed: number;
+  total: number;
+  results: (Omit<Mutant, 'start' | 'end'> & { status: string })[];
+}
+
+/** The named survivors as a Markdown table, what `--doc` writes into docs/dev/MUTANTS.md between its markers. */
+export function survivorsTable(known: KnownSurvivor[]): string {
+  const rows = [...known]
+    .sort((a, b) => a.file.localeCompare(b.file) || a.from.localeCompare(b.from))
+    .map(
+      (k) =>
+        `| \`${k.file}\`${k.context ? ` (\`${k.context.replace(/\|/g, '\\|')}\`)` : ''} | \`${k.operator}\`: \`${k.from}\` → \`${k.to}\` | ${k.why} |`,
+    );
+  return `| Where | Mutant | Why it is equivalent |\n|---|---|---|\n${rows.join('\n')}\n`;
+}
+export const DOC_MARKERS = ['<!-- mutants:start -->', '<!-- mutants:end -->'] as const;
+/** MUTANTS.md with the table of docs/dev/mutants.json between its markers (the text outside them is the author's). */
+export function withSurvivorsTable(doc: string, known: KnownSurvivor[]): string {
+  const [a, b] = DOC_MARKERS;
+  const i = doc.indexOf(a);
+  const j = doc.indexOf(b);
+  if (i < 0 || j < 0 || j < i) throw new Error(`MUTANTS.md: the markers ${a} … ${b} are missing`);
+  return `${doc.slice(0, i + a.length)}\n${known.length} named in \`docs/dev/mutants.json\` (generated by \`npm run test:mutation:core -- --doc\`; the gate reads the JSON, this table says it):\n\n${survivorsTable(known)}${doc.slice(j)}`;
+}
+
+const commitSha = () => {
+  try {
+    return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim();
+  } catch {
+    return 'unknown';
+  }
+};
+
+/** A report of this set with the current input hash, if one is there. */
+export function reusableReport(set: MutationSet | 'all', hash: string): MutationReport | null {
+  const file = resolve(ROOT, `.cache/mutation/report-${set}.json`);
+  if (!existsSync(file)) return null;
+  try {
+    const r = JSON.parse(readFileSync(file, 'utf8')) as Partial<MutationReport>;
+    return r.v === 1 && r.inputHash === hash && r.status === 'passed' && Array.isArray(r.results)
+      ? (r as MutationReport)
+      : null;
+  } catch {
+    return null;
+  }
+}
 
 /** An equivalent mutant, as docs/dev/mutants.json names it: the line may move, the edit itself may not. */
 export interface KnownSurvivor {
@@ -41,13 +183,24 @@ export interface KnownSurvivor {
   from: string;
   to: string;
   why: string;
+  /**
+   * The source line the mutant sits on, trimmed (4.1.8): without it an entry names every mutant of that file with the
+   * same edit (`+` → `-` anywhere), and a new survivor on another line would hide behind an old equivalent.
+   */
+  context?: string;
 }
-export const sameMutant = (a: Pick<Mutant, 'file' | 'operator' | 'from' | 'to'>, b: KnownSurvivor) =>
-  a.file === b.file && a.operator === b.operator && a.from === b.from && a.to === b.to;
+export const sameMutant = (a: Pick<Mutant, 'file' | 'operator' | 'from' | 'to' | 'context'>, b: KnownSurvivor) =>
+  a.file === b.file &&
+  a.operator === b.operator &&
+  a.from === b.from &&
+  a.to === b.to &&
+  (b.context === undefined || a.context === b.context);
 
 export interface Mutant {
   file: string;
   line: number;
+  /** The source line, trimmed. */
+  context: string;
   operator: string;
   from: string;
   to: string;
@@ -72,9 +225,21 @@ const SWAP: Partial<Record<ts.SyntaxKind, [ts.SyntaxKind, string]>> = {
 export function mutants(file: string, src: string): Mutant[] {
   const sf = ts.createSourceFile(file, src, ts.ScriptTarget.Latest, true);
   const out: Mutant[] = [];
+  const lines = src.split('\n');
   const line = (pos: number) => sf.getLineAndCharacterOfPosition(pos).line + 1;
-  const add = (operator: string, node: ts.Node, to: string, start = node.getStart(sf), end = node.getEnd()) =>
-    out.push({ file, line: line(start), operator, from: src.slice(start, end), to, start, end });
+  const add = (operator: string, node: ts.Node, to: string, start = node.getStart(sf), end = node.getEnd()) => {
+    const n = line(start);
+    out.push({
+      file,
+      line: n,
+      context: (lines[n - 1] ?? '').trim(),
+      operator,
+      from: src.slice(start, end),
+      to,
+      start,
+      end,
+    });
+  };
   const visit = (n: ts.Node) => {
     // Types, imports and comments carry no behaviour.
     if (ts.isTypeNode(n) || ts.isImportDeclaration(n) || ts.isInterfaceDeclaration(n) || ts.isTypeAliasDeclaration(n))
@@ -100,18 +265,39 @@ export function mutants(file: string, src: string): Mutant[] {
 
 export const apply = (src: string, m: Mutant) => src.slice(0, m.start) + m.to + src.slice(m.end);
 
-function runTests(set: MutationSet | 'all'): 'killed' | 'survived' | 'timeout' {
-  try {
-    execFileSync('npx', ['vitest', 'run', '--config', 'vitest.mutation.config.ts', '--bail', '1'], {
+/**
+ * The set's tests against the source as it stands. A run that exceeds three minutes is a timeout, counted as killed;
+ * the whole process group goes with it (vitest's forked workers included: a timed-out parent alone left orphans that
+ * slowed CI's runner to a crawl, 4.1.8).
+ */
+function runTests(set: MutationSet | 'all'): Promise<'killed' | 'survived' | 'timeout'> {
+  return new Promise((done) => {
+    const child = spawn('npx', ['vitest', 'run', '--config', 'vitest.mutation.config.ts', '--bail', '1'], {
       cwd: ROOT,
       stdio: 'ignore',
-      timeout: 180_000,
+      detached: true,
       env: { ...process.env, MUTATION_SET: set },
     });
-    return 'survived';
-  } catch (e) {
-    return (e as { signal?: string }).signal === 'SIGTERM' ? 'timeout' : 'killed';
-  }
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      if (child.pid) {
+        try {
+          process.kill(-child.pid, 'SIGKILL');
+        } catch {
+          child.kill('SIGKILL');
+        }
+      }
+    }, 180_000);
+    child.on('error', () => {
+      clearTimeout(timer);
+      done('killed');
+    });
+    child.on('exit', (code) => {
+      clearTimeout(timer);
+      done(timedOut ? 'timeout' : code === 0 ? 'survived' : 'killed');
+    });
+  });
 }
 
 if (process.argv[1]?.endsWith('mutate.ts')) {
@@ -120,7 +306,29 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
   const setOf = (f: string): MutationSet | 'all' =>
     (Object.keys(SETS) as MutationSet[]).find((k) => SETS[k].includes(f)) ?? 'all';
   const set: MutationSet | 'all' = only ? setOf(only) : setArg;
-  const files = only ? [only] : set === 'all' ? [...SETS.core, ...SETS.reality] : SETS[set];
+  const files = only ? [only] : setsOf(set).flatMap((k) => SETS[k]);
+  if (process.argv.includes('--doc')) {
+    const known = JSON.parse(readFileSync(resolve(ROOT, 'docs/dev/mutants.json'), 'utf8')) as KnownSurvivor[];
+    const doc = resolve(ROOT, 'docs/dev/MUTANTS.md');
+    writeFileSync(doc, withSurvivorsTable(readFileSync(doc, 'utf8'), known));
+    console.log(`✔  docs/dev/MUTANTS.md: ${known.length} named survivors written`);
+    process.exit(0);
+  }
+  const hash = inputHash(set);
+  if (process.argv.includes('--hash')) {
+    console.log(hash);
+    process.exit(0);
+  }
+  // A report of these very inputs says what this run would say (4.1.8): reused, unless --fresh.
+  if (!only && !process.argv.includes('--fresh')) {
+    const r = reusableReport(set, hash);
+    if (r) {
+      console.log(
+        `✔  ${r.killed}/${r.total} mutants killed (set ${set}, inputs ${hash}, measured on ${r.commitSha.slice(0, 7)} at ${r.at}): the same inputs, the report reused (--fresh runs again)`,
+      );
+      process.exit(0);
+    }
+  }
   const originals = new Map(files.map((f) => [f, readFileSync(resolve(ROOT, f), 'utf8')]));
   const restore = () => {
     for (const [f, s] of originals) writeFileSync(resolve(ROOT, f), s);
@@ -129,7 +337,7 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
     restore();
     process.exit(130);
   });
-  if (runTests(set) !== 'survived') {
+  if ((await runTests(set)) !== 'survived') {
     console.error('✖  the tests fail before any mutation: fix them first');
     process.exit(2);
   }
@@ -139,9 +347,12 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
       const src = originals.get(f)!;
       const ms = mutants(f, src);
       console.log(`${f}: ${ms.length} mutants`);
+      // A mutant is judged by the tests of its own set (`all` runs the sets one after the other, as the nightly did):
+      // running both sets' tests on every mutant doubled CI's time and said nothing more.
+      const judge = set === 'all' ? setOf(f) : set;
       for (const m of ms) {
         writeFileSync(resolve(ROOT, f), apply(src, m));
-        const status = runTests(set);
+        const status = await runTests(judge);
         results.push({ ...m, status });
         if (status === 'survived') console.log(`  survived ${f}:${m.line} ${m.operator}: ${m.from} → ${m.to}`);
       }
@@ -153,14 +364,6 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
   const killed = results.filter((r) => r.status !== 'survived').length;
   const out = resolve(ROOT, '.cache/mutation');
   if (!existsSync(out)) mkdirSync(out, { recursive: true });
-  writeFileSync(
-    resolve(out, `report-${only ? 'file' : set}.json`),
-    JSON.stringify(
-      results.map(({ start, end, ...r }) => r),
-      null,
-      1,
-    ),
-  );
   for (const f of files) {
     const rs = results.filter((r) => r.file === f);
     const k = rs.filter((r) => r.status !== 'survived').length;
@@ -173,11 +376,25 @@ if (process.argv[1]?.endsWith('mutate.ts')) {
   const unexplained = survivors.filter((r) => !known.some((k) => sameMutant(r, k)));
   const stale = known.filter((k) => files.includes(k.file) && !survivors.some((r) => sameMutant(r, k)));
   for (const r of unexplained)
-    console.log(`  ✖ not in docs/dev/mutants.json: ${r.file}:${r.line} ${r.operator}: ${r.from} → ${r.to}`);
+    console.log(
+      `  ✖ not in docs/dev/mutants.json: ${r.file}:${r.line} ${r.operator}: ${r.from} → ${r.to}  (${r.context})`,
+    );
   for (const k of stale)
     console.log(`  ⚠ named in docs/dev/mutants.json but killed or gone: ${k.file} ${k.operator}: ${k.from} → ${k.to}`);
+  const report: MutationReport = {
+    v: 1,
+    set: only ? 'file' : set,
+    inputHash: hash,
+    commitSha: commitSha(),
+    at: new Date().toISOString(),
+    status: unexplained.length ? 'failed' : 'passed',
+    killed,
+    total: results.length,
+    results: results.map(({ start, end, ...r }) => r),
+  };
+  writeFileSync(resolve(out, `report-${report.set}.json`), JSON.stringify(report, null, 1));
   console.log(
-    `${unexplained.length ? '✖' : '✔'}  ${killed}/${results.length} mutants killed, ${survivors.length - unexplained.length} survivors explained, ${unexplained.length} not; report in .cache/mutation/report-${only ? 'file' : set}.json`,
+    `${unexplained.length ? '✖' : '✔'}  ${killed}/${results.length} mutants killed, ${survivors.length - unexplained.length} survivors explained, ${unexplained.length} not; report in .cache/mutation/report-${report.set}.json (inputs ${hash})`,
   );
   if (unexplained.length) process.exitCode = 1;
 }

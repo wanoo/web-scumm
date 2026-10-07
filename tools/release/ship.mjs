@@ -94,7 +94,8 @@ async function checks(pr) {
       say(`all ${list.length} checks pass on #${pr}`);
       return list;
     },
-    { what: `the checks of #${pr}` },
+    // The mutation job alone runs for an hour or two when the sets' inputs changed (4.1.8): four hours, not ninety minutes.
+    { what: `the checks of #${pr}`, deadlineMs: 240 * 60_000 },
   );
 }
 
