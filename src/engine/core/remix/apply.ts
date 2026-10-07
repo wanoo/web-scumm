@@ -68,6 +68,22 @@ export function variantFlags(c: CompiledManifest, v: WorldVariant): Record<strin
   return out;
 }
 
+/**
+ * The minigame parameters a presentation dimension may vary (D27, after the second reading of 4.1.15): the built-in
+ * minigames' texts and backdrops, which never decide a win. Anything else (answers, options, counts, a game's own
+ * minigame) is refused: the validator says so.
+ */
+const COSMETIC_MINIGAME_PARAMS: Readonly<Record<string, readonly string[]>> = {
+  pipes: ['intro', 'win'],
+  stroke: ['intro', 'win', 'tooFast'],
+  pick: ['background', 'decoyLine', 'wrongLine', 'win'],
+  hide: ['intro', 'win'],
+  runner: ['intro', 'win', 'stumble'],
+  scratch: ['intro'],
+  cables: ['intro', 'win', 'windowsText'],
+  'code-wheel': ['question', 'wrong', 'pass', 'win', 'list', 'turnLeft', 'turnRight'],
+};
+
 /** Every string of a value, rewritten by `f` (plain objects and arrays, in place). */
 function rewriteStrings(x: unknown, f: (s: string) => string): unknown {
   if (typeof x === 'string') return f(x);
@@ -146,7 +162,9 @@ function applyPresentation(
     const [ruleId, param] = rest.split(':');
     const rule = [...g.rooms.flatMap((r) => r.on ?? []), ...(g.rules.on ?? [])].find((r) => r.id === ruleId);
     const mg = JSON.stringify(rule?.do ?? []).includes('"minigame"') ? findMinigame(rule!.do) : undefined;
-    if (!mg || !param) return false;
+    // Only a parameter that cannot change who wins (D27): a text, a backdrop. A difficulty, a list of answers or of
+    // options would change the game while its proof is keyed by the logical world only.
+    if (!mg || !param || !COSMETIC_MINIGAME_PARAMS[mg.minigame]?.includes(param)) return false;
     mg.params = { ...(mg.params ?? {}), [param]: value };
     return true;
   }

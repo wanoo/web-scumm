@@ -65,7 +65,8 @@ each group's position (`remix.festival-order.board` = 0 when the board comes fir
 ## Presentation variance
 
 A `presentation` dimension's target is `line:<line id>`, `prop-img:<room>.<prop>`, `palette:<character>` or
-`minigame:<rule id>:<param>`. It draws from the `cosmetic` stream, writes no flag, takes no constraint, and stays out
+`minigame:<rule id>:<param>` (a minigame's text or backdrop only: a parameter that could decide a win, such as a
+wheel's answers or a difficulty, is refused, since a proof is keyed by the logical world). It draws from the `cosmetic` stream, writes no flag, takes no constraint, and stays out
 of the solver's space (D27): two worlds that differ only by presentation share their proof. Adding a presentation
 dimension moves no logical draw.
 

@@ -153,7 +153,7 @@ export function remixChecks(game: GameDef, s: Sink): void {
     if (d.kind === 'presentation' && !presentationTargetExists(game, d))
       err(
         where,
-        `target "${d.target}" names nothing (line:<id>, prop-img:<room>.<prop>, palette:<character>, minigame:<rule>:<param>)`,
+        `target "${d.target}" names nothing, or a minigame parameter that may decide a win (line:<id>, prop-img:<room>.<prop>, palette:<character>, minigame:<rule>:<param> for a text or a backdrop)`,
       );
     if (!d.logical) continue;
     // A value away from the story writes `remix.<id>`: some condition should read it, or the world is the story's.

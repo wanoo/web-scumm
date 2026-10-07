@@ -68,7 +68,9 @@ vient d'abord).
 ## Variance de présentation
 
 La cible d'une dimension `presentation` est `line:<id de réplique>`, `prop-img:<salle>.<prop>`, `palette:<personnage>`
-ou `minigame:<id de règle>:<paramètre>`. Elle tire du flux `cosmetic`, n'écrit aucun drapeau, ne prend aucune
+ou `minigame:<id de règle>:<paramètre>` (un texte ou un décor de minijeu seulement : un paramètre qui pourrait décider
+d'une victoire, comme les réponses d'une roue ou une difficulté, est refusé, puisqu'une preuve est indexée par le
+monde logique). Elle tire du flux `cosmetic`, n'écrit aucun drapeau, ne prend aucune
 contrainte, et reste hors de l'espace du solveur (D27) : deux mondes qui ne diffèrent que par la présentation
 partagent leur preuve. Ajouter une dimension de présentation ne déplace aucun tirage logique.
 

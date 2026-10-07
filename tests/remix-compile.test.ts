@@ -250,8 +250,25 @@ describe('compileVariant', () => {
       ...extensionManifest,
       modes: [{ id: 'remix', strategy: 'generator', dimensions: ['token-spot', 'pipe-spot'] }],
       dimensions: [
-        { id: 'token-spot', kind: 'item-placement', item: 'token', logical: true, story: { room: 'house', anchor: 'table' }, anchors: [{ room: 'house', anchor: 'clock' }, { room: 'house', anchor: 'table' }] },
-        { id: 'pipe-spot', kind: 'item-placement', item: 'pipe', logical: true, story: { room: 'house', anchor: 'clock' }, anchors: [{ room: 'house', anchor: 'clock' }] },
+        {
+          id: 'token-spot',
+          kind: 'item-placement',
+          item: 'token',
+          logical: true,
+          story: { room: 'house', anchor: 'table' },
+          anchors: [
+            { room: 'house', anchor: 'clock' },
+            { room: 'house', anchor: 'table' },
+          ],
+        },
+        {
+          id: 'pipe-spot',
+          kind: 'item-placement',
+          item: 'pipe',
+          logical: true,
+          story: { room: 'house', anchor: 'clock' },
+          anchors: [{ room: 'house', anchor: 'clock' }],
+        },
       ],
       constraints: [],
     };

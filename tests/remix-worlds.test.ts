@@ -238,6 +238,37 @@ describe('the validator reads the manifest', () => {
     expect(text).toMatch(/\{code:time\}: "time" is not a coupled dimension/);
     expect(text).toMatch(/target "line:no-such-line" names nothing/);
   });
+  it("refuses a presentation value on a minigame parameter that decides a win (the wheel's answers), allows a text", () => {
+    const g = structuredClone(reference);
+    const base = g.remix!.dimensions;
+    g.remix = {
+      ...g.remix!,
+      dimensions: [
+        ...base,
+        {
+          id: 'answers',
+          kind: 'presentation',
+          target: 'minigame:hall.use-map:answers',
+          values: [['A', 'B', 'C', 'D', 'E']],
+          story: 0,
+          logical: false,
+        },
+        {
+          id: 'win-line',
+          kind: 'presentation',
+          target: 'minigame:hall.use-map:win',
+          values: ['Aye!', 'Arr!'],
+          story: 0,
+          logical: false,
+        },
+      ],
+    };
+    const text = validate(g, layoutsOf('reference')).errors.join('\n');
+    expect(text).toMatch(
+      /remix.answers › target "minigame:hall.use-map:answers" names nothing, or a minigame parameter/,
+    );
+    expect(text).not.toMatch(/win-line/);
+  });
   it('warns when no condition reads a logical value: that world would play like the story', () => {
     const g = structuredClone(demo);
     const d = g.remix!.dimensions[0] as unknown as { anchors: { room: string; anchor: string }[] };
