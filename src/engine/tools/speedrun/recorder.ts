@@ -117,15 +117,29 @@ export class SpeedrunRecorder {
 
   /** Starts the attempt: a new game with the category's seed. Resolves when the new game's first entry is done. */
   async start(): Promise<void> {
-    const { engine: eng, category, manifest, fingerprint } = this.o;
+    await this.prepare();
+    this.bind();
+    await this.o.engine.newGame();
+  }
+
+  /** The run's head and first chunk's place in the store (before any engine is touched). */
+  async prepare(): Promise<void> {
+    const { category, manifest, fingerprint } = this.o;
     this.h0 = await headHash({ fingerprint, category, rulesVersion: manifest.rulesVersion, seed: this.seed });
     this.journal = new ChunkedJournal<ResumePoint>(this.o.store, this.runId, this.h0, undefined, () =>
       this.resumePoint(),
     );
     await this.o.store.putHead({ runId: this.runId, chunks: 0, lastHash: this.h0, h0: this.h0, updatedAt: Date.now() });
-    eng.sessions.nextSeed = this.seed;
+  }
+
+  /**
+   * Binds the prepared run to an engine about to start a new game (its seed, the tape): `start()` does it, and a tool
+   * that drives the engine itself (a replay of a route recorded as a run) calls it from `replay`'s `attach`.
+   */
+  bind(engine: Engine = this.o.engine): void {
+    this.o.engine = engine;
+    engine.sessions.nextSeed = this.seed;
     this.attach();
-    await eng.newGame();
   }
 
   private resumePoint(): ResumePoint {

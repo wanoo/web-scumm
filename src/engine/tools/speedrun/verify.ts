@@ -28,7 +28,7 @@ export type SpeedrunVerdict =
   | 'inconclusive';
 
 /** What a verifier answers: the verdict, a stable code, one sentence, and the trust it grants. @public */
-export interface VerifyResult {
+export interface SpeedrunVerifyResult {
   verdict: SpeedrunVerdict;
   code: string;
   reason: string;
@@ -127,7 +127,7 @@ export function parseEnvelope(input: unknown): SpeedrunEnvelope {
 }
 
 /** Verifies a run. Never throws: every failure is a verdict. */
-export async function verifyRun(input: unknown, ctx: VerifyContext): Promise<VerifyResult> {
+export async function verifyRun(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerifyResult> {
   try {
     return await check(input, ctx);
   } catch (err) {
@@ -144,7 +144,7 @@ export async function verifyRun(input: unknown, ctx: VerifyContext): Promise<Ver
 const entriesOf = (env: SpeedrunEnvelope) => envelopeEntries(env);
 const hasHint = (en: SessionEntry) => (en.ran ?? []).some((r) => r.startsWith('hint:') && !r.endsWith('/none'));
 
-async function check(input: unknown, ctx: VerifyContext): Promise<VerifyResult> {
+async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerifyResult> {
   const env = parseEnvelope(input);
   // 1. Versions: this verifier replays its own engine, generator and durations only.
   if (env.prngVersion !== PRNG_VERSION)

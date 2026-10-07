@@ -109,7 +109,7 @@ export class ChunkedJournal<R = unknown> {
     this.hashing = this.hashing.then(async () => {
       this.hash = await chainStep(this.hash, l);
     });
-    if (this.buffer.length >= CHUNK_SIZE) this.close();
+    if (this.buffer.length >= CHUNK_SIZE) void this.close(); // a failure is kept in `error`
   }
 
   /** Closes the chunk in progress now (a full chunk; the run's end). */

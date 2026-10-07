@@ -127,7 +127,7 @@ export const game = defineGame({
   // (79 MB).
   assetBudgets: { initialKB: 2500, roomKB: 3000, chapterKB: 4500, backgroundScoreKB: 3500, offlineTotalKB: 9000, decodedAudioMB: 128, initialJsKB: 140 },
   // Texts that stay the same in French on purpose: names, ▲ ▼, OK, words French borrowed (`npm run i18n -- status`).
-  i18n: { same: ['room:market/props.oranges.name', 'room:market/props.bouquet.name', 'item:bouquet/name', 'char:hero/name', 'char:biscuit/name', 'char:neighbor/name', 'ui/pause', 'ui/zoomIn', 'ui/ok', 'ui/jump', 'ui/duck', 'ui/normal'] },
+  i18n: { same: ['room:market/props.oranges.name', 'room:market/props.bouquet.name', 'item:bouquet/name', 'char:hero/name', 'char:biscuit/name', 'char:neighbor/name', 'ui/pause', 'ui/zoomIn', 'ui/ok', 'ui/jump', 'ui/duck', 'ui/normal', 'ui/speedrun'] },
   settings: true,
   // The music and the sound effects are Mega Drive renders built by `npm run audio` (docs/en/AUDIO.md): the theme is
   // the oboe theme of Tchaikovsky's Swan Lake (public domain) written out for the project (audio/projects/swan-theme),
@@ -202,5 +202,6 @@ export const game = defineGame({
     settings: 'Settings', textSpeed: 'Text speed', textSize: 'Text size', reduceMotion: 'Reduce motion', readableFont: 'Readable font', captions: 'Sound captions',
     volumeMusic: 'Music volume', volumeSfx: 'Sound volume', volumeVoice: 'Voice volume', slow: 'slow', normal: 'normal', fast: 'fast', large: 'large',
     language: 'Language', fingerprint: 'Build', objectives: 'Objectives',
+    speedrun: 'Speedrun', exportRun: 'Export run', abandonRun: 'Abandon run',
   },
 });

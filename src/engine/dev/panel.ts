@@ -181,6 +181,15 @@ export class DevPanel {
       );
     }
 
+    // A speedrun (4.1.14): the clock's readings, and the sealed .wsrun once the finish fired.
+    const run = this.app.speedrun;
+    if (run) {
+      const sf = pane.addFolder({ title: `Speedrun ${run.category.name}`, expanded: false });
+      sf.addBinding({ clock: run.text() }, 'clock', { label: 'time', readonly: true });
+      sf.addBinding({ steps: String(eng.runClock.logicalSteps()) }, 'steps', { label: 'steps', readonly: true });
+      if (run.envelope) sf.addButton({ title: 'Export run (.wsrun)' }).on('click', () => void run.exportRun());
+    }
+
     // The semantic journal (4.1.11): what the core says happened, in ids, latest first.
     const events = eng.journal.since(eng.sessionSeq).slice(-12).reverse();
     if (events.length) {

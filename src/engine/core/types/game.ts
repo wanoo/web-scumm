@@ -465,6 +465,12 @@ export interface UiTexts {
   language?: string;
   /** The pause menu's fingerprint row (4.1.12, ADR 0013): the build a player runs, in four short hashes. English default "Build". */
   fingerprint?: string;
+  /** The pause menu's speedrun entry (4.1.14, `GameDef.speedrun`). English default "Speedrun". */
+  speedrun?: string;
+  /** Downloads the sealed `.wsrun` of the attempt (4.1.14). English default "Export run". */
+  exportRun?: string;
+  /** Gives up the attempt in progress (4.1.14). English default "Abandon run". */
+  abandonRun?: string;
   /** The pause menu's quest journal (4.1.12, `GameDef.objectives`). English default "Objectives". */
   objectives?: string;
   /** Values of text speed / size: slow, normal, fast, large. */
