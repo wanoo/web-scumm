@@ -136,7 +136,7 @@
   its inputs (the set's sources and tests, the two configurations, the tool, the named survivors, the lockfile;
   `--hash` prints it) and reuses a report of the same inputs instead of running again (`--fresh` runs anyway): a
   commit of docs or of a version does not re-run the sets. CI gains a `mutation` job on both sets, cached by that
-  hash; `release.yml` restores the cache before `release-check`, which runs `--set=all`; the nightly runs both sets
+  hash (on `main` and on a pull request labelled `full-ci`: an ordinary pull request does not wait an hour for it); `release.yml` restores the cache before `release-check`, which runs `--set=all`; the nightly runs both sets
   fresh and gated (no `continue-on-error`). A mutant is judged by the tests of its own set (`all` runs the sets one
   after the other), and a run that exceeds three minutes is killed with its whole process group (vitest's forked
   workers included: the orphans of a killed parent had slowed CI's runner to a 90-minute cancellation). The sets'

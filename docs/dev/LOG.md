@@ -2432,6 +2432,13 @@ Platform"; human gates reported, not blocking (D12).
   `node:fs` otherwise) and reaches each branch on purpose: 132/140 on the store, the seven dead; one named survivor
   (`inspectJournal`'s `err instanceof Error → false`) is now killed by the same tests and leaves `mutants.json`.
 
+- Third CI run, same day: the maintainer's analysis of the CI (20 jobs a pull request, 59–61 runner-minutes, 26
+  cancellations in the last 50 runs, the mutation job holding a run for an hour) asks the mutation off the pull
+  request path. Done here: the job runs on main, on the nightly, in release-check (the cached report) and on a pull
+  request labelled `full-ci` only. The rest of that analysis (one fast PR tier, a full gate once per change, a
+  `plan` job and a `pr-gate` aggregator, the strict ratchet as a warning on PRs) is lot 0 of 4.1.9
+  (`docs/dev/plans/README.md`).
+
 → next: Claude · `refactor/418-typescript-7` (paths without `baseUrl`, the generated project's tsconfig; the compiler itself decided per MIGRATION-4.1.8.md)
 ## #108 · 2026-10-07 · Claude · proposal · `refactor/418-typescript-7`: the compiler, the paths, the CommonJS import
 

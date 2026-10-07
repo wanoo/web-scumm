@@ -58,7 +58,11 @@ jobs:
   # test, or named in docs/dev/mutants.json. The verdict depends on the sources, the tests, the configurations and the
   # lockfile, hashed by `--hash`: a cache keyed by that hash carries the report to the next commit that changes none of
   # them (docs, a version), and to the release, which reuses it instead of running the sets again.
+  # Both sets, cached by the hash of their inputs: on main and on a pull request labelled `full-ci` only. On an ordinary
+  # pull request the sets would run for an hour whenever the core or Reality moved (7 October 2026: 90 then 52 min);
+  # the nightly and release-check measure them, and release-check reuses a report of the same inputs.
   mutation:
+    if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci')
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     steps:
