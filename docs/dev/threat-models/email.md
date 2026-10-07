@@ -1,0 +1,32 @@
+# Email connector: threat model (4.1.9)
+
+**What it does.** Turns an email into a declared signal: a message whose subject or text contains every word of an
+answer the game declares (`reality.connectors.email.answers`) proposes that answer's signal for the player the
+message is addressed to (`<anything>+<playerId>@<domain>`), or links a player when it carries a pairing code. Two
+modes: `webhook` (a provider posts the raw message, signed with HMAC-SHA256 over `<timestamp>.<body>`) and `imap` (the
+connector polls a mailbox over TLS).
+
+**Assets.** The players' addresses and messages (personal data); the webhook secret and the IMAP password; the
+connector's Biscuit; the game's state through the signals it proposes.
+
+**Adversaries.** Anyone who can send an email to the address; anyone who can reach the webhook URL; a provider or a
+mailbox replaying old messages; a player trying another player's signal.
+
+| Threat | Answer | Test |
+|---|---|---|
+| A MIME bomb (nested multiparts, a huge part, a base64 that inflates) | The raw message is refused above `maxBytes` (256 KB by default) before parsing; the parser runs in a worker thread with a 64 MB heap and a 2 s budget, then is replaced; at most 3 levels of multipart, 64 parts, 256 KB of decoded text | `tests/connectors-email.test.ts` (fixtures `hostile-*.eml`), the fuzz harness |
+| Recursive attachments (`message/rfc822` inside `message/rfc822`) | Attachments are refused by default: a message with one is rejected, never opened; an embedded message is an attachment | `hostile-nested-rfc822.eml` |
+| HTML (scripts, tracking pixels, hidden text) | HTML is reduced to inert text (tags dropped, entities decoded, no URL fetched); the text is used for matching words only and never leaves the connector | `html-only.eml`, `hostile-script.eml` |
+| Spoofed headers (`From` claiming another player) | The player is never derived from `From`: the recipient tag (`+p-…`) or a pairing code links it; `From` is not used at all, only hashed in the payload | `spoofed-from.eml` |
+| A replayed message (same `Message-ID`, a webhook posted twice, a mailbox reread) | `dedupeKey = sha256('email:' + Message-ID)`: the Bridge answers `duplicate`; a webhook more than 5 minutes old (timestamp) is refused | contract tests, `tests/connectors-email.test.ts` |
+| A forged webhook | HMAC-SHA256 of `<timestamp>.<raw body>`, compared in constant time; the secret is read from a file | `tests/connectors-email.test.ts` |
+| A message without `Message-ID` | Refused (no idempotence possible) | `no-message-id.eml` |
+| Header injection in a reply | No reply is sent in 4.1.9 (not done, said in the CHANGELOG fragment); nothing of a message is ever written anywhere | — |
+| Encoded words abuse (RFC 2047 with unknown charsets, invalid base64) | Decoded with the platform's `TextDecoder` (non-fatal); an unknown charset keeps the raw bytes as Latin-1; never an exception out of the worker | `encoded-subject.eml`, fuzz |
+| An IMAP server that lies (huge literal, endless lines) | A line is at most 8 KB, a literal at most `maxBytes`, a command answers within 30 s, else the connection is closed and the poll retried later | `tests/connectors-email.test.ts` (a fake IMAP server) |
+| Retention | `keep: 0` (default): a message is deleted from the mailbox once its proposal is accepted or found duplicate; `keep: N`: deleted after N days; a refused message is flagged and kept for the operator | `tests/connectors-email.test.ts` |
+
+**Residual risks.** A provider whose own signature scheme differs needs a small adapter in front (not shipped). DKIM
+and SPF are not checked by the connector: an address tag can be guessed only by someone who knows the playerId, which
+is pseudonymous and never shown to other players; a game that needs stronger proof uses a pairing code per message.
+Charsets beyond what Node's `TextDecoder` knows are read as Latin-1.
