@@ -1,5 +1,6 @@
 // Checks that no sealed-ending text (from ANY outcome) appears in clear text in dist/.
 import { readdir, readFile, access } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GAME_DIR } from '../tools/game';
@@ -30,7 +31,8 @@ async function main() {
       : null;
   const needles: string[] = [];
   if (cfgPath) {
-    const { config } = await import(cfgPath);
+    // A file URL, not a path: a Windows path (`D:\…`) is read by the ESM loader as a URL scheme (4.1.8).
+    const { config } = await import(pathToFileURL(cfgPath).href);
     const strip = (h: string) =>
       h
         .replace(/<[^>]+>/g, ' ')

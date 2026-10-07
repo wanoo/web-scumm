@@ -406,7 +406,7 @@ Les scripts ci-dessus sont ceux dont un jeu a besoin. Le reste de `package.json`
 | Script | Quoi |
 |---|---|
 | `npm run preview` | sert `dist/` sur 127.0.0.1 (ce vers quoi les scripts e2e sont pointés après un build) |
-| `npm start` | sert `dist/` sur toutes les interfaces au port `$PORT` (8080 par défaut) avec `sirv` : ce qu'un hébergeur comme Clever Cloud lance |
+| `npm start` | sert `dist/` sur toutes les interfaces au port `$PORT` (8080 par défaut) avec `sirv`, via `scripts/start.mjs` (un lanceur Node : il tourne aussi sous Windows, 4.1.8) : ce qu'un hébergeur comme Clever Cloud lance |
 | `npm run test:node` | la suite unitaire sans les tests liés à Python ni ceux qui saturent le processeur (`npm run check` la lance ; les lourds tournent la nuit) |
 | `npm run test:mutation:core [-- --set=core\|reality\|all --file=…]` | les tests de mutation des modules dont dépendent une sauvegarde, une session, une condition ou un signal (`docs/dev/MUTANTS.md`) |
 | `npm run e2e:smoke` | le parcours générique du build de production (le chemin du solveur rejoué au tactile) |
