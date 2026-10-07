@@ -17,11 +17,10 @@ export function offerUpdate(app: App, activate: () => Promise<void>) {
     button.disabled = true;
     app.saveError = null;
     try {
-      // On the untouched title screen there is no progress to persist; do not create a misleading Continue save.
-      if (app.engine.hasSave()) {
-        app.engine.save();
-        await app.engine.store.whenIdle?.();
-      }
+      // A game in progress is saved first. On the title screen there is no live state: the autosave on disk is the
+      // progress (writing one from nothing would throw, or create a misleading Continue); a pending write still lands.
+      if (app.engine.state) app.engine.save();
+      await app.engine.store.whenIdle?.();
       if (app.saveError) throw new Error(app.saveError);
       await activate();
     } catch (e) {
@@ -115,6 +114,13 @@ export async function warmAll(app: App, retry = false) {
     let status = offlineStart(plan, estimate);
     set(status);
     if (status.state !== 'running') return; // quota too small: say so, download nothing
+    // The fetches below reach the caches through the service worker, so only once it controls this page (the first
+    // install claims it at activation; Firefox was found warming 218 files into nothing before that). Without that
+    // control in time, nothing is fetched and the status says so: the pause menu's retry asks again.
+    if (!(await controlled(app))) {
+      set({ ...status, state: 'skipped', reason: 'worker' });
+      return;
+    }
     const visible = () =>
       new Promise<void>((r) => {
         if (app.aborter.signal.aborted || typeof document === 'undefined' || !document.hidden) return r();
@@ -149,6 +155,33 @@ export async function warmAll(app: App, retry = false) {
   } finally {
     if (first) app.offlineDone(app.offlineStatus);
   }
+}
+
+/**
+ * Whether the service worker controls this page, waiting for it when boot said one is registered (`app.swExpected`):
+ * `ready` (the first install's activation) then the controller, `controllerchange` if it comes later, within
+ * `app.swControlMs`. Without a worker expected (dev, a test, a browser without them) there is nothing to wait for.
+ */
+async function controlled(app: App): Promise<boolean> {
+  const sw = typeof navigator === 'undefined' ? undefined : navigator.serviceWorker;
+  if (!sw || !app.swExpected || app.aborter.signal.aborted) return true;
+  if (sw.controller) return true;
+  return new Promise<boolean>((r) => {
+    const done = (ok: boolean) => {
+      clearTimeout(timer);
+      sw.removeEventListener('controllerchange', onChange);
+      app.aborter.signal.removeEventListener('abort', onAbort);
+      r(ok);
+    };
+    const onChange = () => done(!!sw.controller);
+    const onAbort = () => done(true); // the player is gone: whoever reads the status next sees its abort
+    const timer = setTimeout(() => done(!!sw.controller), app.swControlMs);
+    sw.addEventListener('controllerchange', onChange);
+    app.aborter.signal.addEventListener('abort', onAbort);
+    void sw.ready.then(() => {
+      if (sw.controller) done(true);
+    });
+  });
 }
 
 export function offlineUrl(app: App, kind: string, id: string) {
