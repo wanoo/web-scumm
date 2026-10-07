@@ -100,7 +100,7 @@ which is why it can prove the game: the same `Engine`, the same `resolve`, no se
 is planned for 4.2, then `npx create-web-scumm my-game`):
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.14/web-scumm-4.1.14.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.15/web-scumm-4.1.15.tgz
 npx --package=$T web-scumm create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # then npm run verify, npm run build, npm run release
@@ -131,7 +131,7 @@ the three figures from `tests/quality-baseline.json`):
 |---|---|
 | Unit tests | <!-- metric:tests -->1418<!-- /metric --> declarations, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
 | Browser tests | the sample game played to its ending by touch and by keyboard in Chromium and WebKit at a phone's size, in English and French, with the DOM and the Canvas painter; a second game and the reference game too; every minigame won at the keyboard; axe-core on every screen |
-| Saves | one frozen save per release from 3.0.0 to 4.1.14 loads and reaches the ending |
+| Saves | one frozen save per release from 3.0.0 to 4.1.15 loads and reaches the ending |
 | Proof | the sample game's every reachable state in seconds; a 40-room reference game in <!-- metric:referenceStates -->288<!-- /metric --> states; 500 random games of each of three kinds compared to an explicit search every night, 0 divergences ([BENCH](docs/en/BENCH.md)) |
 | A new game | packed, created from the tarball, installed, verified, built and played to its end by CI; a game made on the previous release upgraded and its save played to the end |
 | The player's first visit | <!-- metric:initialJsKB -->125<!-- /metric --> KB of JavaScript, gzipped, held by a budget; every byte fetched predicted by the asset graph |
@@ -158,12 +158,12 @@ Every page also exists in French under `docs/fr/`, and a test keeps the two in s
 
 ## Releases
 
-Current release: [v4.1.14 "Time Attack"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.14), the seventh of the
-4.1.8 → 4.1.15 programme: speedrun categories as content, a run clock that observes and never writes, a seeded
-generator with streams, a chunked and chained run journal, a `.wsrun` proof that a verifier replays to one verdict,
-OBS and LiveSplit as local tools, leaderboards verified in an isolated worker, the reference chapter's Any% run
-attached and verified. On 4.1.13's solver, 4.1.12's game-as-data, 4.1.11's scene frame, 4.1.10's durable Bridge,
-4.1.9's connectors and 4.1.8's foundation.
+Current release: [v4.1.15 "Remix"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.15), the eighth and last of
+the 4.1.8 → 4.1.15 programme and the release candidate of 4.2: one game, several worlds from a manifest and a seed,
+deterministic (tested in Node, the cross-runtime check written and not yet run) and every world of a catalogue proved;
+a save that carries its world; seed codes, the daily challenge and Mystery seeds; the code wheel; the Studio's Remix
+tab; the DSL and the IR frozen. On 4.1.14's runs and proofs, 4.1.13's solver, 4.1.12's game-as-data, 4.1.11's scene
+frame, 4.1.10's durable Bridge, 4.1.9's connectors and 4.1.8's foundation.
 From 4.1.1 to 4.1.7 every release added only what was optional, and a game written against one ran on the next;
 from 4.1.8 the 4.1.x line is an incubation line, where a release may break a public name or a format, documented
 and with a migration, until 4.2.0 restores strict SemVer ([SUPPORT](docs/en/SUPPORT.md)). The story
