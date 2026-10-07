@@ -6,9 +6,11 @@
 //   ship merge <pr>              `checks`, then merge (merge commit, the only method the ruleset allows); prints the SHA
 //   ship main <sha>              wait for the `ci` run of main on that SHA to be green (re-run once)
 //   ship tag <version> <sha>     `main`, then an annotated tag v<version> on the SHA, pushed; then `watch`
+//                                (`--now`, 4.1.10: without waiting for main's run; the tag's own `ci` run, the same
+//                                suite on the same commit, is what release.yml checks)
 //   ship watch <version>         wait for the tag's `ci` run, then for the `release` run; exit by its conclusion
 //   ship verify <version>        download the release, check the SHA-256 sums and every provenance attestation
-//   ship chain <pr> <version>    merge → tag → watch → verify
+//   ship chain <pr> <version>    merge → tag → watch → verify (`--now` passes to tag)
 //
 // A pre-release version (`4.1.8-rc.1`) is tagged the same way; release.yml marks it a pre-release on GitHub.
 // Every command writes its PID to `.cache/pids/ship-<command>.pid` (`SHIP_PIDS` to choose the folder): stop that
@@ -206,7 +208,9 @@ async function tag(versionArg, sha) {
       );
     say(`${name} already on origin at ${full.slice(0, 7)}`);
   } else {
-    await main(full);
+    if (process.argv.includes('--now'))
+      say(`tagging without waiting for main's run (--now): the tag's run is the gate`);
+    else await main(full);
     const local = localCommit(name);
     if (local && local !== full)
       throw new Error(
