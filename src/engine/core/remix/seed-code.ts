@@ -1,11 +1,11 @@
 // The code a player copies and types (4.1.15 "Remix", ADR 0018): `WS-XXXX-XXXX`, seven Crockford base32 symbols (35
-// bits) and a check symbol (the value modulo 37, Crockford's check alphabet). Typing is forgiving the way Crockford's
-// encoding is: case ignored, `I` and `L` read as `1`, `O` as `0`, spaces and dashes skipped; a wrong check symbol is
-// an explicit error, never a silent fallback to another world. A code carries no player id, no date, nothing personal
+// bits) and a check symbol from the same alphabet (Σ (2i+1)·symbolᵢ modulo 32: odd weights, so any single wrong
+// symbol is caught, and most swaps of two neighbours; no `*~$=` that a URL or a file name would trip on). Typing is
+// forgiving the way Crockford's encoding is: case ignored, `I` and `L` read as `1`, `O` as `0`, spaces and dashes
+// skipped; a wrong check symbol is an explicit error, never a silent fallback to another world. A code carries no player id, no date, nothing personal
 // (docs/dev/threat-models/remix-seed.md): it is a world's name, not a secret.
 
 const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-const CHECK = `${ALPHABET}*~$=U`;
 const DATA = 7;
 /** The seed of the author's world: no variation, every dimension at its story value. @public */
 export const STORY_SEED = 'story';
@@ -16,6 +16,13 @@ export class RemixSeedError extends Error {
     super(message);
     this.name = 'RemixSeedError';
   }
+}
+
+/** The check symbol of seven data symbols. */
+function checkOf(data: string): string {
+  let sum = 0;
+  for (let i = 0; i < data.length; i++) sum += (2 * i + 1) * ALPHABET.indexOf(data[i]!);
+  return ALPHABET[sum % 32]!;
 }
 
 /** The 35-bit value of a code's seven data symbols. */
@@ -34,7 +41,7 @@ export function encodeSeedCode(v: number): string {
     data = ALPHABET[x % 32] + data;
     x = (x - (x % 32)) / 32;
   }
-  const s = data + CHECK[v % 37];
+  const s = data + checkOf(data);
   return `WS-${s.slice(0, 4)}-${s.slice(4)}`;
 }
 
@@ -53,9 +60,8 @@ export function normalizeSeed(input: string): string {
   const data = s.slice(0, DATA);
   for (const ch of data)
     if (!ALPHABET.includes(ch)) throw new RemixSeedError(`"${ch}" is not a symbol of a seed code ("${raw}")`);
-  const v = dataValue(data);
-  if (s[DATA] !== CHECK[v % 37]) throw new RemixSeedError(`the check symbol of "${raw}" is wrong: a typo?`);
-  return encodeSeedCode(v);
+  if (s[DATA] !== checkOf(data)) throw new RemixSeedError(`the check symbol of "${raw}" is wrong: a typo?`);
+  return encodeSeedCode(dataValue(data));
 }
 
 /** Whether a string is a well-formed seed (a code with its check symbol, or `story`). @public */

@@ -68,7 +68,7 @@ describe('seed codes', () => {
       ),
     );
     const code = encodeSeedCode(123456789);
-    expect(code).toMatch(/^WS-[0-9A-Z*~$=]{4}-[0-9A-Z*~$=]{4}$/);
+    expect(code).toMatch(/^WS-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$/);
     expect(normalizeSeed(code.toLowerCase().replace(/-/g, ' '))).toBe(code);
     expect(normalizeSeed('ws-0000-0000')).toBe('WS-0000-0000');
     expect(normalizeSeed('WS-OOOO-OOOO')).toBe('WS-0000-0000');
@@ -80,7 +80,7 @@ describe('seed codes', () => {
     expect(() => normalizeSeed('WS-00U0-0000')).toThrow(/not a symbol/);
     expect(() => normalizeSeed('hello world')).toThrow(RemixSeedError);
   });
-  it('a one-symbol typo is caught by the check symbol in at least 9 cases out of 10', () => {
+  it('a one-symbol typo is always caught by the check symbol', () => {
     let caught = 0;
     let total = 0;
     for (let v = 0; v < 2000; v++) {
@@ -94,7 +94,7 @@ describe('seed codes', () => {
         caught++;
       }
     }
-    expect(caught / total).toBeGreaterThan(0.9);
+    expect(caught).toBe(total);
   });
 });
 
