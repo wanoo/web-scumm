@@ -160,4 +160,24 @@ describe('the engine draws from the run’s logic stream', () => {
     const w = await replay(demo, demoLayouts, s, { commands, seed: 'not-the-seed' });
     expect(w.session.log.flatMap((x) => x.rnd ?? [])).not.toEqual(recorded);
   });
+
+  it('before any session: a draw seeds the stream from nextSeed, or from a fresh seed; no draw state yet', () => {
+    const e = new Engine(mini(), miniLayouts, new FakePresenter(), new MemoryStore());
+    expect(e.sessions.drawState()).toBeNull();
+    e.sessions.nextSeed = 'early';
+    expect(e.random()).toBe(derive('early', 'logic').next());
+    expect(e.sessions.drawState()!.seed).toBe('early');
+    const f = new Engine(mini(), miniLayouts, new FakePresenter(), new MemoryStore());
+    f.random();
+    expect(f.sessions.seed).toMatch(/^[0-9a-f]{32}$/);
+    expect(f.sessions.nextSeed).toBeNull();
+  });
+
+  it('a load as the first session takes nextSeed, and the session writes it', async () => {
+    const e = new Engine(mini(), miniLayouts, new FakePresenter(), new MemoryStore());
+    e.sessions.nextSeed = 'loaded';
+    await e.load(e.fresh());
+    expect(e.session?.seed).toBe('loaded');
+    expect(e.random()).toBe(derive('loaded', 'logic').next());
+  });
 });
