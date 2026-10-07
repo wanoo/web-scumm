@@ -599,6 +599,24 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.1.9 « Gateways » (livrée le 7 octobre 2026) : le monde extérieur, par quatre connecteurs
+
+La deuxième release du programme, le même jour que la première. Un paquet `web-scumm-connectors` (la quatrième
+archive) avec un SDK (un connecteur reçoit, valide, associe un joueur, porte une clé de déduplication, propose avec
+son propre Biscuit atténué ; au moins une fois, appliqué une fois ; la charge utile ne quitte jamais le connecteur, le
+Bridge reçoit son empreinte) et quatre connecteurs, chacun avec son modèle de menace écrit avant son code et ses tests
+d'abus : email (un webhook HMAC, ou un client IMAP borné ; MIME lu dans un worker sous limites ; HTML inerte ; pièces
+jointes refusées), Telnet (un shell virtuel des commandes déclarées par le jeu, limites par adresse et par session),
+SSH (`ssh2`, un code de pairing ou une clé déclarée, un terminal et un disque virtuels, rien de l'hôte), Open Badges
+(OB2 et OB3 vérifiés, révocation et listes de statut, chaque récupération par un fetcher sûr contre le SSRF). Le build
+d'un jeu refuse du code serveur ; `games/signals` joue un chapitre par un email et un terminal, depuis des replays
+enregistrés que le solveur prouve. Les quatre sont `experimental` dans SUPPORT jusqu'à ce qu'un vrai fournisseur, un
+vrai badge, une exposition contrôlée de SSH et Telnet aient été essayés par des personnes. La cadence elle-même : le
+CHANGELOG et le LOG en fragments par branche (`changes/`), la CI en trois niveaux taillée par le changement (`plan`,
+`pr-gate`), le job de mutation hors du chemin des pull requests. Laissé pour plus tard, dit comme tel : les réponses
+email, DKIM/SPF, IMAP STARTTLS et IDLE ; un plancher de couverture et une gate de mutation pour `connectors/` ; les
+passes humaines.
+
 ## Le programme 4.1.8 → 4.1.15 (décidé le 7 octobre 2026, D18) : finir les ruptures avant de geler les contrats
 
 Aucun jeu de production ne dépend encore de web-scumm (le jeu du mainteneur reste en 3.1.0, D8) : les sauvegardes, les
@@ -616,7 +634,7 @@ qu'une fois les bloqueurs de la courante fermés.
 | Version | Nom de travail | Résultat attendu |
 |---|---|---|
 | 4.1.8 | **Foundation Reset** (livrée le 7 octobre 2026) | TypeScript 7, Vite 8, PWA 2, le curseur Reality corrigé (le curseur local du port avançait avant l'acquittement : reproduit en polling), des contrôles qui prédisent la release, une release candidate d'abord |
-| 4.1.9 | **Gateways** | connecteurs email, SSH, Telnet et Open Badges sur un SDK commun, hors du joueur, expérimentaux jusqu'à un passage réel |
+| 4.1.9 | **Gateways** (livrée le 7 octobre 2026) | connecteurs email, SSH, Telnet et Open Badges sur un SDK commun, hors du joueur, expérimentaux jusqu'à un passage réel |
 | 4.1.10 | **Constellation** | un Bridge durable, répliqué et isolé par tenant ; le signal peut devenir `SignalV2` si l'analyse de menace le demande |
 | 4.1.11 | **Viewport** | un renderer séparé de la logique du jeu, derrière une `SceneFrame` immuable ; un journal sémantique possédé par le cœur |
 | 4.1.12 | **Language** | le DSL et une représentation intermédiaire (`GameIR`, une empreinte de jeu) façonnés par Gateways et Viewport ; le socle stabilisé |

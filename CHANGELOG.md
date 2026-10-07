@@ -2,6 +2,83 @@
 
 ## Unreleased
 
+## 4.1.9 — 2026-10-07
+
+"Gateways" (LOG #121): the programme's second release, the same day as the first. Four connectors of the world
+outside (email, Telnet, SSH, Open Badges) on one SDK, in a fourth package outside the player and the DSL, each with its
+threat model and its abuse tests, all `experimental` until a real pass; the cadence itself (the CHANGELOG and the LOG
+as fragments per branch, the CI in three tiers sized by the change, the mutation job off the pull request path).
+Measured against 4.1.8 in `docs/dev/baselines/4.1.9.md`; what this release does not do is in the LOG and the passes
+sheet (`docs/dev/passes/4.1.9.md`).
+
+### Changes
+
+- **The CHANGELOG and the LOG written as fragments per branch** (4.1.9, lot 0 "cadence"). A branch that changes
+  the code writes `changes/<slug>.md` (its bullets under `### Breaking`, `### Fixed` or `### Changes`) and, for a LOG
+  entry, `changes/<slug>.log.md`; `npm run changes -- --assemble` folds them into `CHANGELOG.md`'s `Unreleased` and
+  numbers the LOG entries in the order the fragments reached `main`; CI's `check` job fails a pull request that
+  touches the code without a fragment (`npm run changes -- --check`). During 4.1.8 every merge made the other open
+  branches conflict on those two files and re-run their CI: that is over (`changes/README.md`).
+
+- **CI in three tiers, sized by the change** (4.1.9, lot 0). A pull request runs a fast tier on every change (`plan`;
+  `check`: formatting, lint, knip, both type checks, the sample game's gates, `build:game` instead of `build`, the
+  baseline, the proof; `coverage`: the unit suite once), then only the heavier jobs its diff can affect, as
+  `tools/ci-plan.ts` classifies it (`npm run ci:plan`): a docs-only pull request opens no browser, no Windows runner and
+  no Node 24; a Bridge change runs Reality, a painter the browser rows and the reference chapter. The browser rows and
+  the Firefox PWA job play the `dist/` that `check` built instead of building it seven times; `node-24` runs the suite
+  without `quality` again; `audit:deps` runs when the lockfile moved. The seventeen checks the ruleset requires keep
+  their names and succeed with "not needed by the plan" when spared. The coverage ratchet warns on a pull request
+  (`::warning::`) and stays strict on `main`, tags, the nightly and release-check. On `main`, on a tag and with the
+  `full-ci` label, everything runs as before; a new `pr-gate` job sums every result up, the candidate single required
+  check (`CONTRIBUTING.md`, "What CI runs"; `docs/en/SUPPORT.md` says what a pull request no longer checks). The `mutation` job no longer runs on a push to `main` either: a main run must stay short, since the release
+  chain waits for the run of the exact commit it tags and a later merge cancels one still going; the nightly and
+  `release-check` measure the sets, a `full-ci` label on a pull request too. The Firefox PWA job now plays the same build as the Chromium and WebKit PWA rows (the Studio demo included),
+  from the shared artefact.
+
+- **Four connectors of the world outside: email, Telnet, SSH and Open Badges** (4.1.9, experimental, D19, ADR 0008).
+  Each is a process of its own (`web-scumm-connector <id> --config <file>`, or `npm run connector -- …` in the
+  repository), never in the game nor its DSL, with one Biscuit attenuated to its own signals. Email: a provider's
+  signed webhook or an IMAP mailbox, the message read in a worker under limits, HTML made inert, attachments refused,
+  one signal per `Message-ID`, a message the Bridge could not take left unseen for the next poll, IMAP without TLS
+  only to this machine. Telnet and SSH: a virtual terminal (the game's commands, `help`, `exit`) and, for SSH, a
+  virtual disk (`ls`, `cd`, `cat`); no host shell, no `exec`, no `sftp`, no forwarding; one shell per SSH
+  connection; line, rate and time limits, 20 seconds to pair, three connections per address and wrong codes counted
+  per address across reconnections. Open Badges 2.0 (hosted, signed) and 3.0 (VC-JWT, Data Integrity `eddsa-jcs-2022`), issuer,
+  recipient, dates and revocation checked, every document fetched under an SSRF-safe network policy; the verdict is
+  `valid`, `invalid`, `expired`, `revoked` or `indeterminate`. A player links a connector with the pairing code the
+  pause menu shows. Not done: replies to emails, DKIM and SPF, RDF-canonicalised proofs (`indeterminate`), a real
+  provider, badge or exposed terminal tried by a person (`docs/en/SUPPORT.md`).
+- **A game declares what its connectors may do, as data** (4.1.9): `reality.connectors` holds the words of an email's
+  answers, a terminal's commands and replies, an SSH disk's files and the badge issuers a game trusts; `npm run
+  validate` checks that every signal named is declared, that commands are plain words and not the terminal's own,
+  and that paths stay inside. The Reality manifest carries the block (its hash changes only for a game that declares
+  it). A game runs without any connector.
+- **The connector SDK** (4.1.9, `connectors/src/sdk.ts`): a connector receives, validates, binds to a player, gives a
+  `dedupeKey` (`sha256('<source>:<external id>')`, the Bridge's existing deduplication key) and proposes; delivery is
+  at least once and applied once (a proposal whose answer was lost is sent again with the same key, the Bridge answers
+  `duplicate`). What a connector saw never leaves it: the Bridge receives the SHA-256 of its payload as
+  `evidenceHash`. Limits (size, a local quota, a timeout), metrics and `/health` in JSON, a log that writes
+  `[redacted]` for anything that looks like content, SIGTERM drained in at most five seconds.
+- **`web-scumm-connectors`, a fourth package** (4.1.9): one bundled module, its MIME worker beside it, `ssh2` (MIT)
+  its only dependency, whose optional native parts are refused (`cpu-features` and `nan` map to a refusing stub): in the
+  repository `npm ci` still runs ssh2's install script, which attempts a native build and fails without the `nan`
+  headers, so no `.node` file results (tested); the package is installed with `--ignore-scripts`. `npm run pack` makes four tarballs; `npm run fresh-install` installs this one without native
+  code and runs `web-scumm-connector --help`.
+- **A build that carries server code fails** (4.1.9): `verify:dist` (in `npm run build`) refuses a game's JavaScript
+  that holds any marker of the connectors or the Bridge (`connectors/`, `ssh2`, `imapflow`, `web-scumm-bridge`…).
+- **`npm run solve:reality` proves recorded replays too** (4.1.9): `games/<id>/replays/*.json` (connector inputs and
+  the signals they made), proved finishable like the scenarios and replayed through the real connector code by a
+  test, with no network. The sample game `games/signals` gains "the mailbox and the terminal": a letter opens the
+  shed, a command lights a lamp, a badge puts a ribbon on the bucket, all optional.
+- **Tools and CI** (4.1.9): `npm run fuzz:connectors` (seeded mutations of each connector's corpus, crashes and memory
+  counted); a `connectors` CI job (the contract on the four connectors against a real Bridge, abuse and replay
+  tests, a run under `--disallow-code-generation-from-strings`, half a minute of fuzzing, the tarball installed); a
+  nightly fuzz of a minute per connector, not gating yet; a `connectors` mutation set, outside `all`, not gated yet;
+  `e2e:reality` sends one key three times from two connectors and proposes the sample chapter's replays. The Windows
+  job leaves out the Telnet and SSH tests until they are ported.
+- **Documentation** (4.1.9): `docs/en/CONNECTORS.md` and `docs/en/PRIVACY.md` (what is kept, where, how long, how to
+  delete), in French too; a threat model per connector (`docs/dev/threat-models/`); ADR 0008; D19.
+
 ## 4.1.8 — 2026-10-07
 
 "Foundation Reset" (LOG #117): the first release of the 4.1.8 → 4.1.15 programme (D18), where the 4.1.x line becomes
