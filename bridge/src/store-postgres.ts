@@ -19,7 +19,7 @@ interface PgPool {
   end(): Promise<void>;
   on(ev: 'error', fn: (e: Error) => void): void;
 }
-/** The `pg` module (`import pg from 'pg'`), or a test's stand-in. */
+/** The `pg` module (its default export), or a test's stand-in. */
 export interface PgModule {
   Pool: new (o: { connectionString: string; max?: number }) => PgPool;
 }

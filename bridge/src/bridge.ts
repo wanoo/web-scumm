@@ -19,7 +19,7 @@ import { fromBridgeStore } from './store-memory';
 import { type Stream, Streams } from './streams';
 import { Telemetry } from './telemetry';
 
-export { type BridgeConfig, BridgeError, type BridgeLog, DEFAULT_LIMITS, type Limits } from './config';
+export { type BridgeConfig, BridgeError, type BridgeLog, type Limits } from './config';
 
 const PAIR_POLICY = readFileSync(new URL('../policy/pair.datalog', import.meta.url), 'utf8');
 

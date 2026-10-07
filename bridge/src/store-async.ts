@@ -10,7 +10,7 @@ import type { JournalEntry, Pairing, Player } from './store';
 export const DEFAULT_TENANT = 'default';
 
 /** A tenant's id: what a request resolves to, what every row carries. */
-export const TENANT_ID = /^[a-z0-9][a-z0-9_-]{0,62}$/;
+const TENANT_ID = /^[a-z0-9][a-z0-9_-]{0,62}$/;
 
 /** A signal as the store keeps it: the journal entry of 4.1.9 and the tenant it belongs to. */
 export interface StoredSignal extends Omit<JournalEntry, 'payload'> {
@@ -19,7 +19,7 @@ export interface StoredSignal extends Omit<JournalEntry, 'payload'> {
 }
 
 /** What the Bridge returns from inside `appendSignal`'s transaction once it knows the sequence. */
-export interface SignalDraft {
+interface SignalDraft {
   id: string;
   jws: string;
   kid: string;

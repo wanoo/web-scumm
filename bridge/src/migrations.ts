@@ -7,7 +7,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 const DIR = new URL('../migrations/', import.meta.url);
 
 /** The steps this Bridge knows, in order: their version and both directions. */
-export function migrationSteps(): { version: number; up: string; down: string }[] {
+function migrationSteps(): { version: number; up: string; down: string }[] {
   return readdirSync(DIR)
     .map((f) => /^(\d{4})\.up\.sql$/.exec(f)?.[1])
     .filter((v): v is string => v !== undefined)
