@@ -122,7 +122,9 @@ const route = env.chunks.flatMap((c) => c.entries).filter((e) => !e.start);
 const { chromium, firefox, webkit } = await import('playwright');
 const server = createServer((req, res) => {
   if (req.url === '/bundle.js') return res.writeHead(200, { 'content-type': 'text/javascript' }).end(code);
-  res.writeHead(200, { 'content-type': 'text/html' }).end('<!doctype html><meta charset="utf-8"><title>speedrun</title><script src="/bundle.js"></script>');
+  res
+    .writeHead(200, { 'content-type': 'text/html' })
+    .end('<!doctype html><meta charset="utf-8"><title>speedrun</title><script src="/bundle.js"></script>');
 });
 await new Promise((ok) => server.listen(0, '127.0.0.1', ok));
 const origin = `http://127.0.0.1:${server.address().port}/`;
@@ -139,7 +141,9 @@ const check = (who, prng, rep) => {
   else if (rep.recomputed.finalProof !== env.finalProof || rep.recomputed.logicalTime !== env.timing.logicalTime)
     fail(who, `another proof or IGT: ${rep.recomputed.finalProof.slice(0, 12)} ${rep.recomputed.logicalTime}`);
   else if (!bad.length)
-    console.log(`✔  ${who}: ${prng.length} generator vectors, the reference run replayed: IGT ${rep.recomputed.logicalTime} µt, proof ${env.finalProof.slice(0, 12)}…`);
+    console.log(
+      `✔  ${who}: ${prng.length} generator vectors, the reference run replayed: IGT ${rep.recomputed.logicalTime} µt, proof ${env.finalProof.slice(0, 12)}…`,
+    );
 };
 
 // Node first: the same bundle, so a difference in a browser is the browser's.
@@ -171,7 +175,11 @@ for (const name of names) {
       // The machine's speed never changes the verdict: the CPU four times slower, the same proof.
       const cdp = await context.newCDPSession(page);
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
-      check('chromium (CPU ÷4)', await page.evaluate(() => globalThis.__prng()), await page.evaluate(() => globalThis.__replay()));
+      check(
+        'chromium (CPU ÷4)',
+        await page.evaluate(() => globalThis.__prng()),
+        await page.evaluate(() => globalThis.__replay()),
+      );
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
     }
     // Resume after the tab is closed.

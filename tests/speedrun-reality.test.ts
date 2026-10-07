@@ -80,7 +80,14 @@ async function play(category: string, byMail: boolean, sign: CryptoKey) {
       policyVersion: '1',
     };
     const jws = await signSignal(payload, sign, 'k1');
-    const entry: ExternalEntry = { id: 'sig-1', sequence: 1, signal: payload.signal, source: 'mail', receivedAt: NOW, playerId: PLAYER };
+    const entry: ExternalEntry = {
+      id: 'sig-1',
+      sequence: 1,
+      signal: payload.signal,
+      source: 'mail',
+      receivedAt: NOW,
+      playerId: PLAYER,
+    };
     rec.realitySignal(jws, entry);
     expect(await engine.receive(entry)).toBe('applied');
   } else await engine.act({ verb: 'use', a: 'radio' });
@@ -88,7 +95,11 @@ async function play(category: string, byMail: boolean, sign: CryptoKey) {
   return { envelope: await rec.seal(), fingerprint, g };
 }
 
-const ctx = (g: GameDef, fingerprint: VerifyContext['fingerprint'], keyring?: VerifyContext['keyring']): VerifyContext => ({
+const ctx = (
+  g: GameDef,
+  fingerprint: VerifyContext['fingerprint'],
+  keyring?: VerifyContext['keyring'],
+): VerifyContext => ({
   game: g,
   layouts: signalsLayouts,
   fingerprint,

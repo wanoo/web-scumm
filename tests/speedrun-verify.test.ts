@@ -244,8 +244,7 @@ describe('the envelope is canonical JSON', () => {
         continue;
       }
       for (const f of files)
-        if (/\.ts$/.test(f) && /JSON\.stringify/.test(readFileSync(join(d, f), 'utf8')))
-          offenders.push(join(d, f));
+        if (/\.ts$/.test(f) && /JSON\.stringify/.test(readFileSync(join(d, f), 'utf8'))) offenders.push(join(d, f));
     }
     expect(offenders).toEqual([]);
   });

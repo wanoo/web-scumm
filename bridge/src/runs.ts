@@ -396,6 +396,11 @@ export function runsRoute(q: RunQueue, tenantOf: (req: IncomingMessage) => strin
       } else throw new RunsError(405, 'method', 'not a route of /v1/runs');
     } catch (e) {
       const err = e instanceof RunsError ? e : new RunsError(500, 'internal', 'the run could not be handled');
+      // A body refused half-read: the rest is not read, and the connection is not reused for another request.
+      if (err.status === 413) {
+        res.setHeader('connection', 'close');
+        req.resume();
+      }
       json(res, err.status, { error: err.code, message: err.message });
     }
     return true;
