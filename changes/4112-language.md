@@ -2,10 +2,12 @@
 
 - **Objectives and the quest journal (4.1.12, ADR 0014).** A game may declare `objectives` (`title`, `done`,
   `optional`, `parent`). The pause menu lists them, each step under its parent, ✓ done or ○ open; the semantic journal
-  says `objectiveCompleted` once, the first time `done` holds after an action (after the flag that completed it,
-  before the autosave and before an ending), never again in the session, and silently for what already holds when a
-  game starts or loads; `npm run solve -- --goal=100%` searches for every objective that is not optional. The
-  validator refuses an objective whose `done` can never hold, an unknown parent and a cycle of parents. The sample
+  says `objectiveCompleted` once, right after the event that completes it (even inside a cutscene, before what
+  follows, the autosave and an ending), never again in the session, and silently for what already holds when a game
+  starts or loads; `npm run solve -- --goal=100%` searches for a state where every objective that is not optional
+  holds at once. The validator refuses an objective whose `done` can never hold (naming a custom command without
+  declared `effects`), an unknown parent and a cycle of parents, and warns about a `done` the content can take back.
+  The flag and item handlers now change the state before they journal it. The sample
   game and the reference chapter declare five each, translated into French. The save format does not change.
 - **The game's intermediate representation (4.1.12, ADR 0013).** `compileIR` turns a compiled game into its logic as
   plain data (rooms, entities, rules, scripts, objectives, Reality policies, the world, the trusted extensions by name,

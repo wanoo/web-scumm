@@ -15,7 +15,9 @@ describe('the official contents need no migration', () => {
     });
 
   it('a game still on schema 2 is said due, and nothing is written', () => {
-    const r = runTool(['tools/migrate.ts', '--check'], { env: { ...process.env, GAME_DIR: 'tests/fixture', GAME: '' } });
+    const r = runTool(['tools/migrate.ts', '--check'], {
+      env: { ...process.env, GAME_DIR: 'tests/fixture', GAME: '' },
+    });
     expect(r.status).toBe(1);
     expect(r.stderr).toMatch(/authoring schema 2: a migration to 3 is due/);
   });

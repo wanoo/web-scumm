@@ -90,13 +90,27 @@ describe('compileIR', () => {
     for (const room of demo.rooms) expect(text).not.toContain(`"${room.decor}"`);
   });
 
-  it('classifies every field it meets: a field of the sample games outside the table fails', () => {
-    for (const g of [demo, reference, signals]) {
-      for (const k of Object.keys(g)) expect(FIELD_CLASSES.game, `GameDef.${k}`).toHaveProperty(k);
-      for (const room of g.rooms) for (const k of Object.keys(room)) expect(FIELD_CLASSES.room).toHaveProperty(k);
-      for (const c of Object.values(g.characters))
-        for (const k of Object.keys(c)) expect(FIELD_CLASSES.character).toHaveProperty(k);
+  it('classifies every field it meets: every section of the compiled bundled games and fifty generated ones', () => {
+    const unclassified: string[] = [];
+    const check = (table: Readonly<Record<string, unknown>>, o: object | undefined, where: string) => {
+      for (const k of Object.keys(o ?? {})) if (!(k in table)) unclassified.push(`${where}.${k}`);
+    };
+    const games = [demo, reference, signals, ...Array.from({ length: 50 }, (_, i) => randomGame(i + 1).game)];
+    for (const g of games) {
+      const c = compileGame(structuredClone(g));
+      check(FIELD_CLASSES.game, c, 'GameDef');
+      for (const it of Object.values(c.items)) check(FIELD_CLASSES.item, it, 'ItemDef');
+      for (const ch of Object.values(c.characters)) check(FIELD_CLASSES.character, ch, 'CharacterDef');
+      for (const room of c.rooms) {
+        check(FIELD_CLASSES.room, room, 'RoomDef');
+        for (const p of Object.values(room.props ?? {})) check(FIELD_CLASSES.prop, p, 'PropDef');
+        for (const a of Object.values(room.actors ?? {})) check(FIELD_CLASSES.actor, a, 'ActorDef');
+        for (const h of Object.values(room.hotspots ?? {})) check(FIELD_CLASSES.hotspot, h, 'HotspotDef');
+        for (const x of Object.values(room.exits ?? {})) check(FIELD_CLASSES.exit, x, 'ExitDef');
+        check(FIELD_CLASSES.stage, room.stage, 'StageDef');
+      }
     }
+    expect([...new Set(unclassified)]).toEqual([]);
     // A logic field present in the sources reaches the IR: one example per section.
     const r = ir(demo);
     expect(r.world.hero).toBe(demo.hero);
@@ -146,6 +160,13 @@ describe('provenance', () => {
     // Without the sources, nothing; an id the sources do not write, nothing.
     expect(provenanceOf(ir(demo), {})).toEqual({});
     expect(p['nothing.like.this']).toBeUndefined();
+    // An id that comes from a spread or a computed key is not written literally: no entry, never a wrong line.
+    const g = structuredClone(demo);
+    g.objectives = { ...g.objectives, built: { title: 'Built', done: 'pantry_open' } };
+    const code = "const k = 'built';\nexport const more = { objectives: { ...base, [`${k}`]: { title: 'Built' } } };\n";
+    const q = provenanceOf(ir(g), { ...files, 'games/demo/more.ts': code });
+    expect(q['objective:built']).toBeUndefined();
+    expect(q['objective:pantry']).toEqual(p['objective:pantry']);
   });
 });
 

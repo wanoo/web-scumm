@@ -44,11 +44,9 @@ const KEYS = new Set<string>(CMD_KEYS);
  */
 export const cmdSchema: z.ZodType = z.union([
   z.string(),
-  z
-    .record(z.string(), z.unknown())
-    .refine((o) => Object.keys(o).filter((k) => KEYS.has(k)).length >= 1, {
-      message: 'a command names one key of CMD_KEYS',
-    }),
+  z.record(z.string(), z.unknown()).refine((o) => Object.keys(o).filter((k) => KEYS.has(k)).length >= 1, {
+    message: 'a command names one key of CMD_KEYS',
+  }),
 ]);
 const cmds = z.array(cmdSchema);
 const listLine = z.union([z.string(), z.strictObject({ id, text: z.string() })]);

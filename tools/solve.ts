@@ -179,7 +179,8 @@ if (process.argv.includes('--chapters')) {
   process.exit(exitOf(worst));
 }
 
-// --goal=100%: every objective that is not optional, holding at once (4.1.12).
+// --goal=100%: every objective that is not optional, all holding at once in one state (4.1.12): an objective whose
+// `done` the content can take back may make it unreachable (the validator warns about it).
 const full = arg('goal') === '100%';
 if (arg('goal') !== undefined && !full) {
   console.error(`✖  --goal=${arg('goal')}: the only goal by name is 100% (every objective that is not optional)`);
@@ -234,7 +235,7 @@ if (asJson) {
 }
 
 console.log(
-  `\n${r.finished ? (full ? '✔  Every objective can be completed (100%)' : '✔  The game can be finished') : full ? '…  100% not reached' : '…  No ending reached'} — ${r.states} states explored in ${((Date.now() - t0) / 1000).toFixed(1)} s${r.truncated ? ' (limit reached)' : ''}`,
+  `\n${r.finished ? (full ? '✔  100%: every objective that is not optional holds at once in a reachable state' : '✔  The game can be finished') : full ? '…  100% not reached: no state found where every objective that is not optional holds at once' : '…  No ending reached'} — ${r.states} states explored in ${((Date.now() - t0) / 1000).toFixed(1)} s${r.truncated ? ' (limit reached)' : ''}`,
 );
 console.log(
   `${r.exit === 0 ? '✔' : '✖'}  ${r.mode === 'prove' ? 'Proof' : 'Witness'} ${r.headline}${r.assumptions.length ? ` · assumptions: ${r.assumptions.join(', ')}` : ''}`,

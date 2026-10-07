@@ -43,5 +43,12 @@
   the full suite, coverage and mutation not run (CI). No content migration step was added to `web-scumm migrate`:
   4.1.12 changes no authoring format. The Studio's demo mode shows the IR without provenance and cannot write
   objectives (the dev server can). `IrVariantSlot` is a reserved type only.
+- After the second reading of #46: Biome formatting fixed (`ir-schema.ts`, `migrate-official.test.ts`; `biome
+  check .` clean); objectives are now checked after every state event of the journal as well as at each save (the
+  `set`, `unset` and `lose` handlers change the state before journalling it), with a test that pins
+  `objectiveCompleted` inside a cutscene; 100 % is said to mean "all at once" (CLI, `completionGoal`, ADR 0014) and
+  the validator warns about a `done` the content can take back; a flag only an undeclared custom command could set
+  says "declare the command's effects"; the field-classification test walks every section of the compiled bundled
+  games and fifty generated ones; a computed or spread id has no provenance (tested).
 
 → next: Claude · `release/4.1.12`
