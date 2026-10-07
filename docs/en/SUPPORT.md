@@ -40,16 +40,19 @@ game already on schema 3).
 
 ## Support matrix
 
-What the automated gates run on every change, and what only people check (`docs/en/FIELD.md`):
+What the automated gates run, and what only people check (`docs/en/FIELD.md`). Since 4.1.9 CI runs every row below on
+`main` and on every tag; a pull request runs the fast tier (lint, types, the unit suite, the sample game's build and
+proof) and only the rows its change can affect, as `tools/ci-plan.ts` classifies the diff: a docs-only pull request
+opens no browser, no Windows runner and no Node 24 (`CONTRIBUTING.md`, "What CI runs"):
 
-| | Checked by CI on every change | Checked by people (not yet done) |
+| | Checked by CI (on `main` and tags; on a pull request when its change can affect it) | Checked by people (not yet done) |
 |---|---|---|
 | Player, phone | Chromium and WebKit at a phone's size, touch and keyboard, French; the PWA installed, updated after a durable save, reinstalled, in Chromium, WebKit and Firefox; the game opened offline (Chromium, Firefox) | a real Android phone, a real iPhone installed from Safari and updated, Safari offline on the device |
 | Player, desktop | Chromium, mouse and keyboard | — |
 | Player, screen reader | axe-core on every screen (not a WCAG claim) | a VoiceOver or NVDA pass |
 | Firefox | the PWA only: install, update, reinstall, offline (`npm run e2e:pwa`, the `pwa-firefox` job); its worker's occasional refusal of one cached image offline is reported by the job, not counted | Firefox offline on a real machine; nothing else claimed |
 | Node | 22.12 or newer: 22 and 24 on Ubuntu; macOS for the maintainer's daily use | — |
-| Windows | a `windows-latest` job on every change (4.1.8): `doctor`, the type checks, the unit suite but six files that assume POSIX (file modes, `/` in paths; named in `ci.yml`), `build`, the production server answering | `npm run dev` and the Studio on Windows; the six test files, ported |
+| Windows | a `windows-latest` job (4.1.8; on a pull request, when code changed): `doctor`, the type checks, the unit suite but six files that assume POSIX (file modes, `/` in paths; named in `ci.yml`), `build`, the production server answering | `npm run dev` and the Studio on Windows; the six test files, ported |
 | Python | optional: the art tools and the audio pipeline, Pillow, NumPy, SciPy pinned in `requirements.txt` | — |
 | Reality Bridge | Node 22.12+, Chromium and WebKit e2e, a Rust cross-check of the protocol | a Bridge behind HTTPS with a real connector |
 ## Deprecation

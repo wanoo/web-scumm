@@ -312,10 +312,10 @@
   "api": "f5daba9c313e6a1f"
  },
  "tests": {
-  "files": 138,
-  "declarations": 1015
+  "files": 139,
+  "declarations": 1027
  },
  "bundle": {
-  "initialJsKB": 122
+  "initialJsKB": 120
  }
 }
