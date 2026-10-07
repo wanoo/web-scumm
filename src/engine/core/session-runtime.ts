@@ -99,8 +99,9 @@ export class SessionLog {
     if (this.host.clock) entry.t = Math.round(this.host.clock() - this.t0);
     this.session.log.push(entry);
     this.open.push({ entry, src: this.feed?.shift(), pi: 0, mi: 0, ri: 0, steps: 0 });
-    this.runClock.entry();
+    // Listeners first: what they read of the run clock is the state before this entry.
     for (const l of this.listeners) l.begin?.(entry);
+    this.runClock.entry();
   }
 
   /** A fresh session from the current state; the clock, when set, dates it and its entries. */
