@@ -67,7 +67,7 @@ export function layoutWriter(): Plugin {
 }
 
 /**
- * Builds with STUDIO=1: the Studio page enters the build (see `build.rollupOptions.input`) with its demo snapshot,
+ * Builds with STUDIO=1: the Studio page enters the build (see `build.rolldownOptions.input`) with its demo snapshot,
  * public/studio-demo/snapshot.json, regenerated from the game first (copied to dist/ with the public files).
  * Without STUDIO=1: neither the page nor a snapshot left in public/ by an earlier build reach dist/.
  */

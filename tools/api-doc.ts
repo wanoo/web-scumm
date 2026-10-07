@@ -3,7 +3,7 @@
 // signature has no language). `--check` exits 1 when a page is behind the code; tests/api-doc.test.ts runs it.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import ts from 'typescript';
+import ts from '@typescript/typescript6';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const ENTRIES = ['content', 'player', 'minigames', 'testing', 'reality'];

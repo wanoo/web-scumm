@@ -52,6 +52,8 @@ if (leaks.length) {
 
 step('assets', 'npx', ['web-scumm', 'assets'], game);
 step('verify', 'npx', ['web-scumm', 'verify'], game);
+// The tools that read the sources with the compiler API (4.1.8: `@typescript/typescript6` must be in the tarball).
+step('ids (read)', 'npx', ['web-scumm', 'ids'], game);
 step('build', 'npx', ['web-scumm', 'build'], game);
 if (!existsSync(join(game, 'dist', 'licenses', 'assets-manifest.json'))) {
   console.error('✖ no licenses/ in the build');

@@ -22,7 +22,7 @@ npm run bridge -- serve [--dir=.cache/bridge] [--port=8787] [--host=127.0.0.1]
 
 Nothing secret is printed or committed (`.cache/` is ignored). In a game project the command is `web-scumm bridge`.
 The package `web-scumm-bridge` (the release's tarball) is one JavaScript module plus its Datalog policies: it needs
-Node 22, Biscuit's WebAssembly and zod, nothing else, and `web-scumm-bridge` is its command.
+Node 22.12 or newer, Biscuit's WebAssembly and zod, nothing else, and `web-scumm-bridge` is its command.
 
 Behind HTTPS: run `serve` on `127.0.0.1` behind a reverse proxy that terminates TLS and does not buffer
 `text/event-stream` responses, with `--trust-proxy` so the per-address limits see the client's address

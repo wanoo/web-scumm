@@ -12,7 +12,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import ts from 'typescript';
+import ts from '@typescript/typescript6';
 import { ROOT } from './game';
 import { SETS, setsOf, TESTS, type MutationSet } from './mutation-sets';
 

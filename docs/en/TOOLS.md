@@ -217,6 +217,7 @@ npm run lint [-- --prove | --static | --json]   # content lint: conditions nothi
 npm run quality   # engine code (4.1.0): Biome formatting and lint, tsconfig.json and tsconfig.strictest.json, then the content lint
 npm run doctor                     # checks Node, Python modules, ffmpeg and Playwright browsers
 npm run check                      # type-check and Node tests
+npm run tsc -- …                   # the TypeScript 7 compiler itself (4.1.8; the `tsc` bin link may belong to the tools' typescript6 package): `npm run check` and `quality` call it
 npm run build:game                 # the game's gates (verify:game), the bundle, verify:dist, the spoiler check, the asset audit: no tsc, no unit suite (CI runs those once)
 npm run verify:game                # validation, global/chapter witnesses and translation coverage
 npm run prove:game                 # global/chapter exhaustive proof; fails on softlocks or truncation

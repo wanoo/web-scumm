@@ -42,6 +42,24 @@
   journal (`journal.jsonl.lock` with the owner's pid, created atomically; a lock left by a crash is taken over and
   said, a lock that is not a pid is refused; `compact` takes it too; `serve` ends its streams, closes and then
   releases it on SIGINT and SIGTERM).
+- **Vite 8 and vite-plugin-pwa 2** (4.1.8). The bundler is Rolldown: the sample game builds in half a second where
+  Vite 6 took several, the first visit's JavaScript goes from 123 to 120 KB gzipped (the main chunk 388 kB, 123.6 kB
+  gzipped, was 391 / 125.7), the chunks for the tools and for Reality keep their folders (`rolldownOptions`, the
+  same functions on `moduleIds`), every file of the build is accounted for and the weight budgets hold. The service
+  worker is still Workbox 7 through the plugin's 2.0 (one peer range changed, nothing in the options the game uses).
+  Node 22.12 or newer (`engines`, the READMEs, SUPPORT), what Vite 8 and Vitest 5 require. Vite's native
+  configuration loader, experimental and planned for a later major, warns about imports without a file extension in
+  the configuration's import graph (68 files, since the Studio plugin pulls the engine's tools): said, not silenced,
+  to be addressed when that loader becomes the default.
+
+- **TypeScript 7** (4.1.8). The type checks (`npm run check`, `npm run quality`) run on the native compiler, in half a
+  second where 5.9 took ten; `npm run tsc` is its command (the `tsc` bin link belongs to the tools' package, below).
+  `tsconfig.json` and the project `create-web-scumm` writes have no `baseUrl` and relative `paths`, which 7 requires;
+  `web-scumm migrate` rewrites an older project's (`--check` says when). The five tools that use the compiler API
+  (`api-doc`, `ids`, `mutate`, the Studio's source reader and core) import `@typescript/typescript6` (6.0.2, the
+  last line with the API) until 7.1 ships one (`docs/dev/MIGRATION-4.1.8.md`). `src/engine/dom/walk.ts` imports
+  `navmesh`'s named export, not its default: a CommonJS module a bundler following Node's rule hands whole (Vite
+  8's blocker, removed ahead of it).
 
 - **The baseline of 4.1.7, before 4.1.8 touches the toolchain.** `docs/dev/baselines/4.1.7.md` freezes what the
   last release measured (tests, coverage, mutation, bundle and weights, proofs, build and release times, file

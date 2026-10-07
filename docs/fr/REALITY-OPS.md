@@ -23,7 +23,7 @@ npm run bridge -- serve [--dir=.cache/bridge] [--port=8787] [--host=127.0.0.1]
 
 Rien de secret n'est affiché ni commité (`.cache/` est ignoré). Dans un projet de jeu, la commande est `web-scumm bridge`.
 Le paquet `web-scumm-bridge` (l'archive de la release) est un seul module JavaScript plus ses politiques Datalog : il
-lui faut Node 22, le WebAssembly de Biscuit et zod, rien d'autre, et `web-scumm-bridge` est sa commande.
+lui faut Node 22.12 ou plus, le WebAssembly de Biscuit et zod, rien d'autre, et `web-scumm-bridge` est sa commande.
 
 Derrière HTTPS : lancer `serve` sur `127.0.0.1` derrière un proxy inverse qui termine TLS et ne met pas en tampon les
 réponses `text/event-stream`, avec `--trust-proxy` pour que les limites par adresse voient celle du client

@@ -2407,3 +2407,51 @@ Platform"; human gates reported, not blocking (D12).
   it; `ship`'s merge retry (#25) and this branch's base (the fix branch, #23) merge before it.
 
 → next: Claude · `refactor/418-typescript-7` (paths without `baseUrl`, the generated project's tsconfig; the compiler itself decided per MIGRATION-4.1.8.md)
+## #108 · 2026-10-07 · Claude · proposal · `refactor/418-typescript-7`: the compiler, the paths, the CommonJS import
+
+- The decision MIGRATION-4.1.8.md left open: `typescript@7.0.2` as the compiler, `@typescript/typescript6` (6.0.2)
+  as the API of the five tools, until 7.1 (stable planned 2026-11-24). Measured: `tsc --noEmit` on the whole
+  repository 0.47 s, the strictest configuration 0.56 s (4.1.7: about ten seconds each). Found on the way:
+  `@typescript/typescript6` depends on `@typescript/old`, a renamed `typescript@6.0.3` whose `tsc` bin link wins in
+  `node_modules/.bin`, so `tsc` on the command line is 6.0.3 while `node node_modules/typescript/bin/tsc` is 7.0.2;
+  the scripts call the latter through `npm run tsc` (TOOLS.md), said in the row.
+- `tsconfig.json` without `baseUrl`, every path relative (TypeScript 5.9 accepted it, 7 requires it; `tsx` through
+  `get-tsconfig` already followed the rule); `cli/create.mjs` writes the project's the same way; `web-scumm migrate`
+  rewrites an older project's (`tsconfigWithoutBaseUrl`, pure, tested), `--check` reports it; UPGRADING §20 en/fr.
+- `src/engine/dom/walk.ts`: `import { NavMesh } from 'navmesh'` (the named export its d.ts declares) instead of the
+  default import Rolldown hands whole: the one CommonJS default import of `src/`, the blocker Vite 8 hit in 4.0,
+  removed under Vite 6 first (MIGRATION §6, step 2).
+- The second reading's two blockers, fixed: the package `scripts/pack.mjs` builds carried `typescript` and not
+  `@typescript/typescript6`, so `web-scumm ids`, `mcp` and a schema-2 `migrate` would have failed in every game
+  project (`fresh-install` now runs `web-scumm ids` from the tarball); `upgrade-check` ran `migrate --check` on a
+  4.1.7 project, which now has a migration due (it runs `migrate`, then `--check`). Also: a tsconfig with comments
+  is read as TypeScript reads it, and `migrate` rewrites the project's file, not the current folder's.
+- Not done, said as such: Vite 8 and vite-plugin-pwa 2 are the next two branches; the export classification
+  (`@public | @extension | @internal`) and the API test on it are a branch of their own after them; the editor's
+  TypeScript (the native extension) is each developer's.
+
+→ next: Claude · `refactor/418-vite-8`
+
+## #109 · 2026-10-07 · Claude · proposal · `refactor/418-vite-8`: Rolldown, the PWA plugin's 2.0
+
+- On the TypeScript 7 branch (the `navmesh` named import was its step 2, for this): `vite@8.3.3`,
+  `vite-plugin-pwa@2.0.0`, `rollupOptions` → `rolldownOptions` (the two file-name functions read `moduleIds` as
+  before), `engines.node >= 22.12`. Measured, Vite 8 build of the sample game: 216–477 ms (Vite 6 on the runner:
+  seconds); `index` chunk 388.20 kB / 123.61 kB gzipped (4.1.7: 391.27 / 125.72); `verify:dist` 254 files, first
+  visit 120 KB gzipped (budget 140; 4.1.7: 123); `weight --release` within every budget; the PWA's precache 22
+  entries (679 KiB), `sw.js` and the Workbox runtime where the tools read them; the tools' and Reality's chunks in
+  their folders. The `initialJsKB` ratchet moves down with it (the baseline is written by the branch's run).
+- Vite 8 warns that its future native configuration loader (still experimental) will not resolve imports without
+  a file extension: measured by the second reading, 308 warnings in 68 files, because `tools/studio/plugin.ts`
+  pulls `tools/studio/assets.ts`, which pulls `src/engine/tools/*` and the core into the configuration's import
+  graph; three of those files use constructor parameter properties, which Node's type stripping (what the native
+  loader relies on) rejects. Left as a warning, said in the CHANGELOG; the pass that readies the graph (`.ts`
+  extensions with `allowImportingTsExtensions`, which `tsc` 7 accepts with `noEmit`; the three constructors
+  rewritten) is a branch of its own when that loader becomes the default.
+- Not done, said as such: the Windows smoke job and the portable `start` (programme §4.4) are the next branch
+  (`feature/418-windows-smoke`); the PWA e2e's three levels (programme §4.5) are `feature/418-pwa-e2e`.
+
+- The second reading also found "Node 22 or newer" in nine pages (README en/fr, CONTRIBUTING, SUPPORT, MCP,
+  REALITY-OPS en/fr): 22.12 now, the floor of Vite 8 and Vitest 5; the lockfile's own `engines` refreshed.
+
+→ next: Claude · `feature/418-pwa-e2e` (caches named and versioned, the update that never reloads before a durable save, the three levels of the e2e)

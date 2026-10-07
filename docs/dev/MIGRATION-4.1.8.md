@@ -40,7 +40,7 @@ Tooling: `tsx`, `vitest`, `vite` and `knip` do not depend on `typescript` (knip 
 `tsx` reads `paths` through `get-tsconfig`, which already implements the no-`baseUrl` rule (relative `paths` work);
 Vitest type-strips with Vite's transformer (esbuild under Vite 6, Oxc under Vite 8).
 
-**Decision for 4.1.8 (proposed, LOG #105):** the exit criterion "TypeScript 7 active" is reachable only as
+**Decision for 4.1.8 (taken in `refactor/418-typescript-7`, LOG #108: the first option, with `tsc` 7 reached by `npm run tsc` because `@typescript/typescript6` pulls a renamed `typescript@6.0.3` whose bin link `tsc` wins):** the exit criterion "TypeScript 7 active" is reachable only as
 *`tsc` 7 for the type checks, `@typescript/typescript6` for the five tools* (named `@typescript/typescript6` in their
 imports, documented in TOOLS.md as the compiler API the tools use until 7.1), or by deferring the compiler itself to
 the lot after 7.1 is stable (end of November 2026, 4.1.12 or later) while 4.1.8 does everything else TS 7 requires
@@ -88,6 +88,10 @@ the removed hooks. `vite.config.ts` reads `c.name` and `c.moduleIds` in `entryFi
 Rolldown's `PreRenderedChunk` and `OutputChunk` expose `moduleIds`, so the `assets/tools/` and `assets/reality/`
 routing can stay (renamed to `rolldownOptions`). `define`, `resolve.alias` (regex `find`), `publicDir`, `cacheDir`,
 `server.fs.allow`, `assetsInlineLimit: 0` are unchanged.
+
+**Done in `refactor/418-vite-8` (LOG #109):** the build worked at the first try once the `navmesh` import was named;
+measured figures in the LOG. The native configuration loader's warning (imports without extension) is left as a
+warning.
 
 ## 3. vite-plugin-pwa 2
 
