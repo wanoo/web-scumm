@@ -352,7 +352,7 @@ export interface Migration {
   dropScript?: Id[];
 }
 
-/** Every text the interface shows (menus, confirmations, settings): the engine hardcodes none of them. @public */
+/** Every text the interface shows (menus, confirmations, settings), so a game speaks its own language. @public */
 export interface UiTexts {
   walkTo: string;
   newGame: string;

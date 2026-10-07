@@ -24,6 +24,11 @@ describe('the API pages carry the signatures of the code', () => {
     // Both kinds exist: a contract a host implements is not the same promise as a name it calls.
     expect(rows.some((r) => r.stability === 'extension')).toBe(true);
     expect(rows.filter((r) => r.stability === 'public').length).toBeGreaterThan(rows.length / 2);
+    // Exactly one tag: a declaration that carries both says nothing.
+    expect(rows.filter((r) => r.bothTags).map((r) => r.name)).toEqual([]);
+    // A deprecated name says so beside its stability (the old name of EndingDef).
+    expect(rows.find((r) => r.name === 'RevealDef')).toMatchObject({ stability: 'public', deprecated: true });
+    expect(signatures(rows)).toContain('| public (deprecated) |');
   });
   it('a type alias is printed as what it stands for, not as the members of a string or an array', () => {
     const sig = (name: string) => rows.find((r) => r.name === name)?.signature;
@@ -34,6 +39,11 @@ describe('the API pages carry the signatures of the code', () => {
     // A side too wide to read is summarised, and an interface shows its first members.
     expect(sig('Cmd')).toMatch(/^type Cmd = union of \d+$/);
     expect(sig('RoomDef')).toMatch(/^interface \{ id, name, decor, /);
+    // A side derived from another declaration (`z.infer<typeof schema>`) shows its members, not that expression.
+    expect(sig('WorldSignalV1')).toMatch(/^type WorldSignalV1 = \{ /);
+    expect(sig('WorldSignalV1')).not.toContain('infer');
+    // A constant's literal is its kind, not its value.
+    expect(sig('MINIGAME_CSS')).toBe('string');
   });
   for (const p of ['docs/en/API.md', 'docs/fr/API.md'])
     it(`${p} is up to date (npx tsx tools/api-doc.ts)`, () => {

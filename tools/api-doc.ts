@@ -10,6 +10,8 @@
 // - `@extension`: a contract a game or a host IMPLEMENTS, or is handed while implementing it (a Presenter, a save
 //   store, a painter and the specs it is given, a minigame and its context, a custom command, a signal port). The same
 //   promise, and one more: a member added to it is a breaking change for whoever implemented it, so it waits too.
+// knip reads `@public` too (it never reports such an export unused): the tag is for the API's names, never a way to
+// silence knip on an internal symbol.
 // What src/engine exports without an entry re-exporting it is internal by construction and carries no tag (`@internal`
 // marks the members of Engine the modules of core/ read). tests/api-doc.test.ts fails on a row with no description or
 // no stability.
@@ -32,20 +34,25 @@ export interface ApiRow {
   doc: string;
   /** The declared stability, or '' when the declaration carries neither tag. */
   stability: 'public' | 'extension' | '';
+  /** `@deprecated` beside the stability: the name still answers, its replacement is in its doc. */
+  deprecated: boolean;
+  /** Both tags at once: a mistake the test names (a declaration carries exactly one). */
+  bothTags: boolean;
 }
 
-/** The first sentence of a symbol's doc comment, one line. */
+/** The first sentence of a symbol's doc comment, one line: cut at the blank line and at a bullet list. */
 const doc = (sym: ts.Symbol, checker: ts.TypeChecker): string =>
   ts
     .displayPartsToString(sym.getDocumentationComment(checker))
-    .split(/\n\s*\n/)[0]!
+    .split(/\n\s*\n|\n\s*- /)[0]!
     .replace(/\s+/g, ' ')
     .trim();
 
-/** The stability a symbol's JSDoc declares, '' when it declares none. */
-const stability = (sym: ts.Symbol, checker: ts.TypeChecker): ApiRow['stability'] => {
+/** The stability a symbol's JSDoc declares, '' when it declares none; whether it is deprecated; whether both tags are there. */
+const tagsOf = (sym: ts.Symbol, checker: ts.TypeChecker) => {
   const tags = new Set(sym.getJsDocTags(checker).map((t) => t.name));
-  return tags.has('public') ? 'public' : tags.has('extension') ? 'extension' : '';
+  const stability: ApiRow['stability'] = tags.has('public') ? 'public' : tags.has('extension') ? 'extension' : '';
+  return { stability, deprecated: tags.has('deprecated'), bothTags: tags.has('public') && tags.has('extension') };
 };
 
 /** The members of a type, summarised: a union by its size, an object by its first names. */
@@ -69,18 +76,36 @@ function signatureOf(sym: ts.Symbol, real: ts.Symbol, sf: ts.SourceFile, checker
     if (calls.length)
       return calls.map((c) => checker.signatureToString(c, decl, ts.TypeFormatFlags.NoTruncation)).join(' · ');
     if (real.flags & ts.SymbolFlags.Class) return `class ${sym.name}`;
-    return checker.typeToString(t, decl, ts.TypeFormatFlags.NoTruncation);
+    // A constant's literal type is its value (a CSS text, a number): the page says the kind, the source the value.
+    return checker.typeToString(
+      t.isLiteral() ? checker.getBaseTypeOfLiteralType(t) : t,
+      decl,
+      ts.TypeFormatFlags.NoTruncation,
+    );
   }
   const t = checker.getDeclaredTypeOfSymbol(real);
   if (real.flags & ts.SymbolFlags.TypeAlias) {
     // The alias's right-hand side as the source writes it (`type Id = string`, `type Point = [number, number]`,
     // `type Keyring = BridgeKey[]`, `type WalkTarget = Id | Point`): the checker would print the alias's own name, or
     // expand `Record` and the other aliases it is written with. A side too wide to read (`Cond`, `Cmd`) is summarised.
+    // A side that names another declaration's type (`typeof schema`, `z.infer<…>`) says nothing to the reader: the
+    // members are summarised instead. Comments inside the type are not printed.
     const head = `type ${sym.name} = `;
-    const rhs =
-      decl && ts.isTypeAliasDeclaration(decl)
-        ? decl.type.getText(decl.getSourceFile()).replace(/\s+/g, ' ')
-        : checker.typeToString(t, decl, ts.TypeFormatFlags.NoTruncation);
+    const written = decl && ts.isTypeAliasDeclaration(decl) ? decl.type : undefined;
+    const derived = (n: ts.Node): boolean =>
+      ts.isTypeQueryNode(n) ||
+      (ts.isTypeReferenceNode(n) && /\b(infer|typeof)\b/i.test(n.typeName.getText(n.getSourceFile()))) ||
+      ts.forEachChild(n, derived) === true;
+    const rhs = written
+      ? derived(written)
+        ? summary(t, decl, checker)
+        : ts
+            .createPrinter({ removeComments: true })
+            .printNode(ts.EmitHint.Unspecified, written, written.getSourceFile())
+            .replace(/\s+/g, ' ')
+            .replace(/\[ /g, '[')
+            .replace(/ \]/g, ']')
+      : checker.typeToString(t, decl, ts.TypeFormatFlags.NoTruncation);
     return head + (head.length + rhs.length <= SIG_MAX ? rhs : summary(t, decl, checker));
   }
   return `interface ${summary(t, decl, checker)}`;
@@ -102,12 +127,16 @@ export function apiRows(): ApiRow[] {
     const mod = checker.getSymbolAtLocation(sf)!;
     for (const sym of checker.getExportsOfModule(mod).sort((a, b) => a.name.localeCompare(b.name))) {
       const real = sym.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(sym) : sym;
+      const own = tagsOf(real, checker);
+      const viaAlias = tagsOf(sym, checker);
       rows.push({
         entry: ENTRIES[i]!,
         name: sym.name,
         signature: signatureOf(sym, real, sf, checker).replace(/\s+/g, ' ').slice(0, SIG_MAX),
         doc: doc(real, checker) || doc(sym, checker),
-        stability: stability(real, checker) || stability(sym, checker),
+        stability: own.stability || viaAlias.stability,
+        deprecated: own.deprecated || viaAlias.deprecated,
+        bothTags: own.bothTags || viaAlias.bothTags,
       });
     }
   }
@@ -122,7 +151,9 @@ export function signatures(rows = apiRows()): string {
   for (const entry of ENTRIES) {
     out.push(`### web-scumm/${entry}`, '', '| Name | Signature | Stability | Doc |', '|---|---|---|---|');
     for (const r of rows.filter((r) => r.entry === entry))
-      out.push(`| \`${r.name}\` | \`${cell(r.signature)}\` | ${r.stability} | ${cell(r.doc).slice(0, 140)} |`);
+      out.push(
+        `| \`${r.name}\` | \`${cell(r.signature)}\` | ${r.stability}${r.deprecated ? ' (deprecated)' : ''} | ${cell(r.doc).slice(0, 140)} |`,
+      );
     out.push('');
   }
   return out.join('\n');
@@ -141,9 +172,12 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop()
   const rows = apiRows();
   const block = signatures(rows);
   let behind = 0;
+  // A row without a description or a stability fails the command too (tests/api-doc.test.ts says the same).
   for (const r of rows) {
     if (!r.doc) console.error(`✖  ${r.entry}: ${r.name} has no description`);
     if (!r.stability) console.error(`✖  ${r.entry}: ${r.name} declares no stability (@public or @extension)`);
+    if (r.bothTags) console.error(`✖  ${r.entry}: ${r.name} declares both @public and @extension`);
+    if (!r.doc || !r.stability || r.bothTags) behind++;
   }
   for (const p of ['docs/en/API.md', 'docs/fr/API.md']) {
     const file = resolve(ROOT, p);

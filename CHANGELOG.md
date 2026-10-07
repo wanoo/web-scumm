@@ -18,15 +18,17 @@
 
 - **Every public export says what it is and how stable it is** (4.1.8, programme §4.3). The 119 names the five entries
   of `web-scumm/{content,player,minigames,testing,reality}` re-export carry, on their declaration, a first sentence and
-  one of `@public` (a name a game or host calls or reads: 93) or `@extension` (a contract a game or host implements, a
+  one of `@public` (a name a game or host calls or reads: 101) or `@extension` (a contract a game or host implements, a
   `Presenter`, a `SaveStore`, a `SceneRenderer` and its specs, a `Minigame`, a `CustomCommand`, a `WorldSignalPort`:
   18; a member added to one is a break too). `tools/api-doc.ts` writes a Stability column into `docs/en/API.md` and
   `docs/fr/API.md`, prints aliases as what they are (`type Id = string`, `type Point = [number, number]`,
-  `type Keyring = BridgeKey[]`), and `tests/api-doc.test.ts` fails on an export without description or stability. 65
-  descriptions were written for names that had none. What `src/engine` exports without an entry re-exporting it is
-  internal by construction. knip's unused-export rules are on: 71 exports nobody imported were un-exported or removed
-  (three dead symbols deleted); the Bridge's `DEFAULT_LIMITS`, `POLICY` and `BridgeEventSchema` are kept as `@public`.
-  `tests/api-surface.json` is unchanged: no public name moved.
+  `type Keyring = BridgeKey[]`; a side derived from a schema shows its members), says `deprecated` beside a
+  stability, and `tests/api-doc.test.ts` and `npx tsx tools/api-doc.ts --check` fail on an export without
+  description or stability, or with both tags. 65 descriptions were written for names that had none. What
+  `src/engine` exports without an entry re-exporting it is internal by construction. knip's unused-export rules are
+  on: its 71 reports (44 exports, 27 types) are answered, about 80 declarations losing their `export`, 17 names
+  leaving re-export lines, three dead symbols deleted; the Bridge's `DEFAULT_LIMITS`, `POLICY` and
+  `BridgeEventSchema` are kept as `@public`. `tests/api-surface.json` is unchanged: no public name moved.
 
 - **Windows in CI** (4.1.8). A `windows-latest` job runs the doctor, the type checks and the unit suite (six test
   files that assume POSIX left out, named in the workflow: file modes, `/` in paths), builds the sample game and asks

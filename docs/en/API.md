@@ -115,7 +115,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `Cmd` | `type Cmd = union of 56` | public | A command. A plain string = the hero says this line. Command lists run in order, each one waiting for the previous one to finish. |
 | `CompiledGame` | `type CompiledGame = Readonly<GameDef>` | public | A game as `compileGame` returns it: normalised and, for schema 3, frozen. |
 | `compileGame` | `(source: GameSource): CompiledGame` | public | Compiles authoring data once into the single normalised representation consumed by the engine and tools. The source is never mutated; genera |
-| `Cond` | `type Cond = union of 13` | public | A condition. - `'flag'`: the flag is true; `'!flag'`: the flag is false or absent. - `{ has: 'item' }`: the item is in the inventory. - `{ f |
+| `Cond` | `type Cond = union of 13` | public | A condition. |
 | `CustomCommand` | `interface { effects, pure, run }` | extension | A command a game defines in code: its effects on the state as plain commands, and its browser-only `run`. |
 | `CustomCommands` | `type CustomCommands = Record<string, CustomCommand>` | extension | A game's custom commands by name, as `games/<id>/index.ts` exports them. |
 | `CustomContext` | `interface { game, state, room, args, ui, scene, … 1 more }` | extension | What a custom command's `run` receives: the game, its state, the room, the arguments, the presenter and the scene element. |
@@ -127,7 +127,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `EventRule` | `interface { id, on, if, once, do }` | public | A listener: when `on` is emitted (`{ emit }`) and the condition holds, `do` runs. `once`: only the first time. |
 | `ExitDef` | `interface { defaultVerb, name, to, entry, if, locked, … 5 more }` | public | A way out of the room, declared rather than written as a hotspot plus a rule. The engine turns it into exactly that (core/define.ts `normali |
 | `ExternalEntry` | `interface { id, sequence, signal, source, receivedAt, playerId, … 2 more }` | public | What a session keeps of a signal from outside (4.1.1): its id and sequence on the Bridge, the signal, the source and when it arrived. Never  |
-| `FLOOR` | `395` | public | Default floor bottom (logical y), when the layout doesn't give `floor`. |
+| `FLOOR` | `number` | public | Default floor bottom (logical y), when the layout doesn't give `floor`. |
 | `GameDef` | `interface { schemaVersion, id, title, lang, saveVersion, renderer, … 31 more }` | public | The whole game as written: verbs, characters, items, rooms, rules, audio, skin, budgets, migrations and texts. |
 | `GameRules` | `interface { fallbacks, kinds, on }` | public | The rules shared by every room: fallback responses per verb, reactions by kind, rules valid everywhere. |
 | `GameSource` | `type GameSource = GameDef` | public | A game as its sources write it: a `GameDef` before compilation. |
@@ -139,19 +139,19 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `KindRule` | `interface { id, verb, kind, target, item, say }` | public | Reaction by "kind": applies to anything with this `kind` (e.g. `person`, `cat`), before fallback responses. `target` targets a specific id ( |
 | `Layout` | `interface { width, floor, walk, scale, entries, hotspots, … 8 more }` | public | A room's geometry, written by the placement editor: walk areas, entries, and where every hotspot, prop, actor, layer and light stands. |
 | `LightDef` | `interface { id, kind, color, intensity, blend, visible }` | public | A light of the staged room: a radial pool at its layout position, or an ambient colour over the whole room. |
-| `ListLine` | `type ListLine = string \| { id: Id; text: string }` | public | One line of a list the engine draws from (a look list, a hint, the fallback answers): a plain string, keyed by its position in translations, |
+| `ListLine` | `type ListLine = string \| { id: Id; text: string; }` | public | One line of a list the engine draws from (a look list, a hint, the fallback answers): a plain string, keyed by its position in translations, |
 | `MapDef` | `interface { regions, start, places, music, vehicles }` | public | The travel map: its regions, its places and the region shown first. |
 | `MapRegion` | `interface { name, image, parent, frame }` | public | A region of the travel map: its image, its parent region and its frame on it. |
 | `Migration` | `interface { from, renameFlag, renameItem, renameRoom, renameProp, renameActor, … 12 more }` | public | One step of save migration: from version `from` to `from + 1`. Keys are old ids, values new ones. |
 | `MouthSet` | `interface { closed, open, blink, smile }` | public | Mouth images for a pose: the body doesn't move while speaking, only the mouth changes. `closed` replaces the idle pose's image (t1), `open`  |
-| `NEAR` | `150` | public | Distance (logical units) beyond which a saved approach point is considered stale and recomputed. |
+| `NEAR` | `number` | public | Distance (logical units) beyond which a saved approach point is considered stale and recomputed. |
 | `PlaceDef` | `interface { name, room, region, pos, portrait, vehicle, … 1 more }` | public | A place on the travel map: the room it opens, its region and position, its vehicle and its news marker. |
 | `Point` | `type Point = [number, number]` | public | Logical coordinates of a backdrop: 640 × 400, origin top-left. |
 | `PropAnim` | `interface { frames, fps, loop, at }` | public | A prop animation: images in order at `fps` (default 8); `at` = commands run when a frame is reached (index). |
 | `PropDef` | `interface { defaultVerb, img, states, anims, initial, name, … 2 more }` | public | A prop in the scenery, with states (e.g. amp off/on). Its position comes from the layout. |
 | `RealityDef` | `interface { signals, bridge }` | public | The game's link to the world outside: the signals it declares and the Reality Bridge it pairs with. |
 | `RealityState` | `interface { playerId, cursor, applied }` | public | What a save keeps of the link (`GameState.reality`): no token, no email, no payload. |
-| `RevealDef` | `type RevealDef = EndingDef` | public | The old name of `EndingDef`. |
+| `RevealDef` | `type RevealDef = EndingDef` | public (deprecated) | The old name of `EndingDef`. |
 | `RoomDef` | `interface { id, name, decor, description, furniture, music, … 14 more }` | public | A room: its backdrop or stage, props, actors, hotspots, exits, look lines, reactions, topics, hints and scripts. |
 | `Rule` | `interface { id, verb, a, b, if, do, … 1 more }` | public | A written reaction: "when VERB is done on A (with/to B), if CONDITION, then …". `a` and `b` accept a list: the rule works with any of them.  |
 | `ScoreDef` | `interface { stems, bpm, beatsPerBar, loop, states, quantize, … 4 more }` | public | A score in stems: its files, its tempo and loop, and which stems sound in each game state. |
@@ -166,7 +166,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `StageLayer` | `interface { id, image, role, visible }` | public | A picture of the room: `backdrop` behind everything, `scenery` among the characters (depth from its layout `z`), `foreground` in front of th |
 | `TalkTopic` | `interface { id, topic, if, do }` | public | A conversation topic offered when talking to an actor: its line, when it is offered, what it runs. |
 | `TransitionKind` | `type TransitionKind = 'cut' \| 'fade' \| 'wipe'` | public | How a room appears when entered: a cut, a fade or a wipe. |
-| `UiTexts` | `interface { walkTo, newGame, continue, confirmErase, yes, no, … 62 more }` | public | Every text the interface shows (menus, confirmations, settings): the engine hardcodes none of them. |
+| `UiTexts` | `interface { walkTo, newGame, continue, confirmErase, yes, no, … 62 more }` | public | Every text the interface shows (menus, confirmations, settings), so a game speaks its own language. |
 | `Value` | `type Value = boolean \| number \| string` | public | What a flag holds: a boolean, a number or a string. |
 | `VerbDef` | `interface { id, label, color, join }` | public | A verb as the interface shows it: its id, its label, its colour and the joining word of a two-term sentence. |
 | `VerbId` | `type VerbId = string` | public | Verb id, free-form: the game's own `verbs` declare them. Four ids have meaning to the engine: `look` ("Look" text for rooms and items), `tal |
@@ -201,7 +201,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | Name | Signature | Stability | Doc |
 |---|---|---|---|
 | `Minigame` | `interface { run, required, textParams, bindings }` | extension | A minigame: `run(ctx)` until it is won or skipped, and what the validator reads of its params. |
-| `MINIGAME_CSS` | `"\n.mg{position:absolute;inset:0;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;font-family:var(--font-ui,'DotGothic16'),monospace;` | public | The shared styles of the minigames, injected once by the host. |
+| `MINIGAME_CSS` | `string` | public | The shared styles of the minigames, injected once by the host. |
 | `MinigameCtx` | `interface { root, u, img, size, sfx, instruct, … 4 more }` | extension | What the host hands a minigame: its zone, the unit scale, images and sounds, parameters, labels and an abort signal. |
 | `minigames` | `Record<string, Minigame>` | public | Minigames provided by the engine. A game can add others with the same interface. What tools read (`required`, `textParams`, `bindings`) is h |
 
@@ -230,7 +230,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `importBridgeKey` | `(kid: string, raw: string, window?: Omit<BridgeKey, "kid" \| "key">): Promise<BridgeKey>` | public | An Ed25519 public key from its 32 raw bytes in base64url (a manifest's or a Bridge's configuration). |
 | `Keyring` | `type Keyring = BridgeKey[]` | public | The Bridge's verification keys the player trusts (several during a rotation). |
 | `manifestHash` | `(m: RealityManifest): Promise<string>` | public | The manifest's hash: SHA-256 of its JSON (keys in this fixed order), hex. |
-| `MAX_SIGNAL_CHARS` | `4096` | public | The largest signed signal accepted, in characters: a signal is an identifier, not a document. |
+| `MAX_SIGNAL_CHARS` | `number` | public | The largest signed signal accepted, in characters: a signal is an identifier, not a document. |
 | `RealityClient` | `class RealityClient` | public | The player's side of the Reality Bridge: reads signed signals from a port, verifies each, hands it to the engine, waits for the durable save |
 | `RealityClientOptions` | `interface { engine, store, port, keyring, refreshKeys, playerId, … 5 more }` | public | What a RealityClient is built with: the engine, the store, the port, the keyring, and how it refreshes keys and reports. |
 | `realityManifest` | `(game: GameDef): RealityManifest \| null` | public | The manifest of a game that declares `reality`, null otherwise. |
@@ -241,9 +241,9 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `SignedWorldSignalV1` | `type SignedWorldSignalV1 = string` | public | A signed signal as it travels: the compact JWS string. |
 | `signSignal` | `(payload: WorldSignalV1, key: CryptoKey, kid: string): Promise<SignedWorldSignalV1>` | public | Signs a payload as the Bridge does (the Bridge, the tests, the Studio's simulator). |
 | `SimulatedDelivery` | `interface { sequence, signal, fault, at }` | public | One delivery the simulator made: its sequence, its signal, its fault and when. |
-| `VerifyResult` | `type VerifyResult = { ok: true; signal: WorldSignalV1 } \| { ok: false; code: RefusalCode; reason: string }` | public | The outcome of `verifySignal`: the signal it accepted, or the refusal's code and reason. |
+| `VerifyResult` | `type VerifyResult = { ok: true; signal: WorldSignalV1; } \| { ok: false; code: RefusalCode; reason: string; }` | public | The outcome of `verifySignal`: the signal it accepted, or the refusal's code and reason. |
 | `verifySignal` | `(jws: unknown, keyring: Keyring, expect: SignalExpectation): Promise<VerifyResult>` | public | Checks a signed signal, then what it says. The reason of a refusal is a short sentence (logged, never shown raw). |
 | `WorldSignalPort` | `interface { connect, acknowledge, close }` | extension | Where signals from the world outside come from (4.1.1, Reality Bridge): the Bridge's transport (Server-Sent Events, a fetch by cursor), or t |
-| `WorldSignalV1` | `type WorldSignalV1 = z.infer<typeof WorldSignalV1Schema>` | public | The signed payload, as `WorldSignalV1Schema` types it. |
+| `WorldSignalV1` | `type WorldSignalV1 = { format, schema, id, sequence, gameId, playerId, … 8 more }` | public | The signed payload, as `WorldSignalV1Schema` types it. |
 | `WorldSignalV1Schema` | `z.ZodMiniObject<{ format: z.ZodMiniLiteral<"web-scumm-world-signal">; schema: z.ZodMiniLiteral<1>; id: z.ZodMiniString<string>; sequence: z.ZodMiniInt; gameId: ` | public | The payload the Bridge signs: one accepted fact from outside, as a finite identifier (§4.1). |
 <!-- api-doc:end -->
