@@ -2574,11 +2574,12 @@ Platform"; human gates reported, not blocking (D12).
 - Twice on CI (never in six local runs), the `pwa-firefox` job ended green on every check and then reported one
   browser error: `Failed to load …/assets/img/cat/r3c6.webp` (then `r2c4`), "A ServiceWorker intercepted the request
   and encountered an unexpected error", from `workbox-*.js`, while offline; the harness's cache note said the file was
-  in the cache both times, and the plan check had passed on all 218 files. The worker's `CacheFirst` handler failed on
-  a hit, in Firefox only, on one frame of the cat's animation among 218 files.
+  in the cache both times, and the plan check had passed on all 218 files. Apparently the worker's `CacheFirst` handler
+  failing on a hit, in Firefox only, on one frame of the cat's animation among 218 files.
 - Decision: the harness classifies, on Firefox only, a "ServiceWorker intercepted" error whose file is in the cache
-  as the worker's error: printed as a warning with the files, exit 0; any other browser error, or the same one on
-  Chromium or WebKit, or on a file absent from the cache, stays a failure. SUPPORT en/fr say it; the human pass
+  as the worker's error: printed as a warning with the files (and a GitHub annotation), exit 0, up to two files; a
+  third, any other browser error, the same one on Chromium or WebKit, or on a file absent from the cache, stays a
+  failure. The second reading asked for the bound and for the failure list to leave the tolerated ones out. SUPPORT en/fr say it; the human pass
   "Firefox offline on a real machine" joins the sheet. Not understood: whether Workbox's expiration plugin (IndexedDB
   from the worker) or Firefox's cache storage is at fault; to look at when it is seen locally.
 

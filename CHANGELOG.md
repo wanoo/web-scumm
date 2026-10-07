@@ -57,7 +57,7 @@
   reported skipped, never counted; installing from Safari on an iPhone and updating there remain a person's check
   before each release (`docs/dev/passes/`). Firefox's worker was seen, on CI only, refusing one cached image offline
   ("intercepted the request and encountered an unexpected error", the file in the cache every time): the job reports
-  it as the worker's error and does not count it; Firefox offline on a real machine joins the human passes.
+  it as the worker's error and does not count it (two files at most, more is a failure); Firefox offline on a real machine joins the human passes.
 
 - **Windows in CI** (4.1.8). A `windows-latest` job runs the doctor, the type checks and the unit suite (six test
   files that assume POSIX left out, named in the workflow: file modes, `/` in paths), builds the sample game and asks
