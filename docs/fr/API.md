@@ -224,7 +224,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 
 | Name | Signature | Stability | Doc |
 |---|---|---|---|
-| `BridgeKey` | `interface { kid, key, notBefore, notAfter, tenantId, environment }` | public | One verification key of the Bridge: its id, the key, and when it may sign (epoch ms; rotation overlaps). |
+| `BridgeKey` | `interface { kid, key, notBefore, notAfter, tenantId, environment, … 1 more }` | public | One verification key of the Bridge: its id, the key, and when it may sign (epoch ms; rotation overlaps). |
 | `Fault` | `interface { delayMs, duplicate, badSignature, expired }` | public | What the simulator does wrong on purpose with one delivery: a delay, a duplicate, a bad signature, an expiry. |
 | `httpPort` | `(o: HttpPortOptions): WorldSignalPort` | public | The transport to a Bridge, as a WorldSignalPort: Server-Sent Events read with fetch, or a fetch by cursor. |
 | `HttpPortOptions` | `interface { url, capability, fetch, retryMs, mode, onStatus, … 3 more }` | public | How `httpPort` reaches a Bridge: its URL, the pairing's capability, the fetch to use, the retry delay and the mode. |

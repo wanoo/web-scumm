@@ -46,7 +46,7 @@ async function sharedKey() {
 }
 
 describe('a signal of one tenant presented to another, with the same key', () => {
-  it('V1 cannot tell the tenants apart: the replay verifies (why V2 exists)', async () => {
+  it('V1 cannot tell the tenants apart (why V2 exists): accepted only under a key bound to no tenant', async () => {
     const k = await sharedKey();
     const jws = await signSignal(v1, k.priv, 'k-shared');
     const tenantB = [await importBridgeKey('k-shared', k.raw, { tenantId: 'tenant-b', environment: 'prod' })];
@@ -56,9 +56,13 @@ describe('a signal of one tenant presented to another, with the same key', () =>
       signals: new Set(['mail.answer.correct']),
       now: NOW,
     };
-    expect((await verifySignal(jws, tenantB, expectB)).ok).toBe(true);
-    // A player that knows it talks to a multi-tenant Bridge accepts V2 only.
-    expect(await verifySignal(jws, tenantB, { ...expectB, versions: [2] })).toMatchObject({ code: 'schema' });
+    // Under a key that names no tenant (a 4.1.9 Bridge), the replay verifies: nothing in V1 tells the tenants apart.
+    const unbound = [await importBridgeKey('k-shared', k.raw)];
+    expect((await verifySignal(jws, unbound, expectB)).ok).toBe(true);
+    // A key bound to a tenant signs V2 only: the same V1 signal is refused under it.
+    expect(await verifySignal(jws, tenantB, expectB)).toMatchObject({ code: 'schema' });
+    // A player that knows it talks to a multi-tenant Bridge accepts V2 only, whatever the key.
+    expect(await verifySignal(jws, unbound, { ...expectB, versions: [2] })).toMatchObject({ code: 'schema' });
   });
 
   it('V2 is refused by the other tenant: by its key, by its expectation, by both', async () => {

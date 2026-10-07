@@ -29,6 +29,8 @@ export class Streams {
   constructor(
     private source: StreamSource,
     private pageSize: () => number,
+    /** A read that failed: said, never thrown (a wake-up runs from a timer, a store's callback, a request). */
+    private onError: (e: unknown) => void = () => {},
   ) {}
 
   get size(): number {
@@ -71,6 +73,9 @@ export class Streams {
           s.again = false;
           await this.drain(s);
         } while (s.again && this.open.has(s));
+      } catch (e) {
+        // The cursor stays where the last signal sent left it: the next read starts there.
+        this.onError(e);
       } finally {
         s.reading = undefined;
       }

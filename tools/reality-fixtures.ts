@@ -194,7 +194,7 @@ const v2: WorldSignalV2 = {
 };
 const v2Keys = [
   { kid: 'ka', raw: k1.raw, tenantId: 'tenant-a', environment: 'prod' },
-  { kid: 'kb', raw: k1.raw, tenantId: 'tenant-b', environment: 'prod' },
+  { kid: 'kb', raw: k1.raw, tenantId: 'tenant-b', environment: 'prod', audience: 'bridge.b' },
   { kid: 'kx', raw: k2.raw },
   { kid: 'k1', raw: k1.raw },
 ];
@@ -243,6 +243,24 @@ add2(
   'another origin',
   await signSignal({ ...v2, audience: 'https://evil.example' }, k1.priv, 'ka'),
   'audience-mismatch',
+);
+add2('V1 under a key bound to a tenant', await signSignal(base, k1.priv, 'ka'), 'schema', {
+  tenantId: null,
+  environment: null,
+  sessionId: null,
+  audience: null,
+});
+add2(
+  "the Bridge's own audience, under the key that declares it",
+  await signSignal({ ...v2, tenantId: 'tenant-b', keyId: 'kb', audience: 'bridge.b' }, k1.priv, 'kb'),
+  'ok',
+  { tenantId: 'tenant-b' },
+);
+add2(
+  "another Bridge's audience",
+  await signSignal({ ...v2, tenantId: 'tenant-b', keyId: 'kb', audience: 'bridge.a' }, k1.priv, 'kb'),
+  'audience-mismatch',
+  { tenantId: 'tenant-b' },
 );
 add2('another link', await signSignal({ ...v2, sessionId: 'sess-0' }, k1.priv, 'ka'), 'audience-mismatch');
 add2('a key without a tenant, the expectation decides', await signSignal({ ...v2, keyId: 'kx' }, k2.priv, 'kx'), 'ok');

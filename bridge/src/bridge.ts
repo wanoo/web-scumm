@@ -65,6 +65,11 @@ export class Bridge {
     this.streams = new Streams(
       { page: (p, after, limit) => this.page(p, after, limit), ends: (p) => this.streamEnds(p) },
       () => this.limits.streamPage,
+      (e) => {
+        // A read that failed (the store restarting, busy): logged and counted; the next wake-up or pass reads again.
+        this.telemetry.count('errors', { tenant: this.tenantId, code: 'stream' });
+        this.log({ event: 'stream.error', message: e instanceof Error ? e.message.slice(0, 200) : 'unknown' });
+      },
     );
   }
 
@@ -113,9 +118,24 @@ export class Bridge {
     return this.config.signalVersion ?? 1;
   }
 
-  /** The keys a player verifies events with (public halves only), with the tenant and environment they sign for. */
-  keys(): { kid: string; raw: string; notBefore?: number; notAfter?: number; tenantId: string; environment: string }[] {
-    const ctx = { tenantId: this.tenantId, environment: this.config.environment ?? 'prod' };
+  /**
+   * The keys a player verifies events with (public halves only). A V2 Bridge (ADR 0010) says the tenant, environment
+   * and its own audience each key signs for; a V1 Bridge says nothing more, since a player refuses a V1 signal under a
+   * key bound to a tenant.
+   */
+  keys(): {
+    kid: string;
+    raw: string;
+    notBefore?: number;
+    notAfter?: number;
+    tenantId?: string;
+    environment?: string;
+    audience?: string;
+  }[] {
+    const ctx =
+      this.signalVersion === 2
+        ? { tenantId: this.tenantId, environment: this.config.environment ?? 'prod', audience: this.config.audience }
+        : {};
     return [
       { kid: this.config.eventKey.kid, raw: this.config.eventKey.raw, ...ctx },
       ...(this.config.previousKeys ?? []).map((k) => ({ ...k, ...ctx })),
@@ -315,6 +335,7 @@ export class Bridge {
     this.log({ event: 'signal.accepted', playerId, sequence: row.sequence, signal });
     this.telemetry.count('signals.accepted', { tenant: this.tenantId });
     this.telemetry.record('propose.ms', this.now() - started, { tenant: this.tenantId });
+    // The signal is committed: delivery can no longer fail the proposal (a stream's read catches its own errors).
     await this.streams.wake(playerId);
     return { id: row.id, sequence: row.sequence, duplicate: false };
   }
@@ -353,7 +374,8 @@ export class Bridge {
       schema: 2,
       tenantId: this.tenantId,
       environment: this.config.environment ?? 'prod',
-      audience: player.origin ?? this.config.origins?.[0] ?? this.config.audience,
+      // The origin the player paired from; without one, the Bridge's own audience, which its keys declare.
+      audience: player.origin ?? this.config.audience,
       sessionId: player.sessionId ?? player.playerId,
       keyId: this.config.eventKey.kid,
     };
@@ -383,7 +405,12 @@ export class Bridge {
       ? 'not a compact JWS'
       : e.payload && !(e.payload.schema === 2 ? WorldSignalV2Schema : WorldSignalV1Schema).safeParse(e.payload).success
         ? 'payload is not a world signal'
-        : undefined;
+        : e.payload &&
+            (e.payload.playerId !== e.playerId ||
+              e.payload.sequence !== e.sequence ||
+              (e.payload.schema === 2 && e.payload.tenantId !== this.tenantId))
+          ? 'payload names another player, sequence or tenant than its row'
+          : undefined;
     if (why) {
       await this.store.quarantine({
         tenantId: this.tenantId,

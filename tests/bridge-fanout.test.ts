@@ -19,7 +19,7 @@ import {
   type Instance,
   journalOver,
   pairOver,
-  proposeOver,
+  proposeWithSequence,
   startInstance,
   streamOver,
 } from '../tools/bridge-cluster';
@@ -143,15 +143,19 @@ describe.each(CLUSTERS)('three processes, one $name, one killed', ({ store, env 
     children.push(...instances);
     const players: { playerId: string; capability: string }[] = [];
     for (let i = 0; i < 10; i++) players.push(await pairOver(instances[1]!.url, token));
-    // A stream on a process that survives, opened before the first proposal.
+    // A stream on a process that survives, and one on the process that will be killed, both opened first.
     const stream = streamOver(instances[2]!.url, players[0]!.capability);
-    const alive = new Set([0, 1, 2]);
+    const doomed = streamOver(instances[0]!.url, players[1]!.capability);
+    const exited = new Promise<string | null>((ok) => instances[0]!.child.once('exit', (_c, sig) => ok(sig)));
+    // The connector does not know which instance died: it keeps sending to all three and retries elsewhere.
+    const all = [0, 1, 2];
     const TOTAL = 1000;
     let next = 0;
     let done = 0;
     let killed = false;
     let retries = 0;
     const statuses = new Map<number, number>();
+    const accepted = new Map<string, { playerId: string; sequence: number }>();
     const worker = async () => {
       for (;;) {
         const i = next++;
@@ -159,44 +163,69 @@ describe.each(CLUSTERS)('three processes, one $name, one killed', ({ store, env 
         const body = { playerId: players[i % 10]!.playerId, signal: 'mail.answer.correct', dedupeKey: `d-${i}` };
         // The connector's own retry: on another instance, with the same dedupe key, until one answers.
         for (let attempt = 0; ; attempt++) {
-          const pick = [...alive][(i + attempt) % alive.size]!;
-          const status = await proposeOver(instances[pick]!.url, token, body);
-          if (status === 202 || status === 200) {
-            statuses.set(status, (statuses.get(status) ?? 0) + 1);
+          const r = await proposeWithSequence(instances[all[(i + attempt) % 3]!]!.url, token, body);
+          if (r.status === 202 || r.status === 200) {
+            statuses.set(r.status, (statuses.get(r.status) ?? 0) + 1);
+            accepted.set(body.dedupeKey, { playerId: body.playerId, sequence: r.sequence ?? -1 });
             break;
           }
           retries++;
-          if (attempt > 20) throw new Error(`proposal ${i}: ${status}`);
+          if (attempt > 20) throw new Error(`proposal ${i}: ${r.status}`);
         }
         done++;
         if (!killed && done >= 300) {
           killed = true;
           instances[0]!.child.kill('SIGKILL');
-          alive.delete(0);
         }
       }
     };
     await Promise.all(Array.from({ length: 16 }, worker));
     expect(killed).toBe(true);
-    expect(instances[0]!.child.signalCode ?? 'SIGKILL').toBe('SIGKILL');
+    expect(await exited).toBe('SIGKILL');
+    // The risky path ran: proposals sent to the dead instance were retried elsewhere.
+    expect(retries).toBeGreaterThan(0);
     // Every player's journal, read from a survivor: contiguous from 1, each dedupe key once, 1 000 in all.
     let total = 0;
     const keys = new Set<string>();
+    const journals: { sequence: number; dedupeKey: string }[][] = [];
     for (const [n, p] of players.entries()) {
       const j = await journalOver(instances[1]!.url, p.capability);
+      journals.push(j);
       expect(j.map((x) => x.sequence)).toEqual(Array.from({ length: j.length }, (_, k) => k + 1));
       for (const x of j) {
         expect(Number(x.dedupeKey.slice(2)) % 10, x.dedupeKey).toBe(n);
         keys.add(x.dedupeKey);
+        // The sequence the connector was told is the one the journal holds.
+        expect(accepted.get(x.dedupeKey)?.sequence, x.dedupeKey).toBe(x.sequence);
       }
       total += j.length;
     }
     expect(total).toBe(TOTAL);
     expect(keys.size).toBe(TOTAL);
+    // A sample of accepted proposals sent again to another instance: 200, the same sequence, nothing new.
+    for (let i = 0; i < TOTAL; i += 37) {
+      const key = `d-${i}`;
+      const r = await proposeWithSequence(instances[2]!.url, token, {
+        playerId: players[i % 10]!.playerId,
+        signal: 'mail.answer.correct',
+        dedupeKey: key,
+      });
+      expect(r, key).toEqual({ status: 200, sequence: accepted.get(key)!.sequence });
+    }
+    expect((await journalOver(instances[1]!.url, players[0]!.capability)).length).toBe(100);
     // The stream held by instance 2 saw player 0's hundred signals, in order, once each.
     await until(() => stream.seen.length >= 100, 10_000);
     stream.stop();
     expect(stream.seen).toEqual(Array.from({ length: 100 }, (_, k) => k + 1));
+    // The stream the killed instance held ended; reconnected elsewhere from its cursor, it resumes with the rest.
+    await until(() => doomed.ended(), 5_000);
+    expect(doomed.ended()).toBe(true);
+    const cursor = doomed.seen.at(-1) ?? 0;
+    expect(doomed.seen).toEqual(Array.from({ length: cursor }, (_, k) => k + 1));
+    const resumed = streamOver(instances[1]!.url, players[1]!.capability, cursor);
+    await until(() => resumed.seen.length >= 100 - cursor, 10_000);
+    resumed.stop();
+    expect(resumed.seen).toEqual(Array.from({ length: 100 - cursor }, (_, k) => cursor + k + 1));
     // And the store says the same: no gap, nothing quarantined.
     const log = console.log;
     const lines: string[] = [];
@@ -221,7 +250,7 @@ describe.each(CLUSTERS)('three processes, one $name, one killed', ({ store, env 
       quarantined: 0,
     });
     console.info(
-      `kill -9 test: ${TOTAL} proposals, ${retries} retries after the kill, ${statuses.get(200) ?? 0} answered as duplicates`,
+      `kill -9 test: ${TOTAL} proposals, ${retries} retries after the kill, ${statuses.get(200) ?? 0} answered as duplicates, the killed stream at ${doomed.seen.length}`,
     );
   }, 120_000);
 });

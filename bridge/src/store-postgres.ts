@@ -41,7 +41,11 @@ class PgDb implements SqlDb {
   async exec(sql: string) {
     await this.pool.query(sql);
   }
-  async tx<T>(lockKey: string | undefined, fn: (q: SqlQuery) => Promise<T>): Promise<T> {
+  async tx<T>(
+    lockKey: string | undefined,
+    fn: (q: SqlQuery) => Promise<T>,
+    o: { readOnly?: boolean } = {},
+  ): Promise<T> {
     for (let attempt = 0; ; attempt++) {
       const c = await this.pool.connect();
       const q: SqlQuery = {
@@ -50,15 +54,21 @@ class PgDb implements SqlDb {
         exec: async (sql) => void (await c.query(sql)),
       };
       try {
-        await c.query('BEGIN');
+        // A read-only transaction is one snapshot (an export, a backup): REPEATABLE READ, not READ COMMITTED's per
+        // statement view.
+        await c.query(o.readOnly ? 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY' : 'BEGIN');
         if (lockKey !== undefined) await c.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [lockKey]);
         const r = await fn(q);
         await c.query('COMMIT');
         c.release();
         return r;
       } catch (e) {
-        await c.query('ROLLBACK').catch(() => {});
-        c.release();
+        // A client whose ROLLBACK failed is broken (a dropped connection): released with the error, the pool drops it.
+        let broken: Error | undefined;
+        await c.query('ROLLBACK').catch((r: unknown) => {
+          broken = r instanceof Error ? r : new Error(String(r));
+        });
+        c.release(broken);
         const code = (e as { code?: string }).code;
         if (!code || !RETRY.has(code) || attempt >= 5) throw e;
         this.retries++;
@@ -74,6 +84,10 @@ class PgDb implements SqlDb {
 export class PostgresRealityStore extends SqlRealityStore {
   readonly kind = 'postgres' as const;
   private listener: PgClient | undefined;
+  private listenOnce: Promise<void> | undefined;
+  private retryTimer: ReturnType<typeof setTimeout> | undefined;
+  private backoff = 0;
+  private closed = false;
   private watchers = new Map<string, Set<(playerId: string) => void>>();
 
   private constructor(private pg: PgDb) {
@@ -114,8 +128,16 @@ export class PostgresRealityStore extends SqlRealityStore {
     await q.all('SELECT pg_notify($1, $2)', [CHANNEL, `${tenantId} ${playerId}`]);
   }
 
-  private async listen(): Promise<void> {
-    if (this.listener) return;
+  /** One listening connection per store, whoever asks: a second `watch` waits for the first's, never opens another. */
+  private listen(): Promise<void> {
+    this.listenOnce ??= this.connectListener().catch((e: unknown) => {
+      this.listenOnce = undefined;
+      this.relisten();
+      throw e;
+    });
+    return this.listenOnce;
+  }
+  private async connectListener(): Promise<void> {
     const c = await this.pg.pool.connect();
     this.listener = c;
     c.on('notification', (m) => {
@@ -123,11 +145,27 @@ export class PostgresRealityStore extends SqlRealityStore {
       if (!tenant || !player) return;
       for (const w of this.watchers.get(tenant) ?? []) w(player);
     });
-    c.on('error', () => {
-      // The listening connection dropped: listen again on the next watch; the Bridge's slow pass covers the gap.
-      this.listener = undefined;
+    c.on('error', (e) => {
+      // The listening connection dropped: released with its error (the pool discards it), then listened again with
+      // a backoff; meanwhile the Bridge's slow pass over its streams covers the gap.
+      if (this.listener === c) {
+        this.listener = undefined;
+        this.listenOnce = undefined;
+        c.release(e);
+        this.relisten();
+      }
     });
     await c.query(`LISTEN ${CHANNEL}`);
+    this.backoff = 0;
+  }
+  private relisten(): void {
+    if (this.closed || this.retryTimer || this.watchers.size === 0) return;
+    this.backoff = Math.min(30_000, Math.max(250, this.backoff * 2));
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = undefined;
+      void this.listen().catch(() => {});
+    }, this.backoff);
+    this.retryTimer.unref?.();
   }
 
   watch(tenantId: string, wake: (playerId: string) => void): () => void {
@@ -135,9 +173,7 @@ export class PostgresRealityStore extends SqlRealityStore {
     let set = this.watchers.get(tenantId);
     if (!set) this.watchers.set(tenantId, (set = new Set()));
     set.add(wake);
-    void this.listen().catch(() => {
-      this.listener = undefined;
-    });
+    void this.listen().catch(() => {});
     return () => set.delete(wake);
   }
 
@@ -147,6 +183,8 @@ export class PostgresRealityStore extends SqlRealityStore {
   }
 
   override async close() {
+    this.closed = true;
+    if (this.retryTimer) clearTimeout(this.retryTimer);
     this.watchers.clear();
     if (this.listener) {
       await this.listener.query(`UNLISTEN ${CHANNEL}`).catch(() => {});

@@ -260,8 +260,8 @@ export async function storeCommand(
         console.error(`✖  the store already holds ${clash.join(', ')}: restore into an empty store, or --force`);
         return 1;
       }
-      for (const t of clash) await store.deleteTenant(t);
-      for (const t of b.tenants) await store.importTenant(t);
+      // Each tenant replaced in one transaction: deleted and written back together, or left as it was.
+      for (const t of b.tenants) await store.importTenant(t, { replace: clash.includes(t.tenantId) });
       say(`✔  ${b.tenants.length} tenant(s) restored from ${b.at}`);
       return 0;
     } finally {

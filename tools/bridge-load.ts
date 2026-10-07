@@ -134,9 +134,11 @@ try {
   };
   console.log(JSON.stringify(report));
   if (out) writeFileSync(resolve(out), `${JSON.stringify(report, null, 1)}\n`);
-  const ok = report.rows === (statuses.get(202) ?? 0) && gaps === 0 && streamsComplete === STREAMS;
+  // Every proposal accepted (a 429, a 503 or a dropped connection is a limit reached: said, and a failed run).
+  const ok =
+    (statuses.get(202) ?? 0) === PROPOSALS && report.rows === PROPOSALS && gaps === 0 && streamsComplete === STREAMS;
   if (!ok) {
-    console.error('✖  the journal or a stream does not hold what was accepted');
+    console.error('✖  a proposal was not accepted, or the journal or a stream does not hold what was');
     code = 1;
   }
 } finally {

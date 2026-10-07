@@ -72,6 +72,8 @@ export interface TenantExport {
   revokedTokens: string[];
   keys: KeyRow[];
   quarantine: QuarantineRow[];
+  /** The pairing codes held (4.1.10, after the second reading): absent in an export written before them. */
+  pairings?: Pairing[];
 }
 
 /** The outcome of claiming a confirmed pairing code. */
@@ -124,8 +126,11 @@ export interface RealityStore {
 
   // A tenant as a whole.
   exportTenant(tenantId: string): Promise<TenantExport>;
-  /** Writes an export back (`bridge restore`, `bridge migrate`): into a tenant that holds nothing yet. */
-  importTenant(x: TenantExport): Promise<void>;
+  /**
+   * Writes an export back (`bridge restore`, `bridge migrate`): into a tenant that holds nothing yet, or, with
+   * `replace`, instead of what it holds, in one transaction (a failure leaves the tenant as it was).
+   */
+  importTenant(x: TenantExport, o?: { replace?: boolean }): Promise<void>;
   deleteTenant(tenantId: string): Promise<void>;
 
   /**
@@ -145,3 +150,6 @@ export function checkTenant(tenantId: string): string {
   if (!TENANT_ID.test(tenantId)) throw new Error(`not a tenant id: ${JSON.stringify(tenantId.slice(0, 64))}`);
   return tenantId;
 }
+
+/** The store could not take its write lock in time (SQLite busy): the server answers 503 and `Retry-After`. */
+export class StoreBusyError extends Error {}

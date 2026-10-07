@@ -30,9 +30,11 @@ PostgreSQL 17.9 server; CI runs it on 16.
   transaction (`BEGIN IMMEDIATE`): throughput does not grow with instances on SQLite, it is shared. The p95 of ~190 ms
   at 64 concurrent clients is queueing on that lock, not work; the max (~1.9 s) is a transaction that waited for the
   others while a WAL checkpoint ran. SQLite is the `local` profile (D20): one machine, a few processes.
-- **A waiting process blocks its event loop.** `node:sqlite` is synchronous: an instance waiting for another's lock
-  (`busy_timeout`, 5 s) answers nothing else meanwhile, its streams' heartbeats included. Invisible at this load;
-  the reason the `distributed` profile is Postgres.
+- **A waiting process blocks its event loop, briefly.** `node:sqlite` is synchronous: SQLite itself waits at most
+  50 ms for another process's lock (`busy_timeout`), then the store backs off asynchronously (the event loop free) and
+  tries again, 5 s in all (`busyMs`), after which the request is a 503 with `Retry-After`. Measured above with
+  `busy_timeout` at 5 s (before the second reading of 4.1.10): the figures are to be measured again by the nightly.
+  Contention is the reason the `distributed` profile is Postgres.
 - **Per-connector quotas are per instance.** The load test lifts them (`limits` in `config.json`); in production N
   instances admit N times `perMinutePerConnector` (docs/dev/threat-models/constellation.md).
 - **Not reached:** the per-player pending bound (lifted), the open-streams bound per instance (10 000 by default; 50

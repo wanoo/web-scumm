@@ -33,6 +33,7 @@ fn conformance(file: &str) {
         not_after: k["notAfter"].as_f64(),
         tenant: text(&k["tenantId"]),
         environment: text(&k["environment"]),
+        audience: text(&k["audience"]),
     }).collect();
     for case in c["cases"].as_array().unwrap() {
         let mut e = c["expect"].as_object().unwrap().clone();

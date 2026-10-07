@@ -316,5 +316,7 @@ them now (`startPairing`, `claimPairing`, `revoke`, `forgetPlayer`, `exportPlaye
 the tenant `default`) or a `RealityStore`. The capability is drawn when the player claims its code (the claim also
 returns the link's `sessionId`). A 4.1.9 `config.json` serves from its journal as before; `npm run bridge -- migrate
 --from=jsonl --to=sqlite` (the Bridge stopped) moves it into SQLite, which needs Node 22.13 (`node:sqlite`).
-`--trust-proxy` alone now trusts the loopback only; name other proxies with `--trust-proxy=<addresses or networks>`.
+`--trust-proxy` alone now trusts the loopback only; name other proxies with `--trust-proxy=<addresses or networks>`. **Behind a proxy that is not on the loopback (a PaaS's router, a load balancer on another host), every client now
+falls into the proxy's one rate bucket** (60 anonymous requests a minute for everyone) until `--trust-proxy=<its
+network>` names it.
 Several tenants and several instances: `docs/en/REALITY-OPS.md`.

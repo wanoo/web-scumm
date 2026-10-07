@@ -330,4 +330,6 @@ les attend désormais (`startPairing`, `claimPairing`, `revoke`, `forgetPlayer`,
 son code (la réclamation renvoie aussi le `sessionId` du lien). Un `config.json` de la 4.1.9 sert depuis son journal
 comme avant ; `npm run bridge -- migrate --from=jsonl --to=sqlite` (Bridge arrêté) le déplace dans SQLite, qui demande
 Node 22.13 (`node:sqlite`). `--trust-proxy` seul ne fait plus confiance qu'à la boucle locale ; nommer les autres
-proxies avec `--trust-proxy=<adresses ou réseaux>`. Plusieurs tenants et plusieurs instances : `docs/fr/REALITY-OPS.md`.
+proxies avec `--trust-proxy=<adresses ou réseaux>`. **Derrière un proxy qui n'est pas sur la boucle locale (le routeur d'un PaaS, un
+répartiteur sur un autre hôte), tous les clients tombent désormais dans l'unique compartiment du proxy** (60 requêtes
+anonymes par minute pour tout le monde) tant que `--trust-proxy=<son réseau>` ne le nomme pas. Plusieurs tenants et plusieurs instances : `docs/fr/REALITY-OPS.md`.

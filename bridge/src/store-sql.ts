@@ -33,7 +33,7 @@ export interface SqlDb extends SqlQuery {
    * One transaction; `lockKey` serialises the transactions that name the same key across every process (SQLite: the
    * database's write lock; Postgres: an advisory lock). Retries a transient conflict; `onRetry` counts them.
    */
-  tx<T>(lockKey: string | undefined, fn: (q: SqlQuery) => Promise<T>): Promise<T>;
+  tx<T>(lockKey: string | undefined, fn: (q: SqlQuery) => Promise<T>, o?: { readOnly?: boolean }): Promise<T>;
   close(): Promise<void>;
 }
 
@@ -361,41 +361,54 @@ export abstract class SqlRealityStore implements RealityStore {
 
   async exportTenant(tenantId: string): Promise<TenantExport> {
     checkTenant(tenantId);
-    // One transaction: the export is one instant of the tenant, not rows read across concurrent writes.
-    return this.db.tx(undefined, async (q) => {
-      const players = await q.all('SELECT * FROM players WHERE tenant_id = $1 ORDER BY player_id', [tenantId]);
-      const signals = await q.all(
-        `SELECT ${SIGNAL_COLUMNS} FROM signals WHERE tenant_id = $1 ORDER BY player_id, sequence`,
-        [tenantId],
-      );
-      const tokens = await q.all('SELECT token_id FROM revoked_tokens WHERE tenant_id = $1 ORDER BY token_id', [
-        tenantId,
-      ]);
-      const keys = await q.all('SELECT * FROM signing_keys WHERE tenant_id = $1 ORDER BY key_id', [tenantId]);
-      const quarantine = await q.all('SELECT * FROM quarantine WHERE tenant_id = $1 ORDER BY player_id, sequence', [
-        tenantId,
-      ]);
-      return {
-        tenantId,
-        players: players.map(toPlayer),
-        signals: signals.map(toSignal),
-        acks: players
-          .filter((r) => num(r.acked) > 0)
-          .map((r) => ({ playerId: String(r.player_id), through: num(r.acked) })),
-        revokedTokens: tokens.map((r) => String(r.token_id)),
-        keys: keys.map((r) => ({
+    // One read-only snapshot: the export is one instant of the tenant, not rows read across concurrent writes.
+    return this.db.tx(
+      undefined,
+      async (q) => {
+        const players = await q.all('SELECT * FROM players WHERE tenant_id = $1 ORDER BY player_id', [tenantId]);
+        const signals = await q.all(
+          `SELECT ${SIGNAL_COLUMNS} FROM signals WHERE tenant_id = $1 ORDER BY player_id, sequence`,
+          [tenantId],
+        );
+        const tokens = await q.all('SELECT token_id FROM revoked_tokens WHERE tenant_id = $1 ORDER BY token_id', [
           tenantId,
-          keyId: String(r.key_id),
-          publicKey: String(r.public_key),
-          ...(opt(r.retire_after) !== undefined ? { retireAfter: String(r.retire_after) } : {}),
-        })),
-        quarantine: quarantine.map(toQuarantine),
-      };
-    });
+        ]);
+        const keys = await q.all('SELECT * FROM signing_keys WHERE tenant_id = $1 ORDER BY key_id', [tenantId]);
+        const quarantine = await q.all('SELECT * FROM quarantine WHERE tenant_id = $1 ORDER BY player_id, sequence', [
+          tenantId,
+        ]);
+        const pairings = await q.all('SELECT * FROM pairings WHERE tenant_id = $1 ORDER BY code', [tenantId]);
+        return {
+          tenantId,
+          players: players.map(toPlayer),
+          signals: signals.map(toSignal),
+          acks: players
+            .filter((r) => num(r.acked) > 0)
+            .map((r) => ({ playerId: String(r.player_id), through: num(r.acked) })),
+          revokedTokens: tokens.map((r) => String(r.token_id)),
+          keys: keys.map((r) => ({
+            tenantId,
+            keyId: String(r.key_id),
+            publicKey: String(r.public_key),
+            ...(opt(r.retire_after) !== undefined ? { retireAfter: String(r.retire_after) } : {}),
+          })),
+          quarantine: quarantine.map(toQuarantine),
+          pairings: pairings.map(toPairing),
+        };
+      },
+      { readOnly: true },
+    );
   }
-  async importTenant(x: TenantExport) {
+  async importTenant(x: TenantExport, o: { replace?: boolean } = {}) {
     const tenantId = checkTenant(x.tenantId);
     await this.db.tx(`tenant:${tenantId}`, async (q) => {
+      if (o.replace) for (const t of TENANT_TABLES) await q.run(`DELETE FROM ${t} WHERE tenant_id = $1`, [tenantId]);
+      for (const p of x.pairings ?? [])
+        await q.run(
+          `INSERT INTO pairings (tenant_id, code, game_id, expires_at, player_id, claimed, origin)
+           VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING`,
+          [tenantId, p.code, p.gameId, p.expiresAt, p.playerId ?? null, p.claimed ? 1 : 0, p.origin ?? null],
+        );
       for (const p of x.players) await upsertPlayer(q, tenantId, p);
       for (const s of x.signals) await insertSignal(q, { ...s, tenantId });
       for (const a of x.acks)

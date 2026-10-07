@@ -31,7 +31,8 @@ Behind HTTPS: run `serve` on `127.0.0.1` behind a reverse proxy that terminates 
 `text/event-stream` responses, with `--trust-proxy` so the per-address limits see the client's address
 (`X-Forwarded-For`). `--trust-proxy` alone trusts the loopback; `--trust-proxy=10.0.0.0/8,192.0.2.7` names the
 proxies (addresses or IPv4 networks): the header is read only from them, and the client is its rightmost address
-that is not one of them. `--origin` lists the game's site (CORS); the player's routes answer it only. Set the game's
+that is not one of them. Since 4.1.10 a proxy elsewhere than on the loopback (a PaaS's router) must be named: without
+it, every client shares the proxy's address and its one rate bucket. `--origin` lists the game's site (CORS); the player's routes answer it only. Set the game's
 `reality.bridge` to the public URL. On the Internet, `init --no-demo-webhooks` and one `grant` per connector, each
 as narrow as its job.
 
@@ -144,7 +145,8 @@ long as players may be offline with signals to receive; then a player re-pairs.
 journal's configuration in 4.1.10 (the default moves to SQLite when the engine requires Node 22.13, D20). A database
 URL is not written in the file: `serve --store=postgres://…` or `BRIDGE_STORE=postgres://…`. The schema is versioned
 (`bridge/migrations/`): a SQL store brings it up when it opens; `migrate --schema=N` goes up or down by hand, and a
-database newer than the Bridge is refused.
+database newer than the Bridge is refused. The SQLite file and its `-wal` and `-shm` are mode 0600; a write that
+waits more than 5 s for another process's lock is answered 503 with `Retry-After` (the connector repeats it).
 
 ```sh
 npm run bridge -- migrate --from=jsonl --to=sqlite [--tenant=<id>]   # the Bridge stopped; the journal is kept

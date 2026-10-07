@@ -12,8 +12,9 @@ and nothing in the signed bytes says it should not. The Biscuit `audience` prote
 - a key of the keyring may say the `tenantId` and `environment` it signs for (`GET /v1/keys` sends them); a V2 signal
   whose context differs from its key's, or from what the player expects (`tenantId`, `environment`, its own origin,
   its `sessionId` when known) is refused `audience-mismatch`; a `keyId` other than the header's `kid` is refused `key`;
-- a multi-tenant Bridge signs V2 only, and a player that knows it talks to one (`versions: [2]`) refuses a V1 signal
-  (`schema`);
+- a multi-tenant Bridge signs V2 only, lists its keys with their tenant, and a V1 signal under a key bound to a tenant
+  is refused (`schema`), as by a player that asks for V2 only (`versions: [2]`); a V2 signal may name the Bridge's own
+  audience instead of the player's origin (a pairing whose origin it did not see), which the key's `audience` admits;
 - a single-tenant Bridge signs V1 by default during 4.1.10 and 4.1.11 (`--signal-version=2` opts in), so a player of
   4.1.1–4.1.9 keeps working; the player accepts both. From 4.1.12 the Bridge signs V2 only and the player accepts V2
   only: a break of the 4.1 incubation line (D18), announced in `docs/en/UPGRADING.md` §22.

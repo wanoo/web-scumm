@@ -84,6 +84,11 @@ export interface BridgeKey {
   tenantId?: string;
   /** The environment this key signs for (4.1.10): a V2 signal of another environment is refused. */
   environment?: SignalEnvironment;
+  /**
+   * The Bridge's own audience (4.1.10): a V2 signal naming it instead of the player's origin is accepted (the Bridge
+   * did not know the origin the player paired from).
+   */
+  audience?: string;
 }
 /** The Bridge's verification keys the player trusts (several during a rotation). @public */
 export type Keyring = BridgeKey[];
@@ -206,6 +211,8 @@ export async function verifySignal(jws: unknown, keyring: Keyring, expect: Signa
   const schema = payload && typeof payload === 'object' ? (payload as { schema?: unknown }).schema : undefined;
   if (payload && typeof payload === 'object' && !versions.includes(schema as 1 | 2))
     return fail('schema', `unknown schema ${JSON.stringify(schema)}`);
+  // A key bound to a tenant signs V2 only (ADR 0010): a V1 signal under it names no context to check, so it is refused.
+  if (schema === 1 && k.tenantId !== undefined) return fail('schema', `key ${k.kid} signs V2 only`);
   const parsed = (schema === 2 ? WorldSignalV2Schema : WorldSignalV1Schema).safeParse(payload);
   if (!parsed.success)
     return fail('payload', `not a world signal: ${parsed.error.issues[0]?.path.join('.') || 'shape'}`);
@@ -219,7 +226,8 @@ export async function verifySignal(jws: unknown, keyring: Keyring, expect: Signa
       (k.environment !== undefined && sgn.environment !== k.environment) ||
       (expect.tenantId !== undefined && sgn.tenantId !== expect.tenantId) ||
       (expect.environment !== undefined && sgn.environment !== expect.environment) ||
-      (expect.audience !== undefined && sgn.audience !== expect.audience) ||
+      // The player's origin, or the Bridge's own audience (a pairing whose origin the Bridge could not record).
+      (expect.audience !== undefined && sgn.audience !== expect.audience && sgn.audience !== k.audience) ||
       (expect.sessionId !== undefined && sgn.sessionId !== expect.sessionId);
     if (mismatch) return fail('audience-mismatch', 'signed for another tenant, environment, origin or link');
   }

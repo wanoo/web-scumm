@@ -32,7 +32,8 @@ Derrière HTTPS : lancer `serve` sur `127.0.0.1` derrière un proxy inverse qui 
 réponses `text/event-stream`, avec `--trust-proxy` pour que les limites par adresse voient celle du client
 (`X-Forwarded-For`). `--trust-proxy` seul fait confiance à la boucle locale ; `--trust-proxy=10.0.0.0/8,192.0.2.7`
 nomme les proxies (adresses ou réseaux IPv4) : l'en-tête n'est lu que venant d'eux, et le client est son adresse la
-plus à droite qui n'en est pas un. `--origin` liste le site du jeu (CORS) ; les routes du joueur ne répondent qu'à lui. Mettre
+plus à droite qui n'en est pas un. Depuis la 4.1.10 un proxy ailleurs que sur la boucle locale (le routeur d'un PaaS)
+doit être nommé : sans quoi tous les clients partagent l'adresse du proxy et son unique compartiment. `--origin` liste le site du jeu (CORS) ; les routes du joueur ne répondent qu'à lui. Mettre
 l'URL publique dans `reality.bridge` du jeu. Sur Internet, `init --no-demo-webhooks` et un `grant` par connecteur,
 chacun aussi étroit que sa tâche.
 
@@ -151,7 +152,9 @@ tant que des joueurs peuvent être hors ligne avec des signaux à recevoir ; ens
 configuration du journal en 4.1.10 (le défaut passe à SQLite quand le moteur exigera Node 22.13, D20). Une URL de
 base n'est pas écrite dans le fichier : `serve --store=postgres://…` ou `BRIDGE_STORE=postgres://…`. Le schéma est
 versionné (`bridge/migrations/`) : un store SQL le monte à son ouverture ; `migrate --schema=N` monte ou descend à la
-main, et une base plus récente que le Bridge est refusée.
+main, et une base plus récente que le Bridge est refusée. Le fichier SQLite et ses `-wal` et `-shm` sont en mode
+0600 ; une écriture qui attend plus de 5 s le verrou d'un autre processus reçoit un 503 avec `Retry-After` (le
+connecteur la répète).
 
 ```sh
 npm run bridge -- migrate --from=jsonl --to=sqlite [--tenant=<id>]   # Bridge arrêté ; le journal est gardé

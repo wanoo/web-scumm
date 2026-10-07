@@ -195,10 +195,13 @@ class SyncBackedStore implements RealityStore {
       revokedTokens: [...s.revokedTokens()],
       keys: await this.keys(tenantId),
       quarantine: await this.quarantined(tenantId),
+      pairings: [...this.codes(tenantId).values()].map((p) => ({ ...p })),
     };
   }
-  async importTenant(x: TenantExport) {
+  async importTenant(x: TenantExport, o: { replace?: boolean } = {}) {
+    if (o.replace) await this.deleteTenant(x.tenantId);
     const s = this.t(x.tenantId);
+    for (const p of x.pairings ?? []) this.codes(x.tenantId).set(p.code, { ...p });
     for (const p of x.players) s.write({ t: 'player', p });
     for (const e of x.signals) {
       const { tenantId: _, ...entry } = e;

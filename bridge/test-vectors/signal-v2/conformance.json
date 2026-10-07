@@ -11,7 +11,8 @@
    "kid": "kb",
    "raw": "0EqyMnQrtKs6E2i9RhXk5tAiSrcaAWuvhSCjMsl3hzc",
    "tenantId": "tenant-b",
-   "environment": "prod"
+   "environment": "prod",
+   "audience": "bridge.b"
   },
   {
    "kid": "kx",
@@ -115,6 +116,33 @@
    "name": "another origin",
    "jws": "eyJhbGciOiJFZERTQSIsImtpZCI6ImthIn0.eyJmb3JtYXQiOiJ3ZWItc2N1bW0td29ybGQtc2lnbmFsIiwic2NoZW1hIjoyLCJpZCI6InNpZy0wMDAxIiwic2VxdWVuY2UiOjEsImdhbWVJZCI6InNpZ25hbHMiLCJwbGF5ZXJJZCI6InAtN2YzYSIsInNpZ25hbCI6Im1haWwuYW5zd2VyLmNvcnJlY3QiLCJzb3VyY2UiOiJtYWlsIiwicmVjZWl2ZWRBdCI6MTc5MTI4Nzk5OTAwMCwiZGVkdXBlS2V5IjoibWFpbDptc2ctNDIiLCJwb2xpY3lWZXJzaW9uIjoiMSIsInRlbmFudElkIjoidGVuYW50LWEiLCJlbnZpcm9ubWVudCI6InByb2QiLCJhdWRpZW5jZSI6Imh0dHBzOi8vZXZpbC5leGFtcGxlIiwic2Vzc2lvbklkIjoic2Vzcy0xIiwia2V5SWQiOiJrYSJ9.t-LoJt_TPK0Xa-vynvOtFlBRPfy-aaWmOEpAzzMld4fdsUidZ5bVFtRVkA3i8HV8WMFr2S-R3qYZKgxjiKKqBg",
    "verdict": "audience-mismatch"
+  },
+  {
+   "name": "V1 under a key bound to a tenant",
+   "jws": "eyJhbGciOiJFZERTQSIsImtpZCI6ImthIn0.eyJmb3JtYXQiOiJ3ZWItc2N1bW0td29ybGQtc2lnbmFsIiwic2NoZW1hIjoxLCJpZCI6InNpZy0wMDAxIiwic2VxdWVuY2UiOjEsImdhbWVJZCI6InNpZ25hbHMiLCJwbGF5ZXJJZCI6InAtN2YzYSIsInNpZ25hbCI6Im1haWwuYW5zd2VyLmNvcnJlY3QiLCJzb3VyY2UiOiJtYWlsIiwicmVjZWl2ZWRBdCI6MTc5MTI4Nzk5OTAwMCwiZGVkdXBlS2V5IjoibWFpbDptc2ctNDIiLCJwb2xpY3lWZXJzaW9uIjoiMSJ9.6tqncN3dnZEnVEc1xe3flRl7dYo5ZeQNOUr_O-SX0q_Am4vW844ESddK3b22qS4DyI1fYLsLZ-GVpFye_C8PBg",
+   "verdict": "schema",
+   "expect": {
+    "tenantId": null,
+    "environment": null,
+    "sessionId": null,
+    "audience": null
+   }
+  },
+  {
+   "name": "the Bridge's own audience, under the key that declares it",
+   "jws": "eyJhbGciOiJFZERTQSIsImtpZCI6ImtiIn0.eyJmb3JtYXQiOiJ3ZWItc2N1bW0td29ybGQtc2lnbmFsIiwic2NoZW1hIjoyLCJpZCI6InNpZy0wMDAxIiwic2VxdWVuY2UiOjEsImdhbWVJZCI6InNpZ25hbHMiLCJwbGF5ZXJJZCI6InAtN2YzYSIsInNpZ25hbCI6Im1haWwuYW5zd2VyLmNvcnJlY3QiLCJzb3VyY2UiOiJtYWlsIiwicmVjZWl2ZWRBdCI6MTc5MTI4Nzk5OTAwMCwiZGVkdXBlS2V5IjoibWFpbDptc2ctNDIiLCJwb2xpY3lWZXJzaW9uIjoiMSIsInRlbmFudElkIjoidGVuYW50LWIiLCJlbnZpcm9ubWVudCI6InByb2QiLCJhdWRpZW5jZSI6ImJyaWRnZS5iIiwic2Vzc2lvbklkIjoic2Vzcy0xIiwia2V5SWQiOiJrYiJ9.4QHfG5PqHfuSHCdixAge6XHc85-j-lqzoqJm28tjuqPL_WbjVSjX2B4QvLfjAb9KJx3DqTTqbERBHuZjUlcGCQ",
+   "verdict": "ok",
+   "expect": {
+    "tenantId": "tenant-b"
+   }
+  },
+  {
+   "name": "another Bridge's audience",
+   "jws": "eyJhbGciOiJFZERTQSIsImtpZCI6ImtiIn0.eyJmb3JtYXQiOiJ3ZWItc2N1bW0td29ybGQtc2lnbmFsIiwic2NoZW1hIjoyLCJpZCI6InNpZy0wMDAxIiwic2VxdWVuY2UiOjEsImdhbWVJZCI6InNpZ25hbHMiLCJwbGF5ZXJJZCI6InAtN2YzYSIsInNpZ25hbCI6Im1haWwuYW5zd2VyLmNvcnJlY3QiLCJzb3VyY2UiOiJtYWlsIiwicmVjZWl2ZWRBdCI6MTc5MTI4Nzk5OTAwMCwiZGVkdXBlS2V5IjoibWFpbDptc2ctNDIiLCJwb2xpY3lWZXJzaW9uIjoiMSIsInRlbmFudElkIjoidGVuYW50LWIiLCJlbnZpcm9ubWVudCI6InByb2QiLCJhdWRpZW5jZSI6ImJyaWRnZS5hIiwic2Vzc2lvbklkIjoic2Vzcy0xIiwia2V5SWQiOiJrYiJ9.8Pn3LJNsnFVtP_oGj0qs1hjpuAki-yASPGPLYf6RdigSBqeafnQYVcOTahl6B4Poz3ckNDhf0nu3GyDPNvAWBA",
+   "verdict": "audience-mismatch",
+   "expect": {
+    "tenantId": "tenant-b"
+   }
   },
   {
    "name": "another link",

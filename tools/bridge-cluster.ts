@@ -116,22 +116,35 @@ export async function pairOver(url: string, token: string): Promise<{ playerId: 
   return { playerId: claim.playerId, capability: claim.capability };
 }
 
-/** Proposes one signal; the HTTP status, or 0 when the instance did not answer (killed, refused). */
+/** Proposes one signal; the HTTP status (0 when the instance did not answer: killed, refused) and the sequence. */
 export async function proposeOver(
   url: string,
   token: string,
   body: { playerId: string; signal: string; dedupeKey: string },
 ): Promise<number> {
+  return (await proposeWithSequence(url, token, body)).status;
+}
+export async function proposeWithSequence(
+  url: string,
+  token: string,
+  body: { playerId: string; signal: string; dedupeKey: string },
+): Promise<{ status: number; sequence?: number }> {
   try {
     const r = await fetch(new URL('v1/signals', url), {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...body, source: 'mail' }),
     });
-    await r.arrayBuffer();
-    return r.status;
+    const text = await r.text();
+    let sequence: number | undefined;
+    try {
+      sequence = (JSON.parse(text) as { sequence?: number }).sequence;
+    } catch {
+      /* not JSON: an error page */
+    }
+    return { status: r.status, ...(sequence !== undefined ? { sequence } : {}) };
   } catch {
-    return 0;
+    return { status: 0 };
   }
 }
 
@@ -151,13 +164,21 @@ export async function journalOver(
   });
 }
 
-/** Reads a player's event stream (SSE) from `url`: the sequences in the order they arrive, until `stop()`. */
-export function streamOver(url: string, capability: string): { seen: number[]; stop: () => void } {
+/**
+ * Reads a player's event stream (SSE) from `url`, after `after`: the sequences in the order they arrive, until
+ * `stop()` or the instance goes away (`ended`).
+ */
+export function streamOver(
+  url: string,
+  capability: string,
+  after = 0,
+): { seen: number[]; stop: () => void; ended: () => boolean } {
+  let over = false;
   const seen: number[] = [];
   const ctrl = new AbortController();
   void (async () => {
     try {
-      const r = await fetch(new URL('v1/events?after=0', url), {
+      const r = await fetch(new URL(`v1/events?after=${after}`, url), {
         headers: { Authorization: `Bearer ${capability}` },
         signal: ctrl.signal,
       });
@@ -176,8 +197,10 @@ export function streamOver(url: string, capability: string): { seen: number[]; s
         }
       }
     } catch {
-      /* aborted */
+      /* aborted, or the instance went away */
+    } finally {
+      over = true;
     }
   })();
-  return { seen, stop: () => ctrl.abort() };
+  return { seen, stop: () => ctrl.abort(), ended: () => over };
 }

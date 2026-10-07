@@ -7,6 +7,10 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import { isIP } from 'node:net';
 import { type Bridge, BridgeError } from './bridge';
+import { StoreBusyError } from './store-async';
+
+/** An origin as a browser sends it: a scheme, a host, a port. */
+const ORIGIN = /^https?:\/\/[\w.-]{1,200}(:\d{1,5})?$/;
 
 /** A webhook: its shared secret, the connector token it proposes with, and the events it turns into signals. */
 export interface WebhookConfig {
@@ -197,7 +201,9 @@ export function bridgeServer(bridges: Bridge | Bridge[], o: ServeOptions = {}): 
         const b = json(await body(req, bridge.limits.bodyBytes)) as { gameId?: unknown };
         return send(
           201,
-          await bridge.startPairing(String(b.gameId ?? ''), origin && origins.has(origin) ? origin : undefined),
+          // The origin the request came from, whenever the browser said one (same origin, a site off the CORS list):
+          // a V2 signal names it as its audience, and the player checks it against its own page.
+          await bridge.startPairing(String(b.gameId ?? ''), origin && ORIGIN.test(origin) ? origin : undefined),
         );
       }
       if ((m = /^\/v1\/pairings\/([A-Z0-9]{8})$/.exec(path)) && req.method === 'GET')
@@ -289,6 +295,11 @@ export function bridgeServer(bridges: Bridge | Bridge[], o: ServeOptions = {}): 
       if (e instanceof BridgeError) {
         if (e.status === 401 || e.status === 403) failures.take(ip);
         return send(e.status, { error: e.code, message: e.message });
+      }
+      if (e instanceof StoreBusyError) {
+        // Another process holds the store's write lock longer than this request may wait: try again, nothing lost.
+        res.setHeader('Retry-After', '1');
+        return send(503, { error: 'busy', message: 'the store is busy: try again in a second' });
       }
       console.error(JSON.stringify({ event: 'error', message: e instanceof Error ? e.message : 'unknown' }));
       send(500, { error: 'internal' });

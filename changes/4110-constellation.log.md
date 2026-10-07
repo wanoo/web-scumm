@@ -13,6 +13,17 @@
 - Run locally against a throwaway PostgreSQL 17.9 server (no Docker daemon): the store contract, the tenancy and the
   fan-out tests with `BRIDGE_PG_URL`. CI runs them on Postgres 16 (`bridge-postgres`, service container pinned by
   digest). The Rust cross-check (`cargo`) agrees on the 32 V1 cases and the 18 V2 vectors.
+- After the second reading (PR #45, security): a stream's read catches a store error (logged, counted, read again
+  by the next wake-up or pass) instead of an unhandled rejection that ended the process; a committed proposal cannot
+  fail on its delivery. A V1 signal under a tenant-bound key is refused, a V1 Bridge's keys bind no tenant, the
+  player keeps the link's `sessionId` and passes it; the origin is recorded at pairing whenever the browser sends it,
+  and a V2 signal naming the Bridge's own audience is accepted under its keys. SQLite waits 50 ms synchronously, then
+  backs off asynchronously for 5 s and answers 503; its files are 0600. Postgres listens on one connection, listens
+  again with a backoff after a drop, releases a client whose ROLLBACK failed with its error; an export is one
+  REPEATABLE READ snapshot; a restore replaces a tenant in one transaction; pairings are exported. The `kill -9`
+  test now keeps sending to the dead instance (232–240 retries locally), replays a sample of accepted keys elsewhere
+  (200, the same sequence) and resumes the killed instance's stream from its cursor on another. `bridge.ts` branch
+  coverage 97.0 % locally (floor 95). The load figures in BENCH-BRIDGE were measured before the busy change.
 - Not done: the Postgres load figures (the nightly's `bridge-load (postgres)` publishes the first; the spawned
   processes cannot load `pg` from outside the repository here), the `kill -9` test on Postgres (CI only), a mutation
   run of the refactored `bridge.ts` (gated set `reality`: survivors possible, read on the next nightly) and of the new

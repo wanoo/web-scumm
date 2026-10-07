@@ -10,7 +10,7 @@ pub const MAX_SIGNAL_CHARS: usize = 4096;
 /// The clock tolerance of src/engine/reality/protocol.ts (CLOCK_SKEW_MS), in milliseconds.
 const CLOCK_SKEW_MS: f64 = 300_000.0;
 
-pub struct Key { pub kid: String, pub raw: Vec<u8>, pub not_before: Option<f64>, pub not_after: Option<f64>, pub tenant: Option<String>, pub environment: Option<String> }
+pub struct Key { pub kid: String, pub raw: Vec<u8>, pub not_before: Option<f64>, pub not_after: Option<f64>, pub tenant: Option<String>, pub environment: Option<String>, pub audience: Option<String> }
 pub struct Expect {
     pub game: String, pub player: String, pub signals: Vec<String>, pub now: f64,
     pub versions: Vec<i64>, pub tenant: Option<String>, pub environment: Option<String>, pub audience: Option<String>, pub session: Option<String>,
@@ -65,6 +65,7 @@ pub fn verify(jws: &str, keys: &[Key], e: &Expect) -> &'static str {
     };
     let schema = match &payload { Value::Object(o) => o.get("schema").and_then(Value::as_i64), _ => Some(0) };
     if let Value::Object(_) = &payload { if !schema.map_or(false, |n| e.versions.contains(&n)) { return "schema"; } }
+    if schema == Some(1) && key.tenant.is_some() { return "schema"; }
     let Value::Object(o) = &payload else { return "payload" };
     let v2 = schema == Some(2);
     if !payload_ok(o, v2) { return "payload"; }
@@ -73,7 +74,7 @@ pub fn verify(jws: &str, keys: &[Key], e: &Expect) -> &'static str {
         if s("keyId") != Some(key.kid.as_str()) { return "key"; }
         let differs = |want: &Option<String>, field: &str| want.as_ref().map_or(false, |w| s(field) != Some(w.as_str()));
         if differs(&key.tenant, "tenantId") || differs(&key.environment, "environment") || differs(&e.tenant, "tenantId")
-            || differs(&e.environment, "environment") || differs(&e.audience, "audience") || differs(&e.session, "sessionId") { return "audience-mismatch"; }
+            || differs(&e.environment, "environment") || (e.audience.is_some() && s("audience") != e.audience.as_deref() && s("audience") != key.audience.as_deref()) || differs(&e.session, "sessionId") { return "audience-mismatch"; }
     }
     if o.get("gameId").and_then(Value::as_str) != Some(e.game.as_str()) { return "game"; }
     if o.get("playerId").and_then(Value::as_str) != Some(e.player.as_str()) { return "player"; }
