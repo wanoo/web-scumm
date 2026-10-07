@@ -89,7 +89,7 @@ args = ["--prefix", "/chemin/web-scumm", "run", "-s", "mcp"]
 
 ### Tout autre client
 Commande `npm run -s mcp` (ou `npx tsx tools/mcp/server.ts`) avec le dépôt comme répertoire de travail, transport
-stdio. Node 22+.
+stdio. Node 22.12+.
 
 ## Une session type
 1. `read_doc CONTENT_GUIDE`, `list_rooms`, `get_storyboard`, `get_notes`.

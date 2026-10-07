@@ -307,10 +307,10 @@
   "api": "38af9c35409038da"
  },
  "tests": {
-  "files": 105,
-  "declarations": 746
+  "files": 106,
+  "declarations": 737
  },
  "bundle": {
-  "initialJsKB": 123
+  "initialJsKB": 120
  }
 }

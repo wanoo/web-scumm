@@ -26,7 +26,7 @@ npm run dev                                       # y jouer ; npm run studio ouv
 npm run verify:game && npm run build              # vérifié, prouvé, construit dans dist/ pour n'importe quel hébergement statique
 ```
 
-Il faut Node 22 ou plus récent. Python 3 et ffmpeg servent aux outils d'image et au pipeline sonore : optionnels, et
+Il faut Node 22.12 ou plus récent. Python 3 et ffmpeg servent aux outils d'image et au pipeline sonore : optionnels, et
 `npm run doctor` dit lequel manque. Windows, macOS et Linux ([SUPPORT](docs/fr/SUPPORT.md) a la matrice).
 
 ## Ce que vous obtenez
