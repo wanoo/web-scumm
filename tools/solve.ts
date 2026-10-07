@@ -8,6 +8,10 @@
 // boundary state of the previous one (deduped by what the chapter reads), not from the hand-written checkpoint, which
 // must itself be one of those boundary states (src/engine/tools/chapters.ts). --goal=100% (4.1.12): the search's goal is
 // every objective that is not optional (`GameDef.objectives`, ADR 0014) instead of the ending.
+// 4.1.13: --representation=objects (the 4.1.8 storage, the reference of the differential tests; compact by default),
+// --checkpoint=<file> [--checkpoint-every=<seconds>, default 300] [--resume] (the search written down as it goes, and
+// taken up again from that file; a budget that stops it writes it too; a finished search removes it), --mem=<MB>
+// (stop as `truncated` past this heap), --symmetry (symmetric items folded in a proof).
 // The game: GAME, otherwise package.json → config.game (see tools/game.ts).
 import { flushExit } from './flush';
 import { cachedSolve } from './proof-cache';
@@ -20,6 +24,7 @@ import { MAX_STARTS, proveChapters } from '../src/engine/tools/chapters';
 import { loadLayouts } from '../src/engine/tools/load';
 import { completionGoal } from '../src/engine/core/objectives';
 import { GAME_DIR, loadGameModule } from './game';
+import { dropCheckpoint, fileCheckpoint } from './checkpoint';
 
 const { game, commands } = await loadGameModule();
 const layouts = loadLayouts(resolve(GAME_DIR, 'layout'));
@@ -42,10 +47,24 @@ const work = workersArg
   : {};
 const timeLimit = arg('time') ? { timeLimitMs: Number(arg('time')) * 1000 } : {};
 // --ownership=off: no canonical owner in a proof; --dominance: witness dominance (3.5, witnesses only).
+const ckFile = arg('checkpoint');
 const abstractions = {
   ...(arg('ownership') === 'off' ? { ownership: false } : {}),
   ...(process.argv.includes('--dominance') ? { dominance: true } : {}),
+  ...(process.argv.includes('--symmetry') ? { symmetry: true } : {}),
+  ...(arg('representation') === 'objects' ? { representation: 'objects' as const } : {}),
+  ...(arg('mem') ? { maxMemoryMb: Number(arg('mem')) } : {}),
+  ...(process.argv.includes('--profile') ? { explosion: true } : {}),
 };
+// The whole game's search only (one file is one search; --chapters runs several).
+const ckOpt = ckFile
+  ? {
+      checkpoint: fileCheckpoint(resolve(ckFile), {
+        resume: process.argv.includes('--resume'),
+        everyMs: Number(arg('checkpoint-every') ?? 300) * 1000,
+      }),
+    }
+  : {};
 // The reductions have no proof of equivalence for softlocks (BENCH.md, "Fewer orders"): the solver ignores them when proving.
 if (por && mode === 'prove' && !asJson)
   console.log(`ℹ  --por=${por} is ignored in proof mode: it can report a softlock that does not exist (BENCH.md)`);
@@ -201,7 +220,10 @@ const r = await cachedSolve(game, layouts, {
   ...work,
   ...timeLimit,
   ...abstractions,
+  ...ckOpt,
 });
+
+if (ckFile && !r.truncated) dropCheckpoint(resolve(ckFile));
 
 if (asJson) {
   // `path` labels each step for humans; `steps` are the session entries ({ act, picks… }) the e2e harness replays.

@@ -140,7 +140,7 @@ describe.each(KINDS)('RealityStore: $name', (kind) => {
     expect(await a.claimPairing(t, 'ZZZZZZZZ', 'c'.repeat(64))).toBe('missing');
     await a.sweepPairings(t, 1_001);
     expect(await b.pairing(t, 'ABCDEFGH')).toBeUndefined();
-  });
+  }, 30000); // SQLite on the Windows runner: three times over 5 s on 7 October 2026
 
   it('n proposals at once for one player: contiguous sequences, one row per dedupe key (property)', async () => {
     const { a, b } = await kind.open();

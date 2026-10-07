@@ -4,6 +4,7 @@
 // and an ending somewhere. Deterministic: the same seed gives the same game. Many are unsolvable or have softlocks,
 // which is the point: the abstractions must give the explicit search's verdict either way.
 import type { Cmd, Cond, GameDef, Layout, RoomDef } from '@engine/core/types';
+import { must } from '@engine/core/must';
 
 /** mulberry32: a tiny seeded generator, the same numbers on every machine. */
 function rng(seed: number) {
@@ -185,4 +186,221 @@ export function randomGame(
   };
   const layouts = Object.fromEntries(rooms.map((id) => [id, { entries: { default: [320, 360] } } as Layout]));
   return { game, layouts };
+}
+
+/**
+ * The reference matrix of 4.1.13 "Solver Research" (docs/dev/PROOF-MATRIX.md): one family of games, open to three
+ * playable characters. `characters: 3` and `rooms: [20, 40]` are the family's two parameters; the seed draws the
+ * rest. The rooms are a chain cut in three zones, one per character (ann, bob, cid), each starting in its own zone.
+ * Locks close the way every few rooms; their keys lie earlier in the zone or in the zone before (a crossed puzzle:
+ * the key has to reach the next character, through a pneumatic tube or, in the open variant, by walking over and
+ * giving it). In each zone a keeper answers two topics (the second one gives the code a lock of the zone reads), a
+ * bell rings by itself (a room script emits an event, a listener of the game sets the flag a key's drawer reads), and
+ * trinkets that no condition reads go from hand to hand. A furnace destroys whatever is put in it: some instances
+ * burn a key the game needs (a real softlock), others only a trinket. The ending needs the seals of the three zones.
+ * `open: false` (constrained): walls between the zones, the tubes are the only way across. `open: true`: doors between
+ * the zones, so the characters can meet; the tubes stay.
+ */
+export interface MatrixOptions {
+  characters?: 3;
+  /** The number of rooms, or the range the seed draws it from (both ends included). */
+  rooms?: number | [number, number];
+  open?: boolean;
+}
+
+/**
+ * The twelve instances of the matrix (frozen with docs/dev/PROOF-MATRIX.md: change both, with a LOG entry), and the
+ * verdict each one is expected to get: the 4.1.8 proof's within the budget, `unknown` where it did not finish.
+ */
+export const MATRIX: readonly {
+  id: string;
+  seed: number;
+  open: boolean;
+  expected: 'proved' | 'softlock' | 'unsolvable' | 'unknown';
+}[] = [
+  { id: 'c11', seed: 11, open: false, expected: 'proved' },
+  { id: 'c12', seed: 12, open: false, expected: 'softlock' },
+  { id: 'c13', seed: 13, open: false, expected: 'softlock' },
+  { id: 'c14', seed: 14, open: false, expected: 'proved' },
+  { id: 'c15', seed: 15, open: false, expected: 'proved' },
+  { id: 'c16', seed: 16, open: false, expected: 'softlock' },
+  { id: 'o21', seed: 21, open: true, expected: 'proved' },
+  { id: 'o22', seed: 22, open: true, expected: 'unknown' },
+  { id: 'o23', seed: 23, open: true, expected: 'unknown' },
+  { id: 'o24', seed: 24, open: true, expected: 'unknown' },
+  { id: 'o25', seed: 25, open: true, expected: 'unknown' },
+  { id: 'o26', seed: 26, open: true, expected: 'softlock' },
+];
+
+export function matrixGame(
+  seed: number,
+  o: MatrixOptions = {},
+): { game: GameDef; layouts: Record<string, Layout>; rooms: number; softlock: boolean } {
+  const r = rng(seed * 7919 + 13);
+  const span = o.rooms ?? [20, 40];
+  const R = typeof span === 'number' ? span : span[0] + r.int(span[1] - span[0] + 1);
+  const open = !!o.open;
+  const players = ['ann', 'bob', 'cid'];
+  const zoneStart = [0, Math.floor(R / 3), Math.floor((2 * R) / 3)];
+  const zoneOf = (i: number) => (i >= zoneStart[2] ? 2 : i >= zoneStart[1] ? 1 : 0);
+  const zoneEnd = (z: number) => (z < 2 ? zoneStart[z + 1] - 1 : R - 1);
+  const rid = (i: number) => `room${i}`;
+  const rooms: RoomDef[] = [...Array(R).keys()].map((i) => ({
+    id: rid(i),
+    name: `Room ${i}`,
+    decor: `d/${rid(i)}`,
+    hotspots: { crate: { name: 'crate' } },
+    look: { crate: 'A crate.' },
+    props: {},
+    on: [],
+    exits: {},
+  }));
+  const room = (i: number) => must(rooms[i], 'matrix room');
+  const spot = (i: number, id: string) => {
+    room(i).hotspots![id] = { name: id };
+    room(i).look![id] = `A ${id}.`;
+  };
+  const items: GameDef['items'] = {};
+  const item = (id: string) => (items[id] = { name: id, icon: `i/${id}`, look: `A ${id}.` });
+  const characters: GameDef['characters'] = Object.fromEntries(
+    players.map((p) => [p, { name: p, color: '#fff', sprites: { idle: [`${p}/1`] } }]),
+  );
+  const events: NonNullable<GameDef['events']> = [];
+  // Locks: every 3 or 4 rooms of a zone, the way on needs a key used on the door (and, for one lock per zone, the
+  // keeper's code). The key lies earlier in the same zone, or in the zone before (crossed).
+  for (let z = 0; z < 3; z++) {
+    const s = zoneStart[z],
+      e = zoneEnd(z);
+    const step = 3 + r.int(2);
+    let coded = false;
+    for (let i = s + step - 1; i < e; i += step) {
+      const key = `key${i}`;
+      item(key);
+      // Where the key lies: the zone before for some locks (a crossed puzzle), else a room of this zone before the lock.
+      const cross = z > 0 && r.chance(0.4);
+      const at = cross ? zoneStart[z - 1] + r.int(zoneEnd(z - 1) - zoneStart[z - 1] + 1) : s + r.int(i - s + 1);
+      spot(at, `drawer_${key}`);
+      // One drawer per zone opens only once the zone's bell has rung (the script and its event).
+      const bell = !cross && r.chance(0.3) ? `rang${z}` : undefined;
+      room(at).on!.push({
+        verb: 'take',
+        a: `drawer_${key}`,
+        if: bell ? { all: [`!took_${key}`, bell] } : `!took_${key}`,
+        do: [{ gain: key }, { set: `took_${key}` }],
+      });
+      spot(i, `door${i}`);
+      const code = !coded && r.chance(0.5) ? `code${z}` : undefined;
+      if (code) coded = true;
+      room(i).on!.push({
+        verb: 'use',
+        a: key,
+        b: `door${i}`,
+        if: code ? { all: [`!open${i}`, code] } : `!open${i}`,
+        do: [{ lose: key }, { set: `open${i}` }],
+      });
+      room(i).exits!.next = { name: 'next', to: rid(i + 1), if: `open${i}` };
+    }
+    // The zone's keeper: two topics, the second one gives the code. It stands before the zone's first lock, as does
+    // the bell: both are within reach of the character who needs them.
+    const k = s + r.int(Math.min(step, e - s + 1));
+    const keeper = `keeper${z}`;
+    characters[keeper] = { name: keeper, color: '#0f0', room: rid(k), sprites: { idle: [`${keeper}/1`] } };
+    room(k).actors = { [keeper]: { char: keeper } };
+    room(k).look![keeper] = `The ${keeper}.`;
+    room(k).talk = {
+      [keeper]: [
+        { topic: 'Hello?', if: `!met${z}`, do: [{ say: [keeper, 'Hello.'] }, { set: `met${z}` }] },
+        {
+          topic: 'The code?',
+          if: { all: [`met${z}`, `!code${z}`] },
+          do: [{ say: [keeper, 'Here.'] }, { set: `code${z}` }],
+        },
+      ],
+    };
+    // The zone's bell: a script of one room rings once, a listener of the game remembers it.
+    const b = s + r.int(Math.min(step, e - s + 1));
+    room(b).scripts = [{ id: `bell${z}`, do: [{ wait: 3000 }, { emit: `bell${z}` }] }];
+    events.push({ on: `bell${z}`, once: true, do: [{ set: `rang${z}` }] });
+    // The zone's seal, at its far end: the ending needs the three.
+    spot(e, `seal${z}`);
+    room(e).on!.push({ verb: 'take', a: `seal${z}`, if: `!sealed${z}`, do: [{ set: `sealed${z}` }] });
+  }
+  // The trinkets: taken once, read by nothing, carried and given freely (the canonical owner's ground).
+  const trinkets = 2 + r.int(3);
+  for (let t = 0; t < trinkets; t++) {
+    const id = `trinket${t}`;
+    item(id);
+    const at = r.int(R);
+    spot(at, `shelf${t}`);
+    room(at).on!.push({ verb: 'take', a: `shelf${t}`, if: `!took_${id}`, do: [{ gain: id }, { set: `took_${id}` }] });
+  }
+  // The furnace: destroys what goes in. Half the instances can burn a key the game needs.
+  const burnsKey = r.chance(0.5) && Object.keys(items).some((i) => i.startsWith('key'));
+  const furnaceAt = r.int(R);
+  spot(furnaceAt, 'furnace');
+  const burnable = Object.keys(items).filter((i) => (burnsKey ? true : i.startsWith('trinket')));
+  for (const it of burnable)
+    room(furnaceAt).on!.push({ verb: 'use', a: it, b: 'furnace', do: [{ lose: it }, `The ${it} burns.`] });
+  // A pneumatic tube at the end of each zone sends anything to the next character (the last zone's back to ann).
+  for (let z = 0; z < 3; z++) {
+    const e = zoneEnd(z);
+    spot(e, 'tube');
+    for (const it of Object.keys(items))
+      room(e).on!.push({ verb: 'use', a: it, b: 'tube', do: [{ transfer: [it, must(players[(z + 1) % 3], 'next')] }] });
+  }
+  // Decor: a few looks that set flags nothing reads, and repeated lines.
+  for (let i = 0; i < R; i++)
+    if (r.chance(0.4))
+      room(i).on!.push({ verb: 'look', a: 'crate', if: `!peek${i}`, do: [{ set: `peek${i}` }, 'Dust.'] });
+  // The chain: back everywhere; forward between the zones only in the open variant (a lock-free door).
+  for (let i = 0; i < R; i++) {
+    if (i > 0 && (open || zoneOf(i - 1) === zoneOf(i))) room(i).exits!.back = { name: 'back', to: rid(i - 1) };
+    if (i + 1 < R && !room(i).exits!.next && (open || zoneOf(i + 1) === zoneOf(i)))
+      room(i).exits!.next = { name: 'next', to: rid(i + 1) };
+  }
+  // The ending: the altar of the last room, once the three seals are taken.
+  spot(R - 1, 'altar');
+  room(R - 1).on!.push({
+    verb: 'use',
+    a: 'altar',
+    if: { all: ['sealed0', 'sealed1', 'sealed2'] },
+    do: [{ end: true }],
+  });
+  const game: GameDef = {
+    id: `matrix${seed}`,
+    title: `Matrix ${seed}${open ? ' (open)' : ''}`,
+    saveVersion: 1,
+    hero: 'ann',
+    players: {
+      ids: players,
+      start: { bob: { room: rid(must(zoneStart[1], 'zone')) }, cid: { room: rid(must(zoneStart[2], 'zone')) } },
+    },
+    verbs: [
+      { id: 'look', label: 'Look', color: '#fff' },
+      { id: 'take', label: 'Take', color: '#fff' },
+      { id: 'use', label: 'Use', color: '#fff', join: 'with' },
+      { id: 'give', label: 'Give', color: '#fff', join: 'to' },
+      { id: 'talk', label: 'Talk', color: '#fff' },
+    ],
+    characters,
+    items,
+    rooms,
+    events,
+    rules: {
+      fallbacks: { look: ['Nothing.'], take: ['No.'], use: ['No.'], give: ['No.'], talk: ['...'], use2: ['No.'] },
+    },
+    start: { room: rid(0) },
+    skin: { icons: { map: 'ui/map', pause: 'ui/pause', music: 'ui/music' } },
+    ui: {} as GameDef['ui'],
+  };
+  const layouts = Object.fromEntries(
+    rooms.map((x) => [
+      x.id,
+      {
+        entries: { default: [320, 360] },
+        actors: Object.fromEntries(Object.keys(x.actors ?? {}).map((a) => [a, { x: 200, y: 330, h: 100 }])),
+      } as Layout,
+    ]),
+  );
+  return { game, layouts, rooms: R, softlock: burnsKey };
 }

@@ -19,3 +19,4 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0012](0012-canvas-backend.md) | Canvas 2D stays the complete backend; WebGL/Pixi not measured in 4.1.11 |
 | [0013](0013-game-ir-and-fingerprint.md) | One intermediate representation of a game (GameIR) and its fingerprint (4.1.12) |
 | [0014](0014-objectives.md) | Objectives and the quest journal, the one primitive family admitted in 4.1.12 |
+| [0015](0015-compact-state.md) | A search stores its states by index, with exact interned keys (4.1.13) |

@@ -349,3 +349,12 @@ ships `site.json` (the game's own with the trusted extensions' hash and the engi
 verify:dist` expects. The solver's proof cache is keyed by `canonicalJson`: entries of 4.1.11 are not reused, the next
 run fills it again. The DSL is stabilised (D22, `docs/dev/DSL-STABILITY.md`): from here a change to a stable name or
 meaning ships with its migration.
+
+## 25. From 4.1.12 to 4.1.13 "Solver Research"
+
+A 4.1.12 save, game and Bridge keep working; no public name moved (`tests/api-surface.json` additive). The solver's
+command gains `--checkpoint=<file>`, `--checkpoint-every`, `--resume`, `--mem=<MB>`, `--profile`, `--symmetry`,
+`--workers` and `--representation=objects` (the 4.1.8 storage, for a comparison); a search a budget cuts is
+`truncated`, never `proved`, before and after a resume. `npm run test:heavy` gained the matrix's checkpoint case and
+`npm run prove:matrix` (the nightly's `matrix` job) proves the twelve instances of `docs/dev/PROOF-MATRIX.md`. A
+softlock cause in `npm run solve -- --json` now carries its session entries, which `npm run replay` plays.
