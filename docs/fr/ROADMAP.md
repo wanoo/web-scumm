@@ -737,7 +737,8 @@ la 4.2.0 sur chaque surface annoncée comme supportée.
   retire `baseUrl` et les `paths` non relatifs) : la 4.1.8 « Foundation Reset », avec le `tsconfig.json` du modèle de projet.
 - Les traductions chargées à la demande (la seconde langue pèse ~10 % du JavaScript de la première visite) : un
   changement du contrat du module de jeu, donc une mineure avec une dépréciation, pas un correctif.
-- La matrice ouverte à trois personnages : la 4.1.13 « Proof at Scale », avec les deux seuils de sa fiche.
+- La matrice ouverte à trois personnages : non atteinte en 4.1.13 « Solver Research » (8 instances sur 12 dans leur
+  budget) ; le mémo des macro-mouvements et des passages d'objets nommé par le rapport d'écart reste le levier.
 - Les repères de synchronisation labiale dans la table des voix (restés de la 3.4).
 
 ## Hors plan (décisions explicites)

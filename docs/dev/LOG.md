@@ -3131,7 +3131,7 @@ Platform"; human gates reported, not blocking (D12).
   reading's blocking finding, a states-budget cut that could later report `solved`, fixed with a 30-game cut/resume
   property; the nightly's jobs reconciled after a merge that had dropped two of main's). The release commit on the
   lot's branch: the fragments assembled, the version, the golden save `demo-4.1.13.json` (27), the READMEs, ROADMAP
-  en/fr, UPGRADING §25, the pass sheet, the baseline sheet, the coverage floors read on #51's coverage job.
+  en/fr, UPGRADING §25, the pass sheet, the baseline sheet; no floor to raise (#51's coverage job: one point of slack).
 - Measured on #51's final run (37654193805): `node-24` 149 files, 1 503 tests (+4 skipped); `coverage` 151 files, 1 520 tests (+4 skipped); the solver's figures in #129 and the
   baseline sheet.
 - Not done, said as such: the symbolic spike, dominance in proofs, the macro-move memo, the runner's numbers, the new

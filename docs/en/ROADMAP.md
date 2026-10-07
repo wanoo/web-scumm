@@ -739,7 +739,8 @@ not blocking, through 4.1.x (D12), and become blocking for 4.2.0 on every surfac
   `baseUrl` and non-relative `paths`): 4.1.8 "Foundation Reset", with the project template's `tsconfig.json`.
 - Translations loaded on demand (the second language is ~10% of the first visit's JavaScript): a change to the game
   module's contract, so a minor with a deprecation, not a patch.
-- The open matrix of three characters: 4.1.13 "Proof at Scale", with the two thresholds of its sheet.
+- The open matrix of three characters: not reached in 4.1.13 "Solver Research" (8 of 12 within budget); the memo
+  for macro moves and hand-overs the gap report names is the lever left.
 - Lip-sync markers in the voice table (left from 3.4).
 
 ## Out of scope (explicit decisions)
