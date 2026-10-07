@@ -17,7 +17,7 @@ Before opening a pull request:
 4. For browser or visual changes, run the production build and `npm run e2e:smoke -- http://127.0.0.1:5173/`; inspect the screenshots.
 5. Never add private source assets or material with unclear commercial rights.
 
-Keep changes small and include a regression test for bug fixes. Public DSL, save and plugin contracts follow SemVer from v3 onward; internal modules are not compatibility promises unless documented otherwise.
+Keep changes small and include a regression test for bug fixes. Public DSL, save and plugin contracts follow SemVer from v3 onward, except on the 4.1.8–4.1.15 incubation line (`docs/en/SUPPORT.md`: a break is documented, with a migration); internal modules are not compatibility promises unless documented otherwise.
 
 ## Reading the code
 
@@ -25,7 +25,8 @@ Start with `docs/en/ARCHITECTURE.md` (the layers, the life of an action, what is
 `docs/en/CODE_TOUR.md` (half an hour). `src/engine/BOUNDARIES.md` says what each folder may import and where each
 responsibility of the engine, the player and the solver lives; `docs/dev/adr/` explains the decisions that look
 surprising. A behaviour-preserving change keeps `npm run quality:baseline -- --check` green: the same witnesses,
-proofs, golden saves and public surface.
+proofs, golden saves and public surface. A new test or a lighter bundle is a ratchet: run `npm run quality:baseline`,
+which rewrites the JSON and the READMEs' figures with it, and commit them.
 
 ## Changing a command, end to end
 

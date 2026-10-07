@@ -1,7 +1,8 @@
 # Le moteur en paquet
 
 Depuis la 3.9, un jeu n'a plus à vivre dans ce dépôt. Le moteur est empaqueté en `web-scumm` (le moteur, ses pages,
-ses outils et la commande `web-scumm`, le modèle de jeu) et `create-web-scumm` (`npx create-web-scumm`).
+ses outils et la commande `web-scumm`, le modèle de jeu), `create-web-scumm` (`npx create-web-scumm`) et, depuis la
+4.1.1, `web-scumm-bridge` (le Reality Bridge de référence, `docs/fr/REALITY-OPS.md`).
 
 ## Un nouveau jeu
 
@@ -57,5 +58,5 @@ dépréciation.
 
 `npm run fresh-install` (un job de CI) : empaquette le moteur (`npm run pack`), crée un jeu depuis le modèle empaqueté
 dans un dossier vide hors du dépôt, installe l'archive, lance `assets`, `verify` et `build`, et joue le jeu jusqu'à sa
-fin dans Chromium. Un fichier du nouveau projet qui nomme le dépôt le fait échouer. Chaque release joint les deux
+fin dans Chromium. Un fichier du nouveau projet qui nomme le dépôt le fait échouer. Chaque release joint les trois
 archives ; les publier sur npm revient au mainteneur (un jeton, les noms des paquets).

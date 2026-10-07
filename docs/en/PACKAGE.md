@@ -1,7 +1,8 @@
 # The engine as a package
 
 Since 3.9 a game does not have to live in this repository. The engine is packed as `web-scumm` (the engine, its
-pages, its tools and the `web-scumm` command, the game template) and `create-web-scumm` (`npx create-web-scumm`).
+pages, its tools and the `web-scumm` command, the game template), `create-web-scumm` (`npx create-web-scumm`) and,
+since 4.1.1, `web-scumm-bridge` (the reference Reality Bridge, `docs/en/REALITY-OPS.md`).
 
 ## A new game
 
@@ -56,5 +57,5 @@ what each version changes; `docs/en/SUPPORT.md` which versions are supported and
 
 `npm run fresh-install` (a CI job): packs the engine (`npm run pack`), creates a game from the packed template in an
 empty folder outside the repository, installs the tarball, runs `assets`, `verify` and `build`, and plays the game to
-its ending in Chromium. A file of the new project that names the repository fails it. Each release attaches both
+its ending in Chromium. A file of the new project that names the repository fails it. Each release attaches the three
 tarballs; publishing them to npm is the maintainer's (a token, the package names).

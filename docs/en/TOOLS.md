@@ -162,7 +162,7 @@ npm run solve -- --dominance             # a witness with dominance (3.5; prunes
 npm test           # Node engine/tool tests and the selected game's tests (the heavy solver tests excluded, 4.1.3)
 npm run test:heavy # the CPU-bound solver tests (abstraction audits, canonical owner, memo and ownership proofs, the reference chapter's proof): nightly, minutes each
 npm run test:coverage   # the suite under V8 coverage, against the floors of vite.config.ts; then `npx tsx tools/coverage-ratchet.ts --strict` fails on a floor at least three points behind what the tests reach (CI and release-check, 4.1.8)
-npm run quality:baseline -- --check [--dist]   # the behaviour of 4.0.0 kept (4.1.0): witnesses, proofs, golden saves, public surface, first visit (tests/quality-baseline.json; without --check: write it)
+npm run quality:baseline -- --check [--dist]   # the behaviour of 4.0.0 kept (4.1.0): witnesses, proofs, golden saves, public surface, first visit (tests/quality-baseline.json; without --check: write it, and the READMEs' three figures with it: a new test or a lighter bundle means running it, 4.1.8)
 npm run test:assets # Python-backed image and asset-pipeline tests
 npm run e2e        # a playthrough in Chromium, phone landscape (dev server already running)
 ```
@@ -212,10 +212,11 @@ npm run e2e:visual -- <url> [--update] # every room, still, against tests/visual
 npm run e2e -- <url> --lang fr           # the whole game in that language; fails on any visible English default of the engine
 npm run e2e:a11y -- <url> [--only=axe,keys,storage] [--allow-skip]   # axe on the conversation, map, slots, confirmations, every minigame; every minigame won at the keyboard; an older save upgraded (E2E_BROWSER=chromium|webkit; exit 3: a check the browser cannot automate)
 npm run docs:screenshots [-- --only=game|studio --keep-png]   # the README images from the production bundle and the Studio, as WebP in docs/img/ (needs Python with Pillow)
+npm run docs:links [-- --timeout=10000]                       # every external link of the docs asked once, statuses by domain; a person runs it before a release, CI never does (the network is not a test)
 npx tsx tools/api-doc.ts [--check]                            # the public API's signatures and stability (@public | @extension, 4.1.8) into docs/en/API.md and docs/fr/API.md; tests/api-doc.test.ts fails when a page is behind or an export has no description or stability
 npm run lint [-- --prove | --static | --json]   # content lint: conditions nothing can satisfy, hidden rules, red herrings, stuck hints, actions never run (alias of lint:content since 4.1.0)
 npm run quality   # engine code (4.1.0): Biome formatting and lint, tsconfig.json and tsconfig.strictest.json, then the content lint
-npm run doctor [-- --release]      # checks Node, Python modules, ffmpeg and Playwright browsers; --release (4.1.8) requires every one of them, as release-check does
+npm run doctor [-- --release]      # checks Node, Python modules, ffmpeg and Playwright browsers; --release (4.1.8) requires Python, its modules and ffmpeg, as release-check does, and Chromium as always (release-check opens no browser: Firefox and WebKit stay optional)
 npm run check                      # type-check and Node tests
 npm run tsc -- …                   # the TypeScript 7 compiler itself (4.1.8; the `tsc` bin link may belong to the tools' typescript6 package): `npm run check` and `quality` call it
 npm run build:game                 # the game's gates (verify:game), the bundle, verify:dist, the spoiler check, the asset audit: no tsc, no unit suite (CI runs those once)
@@ -333,7 +334,7 @@ They count each track's single mix, what every device plays. Since 3.6 the rest 
 (a CI gate since 3.4) checks the prediction against a real first visit in Chromium, the warm-ups off: every request
 inside the predicted initial scope, the bytes within 10% of it or below.
 `npm run new-game` writes one for the art it borrows from the sample game (all placeholders, CC BY 4.0); the
-sample game's file excepts its non-commercial music by name. `npm run verify:release` (validate `--release`,
+sample game's file has no exception: every one of its assets is CC BY 4.0 since 3.7. `npm run verify:release` (validate `--release`,
 `i18n -- status`, strict playtests) is a step of `npm run release-check`, so the release workflow runs it. What an
 exception lets through is printed by name as accepted, not as a warning to fix.
 **A commercial release.** A green `verify:release` does not mean every asset may be sold: an exception is a reason,

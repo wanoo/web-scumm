@@ -29,8 +29,8 @@ export interface ProvenanceEntry {
 export interface Provenance {
   assets: ProvenanceEntry[];
   /**
-   * The placeholders that may ship anyway, one by one, each with its reason (the engine's sample game: its
-   * non-commercial music). Any other placeholder fails `validate --release`; a new one is never covered by accident.
+   * The placeholders that may ship anyway, one by one, each with its reason (the engine's sample game has none
+   * since 3.7). Any other placeholder fails `validate --release`; a new one is never covered by accident.
    */
   releaseExceptions?: { match: string; reason: string }[];
   /** The licences this game may ship under (`CC BY 4.0`, `own work`…): any other one fails a release, unless excepted. */

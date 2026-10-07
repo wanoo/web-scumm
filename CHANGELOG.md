@@ -41,6 +41,17 @@
   on: its 71 reports (44 exports, 27 types) are answered, about 80 declarations losing their `export`, 17 names
   leaving re-export lines, three dead symbols deleted; the Bridge's `DEFAULT_LIMITS`, `POLICY` and
   `BridgeEventSchema` are kept as `@public`. `tests/api-surface.json` is unchanged: no public name moved.
+- **The documentation says one thing** (4.1.8, programme §4.8). An audit of every page against the code and the
+  workflows found and fixed: the READMEs' test count, first-visit weight and the reference game's states now come from
+  `tests/quality-baseline.json` (`npm run quality:baseline` writes them between markers and `--check` fails when they
+  lag: 788 declarations, 120 KB and 288 states today, where the pages said 910, 123 and 578); the nightly corpus is 500 random games of each of three kinds, not
+  "1 503"; the sample game has had no non-commercial music since 3.7 (SECURITY.md, TOOLS en/fr and a code comment
+  still excepted it); the SemVer promise of the READMEs and CONTRIBUTING is bounded to 4.1.7, with the incubation
+  line after it; PACKAGE.md names the third package, `web-scumm-bridge`; CREDITS names zod and the Biscuit test
+  vectors' licence; MIGRATION-4.1.8 says Vite 8.3.3. `npm run doctor -- --release` no longer requires Firefox and
+  WebKit: `release-check` opens no browser (the e2e run in CI on every change), and `release.yml` installs Chromium
+  only. `npm run docs:links` asks every external link of the docs once and prints the statuses by domain, for a
+  person before a release; CI never runs it.
 - **The Studio's three biggest files split into model, IO and views** (4.1.8, programme §4.7). `src/studio/storyboard.ts`
   (1377 lines), `assets.ts` (1364) and `rooms.ts` (1358) were the three exceptions to the 800-line rule the Studio
   had kept; each is now a tab of 285 to 609 lines over pure modules (`*-model.ts`, `rooms-text.ts`), the IO
