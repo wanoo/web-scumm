@@ -26,6 +26,10 @@ LOG and the passes sheet (`docs/dev/passes/4.1.14.md`).
 
 ### Changes
 
+- **CI's install steps get 20 minutes instead of 8 (4.1.14)**: `npm ci`, `apt-get install ffmpeg` and `playwright install` on
+  GitHub's runners timed out a dozen times on 7 October 2026 while the downloads were slow; every one passed on a rerun.
+  A step limit, not a job limit: a hung install still fails the job within its own `timeout-minutes`.
+
 - **Speedrun categories as content (4.1.14, `docs/en/SPEEDRUN.md`).** `GameDef.speedrun` declares categories (timed on
   RTA, IGT or Active IGT; start and finish on semantic events; saves, pauses, hints, reloads, Reality policy, the
   fingerprint components a run must match, the inputs, a fixed or random seed), splits and the rules' version;
