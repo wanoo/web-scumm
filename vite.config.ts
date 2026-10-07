@@ -204,7 +204,7 @@ export default defineConfig({
         lines: 69,
         statements: 68,
         functions: 65,
-        branches: 64,
+        branches: 65,
         // What a save, a session, a condition and a migration rest on: every branch.
         'src/engine/core/cond.ts': { branches: 100 },
         'src/engine/core/diff.ts': { branches: 100 },
