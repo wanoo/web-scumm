@@ -63,6 +63,13 @@ function prChecks(pr) {
 }
 
 async function checks(pr) {
+  // A pull request that conflicts with main gets no `pull_request` run at all (GitHub makes no merge ref): waiting for
+  // its checks would never end. Seen on #31.
+  const st = ghJson(['pr', 'view', String(pr), '--json', 'mergeable,mergeStateStatus']);
+  if (st.mergeable === 'CONFLICTING')
+    throw new Error(
+      `#${pr} conflicts with main (${st.mergeStateStatus}): no CI runs on it; merge main into the branch, push, run again`,
+    );
   say(`waiting for the checks of #${pr}`);
   return until(
     () => {

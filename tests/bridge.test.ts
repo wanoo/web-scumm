@@ -1,7 +1,7 @@
 // The reference Bridge (4.1.1, bridge/src/), over real HTTP on a free port: pairing, signals proposed under a
 // Biscuit or by a signed webhook, deduplication, the fetch by cursor and SSE, acknowledgements, revocation, quotas,
 // sizes, export and deletion by player, a restart on its journal, and a log with no secret.
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -17,8 +17,15 @@ import { Bridge, type BridgeConfig, type BridgeLog } from '../bridge/src/bridge'
 import { biscuitLib } from '../bridge/src/biscuit';
 import { grantToken } from '../bridge/src/policy';
 import { bridgeServer, type ServeOptions, webhookSignature } from '../bridge/src/server';
-import { inspectJournal, JsonlBridgeStore, MemoryBridgeStore, type BridgeStore } from '../bridge/src/store';
+import {
+  inspectJournal,
+  JournalLock,
+  JsonlBridgeStore,
+  MemoryBridgeStore,
+  type BridgeStore,
+} from '../bridge/src/store';
 import { signals, signalsLayouts } from './fixtures/signals';
+import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 
 const temps: string[] = [];
@@ -753,4 +760,161 @@ describe('web-scumm bridge init', () => {
       file.eventKey.kid,
     ]);
   });
+});
+
+describe('bounded, validated, one per journal (4.1.8)', () => {
+  it('the re-sign cache is an LRU bounded by limits.resignedCache; a delivery still signs every signal with the current key', async () => {
+    const store = new MemoryBridgeStore();
+    const before = await setup({ store });
+    const link = await before.pair();
+    await before.propose(link.playerId, 'mail.answer.correct', 'mail:1');
+    await before.propose(link.playerId, 'mail.answer.wrong', 'mail:2');
+    const after = await setup({
+      store,
+      kid: 'k2',
+      previousKeys: [{ kid: 'k1', raw: before.raw, notAfter: Date.now() - 24 * 3_600_000 }],
+      limits: { resignedCache: 1 },
+    });
+    for (let round = 0; round < 3; round++) {
+      const delivered = await after.bridge.signals(link.capability, 0);
+      expect(delivered.map((d) => JSON.parse(atob(d.jws.split('.')[0]!)).kid)).toEqual(['k2', 'k2']);
+      expect(after.bridge.resignedCount()).toBe(1);
+    }
+    // A cache of two with three signals: the one used last recently stays, the least recently used goes.
+    const wide = await setup({
+      store,
+      kid: 'k2',
+      previousKeys: [{ kid: 'k1', raw: before.raw, notAfter: Date.now() - 24 * 3_600_000 }],
+      limits: { resignedCache: 2 },
+    });
+    await before.propose(link.playerId, 'mail.answer.correct', 'mail:3');
+    await wide.bridge.signals(link.capability, 0); // s1, s2, s3 signed: s1 evicted when s3 arrives, s2 and s3 kept
+    expect(wide.bridge.resignedCount()).toBe(2);
+    await wide.bridge.signals(link.capability, 1); // s2 (hit, moved to the back), s3 (hit): nothing signed again
+    const beforeAgain = wide.bridge.resignedCount();
+    await wide.bridge.signals(link.capability, 0); // s1 (miss: evicts the least recently used, s2), s2 (miss), s3 (hit)
+    expect(beforeAgain).toBe(2);
+    expect(wide.bridge.resignedCount()).toBe(2);
+  });
+
+  it('a journal line that is JSON but not an event of the schema is corruption: the Bridge refuses to start', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-schema-'));
+    temps.push(dir);
+    const file = join(dir, 'journal.jsonl');
+    writeFileSync(file, `${JSON.stringify({ t: 'ack', playerId: 'p-1', through: 'two' })}\n`);
+    expect(() => new JsonlBridgeStore(file, { lock: false })).toThrow(/journal line 1 is not an event \(through/);
+    writeFileSync(file, `${JSON.stringify({ t: 'player', p: { playerId: 'p-1', gameId: 'signals' } })}\n`);
+    expect(() => new JsonlBridgeStore(file, { lock: false })).toThrow(
+      /journal line 1 is not an event \(p\.capabilityHash/,
+    );
+    writeFileSync(file, `${JSON.stringify({ t: 'ack', playerId: 'p-1', through: 2 })}\n`);
+    expect(new JsonlBridgeStore(file, { lock: false }).acked('p-1')).toBe(2);
+  });
+
+  it('one Bridge per journal: a live owner refuses the second, a dead one is taken over and said', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-lock-'));
+    temps.push(dir);
+    const journal = join(dir, 'journal.jsonl');
+    const first = new JournalLock(journal, { pid: 1234, alive: () => true });
+    first.acquire();
+    expect(readFileSync(`${journal}.lock`, 'utf8').trim()).toBe('1234');
+    const second = new JournalLock(journal, { pid: 5678, alive: () => true });
+    expect(() => second.acquire()).toThrow(/journal in use by process 1234/);
+    const taken: number[] = [];
+    const afterCrash = new JournalLock(journal, {
+      pid: 5678,
+      alive: () => false,
+      onTakeover: (pid) => taken.push(pid),
+    });
+    afterCrash.acquire();
+    expect(taken).toEqual([1234]);
+    expect(readFileSync(`${journal}.lock`, 'utf8').trim()).toBe('5678');
+    afterCrash.release();
+    expect(existsSync(`${journal}.lock`)).toBe(false);
+    // A lock that is not a process id is not taken over: it is looked at by hand.
+    writeFileSync(`${journal}.lock`, 'what is this\n');
+    expect(() => new JournalLock(journal, { pid: 5678 }).acquire()).toThrow(/not a process id/);
+    rmSync(`${journal}.lock`);
+    // `compact` (a writer) takes the lock too: refused while a Bridge holds it.
+    // The store judges liveness with the real `process.kill(pid, 0)`: the parent process is alive and is not us.
+    const live = new JournalLock(journal, { pid: process.ppid, alive: () => true });
+    live.acquire();
+    expect(() => new JsonlBridgeStore(journal)).toThrow(new RegExp(`in use by process ${process.ppid}`));
+    live.release();
+    // The store takes the lock itself, and `doctor` / `compact` read without one.
+    const store = new JsonlBridgeStore(journal);
+    expect(existsSync(`${journal}.lock`)).toBe(true);
+    expect(() => new JsonlBridgeStore(journal, { lock: false })).not.toThrow();
+    store.close();
+    expect(existsSync(`${journal}.lock`)).toBe(false);
+  });
+});
+
+describe('web-scumm bridge serve, stopped', () => {
+  it('SIGTERM ends the streams and the server, then releases the journal lock, and the process exits 0', async () => {
+    const { main } = await import('../bridge/src/cli');
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-serve-'));
+    temps.push(dir);
+    const log = console.log;
+    console.log = () => {};
+    try {
+      expect(await main(['init', `--dir=${dir}`, '--no-demo-webhooks'], { manifest: realityManifest(signals()) })).toBe(
+        0,
+      );
+    } finally {
+      console.log = log;
+    }
+    const file = JSON.parse(readFileSync(join(dir, 'config.json'), 'utf8')) as { journal: string };
+    const lock = `${join(dir, file.journal)}.lock`;
+    const child = spawn(process.execPath, ['bridge/bin.mjs', 'serve', `--dir=${dir}`, '--port=0', '--host=127.0.0.1'], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let out = '';
+    child.stdout.on('data', (d: Buffer) => (out += d.toString()));
+    child.stderr.on('data', (d: Buffer) => (out += d.toString()));
+    const exited = new Promise<number | null>((ok) => child.on('exit', (code) => ok(code)));
+    try {
+      for (let i = 0; i < 600 && !out.includes('bridge.listening'); i++) await new Promise((r) => setTimeout(r, 50));
+      expect(out, out).toContain('bridge.listening');
+      expect(existsSync(lock), 'the lock is held while serving').toBe(true);
+      expect(readFileSync(lock, 'utf8').trim()).toBe(String(child.pid));
+      child.kill('SIGTERM');
+      const code = await Promise.race([exited, new Promise<null>((ok) => setTimeout(() => ok(null), 15_000))]);
+      expect(code, out).toBe(0);
+      expect(out).toContain('bridge.stopping');
+      expect(existsSync(lock), 'the lock is released at the stop').toBe(false);
+    } finally {
+      if (child.exitCode === null) child.kill('SIGKILL');
+    }
+  }, 60_000);
+
+  it('in this process: serve listens, holds the lock, and a SIGTERM handler stops it with exit 0', async () => {
+    const { main } = await import('../bridge/src/cli');
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-serve-in-'));
+    temps.push(dir);
+    const lines: string[] = [];
+    const log = console.log;
+    console.log = (x: unknown) => void lines.push(String(x));
+    try {
+      expect(await main(['init', `--dir=${dir}`, '--no-demo-webhooks'], { manifest: realityManifest(signals()) })).toBe(
+        0,
+      );
+      const file = JSON.parse(readFileSync(join(dir, 'config.json'), 'utf8')) as { journal: string };
+      const lock = `${join(dir, file.journal)}.lock`;
+      const serving = main(['serve', `--dir=${dir}`, '--port=0', '--host=127.0.0.1']);
+      for (let i = 0; i < 200 && !lines.some((l) => l.includes('bridge.listening')); i++)
+        await new Promise((r) => setTimeout(r, 25));
+      expect(lines.some((l) => l.includes('bridge.listening'))).toBe(true);
+      expect(existsSync(lock)).toBe(true);
+      // The handler, not the signal: the test's own process must not die.
+      process.emit('SIGTERM');
+      expect(await serving).toBe(0);
+      expect(lines.some((l) => l.includes('"bridge.stopping"') && l.includes('SIGTERM'))).toBe(true);
+      expect(existsSync(lock)).toBe(false);
+      // A second signal after the stop finds no handler of ours any more.
+      expect(process.listeners('SIGTERM').some((f) => String(f).includes("stop('SIGTERM')"))).toBe(false);
+    } finally {
+      console.log = log;
+    }
+  }, 30_000);
 });

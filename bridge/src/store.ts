@@ -10,11 +10,14 @@ import {
   openSync,
   readFileSync,
   renameSync,
+  linkSync,
   truncateSync,
+  unlinkSync,
   writeSync,
 } from 'node:fs';
 import { dirname } from 'node:path';
-import type { WorldSignalV1 } from '../../src/engine/reality/protocol';
+import { z } from 'zod/mini';
+import { WorldSignalV1Schema, type WorldSignalV1 } from '../../src/engine/reality/protocol';
 
 export interface Pairing {
   code: string;
@@ -58,6 +61,46 @@ export type BridgeEvent =
   | { t: 'revoke-token'; id: string }
   /** Deletes everything about a player (its link, journal, acknowledgements, pairing). */
   | { t: 'forget'; playerId: string };
+
+const ident = z.string().check(z.minLength(1), z.maxLength(256));
+const time = z.int().check(z.nonnegative());
+const PairingSchema = z.object({
+  code: ident,
+  gameId: ident,
+  expiresAt: time,
+  playerId: z.optional(ident),
+  capability: z.optional(z.string()),
+});
+const PlayerSchema = z.object({
+  playerId: ident,
+  gameId: ident,
+  capabilityHash: z.string().check(z.regex(/^[0-9a-f]{64}$/)),
+  capabilityExpiresAt: time,
+  issuedAt: z.optional(time),
+  revoked: z.optional(z.boolean()),
+});
+const JournalEntrySchema = z.object({
+  playerId: ident,
+  sequence: z.int().check(z.positive()),
+  id: ident,
+  dedupeKey: ident,
+  jws: z.string().check(z.minLength(1), z.maxLength(64 * 1024)),
+  at: time,
+  kid: z.optional(ident),
+  payload: z.optional(WorldSignalV1Schema),
+});
+/**
+ * Every line of the journal, whole (4.1.8): a line that is JSON but not an event of this shape is corruption too,
+ * and the Bridge refuses to start on it rather than build its state from half-read lines.
+ */
+export const BridgeEventSchema = z.discriminatedUnion('t', [
+  z.object({ t: z.literal('pairing'), p: PairingSchema }),
+  z.object({ t: z.literal('player'), p: PlayerSchema }),
+  z.object({ t: z.literal('signal'), e: JournalEntrySchema }),
+  z.object({ t: z.literal('ack'), playerId: ident, through: time }),
+  z.object({ t: z.literal('revoke-token'), id: ident }),
+  z.object({ t: z.literal('forget'), playerId: ident }),
+]);
 
 export interface BridgeStore {
   pairing(code: string): Pairing | undefined;
@@ -141,14 +184,129 @@ export function aboutPlayer(e: BridgeEvent, playerId: string): boolean {
 }
 
 function parseLine(line: string, n: number): BridgeEvent {
+  let j: unknown;
   try {
-    const e = JSON.parse(line) as BridgeEvent;
-    if (!e || typeof e !== 'object' || typeof e.t !== 'string') throw new Error('not an event');
-    return e;
+    j = JSON.parse(line);
   } catch (err) {
     throw new Error(`journal line ${n} is not an event (${err instanceof Error ? err.message : 'unreadable'})`);
   }
+  const r = BridgeEventSchema.safeParse(j);
+  if (!r.success) {
+    const issue = r.error.issues[0];
+    throw new Error(
+      `journal line ${n} is not an event (${issue ? `${issue.path.join('.') || 't'}: ${issue.message}` : 'invalid'})`,
+    );
+  }
+  return r.data as BridgeEvent;
 }
+
+/**
+ * One process per journal (4.1.8): a second Bridge on the same file would interleave its appends with the first's
+ * and read a state the other is changing. The lock is `<journal>.lock` holding the owner's pid; a lock whose pid is
+ * no longer alive (a crash) is taken over and said; a live owner makes the second start refuse.
+ */
+export class JournalLock {
+  readonly file: string;
+  private held = false;
+  constructor(
+    journal: string,
+    private o: { pid?: number; alive?: (pid: number) => boolean; onTakeover?: (pid: number) => void } = {},
+  ) {
+    this.file = `${journal}.lock`;
+  }
+  acquire(): void {
+    const pid = this.o.pid ?? process.pid;
+    const alive =
+      this.o.alive ??
+      ((p: number) => {
+        try {
+          process.kill(p, 0);
+          return true;
+        } catch (e) {
+          return (e as NodeJS.ErrnoException).code === 'EPERM';
+        }
+      });
+    mkdirSync(dirname(this.file), { recursive: true });
+    // The lock is created with its content in one step: the pid written to a private file (fsync'd), then `link`ed
+    // under the lock's name (atomic: EEXIST when another process got there first; the file system must hold hard
+    // links, which the usual ones do). A reader never sees an empty lock being written, so an empty or unreadable
+    // lock is not "a crash": it is a file to look at by hand. A take-over is a `rename` over the lock (atomic too, no
+    // moment without a lock), checked by reading the lock back.
+    const tmp = `${this.file}.${pid}.${process.hrtime.bigint()}`;
+    const gone = (e: unknown) => (e as NodeJS.ErrnoException).code === 'ENOENT';
+    try {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const fd = openSync(tmp, 'w');
+        try {
+          writeSync(fd, `${pid}\n`);
+          fsyncSync(fd);
+        } finally {
+          closeSync(fd);
+        }
+        try {
+          linkSync(tmp, this.file);
+          this.held = true;
+          HELD.add(this);
+          return;
+        } catch (e) {
+          if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
+        }
+        let text: string;
+        try {
+          text = readFileSync(this.file, 'utf8').trim();
+        } catch (e) {
+          if (gone(e)) continue; // released between our link and our read: try the link again
+          throw e;
+        }
+        if (!/^\d+$/.test(text))
+          throw new Error(
+            `${this.file} holds "${text.slice(0, 40)}", not a process id: look at it, then delete it by hand`,
+          );
+        const owner = Number(text);
+        if (owner !== pid && alive(owner))
+          throw new Error(`journal in use by process ${owner} (${this.file}): one Bridge per journal`);
+        // Our own earlier lock (the same process opens the journal again: a test, a restart in place) is simply
+        // replaced; a lock left by a process that is gone is taken over, and said.
+        if (owner !== pid) this.o.onTakeover?.(owner);
+        renameSync(tmp, this.file);
+        let holds: string;
+        try {
+          holds = readFileSync(this.file, 'utf8').trim();
+        } catch (e) {
+          if (gone(e)) continue;
+          throw e;
+        }
+        if (holds !== String(pid)) continue; // another starter took over at the same instant: once more
+        this.held = true;
+        HELD.add(this);
+        return;
+      }
+      throw new Error(`could not take ${this.file}: another process keeps taking it`);
+    } finally {
+      try {
+        unlinkSync(tmp);
+      } catch {
+        /* linked or renamed away already */
+      }
+    }
+  }
+  release(): void {
+    if (!this.held) return;
+    this.held = false;
+    HELD.delete(this);
+    try {
+      unlinkSync(this.file);
+    } catch {
+      /* already gone */
+    }
+  }
+}
+
+/** The locks this process holds, released when it exits normally (`serve` releases on SIGINT and SIGTERM too). */
+const HELD = new Set<JournalLock>();
+process.once('exit', () => {
+  for (const l of HELD) l.release();
+});
 
 /** What `inspectJournal` says of a file: its lines, what they hold, and whether its end was cut by a crash. */
 export interface JournalReport {
@@ -203,12 +361,23 @@ function splitLines(text: string): { complete: string[]; tail: string } {
  * that does not parse is corruption, and the Bridge refuses to start on it rather than guess.
  */
 export class JsonlBridgeStore extends MemoryBridgeStore {
+  private lock: JournalLock | undefined;
   constructor(
     private file: string,
-    private o: { onRepair?: (what: string) => void } = {},
+    private o: { onRepair?: (what: string) => void; lock?: boolean | JournalLock } = {},
   ) {
     super();
     mkdirSync(dirname(file), { recursive: true });
+    // One process per journal (4.1.8); `lock: false` for a read-only tool (`doctor`). `compact` writes: it locks.
+    if (o.lock !== false) {
+      this.lock =
+        o.lock instanceof JournalLock
+          ? o.lock
+          : new JournalLock(file, {
+              onTakeover: (pid) => o.onRepair?.(`a lock left by process ${pid} was taken over`),
+            });
+      this.lock.acquire();
+    }
     if (!existsSync(file)) return;
     const text = readFileSync(file, 'utf8');
     const { complete, tail } = splitLines(text);
@@ -221,6 +390,11 @@ export class JsonlBridgeStore extends MemoryBridgeStore {
       truncateSync(file, Buffer.byteLength(text) - Buffer.byteLength(tail));
       this.o.onRepair?.(`a last line cut short by a crash (${Buffer.byteLength(tail)} bytes) was dropped`);
     }
+  }
+
+  /** Releases the journal's lock; the store is not written after it. */
+  close(): void {
+    this.lock?.release();
   }
 
   override write(e: BridgeEvent): void {
