@@ -25,3 +25,5 @@
   treats alike (off by default: none in the bundled games). With `--workers`, a worker sends back a state the search
   already stored without its engine copy, and nodes are dealt by room with work stealing; the result stays the same for
   any number of workers.
+- **One checkpoint case fewer in the counted declarations (4.1.13)**: the killed-process resume is skipped on Windows
+  (the test reads the snapshot while the child renames a new one over it); the baseline's count moves by one on purpose.
