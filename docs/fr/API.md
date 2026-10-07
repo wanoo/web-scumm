@@ -169,7 +169,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `Point` | `type Point = [number, number]` | public | Logical coordinates of a backdrop: 640 × 400, origin top-left. |
 | `PropAnim` | `interface { frames, fps, loop, at }` | public | A prop animation: images in order at `fps` (default 8); `at` = commands run when a frame is reached (index). |
 | `PropDef` | `interface { defaultVerb, img, states, anims, initial, name, … 2 more }` | public | A prop in the scenery, with states (e.g. amp off/on). Its position comes from the layout. |
-| `provenanceOf` | `(ir: GameIR, sources: Readonly<Record<string, string>>): Record<string, IrSource>` | public | Where each id of the IR is written in the sources (path → text), read from their object-literal keys (core/source-keys.ts, strings and comme |
+| `provenanceOf` | `(ir: GameIR, sources: Readonly<Record<string, string>>): Record<string, IrSource>` | public | Where each id of the IR is written in the sources (path → text), read from their object-literal keys (core/source-keys.ts: strings and comme |
 | `RealityDef` | `interface { signals, bridge }` | public | The game's link to the world outside: the signals it declares and the Reality Bridge it pairs with. |
 | `RealityState` | `interface { playerId, cursor, applied }` | public | What a save keeps of the link (`GameState.reality`): no token, no email, no payload. |
 | `RevealDef` | `type RevealDef = EndingDef` | public (deprecated) | The old name of `EndingDef`. |
