@@ -6,7 +6,7 @@
 // WebCrypto (Node, the browsers, workers); no library.
 import * as z from 'zod/mini';
 
-/** The largest signed signal accepted, in characters: a signal is an identifier, not a document. */
+/** The largest signed signal accepted, in characters: a signal is an identifier, not a document. @public */
 export const MAX_SIGNAL_CHARS = 4096;
 
 /**
@@ -19,7 +19,7 @@ export const CLOCK_SKEW_MS = 5 * 60_000;
 const ident = z.string().check(z.minLength(1), z.maxLength(128), z.regex(/^[\w.:-]+$/));
 const time = z.int().check(z.nonnegative());
 
-/** The payload the Bridge signs: one accepted fact from outside, as a finite identifier (§4.1). */
+/** The payload the Bridge signs: one accepted fact from outside, as a finite identifier (§4.1). @public */
 export const WorldSignalV1Schema = z.strictObject({
   format: z.literal('web-scumm-world-signal'),
   schema: z.literal(1),
@@ -41,21 +41,23 @@ export const WorldSignalV1Schema = z.strictObject({
   /** A hash of what the connector saw, kept by the Bridge; never the evidence itself. */
   evidenceHash: z.optional(z.string().check(z.regex(/^[a-f0-9]{64}$/))),
 });
+/** The signed payload, as `WorldSignalV1Schema` types it. @public */
 export type WorldSignalV1 = z.infer<typeof WorldSignalV1Schema>;
 
-/** A signed signal as it travels: the compact JWS string. */
+/** A signed signal as it travels: the compact JWS string. @public */
 export type SignedWorldSignalV1 = string;
 
-/** One verification key of the Bridge: its id, the key, and when it may sign (epoch ms; rotation overlaps). */
+/** One verification key of the Bridge: its id, the key, and when it may sign (epoch ms; rotation overlaps). @public */
 export interface BridgeKey {
   kid: string;
   key: CryptoKey;
   notBefore?: number;
   notAfter?: number;
 }
+/** The Bridge's verification keys the player trusts (several during a rotation). @public */
 export type Keyring = BridgeKey[];
 
-/** What a signal must match besides its signature. */
+/** What a signal must match besides its signature. @public */
 export interface SignalExpectation {
   gameId: string;
   playerId: string;
@@ -67,6 +69,7 @@ export interface SignalExpectation {
 
 /**
  * Why a signal was refused, as a code (the conformance corpus and the Rust cross-check compare codes) and a sentence.
+ * @public
  */
 export type RefusalCode =
   | 'size'
@@ -82,6 +85,7 @@ export type RefusalCode =
   | 'player'
   | 'signal'
   | 'expired';
+/** The outcome of `verifySignal`: the signal it accepted, or the refusal's code and reason. @public */
 export type VerifyResult = { ok: true; signal: WorldSignalV1 } | { ok: false; code: RefusalCode; reason: string };
 
 export const b64url = {
@@ -100,7 +104,7 @@ export const b64url = {
 const text = new TextDecoder('utf-8', { fatal: true });
 const fail = (code: RefusalCode, reason: string): VerifyResult => ({ ok: false, code, reason });
 
-/** An Ed25519 public key from its 32 raw bytes in base64url (a manifest's or a Bridge's configuration). */
+/** An Ed25519 public key from its 32 raw bytes in base64url (a manifest's or a Bridge's configuration). @public */
 export async function importBridgeKey(
   kid: string,
   raw: string,
@@ -112,7 +116,10 @@ export async function importBridgeKey(
   return { kid, key, ...window };
 }
 
-/** Checks a signed signal, then what it says. The reason of a refusal is a short sentence (logged, never shown raw). */
+/**
+ * Checks a signed signal, then what it says. The reason of a refusal is a short sentence (logged, never shown raw).
+ * @public
+ */
 export async function verifySignal(jws: unknown, keyring: Keyring, expect: SignalExpectation): Promise<VerifyResult> {
   if (typeof jws !== 'string') return fail('shape', 'not a string');
   if (jws.length > MAX_SIGNAL_CHARS) return fail('size', `larger than ${MAX_SIGNAL_CHARS} characters`);
@@ -166,7 +173,7 @@ export async function verifySignal(jws: unknown, keyring: Keyring, expect: Signa
   return { ok: true, signal: sgn };
 }
 
-/** Signs a payload as the Bridge does (the Bridge, the tests, the Studio's simulator). */
+/** Signs a payload as the Bridge does (the Bridge, the tests, the Studio's simulator). @public */
 export async function signSignal(payload: WorldSignalV1, key: CryptoKey, kid: string): Promise<SignedWorldSignalV1> {
   const enc = (o: unknown) => b64url.encode(new TextEncoder().encode(JSON.stringify(o)));
   const h = enc({ alg: 'EdDSA', kid });

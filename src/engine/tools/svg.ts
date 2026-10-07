@@ -20,8 +20,7 @@ export interface SvgEdge {
   opacity?: number;
 }
 
-export const esc = (s: string) =>
-  s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
+const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 /**
  * `roots`: the nodes of the first column (default: those no edge leads to, else the first node); nodes no root reaches

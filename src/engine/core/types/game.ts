@@ -24,6 +24,10 @@ import type {
 } from './content';
 import type { StageDef } from './stage';
 
+/**
+ * A room: its backdrop or stage, props, actors, hotspots, exits, look lines, reactions, topics, hints and scripts.
+ * @public
+ */
 export interface RoomDef {
   id: Id;
   name: string;
@@ -70,6 +74,7 @@ export interface RoomDef {
 // World map
 // ---------------------------------------------------------------------------
 
+/** A region of the travel map: its image, its parent region and its frame on it. @public */
 export interface MapRegion {
   name: string;
   image: Id;
@@ -79,6 +84,7 @@ export interface MapRegion {
   frame?: [number, number, number, number];
 }
 
+/** A place on the travel map: the room it opens, its region and position, its vehicle and its news marker. @public */
 export interface PlaceDef {
   name: string;
   room: Id;
@@ -92,6 +98,7 @@ export interface PlaceDef {
   news?: Cond;
 }
 
+/** The travel map: its regions, its places and the region shown first. @public */
 export interface MapDef {
   regions: Record<Id, MapRegion>;
   /** Region shown on opening. */
@@ -105,6 +112,7 @@ export interface MapDef {
 // The game
 // ---------------------------------------------------------------------------
 
+/** The rules shared by every room: fallback responses per verb, reactions by kind, rules valid everywhere. @public */
 export interface GameRules {
   /** Fallback responses per verb (picked at random, never the same one twice in a row). `use2` = two items that don't go together. */
   fallbacks: Partial<Record<VerbId | 'use2', ListLine[]>>;
@@ -113,7 +121,7 @@ export interface GameRules {
   on?: Rule[];
 }
 
-/** Sealed ending (`ending` module): encrypted content, decrypted at the end of the game and shown on a card. */
+/** Sealed ending (`ending` module): encrypted content, decrypted at the end of the game and shown on a card. @public */
 export interface EndingDef {
   /** Encrypted file produced by `npm run seal`. */
   file: string;
@@ -130,13 +138,14 @@ export interface EndingDef {
   card?: { accent?: string };
 }
 
-/** @deprecated since 4.0: the old name of `EndingDef`, removed in 5.0 (docs/en/SUPPORT.md). */
+/** The old name of `EndingDef`. @deprecated since 4.0, removed in 5.0 (docs/en/SUPPORT.md). @public */
 export type RevealDef = EndingDef;
 
 /**
  * UI skin: everything the engine shows or plays without the content referencing it.
  * Image ids come from the manifest; sounds are ids from `audio.sfx` (phone, plane, confetti)
  * or `audio.music` (jingle, end). A missing sound = silence.
+ * @public
  */
 export interface SkinDef {
   icons: {
@@ -170,6 +179,10 @@ export interface SkinDef {
   pixelArt?: boolean;
 }
 
+/**
+ * The whole game as written: verbs, characters, items, rooms, rules, audio, skin, budgets, migrations and texts.
+ * @public
+ */
 export interface GameDef {
   /** Authoring schema. Version 3 requires stable ids and is compiled before use. Omitted means legacy v2 content. */
   schemaVersion?: 2 | 3;
@@ -313,7 +326,7 @@ export interface GameDef {
   credits?: string[];
 }
 
-/** One step of save migration: from version `from` to `from + 1`. Keys are old ids, values new ones. */
+/** One step of save migration: from version `from` to `from + 1`. Keys are old ids, values new ones. @public */
 export interface Migration {
   from: number;
   renameFlag?: Record<Id, Id>;
@@ -339,6 +352,7 @@ export interface Migration {
   dropScript?: Id[];
 }
 
+/** Every text the interface shows (menus, confirmations, settings), so a game speaks its own language. @public */
 export interface UiTexts {
   walkTo: string;
   newGame: string;

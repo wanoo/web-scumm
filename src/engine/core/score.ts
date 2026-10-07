@@ -4,7 +4,7 @@
 // of state only moves gains, on a beat or a bar boundary, over a crossfade counted in beats. dom/director.ts plays it.
 import type { Cond, Id, ScoreDef } from './types';
 
-export type { ScoreDef, ScoreState } from './types';
+export type { ScoreDef } from './types';
 
 export const beatSec = (s: ScoreDef) => 60 / s.bpm;
 export const barSec = (s: ScoreDef) => (60 / s.bpm) * (s.beatsPerBar ?? 4);

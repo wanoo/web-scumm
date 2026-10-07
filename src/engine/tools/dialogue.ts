@@ -111,5 +111,3 @@ export function dialogueText(nodes: DialogueNode[], depth = 0): string {
     })
     .join('\n');
 }
-
-export { condText };

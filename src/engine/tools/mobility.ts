@@ -10,9 +10,7 @@
 import { check, condAtoms } from '../core/cond';
 import type { Cond, GameDef, GameState, Id, VerbId } from '../core/types';
 
-export type Hop =
-  | { kind: 'exit'; from: Id; verb: VerbId; a: Id; to: Id }
-  | { kind: 'map'; from: Id; place: Id; to: Id };
+type Hop = { kind: 'exit'; from: Id; verb: VerbId; a: Id; to: Id } | { kind: 'map'; from: Id; place: Id; to: Id };
 
 export interface MobilityModel {
   /** Rooms some condition names: never merged with another. */
@@ -26,7 +24,7 @@ export interface MobilityModel {
 }
 
 /** Every room a condition names, anywhere a condition can be (content, invariants, a goal). */
-export function observedRooms(game: GameDef, extra: (Cond | undefined)[] = []): Set<Id> {
+function observedRooms(game: GameDef, extra: (Cond | undefined)[] = []): Set<Id> {
   const out = new Set<Id>();
   const fromCond = (c: unknown) => {
     for (const a of condAtoms(c as Cond)) if (a.kind === 'room') out.add(a.id);

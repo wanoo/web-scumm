@@ -2,7 +2,7 @@
 // Pure DOM, no engine: tested under happy-dom (tests/dom/a11y.test.ts).
 import { must } from '../core/must';
 
-export const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE = 'button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * Keeps Tab inside `container`, calls `onEscape` on Escape, focuses `initial` (or the first focusable element) now.

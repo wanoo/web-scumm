@@ -8,7 +8,7 @@ import { normalizeExits } from '../core/define';
 import { worldGraph } from './graph';
 import { localeStatus } from './i18n';
 
-export interface RoomReport {
+interface RoomReport {
   id: Id;
   name: string;
   hotspots: number;
@@ -27,14 +27,14 @@ export interface RoomReport {
   propsNeverChanged: Id[];
   longLines: number;
 }
-export interface ItemReport {
+interface ItemReport {
   id: Id;
   name: string;
   gainedIn: string[];
   usedIn: number;
   consumed: boolean;
 }
-export interface CharacterReport {
+interface CharacterReport {
   id: Id;
   name: string;
   rooms: Id[];

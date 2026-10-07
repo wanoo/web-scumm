@@ -3,8 +3,6 @@
 
 import type { GameState, Id } from './types';
 
-export type { Action } from './types';
-
 import type { Engine } from './engine';
 
 /** The other playable characters' starting records (`players.start`). */

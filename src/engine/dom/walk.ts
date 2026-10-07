@@ -110,7 +110,7 @@ export class WalkArea {
 }
 
 /** A character's scale based on its depth (feet y). */
-export function depthScale(layout: Layout, y: number): number {
+function depthScale(layout: Layout, y: number): number {
   const s = layout.scale;
   if (!s) return 1;
   const [[y0, s0], [y1, s1]] = s;

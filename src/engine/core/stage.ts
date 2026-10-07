@@ -4,7 +4,7 @@
 import { must } from './must';
 import type { Cond, EmitterDef, Id, Layout, LightDef, Point, RoomDef, StageLayer, TransitionKind } from './types';
 
-export interface NormalLayer extends StageLayer {
+interface NormalLayer extends StageLayer {
   x: number;
   y: number;
   /** Depth line: a scenery layer sorts with the characters by it; the other roles have their own band. */
@@ -47,8 +47,8 @@ export interface NormalStage {
 
 /** Depth bands: backdrop behind everything, foreground and effects in front of every character (y ≤ 400 + props' 200). */
 export const Z_BACKDROP = -1000,
-  Z_FOREGROUND = 10000,
-  Z_EFFECT = 20000;
+  Z_FOREGROUND = 10000;
+const Z_EFFECT = 20000;
 const LINK_MS: Record<NormalLink['mode'], number> = { walk: 0, stairs: 900, ladder: 1200, jump: 600, teleport: 300 };
 
 export function stageOf(room: RoomDef, layout: Layout = {}): NormalStage {

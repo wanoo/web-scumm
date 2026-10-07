@@ -4,8 +4,6 @@ import { check } from './cond';
 import { FLOOR } from './define';
 import type { CharacterDef, Id, Point, RoomDef } from './types';
 
-export type { Action } from './types';
-
 import { near } from './engine-shared';
 import type { Engine } from './engine';
 

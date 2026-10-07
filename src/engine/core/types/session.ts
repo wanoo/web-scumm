@@ -6,7 +6,7 @@ import type { GameState } from './state';
 // Session: the player's inputs since the game started (or a save was loaded), enough to replay them
 // ---------------------------------------------------------------------------
 
-/** A player action: VERB a (with/to b). `a` can be an inventory item, `b` is always a target. */
+/** A player action: VERB a (with/to b). `a` can be an inventory item, `b` is always a target. @public */
 export interface Action {
   verb: VerbId;
   a: Id;
@@ -16,6 +16,7 @@ export interface Action {
 /**
  * One input of a session (`Engine.session`). The answers given while it ran (`picks`, `maps`, `rnd`) are what makes it
  * replayable; `ran` lists the rules, topics, listeners and scripts that answered (the ids of the puzzle graph).
+ * @public
  */
 export type SessionEntry = (
   | { act: Action /** The walk to the target was interrupted: nothing happened. */; aborted?: true }
@@ -41,6 +42,11 @@ export type SessionEntry = (
   t?: number;
 };
 
+/**
+ * A player's inputs since the game started or a save was loaded, with the state they started from: enough to replay
+ * them.
+ * @public
+ */
 export interface Session {
   v: number;
   /** How it started: a new game (the intro's answers are in the first entry), a save, a checkpoint. */
@@ -55,6 +61,7 @@ export interface Session {
 /**
  * What a session keeps of a signal from outside (4.1.1): its id and sequence on the Bridge, the signal, the source
  * and when it arrived. Never a token, an email, a credential or the connector's payload: a replay applies it offline.
+ * @public
  */
 export interface ExternalEntry {
   id: string;

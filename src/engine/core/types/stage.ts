@@ -8,7 +8,9 @@ import type { Cond, Id, Point } from './content';
 // ---------------------------------------------------------------------------
 
 /** A picture of the room: `backdrop` behind everything, `scenery` among the characters (depth from its layout `z`),
- *  `foreground` in front of them, `effect` above all (fog, a vignette). */
+ *  `foreground` in front of them, `effect` above all (fog, a vignette).
+ * @public
+ */
 export interface StageLayer {
   /** Stable id: its geometry is `layout.layers[id]`, a mask can be its alpha (`occluders[].layer`). */
   id: Id;
@@ -18,6 +20,10 @@ export interface StageLayer {
   visible?: Cond;
 }
 
+/**
+ * A light of the staged room: a radial pool at its layout position, or an ambient colour over the whole room.
+ * @public
+ */
 export interface LightDef {
   id: Id;
   /** `radial`: a pool of light at `layout.lights[id]`; `ambient`: a colour over the whole room. */
@@ -30,6 +36,7 @@ export interface LightDef {
   visible?: Cond;
 }
 
+/** A particle source of the staged room (dust, rain, snow, sparks, smoke, leaves) and its rate. @public */
 export interface EmitterDef {
   id: Id;
   kind: 'dust' | 'rain' | 'snow' | 'sparks' | 'smoke' | 'leaves';
@@ -41,8 +48,13 @@ export interface EmitterDef {
   visible?: Cond;
 }
 
+/** How a room appears when entered: a cut, a fade or a wipe. @public */
 export type TransitionKind = 'cut' | 'fade' | 'wipe';
 
+/**
+ * What a room shows beyond its backdrop: layers, lights, particles, its transition and the logic of its walk links.
+ * @public
+ */
 export interface StageDef {
   layers?: StageLayer[];
   lights?: LightDef[];
@@ -57,6 +69,11 @@ export interface StageDef {
 // Geometry (layout/<room>.json, written by the editor)
 // ---------------------------------------------------------------------------
 
+/**
+ * A room's geometry, written by the placement editor: walk areas, entries, and where every hotspot, prop, actor, layer
+ * and light stands.
+ * @public
+ */
 export interface Layout {
   /** Width of the room in logical units (default 640): wider, the room scrolls and a camera follows the hero. */
   width?: number;

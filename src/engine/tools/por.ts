@@ -125,7 +125,7 @@ function edgeAtom(from: PuzzleNode, detail: string | undefined): CondAtom | null
 }
 
 /** Does the atom hold in the state? */
-export function atomHolds(a: CondAtom, s: GameState, room: Id): boolean {
+function atomHolds(a: CondAtom, s: GameState, room: Id): boolean {
   let c: Cond;
   switch (a.kind) {
     case 'has':
@@ -169,7 +169,7 @@ export function atomHolds(a: CondAtom, s: GameState, room: Id): boolean {
 }
 
 /** An action of the content as a transition: what it needs (gates), reads inside, and changes; where it applies. */
-export interface STx {
+interface STx {
   id: string;
   where?: string;
   gates: CondAtom[];

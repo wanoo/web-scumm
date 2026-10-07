@@ -133,7 +133,7 @@ export function appender(host: LinesHost, path: string, placeholder: string): HT
 }
 
 /** PUT text; `reload` re-reads the room afterwards (needed when paths shift: append, delete). */
-export async function write(host: LinesHost, path: string, value: string | null, reload = true): Promise<boolean> {
+async function write(host: LinesHost, path: string, value: string | null, reload = true): Promise<boolean> {
   try {
     await host.flushEditor();
     host.ownWrite();

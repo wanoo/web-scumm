@@ -10,7 +10,7 @@ type Drag = { h: Handle; start: Point; orig: unknown };
 const clampPt = (p: Point): Point => [Math.max(0, Math.min(640, p[0])), Math.max(0, Math.min(400, p[1]))];
 
 /** Rounds coordinates to the unit (scale factors keep two decimals). */
-export function roundLayout(L: Layout): Layout {
+function roundLayout(L: Layout): Layout {
   const r = (v: unknown): unknown => {
     if (typeof v === 'number') return Math.round(v);
     if (Array.isArray(v)) return v.map(r);

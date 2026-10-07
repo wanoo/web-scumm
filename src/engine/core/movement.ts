@@ -3,8 +3,6 @@
 
 import type { Id, Point } from './types';
 
-export type { Action } from './types';
-
 import type { Engine } from './engine';
 
 /** Walk to a point on the floor. */

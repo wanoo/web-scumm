@@ -3,7 +3,7 @@
 import type { GameDef, Value } from '../core/types';
 import type { EndingPayload } from './seal';
 
-export const DEFAULT_ACCENT = '#d4145a';
+const DEFAULT_ACCENT = '#d4145a';
 
 import { esc } from '../dom/app-shared';
 

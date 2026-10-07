@@ -1,4 +1,5 @@
 // Shared minigame styles. The host injects them once (e.g. via a <style> tag).
+/** The shared styles of the minigames, injected once by the host. @public */
 export const MINIGAME_CSS = `
 .mg{position:absolute;inset:0;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;font-family:var(--font-ui,'DotGothic16'),monospace;color:#fff}
 .mg-img{position:absolute;pointer-events:none;transform-origin:50% 100%}

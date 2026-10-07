@@ -6,6 +6,11 @@ import type { RealityState } from './reality';
 // Game state (serialised as-is in the save)
 // ---------------------------------------------------------------------------
 
+/**
+ * The state of a game in progress, serialised as-is in a save: room, inventory, flags, props, actors, counters,
+ * scripts.
+ * @public
+ */
 export interface GameState {
   v: number;
   room: Id;
