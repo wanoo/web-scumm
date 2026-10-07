@@ -309,3 +309,27 @@ jamais dans le joueur : `npm run build` refuse désormais le JavaScript d'un jeu
 (`verify:dist`). Le script d'installation de `ssh2` tente une compilation native et échoue faute d'en-têtes : aucun
 fichier `.node` n'en résulte, et `--ignore-scripts` est l'installation documentée (`docs/fr/CONNECTORS.md`). Un
 contributeur écrit `changes/<slug>.md` au lieu de modifier le CHANGELOG (`changes/README.md`).
+
+## 22. De la 4.1.9 à la 4.1.10 « Constellation »
+
+Une sauvegarde, un jeu et une configuration de Bridge 4.1.9 continuent de fonctionner. **Le joueur** accepte
+`WorldSignalV1` et le nouveau `WorldSignalV2` (ADR 0010 : le signal nomme son tenant, son environnement, son origine,
+son lien et sa clé ; `verifySignal` refuse un V2 signé pour un autre contexte avec `audience-mismatch`, et un `keyId`
+autre que celui de l'en-tête avec `key`). Un vérificateur ou un transport à vous qui lit le contenu voit `schema: 2`
+venant d'un Bridge multi-tenant ou du simulateur du Studio, qui signe en V2 par défaut (`signalVersion: 1` garde le
+V1). L'attente de `verifySignal` prend `versions`, `tenantId`, `environment`, `audience` et `sessionId` ;
+`RealityClient` les prend en `context` et vérifie l'origine de la page par défaut. **Rupture annoncée (4.1.12) :** un
+Bridge à un seul tenant signe en V1 par défaut pendant la 4.1.10 et la 4.1.11 (`init --signal-version=2` pour passer
+au V2) ; à partir de la 4.1.12 tout Bridge signe en V2 et le joueur n'accepte plus que le V2. Un jeu en 4.1.10 ou plus
+gère les deux : mettre à jour le jeu avant le Bridge.
+
+**Le Bridge** lit et écrit par `RealityStore` (ADR 0009) : un code qui appelait directement les méthodes de `Bridge`
+les attend désormais (`startPairing`, `claimPairing`, `revoke`, `forgetPlayer`, `exportPlayer`, `ack`, `unlink`,
+`subscribe`, `streamAlive`, `playerOf`) ; les routes HTTP `/v1/*` ne changent pas. `Bridge.start` accepte un
+`BridgeStore` de la 4.1.9 (comme tenant `default`) ou un `RealityStore`. La capacité est tirée quand le joueur réclame
+son code (la réclamation renvoie aussi le `sessionId` du lien). Un `config.json` de la 4.1.9 sert depuis son journal
+comme avant ; `npm run bridge -- migrate --from=jsonl --to=sqlite` (Bridge arrêté) le déplace dans SQLite, qui demande
+Node 22.13 (`node:sqlite`). `--trust-proxy` seul ne fait plus confiance qu'à la boucle locale ; nommer les autres
+proxies avec `--trust-proxy=<adresses ou réseaux>`. **Derrière un proxy qui n'est pas sur la boucle locale (le routeur d'un PaaS, un
+répartiteur sur un autre hôte), tous les clients tombent désormais dans l'unique compartiment du proxy** (60 requêtes
+anonymes par minute pour tout le monde) tant que `--trust-proxy=<son réseau>` ne le nomme pas. Plusieurs tenants et plusieurs instances : `docs/fr/REALITY-OPS.md`.

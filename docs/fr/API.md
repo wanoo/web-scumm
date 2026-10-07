@@ -88,6 +88,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `verifySignal` · `SignalExpectation` · `VerifyResult` · `RefusalCode` | un signal signé vérifié avant d'être lu : taille, algorithme, clé, signature, puis jeu, joueur, manifeste, expiration ; un refus a un code |
 | `signSignal` · `importBridgeKey` · `BridgeKey` · `Keyring` | signer comme un Bridge (tests, simulateurs) ; la clé publique d'un Bridge et celles auxquelles le joueur se fie |
 | `WorldSignalV1` · `WorldSignalV1Schema` · `SignedWorldSignalV1` · `MAX_SIGNAL_CHARS` | le contenu et son schéma, le JWS compact qui le porte, sa taille limite |
+| `WorldSignalV2` · `WorldSignalV2Schema` · `WorldSignal` · `SignalEnvironment` | 4.1.10 (ADR 0010) : le contenu qui nomme son tenant, son environnement, son origine, son lien et sa clé ; l'une ou l'autre version ; où tourne un Bridge. `verifySignal` refuse un V2 signé pour un autre contexte (`audience-mismatch`) |
 | `WorldSignalPort` | d'où viennent les signaux : le transport d'un Bridge, le simulateur, celui d'un jeu |
 | `RealityClient` · `RealityClientOptions` | vérifier, appliquer, attendre la sauvegarde durable, accuser réception |
 | `httpPort` · `HttpPortOptions` | le transport vers un Bridge : Server-Sent Events lus avec fetch, ou une lecture par curseur |
@@ -230,7 +231,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 
 | Name | Signature | Stability | Doc |
 |---|---|---|---|
-| `BridgeKey` | `interface { kid, key, notBefore, notAfter }` | public | One verification key of the Bridge: its id, the key, and when it may sign (epoch ms; rotation overlaps). |
+| `BridgeKey` | `interface { kid, key, notBefore, notAfter, tenantId, environment, … 1 more }` | public | One verification key of the Bridge: its id, the key, and when it may sign (epoch ms; rotation overlaps). |
 | `Fault` | `interface { delayMs, duplicate, badSignature, expired }` | public | What the simulator does wrong on purpose with one delivery: a delay, a duplicate, a bad signature, an expiry. |
 | `httpPort` | `(o: HttpPortOptions): WorldSignalPort` | public | The transport to a Bridge, as a WorldSignalPort: Server-Sent Events read with fetch, or a fetch by cursor. |
 | `HttpPortOptions` | `interface { url, capability, fetch, retryMs, mode, onStatus, … 3 more }` | public | How `httpPort` reaches a Bridge: its URL, the pairing's capability, the fetch to use, the retry delay and the mode. |
@@ -239,18 +240,22 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `manifestHash` | `(m: RealityManifest): Promise<string>` | public | The manifest's hash: SHA-256 of its JSON (keys in this fixed order), hex. |
 | `MAX_SIGNAL_CHARS` | `number` | public | The largest signed signal accepted, in characters: a signal is an identifier, not a document. |
 | `RealityClient` | `class RealityClient` | public | The player's side of the Reality Bridge: reads signed signals from a port, verifies each, hands it to the engine, waits for the durable save |
-| `RealityClientOptions` | `interface { engine, store, port, keyring, refreshKeys, playerId, … 5 more }` | public | What a RealityClient is built with: the engine, the store, the port, the keyring, and how it refreshes keys and reports. |
+| `RealityClientOptions` | `interface { engine, store, port, keyring, refreshKeys, playerId, … 6 more }` | public | What a RealityClient is built with: the engine, the store, the port, the keyring, and how it refreshes keys and reports. |
 | `realityManifest` | `(game: GameDef): RealityManifest \| null` | public | The manifest of a game that declares `reality`, null otherwise. |
 | `RealityManifest` | `interface { format, schema, gameId, signals, connectors }` | public | A game's Reality manifest: the signals it declares, with no secret, as the Bridge checks them. |
-| `RefusalCode` | `type RefusalCode = union of 13` | public | Why a signal was refused, as a code (the conformance corpus and the Rust cross-check compare codes) and a sentence. |
-| `SignalExpectation` | `interface { gameId, playerId, signals, now }` | public | What a signal must match besides its signature. |
+| `RefusalCode` | `type RefusalCode = union of 14` | public | Why a signal was refused, as a code (the conformance corpus and the Rust cross-check compare codes) and a sentence. |
+| `SignalEnvironment` | `type SignalEnvironment = 'prod' \| 'staging' \| 'dev'` | public | Where a Bridge runs, as a signal names it (4.1.10): a signal of one environment is refused by another. |
+| `SignalExpectation` | `interface { gameId, playerId, signals, now, versions, tenantId, … 3 more }` | public | What a signal must match besides its signature. |
 | `SignalSimulator` | `class SignalSimulator` | public | A Bridge in the browser, for the Studio and the tests: signs and delivers a game's signals, with faults on demand. |
 | `SignedWorldSignalV1` | `type SignedWorldSignalV1 = string` | public | A signed signal as it travels: the compact JWS string. |
-| `signSignal` | `(payload: WorldSignalV1, key: CryptoKey, kid: string): Promise<SignedWorldSignalV1>` | public | Signs a payload as the Bridge does (the Bridge, the tests, the Studio's simulator). |
+| `signSignal` | `(payload: WorldSignal, key: CryptoKey, kid: string): Promise<SignedWorldSignalV1>` | public | Signs a payload as the Bridge does (the Bridge, the tests, the Studio's simulator). |
 | `SimulatedDelivery` | `interface { sequence, signal, fault, at }` | public | One delivery the simulator made: its sequence, its signal, its fault and when. |
-| `VerifyResult` | `type VerifyResult = { ok: true; signal: WorldSignalV1; } \| { ok: false; code: RefusalCode; reason: string; }` | public | The outcome of `verifySignal`: the signal it accepted, or the refusal's code and reason. |
+| `VerifyResult` | `type VerifyResult = { ok: true; signal: WorldSignal; } \| { ok: false; code: RefusalCode; reason: string; }` | public | The outcome of `verifySignal`: the signal it accepted, or the refusal's code and reason. |
 | `verifySignal` | `(jws: unknown, keyring: Keyring, expect: SignalExpectation): Promise<VerifyResult>` | public | Checks a signed signal, then what it says. The reason of a refusal is a short sentence (logged, never shown raw). |
+| `WorldSignal` | `type WorldSignal = WorldSignalV1 \| WorldSignalV2` | public | Either version of the signed payload. |
 | `WorldSignalPort` | `interface { connect, acknowledge, close }` | extension | Where signals from the world outside come from (4.1.1, Reality Bridge): the Bridge's transport (Server-Sent Events, a fetch by cursor), or t |
-| `WorldSignalV1` | `type WorldSignalV1 = { format, schema, id, sequence, gameId, playerId, … 8 more }` | public | The signed payload, as `WorldSignalV1Schema` types it. |
-| `WorldSignalV1Schema` | `z.ZodMiniObject<{ format: z.ZodMiniLiteral<"web-scumm-world-signal">; schema: z.ZodMiniLiteral<1>; id: z.ZodMiniString<string>; sequence: z.ZodMiniInt; gameId: ` | public | The payload the Bridge signs: one accepted fact from outside, as a finite identifier (§4.1). |
+| `WorldSignalV1` | `type WorldSignalV1 = { schema, format, id, sequence, gameId, playerId, … 8 more }` | public | The signed payload, as `WorldSignalV1Schema` types it. |
+| `WorldSignalV1Schema` | `z.ZodMiniObject<{ schema: z.ZodMiniLiteral<1>; format: z.ZodMiniLiteral<"web-scumm-world-signal">; id: z.ZodMiniString<string>; sequence: z.ZodMiniInt; gameId: ` | public | The payload the Bridge signs: one accepted fact from outside, as a finite identifier (§4.1). |
+| `WorldSignalV2` | `type WorldSignalV2 = { schema, tenantId, environment, audience, sessionId, keyId, … 13 more }` | public | The signed payload of 4.1.10, as `WorldSignalV2Schema` types it. |
+| `WorldSignalV2Schema` | `z.ZodMiniObject<{ schema: z.ZodMiniLiteral<2>; tenantId: z.ZodMiniString<string>; environment: z.ZodMiniEnum<{ prod: "prod"; staging: "staging"; dev: "dev"; }>;` | public | The payload of 4.1.10 (ADR 0010): V1's fields and the context it was signed for, so a signal of one tenant, one environment, one origin, one |
 <!-- api-doc:end -->

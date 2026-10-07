@@ -6,7 +6,7 @@
 import type { Engine } from '../core/engine';
 import type { SaveStore, WorldSignalPort } from '../core/ports';
 import type { ExternalEntry } from '../core/types';
-import { verifySignal, type Keyring, type RefusalCode } from './protocol';
+import { verifySignal, type Keyring, type RefusalCode, type SignalExpectation } from './protocol';
 
 /**
  * What a RealityClient is built with: the engine, the store, the port, the keyring, and how it refreshes keys and
@@ -24,6 +24,11 @@ export interface RealityClientOptions {
    */
   refreshKeys?: () => Promise<Keyring>;
   playerId: string;
+  /**
+   * What a `WorldSignalV2` must name (4.1.10, ADR 0010): the versions accepted (`[2]` with a multi-tenant Bridge), the
+   * tenant, the environment, the link. `audience` defaults to the page's origin in a browser.
+   */
+  context?: Pick<SignalExpectation, 'versions' | 'tenantId' | 'environment' | 'audience' | 'sessionId'>;
   now?: () => number;
   /** How long to wait before trying a signal again while the engine is busy (ms). */
   retryMs?: number;
@@ -100,7 +105,15 @@ export class RealityClient {
   async handle(jws: string): Promise<'applied' | 'duplicate' | 'skipped' | 'refused'> {
     await this.ready();
     const now = this.o.now?.() ?? Date.now();
-    const expectation = { gameId: this.o.engine.game.id, playerId: this.o.playerId, signals: this.signals, now };
+    const origin = (globalThis as { location?: { origin?: string } }).location?.origin;
+    const expectation: SignalExpectation = {
+      ...(origin && origin !== 'null' ? { audience: origin } : {}),
+      ...this.o.context,
+      gameId: this.o.engine.game.id,
+      playerId: this.o.playerId,
+      signals: this.signals,
+      now,
+    };
     let v = await verifySignal(jws, this.keyring, expectation);
     if (!v.ok && (v.code === 'key' || v.code === 'key-window') && this.o.refreshKeys) {
       // A key this keyring does not know, or knows outside its window: the Bridge may have rotated; ask once.

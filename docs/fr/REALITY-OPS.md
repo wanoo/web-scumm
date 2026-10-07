@@ -2,7 +2,9 @@
 
 Le Bridge de référence (`bridge/src/`, le paquet `web-scumm-bridge`) sert un jeu. C'est un petit service Node :
 appairage, connecteurs sous capacités Biscuit, un webhook de démonstration, un journal, des événements signés, des
-Server-Sent Events. Pour les auteurs : `docs/fr/REALITY.md`. Pour le pourquoi : `docs/dev/THREAT-MODEL.md`.
+Server-Sent Events. Depuis la 4.1.10 il garde son état dans un store (le journal de la 4.1.9, SQLite ou Postgres), et
+un déploiement peut faire tourner plusieurs instances et servir plusieurs tenants. Pour les auteurs :
+`docs/fr/REALITY.md`. Pour le pourquoi : `docs/dev/THREAT-MODEL.md` et `docs/dev/threat-models/constellation.md`.
 
 ## En lancer un
 
@@ -22,19 +24,25 @@ npm run bridge -- serve [--dir=.cache/bridge] [--port=8787] [--host=127.0.0.1]
 - `admin-token` : le jeton de l'opérateur, seule copie en clair.
 
 Rien de secret n'est affiché ni commité (`.cache/` est ignoré). Dans un projet de jeu, la commande est `web-scumm bridge`.
-Le paquet `web-scumm-bridge` (l'archive de la release) est un seul module JavaScript plus ses politiques Datalog : il
-lui faut Node 22.12 ou plus, le WebAssembly de Biscuit et zod, rien d'autre, et `web-scumm-bridge` est sa commande.
+Le paquet `web-scumm-bridge` (l'archive de la release) est un seul module JavaScript plus ses politiques Datalog et
+son schéma SQL : il lui faut Node 22.12 ou plus (22.13 pour SQLite), le WebAssembly de Biscuit et zod ; `pg` seulement
+pour Postgres, `@opentelemetry/api` seulement pour les mesures ; `web-scumm-bridge` est sa commande.
 
 Derrière HTTPS : lancer `serve` sur `127.0.0.1` derrière un proxy inverse qui termine TLS et ne met pas en tampon les
 réponses `text/event-stream`, avec `--trust-proxy` pour que les limites par adresse voient celle du client
-(`X-Forwarded-For`). `--origin` liste le site du jeu (CORS) ; les routes du joueur ne répondent qu'à lui. Mettre
+(`X-Forwarded-For`). `--trust-proxy` seul fait confiance à la boucle locale ; `--trust-proxy=10.0.0.0/8,192.0.2.7`
+nomme les proxies (adresses ou réseaux IPv4) : l'en-tête n'est lu que venant d'eux, et le client est son adresse la
+plus à droite qui n'en est pas un. Depuis la 4.1.10 un proxy ailleurs que sur la boucle locale (le routeur d'un PaaS)
+doit être nommé : sans quoi tous les clients partagent l'adresse du proxy et son unique compartiment. `--origin` liste le site du jeu (CORS) ; les routes du joueur ne répondent qu'à lui. Mettre
 l'URL publique dans `reality.bridge` du jeu. Sur Internet, `init --no-demo-webhooks` et un `grant` par connecteur,
 chacun aussi étroit que sa tâche.
 
 Par adresse, les routes que n'importe qui peut appeler (un code, son état, les clés, le manifeste) répondent à 60
 requêtes par minute, et 60 authentifications ratées par minute sur les autres refusent un moment toute requête de
-cette adresse (429, `Retry-After`). Les codes en attente de confirmation ne vivent qu'en mémoire, 1000 au plus tous
-joueurs confondus : rien n'est écrit pour un code que personne ne confirme.
+cette adresse (429, `Retry-After`). Les codes en attente de confirmation sont 1000 au plus tous joueurs confondus et
+balayés une fois expirés : en mémoire sur le journal (un redémarrage les oublie), dans la table `pairings` sur SQLite
+et Postgres (n'importe quelle instance peut en confirmer ou en réclamer un). Aucune capacité n'attend nulle part :
+elle est tirée quand le joueur réclame le code, et seule son empreinte est gardée.
 
 ## Les connecteurs
 
@@ -132,7 +140,101 @@ tant que des joueurs peuvent être hors ligne avec des signaux à recevoir ; ens
   n'est pas encore acquitté. Le journal ne grossit qu'avec ce qui attend encore, ou assez récent pour qu'un
   connecteur le répète.
 
-## Ce qui n'est pas là (4.1.1)
+## Stores et profils
 
-Un vrai connecteur email ou SSH, un Bridge hébergé multi-locataire, la haute disponibilité. Le Bridge de référence est
-pour un jeu, un développeur, un petit événement ; c'est le protocole qui reste.
+| Profil | Store | Pour |
+|---|---|---|
+| `local` | SQLite (`node:sqlite`, Node 22.13+, un fichier, WAL) | une machine, un ou quelques processus ; le profil de `npm run bridge` |
+| (4.1.9) | le journal JSON-lines | une configuration écrite avant la 4.1.10 continue d'en servir ; un processus |
+| `distributed` (`experimental`) | Postgres (`pg`) | plusieurs instances derrière un répartiteur ; expérimental jusqu'à un vrai déploiement |
+
+`init --store=sqlite` écrit `"store": "sqlite:bridge.sqlite"` dans `config.json` ; sans lui, `init` écrit encore la
+configuration du journal en 4.1.10 (le défaut passe à SQLite quand le moteur exigera Node 22.13, D20). Une URL de
+base n'est pas écrite dans le fichier : `serve --store=postgres://…` ou `BRIDGE_STORE=postgres://…`. Le schéma est
+versionné (`bridge/migrations/`) : un store SQL le monte à son ouverture ; `migrate --schema=N` monte ou descend à la
+main, et une base plus récente que le Bridge est refusée. Le fichier SQLite et ses `-wal` et `-shm` sont en mode
+0600 ; une écriture qui attend plus de 5 s le verrou d'un autre processus reçoit un 503 avec `Retry-After` (le
+connecteur la répète).
+
+```sh
+npm run bridge -- migrate --from=jsonl --to=sqlite [--tenant=<id>]   # Bridge arrêté ; le journal est gardé
+npm run bridge -- doctor                                              # un store lu sans changement
+```
+
+`migrate --from=jsonl` lit le journal sous son verrou, écrit chaque joueur, signal, acquittement et révocation dans le
+nouveau store, les relit, puis nomme le nouveau store dans `config.json` (pas pour une URL). `doctor` sur un store
+SQL affiche la version de son schéma et, par tenant, les joueurs, les signaux, tout trou dans la séquence d'un joueur
+(sortie 1) et les lignes en quarantaine. `compact` est la commande du journal ; un store SQL garde tous les signaux en
+4.1.10.
+
+## Plusieurs tenants, plusieurs instances
+
+Un tenant est le jeu d'un opérateur dans un environnement : son propre répertoire (`init --tenant=<id>
+--environment=prod|staging|dev --hosts=bridge.a.example`), sa propre racine Biscuit, sa clé d'événements, son jeton
+d'opérateur, ses quotas, sa rotation et ses révocations. Un serveur en tient plusieurs sur un même store SQL :
+
+```sh
+BRIDGE_STORE=postgres://… npm run bridge -- serve --tenants=/srv/bridge/a,/srv/bridge/b [--tenant-header]
+```
+
+Une requête est routée par son `Host` (les `hosts` de chaque tenant), ou par `X-Web-Scumm-Tenant` avec
+`--tenant-header`, avant toute lecture ; pas de tenant, un 404. Chaque ligne du store porte son tenant et chaque
+requête filtre dessus. Un tenant d'un déploiement partagé signe en `SignalV2` (ADR 0010 : le signal nomme son tenant,
+son environnement, son origine, son lien et sa clé) et les jetons de ses connecteurs lui sont liés (`grant` ajoute le
+tenant), si bien que ni un jeton ni un signal d'un tenant n'est accepté par un autre, même quand on a (à tort) donné
+une même clé à deux d'entre eux.
+
+Les instances sont sans état : en lancer autant que nécessaire sur le même store, sans session collante. Séquences,
+déduplication et acquittements se décident dans une transaction de la base ; un signal accepté par une instance
+atteint un flux tenu par une autre, qui lit le store quand on la réveille (`NOTIFY` de Postgres, un sondage de 250 ms
+sur SQLite, et un passage toutes les 5 s si un réveil se perd). La livraison est au moins une fois, appliquée une fois
+(D20). Chaque instance borne ses flux ouverts (`streamsPerInstance`, 10 000 ; puis 429) et sa minute par connecteur
+(avec N instances, un connecteur peut proposer N fois son quota). Une ligne stockée qui ne se vérifie plus est mise
+en quarantaine, jamais livrée, et `doctor` la liste.
+
+## Santé, mesures, sauvegardes
+
+- `GET /livez` : le processus répond. `GET /readyz` : le store répond (503 sinon). `GET /healthz` : les deux, avec les
+  tenants, la nature du store et les flux ouverts. Pas de jeton, aucune donnée d'un tenant.
+- Mesures : acceptations, doublons, refus par code, acquittements, nouvelles tentatives du store, quarantaine, flux
+  refusés, l'arriéré et la latence d'une proposition. Dans le processus toujours ; via l'API de métriques
+  d'OpenTelemetry quand `@opentelemetry/api` est installé à côté du Bridge, exportées en OTLP quand
+  `OTEL_EXPORTER_OTLP_ENDPOINT` est défini et `@opentelemetry/sdk-node` installé. Attributs : le tenant et un code,
+  jamais un joueur ni un contenu.
+- `npm run bridge -- backup --out=<fichier>` écrit chaque tenant (une transaction chacun) dans un fichier en mode 600 :
+  des empreintes de capacités, jamais une capacité ni une clé. `restore --from=<fichier>` l'écrit dans un store vide
+  (`--force` remplace les tenants qu'il contient). Les deux sont répétés par `tests/bridge-ops.test.ts`. Sur
+  Postgres, `pg_dump` reste la sauvegarde de la base elle-même.
+- `tenant export --tenant=<id> [--out=<fichier>]`, `tenant delete --tenant=<id> --yes` : les lignes d'un tenant, dans
+  toutes les tables.
+
+## Procédures
+
+**Une clé d'événements compromise (un tenant).** `rotate --dir=<tenant>`, puis retirer la clé compromise de
+`previousKeys` dans le `config.json` de ce tenant, et redémarrer ses instances. Les joueurs refusent dès lors ce
+qu'elle a signé ; ce qui les attend est signé à nouveau sous la nouvelle clé à la livraison. Les autres tenants ne
+sont pas touchés.
+
+**Une racine Biscuit compromise.** `init --force` serait trop : faire une nouvelle racine (`init` dans un répertoire
+de brouillon, en copier `biscuitRoot` et `root.key`), donner un nouveau jeton à chaque connecteur du tenant,
+redémarrer, puis révoquer les identifiants des anciens jetons (`revoke --token=`) pour la fenêtre avant le redémarrage.
+
+**Une instance ou son hôte compromis.** Elle tenait toutes les clés privées des tenants qu'elle servait : faire
+tourner la clé d'événements de chaque tenant, donner à chacun une nouvelle racine, changer le mot de passe de la base
+et les jetons d'opérateur, et lire la `quarantine` du store et les journaux depuis la compromission.
+
+**La rotation, en routine.** Par tenant, à son propre rythme : `rotate --dir=<tenant> --keep-days=30`, redémarrer
+ses instances une à une (les autres continuent de servir ; le store est le même).
+
+**La reprise.** Une instance tuée ou plantée : en lancer une autre ; rien n'est perdu (une transaction est validée ou
+absente, `tests/bridge-fanout.test.ts` en tue une sur trois pendant 1 000 propositions). La base perdue : `restore` la
+dernière sauvegarde dans une nouvelle, puis `doctor` ; les connecteurs répètent ce qu'ils ont envoyé depuis (leur
+`dedupeKey` le rend idempotent), et les joueurs gardent leurs curseurs. Un journal qui ne démarre pas : `doctor` nomme
+la ligne.
+
+## Ce qui n'est pas là (4.1.10)
+
+Un vrai connecteur email ou SSH, un déploiement du profil `distributed` (il reste `experimental` jusque-là), une
+sécurité par ligne et par tenant dans Postgres, une rétention sur un store SQL, une limite par connecteur partagée
+entre instances. Le Bridge de référence est pour un jeu, un développeur, un événement ou les jeux d'un petit studio ;
+c'est le protocole qui reste.

@@ -148,6 +148,7 @@ describe('ci.yml and the plan', () => {
     for (const id of [
       'node-24',
       'reality-xcheck',
+      'bridge-postgres',
       'connectors',
       'reality',
       'e2e',

@@ -100,9 +100,9 @@ async function setup(o: { store?: BridgeStore; limits?: BridgeConfig['limits']; 
     return (tok.getRevocationIdentifiers() as string[])[0] ?? '';
   };
   const pair = async () => {
-    const { code } = bridge.startPairing('signals');
+    const { code } = await bridge.startPairing('signals');
     await bridge.confirmPairing(mail, code);
-    const claimed = bridge.claimPairing(code);
+    const claimed = await bridge.claimPairing(code);
     if (claimed.status !== 'paired') throw new Error('not paired');
     return claimed;
   };
@@ -111,23 +111,21 @@ async function setup(o: { store?: BridgeStore; limits?: BridgeConfig['limits']; 
   return { bridge, store, mail, admin, logs, grant, pair, propose, revocationId, rootPub };
 }
 
-const status = (s: number) => expect.objectContaining({ status: s });
-
 describe('the Bridge at its edges (mutants of bridge.ts)', () => {
   it('a pairing code lives until the instant it expires, included; expired codes make room for new ones', async () => {
     let t0 = Date.now();
     const t = await setup({ now: () => t0, limits: { pendingPairings: 1, pairingMs: 1_000 } });
-    const { code, expiresAt } = t.bridge.startPairing('signals');
+    const { code, expiresAt } = await t.bridge.startPairing('signals');
     expect(expiresAt).toBe(t0 + 1_000);
     // kills bridge.ts:161 < → <=  and bridge.ts:157 < → <= : at the instant itself the code is still there and still
     // counts among the codes waiting (one allowed: the second ask is refused).
     t0 = expiresAt;
-    expect(t.bridge.claimPairing(code)).toEqual({ status: 'pending' });
-    expect(() => t.bridge.startPairing('signals')).toThrow(status(429));
+    expect(await t.bridge.claimPairing(code)).toEqual({ status: 'pending' });
+    await expect(t.bridge.startPairing('signals')).rejects.toMatchObject({ status: 429 });
     // kills bridge.ts:157 condition false: one millisecond later the code is swept and a new one may be asked.
     t0 = expiresAt + 1;
-    expect(() => t.bridge.claimPairing(code)).toThrow(status(404));
-    expect(t.bridge.startPairing('signals').code).not.toBe(code);
+    await expect(t.bridge.claimPairing(code)).rejects.toMatchObject({ status: 404 });
+    expect((await t.bridge.startPairing('signals')).code).not.toBe(code);
   });
 
   it('a body that is not an object is a malformed proposal (400), not a crash', async () => {
@@ -151,7 +149,7 @@ describe('the Bridge at its edges (mutants of bridge.ts)', () => {
     expect(payloadOf(delivered[0]?.jws ?? '')).toMatchObject({ occurredAt: 0 });
     // kills bridge.ts:293 condition true and bridge.ts:297 condition true: the journal keeps the payload as accepted,
     // with no key the proposal did not have (not even one holding `undefined`).
-    const kept = t.bridge.exportPlayer(t.admin, link.playerId).signals;
+    const kept = (await t.bridge.exportPlayer(t.admin, link.playerId)).signals;
     expect(Object.keys(payloadOf(delivered[1]?.jws ?? ''))).not.toContain('occurredAt');
     expect(Object.keys(kept[1]?.payload ?? {})).not.toContain('occurredAt');
     expect(Object.keys(kept[1]?.payload ?? {})).not.toContain('evidenceHash');
@@ -172,7 +170,7 @@ describe('the Bridge at its edges (mutants of bridge.ts)', () => {
     });
     // kills bridge.ts:263 || → && : with `&&` a player that exists but belongs to another game is accepted.
     await expect(t.propose('p-0123456789abcdef', 'x')).rejects.toMatchObject({ status: 404, code: 'player' });
-    expect(t.bridge.exportPlayer(t.admin, 'p-0123456789abcdef').signals).toHaveLength(0);
+    expect((await t.bridge.exportPlayer(t.admin, 'p-0123456789abcdef')).signals).toHaveLength(0);
     await expect(t.propose('p-0000000000000000', 'x')).rejects.toMatchObject({ status: 404, code: 'player' });
   });
 
@@ -187,14 +185,14 @@ describe('the Bridge at its edges (mutants of bridge.ts)', () => {
       if (p) store.write({ t: 'player', p: { ...p, revoked: true } });
     });
     await expect(t.propose(link.playerId, 'late-player')).rejects.toMatchObject({ status: 404, code: 'player' });
-    expect(t.bridge.exportPlayer(t.admin, link.playerId).signals).toHaveLength(0);
+    expect((await t.bridge.exportPlayer(t.admin, link.playerId)).signals).toHaveLength(0);
 
     // kills bridge.ts:271 condition false: the token's revocation checked again inside the lock.
     const other = await t.pair();
     const id = await t.revocationId(t.mail);
     store.arm('player', 1, () => store.write({ t: 'revoke-token', id }));
     await expect(t.propose(other.playerId, 'late-token')).rejects.toMatchObject({ status: 401, code: 'revoked' });
-    expect(t.bridge.exportPlayer(t.admin, other.playerId).signals).toHaveLength(0);
+    expect((await t.bridge.exportPlayer(t.admin, other.playerId)).signals).toHaveLength(0);
   });
 
   it("a connector's minute is a sliding window of sixty seconds, the signal at its far edge excluded", async () => {
@@ -217,8 +215,8 @@ describe('the Bridge at its edges (mutants of bridge.ts)', () => {
     const gotA: number[] = [];
     const gotB: number[] = [];
     const closedB: string[] = [];
-    t.bridge.subscribe(a.capability, (seq) => gotA.push(seq));
-    t.bridge.subscribe(
+    await t.bridge.subscribe(a.capability, (seq) => gotA.push(seq));
+    await t.bridge.subscribe(
       b.capability,
       (seq) => gotB.push(seq),
       (why) => closedB.push(why),
@@ -228,7 +226,7 @@ describe('the Bridge at its edges (mutants of bridge.ts)', () => {
     expect(gotA).toEqual([1]);
     expect(gotB).toEqual([]);
     // kills bridge.ts:413 condition true: revoking a player would end every stream.
-    t.bridge.revoke(t.admin, { playerId: a.playerId });
+    await t.bridge.revoke(t.admin, { playerId: a.playerId });
     expect(closedB).toEqual([]);
     await t.propose(b.playerId, 'b1');
     expect(gotB).toEqual([1]);
@@ -240,7 +238,7 @@ describe('the Bridge at its edges (mutants of bridge.ts)', () => {
     const link = await t.pair();
     const got: number[] = [];
     const closed: string[] = [];
-    t.bridge.subscribe(
+    await t.bridge.subscribe(
       link.capability,
       (seq) => got.push(seq),
       (why) => closed.push(why),
@@ -263,7 +261,7 @@ describe('the Bridge at its edges (mutants of bridge.ts)', () => {
     const link = await t.pair();
     const got: number[] = [];
     const closed: string[] = [];
-    t.bridge.subscribe(
+    await t.bridge.subscribe(
       link.capability,
       (seq) => got.push(seq),
       (why) => closed.push(why),
@@ -278,7 +276,7 @@ describe('the Bridge at its edges (mutants of bridge.ts)', () => {
     t0 += 1;
     await expect(t.bridge.signals(link.capability, 0)).rejects.toMatchObject({ status: 401, code: 'capability' });
     // Renewed by an acknowledgement at that instant? No: the link is gone; it had to acknowledge before.
-    expect(() => t.bridge.ack(link.capability, 1)).toThrow(status(401));
+    await expect(t.bridge.ack(link.capability, 1)).rejects.toMatchObject({ status: 401 });
 
     // kills bridge.ts:360 > → >= : the longest life ends after its last instant, not at it (a Bridge whose links
     // live long enough to reach it).
@@ -297,10 +295,10 @@ describe('the Bridge at its edges (mutants of bridge.ts)', () => {
   it('no capability at all is an unknown link (401), not a crash', async () => {
     const t = await setup();
     // kills bridge.ts:357 condition true: hashing `undefined` throws a TypeError instead of the refusal.
-    expect(() => t.bridge.playerOf(undefined)).toThrow(BridgeError);
-    expect(() => t.bridge.playerOf(undefined)).toThrow(status(401));
-    expect(() => t.bridge.playerOf('')).toThrow(status(401));
-    expect(t.bridge.streamAlive(undefined)).toBe(false);
+    await expect(t.bridge.playerOf(undefined)).rejects.toBeInstanceOf(BridgeError);
+    await expect(t.bridge.playerOf(undefined)).rejects.toMatchObject({ status: 401 });
+    await expect(t.bridge.playerOf('')).rejects.toMatchObject({ status: 401 });
+    expect(await t.bridge.streamAlive(undefined)).toBe(false);
   });
 
   it('a delivery without a rotation signs nothing again; the heartbeat tells a live link from a dead one', async () => {
@@ -312,20 +310,20 @@ describe('the Bridge at its edges (mutants of bridge.ts)', () => {
     expect(delivered).toHaveLength(1);
     expect(t.bridge.resignedCount()).toBe(0);
     // kills bridge.ts:406 true → false and bridge.ts:408 false → true.
-    expect(t.bridge.streamAlive(link.capability)).toBe(true);
-    expect(t.bridge.streamAlive('not-a-capability')).toBe(false);
-    t.bridge.unlink(link.capability);
-    expect(t.bridge.streamAlive(link.capability)).toBe(false);
+    expect(await t.bridge.streamAlive(link.capability)).toBe(true);
+    expect(await t.bridge.streamAlive('not-a-capability')).toBe(false);
+    await t.bridge.unlink(link.capability);
+    expect(await t.bridge.streamAlive(link.capability)).toBe(false);
   });
 
   it('streams are counted per player: another player may open its own', async () => {
     const t = await setup({ limits: { streamsPerPlayer: 1 } });
     const a = await t.pair();
     const b = await t.pair();
-    t.bridge.subscribe(a.capability, () => {});
+    await t.bridge.subscribe(a.capability, () => {});
     // kills bridge.ts:394 condition true: every stream would count against every player.
-    expect(() => t.bridge.subscribe(b.capability, () => {})).not.toThrow();
-    expect(() => t.bridge.subscribe(a.capability, () => {})).toThrow(status(429));
+    await expect(t.bridge.subscribe(b.capability, () => {})).resolves.toBeTypeOf('function');
+    await expect(t.bridge.subscribe(a.capability, () => {})).rejects.toMatchObject({ status: 429 });
   });
 
   it('`through` is a whole number from 0 to the last sequence sent: 0 acknowledges nothing, 1.5 is not a sequence', async () => {
@@ -334,15 +332,15 @@ describe('the Bridge at its edges (mutants of bridge.ts)', () => {
     await t.propose(link.playerId, 'one');
     await t.propose(link.playerId, 'two');
     // kills bridge.ts:422 < → <= : zero is allowed (nothing applied yet, the link renewed).
-    expect(() => t.bridge.ack(link.capability, 0)).not.toThrow();
-    expect(t.bridge.exportPlayer(t.admin, link.playerId).acked).toBe(0);
+    await expect(t.bridge.ack(link.capability, 0)).resolves.toBeUndefined();
+    expect((await t.bridge.exportPlayer(t.admin, link.playerId)).acked).toBe(0);
     // kills bridge.ts:420 || → && and bridge.ts:421 || → && : a fraction is a number but not an integer, a string is
     // neither; with `&&` one of the two slips through (1.5 is within 0 and the last sequence).
     for (const bad of [1.5, Number.NaN, 'two', -1, 3, undefined])
-      expect(() => t.bridge.ack(link.capability, bad), String(bad)).toThrow(status(400));
-    expect(t.bridge.exportPlayer(t.admin, link.playerId).acked).toBe(0);
-    expect(() => t.bridge.ack(link.capability, 2)).not.toThrow();
-    expect(t.bridge.exportPlayer(t.admin, link.playerId).acked).toBe(2);
+      await expect(t.bridge.ack(link.capability, bad), String(bad)).rejects.toMatchObject({ status: 400 });
+    expect((await t.bridge.exportPlayer(t.admin, link.playerId)).acked).toBe(0);
+    await expect(t.bridge.ack(link.capability, 2)).resolves.toBeUndefined();
+    expect((await t.bridge.exportPlayer(t.admin, link.playerId)).acked).toBe(2);
   });
 
   it('the operator without a token is not the operator; an unknown player or a malformed id is refused', async () => {
@@ -350,20 +348,20 @@ describe('the Bridge at its edges (mutants of bridge.ts)', () => {
     const link = await t.pair();
     // kills bridge.ts:433 condition true: hashing `undefined` throws a TypeError instead of the refusal.
     expect(() => t.bridge.admin(undefined)).toThrow(BridgeError);
-    expect(() => t.bridge.revoke(undefined, { playerId: link.playerId })).toThrow(status(401));
-    expect(() => t.bridge.exportPlayer('', link.playerId)).toThrow(status(401));
+    await expect(t.bridge.revoke(undefined, { playerId: link.playerId })).rejects.toMatchObject({ status: 401 });
+    await expect(t.bridge.exportPlayer('', link.playerId)).rejects.toMatchObject({ status: 401 });
     // kills bridge.ts:444 condition false: revoking a player the store does not hold.
-    expect(() => t.bridge.revoke(t.admin, { playerId: 'p-0000000000000000' })).toThrow(status(404));
+    await expect(t.bridge.revoke(t.admin, { playerId: 'p-0000000000000000' })).rejects.toMatchObject({ status: 404 });
     expect(t.logs.filter((l) => l.event === 'player.revoked')).toHaveLength(0);
     // kills bridge.ts:450 condition false: a revocation id is hex, 16 to 256 characters.
     for (const tokenId of ['ZZZZZZZZZZZZZZZZ', 'abcdef', 'a'.repeat(257), ''.padEnd(16, 'g')])
-      expect(() => t.bridge.revoke(t.admin, { tokenId }), tokenId).toThrow(status(400));
+      await expect(t.bridge.revoke(t.admin, { tokenId }), tokenId).rejects.toMatchObject({ status: 400 });
     expect(t.logs.filter((l) => l.event === 'token.revoked')).toHaveLength(0);
-    expect(() => t.bridge.revoke(t.admin, { tokenId: 'a'.repeat(16) })).not.toThrow();
+    await expect(t.bridge.revoke(t.admin, { tokenId: 'a'.repeat(16) })).resolves.toBeUndefined();
     // kills bridge.ts:459 condition false: forgetting a player the store does not hold, or twice.
-    expect(() => t.bridge.forgetPlayer(t.admin, 'p-0000000000000000')).toThrow(status(404));
-    t.bridge.forgetPlayer(t.admin, link.playerId);
-    expect(() => t.bridge.forgetPlayer(t.admin, link.playerId)).toThrow(status(404));
+    await expect(t.bridge.forgetPlayer(t.admin, 'p-0000000000000000')).rejects.toMatchObject({ status: 404 });
+    await t.bridge.forgetPlayer(t.admin, link.playerId);
+    await expect(t.bridge.forgetPlayer(t.admin, link.playerId)).rejects.toMatchObject({ status: 404 });
     expect(t.logs.filter((l) => l.event === 'player.forgotten')).toHaveLength(1);
   });
 });
@@ -372,10 +370,10 @@ describe("the Bridge's grants at their edges (mutants of policy.ts)", () => {
   it('a grant without `pair` may propose but not confirm a pairing code', async () => {
     const t = await setup();
     const noPair = await t.grant({ pair: undefined });
-    const { code } = t.bridge.startPairing('signals');
+    const { code } = await t.bridge.startPairing('signals');
     // kills policy.ts:60 condition true: `pair(true)` would be in every token.
     await expect(t.bridge.confirmPairing(noPair, code)).rejects.toMatchObject({ status: 403, code: 'denied' });
-    expect(t.bridge.claimPairing(code)).toEqual({ status: 'pending' });
+    expect(await t.bridge.claimPairing(code)).toEqual({ status: 'pending' });
     await expect(t.bridge.confirmPairing(t.mail, code)).resolves.toMatchObject({ playerId: expect.any(String) });
   });
 

@@ -1,7 +1,7 @@
 {
   "name": "web-scumm",
   "private": true,
-  "version": "4.1.9",
+  "version": "4.1.10",
   "type": "module",
   "scripts": {
     "dev": "tsx tools/select-game.ts && vite",
@@ -78,6 +78,7 @@
     "verify:commercial": "npm run verify:release && npm run validate -- --commercial --errors && npm run verify:dist",
     "quality:baseline": "tsx tools/quality-baseline.ts",
     "bridge": "tsx tools/bridge.ts",
+    "bridge:load": "tsx tools/bridge-load.ts",
     "solve:reality": "tsx tools/solve-reality.ts",
     "reality:spike": "node scripts/reality-spike.mjs",
     "reality:xcheck": "tsx tools/reality-xcheck.ts",
@@ -116,6 +117,7 @@
     "happy-dom": "^20.14.5",
     "knip": "^6.39.0",
     "nan": "file:connectors/vendor/refused-native",
+    "pg": "^8.23.1",
     "playwright": "^1.63.0",
     "ssh2": "^1.17.0",
     "tsx": "^4.19.0",
