@@ -2,24 +2,6 @@
 
 ## Unreleased
 
-### Changes
-
-- **The mutation gate, honest and cheap to carry** (4.1.8). `tools/mutate.ts` writes a report keyed by the hash of
-  its inputs (the set's sources and tests, the two configurations, the tool, the named survivors, the lockfile;
-  `--hash` prints it) and reuses a report of the same inputs instead of running again (`--fresh` runs anyway): a
-  commit of docs or of a version does not re-run the sets. CI gains a `mutation` job on both sets, cached by that
-  hash; `release.yml` restores the cache before `release-check`, which runs `--set=all`; the nightly runs both sets
-  fresh and gated (no `continue-on-error`). The sets' sources and tests live in `tools/mutation-sets.ts`, read by the
-  tool and by `vitest.mutation.config.ts`. A named survivor may name the source line it sits on (`context`), so it
-  never covers another mutant of the same file; `--doc` writes the table of named survivors into MUTANTS.md and a
-  test keeps the two equal. **The Reality set's unexplained survivors are gone**, and `http-port.ts` (the player's
-  transport, rewritten by the P0 fix) joins the set: 121 killed by four new test files (`tests/bridge-mutants.test.ts`,
-  `tests/bridge-store.test.ts`, `tests/reality-client.test.ts`, `tests/reality-port.test.ts`: the exact edges of
-  expiries, quotas and size limits, revocations landing inside the lock, the journal's retention and rewrite, the
-  client's refusals and its stop, the port's backoff, cursors and parser), 14 named as equivalent with their reason
-  and the source line they sit on; two old equivalents, now killed, left the list. Measured on the branch:
-  __KILLED__ of __TOTAL__ mutants killed, every survivor named.
-
 ### Fixed
 
 - **A signal handed over and not acknowledged was lost to its connection** (P0 of 4.1.8, reproduced by the
@@ -31,8 +13,6 @@
   wait that grows up to a minute while nothing settles; a stream the Bridge keeps open is ended by the player after
   that wait and reopened from the durable cursor (`docs/en/REALITY.md`). The reproduction tests of #22 are the
   fix's tests.
-
-### Changes
 
 - **The Reality transport and the Bridge, bounded** (4.1.8): the SSE parser accepts lines ending with CRLF or CR,
   removes one space after `data:` as the specification says, and drops a stream whose event is over 64 KiB or that
@@ -81,6 +61,24 @@
   session's scratchpad; one re-run of a failed job, a tag never moved, the release downloaded and its sums and
   attestations verified. A pre-release tag (`v4.1.8-rc.1`) is published as a GitHub pre-release and its notes say
   which version it candidates for.
+
+### Changes
+
+- **The mutation gate, honest and cheap to carry** (4.1.8). `tools/mutate.ts` writes a report keyed by the hash of
+  its inputs (the set's sources and tests, the two configurations, the tool, the named survivors, the lockfile;
+  `--hash` prints it) and reuses a report of the same inputs instead of running again (`--fresh` runs anyway): a
+  commit of docs or of a version does not re-run the sets. CI gains a `mutation` job on both sets, cached by that
+  hash; `release.yml` restores the cache before `release-check`, which runs `--set=all`; the nightly runs both sets
+  fresh and gated (no `continue-on-error`). The sets' sources and tests live in `tools/mutation-sets.ts`, read by the
+  tool and by `vitest.mutation.config.ts`. A named survivor may name the source line it sits on (`context`), so it
+  never covers another mutant of the same file; `--doc` writes the table of named survivors into MUTANTS.md and a
+  test keeps the two equal. **The Reality set's unexplained survivors are gone**, and `http-port.ts` (the player's
+  transport, rewritten by the P0 fix) joins the set: 121 killed by four new test files (`tests/bridge-mutants.test.ts`,
+  `tests/bridge-store.test.ts`, `tests/reality-client.test.ts`, `tests/reality-port.test.ts`: the exact edges of
+  expiries, quotas and size limits, revocations landing inside the lock, the journal's retention and rewrite, the
+  client's refusals and its stop, the port's backoff, cursors and parser), 14 named as equivalent with their reason
+  and the source line they sit on; two old equivalents, now killed, left the list. Measured on the branch:
+  579 of 604 mutants killed, every survivor named.
 
 ## 4.1.7 — 2026-10-06
 

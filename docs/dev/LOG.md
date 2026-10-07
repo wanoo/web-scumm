@@ -2401,8 +2401,9 @@ Platform"; human gates reported, not blocking (D12).
   and the stream's timer; the UTF-8 split across chunks, the frame and buffer exactly at their limits, a Bridge
   without `sequences` or `id`s, a 500 then a 200, the ack through a lower cursor): 32 killed, 7 named, two of them
   pointing at a redundancy in the loop (the catch's `break` doubled by the next line) worth a later clean-up.
-- Measured after, on the branch (`--set=reality --fresh`): __KILLED__/__TOTAL__ killed, every survivor named: the
-  Reality set gates. Not done, said as such: `command-handlers.ts` and `scheduler.ts` stay out of the gated sets (MUTANTS.md
+- Measured after, on the branch, in two runs (the whole set before the port's tests, 534/585 with 33 unexplained all
+  in `http-port.ts`; then the port alone on the fixed code, 83/90): 579/604 killed, 25 named, every survivor
+  explained, the Reality set gates. The CI job `mutation` measures both sets whole on this pull request. Not done, said as such: `command-handlers.ts` and `scheduler.ts` stay out of the gated sets (MUTANTS.md
   says so since 4.1.5); the `mutation` CI job is not among the ruleset's required checks until the maintainer adds
   it; `ship`'s merge retry (#25) and this branch's base (the fix branch, #23) merge before it.
 
