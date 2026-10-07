@@ -12,7 +12,7 @@ import { cacheDir, cachedSolve, engineHash } from './proof-cache';
 import { GAME, GAME_DIR, loadGameModule } from './game';
 import { applyVariant, compileGameManifest } from '../src/engine/core/remix/apply';
 import { logicalKey, RemixManifestError } from '../src/engine/core/remix/compile';
-import { coverage, instancesOf, seedDraws } from '../src/engine/tools/remix';
+import { coverage, instancesOf, remixGoals, seedDraws } from '../src/engine/tools/remix';
 import { validate } from '../src/engine/tools/validate';
 import { loadLayouts } from '../src/engine/tools/load';
 
@@ -66,8 +66,9 @@ for (const mode of game.remix!.modes) {
       const r = validate(world, layouts, { commands });
       errors = r.errors.length;
       const s = await cachedSolve(world, layouts, { commands, maxStates, mode: prove ? 'prove' : 'witness' });
-      // Every objective, the optional ones included, reachable in this world (a coupled answer, an order's group).
-      const goal = Object.values(world.objectives ?? {}).map((o) => o.done);
+      // Every objective, the optional ones included, and what a coupled answer or a code wheel sets, reachable in this
+      // world (the answer its hint names, an order's group).
+      const goal = [...Object.values(world.objectives ?? {}).map((o) => o.done), ...remixGoals(world)];
       const all = goal.length ? await cachedSolve(world, layouts, { commands, maxStates, goal }) : s;
       status = errors
         ? 'invalid'
@@ -112,7 +113,7 @@ for (const mode of game.remix!.modes) {
     ? `catalogue: ${rows.length} instance(s), every one checked`
     : `generator: a sample of ${rows.length} seed(s) checked (not every seed)`;
   console.log(
-    `${ok === rows.length ? '✔' : '✗'}  [${GAME}] mode ${mode.id} (${mode.strategy}) — ${what}; ${ok}/${rows.length} ${prove ? 'proved (no softlock)' : 'solved (a witness to the ending and to every objective)'}`,
+    `${ok === rows.length ? '✔' : '✗'}  [${GAME}] mode ${mode.id} (${mode.strategy}) — ${what}; ${ok}/${rows.length} ${prove ? 'proved (no softlock)' : 'solved (a witness to the ending, and to every objective and Remix goal)'}`,
   );
   for (const r of rows.filter((x) => x.status !== 'solved'))
     console.log(`   ✗ ${r.seed} (world ${r.world}): ${r.status}`);

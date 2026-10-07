@@ -290,8 +290,6 @@
  "objectives/cellar.title": "Open the cellar",
  "objectives/board.title": "Hang the festival board",
  "objectives/radio.title": "Make Grandma dance",
- "objectives/password.title": "Tell Lou the festival password",
- "objectives/pirate.title": "Pass the Extremely Legitimate Pirate Check",
  "players/give": "Here, {nom}. The {objet}. Do not lose it.",
  "start/intro.game.intro.l-festival-night.say": "Festival night. And every light in the market is out.",
  "start/intro.game.intro.l-lou-is-in-his.say": "Lou is in his office, behind the left blue door. Biscuit is asleep in the garden. As usual.",

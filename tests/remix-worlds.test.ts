@@ -15,7 +15,7 @@ import { applyLocale } from '@engine/tools/i18n';
 import { puzzleGraph } from '@engine/tools/puzzle';
 import { solve } from '@engine/tools/solve';
 import { validate } from '@engine/tools/validate';
-import { coverage, describeVariant, instancesOf, variantOf } from '@engine/tools/remix';
+import { coverage, describeVariant, instancesOf, remixGoals, variantOf } from '@engine/tools/remix';
 import { game as demo } from '../games/demo/game';
 import { commands } from '../games/demo/index';
 import { game as reference } from '../games/reference/game';
@@ -132,7 +132,7 @@ describe('the reference: an actor, a route, an order and a coupled password', ()
         [applyVariant(reference, v), 'en'],
         [applyVariant(french, v, { lang: 'fr' }), 'fr'],
       ] as const) {
-        const texts = strings({ rooms: g.rooms, objectives: g.objectives });
+        const texts = strings({ rooms: g.rooms });
         expect(texts.some((t) => t.includes('{code:') || t.includes('{hint:'))).toBe(false);
         expect(texts.some((t) => t.includes(pair.hint[lang]!))).toBe(true);
         expect(texts.some((t) => t.startsWith(`${pair.answer} !`) || t.startsWith(`${pair.answer}!`))).toBe(true);
@@ -159,7 +159,11 @@ describe('the reference: an actor, a route, an order and a coupled password', ()
         x['seller-start'] === 'alley',
     )!;
     const g = applyVariant(reference, variantOf(c, 'remix', 0, a));
-    const r = await solve(g, layouts, { maxStates: 60000, goal: Object.values(g.objectives!).map((o) => o.done) });
+    expect(remixGoals(reference)).toEqual(['password_ok', 'pirate_checked']);
+    const r = await solve(g, layouts, {
+      maxStates: 60000,
+      goal: [...Object.values(g.objectives!).map((o) => o.done), ...remixGoals(g)],
+    });
     expect(r.status).toBe('solved');
   }, 120_000);
   it('a seed reads as one line per dimension', () => {

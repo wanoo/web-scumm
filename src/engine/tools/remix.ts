@@ -8,7 +8,8 @@ import { compileGameManifest, textIn } from '../core/remix/apply';
 import { REMIX_ALGORITHM, REMIX_ALGORITHM_VERSION } from '../core/remix/manifest';
 import { encodeSeedCode } from '../core/remix/seed-code';
 import { sha256HexSync } from '../core/remix/sha256';
-import type { GameDef } from '../core/types';
+import { condFlags } from '../core/cond';
+import type { Cmd, Cond, GameDef } from '../core/types';
 
 /** A variant made from a catalogue's assignment (no seed: its `seed` names the catalogue entry). */
 export function variantOf(
@@ -136,4 +137,35 @@ export function describeVariant(game: GameDef, v: WorldVariant, lang?: string): 
     lines.push(`  ${id} [${d.kind}]: ${text}${story}`);
   }
   return lines;
+}
+
+/**
+ * What every world must also reach, beyond the ending and the objectives: the flags a coupled answer sets (the `then`
+ * of an `if` that reads a coupled dimension's reserved flag) and the flags a code wheel's `then` sets. So an optional
+ * puzzle of Remix is proved solvable in each world, the answer its hint names included.
+ */
+export function remixGoals(game: GameDef): Cond[] {
+  const coupled = new Set(
+    (game.remix?.dimensions ?? []).filter((d) => d.kind === 'coupled').map((d) => `remix.${d.id}`),
+  );
+  const out = new Set<string>();
+  const sets = (list: unknown) => {
+    if (!Array.isArray(list)) return;
+    for (const c of list as Cmd[]) {
+      const set = c && typeof c === 'object' && 'set' in c ? (c as { set: unknown }).set : undefined;
+      if (typeof set === 'string' && !set.startsWith('!')) out.add(set);
+    }
+  };
+  const walk = (x: unknown) => {
+    if (Array.isArray(x)) x.forEach(walk);
+    else if (x && typeof x === 'object') {
+      const o = x as Record<string, unknown>;
+      if ('if' in o && 'then' in o && [...condFlags(o.if as Cond)].some((f) => coupled.has(f))) sets(o.then);
+      if (o.minigame === 'code-wheel') sets(o.then);
+      Object.values(o).forEach(walk);
+    }
+  };
+  walk(game.rooms);
+  walk(game.rules);
+  return [...out].sort();
 }

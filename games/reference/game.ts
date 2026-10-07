@@ -70,8 +70,6 @@ export const game = defineGame({
     cellar: { title: 'Open the cellar', done: 'cellar_open', parent: 'lights' },
     board: { title: 'Hang the festival board', done: 'board_hung' },
     radio: { title: 'Make Grandma dance', done: 'radio_on', optional: true },
-    password: { title: 'Tell Lou the festival password', done: 'password_ok', optional: true },
-    pirate: { title: 'Pass the Extremely Legitimate Pirate Check', done: 'pirate_checked', optional: true },
   },
   // Remix (4.1.15, docs/en/REMIX.md): where the seller starts and which round he walks, whether Lou hands the board
   // before or after the lights, the festival password and its riddle, how Pixel greets the night. Every mode is a
