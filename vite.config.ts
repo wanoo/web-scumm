@@ -213,10 +213,10 @@ export default defineConfig({
         // (dom/reality-ui.ts), the Studio's simulator and panel are covered by e2e:reality, not here.
         'src/engine/core/reality-runtime.ts': { lines: 100, branches: 100 },
         'src/engine/reality/protocol.ts': { lines: 95, branches: 95 },
-        'src/engine/reality/client.ts': { lines: 90, branches: 81 },
-        'src/engine/reality/http-port.ts': { lines: 96, branches: 78 },
+        'src/engine/reality/client.ts': { lines: 98, branches: 89 },
+        'src/engine/reality/http-port.ts': { lines: 98, branches: 95 },
         'bridge/src/bridge.ts': { lines: 97, branches: 95 },
-        'bridge/src/store.ts': { lines: 94, branches: 86 },
+        'bridge/src/store.ts': { lines: 96, branches: 92 },
         'bridge/src/server.ts': { lines: 92, branches: 82 },
         'bridge/src/policy.ts': { lines: 100, branches: 98 },
         'bridge/src/lock.ts': { lines: 100, branches: 100 },

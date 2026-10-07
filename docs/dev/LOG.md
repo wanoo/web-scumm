@@ -2380,6 +2380,66 @@ Platform"; human gates reported, not blocking (D12).
 
 → next: Claude · `test/418-reality-mutants` (the 88 survivors killed or named; `--set=reality` gated by `mutationInputHash`)
 
+## #107 · 2026-10-07 · Claude · proposal · `test/418-reality-mutants`: the 96 survivors, and a gate keyed by its inputs
+
+- Measured first (`npx tsx tools/mutate.ts --set=reality` on the fix commit 4592e73, 43 min on the Mac): 404/514
+  killed, 14 explained, **96 unexplained** (store 45, bridge 34, client 12, policy 3, protocol 2; 88 at 4.1.7 plus
+  the new lock and schema). Then three agents, one group each, one new test file each, never the suite, never the
+  mutation tool: bridge + policy 35/37 (`tests/bridge-mutants.test.ts`, a store hook that opens the window between a
+  proposal's check before the lock and the one inside it; `propose(token, null)`; the exact instants of expiries and
+  the quota window; `ack(1.5)`), store 40/45 (`tests/bridge-store.test.ts`: retention at the boundary, the last
+  signal kept, `forget` keeping the other player's lines, the lock's liveness with pids 1 and 2147483647, a journal
+  folder without write permission), client + protocol 14/14 (`tests/reality-client.test.ts`: `stop()` while the
+  engine is busy or has no game, `unknown`/`overflow`/`busy` never acknowledged, the mismatch that closes the port,
+  the size limit at 4096/4097, the refusal's wording that reaches `onRefused`). The 7 equivalents are named with
+  their reason; the kills were verified by each agent on a throwaway copy, mutant by mutant.
+- The gate: a report keyed by `inputHash` (sources, tests, both configurations, the tool, mutants.json, the
+  lockfile), reused when nothing changed, `--fresh` otherwise; CI job `mutation` on both sets behind `actions/cache`
+  keyed by the hash; `release.yml` restores it before `release-check` (`--set=all`); nightly both sets, fresh,
+  gated. `tools/mutation-sets.ts` holds the sets for the tool and the vitest config. `KnownSurvivor.context`: an
+  entry names its source line, so a `+ → -` named once no longer covers every `+ → -` of the file (the store agent's
+  finding); `tests/mutants-doc.test.ts` keeps MUTANTS.md's table (`--doc`) equal to the JSON and every context line
+  present in its file.
+- `http-port.ts` added to the set (the transport the P0 fix rewrote): measured alone on the fixed code, 51/90
+  killed, 39 unexplained; a fourth agent wrote `tests/reality-port.test.ts` (23 tests, fake timers for the backoff
+  and the stream's timer; the UTF-8 split across chunks, the frame and buffer exactly at their limits, a Bridge
+  without `sequences` or `id`s, a 500 then a 200, the ack through a lower cursor): 32 killed, 7 named, two of them
+  pointing at a redundancy in the loop (the catch's `break` doubled by the next line) worth a later clean-up.
+- Measured after, on the branch, in two runs (the whole set before the port's tests, 534/585 with 33 unexplained all
+  in `http-port.ts`; then the port alone on the fixed code, 83/90): 579/604 killed, 25 survivors, every one
+  explained, the Reality set gates. The CI job `mutation` measures both sets whole on this pull request.
+- The second reading's findings, taken: the hash covers the static import closure of the sources and the tests
+  (`engine.ts`, the Bridge's `server.ts`, the fixtures: a change there can turn a kill into a survivor) and leaves
+  the lockfile's own `version` fields out (a version bump kept re-running everything); one context-less name covered
+  two mutants of `store.ts` (the two `err instanceof Error` lines): 29 names for the 25 survivors now, one per line;
+  MUTANTS.md's prose dated 4.1.2 is history and a 4.1.8 paragraph says the figures; the port tests' real-time wait is
+  four seconds for a loaded runner (a timeout under a mutation run counts as a kill: `--fresh` on the nightly is the
+  correction, said in the tool). Not done, said as such: `command-handlers.ts` and `scheduler.ts` stay out of the gated sets (MUTANTS.md
+  says so since 4.1.5); the `mutation` CI job is not among the ruleset's required checks until the maintainer adds
+  it; `ship`'s merge retry (#25) and this branch's base (the fix branch, #23) merge before it.
+
+- CI's first full run of the job (`--set=all`, 7 October, 04:31) was cancelled by its 90-minute limit with the
+  reality set barely begun: every mutant was judged by both sets' tests, and a mutant whose run exceeded three
+  minutes left vitest's forked workers alive (the runner's cancellation listed eleven orphan `node` processes), the
+  same orphans that heated the maintainer's Mac. Now a mutant is judged by its own set's tests (`all` = the sets one
+  after the other), the runner spawns vitest detached and kills the whole process group on a timeout, the job has
+  150 minutes, and `npm run ship -- checks` waits up to four hours.
+
+- The second CI run (52 minutes, the sets one after the other) killed 924/959 and left seven survivors unexplained,
+  all in `JournalLock.acquire`'s races (`store.ts` 237–280: the lock released between our link and our read, a rival's
+  rename at the same instant, an error other than EEXIST or ENOENT): the Mac had reached them by chance under the real
+  races, the runner never did. `tests/bridge-lock-races.test.ts` scripts `readFileSync` and `linkSync` (the real
+  `node:fs` otherwise) and reaches each branch on purpose: 132/140 on the store, the seven dead; one named survivor
+  (`inspectJournal`'s `err instanceof Error → false`) is now killed by the same tests and leaves `mutants.json`.
+
+- Third CI run, same day: the maintainer's analysis of the CI (20 jobs a pull request, 59–61 runner-minutes, 26
+  cancellations in the last 50 runs, the mutation job holding a run for an hour) asks the mutation off the pull
+  request path. Done here: the job runs on main, on the nightly, in release-check (the cached report) and on a pull
+  request labelled `full-ci` only. The rest of that analysis (one fast PR tier, a full gate once per change, a
+  `plan` job and a `pr-gate` aggregator, the strict ratchet as a warning on PRs) is lot 0 of 4.1.9
+  (`docs/dev/plans/README.md`).
+
+→ next: Claude · `refactor/418-typescript-7` (paths without `baseUrl`, the generated project's tsconfig; the compiler itself decided per MIGRATION-4.1.8.md)
 ## #108 · 2026-10-07 · Claude · proposal · `refactor/418-typescript-7`: the compiler, the paths, the CommonJS import
 
 - The decision MIGRATION-4.1.8.md left open: `typescript@7.0.2` as the compiler, `@typescript/typescript6` (6.0.2)

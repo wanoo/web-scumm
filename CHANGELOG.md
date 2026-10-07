@@ -134,6 +134,24 @@
   attestations verified. A pre-release tag (`v4.1.8-rc.1`) is published as a GitHub pre-release and its notes say
   which version it candidates for.
 
+- **The mutation gate, honest and cheap to carry** (4.1.8). `tools/mutate.ts` writes a report keyed by the hash of
+  its inputs (the set's sources and tests, the two configurations, the tool, the named survivors, the lockfile;
+  `--hash` prints it) and reuses a report of the same inputs instead of running again (`--fresh` runs anyway): a
+  commit of docs or of a version does not re-run the sets. CI gains a `mutation` job on both sets, cached by that
+  hash (on `main` and on a pull request labelled `full-ci`: an ordinary pull request does not wait an hour for it); `release.yml` restores the cache before `release-check`, which runs `--set=all`; the nightly runs both sets
+  fresh and gated (no `continue-on-error`). A mutant is judged by the tests of its own set (`all` runs the sets one
+  after the other), and a run that exceeds three minutes is killed with its whole process group (vitest's forked
+  workers included: the orphans of a killed parent had slowed CI's runner to a 90-minute cancellation). The sets'
+  sources and tests live in `tools/mutation-sets.ts`, read by the tool and by `vitest.mutation.config.ts`. A named survivor may name the source line it sits on (`context`), so it
+  never covers another mutant of the same file; `--doc` writes the table of named survivors into MUTANTS.md and a
+  test keeps the two equal. **The Reality set's unexplained survivors are gone**, and `http-port.ts` (the player's
+  transport, rewritten by the P0 fix) joins the set: 121 killed by four new test files (`tests/bridge-mutants.test.ts`,
+  `tests/bridge-store.test.ts`, `tests/reality-client.test.ts`, `tests/reality-port.test.ts`: the exact edges of
+  expiries, quotas and size limits, revocations landing inside the lock, the journal's retention and rewrite, the
+  client's refusals and its stop, the port's backoff, cursors and parser), 16 named as equivalent with their reason
+  and the source line they sit on (29 names for 25 survivors, one per line); two old equivalents, now killed, left the list. Measured on the branch:
+  579 of 604 mutants killed, every survivor named.
+
 ## 4.1.7 — 2026-10-06
 
 "Docs for a Studio" (LOG #103): the plan's sixth release, the last before 4.2; the documentation a studio reads

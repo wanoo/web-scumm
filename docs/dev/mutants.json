@@ -60,7 +60,7 @@
   "operator": "operator",
   "from": "-",
   "to": "+",
-  "why": "base64url padding `(4 - n % 4) % 4` \u2192 `(4 + n % 4) % 4`: Node's atob tolerates missing or wrong padding, so the payload decodes the same"
+  "why": "base64url padding `(4 - n % 4) % 4` → `(4 + n % 4) % 4`: Node's atob tolerates missing or wrong padding, so the payload decodes the same"
  },
  {
   "file": "bridge/src/lock.ts",
@@ -71,20 +71,6 @@
  },
  {
   "file": "bridge/src/bridge.ts",
-  "operator": "condition false",
-  "from": "!player || player.gameId !== this.config.gameId || player.revoked",
-  "to": "false",
-  "why": "the check before the lock: the same check runs again inside it (`!current || current.revoked`), which refuses an unknown or revoked player just the same; the two together are killed"
- },
- {
-  "file": "bridge/src/bridge.ts",
-  "operator": "condition false",
-  "from": "!current || current.revoked",
-  "to": "false",
-  "why": "the check inside the lock: the one before it already refused an unknown or revoked player, and nothing awaits between the two unless another proposal holds the lock (a window no test opens yet)"
- },
- {
-  "file": "bridge/src/bridge.ts",
   "operator": "condition true",
   "from": "this.streams.delete(s)",
   "to": "true",
@@ -92,16 +78,138 @@
  },
  {
   "file": "bridge/src/store.ts",
+  "operator": "condition false",
+  "from": "e.t === 'revoke-token'",
+  "to": "false",
+  "context": "if (e.t === 'revoke-token') return false;",
+  "why": "aboutPlayer: a revoke-token event has no playerId, so the fallthrough compares undefined with a non-empty player id and is false just the same"
+ },
+ {
+  "file": "bridge/src/store.ts",
+  "operator": "condition true",
+  "from": "issue",
+  "to": "true",
+  "context": "`journal line ${n} is not an event (${issue ? `${issue.path.join('.') || 't'}: ${issue.message}` : 'invalid'})`,",
+  "why": "parseLine: a failed safeParse always carries at least one issue, so the 'invalid' branch is never taken"
+ },
+ {
+  "file": "bridge/src/store.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "for (let attempt = 0; attempt < 3; attempt++) {",
+  "why": "JournalLock.acquire: a fourth attempt is reached only if other processes keep re-creating the lock at the instant ours was released, a race no test can stage; the attempts within the bound succeed just the same"
+ },
+ {
+  "file": "bridge/src/store.ts",
+  "operator": "operator",
+  "from": "+",
+  "to": "-",
+  "context": "parseLine(tail, complete.length + 1);",
+  "why": "inspectJournal: the tail's line number appears only in parseLine's error message, which the caller discards (torn)"
+ },
+ {
+  "file": "bridge/src/store.ts",
+  "operator": "operator",
+  "from": "+",
+  "to": "-",
+  "context": "this.apply(parseLine(tail, complete.length + 1));",
+  "why": "JsonlBridgeStore: the tail's line number appears only in parseLine's error message, which the constructor discards (truncate)"
+ },
+ {
+  "file": "bridge/src/bridge.ts",
+  "operator": "condition false",
+  "from": "p",
+  "to": "false",
+  "context": "if (p) {",
+  "why": "a miss on the re-sign cache only signs the payload again: Ed25519 is deterministic, so the JWS is byte-identical, and the count is the same whether the entry was found or set again under the same key"
+ },
+ {
+  "file": "bridge/src/bridge.ts",
+  "operator": "condition false",
+  "from": "oldest === undefined",
+  "to": "false",
+  "context": "if (oldest === undefined) break;",
+  "why": "the eviction loop runs only while the map holds more than `limits.resignedCache` entries, so its first key always exists; the guard is reached by no limit the configuration accepts"
+ },
+ {
+  "file": "src/engine/reality/http-port.ts",
+  "operator": "boolean",
+  "from": "true",
+  "to": "false",
+  "context": "signal?.addEventListener('abort', () => (clearTimeout(t), ok()), { once: true });",
+  "why": "sleep: an AbortSignal fires `abort` at most once, so `once` only removes a listener that can never run again; nothing observable"
+ },
+ {
+  "file": "src/engine/reality/http-port.ts",
+  "operator": "boolean",
+  "from": "true",
+  "to": "false",
+  "context": "signal.addEventListener('abort', onAbort, { once: true });",
+  "why": "the stream's abort relay: the signal aborts at most once and the finally removes the listener anyway, so `once` changes nothing"
+ },
+ {
+  "file": "src/engine/reality/http-port.ts",
+  "operator": "boolean",
+  "from": "false",
+  "to": "true",
+  "context": "let endedByPort = false;",
+  "why": "the initial value is dead: every loop iteration sets `endedByPort = false` before the only read at `if (!endedByPort)`"
+ },
+ {
+  "file": "src/engine/reality/http-port.ts",
+  "operator": "condition true",
+  "from": "unsettled",
+  "to": "true",
+  "context": "if (unsettled) clearTimeout(unsettled);",
+  "why": "`clearTimeout(undefined)` is a no-op: clearing unconditionally is the same as clearing when armed"
+ },
+ {
+  "file": "src/engine/reality/http-port.ts",
+  "operator": "condition false",
+  "from": "signal.aborted || closed",
+  "to": "false",
+  "context": "if (signal.aborted || closed) break;",
+  "why": "the catch's break is redundant: with no await between them, the next line `if (closed || signal.aborted) break;` tests the same condition and breaks just the same"
+ },
+ {
+  "file": "src/engine/reality/http-port.ts",
+  "operator": "operator",
+  "from": "||",
+  "to": "&&",
+  "context": "if (signal.aborted || closed) break;",
+  "why": "same redundancy: whatever the catch decides, the line after it breaks on `closed || signal.aborted` with no await in between"
+ },
+ {
+  "file": "src/engine/reality/http-port.ts",
+  "operator": "boolean",
+  "from": "true",
+  "to": "false",
+  "context": "closed = true;",
+  "why": "close() also aborts `own`, and every `signal` the loop tests is `own.signal` or an `AbortSignal.any` over it; `closed` is only ever read alongside `signal.aborted`, which it never adds to"
+ },
+ {
+  "file": "bridge/src/store.ts",
   "operator": "condition true",
   "from": "err instanceof Error",
   "to": "true",
-  "why": "only the wording of the corruption message (`err.message` vs 'unreadable'); the line number and the refusal are the same"
+  "why": "parseLine: only the wording of the corruption message (`err.message` or a fallback); the line number and the refusal are the same",
+  "context": "throw new Error(`journal line ${n} is not an event (${err instanceof Error ? err.message : 'unreadable'})`);"
+ },
+ {
+  "file": "bridge/src/store.ts",
+  "operator": "condition true",
+  "from": "err instanceof Error",
+  "to": "true",
+  "why": "inspectJournal: only the wording of the corruption message (`err.message` or a fallback); the line number and the refusal are the same",
+  "context": "r.corrupt ??= err instanceof Error ? err.message : String(err);"
  },
  {
   "file": "bridge/src/store.ts",
   "operator": "condition false",
   "from": "err instanceof Error",
   "to": "false",
-  "why": "only the wording of the corruption message; the line number and the refusal are the same"
+  "why": "parseLine: only the wording of the corruption message (`err.message` or a fallback); the line number and the refusal are the same",
+  "context": "throw new Error(`journal line ${n} is not an event (${err instanceof Error ? err.message : 'unreadable'})`);"
  }
 ]
