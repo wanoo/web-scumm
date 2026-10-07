@@ -375,13 +375,17 @@ describe('no Math.random on the variant path', () => {
     applyVariant(demo, compileVariant(compileGameManifest(demo), demo.remix!, encodeSeedCode(5)));
     expect(spy).not.toHaveBeenCalled();
   });
-  it('no source of src/engine/core calls it, and biome.json forbids it there', () => {
+  it('no source of src/engine/core nor src/engine/minigames calls it, and biome.json forbids it there', () => {
     const files = (d: string): string[] =>
       readdirSync(d, { withFileTypes: true }).flatMap((e) =>
         e.isDirectory() ? files(join(d, e.name)) : e.name.endsWith('.ts') ? [join(d, e.name)] : [],
       );
-    const users = files('src/engine/core').filter((f) => /Math\.random\s*\(/.test(readFileSync(f, 'utf8')));
+    const users = [...files('src/engine/core'), ...files('src/engine/minigames')].filter((f) =>
+      /Math\.random\s*\(/.test(readFileSync(f, 'utf8')),
+    );
+    // The minigames draw from the run's `minigame:<id>` stream (ctx.random) since the second reading of 4.1.15.
     expect(users).toEqual([]);
+    expect(readFileSync('tools/biome/no-math-random.grit', 'utf8')).toContain('$m = Math');
     const biome = readFileSync('biome.json', 'utf8');
     expect(biome).toContain('noRestrictedGlobals');
     expect(biome).toContain('no-math-random.grit');

@@ -21,6 +21,11 @@ export interface MinigameCtx {
   labels: { skip: string; jump: string; duck: string; [k: string]: string };
   /** Cancelled when the host closes the minigame. */
   signal: AbortSignal;
+  /**
+   * Draws in [0, 1) from the run's `minigame:<id>` stream (4.1.15): a layout, a shuffle, an obstacle's timing. Given by
+   * the engine's presenter; absent (another host), `random(ctx)` in minigames/util.ts falls back to a fixed stream.
+   */
+  random?: () => number;
   /** UI CSS font families (skin.fonts), for what doesn't go through CSS variables (canvas). */
   fonts?: { ui: string; pixel: string };
 }

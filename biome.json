@@ -82,7 +82,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/engine/core/**"],
+      "includes": ["src/engine/core/**", "src/engine/minigames/**"],
       "plugins": ["./tools/biome/no-math-random.grit"]
     },
     {

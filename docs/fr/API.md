@@ -286,7 +286,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 |---|---|---|---|
 | `Minigame` | `interface { run, required, textParams, bindings }` | extension | A minigame: `run(ctx)` until it is won or skipped, and what the validator reads of its params. |
 | `MINIGAME_CSS` | `string` | public | The shared styles of the minigames, injected once by the host. |
-| `MinigameCtx` | `interface { root, u, img, size, sfx, instruct, … 4 more }` | extension | What the host hands a minigame: its zone, the unit scale, images and sounds, parameters, labels and an abort signal. |
+| `MinigameCtx` | `interface { root, u, img, size, sfx, instruct, … 5 more }` | extension | What the host hands a minigame: its zone, the unit scale, images and sounds, parameters, labels and an abort signal. |
 | `minigames` | `Record<string, Minigame>` | public | Minigames provided by the engine. A game can add others with the same interface. What tools read (`required`, `textParams`, `bindings`) is h |
 
 ### web-scumm/testing

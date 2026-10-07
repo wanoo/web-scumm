@@ -356,7 +356,8 @@ it (the validator refuses a command that sets one; none in the bundled games). A
 title screen and a world row in its pause menu: a game whose release language is not English adds the `ui.remix*`
 keys (`remix`, `remixTitle`, `remixStory`, `remixRandom`, `remixSeed`, `remixDaily`, `remixPlay`, `remixInvalid`,
 `remixWorld`, `remixHidden`, `remixCopied`, `remixNoBridge`) to its `ui` and tables (`npm run i18n -- status` lists
-the ones left to English). The built-in minigames gain `code-wheel`. `Session.variant` and `IrVariantSlot.variant` are
+the ones left to English). The built-in minigames gain `code-wheel`, and draw from `MinigameCtx.random` (the run's `minigame:<id>` stream) instead of
+`Math.random`: a game's own minigame may do the same (`random(ctx)` falls back to a fixed stream when a host gives none). `Session.variant` and `IrVariantSlot.variant` are
 new optional fields; `ir.world.remix` and `ir.rooms[].anchors` appear when a game declares them. New commands:
 `npm run remix`, `npm run verify:variants` (part of `verify:game`), `npm run code-wheel`, `npm run e2e:remix`.
 

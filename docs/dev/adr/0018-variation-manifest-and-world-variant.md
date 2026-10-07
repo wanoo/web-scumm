@@ -26,7 +26,11 @@ and xoshiro only so that Node, Chromium, WebKit and Firefox agree (tested in Nod
    logical dimensions, `cosmetic` for presentation (D27), `copy-protection` for the code wheel; a catalogue mode draws
    one index in its enumerated list. Integers and rejection sampling, no modulo bias, no `Math`: `biome.json` forbids
    `Math` in `src/engine/core/remix/` (`noRestrictedGlobals`) and `Math.random` in `src/engine/core/` (a GritQL
-   plugin, `tools/biome/no-math-random.grit`, no exception: `prng.ts`'s `newSeed` throws without WebCrypto), and
+   plugin, `tools/biome/no-math-random.grit`, which also catches `Math` aliased; no exception: `prng.ts`'s `newSeed`
+   throws without WebCrypto) and in `src/engine/minigames/` (a minigame draws from the run's `minigame:<id>` stream,
+   `MinigameCtx.random`, since the second reading; its outcome never depended on a draw: it ends won or skipped). The
+   player's decorative draws (a blink, a mouth, the ending's confetti in `dom/` and `ending/`) stay outside the
+   rule: they change no state. And
    `tests/remix-compile.test.ts` both greps the sources and runs the path with `Math.random` throwing.
 4. **The world is plain data** (`src/engine/core/remix/apply.ts`, `applyVariant`): a logical value away from its story
    value writes the reserved flag `remix.<dimension>` (a puzzle order `remix.<dimension>.<group>` = its position) in

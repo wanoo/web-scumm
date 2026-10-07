@@ -375,7 +375,9 @@ manifeste montre un bouton **Remix** sur son écran titre et une ligne de monde 
 langue de release n'est pas l'anglais ajoute les clés `ui.remix*` (`remix`, `remixTitle`, `remixStory`, `remixRandom`,
 `remixSeed`, `remixDaily`, `remixPlay`, `remixInvalid`, `remixWorld`, `remixHidden`, `remixCopied`, `remixNoBridge`) à
 son `ui` et à ses tables (`npm run i18n -- status` liste celles laissées à l'anglais). Les minijeux livrés gagnent
-`code-wheel`. `Session.variant` et `IrVariantSlot.variant` sont de nouveaux champs optionnels ; `ir.world.remix` et
+`code-wheel`. Ils tirent de `MinigameCtx.random` (le flux `minigame:<id>`
+de la partie) au lieu de `Math.random` : le minijeu propre d'un jeu peut faire de même (`random(ctx)` se replie sur un
+flux fixe quand un hôte n'en donne pas). `Session.variant` et `IrVariantSlot.variant` sont de nouveaux champs optionnels ; `ir.world.remix` et
 `ir.rooms[].anchors` apparaissent quand un jeu les déclare. Nouvelles commandes : `npm run remix`, `npm run
 verify:variants` (dans `verify:game`), `npm run code-wheel`, `npm run e2e:remix`.
 

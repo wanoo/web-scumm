@@ -3,6 +3,7 @@
 // input goes through to reach the engine (`intent`). It was App's own surface until 4.1.10; App now composes it with
 // the room view and its painter (dom/room.ts, dom/frame-renderer.ts). The overlays it draws (lines, toasts, the
 // spark, the cutscene's skip) are DOM; the scene itself is the room view's.
+import { derive } from '../core/prng';
 import type { MotionSpec } from '../core/motion';
 import type { Presenter } from '../core/ports';
 import type { GameState, Id, Point, RoomDef, VerbId } from '../core/types';
@@ -243,6 +244,11 @@ export class DomPresenter implements Presenter {
           frame.innerHTML = `<span class="who">${esc((voice?.name ?? '').toUpperCase())}</span>${esc(text)}`;
         },
         params,
+        // The run's `minigame:<id>` stream (4.1.15): the same layout for the same seed and the same play-through.
+        random: (() => {
+          const rng = derive(`${app.engine.sessions.seed ?? 'unseeded'}|${app.minigameLog.length}`, `minigame:${id}`);
+          return () => rng.next();
+        })(),
         signal: ac.signal,
         fonts: { ui: app.game.skin.fonts?.ui ?? FONT_UI, pixel: app.game.skin.fonts?.pixel ?? FONT_PIXEL },
         labels: { skip: app.game.ui.skip, jump: app.t('jump'), duck: app.t('duck') },
