@@ -79,6 +79,9 @@ describe('seed codes', () => {
     expect(() => normalizeSeed('WS-000')).toThrow(/symbols/);
     expect(() => normalizeSeed('WS-00U0-0000')).toThrow(/not a symbol/);
     expect(() => normalizeSeed('hello world')).toThrow(RemixSeedError);
+    // Non-ASCII lookalikes are refused before any case mapping (ı would uppercase to I, then read as 1).
+    expect(() => normalizeSeed('WS-ı000-0000')).toThrow(/plain letters and digits/);
+    expect(() => normalizeSeed('ＷＳ-0000-0000')).toThrow(/plain letters and digits/);
   });
   it('a one-symbol typo is always caught by the check symbol', () => {
     let caught = 0;
@@ -289,6 +292,27 @@ describe('a stored world is never regenerated', () => {
     expect(r.stale).toBe(true);
     expect(r.variant.assignments).toEqual(v.assignments);
   });
+  it('a forged world with its own correct hash is refused: out of domain, incomplete, against a constraint, malformed', () => {
+    const v = compileVariant(c, extensionManifest, encodeSeedCode(7));
+    const rehash = (body: Record<string, unknown>) => {
+      const { hash: _h, ...rest } = body as typeof v;
+      return { ...rest, hash: sha256HexSync(canonicalJson(rest)) };
+    };
+    expect(() => loadVariant(c, rehash({ ...v, assignments: { ...v.assignments, code: 99 } }))).toThrow(
+      /does not exist/,
+    );
+    const { code: _c, ...missing } = v.assignments;
+    expect(() => loadVariant(c, rehash({ ...v, assignments: missing }))).toThrow(/no value for code/);
+    expect(() =>
+      loadVariant(
+        c,
+        rehash({ ...v, assignments: { ...v.assignments, 'token-spot': 'house.clock', 'pipe-spot': 'house.clock' } }),
+      ),
+    ).toThrow(/constraints/);
+    expect(() => loadVariant(c, rehash({ ...v, mode: 'nope' }))).toThrow(/mode "nope"/);
+    expect(() => loadVariant(c, { ...v, hash: 'x' })).toThrow(/not a world/);
+    expect(() => loadVariant(c, 'nonsense')).toThrow(/not a world/);
+  });
   it('after a fictitious algorithmVersion 2 that draws otherwise, an old save reloads its exact assignment', () => {
     const v1 = compileVariant(c, extensionManifest, encodeSeedCode(2024));
     // Version 2 as a later engine might write it: the same seed draws another world.
@@ -315,13 +339,13 @@ describe('no Math.random on the variant path', () => {
     applyVariant(demo, compileVariant(compileGameManifest(demo), demo.remix!, encodeSeedCode(5)));
     expect(spy).not.toHaveBeenCalled();
   });
-  it('no source of src/engine/core calls it but prng.ts newSeed (no WebCrypto), and biome.json forbids it there', () => {
+  it('no source of src/engine/core calls it, and biome.json forbids it there', () => {
     const files = (d: string): string[] =>
       readdirSync(d, { withFileTypes: true }).flatMap((e) =>
         e.isDirectory() ? files(join(d, e.name)) : e.name.endsWith('.ts') ? [join(d, e.name)] : [],
       );
     const users = files('src/engine/core').filter((f) => /Math\.random\s*\(/.test(readFileSync(f, 'utf8')));
-    expect(users).toEqual(['src/engine/core/prng.ts']);
+    expect(users).toEqual([]);
     const biome = readFileSync('biome.json', 'utf8');
     expect(biome).toContain('noRestrictedGlobals');
     expect(biome).toContain('no-math-random.grit');

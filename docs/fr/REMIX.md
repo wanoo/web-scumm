@@ -77,7 +77,8 @@ partagent leur preuve. Ajouter une dimension de présentation ne déplace aucun 
 Une seed est `story` ou un code `WS-XXXX-XXXX` : sept symboles en base32 de Crockford et un symbole de contrôle. La
 saisie pardonne la casse, `I`, `L` et `O` ; un symbole faux est une erreur explicite, jamais un autre monde. Le même
 jeu, le même manifeste, la même seed et la même version d'algorithme donnent le même `WorldVariant` (seed, algorithme
-et version, empreinte du manifeste, mode, une valeur par dimension, un SHA-256) sur Node, Chromium, WebKit et Firefox.
+et version, empreinte du manifeste, mode, une valeur par dimension, un SHA-256) ; c'est testé dans Node, et la
+vérification sur Chromium, WebKit et Firefox (`npm run e2e:remix`) est écrite mais n'a pas encore tourné.
 Les tirages viennent du seul générateur à seed, un flux par dimension ; `Math.random` est interdit dans
 `src/engine/core` par le linter et par un test. Un code ne dit rien du joueur (`docs/dev/threat-models/remix-seed.md`).
 

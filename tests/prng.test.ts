@@ -86,6 +86,14 @@ describe('xoshiro128**', () => {
     expect([p.next(), p.next()]).toEqual(a);
     expect(newSeed()).toMatch(/^[0-9a-f]{32}$/);
     expect(newSeed()).not.toBe(newSeed());
+    // Without WebCrypto, an error: never a guessable draw (4.1.15, second reading).
+    const crypto = globalThis.crypto;
+    Object.defineProperty(globalThis, 'crypto', { value: undefined, configurable: true });
+    try {
+      expect(() => newSeed()).toThrow(/no WebCrypto/);
+    } finally {
+      Object.defineProperty(globalThis, 'crypto', { value: crypto, configurable: true });
+    }
   });
 });
 

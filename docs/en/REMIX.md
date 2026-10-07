@@ -74,7 +74,8 @@ dimension moves no logical draw.
 A seed is `story` or a code `WS-XXXX-XXXX`: seven Crockford base32 symbols and a check symbol. Typing forgives case,
 `I`, `L` and `O`; a wrong symbol is an explicit error, never another world. The same game, manifest, seed and algorithm
 version give the same `WorldVariant` (seed, algorithm and version, the manifest's hash, the mode, one value per
-dimension, a SHA-256) on Node, Chromium, WebKit and Firefox. The draws come from the seeded generator only, one stream
+dimension, a SHA-256); it is tested in Node, and the check on Chromium, WebKit and Firefox (`npm run e2e:remix`) is
+written but has not run yet. The draws come from the seeded generator only, one stream
 per dimension; `Math.random` is forbidden in `src/engine/core` by the linter and by a test. A code says nothing about
 the player (`docs/dev/threat-models/remix-seed.md`).
 

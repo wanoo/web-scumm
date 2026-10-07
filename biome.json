@@ -82,7 +82,7 @@
   },
   "overrides": [
     {
-      "includes": ["src/engine/core/**", "!src/engine/core/prng.ts"],
+      "includes": ["src/engine/core/**"],
       "plugins": ["./tools/biome/no-math-random.grit"]
     },
     {

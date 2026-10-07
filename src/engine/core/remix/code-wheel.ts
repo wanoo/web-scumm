@@ -4,7 +4,8 @@
 // Two discs: the large one (fixed) carries the actors around its rim and a track of answers inside; the small one
 // (turning) carries the symbols, each with a window cut at its own offset. Turn the small disc until a symbol sits
 // under an actor: the window of that symbol shows one answer of the track. The seed draws everything from the
-// `copy-protection` stream (ADR 0016), independent of every other stream: the same seed makes the same wheel on every
+// `copy-protection` stream (ADR 0016), independent of every other stream: the same seed makes the same wheel (Node-tested; the
+// cross-runtime check is written, not run) on every
 // runtime, and adding a portrait moves no other puzzle. Pure and integer-only (no Math, ADR 0018).
 import { derive } from '../prng';
 import { uniform } from './compile';

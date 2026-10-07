@@ -1,7 +1,8 @@
 // SHA-256 written out over 32-bit words (4.1.15 "Remix", ADR 0018): a world variant's hash is computed when a new game
 // starts, when a save is written and inside the Studio's preview, all synchronous paths, so the variant cannot wait for
-// WebCrypto (`crypto.subtle` is async). Additions, rotations and shifts only, `>>> 0` after each: the same digest in
-// Node, Chromium, WebKit and Firefox (tests/remix-sha256.test.ts compares it with WebCrypto on edge inputs).
+// WebCrypto (`crypto.subtle` is async). Additions, rotations and shifts only, `>>> 0` after each, so every runtime
+// should compute the same digest: tests/remix-compile.test.ts compares it with Node's WebCrypto on edge inputs and 200
+// random strings; the browsers' check (`scripts/e2e-remix.mjs`) is written, not yet run.
 
 const K = new Uint32Array([
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98,

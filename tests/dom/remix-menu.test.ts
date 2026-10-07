@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   chooseWorld,
+  frozenParam,
   keepWorld,
   storedWorld,
   takePendingStart,
@@ -19,6 +20,8 @@ import { uiText, type UiKey } from '@engine/dom/ui-defaults';
 import { applySettings, DEFAULT_SETTINGS } from '@engine/dom/settings';
 import { applyVariant } from '@engine/core/remix/apply';
 import { encodeSeedCode, isSeed } from '@engine/core/remix/seed-code';
+import { sha256HexSync } from '@engine/core/remix/sha256';
+import { canonicalJson } from '@engine/core/canonical';
 import { dailyRoutes } from '../../bridge/src/daily';
 import { game as reference } from '../../games/reference/game';
 

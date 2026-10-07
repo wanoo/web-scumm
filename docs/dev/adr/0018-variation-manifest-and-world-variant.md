@@ -8,8 +8,9 @@ its story into random content. Until 4.1.14 a game had one world. The engine had
 reserved `variant` slot (`src/engine/core/ir.ts`, ADR 0013), a solver that runs the real engine (ADR 0003) and a save
 envelope v3 (`src/engine/core/save.ts`). The runtime, the solver and the replay read a `GameDef`.
 
-**Decision.** `GameIR + VariationManifest + seed + algorithmVersion → WorldVariant`, immutable, the same on Node,
-Chromium, WebKit and Firefox, applied as plain data to the game before anything runs it.
+**Decision.** `GameIR + VariationManifest + seed + algorithmVersion → WorldVariant`, immutable, computed with integers
+and xoshiro only so that Node, Chromium, WebKit and Firefox agree (tested in Node; the browsers' check
+`scripts/e2e-remix.mjs` is written, not yet run), applied as plain data to the game before anything runs it.
 
 1. **The manifest is data** (`GameDef.remix`, `src/engine/core/remix/manifest.ts`, a zod schema): modes (`story`,
    `remix`, `daily`, `mystery`…, each with its strategy, D25), dimensions with finite domains and a story value
@@ -25,7 +26,7 @@ Chromium, WebKit and Firefox, applied as plain data to the game before anything 
    logical dimensions, `cosmetic` for presentation (D27), `copy-protection` for the code wheel; a catalogue mode draws
    one index in its enumerated list. Integers and rejection sampling, no modulo bias, no `Math`: `biome.json` forbids
    `Math` in `src/engine/core/remix/` (`noRestrictedGlobals`) and `Math.random` in `src/engine/core/` (a GritQL
-   plugin, `tools/biome/no-math-random.grit`; the one exception is `prng.ts`'s `newSeed` without WebCrypto), and
+   plugin, `tools/biome/no-math-random.grit`, no exception: `prng.ts`'s `newSeed` throws without WebCrypto), and
    `tests/remix-compile.test.ts` both greps the sources and runs the path with `Math.random` throwing.
 4. **The world is plain data** (`src/engine/core/remix/apply.ts`, `applyVariant`): a logical value away from its story
    value writes the reserved flag `remix.<dimension>` (a puzzle order `remix.<dimension>.<group>` = its position) in
@@ -38,8 +39,14 @@ Chromium, WebKit and Firefox, applied as plain data to the game before anything 
    assignments, hash }`, `hash` the SHA-256 of its `canonicalJson` (`src/engine/core/remix/sha256.ts`, written out so a
    save can be written synchronously; tested against WebCrypto). The save envelope v4 (`SaveEnvelopeV4`), the session
    (`Session.variant`) and a speedrun package carry it; a load, a replay and a verifier rebuild the world from the
-   stored assignment (`loadVariant`: its hash checked; against a moved manifest, each value must still exist), never
-   from the seed with this engine's generator. A v3 save receives the story world (`upgradeEnvelope`).
+   stored assignment, never from the seed with this engine's generator. `loadVariant` checks the stored world's shape
+   (`WorldVariantSchema`), its hash, its mode, every value in its dimension's domain, completeness (a dimension added
+   since plays at its story value) and the constraints, **whatever the hash says**: the hash proves integrity (nothing
+   changed after hashing), not authenticity (a forged world can carry its own correct hash; a forged v4 save or
+   `?world=` link is refused only because its values are checked). A stored world of **another algorithm version**, an
+   unknown one included, is applied as stored when it passes those checks (decision of the second reading: refusing
+   it would orphan every save of an older generator); only *generating* with an unknown version is refused. A v3 save
+   receives the story world (`upgradeEnvelope`).
 6. **The IR names it.** `ir.variant` is filled with the instance (`{ mode: 'variant', id: hash, manifest, variant }`)
    when the game was compiled from one; `ir.world.remix` carries the manifest, `ir.rooms[].anchors` the anchors.
 

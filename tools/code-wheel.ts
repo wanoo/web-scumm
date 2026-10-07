@@ -13,10 +13,18 @@ import { pageSvg, printLayout } from '../src/engine/tools/code-wheel-print';
 const argv = process.argv.slice(2);
 const opt = (k: string) => {
   const i = argv.indexOf(`--${k}`);
-  return i >= 0 ? argv[i + 1] : argv.find((a) => a.startsWith(`--${k}=`))?.split('=')[1];
+  const eq = argv.find((a) => a.startsWith(`--${k}=`));
+  return i >= 0 ? argv[i + 1] : eq?.slice(k.length + 3);
 };
-// --game is read before tools/game.ts, which settles the game when it is first imported.
-if (opt('game')) process.env.GAME = opt('game');
+// --game is read before tools/game.ts, which settles the game when it is first imported: a game id, never a path.
+const gameArg = opt('game');
+if (gameArg !== undefined) {
+  if (!/^[a-z0-9][a-z0-9_-]{0,63}$/i.test(gameArg)) {
+    console.error(`✗  --game "${gameArg}" is not a game id (letters, digits, - and _)`);
+    process.exit(2);
+  }
+  process.env.GAME = gameArg;
+}
 const { GAME, GAME_DIR, loadGameModule, ROOT } = await import('./game');
 const { game } = await loadGameModule();
 const format = opt('format') ?? 'svg';

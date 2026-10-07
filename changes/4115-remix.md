@@ -20,7 +20,7 @@
   tagged anchors in its rooms: an item among anchors, a character's starting room, his round among scripts, a code
   coupled with its hint (`{code:<id>}`, `{hint:<id>}` in every language), an order of puzzle groups, alternative lines,
   images, palettes or minigame parameters. A seed (`WS-XXXX-XXXX`, with a check symbol) makes the same world and the
-  same hash on every runtime; the world is plain data (reserved flags `remix.*` the content reads with `{ flag, eq }`),
+  same hash (tested in Node; the cross-runtime check `npm run e2e:remix` is written, not yet run); the world is plain data (reserved flags `remix.*` the content reads with `{ flag, eq }`),
   so the engine, the solver and the replay need nothing new. An impossible manifest is a build error; a malformed seed
   an explicit error. The sample game hides the pantry key under the oranges or in the lantern; the reference chapter
   moves the seller and his round, lets Lou hand the board before the lights, and draws a festival password with

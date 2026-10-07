@@ -52,6 +52,8 @@ export function encodeSeedCode(v: number): string {
  */
 export function normalizeSeed(input: string): string {
   const raw = String(input).trim();
+  // ASCII only, checked before any case mapping: a lookalike (`ı`, `ſ`, a full-width digit) is a typo, said as one.
+  if (/[^\x20-\x7e]/.test(raw)) throw new RemixSeedError(`a seed code is plain letters and digits: "${raw}"`);
   if (raw.toLowerCase() === STORY_SEED) return STORY_SEED;
   let s = raw.toUpperCase().replace(/[\s-]/g, '');
   if (s.startsWith('WS')) s = s.slice(2);

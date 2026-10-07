@@ -4,7 +4,7 @@ import * as z from 'zod/mini';
 import type { GameDef, GameState, Id } from './types';
 import { migrate } from './migrate';
 import { splitRoomKey } from './keys';
-import { storyVariant, type WorldVariant } from './remix/compile';
+import { storyVariant, type WorldVariant, WorldVariantSchema } from './remix/compile';
 import { remixWorld } from './remix/apply';
 
 const id = z.string().check(z.minLength(1));
@@ -68,17 +68,6 @@ export const SaveEnvelopeV3Schema = z.strictObject({
   gameSaveVersion: count(),
   savedAt: num(),
   state: GameStateSchema,
-});
-
-/** A world instance as a save stores it (4.1.15, ADR 0018): never regenerated, its hash checked on load. */
-const WorldVariantSchema = z.strictObject({
-  seed: z.string().check(z.minLength(1)),
-  algorithm: id,
-  algorithmVersion: z.int().check(z.positive()),
-  manifestHash: z.string(),
-  mode: id,
-  assignments: z.record(z.string(), z.unknown()),
-  hash: z.string().check(z.regex(/^[0-9a-f]{64}$/)),
 });
 
 /** The save envelope of 4.1.15: the v3 envelope and the world it was played in. */

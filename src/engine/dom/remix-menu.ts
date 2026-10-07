@@ -4,7 +4,7 @@
 // frame. A shared link names a world too: `?seed=WS-…` or `?daily=<signed token>` (verified offline with the key of the
 // game's manifest). The pause menu shows the world's code to copy, or "hidden until the end" in a masked mode
 // (Mystery). Accessibility settings never touch the seed: nothing here reads them, and they never write the world.
-import { compileVariant, type WorldVariant } from '../core/remix/compile';
+import { compileVariant, loadVariant, type WorldVariant, WorldVariantSchema } from '../core/remix/compile';
 import { compileGameManifest } from '../core/remix/apply';
 import { REMIX_ALGORITHM_VERSION } from '../core/remix/manifest';
 import { newSeedCode, normalizeSeed, RemixSeedError } from '../core/remix/seed-code';
@@ -208,7 +208,12 @@ export async function worldFromQuery(
 ): Promise<WorldVariant | undefined> {
   if (!game.remix) return undefined;
   const frozen = q.get('world');
-  if (frozen) return JSON.parse(new TextDecoder().decode(b64url.decode(frozen))) as WorldVariant;
+  // A frozen world is checked like a save's: its shape here, its hash and every value against the game by applyVariant.
+  if (frozen) {
+    const r = WorldVariantSchema.safeParse(JSON.parse(new TextDecoder().decode(b64url.decode(frozen))));
+    if (!r.success) throw new RemixSeedError('this link names no world');
+    return loadVariant(compileGameManifest(game), r.data).variant;
+  }
   const daily = q.get('daily');
   if (daily) return dailyWorldOf(game, daily, now);
   const seed = q.get('seed');

@@ -1,9 +1,11 @@
 // Compiling a world (4.1.15 "Remix", ADR 0018): `GameIR + VariationManifest + seed + algorithmVersion → WorldVariant`,
-// immutable, the same on Node, Chromium, WebKit and Firefox. The manifest is compiled first (domains, constraints,
+// immutable, integers and xoshiro only so that every runtime computes the same (tested in Node; the cross-runtime
+// check `scripts/e2e-remix.mjs` is written, not yet run on Chromium, WebKit and Firefox). The manifest is compiled first (domains, constraints,
 // anchors that cannot hold the item removed): an impossible dependency is an error at build time (`validate`,
 // `verify:variants`), never in a player's game. A malformed seed or an unknown algorithm version is an explicit error,
 // never a silent fallback to another world. Draws come from core/prng.ts only (one stream per dimension, `logic` for
 // the logical dimensions and `cosmetic` for presentation, D27); `Math` is not used in this folder (biome.json).
+import * as z from 'zod/mini';
 import { canonicalJson } from '../canonical';
 import { condFlags } from '../cond';
 import { eachCmd } from '../cmds';
@@ -38,6 +40,17 @@ export interface WorldVariant {
   assignments: Readonly<Record<string, unknown>>;
   hash: string;
 }
+
+/** A world as stored (a save, a link, a session): its shape, checked before anything reads it. */
+export const WorldVariantSchema = z.strictObject({
+  seed: z.string().check(z.minLength(1), z.maxLength(64)),
+  algorithm: z.string().check(z.minLength(1)),
+  algorithmVersion: z.int().check(z.positive()),
+  manifestHash: z.string().check(z.maxLength(64)),
+  mode: z.string().check(z.minLength(1), z.maxLength(64)),
+  assignments: z.record(z.string(), z.unknown()),
+  hash: z.string().check(z.regex(/^[0-9a-f]{64}$/)),
+});
 
 /** A manifest that cannot produce a world: a build error, with every reason. @public */
 export class RemixManifestError extends Error {
@@ -433,17 +446,28 @@ export const EMPTY_MANIFEST: VariationManifest = {
  * still be in its dimension's domain (a world the game no longer has is an error); `stale` says the manifest moved.
  * @public
  */
-export function loadVariant(c: CompiledManifest, stored: WorldVariant): { variant: WorldVariant; stale: boolean } {
+export function loadVariant(c: CompiledManifest, input: unknown): { variant: WorldVariant; stale: boolean } {
+  const parsed = WorldVariantSchema.safeParse(input);
+  if (!parsed.success) throw new RemixSeedError('the stored world is not a world: refused');
+  const stored = parsed.data as WorldVariant;
   const { hash, ...body } = stored;
   if (stored.algorithm !== REMIX_ALGORITHM) throw new RemixSeedError(`unknown Remix algorithm "${stored.algorithm}"`);
+  // The hash proves the world was not altered after it was hashed, not who made it (integrity, not authenticity): a
+  // forged world can carry its own correct hash, so every value is checked against this game whatever the hash says.
   if (variantHash(body) !== hash) throw new RemixSeedError('the stored world does not match its hash: refused');
   const stale = stored.manifestHash !== c.hash;
-  if (stale)
-    for (const [id, v] of Object.entries(stored.assignments)) {
-      const d = c.dims.get(id);
-      if (!d || !d.domain.some((x) => key(x) === key(v)))
-        throw new RemixSeedError(`this world's ${id} = ${key(v)} no longer exists in the game`);
-    }
+  if (stored.mode !== 'story' && !c.modes.has(stored.mode))
+    throw new RemixSeedError(`this world's mode "${stored.mode}" does not exist in the game`);
+  for (const [id, v] of Object.entries(stored.assignments)) {
+    const d = c.dims.get(id);
+    if (!d || !d.domain.some((x) => key(x) === key(v)))
+      throw new RemixSeedError(`this world's ${id} = ${key(v)} does not exist in the game`);
+  }
+  // Complete: every dimension has its value (a world stored before a dimension was added plays it at its story value).
+  for (const id of c.order)
+    if (!(id in stored.assignments) && !stale) throw new RemixSeedError(`this world has no value for ${id}: refused`);
+  const broken = violations(c, stored.assignments);
+  if (broken.length) throw new RemixSeedError(`this world breaks the game's constraints: ${broken.join('; ')}`);
   return { variant: stored, stale };
 }
 
