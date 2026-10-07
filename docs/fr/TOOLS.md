@@ -174,6 +174,7 @@ d'états est épuisé : c'est `truncated`, jamais une preuve. `npm run build` ex
 
 ```bash
 npm run solve -- --chapters        # une recherche bornée par checkpoint avec `goals`, puis du dernier à la fin
+npm run solve -- --goal=100%       # le but de la recherche est chaque objectif non optionnel (GameDef.objectives, 4.1.12) au lieu de la fin ; code 2 pour un jeu qui n'en déclare aucun
 npm run solve -- --prove --chapters   # la preuve par chapitres : chaque chapitre prouvé depuis CHAQUE état frontière atteignable du précédent ; un checkpoint qui n'en égale aucun est une erreur
 npm run validate -- --report       # le profileur de contenu : lieux, objets, personnages, ce qui est mince (Markdown)
 npm run page:world                 # la carte du monde en page (sorties, gotos, lieux inaccessibles, source DOT)
@@ -217,6 +218,7 @@ npm run changes -- --check [--base=origin/main] | --assemble [--date=YYYY-MM-DD]
 npm run docs:links [-- --timeout=10000]                       # chaque lien externe des docs demandé une fois, statuts par domaine ; une personne le lance avant une release, jamais la CI (le réseau n'est pas un test)
 npm run ci:plan [-- --base=origin/main | --files=a,b | --all]   # les jobs lourds de la CI dont un changement a besoin (4.1.9, tools/ci-plan.ts) : chaque fichier changé classé par la première règle qui lui correspond, une ligne de JSON (un booléen par porte : node24, e2e, reference, reality, pwaFirefox, windows, secondGame, freshInstall, upgrade, auditDeps) ; le workflow, le plan, une configuration partagée, le cœur du moteur et un chemin qu'aucune règle ne connaît lancent tout ; lecture seule
 npx tsx tools/api-doc.ts [--check]                            # les signatures et la stabilité de l'API publique (@public | @extension, 4.1.8) dans docs/en/API.md et docs/fr/API.md ; tests/api-doc.test.ts échoue quand une page est en retard ou qu'un export n'a ni description ni stabilité
+npx tsx tools/dsl-doc.ts [--check]                            # la référence du DSL (chaque condition, commande, champ d'objectif et ce que compte chaque champ pour l'IR) générée depuis les schémas dans docs/en/DSL.md et docs/fr/DSL.md (4.1.12) ; tests/dsl-doc.test.ts échoue quand une page est en retard
 npm run lint [-- --prove | --static | --json]   # lint de contenu : conditions insatisfaisables, règles masquées, faux indices, indices bloqués, actions jamais jouées (alias de lint:content depuis la 4.1.0)
 npm run quality   # code du moteur (4.1.0) : formatage et lint Biome, tsconfig.json et tsconfig.strictest.json, puis le lint de contenu
 npm run doctor [-- --release]      # vérifie Node, modules Python, ffmpeg et navigateurs Playwright ; --release (4.1.8) exige Python, ses modules et ffmpeg, comme release-check, et Chromium comme toujours (release-check n'ouvre aucun navigateur : Firefox et WebKit restent optionnels)
@@ -423,7 +425,9 @@ Les scripts ci-dessus sont ceux dont un jeu a besoin. Le reste de `package.json`
 | `npm run e2e:smoke` | le parcours générique du build de production (le chemin du solveur rejoué au tactile) |
 | `npm run e2e:pwa [-- --serve=dist --update --interrupted --reinstall --allow-skip]` | la PWA dans un vrai navigateur (`E2E_BROWSER`) : installée, tout le jeu préchargé puis ouvert hors ligne ; avec `--serve=dist` le script sert lui-même le build et peut en publier un second : `--update` (la bannière, la sauvegarde gardée, le nouveau worker aux commandes), `--interrupted` (le chargement du worker échoue : pas de bannière, l'ancien sert), `--reinstall` (worker et caches supprimés, réinstallés, la sauvegarde gardée) ; `--allow-skip` accepte la navigation hors ligne de WebKit, que Playwright ne sait pas piloter |
 | `npm run e2e:studio`, `e2e:taps`, `e2e:reality` | le Studio, les verbes par défaut, le Reality Bridge, chacun dans un vrai navigateur |
+| `npm run e2e:canonical [-- --browsers=chromium,webkit,firefox --allow-skip]` | `canonicalJson` (`src/engine/core/canonical.ts`, 4.1.12) sur cinquante valeurs limites dans Chromium, WebKit et Firefox, contre les textes qu'écrit Node (`tests/canonical-json.test.ts`) : un navigateur qui écrit une valeur autrement échoue ; un navigateur qui ne se lance pas sort en 3 (0 avec `--allow-skip`) |
 | `npm run migrate` | un projet de jeu passé à cette release (`web-scumm migrate` ; `docs/fr/UPGRADING.md`) |
+| `npm run ir [-- --game <id> --json]` | la représentation intermédiaire du jeu (4.1.12, `docs/dev/adr/0013-game-ir-and-fingerprint.md`) : les salles et ce qui s'y trouve, règles, sujets, écouteurs, scripts, objectifs, chacun avec le `fichier:ligne` qui l'écrit, et l'empreinte des extensions de confiance ; `--json` imprime l'IR entière, le même texte pour les mêmes sources |
 | `npm run lint:content`, `lint:code` | le lint du contenu seul (`npm run lint` l'enchaîne avec une passe du solveur), le lint de Biome seul |
 | `npm run format`, `format:check` | le formatage de Biome, écrit ou vérifié (`npm run quality` vérifie) |
 | `npm run mcp` | le serveur MCP du jeu courant sur stdio (`docs/fr/MCP.md` ; `npm run -s mcp` pour un client) |

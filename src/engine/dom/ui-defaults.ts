@@ -39,6 +39,8 @@ export const DEFAULT_UI = {
   volumeMusic: 'Music volume',
   volumeSfx: 'Sound volume',
   volumeVoice: 'Voice volume',
+  fingerprint: 'Build',
+  objectives: 'Objectives',
 } as const;
 
 export type UiKey = keyof typeof DEFAULT_UI;

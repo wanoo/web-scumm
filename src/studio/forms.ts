@@ -90,7 +90,7 @@ function pointEd(v: unknown): Ed {
 }
 
 /** Any field of the schema. */
-function fieldEditor(f: Field, v: unknown, ctx: FormCtx): Ed {
+export function fieldEditor(f: Field, v: unknown, ctx: FormCtx): Ed {
   switch (f.k) {
     case 'text': {
       const t = autoGrow(h('textarea', { rows: 1, class: 'f-text' }, typeof v === 'string' ? v : ''));
@@ -184,7 +184,7 @@ function fieldEditor(f: Field, v: unknown, ctx: FormCtx): Ed {
 }
 
 /** A list: each item with move up / down and remove, then "+ item". */
-function listEditor(items: unknown[], make: (v: unknown) => Ed, label: string, blank: () => unknown): Ed {
+export function listEditor(items: unknown[], make: (v: unknown) => Ed, label: string, blank: () => unknown): Ed {
   const box = h('div', { class: 'f-list' });
   const rows: { el: HTMLElement; ed: Ed }[] = [];
   const draw = () =>
@@ -294,7 +294,7 @@ function condKind(c: Cond | undefined): CondKind {
 }
 
 /** A condition: its kind, then its fields (`all` / `any` / `not` hold conditions). */
-function condEditor(c: Cond | undefined, ctx: FormCtx): Ed {
+export function condEditor(c: Cond | undefined, ctx: FormCtx): Ed {
   const kind = h(
     'select',
     { class: 'f-kind' },
@@ -404,7 +404,7 @@ function cmdEditor(c: Cmd | undefined, ctx: FormCtx): Ed {
   return { el: h('div', { class: 'f-cmd' }, key, slot), get: () => get() };
 }
 
-function cmdsEditor(list: Cmd[], ctx: FormCtx): Ed {
+export function cmdsEditor(list: Cmd[], ctx: FormCtx): Ed {
   return listEditor(
     list,
     (x) => cmdEditor(x as Cmd, ctx),

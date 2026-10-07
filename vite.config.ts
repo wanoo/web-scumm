@@ -7,6 +7,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { GAME, GAME_DIR, PROJECT } from './tools/game';
 import { studioPlugin } from './tools/studio/plugin';
 import { assetsVersion, BASE, layoutWriter, sealBuild, sitePlugin, studioDemo } from './tools/vite/plugins';
+import { engineVersion, trustedExtensionsHash } from './tools/extensions';
 
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
@@ -52,7 +53,14 @@ export default defineConfig({
   // The engine's pages (index.html, studio.html) are next to this file, wherever it is installed.
   root: r('.'),
   base: BASE,
-  define: { __ASSETS_VERSION__: JSON.stringify(assetsVersion()), __GAME__: JSON.stringify(GAME) },
+  // The fingerprint's parts the player cannot compute from the content (4.1.12, ADR 0013): the hash of the game's
+  // trusted extensions and the engine's version, the same values `sealBuild` writes into the built site.json.
+  define: {
+    __ASSETS_VERSION__: JSON.stringify(assetsVersion()),
+    __GAME__: JSON.stringify(GAME),
+    __TRUSTED_EXTENSIONS__: JSON.stringify(trustedExtensionsHash(GAME_DIR)),
+    __ENGINE_VERSION__: JSON.stringify(engineVersion()),
+  },
   plugins: [
     sitePlugin(),
     layoutWriter(),
@@ -193,10 +201,10 @@ export default defineConfig({
       thresholds: {
         // The floor measured at 4.1.0 (the browser-only parts of src/, the player's UI and the Studio's, are covered
         // by the e2e, not here).
-        lines: 66,
-        statements: 65,
-        functions: 61,
-        branches: 62,
+        lines: 69,
+        statements: 68,
+        functions: 65,
+        branches: 64,
         // What a save, a session, a condition and a migration rest on: every branch.
         'src/engine/core/cond.ts': { branches: 100 },
         'src/engine/core/diff.ts': { branches: 100 },
@@ -213,14 +221,14 @@ export default defineConfig({
         // (dom/reality-ui.ts), the Studio's simulator and panel are covered by e2e:reality, not here.
         'src/engine/core/reality-runtime.ts': { lines: 100, branches: 100 },
         'src/engine/reality/protocol.ts': { lines: 95, branches: 96 },
-        'src/engine/reality/client.ts': { lines: 98, branches: 89 },
+        'src/engine/reality/client.ts': { lines: 98, branches: 90 },
         'src/engine/reality/http-port.ts': { lines: 98, branches: 95 },
         'bridge/src/bridge.ts': { lines: 97, branches: 95 },
         'bridge/src/store.ts': { lines: 96, branches: 92 },
-        'bridge/src/server.ts': { lines: 92, branches: 82 },
+        'bridge/src/server.ts': { lines: 94, branches: 85 },
         'bridge/src/policy.ts': { lines: 100, branches: 98 },
         'bridge/src/lock.ts': { lines: 100, branches: 100 },
-        'bridge/src/cli.ts': { lines: 83, branches: 64 },
+        'bridge/src/cli.ts': { lines: 83, branches: 66 },
       },
     },
   },

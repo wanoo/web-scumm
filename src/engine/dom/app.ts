@@ -5,6 +5,7 @@ import type { GameDef, GameState, Id, Layout, Point, VerbId } from '../core/type
 import { minigames as builtin, MINIGAME_CSS, type Minigame } from '../minigames';
 import { Ending } from '../ending';
 import type { CustomCommands } from '../core/custom';
+import type { GameFingerprint } from '../core/fingerprint';
 import { AssetBank, type AssetManifest } from './assets';
 import { Audio } from './audio';
 import { FONT_PIXEL, FONT_UI, fontStack } from './fonts';
@@ -69,6 +70,7 @@ import { DEFAULT_SETTINGS, type Settings } from './settings';
 import { LocalSlotStore, LocalStore, withPhase } from './storage';
 import { fpsMeter, type RealityLinkLike } from './app-shared';
 import { DomPresenter } from './presenter';
+import { objectivesMenu as objectivesMenuImpl } from './objectives-menu';
 import type { Renderer } from '../scene/frame';
 export type { Settings } from './settings';
 
@@ -88,6 +90,10 @@ export interface AppOptions {
   base?: string;
   /** Asset version (added to URLs to invalidate the cache). */
   version?: string;
+  /** The game as written, before a translation (4.1.12): what the fingerprint is computed on. Default `game`. */
+  source?: GameDef;
+  /** What the build knows of the fingerprint (4.1.12): the trusted extensions' hash and the engine's version. */
+  build?: { trustedExtensions?: string; engine?: string };
 }
 
 /**
@@ -216,6 +222,26 @@ export class App {
   a11yButtons = new Map<Id, HTMLButtonElement>();
   /** @internal Read by the modules of dom/ (4.1.0). */
   live!: HTMLDivElement;
+
+  private fp?: Promise<GameFingerprint>;
+  /**
+   * The game's fingerprint (4.1.12, ADR 0013), computed once, on demand, in a chunk loaded then: the pause menu shows
+   * its short form. The game as written (`source`), the manifest, the build's trusted extensions and engine version.
+   */
+  fingerprint(): Promise<GameFingerprint> {
+    this.fp ??= import('../core/fingerprint').then((m) =>
+      m.fingerprintGame(this.o.source ?? this.game, {
+        manifest: this.o.manifest,
+        extensions: {
+          trusted: this.o.build?.trustedExtensions ?? '',
+          commands: this.o.commands,
+          minigames: Object.keys(this.o.minigames ?? {}),
+        },
+        engine: this.o.build?.engine ?? 'unknown',
+      }),
+    );
+    return this.fp;
+  }
 
   /** An interface text: the game's `ui`, else the English default (`dom/ui-defaults.ts`). */
   t(key: UiKey): string {
@@ -541,6 +567,11 @@ export class App {
   /** The settings menu: each row cycles its value. */
   settingsMenu(d: HTMLElement, m: HTMLElement) {
     return settingsMenuImpl(this, d, m);
+  }
+
+  /** The quest journal (4.1.12): the objectives, each step under its parent, done or open. */
+  objectivesMenu(d: HTMLElement, m: HTMLElement) {
+    return objectivesMenuImpl(this, d, m);
   }
 
   /** The save / load menu: one row per slot, export and import as a JSON file. */

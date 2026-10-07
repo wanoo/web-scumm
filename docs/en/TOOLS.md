@@ -180,6 +180,7 @@ exhaustive softlock gate, and `npm run release-check` includes it.
 
 ```bash
 npm run solve -- --chapters        # one bounded search per checkpoint with `goals`, then from the last one to the ending
+npm run solve -- --goal=100%       # the search's goal is every objective that is not optional (GameDef.objectives, 4.1.12) instead of the ending; exit 2 for a game that declares none
 npm run solve -- --prove --chapters   # the proof by chapters: each chapter proved from EVERY reachable boundary state of the previous one; a checkpoint that matches none is an error
 npm run validate -- --report       # the content profiler: rooms, items, characters, what is thin (Markdown)
 npm run page:world                 # the map of the world as a page (exits, gotos, unreachable rooms, DOT source)
@@ -223,6 +224,7 @@ npm run changes -- --check [--base=origin/main] | --assemble [--date=YYYY-MM-DD]
 npm run docs:links [-- --timeout=10000]                       # every external link of the docs asked once, statuses by domain; a person runs it before a release, CI never does (the network is not a test)
 npm run ci:plan [-- --base=origin/main | --files=a,b | --all]   # which of CI's heavier jobs a change needs (4.1.9, tools/ci-plan.ts): each changed file classified by the first rule that matches, one line of JSON (a boolean per gate: node24, e2e, reference, reality, pwaFirefox, windows, secondGame, freshInstall, upgrade, auditDeps); the workflow, the plan, a shared configuration, the engine's core and a path no rule knows run everything; read-only
 npx tsx tools/api-doc.ts [--check]                            # the public API's signatures and stability (@public | @extension, 4.1.8) into docs/en/API.md and docs/fr/API.md; tests/api-doc.test.ts fails when a page is behind or an export has no description or stability
+npx tsx tools/dsl-doc.ts [--check]                            # the DSL's reference (every condition, command, objective field and how each field counts for the IR) generated from the schemas into docs/en/DSL.md and docs/fr/DSL.md (4.1.12); tests/dsl-doc.test.ts fails when a page is behind
 npm run lint [-- --prove | --static | --json]   # content lint: conditions nothing can satisfy, hidden rules, red herrings, stuck hints, actions never run (alias of lint:content since 4.1.0)
 npm run quality   # engine code (4.1.0): Biome formatting and lint, tsconfig.json and tsconfig.strictest.json, then the content lint
 npm run doctor [-- --release]      # checks Node, Python modules, ffmpeg and Playwright browsers; --release (4.1.8) requires Python, its modules and ffmpeg, as release-check does, and Chromium as always (release-check opens no browser: Firefox and WebKit stay optional)
@@ -417,7 +419,9 @@ line (4.1.7; a script missing from this page fails `tests/scripts-documented.tes
 | `npm run e2e:smoke` | the generic playthrough of the production build (the solver's path replayed by touch) |
 | `npm run e2e:pwa [-- --serve=dist --update --interrupted --reinstall --allow-skip]` | the PWA in a real browser (`E2E_BROWSER`): installed, the whole game warmed and opened offline; with `--serve=dist` the script serves the build itself and can publish a second one: `--update` (the banner, the save kept, the new worker in charge), `--interrupted` (the worker's fetch fails: no banner, the old one serves), `--reinstall` (worker and caches gone, installed again, the save kept); `--allow-skip` accepts WebKit's offline navigation, which Playwright cannot drive |
 | `npm run e2e:studio`, `e2e:taps`, `e2e:reality` | the Studio, the default verbs, the Reality Bridge, each in a real browser |
+| `npm run e2e:canonical [-- --browsers=chromium,webkit,firefox --allow-skip]` | `canonicalJson` (`src/engine/core/canonical.ts`, 4.1.12) on fifty edge values in Chromium, WebKit and Firefox, against the texts Node writes (`tests/canonical-json.test.ts`): one browser that writes one value differently fails; a browser that cannot launch exits 3 (0 with `--allow-skip`) |
 | `npm run migrate` | a game project moved to this release (`web-scumm migrate`; `docs/en/UPGRADING.md`) |
+| `npm run ir [-- --game <id> --json]` | the game's intermediate representation (4.1.12, `docs/dev/adr/0013-game-ir-and-fingerprint.md`): rooms and what stands in them, rules, topics, listeners, scripts, objectives, each with the `file:line` that writes it, and the hash of the trusted extensions; `--json` prints the whole IR, the same text for the same sources |
 | `npm run lint:content`, `lint:code` | the content lint alone (`npm run lint` runs it with a solver pass), Biome's lint alone |
 | `npm run format`, `format:check` | Biome's formatting, written or checked (`npm run quality` checks) |
 | `npm run mcp` | the MCP server of the current game on stdio (`docs/en/MCP.md`; `npm run -s mcp` for a client) |

@@ -19,6 +19,7 @@ export interface CoreBackendOptions {
 export function coreBackend(studio: Studio, o: CoreBackendOptions): ToolBackend {
   return {
     game: () => studio.gameInfo(),
+    ir: () => studio.ir(),
     room: (id) => studio.getRoom(id),
     setLayout: (id, layout) => studio.setLayout(id, layout),
     setText: (id, path, value) => studio.setText(id, path, value),

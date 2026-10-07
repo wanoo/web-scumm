@@ -491,6 +491,28 @@ checkpoints: {
 invariants: [{ all: [{ not: { has: 'token' } }, '!flowers_done'] }],
 ```
 
+### Objectives and the quest journal (4.1.12)
+
+`objectives` names what the player has to do, for the pause menu's **Objectives** list (a step under its parent, ✓ done,
+○ open, a side objective in italics), for the semantic journal (`objectiveCompleted`, once, the first time `done`
+holds after an action) and for the solver: `npm run solve -- --goal=100%` searches for a state where every objective
+that is not `optional` holds. Write `done` as a condition that stays true once true (a flag set once, an item kept):
+the journal never takes a completion back, but a game loaded later counts as done only what holds then.
+
+```ts
+objectives: {
+  key: { title: 'Find the pantry key', done: { any: [{ has: 'key' }, 'pantry_open'] } },
+  tank: { title: 'Drain the water tank', done: 'tank_drained', parent: 'key' },
+  pantry: { title: 'Open the pantry', done: 'pantry_open' },
+  guess: { title: 'Guess what is in the pantry', done: 'guess', optional: true },
+},
+```
+
+`npm run validate` refuses an objective whose `done` can never hold (a flag nothing sets, an item nothing gives), an
+unknown `parent` and a cycle of parents. The titles are translated like every text (`objectives/<id>.title`), and the
+menu's row is `ui.objectives`. The Studio's **Language** tab edits them; MCP's `set_value` writes them with
+`id: "@game"`. Every condition and command, with its shape, is in the generated reference (`docs/en/DSL.md`).
+
 ### Save slots and migrations
 
 ```ts
