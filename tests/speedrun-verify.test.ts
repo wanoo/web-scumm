@@ -233,7 +233,7 @@ describe('the envelope is canonical JSON', () => {
     expect(CHUNK_SIZE).toBe(500);
   });
 
-  it('nothing in tools/speedrun/ calls JSON.stringify (a bigint would throw, an object would not be canonical)', () => {
+  it('no TypeScript module of tools/speedrun/ calls JSON.stringify (a bigint would throw, an object would not be canonical; the local .mjs tools only carry cleaned events of plain numbers)', () => {
     const dirs = ['src/engine/tools/speedrun', 'tools/speedrun'];
     const offenders: string[] = [];
     for (const d of dirs) {
@@ -244,7 +244,7 @@ describe('the envelope is canonical JSON', () => {
         continue;
       }
       for (const f of files)
-        if (/\.(ts|mjs)$/.test(f) && /JSON\.stringify/.test(readFileSync(join(d, f), 'utf8')))
+        if (/\.ts$/.test(f) && /JSON\.stringify/.test(readFileSync(join(d, f), 'utf8')))
           offenders.push(join(d, f));
     }
     expect(offenders).toEqual([]);

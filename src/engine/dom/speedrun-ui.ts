@@ -93,9 +93,48 @@ export class SpeedrunSession {
   /** The pause menu opened (`true`) or closed. */
   paused(on: boolean): void {
     this.recorder.interval('pause', on);
+    this.post({ kind: on ? 'pause' : 'resume' });
+  }
+
+  /**
+   * A local tool on this machine (`?speedrunTool=<port>`: the OBS overlay, the LiveSplit autosplitter, D23): the run's
+   * events as the overlay needs them, nothing else (no save, no id of the player, no token).
+   */
+  private readonly tool =
+    typeof location !== 'undefined' ? new URLSearchParams(location.search).get('speedrunTool') : null;
+  private post(e: Record<string, unknown>) {
+    if (!this.tool || !/^\d{2,5}$/.test(this.tool)) return;
+    const c = this.app.engine.runClock;
+    const body = {
+      category: this.category.name,
+      timing: this.category.timing,
+      igtMs: Number((this.category.timing === 'active-igt' ? c.activeTime() : c.logicalTime()) / 1000n),
+      rtaMs: this.recorder.rtaMs(),
+      ...e,
+    };
+    void fetch(`http://127.0.0.1:${this.tool}/event`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      credentials: 'omit',
+    }).catch(() => undefined);
   }
 
   private signal(s: SplitSignal | { kind: 'sealed'; envelope: SpeedrunEnvelope }) {
+    const splits = this.app.game.speedrun!.splits;
+    const name = (id: string) => splits.find((x) => x.id === id)?.name ?? id;
+    if (s.kind === 'start') this.post({ kind: 'start', splits: splits.map((x) => ({ id: x.id, name: x.name })) });
+    else if (s.kind === 'split') {
+      const pb = this.records?.pb?.splits.find((x) => x.id === s.split.id)?.logicalTime;
+      const mine = s.split.logicalTime;
+      this.post({
+        kind: 'split',
+        split: { id: s.split.id, name: name(s.split.id) },
+        igtMs: Number(BigInt(mine ?? '0') / 1000n),
+        ...(pb && mine ? { deltaMs: Number((BigInt(mine) - BigInt(pb)) / 1000n) } : {}),
+      });
+    } else if (s.kind === 'missed') this.post({ kind: 'missed', split: { id: s.id, name: name(s.id) } });
+    else if (s.kind === 'finish') this.post({ kind: 'finish', igtMs: Number(BigInt(s.logicalTime) / 1000n) });
     if (s.kind === 'split') this.status = s.split.id;
     else if (s.kind === 'missed') this.status = `${s.id} ✗`;
     else if (s.kind === 'sealed') void this.keep(s.envelope);
