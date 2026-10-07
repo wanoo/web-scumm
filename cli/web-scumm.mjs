@@ -109,6 +109,13 @@ const COMMANDS = {
   weight: ['what a phone downloads and decodes, against assetBudgets', () => tool('weight', rest)],
   provenance: ['where every asset comes from (--lock after a review)', () => tool('provenance', rest)],
   playtests: ['the sessions players shared, replayed and summed up', () => tool('playtests', rest)],
+  speedrun: [
+    'speedrun verify <run.wsrun>: replay a speedrun, its verdict and reason (4.1.14)',
+    () =>
+      rest[0] === 'verify'
+        ? tool('speedrun/verify', rest.slice(1))
+        : (console.log('usage: web-scumm speedrun verify <run.wsrun> [--keys=<file>] [--json]'), 2),
+  ],
   voices: ['recorded lines: check, apply', () => tool('voices', rest)],
   ids: ['stable ids for rules, topics and lines (--write: into the sources)', () => tool('ids', rest)],
   prompts: ['image prompts for the sheets the game names', () => tool('prompts', rest)],

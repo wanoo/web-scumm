@@ -3,6 +3,7 @@ import type { AudioDef } from './audio';
 import type { AnchorDef, VariationManifest } from '../remix/manifest';
 import type { WorldVariant } from '../remix/compile';
 import type { RealityDef } from './reality';
+import type { SpeedrunManifest } from './speedrun';
 import type {
   ActorDef,
   CharacterDef,
@@ -283,6 +284,8 @@ export interface GameDef {
    * speedrun envelope record so that a load, a replay and a verifier rebuild the same world.
    */
   variant?: WorldVariant;
+  /** Speedrun categories, splits and the rules' version (4.1.14, `docs/en/SPEEDRUN.md`). */
+  speedrun?: SpeedrunManifest;
   /** Manual save slots (pause menu: save, load, export, import). Absent or 0: autosave only. */
   saves?: { slots: number };
   /**
@@ -479,6 +482,12 @@ export interface UiTexts {
   language?: string;
   /** The pause menu's fingerprint row (4.1.12, ADR 0013): the build a player runs, in four short hashes. English default "Build". */
   fingerprint?: string;
+  /** The pause menu's speedrun entry (4.1.14, `GameDef.speedrun`). English default "Speedrun". */
+  speedrun?: string;
+  /** Downloads the sealed `.wsrun` of the attempt (4.1.14). English default "Export run". */
+  exportRun?: string;
+  /** Gives up the attempt in progress (4.1.14). English default "Abandon run". */
+  abandonRun?: string;
   /** The pause menu's quest journal (4.1.12, `GameDef.objectives`). English default "Objectives". */
   objectives?: string;
   /**

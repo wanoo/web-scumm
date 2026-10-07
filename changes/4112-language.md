@@ -43,6 +43,9 @@
   baseline moved on purpose.
 - **The validator's migration checks moved to `tools/validate/migrations.ts` (4.1.12)**, beside the objectives'
   checks: `validate.ts` goes from 1 140 to 1 113 lines, and its cap with it.
+- **`e2e:pwa` on Firefox tolerates one file missing from the cache after a reinstall warm-up it reported complete**
+  (4.1.12, CI only; the files are listed), under the same bound as the refused cached files (two): more is a failure.
+  Chromium and WebKit stay strict.
 
 ### Breaking
 

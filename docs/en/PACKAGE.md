@@ -43,6 +43,7 @@ release refuses it until each file is replaced and reviewed.
 | `web-scumm build` | assets, verify, the build, every file of `dist/` accounted for (`docs/en/TOOLS.md`, "What the archive holds") |
 | `web-scumm release [--commercial]` | build, then the release gates: provenance lock, budgets, translations, voices, strict playtests, the proof |
 | `web-scumm validate`, `solve`, `lint`, `i18n`, `weight`, `provenance`, `playtests`, `voices`, `prompts` | each tool, with its options (`docs/en/TOOLS.md`) |
+| `web-scumm speedrun verify <run.wsrun>` | a speedrun replayed against the game: its verdict, code and reason (`docs/en/SPEEDRUN.md`) |
 | `web-scumm migrate` | bring the game's sources to the installed engine's format (`docs/en/UPGRADING.md`) |
 
 They run with the project as their working folder (`WEB_SCUMM_PROJECT`): the engine in `node_modules/web-scumm` is

@@ -42,7 +42,8 @@ In a game project the entries are `web-scumm/content`, `web-scumm/player`, `web-
 | `SkinDef` · `UiTexts` | the interface's images and sounds, its texts |
 | `Migration` | one step of save migration (renames, drops) |
 | `Layout` | a room's geometry, written by the placement editor |
-| `GameState` · `Session` · `SessionEntry` | the state a save holds, a replayable session and its inputs |
+| `GameState` · `Session` · `SessionEntry` | the state a save holds, a replayable session and its inputs (`Session.seed`, 4.1.14: the run's seed when a host chose it) |
+| `SpeedrunManifest` · `SpeedrunCategory` · `SpeedrunSplit` · `SpeedrunTrigger` · `SemanticTrigger` | (4.1.14, `docs/en/SPEEDRUN.md`) `GameDef.speedrun`: categories (timing, start and finish triggers, saves, pauses, hints, reload, Reality policy, fingerprint components, inputs, seed), splits on semantic events, the rules' version |
 | `CustomCommand` · `CustomCommands` · `CustomContext` | a game's own commands (`{ custom }`), the escape hatch, and what they receive |
 | `VariationManifest` · `VariationMode` · `VariationDimension` · `VariationConstraint` · `AnchorDef` · `AnchorRef` · `CoupledPair` · `RemixText` · `parseManifest` · `variantFlag` · `REMIX_ALGORITHM_VERSION` | (4.1.15, ADR 0018) what may vary between two games of one (`GameDef.remix`, `RoomDef.anchors`, `docs/en/REMIX.md`), its schema, the reserved flag a dimension writes, the generator's version |
 | `compileManifest` · `CompiledManifest` · `RemixWorld` · `catalogue` · `CATALOGUE_MAX` · `RemixManifestError` | (4.1.15) a manifest compiled against the game (domains, constraints, anchors), a catalogue mode's every world, the build error that lists why a manifest cannot make a world |
@@ -88,6 +89,9 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `SaveEnvelopeV4` · `upgradeEnvelope` · `SaveWorldMismatch` · `savedWorld` | (4.1.15) the save envelope with its world, the v3 → v4 migration (the story world), the error that names the world a save belongs to, the world a raw save names |
 | `worldVerdict` · `leaderboardKey` · `REMIX_CATEGORIES` · `RemixCategoryRules` · `SpeedrunSeedPolicy` · `WorldEvidence` · `seedCommitment` · `logicalKey` | (4.1.15, D26) a run's world checked against its category (Story, Fixed, Random, Mystery, Daily), the leaderboard it goes to, a Mystery commitment, the key a proof certificate is filed under |
 | `SemanticEvent` · `SemanticJournal` | (4.1.11) `Engine.journal`: what happened in the game, in ids, numbered (rooms, items with the player who lost or acquired them, flags, `null` for a flag removed, a player switch, the ending, loads and saves), emitted by the core alone and the same on a replay |
+| `RunClock` | (4.1.14, ADR 0016) `Engine.runClock`: RTA (`monotonicNow`, never an authority), `logicalSteps` and `logicalTime` (bigints, microticks): it observes the core, never writes the state |
+| `verifyRun` · `VerifyContext` · `SpeedrunVerifyResult` · `SpeedrunVerdict` · `isRankable` | (4.1.14, ADR 0017) a `.wsrun` replayed against the approved game: one verdict, a code, a reason, the trust it grants; only `valid` ranks, `inconclusive` never does |
+| `SpeedrunEnvelope` · `TrustLevel` | (4.1.14) a run's proof (chunks chained from H0, final state hash, final proof, bigints as decimal strings) and how far it is believed (`local` → `replay-valid` → `server-witnessed` → `moderator-verified`) |
 
 ## web-scumm/reality: signals from the world outside (4.1.1)
 
@@ -162,7 +166,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `ExtensionHashes` | `interface { trusted, commands, minigames, plugins }` | public | What `compileIR` is told of the trusted code: its hash (`hashSources` over the extension files, given by the build or a tool; '' when unknow |
 | `ExternalEntry` | `interface { id, sequence, signal, source, receivedAt, playerId, … 2 more }` | public | What a session keeps of a signal from outside (4.1.1): its id and sequence on the Bridge, the signal, the source and when it arrived. Never  |
 | `FLOOR` | `number` | public | Default floor bottom (logical y), when the layout doesn't give `floor`. |
-| `GameDef` | `interface { schemaVersion, id, title, lang, saveVersion, renderer, … 34 more }` | public | The whole game as written: verbs, characters, items, rooms, rules, audio, skin, budgets, migrations and texts. |
+| `GameDef` | `interface { schemaVersion, id, title, lang, saveVersion, renderer, … 35 more }` | public | The whole game as written: verbs, characters, items, rooms, rules, audio, skin, budgets, migrations and texts. |
 | `GameIR` | `interface { schema, engine, gameId, world, rooms, entities, … 7 more }` | public | The intermediate representation of a game (schema 1): its logic as plain data, the provenance of its ids, the trusted extensions by name, an |
 | `GameRules` | `interface { fallbacks, kinds, on }` | public | The rules shared by every room: fallback responses per verb, reactions by kind, rules valid everywhere. |
 | `GameSource` | `type GameSource = GameDef` | public | A game as its sources write it: a `GameDef` before compilation. |
@@ -203,7 +207,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `PropAnim` | `interface { frames, fps, loop, at }` | public | A prop animation: images in order at `fps` (default 8); `at` = commands run when a frame is reached (index). |
 | `PropDef` | `interface { defaultVerb, img, states, anims, initial, name, … 2 more }` | public | A prop in the scenery, with states (e.g. amp off/on). Its position comes from the layout. |
 | `provenanceOf` | `(ir: GameIR, sources: Readonly<Record<string, string>>): Record<string, IrSource>` | public | Where each id of the IR is written in the sources (path → text), read from their object-literal keys (core/source-keys.ts: strings and comme |
-| `RealityDef` | `interface { signals, bridge }` | public | The game's link to the world outside: the signals it declares and the Reality Bridge it pairs with. |
+| `RealityDef` | `interface { signals, bridge, connectors }` | public | The game's link to the world outside: the signals it declares and the Reality Bridge it pairs with. |
 | `RealityState` | `interface { playerId, cursor, applied }` | public | What a save keeps of the link (`GameState.reality`): no token, no email, no payload. |
 | `REMIX_ALGORITHM_VERSION` | `number` | public | The generator's version: bumped when a single assignment of a given seed would change (ADR 0018). |
 | `RemixManifestError` | `class RemixManifestError` | public | A manifest that cannot produce a world: a build error, with every reason. |
@@ -217,10 +221,15 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `ScoreDef` | `interface { stems, bpm, beatsPerBar, loop, states, quantize, … 4 more }` | public | A score in stems: its files, its tempo and loop, and which stems sound in each game state. |
 | `ScoreState` | `interface { if, stems }` | public | Which stems sound in a given state: the first entry whose condition holds wins (`if` absent: always). |
 | `ScriptDef` | `interface { id, while, loop, do, stepIds }` | public | A script of the world: it runs on its own, without a player action, one command at a time, in the gaps between the player's actions (never d |
+| `SemanticTrigger` | `interface { event, room, item, flag, value, objective, … 3 more }` | public | A semantic trigger: the first event of this kind (and these fields, when given) in the run's journal. A room entered, an item acquired or lo |
 | `Session` | `interface { v, start, base, log, at, seed, … 1 more }` | public | A player's inputs since the game started or a save was loaded, with the state they started from: enough to replay them. |
 | `SessionEntry` | `type SessionEntry = union of 9` | public | One input of a session (`Engine.session`). The answers given while it ran (`picks`, `maps`, `rnd`) are what makes it replayable; `ran` lists |
 | `SignalDef` | `interface { id, source, availability, replay, once, fallback }` | public | A signal the game may receive from the world outside: its id, source, availability, replay mode and fallback. |
 | `SkinDef` | `interface { icons, sounds, fonts, heights, callPoses, pixelArt }` | public | UI skin: everything the engine shows or plays without the content referencing it. Image ids come from the manifest; sounds are ids from `aud |
+| `SpeedrunCategory` | `interface { id, name, timing, start, finish, allowSaves, … 7 more }` | public | A speedrun category: what counts as a run, how it is timed, what it may do. `timing` names the time it is ranked on: `rta` (the wall clock,  |
+| `SpeedrunManifest` | `interface { categories, splits, rulesVersion }` | public | The game's speedrun manifest (`GameDef.speedrun`): categories, splits, and the version of the rules (a change never silently requalifies an  |
+| `SpeedrunSplit` | `interface { id, name, at, parent }` | public | A split: a semantic trigger, a name, and the split it is a step of. |
+| `SpeedrunTrigger` | `type SpeedrunTrigger = SemanticTrigger` | public | A category's start or finish: a semantic trigger. |
 | `SpriteSet` | `type SpriteSet = Record<string, Id[]>` | public | A set of images for a character: pose → list of images (looped). |
 | `StageDef` | `interface { layers, lights, emitters, transition, links }` | public | What a room shows beyond its backdrop: layers, lights, particles, its transition and the logic of its walk links. |
 | `StageLayer` | `interface { id, image, role, visible }` | public | A picture of the room: `backdrop` behind everything, `scenery` among the characters (depth from its layout `z`), `foreground` in front of th |
@@ -228,7 +237,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `storyVariant` | `(manifest: VariationManifest \| undefined, world: RemixWorld): WorldVariant` | public | The story world of a game: every dimension at its story value (an empty manifest gives an empty assignment). |
 | `TalkTopic` | `interface { id, topic, if, do }` | public | A conversation topic offered when talking to an actor: its line, when it is offered, what it runs. |
 | `TransitionKind` | `type TransitionKind = 'cut' \| 'fade' \| 'wipe'` | public | How a room appears when entered: a cut, a fade or a wipe. |
-| `UiTexts` | `interface { walkTo, newGame, continue, confirmErase, yes, no, … 76 more }` | public | Every text the interface shows (menus, confirmations, settings), so a game speaks its own language. |
+| `UiTexts` | `interface { walkTo, newGame, continue, confirmErase, yes, no, … 79 more }` | public | Every text the interface shows (menus, confirmations, settings), so a game speaks its own language. |
 | `Value` | `type Value = boolean \| number \| string` | public | What a flag holds: a boolean, a number or a string. |
 | `variantFlag` | `(dimension: string, group?: string): string` | public | The reserved flag a logical dimension writes (`remix.<id>`; a puzzle order writes `remix.<id>.<group>`). |
 | `VariationConstraint` | `type VariationConstraint = union of 3` | public | A constraint between dimensions: `exclusive` (no two of them take the same value), `requires` (`a` and `b` are `<dimension>=<value>`: when ` |
@@ -290,6 +299,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `fingerprintGame` | `(game: GameDef, o: { manifest?: unknown; extensions: ExtensionHashes; engine: string; }): Promise<GameFingerprint>` | public | A game's fingerprint from its sources as written (before a translation): compiled, its IR made, its presentation read with the manifest. Wha |
 | `GameFingerprint` | `interface { logic, trustedExtensions, presentation, engine }` | public | A game's fingerprint: SHA-256 in hex of its logic, its trusted extensions, its presentation and its engine (an empty `trustedExtensions` whe |
 | `hashSources` | `(files: Readonly<Record<string, string>>): Promise<string>` | public | SHA-256 of a set of source files (path → text) through their canonical text: the trusted extensions' hash. |
+| `isRankable` | `(v: SpeedrunVerdict): boolean` | public | Whether a verdict may be ranked on a leaderboard. |
 | `leaderboardKey` | `(categoryId: string, rules: RemixCategoryRules, v: WorldVariant): string` | public | The leaderboard a run goes to: its category, and for a Fixed or a Daily its seed (a Daily's seed names its day). Random and Mystery rank eve |
 | `logicalKey` | `(c: CompiledManifest, v: WorldVariant): string` | public | A key for proofs: two variants with the same logical world share a proof certificate. |
 | `MemoryStore` | `class MemoryStore` | public | A save store in memory, for the tests and the solver: nothing survives the process. |
@@ -297,6 +307,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `presentationOf` | `(game: CompiledGame \| GameDef, manifest?: unknown): unknown` | public | What the fingerprint's `presentation` hashes: the asset manifest, and every field core/ir-fields.ts classes as presentation (whole) or both  |
 | `REMIX_CATEGORIES` | `Readonly<Record<string, RemixCategoryRules>>` | public | The five categories a Remix game offers by default. |
 | `RemixCategoryRules` | `interface { seed, mode, fixedSeed, codeWheel }` | public | What a speedrun category says of the world (merged into 4.1.14's `SpeedrunCategory`). |
+| `RunClock` | `interface { monotonicNow, logicalSteps, logicalTime }` | public | A run's three clocks: `monotonicNow` the host's monotonic milliseconds (RTA: never reproducible, never an authority), `logicalSteps` one per |
 | `savedWorld` | `(input: unknown): WorldVariant \| undefined` | public | The world a raw save names (a v4 envelope, a slot record holding one), or undefined (v3, a raw state). |
 | `saveEnvelope` | `(game: GameDef, state: GameState, now?: number): SaveEnvelopeV4` | public | Wraps a state in the save envelope a store writes (v4: format, schema, game id and save version, date, and the world the game is played in). |
 | `SaveEnvelopeV3` | `interface { format, schema, gameId, gameSaveVersion, savedAt, state }` | public | A save as written until 4.1.14: the state with the format, the schema, the game's id and save version and the date. |
@@ -310,8 +321,14 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `solve` | `(gameIn: GameDef, layouts: Record<string, Layout>, opts?: SolveOptions): Promise<SolveResult>` | public | Searches the game for a way to its ending (`witness`), or explores every reachable state for softlocks (`prove`). |
 | `SolveOptions` | `interface { reality, maxStates, mode, start, goal, commands, … 13 more }` | public | What a search is told: its mode, where it starts and stops, the custom commands, the world's signals and its budgets. |
 | `SolveResult` | `interface { status, exit, headline, mode, reality, finished, … 19 more }` | public | The verdict of a search: its status, exit code and headline, the path found, the softlocks and the search's statistics. |
+| `SpeedrunEnvelope` | `interface { format, schema, gameId, fingerprint, engineVersion, prngVersion, … 14 more }` | public | A `.wsrun` file: the proof of one speedrun (schema 1). |
 | `SpeedrunSeedPolicy` | `type SpeedrunSeedPolicy = 'story' \| 'fixed' \| 'random' \| 'mystery' \| 'daily'` | public | How a category picks its world. |
+| `SpeedrunVerdict` | `type SpeedrunVerdict = union of 8` | public | A verifier's verdict (ADR 0017). Only `valid` ranks; `inconclusive` is never valid. |
+| `SpeedrunVerifyResult` | `interface { verdict, code, reason, trust, recomputed }` | public | What a verifier answers: the verdict, a stable code, one sentence, and the trust it grants. |
+| `TrustLevel` | `type TrustLevel = 'local' \| 'replay-valid' \| 'server-witnessed' \| 'moderator-verified'` | public | How far a run is believed (ADR 0017): raised only by someone other than the player's client. |
 | `upgradeEnvelope` | `(game: GameDef, env: SaveEnvelopeV3 \| SaveEnvelopeV4): SaveEnvelopeV4` | public | A v3 envelope as a v4 one (the save migration of 4.1.15): every save made before Remix was played in the story world, so it receives the gam |
+| `VerifyContext` | `interface { game, layouts, commands, fingerprint, engineVersion, keyring, … 3 more }` | public | The approved game a run is checked against: its content, layouts, fingerprint, engine, the Bridge's keys. |
+| `verifyRun` | `(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerifyResult>` | public | Verifies a run (`.wsrun` text or object) against the approved game: never throws, every failure is a verdict. |
 | `WorldEvidence` | `interface { dailySeed, commitment, reveal }` | public | What a run's world must match, given the category and what the Bridge published (the day's seed, a commitment). |
 | `worldVerdict` | `(rules: RemixCategoryRules, v: WorldVariant, e?: WorldEvidence): string[]` | public | Whether a run's world is the one its category allows: empty when it is, else the reasons (a verifier refuses the run with them). The world i |
 
@@ -330,9 +347,9 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `manifestHash` | `(m: RealityManifest): Promise<string>` | public | The manifest's hash: SHA-256 of its JSON (keys in this fixed order), hex. |
 | `MAX_SIGNAL_CHARS` | `number` | public | The largest signed signal accepted, in characters: a signal is an identifier, not a document. |
 | `RealityClient` | `class RealityClient` | public | The player's side of the Reality Bridge: reads signed signals from a port, verifies each, hands it to the engine, waits for the durable save |
-| `RealityClientOptions` | `interface { engine, store, port, keyring, refreshKeys, playerId, … 5 more }` | public | What a RealityClient is built with: the engine, the store, the port, the keyring, and how it refreshes keys and reports. |
+| `RealityClientOptions` | `interface { engine, store, port, keyring, refreshKeys, playerId, … 6 more }` | public | What a RealityClient is built with: the engine, the store, the port, the keyring, and how it refreshes keys and reports. |
 | `realityManifest` | `(game: GameDef): RealityManifest \| null` | public | The manifest of a game that declares `reality`, null otherwise. |
-| `RealityManifest` | `interface { format, schema, gameId, signals }` | public | A game's Reality manifest: the signals it declares, with no secret, as the Bridge checks them. |
+| `RealityManifest` | `interface { format, schema, gameId, signals, connectors }` | public | A game's Reality manifest: the signals it declares, with no secret, as the Bridge checks them. |
 | `RefusalCode` | `type RefusalCode = union of 13` | public | Why a signal was refused, as a code (the conformance corpus and the Rust cross-check compare codes) and a sentence. |
 | `revealMatches` | `(c: CommitToken, reveal: { seed: string; nonce: string; }): boolean` | public | Whether a reveal (seed, nonce) is the one a verified commitment hid. |
 | `SignalExpectation` | `interface { gameId, playerId, signals, now }` | public | What a signal must match besides its signature. |

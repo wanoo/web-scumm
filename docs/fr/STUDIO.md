@@ -84,7 +84,12 @@ commandes personnalisées sont du code de confiance, pas des données isolées. 
   À côté, **Export session** télécharge les entrées depuis le début de la partie (avec le journal : un rapport de bug
   que `npm run replay` rejoue) et **Replay…** en charge une : le moteur la joue en silence, le jeu se pose là où elle
   finit, un curseur parcourt les entrées (en toucher une y pose le jeu), et une divergence avec l'enregistrement est
-  signalée.
+  signalée. Pour un jeu avec `speedrun` (4.1.14, `docs/fr/SPEEDRUN.md`), le panneau **speedrun** : les catégories et
+  leurs règles, les splits avec un éditeur (nom, déclencheur ; **+ split** ; **Write to the game** écrit le manifeste
+  avec `set_value` sur `@game`), **Preview on this session** (la session du cadre rejouée avec les splits de la
+  catégorie : les temps qu'un run enregistrerait), **Export route** / **Import route** (`.wsroute`), **Logical route
+  (solver)** (le témoin, jamais un record), les deux dernières routes comparées, et **Export run (.wsrun)** une fois une
+  tentative du cadre scellée.
 - **Language** (4.1.12) : le jeu tel que le voient les outils. D'abord ses **objectifs** (ADR 0014) : id, titre,
   condition, parent, optionnel, et le `fichier:ligne` qui écrit chacun ; **Edit** et **+ objective** ouvrent un
   formulaire généré depuis le schéma d'un objectif (`src/studio/forms-gen.ts` : chaque champ avec sa description, l'id

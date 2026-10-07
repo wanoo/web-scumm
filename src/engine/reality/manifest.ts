@@ -2,7 +2,7 @@
 // Bridge refuses a signal absent from it, and keeps its hash in its configuration so an old configuration cannot
 // publish a signal the game renamed or removed. `npm run build` writes it next to the game (dist/reality-manifest.json)
 // when the game declares `reality`.
-import type { GameDef } from '../core/types';
+import type { GameDef, RealityDef } from '../core/types';
 
 /** A game's Reality manifest: the signals it declares, with no secret, as the Bridge checks them. @public */
 export interface RealityManifest {
@@ -10,6 +10,8 @@ export interface RealityManifest {
   schema: 1;
   gameId: string;
   signals: { id: string; source: string; availability: 'optional' | 'required'; replay: 'record' }[];
+  /** What the game's connectors may turn into signals (4.1.9): present only when the game declares it. */
+  connectors?: NonNullable<RealityDef['connectors']>;
 }
 
 /** The manifest of a game that declares `reality`, null otherwise. @public */
@@ -22,6 +24,7 @@ export function realityManifest(game: GameDef): RealityManifest | null {
     signals: game.reality.signals
       .map((s) => ({ id: s.id, source: s.source, availability: s.availability, replay: s.replay }))
       .sort((a, b) => a.id.localeCompare(b.id)),
+    ...(game.reality.connectors ? { connectors: game.reality.connectors } : {}),
   };
 }
 

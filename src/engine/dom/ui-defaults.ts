@@ -54,6 +54,9 @@ export const DEFAULT_UI = {
   remixHidden: 'hidden until the end',
   remixCopied: 'Copied',
   remixNoBridge: 'needs the Bridge',
+  speedrun: 'Speedrun',
+  exportRun: 'Export run',
+  abandonRun: 'Abandon run',
 } as const;
 
 export type UiKey = keyof typeof DEFAULT_UI;

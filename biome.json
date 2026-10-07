@@ -16,6 +16,8 @@
       "games/**/*.ts",
       "cli/**/*.mjs",
       "bridge/**/*.ts",
+      "connectors/**/*.ts",
+      "connectors/**/*.mjs",
       "vite.config.ts",
       "vitest.config.ts",
       "vitest.mutation.config.ts",

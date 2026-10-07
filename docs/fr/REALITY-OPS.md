@@ -57,7 +57,8 @@ jamais l'élargir.
   webhook de démonstration ; `event` doit être connu, `id` nomme la livraison (déduplication).
 
 Un connecteur vérifie ce qu'il affirme (la preuve d'un badge, l'expéditeur d'un email) : Biscuit dit seulement qui
-peut proposer.
+peut proposer. Les connecteurs de 4.1.9 (email, Telnet, SSH, Open Badges ; expérimentaux) tournent comme processus à
+côté du Bridge, chacun avec son jeton : `docs/fr/CONNECTORS.md`.
 
 ## Côté joueur
 

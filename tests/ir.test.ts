@@ -2,7 +2,7 @@
 // deterministic, with the provenance of its ids, every field of the content classified once (core/ir-fields.ts), and
 // checked by its own schema (core/ir-schema.ts).
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { canonicalJson } from '@engine/core/canonical';
 import { compileGame } from '@engine/core/define';
@@ -27,7 +27,7 @@ function sources(dir: string): Record<string, string> {
       const p = join(d, e);
       if (statSync(p).isDirectory()) {
         if (!['art', 'audio', 'layout', 'locales', 'playtests', 'private', 'tests'].includes(e)) walk(p);
-      } else if (e.endsWith('.ts')) out[relative(process.cwd(), p)] = readFileSync(p, 'utf8');
+      } else if (e.endsWith('.ts')) out[relative(process.cwd(), p).split(sep).join('/')] = readFileSync(p, 'utf8');
     }
   };
   walk(dir);

@@ -25,6 +25,8 @@ export interface ReplayResult {
   first: number;
   /** The ending was reached. */
   ended: boolean;
+  /** What the engine threw while replaying (4.1.14: a verifier says `inconclusive`, not `invalid`). */
+  errors: string[];
   /** The first entry whose outcome differed from the recording, and why. */
   divergedAt?: number;
   divergence?: string;
@@ -65,13 +67,14 @@ const raceTick = async (p: Promise<unknown>) => {
 };
 
 /** Waits for an engine call, unless it pauses on a tutorial step: the next input of the log is that step. */
-async function settle(e: Engine, p: Promise<unknown>, pending: Promise<unknown>[]): Promise<void> {
+async function settle(e: Engine, p: Promise<unknown>, pending: Promise<unknown>[], errors?: string[]): Promise<void> {
   let done = false;
   const q = p.then(
     () => {
       done = true;
     },
-    () => {
+    (err) => {
+      errors?.push(err instanceof Error ? err.message : String(err));
       done = true;
     },
   );
@@ -136,11 +139,12 @@ export async function replay(
     log: opts.seed === undefined ? session.log : session.log.map(({ rnd: _, ...en }) => en as SessionEntry),
   });
   const pending: Promise<unknown>[] = [];
+  const errors: string[] = [];
   const log = session.log;
   let i = 0;
   if (session.start.kind === 'new') {
     if (log[0] && 'start' in log[0]) i = 1;
-    await settle(e, e.newGame(), pending);
+    await settle(e, e.newGame(), pending, errors);
   } else if (session.start.kind === 'checkpoint') await e.checkpoint(session.start.id);
   else {
     if (!session.base) throw new Error('a session that starts from a save needs its base state');
@@ -175,7 +179,7 @@ export async function replay(
                     : 'external' in en
                       ? e.receive(en.external).then(() => undefined)
                       : Promise.resolve();
-    await settle(e, run, pending);
+    await settle(e, run, pending, errors);
     played++;
     opts.onEntry?.(i, e);
     // A session that reached SESSION_MAX rolled over into a new one: the entry is the new one's first.
@@ -204,6 +208,7 @@ export async function replay(
     session: e.session!,
     played,
     first,
+    errors,
     ended: !!e.state.done || ui.log.includes('ENDING'),
     ...(divergedAt !== undefined ? { divergedAt, divergence } : {}),
   };

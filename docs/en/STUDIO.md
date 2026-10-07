@@ -73,6 +73,11 @@ A provider call never follows a redirect, gives up after 60 s, and reads at most
   Next to it, **Export session** downloads the inputs since the game started (with the journal: a bug report
   `npm run replay` plays back) and **Replay…** loads one: the engine plays it silently, the game lands where it ends,
   a slider scrubs through the entries (tap one to land there), and a divergence from the recording is flagged.
+  For a game with `speedrun` (4.1.14, `docs/en/SPEEDRUN.md`), the **speedrun** panel: the categories and their rules,
+  the splits with an editor (name, trigger; **+ split**; **Write to the game** writes the manifest with `set_value` on
+  `@game`), **Preview on this session** (the frame's session replayed with the category's splits: the times a run
+  would record), **Export route** / **Import route** (`.wsroute`), **Logical route (solver)** (the witness, never a
+  record), the last two routes compared, and **Export run (.wsrun)** once an attempt in the frame is sealed.
 - **Language** (4.1.12): the game as the tools see it. First its **objectives** (ADR 0014): id, title, condition,
   parent, optional, and the `file:line` that writes each; **Edit** and **+ objective** open a form generated from the
   objective's schema (`src/studio/forms-gen.ts`: each field with its description, the parent's id with the game's

@@ -60,6 +60,8 @@ export interface ToolBackend {
   assetPrompts?(
     missing?: boolean,
   ): Promise<{ markdown: string; missing: string[]; sheets: { id: string; kind: string; missing: string[] }[] }>;
+  /** A speedrun envelope (`.wsrun` text) verified against the game (4.1.14): verdict, code, reason, trust. */
+  speedrunVerify?(wsrun: string): Promise<unknown>;
   /** Default author of add_note (the MCP client's name, the model's name). */
   author?(): string;
 }
@@ -104,7 +106,8 @@ export interface ToolDef {
     | 'coverage'
     | 'lint'
     | 'playtests'
-    | 'ir';
+    | 'ir'
+    | 'speedrunVerify';
   /** Runs with arguments already validated against `input` (callTool, the MCP SDK); `tool()` types them per tool. */
   run(args: unknown, b: ToolBackend): Promise<ToolResult>;
 }
@@ -543,6 +546,27 @@ export const TOOLS: ToolDef[] = [
         return errorResult(e);
       }
     },
+  }),
+  tool({
+    name: 'speedrun_verify',
+    title: 'Verify a speedrun',
+    description:
+      'Replays a speedrun envelope (.wsrun, 4.1.14) against the current game: reloads the exact rules of its ' +
+      'category, replays its inputs with its seed, recomputes the in-game time, the splits, the final state and the ' +
+      'hash chain, and checks the category’s rules. Returns { verdict, code, reason, trust }: `valid` is the only ' +
+      'rankable verdict, `inconclusive` is never valid, and a verifier grants at most `replay-valid`. Pass the file ' +
+      'path under the game project, or the envelope text. Read-only.',
+    input: {
+      path: z.string().optional().describe('Path of the .wsrun file, relative to the repository or project.'),
+      envelope: z.string().optional().describe('The .wsrun text itself (instead of a path).'),
+    },
+    annotations: { readOnlyHint: true },
+    needs: 'speedrunVerify',
+    run: ({ path, envelope }, b) =>
+      op(async () => {
+        if (!path && !envelope) throw new Error('give the path of a .wsrun file, or its text');
+        return b.speedrunVerify!(envelope ?? `@file:${path}`);
+      }),
   }),
 ];
 

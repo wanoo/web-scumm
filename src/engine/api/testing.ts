@@ -22,3 +22,9 @@ export {
   shortFingerprint,
 } from '../core/fingerprint';
 export type { GameFingerprint } from '../core/fingerprint';
+// 4.1.14 (ADR 0016, ADR 0017): speedruns: the run clock, a run's proof (`.wsrun`), the verifier and its verdicts.
+export { isRankable, verifyRun } from '../tools/speedrun/verify';
+export type { SpeedrunVerdict, SpeedrunVerifyResult, VerifyContext } from '../tools/speedrun/verify';
+export type { SpeedrunEnvelope } from '../tools/speedrun/envelope';
+export type { TrustLevel } from '../tools/speedrun/records';
+export type { RunClock } from '../core/run-clock';

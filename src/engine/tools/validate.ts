@@ -6,6 +6,7 @@ import { stageLayoutChecks } from './validate-stage';
 import { migrationChecks } from './validate/migrations';
 import { objectiveChecks } from './validate/objectives';
 import { remixChecks } from './validate/remix';
+import { speedrunChecks } from './validate/speedrun';
 import { listId, listText } from '../core/list-lines';
 import { condFlags } from '../core/cond';
 import { subLists } from '../core/cmds';
@@ -31,7 +32,6 @@ export interface AssetIndex {
   images: Record<string, [number, number]>;
   audio?: Record<string, unknown>;
 }
-
 export interface ValidateOptions {
   /** A release: every `say` / `toast` / `guide` object needs a stable `id` (translations and voices are keyed by it). */
   release?: boolean;
@@ -1090,11 +1090,12 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       for (const i of p.inventory ?? []) if (!items[i]) err(`${w}.players.${pid}`, `unknown item: "${i}"`);
     }
   }
-
+  // Events and scripts, objectives, the speedrun manifest (4.1.14), Remix (4.1.15); then the flags
   for (const [id, where] of scriptRefs) if (!scriptIds.has(id)) err(where, `unknown script: "${id}"`);
   eventChecks(game, { emitted, listened, waited }, err, warn);
   objectiveChecks(game, { cond, err, warn, commands: opts.commands });
   remixChecks(game, { err, warn, flagsSet, flagsRead });
+  speedrunChecks(game, { err, warn, flags: new Set(flagsSet.keys()) });
   for (const [f, where] of flagsRead) if (!flagsSet.has(f)) warn(where, `flag "${f}" is read but never set`);
   // A decorative flag kept on purpose: `lint.ignore` names it (`flag-never-read` or `flag-never-read:<flag>`), like the lint's codes.
   const ignored = new Set(game.lint?.ignore ?? []);

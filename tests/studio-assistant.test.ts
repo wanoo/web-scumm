@@ -158,7 +158,7 @@ describe('tool registry', () => {
     const { tools } = await client.listTools();
     await client.close();
     expect(tools.map((t) => t.name).sort()).toEqual(TOOLS.map((t) => t.name).sort());
-    expect(TOOLS).toHaveLength(24); // get_ir since 4.1.12
+    expect(TOOLS).toHaveLength(25); // get_ir since 4.1.12, speedrun_verify since 4.1.14
     expect(
       toolsFor(backend)
         .map((t) => t.name)
@@ -191,7 +191,7 @@ describe('tool registry', () => {
   it('a backend without optional abilities loses their tools; bad arguments are tool errors', async () => {
     const { screenshot: _s, readDoc: _r, runTests: _t, assetPrompts: _a, ...plain } = backend;
     expect(toolsFor(plain).map((t) => t.name)).not.toEqual(expect.arrayContaining(['screenshot']));
-    expect(toolsFor(plain)).toHaveLength(20);
+    expect(toolsFor(plain)).toHaveLength(21);
     const r = await callTool('get_room', { nope: 1 }, backend);
     expect(r.isError).toBe(true);
     expect(r.content[0].text).toContain('bad arguments for get_room');

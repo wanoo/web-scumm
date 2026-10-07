@@ -109,6 +109,24 @@ export const game = defineGame({
     constraints: [],
     daily: { kid: 'reference-daily-test', publicKey: 'lbigQxp3ncZ_4aScu3-8hXDpy44WB55ZJ0yMy8BkE1o', mode: 'daily' },
   },
+  // Speedrun categories (4.1.14, docs/en/SPEEDRUN.md): content only. Any% is ranked on the logical time; No Hints on
+  // the active time (the cutscenes aside), without a hint, a save or a load; Real Time on the wall clock (unranked
+  // without a witness). The splits follow the objectives, then the ending.
+  speedrun: {
+    rulesVersion: 1,
+    categories: [
+      { id: 'any%', name: 'Any%', timing: 'igt', start: { event: 'sessionStarted', session: 'new' }, finish: { event: 'endingReached' }, allowSaves: true, allowPauses: true, allowHints: true, reload: 'allowed', realityPolicy: 'forbidden', fingerprint: ['logic', 'trustedExtensions'], inputs: { mouse: true, touch: true, keyboard: true, gamepad: true, macros: 'forbidden' } },
+      { id: 'no-hints', name: 'Any% No Hints', timing: 'active-igt', start: { event: 'sessionStarted', session: 'new' }, finish: { event: 'endingReached' }, allowSaves: false, allowPauses: true, allowHints: false, reload: 'invalidates', realityPolicy: 'forbidden', fingerprint: ['logic', 'trustedExtensions', 'presentation'], inputs: { mouse: true, touch: true, keyboard: true, gamepad: true, macros: 'forbidden' }, seed: 'fixed' },
+      { id: 'rta', name: 'Real Time', timing: 'rta', start: { event: 'sessionStarted', session: 'new' }, finish: { event: 'endingReached' }, allowSaves: true, allowPauses: false, allowHints: true, reload: 'allowed', realityPolicy: 'forbidden', fingerprint: ['logic', 'trustedExtensions'], inputs: { mouse: true, touch: true, keyboard: true, gamepad: true, macros: 'forbidden' } },
+    ],
+    splits: [
+      { id: 'ladder', name: 'Ladder', at: { event: 'objectiveCompleted', objective: 'ladder' } },
+      { id: 'cellar', name: 'Cellar', at: { event: 'objectiveCompleted', objective: 'cellar' } },
+      { id: 'lights', name: 'Lights', at: { event: 'objectiveCompleted', objective: 'lights' } },
+      { id: 'board', name: 'Board', at: { event: 'objectiveCompleted', objective: 'board' } },
+      { id: 'end', name: 'Festival', at: { event: 'endingReached' } },
+    ],
+  },
   saves: { slots: 3 },
   settings: true,
   // The demo's sounds, and its theme in stems with this chapter's own mixes (3.5): Biscuit's harp and bass, the night

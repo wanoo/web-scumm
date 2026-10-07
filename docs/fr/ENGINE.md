@@ -210,6 +210,25 @@ et `engine` (sa version et `prngVersion`, réservé). La ligne d'empreinte du me
 tel qu'écrit (avant une traduction), et montre les huit premiers chiffres de chacune ; la ligne des objectifs (`ui.objectives`) ouvre le
 journal de quêtes (`dom/objectives-menu.ts`).
 
+## L'horloge du run, le générateur à graine et le journal du run (4.1.14)
+
+ADR 0016, D24. `core/run-clock.ts` `EngineRunClock` (`Engine.runClock`) est informée par le cœur de chaque entrée de
+session (un pas logique), de chaque commande avant qu'elle s'exécute (sa durée logique déclarée, depuis
+`core/timing.ts`, `TIMING_VERSION = 1`), de chaque réplique dite (2,2 s fixes, quels que soient son texte, sa langue
+ou la vitesse du texte), de chaque marche d'approche arrivée (sa distance entre ancres logiques divisée par
+`WALK_SPEED`), de chaque entrée dans un lieu en un point et de chaque cinématique ouverte et fermée (ce qui y tourne est
+de l'IGT mais pas de l'IGT actif). Elle tient ses propres compteurs (des microticks en `bigint`) et n'écrit jamais
+l'état ; `monotonicNow()` est le RTA, jamais une autorité. `Engine.clock` garde son sens (les millisecondes du `t`
+d'une entrée). `core/prng.ts` est le générateur à graine : xoshiro128** (`PRNG_VERSION = 1`), `derive(seed, stream)`
+pour les flux `logic`, `cosmetic`, `minigame:<id>`, `copy-protection` ; `engine.random` tire dans le flux `logic` du
+run (`Engine.sessions.seed`, `nextSeed` pour un hôte qui la choisit ; `Session.seed` est alors écrit) ; une nouvelle
+partie ou un checkpoint resème, un chargement continue. `rnd[]` reste la trace qu'un rejeu à graine doit reproduire.
+`core/run-tape.ts` fait de chaque entrée un maillon (l'entrée, les événements sémantiques de son début au début de la
+suivante, l'horloge après elle) ; `core/journal-chunks.ts` chaîne les maillons par SHA-256 en chunks de `SESSION_MAX`
+(désormais 500, aussi le renouvellement de la session) écrits une transaction à la fois (`dom/run-store.ts`, IndexedDB
+`web-scumm-runs`) et relus vérifiés. Le speedrun lui-même (catégories, splits, le `.wsrun`, le vérificateur) est dans
+`tools/speedrun/` et `docs/fr/SPEEDRUN.md`.
+
 ## Marche et mouvements
 
 `dom/walk.ts` fait marcher un personnage sur les zones de marche de son lieu (`walkZones`, chacune un polygone avec

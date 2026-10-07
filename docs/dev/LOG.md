@@ -2699,3 +2699,140 @@ Platform"; human gates reported, not blocking (D12).
   (`npm run ship -- verify 4.1.8`).
 
 → next: Claude · `feature/419-cadence` (lot 0: the CI in three tiers), then `feature/419-connector-sdk` (`docs/dev/plans/4.1.9-gateways.md`)
+
+## #118 · 2026-10-07 · Claude · proposal · `feature/419-cadence`: fragments of the CHANGELOG and of the LOG, the first lot of 4.1.9
+
+- Measured on 4.1.8: ten pull requests, and after each merge the others became `DIRTY` on `CHANGELOG.md`,
+  `docs/dev/LOG.md` and `tests/quality-baseline.json`; each re-merge was a new CI run (12–15 min, the mutation job
+  when its inputs moved). About a third of the night went there. The baseline's conflicts stay (its JSON is a
+  measure, resolved by `--theirs` then a ratchet); the two prose files are now fragments assembled on `main`.
+- `tools/changes.ts`: `sectionsOf`, `mergeChangelog` (bullets under their section of `Unreleased`, sections created in
+  the order Breaking, Fixed, Changes), `appendLog` (numbered after the last `## #n ·`, dated by the fragment's first
+  commit), `needsFragment` (code moved, no fragment, no CHANGELOG edit); `--check` on pull requests in the `check`
+  job, `--assemble` at the release. `tests/changes.test.ts` holds the pure parts; this entry is the first fragment
+  assembled.
+- Not done here, said as such: the mutation job in two (`mutation (core)`, `mutation (reality)`) waits for PR #32's
+  workflows to land; the release acceleration (tag-triggered `release.yml` against main's run, a shared build job)
+  is the sheet's next item (`docs/dev/plans/README.md`, lot 0).
+
+→ next: Claude · `feature/419-cadence` (the mutation job in two), then `feature/419-connector-sdk`
+
+
+## #119 · 2026-10-07 · Claude · proposal · `feature/419-ci-tiers`: CI in three tiers, the second sized by a tested plan, the 17 required checks kept
+
+- Measured by the user on 7 October 2026 (GitHub runs): 20 jobs per pull request, a green CI in 11–19 min for 59–61
+  runner-minutes, `quality` run twice (`check`, `node-24`), the unit suite twice (`check` through `build`, `coverage`),
+  `dist/` built seven times (`check`, six e2e rows) plus once in `pwa-firefox`. Not measured here: the expectations
+  below are said as such until the first runs.
+- `tools/ci-plan.ts` (self-contained, run by `node --experimental-strip-types` without `npm ci`): the diff
+  (`HEAD^1...HEAD` of the pull request's merge commit) classified by the first matching rule into ten gates (`node24`,
+  `e2e`, `reference`, `reality`, `pwaFirefox`, `windows`, `secondGame`, `freshInstall`, `upgrade`, `auditDeps`). The
+  workflow, the plan, the lockfile, `package.json`, the configurations, the app shell, the build plugins, the engine's
+  core and an unknown path run everything; a git error too. `tests/ci-plan.test.ts`: a table of changes and plans,
+  the self-exclusion rules, every tracked file known to a rule, and `ci.yml` wired to it (every gate read, the
+  seventeen required names and matrix rows present, every step of a gated job behind `env.RUN`, `pr-gate` needing
+  every job).
+- The ruleset requires seventeen names and a skipped job does not satisfy one (a skipped matrix does not even expand
+  its names), so the plan gates the work inside each job, not its existence: a spared job runs one step, "not needed
+  by the plan", and succeeds. The draft's grouping by browser waits for the ruleset to require `pr-gate` alone.
+- `check` no longer runs the unit suite (`build:game`, not `build`) and uploads the two-entry `dist/` as an artifact;
+  `e2e` and `pwa-firefox` download it. `reference`, `reality`, `second-game`, `fresh-install`, `upgrade` and `windows`
+  keep their own build (another game, or a build on Windows is the check). `node-24` runs the suite only. The
+  coverage ratchet annotates (`::warning::` on a pull request, `::error::` and red under `--strict` on `main` and tags).
+- Expected, not measured: a docs-only pull request in about 8–9 min wall (bounded by `coverage`) for about 25
+  runner-minutes (fast tier ~20, eleven spared jobs ~1 each); an engine-core pull request in 13–17 min (the second
+  tier now waits for `check`, ~7 min, but builds nothing in seven jobs) for about 50 runner-minutes.
+- Not done here: the ruleset (the maintainer's move, after a few green runs of `pr-gate`), the e2e rows grouped by
+  browser, the release accelerated (lot 0 point 8). `tests/quality-baseline.json` not ratcheted (more declarations
+  pass `--check`).
+
+→ next: Claude · `release/4.1.9`
+
+
+## #120 · 2026-10-07 · Claude · proposal · `feature/419-gateways`: the connector SDK and four connectors (email, Telnet, SSH, Open Badges), one pull request
+
+- The sheet's branches 1 to 7 (`docs/dev/plans/4.1.9-gateways.md`) folded into one branch, at the orchestrator's
+  request, in their order: D19, ADR 0008 and the four threat models first (their own commit, before any connector
+  code); then `reality.connectors` and the sample chapter; the SDK and the four connectors with their tests; abuse,
+  fuzz, replays and the build check; docs, packaging and CI. The tests were written with each connector's code, in
+  the same commits, not strictly before it: said as such.
+- Decided here (ADR 0008). The payload stays in the connector: the Bridge's protocol has no payload field, so the SDK
+  sends its SHA-256 as `evidenceHash`; the Bridge is unchanged. IMAP: a bounded client of seven commands
+  (`connectors/src/email/imap.ts`) rather than `imapflow` (MIT, but eight runtime packages: a logger, a SOCKS client,
+  charset tables); MIME: a bounded reader of our own in a worker rather than `mailparser`. SSH: `ssh2` 1.17.0 (MIT;
+  asn1 MIT, bcrypt-pbkdf BSD-3-Clause, safer-buffer MIT, tweetnacl Unlicense), its optional `cpu-features` and `nan`
+  mapped by the root `overrides` to `connectors/vendor/refused-native`: `npm ci` still runs ssh2's install script, which attempts `node-gyp rebuild` and fails, so no `.node` results (checked by a test
+  and by the CI job). Type declarations for the part of `ssh2` used are local (`@types/ssh2` pins `@types/node` 18).
+  Players link a connector with the pause menu's pairing code (typed at a terminal, an email's subject, posted with a
+  badge); email also routes by a recipient tag `+p-…` and by a sender linked by a code (in memory, salted hash).
+  Telnet and SSH share the source `terminal` in the sample game, which is what makes "one key from two connectors"
+  meaningful. The `connectors` mutation set is outside `all`, so the gated sets and their cache key do not move.
+- Measured (this machine, Node 22.14, 7 October 2026). `npx vitest run tests/connectors-*.test.ts
+  tests/dist-no-server-code.test.ts --maxWorkers=1`: 8 files, 96 tests passed and 1 skipped (the check of `dist/`, no build present; it
+  passed on the signals game's build), under 6 s. Tests overall 1 002
+  declarations in 134 files (945 in 126 at 4.1.8; README figures and `tests/quality-baseline.json` written by hand
+  with the baseline's own count, not by `npm run quality:baseline`, which was not run). Proposal connector → Bridge
+  accepted, 1 000 local proposals (memory store, one player): p50 0.42 ms, p95 0.86 ms (to the Bridge's acceptance,
+  not to a player's screen). RSS after 10 000 hostile inputs per connector (`fuzz:connectors --cases=10000`, with GC):
+  email 93 → 107 MB, Telnet → 109, SSH → 110, Open Badges → 142; 0 crash; 8 s per connector reached 0.27 to 1.7
+  million cases, 0 crash. Coverage of `connectors/src` by its own tests: 88.98 % lines, 71.93 % branches, 83.26 %
+  statements (`run.ts`, `registry.ts`, `config.ts` run in a child process: 0 % there). The connectors' tarball:
+  27 516 bytes. The signals game built (`npx vite build`): `verify:dist` clean, no server marker in `dist/`.
+- Run here: `npm run -s tsc -- --noEmit` clean; `npx biome check` clean on every file touched; `npx knip --no-progress`
+  clean; `npm run audit` clean; `npm audit` (dev included) 0 vulnerabilities; `GAME=signals solve:reality` proved
+  (closed, 2 scenarios, the replay, adversarial); `node scripts/pack.mjs` then the connectors' tarball installed with
+  `--omit=optional --ignore-scripts` outside the repository: `--help` answers, `--disallow-code-generation-from-strings`
+  too, and the packaged email connector read a message through its bundled worker. The run under that flag found the
+  MIME worker's development boot missing under tsx (`import.meta.url` carries a query there): fixed.
+- Not run here (the machine's rule: one suite at a time, no `test:node`, no e2e): the full suite, `test:coverage`,
+  `npm run build`, `e2e:reality` (its two new steps, one key from two connectors three times and the replays
+  proposed, are unrun), `fresh-install` (its connectors step is unrun; the same commands were run by hand),
+  `quality:baseline --check`. CI runs them.
+- Not done, said as such: replies to emails by templates (no SMTP); DKIM and SPF; RDF-canonicalised proofs
+  (`eddsa-rdfc-2022` and others are `indeterminate`); OB2 signed with keys other than PEM; IMAP STARTTLS and IDLE (TLS
+  from the first byte, polling); a per-address limit on Telnet and SSH (20 connections in all: one client can hold
+  them, said in the threat model); a coverage floor for `connectors/` in `vite.config.ts` (to set from a full
+  `test:coverage`, three points under it); the `connectors` mutation set run and gated; the nightly fuzz gating (after
+  two green nights); the Telnet and SSH tests on Windows; the human passes (a real provider, a real badge, SSH and
+  Telnet exposed: `experimental`, D12, D19); `tenantId` is in the context, `'default'`, and not sent to the Bridge.
+
+- After the second (security) reading of #43, applied on this branch: the 1 000-connection test raced the server's
+  release of its sessions (red on CI's `connectors` and `node-24`); it now waits for the session count to fall
+  before the next client. SSH: one session and one shell per connection (50 shells on one login multiplied every
+  limit), an idle timer once authenticated without a shell, refused connections hung up at the socket (ssh2's
+  `end()` only half-closes before the handshake). Telnet and SSH: three connections per address, 20 s to pair
+  (was 2 min), wrong codes counted per address across reconnections (six in ten minutes). Email: `imap.tls: false`
+  refused unless the host is loopback; a refusal that may pass (`timeout`, `unreachable`, `bridge`, `bridge-quota`,
+  `quota`) leaves the message unseen (it was flagged Seen and never retried: not "at least once"); `maxBytes` clamped
+  to 4 MB. IMAP: a response line with its literals' markers ≤ 64 KB, ≤ 64 literals, ≤ 1 000 untagged lines and 1 MB
+  of lines per command (a chain of `{0}` grew without bound). Open Badges: a Data Integrity proof `created` in the
+  future (beyond 5 min) or past its `expires` is `invalid`; a status entry of another purpose than revocation (a
+  suspension) is `indeterminate` instead of skipped; IPv4-compatible (`::/96`) and Teredo (`2001::/32`) addresses
+  refused. Wording corrected: `npm ci` still runs ssh2's install script, which attempts `node-gyp rebuild` and fails;
+  no `.node` results (the existing test). Tests added: 3 badge fixtures (15 now), two per-address tests, two SSH
+  tests, three email tests (two hostile IMAP servers, transient against definitive, TLS); every connector file run
+  alone, all green (sdk 34, email 23, badges 23, terminal 9, ssh 6, abuse 7, replays 2). Not taken: pairing attempts
+  in the per-minute quota, IMAP retries with backoff (the next poll is the retry).
+
+→ next: Claude · `release/4.1.9`
+
+## #121 · 2026-10-07 · Claude · release · 4.1.9 "Gateways"
+
+- The programme's second release, the same day as the first, run as one pull request per lot with agents on the
+  execution sheets (the maintainer asked for everything by tonight; the reserve was said once: not every release will
+  keep its full scope in one evening, and the charter forbids "delivered" on what was cut). Merged: #39 fragments,
+  #41 the CI in three tiers, #43 Gateways (one blocking test race and eight security findings from its second reading
+  applied before the merge). `release/4.1.9`: the fragments assembled (#118–#120 above, the first assembly), the
+  version, the golden save `demo-4.1.9.json` (23), the READMEs, ROADMAP en/fr, UPGRADING §21, the pass sheet (twelve
+  rows, five for the connectors and the Bridge), the baseline sheet.
+- Measured on #43's final run: `node-24` 129 files, 1 292 tests; coverage lines 66.66, statements 65.98, functions 61.74, branches 63.39 %;
+  `connectors` 106 tests; `check` 1 min under the fast tier (4 min before), `reference (chromium)` 11 min; the rc of
+  4.1.8 went from tag to pre-release in 19 minutes once its main run (an hour, the last with the mutation) was green.
+- The rc of 4.1.8, verified locally: 8 files, sums ok, 8 attestations verified, then `ship verify` failed on the
+  tarball's name (it expected the tag's `-rc.1` suffix, which `pack.mjs` never writes): fixed here; `release.yml`'s
+  verify step on the rc had failed for the same reason, after publishing.
+- Not done, said as such: the sheet's throughput measures; email replies, DKIM/SPF, STARTTLS, IDLE; the connectors'
+  coverage floor and mutation gate; the human passes. No release candidate for 4.1.9 (the programme names 4.1.10,
+  4.1.11, 4.1.14 and 4.1.15 for that): `v4.1.9` is tagged on the merge commit after its main run.
+
+→ next: Claude · `release/4.1.10` (Constellation, in progress), then 4.1.11 (Viewport, PR #42 held for the tag order)

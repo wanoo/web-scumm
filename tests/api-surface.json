@@ -77,10 +77,15 @@
   "ScoreDef",
   "ScoreState",
   "ScriptDef",
+  "SemanticTrigger",
   "Session",
   "SessionEntry",
   "SignalDef",
   "SkinDef",
+  "SpeedrunCategory",
+  "SpeedrunManifest",
+  "SpeedrunSplit",
+  "SpeedrunTrigger",
   "SpriteSet",
   "StageDef",
   "StageLayer",
@@ -163,6 +168,7 @@
   "MemoryStore",
   "REMIX_CATEGORIES",
   "RemixCategoryRules",
+  "RunClock",
   "SaveEnvelopeV3",
   "SaveEnvelopeV4",
   "SaveWorldMismatch",
@@ -170,11 +176,17 @@
   "SemanticJournal",
   "SolveOptions",
   "SolveResult",
+  "SpeedrunEnvelope",
   "SpeedrunSeedPolicy",
+  "SpeedrunVerdict",
+  "SpeedrunVerifyResult",
+  "TrustLevel",
+  "VerifyContext",
   "WorldEvidence",
   "fingerprint",
   "fingerprintGame",
   "hashSources",
+  "isRankable",
   "leaderboardKey",
   "logicalKey",
   "parseSave",
@@ -186,6 +198,7 @@
   "shortFingerprint",
   "solve",
   "upgradeEnvelope",
+  "verifyRun",
   "worldVerdict"
  ],
  "reality": [
@@ -367,6 +380,13 @@
    "required": [],
    "optional": [
     "missing"
+   ]
+  },
+  "speedrun_verify": {
+   "required": [],
+   "optional": [
+    "envelope",
+    "path"
    ]
   }
  }
