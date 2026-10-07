@@ -348,13 +348,24 @@ function construct(c: CompiledManifest, mode: VariationMode, seed: string): Reco
     const d = c.dims.get(id)!;
     if (d.dim.logical && !mode.dimensions.includes(id)) a[id] = d.story;
   }
-  for (const id of c.order) {
-    const d = c.dims.get(id)!;
-    if (!d.dim.logical || !mode.dimensions.includes(id)) continue;
-    const ok = d.domain.filter((v) => !violations(c, { ...a, [id]: v }).length);
-    if (!ok.length) throw new RemixManifestError([`mode ${mode.id}: dimension ${id} has no value left (seed ${seed})`]);
-    a[id] = ok[uniform(streamOf(seed, id, true), ok.length)];
-  }
+  const varying = c.order.filter((id) => c.dims.get(id)!.dim.logical && mode.dimensions.includes(id));
+  // Depth-first with backtracking, deterministic: each dimension tries first the value its stream draws among those
+  // the constraints still allow, then the others in domain order. A world always exists (the story's satisfies the
+  // constraints, `compileManifest` checks it), so the search always ends with one: never a dead end at run time.
+  const place = (i: number): boolean => {
+    if (i === varying.length) return true;
+    const id = varying[i]!;
+    const ok = c.dims.get(id)!.domain.filter((v) => !violations(c, { ...a, [id]: v }).length);
+    if (!ok.length) return false;
+    const first = uniform(streamOf(seed, id, true), ok.length);
+    for (let k = 0; k < ok.length; k++) {
+      a[id] = ok[(first + k) % ok.length];
+      if (place(i + 1)) return true;
+    }
+    delete a[id];
+    return false;
+  };
+  if (!place(0)) throw new RemixManifestError([`mode ${mode.id}: no world satisfies the constraints (seed ${seed})`]);
   return a;
 }
 

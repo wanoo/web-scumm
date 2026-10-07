@@ -245,6 +245,25 @@ describe('compileVariant', () => {
       if (v.assignments['token-spot'] === 'house.clock') expect(v.assignments['pipe-spot']).toBe('garden.bench');
     }
   });
+  it('a generator never dead-ends: it backtracks (A in {x, y}, C in {x}, capacity 1)', () => {
+    const tight: VariationManifest = {
+      ...extensionManifest,
+      modes: [{ id: 'remix', strategy: 'generator', dimensions: ['token-spot', 'pipe-spot'] }],
+      dimensions: [
+        { id: 'token-spot', kind: 'item-placement', item: 'token', logical: true, story: { room: 'house', anchor: 'table' }, anchors: [{ room: 'house', anchor: 'clock' }, { room: 'house', anchor: 'table' }] },
+        { id: 'pipe-spot', kind: 'item-placement', item: 'pipe', logical: true, story: { room: 'house', anchor: 'clock' }, anchors: [{ room: 'house', anchor: 'clock' }] },
+      ],
+      constraints: [],
+    };
+    const ct = compileManifest(tight, remixWorld(g));
+    const seen = new Set<unknown>();
+    for (let x = 0; x < 300; x++) {
+      const v = compileVariant(ct, tight, encodeSeedCode(x * 7919));
+      expect(v.assignments).toEqual({ 'token-spot': 'house.table', 'pipe-spot': 'house.clock' });
+      seen.add(v.assignments['token-spot']);
+    }
+    expect(seen.size).toBe(1);
+  });
   it('adding a presentation dimension moves no logical draw (D27: its own cosmetic stream)', () => {
     const more: VariationManifest = {
       ...extensionManifest,
