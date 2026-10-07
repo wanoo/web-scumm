@@ -2299,15 +2299,20 @@ Platform"; human gates reported, not blocking (D12).
   delivery, so the next request asked from what was handed over, not from what was applied and saved. Fixed with
   three cursors, received / delivered / durable, every request asking from the durable one; the reader's
   acknowledgement moves it. A signal refused for a while comes back at every poll, with a wait that doubles up to a
-  minute while nothing settles; an acknowledged one never comes back. The three red cases of #22 are plain tests
+  minute while nothing settles; an acknowledged one never comes back. In SSE mode the Bridge keeps the stream open
+  (the second reading's first finding): a signal not settled when the next event is read makes the port end the
+  stream after `wait` and reopen it from the durable cursor, so the re-delivery happens on the same link, not at a
+  proxy's timeout. The three red cases of #22 are plain tests
   here (`got` shows the repeat: `s1, s1`), with the backoff, the three cursors reported, and the parser's cases.
 - SSE parser: CRLF and CR line ends (a CR ending a chunk waits for the next one, flushed at the stream's end), one
   space after `data:`, an event over `maxFrameBytes` (64 KiB) or a buffer over `maxBufferBytes` (1 MiB) ends the
   stream, which the port reopens from the durable cursor; `Last-Event-ID` sent with the durable cursor.
 - Bridge: `resigned` is an LRU bounded by `limits.resignedCache` (10 000); every journal line is checked against
   `BridgeEventSchema` (zod, every field; `WorldSignalV1Schema` for the payload); `JournalLock` (`<journal>.lock`
-  with the pid, a live owner refuses the second start, a dead one is taken over and said; `lock: false` for
-  `doctor` and `compact`); `JsonlBridgeStore.close()`.
+  with the pid, created atomically by `link` from a private file so a reader never sees it half written; a live
+  owner refuses the second start, a dead one is taken over and said, a content that is not a pid is refused;
+  `lock: false` for `doctor` only, `compact` writes and locks; `serve` releases the lock on SIGINT and SIGTERM);
+  `JsonlBridgeStore.close()`; the stream cancelled on the player's side when the parser drops it.
 - Not done, said as such: the 88 reality survivors and the gate by input hash are the next branch
   (`test/418-reality-mutants`), not this one; the Bridge's own backlog bound (`streamBufferBytes`) was already there.
 

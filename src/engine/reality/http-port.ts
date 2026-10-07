@@ -7,6 +7,8 @@
 // Bridge, a poll or a reconnection, asks from `durable`: a signal handed over and not acknowledged (a transient
 // refusal, a save that failed, a crash before the ack) is delivered again, never skipped. 4.1.7 asked from the
 // delivered cursor, so after signal 1 was handed over the connection asked `after=1` whether or not it was applied.
+// In SSE mode the Bridge keeps the stream open: a signal not settled when the next one is read makes the port end the
+// stream itself after a wait (doubling up to a minute) and reconnect from `durable`, which asks for it again.
 import type { WorldSignalPort } from '../core/ports';
 
 export interface HttpPortOptions {
@@ -88,11 +90,14 @@ export async function* sseEvents(
       const carry = t.endsWith('\r') ? '\r' : '';
       t = (carry ? t.slice(0, -1) : t).replace(/\r/g, '\n');
       buf = t + carry;
+      yield* events();
       if (buf.length > maxBuffer)
         throw new Error(`Bridge: event stream held ${buf.length} bytes without an event's end`);
-      yield* events();
     }
   } finally {
+    // The stream is ended on our side too (a parser error, a reader that stopped): a dropped stream must not stay
+    // open on the Bridge, where it counts towards `streamsPerPlayer`. A no-op when the stream is already done.
+    await reader.cancel().catch(() => {});
     reader.releaseLock();
   }
 }
@@ -109,6 +114,16 @@ export function httpPort(o: HttpPortOptions): WorldSignalPort {
     cursors.delivered = Math.max(cursors.delivered, sequence);
     moved();
   };
+  /** The stream being read (SSE), ended by the port itself when a signal it handed over is not settled in time. */
+  let stream: AbortController | undefined;
+  /** The sequence waiting for its acknowledgement, and the timer that ends the stream to ask for it again. */
+  let unsettled: { sequence: number; timer: ReturnType<typeof setTimeout> } | undefined;
+  const settle = () => {
+    if (unsettled && cursors.durable >= unsettled.sequence) {
+      clearTimeout(unsettled.timer);
+      unsettled = undefined;
+    }
+  };
   return {
     async *connect({ after, signal }) {
       cursors.durable = Math.max(cursors.durable, after);
@@ -118,33 +133,53 @@ export function httpPort(o: HttpPortOptions): WorldSignalPort {
       let wait = o.retryMs ?? 1000;
       while (!closed && !signal?.aborted) {
         o.onStatus?.('connecting');
-        // What the reader settled before this request: a poll that hands signals over and settles none backs off.
+        // What the reader settled before this request: a request that hands signals over and settles none backs off.
         const settledBefore = cursors.durable;
         let handedOver = 0;
         try {
           if (o.mode === 'poll') {
             const r = await f(`${base}v1/signals?after=${cursors.durable}`, { headers: auth, signal });
             if (!r.ok) throw new Error(`Bridge: ${r.status}`);
-            // `sequences` (a 4.1.2 Bridge) says where each signal stands; a 4.1.1 Bridge sends them contiguous.
+            // `sequences` (a 4.1.2 Bridge) says where each signal stands; a 4.1.1 Bridge sends them contiguous from
+            // the cursor this request asked from.
             const { signals, sequences } = (await r.json()) as { signals: string[]; sequences?: number[] };
             o.onStatus?.('open');
             for (let i = 0; i < signals.length; i++) {
-              handed(sequences?.[i] ?? cursors.received + 1);
+              handed(sequences?.[i] ?? settledBefore + i + 1);
               handedOver++;
               yield signals[i]!;
             }
           } else {
-            const r = await f(`${base}v1/events?after=${cursors.durable}`, {
-              headers: { ...auth, Accept: 'text/event-stream', 'Last-Event-ID': String(cursors.durable) },
-              signal,
-            });
-            if (!r.ok || !r.body) throw new Error(`Bridge: ${r.status}`);
-            o.onStatus?.('open');
-            wait = o.retryMs ?? 1000;
-            for await (const e of sseEvents(r.body, o)) {
-              handed(Number(e.id) || cursors.received + 1);
-              handedOver++;
-              yield e.data;
+            stream = new AbortController();
+            const onAbort = () => stream?.abort();
+            signal?.addEventListener('abort', onAbort, { once: true });
+            try {
+              const r = await f(`${base}v1/events?after=${cursors.durable}`, {
+                headers: { ...auth, Accept: 'text/event-stream', 'Last-Event-ID': String(cursors.durable) },
+                signal: stream.signal,
+              });
+              if (!r.ok || !r.body) throw new Error(`Bridge: ${r.status}`);
+              o.onStatus?.('open');
+              let i = 0;
+              for await (const e of sseEvents(r.body, o)) {
+                const sequence = Number(e.id) || settledBefore + i + 1;
+                i++;
+                handed(sequence);
+                handedOver++;
+                yield e.data;
+                // Handed over and not settled when the reader comes back for the next one: a stream the Bridge keeps
+                // open would never deliver it again. The port ends the stream itself after `wait` (doubling while
+                // nothing settles) and reconnects from the durable cursor, which asks for it again.
+                if (cursors.durable < sequence && !unsettled) {
+                  const ended = stream;
+                  unsettled = { sequence, timer: setTimeout(() => ended?.abort(), wait) };
+                }
+              }
+            } finally {
+              signal?.removeEventListener('abort', onAbort);
+              if (unsettled) clearTimeout(unsettled.timer);
+              unsettled = undefined;
+              stream = undefined;
             }
           }
         } catch (e) {
@@ -152,11 +187,11 @@ export function httpPort(o: HttpPortOptions): WorldSignalPort {
           void e;
         }
         if (closed || signal?.aborted) break;
-        o.onStatus?.('retrying');
-        await sleep(wait, signal);
         // Nothing settled out of what was handed over: the same signals come back; wait longer each time, up to a minute.
         const stuck = handedOver > 0 && cursors.durable === settledBefore;
-        wait = o.mode === 'poll' && !stuck ? (o.retryMs ?? 1000) : Math.min(wait * 2, MAX_WAIT_MS);
+        wait = stuck ? Math.min(wait * 2, MAX_WAIT_MS) : (o.retryMs ?? 1000);
+        o.onStatus?.('retrying');
+        await sleep(wait, signal);
       }
       o.onStatus?.('closed');
     },
@@ -170,10 +205,12 @@ export function httpPort(o: HttpPortOptions): WorldSignalPort {
       if (through > cursors.durable) {
         cursors.durable = through;
         moved();
+        settle();
       }
     },
     async close() {
       closed = true;
+      stream?.abort();
     },
   };
 }

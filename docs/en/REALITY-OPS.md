@@ -102,7 +102,7 @@ is confirmed once; the other gets a 409.
 ## Retention, export, deletion
 
 The journal (`journal.jsonl`) keeps every accepted signal: its id, sequence, the connector's key, the signed
-envelope; never a token, an email or a payload. The log (stdout) is JSON lines with no secret. Keep the journal as
+envelope and, since 4.1.2, the signal's payload as accepted (to sign it again after a rotation); never a token or an email. The log (stdout) is JSON lines with no secret. Keep the journal as
 long as players may be offline with signals to receive; then a player re-pairs.
 
 - `GET /v1/admin/players/<p-…>` (Bearer operator token): everything held about a player (its link without the
@@ -114,8 +114,9 @@ long as players may be offline with signals to receive; then a player re-pairs.
   not an event of the journal's shape (every field checked, 4.1.8), is corruption, and the Bridge refuses to start
   rather than guess.
 - One Bridge per journal (4.1.8): the running Bridge holds `journal.jsonl.lock` with its process id; a second start
-  on the same file refuses while that process lives, and takes over a lock left by a crash (said in the log). Stop
-  the Bridge before `compact`.
+  on the same file refuses while that process lives, and takes over a lock left by a crash (said in the log). A stop
+  by Ctrl-C or SIGTERM releases the lock. `compact` takes the lock too, so it refuses while the Bridge runs. A lock
+  whose process id was reused by an unrelated process since the crash is refused as "in use": look, then delete it.
 - `web-scumm-bridge compact [--retention-days=90]`, the Bridge stopped: rewrites the journal without the pairings
   past their time, the earlier versions of a player's line, and the signals acknowledged and older than the
   retention; a player's last signal always stays (its next sequence is counted from it), and so does everything not

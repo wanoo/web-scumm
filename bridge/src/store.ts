@@ -10,8 +10,10 @@ import {
   openSync,
   readFileSync,
   renameSync,
+  linkSync,
   truncateSync,
   unlinkSync,
+  writeFileSync,
   writeSync,
 } from 'node:fs';
 import { dirname } from 'node:path';
@@ -226,33 +228,45 @@ export class JournalLock {
         }
       });
     mkdirSync(dirname(this.file), { recursive: true });
+    // The lock is created with its content in one step: the pid written to a private file, then `link`ed under the
+    // lock's name (atomic: EEXIST when another process got there first). A reader never sees an empty lock being
+    // written, so an empty or unreadable lock is not "a crash": it is a file to look at by hand.
+    const tmp = `${this.file}.${pid}.${process.hrtime.bigint()}`;
     for (let attempt = 0; attempt < 2; attempt++) {
+      writeFileSync(tmp, `${pid}\n`);
       try {
-        const fd = openSync(this.file, 'wx');
-        try {
-          writeSync(fd, `${pid}\n`);
-          fsyncSync(fd);
-        } finally {
-          closeSync(fd);
-        }
+        linkSync(tmp, this.file);
         this.held = true;
+        HELD.add(this);
         return;
       } catch (e) {
         if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e;
-        const owner = Number(readFileSync(this.file, 'utf8').trim()) || 0;
-        if (owner && owner !== pid && alive(owner))
-          throw new Error(`journal in use by process ${owner} (${this.file}): one Bridge per journal`);
-        // Our own earlier lock (the same process opens the journal again: a test, a restart in place) is simply
-        // replaced; a lock left by a process that is gone is taken over, and said.
-        if (owner !== pid) this.o.onTakeover?.(owner);
-        unlinkSync(this.file);
+      } finally {
+        try {
+          unlinkSync(tmp);
+        } catch {
+          /* already gone */
+        }
       }
+      const text = readFileSync(this.file, 'utf8').trim();
+      if (!/^\d+$/.test(text))
+        throw new Error(
+          `${this.file} holds "${text.slice(0, 40)}", not a process id: look at it, then delete it by hand`,
+        );
+      const owner = Number(text);
+      if (owner !== pid && alive(owner))
+        throw new Error(`journal in use by process ${owner} (${this.file}): one Bridge per journal`);
+      // Our own earlier lock (the same process opens the journal again: a test, a restart in place) is simply
+      // replaced; a lock left by a process that is gone is taken over, and said.
+      if (owner !== pid) this.o.onTakeover?.(owner);
+      unlinkSync(this.file);
     }
     throw new Error(`could not take ${this.file}`);
   }
   release(): void {
     if (!this.held) return;
     this.held = false;
+    HELD.delete(this);
     try {
       unlinkSync(this.file);
     } catch {
@@ -260,6 +274,12 @@ export class JournalLock {
     }
   }
 }
+
+/** The locks this process holds, released when it exits normally (`serve` releases on SIGINT and SIGTERM too). */
+const HELD = new Set<JournalLock>();
+process.once('exit', () => {
+  for (const l of HELD) l.release();
+});
 
 /** What `inspectJournal` says of a file: its lines, what they hold, and whether its end was cut by a crash. */
 export interface JournalReport {
@@ -321,7 +341,7 @@ export class JsonlBridgeStore extends MemoryBridgeStore {
   ) {
     super();
     mkdirSync(dirname(file), { recursive: true });
-    // One process per journal (4.1.8); `lock: false` for a read-only tool (`doctor`, `compact` on a stopped Bridge).
+    // One process per journal (4.1.8); `lock: false` for a read-only tool (`doctor`). `compact` writes: it locks.
     if (o.lock !== false) {
       this.lock =
         o.lock instanceof JournalLock
@@ -330,7 +350,6 @@ export class JsonlBridgeStore extends MemoryBridgeStore {
               onTakeover: (pid) => o.onRepair?.(`a lock left by process ${pid} was taken over`),
             });
       this.lock.acquire();
-      process.once('exit', () => this.lock?.release());
     }
     if (!existsSync(file)) return;
     const text = readFileSync(file, 'utf8');

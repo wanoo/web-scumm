@@ -10,8 +10,9 @@
   it; a transient refusal, a save that failed or a crash before the acknowledgement left the signal waiting on the
   Bridge until a full reconnection. The port now keeps three cursors, received, delivered and durable, and every
   poll or reconnection asks from the durable one (the acknowledged sequence): the signal is delivered again, with a
-  wait that grows up to a minute while nothing settles (`docs/en/REALITY.md`). The reproduction tests of #22 are
-  the fix's tests.
+  wait that grows up to a minute while nothing settles; a stream the Bridge keeps open is ended by the player after
+  that wait and reopened from the durable cursor (`docs/en/REALITY.md`). The reproduction tests of #22 are the
+  fix's tests.
 
 ### Changes
 
@@ -20,7 +21,8 @@
   holds over 1 MiB without an event's end (the port reopens it from the durable cursor); the Bridge's cache of
   signals signed again after a rotation is an LRU of 10 000 (`limits.resignedCache`); every line of the journal is
   checked whole against the events' schema (a line that is JSON but not an event is corruption); one Bridge per
-  journal (`journal.jsonl.lock` with the owner's pid; a lock left by a crash is taken over and said).
+  journal (`journal.jsonl.lock` with the owner's pid, created atomically; a lock left by a crash is taken over and
+  said, a lock that is not a pid is refused; `compact` takes it too; `serve` releases it on SIGINT and SIGTERM).
 
 ## 4.1.7 — 2026-10-06
 
