@@ -7,7 +7,9 @@
 import type { Id, Value } from './types';
 
 /**
- * One thing that happened in the game, numbered (`seq`, from 1, contiguous). `objectiveCompleted` is reserved for the
+ * One thing that happened in the game, numbered (`seq`, from 1, contiguous). An item handed between players
+ * (`transfer`) is lost by one and acquired by the other, each with its `player`; `flagChanged` with `value: null` is a
+ * flag removed (`unset`), apart from one set to `false`; `playerSwitched` is the player taking another character. `objectiveCompleted` is reserved for the
  * objectives of 4.1.12: nothing emits it yet. `slot` is reserved for a save or a load named by its slot: nothing
  * sets it yet (a slot is not part of a session, so a replay could not reproduce it).
  * @public
@@ -15,8 +17,9 @@ import type { Id, Value } from './types';
 export type SemanticEvent =
   | { seq: number; kind: 'sessionStarted'; session: string }
   | { seq: number; kind: 'roomEntered'; room: Id; from?: Id }
-  | { seq: number; kind: 'itemAcquired' | 'itemLost'; item: Id }
-  | { seq: number; kind: 'flagChanged'; flag: Id; value: Value }
+  | { seq: number; kind: 'itemAcquired' | 'itemLost'; item: Id; player?: Id }
+  | { seq: number; kind: 'flagChanged'; flag: Id; value: Value | null }
+  | { seq: number; kind: 'playerSwitched'; player: Id }
   | { seq: number; kind: 'objectiveCompleted'; objective: Id }
   | { seq: number; kind: 'endingReached'; ending: Id }
   | { seq: number; kind: 'saveMade' | 'loadMade'; slot?: string };
@@ -31,6 +34,7 @@ export const SEMANTIC_KINDS = [
   'itemAcquired',
   'itemLost',
   'flagChanged',
+  'playerSwitched',
   'objectiveCompleted',
   'endingReached',
   'saveMade',
@@ -130,9 +134,11 @@ export function describeEvent(e: SemanticEvent): string {
     case 'roomEntered':
       return `${e.from ? `${e.from} → ` : ''}${e.room}`;
     case 'itemAcquired':
-      return `+ ${e.item}`;
+      return `+ ${e.item}${e.player ? ` (${e.player})` : ''}`;
     case 'itemLost':
-      return `− ${e.item}`;
+      return `− ${e.item}${e.player ? ` (${e.player})` : ''}`;
+    case 'playerSwitched':
+      return `→ ${e.player}`;
     case 'flagChanged':
       return `${e.flag} = ${JSON.stringify(e.value)}`;
     case 'objectiveCompleted':

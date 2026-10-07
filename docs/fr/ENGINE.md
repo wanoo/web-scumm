@@ -180,11 +180,12 @@ Canvas enregistrent la même session et le même journal, à des densités de pi
 et de bureau, avec et sans mouvement réduit (`tests/dom/intent-equivalence.test.ts`).
 
 **Le journal sémantique.** `Engine.journal` (`core/journal.ts`) numérote ce qui s'est passé, en identifiants :
-`sessionStarted`, `roomEntered` (et d'où), `itemAcquired`, `itemLost`, `flagChanged` (seulement quand la valeur
-change), `endingReached`, `loadMade`, et `saveMade` pour l'autosauvegarde qui suit quelque chose de sémantique. Les
+`sessionStarted`, `roomEntered` (et d'où), `itemAcquired`, `itemLost` (un objet passé d'un joueur à l'autre est les
+deux, chacun avec son `player`), `flagChanged` (seulement quand la valeur change ; `null` pour un drapeau retiré),
+`playerSwitched`, `endingReached`, `loadMade`, et `saveMade` pour l'autosauvegarde qui suit quelque chose de sémantique. Les
 handlers de commandes, l'entrée dans un lieu et le cycle de vie du moteur l'émettent ; rien dans le DOM, et un genre
 inconnu est refusé (ce n'est pas le bus de l'interface). `since(seq)` donne les événements après une séquence,
-`subscribe` les entend au fil de l'eau ; la fenêtre garde les 10 000 derniers. Rejouer une session donne le même
+`subscribe` les entend au fil de l'eau ; la fenêtre garde les 10 000 derniers (une session plus longue est exportée `journalTruncated`, et `npm run replay` dit qu'il n'a comparé aucun journal). Rejouer une session donne le même
 journal (`tests/journal.test.ts` : la démo, le chapitre de référence, 200 jeux générés) ; un fichier de session le
 porte, `npm run replay` l'affiche et échoue quand celui du replay diffère, le panneau de dev liste les derniers.
 `objectiveCompleted` attend 4.1.12, un emplacement sur `saveMade` et `loadMade` attend une sauvegarde qui fasse

@@ -439,6 +439,7 @@ export class App {
   }
 
   private refresh() {
+    this.view.invalidate(); // the state changed: the next frame is made again
     this.side.classList.toggle('off', this.engine.busy && !this.choosing);
     if (this.engine.state && this.view.room) this.view.refreshVisibility();
     // The active character's button is hidden, the others show.

@@ -1,11 +1,14 @@
 ### Changes
 
 - **The semantic journal (4.1.11).** `Engine.journal` numbers what happened in the game, in ids: a session started, a
-  room entered (and from where), an item acquired or lost, a flag changed (only when its value changes), an ending
-  reached, a load, and the autosave that follows something semantic. The command handlers, a room's entry and the
+  room entered (and from where), an item acquired or lost (an item handed to another player is both, each with its
+  `player`), a flag changed (only when its value changes; `null` when it is removed), the player switching character,
+  an ending reached, a load, and the autosave that follows something semantic. The command handlers, a room's entry and the
   engine's lifecycle emit it, nothing in the DOM does, and a kind it does not know is refused. Replaying a session yields
   the same journal (the sample game, the reference chapter, 200 generated games). A session file carries it;
-  `npm run replay` prints it and exits 1 when the replay's differs; the dev panel lists the latest events.
+  `npm run replay` prints it and exits 1 when the replay's differs; a session longer than the journal's window
+  (10 000 events) is exported with `journalTruncated: true` and no journal, and `npm run replay` then says "no journal
+  comparison: the window was exceeded" instead of "matches". The dev panel lists the latest events.
 - **The scene frame (4.1.11, ADR 0011).** The room view makes an immutable `SceneFrame` (camera, layers, characters,
   targets with their hit polygons precomputed, effects, a hash) with a pure function, then paints it. Taps are tested
   against the frame and the accessible buttons follow its targets, whatever paints the room. Every room of the sample
@@ -19,7 +22,8 @@
   `window.__game.presenter.inventory(…)` where e2e scripts called `window.__game.inventory(…)`.
 - **The Canvas painter survives a lost context (4.1.11).** Nothing is painted while the browser has reclaimed the
   canvas; once restored, the background, the masks and the occluders are rebuilt from their images and the room is
-  painted again. The route between walk zones is the core's (`core/motion.ts` `zoneRoute`), the walker walks it.
+  painted again. A tap or a hover reuses the room's frame until something changes (a version counter), instead of
+  building and hashing it again. The route between walk zones is the core's (`core/motion.ts` `zoneRoute`), the walker walks it.
 - **The Studio edits a room's layers, masks, zones and portals (4.1.11).** Under the room sheet of the Rooms tab: each
   layer's depth, parallax, opacity and blend; occlusion masks and walk zones drawn as polygons on the backdrop; links
   between zones placed by two clicks; **Save stage** writes the geometry over the room's layout.

@@ -134,11 +134,39 @@ describe('what the engine journals', () => {
       { kind: 'itemAcquired', item: 'zz_test_item' },
       { kind: 'flagChanged', flag: 'zz_flag', value: true },
       { kind: 'flagChanged', flag: 'zz_count', value: 1 },
-      { kind: 'flagChanged', flag: 'zz_flag', value: false },
+      { kind: 'flagChanged', flag: 'zz_flag', value: null }, // removed: not the same as set to false
       { kind: 'itemLost', item: 'zz_test_item' },
       { kind: 'roomEntered', room: 'house', from: 'garden' },
       { kind: 'saveMade' },
     ]);
+  });
+
+  it('set to false and unset are two events: false, then null', async () => {
+    const e = await boot();
+    const s0 = e.journal.seq;
+    await e.script([{ set: ['zz_f', true] }, { set: ['zz_f', false] }, { unset: 'zz_f' }]);
+    expect(e.journal.since(s0).flatMap((x) => (x.kind === 'flagChanged' ? [x.value] : []))).toEqual([
+      true,
+      false,
+      null,
+    ]);
+  });
+
+  it('an item handed to another player: lost by one, acquired by the other; a switch of player is journalled', async () => {
+    const e = await boot();
+    const [other] = e.playerIds().filter((p) => p !== e.heroId());
+    expect(other).toBeTruthy();
+    const me = e.heroId();
+    const s0 = e.journal.seq;
+    await e.script([{ gain: 'zz_gift' }, { transfer: ['zz_gift', other!] }]);
+    await e.switchTo(other!);
+    expect(e.journal.since(s0).map(({ seq: _, ...x }) => x)).toEqual(
+      expect.arrayContaining([
+        { kind: 'itemLost', item: 'zz_gift', player: me },
+        { kind: 'itemAcquired', item: 'zz_gift', player: other },
+        { kind: 'playerSwitched', player: other },
+      ]),
+    );
   });
 
   it('a load: the load, a new session, the room; the session starts at the load', async () => {
@@ -240,6 +268,7 @@ describe('replay(session) yields the same journal', () => {
         'itemAcquired',
         'itemLost',
         'flagChanged',
+        'playerSwitched',
         'saveMade',
         'endingReached',
       ]),
@@ -280,5 +309,17 @@ describe('the session file carries the journal, and the replay tool compares it'
     // An event of an unknown kind is dropped when the file is read: the file is data, not the engine's word.
     const odd = parseSessionFile(JSON.stringify({ ...sessionFile(demo.id, e), journal: [{ seq: 1, kind: 'x' }] }));
     expect(odd.journal).toEqual([]);
+    expect(f.journalTruncated).toBeUndefined();
+  });
+
+  it('a session longer than the window is exported without a journal, marked truncated', async () => {
+    const e = new Engine(structuredClone(demo), demoLayouts, new FakePresenter(), new MemoryStore(), { commands });
+    (e as unknown as { journal: Journal }).journal = new Journal(3);
+    e.random = () => 0;
+    await e.checkpoint('garden');
+    await e.script([{ gain: 'a1' }, { gain: 'a2' }, { gain: 'a3' }, { gain: 'a4' }]);
+    const f = parseSessionFile(JSON.stringify(sessionFile(demo.id, e)));
+    expect(f.journal).toBeUndefined();
+    expect(f.journalTruncated).toBe(true);
   });
 });

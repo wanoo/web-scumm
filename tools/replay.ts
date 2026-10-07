@@ -41,6 +41,7 @@ if (process.argv.includes('--json')) {
       trace: r.trace,
       journal: r.journal,
       journalDivergedAt: jd < 0 ? null : jd,
+      journalCompared: !!f.journal && upTo === undefined,
     }),
   );
   await flushExit(r.divergedAt === undefined && jd < 0 ? 0 : 1);
@@ -73,4 +74,8 @@ if (jd >= 0) {
   console.log(`\n✖  The semantic journal differs from the recording at event ${jd + 1}`);
   process.exit(1);
 }
-console.log(`\n✔  The replay matches the recording`);
+// A session longer than the journal's window was exported without its journal: the inputs matched, the journal
+// could not be compared, and saying "matches" would claim more than was checked.
+if (f.journalTruncated)
+  console.log(`\n•  The inputs replay as recorded; no journal comparison: the window was exceeded`);
+else console.log(`\n✔  The replay matches the recording`);

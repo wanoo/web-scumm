@@ -170,11 +170,12 @@ pixel ratios 1, 2 and 3, on a phone and a desktop screen, with and without reduc
 (`tests/dom/intent-equivalence.test.ts`).
 
 **The semantic journal.** `Engine.journal` (`core/journal.ts`) numbers what happened, in ids: `sessionStarted`,
-`roomEntered` (and from where), `itemAcquired`, `itemLost`, `flagChanged` (only when the value changes),
-`endingReached`, `loadMade`, and `saveMade` for the autosave that follows something semantic. The command handlers, a
+`roomEntered` (and from where), `itemAcquired`, `itemLost` (an item handed between players is both, each with its
+`player`), `flagChanged` (only when the value changes; `null` for a flag removed), `playerSwitched`, `endingReached`,
+`loadMade`, and `saveMade` for the autosave that follows something semantic. The command handlers, a
 room's entry and the engine's lifecycle emit it; nothing in the DOM does, and a kind it does not know is refused (it is
 not the interface's bus). `since(seq)` gives the events after a sequence, `subscribe` hears them as they come; the
-window keeps the last 10,000. Replaying a session yields the same journal (`tests/journal.test.ts`: the sample game,
+window keeps the last 10,000 (a longer session is exported `journalTruncated`, and `npm run replay` says it compared no journal). Replaying a session yields the same journal (`tests/journal.test.ts`: the sample game,
 the reference chapter, 200 generated games); a session file carries it, `npm run replay` prints it and fails when the
 replay's differs, the dev panel lists the latest. `objectiveCompleted` waits for 4.1.12, a slot on `saveMade` and
 `loadMade` for a save that is part of the session.

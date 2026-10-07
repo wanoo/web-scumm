@@ -211,6 +211,8 @@ export interface SessionFile {
   misses?: Record<string, number>;
   /** The session's semantic journal (4.1.11), in ids: `npm run replay` checks the replay yields the same. */
   journal?: SemanticEvent[];
+  /** The session outgrew the journal's window (its first events were dropped): no journal, nothing to compare. */
+  journalTruncated?: true;
 }
 
 export function sessionFile(
@@ -233,7 +235,7 @@ export function sessionFile(
     trace: o.playtest ? [] : [...e.trace],
     ...(o.device ? { device: o.device } : {}),
     ...(o.misses && Object.keys(o.misses).length ? { misses: { ...o.misses } } : {}),
-    ...(journal ? { journal } : {}),
+    ...(journal ? { journal } : { journalTruncated: true as const }),
   };
 }
 
@@ -259,5 +261,6 @@ export function parseSessionFile(text: string): SessionFile {
     ...(device ? { device } : {}),
     ...(Object.keys(misses).length ? { misses } : {}),
     ...(Array.isArray(j.journal) ? { journal: j.journal.filter(isSemanticEvent) } : {}),
+    ...(j.journalTruncated === true ? { journalTruncated: true as const } : {}),
   };
 }

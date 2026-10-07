@@ -118,9 +118,10 @@ describe("the engine's layers", () => {
     const painters = files(join(ROOT, 'dom')).filter((f) => /\/(render-[\w-]+|renderer|frame-renderer)\.ts$/.test(f));
     expect(painters.length).toBeGreaterThanOrEqual(3);
     const reach = painters.flatMap((f) =>
-      [...readFileSync(f, 'utf8').matchAll(/from\s+'([^']+)'/g)]
+      [...readFileSync(f, 'utf8').matchAll(/(?:from\s+|import\(\s*)'([^']+)'/g)]
         .map((m) => m[1])
-        .filter((to) => /core\/(engine|ports|command|session|movement)/.test(to))
+        // core/types stays allowed: a painter names ids and points, never the state's owners.
+        .filter((to) => /core\/(engine|ports|command|session|movement|players|save)/.test(to))
         .map((to) => `${relative(ROOT, f)} → ${to}`),
     );
     expect(reach).toEqual([]);

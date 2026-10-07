@@ -221,7 +221,7 @@ const set: Handler<'set'> = (eng, c) => {
 };
 
 const unset: Handler<'unset'> = (eng, c) => {
-  if (eng.state.flags[c.unset] !== undefined) eng.journal.emit({ kind: 'flagChanged', flag: c.unset, value: false });
+  if (eng.state.flags[c.unset] !== undefined) eng.journal.emit({ kind: 'flagChanged', flag: c.unset, value: null });
   delete eng.state.flags[c.unset];
 };
 

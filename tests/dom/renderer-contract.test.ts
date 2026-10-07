@@ -85,6 +85,24 @@ describe('the renderer contract', () => {
     }
   });
 
+  it('the frame is memoised: two taps without a change build one frame, a change builds the next', async () => {
+    const { e, v } = await scene(new Recorder());
+    const n = v.framesBuilt;
+    const id = e.targets(e.room())[0]!;
+    const box = v.box(id)!;
+    const p: [number, number] = [box[0] + box[2] / 2, box[1] + box[3] / 2];
+    expect(v.hit(p)).toBe(v.hit(p));
+    expect(v.framesBuilt).toBe(n + 1);
+    expect(v.frame()).toBe(v.frame());
+    expect(v.framesBuilt).toBe(n + 1);
+    v.place(e.heroId(), [100, 350]);
+    v.hit(p);
+    expect(v.framesBuilt).toBe(n + 2);
+    v.invalidate(); // the App's onChange: the state may have changed
+    v.hit(p);
+    expect(v.framesBuilt).toBe(n + 3);
+  });
+
   it('the DOM painter: position, size, depth and mirror from the sprite, a shadow under characters', () => {
     const d = new DomRenderer();
     d.reset('img/bg', 640);

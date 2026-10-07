@@ -63,7 +63,10 @@ export class RoomView {
     },
     zoomAt: (p) => this.walker.zoneAt(p)?.zoom ?? 1,
     reduced: () => this.reduceMotion,
-    paint: (cam, width, camY, zoom) => this.r.camera(cam, width, camY, zoom),
+    paint: (cam, width, camY, zoom) => {
+      this.version++;
+      this.r.camera(cam, width, camY, zoom);
+    },
   });
   /** The walking (4.1.5, dom/walker.ts): the floor's topology, walks, crossings, motions. */
   walker = new Walker({
@@ -104,6 +107,25 @@ export class RoomView {
    * The hit test and the accessible targets read it; a renderer paints it.
    */
   frame(): SceneFrame {
+    // Memoised by a version every change bumps (a sprite drawn, a prop, the camera, a state change, a room built): a
+    // tap or a hover reuses the frame instead of building and hashing it again.
+    if (this.cache?.version === this.version) return this.cache.frame;
+    const frame = this.makeFrame();
+    this.framesBuilt++;
+    this.cache = { version: this.version, frame };
+    return frame;
+  }
+  /** Bumped by every change the frame reads (`frame()` is memoised on it). */
+  private version = 0;
+  private cache: { version: number; frame: SceneFrame } | null = null;
+  /** @internal Frames built (the memo's test). */
+  framesBuilt = 0;
+  /** The state may have changed outside this view (the App's `engine.onChange`): the next frame is made again. */
+  invalidate() {
+    this.version++;
+  }
+
+  private makeFrame(): SceneFrame {
     const room = this.room;
     const stage = this.stageNow ?? this.stageSpec();
     return sceneFrame(
@@ -304,6 +326,7 @@ export class RoomView {
     }
     // The frame of the room, made then painted (its sprites resolved first, nothing painted on the way).
     for (const e of this.ents.values()) this.spriteOf(e);
+    this.version++;
     this.paintFrame(this.frame());
     this.enterTransition();
     this.camera.enter(this.layout.width ?? 640, s.camera);
@@ -401,6 +424,7 @@ export class RoomView {
 
   /** Resolves an entity's sprite now and paints it: its part of the frame. */
   private draw(e: Ent) {
+    this.version++;
     this.out.sprite(this.spriteOf(e));
   }
 
@@ -568,6 +592,7 @@ export class RoomView {
   // ------------------------------------------------------------ presenter commands
 
   setProp(id: Id, _state: string) {
+    this.version++;
     const e = this.ents.get(id);
     if (!e) return;
     this.applyPropState(e);
@@ -598,6 +623,7 @@ export class RoomView {
   }
 
   refreshVisibility() {
+    this.version++;
     // The stage's conditions (a lit window, a light switched on) are read again with the entities'.
     // Only its conditions can change a built stage (4.1.5): the key is their answers, not the whole spec serialized.
     if (this.room) {
@@ -691,6 +717,7 @@ export class RoomView {
   setTalking(id: Id | null, long = false) {
     const prev = this.talking;
     this.talking = id;
+    this.version++;
     const now = performance.now();
     const p = prev ? this.ents.get(prev) : undefined;
     if (p) {

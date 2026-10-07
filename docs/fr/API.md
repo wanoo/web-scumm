@@ -79,7 +79,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `FakePresenter` · `MemoryStore` | une interface qui répond par script, un stockage de sauvegarde en mémoire |
 | `solve` · `SolveOptions` · `SolveResult` | le solveur : un chemin vers la fin, les blocages avec `prove` |
 | `parseSave` · `saveEnvelope` · `SaveEnvelopeV3` | l'enveloppe d'une sauvegarde : l'écrire, la relire (migrations appliquées) |
-| `SemanticEvent` · `SemanticJournal` | (4.1.11) `Engine.journal` : ce qui s'est passé dans le jeu, en identifiants, numéroté, émis par le cœur seul et identique au replay |
+| `SemanticEvent` · `SemanticJournal` | (4.1.11) `Engine.journal` : ce qui s'est passé dans le jeu, en identifiants, numéroté (lieux, objets avec le joueur qui les perd ou les gagne, drapeaux, `null` pour un drapeau retiré, un changement de joueur, la fin, chargements et sauvegardes), émis par le cœur seul et identique au replay |
 
 ## web-scumm/reality : les signaux du monde extérieur (4.1.1)
 
@@ -220,7 +220,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `parseSave` | `(game: GameDef, input: unknown, opts?: ParseSaveOptions): GameState` | public | Parses an envelope (or a legacy raw state). Structural corruption and references needed to resume (the current room and active player) are r |
 | `saveEnvelope` | `(game: GameDef, state: GameState, now?: number): SaveEnvelopeV3` | public | Wraps a state in the save envelope (format, schema, game id and save version, date) a store writes. |
 | `SaveEnvelopeV3` | `interface { format, schema, gameId, gameSaveVersion, savedAt, state }` | public | A save as written: the state with the format, the schema, the game's id and save version and the date. |
-| `SemanticEvent` | `type SemanticEvent = union of 7` | public | One thing that happened in the game, numbered (`seq`, from 1, contiguous). `objectiveCompleted` is reserved for the objectives of 4.1.12: no |
+| `SemanticEvent` | `type SemanticEvent = union of 8` | public | One thing that happened in the game, numbered (`seq`, from 1, contiguous). An item handed between players (`transfer`) is lost by one and ac |
 | `SemanticJournal` | `interface { seq, subscribe, since }` | public | What a host reads of the journal (`Engine.journal`): the last sequence number, a subscription, the events after a sequence (within the windo |
 | `solve` | `(gameIn: GameDef, layouts: Record<string, Layout>, opts?: SolveOptions): Promise<SolveResult>` | public | Searches the game for a way to its ending (`witness`), or explores every reachable state for softlocks (`prove`). |
 | `SolveOptions` | `interface { reality, maxStates, mode, start, goal, commands, … 13 more }` | public | What a search is told: its mode, where it starts and stops, the custom commands, the world's signals and its budgets. |

@@ -23,6 +23,11 @@
   in a session, a replay could not reproduce it); the full frame is painted when a room is built and an entity that
   changes paints its own sprite between builds (ADR 0011, property 6); the DOM and Canvas painters own no input, so
   their `onIntent` is wired but never called by them (property 4).
+- Second reading (PR #42), five "should" applied: the `validate.ts` cap lowered to 1140; `transfer` journals the
+  loss and the acquisition with each `player`, a switch journals `playerSwitched`; `unset` journals `value: null`
+  apart from `set(k, false)`; a session outgrowing the 10 000-event window is exported `journalTruncated: true` and
+  `npm run replay` says it compared no journal; `RoomView.frame()` is memoised by a version (two taps, one frame). The
+  nit taken: the painter boundary rule also reads `import()` and `core/players|save`.
 - Not done: the WebGL/Pixi spike and every browser measure (`e2e:perf` on DOM and Canvas, CPU and memory budgets with
   `measureUserAgentSpecificMemory`, DPR in a real browser, `e2e:visual`, `e2e:a11y` on both painters, `e2e:studio` for
   the stage editor): this session may run no e2e; ADR 0012 says "not measured". Not run here: the full suite,
