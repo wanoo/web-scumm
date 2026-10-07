@@ -1,5 +1,5 @@
 name: release
-# A SemVer tag (vMAJOR.MINOR.PATCH, any major) publishes the GitHub release only once the `ci` workflow of that tag is
+# A SemVer tag (vMAJOR.MINOR.PATCH[-pre], any major) publishes the GitHub release only once the `ci` workflow of that tag is
 # green (check, the browser e2e rows): this workflow runs on ci's completion, not on the tag push. It builds the very
 # commit ci tested (`head_sha`), and refuses a tag that no longer points there (moved since). It then re-runs the
 # release checks (doctor, build, proof, strict playtests, dependency audits, the dist inventory) and creates the
@@ -94,7 +94,9 @@ jobs:
             create-web-scumm-*.tgz
             web-scumm-bridge-*.tgz
       - run: |
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes-file notes.md
+          # A pre-release tag (`v4.1.8-rc.1`, 4.1.8) is published as a GitHub pre-release: same files, same checks.
+          pre=""; case "$TAG" in *-*) pre="--prerelease";; esac
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes-file notes.md $pre
           gh release upload "$TAG" "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz "web-scumm-$TAG-SHA256SUMS"
         env:
           GH_TOKEN: ${{ github.token }}

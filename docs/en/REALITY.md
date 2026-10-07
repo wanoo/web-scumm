@@ -93,7 +93,8 @@ The transport keeps three cursors (4.1.8): *received*, the last sequence the Bri
 handed to the game; *durable*, the last one acknowledged, after the save. Every request to the Bridge, a poll or a
 reconnection, asks from the durable one: a signal handed over and not acknowledged (a refusal that may pass later, a
 save that failed, a crash before the acknowledgement) is delivered again on the same connection, with a wait that
-grows up to a minute while nothing settles. Before 4.1.8 the transport asked from the delivered cursor, so such a
+grows up to a minute while nothing settles: a poll asks again; a stream the Bridge keeps open is ended by the player
+after that wait and reopened from the durable cursor. Before 4.1.8 the transport asked from the delivered cursor, so such a
 signal waited for a full reconnection.
 
 The first signal binds the save to its pseudonymous player (`GameState.reality.playerId`, the `p-…` the Bridge gave

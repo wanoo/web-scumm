@@ -26,8 +26,9 @@
   it; a transient refusal, a save that failed or a crash before the acknowledgement left the signal waiting on the
   Bridge until a full reconnection. The port now keeps three cursors, received, delivered and durable, and every
   poll or reconnection asks from the durable one (the acknowledged sequence): the signal is delivered again, with a
-  wait that grows up to a minute while nothing settles (`docs/en/REALITY.md`). The reproduction tests of #22 are
-  the fix's tests.
+  wait that grows up to a minute while nothing settles; a stream the Bridge keeps open is ended by the player after
+  that wait and reopened from the durable cursor (`docs/en/REALITY.md`). The reproduction tests of #22 are the
+  fix's tests.
 
 ### Changes
 
@@ -36,7 +37,30 @@
   holds over 1 MiB without an event's end (the port reopens it from the durable cursor); the Bridge's cache of
   signals signed again after a rotation is an LRU of 10 000 (`limits.resignedCache`); every line of the journal is
   checked whole against the events' schema (a line that is JSON but not an event is corruption); one Bridge per
-  journal (`journal.jsonl.lock` with the owner's pid; a lock left by a crash is taken over and said).
+  journal (`journal.jsonl.lock` with the owner's pid, created atomically; a lock left by a crash is taken over and
+  said, a lock that is not a pid is refused; `compact` takes it too; `serve` ends its streams, closes and then
+  releases it on SIGINT and SIGTERM).
+
+- **The baseline of 4.1.7, before 4.1.8 touches the toolchain.** `docs/dev/baselines/4.1.7.md` freezes what the
+  last release measured (tests, coverage, mutation, bundle and weights, proofs, build and release times, file
+  sizes), each number with its source. `tests/reality-cursor.test.ts` is the reproduction of the Reality cursor
+  defect (the transport asks the Bridge for `after=1` once signal 1 is handed over, acknowledged or not; in polling
+  and in SSE), kept red on purpose (`it.fails`) until the fix; `tests/formats.test.ts` and `tests/fixtures/formats/`
+  freeze the four formats the engine writes and reads (a session file, a save envelope and a signed world signal
+  parsed by their production readers; a solver report by its keys). The baseline's test count ratchets (728 → 734
+  declarations; `it.fails` is not counted). `docs/dev/MIGRATION-4.1.8.md` lists what TypeScript 7, Vite 8 and vite-plugin-pwa 2 change, read
+  before any of them is touched.
+- **The 4.1.8 → 4.1.15 programme** (D18, 7 October 2026). After 4.1.7 the project does not go to 4.2.0 "Finale": it
+  runs eight more releases first (Foundation Reset, Gateways, Constellation, Viewport, Language, Proof at Scale, Time
+  Attack, Remix), then 4.2.0 "Stable World" takes what "Finale" planned. `docs/dev/PLAN-4.1.8-4.1.15.md` is the
+  programme (French, the source); `docs/dev/PROGRAM-4.1.md` its English page; the ROADMAP and SUPPORT say what it
+  changes for a host: from 4.1.8 the 4.1.x line is an incubation line where a release may break a public name or a
+  format, documented and with a migration, until 4.2.0 restores strict SemVer.
+- **The release chain as commands.** `npm run ship -- <checks|merge|main|tag|watch|verify|chain>`
+  (`tools/release/ship.mjs`): what the 4.1.2 → 4.1.7 releases were run with, kept in the repository instead of a
+  session's scratchpad; one re-run of a failed job, a tag never moved, the release downloaded and its sums and
+  attestations verified. A pre-release tag (`v4.1.8-rc.1`) is published as a GitHub pre-release and its notes say
+  which version it candidates for.
 
 ## 4.1.7 — 2026-10-06
 

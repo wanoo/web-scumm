@@ -95,7 +95,8 @@ Le transport garde trois curseurs (4.1.8) : *reçu*, la dernière séquence envo
 remise au jeu ; *durable*, la dernière acquittée, après la sauvegarde. Chaque requête au Bridge, un poll ou une
 reconnexion, part du curseur durable : un signal remis mais non acquitté (un refus qui passera peut-être plus tard,
 une sauvegarde échouée, un plantage avant l'acquittement) est livré de nouveau sur la même connexion, avec une
-attente qui grandit jusqu'à une minute tant que rien ne se règle. Avant la 4.1.8 le transport partait du curseur
+attente qui grandit jusqu'à une minute tant que rien ne se règle : un poll redemande ; un flux que le Bridge garde
+ouvert est fermé par le joueur après cette attente et rouvert depuis le curseur durable. Avant la 4.1.8 le transport partait du curseur
 livré, et un tel signal attendait une reconnexion complète.
 
 Le premier signal lie la sauvegarde à son joueur pseudonyme (`GameState.reality.playerId`, le `p-…` donné par le

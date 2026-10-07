@@ -25,6 +25,7 @@ import {
   type BridgeStore,
 } from '../bridge/src/store';
 import { signals, signalsLayouts } from './fixtures/signals';
+import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 
 const temps: string[] = [];
@@ -779,6 +780,21 @@ describe('bounded, validated, one per journal (4.1.8)', () => {
       expect(delivered.map((d) => JSON.parse(atob(d.jws.split('.')[0]!)).kid)).toEqual(['k2', 'k2']);
       expect(after.bridge.resignedCount()).toBe(1);
     }
+    // A cache of two with three signals: the one used last recently stays, the least recently used goes.
+    const wide = await setup({
+      store,
+      kid: 'k2',
+      previousKeys: [{ kid: 'k1', raw: before.raw, notAfter: Date.now() - 24 * 3_600_000 }],
+      limits: { resignedCache: 2 },
+    });
+    await before.propose(link.playerId, 'mail.answer.correct', 'mail:3');
+    await wide.bridge.signals(link.capability, 0); // s1, s2, s3 signed: s1 evicted when s3 arrives, s2 and s3 kept
+    expect(wide.bridge.resignedCount()).toBe(2);
+    await wide.bridge.signals(link.capability, 1); // s2 (hit, moved to the back), s3 (hit): nothing signed again
+    const beforeAgain = wide.bridge.resignedCount();
+    await wide.bridge.signals(link.capability, 0); // s1 (miss: evicts the least recently used, s2), s2 (miss), s3 (hit)
+    expect(beforeAgain).toBe(2);
+    expect(wide.bridge.resignedCount()).toBe(2);
   });
 
   it('a journal line that is JSON but not an event of the schema is corruption: the Bridge refuses to start', () => {
@@ -815,6 +831,16 @@ describe('bounded, validated, one per journal (4.1.8)', () => {
     expect(readFileSync(`${journal}.lock`, 'utf8').trim()).toBe('5678');
     afterCrash.release();
     expect(existsSync(`${journal}.lock`)).toBe(false);
+    // A lock that is not a process id is not taken over: it is looked at by hand.
+    writeFileSync(`${journal}.lock`, 'what is this\n');
+    expect(() => new JournalLock(journal, { pid: 5678 }).acquire()).toThrow(/not a process id/);
+    rmSync(`${journal}.lock`);
+    // `compact` (a writer) takes the lock too: refused while a Bridge holds it.
+    // The store judges liveness with the real `process.kill(pid, 0)`: the parent process is alive and is not us.
+    const live = new JournalLock(journal, { pid: process.ppid, alive: () => true });
+    live.acquire();
+    expect(() => new JsonlBridgeStore(journal)).toThrow(new RegExp(`in use by process ${process.ppid}`));
+    live.release();
     // The store takes the lock itself, and `doctor` / `compact` read without one.
     const store = new JsonlBridgeStore(journal);
     expect(existsSync(`${journal}.lock`)).toBe(true);
@@ -822,4 +848,43 @@ describe('bounded, validated, one per journal (4.1.8)', () => {
     store.close();
     expect(existsSync(`${journal}.lock`)).toBe(false);
   });
+});
+
+describe('web-scumm bridge serve, stopped', () => {
+  it('SIGTERM ends the streams and the server, then releases the journal lock, and the process exits 0', async () => {
+    const { main } = await import('../bridge/src/cli');
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-serve-'));
+    temps.push(dir);
+    const log = console.log;
+    console.log = () => {};
+    try {
+      expect(await main(['init', `--dir=${dir}`, '--no-demo-webhooks'], { manifest: realityManifest(signals()) })).toBe(
+        0,
+      );
+    } finally {
+      console.log = log;
+    }
+    const file = JSON.parse(readFileSync(join(dir, 'config.json'), 'utf8')) as { journal: string };
+    const lock = `${join(dir, file.journal)}.lock`;
+    const child = spawn(process.execPath, ['bridge/bin.mjs', 'serve', `--dir=${dir}`, '--port=0', '--host=127.0.0.1'], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let out = '';
+    child.stdout.on('data', (d: Buffer) => (out += d.toString()));
+    child.stderr.on('data', (d: Buffer) => (out += d.toString()));
+    const exited = new Promise<number | null>((ok) => child.on('exit', (code) => ok(code)));
+    try {
+      for (let i = 0; i < 600 && !out.includes('bridge.listening'); i++) await new Promise((r) => setTimeout(r, 50));
+      expect(out, out).toContain('bridge.listening');
+      expect(existsSync(lock), 'the lock is held while serving').toBe(true);
+      expect(readFileSync(lock, 'utf8').trim()).toBe(String(child.pid));
+      child.kill('SIGTERM');
+      const code = await Promise.race([exited, new Promise<null>((ok) => setTimeout(() => ok(null), 15_000))]);
+      expect(code, out).toBe(0);
+      expect(out).toContain('bridge.stopping');
+      expect(existsSync(lock), 'the lock is released at the stop').toBe(false);
+    } finally {
+      if (child.exitCode === null) child.kill('SIGKILL');
+    }
+  }, 60_000);
 });
