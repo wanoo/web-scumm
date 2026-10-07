@@ -78,6 +78,7 @@
     "verify:commercial": "npm run verify:release && npm run validate -- --commercial --errors && npm run verify:dist",
     "quality:baseline": "tsx tools/quality-baseline.ts",
     "bridge": "tsx tools/bridge.ts",
+    "bridge:load": "tsx tools/bridge-load.ts",
     "solve:reality": "tsx tools/solve-reality.ts",
     "reality:spike": "node scripts/reality-spike.mjs",
     "reality:xcheck": "tsx tools/reality-xcheck.ts",

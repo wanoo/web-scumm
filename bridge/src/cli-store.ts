@@ -30,7 +30,7 @@ export interface StoreFile {
 
 /** The store a configuration names, after `--store=` and `BRIDGE_STORE`. */
 export const storeSpec = (file: StoreFile, args: string[], env = process.env): string =>
-  opt(args, 'store') ?? env.BRIDGE_STORE ?? file.store ?? 'jsonl';
+  opt(args, 'store') ?? (env.BRIDGE_STORE || undefined) ?? file.store ?? 'jsonl';
 
 /** `sqlite` alone means the file `bridge.sqlite` beside config.json. */
 const normal = (spec: string) => (spec === 'sqlite' ? 'sqlite:bridge.sqlite' : spec);

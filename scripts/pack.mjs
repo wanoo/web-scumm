@@ -144,6 +144,9 @@ execFileSync(
     '--external:@biscuit-auth/biscuit-wasm',
     '--external:zod',
     '--external:zod/*',
+    // Optional (4.1.10): loaded by name only when the distributed profile or OpenTelemetry is used.
+    '--external:pg',
+    '--external:@opentelemetry/*',
   ],
   { cwd: ROOT, stdio: 'inherit' },
 );
@@ -151,9 +154,14 @@ for (const f of readdirSync(join(ROOT, 'bridge', 'policy')).filter((f) => f.ends
   mkdirSync(join(bridge, 'policy'), { recursive: true });
   cpSync(join(ROOT, 'bridge', 'policy', f), join(bridge, 'policy', f));
 }
+// The store's schema (4.1.10), where `new URL('../migrations/', import.meta.url)` finds it from src/cli.mjs.
+for (const f of readdirSync(join(ROOT, 'bridge', 'migrations')).filter((f) => f.endsWith('.sql'))) {
+  mkdirSync(join(bridge, 'migrations'), { recursive: true });
+  cpSync(join(ROOT, 'bridge', 'migrations', f), join(bridge, 'migrations', f));
+}
 writeFileSync(
   join(bridge, 'bin.mjs'),
-  `#!/usr/bin/env node\n// web-scumm-bridge <init|serve|grant|rotate|revoke|doctor|compact>: the reference Reality Bridge on its own, for a\n// game that is already built: \`init --manifest=<game>/dist/reality-manifest.json\`, then \`serve\`. docs/en/REALITY-OPS.md.\nconst { main } = await import('./src/cli.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
+  `#!/usr/bin/env node\n// web-scumm-bridge <init|serve|grant|rotate|revoke|doctor|compact|migrate|tenant|backup|restore>: the reference Reality Bridge on its own, for a\n// game that is already built: \`init --manifest=<game>/dist/reality-manifest.json\`, then \`serve\`. docs/en/REALITY-OPS.md.\nconst { main } = await import('./src/cli.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
 );
 writeFileSync(
   join(bridge, 'package.json'),
@@ -173,6 +181,10 @@ writeFileSync(
         '@biscuit-auth/biscuit-wasm': root.devDependencies['@biscuit-auth/biscuit-wasm'],
         zod: root.dependencies.zod,
       },
+      // Optional (4.1.10): `pg` for the distributed profile (Postgres), OpenTelemetry's API for the measures. npm does
+      // not install an optional peer: the `local` profile (SQLite, node:sqlite) needs neither.
+      peerDependencies: { pg: root.devDependencies.pg, '@opentelemetry/api': '^1.9.0' },
+      peerDependenciesMeta: { pg: { optional: true }, '@opentelemetry/api': { optional: true } },
     },
     null,
     2,
