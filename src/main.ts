@@ -16,6 +16,7 @@ void bootGame({
   commands,
   locales,
   version: __ASSETS_VERSION__,
+  build: { trustedExtensions: __TRUSTED_EXTENSIONS__, engine: __ENGINE_VERSION__ },
   dev: {
     // The dev tools (?dev, ?edit=<room>): on the dev server, and in a Studio demo build (docs/en/STUDIO.md, "Demo
     // mode"). Without these query params, the player's game is the same in every build.

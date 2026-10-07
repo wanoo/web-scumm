@@ -54,6 +54,8 @@ export interface GameInfo {
   items: Record<Id, Pick<ItemDef, 'name' | 'icon'>>;
   verbs: VerbDef[];
   checkpoints: NonNullable<GameDef['checkpoints']>;
+  /** The objectives (4.1.12, ADR 0014): written with set_value on `@game`. */
+  objectives?: NonNullable<GameDef['objectives']>;
   hero: Id;
   /** Image ids of the asset manifest with their size (thumbnails: `/assets/img/<id>.webp`). */
   images: Record<Id, [number, number]>;

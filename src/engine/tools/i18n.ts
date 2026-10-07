@@ -2,7 +2,7 @@
 // of the game with a stable path, a translation table maps those paths to the translated texts, `applyLocale` returns
 // the game with the texts replaced. Nothing changes for whoever writes the content: no keys, no indirection.
 // Paths (v2 by position, v3 by stable id: `on.<id>`, `talk.<actor>.<id>`, `.choice.<id>`, `events.<id>`): `room:house/look.pantry[1]`, `item:key/name`, `char:grandma/refuse`, `ui/newGame`, `rules/fallbacks.look[2]`,
-// `start/intro[0]`, `credits[3]`, `map/places.house.name`… A list line with an id (`{ id, text }`) is keyed by it:
+// `start/intro[0]`, `credits[3]`, `map/places.house.name`, `objectives/key.title`… A list line with an id (`{ id, text }`) is keyed by it:
 // `room:house/look.pantry.<id>`, `room:house/hints.<hintId>.lines.<id>`, `rules/fallbacks.look.<id>`, `rules/kinds.<id>.say`.
 import type { Cmd, GameDef, ListLine, RoomDef } from '../core/types';
 import { listPathSeg } from '../core/list-lines';
@@ -208,6 +208,10 @@ function walkTexts(game: GameDef, fn: Fn, minigames: MinigameTexts = {}): void {
       one(`globalTalk/${k}`, game.globalTalk[k], (x) => {
         game.globalTalk![k] = x;
       });
+  for (const [id, o] of Object.entries(game.objectives ?? {}))
+    one(`objectives/${id}.title`, o.title, (x) => {
+      o.title = x;
+    });
   if (game.players?.give)
     one('players/give', game.players.give, (x) => {
       game.players!.give = x;

@@ -4,6 +4,8 @@
 // run here, on the real game module with the edits applied. No DOM access: storage, download and the game loader are
 // injected, so the tests run it in node.
 import type { GameDef, Layout } from '@engine/core/types';
+import { compileGame } from '@engine/core/define';
+import { compileIR, type GameIR } from '@engine/core/ir';
 import { validate as validateGame, type AssetIndex } from '@engine/tools/validate';
 import { solve as solveGame, type RealityPolicy } from '@engine/tools/solve';
 import { report as reportGame, reportMarkdown } from '@engine/tools/report';
@@ -386,6 +388,14 @@ export class BrowserApi implements Api {
   async deleteNote(id: string): Promise<{ ok: true }> {
     this.commit({ kind: 'note-delete', id });
     return { ok: true };
+  }
+
+  /** The IR of the game with this browser's edits (4.1.12): no provenance here (the sources are not in the page). */
+  async ir(): Promise<GameIR> {
+    const { mod, game } = await this.editedGame();
+    return compileIR(compileGame(game), {
+      extensions: { trusted: '', commands: mod.commands, minigames: Object.keys(mod.minigames ?? {}) },
+    });
   }
 
   async validate(): Promise<ValidateResult> {

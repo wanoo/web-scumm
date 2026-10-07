@@ -177,8 +177,26 @@ room's entry and the engine's lifecycle emit it; nothing in the DOM does, and a 
 not the interface's bus). `since(seq)` gives the events after a sequence, `subscribe` hears them as they come; the
 window keeps the last 10,000 (a longer session is exported `journalTruncated`, and `npm run replay` says it compared no journal). Replaying a session yields the same journal (`tests/journal.test.ts`: the sample game,
 the reference chapter, 200 generated games); a session file carries it, `npm run replay` prints it and fails when the
-replay's differs, the dev panel lists the latest. `objectiveCompleted` waits for 4.1.12, a slot on `saveMade` and
-`loadMade` for a save that is part of the session.
+replay's differs, the dev panel lists the latest. `objectiveCompleted` (4.1.12, ADR 0014) is an objective completed:
+`core/objectives.ts` checks every objective's `done` at each save and just before an ending, and emits it the first
+time one holds, never again in the session, after the flag that completed it and before the autosave's `saveMade`. A
+slot on `saveMade` and `loadMade` waits for a save that is part of the session.
+
+## The game's IR and fingerprint (4.1.12)
+
+ADR 0013. `core/ir.ts` `compileIR` makes the game's intermediate representation from the compiled game: its logic as
+plain data (rooms, entities, rules, scripts, objectives, Reality policies, the world, the trusted extensions by name,
+the variant slot of 4.1.15), with the `file:line` of each id when the sources are given (`provenanceOf`, from the
+object keys of the sources, `core/source-keys.ts`). `core/ir-fields.ts` classifies every field of a game, a room and
+an entity as logic, presentation, both or tooling, checked by the compiler. The runtime, the solver and the replay keep
+reading `CompiledGame`: the IR is a projection of it (measured in the ADR: making the runtime read the IR would rewrite
+641 reads and carry the presentation the IR leaves out). `core/canonical.ts` `canonicalJson` writes one text per value
+in every runtime (NFC, sorted keys, no `-0`, big integers as strings); `core/fingerprint.ts` hashes it with WebCrypto
+into four components: `logic` (the IR without its provenance), `trustedExtensions` (the build's hash of the game's
+code beside its content, `__TRUSTED_EXTENSIONS__`), `presentation` (`presentationOf`: every presentation field and
+the asset manifest) and `engine` (its version and `prngVersion`, reserved). The pause menu's fingerprint row (`ui.fingerprint`, "Build" by default) computes it
+on demand, on the game as written (before a translation), and shows the first eight digits of each; the
+objectives row (`ui.objectives`) opens the quest journal (`dom/objectives-menu.ts`).
 
 ## Walking and motions
 

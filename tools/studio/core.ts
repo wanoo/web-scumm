@@ -26,6 +26,8 @@ import { parseSessionFile } from '../../src/engine/tools/replay';
 import { lintContent, lintMarkdown } from '../../src/engine/tools/lint';
 import { loadAssets, loadLayouts, loadLocales } from '../../src/engine/tools/load';
 import { GAME_DIR, ROOT, type GameModule } from '../game';
+import { gameIR } from '../extensions';
+import type { GameIR } from '../../src/engine/core/ir';
 import { normalizeStoryboard, storyboardMarkdown, storyboardProblems } from '../pages/storyboard-data';
 import {
   addToSection,
@@ -159,6 +161,9 @@ export function formatJson(value: unknown, width = 120): string {
   return block(value, '', 0) + '\n';
 }
 
+/** The `id` set_value takes for the game file instead of a room (4.1.12): its objectives. */
+export const GAME_FILE_ID = '@game';
+
 const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export function createStudio(opts: StudioOptions = {}) {
@@ -187,6 +192,16 @@ export function createStudio(opts: StudioOptions = {}) {
     } catch (e) {
       throw new StudioError(`the game does not load: ${(e as Error).message}`, 500);
     }
+  }
+
+  /** The file of `defineGame({...})`: game.ts, else the first .ts of the game folder that calls it. */
+  function gameFile(): string {
+    const files = ['game.ts', ...readdirSync(dir).filter((f) => f.endsWith('.ts') && f !== 'game.ts')].map((f) =>
+      join(dir, f),
+    );
+    const found = files.find((f) => existsSync(f) && /\bdefineGame\s*\(/.test(readFileSync(f, 'utf8')));
+    if (!found) throw new StudioError('no defineGame({...}) in the game folder', 404);
+    return found;
   }
 
   /** rooms/<id>.ts, or the room file whose `id` is this id. */
@@ -288,9 +303,15 @@ export function createStudio(opts: StudioOptions = {}) {
   ): Promise<EditResult & { diff: string; dry?: true }> {
     return serial(async () => {
       if (typeof path !== 'string' || !path) throw new StudioError('`path` is required');
-      const file = roomFile(id);
+      // `@game` (4.1.12): the game file's `defineGame({...})`, for its objectives only (ADR 0014).
+      const isGame = id === GAME_FILE_ID;
+      if (isGame && !/^objectives(\.[\w.-]+)?(\.(title|done|optional|parent))?$/.test(path))
+        throw new StudioError(
+          `@game: only "objectives", "objectives.<id>" or "objectives.<id>.<field>" can be written`,
+        );
+      const file = isGame ? gameFile() : roomFile(id);
       const before = readFileSync(file, 'utf8');
-      const r = wrap(() => setValueInSource(before, path, value, file));
+      const r = wrap(() => setValueInSource(before, path, value, file, isGame ? 'defineGame' : 'defineRoom'));
       const diff = r.changed ? lineDiff(before, r.code) : '';
       if (!r.changed || o.dry)
         return { ok: true as const, line: r.line, changed: r.changed, diff, ...(o.dry ? { dry: true as const } : {}) };
@@ -348,6 +369,7 @@ export function createStudio(opts: StudioOptions = {}) {
       items: Object.fromEntries(Object.entries(g.items).map(([k, i]) => [k, { name: i.name, icon: i.icon }])),
       verbs: g.verbs,
       checkpoints: g.checkpoints ?? {},
+      objectives: g.objectives ?? {},
       images: manifest.images ?? {},
       sfx: Object.keys(g.audio?.sfx ?? {}),
       scores: g.audio?.scores ?? {},
@@ -360,6 +382,11 @@ export function createStudio(opts: StudioOptions = {}) {
       ...t,
       file: rel(file),
     }));
+  }
+
+  /** The game's IR (4.1.12, ADR 0013), with the file and line of each id and the trusted extensions' hash. */
+  async function ir(): Promise<GameIR> {
+    return gameIR(await loadModule(), dir);
   }
 
   async function getRoom(id: string): Promise<RoomData> {
@@ -795,6 +822,7 @@ export function createStudio(opts: StudioOptions = {}) {
     /** The game module, imported fresh (for tools that read the whole game, e.g. asset prompts). */
     loadGame: loadModule,
     gameInfo,
+    ir,
     getRoom,
     texts,
     getLayout,

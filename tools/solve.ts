@@ -6,7 +6,8 @@
 // per checkpoint that declares `goals`: from the previous checkpoint until its goals hold, then from the last one to the
 // ending; each chapter must be solvable on its own). With --prove, --chapters proves each chapter from every reachable
 // boundary state of the previous one (deduped by what the chapter reads), not from the hand-written checkpoint, which
-// must itself be one of those boundary states (src/engine/tools/chapters.ts).
+// must itself be one of those boundary states (src/engine/tools/chapters.ts). --goal=100% (4.1.12): the search's goal is
+// every objective that is not optional (`GameDef.objectives`, ADR 0014) instead of the ending.
 // The game: GAME, otherwise package.json → config.game (see tools/game.ts).
 import { flushExit } from './flush';
 import { cachedSolve } from './proof-cache';
@@ -17,6 +18,7 @@ import { profileText } from '../src/engine/tools/solve';
 import '../src/engine/tools/solve-pool';
 import { MAX_STARTS, proveChapters } from '../src/engine/tools/chapters';
 import { loadLayouts } from '../src/engine/tools/load';
+import { completionGoal } from '../src/engine/core/objectives';
 import { GAME_DIR, loadGameModule } from './game';
 
 const { game, commands } = await loadGameModule();
@@ -177,9 +179,21 @@ if (process.argv.includes('--chapters')) {
   process.exit(exitOf(worst));
 }
 
+// --goal=100%: every objective that is not optional, holding at once (4.1.12).
+const full = arg('goal') === '100%';
+if (arg('goal') !== undefined && !full) {
+  console.error(`✖  --goal=${arg('goal')}: the only goal by name is 100% (every objective that is not optional)`);
+  process.exit(2);
+}
+const goal = full ? completionGoal(game) : undefined;
+if (full && !goal!.length) {
+  console.error('✖  --goal=100%: this game declares no objective that is not optional (GameDef.objectives)');
+  process.exit(2);
+}
 const r = await cachedSolve(game, layouts, {
   maxStates,
   start: from ? { checkpoint: from } : 'new',
+  ...(goal ? { goal } : {}),
   commands,
   por,
   mode,
@@ -220,7 +234,7 @@ if (asJson) {
 }
 
 console.log(
-  `\n${r.finished ? '✔  The game can be finished' : '…  No ending reached'} — ${r.states} states explored in ${((Date.now() - t0) / 1000).toFixed(1)} s${r.truncated ? ' (limit reached)' : ''}`,
+  `\n${r.finished ? (full ? '✔  Every objective can be completed (100%)' : '✔  The game can be finished') : full ? '…  100% not reached' : '…  No ending reached'} — ${r.states} states explored in ${((Date.now() - t0) / 1000).toFixed(1)} s${r.truncated ? ' (limit reached)' : ''}`,
 );
 console.log(
   `${r.exit === 0 ? '✔' : '✖'}  ${r.mode === 'prove' ? 'Proof' : 'Witness'} ${r.headline}${r.assumptions.length ? ` · assumptions: ${r.assumptions.join(', ')}` : ''}`,
