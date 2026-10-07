@@ -12,7 +12,7 @@
   (line, prop image, palette, minigame parameter), the `cosmetic` stream; (8) `npm run remix`, `npm run
   verify:variants` (in `verify:game`), certificates under `.cache/proofs/variants/`; (9) `SaveEnvelopeV4`,
   `upgradeEnvelope`, `SaveWorldMismatch`, `Session.variant`, replay rebuilds the world, 4.1.9's golden save added;
-  (10) `core/remix/categories.ts` (Story, Fixed, Random, Mystery, Daily) against 4.1.14's contract; (11)
+  (10) `core/remix/categories.ts` (Story, Fixed, Random, Mystery, Daily), `SpeedrunCategory.seed` with `mystery` and `daily` after merging 4.1.14; (11)
   `bridge/src/daily.ts` (new module, not mounted) and `reality/daily.ts`; (12) the title's Remix menu, the pause menu's
   world row, `?seed=`/`?daily=`/`?world=`; (13) the Studio's Remix tab (`remix-model.ts` 173 lines, `remix-tab.ts`
   258); (14)–(16) the `code-wheel` minigame and its core, `npm run code-wheel` (SVG, PDF with Pillow), accessibility;
@@ -39,6 +39,8 @@
   touch) nor written against a `RealityStore`; a code wheel's record is dispatched as a DOM event, not yet stored in
   the session or the speedrun journal; `story` mode of the wheel ends like `parody` (a minigame has no outcome
   channel to trigger a narrative event); the `e2e:a11y` pass over the wheel; the 4.2 baseline (`tests/quality-baseline.json`)
-  not regenerated (`npm run quality:baseline` not run on this machine); the speedrun categories are not yet merged into
-  4.1.14's `SpeedrunManifest` (MERGE_NOTE).
+  not regenerated (`npm run quality:baseline` not run on this machine); 4.1.14 merged (`SpeedrunCategory.seed` accepts
+  `mystery` and `daily`, its validator checks them, the reference run re-recorded), but the `.wsrun` envelope carries no
+  `variant` yet (`src/engine/tools/speedrun/` is the Time Attack branch's): a verifier must be handed
+  `applyVariant(game, variant)`, and `tests/remix-saves.test.ts` proves the replay half with a package of that shape.
 → next: Claude · `release/4.1.15`
