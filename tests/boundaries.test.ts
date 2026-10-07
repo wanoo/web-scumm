@@ -107,6 +107,25 @@ describe("the engine's layers", () => {
     expect(cycles).toEqual([]);
   });
 
+  it('the scene (4.1.11) imports nothing but the core: a frame is made and read without a DOM, a painter or a tool', () => {
+    expect(
+      offenders(layer('scene'), (to) => /^(dom|tools|dev|minigames|ending|studio|reality)(\/|$)/.test(to)),
+    ).toEqual([]);
+  });
+
+  it('a painter never reaches the engine (4.1.11, D21): the render modules import neither the engine nor its state', () => {
+    // Types included: a painter that could name the Engine could be handed one. It is given frames and specs only.
+    const painters = files(join(ROOT, 'dom')).filter((f) => /\/(render-[\w-]+|renderer|frame-renderer)\.ts$/.test(f));
+    expect(painters.length).toBeGreaterThanOrEqual(3);
+    const reach = painters.flatMap((f) =>
+      [...readFileSync(f, 'utf8').matchAll(/from\s+'([^']+)'/g)]
+        .map((m) => m[1])
+        .filter((to) => /core\/(engine|ports|command|session|movement)/.test(to))
+        .map((to) => `${relative(ROOT, f)} → ${to}`),
+    );
+    expect(reach).toEqual([]);
+  });
+
   it('the Reality protocol (4.1.1) imports nothing but the core and plain packages: the player loads it on demand', () => {
     expect(offenders(layer('reality'), (to) => /^(dom|tools|dev|minigames|ending|studio)(\/|$)/.test(to))).toEqual([]);
   });

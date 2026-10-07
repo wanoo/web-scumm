@@ -6,12 +6,16 @@ What each folder of `src/engine` may import (3.9). `tests/boundaries.test.ts` ch
 |---|---|---|---|
 | Core | `core/` | itself, plain packages (`zod/mini`) | the DOM, tools, dev, minigames, the Studio |
 | Player | `dom/`, `minigames/`, `ending/`, `boot.ts` | core, each other; `tools/i18n` (locales at boot); `tools/replay` and `dev/` only through `import()` | the solver, the validator, the linter, any other tool, the Studio, tweakpane |
+| Scene | `scene/` (4.1.11) | core (the painter's specs as types only) | the DOM, tools, dev, the Studio, a painter |
 | Reality | `reality/` (4.1.1) | core, plain packages (`zod/mini`); WebCrypto | the DOM, tools, dev, the Studio, the Bridge (`bridge/`) |
 | Tools | `tools/` | core | the DOM (they run in Node, workers and tests) |
 | Dev | `dev/` | anything | being imported statically by the player |
 
 The player's first visit is held to `assetBudgets.initialJsKB` (`npm run verify:dist`): the minigames load when one
 starts (`minigames/meta.ts` keeps what the tools read of them), the dev panel and the Studio on demand.
+
+A painter (`dom/render-*.ts`, `dom/renderer.ts`, `dom/frame-renderer.ts`) never imports the engine, its ports or its
+runtime modules, not even as a type (4.1.11, D21): it is given frames and specs, and answers with intentions.
 
 No cycle of static imports anywhere in `src/engine` (4.1.0): a module never imports itself back. Types (`import type`)
 are erased and do not count.

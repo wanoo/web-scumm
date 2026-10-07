@@ -38,14 +38,15 @@ const fnv = (s: string) => {
 };
 
 /** A bank whose images all exist, each with a size of its own (a digest of its id), so every box differs. */
+const size = (id: string): [number, number] => {
+  const h = Number.parseInt(fnv(id), 16);
+  return [60 + (h % 200), 80 + ((h >>> 8) % 240)];
+};
 const bank = {
   img: (id: string) => `img/${id}`,
-  size: (id: string) => {
-    const h = Number.parseInt(fnv(id), 16);
-    return [60 + (h % 200), 80 + ((h >>> 8) % 240)];
-  },
+  size,
   widthFor(id: string, h: number) {
-    const [w, hh] = this.size(id);
+    const [w, hh] = size(id);
     return (w / hh) * h;
   },
   preload: async () => {},
