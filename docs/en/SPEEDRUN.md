@@ -46,8 +46,9 @@ speedrun: {
 
 A trigger names a semantic event (`roomEntered`, `itemAcquired`, `itemLost`, `flagChanged`, `objectiveCompleted`,
 `endingReached`, `sessionStarted`, `playerSwitched`…) and the fields it must match (`room`, `item`, `flag` with
-`value`, `objective`, `ending`, `player`). `reload` says what a load does: `invalidates` the run, is `allowed` (a state
-the run itself reached), or starts a timed `segment`. `seed: 'fixed'` makes every run draw from `fixed:<id>`. The
+`value`, `objective`, `ending`, `player`). `reload` says what a load does: `invalidates` the run, or is `allowed` (a
+state the run itself reached); `segment` (a load starting a timed segment) is reserved, not implemented in 4.1.14: the
+validator refuses it. `seed: 'fixed'` makes every run draw from `fixed:<id>`. The
 rules carry their version: a change never requalifies an old run (`rulesVersion` differs: `unsupported-version`). The
 validator refuses unknown events, ids that name nothing, a start equal to the finish, a category without an input, a
 Reality policy without `reality`, a split that is its own ancestor; it warns about a flag never set and a category that
@@ -130,7 +131,8 @@ leaderboard.
 
 Local tools on the player's machine (D23), never on the Bridge, never in the PWA. Open the game with
 `?speedrunTool=<port>`: the page posts its run's events (category, split ids and names, times; nothing else) to
-`127.0.0.1:<port>`.
+`127.0.0.1:<port>`. The tools accept events from the game's origin only (the dev server and the preview by default,
+`--origin=<url>` for a deployed build): another page open in the browser cannot post fake splits.
 
 - `npm run speedrun:overlay -- --port=7777`: an OBS Browser Source at `http://127.0.0.1:7777/?mode=full`
   (`compact`, `transparent`), Server-Sent Events.
@@ -143,8 +145,12 @@ Local tools on the player's machine (D23), never on the Bridge, never in the PWA
 `bridge/src/runs.ts` (a new module beside the 4.1.10 Bridge, mounted by its host with `runsRoute`): `POST /v1/runs`
 with `{ player, envelope }` returns the run's id and a deletion token. A queue hands each run to an **isolated worker**
 (`tools/speedrun/worker.ts`): a separate process with a bounded heap, killed at its time budget, an environment holding
-only `PATH`, the game package's folder and the heap size (no secret of the Bridge), no network, the package checked
-against its approved fingerprint; its answer is signed with a one-time key. The HTTP process never replays.
+only `PATH`, the game package's folder and the heap size (no secret of the Bridge), fetch, WebSocket, TCP, UDP and DNS
+refused in-process (not an isolation: the real one is the deployment's, a container without a network namespace), the
+package checked against its approved fingerprint; its answer is signed with a one-time key, and a hung worker is killed
+with its process group. The HTTP process never replays. A run is identified by its game, category, seed and inputs
+(their RTA stamps aside): the first submitter keeps it, a copy re-spaced or re-stamped is refused. A client may submit
+ten runs a minute (`perMinute`); the envelope is dropped once the verdict is stored, and old runs are purged hourly.
 `GET /v1/runs?game=&category=&seed=fixed|random` is the leaderboard (valid runs only, each player's best, separated by
 seed), `GET /v1/runs/<id>` one run, `DELETE /v1/runs/<id>` with `x-delete-token` deletes it,
 `POST /v1/runs/<id>/moderate` with the admin token raises it to `moderator-verified`.
@@ -160,7 +166,8 @@ seed), `GET /v1/runs/<id>` one run, `DELETE /v1/runs/<id>` with `x-delete-token`
 - **Retention**: a leaderboard keeps a run 90 days by default (`retentionDays`), and deletes it on request with the
   token given at submission.
 - **Anonymity**: a leaderboard shows a pseudonym (2 to 32 letters, digits, spaces, `_ . -`; an email is refused) and
-  never anything else about the player.
+  never anything else about the player. Pseudonyms are **not authenticated**: anyone may submit under any name, and
+  anyone may submit a published run first under theirs.
 - **Ghosts on semantic targets**: a ghost shows rooms, actions on ids and the inventory, never a pixel trail; it is
   off the first time a category is played.
 
@@ -176,6 +183,11 @@ client's word, like RTA).
 
 - **Integrity is not authenticity**: the chain proves a file was not altered after it was sealed, not that the client
   was honest; a client can recompute it. Pauses, menus, saves, RTA and the inputs used are the client's word.
+- **`replay-valid` admits tool-assisted runs**: a run whose inputs a script or the solver chose replays valid (the
+  committed reference run is the solver's route), and so does a run resumed after a crash (the inputs lost after its
+  last chunk are not in its time). Only a witness or a moderator rules them out.
+- **The seed of a random-seed category is the client's choice**: a player can search seeds offline for an easy one.
+  Mystery and Daily seeds, given by a server, are 4.1.15's answer.
 - Not in 4.1.14: the live witness (`server-witnessed`), the pinned-version replay in the worker, a SQL store for the
   runs, the `/v1/runs` mount in `bridge/src/server.ts`, the cross-browser e2e (`npm run e2e:speedrun`) in CI, real
   OBS and LiveSplit sessions and field tests by speedrunners (human passes).

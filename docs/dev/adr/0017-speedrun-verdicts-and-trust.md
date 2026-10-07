@@ -34,8 +34,11 @@ names the verdict.
 
 A level is only ever raised by someone other than the client; an envelope that claims more than `local` is read as
 `local`. The Bridge's verdict is produced by an isolated worker (ADR 0016, D23): a separate process, bounded in CPU,
-memory and time, with no secret of the Bridge and no network, the game package approved by fingerprint, its output a
-structured verdict signed (HMAC) by the queue that spawned it; the HTTP process never replays.
+memory and time, with no secret of the Bridge, fetch, WebSocket, TCP, UDP and DNS refused in-process (not an isolation:
+the real one is the deployment's, a container without a network namespace), the game package approved by fingerprint,
+its output a structured verdict signed (HMAC) by the queue that spawned it; the HTTP process never replays.
+`replay-valid` admits tool-assisted runs (inputs a script or the solver chose) and crash resumes (the inputs lost after
+the last chunk are not timed): only `server-witnessed` or `moderator-verified` rule them out.
 
 **Cost.** Eight verdicts and some thirty codes to keep stable (tests/speedrun-verify.test.ts holds the alteration table);
 a run whose time is RTA can be valid and still unranked.

@@ -314,3 +314,28 @@ ships `site.json` (the game's own with the trusted extensions' hash and the engi
 verify:dist` expects. The solver's proof cache is keyed by `canonicalJson`: entries of 4.1.11 are not reused, the next
 run fills it again. The DSL is stabilised (D22, `docs/dev/DSL-STABILITY.md`): from here a change to a stable name or
 meaning ships with its migration.
+
+## 26. From 4.1.13 to 4.1.14 "Time Attack"
+
+No authoring format changes: a 4.1.13 game and its saves load unchanged, and `speedrun` is an optional field
+(`docs/en/SPEEDRUN.md`). What a host or a tool may see differently:
+
+- **`SESSION_MAX` is 500, not 5,000.** The 501st input of a session starts a new session from the current state (kind
+  `load`), as the 5,001st did. A host that reads `Engine.session` (or `Engine.sessions`) to export a bug report gets at
+  most the last 500 inputs: a long playtest is several session files, and a speedrun keeps its whole history in
+  chained chunks of 500 (`web-scumm-runs` in IndexedDB). `replay()` now follows a session across its rollover.
+- **`engine.random` is seeded by default.** It draws from the run's `logic` stream (xoshiro128**, `core/prng.ts`), not
+  from `Math.random`. A host or a test that wants the old behaviour sets `engine.random = Math.random`; one that wants a
+  known sequence sets `engine.sessions.nextSeed = '<seed>'` before `newGame()` or `checkpoint()` (the session then
+  writes `Session.seed`). A session nobody seeded is written as before (no `seed`), and the recorded draws (`rnd[]`)
+  still replay it.
+- **The run clock** (`Engine.runClock`) is new and only observes; `Engine.clock` keeps its meaning.
+- **`RealityClientOptions.onSigned(jws, entry)`** is called with each signal's signed JWS before it is applied (the
+  speedrun keeps it as the Reality proof); a custom client may ignore it.
+- **New interface texts** for a game with `speedrun`: `ui.speedrun`, `ui.exportRun`, `ui.abandonRun` (English
+  defaults "Speedrun", "Export run", "Abandon run"); a game in another language adds them.
+- **The release carries a ninth asset**, `web-scumm-<tag>-reference-any.wsrun`: a complete Any% run of the reference
+  chapter, verified by `npm run speedrun:verify` before it is attached. A tool that counts a release's files counts it.
+- **New public names**: `SpeedrunManifest`, `SpeedrunCategory`, `SpeedrunSplit`, `SpeedrunTrigger`, `SemanticTrigger`
+  (content), `RunClock`, `verifyRun`, `isRankable`, `VerifyContext`, `SpeedrunVerifyResult`, `SpeedrunVerdict`,
+  `SpeedrunEnvelope`, `TrustLevel` (testing); the MCP tool `speedrun_verify`; the CLI's `web-scumm speedrun verify`.

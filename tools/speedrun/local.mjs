@@ -39,6 +39,19 @@ export function cleanEvent(e) {
   return out;
 }
 
+/** The game's origins allowed by default: the dev server and the preview, on this machine. */
+export const DEFAULT_ORIGINS = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
+];
+/** The origins of `--origin=<url>[,<url>]`, or the defaults. */
+export const originsOf = (argv) =>
+  arg(argv, 'origin')
+    ?.split(',')
+    .map((u) => new URL(u).origin) ?? DEFAULT_ORIGINS;
+
 /** Reads a small JSON body (16 KB at most). */
 async function body(req) {
   let n = 0;
@@ -55,14 +68,20 @@ async function body(req) {
  * A local server: `POST /event` (CORS open: the page is on another origin, nothing here is secret) hands each clean
  * event to `onEvent`; any other request goes to `route` (or 404). Bound to 127.0.0.1 only.
  */
-export function localServer({ port = 0, onEvent, route }) {
+export function localServer({ port = 0, onEvent, route, origins = DEFAULT_ORIGINS }) {
   const server = createServer(async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Only the game's pages may post (the dev server by default; `--origin=<url>` for a deployed build): another page
+    // open in the same browser cannot feed the overlay or LiveSplit fake splits.
+    const origin = req.headers.origin;
+    const allowed = !origin || origins.includes(origin);
+    if (origin && allowed) res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Headers', 'content-type');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     if (req.method === 'OPTIONS') return res.writeHead(204).end();
     const path = new URL(req.url ?? '/', 'http://localhost').pathname;
     if (req.method === 'POST' && path === '/event') {
+      if (!allowed) return res.writeHead(403).end('not the game’s origin');
       try {
         const e = cleanEvent(await body(req));
         if (!e) return res.writeHead(400).end('not an event');

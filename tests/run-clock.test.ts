@@ -64,7 +64,7 @@ describe('the logical durations', () => {
     const t0 = e.runClock.logicalTime();
     await e.act({ verb: 'look', a: 'valise' });
     const ap = e.approach('valise')!;
-    const walk = walkLogicalMs(Math.hypot(ap[0] - 320, ap[1] - 360));
+    const walk = walkLogicalMs(Math.sqrt((ap[0] - 320) ** 2 + (ap[1] - 360) ** 2));
     expect(e.runClock.logicalTime() - t0).toBe(ms(walk + SAY_LOGICAL_MS));
     // A second look from where the core left the hero: no walk.
     const t1 = e.runClock.logicalTime();

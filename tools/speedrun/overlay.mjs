@@ -4,7 +4,7 @@
 // http://127.0.0.1:7777/?mode=full (timer and splits), `compact` (the timer and the last split) or `transparent` (the
 // same on no background). Server-Sent Events, 127.0.0.1 only, no secret: an event carries a category's name, split ids
 // and names and times, nothing else (local.mjs). Node only: never on the Bridge, never in the PWA.
-import { arg, cleanEvent, localServer } from './local.mjs';
+import { arg, cleanEvent, DEFAULT_ORIGINS, localServer, originsOf } from './local.mjs';
 
 const PAGE = `<!doctype html><html><head><meta charset="utf-8"><title>web-scumm speedrun</title><style>
 :root{--bg:rgba(10,10,20,.82);--fg:#f4f1e8;--ahead:#5bd96b;--behind:#f06a5f;--dim:#9a98a8}
@@ -35,7 +35,7 @@ setInterval(()=>{if(st.running&&st.timing==='rta')show()},50);show();
 </script></body></html>`;
 
 /** Starts the overlay: returns the server (tests close it) and how many viewers are connected. */
-export async function startOverlay(port = 7777) {
+export async function startOverlay(port = 7777, origins = DEFAULT_ORIGINS) {
   const viewers = new Set();
   const state = { last: null, splits: null, category: null };
   const send = (e) => {
@@ -44,6 +44,7 @@ export async function startOverlay(port = 7777) {
   };
   const server = await localServer({
     port,
+    origins,
     onEvent: (e) => {
       if (e.splits) state.splits = e.splits;
       if (e.category) state.category = e.category;
@@ -85,7 +86,7 @@ export async function startOverlay(port = 7777) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const port = Number(arg(process.argv, 'port') ?? 7777);
-  const { server } = await startOverlay(port);
+  const { server } = await startOverlay(port, originsOf(process.argv));
   const at = server.address();
   console.log(
     `Overlay: http://127.0.0.1:${at.port}/?mode=full (compact, transparent) · open the game with ?speedrunTool=${at.port}`,

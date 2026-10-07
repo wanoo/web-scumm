@@ -28,7 +28,7 @@ describe('the speedrun manifest', () => {
       rulesVersion: 0,
       categories: [
         { ...c, id: 'bad id!', start: { event: 'menuOpened' as never } },
-        { ...c, finish: { event: 'roomEntered', room: 'nowhere' }, realityPolicy: 'live' },
+        { ...c, finish: { event: 'roomEntered', room: 'nowhere' }, realityPolicy: 'live', reload: 'segment' },
         {
           ...c,
           start: c.finish,
@@ -55,6 +55,7 @@ describe('the speedrun manifest', () => {
       'unknown item: "nothing"',
       'unknown objective: "none"',
       'is its own ancestor',
+      'reload "segment" is reserved, not implemented in 4.1.14',
     ])
       expect(
         msgs.some((x) => x.includes(m)),

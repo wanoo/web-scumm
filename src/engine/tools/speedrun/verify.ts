@@ -194,6 +194,7 @@ async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerify
   if (env.h0 !== h0) stop('invalid-replay', 'chain', "the chain's head is not the hash of these rules");
   let prev = h0;
   env.chunks.forEach((c, i) => {
+    if (!c.entries.length) stop('invalid-replay', 'chunk-order', `chunk ${i} is empty`);
     if (c.index !== i || c.prevHash !== prev)
       stop('invalid-replay', 'chunk-order', `chunk ${i} is missing, moved or unlinked`);
     if (i < env.chunks.length - 1 && c.entries.length !== CHUNK_SIZE)
@@ -216,7 +217,7 @@ async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerify
     }
     if (l.from < 0)
       stop('invalid-category-rule', 'foreign-load', `a save from outside the run was loaded before entry ${l.before}`);
-    if (category.reload === 'invalidates')
+    if (category.reload !== 'allowed')
       stop(
         'invalid-category-rule',
         'reload-forbidden',

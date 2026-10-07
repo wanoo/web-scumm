@@ -6,7 +6,7 @@
 // (`?speedrunTool=7778`) and this process drives LiveSplit through LiveSplit's own local WebSocket server (Control →
 // Start WebSocket Server): start, split, skip, the in-game time, pause, reset. Local only; nothing goes to the Bridge.
 import { readFileSync, writeFileSync } from 'node:fs';
-import { arg, clock, localServer } from './local.mjs';
+import { arg, clock, DEFAULT_ORIGINS, localServer, originsOf } from './local.mjs';
 
 const xml = (s) =>
   String(s).replace(/[<>&"']/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&apos;' })[c]);
@@ -71,7 +71,11 @@ export function commandsFor(e) {
  * The autosplitter: a local server for the page's events and a WebSocket to LiveSplit. Returns the server and a way
  * to wait until LiveSplit is connected (tests use a fake LiveSplit).
  */
-export async function startAutosplit({ port = 7778, livesplit = 'ws://127.0.0.1:16834/livesplit' } = {}) {
+export async function startAutosplit({
+  port = 7778,
+  livesplit = 'ws://127.0.0.1:16834/livesplit',
+  origins = DEFAULT_ORIGINS,
+} = {}) {
   let ws = null;
   let queue = [];
   const connect = () =>
@@ -91,6 +95,7 @@ export async function startAutosplit({ port = 7778, livesplit = 'ws://127.0.0.1:
   const ready = connect();
   const server = await localServer({
     port,
+    origins,
     onEvent: (e) => {
       for (const c of commandsFor(e)) {
         if (ws && ws.readyState === 1) ws.send(c);
@@ -118,7 +123,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.log(`${out}: ${env.splits.length} segments, ${env.categoryId}`);
   } else if (cmd === 'serve') {
     const port = Number(arg(process.argv, 'port') ?? 7778);
-    const s = await startAutosplit({ port, livesplit: arg(process.argv, 'livesplit') });
+    const s = await startAutosplit({
+      port,
+      livesplit: arg(process.argv, 'livesplit'),
+      origins: originsOf(process.argv),
+    });
     const ok = await s.ready;
     console.log(
       `Autosplitter: open the game with ?speedrunTool=${s.server.address().port}; LiveSplit ${ok ? 'connected' : 'not reachable yet (start its WebSocket server)'}`,

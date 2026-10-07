@@ -44,7 +44,10 @@ export interface SpeedrunCategory {
   allowPauses: boolean;
   /** Hints may be asked for (a hint is recorded by the session: verifiable). */
   allowHints: boolean;
-  /** A load during the run: it disqualifies, it is allowed (a state the run reached), or it starts a timed segment. */
+  /**
+   * A load during the run: it disqualifies, or it is allowed (a state the run reached). `segment` (a load starting a
+   * timed segment) is reserved: not implemented in 4.1.14, the validator refuses it.
+   */
   reload: 'invalidates' | 'allowed' | 'segment';
   /** Signals from the world outside: none, a signed scenario replayed, or live (a category of its own). */
   realityPolicy: 'forbidden' | 'recorded' | 'live';

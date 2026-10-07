@@ -68,8 +68,18 @@ describe('the alteration table: each one rejected with its code', () => {
       'invalid-replay',
       'time-mismatch',
     ],
-    ['time: RTA (sealed by the proof)', (e) => ((e.timing as { rtaMs: number }).rtaMs = 1), 'invalid-replay', 'chain'],
-    ['time: an entry’s RTA stamp', (e) => (entry(e, 1).t = 99), 'invalid-replay', 'chunk-hash'],
+    [
+      'time: RTA, not re-sealed (integrity only: a forger who recomputes the chain is not caught)',
+      (e) => ((e.timing as { rtaMs: number }).rtaMs = 1),
+      'invalid-replay',
+      'chain',
+    ],
+    [
+      'time: an entry’s RTA stamp, not re-sealed (integrity only)',
+      (e) => (entry(e, 1).t = 99),
+      'invalid-replay',
+      'chunk-hash',
+    ],
     [
       'action: another verb',
       (e) => ((entry(e, 2).act as { verb: string }).verb = 'look'),
@@ -108,6 +118,16 @@ describe('the alteration table: each one rejected with its code', () => {
     ['chunk: its index', (e) => ((e.chunks[0] as { index: number }).index = 1), 'invalid-replay', 'chunk-order'],
     ['chunk: its link', (e) => ((e.chunks[0] as { prevHash: string }).prevHash = 'x'), 'invalid-replay', 'chunk-order'],
     ['chunk: all removed', (e) => (e.chunks = []), 'invalid-replay', 'envelope-shape'],
+    [
+      'chunk: an empty one appended',
+      (e) =>
+        (e.chunks = [
+          ...e.chunks,
+          { index: e.chunks.length, prevHash: e.chunks.at(-1)!.hash, hash: e.chunks.at(-1)!.hash, entries: [] },
+        ]),
+      'invalid-replay',
+      'chunk-order',
+    ],
     [
       'splits: a time',
       (e) => ((e.splits[1] as { logicalTime: string }).logicalTime = '5'),

@@ -28,5 +28,18 @@
   speedrunners' field tests (human passes); the mutation sets do not yet include `run-clock.ts`, `prng.ts`,
   `journal-chunks.ts`; `.wsrun` names and the speedrun category names are not translated; the committed reference run
   must be re-recorded (`npx tsx tools/speedrun/reference-run.ts`) after `npm version` at the release.
+- **After the second reading** (Opus, security, 18 findings): fixed: UPGRADING §26 (en, fr); `segment` reserved and
+  refused; the worker spawned in its own process group, killed with it at its budget, settled on `exit` (a hung runner
+  no longer blocks the queue; tested with a runner whose child sleeps past the budget), the worker exits after its line;
+  a failed verification marks the run `inconclusive`/`crash` and logs; the purge scheduled hourly (unref'd); a run's
+  key derived from its game, category, seed and inputs without `t` (re-spaced or re-stamped copies refused, the first
+  submitter wins); a per-client rate limit (`perMinute`, default 10); the envelope dropped once judged; `Object.hasOwn`
+  on the approved games; `ranked` null unless `valid`; `Math.sqrt` instead of `Math.hypot` (the reference run's IGT
+  unchanged, not regenerated); an empty chunk refused; UDP and DNS refused in the worker too, and the wording says the
+  in-process refusals are not an isolation; the local tools' origin allow-list; the docs' limits (random seed, TAS and
+  resumes under `replay-valid`, unauthenticated pseudonyms); ADR 0016's `finalProof` names `realitySignals`; the
+  "RTA" rows of the alteration table renamed (integrity only). Kept: `core/fingerprint.ts`'s `PRNG_VERSION` (4.1.15).
+  Not done: real isolation of the worker (child processes, worker threads and the filesystem stay open in-process: the
+  deployment's container); authenticated pseudonyms.
 
 → next: Claude · `release/4.1.14`

@@ -33,10 +33,14 @@ export interface RunRecord {
   /** The time the category ranks on, in microticks (decimal), when the worker recomputed it. */
   ranked?: string | null;
   seedKind?: 'fixed' | 'random';
-  /** SHA-256 of the envelope's text (a duplicate is refused). */
-  envelopeHash: string;
+  /**
+   * The run's identity: SHA-256 of its game, category, seed and inputs (their RTA stamps aside). The same run
+   * re-spaced or re-stamped is the same key: the first submitter keeps it, a second is refused.
+   */
+  runKey: string;
   /** SHA-256 of the deletion token (the token itself is given once, at submission). */
   deleteTokenHash: string;
+  /** The `.wsrun` text until the worker's verdict is stored, then empty (the summary above stays). */
   envelope: string;
 }
 
@@ -45,7 +49,7 @@ interface RunStore {
   put(r: RunRecord): Promise<void>;
   get(tenantId: string, id: string): Promise<RunRecord | undefined>;
   list(tenantId: string, f?: { gameId?: string; categoryId?: string }): Promise<RunRecord[]>;
-  byHash(tenantId: string, hash: string): Promise<RunRecord | undefined>;
+  byKey(tenantId: string, runKey: string): Promise<RunRecord | undefined>;
   delete(tenantId: string, id: string): Promise<void>;
   /** Deletes the runs submitted before `before` (epoch ms); returns how many. */
   purge(before: number): Promise<number>;
@@ -69,8 +73,8 @@ export class MemoryRunStore implements RunStore {
       )
       .map((r) => structuredClone(r));
   }
-  async byHash(t: string, hash: string) {
-    return [...this.rows.values()].find((r) => r.tenantId === t && r.envelopeHash === hash);
+  async byKey(t: string, runKey: string) {
+    return [...this.rows.values()].find((r) => r.tenantId === t && r.runKey === runKey);
   }
   async delete(t: string, id: string) {
     this.rows.delete(this.k(t, id));
@@ -107,6 +111,12 @@ export interface RunsOptions {
   maxBytes?: number;
   /** Days a run is kept (default 90). */
   retentionDays?: number;
+  /** Submissions one client (per tenant) may make per minute (default 10; beyond: 429). */
+  perMinute?: number;
+  /** How often old runs are purged (ms, default an hour; 0: never on its own, call `purge()`). */
+  purgeEveryMs?: number;
+  /** Logs a failure the queue survives (default `console.error`). */
+  log?: (message: string) => void;
   /** The admin token that moderates (`Authorization: Bearer …`); none: no moderation route. */
   adminToken?: string;
   now?: () => number;
@@ -126,25 +136,90 @@ const PSEUDONYM = /^[\p{L}\p{N} _.-]{2,32}$/u;
 const ID = /^[\w.%+-]{1,64}$/;
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 
+/** JSON with sorted keys (the Bridge does not import the engine's `canonicalJson`: it reaches only `reality/`). */
+const stable = (v: unknown): string =>
+  Array.isArray(v)
+    ? `[${v.map(stable).join(',')}]`
+    : v && typeof v === 'object'
+      ? `{${Object.keys(v)
+          .filter((k) => (v as Record<string, unknown>)[k] !== undefined)
+          .sort()
+          .map((k) => `${JSON.stringify(k)}:${stable((v as Record<string, unknown>)[k])}`)
+          .join(',')}}`
+      : JSON.stringify(v);
+
+/** A run's identity: its game, category, seed and inputs, the inputs' RTA stamps (`t`) aside. */
+function runKeyOf(env: { gameId?: unknown; categoryId?: unknown; seed?: unknown; chunks?: unknown }): string {
+  const chunks = Array.isArray(env.chunks) ? (env.chunks as { entries?: unknown }[]) : [];
+  const entries = chunks
+    .flatMap((c) => (Array.isArray(c?.entries) ? c.entries : []))
+    .map((e) => {
+      if (!e || typeof e !== 'object') return e;
+      const { t: _t, ...rest } = e as Record<string, unknown>;
+      return rest;
+    });
+  return sha256(stable({ gameId: env.gameId, categoryId: env.categoryId, seed: env.seed ?? null, entries }));
+}
+
 /** The queue: submissions in, one worker at a time, verdicts stored. */
 export class RunQueue {
   private queue: { tenantId: string; id: string }[] = [];
   private running: Promise<void> | null = null;
-  constructor(readonly o: RunsOptions) {}
+  private buckets = new Map<string, { tokens: number; at: number }>();
+  private purger: ReturnType<typeof setInterval> | null = null;
+  constructor(readonly o: RunsOptions) {
+    const every = o.purgeEveryMs ?? 3_600_000;
+    if (every > 0) {
+      this.purger = setInterval(() => {
+        this.purge().catch((e) => this.log(`runs: the purge failed: ${(e as Error).message}`));
+      }, every);
+      this.purger.unref?.();
+    }
+  }
+
+  private log(m: string) {
+    (this.o.log ?? console.error)(m);
+  }
+
+  /** Stops the scheduled purge (a host shutting down, a test). */
+  close(): void {
+    if (this.purger) clearInterval(this.purger);
+    this.purger = null;
+  }
+
+  /** Takes a submission token for this client; false when it has none left this minute. */
+  private take(key: string): boolean {
+    const per = this.o.perMinute ?? 10;
+    const now = this.now();
+    const b = this.buckets.get(key) ?? { tokens: per, at: now };
+    b.tokens = Math.min(per, b.tokens + ((now - b.at) / 60_000) * per);
+    b.at = now;
+    this.buckets.set(key, b);
+    if (this.buckets.size > 10_000) for (const [k, x] of this.buckets) if (now - x.at > 120_000) this.buckets.delete(k);
+    if (b.tokens < 1) return false;
+    b.tokens -= 1;
+    return true;
+  }
 
   private now() {
     return this.o.now?.() ?? Date.now();
   }
 
   /** Accepts a run for verification. Returns its id and the token that deletes it (given once). */
-  async submit(tenantId: string, input: unknown): Promise<{ id: string; deleteToken: string; status: string }> {
+  async submit(
+    tenantId: string,
+    input: unknown,
+    client = 'anonymous',
+  ): Promise<{ id: string; deleteToken: string; status: string }> {
+    if (!this.take(`${tenantId}\u0000${client}`))
+      throw new RunsError(429, 'rate', 'too many runs from this client, retry in a minute');
     const b = input as { player?: unknown; envelope?: unknown };
     if (typeof b?.player !== 'string' || !PSEUDONYM.test(b.player))
       throw new RunsError(400, 'player', 'a pseudonym of 2 to 32 letters, digits, spaces, _ . - (never an email)');
     if (typeof b.envelope !== 'string') throw new RunsError(400, 'envelope', 'the .wsrun text');
     if (Buffer.byteLength(b.envelope) > (this.o.maxBytes ?? 2_000_000))
       throw new RunsError(413, 'size', 'the run is too large');
-    let head: { format?: unknown; gameId?: unknown; categoryId?: unknown };
+    let head: { format?: unknown; gameId?: unknown; categoryId?: unknown; seed?: unknown; chunks?: unknown };
     try {
       head = JSON.parse(b.envelope);
     } catch {
@@ -153,12 +228,13 @@ export class RunQueue {
     if (head.format !== 'web-scumm-speedrun' || typeof head.gameId !== 'string' || typeof head.categoryId !== 'string')
       throw new RunsError(400, 'envelope', 'not a web-scumm speedrun envelope');
     if (!ID.test(head.categoryId)) throw new RunsError(400, 'envelope', 'a category id');
-    if (!this.o.approved[head.gameId]) throw new RunsError(404, 'game', 'this Bridge has no leaderboard for that game');
+    if (!ID.test(head.gameId) || !Object.hasOwn(this.o.approved, head.gameId))
+      throw new RunsError(404, 'game', 'this Bridge has no leaderboard for that game');
     if (this.queue.length >= (this.o.maxQueued ?? 100))
       throw new RunsError(429, 'busy', 'the queue is full, retry later');
-    const envelopeHash = sha256(b.envelope);
-    if (await this.o.store.byHash(tenantId, envelopeHash))
-      throw new RunsError(409, 'duplicate', 'this run was submitted');
+    const runKey = runKeyOf(head);
+    if (await this.o.store.byKey(tenantId, runKey))
+      throw new RunsError(409, 'duplicate', 'this run was submitted already (the first submitter keeps it)');
     const id = `run_${randomBytes(9).toString('base64url')}`;
     const deleteToken = randomBytes(18).toString('base64url');
     await this.o.store.put({
@@ -170,7 +246,7 @@ export class RunQueue {
       submittedAt: this.now(),
       status: 'queued',
       trust: 'local',
-      envelopeHash,
+      runKey,
       deleteTokenHash: sha256(deleteToken),
       envelope: b.envelope,
     });
@@ -183,10 +259,12 @@ export class RunQueue {
     if (this.running) return;
     const next = this.queue.shift();
     if (!next) return;
-    this.running = this.verify(next.tenantId, next.id).finally(() => {
-      this.running = null;
-      this.pump();
-    });
+    this.running = this.verify(next.tenantId, next.id)
+      .catch((e) => this.failed(next.tenantId, next.id, e))
+      .finally(() => {
+        this.running = null;
+        this.pump();
+      });
   }
 
   /** Waits until the queue is empty (tests, shutdown). */
@@ -195,6 +273,26 @@ export class RunQueue {
       if (!this.running && this.queue.length) this.pump();
       if (!this.running) return;
       await this.running;
+    }
+  }
+
+  /** A verification that threw (a store, a spawn): the run is `inconclusive`, the queue goes on, it is logged. */
+  private async failed(tenantId: string, id: string, e: unknown) {
+    this.log(`runs: the verification of ${id} failed: ${(e as Error)?.message ?? String(e)}`);
+    try {
+      const r = await this.o.store.get(tenantId, id);
+      if (!r) return;
+      Object.assign(r, {
+        status: 'done',
+        verdict: 'inconclusive',
+        code: 'crash',
+        reason: 'the verification failed',
+        trust: 'local',
+        envelope: '',
+      });
+      await this.o.store.put(r);
+    } catch {
+      /* the store itself is failing: the run stays as it was */
     }
   }
 
@@ -208,6 +306,9 @@ export class RunQueue {
     Object.assign(r, out, { status: 'done' as const });
     // A worker grants at most `replay-valid`; anything else it might say is ignored.
     r.trust = out.verdict === 'valid' || out.verdict === 'valid-unranked' ? 'replay-valid' : 'local';
+    // A ranked time is only a valid run's; the envelope is not kept once its verdict is (the summary is).
+    if (out.verdict !== 'valid') r.ranked = null;
+    r.envelope = '';
     await this.o.store.put(r);
   }
 
@@ -292,20 +393,66 @@ export async function runWorker(
   if (!cmd) return inconclusive('worker', 'no worker command');
   const env = workerEnv(game, o);
   return new Promise((done) => {
-    const child = spawn(cmd, args, { env, stdio: ['pipe', 'pipe', 'pipe'] });
+    // Its own process group: a runner (tsx) and the worker it starts are killed together, never one left hanging.
+    const child = spawn(cmd, args, { env, stdio: ['pipe', 'pipe', 'pipe'], detached: true });
     let out = '';
     let size = 0;
-    const timer = setTimeout(() => child.kill('SIGKILL'), timeout + 5_000);
+    let killed: string | null = null;
+    const kill = (why: string) => {
+      killed ??= why;
+      try {
+        if (child.pid) process.kill(-child.pid, 'SIGKILL');
+      } catch {
+        child.kill('SIGKILL');
+      }
+    };
+    const timer = setTimeout(() => kill('timeout'), timeout + 5_000);
     child.stdout.on('data', (d: Buffer) => {
       size += d.length;
-      if (size > 1_000_000) child.kill('SIGKILL');
+      if (size > 1_000_000) kill('output');
       else out += d.toString('utf8');
     });
     child.stderr.resume();
-    child.on('error', () => done(inconclusive('worker', 'the worker could not start')));
-    child.on('close', (status, signal) => {
+    child.stdin.on('error', () => {});
+    child.on('error', () => {
       clearTimeout(timer);
-      if (signal) return done(inconclusive('timeout', `the worker was stopped (${signal})`));
+      done(inconclusive('worker', 'the worker could not start'));
+    });
+    // 'exit', not 'close': a grandchild holding the pipes must not keep the queue waiting. What the worker wrote
+    // before it exited is read until its stdout ends, a second at most.
+    let ended = false;
+    child.stdout.on('end', () => {
+      ended = true;
+    });
+    child.on('exit', (status, signal) => {
+      clearTimeout(timer);
+      if (!killed && child.pid) {
+        try {
+          process.kill(-child.pid, 'SIGKILL'); // whatever the worker left behind
+        } catch {
+          /* the group is gone */
+        }
+      }
+      const settle = () => answer(status, signal);
+      if (ended || killed) settle();
+      else {
+        const grace = setTimeout(settle, 1000);
+        child.stdout.once('end', () => {
+          clearTimeout(grace);
+          settle();
+        });
+      }
+    });
+    let answered = false;
+    const answer = (status: number | null, signal: NodeJS.Signals | null) => {
+      if (answered) return;
+      answered = true;
+      child.stdout.destroy();
+      child.stderr.destroy();
+      child.stdin.destroy();
+      if (killed === 'timeout' || signal)
+        return done(inconclusive('timeout', `the worker was stopped (${signal ?? killed})`));
+      if (killed) return done(inconclusive('crash', 'the worker wrote too much'));
       try {
         const line = out.trim().split('\n').at(-1) ?? '';
         const { result, sig } = JSON.parse(line) as { result: string; sig: string };
@@ -332,7 +479,7 @@ export async function runWorker(
       } catch {
         done(inconclusive('crash', `the worker gave no verdict (exit ${status})`));
       }
-    });
+    };
     child.stdin.end(JSON.stringify({ jobId, key, envelope, approved: game.fingerprint, timeoutMs: timeout }));
   });
 }
@@ -361,7 +508,12 @@ async function readBody(req: IncomingMessage, limit: number): Promise<unknown> {
  * `GET /v1/runs/<id>` reads one, `GET /v1/runs?game=&category=&seed=` is a leaderboard, `DELETE /v1/runs/<id>` (header
  * `x-delete-token`) deletes on request, `POST /v1/runs/<id>/moderate` (admin bearer) raises a valid run's trust.
  */
-export function runsRoute(q: RunQueue, tenantOf: (req: IncomingMessage) => string = () => 'default') {
+export function runsRoute(
+  q: RunQueue,
+  tenantOf: (req: IncomingMessage) => string = () => 'default',
+  /** The client a rate limit counts (default: the socket's address; behind a proxy, the host passes its own). */
+  clientOf: (req: IncomingMessage) => string = (req) => req.socket.remoteAddress ?? 'unknown',
+) {
   return async (req: IncomingMessage, res: ServerResponse, path: string): Promise<boolean> => {
     if (path !== '/v1/runs' && !path.startsWith('/v1/runs/')) return false;
     try {
@@ -370,7 +522,7 @@ export function runsRoute(q: RunQueue, tenantOf: (req: IncomingMessage) => strin
       const m = /^\/v1\/runs\/([\w-]{1,40})(\/moderate)?$/.exec(path);
       if (req.method === 'POST' && path === '/v1/runs') {
         const body = await readBody(req, (q.o.maxBytes ?? 2_000_000) + 4096);
-        json(res, 202, await q.submit(tenant, body));
+        json(res, 202, await q.submit(tenant, body, clientOf(req)));
       } else if (req.method === 'GET' && path === '/v1/runs') {
         const game = url.searchParams.get('game') ?? '';
         const category = url.searchParams.get('category') ?? '';
