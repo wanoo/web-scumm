@@ -100,7 +100,7 @@ export async function onItem(app: App, id: Id) {
   if ((v === 'use' || v === 'give') && app.a && app.a !== id) {
     const a = app.a;
     app.resetVerb();
-    await app.engine.act({ verb: v, a, b: id });
+    await app.presenter.intent({ kind: 'act', verb: v, target: id, item: a });
     return;
   }
   if (!v) {
@@ -113,7 +113,7 @@ export async function onItem(app: App, id: Id) {
     return;
   }
   app.resetVerb();
-  await app.engine.act({ verb: v, a: id });
+  await app.presenter.intent({ kind: 'act', verb: v, target: id });
 }
 
 /** The verb a tap on this target means now: the chosen one, or (an item picked without a verb) give or use (4.0). */
@@ -133,26 +133,26 @@ export async function actOnTarget(app: App, id: Id) {
     const dv = double && app.view.room ? defaultVerb(app.game, app.view.room, id) : null;
     if (dv) {
       app.resetVerb();
-      await app.engine.act({ verb: dv, a: id });
+      await app.presenter.intent({ kind: 'act', verb: dv, target: id });
       return;
     }
     const ap = app.engine.approach(id);
     app.sentence(id);
-    if (ap) await app.engine.walkTo(ap);
+    if (ap) await app.presenter.intent({ kind: 'walk', to: ap });
     return;
   }
   if ((v === 'use' || v === 'give') && app.a) {
     const a = app.a;
     app.resetVerb();
-    await app.engine.act({ verb: v, a, b: id });
+    await app.presenter.intent({ kind: 'act', verb: v, target: id, item: a });
     return;
   }
   if (v === 'give') {
-    void app.say(app.game.hero, app.game.ui.giveWhat, {});
+    void app.presenter.say(app.game.hero, app.game.ui.giveWhat, {});
     return;
   }
   app.resetVerb();
-  await app.engine.act({ verb: v, a: id });
+  await app.presenter.intent({ kind: 'act', verb: v, target: id });
 }
 
 /**
@@ -184,7 +184,7 @@ export async function onScenePointer(app: App, e: PointerEvent) {
   const id = app.view.hit(p);
   if (!id) {
     app.nearMiss(p);
-    await app.engine.walkTo(app.view.walker.clamp(p));
+    await app.presenter.intent({ kind: 'walk', to: app.view.walker.clamp(p) });
     return;
   }
   if (e.pointerType !== 'mouse') {

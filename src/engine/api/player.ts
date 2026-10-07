@@ -13,3 +13,5 @@ export type {
   EmitterSpec,
   StageSpec,
 } from '../dom/renderer';
+// 4.1.11 (ADR 0011): the scene frame a renderer is given, the intentions it answers with, the renderer contract.
+export type { SceneFrame, Intent, Renderer } from '../scene/frame';

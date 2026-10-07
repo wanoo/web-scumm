@@ -15,4 +15,6 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0008](0008-connector-sdk.md) | A connector is a process of its own, behind one small SDK (4.1.9) |
 | [0009](0009-reality-store.md) | The Bridge keeps its state behind an asynchronous `RealityStore` (4.1.10) |
 | [0010](0010-signal-v2.md) | `SignalV2`: a signed signal names the context it was signed for (4.1.10) |
+| [0011](0011-scene-frame-intents-journal.md) | A scene frame, intentions and a semantic journal (4.1.11) |
+| [0012](0012-canvas-backend.md) | Canvas 2D stays the complete backend; WebGL/Pixi not measured in 4.1.11 |
 | [0015](0015-compact-state.md) | A search stores its states by index, with exact interned keys (4.1.13) |

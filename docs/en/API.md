@@ -58,6 +58,7 @@ In a game project the entries are `web-scumm/content`, `web-scumm/player`, `web-
 | `AssetManifest` | `assets.gen.json`: the images, their sizes, the audio files |
 | `SceneRenderer` | the painter contract (the DOM and canvas painters implement it) |
 | `SpriteSpec` · `LayerSpec` · `OccluderSpec` · `LightSpec` · `EmitterSpec` · `StageSpec` | what a painter is given to draw |
+| `SceneFrame` · `Renderer` · `Intent` | (4.1.11) an immutable picture of a room with its precomputed hit polygons, the contract of whatever draws one, and the intentions it answers with: the only thing a renderer sends back (D21) |
 
 ## web-scumm/minigames: minigames as plugins
 
@@ -78,6 +79,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `FakePresenter` · `MemoryStore` | a front end that answers by script, a save store in memory |
 | `solve` · `SolveOptions` · `SolveResult` | the solver: a way to the end, softlocks with `prove` |
 | `parseSave` · `saveEnvelope` · `SaveEnvelopeV3` | a save's envelope: write it, read it back (migrations applied) |
+| `SemanticEvent` · `SemanticJournal` | (4.1.11) `Engine.journal`: what happened in the game, in ids, numbered (rooms, items with the player who lost or acquired them, flags, `null` for a flag removed, a player switch, the ending, loads and saves), emitted by the core alone and the same on a replay |
 
 ## web-scumm/reality: signals from the world outside (4.1.1)
 
@@ -182,6 +184,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `bootGame` | `(o: BootOptions): Promise<App>` | public | Boots the game in the page and returns the App (after the title screen is shown, or the dev tools started). |
 | `BootOptions` | `interface { game, layouts, manifest, minigames, commands, locales, … 7 more }` | public | What `bootGame` starts the game with: the game, its layouts and manifest, minigames, commands, locales, root, store and service worker. |
 | `EmitterSpec` | `interface { id, kind, url, color, rate, area, … 1 more }` | extension | A particle source, resolved for the painter: its kind, image, colour, rate and area. |
+| `Intent` | `type Intent = union of 5` | extension | What a renderer sends the engine's side: the only thing it may (D21). A tap on a target with the verb the player chose (`act`, with `item` w |
 | `LayerSpec` | `interface { id, url, role, x, y, w, … 6 more }` | extension | A stage layer, resolved: its image, its box in the room (logical units, before parallax), its depth and look. |
 | `LightSpec` | `interface { id, kind, color, intensity, blend, at, … 2 more }` | extension | A light, resolved for the painter: its kind, colour, intensity and blend, and for a radial one its centre and radius. |
 | `Locales` | `type Locales = Record<string, Record<string, string>>` | public | The translations a game ships, by language then by text path (`locales/<lang>.json`). |
@@ -189,7 +192,9 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `openStore` | `(game: GameDef, open?: StoreOpener): Promise<{ store?: SaveStore; attach: (app: App) => void; }>` | public | Opens the verified store and keeps its early errors and warnings until an App can show them. Without IndexedDB the App's verified localStora |
 | `pickLanguage` | `(_written: GameDef, locales: Locales \| undefined, o?: { query?: string \| null; stored?: string \| null; navigatorLang?: string; }): string \| undefined` | public | `?lang=`, then the player's saved choice, then the browser's language when the game ships it. |
 | `Presenter` | `interface { enterRoom, say, walk, face, pose, anim, … 21 more }` | extension | What the core asks the display for. The DOM renderer implements it for the browser, FakePresenter implements it for node (tests, solver). Al |
+| `Renderer` | `interface { mount, render, onIntent, unmount }` | extension | A renderer: mounted in an element, given frames, it tells its intentions. The DOM and Canvas painters are wrapped as one (dom/frame-renderer |
 | `SaveStore` | `interface { load, save, clear, whenIdle }` | extension | The autosave store a host provides: load, save, clear, and when the latest write is durable. |
+| `SceneFrame` | `interface { hash, room, camera, layers, actors, hotspots, … 2 more }` | extension | A room as it is to be drawn: immutable, in logical units. `hash` digests the rest: a renderer skips a frame equal to the last one. |
 | `SceneRenderer` | `interface { el, reset, sprite, camera, resize, stage, … 1 more }` | extension | The painter contract: a surface, sprites and a stage to draw, a camera to follow; the DOM and canvas painters implement it. |
 | `SlotStore` | `interface { listSlots, getSlot, putSlot, clearSlot }` | extension | Manual save slots (`GameDef.saves.slots`), durable and verified like the autosave. Numbered from 1. |
 | `SpriteSpec` | `interface { id, url, fx, fy, w, h, … 9 more }` | extension | One thing drawn in the scene, in logical units. `fx, fy`: its feet (bottom centre), the pivot of rotations. |
@@ -216,6 +221,8 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `parseSave` | `(game: GameDef, input: unknown, opts?: ParseSaveOptions): GameState` | public | Parses an envelope (or a legacy raw state). Structural corruption and references needed to resume (the current room and active player) are r |
 | `saveEnvelope` | `(game: GameDef, state: GameState, now?: number): SaveEnvelopeV3` | public | Wraps a state in the save envelope (format, schema, game id and save version, date) a store writes. |
 | `SaveEnvelopeV3` | `interface { format, schema, gameId, gameSaveVersion, savedAt, state }` | public | A save as written: the state with the format, the schema, the game's id and save version and the date. |
+| `SemanticEvent` | `type SemanticEvent = union of 8` | public | One thing that happened in the game, numbered (`seq`, from 1, contiguous). An item handed between players (`transfer`) is lost by one and ac |
+| `SemanticJournal` | `interface { seq, subscribe, since }` | public | What a host reads of the journal (`Engine.journal`): the last sequence number, a subscription, the events after a sequence (within the windo |
 | `solve` | `(gameIn: GameDef, layouts: Record<string, Layout>, opts?: SolveOptions): Promise<SolveResult>` | public | Searches the game for a way to its ending (`witness`), or explores every reachable state for softlocks (`prove`). |
 | `SolveOptions` | `interface { reality, maxStates, mode, start, goal, commands, … 21 more }` | public | What a search is told: its mode, where it starts and stops, the custom commands, the world's signals and its budgets. |
 | `SolveResult` | `interface { status, exit, headline, mode, reality, finished, … 20 more }` | public | The verdict of a search: its status, exit code and headline, the path found, the softlocks and the search's statistics. |

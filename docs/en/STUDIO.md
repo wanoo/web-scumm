@@ -89,6 +89,13 @@ A provider call never follows a redirect, gives up after 60 s, and reads at most
   canvas). The forms come from one table of every condition and command (`src/studio/schema.ts`, checked against the
   types at compile time): a new command without a form does not compile. What has no simple field (a minigame's params,
   an animation's frame events) is a JSON box.
+- **Layers, masks, zones (4.1.11).** Under the room sheet, the stage editor (`src/studio/rooms-stage.ts`) shows the
+  backdrop with the occlusion masks (red), the walk zones (green) and the links between zones: each layer's depth,
+  parallax, opacity and blend are fields; **Draw a mask** and **Draw a zone** take the corners clicked on the backdrop,
+  then **Close the polygon** (one that closes no surface is not kept); **Link them** joins two zones by a stairs,
+  ladder, jump, teleport or walk link placed by two clicks. **Save stage** writes this geometry over the room's layout
+  once the placement view is saved; it stays off while a mask closes no surface or a zone has no link, which the
+  validator refuses too.
 - **Preview, then apply.** "Preview the change" shows the diff the server would write (a dry run); "Apply" writes it
   as code in the file's style (`set_value`, through the TypeScript parser: comments and the rest of the file stay), then
   the game is reloaded and validated: an edit that adds a validation error is taken back and the errors are shown.

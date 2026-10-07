@@ -44,7 +44,7 @@ export async function exec(eng: Engine, cmds: Cmd[] | undefined, ctx: Ctx): Prom
   for (const c of cmds) {
     // A destroyed engine runs nothing more (4.1.4): what was waiting ends, what followed never starts.
     if (eng.destroyed) return;
-    if (eng.skipping && !ctx.fast) ctx = { ...ctx, fast: true };
+    if (eng.busyState.skipping && !ctx.fast) ctx = { ...ctx, fast: true };
     await eng.step(c, ctx);
     if (eng.state.done) return;
   }
@@ -53,7 +53,7 @@ export async function exec(eng: Engine, cmds: Cmd[] | undefined, ctx: Ctx): Prom
 export async function step(eng: Engine, c: Cmd, ctx: Ctx): Promise<void> {
   const o = eng.sessions.cur;
   if (o) {
-    if (o.src?.skipAt === o.steps) eng.skipping = true;
+    if (o.src?.skipAt === o.steps) eng.busyState.skipping = true;
     o.steps++;
   }
   if (typeof c === 'string') return eng.say(HERO, c, ctx);

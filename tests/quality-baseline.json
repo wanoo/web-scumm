@@ -277,6 +277,11 @@
    "inputs": 7,
    "last": "23325ca7"
   },
+  "demo-4.1.11.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  },
   "demo-4.1.2.json": {
    "ended": true,
    "inputs": 7,
@@ -319,13 +324,13 @@
   }
  },
  "surface": {
-  "api": "78ce26dfb14d4ccb"
+  "api": "6be47844de6dfceb"
  },
  "tests": {
-  "files": 149,
-  "declarations": 1108
+  "files": 153,
+  "declarations": 1138
  },
  "bundle": {
-  "initialJsKB": 120
+  "initialJsKB": 122
  }
 }

@@ -333,3 +333,16 @@ Node 22.13 (`node:sqlite`). `--trust-proxy` seul ne fait plus confiance qu'à la
 proxies avec `--trust-proxy=<adresses ou réseaux>`. **Derrière un proxy qui n'est pas sur la boucle locale (le routeur d'un PaaS, un
 répartiteur sur un autre hôte), tous les clients tombent désormais dans l'unique compartiment du proxy** (60 requêtes
 anonymes par minute pour tout le monde) tant que `--trust-proxy=<son réseau>` ne le nomme pas. Plusieurs tenants et plusieurs instances : `docs/fr/REALITY-OPS.md`.
+
+## 23. De la 4.1.10 à la 4.1.11 « Viewport »
+
+Une sauvegarde 4.1.10 se charge telle quelle ; les noms des cinq entrées sont additifs (`SceneFrame`, `Renderer`,
+`Intent` sur `web-scumm/player` en `@extension` ; `SemanticEvent`, `SemanticJournal` sur `web-scumm/testing` ;
+`Engine.journal`, `Engine.sessionSeq`). Ce qui a bougé : le crochet de test de la page `window.__game.inventory(…)`
+devient `window.__game.presenter.inventory(…)` (un script e2e à vous qui l'appelait change une ligne) ; un fichier de
+session porte désormais le journal sémantique et `npm run replay` sort en 1 quand celui du rejeu diffère (une session
+de plus de 10 000 événements est exportée avec `journalTruncated: true` et sans journal) ; `npm run validate` refuse
+une mise en page dont le polygone de masque d'occlusion ne ferme aucune surface (points colinéaires, arêtes qui se
+croisent) ou dont une salle a une zone de marche qu'aucun lien ne joint, là où la 4.1.10 l'acceptait : corrigez la
+mise en page dans l'onglet Rooms du Studio (couches, masques, zones, portails) ou à la main. Le JavaScript de la
+première visite pèse 122 Ko gzippés (120 en 4.1.10).

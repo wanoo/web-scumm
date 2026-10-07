@@ -10,20 +10,31 @@ import type { NormalLink } from '../core/stage';
 import { DomRenderer } from './render-dom';
 import { rendererOf, stageOf } from '../core/stage';
 import { check } from '../core/cond';
-import { must } from '../core/must';
+import { defaultVerb } from '../core/default-verb';
 import type { SceneRenderer, SpriteSpec, StageSpec } from './renderer';
+import { hitTest, sceneFrame, stageOfFrame, type SceneFrame } from '../scene/frame';
+import { stageKey, stageSpecOf } from './room-stage';
+import { PainterRenderer } from './frame-renderer';
 
 /**
  * The scene model of a room: backdrop, props, characters, depth sort, walking, poses, the camera and the hit test, in
  * logical units (640 × 400 per screen). What paints it is a `SceneRenderer` (dom/renderer.ts): the DOM painter by
  * default, the reference (D10). Everything a tap, a walk or a line depends on is decided here, never by the painter.
+ * 4.1.11 (ADR 0011): the model makes a `SceneFrame` (scene/frame.ts) and paints it when a room is built; between
+ * builds, an entity that changes paints its own sprite (the frame's part that changed); the hit test and the
+ * accessible targets read the frame.
  */
 export class RoomView {
   /** The painter's surface (moves with the camera; the accessible targets go in it). */
   get el(): HTMLElement {
     return this.r.el;
   }
-  r: SceneRenderer;
+  /** The painter (the DOM reference or the Canvas one), as the scene frame's `Renderer` (dom/frame-renderer.ts). */
+  readonly out: PainterRenderer;
+  /** The painter itself (its surface, its paint counter). */
+  get r(): SceneRenderer {
+    return this.out.painter;
+  }
   /** Which painter draws the current room (`RoomDef.renderer`, else `GameDef.renderer`, else the DOM reference). */
   painter: 'dom' | 'canvas' = 'dom';
   /** Forces a painter for every room (`?renderer=canvas|dom`: the visual parity check, the Studio's comparison). */
@@ -52,7 +63,10 @@ export class RoomView {
     },
     zoomAt: (p) => this.walker.zoneAt(p)?.zoom ?? 1,
     reduced: () => this.reduceMotion,
-    paint: (cam, width, camY, zoom) => this.r.camera(cam, width, camY, zoom),
+    paint: (cam, width, camY, zoom) => {
+      this.version++;
+      this.r.camera(cam, width, camY, zoom);
+    },
   });
   /** The walking (4.1.5, dom/walker.ts): the floor's topology, walks, crossings, motions. */
   walker = new Walker({
@@ -72,7 +86,7 @@ export class RoomView {
     private bank: AssetBank,
     renderer?: SceneRenderer,
   ) {
-    this.r = renderer ?? new DomRenderer();
+    this.out = new PainterRenderer(renderer ?? new DomRenderer());
     this.custom = !!renderer;
   }
   /** A painter given by the caller (tests): kept for every room. */
@@ -80,73 +94,78 @@ export class RoomView {
   /** The stage last handed to the painter: given again only when a condition changes it. */
   private stageKey = '';
 
-  /** Particles per second when an emitter does not say (`EmitterDef.rate`). */
-  private static RATES: Record<string, number> = { dust: 6, rain: 60, snow: 20, sparks: 15, smoke: 8, leaves: 4 };
+  /** The stage the painter was last given (the frame's layers, occluders and effects). */
+  private stageNow: StageSpec | null = null;
+
+  /** The room's stage for the painter (dom/room-stage.ts): conditions evaluated, images placed on the backdrop. */
+  stageSpec(): StageSpec {
+    return stageSpecOf(this.room, this.layout, this.engine.state, this.bank, this.camera.width, this.reduceMotion);
+  }
 
   /**
-   * The room's stage for the painter: `stageOf` (core/stage.ts) with its conditions evaluated on the state and its
-   * images placed on the backdrop's box (`object-fit: cover` over the room), so a layer cut from the full-size art
-   * lies exactly over it.
+   * The room as it is to be drawn now (scene/frame.ts): pure, from the state, the layout and what this model animates.
+   * The hit test and the accessible targets read it; a renderer paints it.
    */
-  stageSpec(): StageSpec {
-    const S = stageOf(this.room, this.layout);
-    const s = this.engine.state;
-    const shown = (c: Parameters<typeof check>[0]) => !s || check(c, s, this.room.id);
-    const [back0, ...layers] = S.layers;
-    const back = must(back0, 'backdrop layer'); // stageOf always puts a backdrop first
-    const [bw, bh] = this.bank.size(back.image);
-    const k = Math.max(this.camera.width / bw, 400 / bh);
-    const bx = (this.camera.width - bw * k) / 2,
-      by = (400 - bh * k) / 2;
-    return {
-      backdrop: { url: this.bank.img(back.image), x: bx, y: by, w: bw * k, h: bh * k },
-      layers: layers.map((l) => {
-        const [iw, ih] = this.bank.size(l.image);
-        return {
-          id: l.id,
-          url: this.bank.img(l.image),
-          role: l.role,
-          x: bx + l.x,
-          y: by + l.y,
-          w: iw * k,
-          h: ih * k,
-          z: l.z,
-          parallax: l.parallax,
-          blend: l.blend,
-          opacity: l.opacity,
-          visible: shown(l.visible),
-        };
-      }),
-      occluders: S.occluders.map((o) => ({
-        id: o.id,
-        z: o.z,
-        ...(o.polygon ? { polygon: o.polygon } : {}),
-        ...(o.mask ? { mask: this.bank.img(o.mask) } : {}),
-        ...(o.layer ? { layer: o.layer } : {}),
-        feather: o.feather,
-        invert: o.invert,
-      })),
-      lights: S.lights.map((l) => ({
-        id: l.id,
-        kind: l.kind,
-        color: l.color,
-        intensity: l.intensity ?? 0.6,
-        blend: l.blend ?? (l.kind === 'radial' ? 'screen' : 'multiply'),
-        ...(l.at ? { at: l.at } : {}),
-        ...(l.radius ? { radius: l.radius } : {}),
-        visible: shown(l.visible),
-      })),
-      emitters: S.emitters.map((e) => ({
-        id: e.id,
-        kind: e.kind,
-        ...(e.image ? { url: this.bank.img(e.image) } : {}),
-        color: e.color ?? '#ffffff',
-        rate: e.rate ?? RoomView.RATES[e.kind] ?? 8,
-        area: e.area ?? [0, 0, this.camera.width, 400],
-        visible: shown(e.visible),
-      })),
-      reduceMotion: this.reduceMotion,
-    };
+  frame(): SceneFrame {
+    // Memoised by a version every change bumps (a sprite drawn, a prop, the camera, a state change, a room built): a
+    // tap or a hover reuses the frame instead of building and hashing it again.
+    if (this.cache?.version === this.version) return this.cache.frame;
+    const frame = this.makeFrame();
+    this.framesBuilt++;
+    this.cache = { version: this.version, frame };
+    return frame;
+  }
+  /** Bumped by every change the frame reads (`frame()` is memoised on it). */
+  private version = 0;
+  private cache: { version: number; frame: SceneFrame } | null = null;
+  /** @internal Frames built (the memo's test). */
+  framesBuilt = 0;
+  /** The state may have changed outside this view (the App's `engine.onChange`): the next frame is made again. */
+  invalidate() {
+    this.version++;
+  }
+
+  private makeFrame(): SceneFrame {
+    const room = this.room;
+    const stage = this.stageNow ?? this.stageSpec();
+    return sceneFrame(
+      { ...this.engine.state, room: room.id },
+      { [room.id]: this.layout },
+      {
+        stage,
+        camera: { x: this.camera.cam, y: this.camera.camY, zoom: this.camera.zoom, width: this.camera.width },
+        entities: [...this.ents.values()].flatMap((e) =>
+          e.spec
+            ? [
+                {
+                  id: e.id,
+                  kind: e.kind,
+                  ...(e.charId ? { cell: e.charId } : {}),
+                  sprite: e.spec,
+                  ...(e.drawn && e.bbox ? { bbox: e.bbox } : {}),
+                  moving: !!e.over?.startsWith('walk'),
+                },
+              ]
+            : [],
+        ),
+        targets: this.engine.targets(room).map((id) => ({
+          id,
+          label: this.engine.nameOf(id, room),
+          verb: defaultVerb(this.engine.game, room, id),
+        })),
+        talking: this.talking,
+        transition: stageOf(room, this.layout).transition,
+      },
+    );
+  }
+
+  /** Paints a whole frame (a room built): its renderer resets the painter, gives the stage, every sprite in order. */
+  private paintFrame(f: SceneFrame) {
+    const st = stageOfFrame(f);
+    this.stageNow = st;
+    this.stageKey = stageKey(st);
+    this.out.invalidate();
+    this.out.render(f);
   }
 
   /** How the room appears (`stage.transition`): a fade or a wipe of the painter's surface, a cut with reduced motion. */
@@ -171,8 +190,7 @@ export class RoomView {
     if (want === this.painter) return;
     const next = want === 'canvas' ? new (await import('./render-canvas')).CanvasRenderer() : new DomRenderer();
     const old = this.r.el;
-    this.r.dispose();
-    this.r = next;
+    this.out.swap(next);
     this.painter = want;
     this.r.resize(this.u);
     this.onSurface?.(this.r.el, old);
@@ -231,11 +249,7 @@ export class RoomView {
     await Promise.all(swaps);
 
     this.camera.width = Math.max(640, this.layout.width ?? 640);
-    const stage = this.stageSpec();
-    this.r.reset(stage.backdrop.url, this.camera.width);
-    this.r.stage(stage);
-    this.stageKey =
-      [...stage.layers, ...stage.lights, ...stage.emitters].map((x) => +x.visible).join('') + +stage.reduceMotion;
+    this.stageNow = this.stageSpec();
 
     for (const [id, def] of Object.entries(room.props ?? {})) {
       const L = this.layout.props?.[id];
@@ -310,7 +324,10 @@ export class RoomView {
         visible: true,
       });
     }
-    for (const e of this.ents.values()) this.draw(e);
+    // The frame of the room, made then painted (its sprites resolved first, nothing painted on the way).
+    for (const e of this.ents.values()) this.spriteOf(e);
+    this.version++;
+    this.paintFrame(this.frame());
     this.enterTransition();
     this.camera.enter(this.layout.width ?? 640, s.camera);
     this.last = performance.now();
@@ -323,7 +340,8 @@ export class RoomView {
 
   destroy() {
     cancelAnimationFrame(this.raf);
-    for (const d of [this.r, this.palettes]) d.dispose(); // the painter, and the blob URLs of the recoloured images
+    this.out.unmount(); // the painter
+    this.palettes.dispose(); // the blob URLs of the recoloured images
   }
 
   /**
@@ -404,7 +422,14 @@ export class RoomView {
     return sp[pose] ?? sp[e.pose] ?? sp.idle ?? Object.values(sp)[0] ?? [];
   }
 
+  /** Resolves an entity's sprite now and paints it: its part of the frame. */
   private draw(e: Ent) {
+    this.version++;
+    this.out.sprite(this.spriteOf(e));
+  }
+
+  /** An entity's sprite as it is now (its image, size, depth, look), and the box a tap is tested against. */
+  private spriteOf(e: Ent): SpriteSpec {
     let img: Id | undefined,
       h = e.h;
     if (e.kind === 'prop') img = e.frameImg ?? e.img;
@@ -432,8 +457,8 @@ export class RoomView {
     };
     if (!img) {
       e.drawn = false;
-      this.r.sprite({ ...base, url: null, w: 0, h: 0 });
-      return;
+      e.spec = { ...base, url: null, w: 0, h: 0 };
+      return e.spec;
     }
     const w = this.bank.widthFor(img, h);
     const c = e.kind === 'prop' ? undefined : this.char(e);
@@ -451,7 +476,7 @@ export class RoomView {
         ? { shadow: { x: e.x - sw / 2, y: e.y - 4, w: sw, h: 8, z: Math.round(e.y) - 1, visible: e.visible } }
         : {}),
     };
-    this.r.sprite(spec);
+    e.spec = spec;
     e.drawn = true;
     // The box a tap is tested against (rotation included): the model's, whatever paints it.
     const rot = e.rot ?? 0;
@@ -472,6 +497,7 @@ export class RoomView {
         ys = pts.map((p) => p[1]);
       e.bbox = [Math.min(...xs), Math.min(...ys), Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
     } else e.bbox = [e.x - w / 2, e.y + y0 - e.bob, w, h];
+    return spec;
   }
 
   private tick(t: number) {
@@ -558,45 +584,15 @@ export class RoomView {
     return null;
   }
 
-  /** Whatever is under the finger: the smallest visible thing that contains the point. */
+  /** Whatever is under the finger: the smallest visible thing that contains the point (the frame's hit test). */
   hit(p: Point): Id | null {
-    let best: Id | null = null,
-      area = Infinity;
-    const inPoly = (pt: Point, poly: Point[]) => {
-      let c = false;
-      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-        const [xi, yi] = must(poly[i], 'polygon vertex'),
-          [xj, yj] = must(poly[j], 'polygon vertex');
-        if (yi > pt[1] !== yj > pt[1] && pt[0] < ((xj - xi) * (pt[1] - yi)) / (yj - yi) + xi) c = !c;
-      }
-      return c;
-    };
-    for (const id of this.engine.targets(this.room)) {
-      const hs = this.layout.hotspots?.[id];
-      let inside = false,
-        a = Infinity;
-      if (hs?.poly) {
-        inside = inPoly(p, hs.poly);
-        const b = this.box(id)!;
-        a = b[2] * b[3];
-      } else {
-        const b = this.box(id);
-        if (b) {
-          inside = p[0] >= b[0] && p[0] <= b[0] + b[2] && p[1] >= b[1] && p[1] <= b[1] + b[3];
-          a = b[2] * b[3];
-        }
-      }
-      if (inside && a < area) {
-        best = id;
-        area = a;
-      }
-    }
-    return best;
+    return hitTest(this.frame(), p);
   }
 
   // ------------------------------------------------------------ presenter commands
 
   setProp(id: Id, _state: string) {
+    this.version++;
     const e = this.ents.get(id);
     if (!e) return;
     this.applyPropState(e);
@@ -627,14 +623,16 @@ export class RoomView {
   }
 
   refreshVisibility() {
+    this.version++;
     // The stage's conditions (a lit window, a light switched on) are read again with the entities'.
     // Only its conditions can change a built stage (4.1.5): the key is their answers, not the whole spec serialized.
     if (this.room) {
       const st = this.stageSpec();
-      const key = [...st.layers, ...st.lights, ...st.emitters].map((x) => +x.visible).join('') + +st.reduceMotion;
+      const key = stageKey(st);
       if (key !== this.stageKey) {
         this.stageKey = key;
-        this.r.stage(st);
+        this.stageNow = st;
+        this.out.stage(st);
       }
     }
     for (const e of this.ents.values()) {
@@ -719,6 +717,7 @@ export class RoomView {
   setTalking(id: Id | null, long = false) {
     const prev = this.talking;
     this.talking = id;
+    this.version++;
     const now = performance.now();
     const p = prev ? this.ents.get(prev) : undefined;
     if (p) {

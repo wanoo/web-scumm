@@ -1,8 +1,7 @@
-import type { MotionSpec } from '../core/motion';
 import { check } from '../core/cond';
 import { Engine } from '../core/engine';
-import type { Presenter, SaveStore, SlotStore } from '../core/ports';
-import type { GameDef, GameState, Id, Layout, Point, RoomDef, VerbId } from '../core/types';
+import type { SaveStore, SlotStore } from '../core/ports';
+import type { GameDef, GameState, Id, Layout, Point, VerbId } from '../core/types';
 import { minigames as builtin, MINIGAME_CSS, type Minigame } from '../minigames';
 import { Ending } from '../ending';
 import type { CustomCommands } from '../core/custom';
@@ -32,13 +31,10 @@ import {
   renderInv as renderInvImpl,
 } from './input';
 import {
-  say as sayImpl,
   transcribe as transcribeImpl,
   openTranscript as openTranscriptImpl,
   closeTranscript as closeTranscriptImpl,
   endSpeech as endSpeechImpl,
-  choose as chooseImpl,
-  phone as phoneImpl,
   callFrame as callFrameImpl,
   callFrames as callFramesImpl,
   openCall as openCallImpl,
@@ -46,7 +42,6 @@ import {
   callPose as callPoseImpl,
   hangUp as hangUpImpl,
 } from './speech';
-import { openMap as openMapImpl } from './map-view';
 import {
   videoBg as videoBgImpl,
   credits as creditsImpl,
@@ -72,7 +67,9 @@ import {
 } from './shell';
 import { DEFAULT_SETTINGS, type Settings } from './settings';
 import { LocalSlotStore, LocalStore, withPhase } from './storage';
-import { el, esc, fpsMeter, sleep, type RealityLinkLike } from './app-shared';
+import { fpsMeter, type RealityLinkLike } from './app-shared';
+import { DomPresenter } from './presenter';
+import type { Renderer } from '../scene/frame';
 export type { Settings } from './settings';
 
 export interface AppOptions {
@@ -94,11 +91,12 @@ export interface AppOptions {
 }
 
 /**
- * The in-browser application: landscape layout, verb and inventory column,
- * scene, lines, menus, map, minigames, sealed ending. Implements the core's Presenter.
+ * The in-browser application: landscape layout, verb and inventory column, scene, lines, menus, map, minigames,
+ * sealed ending. It composes (4.1.11, ADR 0011) the engine, the Presenter the engine talks to (dom/presenter.ts: the
+ * overlays, the lines, the intentions) and the room view that makes and paints the scene frame (dom/room.ts).
  * Nothing in it is specific to a game: icons, sounds and fonts come from GameDef.skin, the texts from GameDef.ui.
  */
-export class App implements Presenter {
+export class App {
   readonly engine: Engine;
   readonly bank: AssetBank;
   readonly audio: Audio;
@@ -110,7 +108,10 @@ export class App implements Presenter {
   private stopFps?: () => void;
   /** @internal Read by the modules of dom/ (4.1.0). */
   mg: Record<Id, Minigame>;
-  private sealed!: Ending;
+  /** @internal The sealed ending (the presenter's `ending` opens it). */
+  sealed!: Ending;
+  /** What the engine asks the screen to do, and the door of the player's intentions (4.1.11, dom/presenter.ts). */
+  readonly presenter: DomPresenter = new DomPresenter(this);
   readonly slots: SlotStore;
   /** Player preferences (`GameDef.settings`), kept in the browser outside the save. */
   settings: Settings = { ...DEFAULT_SETTINGS };
@@ -134,6 +135,10 @@ export class App implements Presenter {
   /** @internal Read by the modules of dom/ (4.1.0). */
   sbar!: HTMLDivElement;
   readonly view: RoomView;
+  /** The scene's renderer (4.1.11): the room view's painter, given scene frames; its intentions go to the presenter. */
+  get renderer(): Renderer {
+    return this.view.out;
+  }
   /** @internal Read by the modules of dom/ (4.1.0). */
   u = 1;
   /** @internal Read by the modules of dom/ (4.1.0). */
@@ -159,7 +164,6 @@ export class App implements Presenter {
   used: Id[] = [];
   /** @internal Read by the modules of dom/ (4.1.0). */
   labelEl: HTMLDivElement | null = null;
-  private sparkEl: HTMLImageElement | null = null;
   /** @internal Read by the modules of dom/ (4.1.0). */
   guideState: { verb: VerbId; target: Id } | null = null;
   // speech
@@ -226,14 +230,14 @@ export class App implements Presenter {
   reportStorageError(error: Error) {
     if (this.saveError === error.message) return;
     this.saveError = error.message;
-    if (this.scene) this.toast(`${this.t('saveFailed')}: ${error.message}`);
+    if (this.scene) this.presenter.toast(`${this.t('saveFailed')}: ${error.message}`);
   }
 
   /** A content update may safely prune stale optional ids; tell the player without disabling Continue. */
   reportSaveWarning(message: string) {
     if (this.saveWarning === message) return;
     this.saveWarning = message;
-    if (this.scene) this.toast(`${this.t('saveAdjusted')}: ${message}`);
+    if (this.scene) this.presenter.toast(`${this.t('saveAdjusted')}: ${message}`);
   }
 
   /** Offers a service-worker update and activates it only after a verified autosave. */
@@ -272,7 +276,7 @@ export class App implements Presenter {
     this.engine = new Engine(
       o.game,
       o.layouts,
-      this,
+      this.presenter,
       o.store ?? new LocalStore(`${o.game.id}.save`, o.game, storageFailure, storageWarning),
       { commands: o.commands, runCustom: true, scene: () => this.scene },
     );
@@ -288,6 +292,7 @@ export class App implements Presenter {
         ? (store as SlotStore)
         : new LocalSlotStore(o.game.id, o.game, storageFailure, storageWarning));
     this.view = new RoomView(this.engine, this.bank);
+    this.view.out.onIntent((i) => void this.presenter.intent(i));
     // `?renderer=canvas|dom` forces a painter for every room (the visual parity check, the Studio's comparison).
     const forced = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('renderer') : null;
     if (forced === 'canvas' || forced === 'dom') this.view.forced = forced;
@@ -299,7 +304,7 @@ export class App implements Presenter {
     };
     // A walk stopped before a closed link: its refusal (`stage.links[id].locked`), the way an exit's `locked` is said.
     this.view.onBlocked = (l) => {
-      if (l.locked) this.toast(l.locked);
+      if (l.locked) this.presenter.toast(l.locked);
     };
     this.engine.autoScripts = true;
     this.engine.clock = () => performance.now();
@@ -324,8 +329,8 @@ export class App implements Presenter {
       scene: this.scene,
       img: (i) => this.bank.img(i),
       flags: () => this.engine.state.flags,
-      minigame: (id, params) => this.minigame(id, params),
-      toast: (t) => this.toast(t),
+      minigame: (id, params) => this.presenter.minigame(id, params),
+      toast: (t) => this.presenter.toast(t),
       sfx: (i) => this.audio.sfx(i),
       once: (i) => this.audio.once(i),
       play: (i) => this.audio.play(i),
@@ -434,6 +439,7 @@ export class App implements Presenter {
   }
 
   private refresh() {
+    this.view.invalidate(); // the state changed: the next frame is made again
     this.side.classList.toggle('off', this.engine.busy && !this.choosing);
     if (this.engine.state && this.view.room) this.view.refreshVisibility();
     // The active character's button is hidden, the others show.
@@ -444,23 +450,6 @@ export class App implements Presenter {
   }
 
   // ================================================================== Presenter
-
-  async enterRoom(room: RoomDef) {
-    this.resetVerb();
-    this.showLabel(null);
-    this.guide(null);
-    this.scene.style.visibility = 'hidden';
-    await this.view.build(room);
-    this.view.resize(this.u);
-    this.scene.style.visibility = '';
-    this.renderA11yTargets();
-    this.live.textContent = room.name;
-    void this.warmAround(room.id);
-  }
-
-  say(who: Id, text: string, o: { shout?: boolean; fast?: boolean; voice?: Id }): Promise<void> {
-    return sayImpl(this, who, text, o);
-  }
 
   /** During a conversation, every line is also written in the panel, to be read at leisure. */
   /** @internal Read by the modules of dom/ (4.1.0). */
@@ -479,140 +468,10 @@ export class App implements Presenter {
     return endSpeechImpl(this);
   }
 
-  walk(who: Id, to: Point, fast: boolean) {
-    return this.view.walker.walkTo(who, to, fast);
-  }
-  face(who: Id, dir: 'left' | 'right') {
-    this.view.face(who, dir);
-  }
-  pose(who: Id, pose: string) {
-    this.view.pose(who, pose);
-    this.callPose(who, pose);
-  }
-  anim(who: Id, pose: string, ms: number, fast: boolean) {
-    return this.view.anim(who, pose, ms, fast);
-  }
-  place(who: Id, at: Point, face?: 'left' | 'right') {
-    this.view.place(who, at, face);
-  }
-  wait(ms: number, fast: boolean) {
-    return fast ? Promise.resolve() : sleep(ms);
-  }
-  prop(id: Id, state: string) {
-    this.view.setProp(id, state);
-    this.view.refreshVisibility();
-  }
-  propFrame(id: Id, img: Id | null) {
-    this.view.propFrame(id, img);
-  }
-  propLoop(id: Id, frames: Id[], fps: number, onFrame?: (i: number) => void) {
-    this.view.propLoop(id, frames, fps, onFrame);
-  }
-  camera(x: number | null, follow: boolean, ms: number, fast: boolean) {
-    if (follow || x === null) {
-      this.view.camera.followHero();
-      return Promise.resolve();
-    }
-    return this.view.camera.setCamera(x, fast ? 0 : ms);
-  }
-  show(id: Id, visible: boolean, fade: number, fast: boolean) {
-    return this.view.show(id, visible, fade, fast || this.settings.reduceMotion);
-  }
-  motion(who: Id, m: MotionSpec, fast: boolean, leader?: Id) {
-    return this.view.walker.motion(who, m, fast || this.view.reduceMotion, leader);
-  }
-  inventory(items: Id[], used?: Id[]) {
-    this.used = [...(used ?? [])];
-    if (!this.view.room) {
-      this.items = [...items];
-      return;
-    }
-    const previous = new Set(this.items);
-    const added = items.length > this.items.length;
-    this.items = [...items];
-    if (added) {
-      const names = items.filter((id) => !previous.has(id)).map((id) => this.game.items[id]?.name ?? id);
-      if (names.length) this.live.textContent = names.join(', ');
-    }
-    if (added) this.invPage = Math.max(0, Math.ceil((items.length - this.invCols * 2) / this.invCols));
-    this.renderInv();
-    this.view.refreshVisibility();
-    this.view.redraw();
-  }
-  sfx(id: Id, caption?: string) {
-    this.audio.sfx(id);
-    // A sound that matters, in writing (`{ sfx, caption }`), for whoever plays without sound or cannot hear it.
-    if (caption && this.settings.captions && this.scene) {
-      this.live.textContent = caption;
-      const c = el('div', 'caption', esc(caption));
-      this.scene.append(c);
-      setTimeout(() => c.remove(), Math.max(1800, caption.length * 70));
-    }
-  }
-  music(c: { play?: Id; push?: Id; pop?: true; stop?: true; once?: Id; stinger?: Id }) {
-    if (c.play) this.audio.play(c.play);
-    else if (c.push) this.audio.push(c.push);
-    else if (c.pop) this.audio.pop();
-    else if (c.stop) this.audio.stop();
-    else if (c.once) this.audio.once(c.once);
-    else if (c.stinger) this.audio.stinger(c.stinger);
-  }
-  toast(text: string) {
-    this.live.textContent = text;
-    const t = el('div', 'toast', esc(text));
-    this.scene.append(t);
-    setTimeout(() => t.remove(), 2400);
-  }
-  shake(ms: number) {
-    if (this.settings.reduceMotion) return;
-    this.scene.classList.add('shake');
-    setTimeout(() => this.scene.classList.remove('shake'), ms);
-  }
-
-  guide(g: { verb: VerbId; target: Id } | null) {
-    this.guideState = g;
-    this.sparkEl?.remove();
-    this.sparkEl = null;
-    this.renderVerbs();
-    this.renderInv();
-    const spark = this.game.skin.icons.spark;
-    if (!g || !spark || this.items.includes(g.target)) return;
-    const b = this.view.box(g.target);
-    if (!b) return;
-    const s = el('img', 'spark') as HTMLImageElement;
-    s.src = this.bank.img(spark);
-    s.alt = '';
-    const [sx, sy] = this.view.camera.toScreen([b[0] + b[2] / 2, b[1] + b[3] / 2]);
-    s.style.width = `${22 * this.u}px`;
-    s.style.left = `${sx}px`;
-    s.style.top = `${sy}px`;
-    this.scene.append(s);
-    this.sparkEl = s;
-  }
-
-  cutscene(on: boolean) {
-    this.inCutscene = on;
-    this.scene.classList.toggle('cine', on);
-    this.scene.querySelector('.skip')?.remove();
-    if (on) {
-      const b = el('button', 'skip', esc(this.game.ui.skip));
-      b.onclick = (e) => {
-        e.stopPropagation();
-        this.engine.skip();
-        this.endSpeech();
-      };
-      queueMicrotask(() => b.focus({ preventScroll: true }));
-      this.scene.append(b);
-    }
-  }
-
   // ---------------------------------------------------------------- choices and conversations
 
   /** @internal Read by the modules of dom/ (4.1.0). */
   choosing = false;
-  choose(options: { text: string; seen?: boolean; global?: boolean }[], who?: Id): Promise<number> {
-    return chooseImpl(this, options, who);
-  }
 
   /** Call in progress: phone frame with the callers, animated mouth for whoever is speaking. */
   /** @internal Read by the modules of dom/ (4.1.0). */
@@ -624,10 +483,6 @@ export class App implements Presenter {
     frames: ReturnType<App['callFrame']>[];
     imgs: HTMLImageElement[];
   } | null = null;
-
-  async phone(whoIn: Id | Id[], ringing: boolean) {
-    return phoneImpl(this, whoIn, ringing);
-  }
 
   /** A caller's pose and images: the requested pose, otherwise the first of `skin.callPoses` (default `phone`, `front`, `face`, `idle`). */
   callFrame(id: Id, want?: string) {
@@ -659,64 +514,9 @@ export class App implements Presenter {
 
   // ---------------------------------------------------------------- map
 
-  async openMap(state: GameState): Promise<Id | null> {
-    return openMapImpl(this, state);
-  }
-
   // ---------------------------------------------------------------- minigames
 
-  async minigame(id: Id, params: Record<string, unknown>) {
-    const game = this.mg[id];
-    // The validator refuses a minigame the game does not register; a run that gets here is a bug, said as one.
-    if (!game) throw new Error(`unknown minigame: ${id}`);
-    const host = el('div', 'overlay');
-    host.style.background = '#000';
-    this.scene.append(host);
-    this.side.classList.add('off');
-    const voice = this.game.characters[this.game.hintVoice ?? this.game.hero];
-    let frame: HTMLElement | null = null;
-    const ac = new AbortController();
-    const entry = { id, skipped: false, ms: 0 };
-    const t0 = performance.now();
-    host.addEventListener('mg-skip', () => {
-      entry.skipped = true;
-    });
-    try {
-      await game.run({
-        root: host,
-        u: this.u,
-        img: (i) => this.bank.img(i),
-        size: (i) => this.bank.size(i),
-        sfx: (i) => this.audio.sfx(i),
-        instruct: (text) => {
-          if (!frame) {
-            frame = el('div', 'narr');
-            frame.style.color = voice?.color ?? '#fff';
-            frame.style.zIndex = '60';
-            host.append(frame);
-          }
-          frame.innerHTML = `<span class="who">${esc((voice?.name ?? '').toUpperCase())}</span>${esc(text)}`;
-        },
-        params,
-        signal: ac.signal,
-        fonts: { ui: this.game.skin.fonts?.ui ?? FONT_UI, pixel: this.game.skin.fonts?.pixel ?? FONT_PIXEL },
-        labels: { skip: this.game.ui.skip, jump: this.t('jump'), duck: this.t('duck') },
-      });
-    } finally {
-      entry.ms = Math.round(performance.now() - t0);
-      this.minigameLog.push(entry);
-      ac.abort();
-      host.remove();
-      this.side.classList.remove('off');
-    }
-  }
-
   // ---------------------------------------------------------------- sealed ending (ending module)
-
-  async ending(phase: 'open' | 'card') {
-    if (phase === 'open') await this.sealed.open();
-    else await this.sealed.card();
-  }
 
   /** Silent looping video, framed as "cover"; the backdrop serves as a poster until it plays. */
   videoBg(file: string, poster?: Id): HTMLVideoElement {
@@ -725,10 +525,6 @@ export class App implements Presenter {
 
   credits() {
     return creditsImpl(this);
-  }
-
-  end() {
-    /* the sealed ending handles the end screen */
   }
 
   // ================================================================== out-of-game screens

@@ -1,6 +1,7 @@
 import { Pane } from 'tweakpane';
 import type { App } from '../dom/app';
 import type { Value } from '../core/types';
+import { describeEvent } from '../core/journal';
 
 /** Debug panel (?dev): checkpoints, rooms, inventory, flags, map, the world's characters and scripts. */
 export class DevPanel {
@@ -178,6 +179,14 @@ export class DevPanel {
             setTimeout(() => URL.revokeObjectURL(a.href), 2000);
           }),
       );
+    }
+
+    // The semantic journal (4.1.11): what the core says happened, in ids, latest first.
+    const events = eng.journal.since(eng.sessionSeq).slice(-12).reverse();
+    if (events.length) {
+      const sj = pane.addFolder({ title: `Semantic journal (${eng.journal.seq - eng.sessionSeq})`, expanded: false });
+      for (const e of events)
+        sj.addBinding({ line: describeEvent(e) }, 'line', { label: `${e.seq} ${e.kind}`, readonly: true });
     }
 
     if (game.map) {

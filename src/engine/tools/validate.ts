@@ -1,7 +1,8 @@
 // Content validator: checks that everything referenced exists, and flags what's missing for a good experience.
 // Pure TypeScript (no DOM): runs in node (npm run validate) and in tests.
 import { eventChecks } from './validate-events';
-import { inPolygon, rendererOf, stageOf } from '../core/stage';
+import { rendererOf, stageOf } from '../core/stage';
+import { stageLayoutChecks } from './validate-stage';
 import { listId, listText } from '../core/list-lines';
 import { condFlags } from '../core/cond';
 import { subLists } from '../core/cmds';
@@ -22,7 +23,6 @@ import type {
   ScriptDef,
   VerbId,
 } from '../core/types';
-import { must } from '../core/must';
 
 export interface AssetIndex {
   images: Record<string, [number, number]>;
@@ -891,50 +891,7 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
     const layerIds = new Set(['decor', ...(st?.layers ?? []).map((l) => l.id)]);
     for (const id of Object.keys(L.layers ?? {}))
       if (!layerIds.has(id)) err(`layout ${w}.layers.${id}`, `no stage layer "${id}" in the room`);
-    for (const [id, o] of Object.entries(L.occluders ?? {})) {
-      const ow = `layout ${w}.occluders.${id}`;
-      if (!o.polygon && !o.mask && !o.layer) err(ow, 'an occluder needs a polygon, a mask image or a layer');
-      if (o.layer && !layerIds.has(o.layer)) err(ow, `no stage layer "${o.layer}"`);
-      if (o.polygon && o.polygon.length < 3) err(ow, 'a polygon needs three points');
-      img(o.mask, ow);
-    }
-    for (const id of Object.keys(L.lights ?? {}))
-      if (!(st?.lights ?? []).some((l) => l.id === id))
-        warn(`layout ${w}.lights.${id}`, `no stage light "${id}" in the room`);
-    for (const id of Object.keys(L.emitters ?? {}))
-      if (!(st?.emitters ?? []).some((e) => e.id === id))
-        warn(`layout ${w}.emitters.${id}`, `no stage emitter "${id}" in the room`);
-    if (L.walkZones && L.walk) warn(`layout ${w}`, 'both walk and walkZones: walkZones replace walk, which is ignored');
-    const zones = new Set(Object.keys(L.walkZones ?? {}));
-    for (const [id, k] of Object.entries(L.walkLinks ?? {}))
-      for (const end of [k.from, k.to])
-        if (!zones.has(end.zone)) err(`layout ${w}.walkLinks.${id}`, `unknown walk zone "${end.zone}"`);
-    // Every zone reachable from the zone of the default entry, all links open (a closed link is a puzzle, not a wall).
-    if (L.walkZones && zones.size > 1) {
-      const S = stageOf(r, L);
-      const start =
-        S.zones.find((z) => L.entries?.default && inPolygon(L.entries.default, z.area))?.id ??
-        must(S.zones[0], 'first walk zone').id;
-      const seen = new Set([start]);
-      for (let grew = true; grew; ) {
-        grew = false;
-        for (const k of S.links)
-          for (const [a, b] of [
-            [k.from.zone, k.to.zone] as const,
-            ...(k.oneWay ? [] : [[k.to.zone, k.from.zone] as const]),
-          ])
-            if (seen.has(a) && !seen.has(b)) {
-              seen.add(b);
-              grew = true;
-            }
-      }
-      for (const z of zones)
-        if (!seen.has(z))
-          err(
-            `layout ${w}.walkZones.${z}`,
-            `walk zone "${z}" cannot be reached from "${start}" (the zone of the default entry), even with every link open`,
-          );
-    }
+    stageLayoutChecks(w, r, L, st, layerIds, { err, warn, img });
     const S = stageOf(r, L);
     if (S.canvasOnly.length && rendererOf(r, game) === 'dom')
       warn(

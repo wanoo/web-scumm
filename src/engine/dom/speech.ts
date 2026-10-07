@@ -140,19 +140,24 @@ export function choose(
   app.side.insertBefore(box, app.toolsEl);
   queueMicrotask(() => box.querySelector<HTMLElement>('.choice')?.focus({ preventScroll: true }));
   return new Promise((res) => {
+    // The answer is a `pick` intention (4.1.11): a tap on a row, or any input layer that says which.
+    app.presenter.picking = (i) => {
+      const o = options[i];
+      if (!o) return;
+      app.presenter.picking = null;
+      box.remove();
+      app.choosing = false;
+      if (who) app.openTranscript(who, o.text);
+      else {
+        app.verbsEl.hidden = false;
+        app.invEl.hidden = false;
+        app.renderInv();
+      }
+      res(i);
+    };
     options.forEach((o, i) => {
       const b = el('button', 'choice' + (o.seen ? ' read' : '') + (o.global ? ' gl' : ''), '• ' + esc(o.text));
-      b.onclick = () => {
-        box.remove();
-        app.choosing = false;
-        if (who) app.openTranscript(who, o.text);
-        else {
-          app.verbsEl.hidden = false;
-          app.invEl.hidden = false;
-          app.renderInv();
-        }
-        res(i);
-      };
+      b.onclick = () => void app.presenter.intent({ kind: 'pick', choice: i });
       box.append(b);
     });
   });

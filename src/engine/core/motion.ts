@@ -4,7 +4,7 @@
 // the end position of a character (like `place`); a prop lands where its motion ends until the room is entered again.
 // A puzzle effect is the next command (`{ hide }`, `{ prop }`, `{ set }`).
 import { must } from './must';
-import type { Point } from './types';
+import type { Id, Point } from './types';
 
 export type MotionSpec =
   /** `from` absent: where the target stands; `height` absent: a third of the distance. */
@@ -84,4 +84,64 @@ export function motionAt(m: MotionSpec, t: number): MotionFrame {
 /** Where a motion leaves its target (null: back to rest, a spring; a follower keeps its leader's offset). */
 export function motionEnd(m: MotionSpec): Point | null {
   return m.kind === 'launch' ? m.to : m.kind === 'path' ? (m.points[m.points.length - 1] ?? null) : null;
+}
+
+// ------------------------------------------------------------------ the graph of walk zones (4.1.11)
+
+/** A link between two walk zones, as the graph reads it (core/stage.ts `NormalLink` is one). */
+export interface ZoneLink {
+  id: Id;
+  from: { zone: Id; at: Point };
+  to: { zone: Id; at: Point };
+  oneWay: boolean;
+}
+
+/**
+ * The route between two walk zones of a room, in links: breadth first (the fewest links), a one-way link forward
+ * only, a link `open` refuses never crossed but remembered (`blocked`: the first one met). `chainTo(z)` is the chain of
+ * links from the start to any zone reached (the walk then stops at the foot of the closed one). Pure: the walker
+ * (dom/walk.ts) walks it, a tool can read it.
+ */
+export function zoneRoute<L extends ZoneLink>(
+  links: readonly L[],
+  from: Id,
+  to: Id,
+  open: (link: L) => boolean = () => true,
+): { reached: boolean; seen: Set<Id>; blocked?: L; chainTo(zone: Id): { link: L; forward: boolean }[] } {
+  const prev = new Map<Id, { zone: Id; link: L; forward: boolean }>();
+  const seen = new Set([from]);
+  let blocked: L | undefined;
+  for (let frontier = [from]; frontier.length && !seen.has(to); ) {
+    const next: Id[] = [];
+    for (const zid of frontier)
+      for (const l of links)
+        for (const forward of [true, false]) {
+          if (!forward && l.oneWay) continue;
+          const [a, b] = forward ? [l.from.zone, l.to.zone] : [l.to.zone, l.from.zone];
+          if (a !== zid || seen.has(b)) continue;
+          if (!open(l)) {
+            blocked ??= l;
+            continue;
+          }
+          seen.add(b);
+          prev.set(b, { zone: a, link: l, forward });
+          next.push(b);
+        }
+    frontier = next;
+  }
+  return {
+    reached: seen.has(to),
+    seen,
+    ...(blocked ? { blocked } : {}),
+    chainTo(zone: Id) {
+      const chain: { link: L; forward: boolean }[] = [];
+      for (let z = zone; z !== from; ) {
+        const p = prev.get(z);
+        if (!p) return [];
+        chain.unshift({ link: p.link, forward: p.forward });
+        z = p.zone;
+      }
+      return chain;
+    },
+  };
 }

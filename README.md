@@ -100,7 +100,7 @@ which is why it can prove the game: the same `Engine`, the same `resolve`, no se
 is planned for 4.2, then `npx create-web-scumm my-game`):
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.10/web-scumm-4.1.10.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.11/web-scumm-4.1.11.tgz
 npx --package=$T web-scumm create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # then npm run verify, npm run build, npm run release
@@ -129,12 +129,12 @@ the three figures from `tests/quality-baseline.json`):
 
 | What | Result |
 |---|---|
-| Unit tests | <!-- metric:tests -->1108<!-- /metric --> declarations, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
+| Unit tests | <!-- metric:tests -->1138<!-- /metric --> declarations, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
 | Browser tests | the sample game played to its ending by touch and by keyboard in Chromium and WebKit at a phone's size, in English and French, with the DOM and the Canvas painter; a second game and the reference game too; every minigame won at the keyboard; axe-core on every screen |
-| Saves | one frozen save per release from 3.0.0 to 4.1.10 loads and reaches the ending |
+| Saves | one frozen save per release from 3.0.0 to 4.1.11 loads and reaches the ending |
 | Proof | the sample game's every reachable state in seconds; a 40-room reference game in <!-- metric:referenceStates -->288<!-- /metric --> states; 500 random games of each of three kinds compared to an explicit search every night, 0 divergences ([BENCH](docs/en/BENCH.md)) |
 | A new game | packed, created from the tarball, installed, verified, built and played to its end by CI; a game made on the previous release upgraded and its save played to the end |
-| The player's first visit | <!-- metric:initialJsKB -->120<!-- /metric --> KB of JavaScript, gzipped, held by a budget; every byte fetched predicted by the asset graph |
+| The player's first visit | <!-- metric:initialJsKB -->122<!-- /metric --> KB of JavaScript, gzipped, held by a budget; every byte fetched predicted by the asset graph |
 | The release | built from the commit CI tested, every file accounted for with its licence, SBOM, SHA-256 sums and a provenance attestation, never replaced once published |
 
 What only people and real devices can check is listed, not claimed: [FIELD](docs/en/FIELD.md), and each release's
@@ -158,11 +158,11 @@ Every page also exists in French under `docs/fr/`, and a test keeps the two in s
 
 ## Releases
 
-Current release: [v4.1.10 "Constellation"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.10), the third of
-the 4.1.8 → 4.1.15 programme: a durable Bridge behind one store interface (SQLite locally, Postgres for several
-instances), stateless instances sharing one journal, tenants isolated by key and by row, a signal that names its
-context (`SignalV2`), health routes, backup and restore. On 4.1.9's connectors (email, Telnet, SSH, Open Badges on one
-SDK, experimental until a real pass) and 4.1.8's foundation (TypeScript 7, Vite 8, the PWA proven in three browsers).
+Current release: [v4.1.11 "Viewport"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.11), the fourth of the
+4.1.8 → 4.1.15 programme: the rendering is no longer a source of state (an immutable scene frame made by a pure
+function, painters that send nothing but intentions, the same session and journal from the DOM and the Canvas), a
+semantic journal owned by the core and replayed identically, the Studio editing layers, masks, zones and portals. On
+4.1.10's durable Bridge (SQLite, Postgres, tenants, `SignalV2`), 4.1.9's connectors and 4.1.8's foundation.
 From 4.1.1 to 4.1.7 every release added only what was optional, and a game written against one ran on the next;
 from 4.1.8 the 4.1.x line is an incubation line, where a release may break a public name or a format, documented
 and with a migration, until 4.2.0 restores strict SemVer ([SUPPORT](docs/en/SUPPORT.md)). The story

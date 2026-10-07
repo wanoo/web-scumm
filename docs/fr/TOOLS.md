@@ -58,7 +58,8 @@ Paramètres d'URL, serveur de dev uniquement (ils sont ignorés dans le build de
   - **Carte** : débloquer un lieu, ou **Tout débloquer** ;
   - **World** : le lieu de chaque personnage mobile (le changer les déplace, `moveActor`) ;
   - **Scripts** : la position de chaque script en cours (`commande suivante / longueur`, fini, arrêté), avec un bouton arrêter / relancer ;
-  - **Journal** : les dix dernières entrées du journal du moteur (ce qui a répondu, événements, pas de script, déplacements, changements de joueur ; l'onglet Play du Studio le montre en entier), et **Export session** : les entrées depuis le début de la partie, pour `npm run replay` ;
+  - **Journal** : les dix dernières entrées du journal du moteur (ce qui a répondu, événements, pas de script, déplacements, changements de joueur ; l'onglet Play du Studio le montre en entier), et **Export session** : les entrées depuis le début de la partie, avec le journal sémantique de la session, pour `npm run replay` ;
+  - **Semantic journal** (4.1.11) : les douze derniers événements que le cœur a numérotés dans cette session (lieu, objet gagné ou perdu, drapeau changé, fin, chargement, sauvegarde), rafraîchis avec le panneau ;
   - **Éditer ce lieu** : ouvre l'éditeur sur le lieu affiché.
 
 ### L'éditeur de placement (`?edit=<lieu>`)
@@ -187,7 +188,7 @@ npm run audit:corpus -- --shard=1/4 --total=500 --json=s1.json  # tranche 1 sur 
 npm run audit:corpus -- --merge s0.json s1.json … --total=500   # tranches additionnées ; échoue sur une graine manquée ou lancée deux fois (3.7.1)
 npm run solve -- --profile         # de quoi les états sont faits, ce que la recherche a coûté, ce que chaque abstraction a fait (docs/fr/BENCH.md)
 npm run solve -- --por=stubborn    # réduction d'ordre partiel : les actions commutantes une à la fois (moins d'états, même preuve)
-npm run replay -- session.json     # rejoue un fichier de session sur le vrai moteur, imprime le journal et l'état final
+npm run replay -- session.json     # rejoue un fichier de session sur le vrai moteur, imprime le journal, le journal sémantique (4.1.11) et l'état final ; code 1 quand le replay diverge ou que son journal sémantique diffère de celui du fichier
 npm run ids [-- --write --map]     # ids stables (schéma 3) écrits dans les sources, locales renommées, l'étape de migration des sauvegardes (docs/fr/UPGRADING.md)
 npm run ids -- --lines [--write --map]   # un id sur chaque objet say / toast / guide, ligne de liste, indice et réaction par sorte (--lines=all : les chaînes nues aussi, exigé pour une release traduite ou doublée) : traductions et voix indexées par lui (UPGRADING §9, §10)
 npm run i18n -- voices             # les lignes avec un id et sans clip de voix, les clips qu'aucune ligne ne réclame

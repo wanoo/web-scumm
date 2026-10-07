@@ -611,6 +611,24 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.1.11 "Viewport" (shipped 7 October 2026): the rendering behind a scene frame, the journal in the core
+
+The programme's fourth release, the second with a release candidate (`v4.1.11-rc.1`, then `v4.1.11` on the same
+commit). The semantic journal belongs to the core (`Engine.journal`, ADR 0011): a session started, a room entered, an
+item acquired or lost, a flag changed, a character switched, an ending reached, a load, the autosave that follows,
+numbered and emitted by the command handlers and the engine's lifecycle, never by the DOM; replaying a session yields
+the same journal on the sample game, the reference chapter and 200 generated games, `npm run replay` compares it, a
+session file carries it (a bounded window of 10 000 events, said as such when exceeded). The room view makes an
+immutable `SceneFrame` with a pure function (camera, layers, characters, targets with their hit polygons, effects, a
+hash) then paints it; every room of the two bundled games in three states paints the same DOM as before. `App`
+composes a `Presenter` and a `Renderer`; a verb, a walk, a choice, a skip, a screen opened is an `Intent` (D21: the
+rendering is not a source of state), and the same clicks on the DOM and on the Canvas painter record the same session
+and journal at device pixel ratios 1, 2 and 3. The Canvas painter survives a lost context; the route between walk
+zones is the core's. The Studio edits a room's layers, masks, zones and portals on the backdrop; the validator refuses
+a mask that closes no surface and a zone no link joins. ADR 0012: Canvas 2D stays the complete backend, WebGL/Pixi not
+measured in this lot. Left for later, said as such: every browser measure of this lot (`e2e:perf` on both painters,
+CPU and memory budgets, a real phone), the WebGL spike, `objectiveCompleted` (4.1.12).
+
 ## v4.1.10 "Constellation" (shipped 7 October 2026): a durable Bridge, several instances, several tenants
 
 The programme's third release, the first since 4.1.8 with a release candidate (`v4.1.10-rc.1`, then `v4.1.10` on the same
@@ -663,7 +681,7 @@ release (D12); the next version opens only when the current one's blockers are c
 | 4.1.8 | **Foundation Reset** (shipped 7 October 2026) | TypeScript 7, Vite 8, PWA 2, the Reality cursor fixed (the port's local cursor moved before the acknowledgement: reproduced in polling), release checks that predict the release, a release candidate first |
 | 4.1.9 | **Gateways** (shipped 7 October 2026) | email, SSH, Telnet and Open Badges connectors on one SDK, out of the player, experimental until a real pass |
 | 4.1.10 | **Constellation** (shipped 7 October 2026) | a durable Bridge, replicated and isolated by tenant; the signal may become `SignalV2` if the threat analysis asks |
-| 4.1.11 | **Viewport** | a renderer separate from the game logic, behind an immutable `SceneFrame`; a semantic journal owned by the core |
+| 4.1.11 | **Viewport** (shipped 7 October 2026) | a renderer separate from the game logic, behind an immutable `SceneFrame`; a semantic journal owned by the core |
 | 4.1.12 | **Language** | the DSL and an intermediate representation (`GameIR`, a game fingerprint) shaped by Gateways and Viewport; the core stabilised |
 | 4.1.13 | **Proof at Scale** | a documented class of open three-character games proved within published budgets, or named "Solver Research" |
 | 4.1.14 | **Time Attack** | speedrun categories, RTA and logical time, semantic splits, a verifiable proof package, ghosts, LiveSplit and OBS as local tools |

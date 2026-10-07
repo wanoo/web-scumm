@@ -7,6 +7,9 @@
 // polygon, a black-and-white mask or the layer's alpha, feathered or inverted) at theirs, the foreground, then lights
 // (they fall on the foreground too), then particles (seeded, on the presentation clock: never the engine's dice), then
 // the effect layers.
+// A lost context (4.1.11: the browser reclaims a canvas's memory, a GPU reset) paints nothing; once restored, the
+// caches made from it (the background, the masks, the occluders' pixels) are rebuilt from the images and the frame is
+// painted again.
 import { must } from '../core/must';
 import type { Id } from '../core/types';
 import type { EmitterSpec, OccluderSpec, SceneRenderer, SpriteSpec, StageSpec } from './renderer';
@@ -46,6 +49,9 @@ export class CanvasRenderer implements SceneRenderer {
     }
   >();
   private animating = 0;
+  /** The context is lost (`contextlost`) until the browser restores it (`contextrestored`). */
+  lost = false;
+  private listening = new AbortController();
 
   constructor() {
     this.el = document.createElement('div');
@@ -56,6 +62,27 @@ export class CanvasRenderer implements SceneRenderer {
     Object.assign(this.canvas.style, { position: 'absolute', left: '0', top: '0', pointerEvents: 'none' });
     this.el.append(this.canvas);
     this.ctx = this.canvas.getContext('2d')!;
+    const signal = this.listening.signal;
+    this.canvas.addEventListener(
+      'contextlost',
+      () => {
+        this.lost = true;
+        cancelAnimationFrame(this.frame);
+        this.frame = 0;
+      },
+      { signal },
+    );
+    this.canvas.addEventListener(
+      'contextrestored',
+      () => {
+        this.lost = false;
+        this.bgCache = null;
+        this.masks.clear();
+        this.cuts.clear();
+        this.invalidate();
+      },
+      { signal },
+    );
   }
 
   private image(url: string): HTMLImageElement {
@@ -162,6 +189,7 @@ export class CanvasRenderer implements SceneRenderer {
   }
 
   dispose() {
+    this.listening.abort();
     cancelAnimationFrame(this.frame);
     cancelAnimationFrame(this.animating);
     this.sprites.clear();
@@ -188,7 +216,7 @@ export class CanvasRenderer implements SceneRenderer {
   }
 
   private invalidate() {
-    if (this.frame) return;
+    if (this.frame || this.lost) return;
     this.frame = requestAnimationFrame(() => {
       this.frame = 0;
       this.paint();
@@ -254,8 +282,9 @@ export class CanvasRenderer implements SceneRenderer {
     c.restore();
   }
 
-  /** Paints now (also what `invalidate` schedules). */
+  /** Paints now (also what `invalidate` schedules); nothing while the context is lost. */
   paint() {
+    if (this.lost) return;
     const c = this.ctx,
       k = this.k,
       cam = this.cam,
