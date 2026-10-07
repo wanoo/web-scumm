@@ -887,4 +887,34 @@ describe('web-scumm bridge serve, stopped', () => {
       if (child.exitCode === null) child.kill('SIGKILL');
     }
   }, 60_000);
+
+  it('in this process: serve listens, holds the lock, and a SIGTERM handler stops it with exit 0', async () => {
+    const { main } = await import('../bridge/src/cli');
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-serve-in-'));
+    temps.push(dir);
+    const lines: string[] = [];
+    const log = console.log;
+    console.log = (x: unknown) => void lines.push(String(x));
+    try {
+      expect(await main(['init', `--dir=${dir}`, '--no-demo-webhooks'], { manifest: realityManifest(signals()) })).toBe(
+        0,
+      );
+      const file = JSON.parse(readFileSync(join(dir, 'config.json'), 'utf8')) as { journal: string };
+      const lock = `${join(dir, file.journal)}.lock`;
+      const serving = main(['serve', `--dir=${dir}`, '--port=0', '--host=127.0.0.1']);
+      for (let i = 0; i < 200 && !lines.some((l) => l.includes('bridge.listening')); i++)
+        await new Promise((r) => setTimeout(r, 25));
+      expect(lines.some((l) => l.includes('bridge.listening'))).toBe(true);
+      expect(existsSync(lock)).toBe(true);
+      // The handler, not the signal: the test's own process must not die.
+      process.emit('SIGTERM');
+      expect(await serving).toBe(0);
+      expect(lines.some((l) => l.includes('"bridge.stopping"') && l.includes('SIGTERM'))).toBe(true);
+      expect(existsSync(lock)).toBe(false);
+      // A second signal after the stop finds no handler of ours any more.
+      expect(process.listeners('SIGTERM').some((f) => String(f).includes("stop('SIGTERM')"))).toBe(false);
+    } finally {
+      console.log = log;
+    }
+  }, 30_000);
 });

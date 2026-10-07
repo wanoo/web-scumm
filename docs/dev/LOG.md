@@ -2371,6 +2371,10 @@ Platform"; human gates reported, not blocking (D12).
   a take-over is a `rename` over the lock, read back; `lock: false` for `doctor` only, `compact` writes and locks;
   `serve` ends its streams and closes its server on SIGINT and SIGTERM, then releases the lock, five seconds at most);
   `JsonlBridgeStore.close()`; the stream cancelled on the player's side when the parser drops it.
+- Coverage: the new code took `bridge.ts`, `store.ts` and `cli.ts` under their floors (CI said so). Two of the next
+  branch's test files come in here already, `tests/bridge-mutants.test.ts` and `tests/bridge-store.test.ts` (the
+  survivors' tests of #107, written against this code), and `serve` is stopped in-process by its handler in a test
+  (the spawned one proves the real signal, but v8 does not count a child's lines): 97 %, 89 %, 85 %.
 - Not done, said as such: the 88 reality survivors and the gate by input hash are the next branch
   (`test/418-reality-mutants`), not this one; the Bridge's own backlog bound (`streamBufferBytes`) was already there.
 

@@ -179,9 +179,13 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     // lock to take over, and a lock left behind really means a crash.
     return await new Promise<number>((done) => {
       let stopping = false;
+      const onInt = () => stop('SIGINT');
+      const onTerm = () => stop('SIGTERM');
       const stop = (sig: string) => {
         if (stopping) return;
         stopping = true;
+        process.off('SIGINT', onInt);
+        process.off('SIGTERM', onTerm);
         console.log(JSON.stringify({ event: 'bridge.stopping', signal: sig }));
         // The open streams are ended (their heartbeats stop with them), then the server closes; the lock goes last,
         // once nothing of this process can still write the journal. A second signal, or five seconds, ends anyway.
@@ -195,8 +199,8 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
           done(0);
         }, 5000).unref();
       };
-      process.on('SIGINT', () => stop('SIGINT'));
-      process.on('SIGTERM', () => stop('SIGTERM'));
+      process.on('SIGINT', onInt);
+      process.on('SIGTERM', onTerm);
     });
   }
   if (cmd === 'grant') {
