@@ -220,7 +220,7 @@ describe('the reference Bridge', () => {
       expect(e.state.reality?.cursor, mode).toBe(2);
       expect(e.state.flags.vault_open, mode).toBe(true);
     }
-    expect(t.bridge.exportPlayer(t.admin, link.playerId).acked).toBe(2);
+    expect((await t.bridge.exportPlayer(t.admin, link.playerId)).acked).toBe(2);
   });
 
   it('the operator revokes a player and a token, exports and deletes what the Bridge holds', async () => {
@@ -303,10 +303,10 @@ describe('the reference Bridge', () => {
       source: 'mail',
       dedupeKey: 'late',
     });
-    t.bridge.revoke(t.admin, { playerId: link.playerId }); // lands while the proposal awaits its Biscuit check
+    await t.bridge.revoke(t.admin, { playerId: link.playerId }); // lands while the proposal awaits its Biscuit check
     await expect(inFlight).rejects.toMatchObject({ status: 404 });
-    expect(t.bridge.exportPlayer(t.admin, link.playerId).signals).toHaveLength(0);
-    const { code } = t.bridge.startPairing('signals');
+    expect((await t.bridge.exportPlayer(t.admin, link.playerId)).signals).toHaveLength(0);
+    const { code } = await t.bridge.startPairing('signals');
     const both = await Promise.allSettled([
       t.bridge.confirmPairing(t.mail, code),
       t.bridge.confirmPairing(t.mail, code),
@@ -314,7 +314,7 @@ describe('the reference Bridge', () => {
     expect(both.map((r) => r.status).sort()).toEqual(['fulfilled', 'rejected']);
     const rejected = both.find((r) => r.status === 'rejected') as PromiseRejectedResult;
     expect(rejected.reason).toMatchObject({ status: 409 });
-    const claimed = t.bridge.claimPairing(code);
+    const claimed = await t.bridge.claimPairing(code);
     expect(claimed.status).toBe('paired');
     const confirmed = both.find((r) => r.status === 'fulfilled') as PromiseFulfilledResult<{ playerId: string }>;
     expect(claimed.status === 'paired' && claimed.playerId).toBe(confirmed.value.playerId);
@@ -374,7 +374,10 @@ describe('the reference Bridge', () => {
     await after.propose(link.playerId, 'mail.answer.wrong', 'mail:2', after.mail);
     const delivered = await after.bridge.signals(link.capability, 0);
     expect(delivered.map((d) => JSON.parse(atob(d.jws.split('.')[0]!)).kid)).toEqual(['k2', 'k2']);
-    expect(after.bridge.exportPlayer(after.admin, link.playerId).signals.map((s) => s.kid)).toEqual(['k1', 'k2']);
+    expect((await after.bridge.exportPlayer(after.admin, link.playerId)).signals.map((s) => s.kid)).toEqual([
+      'k1',
+      'k2',
+    ]);
     // A player that connected before the rotation: its keyring knows k1 only; it asks once, then applies both.
     const e = new Engine(signals(), signalsLayouts, new FakePresenter(), new MemoryStore());
     await e.newGame();
@@ -400,7 +403,7 @@ describe('the reference Bridge', () => {
     await run;
     expect(asked).toBe(1);
     expect(e.state.reality?.cursor).toBe(2);
-    expect(after.bridge.exportPlayer(after.admin, link.playerId).acked).toBe(2);
+    expect((await after.bridge.exportPlayer(after.admin, link.playerId)).acked).toBe(2);
   });
 
   it('a bad token is refused before an unknown player is named; an address out of failed authentications waits', async () => {
@@ -523,17 +526,17 @@ describe('the reference Bridge', () => {
         new MemoryBridgeStore(),
       ),
     ).rejects.toThrow(/for signals/);
-    expect(() => t.bridge.startPairing('demo')).toThrow(expect.objectContaining({ status: 404 }));
+    await expect(t.bridge.startPairing('demo')).rejects.toMatchObject({ status: 404 });
     // A code past its ten minutes: unknown to a connector and to the player alike.
-    const { code: stale } = t.bridge.startPairing('signals');
+    const { code: stale } = await t.bridge.startPairing('signals');
     t0 += 11 * 60_000;
-    expect(() => t.bridge.claimPairing(stale)).toThrow(expect.objectContaining({ status: 404 }));
+    await expect(t.bridge.claimPairing(stale)).rejects.toMatchObject({ status: 404 });
     await expect(t.bridge.confirmPairing(t.mail, stale)).rejects.toMatchObject({ status: 404 });
     // Claimed once; a second claim is gone, a second confirmation is already done.
-    const { code } = t.bridge.startPairing('signals');
+    const { code } = await t.bridge.startPairing('signals');
     await t.bridge.confirmPairing(t.mail, code);
-    expect(t.bridge.claimPairing(code).status).toBe('paired');
-    expect(() => t.bridge.claimPairing(code)).toThrow(expect.objectContaining({ status: 410 }));
+    expect((await t.bridge.claimPairing(code)).status).toBe('paired');
+    await expect(t.bridge.claimPairing(code)).rejects.toMatchObject({ status: 410 });
     await expect(t.bridge.confirmPairing(t.mail, code)).rejects.toMatchObject({ status: 409 });
     // A revoked token may not pair either.
     const b = await biscuitLib();
@@ -561,8 +564,8 @@ describe('the reference Bridge', () => {
     expect(payloads[0]).toMatchObject({ occurredAt: 1234, evidenceHash: 'ab'.repeat(32), sequence: 1 });
     expect(payloads[1]).not.toHaveProperty('occurredAt');
     expect(payloads[1]).not.toHaveProperty('evidenceHash');
-    t.bridge.revoke(t.admin, { tokenId: (tok.getRevocationIdentifiers() as string[])[0]! });
-    await expect(t.bridge.confirmPairing(t.mail, t.bridge.startPairing('signals').code)).rejects.toMatchObject({
+    await t.bridge.revoke(t.admin, { tokenId: (tok.getRevocationIdentifiers() as string[])[0]! });
+    await expect(t.bridge.confirmPairing(t.mail, (await t.bridge.startPairing('signals')).code)).rejects.toMatchObject({
       status: 401,
     });
   });
@@ -617,7 +620,7 @@ describe('the reference Bridge', () => {
     const again = await Bridge.start(t.bridge.config, new JsonlBridgeStore(file), { log: () => {} });
     expect(await again.signals(link.capability, 0)).toHaveLength(1);
     expect(readFileSync(file, 'utf8')).not.toContain(link.capability);
-    again.forgetPlayer(t.admin, link.playerId);
+    await again.forgetPlayer(t.admin, link.playerId);
     expect(readFileSync(file, 'utf8')).not.toContain(link.playerId);
     expect(() => new JsonlBridgeStore(file).player(link.playerId)).not.toThrow();
     expect(new JsonlBridgeStore(file).player(link.playerId)).toBeUndefined();
@@ -649,7 +652,7 @@ describe('the journal file', () => {
     expect(() => new JsonlBridgeStore(file)).toThrow(/line \d+ is not an event/);
     writeFileSync(file, whole);
     const bridge = await Bridge.start(t.bridge.config, new JsonlBridgeStore(file), { log: () => {} });
-    bridge.forgetPlayer(t.admin, a.playerId);
+    await bridge.forgetPlayer(t.admin, a.playerId);
     expect(readFileSync(file, 'utf8')).not.toContain(`"${a.playerId}"`.replace(/"/g, '"playerId":"'));
     const after = new JsonlBridgeStore(file);
     expect(after.player(a.playerId)).toBeUndefined();

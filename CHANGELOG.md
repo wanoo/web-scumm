@@ -2,6 +2,103 @@
 
 ## Unreleased
 
+## 4.1.11 — 2026-10-07
+
+"Viewport" (LOG #125): the programme's fourth release, the second with a release candidate. The rendering is no
+longer a source of state: the room view makes an immutable scene frame with a pure function and paints it, the DOM
+and the Canvas painters send the engine nothing but intentions, and the semantic journal of what happened in the
+game (rooms, items, flags, endings, loads) belongs to the core, replayed identically by a session. The Studio edits
+a room's layers, masks, zones and portals; the validator refuses a degenerate mask. Measured against 4.1.10 in
+`docs/dev/baselines/4.1.11.md`; what this release does not do (every browser measure, the WebGL spike) is in the
+LOG and the passes sheet (`docs/dev/passes/4.1.11.md`).
+
+### Changes
+
+- **The semantic journal (4.1.11).** `Engine.journal` numbers what happened in the game, in ids: a session started, a
+  room entered (and from where), an item acquired or lost (an item handed to another player is both, each with its
+  `player`), a flag changed (only when its value changes; `null` when it is removed), the player switching character,
+  an ending reached, a load, and the autosave that follows something semantic. The command handlers, a room's entry and the
+  engine's lifecycle emit it, nothing in the DOM does, and a kind it does not know is refused. Replaying a session yields
+  the same journal (the sample game, the reference chapter, 200 generated games). A session file carries it;
+  `npm run replay` prints it and exits 1 when the replay's differs; a session longer than the journal's window
+  (10 000 events) is exported with `journalTruncated: true` and no journal, and `npm run replay` then says "no journal
+  comparison: the window was exceeded" instead of "matches". The dev panel lists the latest events.
+- **The scene frame (4.1.11, ADR 0011).** The room view makes an immutable `SceneFrame` (camera, layers, characters,
+  targets with their hit polygons precomputed, effects, a hash) with a pure function, then paints it. Taps are tested
+  against the frame and the accessible buttons follow its targets, whatever paints the room. Every room of the sample
+  game and of the reference chapter, in three states, paints the same DOM and answers the same taps as before.
+- **The player's input is an intention (4.1.11, D21).** `App` composes the engine, a `Presenter` (`dom/presenter.ts`:
+  the scene's calls, lines, overlays, minigames, the ending) and the room view's `Renderer`; a verb on a target, a
+  walk, a choice, a skip or a screen opened goes through the presenter's `intent()`. The same clicks on the DOM and on
+  the Canvas painter record the same session and journal, at device pixel ratios 1, 2 and 3, on a phone and a desktop
+  screen, with and without reduced motion. The busy state (runs, the tutorial step, a skip) is `core/busy.ts`; a skip
+  left pending no longer outlives a new game or a load. The page's test hook moved with it:
+  `window.__game.presenter.inventory(…)` where e2e scripts called `window.__game.inventory(…)`.
+- **The Canvas painter survives a lost context (4.1.11).** Nothing is painted while the browser has reclaimed the
+  canvas; once restored, the background, the masks and the occluders are rebuilt from their images and the room is
+  painted again. A tap or a hover reuses the room's frame until something changes (a version counter), instead of
+  building and hashing it again. The route between walk zones is the core's (`core/motion.ts` `zoneRoute`), the walker walks it.
+- **The Studio edits a room's layers, masks, zones and portals (4.1.11).** Under the room sheet of the Rooms tab: each
+  layer's depth, parallax, opacity and blend; occlusion masks and walk zones drawn as polygons on the backdrop; links
+  between zones placed by two clicks; **Save stage** writes the geometry over the room's layout.
+- **The validator refuses a mask polygon that closes no surface and, in a room of several walk zones, a zone no link
+  joins (4.1.11).** A layout that validated in 4.1.10 with a degenerate mask polygon (collinear points, crossing edges)
+  now fails `npm run validate`; the bundled games pass.
+- **API (4.1.11), additive.** `web-scumm/player`: `SceneFrame`, `Renderer`, `Intent` (`@extension`).
+  `web-scumm/testing`: `SemanticEvent`, `SemanticJournal` (`@public`). `Engine.journal` and `Engine.sessionSeq` are new
+  members of `Engine`.
+- **The first visit's JavaScript goes from 120 to 122 KB gzipped** (4.1.11): the scene frame, the presenter, the
+  intents and the journal are in the player's main chunk; the budget (`initialJsKB` 140) is untouched and the
+  baseline moved on purpose.
+
+## 4.1.10 — 2026-10-07
+
+"Constellation" (LOG #123): the programme's third release, the first since 4.1.8 with a release candidate. The Bridge reads and
+writes through one store interface (`RealityStore`): SQLite locally, Postgres for several instances, the 4.1.9 journal
+still served and migrated; instances without state of their own, sharing one durable journal that wakes the streams;
+tenants isolated by key and by row, each with its own quotas, rotation and revocations; a signal that names its
+context (`SignalV2`, the threat model's answer, V1 still accepted by the player until 4.1.12); health routes, metrics,
+backup and restore, quarantine of rows that no longer verify, a load bench of three instances. Measured against 4.1.9
+in `docs/dev/baselines/4.1.10.md`; what this release does not do is in the LOG and the passes sheet
+(`docs/dev/passes/4.1.10.md`).
+
+### Breaking
+
+- **`SignalV2`, the signal that names its context** (4.1.10, ADR 0010). `WorldSignalV2` adds `tenantId`,
+  `environment`, `audience` (the origin the player paired from), `sessionId` and `keyId` to the signed payload;
+  `verifySignal` accepts the versions its expectation allows (both by default), refuses a V2 signed for another
+  tenant, environment, origin or link (`audience-mismatch`) and a `keyId` that is not the header's `kid` (`key`). A
+  multi-tenant Bridge signs V2 only; a single-tenant Bridge signs V1 by default until 4.1.12, when V2 becomes the only
+  version (announced, `docs/en/UPGRADING.md` §22). A key bound to a tenant signs V2 only: a V1 signal under it is
+  refused (`schema`); a V1 Bridge's keys bind no tenant. A V2 signal may name the Bridge's own audience when the
+  Bridge did not see the player's origin (its keys declare it). The Studio's simulator signs V2 by default;
+  `RealityClient` checks the page's origin by default and the shipped player passes the link's `sessionId`. The Rust
+  cross-check verifies V2 with the same codes (`bridge/test-vectors/signal-v2/`).
+- **The Bridge's methods are asynchronous** (4.1.10, ADR 0009): `startPairing`, `claimPairing`, `revoke`,
+  `forgetPlayer`, `exportPlayer`, `ack`, `unlink`, `subscribe`, `streamAlive` and `playerOf` return promises; the
+  routes `/v1/*` are unchanged. `--trust-proxy` alone trusts the loopback only (D20); the client is the rightmost
+  `X-Forwarded-For` address that is not a listed proxy. Behind a proxy elsewhere than on the loopback (a PaaS's
+  router), every client shares one rate bucket until `--trust-proxy=<its network>` names it.
+
+### Changes
+
+- **A durable, replicable, multi-tenant Bridge** (4.1.10 "Constellation", D20, `docs/dev/threat-models/constellation.md`).
+  The Bridge reads and writes through `RealityStore`, every method taking the tenant first; `appendSignal` decides the
+  deduplication, the sequence (`MAX + 1`), the quotas and the signature in one transaction. Stores: SQLite through
+  `node:sqlite` (the `local` profile; Node 22.13+, no native dependency), Postgres through `pg` (the `distributed`
+  profile, `experimental` until a real deployment), the 4.1.9 journal (still served; `npm run bridge -- migrate
+  --from=jsonl --to=sqlite` moves it). The schema is versioned (`bridge/migrations/`, up and down). One server serves
+  several tenants (`serve --tenants=…`, routed by `Host`), each with its own keys, root, quotas, rotation and
+  revocations, and connector tokens bound to their tenant; instances are stateless (a stream on one instance receives
+  what another accepted, woken by `NOTIFY` or a short poll). New: `/livez`, `/readyz`, `/healthz`; OpenTelemetry
+  metrics when `@opentelemetry/api` is installed; `tenant export|delete`, `backup`, `restore`; quarantine of rows that
+  no longer verify (or name another player, sequence or tenant than their row), listed by `doctor`;
+  `streamsPerInstance`; a store busy beyond 5 s answers 503 with `Retry-After`; the SQLite files are mode 0600.
+  Tested: the store contract on memory, SQLite and
+  Postgres with fast-check properties (concurrent proposals, two tenants crossed), three processes with one killed
+  during 1 000 proposals, backup and restore rehearsed. `npm run bridge:load` measures three instances, 1 000 players
+  and 50 000 proposals (`docs/dev/BENCH-BRIDGE.md`; nightly on SQLite and Postgres); CI runs a `bridge-postgres` job.
+
 ## 4.1.9 — 2026-10-07
 
 "Gateways" (LOG #121): the programme's second release, the same day as the first. Four connectors of the world

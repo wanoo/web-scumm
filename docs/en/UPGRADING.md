@@ -297,6 +297,41 @@ fourth package, `web-scumm-connectors`, installed beside the Bridge on a server,
 now refuses a game's JavaScript that carries server code (`verify:dist`). `ssh2`'s install script attempts a native
 build and fails for lack of headers: no `.node` file results, and `--ignore-scripts` is the documented install
 (`docs/en/CONNECTORS.md`). A contributor writes `changes/<slug>.md` instead of editing the CHANGELOG (`changes/README.md`).
+
+## 22. From 4.1.9 to 4.1.10 "Constellation"
+
+A 4.1.9 save, game and Bridge configuration keep working. **The player** accepts `WorldSignalV1` and the new
+`WorldSignalV2` (ADR 0010: the signal names its tenant, environment, origin, link and key; `verifySignal` refuses a
+V2 signed for another context with `audience-mismatch`, and a `keyId` other than the header's with `key`). A custom
+verifier or transport that reads the payload sees `schema: 2` from a multi-tenant Bridge or from the Studio's
+simulator, which signs V2 by default (`signalVersion: 1` keeps V1). `verifySignal`'s expectation takes `versions`,
+`tenantId`, `environment`, `audience` and `sessionId`; `RealityClient` takes them as `context` and checks the page's
+origin by default. **Announced break (4.1.12):** a single-tenant Bridge signs V1 by default during 4.1.10 and
+4.1.11 (`init --signal-version=2` opts in); from 4.1.12 every Bridge signs V2 and the player accepts V2 only. A game
+on 4.1.10 or later handles both, so upgrade the game before the Bridge.
+
+**The Bridge** reads and writes through `RealityStore` (ADR 0009): code that called `Bridge` methods directly awaits
+them now (`startPairing`, `claimPairing`, `revoke`, `forgetPlayer`, `exportPlayer`, `ack`, `unlink`, `subscribe`,
+`streamAlive`, `playerOf`); the HTTP routes `/v1/*` are unchanged. `Bridge.start` accepts a 4.1.9 `BridgeStore` (as
+the tenant `default`) or a `RealityStore`. The capability is drawn when the player claims its code (the claim also
+returns the link's `sessionId`). A 4.1.9 `config.json` serves from its journal as before; `npm run bridge -- migrate
+--from=jsonl --to=sqlite` (the Bridge stopped) moves it into SQLite, which needs Node 22.13 (`node:sqlite`).
+`--trust-proxy` alone now trusts the loopback only; name other proxies with `--trust-proxy=<addresses or networks>`. **Behind a proxy that is not on the loopback (a PaaS's router, a load balancer on another host), every client now
+falls into the proxy's one rate bucket** (60 anonymous requests a minute for everyone) until `--trust-proxy=<its
+network>` names it.
+Several tenants and several instances: `docs/en/REALITY-OPS.md`.
+
+## 23. From 4.1.10 to 4.1.11 "Viewport"
+
+A 4.1.10 save loads unchanged; the five entries' names are additive (`SceneFrame`, `Renderer`, `Intent` on
+`web-scumm/player` as `@extension`; `SemanticEvent`, `SemanticJournal` on `web-scumm/testing`; `Engine.journal`,
+`Engine.sessionSeq`). What moved: the page's test hook `window.__game.inventory(…)` is
+`window.__game.presenter.inventory(…)` (an e2e script of your own that called it changes one line); a session file now
+carries the semantic journal and `npm run replay` exits 1 when the replay's differs (a session longer than 10 000
+events is exported with `journalTruncated: true` and no journal); `npm run validate` refuses a layout whose occlusion
+mask polygon closes no surface (collinear points, crossing edges) or whose room has a walk zone no link joins, where
+4.1.10 accepted it: fix the layout in the Studio's Rooms tab (layers, masks, zones, portals) or by hand. The first
+visit's JavaScript is 122 KB gzipped (120 in 4.1.10).
 ## 23. From 4.1.11 to 4.1.12 "Language"
 
 No authoring format changes: `web-scumm migrate --check` finds the bundled games and the template up to date

@@ -2836,3 +2836,109 @@ Platform"; human gates reported, not blocking (D12).
   4.1.11, 4.1.14 and 4.1.15 for that): `v4.1.9` is tagged on the merge commit after its main run.
 
 → next: Claude · `release/4.1.10` (Constellation, in progress), then 4.1.11 (Viewport, PR #42 held for the tag order)
+
+## #122 · 2026-10-07 · Claude · proposal · `feature/4110-constellation`: the Bridge behind RealityStore, SQLite and Postgres, tenants, stateless instances, SignalV2
+
+- Decided first, written before the code: `docs/dev/threat-models/constellation.md` (a V1 signal replays across two
+  tenants that share a key; a capability looked up without its tenant reads another tenant; keys per tenant; the
+  audience alone is not enough), ADR 0009 (`RealityStore`), ADR 0010 (`SignalV2` retained: V1 and V2 accepted by the
+  player until 4.1.12, V2 only from a multi-tenant Bridge), D20 (SQLite local, Postgres distributed and experimental,
+  JSONL import and audit, `trust-proxy` by allowlist). `init` still writes the journal's configuration by default
+  (`--store=sqlite` opts in): the engine declares Node 22.12 and `node:sqlite` is unflagged from 22.13.
+- Measured (one local run, 7 October 2026, Apple M5, 10 cores, 32 GB, Node 22.14.0; `npx tsx tools/bridge-load.ts`):
+  SQLite, three instances, 1 000 players, 50 000 proposals from 64 clients: 49.6 s, 1 008 proposals/s, accepted
+  latency p50 40.1 ms, p95 193.6 ms, p99 260.2 ms, max 1 872.8 ms, 50 000 rows, 0 gaps, 50/50 streams complete. The
+  `kill -9` test: 1 000 proposals over three processes, one killed after 300, every key once, sequences contiguous.
+- Run locally against a throwaway PostgreSQL 17.9 server (no Docker daemon): the store contract, the tenancy and the
+  fan-out tests with `BRIDGE_PG_URL`. CI runs them on Postgres 16 (`bridge-postgres`, service container pinned by
+  digest). The Rust cross-check (`cargo`) agrees on the 32 V1 cases and the 18 V2 vectors.
+- After the second reading (PR #45, security): a stream's read catches a store error (logged, counted, read again
+  by the next wake-up or pass) instead of an unhandled rejection that ended the process; a committed proposal cannot
+  fail on its delivery. A V1 signal under a tenant-bound key is refused, a V1 Bridge's keys bind no tenant, the
+  player keeps the link's `sessionId` and passes it; the origin is recorded at pairing whenever the browser sends it,
+  and a V2 signal naming the Bridge's own audience is accepted under its keys. SQLite waits 50 ms synchronously, then
+  backs off asynchronously for 5 s and answers 503; its files are 0600. Postgres listens on one connection, listens
+  again with a backoff after a drop, releases a client whose ROLLBACK failed with its error; an export is one
+  REPEATABLE READ snapshot; a restore replaces a tenant in one transaction; pairings are exported. The `kill -9`
+  test now keeps sending to the dead instance (232–240 retries locally), replays a sample of accepted keys elsewhere
+  (200, the same sequence) and resumes the killed instance's stream from its cursor on another. `bridge.ts` branch
+  coverage 97.0 % locally (floor 95). The load figures in BENCH-BRIDGE were measured before the busy change.
+- Not done: the Postgres load figures (the nightly's `bridge-load (postgres)` publishes the first; the spawned
+  processes cannot load `pg` from outside the repository here), the `kill -9` test on Postgres (CI only), a mutation
+  run of the refactored `bridge.ts` (gated set `reality`: survivors possible, read on the next nightly) and of the new
+  `reality-store` set (not gated), retention on a SQL store, row-level security per tenant, a rate limit per
+  connector shared between instances, the `4.1.10-rc.1` and the release branch.
+→ next: Claude · `release/4.1.10`
+
+## #123 · 2026-10-07 · Claude · release · 4.1.10 "Constellation"
+
+- The programme's third release, the first since 4.1.8 with a release candidate (`v4.1.10-rc.1` on the merge commit, then
+  `v4.1.10` on the same commit once the candidate's assets were installed and verified). Merged: #45 Constellation
+  (#122 above: the store interface, SQLite and Postgres, tenants, stateless instances, `SignalV2`, the second
+  reading's findings applied before the merge; a last Windows-only fix, the SQLite 0600 check held on POSIX only).
+  `release/4.1.10`: the fragment assembled, the version, the golden save `demo-4.1.10.json` (24), the READMEs,
+  ROADMAP en/fr, UPGRADING §22 (written with the lot), the pass sheet (seven rows, three new human passes for the
+  Bridge), the baseline sheet.
+- Measured on #45's last full run (37610478763): `node-24` 135 files, 1 383 tests; `coverage` 137 files, 1 400 tests;
+  `bridge-postgres` 3 files, 49 tests on Postgres 16; `connectors` 106; the lot's own figures (1 008 proposals/s on
+  three SQLite instances, the `kill -9` test) in `docs/dev/BENCH-BRIDGE.md` and the baseline sheet.
+- Not done, said as such: the Postgres load figures, the mutation of the refactored `bridge.ts`, retention and
+  row-level security on SQL, a rate limit per connector shared between instances, the human passes (a real
+  multi-instance deployment behind HTTPS first).
+
+→ next: Claude · `release/4.1.11` (Viewport, PR #42 merged after this tag), then 4.1.12 (Language, PR #46)
+
+## #124 · 2026-10-07 · Claude · proposal · `feature/4111-viewport`: the scene frame, the intentions and the semantic journal (4.1.11 "Viewport", one pull request)
+
+- Delivered, in the sheet's order (`docs/dev/plans/4.1.11-viewport.md`), each with its tests written first: the
+  semantic journal owned by the core (`core/journal.ts`, `Engine.journal`, replay ⇒ the same journal on `demo`,
+  `reference` and 200 generated games; the dev panel and `npm run replay` read it); `SceneFrame`
+  (`scene/frame.ts`, pure, hit polygons precomputed; `room.ts` makes then paints it; the DOM of 33 room × state pairs
+  held to its golden written on the code before the change); the presenter split (`dom/presenter.ts`, `intent()`,
+  `dom/frame-renderer.ts`, `scene/null-renderer.ts`, `core/busy.ts`; `app.ts` 799 → 594 lines, `room.ts` 745 → 717);
+  the Canvas painter's context-loss restore and the zone graph in `core/motion.ts`; "intentions DOM = intentions
+  Canvas" as a happy-dom test (DPR 1/2/3, phone and desktop, reduced motion); the Studio's stage editor
+  (`src/studio/rooms-stage.ts`) and the validator's two refusals (`tools/validate-stage.ts`, `validate.ts` 1183 →
+  1140 lines). ADR 0011 and 0012, D21, ENGINE/STUDIO/TOOLS/API en + fr.
+- Measured (local, 7 Oct 2026, this worktree): `npx vitest run` on the 11 new test files, 86 tests, plus
+  `boundaries`, `file-size`, `api-surface`, `api-doc`, the 23 existing DOM test files, `replay`, `critical-replay`,
+  `properties`, `core`, `core-runtime`, `demo-walkthrough`, `walk-topology`, `motion`, `reference-chapter`,
+  `solver-contract`, `reality-engine`, `save-v3`, `lint`, `stage`, `scheduler`, `classics`, `tools`, `studio`: green.
+  `tsc --noEmit`, `biome check` (468 files), `knip`: clean. The reference chapter's proof (`solve`, `prove`, 288
+  states, three runs): 1 383–1 684 ms with the journal, 1 378–1 565 ms without (base 4f0d91b): no difference above
+  the noise. `npm run validate` on demo, reference, signals: clean (`_template` fails on its uncut bucket image, as on
+  main).
+- Decided: the journal is a bounded window (10 000 events); `saveMade` is the autosave that follows a semantic event
+  (a tutorial's refused tap, which no session records, adds none); no slot on `saveMade`/`loadMade` (a slot is not
+  in a session, a replay could not reproduce it); the full frame is painted when a room is built and an entity that
+  changes paints its own sprite between builds (ADR 0011, property 6); the DOM and Canvas painters own no input, so
+  their `onIntent` is wired but never called by them (property 4).
+- Second reading (PR #42), five "should" applied: the `validate.ts` cap lowered to 1140; `transfer` journals the
+  loss and the acquisition with each `player`, a switch journals `playerSwitched`; `unset` journals `value: null`
+  apart from `set(k, false)`; a session outgrowing the 10 000-event window is exported `journalTruncated: true` and
+  `npm run replay` says it compared no journal; `RoomView.frame()` is memoised by a version (two taps, one frame). The
+  nit taken: the painter boundary rule also reads `import()` and `core/players|save`.
+- Not done: the WebGL/Pixi spike and every browser measure (`e2e:perf` on DOM and Canvas, CPU and memory budgets with
+  `measureUserAgentSpecificMemory`, DPR in a real browser, `e2e:visual`, `e2e:a11y` on both painters, `e2e:studio` for
+  the stage editor): this session may run no e2e; ADR 0012 says "not measured". Not run here: the full suite,
+  `test:coverage`, mutation, `npm run build`, `quality:baseline` (CI runs them). `objectiveCompleted` waits for
+  4.1.12. The CHANGELOG and LOG are this fragment and `changes/4111-viewport.md`.
+
+→ next: Claude · `release/4.1.11`
+
+## #125 · 2026-10-07 · Claude · release · 4.1.11 "Viewport"
+
+- The programme's fourth release, the second with a release candidate (`v4.1.11-rc.1` on the merge commit, then
+  `v4.1.11` on the same commit once the candidate's assets were installed and verified). Merged: #42 Viewport
+  (#124 above: the semantic journal in the core, the scene frame, the presenter split, the Canvas painter's lost
+  context, the Studio's stage editor, the validator's two refusals; the second reading's five items applied before
+  the merge). Held until the 4.1.10 tag for the tag order. `release/4.1.11`: the fragment assembled, the version, the
+  golden save `demo-4.1.11.json` (25), the READMEs, ROADMAP en/fr, UPGRADING §23, the pass sheet (six rows, two of
+  them open on measures this lot did not make), the baseline sheet.
+- Measured on #42's final run (37614116609): `node-24` 140 files, 1 388 tests (+1 skipped); `coverage` 142 files, 1 405 tests (+1 skipped); the lot's local figures in #124 and the
+  baseline sheet. The reading of this release (a second automated context) is in the pull request.
+- Not done, said as such: every browser measure of the sheet (`e2e:perf` on both painters, the budgets, a real
+  phone), the WebGL spike, `e2e:a11y` and `e2e:studio` for the new surfaces, the mutation of the new core files; the
+  human passes.
+
+→ next: Claude · `release/4.1.12` (Language, PR #46), then 4.1.13, 4.1.14, 4.1.15
