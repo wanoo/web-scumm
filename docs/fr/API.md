@@ -217,8 +217,8 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `saveEnvelope` | `(game: GameDef, state: GameState, now?: number): SaveEnvelopeV3` | public | Wraps a state in the save envelope (format, schema, game id and save version, date) a store writes. |
 | `SaveEnvelopeV3` | `interface { format, schema, gameId, gameSaveVersion, savedAt, state }` | public | A save as written: the state with the format, the schema, the game's id and save version and the date. |
 | `solve` | `(gameIn: GameDef, layouts: Record<string, Layout>, opts?: SolveOptions): Promise<SolveResult>` | public | Searches the game for a way to its ending (`witness`), or explores every reachable state for softlocks (`prove`). |
-| `SolveOptions` | `interface { reality, maxStates, mode, start, goal, commands, … 13 more }` | public | What a search is told: its mode, where it starts and stops, the custom commands, the world's signals and its budgets. |
-| `SolveResult` | `interface { status, exit, headline, mode, reality, finished, … 19 more }` | public | The verdict of a search: its status, exit code and headline, the path found, the softlocks and the search's statistics. |
+| `SolveOptions` | `interface { reality, maxStates, mode, start, goal, commands, … 21 more }` | public | What a search is told: its mode, where it starts and stops, the custom commands, the world's signals and its budgets. |
+| `SolveResult` | `interface { status, exit, headline, mode, reality, finished, … 20 more }` | public | The verdict of a search: its status, exit code and headline, the path found, the softlocks and the search's statistics. |
 
 ### web-scumm/reality
 
