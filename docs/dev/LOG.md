@@ -2502,4 +2502,14 @@ Platform"; human gates reported, not blocking (D12).
   4.1.7 → 4.1.8 upgrade in a browser is the same path as `--update` with a different first build; it is checked by a
   person at the release (the pass sheet), not by this script.
 
+- The second reading (PR #34) found the WebKit keyboard row without `--allow-skip` (blocking, fixed), the update
+  scenario's "new worker in charge" proven by the server's bytes only (now: the registration's `waiting` worker
+  before the click, no worker waiting or installing and a controller after the reload), the control wait racing the
+  registration (boot now says `swExpected` before the title; the wait follows `ready` then the controller, twenty
+  seconds, else `skipped`/`worker`), the temp dir leaking on failure. Its online cache check after the reinstall
+  then found 11–16 files "warmed" around the title before the worker's control and never fetched through it:
+  `Bank.warm` trusts the cache, not its memory, when a Cache API exists (`tests/dom/warm-control.test.ts`, four
+  tests). CI's Firefox job also logged a worker error during the teardown (a fetch interrupted by the browser's
+  close): console errors are collected until the checks end, not during the teardown.
+
 → next: Claude · `refactor/418-studio-split` (storyboard, assets, rooms into model / IO / view)

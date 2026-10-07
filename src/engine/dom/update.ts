@@ -101,9 +101,6 @@ export async function warmAll(app: App, retry = false) {
       set({ state: 'off', done: 0, total: 0, failed: [] });
       return;
     }
-    // The fetches below reach the caches through the service worker, so only once it controls this page (the first
-    // install claims it at activation; Firefox was found warming 218 files into nothing before that).
-    await controlled(app);
     const b = app.bank;
     const plan = offlinePlan(app.game, b.manifest);
     let estimate: { usage?: number; quota?: number } | undefined;
@@ -117,6 +114,13 @@ export async function warmAll(app: App, retry = false) {
     let status = offlineStart(plan, estimate);
     set(status);
     if (status.state !== 'running') return; // quota too small: say so, download nothing
+    // The fetches below reach the caches through the service worker, so only once it controls this page (the first
+    // install claims it at activation; Firefox was found warming 218 files into nothing before that). Without that
+    // control in time, nothing is fetched and the status says so: the pause menu's retry asks again.
+    if (!(await controlled(app))) {
+      set({ ...status, state: 'skipped', reason: 'worker' });
+      return;
+    }
     const visible = () =>
       new Promise<void>((r) => {
         if (app.aborter.signal.aborted || typeof document === 'undefined' || !document.hidden) return r();
@@ -153,21 +157,30 @@ export async function warmAll(app: App, retry = false) {
   }
 }
 
-/** Waits, bounded, for the service worker to control this page: a registration without a controller yet (first install). */
-async function controlled(app: App, ms = 5000): Promise<void> {
+/**
+ * Whether the service worker controls this page, waiting for it when boot said one is registered (`app.swExpected`):
+ * `ready` (the first install's activation) then the controller, `controllerchange` if it comes later, within
+ * `app.swControlMs`. Without a worker expected (dev, a test, a browser without them) there is nothing to wait for.
+ */
+async function controlled(app: App): Promise<boolean> {
   const sw = typeof navigator === 'undefined' ? undefined : navigator.serviceWorker;
-  if (!sw || sw.controller || app.aborter.signal.aborted) return;
-  if (!(await sw.getRegistration().catch(() => undefined))) return; // no worker here (dev, a test): nothing to wait for
-  await new Promise<void>((r) => {
-    const done = () => {
+  if (!sw || !app.swExpected || app.aborter.signal.aborted) return true;
+  if (sw.controller) return true;
+  return new Promise<boolean>((r) => {
+    const done = (ok: boolean) => {
       clearTimeout(timer);
-      sw.removeEventListener('controllerchange', done);
-      app.aborter.signal.removeEventListener('abort', done);
-      r();
+      sw.removeEventListener('controllerchange', onChange);
+      app.aborter.signal.removeEventListener('abort', onAbort);
+      r(ok);
     };
-    const timer = setTimeout(done, ms);
-    sw.addEventListener('controllerchange', done);
-    app.aborter.signal.addEventListener('abort', done);
+    const onChange = () => done(!!sw.controller);
+    const onAbort = () => done(true); // the player is gone: whoever reads the status next sees its abort
+    const timer = setTimeout(() => done(!!sw.controller), app.swControlMs);
+    sw.addEventListener('controllerchange', onChange);
+    app.aborter.signal.addEventListener('abort', onAbort);
+    void sw.ready.then(() => {
+      if (sw.controller) done(true);
+    });
   });
 }
 

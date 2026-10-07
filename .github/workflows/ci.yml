@@ -329,7 +329,7 @@ jobs:
         if: (matrix.browser == 'chromium' && matrix.mode == 'full') || (matrix.browser == 'webkit' && matrix.mode == 'generic')
         env:
           E2E_BROWSER: ${{ matrix.browser }}
-      - run: npm run e2e:pwa -- http://127.0.0.1:5173/
+      - run: npm run e2e:pwa -- http://127.0.0.1:5173/ ${{ matrix.browser == 'webkit' && '--allow-skip' || '' }}
         if: "!((matrix.browser == 'chromium' && matrix.mode == 'full') || (matrix.browser == 'webkit' && matrix.mode == 'generic'))"
         env:
           E2E_BROWSER: ${{ matrix.browser }}

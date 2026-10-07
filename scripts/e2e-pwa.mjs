@@ -42,7 +42,14 @@ const MIME = {
 function serveSwitchable(root) {
   const state = { root, failing: new Set() };
   const server = createServer((req, res) => {
-    const path = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname);
+    let path;
+    try {
+      path = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname);
+    } catch {
+      res.writeHead(400);
+      res.end();
+      return;
+    }
     if (state.failing.has(path)) {
       res.writeHead(500);
       res.end('made to fail');
@@ -99,9 +106,11 @@ const browser = await browserType.launch({ headless: true });
 const context = await browser.newContext({ serviceWorkers: 'allow' });
 const page = await context.newPage();
 const errors = [];
-page.on('pageerror', (e) => errors.push(e.message));
+let second = null; // the second build, published by the scenarios; removed in the finally
+let closing = false; // the checks are over: what the teardown interrupts (a fetch the worker had in hand) is not a finding
+page.on('pageerror', (e) => void (closing || errors.push(e.message)));
 page.on('console', (m) => {
-  if (m.type() === 'error') errors.push(m.text());
+  if (m.type() === 'error' && !closing) errors.push(m.text());
 });
 
 try {
@@ -161,7 +170,7 @@ try {
     const room = await progress();
     const before = await workerText();
     // The second build: the same files, a worker whose bytes differ (what a new release is to the browser).
-    const second = mkdtempSync(join(tmpdir(), 'pwa-second-'));
+    second = mkdtempSync(join(tmpdir(), 'pwa-second-'));
     cpSync(resolve(serveDir), second, { recursive: true });
     writeFileSync(join(second, 'sw.js'), `${readFileSync(join(second, 'sw.js'), 'utf8')}\n// build B ${Date.now()}\n`);
 
@@ -186,18 +195,35 @@ try {
       await page.reload({ waitUntil: 'networkidle' });
       await page.evaluate(async () => (await navigator.serviceWorker.getRegistration())?.update());
       await page.locator('.update-banner button').waitFor({ state: 'visible', timeout: 30000 });
+      // The new worker waits (prompt mode): nothing activated before the button.
+      const states = async () =>
+        page.evaluate(async () => {
+          const r = await navigator.serviceWorker.getRegistration();
+          return {
+            waiting: r?.waiting?.state ?? null,
+            installing: r?.installing?.state ?? null,
+            active: r?.active?.scriptURL ?? null,
+            controller: navigator.serviceWorker.controller?.scriptURL ?? null,
+          };
+        });
+      const pending = await states();
+      if (pending.waiting !== 'installed')
+        throw new Error(`update: the new worker should wait for the banner, it is ${JSON.stringify(pending)}`);
       // The banner's button saves, waits for the save, then activates and reloads: the new worker is in charge after.
       await Promise.all([page.waitForEvent('load', { timeout: 30000 }), page.locator('.update-banner button').click()]);
       await page.locator('#app').waitFor({ state: 'attached' });
+      const taken = await states();
+      if (taken.waiting || taken.installing || !taken.controller)
+        throw new Error(`update: the new worker is not in charge after the reload: ${JSON.stringify(taken)}`);
       const after = await workerText();
-      if (after === before) throw new Error('update: the worker served is still the first build');
+      if (after === before) throw new Error('update: the server still serves the first build');
       const kept = await page.evaluate(() => window.__game.engine.hasSave());
       if (!kept) throw new Error('update: the save made before the update is gone');
       const idb = await page.evaluate(
         async () => (await indexedDB.databases?.())?.map((d) => d.name) ?? ['(no databases())'],
       );
       console.log(
-        `pwa: ${name} updated: banner, save kept (room ${room}), new worker (${after} bytes, was ${before}); databases: ${idb.join(', ')}`,
+        `pwa: ${name} updated: the new worker waited for the banner, then took control after the reload (no worker waiting or installing), save kept (room ${room}); databases: ${idb.join(', ')}`,
       );
       if (!(await workerUrl())) throw new Error('update: no active worker after the update');
     }
@@ -211,6 +237,8 @@ try {
       await page.evaluate(async () => {
         await navigator.serviceWorker.ready;
       });
+      // The first worker claims the page at activation: the warm-up's fetches pass through it, or cache nothing.
+      await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 15000 });
       if (!nearby) {
         await page.waitForFunction(() => !!window.__game, null, { timeout: 30000 });
         const again = await page.evaluate(
@@ -223,14 +251,26 @@ try {
             ]),
           budget,
         );
-        if (again.state !== 'complete') throw new Error(`reinstall: warm-up ended "${again.state}"`);
+        if (again.state !== 'complete')
+          throw new Error(`reinstall: warm-up ended "${again.state}"${again.reason ? ` (${again.reason})` : ''}`);
+        // Really in the cache, checked online (WebKit never reaches the offline check below).
+        const absent = await page.evaluate(async (list) => {
+          const out = [];
+          for (const u of list) if (!(await caches.match(u))) out.push(u);
+          return out;
+        }, urls);
+        if (absent.length)
+          throw new Error(
+            `reinstall: ${absent.length}/${urls.length} file(s) of the plan are not in the cache after the warm-up`,
+          );
       }
       const kept = await page.evaluate(() => window.__game.engine.hasSave());
       if (!kept) throw new Error('reinstall: the save is gone (the caches were emptied, not the saves)');
       await page.reload({ waitUntil: 'networkidle' });
-      console.log(`pwa: ${name} reinstalled: worker registered again, caches filled again, the save kept`);
+      console.log(
+        `pwa: ${name} reinstalled: worker registered again and in control, every file of the plan cached again, the save kept`,
+      );
     }
-    rmSync(second, { recursive: true, force: true });
   }
 
   // The precache must exist before going offline: that is what serves the shell without the network.
@@ -286,9 +326,11 @@ try {
     );
   } else console.log(`pwa: ${name} installed and opened offline (${title})`);
 } finally {
+  closing = true;
   await context.setOffline(false).catch(() => {});
   await browser.close();
   await served?.close();
+  if (second) rmSync(second, { recursive: true, force: true });
 }
 if (errors.length) {
   console.error(errors.map((e) => `browser: ${e}`).join('\n'));

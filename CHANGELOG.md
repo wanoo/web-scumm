@@ -22,7 +22,9 @@
 - **The offline warm-up could fill nothing** (4.1.8). Its fetches reach the caches through the service worker, and
   on a first visit the worker did not control the page yet (`clientsClaim` was off): Firefox reported 218 files
   "complete" with 111 of them absent from the cache. The worker now claims the page at its first activation (an
-  update still waits for the banner), and the warm-up waits, at most five seconds, for that control before it starts.
+  update still waits for the banner); the warm-up waits for that control before it starts (twenty seconds at most,
+  then `skipped` with the reason `worker`, and the pause menu's retry asks again), and with a Cache API it trusts the
+  cache, not its memory: a file warmed around the title before the worker took control is fetched again through it.
 
 ### Changes
 
