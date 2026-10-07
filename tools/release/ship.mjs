@@ -260,8 +260,20 @@ async function verify(versionArg) {
   const dir = join('.cache', 'release', name);
   mkdirSync(dir, { recursive: true });
   say(`downloading ${name} into ${dir}`);
-  gh(['release', 'download', name, '-D', dir, '--clobber']);
-  const files = readdirSync(dir);
+  // Right after an upload the release's asset list may lag: asked again for up to three minutes.
+  const files = await until(
+    () => {
+      try {
+        gh(['release', 'download', name, '-D', dir, '--clobber']);
+      } catch (e) {
+        say(`download not yet complete: ${String(e).split('\n')[0]}`);
+        return undefined;
+      }
+      const got = readdirSync(dir);
+      return got.some((f) => f.endsWith('-SHA256SUMS')) ? got : undefined;
+    },
+    { everyMs: 15_000, deadlineMs: 3 * 60_000, what: `the files of ${name}` },
+  );
   const sums = files.find((f) => f.endsWith('-SHA256SUMS'));
   if (!sums) throw new Error(`${name}: no SHA256SUMS among ${files.join(', ')}`);
   // The sums file lists bare names: checked from inside the download folder.
