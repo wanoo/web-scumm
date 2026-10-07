@@ -1,18 +1,23 @@
-// npm run doctor — actionable prerequisites report. It never installs anything. The checks live in doctor-checks.ts.
+// npm run doctor [-- --release] — actionable prerequisites report. It never installs anything. The checks live in
+// doctor-checks.ts; `--release` requires what `release-check` runs (Python, ffmpeg, the three browsers).
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { chromium, firefox, webkit } from 'playwright';
 import { collectChecks, doctorReport, type Check } from './doctor-checks';
 
-const checks = collectChecks({
-  command: (cmd, args) => {
-    const r = spawnSync(cmd, args, { encoding: 'utf8' });
-    return { ok: r.status === 0, stdout: r.stdout ?? '' };
+const release = process.argv.includes('--release');
+const checks = collectChecks(
+  {
+    command: (cmd, args) => {
+      const r = spawnSync(cmd, args, { encoding: 'utf8' });
+      return { ok: r.status === 0, stdout: r.stdout ?? '' };
+    },
+    exists: existsSync,
+    nodeVersion: process.versions.node,
+    browsers: { Chromium: chromium.executablePath(), Firefox: firefox.executablePath(), WebKit: webkit.executablePath() },
   },
-  exists: existsSync,
-  nodeVersion: process.versions.node,
-  browsers: { Chromium: chromium.executablePath(), Firefox: firefox.executablePath(), WebKit: webkit.executablePath() },
-});
+  { release },
+);
 // Reality Bridge (4.1.1): Ed25519 in this Node's WebCrypto (the signed signals) and Biscuit's WebAssembly (the Bridge).
 async function realityCheck(): Promise<Check> {
   try {
@@ -41,5 +46,5 @@ async function realityCheck(): Promise<Check> {
 }
 checks.push(await realityCheck());
 const { text, failed } = doctorReport(checks);
-(failed ? console.error : console.log)(text);
+(failed ? console.error : console.log)(release ? `${text}\n(release mode: every prerequisite of npm run release-check is required)` : text);
 process.exit(failed ? 1 : 0);

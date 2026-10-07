@@ -4,6 +4,15 @@
 
 ### Changes
 
+- **A release check that predicts the release** (4.1.8). `npm run doctor -- --release` requires every prerequisite
+  `release-check` runs (Python and its modules, ffmpeg, the three browsers), and `release-check` starts with it. The
+  packages are made from tracked files only: an untracked file under a shipped root refuses `npm run pack` rather
+  than travel or vanish silently; `--publish-dry-run` shows what `npm publish` would send for each of the three,
+  and `release-check` runs it. `fresh-install` installs `create-web-scumm` from its own tarball and runs it, beside
+  the engine's and the Bridge's. The coverage ratchet is strict in CI and the release (a floor three points under
+  the measure is red), with the floors raised to the 4.1.7 measures (lines 59, statements 58, functions 53). After
+  a release is published, `release.yml` downloads it and verifies its sums and every attestation (`ship verify`).
+
 - **TypeScript 7** (4.1.8). The type checks (`npm run check`, `npm run quality`) run on the native compiler, in half a
   second where 5.9 took ten; `npm run tsc` is its command (the `tsc` bin link belongs to the tools' package, below).
   `tsconfig.json` and the project `create-web-scumm` writes have no `baseUrl` and relative `paths`, which 7 requires;

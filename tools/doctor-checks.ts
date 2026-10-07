@@ -16,8 +16,13 @@ export interface Probes {
   browsers: Record<string, string>;
 }
 
-export function collectChecks(p: Probes): Check[] {
+/**
+ * `--release` (4.1.8): what `npm run release-check` needs, Python and its modules, ffmpeg and the three browsers,
+ * is required, not optional: the doctor predicts the release instead of smiling at a machine that cannot make it.
+ */
+export function collectChecks(p: Probes, o: { release?: boolean } = {}): Check[] {
   const checks: Check[] = [];
+  const optional = o.release ? {} : { optional: true as const };
   const nodeMajor = Number(p.nodeVersion.split('.')[0]);
   checks.push({ name: 'Node.js', ok: nodeMajor >= 22, detail: p.nodeVersion, fix: 'Install Node.js 22 or newer.' });
   const py = p.command('python3', ['-c', 'import sys; print(sys.version.split()[0])']);
@@ -26,7 +31,7 @@ export function collectChecks(p: Probes): Check[] {
     ok: py.ok,
     detail: py.ok ? py.stdout.trim() : 'not found',
     fix: 'Install Python 3 to prepare the assets (npm run assets).',
-    optional: true,
+    ...optional,
   });
   const mods = p.command('python3', [
     '-c',
@@ -37,7 +42,7 @@ export function collectChecks(p: Probes): Check[] {
     ok: mods.ok,
     detail: mods.ok ? mods.stdout.trim() : 'Pillow, NumPy and/or SciPy missing',
     fix: 'Run: python3 -m pip install -r requirements.txt',
-    optional: true,
+    ...optional,
   });
   const ffmpeg = p.command('ffmpeg', ['-version']);
   checks.push({
@@ -45,7 +50,7 @@ export function collectChecks(p: Probes): Check[] {
     ok: ffmpeg.ok,
     detail: ffmpeg.ok ? ffmpeg.stdout.split('\n')[0] : 'not found',
     fix: 'Install ffmpeg to build audio.',
-    optional: true,
+    ...optional,
   });
   for (const [name, path] of Object.entries(p.browsers)) {
     const ok = p.exists(path);
@@ -55,7 +60,7 @@ export function collectChecks(p: Probes): Check[] {
       detail: ok ? path : 'browser binary missing',
       fix: `Run: npx playwright install ${name.toLowerCase()}`,
       // Chromium runs the e2e and the Studio's checks; the other browsers are the second opinion.
-      ...(name === 'Chromium' ? {} : { optional: true }),
+      ...(name === 'Chromium' ? {} : optional),
     });
   }
   return checks;

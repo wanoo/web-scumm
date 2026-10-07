@@ -2372,3 +2372,22 @@ Platform"; human gates reported, not blocking (D12).
   TypeScript (the native extension) is each developer's.
 
 → next: Claude · `refactor/418-vite-8`
+
+## #110 · 2026-10-07 · Claude · proposal · `feature/418-honest-release`: the gates that predict the release
+
+- `doctor --release` (programme §4.7): Python, its modules, ffmpeg, Firefox and WebKit required; `release-check`
+  begins with it, so a machine that cannot make the release learns it in a second, not after twenty minutes.
+- `scripts/pack.mjs` read `git ls-files --cached --others`: an untracked file under `src/`, `tools/`, `cli/` or the
+  template travelled into the package. Now tracked files only, and an untracked one under a shipped root refuses
+  the pack (probed: a stray `src/engine/zz.ts` refused; removed, three packages, 311 + 3 + 7 files in the dry run).
+  `--publish-dry-run` runs `npm publish --dry-run` in each package; `release-check` does.
+- `fresh-install` exercised the engine's tarball and the Bridge's, never `create-web-scumm`'s: it now installs
+  that one with the engine's beside it (npm takes the tarball for the dependency of the same version) and runs
+  `npx create-web-scumm`.
+- The coverage ratchet `--strict` in CI's coverage job and in `release-check`; floors 59 / 58 / 53 / 56 (4.1.7
+  measured 61.37 / 60.86 / 55.61 / 58.15). `release.yml` ends with `ship verify` on what it published.
+- `test:node` and `test:assets` were already separate scripts (4.1.6): nothing to do, said here. Not done, said as
+  such: the SBOM is produced and attested, not compared with the lockfile (a later lot); the Windows job is
+  `feature/418-windows-smoke`.
+
+→ next: Claude · `feature/418-windows-smoke`

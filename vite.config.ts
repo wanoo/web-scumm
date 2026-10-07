@@ -190,9 +190,9 @@ export default defineConfig({
       thresholds: {
         // The floor measured at 4.1.0 (the browser-only parts of src/, the player's UI and the Studio's, are covered
         // by the e2e, not here).
-        lines: 56,
-        statements: 56,
-        functions: 51,
+        lines: 59,
+        statements: 58,
+        functions: 53,
         branches: 56,
         // What a save, a session, a condition and a migration rest on: every branch.
         'src/engine/core/cond.ts': { branches: 100 },

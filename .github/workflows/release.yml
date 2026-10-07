@@ -93,3 +93,7 @@ jobs:
           gh release upload "$TAG" "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz "web-scumm-$TAG-SHA256SUMS"
         env:
           GH_TOKEN: ${{ github.token }}
+      # What was published, read back (4.1.8): every file downloaded, the sums checked, every attestation verified.
+      - run: node tools/release/ship.mjs verify "$TAG"
+        env:
+          GH_TOKEN: ${{ github.token }}
