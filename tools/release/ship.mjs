@@ -34,7 +34,7 @@ import {
   writePid,
 } from './lib.mjs';
 
-const [command, ...rest] = process.argv.slice(2);
+const [command, ...rest] = process.argv.slice(2).filter((a) => !a.startsWith('--')); // flags are read from argv
 
 const RERUN_ONCE = new Set();
 /** Re-runs the failed jobs of a run once; false when it was already re-run (the second failure is final). */

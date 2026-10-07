@@ -24,7 +24,9 @@ jobs:
   # The two mutation sets beside release-check instead of inside it (4.1.10): each set is a job of its own, about half
   # an hour, and the release waits for both; the hour they took in sequence, after release-check's twenty minutes, was
   # the longest part of a tag's chain. A report of these very inputs left by a previous tag on the same commit (the
-  # final after its candidate), a `full-ci` pull request or the nightly is reused through the cache (tools/mutate.ts).
+  # final after its candidate) is reused through the cache (tools/mutate.ts); ci's and the nightly's `--set=all` reports
+  # are keyed by the hash of both sets, so they are not. Neither job installs Python, ffmpeg or a browser: the nightly
+  # runs both sets with this bare setup.
   mutation:
     if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && startsWith(github.event.workflow_run.head_branch, 'v') && contains(github.event.workflow_run.head_branch, '.')
     runs-on: ubuntu-24.04
