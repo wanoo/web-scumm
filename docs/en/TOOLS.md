@@ -400,7 +400,7 @@ line (4.1.7; a script missing from this page fails `tests/scripts-documented.tes
 | Script | What |
 |---|---|
 | `npm run preview` | serves `dist/` on 127.0.0.1 (what the e2e scripts are pointed at after a build) |
-| `npm start` | serves `dist/` on every interface at `$PORT` (8080 by default) with `sirv`: what a host such as Clever Cloud runs |
+| `npm start` | serves `dist/` on every interface at `$PORT` (8080 by default) with `sirv`, through `scripts/start.mjs` (a Node launcher: it runs on Windows too, 4.1.8): what a host such as Clever Cloud runs |
 | `npm run test:node` | the unit suite without the Python-bound and the CPU-bound tests (`npm run check` runs it; the heavy ones run nightly) |
 | `npm run test:mutation:core [-- --set=core\|reality\|all --file=…]` | mutation testing of the modules a save, a session, a condition or a signal rest on (`docs/dev/MUTANTS.md`) |
 | `npm run e2e:smoke` | the generic playthrough of the production build (the solver's path replayed by touch) |

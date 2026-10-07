@@ -4,6 +4,11 @@
 
 ### Changes
 
+- **Windows in CI** (4.1.8). A `windows-latest` job runs the doctor, the type checks and the unit suite, builds the
+  sample game and asks the production server for a page; `npm start` is a Node launcher (`scripts/start.mjs`) instead
+  of a shell line with a Unix expansion that cmd.exe and PowerShell did not know. The job is reported, not yet among
+  the checks the ruleset requires (the maintainer's).
+
 - **TypeScript 7** (4.1.8). The type checks (`npm run check`, `npm run quality`) run on the native compiler, in half a
   second where 5.9 took ten; `npm run tsc` is its command (the `tsc` bin link belongs to the tools' package, below).
   `tsconfig.json` and the project `create-web-scumm` writes have no `baseUrl` and relative `paths`, which 7 requires;

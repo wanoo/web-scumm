@@ -53,7 +53,7 @@ Ce que les gates automatiques exécutent à chaque changement, et ce que seules 
 | Joueur, lecteur d'écran | axe-core sur chaque écran (pas une conformité WCAG) | une passe VoiceOver ou NVDA |
 | Firefox | pas en CI | rien de promis |
 | Node | 22 et 24 sur Ubuntu ; macOS pour l'usage quotidien du mainteneur | — |
-| Windows | les scripts tournent (`cross-env`, plus de `mkdir -p`) ; pas en CI | `npm run doctor`, `npm run dev` sous Windows |
+| Windows | un job `windows-latest` à chaque changement (4.1.8) : `doctor`, `check` (types et suite unitaire), `build`, le serveur de production qui répond | `npm run dev` et le Studio sous Windows |
 | Python | optionnel : les outils d'image et le pipeline audio, Pillow, NumPy, SciPy épinglés dans `requirements.txt` | — |
 | Reality Bridge | Node 22+, e2e Chromium et WebKit, une contre-vérification Rust du protocole | un Bridge derrière HTTPS avec un vrai connecteur |
 ## Dépréciation

@@ -10,7 +10,7 @@
     "studio:lan": "tsx tools/select-game.ts && tsx tools/serve.ts --lan --studio",
     "build": "npm run check && npm run build:game",
     "preview": "vite preview --host 127.0.0.1",
-    "start": "sirv dist --host 0.0.0.0 --port ${PORT:-8080} --maxage 3600",
+    "start": "node scripts/start.mjs",
     "test": "npm run test:node",
     "test:coverage": "vitest run --coverage --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts",
     "test:mutation:core": "tsx tools/mutate.ts",

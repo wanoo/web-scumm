@@ -2372,3 +2372,15 @@ Platform"; human gates reported, not blocking (D12).
   TypeScript (the native extension) is each developer's.
 
 → next: Claude · `refactor/418-vite-8`
+
+## #111 · 2026-10-07 · Claude · proposal · `feature/418-windows-smoke`: a Windows runner, a portable start
+
+- Programme §4.4: `npm start` was `sirv dist … --port ${PORT:-8080}`, a Unix expansion; `scripts/start.mjs` reads
+  `PORT` in Node and runs sirv's own `bin.js` with `process.execPath`, relays SIGINT and SIGTERM, exits with the
+  child's code. The `windows` CI job (`windows-latest`, bash shell): `npm ci`, Chromium, `doctor`, `check` (the
+  junction `select-game` makes on Windows, tsc 7, the unit suite), `build`, `start` on a port and two `curl`s. Said
+  as a job that reports until the maintainer adds it to the ruleset's required checks.
+- Not done, said as such: `npm run dev` and the Studio on Windows stay people's passes (SUPPORT's matrix says so);
+  Python is not installed on that runner, so the assets are not rebuilt there.
+
+→ next: Claude · `feature/418-pwa-e2e`

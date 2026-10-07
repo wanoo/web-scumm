@@ -159,6 +159,35 @@ jobs:
         timeout-minutes: 8
       - run: npm run quality
       - run: npm run test:node
+  # Windows (4.1.8, programme §4.4): what a studio on Windows runs every day, on a real Windows runner: the doctor, the
+  # type checks and the unit suite, a build of the sample game, the production server answering. Not a required check
+  # until the maintainer adds it to the ruleset; Python is optional there (no assets rebuilt).
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: for i in 1 2 3; do (npx playwright install chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: npm run doctor
+      - run: npm run check
+      - run: npm run build
+      - name: The production server answers
+        run: |
+          PORT=5191 node scripts/start.mjs &
+          for i in $(seq 1 30); do curl -fs http://127.0.0.1:5191/ >/dev/null && break; sleep 1; done
+          curl -fs http://127.0.0.1:5191/ | grep -q '<html' || { echo "::error::no page from the production server"; exit 1; }
+          curl -fs http://127.0.0.1:5191/manifest.webmanifest >/dev/null
+          kill %1
   # A second game, as `npm run new-game` makes it: every gate the sample game passes (check, verify:game, prove:game,
   # the build, the production e2e with axe and saves), without a single test written for it. A gate since 3.2.
   second-game:
