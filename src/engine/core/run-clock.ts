@@ -35,7 +35,12 @@ export interface ClockSnapshot {
 }
 
 const DEFAULT_ENTRY: Point = [320, 360];
-const dist = (a: Point, b: Point) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+/** `Math.sqrt` of a sum of squares, never `Math.hypot`: hypot is not exactly rounded alike in every engine. */
+const dist = (a: Point, b: Point) => {
+  const dx = a[0] - b[0];
+  const dy = a[1] - b[1];
+  return Math.sqrt(dx * dx + dy * dy);
+};
 
 /** The engine's run clock: logical steps, logical time, the cutscenes' share, the walk anchors. */
 export class EngineRunClock implements RunClock {

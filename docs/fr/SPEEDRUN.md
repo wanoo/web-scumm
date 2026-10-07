@@ -50,7 +50,8 @@ speedrun: {
 Un déclencheur nomme un événement sémantique (`roomEntered`, `itemAcquired`, `itemLost`, `flagChanged`,
 `objectiveCompleted`, `endingReached`, `sessionStarted`, `playerSwitched`…) et les champs qu'il doit égaler (`room`,
 `item`, `flag` avec `value`, `objective`, `ending`, `player`). `reload` dit ce que fait un chargement : il
-`invalidates` le run, il est `allowed` (un état que le run a lui-même atteint), ou il ouvre un `segment` chronométré.
+`invalidates` le run, ou il est `allowed` (un état que le run a lui-même atteint) ; `segment` (un chargement qui ouvre
+un segment chronométré) est réservé, pas implémenté en 4.1.14 : le validateur le refuse.
 `seed: 'fixed'` fait tirer chaque run de `fixed:<id>`. Les règles portent leur version : un changement ne requalifie
 jamais un ancien run (`rulesVersion` différente : `unsupported-version`). Le validateur refuse un événement inconnu, un
 id qui ne nomme rien, un départ égal à l'arrivée, une catégorie sans entrée, une politique Reality sans `reality`, un
@@ -139,7 +140,9 @@ records, le Studio et le classement.
 
 Des outils locaux sur la machine du joueur (D23), jamais sur le Bridge, jamais dans la PWA. Ouvrez le jeu avec
 `?speedrunTool=<port>` : la page envoie les événements de son run (catégorie, ids et noms des splits, temps ; rien
-d'autre) à `127.0.0.1:<port>`.
+d'autre) à `127.0.0.1:<port>`. Les outils n'acceptent que les événements de l'origine du jeu (le serveur de dev et la
+préversion par défaut, `--origin=<url>` pour un build déployé) : une autre page ouverte dans le navigateur ne peut pas
+envoyer de faux splits.
 
 - `npm run speedrun:overlay -- --port=7777` : une Browser Source OBS à `http://127.0.0.1:7777/?mode=full`
   (`compact`, `transparent`), en Server-Sent Events.
@@ -153,8 +156,12 @@ d'autre) à `127.0.0.1:<port>`.
 `POST /v1/runs` avec `{ player, envelope }` rend l'id du run et un jeton de suppression. Une file confie chaque run à
 un **worker isolé** (`tools/speedrun/worker.ts`) : un processus séparé au tas borné, tué à son budget de temps, avec un
 environnement qui ne contient que `PATH`, le dossier du paquet du jeu et la taille du tas (aucun secret du Bridge),
-sans réseau, le paquet vérifié contre son empreinte approuvée ; sa réponse est signée par une clé à usage unique. Le
-processus HTTP ne rejoue jamais. `GET /v1/runs?game=&category=&seed=fixed|random` est le classement (runs valides
+fetch, WebSocket, TCP, UDP et DNS refusés dans le processus (ce n'est pas une isolation : la vraie revient au
+déploiement, un conteneur sans espace réseau), le paquet vérifié contre son empreinte approuvée ; sa réponse est signée
+par une clé à usage unique, et un worker bloqué est tué avec son groupe de processus. Le processus HTTP ne rejoue
+jamais. Un run est identifié par son jeu, sa catégorie, sa graine et ses entrées (hors leurs horodatages RTA) : le
+premier qui le soumet le garde, une copie réespacée ou réhorodatée est refusée. Un client peut soumettre dix runs par
+minute (`perMinute`) ; l'enveloppe est jetée une fois le verdict enregistré, et les vieux runs sont purgés chaque heure. `GET /v1/runs?game=&category=&seed=fixed|random` est le classement (runs valides
 seulement, le meilleur de chaque joueur, séparé par graine), `GET /v1/runs/<id>` un run, `DELETE /v1/runs/<id>` avec
 `x-delete-token` le supprime, `POST /v1/runs/<id>/moderate` avec le jeton d'administration l'élève à
 `moderator-verified`.
@@ -170,7 +177,8 @@ seulement, le meilleur de chaque joueur, séparé par graine), `GET /v1/runs/<id
 - **Rétention** : un classement garde un run 90 jours par défaut (`retentionDays`) et le supprime sur demande avec le
   jeton donné à la soumission.
 - **Anonymat** : un classement montre un pseudonyme (2 à 32 lettres, chiffres, espaces, `_ . -` ; un email est
-  refusé) et jamais rien d'autre du joueur.
+  refusé) et jamais rien d'autre du joueur. Les pseudonymes ne sont **pas authentifiés** : n'importe qui peut soumettre
+  sous n'importe quel nom, et soumettre le premier un run publié sous le sien.
 - **Fantômes sur cibles sémantiques** : un fantôme montre des lieux, des actions sur des ids et l'inventaire, jamais
   une traînée de pixels ; il est désactivé la première fois qu'une catégorie est jouée.
 
@@ -187,6 +195,11 @@ utilisées par un run sont déclarées par le client (sa parole, comme le RTA).
 - **Intégrité n'est pas authenticité** : la chaîne prouve qu'un fichier n'a pas été modifié après son scellement, pas
   que le client a été honnête ; un client peut la recalculer. Pauses, menus, sauvegardes, RTA et entrées utilisées sont
   la parole du client.
+- **`replay-valid` admet les runs assistés par outil** : un run dont un script ou le solveur a choisi les entrées se
+  rejoue valide (le run de référence versionné est la route du solveur), tout comme un run repris après un crash (les
+  entrées perdues après son dernier chunk ne sont pas dans son temps). Seuls un témoin ou un modérateur les écartent.
+- **La graine d'une catégorie à graine aléatoire est le choix du client** : un joueur peut chercher hors ligne une
+  graine facile. Les graines Mystery et Daily, données par un serveur, sont la réponse de la 4.1.15.
 - Pas en 4.1.14 : le témoin en direct (`server-witnessed`), le rejeu par version épinglée dans le worker, un stockage
   SQL des runs, le montage de `/v1/runs` dans `bridge/src/server.ts`, l'e2e multi-navigateur (`npm run e2e:speedrun`)
   en CI, de vraies sessions OBS et LiveSplit et des tests terrain par des speedrunners (passes humaines).

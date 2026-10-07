@@ -45,7 +45,7 @@ owner; charter rule 10 forbids real-time scripting.
    `Hn = sha256(Hn-1 ‖ canonicalJson({ entry, rnd, events, logicalSteps, logicalTime }))` (the entry without its
    `digest`, `rnd` its draws, `events` the semantic events it produced without their `seq`, the clock's readings after
    it as decimal strings); a chunk's `prevHash` is the H before its first entry and its `hash` the H after its last;
-   `finalProof = sha256(Hn ‖ canonicalJson({ timing, splits, finalStateHash, marks, loads }))` (a deviation from the
+   `finalProof = sha256(Hn ‖ canonicalJson({ timing, splits, finalStateHash, loads, realitySignals }))` (a deviation from the
    sheet's `finalProof = Hn`: the summary a leaderboard shows is in the chain too). `finalStateHash` is the SHA-256 of
    the canonical logical state (`logicalState`). **Every `bigint` is a decimal string** in an envelope and in a hash;
    nothing in `tools/speedrun/` calls `JSON.stringify` on an object (a lint test greps it).
@@ -53,7 +53,8 @@ owner; charter rule 10 forbids real-time scripting.
 **Reload policies.** A category declares `reload`: `invalidates` (any load ends the run's eligibility), `allowed` (a
 load is fine when it restores a state the run itself reached: the envelope's `loads[]` says "before entry *n*, the
 state after entry *m*", and the verifier restores its own snapshot of entry *m*; a save from outside the run is
-`foreign-load`), `segment` (as `allowed`, and each load starts a new timed segment, the segments' sum is the time).
+`foreign-load`), `segment` (each load starting a new timed segment, the segments' sum being the time) is **reserved**:
+not implemented in 4.1.14, the validator refuses it and the verifier treats a load under it as a disqualification.
 
 **Integrity is not authenticity.** The chain proves that a journal was not altered after it was sealed; it does not
 prove it was honest: a client can recompute it, and a pause it does not declare is not seen. The replay proves the run

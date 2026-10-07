@@ -32,7 +32,7 @@
   SHA-256 from the category's rules to a final proof, with the final state's hash; `npm run speedrun:verify`, the
   CLI's `web-scumm speedrun verify` and the MCP tool `speedrun_verify` replay it with its seed and give one verdict
   with a code and a reason (`valid`, `valid-unranked`, `invalid-category-rule`, `invalid-replay`, `modified-game`,
-  `missing-reality-proof`, `unsupported-version`, `inconclusive`, never valid). Twenty-nine alterations (time, action,
+  `missing-reality-proof`, `unsupported-version`, `inconclusive`, never valid). Thirty alterations (time, action,
   seed, rules, signal, hash, chunk, shape) are each refused with their code. Reality categories keep each signal's
   signed JWS and check it with the Bridge's keys. A complete Any% run of the reference chapter is attached to the
   release, verified first.
@@ -43,6 +43,15 @@
   transparent); `npm run speedrun:livesplit` exports a LiveSplit splits file and drives LiveSplit through its own
   WebSocket server. The game posts its run's events to them with `?speedrunTool=<port>`, nothing else.
 - **Leaderboards on the Bridge (4.1.14).** `bridge/src/runs.ts`: `POST /v1/runs`, a queue, an isolated verification
-  worker (its own process, bounded heap and time, no secret, no network, the package approved by fingerprint, its answer
+  worker (its own process group, bounded heap and time, no secret, fetch, WebSocket, TCP, UDP and DNS refused in-process
+  (not an isolation: the deployment's container is), the package approved by fingerprint, its answer
   signed with a one-time key), leaderboards per category and seed kind (valid runs, pseudonyms, trust levels),
-  moderation, deletion on request, 90-day retention. A module for the Bridge's host to mount (`runsRoute`).
+  moderation, deletion on request, 90-day retention purged hourly, a run identified by its inputs (the first submitter
+  keeps it), ten submissions a minute per client, the envelope dropped once judged. A module for the Bridge's host to
+  mount (`runsRoute`). Pseudonyms are not authenticated.
+- **After the second reading (4.1.14).** `reload: 'segment'` is reserved and refused by the validator (it was timed like
+  `allowed`); a walk's logical length uses `Math.sqrt`, not `Math.hypot`, exact alike in every engine; an empty chunk
+  is refused; the local overlay and autosplitter accept events from the game's origin only (`--origin`); a time is
+  ranked only for a `valid` run; SPEEDRUN, ADR 0016 and ADR 0017 say what `replay-valid` admits (tool-assisted runs,
+  crash resumes), that a random seed is the client's choice and that pseudonyms are not authenticated;
+  `docs/{en,fr}/UPGRADING.md` §26.

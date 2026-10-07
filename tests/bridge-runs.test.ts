@@ -45,6 +45,8 @@ beforeAll(async () => {
     timeoutMs: 60_000,
     adminToken: 'admin-token-for-tests',
     now: () => now,
+    perMinute: 100,
+    purgeEveryMs: 0,
   });
   const route = runsRoute(q);
   server = createServer((req, res) => {
@@ -87,8 +89,15 @@ describe('POST /v1/runs → an isolated worker → a stored verdict', () => {
     expect((await post(`/v1/runs/${id}/moderate`, {})).status).toBe(401);
     const mod = await post(`/v1/runs/${id}/moderate`, {}, { authorization: 'Bearer admin-token-for-tests' });
     expect((await mod.json()).trust).toBe('moderator-verified');
-    // The same run again is a duplicate.
+    // The same run again is a duplicate, re-spaced or with its RTA stamps changed too: the first submitter keeps it.
     expect((await post('/v1/runs', { player: 'Someone', envelope: RUN })).status).toBe(409);
+    const respaced = JSON.stringify(JSON.parse(RUN), null, 2);
+    expect((await post('/v1/runs', { player: 'Someone', envelope: respaced })).status).toBe(409);
+    const restamped = JSON.parse(RUN);
+    restamped.chunks[0].entries[1].t = 12345;
+    expect((await post('/v1/runs', { player: 'Someone', envelope: JSON.stringify(restamped) })).status).toBe(409);
+    // The envelope is not kept once the verdict is.
+    expect((await q.o.store.get('default', id))!.envelope).toBe('');
     // Deleted on request, with its token only.
     expect(
       (await fetch(`${base}/v1/runs/${id}`, { method: 'DELETE', headers: { 'x-delete-token': 'nope' } })).status,
@@ -125,7 +134,7 @@ describe('POST /v1/runs → an isolated worker → a stored verdict', () => {
   });
 
   it('purges runs older than the retention (90 days)', async () => {
-    const env = JSON.stringify({ ...JSON.parse(RUN), timing: { ...JSON.parse(RUN).timing, rtaMs: 7 } });
+    const env = JSON.stringify({ ...JSON.parse(RUN), seed: 'another-seed' });
     const res = await post('/v1/runs', { player: 'Old Timer', envelope: env });
     const { id } = await res.json();
     expect(res.status).toBe(202);
@@ -170,5 +179,83 @@ describe('the worker’s isolation', () => {
     expect(Object.keys(env).sort()).toEqual(['GAME_DIR', 'NODE_OPTIONS', 'PATH']);
     expect(env.NODE_OPTIONS).toBe('--max-old-space-size=128');
     expect(JSON.stringify(env)).not.toContain('top-secret');
+  });
+});
+
+describe('the queue survives', () => {
+  it('a hung worker (a runner whose child sleeps past the budget) is killed with its group: the queue goes on', async () => {
+    const hung = [
+      process.execPath,
+      '-e',
+      "require('node:child_process').spawn(process.execPath,['-e','setTimeout(()=>{},120000)'],{stdio:'inherit'});setTimeout(()=>{},120000)",
+    ];
+    const t0 = Date.now();
+    const r = await runWorker({ worker: hung, timeoutMs: 10 }, approved, RUN);
+    expect([r.verdict, r.code]).toEqual(['inconclusive', 'timeout']);
+    expect(Date.now() - t0).toBeLessThan(15_000);
+  }, 30000);
+
+  it('a verification that throws marks the run inconclusive, logs it, and the queue goes on', async () => {
+    class Failing extends MemoryRunStore {
+      override async put(r: Parameters<MemoryRunStore['put']>[0]) {
+        if (r.status === 'verifying') throw new Error('disk full');
+        return super.put(r);
+      }
+    }
+    const logs: string[] = [];
+    const fq = new RunQueue({
+      store: new Failing(),
+      approved: { reference: approved },
+      worker: WORKER,
+      purgeEveryMs: 0,
+      log: (m) => logs.push(m),
+    });
+    const { id } = await fq.submit('default', { player: 'Lou', envelope: RUN });
+    await fq.idle();
+    expect(await fq.o.store.get('default', id)).toMatchObject({
+      verdict: 'inconclusive',
+      code: 'crash',
+      status: 'done',
+    });
+    expect(logs.join()).toContain('disk full');
+  });
+
+  it('a client is rate-limited per minute; the purge runs on its own', async () => {
+    let t = Date.UTC(2026, 9, 7);
+    const store = new MemoryRunStore();
+    const rq = new RunQueue({
+      store,
+      approved: { reference: approved },
+      worker: ['/nonexistent'],
+      perMinute: 2,
+      purgeEveryMs: 20,
+      now: () => t,
+    });
+    const env = (seed: string) => JSON.stringify({ ...JSON.parse(RUN), seed });
+    await rq.submit('default', { player: 'Lou', envelope: env('a') }, 'client-1');
+    await rq.submit('default', { player: 'Lou', envelope: env('b') }, 'client-1');
+    await expect(rq.submit('default', { player: 'Lou', envelope: env('c') }, 'client-1')).rejects.toMatchObject({
+      status: 429,
+    });
+    await rq.submit('default', { player: 'Ann', envelope: env('c') }, 'client-2');
+    await rq.idle();
+    expect(await store.list('default')).toHaveLength(3);
+    t += 91 * 86_400_000;
+    await new Promise((r) => setTimeout(r, 80));
+    expect(await store.list('default')).toHaveLength(0);
+    rq.close();
+  });
+
+  it('refuses a game id that is an object property, not an approved game', async () => {
+    const rq = new RunQueue({
+      store: new MemoryRunStore(),
+      approved: { reference: approved },
+      worker: WORKER,
+      purgeEveryMs: 0,
+    });
+    for (const gameId of ['__proto__', 'constructor', 'toString'])
+      await expect(
+        rq.submit('default', { player: 'Lou', envelope: JSON.stringify({ ...JSON.parse(RUN), gameId }) }),
+      ).rejects.toMatchObject({ status: 404 });
   });
 });

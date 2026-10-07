@@ -4,7 +4,7 @@
 // LiveSplit here: the real one is a human pass), and exports a run as a LiveSplit splits file.
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { createServer, type Server } from 'node:http';
+import { createServer, request, type Server } from 'node:http';
 import type { AddressInfo, Socket } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
 // @ts-expect-error: plain ES modules of the local tools (no types)
@@ -69,6 +69,24 @@ describe('the OBS overlay', () => {
     const data = JSON.parse(text.split('data: ')[1]!.split('\n')[0]!);
     expect(data).toEqual({ kind: 'start', category: 'Any%', splits: [{ id: 'key', name: 'Key' }] });
     expect(text).not.toContain('secret');
+  });
+
+  it('accepts events from the game’s origin only (another page cannot post fake splits)', async () => {
+    const { server } = await startOverlay(0, ['http://localhost:5173']);
+    closers.push(() => server.close());
+    const postFrom = (origin: string) =>
+      new Promise<{ status: number; allow: string | undefined }>((ok) => {
+        const req = request(
+          { host: '127.0.0.1', port: port(server), path: '/event', method: 'POST', headers: { origin } },
+          (res) => {
+            res.resume();
+            ok({ status: res.statusCode!, allow: res.headers['access-control-allow-origin'] as string | undefined });
+          },
+        );
+        req.end(JSON.stringify({ kind: 'tick', igtMs: 1 }));
+      });
+    expect(await postFrom('https://evil.example')).toEqual({ status: 403, allow: undefined });
+    expect(await postFrom('http://localhost:5173')).toEqual({ status: 204, allow: 'http://localhost:5173' });
   });
 });
 

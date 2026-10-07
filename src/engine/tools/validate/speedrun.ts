@@ -39,8 +39,9 @@ export function speedrunChecks(
     ids.add(c.id);
     if (!c.name) err(w, 'a category has a name');
     if (!['rta', 'igt', 'active-igt'].includes(c.timing)) err(w, `timing "${c.timing}": rta, igt or active-igt`);
-    if (!['invalidates', 'allowed', 'segment'].includes(c.reload))
-      err(w, `reload "${c.reload}": invalidates, allowed or segment`);
+    if (c.reload === 'segment')
+      err(w, 'reload "segment" is reserved, not implemented in 4.1.14: invalidates or allowed');
+    else if (!['invalidates', 'allowed'].includes(c.reload)) err(w, `reload "${c.reload}": invalidates or allowed`);
     if (!['forbidden', 'recorded', 'live'].includes(c.realityPolicy))
       err(w, `realityPolicy "${c.realityPolicy}": forbidden, recorded or live`);
     if (c.realityPolicy !== 'forbidden' && !game.reality)
