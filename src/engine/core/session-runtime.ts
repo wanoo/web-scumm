@@ -1,18 +1,28 @@
 // The session: what each input recorded (entries, the answers given while it ran, digests), fed back by a replay.
 // Its owner since 4.1.5 (`Engine.sessions`): the feed, the open entries and the clock's origin live here, where
-// 4.1.0 kept them on the Engine for these functions; the Engine's methods of the same name forward here.
+// 4.1.0 kept them on the Engine for these functions; the Engine's methods of the same name forward here. Since 4.1.14
+// (ADR 0016) it also owns the run's seed and its `logic` stream (what `engine.random` draws), and the run clock it
+// tells of every entry; a listener (a speedrun's recorder, the verifier) hears each entry begin and end.
 import { stateDigest } from './diff';
 import type { GameDef, GameState, Id, Session, SessionEntry } from './types';
 import type { Presenter } from './ports';
 import { SESSION_MAX } from './engine-shared';
+import { derive, newSeed, type Prng } from './prng';
+import { type ClockHost, EngineRunClock } from './run-clock';
 
 /** What the session reads from its engine: the game, the state, the clock, the randomness, and whom it asks. */
-export interface SessionHost {
+export interface SessionHost extends ClockHost {
   readonly game: GameDef;
   readonly state: GameState;
   clock: (() => number) | null;
   random: () => number;
   readonly ui: Pick<Presenter, 'choose' | 'openMap'>;
+}
+
+/** Hears the session's entries: `begin` when one opens (in the log's order), `end` when it closes. */
+export interface SessionListener {
+  begin?(entry: SessionEntry): void;
+  end?(entry: SessionEntry): void;
 }
 
 /** An entry being answered: its recorded twin when replaying, and how far into its picks, maps and draws it is. */
@@ -39,8 +49,43 @@ export class SessionLog {
   open: OpenEntry[] = [];
   /** The clock's value when the session began: its entries are dated from it. */
   t0 = 0;
+  /** The run's seed (`Session.seed`): set by a new game or a checkpoint, kept by a load and a rollover. */
+  seed: string | null = null;
+  /** The seed the next new game or checkpoint takes (a speedrun category's, a verifier's); a fresh one when null. */
+  nextSeed: string | null = null;
+  private logic: Prng | null = null;
+  /** The seed was given by the host (`nextSeed`), not drawn: the session writes it. */
+  private chosen = false;
+  /** The run clock (4.1.14, core/run-clock.ts): told of every entry and every command; it never writes the state. */
+  readonly runClock: EngineRunClock;
+  readonly listeners = new Set<SessionListener>();
 
-  constructor(private host: SessionHost) {}
+  constructor(private host: SessionHost) {
+    this.runClock = new EngineRunClock(host);
+  }
+
+  /** A draw from the run's `logic` stream (the default `engine.random`). */
+  draw(): number {
+    if (!this.logic) this.reseed(this.nextSeed ?? newSeed());
+    return this.logic!.next();
+  }
+
+  /** Where the `logic` stream stands (a resumed run restores it with `restoreDraws`). */
+  drawState(): { seed: string; state: [number, number, number, number] } | null {
+    return this.logic && this.seed ? { seed: this.seed, state: this.logic.state() } : null;
+  }
+  restoreDraws(d: { seed: string; state: readonly [number, number, number, number] }) {
+    this.nextSeed = d.seed;
+    this.reseed(d.seed);
+    this.logic!.restore(d.state);
+  }
+
+  private reseed(seed: string) {
+    this.chosen = this.nextSeed === seed || (this.chosen && this.seed === seed);
+    this.seed = seed;
+    this.nextSeed = null;
+    this.logic = derive(seed, 'logic');
+  }
 
   /** The entry being answered now. */
   get cur(): OpenEntry | undefined {
@@ -54,18 +99,26 @@ export class SessionLog {
     if (this.host.clock) entry.t = Math.round(this.host.clock() - this.t0);
     this.session.log.push(entry);
     this.open.push({ entry, src: this.feed?.shift(), pi: 0, mi: 0, ri: 0, steps: 0 });
+    this.runClock.entry();
+    for (const l of this.listeners) l.begin?.(entry);
   }
 
   /** A fresh session from the current state; the clock, when set, dates it and its entries. */
   newSession(start: Session['start']): Session {
     const { host } = this;
     this.t0 = host.clock?.() ?? 0;
+    // A new game or a checkpoint is a new run: a new seed, the clock at zero. A load and a rollover continue both.
+    if (start.kind !== 'load') this.reseed(this.nextSeed ?? newSeed());
+    else if (!this.logic) this.reseed(this.nextSeed ?? this.seed ?? newSeed());
+    if (start.kind !== 'load') this.runClock.reset();
     this.session = {
       v: host.game.saveVersion,
       start,
       base: structuredClone(host.state),
       log: [],
       ...(host.clock ? { at: host.clock() } : {}),
+      // Written when a host chose it (a speedrun, a verifier): a session nobody seeded stays as it was before 4.1.14.
+      ...(this.chosen ? { seed: this.seed! } : {}),
     };
     return this.session;
   }
@@ -73,6 +126,7 @@ export class SessionLog {
   end() {
     const o = this.open.pop();
     if (o && this.digestOn) o.entry.digest = stateDigest(this.host.state);
+    if (o) for (const l of this.listeners) l.end?.(o.entry);
   }
 
   /** Records what answered (a rule, a topic, a listener, a script step: the puzzle graph's ids). */

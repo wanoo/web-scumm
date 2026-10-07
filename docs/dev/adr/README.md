@@ -14,3 +14,5 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0007](0007-biscuit-and-signed-events.md) | Biscuit authorises a connector; a signature attests an event (4.1.1) |
 | [0011](0011-scene-frame-intents-journal.md) | A scene frame, intentions and a semantic journal (4.1.11) |
 | [0012](0012-canvas-backend.md) | Canvas 2D stays the complete backend; WebGL/Pixi not measured in 4.1.11 |
+| [0016](0016-run-clock-and-envelope.md) | A run clock that observes, a seeded generator, a chained proof of a run (4.1.14) |
+| [0017](0017-speedrun-verdicts-and-trust.md) | Speedrun verdicts and trust levels (4.1.14) |

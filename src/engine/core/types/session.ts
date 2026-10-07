@@ -56,6 +56,11 @@ export interface Session {
   log: SessionEntry[];
   /** When it started (epoch ms), when a clock was set. */
   at?: number;
+  /**
+   * The run's seed (4.1.14, ADR 0016): the `logic` stream `engine.random` draws from (`core/prng.ts`). A new game or a
+   * checkpoint takes a new one, a load continues the run's. Absent in a session recorded before 4.1.14.
+   */
+  seed?: string;
 }
 
 /**
