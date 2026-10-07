@@ -17,6 +17,7 @@
     "tools/*.ts",
     "tools/studio/*.ts",
     "tests/**/*.test.ts",
+    "tests/fixtures/connectors/no-eval-run.ts",
     "tests/fixtures/**/index.ts",
     "games/*/index.ts",
     "games/*/e2e.mjs",

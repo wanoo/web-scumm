@@ -18,6 +18,7 @@ import {
 import { GAME, GAME_DIR, PROJECT, ROOT, WORK, loadGameModule } from './game';
 import { realityManifest } from '../src/engine/reality/manifest';
 import { LOCK, PROVENANCE, readJson, shippedKeys, type Provenance, type ProvenanceLock } from './provenance-files';
+import { serverMarkers } from './server-code';
 
 const args = process.argv.slice(2);
 const arg = (k: string) =>
@@ -203,7 +204,14 @@ const initialJsKB = Math.round(
   initial.reduce((n, p) => n + gzipSync(readFileSync(resolve(dir, p)), { level: 9 }).length, 0) / 1024,
 );
 const jsBudget = game.assetBudgets?.initialJsKB;
+// No server code in a game (4.1.9, D19): the connectors and the Bridge never ride along in a build.
+const serverCode = Object.keys(files)
+  .filter((p) => /\.(m?js|html)$/.test(p))
+  .flatMap((p) =>
+    serverMarkers(readFileSync(resolve(dir, p), 'utf8')).map((m) => `${p}: carries server code ("${m}")`),
+  );
 const problems = [
+  ...serverCode,
   ...(jsBudget !== undefined && initialJsKB > jsBudget
     ? [`first visit's JavaScript: ${initialJsKB} KB gzipped, over initialJsKB ${jsBudget} (${initial.join(', ')})`]
     : []),

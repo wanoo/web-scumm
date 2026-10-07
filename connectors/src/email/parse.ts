@@ -13,7 +13,7 @@ export interface ParserOptions {
 
 /** In the package the worker is bundled next to the connector (`src/mime-worker.mjs`); from the sources, through tsx. */
 const workerUrl = () =>
-  import.meta.url.endsWith('.ts')
+  new URL(import.meta.url).pathname.endsWith('.ts')
     ? new URL('./mime-worker.boot.mjs', import.meta.url)
     : new URL('./mime-worker.mjs', import.meta.url);
 
