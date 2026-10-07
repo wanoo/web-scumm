@@ -2828,6 +2828,9 @@ Platform"; human gates reported, not blocking (D12).
 - Measured on #43's final run: `node-24` 129 files, 1 292 tests; coverage 66.66 / 65.98 / 61.74 / 63.39 %;
   `connectors` 106 tests; `check` 1 min under the fast tier (4 min before), `reference (chromium)` 11 min; the rc of
   4.1.8 went from tag to pre-release in 19 minutes once its main run (an hour, the last with the mutation) was green.
+- The rc of 4.1.8, verified locally: 8 files, sums ok, 8 attestations verified, then `ship verify` failed on the
+  tarball's name (it expected the tag's `-rc.1` suffix, which `pack.mjs` never writes): fixed here; `release.yml`'s
+  verify step on the rc had failed for the same reason, after publishing.
 - Not done, said as such: the sheet's throughput measures; email replies, DKIM/SPF, STARTTLS, IDLE; the connectors'
   coverage floor and mutation gate; the human passes. No release candidate for 4.1.9 (the programme names 4.1.10,
   4.1.11, 4.1.14 and 4.1.15 for that): `v4.1.9` is tagged on the merge commit after its main run.

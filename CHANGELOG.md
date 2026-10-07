@@ -11,6 +11,12 @@ as fragments per branch, the CI in three tiers sized by the change, the mutation
 Measured against 4.1.8 in `docs/dev/baselines/4.1.9.md`; what this release does not do is in the LOG and the passes
 sheet (`docs/dev/passes/4.1.9.md`).
 
+### Fixed
+
+- **`npm run ship -- verify` on a release candidate** (4.1.9). It looked for `web-scumm-4.1.8-rc.1.tgz` where the
+  packages carry `package.json`'s version (`web-scumm-4.1.8.tgz`): the rc's sums and eight attestations verified, then
+  the command failed on that name, in `release.yml` too. The tarball's name drops the tag's suffix.
+
 ### Changes
 
 - **The CHANGELOG and the LOG written as fragments per branch** (4.1.9, lot 0 "cadence"). A branch that changes

@@ -292,7 +292,9 @@ async function verify(versionArg) {
     attested++;
   }
   say(`${name}: ${files.length} files, sums ok, ${attested} attestations verified`);
-  if (!existsSync(join(dir, `web-scumm-${version}.tgz`))) throw new Error(`${name}: web-scumm-${version}.tgz missing`);
+  // The tarballs carry package.json's version, never a tag's pre-release suffix (v4.1.8-rc.1 ships web-scumm-4.1.8.tgz).
+  const packed = version.replace(/-.*$/, '');
+  if (!existsSync(join(dir, `web-scumm-${packed}.tgz`))) throw new Error(`${name}: web-scumm-${packed}.tgz missing`);
   return { files, attested };
 }
 
