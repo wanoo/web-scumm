@@ -18,8 +18,21 @@ export const SETS = {
     'bridge/src/lock.ts',
     'bridge/src/policy.ts',
   ],
+  // The Bridge's stores and its fan-out (4.1.10, ADR 0009): measured, not gated yet. The `reality` set would double
+  // with them (docs/dev/plans/4.1.10-constellation.md §6); its survivors are read and named or killed before the set
+  // joins `GATED`.
+  'reality-store': [
+    'bridge/src/store-memory.ts',
+    'bridge/src/store-sql.ts',
+    'bridge/src/store-sqlite.ts',
+    'bridge/src/migrations.ts',
+    'bridge/src/streams.ts',
+    'bridge/src/sign.ts',
+  ],
 };
 export type MutationSet = keyof typeof SETS;
+/** The sets `--set=all` runs and fails on (the nightly, release-check): `reality-store` is not among them yet. */
+export const GATED: MutationSet[] = ['core', 'reality'];
 
 /** The tests a set's mutants are judged by (vitest `include` globs). */
 export const TESTS: Record<MutationSet, string[]> = {
@@ -38,7 +51,7 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/scheduler.test.ts',
   ],
   reality: ['tests/reality-*.test.ts', 'tests/bridge*.test.ts'],
+  'reality-store': ['tests/bridge-reality-store.test.ts', 'tests/bridge-fanout.test.ts', 'tests/bridge.test.ts'],
 };
 
-export const setsOf = (set: MutationSet | 'all'): MutationSet[] =>
-  set === 'all' ? (Object.keys(SETS) as MutationSet[]) : [set];
+export const setsOf = (set: MutationSet | 'all'): MutationSet[] => (set === 'all' ? GATED : [set]);

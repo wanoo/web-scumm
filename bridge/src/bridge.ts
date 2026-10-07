@@ -2,108 +2,49 @@
 // connectors under a Biscuit, the journal, Ed25519 signatures, acknowledgements, revocation, quotas, export and
 // deletion by player. No HTTP here (`server.ts` maps routes onto these methods), so the tests drive it directly. It
 // never touches a game's files, the Studio or the repository: what it knows of a game is its manifest.
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+// 4.1.10 (ADR 0009): one `Bridge` is one tenant, and it reads and writes through `RealityStore` only, so several
+// instances share one database and several tenants share one deployment; streams live in `streams.ts`.
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { manifestHash, type RealityManifest } from '../../src/engine/reality/manifest';
-import { signSignal, type WorldSignalV1 } from '../../src/engine/reality/protocol';
+import { manifestHash } from '../../src/engine/reality/manifest';
+import { type WorldSignal, WorldSignalV1Schema, WorldSignalV2Schema } from '../../src/engine/reality/protocol';
 import { biscuitLib, errorClass } from './biscuit';
+import { type BridgeConfig, BridgeError, type BridgeLog, DEFAULT_LIMITS, IDENT, type Limits, sha256 } from './config';
 import { KeyedLock } from './lock';
 import { authorize, LIMITS, type Proposal } from './policy';
-import type { BridgeStore, JournalEntry, Pairing, Player } from './store';
+import { keyObject, signSignalSync } from './sign';
+import type { BridgeStore, Pairing, Player } from './store';
+import { DEFAULT_TENANT, isRealityStore, type RealityStore, type StoredSignal } from './store-async';
+import { fromBridgeStore } from './store-memory';
+import { type Stream, Streams } from './streams';
+import { Telemetry } from './telemetry';
+
+export { type BridgeConfig, BridgeError, type BridgeLog, DEFAULT_LIMITS, type Limits } from './config';
 
 const PAIR_POLICY = readFileSync(new URL('../policy/pair.datalog', import.meta.url), 'utf8');
 
-export interface BridgeConfig {
-  gameId: string;
-  manifest: RealityManifest;
-  /** The manifest's hash as deployed: the Bridge refuses to start on another manifest (an old configuration). */
-  manifestHash: string;
-  /** Who the Bridge is for its connectors' tokens (`audience` in a grant). */
-  audience: string;
-  /** Biscuit's root public key (`ed25519/<hex>`): the connectors' tokens are minted from its private half. */
-  biscuitRootPublicKey: string;
-  /** The key that signs events, and the previous ones the players may still hold (rotation). */
-  eventKey: { kid: string; privateKey: CryptoKey; raw: string };
-  previousKeys?: { kid: string; raw: string; notAfter: number }[];
-  /** SHA-256 (hex) of the operator's token. */
-  adminTokenHash: string;
-  policyVersion: string;
-  limits?: Partial<Limits>;
-}
-
-export interface Limits {
-  /** A request body, in bytes. */
-  bodyBytes: number;
-  /** Signals one connector may propose per minute. */
-  perMinutePerConnector: number;
-  /** Signals waiting for a player's acknowledgement: beyond, a proposal is refused (visible, never dropped). */
-  pendingPerPlayer: number;
-  /** How long a pairing code waits for its confirmation. */
-  pairingMs: number;
-  /** How long a player's capability lives without an acknowledgement (renewed on each). */
-  capabilityMs: number;
-  /** Open event streams (SSE) one player may hold at once: beyond, a 429 (a tab reconnects when another closes). */
-  streamsPerPlayer: number;
-  /** Bytes a stream may hold unsent before it is closed (the player reconnects from its cursor). */
-  streamBufferBytes: number;
-  /** Pairing codes waiting for a confirmation, in memory, all players together: beyond, a 429 (anyone may ask). */
-  pendingPairings: number;
-  /** The longest a capability lives, renewals included: then the player pairs again. */
-  capabilityMaxMs: number;
-  /** Signals signed again after a rotation and kept in memory (4.1.8): beyond, the least recently used is forgotten. */
-  resignedCache: number;
-}
-/** The limits a Bridge runs with where its configuration says nothing. @public */
-export const DEFAULT_LIMITS: Limits = {
-  bodyBytes: 8192,
-  perMinutePerConnector: 120,
-  pendingPerPlayer: 1000,
-  pairingMs: 10 * 60_000,
-  capabilityMs: 30 * 24 * 3_600_000,
-  streamsPerPlayer: 4,
-  streamBufferBytes: 64 * 1024,
-  pendingPairings: 1000,
-  capabilityMaxMs: 180 * 24 * 3_600_000,
-  resignedCache: 10_000,
-};
-
-/** An open event stream of a player: what it receives, and how the Bridge ends it (revocation, expiry). */
-interface Stream {
-  playerId: string;
-  on: (seq: number, jws: string) => void;
-  close: (why: 'revoked' | 'expired') => void;
-}
-
-export class BridgeError extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-
-/** A line of the Bridge's log: what happened, never a token, an email, a payload or a key. */
-export type BridgeLog = { event: string; [k: string]: string | number | boolean | undefined };
-
-const IDENT = /^[\w.:-]{1,128}$/;
-const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 const b64url = (b: Buffer) => b.toString('base64url');
 /** A short code a person can type: 8 characters, no 0/O or 1/I/L. */
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const pairingCode = () => [...randomBytes(8)].map((x) => CODE_ALPHABET[x % CODE_ALPHABET.length]).join('');
 
+/** The unsubscribe function of a stream, and the read that sends what is already after its cursor. */
+export type Subscription = (() => void) & { pump: () => Promise<void> };
+
 export class Bridge {
   readonly limits: Limits;
+  readonly tenantId: string;
+  readonly telemetry: Telemetry;
+  private store: RealityStore;
   private recent = new Map<string, number[]>();
-  private streams = new Set<Stream>();
-  /** Pairing codes not yet claimed: in memory only, bounded, swept (a restart forgets them; the player pairs again). */
-  private pending = new Map<string, Pairing>();
+  private streams: Streams;
   /** One section at a time per player (`propose`) and per pairing code (`confirmPairing`): see `lock.ts`. */
   private locks = new KeyedLock();
-  /** Signals signed again under the current key after a rotation, by `<id>:<kid>` (the journal keeps the first); LRU, bounded by `limits.resignedCache`. */
-  private resigned = new Map<string, Promise<string>>();
+  /** Signals signed again under the current key after a rotation, by `<tenant>:<kid>:<player>:<sequence>`; LRU. */
+  private resigned = new Map<string, string>();
+  private signer: ReturnType<typeof keyObject>;
+  private stopWatch: () => void = () => {};
+  private timer: ReturnType<typeof setInterval> | undefined;
   /** How many signals were signed again (diagnostics, tests). */
   resignedCount(): number {
     return this.resigned.size;
@@ -111,18 +52,27 @@ export class Bridge {
 
   private constructor(
     readonly config: BridgeConfig,
-    private store: BridgeStore,
+    store: RealityStore,
     private now: () => number,
     private log: (l: BridgeLog) => void,
+    telemetry: Telemetry,
   ) {
     this.limits = { ...DEFAULT_LIMITS, ...config.limits };
+    this.tenantId = config.tenantId ?? DEFAULT_TENANT;
+    this.store = store;
+    this.telemetry = telemetry;
+    this.signer = keyObject(config.eventKey.privateKey);
+    this.streams = new Streams(
+      { page: (p, after, limit) => this.page(p, after, limit), ends: (p) => this.streamEnds(p) },
+      () => this.limits.streamPage,
+    );
   }
 
-  /** A Bridge for one game; refuses a manifest that is not the one its configuration names. */
+  /** A Bridge for one tenant's game; refuses a manifest that is not the one its configuration names. */
   static async start(
     config: BridgeConfig,
-    store: BridgeStore,
-    o: { now?: () => number; log?: (l: BridgeLog) => void } = {},
+    store: BridgeStore | RealityStore,
+    o: { now?: () => number; log?: (l: BridgeLog) => void; telemetry?: Telemetry; pollMs?: number } = {},
   ): Promise<Bridge> {
     const actual = await manifestHash(config.manifest);
     if (actual !== config.manifestHash)
@@ -130,35 +80,66 @@ export class Bridge {
         `the game's manifest (${actual.slice(0, 12)}…) is not the one configured (${config.manifestHash.slice(0, 12)}…)`,
       );
     if (config.manifest.gameId !== config.gameId) throw new Error(`the manifest is for ${config.manifest.gameId}`);
-    return new Bridge(config, store, o.now ?? Date.now, o.log ?? ((l) => console.log(JSON.stringify(l))));
+    const s = isRealityStore(store) ? store : fromBridgeStore(store);
+    const b = new Bridge(
+      config,
+      s,
+      o.now ?? Date.now,
+      o.log ?? ((l) => console.log(JSON.stringify(l))),
+      o.telemetry ?? new Telemetry(),
+    );
+    await s.rotateKeys({ tenantId: b.tenantId, keyId: config.eventKey.kid, publicKey: config.eventKey.raw });
+    // Another instance (or process) accepted a signal for a player with a stream here: read the store.
+    b.stopWatch = s.watch(b.tenantId, (playerId) => void b.streams.wake(playerId));
+    // And a slow pass over every stream, should a wake-up be lost (a NOTIFY during a reconnection).
+    const poll = o.pollMs ?? 5000;
+    if (poll > 0) {
+      b.timer = setInterval(() => {
+        for (const p of b.streams.players()) void b.streams.wake(p);
+      }, poll);
+      b.timer.unref?.();
+    }
+    return b;
   }
 
-  /** The keys a player verifies events with (public halves only). */
-  keys(): { kid: string; raw: string; notBefore?: number; notAfter?: number }[] {
-    return [{ kid: this.config.eventKey.kid, raw: this.config.eventKey.raw }, ...(this.config.previousKeys ?? [])];
+  /** Stops watching the store (the store itself is closed by its owner). */
+  close(): void {
+    this.stopWatch();
+    if (this.timer) clearInterval(this.timer);
+  }
+
+  /** The signals version this Bridge signs: V2 when configured, V1 otherwise (ADR 0010). */
+  get signalVersion(): 1 | 2 {
+    return this.config.signalVersion ?? 1;
+  }
+
+  /** The keys a player verifies events with (public halves only), with the tenant and environment they sign for. */
+  keys(): { kid: string; raw: string; notBefore?: number; notAfter?: number; tenantId: string; environment: string }[] {
+    const ctx = { tenantId: this.tenantId, environment: this.config.environment ?? 'prod' };
+    return [
+      { kid: this.config.eventKey.kid, raw: this.config.eventKey.raw, ...ctx },
+      ...(this.config.previousKeys ?? []).map((k) => ({ ...k, ...ctx })),
+    ];
   }
 
   // ------------------------------------------------------------------ pairing
 
   /** The player's side asks to be linked: a short code to give to a connector (an email, a webhook form). */
-  startPairing(gameId: string): { code: string; expiresAt: number } {
+  async startPairing(gameId: string, origin?: string): Promise<{ code: string; expiresAt: number }> {
     if (gameId !== this.config.gameId) throw new BridgeError(404, 'game', 'not a game of this Bridge');
-    // Anyone may ask for a code: nothing is written for it, and the codes waiting are bounded and swept.
-    this.sweepPairings();
-    if (this.pending.size >= this.limits.pendingPairings)
+    // Anyone may ask for a code: the codes waiting are bounded and swept.
+    const now = this.now();
+    await this.store.sweepPairings(this.tenantId, now);
+    if ((await this.store.pendingPairings(this.tenantId, now)) >= this.limits.pendingPairings)
       throw new BridgeError(429, 'pairings', 'too many codes waiting for a confirmation: try again in a minute');
     const code = pairingCode();
-    const expiresAt = this.now() + this.limits.pairingMs;
-    this.pending.set(code, { code, gameId, expiresAt });
+    const expiresAt = now + this.limits.pairingMs;
+    await this.store.putPairing(this.tenantId, { code, gameId, expiresAt, ...(origin ? { origin } : {}) });
     this.log({ event: 'pairing.started' });
     return { code, expiresAt };
   }
-  private sweepPairings(): void {
-    const now = this.now();
-    for (const [code, p] of this.pending) if (p.expiresAt < now) this.pending.delete(code);
-  }
-  private pairingOf(code: string): Pairing {
-    const p = this.pending.get(code);
+  private async pairingOf(code: string): Promise<Pairing> {
+    const p = await this.store.pairing(this.tenantId, code);
     if (!p || p.expiresAt < this.now()) throw new BridgeError(404, 'pairing', 'unknown or expired code');
     return p;
   }
@@ -170,7 +151,7 @@ export class Bridge {
   }
 
   private async confirmPairingLocked(token: string, code: string): Promise<{ playerId: string }> {
-    const p = this.pairingOf(code);
+    const p = await this.pairingOf(code);
     if (p.playerId) throw new BridgeError(409, 'pairing', 'already confirmed');
     const b = await biscuitLib();
     let t: ReturnType<typeof b.Biscuit.fromBase64>;
@@ -185,8 +166,8 @@ export class Bridge {
     } catch {
       throw new BridgeError(401, 'token', 'unreadable token');
     }
-    if ((t.getRevocationIdentifiers() as string[]).some((id) => this.store.tokenRevoked(id)))
-      throw new BridgeError(401, 'token', 'token revoked');
+    for (const id of t.getRevocationIdentifiers() as string[])
+      if (await this.store.tokenRevoked(this.tenantId, id)) throw new BridgeError(401, 'token', 'token revoked');
     const a = new b.AuthorizerBuilder();
     a.addCodeWithParameters(
       PAIR_POLICY,
@@ -199,34 +180,48 @@ export class Bridge {
       throw new BridgeError(403, 'denied', `this token may not pair (${errorClass(e)})`);
     }
     const playerId = `p-${randomBytes(8).toString('hex')}`;
-    const capability = b64url(randomBytes(32));
+    // The capability is drawn when the player claims it: until then the link holds the hash of a secret nobody has.
     const player: Player = {
       playerId,
       gameId: p.gameId,
-      capabilityHash: sha256(capability),
+      capabilityHash: sha256(b64url(randomBytes(32))),
       capabilityExpiresAt: this.now() + this.limits.capabilityMs,
       issuedAt: this.now(),
+      sessionId: `s-${randomBytes(8).toString('hex')}`,
+      ...(p.origin ? { origin: p.origin } : {}),
     };
-    this.store.write({ t: 'player', p: player });
-    this.store.write({ t: 'pairing', p: { ...p, playerId } }); // the trace; the capability stays in memory until claimed
-    this.pending.set(code, { ...p, playerId, capability });
+    // Another instance may confirm the same code at the same instant: the store lets one through.
+    if (!(await this.store.confirmPairing(this.tenantId, code, player)))
+      throw new BridgeError(409, 'pairing', 'already confirmed');
     this.log({ event: 'pairing.confirmed', playerId });
     return { playerId };
   }
 
   /** The player's side collects its link once: its id and its capability (read and acknowledge, nothing else). */
-  claimPairing(code: string): { status: 'pending' } | { status: 'paired'; playerId: string; capability: string } {
-    const p = this.pairingOf(code);
+  async claimPairing(
+    code: string,
+  ): Promise<{ status: 'pending' } | { status: 'paired'; playerId: string; capability: string; sessionId?: string }> {
+    const p = await this.pairingOf(code);
     if (!p.playerId) return { status: 'pending' };
-    if (!p.capability) throw new BridgeError(410, 'pairing', 'already claimed');
-    this.pending.set(code, { ...p, capability: undefined });
-    return { status: 'paired', playerId: p.playerId, capability: p.capability };
+    if (p.claimed) throw new BridgeError(410, 'pairing', 'already claimed');
+    const capability = b64url(randomBytes(32));
+    const r = await this.store.claimPairing(this.tenantId, code, sha256(capability));
+    if (r === 'pending') return { status: 'pending' };
+    if (r !== 'claimed') throw new BridgeError(410, 'pairing', 'already claimed');
+    const player = await this.store.player(this.tenantId, p.playerId);
+    return {
+      status: 'paired',
+      playerId: p.playerId,
+      capability,
+      ...(player?.sessionId ? { sessionId: player.sessionId } : {}),
+    };
   }
 
   // ------------------------------------------------------------------ signals
 
   /** A connector proposes a signal: authorised, checked against the manifest, deduplicated, sequenced, signed. */
   async propose(token: string, body: unknown): Promise<{ id: string; sequence: number; duplicate: boolean }> {
+    const started = this.now();
     const r = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>;
     const str = (k: string, re = IDENT) => {
       const v = r[k];
@@ -248,114 +243,183 @@ export class Bridge {
     if (!declared) throw new BridgeError(422, 'signal', `signal ${signal} is not in the game's manifest`);
     if (declared.source !== source)
       throw new BridgeError(422, 'source', `signal ${signal} comes from ${declared.source}`);
-    const proposal: Proposal = { gameId: this.config.gameId, playerId, source, signal, audience: this.config.audience };
+    const proposal: Proposal = {
+      gameId: this.config.gameId,
+      playerId,
+      source,
+      signal,
+      audience: this.config.audience,
+      tenantId: this.tenantId,
+    };
     const auth = await authorize(
       token,
       this.config.biscuitRootPublicKey,
       proposal,
       this.now(),
-      this.store.revokedTokens(),
+      await this.store.revokedTokens(this.tenantId),
     );
     if (!auth.ok) {
       this.log({ event: 'signal.refused', code: auth.code, signal });
+      this.telemetry.count('signals.refused', { tenant: this.tenantId, code: auth.code });
       throw new BridgeError(auth.code === 'denied' ? 403 : 401, auth.code, auth.reason);
     }
-    const player = this.store.player(playerId);
+    const player = await this.store.player(this.tenantId, playerId);
     if (!player || player.gameId !== this.config.gameId || player.revoked)
       throw new BridgeError(404, 'player', 'unknown or revoked player');
-    // From here to the journal line, one proposal at a time for this player: the deduplication, the quota, the
-    // sequence and the write are read and decided together, and what was checked before the Biscuit's `await`
-    // (the player, the token) is checked again, as a revocation may have landed meanwhile.
-    return this.locks.run(`player:${playerId}`, async () => {
-      const current = this.store.player(playerId);
+    // From here to the journal line, one proposal at a time for this player in this process, and one transaction in
+    // the store across processes: the deduplication, the quota, the sequence and the write are decided together, and
+    // what was checked before the Biscuit's `await` (the player, the token) is checked again, as a revocation may have
+    // landed meanwhile.
+    const out = await this.locks.run(`player:${playerId}`, async () => {
+      const current = await this.store.player(this.tenantId, playerId);
       if (!current || current.revoked) throw new BridgeError(404, 'player', 'unknown or revoked player');
-      if (auth.revocationIds.some((id) => this.store.tokenRevoked(id)))
-        throw new BridgeError(401, 'revoked', 'token revoked');
-      const seen = this.store.bySequenceKey(playerId, dedupeKey);
-      if (seen) return { id: seen.id, sequence: seen.sequence, duplicate: true };
+      for (const id of auth.revocationIds)
+        if (await this.store.tokenRevoked(this.tenantId, id)) throw new BridgeError(401, 'revoked', 'token revoked');
       const connector = auth.revocationIds[0] ?? 'unknown';
-      const window = (this.recent.get(connector) ?? []).filter((t) => t > this.now() - 60_000);
-      if (window.length >= this.limits.perMinutePerConnector)
-        throw new BridgeError(429, 'quota', 'too many signals this minute');
-      const sequence = this.store.lastSequence(playerId) + 1;
-      if (sequence - 1 - this.store.acked(playerId) >= this.limits.pendingPerPlayer)
-        throw new BridgeError(429, 'pending', 'the player has too many signals waiting');
-      window.push(this.now());
-      this.recent.set(connector, window);
-      const payload: WorldSignalV1 = {
-        format: 'web-scumm-world-signal',
-        schema: 1,
-        id: `s-${randomBytes(8).toString('hex')}`,
-        sequence,
-        gameId: this.config.gameId,
+      const appended = await this.store.appendSignal({
+        tenantId: this.tenantId,
         playerId,
-        signal,
-        source,
-        ...(occurredAt !== undefined ? { occurredAt } : {}),
-        receivedAt: this.now(),
         dedupeKey,
-        policyVersion: this.config.policyVersion,
-        ...(evidenceHash ? { evidenceHash } : {}),
-      };
-      const { kid } = this.config.eventKey;
-      const jws = await signSignal(payload, this.config.eventKey.privateKey, kid);
-      const entry: JournalEntry = { playerId, sequence, id: payload.id, dedupeKey, jws, at: this.now(), kid, payload };
-      this.store.write({ t: 'signal', e: entry });
-      this.log({ event: 'signal.accepted', playerId, sequence, signal });
-      this.emit(entry);
-      return { id: payload.id, sequence, duplicate: false };
+        sign: ({ sequence, acked }) => {
+          const now = this.now();
+          const window = (this.recent.get(connector) ?? []).filter((t) => t > now - 60_000);
+          if (window.length >= this.limits.perMinutePerConnector)
+            throw new BridgeError(429, 'quota', 'too many signals this minute');
+          if (sequence - 1 - acked >= this.limits.pendingPerPlayer)
+            throw new BridgeError(429, 'pending', 'the player has too many signals waiting');
+          window.push(now);
+          this.recent.set(connector, window);
+          const payload = this.payload(current, {
+            id: `s-${randomBytes(8).toString('hex')}`,
+            sequence,
+            signal,
+            source,
+            occurredAt,
+            dedupeKey,
+            evidenceHash,
+          });
+          const { kid } = this.config.eventKey;
+          this.telemetry.record('backlog', sequence - acked, { tenant: this.tenantId });
+          return { id: payload.id, jws: signSignalSync(payload, this.signer, kid), kid, payload, at: now };
+        },
+      });
+      return appended;
     });
+    const { signal: row, duplicate } = out;
+    if (duplicate) {
+      this.telemetry.count('signals.duplicate', { tenant: this.tenantId });
+      return { id: row.id, sequence: row.sequence, duplicate: true };
+    }
+    this.log({ event: 'signal.accepted', playerId, sequence: row.sequence, signal });
+    this.telemetry.count('signals.accepted', { tenant: this.tenantId });
+    this.telemetry.record('propose.ms', this.now() - started, { tenant: this.tenantId });
+    await this.streams.wake(playerId);
+    return { id: row.id, sequence: row.sequence, duplicate: false };
   }
 
-  /** A signal to its player's open streams, each checked again (a link revoked or expired since it opened ends). */
-  private emit(e: JournalEntry): void {
-    for (const s of [...this.streams]) {
-      if (s.playerId !== e.playerId) continue;
-      const why = this.streamEnds(s.playerId);
-      if (why) this.endStream(s, why);
-      else s.on(e.sequence, e.jws);
-    }
+  /** The payload signed for a player: V1, or V2 with the context it is signed for (ADR 0010). */
+  private payload(
+    player: Player,
+    f: {
+      id: string;
+      sequence: number;
+      signal: string;
+      source: string;
+      dedupeKey: string;
+      occurredAt: number | undefined;
+      evidenceHash: string | undefined;
+    },
+  ): WorldSignal {
+    const v1 = {
+      format: 'web-scumm-world-signal' as const,
+      schema: 1 as const,
+      id: f.id,
+      sequence: f.sequence,
+      gameId: this.config.gameId,
+      playerId: player.playerId,
+      signal: f.signal,
+      source: f.source,
+      ...(f.occurredAt !== undefined ? { occurredAt: f.occurredAt } : {}),
+      receivedAt: this.now(),
+      dedupeKey: f.dedupeKey,
+      policyVersion: this.config.policyVersion,
+      ...(f.evidenceHash ? { evidenceHash: f.evidenceHash } : {}),
+    };
+    if (this.signalVersion === 1) return v1;
+    return {
+      ...v1,
+      schema: 2,
+      tenantId: this.tenantId,
+      environment: this.config.environment ?? 'prod',
+      audience: player.origin ?? this.config.origins?.[0] ?? this.config.audience,
+      sessionId: player.sessionId ?? player.playerId,
+      keyId: this.config.eventKey.kid,
+    };
   }
-  private streamEnds(playerId: string): 'revoked' | 'expired' | undefined {
-    const p = this.store.player(playerId);
+
+  private async streamEnds(playerId: string): Promise<'revoked' | 'expired' | undefined> {
+    const p = await this.store.player(this.tenantId, playerId);
     if (!p || p.revoked) return 'revoked';
     if (p.capabilityExpiresAt < this.now()) return 'expired';
     return undefined;
   }
-  private endStream(s: Stream, why: 'revoked' | 'expired'): void {
-    if (this.streams.delete(s)) s.close(why);
+
+  /** A page of a player's journal, each signal as it goes out: signed by the current key, or set aside. */
+  private async page(playerId: string, after: number, limit: number) {
+    const rows = await this.store.listAfter({ tenantId: this.tenantId, playerId, after, limit });
+    return Promise.all(rows.map(async (e) => ({ sequence: e.sequence, jws: await this.deliverable(e) })));
   }
 
   /**
    * A journal entry as the player receives it: signed by the current key. After a rotation the entries the previous
    * key signed are signed again (once, then kept in memory), so what waits for a player never depends on a key that
-   * is about to leave the keyring; a 4.1.1 line, without its payload, goes out as it was signed.
+   * is about to leave the keyring; a 4.1.1 line, without its payload, goes out as it was signed. A row whose payload
+   * or JWS no longer reads (a manual edit, a damaged restore) is quarantined and skipped (null), never sent.
    */
-  private deliverable(e: JournalEntry): Promise<string> {
-    const { kid, privateKey } = this.config.eventKey;
-    if (!e.payload || e.kid === kid) return Promise.resolve(e.jws);
-    const k = `${e.id}:${kid}`;
-    let p = this.resigned.get(k);
-    if (p) {
+  private async deliverable(e: StoredSignal): Promise<string | null> {
+    const why = !/^[\w-]+\.[\w-]+\.[\w-]+$/.test(e.jws)
+      ? 'not a compact JWS'
+      : e.payload && !(e.payload.schema === 2 ? WorldSignalV2Schema : WorldSignalV1Schema).safeParse(e.payload).success
+        ? 'payload is not a world signal'
+        : undefined;
+    if (why) {
+      await this.store.quarantine({
+        tenantId: this.tenantId,
+        playerId: e.playerId,
+        sequence: e.sequence,
+        reason: why,
+        at: this.now(),
+      });
+      this.telemetry.count('quarantine', { tenant: this.tenantId });
+      this.log({ event: 'signal.quarantined', playerId: e.playerId, sequence: e.sequence, reason: why });
+      return null;
+    }
+    const { kid } = this.config.eventKey;
+    if (!e.payload || e.kid === kid) return e.jws;
+    const k = `${this.tenantId}:${kid}:${e.playerId}:${e.sequence}`;
+    let jws = this.resigned.get(k);
+    if (jws !== undefined) {
       // Least recently used at the front: a hit moves to the back.
       this.resigned.delete(k);
-      this.resigned.set(k, p);
-      return p;
+      this.resigned.set(k, jws);
+      return jws;
     }
-    p = signSignal(e.payload, privateKey, kid);
-    this.resigned.set(k, p);
+    // A V2 payload names its key: signed again, it names the key that signs it now.
+    const payload: WorldSignal = e.payload.schema === 2 ? { ...e.payload, keyId: kid } : e.payload;
+    jws = signSignalSync(payload, this.signer, kid);
+    this.resigned.set(k, jws);
     // Bounded (4.1.8): a Bridge with many players and a rotation is not a cache that grows with every delivery.
     while (this.resigned.size > this.limits.resignedCache) {
       const oldest = this.resigned.keys().next().value;
       if (oldest === undefined) break;
       this.resigned.delete(oldest);
     }
-    return p;
+    return jws;
   }
 
   /** The player whose capability this is (read and acknowledge only). */
-  playerOf(capability: string | undefined): Player {
-    const p = capability ? this.store.playerByCapability(sha256(capability)) : undefined;
+  async playerOf(capability: string | undefined): Promise<Player> {
+    const p = capability ? await this.store.playerByCapability(this.tenantId, sha256(capability)) : undefined;
     if (!p || p.revoked) throw new BridgeError(401, 'capability', 'unknown or revoked link');
     if (p.capabilityExpiresAt < this.now()) throw new BridgeError(401, 'capability', 'link expired: pair again');
     if (p.issuedAt !== undefined && this.now() > p.issuedAt + this.limits.capabilityMaxMs)
@@ -364,68 +428,76 @@ export class Bridge {
   }
 
   /** The player's side ends its own link (the pause menu's "Unlink"): revoked on the Bridge, not only forgotten. */
-  unlink(capability: string | undefined): void {
-    const p = this.playerOf(capability);
-    this.store.write({ t: 'player', p: { ...p, revoked: true } });
-    this.closeStreams(p.playerId, 'revoked');
+  async unlink(capability: string | undefined): Promise<void> {
+    const p = await this.playerOf(capability);
+    await this.store.putPlayer(this.tenantId, { ...p, revoked: true });
+    this.streams.endAll(p.playerId, 'revoked');
     this.log({ event: 'player.unlinked', playerId: p.playerId });
   }
 
   /** The signed signals of a player after a sequence (the fetch by cursor; SSE sends the same), under the current key. */
   async signals(capability: string | undefined, after: number): Promise<{ sequence: number; jws: string }[]> {
-    const p = this.playerOf(capability);
-    return Promise.all(
-      this.store
-        .signals(p.playerId, after)
-        .map(async (e) => ({ sequence: e.sequence, jws: await this.deliverable(e) })),
-    );
+    const p = await this.playerOf(capability);
+    const out: { sequence: number; jws: string }[] = [];
+    // The whole journal after the cursor, page by page (a fetch by cursor is bounded by `pendingPerPlayer`).
+    for (let cursor = after; ; ) {
+      const rows = await this.page(p.playerId, cursor, this.limits.streamPage);
+      for (const r of rows) if (r.jws !== null) out.push({ sequence: r.sequence, jws: r.jws });
+      if (rows.length < this.limits.streamPage) return out;
+      cursor = rows.at(-1)?.sequence ?? cursor;
+    }
   }
 
   /**
-   * New signals of a player as they are accepted (SSE). Returns the unsubscribe function; `onClose` is called when the
-   * Bridge ends the stream itself (the link revoked or expired). At most `streamsPerPlayer` streams per player.
+   * New signals of a player as they are accepted (SSE), from `after` (by default, its last sequence: only new ones).
+   * Returns the unsubscribe function, whose `pump` sends what is already after the cursor; `onClose` is called when
+   * the Bridge ends the stream itself (the link revoked or expired). At most `streamsPerPlayer` streams per player and
+   * `streamsPerInstance` on this instance.
    */
-  subscribe(
+  async subscribe(
     capability: string | undefined,
     on: (seq: number, jws: string) => void,
     onClose: (why: 'revoked' | 'expired') => void = () => {},
-  ): () => void {
-    const p = this.playerOf(capability);
-    let open = 0;
-    for (const s of this.streams) if (s.playerId === p.playerId) open++;
-    if (open >= this.limits.streamsPerPlayer)
+    o: { after?: number } = {},
+  ): Promise<Subscription> {
+    const p = await this.playerOf(capability);
+    if (this.streams.count(p.playerId) >= this.limits.streamsPerPlayer) {
+      this.telemetry.count('streams.refused', { tenant: this.tenantId, code: 'player' });
       throw new BridgeError(429, 'streams', `at most ${this.limits.streamsPerPlayer} open streams for a player`);
-    const s: Stream = { playerId: p.playerId, on, close: onClose };
-    this.streams.add(s);
-    return () => this.streams.delete(s);
+    }
+    if (this.streams.size >= this.limits.streamsPerInstance) {
+      this.telemetry.count('streams.refused', { tenant: this.tenantId, code: 'instance' });
+      throw new BridgeError(429, 'streams', 'this instance holds as many streams as it may: try again');
+    }
+    const cursor = o.after ?? (await this.store.lastSequence(this.tenantId, p.playerId));
+    const s: Stream = { playerId: p.playerId, cursor, on, close: onClose };
+    const off = this.streams.add(s);
+    return Object.assign(() => void off(), { pump: () => this.streams.read(s) });
   }
 
   /** Whether a player's stream may stay open (the heartbeat asks; a link revoked or expired meanwhile ends it). */
-  streamAlive(capability: string | undefined): boolean {
+  async streamAlive(capability: string | undefined): Promise<boolean> {
     try {
-      this.playerOf(capability);
+      await this.playerOf(capability);
       return true;
     } catch {
       return false;
     }
   }
 
-  private closeStreams(playerId: string, why: 'revoked' | 'expired'): void {
-    for (const s of [...this.streams]) if (s.playerId === playerId) this.endStream(s, why);
-  }
-
   /** Everything up to `through` is applied and saved on the player's side; the link lives on. */
-  ack(capability: string | undefined, through: unknown): void {
-    const p = this.playerOf(capability);
+  async ack(capability: string | undefined, through: unknown): Promise<void> {
+    const p = await this.playerOf(capability);
     if (
       typeof through !== 'number' ||
       !Number.isInteger(through) ||
       through < 0 ||
-      through > this.store.lastSequence(p.playerId)
+      through > (await this.store.lastSequence(this.tenantId, p.playerId))
     )
       throw new BridgeError(400, 'shape', '`through` is a sequence the Bridge sent');
-    this.store.write({ t: 'ack', playerId: p.playerId, through });
-    this.store.write({ t: 'player', p: { ...p, capabilityExpiresAt: this.now() + this.limits.capabilityMs } });
+    await this.store.acknowledge({ tenantId: this.tenantId, playerId: p.playerId, sequence: through });
+    await this.store.putPlayer(this.tenantId, { ...p, capabilityExpiresAt: this.now() + this.limits.capabilityMs });
+    this.telemetry.count('acks', { tenant: this.tenantId });
   }
 
   // ------------------------------------------------------------------ the operator
@@ -438,37 +510,54 @@ export class Bridge {
   }
 
   /** Revokes a player's link, or a connector's token (one of its revocation ids). */
-  revoke(adminToken: string | undefined, what: { playerId?: string; tokenId?: string }): void {
+  async revoke(adminToken: string | undefined, what: { playerId?: string; tokenId?: string }): Promise<void> {
     this.admin(adminToken);
     if (what.playerId) {
-      const p = this.store.player(what.playerId);
+      const p = await this.store.player(this.tenantId, what.playerId);
       if (!p) throw new BridgeError(404, 'player', 'unknown player');
-      this.store.write({ t: 'player', p: { ...p, revoked: true } });
-      this.closeStreams(p.playerId, 'revoked');
+      await this.store.putPlayer(this.tenantId, { ...p, revoked: true });
+      this.streams.endAll(p.playerId, 'revoked');
       this.log({ event: 'player.revoked', playerId: p.playerId });
     }
     if (what.tokenId) {
       if (!/^[a-f0-9]{16,256}$/.test(what.tokenId)) throw new BridgeError(400, 'shape', 'a revocation id is hex');
-      this.store.write({ t: 'revoke-token', id: what.tokenId });
+      await this.store.revokeToken(this.tenantId, what.tokenId);
       this.log({ event: 'token.revoked' });
     }
   }
 
   /** Deletes everything the Bridge holds about a player (docs/en/REALITY-OPS.md, "Deleting a player's data"). */
-  forgetPlayer(adminToken: string | undefined, playerId: string): void {
+  async forgetPlayer(adminToken: string | undefined, playerId: string): Promise<void> {
     this.admin(adminToken);
-    if (!this.store.player(playerId)) throw new BridgeError(404, 'player', 'unknown player');
-    this.store.write({ t: 'forget', playerId });
-    this.closeStreams(playerId, 'revoked');
+    if (!(await this.store.player(this.tenantId, playerId))) throw new BridgeError(404, 'player', 'unknown player');
+    await this.store.forgetPlayer(this.tenantId, playerId);
+    this.streams.endAll(playerId, 'revoked');
     this.log({ event: 'player.forgotten' });
   }
 
   /** What the Bridge holds about a player: the link (without its secret) and the journal. */
-  exportPlayer(adminToken: string | undefined, playerId: string) {
+  async exportPlayer(adminToken: string | undefined, playerId: string) {
     this.admin(adminToken);
-    const p = this.store.player(playerId);
+    const p = await this.store.player(this.tenantId, playerId);
     if (!p) throw new BridgeError(404, 'player', 'unknown player');
     const { capabilityHash: _, ...link } = p;
-    return { player: link, acked: this.store.acked(playerId), signals: this.store.signals(playerId, 0) };
+    const signals: StoredSignal[] = [];
+    for (let after = 0; ; ) {
+      const rows = await this.store.listAfter({ tenantId: this.tenantId, playerId, after, limit: 1000 });
+      signals.push(...rows);
+      if (rows.length < 1000) break;
+      after = rows.at(-1)?.sequence ?? after;
+    }
+    return {
+      player: link,
+      acked: await this.store.acked(this.tenantId, playerId),
+      signals: signals.map(({ tenantId: _t, ...e }) => e),
+    };
+  }
+
+  /** Whether the store answers (`/readyz`). */
+  async ready(): Promise<{ store: string; streams: number }> {
+    await this.store.ping();
+    return { store: this.store.kind, streams: this.streams.size };
   }
 }
