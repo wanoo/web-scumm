@@ -50,18 +50,39 @@ LOG, les ADR et la doc utilisateur restent en anglais (+ français pour `docs/fr
 
 ## Lot 0 (début de 4.1.9) : la cadence elle-même
 
-Avant le premier connecteur, une PR `feature/419-cadence` :
+Mesuré le 7 octobre 2026 (analyse de l'utilisateur sur les runs GitHub) : 20 jobs par PR, 17 checks requis, une CI verte en
+11–19 min pour 59–61 runner-minutes, 26 annulations sur les 50 derniers runs, le job `mutation` tenant un run une
+heure. Hors mutation, le job le plus long est `reference (chromium)` (~11 min) : une boucle PR sous dix minutes est
+réaliste. Le lot 0 met la CI en **trois niveaux** et supprime les conflits entre branches :
 
-- **Fragments de CHANGELOG et de LOG** : chaque branche écrit `changes/<branche>.md` (une section `### Fixed|Changes|
-  Breaking` + le texte) et `changes/<branche>.log.md` (le corps de l'entrée LOG, sans numéro) ; `npm run changes --
-  --assemble` (nouveau script `tools/changes.ts`) les insère dans `CHANGELOG.md` `Unreleased` et numérote les entrées
-  LOG dans l'ordre des merges (date du merge), à la release ou à la demande ; un test vérifie qu'une PR qui touche
-  `src/`, `bridge/` ou `tools/` a un fragment. Plus de conflit entre branches ouvertes.
-- **Mutation en deux jobs** : `mutation (core)` et `mutation (reality)` en matrice (le ruleset ne requiert pas `mutation`
-  par son nom : `gh api repos/wanoo/web-scumm/rulesets/24580261`), chacun son `inputHash` et son cache ; ~25 min au
-  lieu de 50.
-- **Accélération de release** (lot séparé annoncé par le programme §4) : `release.yml` déclenché par le push du tag,
-  vérifiant par l'API que le run `ci` de `main` sur ce SHA exact est `success` (sinon refus), au lieu de refaire la CI
-  sur le tag (−12 min) ; un job `build` partagé par les lignes e2e (−3 min). Le fast-forward reste soumis à la charte
-  et au ruleset (décision de l'utilisateur, pas de l'agent).
-- Mesure attendue : merge → release publiée ≈ 25 min au lieu de 45–50.
+1. **Fragments de CHANGELOG et de LOG** (fait : PR #39, `changes/README.md`, `npm run changes -- --check|--assemble`).
+2. **Mutation hors du chemin PR** (fait dans PR #32 : `main`, nuit, `release-check` avec le rapport en cache, et une PR
+   étiquetée `full-ci` seulement).
+3. **Niveau « PR rapide »** (un job Node 22, verdict en 5–8 min) : format, lint, knip, types ; `test:coverage` une
+   seule fois (plus de `test:node` séparé) ; `build:game` (pas `build`, qui relance `check` et la suite) ; validate,
+   solve, lint de contenu, baseline ; **ratchet de couverture en avertissement** (strict la nuit et à la release) ;
+   `audit:deps` seulement si `package-lock.json` change ; un job Chromium ciblé si moteur, jeu, rendu ou scripts e2e
+   ont changé. Supprimer les doubles exécutions `quality → build → check` et `test:node → coverage`, et les
+   `npm ci` + Playwright + build répétés par chaque ligne e2e (un job `build` partagé, artefact `dist/`).
+4. **Niveau « gate complet »** (merge queue si disponible, sinon push sur `main`, interdiction de taguer tant qu'il
+   n'est pas vert) : e2e regroupés **par navigateur** (Chromium : full + clavier + fr + canvas ; WebKit : generic +
+   clavier ; référence Chromium et WebKit ; Reality ; PWA ; packaging ; migration ; Windows) avec
+   `continue-on-error` par étape et un récapitulatif en fin de job, pour ne pas masquer un second défaut derrière le
+   premier.
+5. **Niveau « nuit / release »** : mutation, corpus, preuves lourdes, audits stricts, ratchet strict.
+6. **Sélection par chemins** : un job `plan` (script versionné et testé, `tools/ci-plan.ts`, pas d'action tierce)
+   classe le diff : `docs/**` → liens et format ; `bridge/**`, `games/signals/**` → Reality ; sauvegardes, migrations,
+   schémas → `upgrade` ; template, packaging, exports → `second-game`, `fresh-install` ; rendu, DOM, Canvas → visuel
+   et performance ; audio → musique ; PWA, Vite, service worker → matrice PWA ; moteur partagé → gate complet.
+7. **Un seul check requis, `pr-gate`** : un job agrégateur (`if: always()`) vérifie que tous les contrôles prévus par
+   le plan ont réussi ; le ruleset remplace ses 17 noms par celui-là (geste de l'utilisateur, après quelques runs
+   verts de `pr-gate`). Un échec rapide du niveau 1 annule les niveaux suivants (`needs:` + annulation).
+8. **Accélération de la release** (lot séparé annoncé par le programme §4) : `release.yml` déclenché par le push du
+   tag, vérifiant par l'API que le run `ci` de `main` sur ce SHA exact est `success` (sinon refus) au lieu de refaire
+   la CI sur le tag ; **la garantie « le tag est le commit testé » reste** (SHA strict, workflow attendu, conclusion,
+   branche d'origine, pas de release existante, provenance de l'artefact). Le fast-forward reste soumis à la charte et
+   au ruleset.
+- Cibles : PR ordinaire sous 8 min, échec signalé sous 5 min, moins de 15 runner-minutes par itération, suite
+  exhaustive une seule fois avant intégration ou release ; merge → release publiée ≈ 25 min au lieu de 45–50.
+- Ordre sûr : 1 et 2 (faits) → 3 (dédoublonner, ratchet en avertissement) → 6 et 7 (`plan`, `pr-gate` en observation)
+  → ruleset → 4 (gate complet en merge queue ou sur `main`) → 8.
