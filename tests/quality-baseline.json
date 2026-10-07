@@ -309,11 +309,11 @@
   }
  },
  "surface": {
-  "api": "38af9c35409038da"
+  "api": "f5daba9c313e6a1f"
  },
  "tests": {
-  "files": 127,
-  "declarations": 954
+  "files": 138,
+  "declarations": 1014
  },
  "bundle": {
   "initialJsKB": 120
