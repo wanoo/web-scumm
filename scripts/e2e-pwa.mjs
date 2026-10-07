@@ -107,6 +107,7 @@ const context = await browser.newContext({ serviceWorkers: 'allow' });
 const page = await context.newPage();
 const errors = [];
 let second = null; // the second build, published by the scenarios; removed in the finally
+const cachedNote = [];
 let closing = false; // the checks are over: what the teardown interrupts (a fetch the worker had in hand) is not a finding
 page.on('pageerror', (e) => void (closing || errors.push(e.message)));
 page.on('console', (m) => {
@@ -232,6 +233,11 @@ try {
       await page.evaluate(async () => {
         for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
         for (const k of await caches.keys()) await caches.delete(k);
+        // The worker's own bookkeeping goes with its caches (what clearing a site's data does); the saves stay.
+        await new Promise((r) => {
+          const req = indexedDB.deleteDatabase('workbox-expiration');
+          req.onsuccess = req.onerror = req.onblocked = () => r();
+        });
       });
       await page.reload({ waitUntil: 'networkidle' });
       await page.evaluate(async () => {
@@ -295,6 +301,9 @@ try {
     throw e;
   }
   await page.locator('#app').waitFor({ state: 'attached' });
+  // Every request of the offline title (the cat's frames, the fonts) is answered before the checks: an image the worker
+  // cannot serve offline is then a reported error, not a race with the teardown.
+  await page.waitForLoadState('networkidle');
   const title = await page.title();
   if (urls) {
     // Every file of the plan, from the cache, offline: images, effects, voices, music, videos.
@@ -326,6 +335,15 @@ try {
     );
   } else console.log(`pwa: ${name} installed and opened offline (${title})`);
 } finally {
+  // Before the teardown: for each "Failed to load <url>" the browser reported, whether that url is in a cache.
+  for (const [i, e] of errors.entries()) {
+    const m = /Failed to load ['‘]([^'’]+)['’]/.exec(e);
+    if (!m) continue;
+    const u = new URL(m[1]).pathname + new URL(m[1]).search;
+    cachedNote[i] = await page
+      .evaluate(async (x) => ((await caches.match(x)) ? 'in the cache' : 'not in any cache'), u)
+      .catch(() => 'cache unreadable');
+  }
   closing = true;
   await context.setOffline(false).catch(() => {});
   await browser.close();
@@ -333,6 +351,7 @@ try {
   if (second) rmSync(second, { recursive: true, force: true });
 }
 if (errors.length) {
-  console.error(errors.map((e) => `browser: ${e}`).join('\n'));
+  // A load the worker refused offline: say whether the file was in the cache (the worker's fault) or not (the plan's).
+  console.error(errors.map((e, i) => `browser: ${e}${cachedNote[i] ? ` (${cachedNote[i]})` : ''}`).join('\n'));
   process.exit(1);
 }
