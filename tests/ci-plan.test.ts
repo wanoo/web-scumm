@@ -149,6 +149,7 @@ describe('ci.yml and the plan', () => {
       'node-24',
       'reality-xcheck',
       'bridge-postgres',
+      'connectors',
       'reality',
       'e2e',
       'reference',

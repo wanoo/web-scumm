@@ -12,5 +12,6 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0005](0005-indexeddb-read-back.md) | A save is read back before it counts |
 | [0006](0006-double-tap-default-verb.md) | A double tap acts with the verb a player means |
 | [0007](0007-biscuit-and-signed-events.md) | Biscuit authorises a connector; a signature attests an event (4.1.1) |
+| [0008](0008-connector-sdk.md) | A connector is a process of its own, behind one small SDK (4.1.9) |
 | [0009](0009-reality-store.md) | The Bridge keeps its state behind an asynchronous `RealityStore` (4.1.10) |
 | [0010](0010-signal-v2.md) | `SignalV2`: a signed signal names the context it was signed for (4.1.10) |

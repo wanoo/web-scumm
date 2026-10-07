@@ -52,11 +52,12 @@ opens no browser, no Windows runner and no Node 24 (`CONTRIBUTING.md`, "What CI 
 | Player, screen reader | axe-core on every screen (not a WCAG claim) | a VoiceOver or NVDA pass |
 | Firefox | the PWA only: install, update, reinstall, offline (`npm run e2e:pwa`, the `pwa-firefox` job); its worker's occasional refusal of one cached image offline is reported by the job, not counted | Firefox offline on a real machine; nothing else claimed |
 | Node | 22.12 or newer: 22 and 24 on Ubuntu; macOS for the maintainer's daily use | — |
-| Windows | a `windows-latest` job (4.1.8; on a pull request, when code changed): `doctor`, the type checks, the unit suite but six files that assume POSIX (file modes, `/` in paths; named in `ci.yml`), `build`, the production server answering | `npm run dev` and the Studio on Windows; the six test files, ported |
+| Windows | a `windows-latest` job (4.1.8; on a pull request, when code changed): `doctor`, the type checks, the unit suite but six files that assume POSIX (file modes, `/` in paths; named in `ci.yml`) and, since 4.1.9, the Telnet and SSH tests, `build`, the production server answering | `npm run dev` and the Studio on Windows; the six test files, ported |
 | Python | optional: the art tools and the audio pipeline, Pillow, NumPy, SciPy pinned in `requirements.txt` | — |
 | Reality Bridge | Node 22.12+, Chromium and WebKit e2e, a Rust cross-check of the protocol (`SignalV2` included) | a Bridge behind HTTPS with a real connector |
 | Bridge, `local` profile (4.1.10) | SQLite through `node:sqlite` (Node 22.13+): the store contract, tenants crossed in property tests, three processes on one file with one killed during 1 000 proposals, backup and restore rehearsed; a load run of 50 000 proposals every night | a long-running install on a real machine |
 | Bridge, `distributed` profile (4.1.10, `experimental`) | Postgres 16 in CI (`bridge-postgres`): the same contract, tenants and fan-out between instances; the nightly load run | a real deployment: until one, `experimental` |
+| Connectors (4.1.9), **experimental** (D19) | email (signed webhook, IMAP), Telnet, SSH, Open Badges 2 and 3: the same contract on all four, abuse and fuzz tests, a run under `--disallow-code-generation-from-strings`, the sample chapter's replays; Telnet and SSH tests not on Windows yet | a real email provider, a real badge from a real issuer, SSH and Telnet exposed in a controlled environment |
 ## Deprecation
 
 A name or an option to be removed is first **deprecated** in a minor: marked `@deprecated` in its type (editors show

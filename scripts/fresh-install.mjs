@@ -173,8 +173,30 @@ try {
   }
 }
 
+// The connectors (4.1.9): their tarball installed on its own, without native code (no optional dependency, no install
+// script: ssh2 runs in pure JavaScript), then `web-scumm-connector --help` from the installed package, which must run
+// no TypeScript and no tsx.
+console.log('\n▶ the connectors from their tarball');
+const connectorsTgz = join(base, 'pack', `web-scumm-connectors-${version}.tgz`);
+const operator = join(base, 'operator');
+mkdirSync(operator, { recursive: true });
+writeFileSync(join(operator, 'package.json'), '{ "name": "operator", "private": true }\n');
+step(
+  'connectors: install',
+  'npm',
+  ['install', '--omit=optional', '--ignore-scripts', '--no-audit', '--no-fund', connectorsTgz],
+  operator,
+);
+const help = execFileSync('npx', ['web-scumm-connector', '--help'], { cwd: operator, encoding: 'utf8' });
+const runMjs = readFileSync(join(operator, 'node_modules', 'web-scumm-connectors', 'src', 'run.mjs'), 'utf8');
+if (!help.includes('usage: web-scumm-connector') || runMjs.includes('tsx/esm/api')) {
+  console.error('✖ web-scumm-connector did not run from its installed package');
+  process.exit(1);
+}
+console.log('✔  web-scumm-connector answers from the installed package');
+
 if (!args.includes('--keep') && !args.some((a) => a.startsWith('--dir=')))
   rmSync(base, { recursive: true, force: true });
 console.log(
-  `\n✔  fresh install: web-scumm ${version} packed, a game created, verified, built and played outside the repository; the Bridge installed and serving`,
+  `\n✔  fresh install: web-scumm ${version} packed, a game created, verified, built and played outside the repository; the Bridge installed and serving; the connectors installed and answering`,
 );

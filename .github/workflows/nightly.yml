@@ -27,6 +27,22 @@ jobs:
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
       - run: npm run test:heavy
+  # The connectors' fuzz harness (4.1.9, tools/fuzz-connectors.ts): seeded mutations for a minute per
+  # connector, a new seed each night (the run number). Reported, not gating, until it has been green two nights in a
+  # row (plan 4.1.9 §4 branch 6); then `continue-on-error` goes.
+  fuzz-connectors:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: node --expose-gc --import tsx tools/fuzz-connectors.ts --cases=1000000 --seconds=60 --seed=${{ github.run_number }}
   # Four shards of the seeds, one per job (3.7): the corpus is parallel by seed, the jobs run side by side.
   corpus:
     runs-on: ubuntu-24.04

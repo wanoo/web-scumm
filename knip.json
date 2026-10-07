@@ -6,12 +6,17 @@
     "src/engine/tools/solve-worker.ts",
     "bridge/bin.mjs",
     "bridge/src/cli.ts",
+    "connectors/src/sdk.ts",
+    "connectors/src/run.ts",
+    "connectors/src/email/mime-worker.ts",
+    "connectors/src/email/mime-worker.boot.mjs",
     "cli/*.mjs",
     "scripts/*.mjs",
     "scripts/*.ts",
     "tools/*.ts",
     "tools/studio/*.ts",
     "tests/**/*.test.ts",
+    "tests/fixtures/connectors/no-eval-run.ts",
     "tests/fixtures/**/index.ts",
     "games/*/index.ts",
     "games/*/e2e.mjs",
@@ -22,6 +27,7 @@
   "project": [
     "src/**/*.ts",
     "bridge/src/**/*.ts",
+    "connectors/src/**/*.ts",
     "cli/**/*.mjs",
     "scripts/**",
     "tools/**/*.ts",
@@ -35,6 +41,8 @@
   ],
   "ignoreDependencies": [
     "@tweakpane/core",
+    "cpu-features",
+    "nan",
     "pg"
   ],
   "ignoreBinaries": [
