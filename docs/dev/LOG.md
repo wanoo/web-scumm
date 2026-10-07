@@ -2429,32 +2429,6 @@ Platform"; human gates reported, not blocking (D12).
 
 → next: Claude · `feature/418-pwa-e2e` (caches named and versioned, the update that never reloads before a durable save, the three levels of the e2e)
 
-## #112 · 2026-10-07 · Claude · proposal · `feature/418-pwa-e2e`: the PWA's three levels, two defects found
-
-- `scripts/e2e-pwa.mjs` serves the build itself (`--serve=dist`, a static server whose root can switch and whose
-  paths can be made to fail) and gains three scenarios: `--update` (a second build whose worker differs by a
-  comment; `registration.update()`, the banner, its button, the `load` that follows, the worker's bytes differ, the
-  save kept), `--interrupted` (`/sw.js` fails with 500 until restored: no banner, the registration's worker still
-  active, the game runs), `--reinstall` (registrations and caches removed, reload, warm-up complete again, the save
-  kept). Measured on this machine: Chromium, Firefox and WebKit pass the three; WebKit's offline navigation stays the
-  documented skip. CI: Chromium full and WebKit generic rows run them, a `pwa-firefox` job runs them in Firefox (not
-  in the ruleset: the user adds it).
-- Two defects the scenarios found, both fixed with a test. (1) The banner's "update now" called `Engine.save()` on
-  the title screen of a game with a save: no live state, `beforeSave` threw on `undefined.music`, the update was
-  reported as a storage failure and never activated. `offerUpdate` saves a game in progress only, waits for the store
-  to be idle, activates (`tests/dom/update-offer.test.ts`, four tests). (2) The warm-up fetches through the worker,
-  and a first visit's page was not controlled by it (`clientsClaim: false`): Firefox warmed 218 files into nothing.
-  `clientsClaim: true` (the first worker claims; an update still waits for the banner, `skipWaiting` stays off) and
-  `warmAll` waits for `controllerchange`, five seconds at most, when a registration exists without a controller.
-- The first scenario run also hung: the harness awaited `newGame()`, which resolves after the prologue's taps. The
-  harness starts the game and waits for the state instead; a lesson for the other e2e scripts (none awaits it).
-- Not done, said as such: the cache names are Workbox's (`workbox-precache`, the five runtime caches); no rename or
-  explicit versioning beyond the content hashes and `cleanupOutdatedCaches` (programme §4.5 asked "named and
-  versioned": the names are stable and documented in MIGRATION-4.1.8, the versions are the hashes; left as is). The
-  4.1.7 → 4.1.8 upgrade in a browser is the same path as `--update` with a different first build; it is checked by a
-  person at the release (the pass sheet), not by this script.
-
-→ next: Claude · `refactor/418-studio-split` (storyboard, assets, rooms into model / IO / view)
 ## #110 · 2026-10-07 · Claude · proposal · `feature/418-honest-release`: the gates that predict the release
 
 - `doctor --release` (programme §4.7): Python, its modules, ffmpeg, Firefox and WebKit required; `release-check`
@@ -2502,3 +2476,30 @@ Platform"; human gates reported, not blocking (D12).
   (SUPPORT's matrix says so); the runner's Python is not asked to rebuild the assets there.
 
 → next: Claude · `feature/418-pwa-e2e`
+
+## #112 · 2026-10-07 · Claude · proposal · `feature/418-pwa-e2e`: the PWA's three levels, two defects found
+
+- `scripts/e2e-pwa.mjs` serves the build itself (`--serve=dist`, a static server whose root can switch and whose
+  paths can be made to fail) and gains three scenarios: `--update` (a second build whose worker differs by a
+  comment; `registration.update()`, the banner, its button, the `load` that follows, the worker's bytes differ, the
+  save kept), `--interrupted` (`/sw.js` fails with 500 until restored: no banner, the registration's worker still
+  active, the game runs), `--reinstall` (registrations and caches removed, reload, warm-up complete again, the save
+  kept). Measured on this machine: Chromium, Firefox and WebKit pass the three; WebKit's offline navigation stays the
+  documented skip. CI: Chromium full and WebKit generic rows run them, a `pwa-firefox` job runs them in Firefox (not
+  in the ruleset: the user adds it).
+- Two defects the scenarios found, both fixed with a test. (1) The banner's "update now" called `Engine.save()` on
+  the title screen of a game with a save: no live state, `beforeSave` threw on `undefined.music`, the update was
+  reported as a storage failure and never activated. `offerUpdate` saves a game in progress only, waits for the store
+  to be idle, activates (`tests/dom/update-offer.test.ts`, four tests). (2) The warm-up fetches through the worker,
+  and a first visit's page was not controlled by it (`clientsClaim: false`): Firefox warmed 218 files into nothing.
+  `clientsClaim: true` (the first worker claims; an update still waits for the banner, `skipWaiting` stays off) and
+  `warmAll` waits for `controllerchange`, five seconds at most, when a registration exists without a controller.
+- The first scenario run also hung: the harness awaited `newGame()`, which resolves after the prologue's taps. The
+  harness starts the game and waits for the state instead; a lesson for the other e2e scripts (none awaits it).
+- Not done, said as such: the cache names are Workbox's (`workbox-precache`, the five runtime caches); no rename or
+  explicit versioning beyond the content hashes and `cleanupOutdatedCaches` (programme §4.5 asked "named and
+  versioned": the names are stable and documented in MIGRATION-4.1.8, the versions are the hashes; left as is). The
+  4.1.7 → 4.1.8 upgrade in a browser is the same path as `--update` with a different first build; it is checked by a
+  person at the release (the pass sheet), not by this script.
+
+→ next: Claude · `refactor/418-studio-split` (storyboard, assets, rooms into model / IO / view)
