@@ -30,6 +30,7 @@
     "e2e:music": "node scripts/e2e-music.mjs",
     "e2e:taps": "node scripts/e2e-taps.mjs",
     "e2e:reality": "node scripts/e2e-reality.mjs",
+    "e2e:canonical": "node scripts/e2e-canonical.mjs",
     "release-check": "npm run doctor -- --release && npm run quality && npm run build && npm run test:coverage && npx tsx tools/coverage-ratchet.ts --strict && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && npm run test:mutation:core -- --set=all && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high",
     "ship": "node tools/release/ship.mjs",
     "e2e": "node scripts/e2e.mjs",
