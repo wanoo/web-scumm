@@ -160,7 +160,7 @@ Every page also exists in French under `docs/fr/`, and a test keeps the two in s
 
 Current release: [v4.1.12 "Language"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.12), the fifth of the 4.1.8
 → 4.1.15 programme: the game's logic as plain data (`GameIR`), a fingerprint in four hashes the build seals and the
-pause menu shows, one canonical text per value compared in three browsers, objectives and a quest journal, the
+pause menu shows, one canonical text per value (a script compares it in three browsers, not yet in CI), objectives and a quest journal, the
 Studio's forms and the DSL's reference generated from the schemas, the DSL stabilised. On 4.1.11's scene frame and
 semantic journal, 4.1.10's durable Bridge, 4.1.9's connectors and 4.1.8's foundation.
 From 4.1.1 to 4.1.7 every release added only what was optional, and a game written against one ran on the next;

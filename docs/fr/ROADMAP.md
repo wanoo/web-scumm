@@ -610,7 +610,7 @@ SHA-256 calculés avec WebCrypto : `logic`, `trustedExtensions` (le code du jeu,
 `presentation`, `engine` ; une règle changée ne bouge que `logic`, un décor que `presentation`. `canonicalJson` (NFC,
 clés triées, pas de `-0`, grands entiers en chaînes décimales, tout ce qui perd refusé) est une fonction unique pour
 l'empreinte, le cache de preuves et, dès la 4.1.14, l'enveloppe speedrun, tenue à cinquante valeurs limites sous Node
-et comparée dans Chromium, WebKit et Firefox (`e2e:canonical`). Les objectifs (ADR 0014) sont la seule primitive
+; `npm run e2e:canonical` les compare dans Chromium, WebKit et Firefox, écrit dans ce lot et pas encore en CI. Les objectifs (ADR 0014) sont la seule primitive
 admise : `objectives` dans un jeu, le journal de quêtes du menu pause, `objectiveCompleted` dans le journal sémantique
 une fois et jamais plus, `npm run solve -- --goal=100%`, les refus du validateur ; chaque autre candidate du programme
 est refusée avec sa preuve dans `docs/dev/DSL-STABILITY.md`. Le Studio génère ses formulaires depuis les schémas et

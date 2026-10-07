@@ -621,7 +621,7 @@ compiled game, the IR is a projection. The fingerprint is four SHA-256 computed 
 `trustedExtensions` (the game's code, hashed by the build into `site.json`), `presentation`, `engine`; a rule changed
 moves `logic` only, a decor `presentation` only. `canonicalJson` (NFC, sorted keys, no `-0`, big integers as decimal
 strings, anything lossy refused) is one function for the fingerprint, the proof cache and, from 4.1.14, the speedrun
-envelope, held to fifty edge values in Node and compared in Chromium, WebKit and Firefox (`e2e:canonical`). Objectives
+envelope, held to fifty edge values in Node; `npm run e2e:canonical` compares them in Chromium, WebKit and Firefox, written in this lot and not yet in CI. Objectives
 (ADR 0014) are the one primitive admitted: `objectives` in a game, the pause menu's quest journal,
 `objectiveCompleted` in the semantic journal once and never again, `npm run solve -- --goal=100%`, the validator's
 refusals; every other candidate of the programme is refused with its proof in `docs/dev/DSL-STABILITY.md`. The Studio

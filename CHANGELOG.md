@@ -7,7 +7,7 @@
 "Language" (LOG #128): the programme's fifth release. The game's logic as plain data (`GameIR`, deterministic, with
 the file and line that writes each id), a fingerprint in four SHA-256 (logic, trusted extensions, presentation,
 engine) that the pause menu shows and the build seals, one canonical text per value (`canonicalJson`, held to fifty
-edge values in Node and compared in three browsers), objectives and the quest journal (the one primitive admitted,
+edge values in Node, a script written to compare them in three browsers, not yet in CI), objectives and the quest journal (the one primitive admitted,
 with its ADR; every other candidate refused with its proof), forms generated from the schemas in the Studio, the DSL's
 reference generated from them, and the DSL stabilised (D22) until Remix freezes it. Measured against 4.1.11 in
 `docs/dev/baselines/4.1.12.md`; what this release does not do is in the LOG and the passes sheet
@@ -44,8 +44,9 @@ reference generated from them, and the DSL stabilised (D22) until Remix freezes 
   (`ui.fingerprint`, "Build" by default); a build writes `site.json` with the trusted extensions' hash and the
   engine's version, which `npm run verify:dist` expects.
 - **One canonical text per value (4.1.12).** `canonicalJson` (NFC, sorted keys, no `-0`, big integers as decimal
-  strings, anything lossy refused) is held to fifty edge values in Node, and `npm run e2e:canonical` compares them in
-  Chromium, WebKit and Firefox. The solver's proof cache is keyed by it: the entries of earlier versions are not reused.
+  strings, anything lossy refused) is held to fifty edge values in Node; `npm run e2e:canonical` compares them in
+  Chromium, WebKit and Firefox (written in this lot, not yet in CI). The solver's proof cache is keyed by it: the
+  entries of earlier versions are not reused.
 - **The Studio writes objectives (4.1.12).** Their form is generated from their schema (each field with its
   description); a value is checked before it is sent, and the validator's errors come back named by file, id and
   field; the diff is previewed before the write and Undo takes it back. MCP's `set_value` writes them in the game file
@@ -60,7 +61,7 @@ reference generated from them, and the DSL stabilised (D22) until Remix freezes 
   `fingerprintGame`, `presentationOf`, `hashSources`, `sha256Hex`, `shortFingerprint`, `GameFingerprint`. MCP: `get_ir`.
   `Engine.objectives`, `App.fingerprint()`, `App.objectivesMenu()`, `BootOptions.build` and two `ui` keys
   (`fingerprint`, `objectives`) are new members.
-- **The first visit's JavaScript goes from 120 to 124 KB gzipped** (4.1.12): the fingerprint (WebCrypto), the
+- **The first visit's JavaScript goes from 122 to 124 KB gzipped** (4.1.12): the fingerprint (WebCrypto), the
   objectives and the quest journal are in the player's main chunk; the budget (`initialJsKB` 140) is untouched and the
   baseline moved on purpose.
 - **The validator's migration checks moved to `tools/validate/migrations.ts` (4.1.12)**, beside the objectives'

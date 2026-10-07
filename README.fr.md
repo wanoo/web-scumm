@@ -166,7 +166,7 @@ journal du travail.
 
 Release actuelle : [v4.1.12 « Language »](https://github.com/wanoo/web-scumm/releases/tag/v4.1.12), la cinquième du
 programme 4.1.8 → 4.1.15 : la logique du jeu en données (`GameIR`), une empreinte en quatre hachages que le build
-scelle et que le menu pause affiche, un texte canonique par valeur comparé dans trois navigateurs, des objectifs et un
+scelle et que le menu pause affiche, un texte canonique par valeur (un script le compare dans trois navigateurs, pas encore en CI), des objectifs et un
 journal de quêtes, les formulaires du Studio et la référence du DSL générés depuis les schémas, le DSL stabilisé. Sur
 la scène et le journal sémantique de la 4.1.11, le Bridge durable de la 4.1.10, les connecteurs de la 4.1.9 et la
 fondation de la 4.1.8. De la 4.1.1 à la 4.1.7 chaque

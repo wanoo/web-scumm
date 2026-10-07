@@ -59,7 +59,7 @@ the browser too). An id written by a helper function, not literally, has none, a
 rather than pointing at a wrong line.
 
 **Evidence.** `tests/canonical-json.test.ts` (50 edge values, the expected texts written out; `scripts/e2e-canonical.mjs`
-compares the same 50 in Chromium, WebKit and Firefox, run by CI's e2e gate), `tests/ir.test.ts` (determinism on
+compares the same 50 in Chromium, WebKit and Firefox; written in 4.1.12, not yet in CI), `tests/ir.test.ts` (determinism on
 `demo`, `reference`, `signals` and 50 generated games; the field table; provenance on the sample game),
 `tests/fingerprint.test.ts` (a rule changed moves `logic` only, a decor `presentation` only, a custom command's code
 `trustedExtensions` only; the Node and WebCrypto hashes agree).
