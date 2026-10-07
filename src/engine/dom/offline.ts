@@ -63,7 +63,8 @@ export interface OfflineStatus {
   done: number;
   total: number;
   failed: string[];
-  reason?: 'network' | 'save-data' | 'slow' | 'quota';
+  /** `worker`: the service worker never took control of the page, so nothing fetched would have been cached. */
+  reason?: 'network' | 'save-data' | 'slow' | 'quota' | 'worker';
   /** `navigator.storage.estimate()` when the browser gives it, in bytes. */
   usage?: number;
   quota?: number;

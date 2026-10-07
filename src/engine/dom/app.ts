@@ -186,6 +186,10 @@ export class App implements Presenter {
   saveError: string | null = null;
   /** @internal Read by the modules of dom/ (4.1.0). */
   warmedAll = false;
+  /** Set by boot when a service worker is registered: the warm-up waits for it to control the page (dom/update.ts). */
+  swExpected = false;
+  /** How long that wait may last before the warm-up is reported `skipped` (`reason: 'worker'`). */
+  swControlMs = 20_000;
   /** The asset graph of the game, built on the first warm-up. */
   /** @internal Read by the modules of dom/ (4.1.0). */
   assets?: AssetGraph;

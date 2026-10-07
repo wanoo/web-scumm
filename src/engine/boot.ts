@@ -195,6 +195,8 @@ export async function bootGame(o: BootOptions): Promise<App> {
     await startDev(app, { edit: q.get('edit'), checkpoint: q.get('at'), ...(o.dev?.options ?? {}) });
     return app;
   }
+  // Said before the title (whose warm-up starts at once): the warm-up waits for the worker's control (dom/update.ts).
+  if (o.sw && 'serviceWorker' in navigator) app.swExpected = true;
   await app.showTitle();
   if (o.sw && 'serviceWorker' in navigator) {
     const { registerSW } = await o.sw.register();
