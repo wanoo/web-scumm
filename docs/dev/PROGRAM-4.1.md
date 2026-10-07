@@ -1,7 +1,8 @@
 # The 4.1.8 → 4.1.15 programme, in one page
 
 The decisions live in `docs/dev/PLAN-4.1.8-4.1.15.md`, in French: that file is the source, this page is its English
-summary for a reader of the ROADMAP, the CHANGELOG or a pull request. Decided by the maintainer on 7 October 2026
+summary for a reader of the ROADMAP, the CHANGELOG or a pull request; `docs/dev/plans/<version>-<name>.md` is the
+execution sheet of each release (written at the end of 4.1.8). Decided by the maintainer on 7 October 2026
 (D18). Two things D18 records are not in the plan's text and come from the maintainer's review of it: the release
 candidates on the risky versions, and the second automated reading of every pull request. The plan the releases are
 run from, with the branches of each version, is the maintainer's; what each release changes is in the CHANGELOG and
@@ -21,7 +22,7 @@ series. A chosen break must be simpler to explain, easier to test and cheaper to
 
 | Version | Working name | Expected result |
 |---|---|---|
-| 4.1.8 | Foundation Reset | TypeScript 7, Vite 8, PWA 2; the Reality cursor fixed (P0, reproduced); mutation and coverage gates that block; `doctor --release` predicting `release-check`; only tracked files packed; the three biggest Studio tabs split |
+| 4.1.8 | Foundation Reset (shipped 7 October 2026) | TypeScript 7, Vite 8, PWA 2; the Reality cursor fixed (P0, reproduced); mutation and coverage gates that block; `doctor --release` predicting `release-check`; only tracked files packed; the three biggest Studio tabs split |
 | 4.1.9 | Gateways | email, SSH, Telnet and Open Badges connectors on one SDK, out of the game's process, with a threat model and fuzzing each; experimental until a real pass |
 | 4.1.10 | Constellation | a durable Bridge (SQLite locally, PostgreSQL distributed), stateless instances, tenants isolated, at-least-once delivery with idempotent application; `SignalV2` if the threat analysis asks |
 | 4.1.11 | Viewport | an immutable `SceneFrame` the renderer draws, intentions back; a semantic journal emitted by the core (room entered, item acquired, objective completed, ending reached) that the presentation subscribes to; the backend chosen after a measured prototype |

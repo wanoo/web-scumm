@@ -278,4 +278,13 @@ A 4.1.7 save loads unchanged. A project's `tsconfig.json` written by `create-web
 and non-relative `paths`, which TypeScript 7 refuses (TS5102, TS5090): `web-scumm migrate` rewrites it (the same
 configuration, said relative to the file; a comment the file had is not kept), `--check` says when it is due. The engine's type checks run on TypeScript 7
 (`npm run tsc`); a tool of yours that imports the compiler API (`import ts from 'typescript'`) finds no API in
-`typescript@7` and imports `@typescript/typescript6` instead until 7.1 (docs/dev/MIGRATION-4.1.8.md).
+`typescript@7` and imports `@typescript/typescript6` instead until 7.1 (docs/dev/MIGRATION-4.1.8.md). Vite 8 and
+Vitest 5 need Node 22.12 or newer. The service worker claims the page at its first activation (`clientsClaim`), so a
+first visit's warm-up fills the caches; an update still waits for the banner, after a durable save. Every name of
+`web-scumm/{content,player,minigames,testing,reality}` carries `@public` or `@extension` in `docs/en/API.md`: what
+`src/engine` exports without an entry re-exporting it is internal, and about eighty such exports were un-exported or
+removed (none of the five entries changed; `tests/api-surface.json` is identical). `npm run doctor -- --release`
+requires Python, its modules and ffmpeg; `npm run quality:baseline` writes the READMEs' three figures with the JSON,
+so a new test is followed by that command. A signal delivered and not acknowledged is delivered again from the
+durable cursor: a custom transport implementing `WorldSignalPort` keeps the acknowledged sequence, not the received
+one (`docs/en/REALITY.md`).

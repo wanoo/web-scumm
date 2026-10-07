@@ -595,12 +595,29 @@ off. Left for later, said as such: the API reference carries signatures and firs
 no link checker fetches external URLs. What came next was planned as 4.2.0 "Finale"; on 7 October 2026 the
 maintainer replaced it with the programme below (D18), and "Finale" became its last step, 4.2.0 "Stable World".
 
+## v4.1.8 "Foundation Reset" (shipped 7 October 2026): the foundation modernised, the gates made to block
+
+The first release of the programme below. The toolchain: TypeScript 7 native (the type checks in half a second, no
+`baseUrl`; `web-scumm migrate` rewrites an older project's tsconfig), Vite 8 on Rolldown (the sample game builds in
+half a second, the first visit at 120 KB gzipped), vite-plugin-pwa 2, Node 22.12. The P0: a signal handed to the game
+and not acknowledged was lost to its connection; the port keeps three cursors and asks again from the durable one
+(reproduced in polling by the maintainer, fixed with its reproduction as the test). The PWA proven in Chromium, WebKit
+and Firefox: install, update after a durable save, an update whose fetch fails, a reinstall; two defects found by those
+scenarios fixed (the update from the title screen, the warm-up before the worker's control). The release check predicts
+the release (`doctor --release`, tracked files only in the packages, the three archives installed, the coverage ratchet
+strict, the release verified after publication); the mutation gate keyed by its inputs on both sets, every survivor
+named; Windows in CI; `npm run ship` as the release chain. The Studio's three biggest files split into model, IO and
+views with 105 tests; every public export carries `@public` or `@extension` and a sentence; the READMEs' figures
+written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
+(`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
+
 ## The 4.1.8 → 4.1.15 programme (decided 7 October 2026, D18): finish the breaks before the contracts freeze
 
 No production game depends on web-scumm yet (the maintainer's own game stays on 3.1.0, D8): the saves, projects and
 public API of the 4.1 line are oracles of behaviour, not a park to preserve at any cost. The programme uses that window
 to finish the architecture breaks before 4.2 freezes the contracts. Its source is `docs/dev/PLAN-4.1.8-4.1.15.md`
-(French, the decisions); `docs/dev/PROGRAM-4.1.md` summarises it in English. Rules of every version: a fixture or a test
+(French, the decisions); `docs/dev/PROGRAM-4.1.md` summarises it in English; `docs/dev/plans/` holds one execution
+sheet per release (what exists, the decisions, the contracts, the branches in order with their tests first, the gates). Rules of every version: a fixture or a test
 that shows the need before the code; an ADR for every transversal contract; the core deterministic, the content
 declarative; every primitive reaches the runtime, the validator, the solver, the replay, the Studio, the MCP and the
 docs; never `proved`, `verified` or `delivered` when a budget was cut; bundle, memory, build, proof and coverage
@@ -609,7 +626,7 @@ release (D12); the next version opens only when the current one's blockers are c
 
 | Version | Working name | Expected result |
 |---|---|---|
-| 4.1.8 | **Foundation Reset** | TypeScript 7, Vite 8, PWA 2, the Reality cursor fixed (the port's local cursor moved before the acknowledgement: reproduced in polling), release checks that predict the release, a release candidate first |
+| 4.1.8 | **Foundation Reset** (shipped 7 October 2026) | TypeScript 7, Vite 8, PWA 2, the Reality cursor fixed (the port's local cursor moved before the acknowledgement: reproduced in polling), release checks that predict the release, a release candidate first |
 | 4.1.9 | **Gateways** | email, SSH, Telnet and Open Badges connectors on one SDK, out of the player, experimental until a real pass |
 | 4.1.10 | **Constellation** | a durable Bridge, replicated and isolated by tenant; the signal may become `SignalV2` if the threat analysis asks |
 | 4.1.11 | **Viewport** | a renderer separate from the game logic, behind an immutable `SceneFrame`; a semantic journal owned by the core |
