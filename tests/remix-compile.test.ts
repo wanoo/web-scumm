@@ -295,7 +295,7 @@ describe('a stored world is never regenerated', () => {
   it('a forged world with its own correct hash is refused: out of domain, incomplete, against a constraint, malformed', () => {
     const v = compileVariant(c, extensionManifest, encodeSeedCode(7));
     const rehash = (body: Record<string, unknown>) => {
-      const { hash: _h, ...rest } = body as typeof v;
+      const { hash: _h, ...rest } = body as unknown as typeof v;
       return { ...rest, hash: sha256HexSync(canonicalJson(rest)) };
     };
     expect(() => loadVariant(c, rehash({ ...v, assignments: { ...v.assignments, code: 99 } }))).toThrow(
