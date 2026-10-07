@@ -269,6 +269,7 @@ describe('replay(session) yields the same journal', () => {
         'itemLost',
         'flagChanged',
         'playerSwitched',
+        'objectiveCompleted',
         'saveMade',
         'endingReached',
       ]),

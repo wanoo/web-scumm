@@ -200,8 +200,10 @@ const gain: Handler<'gain'> = (eng, c) => {
 
 const lose: Handler<'lose'> = (eng, c) => {
   const s = eng.state;
-  if (s.inventory.includes(c.lose)) eng.journal.emit({ kind: 'itemLost', item: c.lose });
+  // The state first, then its event: a listener of the journal (objectives) reads the state after it.
+  const had = s.inventory.includes(c.lose);
   s.inventory = s.inventory.filter((x) => x !== c.lose);
+  if (had) eng.journal.emit({ kind: 'itemLost', item: c.lose });
   eng.ui.inventory(s.inventory, s.used);
   eng.onChange();
 };
@@ -216,13 +218,15 @@ const used: Handler<'used'> = (eng, c) => {
 
 const set: Handler<'set'> = (eng, c) => {
   const [k, v]: [Id, Value] = Array.isArray(c.set) ? c.set : [c.set, true];
-  if (eng.state.flags[k] !== v) eng.journal.emit({ kind: 'flagChanged', flag: k, value: v });
+  const changed = eng.state.flags[k] !== v;
   eng.state.flags[k] = v;
+  if (changed) eng.journal.emit({ kind: 'flagChanged', flag: k, value: v });
 };
 
 const unset: Handler<'unset'> = (eng, c) => {
-  if (eng.state.flags[c.unset] !== undefined) eng.journal.emit({ kind: 'flagChanged', flag: c.unset, value: null });
+  const was = eng.state.flags[c.unset] !== undefined;
   delete eng.state.flags[c.unset];
+  if (was) eng.journal.emit({ kind: 'flagChanged', flag: c.unset, value: null });
 };
 
 const inc: Handler<'inc'> = (eng, c) => {
@@ -440,6 +444,7 @@ const ending: Handler<'ending' | 'reveal'> = async (eng, c, ctx) => {
   // The sealed ending ends the game as `end` does: `state.done` is the one truth an e2e or a replay reads, the card
   // is only how it is shown.
   eng.state.done = true;
+  eng.objectives.check(); // the objectives the last action completed, before the ending
   eng.journal.emit({ kind: 'endingReached', ending: 'sealed' });
   eng.save();
   eng.journal.saved();
@@ -511,6 +516,7 @@ export const HANDLERS: Handlers = {
   reveal: ending,
   end: (eng) => {
     eng.state.done = true;
+    eng.objectives.check(); // the objectives the last action completed, before the ending
     eng.journal.emit({ kind: 'endingReached', ending: 'end' });
     eng.save();
     eng.journal.saved();

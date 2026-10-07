@@ -2,6 +2,7 @@
 // or, in demo mode, the browser backend (src/studio/api-browser.ts: a build-time snapshot plus edits in localStorage).
 // Types are shared with the server.
 import type { Layout } from '@engine/core/types';
+import type { GameIR } from '@engine/core/ir';
 import type {
   CoverageData,
   GraphData,
@@ -90,6 +91,8 @@ export interface Api {
   undo?(): Promise<{ ok: boolean; what?: string; reason?: string }>;
   redo?(): Promise<{ ok: boolean; what?: string; reason?: string }>;
   history?(): Promise<{ undo: string[]; redo: string[] }>;
+  /** 4.1.12: the game's intermediate representation, with the provenance of its ids on the dev server. */
+  ir?(): Promise<GameIR>;
   /** 3.4, dev server only: the voice production table. */
   voices?(lang?: string): Promise<VoicesData>;
   setVoice?(lang: string, id: string, patch: { status?: string; note?: string; actor?: string }): Promise<{ ok: true }>;
@@ -135,6 +138,7 @@ export const serverApi: Api = {
   assets: () => call<AssetsListing>('GET', 'assets'),
   setValue: (id: string, path: string, value: unknown, dry?: boolean) =>
     call<EditResult & { diff: string; dry?: true }>('PUT', `room/${id}/value`, { path, value, dry: dry || undefined }),
+  ir: () => call<GameIR>('GET', 'ir'),
   undo: () => call<{ ok: boolean; what?: string; reason?: string }>('POST', 'undo'),
   redo: () => call<{ ok: boolean; what?: string; reason?: string }>('POST', 'redo'),
   history: () => call<{ undo: string[]; redo: string[] }>('GET', 'history'),

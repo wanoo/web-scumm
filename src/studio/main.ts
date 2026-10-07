@@ -12,12 +12,13 @@ import { AssistantPanel } from './assistant';
 import { CheckTab } from './check';
 import { NotesStore, NotesTab, roomNotesBlock } from './notes';
 import { PlayTab } from './play';
+import { IrTab } from './ir-tab';
 import { RoomsTab } from './rooms';
 import { StoryboardTab } from './storyboard';
 import { download, h, toast } from './ui';
 import { must } from '../engine/core/must';
 
-type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'music' | 'check' | 'play' | 'notes';
+type TabId = 'rooms' | 'storyboard' | 'assets' | 'voices' | 'music' | 'check' | 'play' | 'language' | 'notes';
 const TABS: [TabId, string][] = [
   ['rooms', 'Rooms'],
   ['storyboard', 'Storyboard'],
@@ -26,6 +27,7 @@ const TABS: [TabId, string][] = [
   ['music', 'Music'],
   ['check', 'Check'],
   ['play', 'Play'],
+  ['language', 'Language'],
   ['notes', 'Notes'],
 ];
 
@@ -211,6 +213,7 @@ async function start() {
   const play = new PlayTab(info);
   const voices = new VoicesTab();
   const music = new MusicTab(info);
+  const language = new IrTab(info);
   const panes: Record<TabId, HTMLElement> = {
     rooms: rooms.el,
     storyboard: storyboard.el,
@@ -219,6 +222,7 @@ async function start() {
     music: music.el,
     check: check.el,
     play: play.el,
+    language: language.el,
     notes: notes.el,
   };
 
@@ -238,6 +242,7 @@ async function start() {
     if (t === 'assets') void assets.load();
     if (t === 'voices') void voices.load();
     if (t === 'music') music.load();
+    if (t === 'language') void language.load();
   };
   for (const [id, label] of TABS) {
     nav.append(

@@ -113,11 +113,15 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `Action` | `interface { verb, a, b }` | public | A player action: VERB a (with/to b). `a` can be an inventory item, `b` is always a target. |
 | `ActorDef` | `interface { defaultVerb, char, interactive, pose, facing, visible, … 1 more }` | public | A character standing in a room: which one, its pose and facing, and when it shows. |
 | `AudioDef` | `interface { music, sfx, voices, voicesByLang, scores, maxDecodedMB, … 1 more }` | public | The game's music, sounds and voice clips by id, its scores in stems and the transitions between them. |
+| `canonicalJson` | `(v: unknown): string` | public | The canonical JSON text of plain data (objects, arrays, strings, numbers, booleans, null, bigints): NFC strings, sorted keys, no `-0`, big i |
 | `CharacterDef` | `interface { name, description, color, height, sprites, portrait, … 11 more }` | public | A character: its name, dialogue colour, poses, mouths and portrait, its kinds, and the variants its state selects. |
 | `Choice` | `interface { id, text, if, once, do }` | public | One answer the player may pick in a `{ choice }` command: its text, when it is offered, what it runs. |
 | `Cmd` | `type Cmd = union of 56` | public | A command. A plain string = the hero says this line. Command lists run in order, each one waiting for the previous one to finish. |
 | `CompiledGame` | `type CompiledGame = Readonly<GameDef>` | public | A game as `compileGame` returns it: normalised and, for schema 3, frozen. |
 | `compileGame` | `(source: GameSource): CompiledGame` | public | Compiles authoring data once into the single normalised representation consumed by the engine and tools. The source is never mutated; genera |
+| `compileIR` | `(game: CompiledGame, o: CompileIROptions): GameIR` | public | The IR of a compiled game (ADR 0013): pure and deterministic. Rules without an id (v2 content) are named by their position, as the puzzle gr |
+| `CompileIROptions` | `interface { extensions, engine, sources }` | public | Options of `compileIR`: the extensions, the engine's version, and the sources for the provenance. |
+| `completionGoal` | `(game: GameDef): Cond[]` | public | The solver's 100% goal (`npm run solve -- --goal=100%`): the `done` of every objective that is not optional, all holding at once in one stat |
 | `Cond` | `type Cond = union of 13` | public | A condition. |
 | `CustomCommand` | `interface { effects, pure, run }` | extension | A command a game defines in code: its effects on the state as plain commands, and its browser-only `run`. |
 | `CustomCommands` | `type CustomCommands = Record<string, CustomCommand>` | extension | A game's custom commands by name, as `games/<id>/index.ts` exports them. |
@@ -129,29 +133,44 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `EndingDef` | `interface { file, password, guess, scratch, card }` | public | Sealed ending (`ending` module): encrypted content, decrypted at the end of the game and shown on a card. |
 | `EventRule` | `interface { id, on, if, once, do }` | public | A listener: when `on` is emitted (`{ emit }`) and the condition holds, `do` runs. `once`: only the first time. |
 | `ExitDef` | `interface { defaultVerb, name, to, entry, if, locked, … 5 more }` | public | A way out of the room, declared rather than written as a hotspot plus a rule. The engine turns it into exactly that (core/define.ts `normali |
+| `ExtensionHashes` | `interface { trusted, commands, minigames, plugins }` | public | What `compileIR` is told of the trusted code: its hash (`hashSources` over the extension files, given by the build or a tool; '' when unknow |
 | `ExternalEntry` | `interface { id, sequence, signal, source, receivedAt, playerId, … 2 more }` | public | What a session keeps of a signal from outside (4.1.1): its id and sequence on the Bridge, the signal, the source and when it arrived. Never  |
 | `FLOOR` | `number` | public | Default floor bottom (logical y), when the layout doesn't give `floor`. |
-| `GameDef` | `interface { schemaVersion, id, title, lang, saveVersion, renderer, … 31 more }` | public | The whole game as written: verbs, characters, items, rooms, rules, audio, skin, budgets, migrations and texts. |
+| `GameDef` | `interface { schemaVersion, id, title, lang, saveVersion, renderer, … 32 more }` | public | The whole game as written: verbs, characters, items, rooms, rules, audio, skin, budgets, migrations and texts. |
+| `GameIR` | `interface { schema, engine, gameId, world, rooms, entities, … 7 more }` | public | The intermediate representation of a game (schema 1): its logic as plain data, the provenance of its ids, the trusted extensions by name, an |
 | `GameRules` | `interface { fallbacks, kinds, on }` | public | The rules shared by every room: fallback responses per verb, reactions by kind, rules valid everywhere. |
 | `GameSource` | `type GameSource = GameDef` | public | A game as its sources write it: a `GameDef` before compilation. |
 | `GameState` | `interface { v, room, inventory, flags, props, actors, … 15 more }` | public | The state of a game in progress, serialised as-is in a save: room, inventory, flags, props, actors, counters, scripts. |
 | `HintDef` | `interface { id, until, lines }` | public | A hint the hint item gives while its `until` condition is false, as lines said in order. |
 | `HotspotDef` | `interface { defaultVerb, name, kind, visible, exit }` | public | A named zone of the room the player can act on; its geometry lives in the layout. |
 | `Id` | `type Id = string` | public | An identifier in the content (a room, an item, a flag, a character, a prop…): a plain string the game chooses. |
+| `IrEntity` | `interface { key, kind, id, room, name, kinds, … 12 more }` | public | A thing of the game: a prop, an actor or a hotspot of a room, an item, a character. |
+| `IrExtensions` | `interface { trusted, commands, minigames, plugins }` | public | The trusted code a game names (ADR 0002): custom commands with their declared effects, minigames, plugins. |
+| `IrObjective` | `interface { id, title, done, optional, parent }` | public | An objective (ADR 0014): its title, the condition that completes it, whether 100% needs it, its parent. |
+| `IrRealityPolicies` | `type IrRealityPolicies = Omit<RealityDef, 'bridge'>` | public | What the game declares of the world outside, its Bridge's address left out (deployment, not logic). |
+| `IrRoom` | `interface { id, name, hero, look, hints, exits, … 2 more }` | public | A room as logic: its name, looks, hints, exits and the conditions of its walk links; its entities by key. |
+| `IrRule` | `type IrRule = union of 5` | public | A reaction of the game: a written rule, a topic, a listener, a reaction by kind or a verb's fallback lines. |
+| `IrScript` | `interface { id, scope, trigger, while, loop, do, … 1 more }` | public | A sequence of commands that runs without a player's action: a world script, a room's arrival, the intro. |
+| `IrSource` | `interface { file, line }` | public | Where an id is written: a file relative to the working directory, and its line (from 1). |
+| `IrVariantSlot` | `interface { mode, id, manifest }` | public | Reserved for 4.1.15 "Remix": a world variant of the story. Nothing produces one in 4.1.12. |
+| `IrWorld` | `interface { schemaVersion, saveVersion, hero, players, hintItem, hintVoice, … 7 more }` | public | The game's world: its hero and players, verbs, start, map, checkpoints, invariants, saves. |
 | `ItemDef` | `interface { name, icon, look, kind }` | public | An inventory item: its name, its icon, its look lines and its kinds. |
 | `KindRule` | `interface { id, verb, kind, target, item, say }` | public | Reaction by "kind": applies to anything with this `kind` (e.g. `person`, `cat`), before fallback responses. `target` targets a specific id ( |
 | `Layout` | `interface { width, floor, walk, scale, entries, hotspots, … 8 more }` | public | A room's geometry, written by the placement editor: walk areas, entries, and where every hotspot, prop, actor, layer and light stands. |
 | `LightDef` | `interface { id, kind, color, intensity, blend, visible }` | public | A light of the staged room: a radial pool at its layout position, or an ambient colour over the whole room. |
 | `ListLine` | `type ListLine = string \| { id: Id; text: string; }` | public | One line of a list the engine draws from (a look list, a hint, the fallback answers): a plain string, keyed by its position in translations, |
+| `logicView` | `(ir: GameIR): Omit<GameIR, "engine" \| "provenance">` | public | The part of the IR the fingerprint's `logic` hashes: everything but the engine's version, the provenance (a line added above a rule moves no |
 | `MapDef` | `interface { regions, start, places, music, vehicles }` | public | The travel map: its regions, its places and the region shown first. |
 | `MapRegion` | `interface { name, image, parent, frame }` | public | A region of the travel map: its image, its parent region and its frame on it. |
 | `Migration` | `interface { from, renameFlag, renameItem, renameRoom, renameProp, renameActor, … 12 more }` | public | One step of save migration: from version `from` to `from + 1`. Keys are old ids, values new ones. |
 | `MouthSet` | `interface { closed, open, blink, smile }` | public | Mouth images for a pose: the body doesn't move while speaking, only the mouth changes. `closed` replaces the idle pose's image (t1), `open`  |
 | `NEAR` | `number` | public | Distance (logical units) beyond which a saved approach point is considered stale and recomputed. |
+| `ObjectiveDef` | `interface { title, done, optional, parent }` | public | An objective of the game (4.1.12, ADR 0014): its title in the quest journal, the condition that completes it, whether 100% needs it, and the |
 | `PlaceDef` | `interface { name, room, region, pos, portrait, vehicle, … 1 more }` | public | A place on the travel map: the room it opens, its region and position, its vehicle and its news marker. |
 | `Point` | `type Point = [number, number]` | public | Logical coordinates of a backdrop: 640 × 400, origin top-left. |
 | `PropAnim` | `interface { frames, fps, loop, at }` | public | A prop animation: images in order at `fps` (default 8); `at` = commands run when a frame is reached (index). |
 | `PropDef` | `interface { defaultVerb, img, states, anims, initial, name, … 2 more }` | public | A prop in the scenery, with states (e.g. amp off/on). Its position comes from the layout. |
+| `provenanceOf` | `(ir: GameIR, sources: Readonly<Record<string, string>>): Record<string, IrSource>` | public | Where each id of the IR is written in the sources (path → text), read from their object-literal keys (core/source-keys.ts: strings and comme |
 | `RealityDef` | `interface { signals, bridge, connectors }` | public | The game's link to the world outside: the signals it declares and the Reality Bridge it pairs with. |
 | `RealityState` | `interface { playerId, cursor, applied }` | public | What a save keeps of the link (`GameState.reality`): no token, no email, no payload. |
 | `RevealDef` | `type RevealDef = EndingDef` | public (deprecated) | The old name of `EndingDef`. |
@@ -169,7 +188,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 | `StageLayer` | `interface { id, image, role, visible }` | public | A picture of the room: `backdrop` behind everything, `scenery` among the characters (depth from its layout `z`), `foreground` in front of th |
 | `TalkTopic` | `interface { id, topic, if, do }` | public | A conversation topic offered when talking to an actor: its line, when it is offered, what it runs. |
 | `TransitionKind` | `type TransitionKind = 'cut' \| 'fade' \| 'wipe'` | public | How a room appears when entered: a cut, a fade or a wipe. |
-| `UiTexts` | `interface { walkTo, newGame, continue, confirmErase, yes, no, … 62 more }` | public | Every text the interface shows (menus, confirmations, settings), so a game speaks its own language. |
+| `UiTexts` | `interface { walkTo, newGame, continue, confirmErase, yes, no, … 64 more }` | public | Every text the interface shows (menus, confirmations, settings), so a game speaks its own language. |
 | `Value` | `type Value = boolean \| number \| string` | public | What a flag holds: a boolean, a number or a string. |
 | `VerbDef` | `interface { id, label, color, join }` | public | A verb as the interface shows it: its id, its label, its colour and the joining word of a two-term sentence. |
 | `VerbId` | `type VerbId = string` | public | Verb id, free-form: the game's own `verbs` declare them. Four ids have meaning to the engine: `look` ("Look" text for rooms and items), `tal |
@@ -182,7 +201,7 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 |---|---|---|---|
 | `AssetManifest` | `interface { images, audio, videos }` | public | Catalogue of images and sounds prepared by `npm run assets`. |
 | `bootGame` | `(o: BootOptions): Promise<App>` | public | Boots the game in the page and returns the App (after the title screen is shown, or the dev tools started). |
-| `BootOptions` | `interface { game, layouts, manifest, minigames, commands, locales, … 7 more }` | public | What `bootGame` starts the game with: the game, its layouts and manifest, minigames, commands, locales, root, store and service worker. |
+| `BootOptions` | `interface { game, layouts, manifest, minigames, commands, locales, … 8 more }` | public | What `bootGame` starts the game with: the game, its layouts and manifest, minigames, commands, locales, root, store and service worker. |
 | `EmitterSpec` | `interface { id, kind, url, color, rate, area, … 1 more }` | extension | A particle source, resolved for the painter: its kind, image, colour, rate and area. |
 | `Intent` | `type Intent = union of 5` | extension | What a renderer sends the engine's side: the only thing it may (D21). A tap on a target with the verb the player chose (`act`, with `item` w |
 | `LayerSpec` | `interface { id, url, role, x, y, w, … 6 more }` | extension | A stage layer, resolved: its image, its box in the room (logical units, before parallax), its depth and look. |
@@ -217,12 +236,19 @@ A game adds its own in its module's `minigames` (same contract): that is the plu
 |---|---|---|---|
 | `Engine` | `class Engine` | public | The engine without a page: it runs a game against a Presenter and a SaveStore, in the browser, in node tests and in the solver. |
 | `FakePresenter` | `class FakePresenter` | public | Silent presenter for node: everything finishes immediately, and everything is logged to `log`. |
+| `fingerprint` | `(ir: GameIR, o: { presentation: unknown; engine: string; }): Promise<GameFingerprint>` | public | The fingerprint of a game from its IR, its presentation (`presentationOf`) and its engine's version. |
+| `fingerprintGame` | `(game: GameDef, o: { manifest?: unknown; extensions: ExtensionHashes; engine: string; }): Promise<GameFingerprint>` | public | A game's fingerprint from its sources as written (before a translation): compiled, its IR made, its presentation read with the manifest. Wha |
+| `GameFingerprint` | `interface { logic, trustedExtensions, presentation, engine }` | public | A game's fingerprint: SHA-256 in hex of its logic, its trusted extensions, its presentation and its engine (an empty `trustedExtensions` whe |
+| `hashSources` | `(files: Readonly<Record<string, string>>): Promise<string>` | public | SHA-256 of a set of source files (path → text) through their canonical text: the trusted extensions' hash. |
 | `MemoryStore` | `class MemoryStore` | public | A save store in memory, for the tests and the solver: nothing survives the process. |
 | `parseSave` | `(game: GameDef, input: unknown, opts?: ParseSaveOptions): GameState` | public | Parses an envelope (or a legacy raw state). Structural corruption and references needed to resume (the current room and active player) are r |
+| `presentationOf` | `(game: CompiledGame \| GameDef, manifest?: unknown): unknown` | public | What the fingerprint's `presentation` hashes: the asset manifest, and every field core/ir-fields.ts classes as presentation (whole) or both  |
 | `saveEnvelope` | `(game: GameDef, state: GameState, now?: number): SaveEnvelopeV3` | public | Wraps a state in the save envelope (format, schema, game id and save version, date) a store writes. |
 | `SaveEnvelopeV3` | `interface { format, schema, gameId, gameSaveVersion, savedAt, state }` | public | A save as written: the state with the format, the schema, the game's id and save version and the date. |
 | `SemanticEvent` | `type SemanticEvent = union of 8` | public | One thing that happened in the game, numbered (`seq`, from 1, contiguous). An item handed between players (`transfer`) is lost by one and ac |
 | `SemanticJournal` | `interface { seq, subscribe, since }` | public | What a host reads of the journal (`Engine.journal`): the last sequence number, a subscription, the events after a sequence (within the windo |
+| `sha256Hex` | `(text: string): Promise<string>` | public | SHA-256 of a text's UTF-8 bytes, in hex, with WebCrypto. |
+| `shortFingerprint` | `(f: GameFingerprint): string` | public | The short form the pause menu shows: the first eight hex digits of each component (`????????` for an unknown one). |
 | `solve` | `(gameIn: GameDef, layouts: Record<string, Layout>, opts?: SolveOptions): Promise<SolveResult>` | public | Searches the game for a way to its ending (`witness`), or explores every reachable state for softlocks (`prove`). |
 | `SolveOptions` | `interface { reality, maxStates, mode, start, goal, commands, … 13 more }` | public | What a search is told: its mode, where it starts and stops, the custom commands, the world's signals and its budgets. |
 | `SolveResult` | `interface { status, exit, headline, mode, reality, finished, … 19 more }` | public | The verdict of a search: its status, exit code and headline, the path found, the softlocks and the search's statistics. |

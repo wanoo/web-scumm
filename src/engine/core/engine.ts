@@ -66,6 +66,7 @@ import {
 import type { ReceiveResult } from './reality-runtime';
 import { SessionLog } from './session-runtime';
 import { Journal } from './journal';
+import { ObjectiveTracker } from './objectives';
 import { Busy } from './busy';
 import { emit as emitImpl } from './event-runtime';
 import {
@@ -148,6 +149,8 @@ export class Engine {
   readonly sessions = new SessionLog(this);
   /** What happened, in ids (4.1.11, core/journal.ts): emitted by the core alone, the same on a replay. */
   readonly journal = new Journal();
+  /** The objectives completed in this session (4.1.12, core/objectives.ts), checked at every save. */
+  readonly objectives = new ObjectiveTracker(this);
   /** The journal's sequence when the current session began: its events are `journal.since(sessionSeq)`. */
   sessionSeq = 0;
   /**
@@ -353,6 +356,7 @@ export class Engine {
 
   /** Forgets a pending tutorial step (game session change). */
   private dropGuide() {
+    this.objectives.reset();
     this.busyState.reset();
     this.ui.guide(null);
     this.scheduler.next(true);
@@ -394,6 +398,7 @@ export class Engine {
   }
 
   save() {
+    this.objectives.check();
     this.store.save(this.beforeSave ? this.beforeSave(this.state) : this.state);
   }
 

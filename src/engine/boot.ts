@@ -53,6 +53,12 @@ export interface BootOptions {
   };
   /** The PWA service worker; `false` for a build without vite-plugin-pwa. */
   sw?: { register: () => Promise<SwModule> } | false;
+  /**
+   * What the build knows of the game's fingerprint (4.1.12, ADR 0013): the hash of its trusted extensions and the
+   * engine's version (`__TRUSTED_EXTENSIONS__`, `__ENGINE_VERSION__` in a Vite build). The pause menu shows the
+   * fingerprint; without these, its extensions part is unknown (`????????`).
+   */
+  build?: { trustedExtensions?: string; engine?: string };
   /** `window.__game = app` (console debugging, e2e drivers); default true. */
   expose?: boolean;
   /** The page's URL parameters; default `location.search`. */
@@ -179,6 +185,8 @@ export async function bootGame(o: BootOptions): Promise<App> {
     commands: o.commands,
     store,
     version: o.version,
+    source: written,
+    build: o.build,
     languages: others.length ? { current: lang ?? base, available: [base, ...others] } : undefined,
   });
   opened?.attach(app);

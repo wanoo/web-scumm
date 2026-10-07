@@ -38,18 +38,20 @@ export interface Parsed {
   root: ts.ObjectLiteralExpression;
 }
 
-/** Parses a room file and finds the object given to `defineRoom(...)` (or a plain `export default {...}`). */
-export function parseRoom(code: string, fileName = 'room.ts'): Parsed {
+/**
+ * Parses a room file and finds the object given to `defineRoom(...)` (or a plain `export default {...}`); with
+ * `callee: 'defineGame'`, the game file's object (4.1.12: its `objectives` are written with set_value).
+ */
+export function parseRoom(
+  code: string,
+  fileName = 'room.ts',
+  callee: 'defineRoom' | 'defineGame' = 'defineRoom',
+): Parsed {
   const sf = ts.createSourceFile(fileName, code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   let root: ts.ObjectLiteralExpression | undefined;
   const visit = (n: ts.Node) => {
     if (root) return;
-    if (
-      ts.isCallExpression(n) &&
-      ts.isIdentifier(n.expression) &&
-      n.expression.text === 'defineRoom' &&
-      n.arguments[0]
-    ) {
+    if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === callee && n.arguments[0]) {
       const a = unwrap(n.arguments[0]);
       if (ts.isObjectLiteralExpression(a)) {
         root = a;
@@ -67,7 +69,7 @@ export function parseRoom(code: string, fileName = 'room.ts'): Parsed {
       }
     }
   }
-  if (!root) throw new SourceError(`${fileName}: no defineRoom({...}) object found`, 422);
+  if (!root) throw new SourceError(`${fileName}: no ${callee}({...}) object found`, 422);
   return { sf, root };
 }
 
@@ -529,8 +531,14 @@ export function valueText(v: unknown, q: string, indent = '', unit = '  ', width
  * replaced, a missing property is added to its object (a missing section at its usual place), an index equal to a
  * list's length appends, and `undefined` removes the property or the list item. Comments and the rest of the file stay.
  */
-export function setValueInSource(code: string, path: string, value: unknown, fileName?: string): SourceEdit {
-  const { sf, root } = parseRoom(code, fileName);
+export function setValueInSource(
+  code: string,
+  path: string,
+  value: unknown,
+  fileName?: string,
+  callee: 'defineRoom' | 'defineGame' = 'defineRoom',
+): SourceEdit {
+  const { sf, root } = parseRoom(code, fileName, callee);
   const segs = parsePath(path);
   if (!segs.length) throw new SourceError('a path is required');
   const q = fileQuote(sf);

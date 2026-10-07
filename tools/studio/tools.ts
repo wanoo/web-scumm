@@ -49,6 +49,8 @@ export interface ToolBackend {
   coverage?(): Promise<CoverageData>;
   /** The playtests of games/<id>/playtests replayed and summed up. */
   playtests?(): Promise<PlaytestsData>;
+  /** The game's intermediate representation (4.1.12, ADR 0013), with the file and line of each id. */
+  ir?(): Promise<unknown>;
   /** The content lint after a solver run (`prove`: the exhaustive search). */
   lint?(prove?: boolean): Promise<LintData>;
   /** Optional abilities: a tool whose ability is missing is left out of `toolsFor(backend)`. */
@@ -101,7 +103,8 @@ export interface ToolDef {
     | 'puzzle'
     | 'coverage'
     | 'lint'
-    | 'playtests';
+    | 'playtests'
+    | 'ir';
   /** Runs with arguments already validated against `input` (callTool, the MCP SDK); `tool()` types them per tool. */
   run(args: unknown, b: ToolBackend): Promise<ToolResult>;
 }
@@ -200,14 +203,18 @@ export const TOOLS: ToolDef[] = [
       "Writes a structured value (3.4) at a path of rooms/<id>.ts, as code in the file's style: a reaction " +
       '("on[3]", or "on[<length>]" to add one), a condition ("on[3].if"), a command list ("on[3].do", "onEnter"), the ' +
       'room\'s stage ("stage": layers, lights, emitters, transition, links; CONTENT_GUIDE "The stage"), its painter ' +
-      '("renderer": "dom" | "canvas"). `value` is the JSON of it; omit it (null) to remove the path. `dry: true` returns ' +
+      '("renderer": "dom" | "canvas"). With `id: "@game"` the game file instead, for its objectives only ' +
+      '("objectives.<id>": { title, done, optional?, parent? }, or one of its fields; list_rooms shows them). ' +
+      '`value` is the JSON of it; omit it (null) to remove the path. `dry: true` returns ' +
       'the diff only. Otherwise the game is reloaded and validated after the write: an edit that adds a validation ' +
       'error is taken back and refused with the errors. Result { ok, line, changed, diff }.',
     input: {
       id: roomId,
       path: z
         .string()
-        .describe('Path under defineRoom({...}): "stage", "renderer", "on[3]", "on[3].if", "on[3].do", "onEnter".'),
+        .describe(
+          'Path under defineRoom({...}): "stage", "renderer", "on[3]", "on[3].if", "on[3].do", "onEnter"; with id "@game": "objectives.<id>".',
+        ),
       value: z
         .unknown()
         .nullable()
@@ -350,6 +357,18 @@ export const TOOLS: ToolDef[] = [
     annotations: { readOnlyHint: true },
     needs: 'report',
     run: (_a, b) => op(async () => (await b.report!()).markdown),
+  }),
+  tool({
+    name: 'get_ir',
+    title: 'The game as the tools see it',
+    description:
+      "The game's intermediate representation (4.1.12): rooms, entities, rules, topics, listeners, scripts, " +
+      'objectives, Reality policies and the trusted extensions by name, each id with the file and line that writes ' +
+      'it (`provenance`). The same JSON as `npm run ir -- --json`. Read-only.',
+    input: {},
+    annotations: { readOnlyHint: true },
+    needs: 'ir',
+    run: (_a, b) => op(() => b.ir!()),
   }),
   tool({
     name: 'world_graph',

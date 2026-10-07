@@ -120,7 +120,10 @@ function routes(s: Studio): [string, RegExp, Handler][] {
     ],
     ['POST', /^\/room\/([\w-]+)\/add$/, (m, b) => s.addEntity(m[1], entity(b))],
     // 3.4: structured values (stage, conditions, commands) with a dry run for the diff, undo / redo, voices.
-    ['PUT', /^\/room\/([\w-]+)\/value$/, (m, b) => s.setValue(m[1], text(b.path), b.value, { dry: !!b.dry })],
+    // `@game` (4.1.12): the game file's objectives.
+    ['PUT', /^\/room\/(@game|[\w-]+)\/value$/, (m, b) => s.setValue(m[1], text(b.path), b.value, { dry: !!b.dry })],
+    // 4.1.12: the game's intermediate representation, with the provenance of its ids.
+    ['GET', /^\/ir$/, () => s.ir()],
     ['POST', /^\/undo$/, () => s.undo()],
     ['POST', /^\/redo$/, () => s.redo()],
     ['GET', /^\/history$/, () => s.history()],

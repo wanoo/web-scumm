@@ -188,8 +188,27 @@ inconnu est refusé (ce n'est pas le bus de l'interface). `since(seq)` donne les
 `subscribe` les entend au fil de l'eau ; la fenêtre garde les 10 000 derniers (une session plus longue est exportée `journalTruncated`, et `npm run replay` dit qu'il n'a comparé aucun journal). Rejouer une session donne le même
 journal (`tests/journal.test.ts` : la démo, le chapitre de référence, 200 jeux générés) ; un fichier de session le
 porte, `npm run replay` l'affiche et échoue quand celui du replay diffère, le panneau de dev liste les derniers.
-`objectiveCompleted` attend 4.1.12, un emplacement sur `saveMade` et `loadMade` attend une sauvegarde qui fasse
-partie de la session.
+`objectiveCompleted` (4.1.12, ADR 0014) est un objectif accompli : `core/objectives.ts` vérifie le `done` de chaque
+objectif à chaque sauvegarde et juste avant une fin, et l'émet la première fois qu'il est vrai, plus jamais dans la
+session, après le drapeau qui l'a accompli et avant le `saveMade` de l'autosauvegarde. Un emplacement sur `saveMade`
+et `loadMade` attend une sauvegarde qui fasse partie de la session.
+
+## L'IR et l'empreinte du jeu (4.1.12)
+
+ADR 0013. `core/ir.ts` `compileIR` fait la représentation intermédiaire du jeu depuis le jeu compilé : sa logique en
+données simples (salles, entités, règles, scripts, objectifs, politiques Reality, le monde, les extensions de confiance
+par nom, l'emplacement de variante de 4.1.15), avec le `fichier:ligne` de chaque id quand les sources sont données
+(`provenanceOf`, depuis les clés d'objet des sources, `core/source-keys.ts`). `core/ir-fields.ts` classe chaque champ
+d'un jeu, d'une salle et d'une entité en logique, présentation, les deux ou outillage, vérifié par le compilateur. Le
+runtime, le solveur et le replay continuent de lire `CompiledGame` : l'IR en est une projection (mesuré dans l'ADR :
+faire lire l'IR au runtime réécrirait 641 lectures et porterait la présentation que l'IR laisse dehors).
+`core/canonical.ts` `canonicalJson` écrit un seul texte par valeur sur chaque runtime (NFC, clés triées, pas de `-0`,
+grands entiers en chaînes) ; `core/fingerprint.ts` le hache avec WebCrypto en quatre composantes : `logic` (l'IR sans sa
+provenance), `trustedExtensions` (l'empreinte, donnée par le build, du code du jeu à côté de son contenu,
+`__TRUSTED_EXTENSIONS__`), `presentation` (`presentationOf` : chaque champ de présentation et le manifeste des assets)
+et `engine` (sa version et `prngVersion`, réservé). La ligne d'empreinte du menu pause (`ui.fingerprint`, « Build » par défaut) la calcule à la demande, sur le jeu
+tel qu'écrit (avant une traduction), et montre les huit premiers chiffres de chacune ; la ligne des objectifs (`ui.objectives`) ouvre le
+journal de quêtes (`dom/objectives-menu.ts`).
 
 ## Marche et mouvements
 

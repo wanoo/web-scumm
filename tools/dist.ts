@@ -59,6 +59,8 @@ const data = game.ending?.file ? [game.ending.file.replace(/^\//, '')] : [];
 // A game that takes signals from outside ships its manifest (4.1.1): what its Bridge checks proposals against.
 const signalsManifest = realityManifest(game);
 if (signalsManifest) data.push('reality-manifest.json');
+// The site's description with the fingerprint's build parts (4.1.12, `sealBuild` writes it).
+data.push('site.json');
 
 /** A package's folder: the project's node_modules first (an installed engine's dependencies are hoisted there). */
 const moduleDir = (p: string) =>

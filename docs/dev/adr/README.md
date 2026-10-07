@@ -17,3 +17,5 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0010](0010-signal-v2.md) | `SignalV2`: a signed signal names the context it was signed for (4.1.10) |
 | [0011](0011-scene-frame-intents-journal.md) | A scene frame, intentions and a semantic journal (4.1.11) |
 | [0012](0012-canvas-backend.md) | Canvas 2D stays the complete backend; WebGL/Pixi not measured in 4.1.11 |
+| [0013](0013-game-ir-and-fingerprint.md) | One intermediate representation of a game (GameIR) and its fingerprint (4.1.12) |
+| [0014](0014-objectives.md) | Objectives and the quest journal, the one primitive family admitted in 4.1.12 |

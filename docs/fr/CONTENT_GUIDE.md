@@ -500,6 +500,30 @@ checkpoints: {
 invariants: [{ all: [{ not: { has: 'jeton' } }, '!fleurs_faites'] }],
 ```
 
+### Objectifs et journal de quêtes (4.1.12)
+
+`objectives` nomme ce que le joueur doit faire, pour la liste **Objectifs** du menu pause (une étape sous son parent,
+✓ fait, ○ ouvert, un objectif secondaire en italique), pour le journal sémantique (`objectiveCompleted`, une fois, la
+première fois que `done` est vrai après une action) et pour le solveur : `npm run solve -- --goal=100%` cherche un
+état où chaque objectif non `optional` est vrai. Écrivez `done` comme une condition qui reste vraie une fois vraie
+(un drapeau levé une fois, un objet gardé) : le journal ne reprend jamais un objectif accompli, mais une partie
+chargée plus tard ne compte comme faits que ceux qui sont vrais à ce moment.
+
+```ts
+objectives: {
+  cle: { title: 'Trouver la clé du garde-manger', done: { any: [{ has: 'cle' }, 'garde_manger_ouvert'] } },
+  cuve: { title: 'Vider la citerne', done: 'cuve_videe', parent: 'cle' },
+  garde_manger: { title: 'Ouvrir le garde-manger', done: 'garde_manger_ouvert' },
+  pari: { title: 'Deviner ce qu’il y a dedans', done: 'pari', optional: true },
+},
+```
+
+`npm run validate` refuse un objectif dont `done` ne peut jamais être vrai (un drapeau que rien ne lève, un objet que
+rien ne donne), un `parent` inconnu et un cycle de parents. Les titres se traduisent comme tout texte
+(`objectives/<id>.title`), et la ligne du menu est `ui.objectives`. L'onglet **Language** du Studio les édite ; le
+`set_value` de MCP les écrit avec `id: "@game"`. Chaque condition et chaque commande, avec sa forme, est dans la
+référence générée (`docs/fr/DSL.md`).
+
 ### Emplacements de sauvegarde et migrations
 
 ```ts

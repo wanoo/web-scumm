@@ -599,6 +599,26 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.1.12 « Language » (livrée le 7 octobre 2026) : le jeu en données, son empreinte, ses objectifs
+
+La cinquième release du programme. `compileIR` transforme un jeu compilé en sa logique sous forme de données (salles,
+entités, règles, scripts, objectifs, politiques Reality, les extensions de confiance par nom, un emplacement de
+variante réservé à la 4.1.15), déterministe, avec le `fichier:ligne` qui écrit chaque id ; chaque champ d'un jeu,
+d'une salle et d'une entité est classé logique, présentation, les deux ou outillage dans une table que le compilateur
+vérifie (ADR 0013) ; le runtime continue de lire le jeu compilé, l'IR est une projection. L'empreinte est quatre
+SHA-256 calculés avec WebCrypto : `logic`, `trustedExtensions` (le code du jeu, haché par le build dans `site.json`),
+`presentation`, `engine` ; une règle changée ne bouge que `logic`, un décor que `presentation`. `canonicalJson` (NFC,
+clés triées, pas de `-0`, grands entiers en chaînes décimales, tout ce qui perd refusé) est une fonction unique pour
+l'empreinte, le cache de preuves et, dès la 4.1.14, l'enveloppe speedrun, tenue à cinquante valeurs limites sous Node
+; `npm run e2e:canonical` les compare dans Chromium, WebKit et Firefox, écrit dans ce lot et pas encore en CI. Les objectifs (ADR 0014) sont la seule primitive
+admise : `objectives` dans un jeu, le journal de quêtes du menu pause, `objectiveCompleted` dans le journal sémantique
+une fois et jamais plus, `npm run solve -- --goal=100%`, les refus du validateur ; chaque autre candidate du programme
+est refusée avec sa preuve dans `docs/dev/DSL-STABILITY.md`. Le Studio génère ses formulaires depuis les schémas et
+écrit les objectifs avec un diff prévisualisé et Undo ; MCP gagne `get_ir` ; la référence du DSL (`docs/fr/DSL.md`,
+en) est générée depuis les schémas et tenue par un test. D22 : le DSL et l'IR sont stabilisés ici, gelés après Remix.
+Laissé pour plus tard, dit comme tel : `e2e:canonical` dans les lignes de la CI, le mode démo du Studio qui écrit des
+objectifs, `IrVariantSlot` rempli par la 4.1.15.
+
 ## v4.1.11 « Viewport » (livrée le 7 octobre 2026) : le rendu derrière une scène, le journal dans le cœur
 
 La quatrième release du programme, la deuxième avec une release candidate (`v4.1.11-rc.1`, puis `v4.1.11` sur le même
@@ -676,7 +696,7 @@ qu'une fois les bloqueurs de la courante fermés.
 | 4.1.9 | **Gateways** (livrée le 7 octobre 2026) | connecteurs email, SSH, Telnet et Open Badges sur un SDK commun, hors du joueur, expérimentaux jusqu'à un passage réel |
 | 4.1.10 | **Constellation** (livrée le 7 octobre 2026) | un Bridge durable, répliqué et isolé par tenant ; le signal peut devenir `SignalV2` si l'analyse de menace le demande |
 | 4.1.11 | **Viewport** (livrée le 7 octobre 2026) | un renderer séparé de la logique du jeu, derrière une `SceneFrame` immuable ; un journal sémantique possédé par le cœur |
-| 4.1.12 | **Language** | le DSL et une représentation intermédiaire (`GameIR`, une empreinte de jeu) façonnés par Gateways et Viewport ; le socle stabilisé |
+| 4.1.12 | **Language** (livrée le 7 octobre 2026) | le DSL et une représentation intermédiaire (`GameIR`, une empreinte de jeu) façonnés par Gateways et Viewport ; le socle stabilisé |
 | 4.1.13 | **Proof at Scale** | une classe documentée de jeux ouverts à trois personnages prouvée dans des budgets publiés, ou nommée « Solver Research » |
 | 4.1.14 | **Time Attack** | catégories de speedrun, RTA et temps logique, splits sémantiques, un paquet de preuve vérifiable, ghosts, LiveSplit et OBS en outils locaux |
 | 4.1.15 | **Remix** | une variance contrôlée du jeu, déterministe par seed, à solvabilité prouvable ; le DSL gelé après elle |
