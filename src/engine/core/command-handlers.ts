@@ -440,6 +440,7 @@ const ending: Handler<'ending' | 'reveal'> = async (eng, c, ctx) => {
   // The sealed ending ends the game as `end` does: `state.done` is the one truth an e2e or a replay reads, the card
   // is only how it is shown.
   eng.state.done = true;
+  eng.objectives.check(); // the objectives the last action completed, before the ending
   eng.journal.emit({ kind: 'endingReached', ending: 'sealed' });
   eng.save();
   eng.journal.saved();
@@ -511,6 +512,7 @@ export const HANDLERS: Handlers = {
   reveal: ending,
   end: (eng) => {
     eng.state.done = true;
+    eng.objectives.check(); // the objectives the last action completed, before the ending
     eng.journal.emit({ kind: 'endingReached', ending: 'end' });
     eng.save();
     eng.journal.saved();

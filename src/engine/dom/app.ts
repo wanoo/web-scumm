@@ -70,6 +70,7 @@ import { DEFAULT_SETTINGS, type Settings } from './settings';
 import { LocalSlotStore, LocalStore, withPhase } from './storage';
 import { fpsMeter, type RealityLinkLike } from './app-shared';
 import { DomPresenter } from './presenter';
+import { objectivesMenu as objectivesMenuImpl } from './objectives-menu';
 import type { Renderer } from '../scene/frame';
 export type { Settings } from './settings';
 
@@ -566,6 +567,11 @@ export class App {
   /** The settings menu: each row cycles its value. */
   settingsMenu(d: HTMLElement, m: HTMLElement) {
     return settingsMenuImpl(this, d, m);
+  }
+
+  /** The quest journal (4.1.12): the objectives, each step under its parent, done or open. */
+  objectivesMenu(d: HTMLElement, m: HTMLElement) {
+    return objectivesMenuImpl(this, d, m);
   }
 
   /** The save / load menu: one row per slot, export and import as a JSON file. */

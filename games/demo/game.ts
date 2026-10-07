@@ -110,6 +110,15 @@ export const game = defineGame({
   // Must never become true: Pixel's token gone before the flowers are done (the solver reports the path if it happens).
   // Scoped to Pixel: Biscuit's bag is his own (the CI caught this one when Biscuit became playable).
   invariants: [{ all: [{ player: 'hero' }, { prop: ['house.armchair', 'searched'] }, { not: { has: 'token' } }, '!flowers_done'] }],
+  // The quest journal of the pause menu (4.1.12, ADR 0014): each is completed once, the first time its condition holds;
+  // npm run solve -- --goal=100% reaches every one that is not optional. Flags set once read best (they stay true).
+  objectives: {
+    guess: { title: 'Guess what is in the pantry', done: 'guess', optional: true },
+    key: { title: 'Find the pantry key', done: { any: [{ has: 'key' }, 'pantry_open'] } },
+    tank: { title: 'Drain the water tank', done: 'tank_drained', parent: 'key' },
+    lou: { title: 'Find out who borrowed the key', done: 'lou_has_key', parent: 'key' },
+    pantry: { title: 'Open the pantry', done: 'pantry_open' },
+  },
   // Three manual save slots in the pause menu (export / import as a file too), and a Settings entry.
   saves: { slots: 3 },
   // What a phone downloads (npm run weight, measured 4 Oct 2026: 2.0 MB before the first room, 2.4 MB for the market,

@@ -9,8 +9,8 @@ import type { Id, Value } from './types';
 /**
  * One thing that happened in the game, numbered (`seq`, from 1, contiguous). An item handed between players
  * (`transfer`) is lost by one and acquired by the other, each with its `player`; `flagChanged` with `value: null` is a
- * flag removed (`unset`), apart from one set to `false`; `playerSwitched` is the player taking another character. `objectiveCompleted` is reserved for the
- * objectives of 4.1.12: nothing emits it yet. `slot` is reserved for a save or a load named by its slot: nothing
+ * flag removed (`unset`), apart from one set to `false`; `playerSwitched` is the player taking another character. `objectiveCompleted` is an objective completed (4.1.12,
+ * core/objectives.ts: once, the first time its `done` holds after a transition). `slot` is reserved for a save or a load named by its slot: nothing
  * sets it yet (a slot is not part of a session, so a replay could not reproduce it).
  * @public
  */

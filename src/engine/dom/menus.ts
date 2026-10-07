@@ -109,6 +109,8 @@ export function pauseMenu(app: App) {
   const link = app.reality;
   if (link) row(link.statusText(), '⇄').onclick = () => link.menu(m, () => close());
   if (app.game.settings) row(app.t('settings'), '⚙').onclick = () => app.settingsMenu(d, m);
+  if (Object.keys(app.game.objectives ?? {}).length)
+    row(app.t('objectives'), '☰').onclick = () => app.objectivesMenu(d, m);
   // The game's fingerprint (4.1.12, ADR 0013): logic, trusted extensions, presentation, engine, eight digits each.
   const fp = row(app.t('fingerprint'), '…', 'fingerprint');
   fp.setAttribute('aria-live', 'polite');
