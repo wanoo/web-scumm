@@ -10,7 +10,7 @@ under 150 KB of weight.
 (`npm run e2e:perf` drives Chromium): no Pixi prototype was written, no frame rate compared. The numbers that exist are
 those of 3.4, recorded in `docs/en/ENGINE.md` ("The scene: a model and a painter") and the LOG: `npm run e2e:perf`,
 60 frames per second for the sample game's rooms with the Canvas painter and the CPU slowed 4×, in the CI's
-`chromium / canvas` row. There is no `docs/dev/BENCH.md` yet; the spike would start it.
+`chromium / canvas` row. There is no benchmark sheet under `docs/dev/` yet (the sheet names one, BENCH.md); the spike would start it.
 
 **Decision.** Canvas 2D stays the complete backend (D10): it draws every capability the programme lists (layers,
 parallax, arbitrary occlusion polygons and masks, lights, particles, vertical camera and zoom, transitions) and, since
