@@ -43,4 +43,16 @@
   `mystery` and `daily`, its validator checks them, the reference run re-recorded), but the `.wsrun` envelope carries no
   `variant` yet (`src/engine/tools/speedrun/` is the Time Attack branch's): a verifier must be handed
   `applyVariant(game, variant)`, and `tests/remix-saves.test.ts` proves the replay half with a package of that shape.
+- After the second reading (Opus, security; 12 findings, all applied): (1, blocking) `dom/remix-boot.ts`: the page
+  starts in the autosave's world, a link to another world is a question on the title, the Remix menu asks before
+  erasing, both stores keep a foreign save until `clear()` (DOM test `tests/dom/remix-boot.test.ts`, 5 tests); (2)
+  `loadVariant` parses `WorldVariantSchema` and checks mode, domains, completeness and constraints always, ADR 0018
+  says integrity ≠ authenticity; (3) `construct` backtracks (test A∈{x,y}, C∈{x}); (4) Mystery shopping bounded, not
+  prevented: 3 commits per client, game and hour, the first reveal's time recorded, `MYSTERY_START_WINDOW_MS` = 60 s in
+  `worldVerdict`; the residual risk recorded in the threat model; (5) `minigame:<rule>:<param>` only for the built-in
+  minigames' texts and backdrops; (6) the runtime claims say "Node-tested, cross-runtime check written, not run"; (7)
+  the minigames draw from `MinigameCtx.random`, the GritQL rule covers `minigames/` and aliases; (8) `newSeed` throws
+  without WebCrypto (`core/prng.ts`, one function, asked by the reading); (9) a stored world of another algorithm
+  version is applied as stored when it passes the checks (decided, ADR 0018); (10) a malformed link is said on the
+  title; (11) `npm run code-wheel` takes a game id only; (12) non-ASCII seed codes refused.
 → next: Claude · `release/4.1.15`

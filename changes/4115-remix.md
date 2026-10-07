@@ -43,4 +43,11 @@
 - **The Studio's Remix tab (4.1.15).** Preview a seed, lock and reroll, compare, coverage and bias, anchors from the
   scene, play or export a frozen world.
 - **The DSL and the IR are frozen (4.1.15, D28).** 4.1.15 is the release candidate of 4.2: `docs/dev/DSL-STABILITY.md`
-  lists everything frozen, Remix's additions included. `Math.random` is forbidden in `src/engine/core` by the linter.
+  lists everything frozen, Remix's additions included. `Math.random` is forbidden in `src/engine/core` and
+  `src/engine/minigames` by the linter; the minigames draw from the run's `minigame:<id>` stream (`MinigameCtx.random`).
+- **After the second reading (4.1.15).** A link to another world never replaces a saved game silently: the page starts
+  in the saved game's world and the title asks before the link's world replaces it; the stores keep a save of another
+  world instead of writing over it. A stored or linked world is checked value by value against the game whatever its
+  hash says (integrity is not authenticity). A generator backtracks instead of dead-ending; a presentation value cannot
+  touch a minigame parameter that decides a win; Mystery commits are limited per client and a Mystery run must start
+  within a minute of its reveal; seed codes refuse non-ASCII lookalikes; `newSeed` throws without WebCrypto.
