@@ -27,6 +27,22 @@ jobs:
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
       - run: npm run test:heavy
+  # The connectors' fuzz harness (4.1.9, tools/fuzz-connectors.ts): seeded mutations for a minute per
+  # connector, a new seed each night (the run number). Reported, not gating, until it has been green two nights in a
+  # row (plan 4.1.9 §4 branch 6); then `continue-on-error` goes.
+  fuzz-connectors:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: node --expose-gc --import tsx tools/fuzz-connectors.ts --cases=1000000 --seconds=60 --seed=${{ github.run_number }}
   # Four shards of the seeds, one per job (3.7): the corpus is parallel by seed, the jobs run side by side.
   corpus:
     runs-on: ubuntu-24.04
@@ -104,45 +120,19 @@ jobs:
       # nightly measures again whatever ci cached, so a flaky kill does not hide behind a reused report.
       - run: npm run test:mutation:core -- --set=all --fresh | tee mutation.txt
         shell: bash
+      # The Bridge's stores and fan-out (4.1.10): measured every night, not gated yet (tools/mutation-sets.ts, GATED).
+      - if: always()
+        continue-on-error: true
+        run: npm run test:mutation:core -- --set=reality-store --fresh | tee mutation-reality-store.txt
+        shell: bash
       - if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: mutation
           path: |
             mutation.txt
+            mutation-reality-store.txt
             .cache/mutation/report-*.json
-          if-no-files-found: ignore
-  # The proof matrix of 4.1.13 (docs/dev/PROOF-MATRIX.md, tools/prove-matrix.ts): each of the twelve instances proved
-  # in its own job under the runner's budget (20 min, 10 000 000 states, 4 GB of heap). A false verdict fails the job;
-  # an instance out of budget is `unknown`, the gap report, not a failure. Never on a pull request.
-  matrix:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 40
-    strategy:
-      fail-fast: false
-      matrix:
-        instance: [c11, c12, c13, c14, c15, c16, o21, o22, o23, o24, o25, o26]
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 22
-          cache: npm
-      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
-        timeout-minutes: 8
-      - shell: bash
-        run: npm run prove:matrix -- --only=${{ matrix.instance }} --time=1200 --mem=4096 --json=matrix-${{ matrix.instance }}.json --profile=profile-${{ matrix.instance }}.md | tee matrix-${{ matrix.instance }}.txt
-      - if: always()
-        shell: bash
-        run: |
-          if [ -f matrix-${{ matrix.instance }}.txt ]; then { echo '```'; cat matrix-${{ matrix.instance }}.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"; fi
-      - if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: matrix-${{ matrix.instance }}
-          path: |
-            matrix-${{ matrix.instance }}.*
-            profile-${{ matrix.instance }}.md
           if-no-files-found: ignore
   # The Bridge under load (4.1.10, tools/bridge-load.ts, docs/dev/BENCH-BRIDGE.md): three instances, 1 000 players,
   # 50 000 proposals, on SQLite and on Postgres 16 (a service container pinned by digest). The report is kept; a lost
@@ -181,4 +171,36 @@ jobs:
         with:
           name: bridge-load-${{ matrix.store }}
           path: bridge-load-${{ matrix.store }}.json
+          if-no-files-found: ignore
+  # The proof matrix of 4.1.13 (docs/dev/PROOF-MATRIX.md, tools/prove-matrix.ts): each of the twelve instances proved
+  # in its own job under the runner's budget (20 min, 10 000 000 states, 4 GB of heap). A false verdict fails the job;
+  # an instance out of budget is `unknown`, the gap report, not a failure. Never on a pull request.
+  matrix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        instance: [c11, c12, c13, c14, c15, c16, o21, o22, o23, o24, o25, o26]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - shell: bash
+        run: npm run prove:matrix -- --only=${{ matrix.instance }} --time=1200 --mem=4096 --json=matrix-${{ matrix.instance }}.json --profile=profile-${{ matrix.instance }}.md | tee matrix-${{ matrix.instance }}.txt
+      - if: always()
+        shell: bash
+        run: |
+          if [ -f matrix-${{ matrix.instance }}.txt ]; then { echo '```'; cat matrix-${{ matrix.instance }}.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"; fi
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: matrix-${{ matrix.instance }}
+          path: |
+            matrix-${{ matrix.instance }}.*
+            profile-${{ matrix.instance }}.md
           if-no-files-found: ignore
