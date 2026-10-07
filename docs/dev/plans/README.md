@@ -85,4 +85,5 @@ réaliste. Le lot 0 met la CI en **trois niveaux** et supprime les conflits entr
 - Cibles : PR ordinaire sous 8 min, échec signalé sous 5 min, moins de 15 runner-minutes par itération, suite
   exhaustive une seule fois avant intégration ou release ; merge → release publiée ≈ 25 min au lieu de 45–50.
 - Ordre sûr : 1 et 2 (faits) → 3 (dédoublonner, ratchet en avertissement) → 6 et 7 (`plan`, `pr-gate` en observation)
-  → ruleset → 4 (gate complet en merge queue ou sur `main`) → 8.
+  → ruleset → 4 (gate complet en merge queue ou sur `main`) → 8. Le brouillon des jobs, du script `plan` et de
+  l'agrégateur : [4.1.9-lot0-ci.md](4.1.9-lot0-ci.md).
