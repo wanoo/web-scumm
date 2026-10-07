@@ -81,7 +81,8 @@ export class SessionLog {
   }
 
   private reseed(seed: string) {
-    this.chosen = this.nextSeed === seed || (this.chosen && this.seed === seed);
+    // Chosen when the host named it (`nextSeed`, or `restoreDraws` for a resumed run), drawn otherwise.
+    this.chosen = this.nextSeed === seed;
     this.seed = seed;
     this.nextSeed = null;
     this.logic = derive(seed, 'logic');
