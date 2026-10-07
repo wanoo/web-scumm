@@ -2361,7 +2361,9 @@ Platform"; human gates reported, not blocking (D12).
   here (`got` shows the repeat: `s1, s1`), with the backoff, the three cursors reported, and the parser's cases.
 - SSE parser: CRLF and CR line ends (a CR ending a chunk waits for the next one, flushed at the stream's end), one
   space after `data:`, an event over `maxFrameBytes` (64 KiB) or a buffer over `maxBufferBytes` (1 MiB) ends the
-  stream, which the port reopens from the durable cursor; `Last-Event-ID` sent with the durable cursor.
+  stream, which the port reopens from the durable cursor. (A `Last-Event-ID` header was tried and removed: a header
+  beyond the simple ones makes the browser preflight the cross-origin request, which the Bridge's CORS answer refuses;
+  the e2e in both browsers caught it. `after` in the query is what the Bridge reads.)
 - Bridge: `resigned` is an LRU bounded by `limits.resignedCache` (10 000); every journal line is checked against
   `BridgeEventSchema` (zod, every field; `WorldSignalV1Schema` for the payload); `JournalLock` (`<journal>.lock`
   with the pid, created atomically by `link` from a private file so a reader never sees it half written; a live

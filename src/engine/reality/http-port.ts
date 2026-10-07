@@ -160,8 +160,11 @@ export function httpPort(o: HttpPortOptions): WorldSignalPort {
             const onAbort = () => stream?.abort();
             signal.addEventListener('abort', onAbort, { once: true });
             try {
+              // No `Last-Event-ID` header: a header beyond the simple ones makes the browser preflight the
+              // cross-origin request, which a Bridge allowing `Authorization` and `Content-Type` refuses; `after`
+              // in the query carries the durable cursor, which is what the Bridge reads.
               const r = await f(`${base}v1/events?after=${cursors.durable}`, {
-                headers: { ...auth, Accept: 'text/event-stream', 'Last-Event-ID': String(cursors.durable) },
+                headers: { ...auth, Accept: 'text/event-stream' },
                 signal: stream.signal,
               });
               if (!r.ok || !r.body) throw new Error(`Bridge: ${r.status}`);

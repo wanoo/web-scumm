@@ -25,6 +25,7 @@ import {
   type BridgeStore,
 } from '../bridge/src/store';
 import { signals, signalsLayouts } from './fixtures/signals';
+import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 
 const temps: string[] = [];
@@ -847,4 +848,43 @@ describe('bounded, validated, one per journal (4.1.8)', () => {
     store.close();
     expect(existsSync(`${journal}.lock`)).toBe(false);
   });
+});
+
+describe('web-scumm bridge serve, stopped', () => {
+  it('SIGTERM ends the streams and the server, then releases the journal lock, and the process exits 0', async () => {
+    const { main } = await import('../bridge/src/cli');
+    const dir = mkdtempSync(join(tmpdir(), 'bridge-serve-'));
+    temps.push(dir);
+    const log = console.log;
+    console.log = () => {};
+    try {
+      expect(await main(['init', `--dir=${dir}`, '--no-demo-webhooks'], { manifest: realityManifest(signals()) })).toBe(
+        0,
+      );
+    } finally {
+      console.log = log;
+    }
+    const file = JSON.parse(readFileSync(join(dir, 'config.json'), 'utf8')) as { journal: string };
+    const lock = `${join(dir, file.journal)}.lock`;
+    const child = spawn(process.execPath, ['bridge/bin.mjs', 'serve', `--dir=${dir}`, '--port=0', '--host=127.0.0.1'], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let out = '';
+    child.stdout.on('data', (d: Buffer) => (out += d.toString()));
+    child.stderr.on('data', (d: Buffer) => (out += d.toString()));
+    const exited = new Promise<number | null>((ok) => child.on('exit', (code) => ok(code)));
+    try {
+      for (let i = 0; i < 600 && !out.includes('bridge.listening'); i++) await new Promise((r) => setTimeout(r, 50));
+      expect(out, out).toContain('bridge.listening');
+      expect(existsSync(lock), 'the lock is held while serving').toBe(true);
+      expect(readFileSync(lock, 'utf8').trim()).toBe(String(child.pid));
+      child.kill('SIGTERM');
+      const code = await Promise.race([exited, new Promise<null>((ok) => setTimeout(() => ok(null), 15_000))]);
+      expect(code, out).toBe(0);
+      expect(out).toContain('bridge.stopping');
+      expect(existsSync(lock), 'the lock is released at the stop').toBe(false);
+    } finally {
+      if (child.exitCode === null) child.kill('SIGKILL');
+    }
+  }, 60_000);
 });
