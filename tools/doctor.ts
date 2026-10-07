@@ -14,7 +14,11 @@ const checks = collectChecks(
     },
     exists: existsSync,
     nodeVersion: process.versions.node,
-    browsers: { Chromium: chromium.executablePath(), Firefox: firefox.executablePath(), WebKit: webkit.executablePath() },
+    browsers: {
+      Chromium: chromium.executablePath(),
+      Firefox: firefox.executablePath(),
+      WebKit: webkit.executablePath(),
+    },
   },
   { release },
 );
@@ -46,5 +50,7 @@ async function realityCheck(): Promise<Check> {
 }
 checks.push(await realityCheck());
 const { text, failed } = doctorReport(checks);
-(failed ? console.error : console.log)(release ? `${text}\n(release mode: every prerequisite of npm run release-check is required)` : text);
+(failed ? console.error : console.log)(
+  release ? `${text}\n(release mode: every prerequisite of npm run release-check is required)` : text,
+);
 process.exit(failed ? 1 : 0);

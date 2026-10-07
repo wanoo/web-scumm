@@ -27,7 +27,8 @@ const SHIP = [
 ];
 // The Bridge's development tools (Biscuit's samples, the Rust cross-check) stay in the repository.
 const SKIP = [/__pycache__|\.pyc$/, /^tools\/audit-assets\.ts$/, /^tools\/reality-(xcheck|fixtures)\.ts$/];
-const shipped = (list) => list.split('\n').filter((f) => f && SHIP.some((r) => r.test(f)) && !SKIP.some((r) => r.test(f)));
+const shipped = (list) =>
+  list.split('\n').filter((f) => f && SHIP.some((r) => r.test(f)) && !SKIP.some((r) => r.test(f)));
 const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' });
 // Tracked files only (4.1.8): a package is what the repository holds, never a file of the machine that packs it. An
 // untracked file under a shipped root is refused rather than left out silently: either commit it or ignore it.
@@ -192,5 +193,8 @@ console.log(
 // --publish-dry-run (4.1.8): what `npm publish` would send, for each package, without sending it (release-check).
 if (process.argv.includes('--publish-dry-run'))
   for (const dir of [engine, create, bridge]) {
-    execFileSync('npm', ['publish', '--dry-run', '--no-git-checks', '--ignore-scripts'], { cwd: dir, stdio: 'inherit' });
+    execFileSync('npm', ['publish', '--dry-run', '--no-git-checks', '--ignore-scripts'], {
+      cwd: dir,
+      stdio: 'inherit',
+    });
   }
