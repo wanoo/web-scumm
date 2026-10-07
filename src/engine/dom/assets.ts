@@ -1,6 +1,6 @@
 import { must } from '../core/must';
 
-/** Catalogue of images and sounds prepared by `npm run assets`. */
+/** Catalogue of images and sounds prepared by `npm run assets`. @public */
 export interface AssetManifest {
   images: Record<string, [number, number]>;
   audio?: { music?: Record<string, string>; sfx?: Record<string, string>; voices?: Record<string, string> };

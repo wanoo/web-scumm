@@ -1,6 +1,7 @@
 // Music and sound: the audio table, the scores and their state. (core/types.ts re-exports every name; 4.1.0 "Clarity".)
 import type { Cond, Id } from './content';
 
+/** The game's music, sounds and voice clips by id, its scores in stems and the transitions between them. @public */
 export interface AudioDef {
   music?: Record<Id, string>;
   sfx?: Record<Id, string>;
@@ -34,12 +35,13 @@ export interface AudioDef {
   }[];
 }
 
-/** Which stems sound in a given state: the first entry whose condition holds wins (`if` absent: always). */
+/** Which stems sound in a given state: the first entry whose condition holds wins (`if` absent: always). @public */
 export interface ScoreState {
   if?: Cond;
   stems: Id[];
 }
 
+/** A score in stems: its files, its tempo and loop, and which stems sound in each game state. @public */
 export interface ScoreDef {
   /** Stem id → file under `audio/music/` (the same length and rate: `npm run audio -- stems` renders them). */
   stems: Record<Id, string>;

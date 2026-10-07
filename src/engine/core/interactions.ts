@@ -118,7 +118,7 @@ export function findKind(
  * on (empty without one), `{name}` the target or, failing that, the item. `{objet}`, `{cible}` and `{nom}` are the
  * same three under the names of 4.0, kept for every game written with them.
  */
-export const PLACEHOLDERS: Record<string, 'item' | 'target' | 'name'> = {
+const PLACEHOLDERS: Record<string, 'item' | 'target' | 'name'> = {
   item: 'item',
   target: 'target',
   name: 'name',

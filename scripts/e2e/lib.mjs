@@ -36,7 +36,7 @@ const LOGICAL = { width: 640, height: 400 };
  * axe rules the engine accepts, each for a stated reason (docs/en/ENGINE.md "Accessibility"); everything else that axe
  * rates serious or critical fails `npm run e2e -- --axe`.
  */
-export const AXE_ACCEPTED = [];
+const AXE_ACCEPTED = [];
 
 export async function launch(url, opts = {}) {
   const out = opts.out ?? process.env.E2E_OUT ?? '/tmp/e2e';

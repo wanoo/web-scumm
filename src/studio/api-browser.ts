@@ -503,7 +503,7 @@ export class BrowserApi implements Api {
  * A text edit on a room's data (`setText` semantics): the texts list (paths shift after an append or a deletion, as
  * the room file's would) and the definition (so the sheet shows the edit). Throws an ApiError like the server.
  */
-export function applyText(room: RoomData, path: string, value: string | null): EditResult {
+function applyText(room: RoomData, path: string, value: string | null): EditResult {
   const segs = segsOf(path);
   if (segs.slice(0, -1).includes('+')) throw new ApiError(`invalid path: "${path}" ([+] must come last)`, 400);
   const texts = room.texts;

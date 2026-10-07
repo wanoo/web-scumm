@@ -53,6 +53,7 @@ export interface Limits {
   /** Signals signed again after a rotation and kept in memory (4.1.8): beyond, the least recently used is forgotten. */
   resignedCache: number;
 }
+/** The limits a Bridge runs with where its configuration says nothing. @public */
 export const DEFAULT_LIMITS: Limits = {
   bodyBytes: 8192,
   perMinutePerConnector: 120,

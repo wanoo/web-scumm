@@ -32,7 +32,7 @@ export type PoolOpener = (
   X: ReturnType<typeof makeExpander>,
 ) => Promise<ExpandPool>;
 
-export let poolOpener: PoolOpener | null = null;
+let poolOpener: PoolOpener | null = null;
 
 export function registerPool(open: PoolOpener) {
   poolOpener = open;
@@ -55,6 +55,10 @@ export function threadPool(X: ReturnType<typeof makeExpander>, reason?: string):
   };
 }
 
+/**
+ * Searches the game for a way to its ending (`witness`), or explores every reachable state for softlocks (`prove`).
+ * @public
+ */
 export async function solve(
   gameIn: GameDef,
   layouts: Record<string, Layout>,
@@ -75,7 +79,7 @@ export async function solve(
   return r;
 }
 
-export async function solveAbstracted(
+async function solveAbstracted(
   gameIn: GameDef,
   layouts: Record<string, Layout>,
   opts: SolveOptions,
@@ -97,7 +101,7 @@ export async function solveAbstracted(
   }
 }
 
-export async function solveOnce(
+async function solveOnce(
   gameIn: GameDef,
   layouts: Record<string, Layout>,
   opts: SolveOptions = {},
@@ -647,7 +651,7 @@ export async function solveOnce(
  * Which world a verdict holds in (4.1.1): "proved without the outside world", "under scenario X", or against any
  * order and repetition of the declared signals. The report says it, so a proof never assumes a service cooperated.
  */
-export function realityLabel(p: SolveOptions['reality']): string {
+function realityLabel(p: SolveOptions['reality']): string {
   if (!p || p === 'closed') return 'closed: without the world outside';
   if (p === 'adversarial') return 'adversarial: any declared signal, at any point, again';
   return `scenario ${p.scenario}: ${p.signals.join(' → ') || 'no signal'}`;

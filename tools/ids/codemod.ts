@@ -19,12 +19,12 @@ import type {
 } from '../../src/engine/core/types';
 import { encodeString, fileQuote, propKey, unwrap } from '../studio/source';
 
-export interface Inserted {
+interface Inserted {
   path: string;
   id: string;
   line: number;
 }
-export interface Skipped {
+interface Skipped {
   path: string;
   line: number;
   reason: string;
@@ -343,7 +343,7 @@ class Codemod {
 }
 
 /** The object passed to `defineRoom(...)` / `defineGame(...)`, or the initializer of `export const <name> = {...}`, or the default export. */
-export function findRoot(sf: ts.SourceFile, callee: string, variable?: string): Obj | undefined {
+function findRoot(sf: ts.SourceFile, callee: string, variable?: string): Obj | undefined {
   let root: Obj | undefined;
   const visit = (n: ts.Node) => {
     if (root) return;

@@ -28,6 +28,19 @@
 
 ### Changes
 
+- **Every public export says what it is and how stable it is** (4.1.8, programme §4.3). The 119 names the five entries
+  of `web-scumm/{content,player,minigames,testing,reality}` re-export carry, on their declaration, a first sentence and
+  one of `@public` (a name a game or host calls or reads: 101) or `@extension` (a contract a game or host implements, a
+  `Presenter`, a `SaveStore`, a `SceneRenderer` and its specs, a `Minigame`, a `CustomCommand`, a `WorldSignalPort`:
+  18; a member added to one is a break too). `tools/api-doc.ts` writes a Stability column into `docs/en/API.md` and
+  `docs/fr/API.md`, prints aliases as what they are (`type Id = string`, `type Point = [number, number]`,
+  `type Keyring = BridgeKey[]`; a side derived from a schema shows its members), says `deprecated` beside a
+  stability, and `tests/api-doc.test.ts` and `npx tsx tools/api-doc.ts --check` fail on an export without
+  description or stability, or with both tags. 65 descriptions were written for names that had none. What
+  `src/engine` exports without an entry re-exporting it is internal by construction. knip's unused-export rules are
+  on: its 71 reports (44 exports, 27 types) are answered, about 80 declarations losing their `export`, 17 names
+  leaving re-export lines, three dead symbols deleted; the Bridge's `DEFAULT_LIMITS`, `POLICY` and
+  `BridgeEventSchema` are kept as `@public`. `tests/api-surface.json` is unchanged: no public name moved.
 - **The documentation says one thing** (4.1.8, programme §4.8). An audit of every page against the code and the
   workflows found and fixed: the READMEs' test count, first-visit weight and the reference game's states now come from
   `tests/quality-baseline.json` (`npm run quality:baseline` writes them between markers and `--check` fails when they

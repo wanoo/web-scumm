@@ -90,7 +90,7 @@ function pointEd(v: unknown): Ed {
 }
 
 /** Any field of the schema. */
-export function fieldEditor(f: Field, v: unknown, ctx: FormCtx): Ed {
+function fieldEditor(f: Field, v: unknown, ctx: FormCtx): Ed {
   switch (f.k) {
     case 'text': {
       const t = autoGrow(h('textarea', { rows: 1, class: 'f-text' }, typeof v === 'string' ? v : ''));
@@ -184,7 +184,7 @@ export function fieldEditor(f: Field, v: unknown, ctx: FormCtx): Ed {
 }
 
 /** A list: each item with move up / down and remove, then "+ item". */
-export function listEditor(items: unknown[], make: (v: unknown) => Ed, label: string, blank: () => unknown): Ed {
+function listEditor(items: unknown[], make: (v: unknown) => Ed, label: string, blank: () => unknown): Ed {
   const box = h('div', { class: 'f-list' });
   const rows: { el: HTMLElement; ed: Ed }[] = [];
   const draw = () =>
@@ -294,7 +294,7 @@ function condKind(c: Cond | undefined): CondKind {
 }
 
 /** A condition: its kind, then its fields (`all` / `any` / `not` hold conditions). */
-export function condEditor(c: Cond | undefined, ctx: FormCtx): Ed {
+function condEditor(c: Cond | undefined, ctx: FormCtx): Ed {
   const kind = h(
     'select',
     { class: 'f-kind' },
@@ -374,7 +374,7 @@ export function condEditor(c: Cond | undefined, ctx: FormCtx): Ed {
 // ---------------------------------------------------------------- commands
 
 /** One command: its key (or a plain hero line), then its fields. */
-export function cmdEditor(c: Cmd | undefined, ctx: FormCtx): Ed {
+function cmdEditor(c: Cmd | undefined, ctx: FormCtx): Ed {
   const keyOf = (x: Cmd | undefined): CmdKey | 'line' =>
     typeof x === 'string' || x === undefined ? 'line' : (cmdKey(x) ?? 'line');
   const key = h(
@@ -404,7 +404,7 @@ export function cmdEditor(c: Cmd | undefined, ctx: FormCtx): Ed {
   return { el: h('div', { class: 'f-cmd' }, key, slot), get: () => get() };
 }
 
-export function cmdsEditor(list: Cmd[], ctx: FormCtx): Ed {
+function cmdsEditor(list: Cmd[], ctx: FormCtx): Ed {
   return listEditor(
     list,
     (x) => cmdEditor(x as Cmd, ctx),

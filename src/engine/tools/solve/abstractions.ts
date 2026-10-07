@@ -433,7 +433,7 @@ export function dominanceThings(game: GameDef): { flags: Set<string>; items: Set
 }
 
 /** A 32-bit hash of a string. */
-export function h32(str: string): number {
+function h32(str: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < str.length; i++) {
     h ^= str.charCodeAt(i);

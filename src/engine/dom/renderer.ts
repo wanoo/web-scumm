@@ -5,7 +5,10 @@
 // model, so two painters cannot disagree on what a tap touches.
 import type { Id, Point } from '../core/types';
 
-/** One thing drawn in the scene, in logical units. `fx, fy`: its feet (bottom centre), the pivot of rotations. */
+/**
+ * One thing drawn in the scene, in logical units. `fx, fy`: its feet (bottom centre), the pivot of rotations.
+ * @extension
+ */
 export interface SpriteSpec {
   id: Id;
   /** The image to draw (already palette-swapped), or null when the entity has nothing to show. */
@@ -31,7 +34,10 @@ export interface SpriteSpec {
   shadow?: { x: number; y: number; w: number; h: number; z: number; visible: boolean };
 }
 
-/** A stage layer, resolved: its image, its box in the room (logical units, before parallax), its depth and look. */
+/**
+ * A stage layer, resolved: its image, its box in the room (logical units, before parallax), its depth and look.
+ * @extension
+ */
 export interface LayerSpec {
   id: Id;
   url: string;
@@ -47,7 +53,11 @@ export interface LayerSpec {
   opacity: number;
   visible: boolean;
 }
-/** What hides a character deeper than `z`: the backdrop's pixels (or a layer's) inside a polygon, a mask image or a layer's alpha. */
+/**
+ * What hides a character deeper than `z`: the backdrop's pixels (or a layer's) inside a polygon, a mask image or a
+ * layer's alpha.
+ * @extension
+ */
 export interface OccluderSpec {
   id: Id;
   z: number;
@@ -59,6 +69,11 @@ export interface OccluderSpec {
   feather: number;
   invert: boolean;
 }
+/**
+ * A light, resolved for the painter: its kind, colour, intensity and blend, and for a radial one its centre and
+ * radius.
+ * @extension
+ */
 export interface LightSpec {
   id: Id;
   kind: 'radial' | 'ambient';
@@ -69,6 +84,7 @@ export interface LightSpec {
   radius?: number;
   visible: boolean;
 }
+/** A particle source, resolved for the painter: its kind, image, colour, rate and area. @extension */
 export interface EmitterSpec {
   id: Id;
   kind: 'dust' | 'rain' | 'snow' | 'sparks' | 'smoke' | 'leaves';
@@ -78,7 +94,11 @@ export interface EmitterSpec {
   area: [number, number, number, number];
   visible: boolean;
 }
-/** Everything a room shows besides its sprites (`RoomDef.stage`, normalized by `stageOf`, conditions evaluated by the model). */
+/**
+ * Everything a room shows besides its sprites (`RoomDef.stage`, normalized by `stageOf`, conditions evaluated by the
+ * model).
+ * @extension
+ */
 export interface StageSpec {
   /** The backdrop's box in the room (`object-fit: cover` over the room's width and 400): layers and masks align on it. */
   backdrop: { url: string; x: number; y: number; w: number; h: number };
@@ -90,6 +110,11 @@ export interface StageSpec {
   reduceMotion: boolean;
 }
 
+/**
+ * The painter contract: a surface, sprites and a stage to draw, a camera to follow; the DOM and canvas painters
+ * implement it.
+ * @extension
+ */
 export interface SceneRenderer {
   /** The scene's root element: the painter's surface, and the layer the accessible targets go in. Moves with the camera. */
   readonly el: HTMLElement;

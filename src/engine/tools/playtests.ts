@@ -29,7 +29,7 @@ export interface PlaytestSummary {
   abandon: { room: Id; label: string; index: number };
 }
 
-export interface RoomStat {
+interface RoomStat {
   ms: number;
   entries: number;
   effective: number;
@@ -38,7 +38,7 @@ export interface RoomStat {
   abandons: number;
 }
 
-export interface Stall {
+interface Stall {
   file: string;
   room: Id;
   action: string;

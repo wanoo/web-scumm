@@ -17,7 +17,7 @@ export function parseHex(s: string): [number, number, number] | null {
 }
 
 /** The usable pairs of a palette (invalid entries are skipped; `npm run validate` warns about them). */
-export function palettePairs(p: Palette): { from: [number, number, number]; to: [number, number, number] }[] {
+function palettePairs(p: Palette): { from: [number, number, number]; to: [number, number, number] }[] {
   const out: { from: [number, number, number]; to: [number, number, number] }[] = [];
   for (const [k, v] of Object.entries(p)) {
     const from = parseHex(k),

@@ -10,6 +10,7 @@ import { biscuitLib, errorClass } from './biscuit';
  */
 export const LIMITS = { max_time_micro: 200_000 };
 
+/** The authorisation policy, as Datalog (`bridge/policy/propose.datalog`): what every token is checked against. @public */
 export const POLICY = readFileSync(new URL('../policy/propose.datalog', import.meta.url), 'utf8');
 
 /** What a connector may do, as the operator grants it (`web-scumm bridge grant`). */

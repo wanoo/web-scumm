@@ -29,7 +29,9 @@
     "games/**/*.ts"
   ],
   "ignore": [
-    "games/*/ending.config.example.ts"
+    "games/*/ending.config.example.ts",
+    "games/signals/cast.ts",
+    "src/studio/rooms.ts"
   ],
   "ignoreDependencies": [
     "@tweakpane/core"
@@ -46,10 +48,10 @@
     "binaries": "error",
     "unresolved": "error",
     "duplicates": "error",
-    "exports": "off",
-    "types": "off",
-    "nsExports": "off",
-    "nsTypes": "off",
+    "exports": "error",
+    "types": "error",
+    "nsExports": "error",
+    "nsTypes": "error",
     "enumMembers": "off"
   },
   "ignoreUnresolved": [

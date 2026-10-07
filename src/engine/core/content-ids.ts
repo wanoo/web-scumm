@@ -117,7 +117,7 @@ const lineText = (c: Cmd): string | undefined =>
 // ------------------------------------------------------------------ assignment, with the map from v2 keys to v3 ids
 
 /** What a v2 save and a v2 translation table must be renamed to after `assignIds`. */
-export interface IdMap {
+interface IdMap {
   /** `GameState.seen` keys: topics (`<room>.<actor>.<i>` → `topic.<id>`), listeners (`event.<scope>.<i>` → `event.<id>`), choices (`choice.<room>.<text>` → `choice.<id>`). */
   seen: Record<string, string>;
   /** `GameState.counters` keys of once/nth/cycle/random blocks (`<room>:on3.0` → `<id>`). */

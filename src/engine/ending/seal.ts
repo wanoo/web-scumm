@@ -21,10 +21,10 @@ export interface RevealPayload {
 /** Generic name for the sealed content (same format as RevealPayload). */
 export type EndingPayload = RevealPayload;
 
-export const MAGIC = 'FIS1';
-export const PBKDF2_ITERATIONS = 120000;
+const MAGIC = 'FIS1';
+const PBKDF2_ITERATIONS = 120000;
 
-export function normalizePassword(p: string): string {
+function normalizePassword(p: string): string {
   return p
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')

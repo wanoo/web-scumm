@@ -4,12 +4,13 @@
 // (a "2nd time" gag, opening/closing a cupboard with no consequence) don't create a new state.
 // Uses the real engine with a silent presenter: whatever the solver finds, the player can do.
 // Split by responsibility in 4.1.0 "Clarity" (tools/solve/): search, expansion, abstractions, model, report. This file
-// re-exports what it exported before, so every import of the solver stays as it was.
+// re-exports what the rest of the code imports from the solver, so those imports stay as they were (4.1.8: the names
+// nobody imported left the list; knip holds it).
 
-export { abstractionLines, profileText } from './solve/report';
-export type { Step, SolveProfile, SolveResult } from './solve/report';
+export { profileText } from './solve/report';
+export type { SolveProfile, SolveResult } from './solve/report';
 export { mergeStats } from './solve/model';
-export type { SolveOptions, NodeInput, TryRecord, Expansion, ExpandStats, RealityPolicy } from './solve/model';
+export type { SolveOptions, NodeInput, Expansion, ExpandStats, RealityPolicy } from './solve/model';
 export {
   mobilityError,
   isMobilityError,
@@ -17,10 +18,8 @@ export {
   ownershipError,
   isOwnershipError,
   atomValue,
-  monotonicThings,
   dominanceThings,
   projectState,
 } from './solve/abstractions';
-export type { Dims } from './solve/abstractions';
 export { makeExpander } from './solve/expansion';
 export { registerPool, threadPool, solve } from './solve/search';

@@ -8,7 +8,7 @@ import { describeCmd } from '../core/engine';
 import { condText } from './condtext';
 import { must } from '../core/must';
 
-export interface TimelineItem {
+interface TimelineItem {
   start: number;
   end: number;
   label: string;

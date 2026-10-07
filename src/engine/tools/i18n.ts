@@ -155,7 +155,7 @@ function room(r: RoomDef, fn: Fn, minigames: MinigameTexts) {
 }
 
 /** Visits every text of the game; `fn` may return a replacement. The game is changed in place. */
-export function walkTexts(game: GameDef, fn: Fn, minigames: MinigameTexts = {}): void {
+function walkTexts(game: GameDef, fn: Fn, minigames: MinigameTexts = {}): void {
   const one = (path: string, v: string | undefined, set: (x: string) => void) => {
     if (v === undefined) return;
     const x = fn(path, v);

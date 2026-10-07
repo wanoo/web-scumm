@@ -12,7 +12,7 @@ import type { GameDef, GameState, Id, Layout } from '../core/types';
 import { projectState, solve, type SolveOptions, type SolveResult } from './solve';
 import { must } from '../core/must';
 
-export interface ChapterProof {
+interface ChapterProof {
   /** The checkpoint that closes the chapter, or `ending`. */
   id: Id | 'ending';
   /** Boundary states the chapter was proved from (`1` for the first one: a new game), and how many were distinct for it. */
