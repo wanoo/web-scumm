@@ -412,6 +412,7 @@ line (4.1.7; a script missing from this page fails `tests/scripts-documented.tes
 | `npm run e2e:studio`, `e2e:taps`, `e2e:reality` | the Studio, the default verbs, the Reality Bridge, each in a real browser |
 | `npm run e2e:canonical [-- --browsers=chromium,webkit,firefox --allow-skip]` | `canonicalJson` (`src/engine/core/canonical.ts`, 4.1.12) on fifty edge values in Chromium, WebKit and Firefox, against the texts Node writes (`tests/canonical-json.test.ts`): one browser that writes one value differently fails; a browser that cannot launch exits 3 (0 with `--allow-skip`) |
 | `npm run migrate` | a game project moved to this release (`web-scumm migrate`; `docs/en/UPGRADING.md`) |
+| `npm run ir [-- --game <id> --json]` | the game's intermediate representation (4.1.12, `docs/dev/adr/0013-game-ir-and-fingerprint.md`): rooms and what stands in them, rules, topics, listeners, scripts, objectives, each with the `file:line` that writes it, and the hash of the trusted extensions; `--json` prints the whole IR, the same text for the same sources |
 | `npm run lint:content`, `lint:code` | the content lint alone (`npm run lint` runs it with a solver pass), Biome's lint alone |
 | `npm run format`, `format:check` | Biome's formatting, written or checked (`npm run quality` checks) |
 | `npm run mcp` | the MCP server of the current game on stdio (`docs/en/MCP.md`; `npm run -s mcp` for a client) |

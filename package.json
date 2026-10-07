@@ -37,6 +37,7 @@
     "validate": "tsx tools/validate.ts",
     "solve": "tsx tools/solve.ts",
     "replay": "tsx tools/replay.ts",
+    "ir": "tsx tools/ir.ts",
     "ids": "tsx tools/ids.ts",
     "migrate": "tsx tools/migrate.ts",
     "playtests": "tsx tools/playtests.ts",

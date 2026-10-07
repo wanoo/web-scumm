@@ -418,6 +418,7 @@ Les scripts ci-dessus sont ceux dont un jeu a besoin. Le reste de `package.json`
 | `npm run e2e:studio`, `e2e:taps`, `e2e:reality` | le Studio, les verbes par défaut, le Reality Bridge, chacun dans un vrai navigateur |
 | `npm run e2e:canonical [-- --browsers=chromium,webkit,firefox --allow-skip]` | `canonicalJson` (`src/engine/core/canonical.ts`, 4.1.12) sur cinquante valeurs limites dans Chromium, WebKit et Firefox, contre les textes qu'écrit Node (`tests/canonical-json.test.ts`) : un navigateur qui écrit une valeur autrement échoue ; un navigateur qui ne se lance pas sort en 3 (0 avec `--allow-skip`) |
 | `npm run migrate` | un projet de jeu passé à cette release (`web-scumm migrate` ; `docs/fr/UPGRADING.md`) |
+| `npm run ir [-- --game <id> --json]` | la représentation intermédiaire du jeu (4.1.12, `docs/dev/adr/0013-game-ir-and-fingerprint.md`) : les salles et ce qui s'y trouve, règles, sujets, écouteurs, scripts, objectifs, chacun avec le `fichier:ligne` qui l'écrit, et l'empreinte des extensions de confiance ; `--json` imprime l'IR entière, le même texte pour les mêmes sources |
 | `npm run lint:content`, `lint:code` | le lint du contenu seul (`npm run lint` l'enchaîne avec une passe du solveur), le lint de Biome seul |
 | `npm run format`, `format:check` | le formatage de Biome, écrit ou vérifié (`npm run quality` vérifie) |
 | `npm run mcp` | le serveur MCP du jeu courant sur stdio (`docs/fr/MCP.md` ; `npm run -s mcp` pour un client) |
