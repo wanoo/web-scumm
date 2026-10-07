@@ -53,6 +53,8 @@ export interface ShellOptions {
   playerId?: string;
   /** Wrong codes before the session is closed. */
   maxTries?: number;
+  /** A wrong code, counted for the client's address across connections: true when the address has no try left. */
+  failed?: () => boolean;
 }
 
 const CODE = /^[A-Z0-9]{8}$/;
@@ -119,7 +121,8 @@ export class VirtualShell {
       const r = await bindPlayer(this.o.ctx, this.o.resume, text);
       if ('refusal' in r) {
         this.o.ctx.reject('pairing', { connector: this.o.connector });
-        if (++this.tries >= (this.o.maxTries ?? 3)) {
+        const spent = this.o.failed?.() ?? false;
+        if (++this.tries >= (this.o.maxTries ?? 3) || spent) {
           this.say('Too many wrong codes. Goodbye.');
           return this.o.close('pairing');
         }

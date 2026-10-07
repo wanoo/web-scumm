@@ -91,6 +91,17 @@ export function taggedPlayer(to: string[], domain: string | undefined): string |
   return null;
 }
 
+const TRANSIENT = new Set(['timeout', 'unreachable', 'bridge', 'bridge-quota', 'quota', 'stopped']);
+
+/** Whether a message's outcome may change if it is read again later. */
+function transient(o: EmailOutcome): boolean {
+  if (o.kind === 'proposed') return !o.result.ok && TRANSIENT.has(o.result.refusal);
+  if (o.kind === 'rejected') return o.reason === 'stopped' || TRANSIENT.has(o.reason.replace(/^pairing-/, ''));
+  return false;
+}
+
+const isLoopback = (host: string) => /^(127\.\d{1,3}\.\d{1,3}\.\d{1,3}|::1|localhost)$/i.test(host);
+
 export class EmailConnector implements RealityConnector {
   readonly id = 'email';
   private ctx: ConnectorContext | null = null;
@@ -109,8 +120,9 @@ export class EmailConnector implements RealityConnector {
 
   constructor(private c: EmailConfig) {}
 
+  /** The largest raw message read: 256 KB by default, never more than 4 MB whatever the configuration says. */
   private get maxBytes() {
-    return this.c.maxBytes ?? 256 * 1024;
+    return Math.min(this.c.maxBytes ?? 256 * 1024, 4 * 1024 * 1024);
   }
 
   /** One raw message, whatever brought it. Never throws. */
@@ -198,6 +210,9 @@ export class EmailConnector implements RealityConnector {
       this.port = await listen(this.server, w.port, w.host ?? '127.0.0.1');
     } else {
       if (!this.c.imap?.password) throw new Error('email: imap mode needs "imap.passwordFile"');
+      // Without TLS the LOGIN crosses the network in clear: allowed only to this machine (a test or a local relay).
+      if (this.c.imap.tls === false && !isLoopback(this.c.imap.host))
+        throw new Error('email: "imap.tls": false is allowed for a loopback host only (127.0.0.1, ::1, localhost)');
       const every = (this.c.imap.pollS ?? 60) * 1000;
       const tick = () => {
         if (this.stopping) return;
@@ -254,6 +269,9 @@ export class EmailConnector implements RealityConnector {
         }
         const bytes = await imap.fetch(uid);
         const o: EmailOutcome = bytes ? await this.handle(bytes) : { kind: 'rejected', reason: 'unreadable' };
+        // A refusal that may pass later (the Bridge away or busy, a quota): the message stays unseen and is read again
+        // at the next poll, so delivery stays at least once. A definitive refusal is flagged for the operator.
+        if (transient(o)) continue;
         const done = o.kind === 'paired' || (o.kind === 'proposed' && o.result.ok);
         if (done && (c.keepDays ?? 0) === 0) {
           await imap.flag(uid, ['\\Seen', '\\Deleted']);

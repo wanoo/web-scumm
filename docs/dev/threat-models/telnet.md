@@ -16,12 +16,13 @@ table of declared words and answers, plus `help`, `clear` and `exit`. Nothing re
 | Binary input, control and escape characters | Bytes outside printable UTF-8 are dropped from a line; nothing typed is ever echoed back by the server (the client echoes) | binary and escape fixtures |
 | Long lines | A line is at most 512 bytes: beyond, the line is discarded and the player told | 1 MB line test |
 | Floods | 64 KB/s per connection (beyond: closed), 100 lines a minute (beyond: "slow down", lines dropped) | flood test |
-| Slowloris | A connection must send a complete line every 60 s and pair within 2 minutes; a session lasts 30 minutes | slow test (shortened limits) |
+| Slowloris | A connection must send a complete line every 60 s and pair within 20 seconds; a session lasts 30 minutes | slow test (shortened limits) |
 | Too many connections | 20 at once: the 21st is told "busy" and closed; 1 000 simultaneous attempts are refused without a crash | 1 000-connection test |
 | Guessing pairing codes | 3 wrong codes close the connection; a code is 8 characters of 31 symbols, lives ten minutes and is confirmed once; reconnecting costs a TCP handshake each three tries | `tests/connectors-terminal.test.ts` |
 | A repeated command proposing twice | `dedupeKey = sha256('telnet:' + sessionId + ':' + lineNo)`; a retry after a lost answer is a duplicate at the Bridge | contract tests |
 
-**Residual risks.** The 20 connections are counted for all clients together, not per address (not done in 4.1.9):
-one client can hold them all until their limits close them. Telnet is clear text: the pairing code and the commands cross the network unencrypted. Run it on
+**Residual risks.** Three connections per address and 20 in all (after the second reading): many addresses can
+still hold the 20 slots, each for 20 seconds unpaired. Wrong codes are counted per address across reconnections
+(six in ten minutes, then refused). Telnet is clear text: the pairing code and the commands cross the network unencrypted. Run it on
 a local network, a VPN or behind TLS (stunnel), or prefer SSH. Windows: the tests are excluded from the `windows` job
 until ported (they assume POSIX socket timing; said in `.github/workflows/ci.yml`).

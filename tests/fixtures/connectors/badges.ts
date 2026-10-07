@@ -39,13 +39,14 @@ const VM = `${DID}#${DID.slice(8)}`;
 const NOW = '2026-10-07T00:00:00Z';
 
 /** A Data Integrity proof `eddsa-jcs-2022` over a credential (the W3C suite, as `verifyEddsaJcs` checks it). */
-function signDi(doc: Record<string, unknown>, priv = ob3Key.priv) {
+function signDi(doc: Record<string, unknown>, extra: Record<string, string> = {}, priv = ob3Key.priv) {
   const proof = {
     type: 'DataIntegrityProof',
     cryptosuite: 'eddsa-jcs-2022',
     created: NOW,
     verificationMethod: VM,
     proofPurpose: 'assertionMethod',
+    ...extra,
   };
   const h = (v: unknown) => createHash('sha256').update(canonicalJson(v)).digest();
   const sig = sign(null, Buffer.concat([h({ ...proof, '@context': doc['@context'] }), h(doc)]), priv);
@@ -209,6 +210,29 @@ export function badgeFixtures(): { documents: Record<string, Doc>; cases: Record
     'ob3-wrong-recipient': {
       submission: { badge: signDi(credential('urn:uuid:ob3-wrong-recipient')), email: 'someone@else.example' },
       expect: 'invalid',
+    },
+    // After the second reading (4.1.9): the proof's own dates, and a status the connector cannot judge.
+    'ob3-proof-from-the-future': {
+      submission: { badge: signDi(credential('urn:uuid:future'), { created: '2027-06-01T00:00:00Z' }), email: EMAIL },
+      expect: 'invalid',
+    },
+    'ob3-proof-expired': {
+      submission: {
+        badge: signDi(credential('urn:uuid:proof-expired'), { expires: '2026-02-01T00:00:00Z' }),
+        email: EMAIL,
+      },
+      expect: 'invalid',
+    },
+    'ob3-suspension-status': {
+      submission: {
+        badge: signDi(
+          credential('urn:uuid:suspended', {
+            credentialStatus: { ...status(4).credentialStatus, statusPurpose: 'suspension' },
+          }),
+        ),
+        email: EMAIL,
+      },
+      expect: 'indeterminate',
     },
   };
   return { documents, cases };

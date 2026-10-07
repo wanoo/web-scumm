@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import ssh2, { type Connection } from 'ssh2';
 import type { ConnectorContext, ConnectorHealth, RealityConnector } from '../sdk';
-import { SessionGuard, TERMINAL_LIMITS, type TerminalLimits } from '../terminal/guard';
+import { AddressGate, SessionGuard, TERMINAL_LIMITS, type TerminalLimits } from '../terminal/guard';
 import { LineAssembler } from '../terminal/line';
 import { bindPlayer, ResumeWords, VirtualShell } from '../terminal/shell';
 
@@ -58,10 +58,12 @@ export class SshConnector implements RealityConnector {
   private limits: TerminalLimits;
   private keys: { ssh: Buffer; parsed: NonNullable<ReturnType<typeof parseOne>>; playerId: string }[] = [];
   refusedConnections = 0;
+  private gate: AddressGate;
   port = 0;
 
   constructor(private c: SshConfig) {
     this.limits = { ...TERMINAL_LIMITS, ...c.limits };
+    this.gate = new AddressGate(this.limits);
     for (const k of c.keys ?? []) {
       const parsed = parseOne(k.key);
       if (parsed && /^[\w.:-]{1,128}$/.test(k.playerId))
@@ -73,8 +75,8 @@ export class SshConnector implements RealityConnector {
     const decl = ctx.manifest.connectors?.ssh;
     if (!decl) throw new Error('ssh: the game declares no `reality.connectors.ssh`');
     this.ctx = ctx;
-    const server = new ssh2.Server({ hostKeys: [this.c.hostKey], ident: 'web-scumm-connector' }, (client) =>
-      this.client(client, ctx, decl),
+    const server = new ssh2.Server({ hostKeys: [this.c.hostKey], ident: 'web-scumm-connector' }, (client, info) =>
+      this.client(client, info?.ip ?? '?', ctx, decl),
     );
     server.maxConnections = this.limits.maxConnections;
     server.on('error', () => ctx.log('ssh.server-error'));
@@ -90,27 +92,38 @@ export class SshConnector implements RealityConnector {
 
   private client(
     client: Connection,
+    address: string,
     ctx: ConnectorContext,
     decl: NonNullable<ConnectorContext['manifest']['connectors']>['ssh'] & {},
   ): void {
+    client.on('error', () => {});
+    if (!this.gate.enter(address)) {
+      this.refusedConnections++;
+      ctx.reject('busy');
+      hangUp(client);
+      return;
+    }
     this.clients.add(client);
     let tries = 0;
+    let idle: NodeJS.Timeout | undefined;
     let playerId: string | null = null;
     let word: string | undefined;
     // Before authentication: at most `pairMs`; the session's own clock starts with the shell.
-    const auth = setTimeout(() => client.end(), this.limits.pairMs);
+    const auth = setTimeout(() => hangUp(client), this.limits.pairMs);
     auth.unref();
     client.on('error', () => {});
     client.on('close', () => {
       clearTimeout(auth);
-      this.clients.delete(client);
+      clearTimeout(idle);
+      if (this.clients.delete(client)) this.gate.leave(address);
     });
     client.on('authentication', (a) => {
       const fail = () => {
-        if (++tries >= 3) {
+        const spent = this.gate.failed(address);
+        if (++tries >= 3 || spent) {
           ctx.reject('authentication');
           a.reject();
-          return client.end();
+          return hangUp(client);
         }
         a.reject(['password', 'publickey']);
       };
@@ -136,8 +149,18 @@ export class SshConnector implements RealityConnector {
     });
     client.on('ready', () => {
       clearTimeout(auth);
-      client.on('session', (accept) => {
+      // Authenticated, no shell yet: the same idle limit as a silent terminal.
+      idle = setTimeout(() => hangUp(client), this.limits.idleMs);
+      idle.unref();
+      // One session and one shell per connection: more would multiply the limits each session holds.
+      let sessions = 0;
+      client.on('session', (accept, reject) => {
+        if (sessions++ > 0) {
+          ctx.reject('ssh-second-session');
+          return reject();
+        }
         const session = accept();
+        let shells = 0;
         let cols = 80;
         session.on('pty', (ok, _no, info) => {
           cols = clamp(info.cols, 10, 500, 80);
@@ -152,7 +175,12 @@ export class SshConnector implements RealityConnector {
             ctx.reject(`ssh-${ev}`);
             no?.();
           });
-        session.on('shell', (ok) => {
+        session.on('shell', (ok, no) => {
+          if (shells++ > 0) {
+            ctx.reject('ssh-second-shell');
+            return no?.();
+          }
+          clearTimeout(idle);
           const stream = ok();
           const sessionId = randomBytes(8).toString('hex');
           let open = true;
@@ -237,4 +265,15 @@ function parseOne(key: string) {
   const k = ssh2.utils.parseKey(key);
   if (k instanceof Error) return null;
   return Array.isArray(k) ? (k[0] ?? null) : k;
+}
+
+/**
+ * Ends a connection, then destroys its socket: before the handshake, ssh2's `end()` only half-closes it and a client
+ * would wait for its own timeout. `_sock` is ssh2's socket (an internal name: if it changed, a refused connection in
+ * tests/connectors-ssh.test.ts would wait for its timeout and fail).
+ */
+function hangUp(client: Connection): void {
+  client.end();
+  const sock = (client as unknown as { _sock?: { destroy(): void } })._sock;
+  setTimeout(() => sock?.destroy(), 100).unref();
 }

@@ -25,7 +25,12 @@ interface Response {
 }
 
 const MAX_LINE = 8192;
-const MAX_UNTAGGED = 5000;
+/** One response line with its literals' markers joined: a chain of `{0}` cannot grow it past this. */
+const MAX_JOINED_LINE = 64 * 1024;
+/** Untagged responses, literals and bytes (lines and literals) one command may collect. */
+const MAX_UNTAGGED = 1000;
+const MAX_LITERALS = 64;
+const MAX_RESPONSE_BYTES = 1024 * 1024;
 
 /** An IMAP quoted string; a credential with CR, LF or NUL is refused, never sent. */
 function quote(s: string): string {
@@ -42,6 +47,9 @@ export class ImapClient {
   private greeted: ((ok: boolean) => void) | null = null;
   private n = 0;
   private dead: Error | null = null;
+  /** Literals and bytes received for the command in flight (reset at its tagged answer). */
+  private literalCount = 0;
+  private responseBytes = 0;
   /** Literal bytes received for the command in flight: at most twice `maxLiteral` in all. */
   private literalBytes = 0;
 
@@ -116,10 +124,15 @@ export class ImapClient {
       this.buf = this.buf.subarray(eol + 2);
       this.current ??= { line: '', literals: [] };
       this.current.line += line;
+      this.responseBytes += eol + 2;
+      if (this.current.line.length > MAX_JOINED_LINE) return this.die(new Error('an IMAP response line over 64 KB'));
+      if (this.responseBytes > MAX_RESPONSE_BYTES + 2 * this.o.maxLiteral)
+        return this.die(new Error('an IMAP response over its size'));
       const lit = /\{(\d{1,10})\}$/.exec(line);
       if (lit) {
         const n = Number(lit[1]);
         this.literalBytes += n;
+        if (++this.literalCount > MAX_LITERALS) return this.die(new Error('too many IMAP literals'));
         if (n > this.o.maxLiteral || this.literalBytes > 2 * this.o.maxLiteral)
           return this.die(new Error('an IMAP literal over the limit'));
         this.literalLeft = n;
@@ -141,6 +154,8 @@ export class ImapClient {
       const status = /^\S+ (OK|NO|BAD)\b/i.exec(r.line)?.[1]?.toUpperCase() as Response['status'] | undefined;
       this.pending = null;
       this.literalBytes = 0;
+      this.literalCount = 0;
+      this.responseBytes = 0;
       const untagged = this.untagged;
       this.untagged = [];
       p.done({ status: status ?? 'BAD', untagged });

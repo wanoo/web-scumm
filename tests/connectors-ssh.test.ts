@@ -17,9 +17,14 @@ afterAll(async () => {
 const host = ssh2.utils.generateKeyPairSync('ed25519');
 const player = ssh2.utils.generateKeyPairSync('ed25519');
 
-async function sshServer(t: TestBridge, keys: { key: string; playerId: string }[] = [], lines: string[] = []) {
+async function sshServer(
+  t: TestBridge,
+  keys: { key: string; playerId: string }[] = [],
+  lines: string[] = [],
+  limits: ConstructorParameters<typeof SshConnector>[0]['limits'] = {},
+) {
   const { ctx } = await contextFor(t, 'ssh', { lines });
-  const c = new SshConnector({ port: 0, hostKey: host.private, keys });
+  const c = new SshConnector({ port: 0, hostKey: host.private, keys, limits });
   await c.start(ctx);
   cleanup.push(() => c.stop());
   return c;
@@ -31,6 +36,8 @@ function login(port: number, o: { password?: string; privateKey?: string }) {
   return new Promise<{ client: InstanceType<typeof ssh2.Client> } | { error: Error }>((ok) => {
     c.on('ready', () => ok({ client: c }));
     c.on('error', (error: Error) => ok({ error }));
+    // A connection refused before its handshake just closes.
+    c.on('close', () => ok({ error: new Error('closed') }));
     c.connect({ host: '127.0.0.1', port, username: 'player', readyTimeout: 10_000, tryKeyboard: false, ...o });
   });
 }
@@ -115,20 +122,29 @@ describe('the SSH connector', () => {
 
   it('refuses exec, sftp and forwarding, and wraps output at the terminal width', async () => {
     const c = await sshServer(t);
-    const r = await login(c.port, { password: await t.code() });
-    if ('error' in r) throw r.error;
+    // One session per connection: each refused request gets a connection of its own.
+    const signIn = async () => {
+      const r = await login(c.port, { password: await t.code() });
+      if ('error' in r) throw r.error;
+      return r.client;
+    };
+    const a = await signIn();
+    const exec = await new Promise<Error | undefined>((ok) => a.exec('id', (err) => ok(err)));
+    expect(exec).toBeInstanceOf(Error);
+    a.end();
+    const b = await signIn();
+    const sftp = await new Promise<Error | undefined>((ok) => b.sftp((err) => ok(err)));
+    expect(sftp).toBeInstanceOf(Error);
+    const fwd = await new Promise<Error | undefined>((ok) =>
+      b.forwardOut('127.0.0.1', 1, '127.0.0.1', 22, (err) => ok(err)),
+    );
+    expect(fwd).toBeInstanceOf(Error);
+    b.end();
+    expect(wrap('abcdefghij', 4)).toBe('abcd\r\nefgh\r\nij');
+    const r = { client: await signIn() };
     cleanup.push(() => {
       r.client.end();
     });
-    const exec = await new Promise<Error | undefined>((ok) => r.client.exec('id', (err) => ok(err)));
-    expect(exec).toBeInstanceOf(Error);
-    const sftp = await new Promise<Error | undefined>((ok) => r.client.sftp((err) => ok(err)));
-    expect(sftp).toBeInstanceOf(Error);
-    const fwd = await new Promise<Error | undefined>((ok) =>
-      r.client.forwardOut('127.0.0.1', 1, '127.0.0.1', 22, (err) => ok(err)),
-    );
-    expect(fwd).toBeInstanceOf(Error);
-    expect(wrap('abcdefghij', 4)).toBe('abcd\r\nefgh\r\nij');
     const sh = await shell(r.client, 10);
     await sh.until(/shed\$ $/);
     sh.stream.setWindow(24, 12, 0, 0);
@@ -145,5 +161,41 @@ describe('the SSH connector', () => {
     keyed.client.end();
     const stranger = await login(c.port, { privateKey: ssh2.utils.generateKeyPairSync('ed25519').private });
     expect('error' in stranger).toBe(true);
+  }, 30_000);
+
+  it('one shell per connection; an authenticated connection without a shell times out', async () => {
+    const c = await sshServer(t, [], [], { idleMs: 400 });
+    const r = await login(c.port, { password: await t.code() });
+    if ('error' in r) throw r.error;
+    const first = await shell(r.client);
+    await first.until(/shed\$ $/);
+    const second = await new Promise<Error | undefined>((ok) =>
+      r.client.shell({ cols: 80, rows: 24 }, (err) => ok(err)),
+    );
+    expect(second).toBeInstanceOf(Error);
+    r.client.end();
+    const idle = await login(c.port, { password: await t.code() });
+    if ('error' in idle) throw idle.error;
+    const t0 = Date.now();
+    await new Promise<void>((ok) => idle.client.on('close', () => ok()));
+    expect(Date.now() - t0).toBeLessThan(3000);
+  }, 30_000);
+
+  it('holds three connections per address, counts wrong passwords across reconnections', async () => {
+    const c = await sshServer(t, [], [], { perAddress: 3, triesPerAddress: 2 });
+    const held = [];
+    for (let i = 0; i < 3; i++) {
+      const r = await login(c.port, { password: await t.code() });
+      if ('error' in r) throw r.error;
+      held.push(r.client);
+    }
+    expect('error' in (await login(c.port, { password: await t.code() }))).toBe(true);
+    for (const h of held) h.end();
+    await new Promise((r) => setTimeout(r, 200));
+    // Two wrong passwords on two connections: the address has spent its tries, a right code is refused after.
+    expect('error' in (await login(c.port, { password: 'WRONG123' }))).toBe(true);
+    expect('error' in (await login(c.port, { password: 'WRONG456' }))).toBe(true);
+    await new Promise((r) => setTimeout(r, 200));
+    expect('error' in (await login(c.port, { password: await t.code() }))).toBe(true);
   }, 30_000);
 });

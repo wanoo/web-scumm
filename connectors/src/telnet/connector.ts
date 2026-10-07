@@ -5,7 +5,7 @@ import { randomBytes } from 'node:crypto';
 import { createServer, type Server, type Socket } from 'node:net';
 import { listen } from '../http';
 import type { ConnectorContext, ConnectorHealth, RealityConnector } from '../sdk';
-import { SessionGuard, TERMINAL_LIMITS, type TerminalLimits } from '../terminal/guard';
+import { AddressGate, SessionGuard, TERMINAL_LIMITS, type TerminalLimits } from '../terminal/guard';
 import { LineAssembler } from '../terminal/line';
 import { ResumeWords, VirtualShell } from '../terminal/shell';
 
@@ -88,8 +88,16 @@ export class TelnetConnector implements RealityConnector {
   refusedConnections = 0;
   port = 0;
 
+  private gate: AddressGate;
+
   constructor(private c: TelnetConfig) {
     this.limits = { ...TERMINAL_LIMITS, ...c.limits };
+    this.gate = new AddressGate(this.limits);
+  }
+
+  /** Sessions open now (the tests wait on it after closing sockets). */
+  get sessionCount(): number {
+    return this.sessions.size;
   }
 
   async start(ctx: ConnectorContext): Promise<void> {
@@ -109,7 +117,8 @@ export class TelnetConnector implements RealityConnector {
     decl: NonNullable<ConnectorContext['manifest']['connectors']>['telnet'] & {},
   ): void {
     socket.on('error', () => {});
-    if (this.stopping || this.sessions.size >= this.limits.maxConnections) {
+    const address = socket.remoteAddress ?? '?';
+    if (this.stopping || this.sessions.size >= this.limits.maxConnections || !this.gate.enter(address)) {
       this.refusedConnections++;
       ctx.reject('busy');
       socket.end('The terminal is busy. Try again later.\r\n');
@@ -135,7 +144,16 @@ export class TelnetConnector implements RealityConnector {
       write(`\r\nClosed (${why}).\r\n`);
       close(why);
     });
-    const shell = new VirtualShell({ connector: 'telnet', ctx, decl, sessionId, resume: this.resume, write, close });
+    const shell = new VirtualShell({
+      connector: 'telnet',
+      ctx,
+      decl,
+      sessionId,
+      resume: this.resume,
+      write,
+      close,
+      failed: () => this.gate.failed(address),
+    });
     const filter = new TelnetFilter();
     const lines = new LineAssembler(this.limits.maxLine, {
       line: (text) => {
@@ -154,7 +172,7 @@ export class TelnetConnector implements RealityConnector {
       open = false;
       shell.closed = true;
       guard.dispose();
-      this.sessions.delete(socket);
+      if (this.sessions.delete(socket)) this.gate.leave(address);
     });
     socket.on('data', (d: Buffer) => {
       if (!open) return;

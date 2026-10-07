@@ -10,7 +10,7 @@
   (`connectors/src/email/imap.ts`) rather than `imapflow` (MIT, but eight runtime packages: a logger, a SOCKS client,
   charset tables); MIME: a bounded reader of our own in a worker rather than `mailparser`. SSH: `ssh2` 1.17.0 (MIT;
   asn1 MIT, bcrypt-pbkdf BSD-3-Clause, safer-buffer MIT, tweetnacl Unlicense), its optional `cpu-features` and `nan`
-  mapped by the root `overrides` to `connectors/vendor/refused-native`: `npm ci` builds no `.node` (checked by a test
+  mapped by the root `overrides` to `connectors/vendor/refused-native`: `npm ci` still runs ssh2's install script, which attempts `node-gyp rebuild` and fails, so no `.node` results (checked by a test
   and by the CI job). Type declarations for the part of `ssh2` used are local (`@types/ssh2` pins `@types/node` 18).
   Players link a connector with the pause menu's pairing code (typed at a terminal, an email's subject, posted with a
   badge); email also routes by a recipient tag `+p-…` and by a sender linked by a code (in memory, salted hash).
@@ -44,5 +44,23 @@
   `test:coverage`, three points under it); the `connectors` mutation set run and gated; the nightly fuzz gating (after
   two green nights); the Telnet and SSH tests on Windows; the human passes (a real provider, a real badge, SSH and
   Telnet exposed: `experimental`, D12, D19); `tenantId` is in the context, `'default'`, and not sent to the Bridge.
+
+- After the second (security) reading of #43, applied on this branch: the 1 000-connection test raced the server's
+  release of its sessions (red on CI's `connectors` and `node-24`); it now waits for the session count to fall
+  before the next client. SSH: one session and one shell per connection (50 shells on one login multiplied every
+  limit), an idle timer once authenticated without a shell, refused connections hung up at the socket (ssh2's
+  `end()` only half-closes before the handshake). Telnet and SSH: three connections per address, 20 s to pair
+  (was 2 min), wrong codes counted per address across reconnections (six in ten minutes). Email: `imap.tls: false`
+  refused unless the host is loopback; a refusal that may pass (`timeout`, `unreachable`, `bridge`, `bridge-quota`,
+  `quota`) leaves the message unseen (it was flagged Seen and never retried: not "at least once"); `maxBytes` clamped
+  to 4 MB. IMAP: a response line with its literals' markers ≤ 64 KB, ≤ 64 literals, ≤ 1 000 untagged lines and 1 MB
+  of lines per command (a chain of `{0}` grew without bound). Open Badges: a Data Integrity proof `created` in the
+  future (beyond 5 min) or past its `expires` is `invalid`; a status entry of another purpose than revocation (a
+  suspension) is `indeterminate` instead of skipped; IPv4-compatible (`::/96`) and Teredo (`2001::/32`) addresses
+  refused. Wording corrected: `npm ci` still runs ssh2's install script, which attempts `node-gyp rebuild` and fails;
+  no `.node` results (the existing test). Tests added: 3 badge fixtures (15 now), two per-address tests, two SSH
+  tests, three email tests (two hostile IMAP servers, transient against definitive, TLS); every connector file run
+  alone, all green (sdk 34, email 23, badges 23, terminal 9, ssh 6, abuse 7, replays 2). Not taken: pairing attempts
+  in the per-minute quota, IMAP retries with backoff (the next poll is the retry).
 
 → next: Claude · `release/4.1.9`

@@ -4,9 +4,11 @@
   Each is a process of its own (`web-scumm-connector <id> --config <file>`, or `npm run connector -- …` in the
   repository), never in the game nor its DSL, with one Biscuit attenuated to its own signals. Email: a provider's
   signed webhook or an IMAP mailbox, the message read in a worker under limits, HTML made inert, attachments refused,
-  one signal per `Message-ID`. Telnet and SSH: a virtual terminal (the game's commands, `help`, `exit`) and, for SSH,
-  a virtual disk (`ls`, `cd`, `cat`); no host shell, no `exec`, no `sftp`, no forwarding; line, rate, time and
-  connection limits. Open Badges 2.0 (hosted, signed) and 3.0 (VC-JWT, Data Integrity `eddsa-jcs-2022`), issuer,
+  one signal per `Message-ID`, a message the Bridge could not take left unseen for the next poll, IMAP without TLS
+  only to this machine. Telnet and SSH: a virtual terminal (the game's commands, `help`, `exit`) and, for SSH, a
+  virtual disk (`ls`, `cd`, `cat`); no host shell, no `exec`, no `sftp`, no forwarding; one shell per SSH
+  connection; line, rate and time limits, 20 seconds to pair, three connections per address and wrong codes counted
+  per address across reconnections. Open Badges 2.0 (hosted, signed) and 3.0 (VC-JWT, Data Integrity `eddsa-jcs-2022`), issuer,
   recipient, dates and revocation checked, every document fetched under an SSRF-safe network policy; the verdict is
   `valid`, `invalid`, `expired`, `revoked` or `indeterminate`. A player links a connector with the pairing code the
   pause menu shows. Not done: replies to emails, DKIM and SPF, RDF-canonicalised proofs (`indeterminate`), a real
@@ -23,8 +25,9 @@
   `evidenceHash`. Limits (size, a local quota, a timeout), metrics and `/health` in JSON, a log that writes
   `[redacted]` for anything that looks like content, SIGTERM drained in at most five seconds.
 - **`web-scumm-connectors`, a fourth package** (4.1.9): one bundled module, its MIME worker beside it, `ssh2` (MIT)
-  its only dependency, whose optional native parts are refused (`cpu-features` and `nan` map to a refusing stub): no
-  native code is built. `npm run pack` makes four tarballs; `npm run fresh-install` installs this one without native
+  its only dependency, whose optional native parts are refused (`cpu-features` and `nan` map to a refusing stub): in the
+  repository `npm ci` still runs ssh2's install script, which attempts a native build and fails without the `nan`
+  headers, so no `.node` file results (tested); the package is installed with `--ignore-scripts`. `npm run pack` makes four tarballs; `npm run fresh-install` installs this one without native
   code and runs `web-scumm-connector --help`.
 - **A build that carries server code fails** (4.1.9): `verify:dist` (in `npm run build`) refuses a game's JavaScript
   that holds any marker of the connectors or the Bridge (`connectors/`, `ssh2`, `imapflow`, `web-scumm-bridge`…).

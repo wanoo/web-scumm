@@ -23,7 +23,7 @@ mailbox replaying old messages; a player trying another player's signal.
 | A message without `Message-ID` | Refused (no idempotence possible) | `no-message-id.eml` |
 | Header injection in a reply | No reply is sent in 4.1.9 (not done, said in the CHANGELOG fragment); nothing of a message is ever written anywhere | — |
 | Encoded words abuse (RFC 2047 with unknown charsets, invalid base64) | Decoded with the platform's `TextDecoder` (non-fatal); an unknown charset keeps the raw bytes as Latin-1; never an exception out of the worker | `encoded-subject.eml`, fuzz |
-| An IMAP server that lies (huge literal, endless lines) | A line is at most 8 KB, a literal at most `maxBytes`, a command answers within 30 s, else the connection is closed and the poll retried later | `tests/connectors-email.test.ts` (a fake IMAP server) |
+| An IMAP server that lies (huge literal, endless lines, chained `{0}` literals) | A line is at most 8 KB and a response line with its literals' markers 64 KB; a command collects at most 1 000 untagged lines, 64 literals, `2 × maxBytes` of literals and 1 MB of lines; a command answers within 30 s; else the connection is closed and the poll retried later. Without TLS only to a loopback host (else LOGIN would cross in clear). A refusal that may pass (the Bridge away, a quota) leaves the message unseen for the next poll | `tests/connectors-email.test.ts` (a fake IMAP server) |
 | Retention | `keep: 0` (default): a message is deleted from the mailbox once its proposal is accepted or found duplicate; `keep: N`: deleted after N days; a refused message is flagged and kept for the operator | `tests/connectors-email.test.ts` |
 
 **Residual risks.** A provider whose own signature scheme differs needs a small adapter in front (not shipped). DKIM

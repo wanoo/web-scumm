@@ -19,9 +19,9 @@ hostile terminals, huge lines.
 | Brute force | 3 authentication attempts per connection; a password is accepted only as an 8-character pairing code or a resume word | test |
 | Terminal resizing abuse | `pty-req` and `window-change`: the width is clamped (10 to 500 columns) and only used to wrap output; nothing else of them is read | `tests/connectors-ssh.test.ts` |
 | Escape sequences in output | The output is the game's own text and the disk's; nothing typed is printed back but the line being edited (printable characters only) | — |
-| Long sessions, many sessions | 30 minutes per session, 60 s idle before the first line, 20 connections | test (shortened limits) |
+| Long sessions, many sessions | One session and one shell per connection (more are refused); 30 minutes per session; 20 seconds to authenticate; 60 s idle before the first line, and after authentication without a shell; 3 connections per address, 20 in all; wrong passwords counted per address across reconnections | `tests/connectors-ssh.test.ts` (shortened limits) |
 | Leaking the host key or codes | The host key is read from a file (mode 600 recommended), never logged; the log names events and counts only | log test |
-| Native code in the dependency | `cpu-features` and `nan` are replaced by a refusing stub (`connectors/vendor/refused-native`, root `overrides`), so `ssh2` builds no binding; `tests/connectors-ssh.test.ts` checks no `.node` file exists under `ssh2` | test |
+| Native code in the dependency | `cpu-features` and `nan` are replaced by a refusing stub (`connectors/vendor/refused-native`, root `overrides`), so ssh2's own install script, which `npm ci` still runs, attempts `node-gyp rebuild` of its optional crypto binding and fails for lack of the `nan` headers: no `.node` file results (`tests/connectors-ssh.test.ts` checks none exists under `node_modules/ssh2`; the package is installed with `--ignore-scripts`) | test |
 
 **Residual risks.** `ssh2` itself parses the transport: a flaw there is a flaw here (pinned, audited by
 `npm run audit:deps`). Resume words live in memory: a restart forgets them and the player pairs again.

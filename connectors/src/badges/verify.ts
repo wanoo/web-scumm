@@ -281,7 +281,9 @@ export class BadgeVerifier {
       return;
     }
     if (t.includes('BitstringStatusListEntry') || t.includes('StatusList2021Entry')) {
-      if (st.statusPurpose !== undefined && st.statusPurpose !== 'revocation') return;
+      // A suspension (or any purpose but revocation) is not something this connector can judge: never `valid`.
+      if (st.statusPurpose !== undefined && st.statusPurpose !== 'revocation')
+        throw new Stop('indeterminate', `status purpose not checked (${String(st.statusPurpose).slice(0, 32)})`);
       const index = Number(st.statusListIndex);
       if (!Number.isInteger(index) || index < 0) throw new Stop('indeterminate', 'bad status index');
       const r = await this.cached(String(st.statusListCredential ?? ''), get);
@@ -326,6 +328,12 @@ export class BadgeVerifier {
         `proof suite not supported (${String(proofs[0]?.cryptosuite ?? proofs[0]?.type ?? 'none')})`,
       );
     if (p.proofPurpose !== 'assertionMethod') throw new Stop('invalid', 'proof purpose');
+    // The proof's own dates: made in the future (beyond the clock tolerance), or past its `expires`, it proves nothing.
+    const created = Date.parse(String(p.created ?? ''));
+    if (Number.isFinite(created) && created > this.now() + SKEW)
+      throw new Stop('invalid', 'proof created in the future');
+    const expires = Date.parse(String(p.expires ?? ''));
+    if (Number.isFinite(expires) && expires < this.now()) throw new Stop('invalid', 'proof expired');
     const key = await this.keyOf(String(p.verificationMethod ?? ''), issuer, get);
     if (!verifyEddsaJcs({ ...doc, proof: p }, p, key)) throw new Stop('invalid', 'signature');
   }

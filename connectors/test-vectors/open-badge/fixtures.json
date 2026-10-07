@@ -492,6 +492,179 @@
     "email": "someone@else.example"
    },
    "expect": "invalid"
+  },
+  "ob3-proof-from-the-future": {
+   "submission": {
+    "badge": {
+     "@context": [
+      "https://www.w3.org/ns/credentials/v2",
+      "https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json"
+     ],
+     "id": "urn:uuid:future",
+     "type": [
+      "VerifiableCredential",
+      "OpenBadgeCredential"
+     ],
+     "issuer": {
+      "id": "did:key:z6Mko9hTggMwjSTEaJaPUfE6tqcy2xvU6BnNq3e3o8qVBiyH",
+      "type": [
+       "Profile"
+      ],
+      "name": "The Garden Guild"
+     },
+     "validFrom": "2026-01-01T00:00:00Z",
+     "name": "Shed opener",
+     "credentialSubject": {
+      "type": [
+       "AchievementSubject"
+      ],
+      "identifier": [
+       {
+        "type": "IdentityObject",
+        "identityHash": "sha256$83b61d598b22fff87bd75436340c6a6e06e578371f164003555de7f439fbd728",
+        "identityType": "emailAddress",
+        "hashed": true,
+        "salt": "pepper"
+       }
+      ],
+      "achievement": {
+       "id": "urn:uuid:achievement-1",
+       "type": [
+        "Achievement"
+       ],
+       "name": "Shed opener"
+      }
+     },
+     "proof": {
+      "type": "DataIntegrityProof",
+      "cryptosuite": "eddsa-jcs-2022",
+      "created": "2027-06-01T00:00:00Z",
+      "verificationMethod": "did:key:z6Mko9hTggMwjSTEaJaPUfE6tqcy2xvU6BnNq3e3o8qVBiyH#z6Mko9hTggMwjSTEaJaPUfE6tqcy2xvU6BnNq3e3o8qVBiyH",
+      "proofPurpose": "assertionMethod",
+      "proofValue": "z2xYmWvd9pp78DnPh9unmnjEn4tBcgztBxTKXLCH551SsuhmxxE6jW4ZQbfvArm2m6wUkMgkUufVHm1UNXQFiFjDg"
+     }
+    },
+    "email": "robin@player.example"
+   },
+   "expect": "invalid"
+  },
+  "ob3-proof-expired": {
+   "submission": {
+    "badge": {
+     "@context": [
+      "https://www.w3.org/ns/credentials/v2",
+      "https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json"
+     ],
+     "id": "urn:uuid:proof-expired",
+     "type": [
+      "VerifiableCredential",
+      "OpenBadgeCredential"
+     ],
+     "issuer": {
+      "id": "did:key:z6Mko9hTggMwjSTEaJaPUfE6tqcy2xvU6BnNq3e3o8qVBiyH",
+      "type": [
+       "Profile"
+      ],
+      "name": "The Garden Guild"
+     },
+     "validFrom": "2026-01-01T00:00:00Z",
+     "name": "Shed opener",
+     "credentialSubject": {
+      "type": [
+       "AchievementSubject"
+      ],
+      "identifier": [
+       {
+        "type": "IdentityObject",
+        "identityHash": "sha256$83b61d598b22fff87bd75436340c6a6e06e578371f164003555de7f439fbd728",
+        "identityType": "emailAddress",
+        "hashed": true,
+        "salt": "pepper"
+       }
+      ],
+      "achievement": {
+       "id": "urn:uuid:achievement-1",
+       "type": [
+        "Achievement"
+       ],
+       "name": "Shed opener"
+      }
+     },
+     "proof": {
+      "type": "DataIntegrityProof",
+      "cryptosuite": "eddsa-jcs-2022",
+      "created": "2026-10-07T00:00:00Z",
+      "verificationMethod": "did:key:z6Mko9hTggMwjSTEaJaPUfE6tqcy2xvU6BnNq3e3o8qVBiyH#z6Mko9hTggMwjSTEaJaPUfE6tqcy2xvU6BnNq3e3o8qVBiyH",
+      "proofPurpose": "assertionMethod",
+      "expires": "2026-02-01T00:00:00Z",
+      "proofValue": "z396BoqfthcXnZ95a3gGj2JQc3862W4qHM6qtjaPFL7HRHigN5Ce4FPSj9mz5b95xe1onGeLeJKcmkBUcxeQcgGeT"
+     }
+    },
+    "email": "robin@player.example"
+   },
+   "expect": "invalid"
+  },
+  "ob3-suspension-status": {
+   "submission": {
+    "badge": {
+     "@context": [
+      "https://www.w3.org/ns/credentials/v2",
+      "https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json"
+     ],
+     "id": "urn:uuid:suspended",
+     "type": [
+      "VerifiableCredential",
+      "OpenBadgeCredential"
+     ],
+     "issuer": {
+      "id": "did:key:z6Mko9hTggMwjSTEaJaPUfE6tqcy2xvU6BnNq3e3o8qVBiyH",
+      "type": [
+       "Profile"
+      ],
+      "name": "The Garden Guild"
+     },
+     "validFrom": "2026-01-01T00:00:00Z",
+     "name": "Shed opener",
+     "credentialSubject": {
+      "type": [
+       "AchievementSubject"
+      ],
+      "identifier": [
+       {
+        "type": "IdentityObject",
+        "identityHash": "sha256$83b61d598b22fff87bd75436340c6a6e06e578371f164003555de7f439fbd728",
+        "identityType": "emailAddress",
+        "hashed": true,
+        "salt": "pepper"
+       }
+      ],
+      "achievement": {
+       "id": "urn:uuid:achievement-1",
+       "type": [
+        "Achievement"
+       ],
+       "name": "Shed opener"
+      }
+     },
+     "credentialStatus": {
+      "id": "https://badges.example.org/status/1#4",
+      "type": "BitstringStatusListEntry",
+      "statusPurpose": "suspension",
+      "statusListIndex": "4",
+      "statusListCredential": "https://badges.example.org/status/1"
+     },
+     "proof": {
+      "type": "DataIntegrityProof",
+      "cryptosuite": "eddsa-jcs-2022",
+      "created": "2026-10-07T00:00:00Z",
+      "verificationMethod": "did:key:z6Mko9hTggMwjSTEaJaPUfE6tqcy2xvU6BnNq3e3o8qVBiyH#z6Mko9hTggMwjSTEaJaPUfE6tqcy2xvU6BnNq3e3o8qVBiyH",
+      "proofPurpose": "assertionMethod",
+      "proofValue": "zXJn4XgXnnhQotgFapd2cnBN8gVbBgX5rcRi8jdXZA2rQutHS65Bqr97NT17B6MKoDtWXATjVL5uDCefjtMB2utV"
+     }
+    },
+    "email": "robin@player.example"
+   },
+   "expect": "indeterminate"
   }
  }
 }

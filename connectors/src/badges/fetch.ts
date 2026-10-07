@@ -46,8 +46,9 @@ for (const [net, bits] of [
 ] as const)
   blocked.addSubnet(net, bits, 'ipv4');
 for (const [net, bits] of [
-  ['::', 128],
-  ['::1', 128],
+  ['::', 96], // the unspecified address, loopback and IPv4-compatible addresses (::a.b.c.d)
+  ['2001::', 32], // Teredo: an IPv4 address tunnelled inside
+
   ['64:ff9b::', 96],
   ['100::', 64],
   ['2001:db8::', 32],

@@ -190,7 +190,8 @@ describe('the Telnet connector', () => {
   }, 30_000);
 
   it('holds 20 sessions and turns the rest away cleanly, a thousand attempts at once', async () => {
-    const { c } = await telnet(t);
+    // One address here: its own limit lifted, so the server's limit of 20 is the one tested.
+    const { c } = await telnet(t, { perAddress: 1000 });
     const sockets = await Promise.all(
       Array.from(
         { length: 1000 },
@@ -206,8 +207,38 @@ describe('the Telnet connector', () => {
     await new Promise((r) => setTimeout(r, 300));
     expect(c.refusedConnections).toBeGreaterThanOrEqual(980);
     for (const s of sockets) s.destroy();
+    // A session is freed when the server sees its socket close: wait for that before the next client.
+    for (let i = 0; i < 200 && c.sessionCount >= 20; i++) await new Promise((r) => setTimeout(r, 25));
+    expect(c.sessionCount).toBeLessThan(20);
     const later = await client(c.port);
     await later.until(/Pairing code: $/, 5000);
     later.s.end();
   }, 60_000);
+
+  it('holds three connections per address, counts wrong codes across reconnections, closes an unpaired one', async () => {
+    const { c } = await telnet(t, { perAddress: 3, triesPerAddress: 4, pairMs: 400 });
+    const three = await Promise.all([client(c.port), client(c.port), client(c.port)]);
+    for (const k of three) await k.until(/Pairing code: $/);
+    const fourth = await client(c.port);
+    await fourth.until(/busy/);
+    await fourth.closed;
+    // Unpaired, the three are closed at the pre-authentication limit.
+    for (const k of three) {
+      await k.until(/Closed \(pairing-time\)/, 3000);
+      await k.closed;
+    }
+    for (let i = 0; i < 100 && c.sessionCount > 0; i++) await new Promise((r) => setTimeout(r, 20));
+    // Two wrong codes, hang up, two more: the address has spent its four tries, reconnecting does not reset them.
+    for (let round = 0; round < 2; round++) {
+      const k = await client(c.port);
+      await k.until(/Pairing code: $/);
+      k.s.write('AAAAAAAA\r\nBBBBBBBB\r\n');
+      await k.until(round === 0 ? /does not work[\s\S]*does not work/ : /Too many wrong codes/);
+      k.s.destroy();
+      await k.closed;
+    }
+    for (let i = 0; i < 100 && c.sessionCount > 0; i++) await new Promise((r) => setTimeout(r, 20));
+    const refused = await client(c.port);
+    await refused.until(/busy/);
+  }, 30_000);
 });

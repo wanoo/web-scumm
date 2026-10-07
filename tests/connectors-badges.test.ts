@@ -38,7 +38,7 @@ async function serve(handler: Parameters<typeof createServer>[1]): Promise<{ ser
 }
 
 describe('the twelve badge fixtures', () => {
-  it('are the ones the generator writes (twelve, two valid per format)', () => {
+  it('are the ones the generator writes (twelve, two valid per format, and three since the second reading)', () => {
     const strip = (x: unknown) =>
       JSON.parse(
         JSON.stringify(x)
@@ -46,7 +46,7 @@ describe('the twelve badge fixtures', () => {
           .replace(/"proofValue":"[^"]*"/g, '"proofValue":""'),
       );
     expect(strip(fixtures)).toEqual(strip(badgeFixtures()));
-    expect(Object.keys(fixtures.cases)).toHaveLength(12);
+    expect(Object.keys(fixtures.cases)).toHaveLength(15);
     const valid = Object.keys(fixtures.cases).filter((k) => fixtures.cases[k]!.expect === 'valid');
     expect(valid.sort()).toEqual(['ob2-hosted-valid', 'ob2-signed-valid', 'ob3-di-valid', 'ob3-jwt-valid']);
   });
@@ -134,6 +134,8 @@ describe('the network policy', () => {
       'fd00::1',
       '::ffff:127.0.0.1',
       '::ffff:10.0.0.1',
+      '::7f00:1',
+      '2001:0:4136:e378:8000:63bf:3fff:fdd2',
       '224.0.0.1',
       'not-an-ip',
     ])

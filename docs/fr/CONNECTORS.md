@@ -70,7 +70,9 @@ Deux modes. `webhook` : un fournisseur (ou un petit adaptateur devant lui) poste
 `POST /v1/inbound`, avec `X-Web-Scumm-Timestamp` (secondes Unix, à cinq minutes près) et
 `X-Web-Scumm-Signature: sha256=<hex>`, un HMAC-SHA256 de `<timestamp>.<corps>` avec le secret de
 `webhook.secretFile`. `imap` : le connecteur interroge une boîte en TLS toutes les `pollS` secondes (`imap.host`,
-`user`, `passwordFile`, `mailbox`).
+`user`, `passwordFile`, `mailbox`) ; `"tls": false` est refusé sauf si l'hôte est cette machine (127.0.0.1, ::1,
+localhost). Un message dont le signal n'a pas pu atteindre le Bridge (absent, occupé, au-delà d'un quota) reste non
+lu et sera relu au passage suivant.
 
 Un message est lu dans un thread worker (64 Mo, 2 s), 256 Ko au plus, 3 niveaux de multipart, 64 parties ; le HTML
 devient du texte inerte ; un message avec une pièce jointe est refusé. Le joueur est l'étiquette du destinataire
@@ -85,8 +87,9 @@ messages refusés sont marqués et gardés pour l'opérateur. Aucune réponse n'
 `telnet: { "port": 2323, "host": "127.0.0.1" }`. Un serveur TCP qui refuse toutes les options Telnet et filtre les
 octets du protocole. Le joueur tape le code d'appairage (ou le mot de reprise affiché lors d'un appairage précédent),
 puis les commandes que le jeu déclare ; `help`, `clear` et `exit` sont celles du terminal. Une ligne fait 512 octets
-au plus, 100 par minute ; une connexion envoie 64 Ko par seconde au plus, doit s'appairer en deux minutes, taper une
-ligne par minute, et dure 30 minutes au plus ; 20 connexions à la fois. La clé est
+au plus, 100 par minute ; une connexion envoie 64 Ko par seconde au plus, doit s'appairer en 20 secondes, taper une
+ligne par minute, et dure 30 minutes au plus ; 3 connexions par adresse et 20 en tout ; six mauvais codes d'une même
+adresse en dix minutes, reconnexions comprises, et elle est refusée. La clé est
 `sha256('telnet:' + session + ':' + ligne)`. Telnet circule en clair : gardez-le sur un réseau local, derrière un VPN
 ou TLS (stunnel), ou préférez SSH.
 
@@ -97,7 +100,8 @@ Un serveur SSH (`ssh2`, JavaScript pur, ses parties natives refusées). Le mot d
 mot de reprise (trois essais) ; ou une clé publique que l'opérateur a déclarée pour un joueur. Seul un terminal
 s'ouvre : les commandes du jeu, et `ls`, `cd`, `pwd`, `cat` sur le disque virtuel du jeu (`files`) ; `exec`, `sftp`,
 l'environnement, l'agent et les redirections sont refusés. Les chemins ne quittent jamais l'arbre virtuel, rien de
-tapé n'est interprété. La sortie est coupée à la largeur du terminal. Mêmes limites que Telnet. Générer la clé d'hôte
+tapé n'est interprété. La sortie est coupée à la largeur du terminal. Mêmes limites que Telnet, et une session avec un seul shell par connexion ; une connexion authentifiée sans shell est
+fermée au bout d'une minute. Générer la clé d'hôte
 avec `ssh-keygen -t ed25519 -f ssh_host_ed25519_key -N ''`.
 
 ## Open Badges

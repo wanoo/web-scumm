@@ -27,7 +27,8 @@ client, charset tables); the connector needs seven commands, so `connectors/src/
 its own, tested against a scripted server. MIME: read by `connectors/src/email/mime.ts` in a worker thread with a
 small heap and a time budget, rather than a general parser. SSH: `ssh2` (MIT, pure JavaScript), its optional native
 parts (`cpu-features`, `nan`) mapped by the root `overrides` to a stub that refuses them
-(`connectors/vendor/refused-native`), so no native code is built.
+(`connectors/vendor/refused-native`): ssh2's install script still attempts a native build in the repository and fails
+without the `nan` headers, so no `.node` file results; the package is installed with `--ignore-scripts`.
 
 **Cost.** A fourth package to pack, install and document; four threat models (`docs/dev/threat-models/`); an IMAP
 client and a MIME reader to maintain; `ssh2` to follow.

@@ -9,6 +9,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { answerOf, EmailConnector, taggedPlayer } from '../connectors/src/email/connector';
 import { decodeWords, headerValue, htmlToText, parseMail } from '../connectors/src/email/mime';
 import { MimeParser } from '../connectors/src/email/parse';
+import { createContext } from '../connectors/src/sdk';
 import { contextFor, MANIFEST, startBridge, type TestBridge } from './fixtures/connectors/harness';
 
 const DIR = 'connectors/test-vectors/email';
@@ -194,7 +195,10 @@ describe('the webhook mode', () => {
 });
 
 /** A scripted IMAP server: the mailbox in memory, the commands the connector sends, and what it did. */
-function fakeImap(messages: Map<number, { raw: Buffer; flags: Set<string> }>, o: { lie?: boolean } = {}) {
+function fakeImap(
+  messages: Map<number, { raw: Buffer; flags: Set<string> }>,
+  o: { lie?: boolean; hostile?: 'zeros' | 'flood' } = {},
+) {
   const log: string[] = [];
   const server: Server = createServer((s: Socket) => {
     s.write('* OK fake IMAP ready\r\n');
@@ -211,7 +215,13 @@ function fakeImap(messages: Map<number, { raw: Buffer; flags: Set<string> }>, o:
         log.push(cmd.startsWith('LOGIN') ? 'LOGIN' : cmd);
         const ok = () => s.write(`${tag} OK done\r\n`);
         if (/^(LOGIN|SELECT)/.test(cmd)) ok();
-        else if (/^UID SEARCH UNSEEN/.test(cmd)) {
+        else if (o.hostile === 'zeros' && /^UID SEARCH UNSEEN/.test(cmd)) {
+          // One response line chaining empty literals without end.
+          s.write('* SEARCH 1 {0}\r\n'.repeat(20_000));
+        } else if (o.hostile === 'flood' && /^UID SEARCH UNSEEN/.test(cmd)) {
+          // Untagged lines, each under 8 KB, many megabytes in all.
+          s.write(`* OK ${'x'.repeat(8000)}\r\n`.repeat(2000));
+        } else if (/^UID SEARCH UNSEEN/.test(cmd)) {
           const uids = [...messages].filter(([, m]) => !m.flags.has('\\Seen')).map(([u]) => u);
           s.write(`* SEARCH ${uids.join(' ')}\r\n`);
           ok();
@@ -303,6 +313,77 @@ describe('the IMAP mode', () => {
     expect(imap.log.some((l) => /^UID SEARCH SEEN UNFLAGGED BEFORE \d{1,2}-\w{3}-\d{4}$/.test(l))).toBe(true);
     expect(box.size).toBe(0);
   }, 60_000);
+
+  it.each([['zeros'], ['flood']] as const)(
+    'hangs up on a server that sends %s (a response bounded in lines, literals and bytes)',
+    async (hostile) => {
+      const t = await startBridge();
+      cleanup.push(() => t.close());
+      const { ctx } = await contextFor(t, 'email');
+      const box = new Map([[1, { raw: Buffer.from(eml('plain-unclear.eml')), flags: new Set<string>() }]]);
+      const imap = fakeImap(box, { hostile });
+      await new Promise<void>((ok) => imap.server.listen(0, '127.0.0.1', ok));
+      cleanup.push(() => new Promise<void>((ok) => imap.server.close(() => ok())));
+      const port = (imap.server.address() as { port: number }).port;
+      const c = new EmailConnector({
+        mode: 'imap',
+        imap: { host: '127.0.0.1', port, user: 'u', password: 'p', tls: false, pollS: 3600 },
+      });
+      await c.start(ctx);
+      cleanup.push(() => c.stop());
+      const rss = process.memoryUsage().rss;
+      await c.poll();
+      expect((await c.health()).ok).toBe(false);
+      expect(process.memoryUsage().rss - rss).toBeLessThan(64 * 1024 * 1024);
+    },
+    30_000,
+  );
+
+  it('leaves a message unseen when the Bridge is away (retried later), flags it when refused for good', async () => {
+    const t = await startBridge();
+    cleanup.push(() => t.close());
+    const player = 'p-0123456789abcdef';
+    const box = new Map([[1, { raw: Buffer.from(eml('plain-open-door.eml', { player })), flags: new Set<string>() }]]);
+    const imap = fakeImap(box);
+    await new Promise<void>((ok) => imap.server.listen(0, '127.0.0.1', ok));
+    cleanup.push(() => new Promise<void>((ok) => imap.server.close(() => ok())));
+    const port = (imap.server.address() as { port: number }).port;
+    const config = { host: '127.0.0.1', port, user: 'u', password: 'p', tls: false, pollS: 3600 };
+    // The Bridge away: unreachable, the message stays unseen.
+    const away = createContext({
+      bridge: { url: 'http://127.0.0.1:9/', token: 'x' },
+      gameId: 'signals',
+      manifest: MANIFEST,
+      connector: 'email',
+      write: () => {},
+      retries: 0,
+      limits: { timeoutMs: 500 },
+    });
+    const first = new EmailConnector({ mode: 'imap', domain: 'garden.example', imap: config });
+    await first.start(away);
+    await first.poll();
+    await first.stop();
+    expect(box.get(1)!.flags.size).toBe(0);
+    // A token without the signal: denied for good, Seen and Flagged.
+    const token = await t.token({ connector: 'email', sources: ['email'], signals: ['letter.unclear'] });
+    const { ctx } = await contextFor(t, 'email', { token });
+    const second = new EmailConnector({ mode: 'imap', domain: 'garden.example', imap: config });
+    await second.start(ctx);
+    cleanup.push(() => second.stop());
+    await second.poll();
+    expect([...box.get(1)!.flags].sort()).toEqual(['\\Flagged', '\\Seen']);
+  }, 30_000);
+
+  it('refuses an IMAP connection without TLS to anything but this machine', async () => {
+    const t = await startBridge();
+    cleanup.push(() => t.close());
+    const { ctx } = await contextFor(t, 'email');
+    const c = new EmailConnector({
+      mode: 'imap',
+      imap: { host: 'mail.example.org', port: 143, user: 'u', password: 'p', tls: false },
+    });
+    await expect(c.start(ctx)).rejects.toThrow(/loopback host only/);
+  });
 
   it('hangs up on a server that announces a literal over the limit', async () => {
     const t = await startBridge();

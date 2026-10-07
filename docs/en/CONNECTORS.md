@@ -67,7 +67,9 @@ with a badge. The connector confirms it with the Bridge; the game is then linked
 Two modes. `webhook`: a provider (or a small adapter in front of it) posts the raw message to `POST /v1/inbound`,
 with `X-Web-Scumm-Timestamp` (Unix seconds, within five minutes) and `X-Web-Scumm-Signature: sha256=<hex>`, an
 HMAC-SHA256 of `<timestamp>.<body>` with the secret from `webhook.secretFile`. `imap`: the connector polls a mailbox
-over TLS every `pollS` seconds (`imap.host`, `user`, `passwordFile`, `mailbox`).
+over TLS every `pollS` seconds (`imap.host`, `user`, `passwordFile`, `mailbox`); `"tls": false` is refused unless the
+host is this machine (127.0.0.1, ::1, localhost). A message whose signal could not reach the Bridge (away, busy, over
+a quota) stays unseen and is read again at the next poll.
 
 A message is read in a worker thread (64 MB, 2 s), at most 256 KB, 3 levels of multipart, 64 parts; HTML becomes
 inert text; a message with an attachment is refused. The player is the recipient's tag (`gate+p-…@<domain>`, with
@@ -82,8 +84,9 @@ No reply is sent in 4.1.9.
 `telnet: { "port": 2323, "host": "127.0.0.1" }`. A TCP server that refuses every Telnet option and filters the
 protocol's bytes. The player types the pairing code (or the resume word printed at a previous pairing), then the
 commands the game declares; `help`, `clear` and `exit` are the terminal's own. Lines are at most 512 bytes, 100 a
-minute; a connection sends at most 64 KB a second, must pair within two minutes, type a line every minute, and lasts
-at most 30 minutes; 20 connections at once. The key is `sha256('telnet:' + session + ':' + line)`. Telnet is clear
+minute; a connection sends at most 64 KB a second, must pair within 20 seconds, type a line every minute, and lasts
+at most 30 minutes; 3 connections per address and 20 in all; six wrong codes from one address in ten minutes, across
+reconnections, and it is refused. The key is `sha256('telnet:' + session + ':' + line)`. Telnet is clear
 text: keep it on a local network, behind a VPN or TLS (stunnel), or prefer SSH.
 
 ## SSH
@@ -93,7 +96,8 @@ An SSH server (`ssh2`, pure JavaScript, its native parts refused). The password 
 (three tries); or a public key the operator declared for a player. Only a terminal opens: the game's commands, and
 `ls`, `cd`, `pwd`, `cat` on the game's virtual disk (`files`); `exec`, `sftp`, environment, agent and forwarding are
 refused. Paths never leave the virtual tree, nothing typed is interpreted. The output wraps at the terminal's width.
-Same limits as Telnet. Generate the host key with `ssh-keygen -t ed25519 -f ssh_host_ed25519_key -N ''`.
+Same limits as Telnet, and one session with one shell per connection; a connection authenticated without a shell
+is closed after a minute. Generate the host key with `ssh-keygen -t ed25519 -f ssh_host_ed25519_key -N ''`.
 
 ## Open Badges
 
