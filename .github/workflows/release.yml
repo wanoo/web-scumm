@@ -2,12 +2,14 @@ name: release
 # A SemVer tag (vMAJOR.MINOR.PATCH[-pre], any major) publishes the GitHub release only once the `ci` workflow of that tag is
 # green (check, the browser e2e rows): this workflow runs on ci's completion, not on the tag push. It builds the very
 # commit ci tested (`head_sha`), and refuses a tag that no longer points there (moved since). It then re-runs the
-# release checks (doctor, build, proof, strict playtests, dependency audits, the dist inventory) and creates the
+# release checks (doctor --release, build, coverage and its strict ratchet, proof, strict playtests, the mutation sets, the
+# packages' publish dry run, dependency audits, the dist inventory) and creates the
 # release with the matching CHANGELOG section and the manual passes of docs/dev/passes/. Attached: the built game
 # (dist, its licences inside), its assets manifest, the engine's npm packages (web-scumm, create-web-scumm, 3.9;
 # web-scumm-bridge, 4.1.1),
 # SHA-256 sums, an SBOM of the shipped dependencies (CycloneDX) and
-# a build provenance attestation (`gh attestation verify <file> -R wanoo/web-scumm`). A release that already has
+# a build provenance attestation (`gh attestation verify <file> -R wanoo/web-scumm`), and reads it all back once published
+# (`ship verify`, 4.1.8). A release that already has
 # files is never overwritten (3.7.1): a new version is a new tag.
 on:
   workflow_run:
@@ -52,7 +54,7 @@ jobs:
           python-version: '3.12'
       - run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
-      # `npm run doctor` (first step of release-check) requires ffmpeg: the audio pipeline's prerequisite.
+      # `npm run doctor -- --release` (first step of release-check) requires ffmpeg and the three browsers (4.1.8).
       - run: for i in 1 2 3; do (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
@@ -98,5 +100,9 @@ jobs:
           pre=""; case "$TAG" in *-*) pre="--prerelease";; esac
           gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --title "$TAG" --notes-file notes.md $pre
           gh release upload "$TAG" "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz "web-scumm-$TAG-SHA256SUMS"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      # What was published, read back (4.1.8): every file downloaded, the sums checked, every attestation verified.
+      - run: node tools/release/ship.mjs verify "$TAG"
         env:
           GH_TOKEN: ${{ github.token }}
