@@ -228,7 +228,9 @@ describe('SQLite under contention', () => {
     const file = join(dir, 'busy.sqlite');
     const store = await SqliteRealityStore.open(file, { busyMs: 150 });
     opened.push(store);
-    for (const f of [file, `${file}-wal`, `${file}-shm`]) expect(statSync(f).mode & 0o777, f).toBe(0o600);
+    // NTFS has no POSIX mode: Windows keeps the files, not the 0600 (the smoke job runs this file).
+    if (process.platform !== 'win32')
+      for (const f of [file, `${file}-wal`, `${file}-shm`]) expect(statSync(f).mode & 0o777, f).toBe(0o600);
     const t = await tenantBridge(store);
     const link = await t.pair();
     const server = bridgeServer(t.bridge).listen(0, '127.0.0.1');
