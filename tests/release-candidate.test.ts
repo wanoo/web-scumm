@@ -126,5 +126,14 @@ describe('the workflows that judge a candidate', () => {
     expect(text).toContain('node tools/release/candidate.mjs run-of "$TAG"');
     expect(text).toContain('candidate.mjs check .candidate-manifest/candidate-manifest.json --sha="$SHA" --run="$run"');
     expect(text).toContain('actions: read');
+    // Only a run started by hand on main: a pull request's run judges its own copy of candidate.yml.
+    expect(text).toContain('"candidate completed success workflow_dispatch main"');
+    expect(readFileSync('tools/release/ship.mjs', 'utf8')).toMatch(
+      /r\.event !== 'workflow_dispatch' \|\| r\.headBranch !== 'main'/,
+    );
+  });
+
+  it('stay quiet on a pull request without full-ci (no target, no gate, no red check)', () => {
+    expect(wf('candidate')).toContain("if: always() && needs.target.result != 'skipped'");
   });
 });

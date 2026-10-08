@@ -42,7 +42,7 @@ LOG, les ADR et la doc utilisateur restent en anglais (+ français pour `docs/fr
    (`npx tsx tools/golden-save.ts x.y.z` + la liste de `tests/save-v3.test.ts`), CHANGELOG `## x.y.z — date`,
    ROADMAP en/fr (section « shipped »), UPGRADING §n, `docs/dev/passes/x.y.z.md`, `docs/dev/baselines/x.y.z.md`
    (mesures vs précédente, sources nommées), LOG ; PR, seconde lecture, merge ; puis **le candidat** (4.1.17) :
-   `gh workflow run candidate -f sha=<sha complet>`, attendre que `candidate-gate` soit vert et noter l'id du run
+   `gh workflow run candidate --ref main -f sha=<sha complet>`, attendre que `candidate-gate` soit vert et noter l'id du run
    (son résumé donne la commande) ; puis `node tools/release/ship.mjs tag x.y.z-rc.1 <sha> --candidate=<run>`
    (pré-release), observation (archives installées hors dépôt, `fresh-install`, `upgrade-check --from=<précédente>`,
    golden saves, les `.wsrun` du candidat), puis `ship tag x.y.z <sha> --candidate=<run>` sur le même SHA,

@@ -13,7 +13,7 @@
 
 ### Changes
 
-- **A tag stands on a candidate run** (4.1.17, plan §4.2): `gh workflow run candidate -f sha=<sha>` runs
+- **A tag stands on a candidate run** (4.1.17, plan §4.2): `gh workflow run candidate --ref main -f sha=<sha>` runs
   release-check, the heavy solver suite three times on new runners, the load on SQLite and on Postgres, the four
   runtimes and each gated mutation set, side by side; `candidate-gate` judges them all (a skipped job is red) and
   writes `candidate-manifest.json` (the SHA, the run, the SHA-256 of each file for the release). `ship tag … 

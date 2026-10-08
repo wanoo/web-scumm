@@ -5,8 +5,9 @@ name: candidate
 # or pre-release tag names one green run of this workflow (`ship tag <v> <sha> --candidate=<run id>`); release.yml
 # publishes that run's files after checking every sum. 4.1.16 was tagged before its first heavy run, which went red.
 #
-# Started by hand on a SHA (`gh workflow run candidate -f sha=<full sha>`): the normal path, needed before any tag. A
-# pull request labelled `full-ci` runs it too, as information. Never on a tag: a tag stands on a candidate already run.
+# Started by hand on main for a SHA (`gh workflow run candidate --ref main -f sha=<full sha>`): the only run a tag may
+# name (ship.mjs and release.yml check `workflow_dispatch` from main, so the workflow file judged is main's). A pull
+# request labelled `full-ci` runs it too, as information only. Never on a tag: a tag stands on a candidate already run.
 # "Cold": a new runner, a fresh checkout; the solver keeps nothing between runs and no cache but npm's is restored.
 on:
   workflow_dispatch:
@@ -35,7 +36,12 @@ jobs:
         with:
           ref: ${{ github.event.inputs.sha || github.event.pull_request.head.sha || github.sha }}
       - id: sha
-        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        env:
+          WANT: ${{ github.event.inputs.sha }}
+        run: |
+          # A SHA given by hand is a full one: a short or wrong value is refused here, not by a later checkout.
+          if [ -n "$WANT" ] && ! echo "$WANT" | grep -Eq '^[0-9a-f]{40}$'; then echo "::error::not a full SHA: $WANT"; exit 1; fi
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
   # release-check as release.yml runs it (doctor --release, quality, build, coverage and its strict ratchet, the
   # release gates, the proofs, the Rust cross-check, the packages' dry run, the audits), without the mutation sets.
   release-core:
@@ -89,6 +95,7 @@ jobs:
           name: heavy-${{ matrix.attempt }}
           path: heavy-${{ matrix.attempt }}.json
           if-no-files-found: error
+          overwrite: true
   # The Bridge under load on each store, in a job of its own (plan §4.1): the report names the backend the store object
   # is, and tools/load-report.ts refuses a report that is missing, incomplete, of another backend or another commit.
   bridge-load-sqlite:
@@ -114,6 +121,7 @@ jobs:
           name: bridge-load-sqlite
           path: bridge-load-sqlite.json
           if-no-files-found: error
+          overwrite: true
   bridge-load-postgres:
     needs: target
     runs-on: ubuntu-24.04
@@ -148,6 +156,7 @@ jobs:
           name: bridge-load-postgres
           path: bridge-load-postgres.json
           if-no-files-found: error
+          overwrite: true
   # The four runtimes (4.1.16) at the nightly's 500 seeds; the Remix × Time Attack check writes the release's runs
   # (`--out`): five worlds and 4.1.15's schema 1 file, with their manifest. Those very files are published.
   cross-runtime:
@@ -178,6 +187,7 @@ jobs:
           name: candidate-release
           path: candidate-release
           if-no-files-found: error
+          overwrite: true
   # One job per gated mutation set (plan §9): a set's timeout never hides another's result, as reality-store's hid the
   # gated sets' in the 4.1.16 nightly. A report of these exact inputs (tools/mutate.ts --hash) is reused, no other.
   mutation:
@@ -215,10 +225,12 @@ jobs:
             .cache/mutation/report-${{ matrix.set }}.json
           include-hidden-files: true
           if-no-files-found: error
+          overwrite: true
   # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   candidate-gate:
     needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, mutation]
-    if: always()
+    # A pull request without `full-ci` skips `target`: then there is no candidate to judge, and no red check either.
+    if: always() && needs.target.result != 'skipped'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -277,3 +289,4 @@ jobs:
           name: candidate-manifest
           path: candidate-manifest.json
           if-no-files-found: error
+          overwrite: true

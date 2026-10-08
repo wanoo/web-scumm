@@ -13,15 +13,16 @@
 //                                and release.yml publishes that run's files (tools/release/candidate.mjs)
 //   ship watch <version>         wait for the tag's `ci` run, then for the `release` run; exit by its conclusion
 //   ship verify <version>        download the release, check the SHA-256 sums and every provenance attestation
-//   ship chain <pr> <version>    merge → tag → watch → verify (`--now` passes to tag)
+//   ship chain <pr> <version>    merge → tag → watch → verify (`--now` passes to tag); refused from 4.1.17, whose tags
+//                                need a candidate run of the merge commit (merge, candidate, then tag)
 //
 // A pre-release version (`4.1.8-rc.1`) is tagged the same way; release.yml marks it a pre-release on GitHub.
 // Every command writes its PID to `.cache/pids/ship-<command>.pid` (`SHIP_PIDS` to choose the folder): stop that
 // PID, not a pattern.
-import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { checkAncestry } from './ancestry.mjs';
-import { requiresCandidate, tagMessage } from './candidate.mjs';
+import { candidateOf, requiresCandidate, tagMessage } from './candidate.mjs';
 import {
   gh,
   ghJson,
@@ -206,11 +207,17 @@ async function main(sha) {
  */
 function verifyCandidate(runId, full) {
   if (!/^\d+$/.test(runId ?? '')) throw new Error(`--candidate=<run id> is required: ${runId ?? 'none given'}`);
-  const r = ghJson(['run', 'view', runId, '--json', 'workflowName,status,conclusion']);
+  const r = ghJson(['run', 'view', runId, '--json', 'workflowName,status,conclusion,event,headBranch']);
   if (r.workflowName !== 'candidate') throw new Error(`run ${runId} is a ${r.workflowName} run, not a candidate run`);
+  // A pull request's run (full-ci) or a run started from another branch judges that branch's copy of candidate.yml.
+  if (r.event !== 'workflow_dispatch' || r.headBranch !== 'main')
+    throw new Error(
+      `candidate run ${runId} is a ${r.event} run on ${r.headBranch}: a tag names one started by hand on main`,
+    );
   if (r.status !== 'completed' || r.conclusion !== 'success')
     throw new Error(`candidate run ${runId}: ${r.status} ${r.conclusion ?? ''}; a tag stands on a green candidate`);
   const dir = join('.cache', 'candidate', runId);
+  rmSync(dir, { recursive: true, force: true }); // `gh run download` never overwrites a file a previous attempt left
   mkdirSync(dir, { recursive: true });
   gh(['run', 'download', runId, '-n', 'candidate-manifest', '-D', dir]);
   const m = JSON.parse(readFileSync(join(dir, 'candidate-manifest.json'), 'utf8'));
@@ -250,8 +257,15 @@ async function tag(versionArg, sha) {
       throw new Error(
         `${name} exists here at ${local.slice(0, 7)}, not ${full.slice(0, 7)}: delete it by hand if it was never published`,
       );
-    if (local) say(`${name} already here at ${full.slice(0, 7)} (a push that failed before): pushing it`);
-    else {
+    if (local) {
+      // A tag left here by a failed push must name the candidate just verified, or it would publish another run.
+      const named = candidateOf(git(['for-each-ref', '--format=%(contents)', `refs/tags/${name}`]));
+      if ((candidate ?? null) !== named)
+        throw new Error(
+          `${name} here names candidate ${named ?? 'none'}, not ${candidate ?? 'none'}: delete it by hand`,
+        );
+      say(`${name} already here at ${full.slice(0, 7)} (a push that failed before): pushing it`);
+    } else {
       say(`tagging ${name} on ${full.slice(0, 7)}${isPrerelease(version) ? ' (pre-release)' : ''}`);
       git(['tag', '-a', name, full, '-m', candidate ? tagMessage(version, candidate) : version]);
     }
@@ -338,6 +352,11 @@ async function verify(versionArg) {
 
 async function chain(pr, version) {
   versionOf(version); // refused before anything is merged
+  // From 4.1.17 a tag stands on a candidate run of the merge commit, which cannot exist before the merge.
+  if (requiresCandidate(version))
+    throw new Error(
+      `${version} needs a candidate of the merge commit: ship merge ${pr}, run the candidate on it, then ship tag`,
+    );
   const sha = await merge(pr);
   return tag(version, sha);
 }

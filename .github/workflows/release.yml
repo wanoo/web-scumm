@@ -114,8 +114,9 @@ jobs:
             fi
             echo "::error::$TAG names no candidate run: tag with ship tag … --candidate=<run id>"; exit 1
           fi
-          got=$(gh run view "$run" --json workflowName,status,conclusion --jq '.workflowName + " " + .status + " " + .conclusion')
-          test "$got" = "candidate completed success" || { echo "::error::run $run is \"$got\", not a green candidate"; exit 1; }
+          # Started by hand on main: a pull request's run or another branch's judges another copy of candidate.yml.
+          got=$(gh run view "$run" --json workflowName,status,conclusion,event,headBranch --jq '[.workflowName, .status, .conclusion, .event, .headBranch] | join(" ")')
+          test "$got" = "candidate completed success workflow_dispatch main" || { echo "::error::run $run is \"$got\", not a green candidate started on main"; exit 1; }
           gh run download "$run" -n candidate-manifest -D .candidate-manifest
           gh run download "$run" -n candidate-release -D .candidate
           node tools/release/candidate.mjs check .candidate-manifest/candidate-manifest.json --sha="$SHA" --run="$run" --dir=.candidate
