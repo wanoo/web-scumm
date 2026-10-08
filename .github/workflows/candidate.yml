@@ -73,7 +73,8 @@ jobs:
   heavy:
     needs: target
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    # One file after the other since 4.1.17 (about 13 minutes on a laptop; the runner is several times slower).
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
