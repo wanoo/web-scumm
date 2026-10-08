@@ -42,6 +42,9 @@ The reference of every condition and command, generated from the schema, is `doc
 - Speedrun categories (4.1.16, D29): `SpeedrunCategory.world` `{ policy, mode, fixedSeed?, codeWheel? }`, the canonical
   form of a category's world before the 4.2 freeze; `seed` is the run's generator (`fixed` or `random`). The `.wsrun`
   envelope is schema 2 (`runSeed`, `variant`, `worldEvidence`); schema 1 stays readable as Story.
+- Minigame results (4.1.16): `SessionEntry.mg` (`MinigameResult`: `won`, `passed`, `skipped`, `failed`, `disabled`) and
+  the reserved flags `minigame.<id>` the engine writes, read with `{ flag, eq }` like `remix.*`; no new condition nor
+  command (D28). `Presenter.minigame` may resolve with a result (a value an implementation can omit).
 - Objectives (`GameDef.objectives`, ADR 0014): the three fields and `parent`, as 4.1.12 left them.
 - `reality`: the connectors' data (`reality.connectors`, 4.1.9) and the policies of Constellation (4.1.10).
 - The stage: as 4.1.11 left it.

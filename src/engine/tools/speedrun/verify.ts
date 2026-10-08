@@ -377,7 +377,32 @@ async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerify
   });
   const finalProof = await finalProofOf(chain.last, env);
   if (finalProof !== env.finalProof) stop('invalid-replay', 'chain', 'the final proof does not seal this run');
-  // 11. The category's rules on what the run did and declared.
+  // 11. The category's rules on what the run did and declared. The code wheel (4.1.16): its results are the reserved
+  // flag the replay wrote (`minigame.code-wheel`); a category that does not let the wheel be skipped wants it won, and
+  // one that switches it off wants it not played. Its `medium` (on screen, printed) is the player's word: not checked.
+  const wheel = world.policy.codeWheel;
+  if (wheel) {
+    const results = links.flatMap((l) =>
+      l.events.flatMap((ev) =>
+        ev.kind === 'flagChanged' && ev.flag === 'minigame.code-wheel' && typeof ev.value === 'string'
+          ? [ev.value]
+          : [],
+      ),
+    );
+    const bad = !wheel.enabled
+      ? results.find((r) => r !== 'skipped' && r !== 'disabled')
+      : !wheel.skip
+        ? results.find((r) => r !== 'won')
+        : undefined;
+    if (bad)
+      stop(
+        'invalid-category-rule',
+        'code-wheel-rule',
+        !wheel.enabled
+          ? `the code wheel is off in this category, and it was played (${bad})`
+          : `this category wants the code wheel won, not ${bad}`,
+      );
+  }
   if (!category.allowHints && links.some((l) => hasHint(l.entry)))
     stop('invalid-category-rule', 'hints-forbidden', 'a hint was asked for in a category without hints');
   const ex = env.timing.excluded;

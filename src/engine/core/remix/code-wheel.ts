@@ -176,13 +176,14 @@ export interface WheelRecord {
   rotations: number[];
   answers: string[];
   tries: number;
-  result: 'won' | 'passed' | 'skipped' | 'disabled';
+  /** 4.1.16: `failed`, a `story` wheel lost after its tries (the story goes on with it; a parody lets through). */
+  result: 'won' | 'passed' | 'skipped' | 'failed' | 'disabled';
 }
 
 /**
- * The outcome of an answer under a mode: accepted (right, or `cosmetic`), refused, or let through (`parody` after
- * `tries` wrong answers; `story` after `tries`, the failure recorded for the story to read). `strict` never lets
- * through.
+ * The outcome of an answer under a mode: accepted (right, or `cosmetic`), refused, let through (`parody` and `daily`
+ * after `tries` wrong answers), or lost (`story` after `tries`, 4.1.16: `failed`, the story reads it in the flag
+ * `minigame.code-wheel`). `strict` never lets through.
  */
 export function judge(
   w: CodeWheel,
@@ -190,8 +191,9 @@ export function judge(
   answer: string,
   wrongSoFar: number,
   tries = 3,
-): 'won' | 'wrong' | 'passed' {
+): 'won' | 'wrong' | 'passed' | 'failed' {
   if (answer === w.answer || mode === 'cosmetic') return 'won';
-  if ((mode === 'parody' || mode === 'story' || mode === 'daily') && wrongSoFar + 1 >= tries) return 'passed';
+  if (mode === 'story' && wrongSoFar + 1 >= tries) return 'failed';
+  if ((mode === 'parody' || mode === 'daily') && wrongSoFar + 1 >= tries) return 'passed';
   return 'wrong';
 }
