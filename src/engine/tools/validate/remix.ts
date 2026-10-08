@@ -102,6 +102,8 @@ export function remixChecks(game: GameDef, s: Sink): void {
   ))
     if (f.startsWith('remix.'))
       err(where, `"${f}" is a reserved Remix flag: the world writes it, a command never does`);
+    else if (f.startsWith('minigame.'))
+      err(where, `"${f}" is a reserved minigame flag: the minigame writes its result, a command never does`);
   const anchorsDeclared = game.rooms.some((r) => r.anchors && Object.keys(r.anchors).length);
   const used = placeholders({ ...game, remix: undefined });
   if (!game.remix) {

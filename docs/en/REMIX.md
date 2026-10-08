@@ -129,6 +129,17 @@ announces each turn, lists the whole wheel as text, and does not animate under r
 --game <id> --format svg|pdf` prints the discs, cut marks, the centre hole and a booklet, in colour and economy (PDF
 with Pillow). It is a playful reconstruction, never DRM; the art direction is the game's own.
 
+Since 4.1.16 its outcome counts. The wheel ends `won`, `passed` (a parody's mercy), `skipped`, `failed` (a `story`
+wheel lost after its tries: the story goes on with it) or `disabled`. The engine records the result in the session
+(the entry's `mg`, fed back on a replay like a choice) and writes it in the reserved flag `minigame.code-wheel`, which
+the story reads with `{ flag: 'minigame.code-wheel', eq: 'failed' }` and the journal reports as `flagChanged`. A
+command never sets a `minigame.*` flag (the validator refuses it). Every minigame reports how it ended in the player
+(skipped, else won); one that reports nothing (the solver, a replay of a 4.1.15 session) records nothing. A speedrun
+category says what it allows of the wheel in `world.codeWheel`: `skip: false` wants it won, `enabled: false` wants it
+not played (skipped), and `medium` (on screen, printed, either) is the player's word, not checked. The whole wheel
+plays by keyboard (the arrows turn it, Tab and Enter answer, Escape skips) and by gamepad (left and right turn, up and
+down choose an answer, A confirms, B skips), and the focus returns to the game when it closes.
+
 ## The player and the Studio
 
 The title screen gains **Remix** (after New game and Continue): the story, a new world, a typed seed or the daily

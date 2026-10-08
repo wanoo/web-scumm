@@ -1,7 +1,7 @@
 import { check } from '../core/cond';
 import { Engine } from '../core/engine';
 import type { SaveStore, SlotStore } from '../core/ports';
-import type { GameDef, GameState, Id, Layout, Point, VerbId } from '../core/types';
+import type { GameDef, GameState, Id, Layout, MinigameResult, Point, VerbId } from '../core/types';
 import { minigames as builtin, MINIGAME_CSS, type Minigame } from '../minigames';
 import { Ending } from '../ending';
 import type { CustomCommands } from '../core/custom';
@@ -215,7 +215,7 @@ export class App {
   /** Where the full warm-up stands (`GameDef.offline`): only `complete` means the whole game is in the cache. */
   offlineStatus: OfflineStatus = { state: 'idle', done: 0, total: 0, failed: [] };
   /** Every minigame played in this page: won, or skipped with its Skip button (`mg-skip`), and how long it took. */
-  readonly minigameLog: { id: Id; skipped: boolean; ms: number }[] = [];
+  readonly minigameLog: { id: Id; skipped: boolean; ms: number; result?: MinigameResult }[] = [];
   /** @internal Read by the modules of dom/ (4.1.0). */
   offlineWatchers = new Set<(s: OfflineStatus) => void>();
   /** Resolves with the final status of the first full warm-up (`complete`, `partial`, `skipped` or `off`). */
@@ -362,7 +362,9 @@ export class App {
       scene: this.scene,
       img: (i) => this.bank.img(i),
       flags: () => this.engine.state.flags,
-      minigame: (id, params) => this.presenter.minigame(id, params),
+      minigame: async (id, params) => {
+        await this.presenter.minigame(id, params);
+      },
       toast: (t) => this.presenter.toast(t),
       sfx: (i) => this.audio.sfx(i),
       once: (i) => this.audio.once(i),

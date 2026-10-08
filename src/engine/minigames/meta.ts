@@ -43,6 +43,7 @@ export const MINIGAME_META = {
       'wrong.*',
       'pass',
       'win',
+      'fail',
       'list',
       'turnLeft',
       'turnRight',
