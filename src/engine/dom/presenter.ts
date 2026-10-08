@@ -6,7 +6,7 @@
 import { derive } from '../core/prng';
 import type { MotionSpec } from '../core/motion';
 import type { Presenter } from '../core/ports';
-import type { GameState, Id, Point, RoomDef, VerbId } from '../core/types';
+import type { GameState, Id, MinigameResult, Point, RoomDef, VerbId } from '../core/types';
 import { FONT_PIXEL, FONT_UI } from './fonts';
 import { el, esc, sleep } from './app-shared';
 import { choose as chooseImpl, phone as phoneImpl, say as sayImpl } from './speech';
@@ -14,6 +14,9 @@ import { openMap as openMapImpl } from './map-view';
 import { applyIntent } from '../scene/intent';
 import type { Intent } from '../scene/frame';
 import type { App } from './app';
+
+/** The results a minigame may report (4.1.16, `MinigameResult`). */
+const MINIGAME_RESULTS = new Set(['won', 'passed', 'skipped', 'failed', 'disabled']);
 
 export class DomPresenter implements Presenter {
   private sparkEl: HTMLImageElement | null = null;
@@ -210,7 +213,7 @@ export class DomPresenter implements Presenter {
 
   // ---------------------------------------------------------------- minigames and the ending
 
-  async minigame(id: Id, params: Record<string, unknown>) {
+  async minigame(id: Id, params: Record<string, unknown>): Promise<MinigameResult | undefined> {
     const app = this.app;
     const game = app.mg[id];
     // The validator refuses a minigame the game does not register; a run that gets here is a bug, said as one.
@@ -222,10 +225,18 @@ export class DomPresenter implements Presenter {
     const voice = app.game.characters[app.game.hintVoice ?? app.game.hero];
     let frame: HTMLElement | null = null;
     const ac = new AbortController();
-    const entry = { id, skipped: false, ms: 0 };
+    const entry: (typeof app.minigameLog)[number] = { id, skipped: false, ms: 0 };
     const t0 = performance.now();
+    // Where the focus was: it comes back there (or to the scene) when the minigame closes (4.1.16).
+    const before = (globalThis as { document?: Document }).document?.activeElement as HTMLElement | null | undefined;
     host.addEventListener('mg-skip', () => {
       entry.skipped = true;
+    });
+    // A minigame that says how it ended (4.1.16: the code wheel's record): the engine records it in the session.
+    let result: MinigameResult | undefined;
+    host.addEventListener('mg-record', (e) => {
+      const r = (e as CustomEvent<{ result?: unknown }>).detail?.result;
+      if (typeof r === 'string' && MINIGAME_RESULTS.has(r)) result = r as MinigameResult;
     });
     try {
       await game.run({
@@ -255,11 +266,19 @@ export class DomPresenter implements Presenter {
       });
     } finally {
       entry.ms = Math.round(performance.now() - t0);
+      if (result) entry.result = result;
       app.minigameLog.push(entry);
       ac.abort();
       host.remove();
       app.side.classList.remove('off');
+      // Back where it was, or on the scene (focusable for that, out of the Tab order) when it was nowhere in particular.
+      const doc = (globalThis as { document?: Document }).document;
+      const back = before && before !== doc?.body && before.isConnected ? before : app.scene;
+      if (back === app.scene && !app.scene.hasAttribute?.('tabindex')) app.scene.setAttribute?.('tabindex', '-1');
+      back?.focus?.({ preventScroll: true });
     }
+    // Every minigame ends somehow: what it said, else skipped or finished (won).
+    return result ?? (entry.skipped ? 'skipped' : 'won');
   }
   async ending(phase: 'open' | 'card') {
     if (phase === 'open') await this.app.sealed.open();

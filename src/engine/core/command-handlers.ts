@@ -418,7 +418,10 @@ const choice: Handler<'choice'> = async (eng, c, ctx) => {
 
 const minigame: Handler<'minigame'> = async (eng, c, ctx) => {
   eng.ran(`minigame:${c.minigame}`);
-  await eng.ui.minigame(c.minigame, c.params ?? {});
+  // 4.1.16: a minigame that says how it ended writes it in the reserved flag `minigame.<id>` (the story reads it with
+  // `{ flag, eq }`, the journal says `flagChanged`); its result is recorded in the session and fed back on a replay.
+  const result = await eng.sessions.minigame(c.minigame, c.params ?? {});
+  if (result !== undefined) await set(eng, { set: [`minigame.${c.minigame}`, result] }, ctx);
   return eng.exec(c.then, ctx);
 };
 

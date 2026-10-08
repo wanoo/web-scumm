@@ -169,6 +169,77 @@ describe('the wheel on screen', () => {
   });
 });
 
+describe('the wheel by keyboard and gamepad, and its story outcome (4.1.16)', () => {
+  afterEach(() => {
+    document.body.innerHTML = '';
+    vi.restoreAllMocks();
+    delete (navigator as { getGamepads?: unknown }).getGamepads;
+  });
+  it('Escape skips (recorded skipped); a strict wheel starts with the focus on a turn button', async () => {
+    const { ctx, root } = ctxOf({ ...P });
+    const records: { result: string }[] = [];
+    root.addEventListener('mg-record', (e) => records.push((e as CustomEvent).detail));
+    const done = codeWheel.run(ctx);
+    await Promise.resolve();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await done;
+    expect(records.map((r) => r.result)).toEqual(['skipped']);
+    const strict = ctxOf({ ...P, mode: 'strict' });
+    document.body.append(strict.root);
+    void codeWheel.run(strict.ctx);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(document.activeElement?.className).toBe('mg-turn');
+    strict.ac.abort();
+  });
+  it('a gamepad turns, chooses an answer and confirms it: the whole wheel, no pointer', async () => {
+    const w = generateWheel(P, 'WS-0000-0000');
+    const pad = { buttons: Array.from({ length: 16 }, () => ({ pressed: false })), axes: [0, 0] };
+    // happy-dom has no Gamepad API: the page's navigator is given one for this test.
+    Object.defineProperty(navigator, 'getGamepads', { configurable: true, value: () => [pad] });
+    let frame: FrameRequestCallback | null = null;
+    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((f) => ((frame = f), 1));
+    const tick = () => frame?.(0);
+    const press = (i: number) => {
+      pad.buttons[i]!.pressed = true;
+      tick();
+      pad.buttons[i]!.pressed = false;
+      tick();
+    };
+    const { ctx, root } = ctxOf({ ...P, seed: 'WS-0000-0000' });
+    const records: { result: string; answers: string[] }[] = [];
+    root.addEventListener('mg-record', (e) => records.push((e as CustomEvent).detail));
+    const done = codeWheel.run(ctx);
+    await Promise.resolve();
+    tick(); // the first poll: what is held then (the press that opened the wheel) is not a new press
+    for (let k = 0; k < rotationFor(w, w.challenge.actor, w.challenge.symbol); k++) press(15);
+    expect(root.querySelector('[aria-live]')!.textContent).toContain(`its window shows ${w.answer}`);
+    const sorted = [...P.answers].sort();
+    for (let k = 0; k <= sorted.indexOf(w.answer); k++) press(13);
+    expect(root.querySelector('button.mg-answer[aria-current="true"]')!.textContent).toBe(w.answer);
+    press(0);
+    await done;
+    expect(records).toMatchObject([{ result: 'won', answers: [w.answer] }]);
+  });
+  it('a story wheel lost after its tries ends failed, recorded for the story to read', async () => {
+    const w = generateWheel(P, 'story');
+    const { ctx, root } = ctxOf({ ...P, mode: 'story' });
+    const records: { result: string }[] = [];
+    root.addEventListener('mg-record', (e) => records.push((e as CustomEvent).detail));
+    const done = codeWheel.run(ctx);
+    await Promise.resolve();
+    const wrong = buttons(root, 'mg-answer').find((b) => b.textContent !== w.answer)!;
+    for (let k = 0; k < 3; k++) wrong.click();
+    // The pause before it closes: the right answer, Escape, nothing changes the result once given.
+    buttons(root, 'mg-answer')
+      .find((b) => b.textContent === w.answer)!
+      .click();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await done;
+    expect(records.map((r) => r.result)).toEqual(['failed']);
+  });
+});
+
 describe('the printable wheel', () => {
   const w = generateWheel(P, 'WS-0000-0000');
   it('three pages: the large disc with its portraits and track, the small disc with its windows, a booklet', () => {

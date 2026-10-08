@@ -136,6 +136,20 @@ code-wheel -- --game <id> --format svg|pdf` imprime les disques, les repères de
 en couleur et en version économique (PDF avec Pillow). C'est une reconstitution ludique, jamais un DRM ; la direction
 artistique est celle du jeu.
 
+Depuis 4.1.16, son issue compte. La roue finit `won`, `passed` (la clémence de la parodie), `skipped`, `failed` (une
+roue `story` perdue après ses essais : l'histoire continue avec) ou `disabled`. Le moteur enregistre le résultat dans
+la session (le `mg` de l'entrée, réinjecté au rejeu comme un choix) et l'écrit dans le drapeau réservé
+`minigame.code-wheel`, que l'histoire lit avec `{ flag: 'minigame.code-wheel', eq: 'failed' }` et que le journal dit
+`flagChanged`. Une commande ne pose jamais un drapeau `minigame.*` (le validateur le refuse). Chaque minijeu dit
+comment il a fini dans le joueur (passé, sinon gagné) ; celui qui ne dit rien (le solveur, le rejeu d'une session
+4.1.15) n'enregistre rien. Une catégorie de speedrun dit ce qu'elle permet de la roue dans `world.codeWheel` :
+`skip: false` la veut gagnée, `enabled: false` la veut non jouée (passée ou désactivée), et `medium` (à l'écran, imprimée, l'un ou
+l'autre) est la parole du joueur, non vérifiée. La roue entière se joue au clavier (les flèches la tournent, Tab et
+Entrée répondent, Échap passe) et à la manette (gauche et droite tournent, haut et bas choisissent une réponse, A
+confirme, B passe), et le focus revient au jeu à sa fermeture. Un résultat enregistré est la parole du joueur, comme le
+support : le rejeu vérifie qu'il a été enregistré et le rejoue, pas qu'il a été mérité ; et le solveur, dont les
+minijeux ne disent rien, n'explore pas les branches qu'une histoire accroche à `minigame.*` (elles ne sont pas cherchées).
+
 ## Le joueur et le Studio
 
 L'écran titre gagne **Remix** (après Nouvelle partie et Continuer) : l'histoire, un nouveau monde, une seed tapée ou
