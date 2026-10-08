@@ -9,16 +9,27 @@
 // A half of a surrogate pair standing alone. Firefox's `normalize` replaces one with U+FFFD where Node, Chromium and
 // WebKit keep it (measured 8 Oct 2026, docs/dev/baselines/4.1.16-start.md): each well-formed stretch is normalized
 // alone and a lone half is kept as it is, which is what the three others do (a lone half composes with nothing).
-const LONE_HALF = /([\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF])/;
+// Scanned by code unit: no lookbehind, which Safari before 16.4 cannot parse (this file is in the player's chunks).
 const ANY_HALF = /[\uD800-\uDFFF]/;
 
 /** NFC, the same in every runtime (lone surrogate halves kept). */
 function nfc(s: string): string {
   if (!ANY_HALF.test(s)) return s.normalize('NFC');
-  return s
-    .split(LONE_HALF)
-    .map((part, i) => (i % 2 ? part : part.normalize('NFC')))
-    .join('');
+  let out = '';
+  let from = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c >= 0xd800 && c <= 0xdbff) {
+      const d = s.charCodeAt(i + 1);
+      if (d >= 0xdc00 && d <= 0xdfff) {
+        i++; // a pair: one character
+        continue;
+      }
+    } else if (c < 0xdc00 || c > 0xdfff) continue;
+    out += s.slice(from, i).normalize('NFC') + s[i];
+    from = i + 1;
+  }
+  return out + s.slice(from).normalize('NFC');
 }
 
 /**

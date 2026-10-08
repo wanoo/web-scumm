@@ -87,7 +87,7 @@ describe('a Daily run', () => {
     const env = await record('daily', world, { kind: 'daily', token });
     const r = await verifyRun(env, ctx());
     expect(r).toMatchObject({ verdict: 'valid', world: { mode: 'daily', leaderboardKey: `daily:${world.seed}` } });
-    // Another day's world under this day's token, a forged token, no token: refused.
+    // The day's seed in another mode under this day's token, a forged token, no token: refused.
     const other = compileVariant(c, approved.remix!, world.seed, 1, 'remix');
     const swapped = JSON.parse(JSON.stringify(env));
     swapped.variant = other;
@@ -98,6 +98,15 @@ describe('a Daily run', () => {
     const bare = JSON.parse(JSON.stringify(env));
     delete bare.worldEvidence;
     expect((await verifyRun(bare, ctx())).code).toBe('daily-proof-missing');
+    // Another day's token (another seed) with this day's world, a token of another game: refused.
+    const yesterday = body<{ token: string }>(
+      await (await bridge(T - 86_400_000)).handle({ method: 'GET', url: '/v1/daily?game=reference' }),
+    ).token;
+    const crossed = JSON.parse(JSON.stringify(env));
+    crossed.worldEvidence.token = yesterday;
+    expect((await verifyRun(crossed, ctx())).code).toBe('world-policy');
+    // The day's end travels with the verdict: the Bridge ranks a run submitted after it as practice.
+    expect(r.world?.validUntil).toBe(Date.parse('2026-10-08T00:00:00Z'));
   }, 120_000);
 
   it('a recorder refuses to start a Daily run without its token', async () => {
@@ -149,6 +158,20 @@ describe('a Mystery run', () => {
     crossed.worldEvidence.revealToken = other.rev.token;
     expect((await verifyRun(crossed, ctx())).code).toBe('mystery-reveal');
     const late = await mystery(61_000);
+    // A commitment for another mode cannot back a world of this one.
+    const otherMode = JSON.parse(JSON.stringify(env));
+    const b = await dailyRoutes({
+      games: { reference: { daily: 'daily', mystery: 'remix' } },
+      key: await crypto.subtle.importKey('jwk', fixture.jwk, { name: 'Ed25519' }, false, ['sign']),
+      kid: fixture.kid,
+      secret: 'test-secret',
+      now: () => T,
+    });
+    const c2 = body<{ id: string; token: string }>(
+      await b.handle({ method: 'POST', url: '/v1/commit', body: { game: 'reference' }, client: 'c2' }),
+    );
+    otherMode.worldEvidence.commitmentToken = c2.token;
+    expect((await verifyRun(otherMode, ctx())).code).toBe('mystery-commitment');
     expect((await verifyRun(late.env, ctx())).code).toBe('mystery-start-window');
   }, 240_000);
 });

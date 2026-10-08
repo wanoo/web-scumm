@@ -139,7 +139,14 @@ export function dailyRoutes(o: DailyOptions) {
   async function reveal(id: string): Promise<DailyResponse> {
     const kept = store.get(`commit|${id}`);
     if (!kept) return { status: 404, body: { error: 'unknown commitment' } };
-    const { seed, nonce, gameId, mode, commitment } = JSON.parse(kept) as Record<string, string>;
+    const rec = JSON.parse(kept) as Record<string, string | undefined>;
+    const seed = String(rec.seed);
+    const nonce = String(rec.nonce);
+    const gameId = String(rec.gameId);
+    // A record of 4.1.15 kept neither: the mode is the game's, the commitment is recomputed from what it hid.
+    const game = Object.hasOwn(o.games, gameId) ? o.games[gameId] : undefined;
+    const mode = rec.mode ?? game?.mystery ?? game?.daily ?? '';
+    const commitment = rec.commitment ?? seedCommitment(seed, nonce);
     // The first reveal is recorded (a Mystery run must start within a minute of it: `worldVerdict`).
     if (!store.get(`revealed|${id}`)) store.put(`revealed|${id}`, String(now()));
     const revealedAt = Number(store.get(`revealed|${id}`));

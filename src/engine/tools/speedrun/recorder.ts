@@ -10,6 +10,7 @@ import type { Engine } from '../../core/engine';
 import type { GameFingerprint } from '../../core/fingerprint';
 import type { ClockSnapshot } from '../../core/run-clock';
 import { ChunkedJournal, type ChunkStore, readRun } from '../../core/journal-chunks';
+import { canonicalJson } from '../../core/canonical';
 import { newSeed } from '../../core/prng';
 import { categoryWorld, runSeedPolicy, worldVerdict } from '../../core/remix/categories';
 import { storyWorld, type WorldVariant } from '../../core/remix/story';
@@ -359,9 +360,12 @@ export class SpeedrunRecorder {
     // The world of a run is its own: a stored chunk of 4.1.15 has none (its run cannot be sealed in schema 2); a world
     // given now, or the engine's, must be the one the run started in.
     if (!point.world) throw new RunStartRefused(['this stored run predates the world binding (4.1.16): start again']);
-    const now = o.variant ?? (o.engine as Engine | null)?.game.variant;
-    if (now && now.hash !== point.world.variant.hash)
+    // The world now: the one given, else the engine's (its story world when it has none), never left unchecked.
+    const now = worldOf(o);
+    if (now.hash !== point.world.variant.hash)
       throw new RunStartRefused([`this run was played in world ${point.world.variant.seed}, not ${now.seed}`]);
+    if (canonicalJson(categoryWorld(o.category).world) !== canonicalJson(point.world.policy))
+      throw new RunStartRefused(["this run's category no longer plays the world it was started in"]);
     const r = new SpeedrunRecorder(o);
     const eng = o.engine;
     r.world = point.world;
