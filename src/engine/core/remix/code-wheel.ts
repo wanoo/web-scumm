@@ -205,7 +205,7 @@ export function judge(
  * (a translation changes the texts, never their places, and two answers translated alike stay two places). The shuffles
  * draw by count, never by value, so it is the live wheel position for position.
  */
-export function placeWheel(p: CodeWheelParams, seed: string): CodeWheel {
+function placeWheel(p: CodeWheelParams, seed: string): CodeWheel {
   return generateWheel({ ...p, answers: p.answers.map((_, i) => String(i)) }, seed);
 }
 
