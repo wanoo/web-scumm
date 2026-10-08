@@ -66,10 +66,9 @@ describe('a day token', () => {
       verifyDayToken(await sign(DAY, { alg: 'EdDSA', kid: 'other' }), k, 'reference', T),
       /algorithm or key/,
     );
-    const [h, p] = good.split('.');
+    const [h] = good.split('.');
     const forged = `${h}.${enc({ ...DAY, seed: 'WS-0000-0000' })}.${good.split('.')[2]}`;
     await refused(verifyDayToken(forged, k, 'reference', T), /bad signature/);
-    expect(p).toBeTruthy();
   });
   it('is refused for another shape, another game, a malformed seed', async () => {
     const k = await pub();

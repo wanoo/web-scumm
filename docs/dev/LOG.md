@@ -3496,8 +3496,8 @@ Platform"; human gates reported, not blocking (D12).
   424/590 killed, `speedrun` 397/513; after the two new test files, `reality/daily.ts` 76/78 then the last real one
   killed and one named (`TextDecoder`'s `fatal`, equivalent), `tools/speedrun/verify.ts` 329/379.
 - Decided: the `remix` and `speedrun` sets are measured, not gated, in 4.1.16 (as `reality-store` was in 4.1.10):
-  about 230 survivors in `compile.ts`, `apply.ts`, `categories.ts`, `seed-code.ts`, `recorder.ts`, `envelope.ts` and
-  `verify.ts` are to be read one by one, killed or named, before the two join `GATED` for 4.2; naming them unread
+  234 survivors (`remix` 137, `speedrun` 97) in `compile.ts`, `apply.ts`, `categories.ts`, `seed-code.ts`,
+  `recorder.ts`, `envelope.ts` and `verify.ts` are to be read one by one, killed or named, before the two join `GATED` for 4.2; naming them unread
   would make the gate say nothing. Vite 8's warnings about extensionless imports in the config's import graph (the
   future native config loader) are kept and explained: the default bundling loader is the one used (no
   `configLoader` setting, `vite.config.ts` and `tools/` import the engine's sources by their extensionless paths, as
@@ -3519,9 +3519,10 @@ Platform"; human gates reported, not blocking (D12).
   out of those readings). `v4.1.16-rc.1` on the merge commit, then `v4.1.16` on the same commit once the candidate's
   assets are verified.
 - The release commit: the fragments assembled (#142 → #146), the version, the golden save `demo-4.1.16.json` (30), the
-  reference run re-recorded under 4.1.16 (schema 2, story world, proof `7bc95064…`, IGT 2:35.234), the READMEs,
+  reference run re-recorded under 4.1.16 (schema 2, story world, proof `7bc95064…` instead of #143's `75d97ffd…`: the version and
+  the reference's new world categories are in its head; IGT 2:35.234 unchanged), the READMEs,
   ROADMAP en/fr, PROGRAM, UPGRADING §28, the pass sheet (the plan's 16 exit criteria answered, the mutation line of
-  §16 not met: `remix` and `speedrun` measured, not gated), the baseline sheet, the coverage floors read on this pull
+  §16 not met: `remix` and `speedrun` measured, not gated, 234 survivors to read), the baseline sheet, the coverage floors read on this pull
   request's last coverage job.
 - Not done, said as such: the two mutation sets gated; the player's Mystery flow; the gamepad in a real browser; the
   130 KB target of the reference's first visit (137 KB, budget 140); the Vite 8 warnings removed; the per-policy resume

@@ -200,7 +200,8 @@ for (const [who, list] of Object.entries(texts))
     list.forEach((t, i) => {
       if (t !== texts.node![i]) fail(who, `${CASES[i]!.category}: its .wsrun differs from Node's`);
     });
-if (!failed) console.log(`✔  ${Object.keys(texts).join(', ')}: the same ${CASES.length} .wsrun files, byte for byte`);
+if (!failed && Object.keys(texts).length > 1)
+  console.log(`✔  ${Object.keys(texts).join(', ')}: the same ${CASES.length} .wsrun files, byte for byte`);
 
 // ---------------------------------------------------------------- 3. a new process; 4. the Bridge's isolated worker
 const dir = mkdtempSync(join(tmpdir(), 'remix-speedrun-'));

@@ -1,7 +1,7 @@
 // npm run docs:truth (4.1.16, plan §12): what the documentation states that the code can contradict, checked against
 // the code. The schemas the docs name (a save's envelope, a `.wsrun`), every `npm run <script>` they cite, every
 // `tools/…` or `scripts/…` file they name, the capabilities they call mounted (each with the line of code that makes it
-// true), and the current version the READMEs and the ROADMAP give. Exit 1 on the first list of contradictions, with each
+// true), and the current release the READMEs give (their link and download URL name this version). Exit 1 on the first list of contradictions, with each
 // one named; the counters (tests, first-visit KB, states) stay `npm run quality:baseline`'s (README metric markers).
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -102,12 +102,24 @@ export function check(docs = documents()): Contradiction[] {
       for (const w of WIRED) if (w.says.test(text) && !w.has.test(src(w.file))) at(`${w.what}: not in ${w.file}`);
     });
   }
-  // The current version: the READMEs' release link names this version or an earlier one, never a later one.
+  // The current release: no release link newer than this version, and the "current release" link and the download
+  // URL the READMEs give name exactly this version.
   for (const doc of ['README.md', 'README.fr.md']) {
     const t = read(doc);
     for (const m of t.matchAll(/releases\/tag\/v(\d+\.\d+\.\d+)/g))
       if (newer(m[1]!, f.version))
         out.push({ doc, line: lineOf(t, m.index ?? 0), what: `links release v${m[1]}, newer than ${f.version}` });
+    for (const m of t.matchAll(
+      /(?:Current release|Release actuelle) ?: \[v(\d+\.\d+\.\d+)|releases\/download\/v(\d+\.\d+\.\d+)\//g,
+    )) {
+      const v = m[1] ?? m[2]!;
+      if (v !== f.version)
+        out.push({
+          doc,
+          line: lineOf(t, m.index ?? 0),
+          what: `names v${v} as the current release, the package is ${f.version}`,
+        });
+    }
   }
   return out;
 }

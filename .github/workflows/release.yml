@@ -50,7 +50,7 @@ jobs:
           cache: npm
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      # 4.1.16: a set the tag's commit does not define yet (remix, speedrun) is not this tag's gate.
+      # 4.1.16: a set the tag's commit does not define is not this tag's gate (a set added to the matrix later).
       - id: has
         run: |
           if grep -Eq "^  '?${{ matrix.set }}'?: \[" tools/mutation-sets.ts; then echo "set=yes" >> "$GITHUB_OUTPUT"; else echo "::notice::the set ${{ matrix.set }} predates this tag"; fi
