@@ -7,7 +7,7 @@ draws a fresh seed for any category that is not `fixed` (`recorder.ts`), so `dai
 verifier and the Bridge's worker replay the base game (`tools/speedrun/package.ts`); `worldVerdict` and
 `leaderboardKey` (`src/engine/core/remix/categories.ts`) are called by their tests only; the Bridge ranks by a
 `seedKind` that knows `fixed` and `random`. Two types say the seed policy: `SpeedrunCategory.seed`
-(`core/types/speedrun.ts`) and `SpeedrunSeedPolicy` (`core/remix/categories.ts`). The world reaches `h0` only through
+(`core/types/speedrun.ts`, `fixed | random | mystery | daily` since 4.1.15: one field for the run and the world) and `SpeedrunSeedPolicy` (`core/remix/categories.ts`). The world reaches `h0` only through
 `fingerprint.logic`, and only when a category lists it.
 
 **Decision** (D29).

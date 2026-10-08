@@ -73,6 +73,10 @@ describe('the previous stable tag', () => {
     const merged = git('rev-parse', 'HEAD');
     expect(checkAncestry('4.1.15', merged, { cwd: dir })).toMatchObject({ ok: true, previous: 'v4.1.14' });
     expect(checkAncestry('4.1.13', merged, { cwd: dir })).toMatchObject({ ok: true, previous: null });
+    // A commit git does not know is a refusal, never a pass (fail closed).
+    const unknown = checkAncestry('4.1.15', 'deadbeef'.repeat(5), { cwd: dir });
+    expect(unknown).toMatchObject({ ok: false, previous: 'v4.1.14' });
+    expect(unknown.reason).toMatch(/merge-base failed/);
   });
 
   it('is checked by ship tag and by release.yml before publishing', () => {
