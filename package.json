@@ -97,6 +97,7 @@
     "quality:baseline": "tsx tools/quality-baseline.ts",
     "bridge": "tsx tools/bridge.ts",
     "bridge:load": "tsx tools/bridge-load.ts",
+    "runs:load": "tsx tools/runs-load.ts",
     "solve:reality": "tsx tools/solve-reality.ts",
     "reality:spike": "node scripts/reality-spike.mjs",
     "reality:xcheck": "tsx tools/reality-xcheck.ts",
