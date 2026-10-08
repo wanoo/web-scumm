@@ -11,7 +11,8 @@ The reference of every condition and command, generated from the schema, is `doc
 |---|---|
 | 4.1.12 "Language" | **Stabilised**: the names and meanings below. A change is a break: its migration of the bundled games and saves ships with it (`web-scumm migrate`), and UPGRADING says it. |
 | 4.1.13 → 4.1.15 | **Additive** only on what is listed "additive": new optional fields, new commands or conditions each admitted by a short ADR (0014 onward) with its proof. The IR's `variant` slot is filled by 4.1.15. |
-| 4.1.15 "Remix" (now) | **Frozen** as the 4.2 release candidate (D28): the stable list absorbs what Remix added; `tests/api-surface.json` records the candidate surface; 4.2.0 restores strict SemVer (D18). |
+| 4.1.15 "Remix" | **Frozen** as the 4.2 release candidate (D28): the stable list absorbs what Remix added; `tests/api-surface.json` records the candidate surface; 4.2.0 restores strict SemVer (D18). |
+| 4.1.16 "Convergence" (now) | **Frozen**, with one additive correction before 4.2 (D29, ADR 0019): `SpeedrunCategory.world` (`SpeedrunWorldPolicy`) names a run's world apart from its generator `seed`; every 4.1.15 field keeps its meaning (`seed: 'daily' \| 'mystery'` without `world` is read as that world, with a warning). |
 
 ## Frozen (stable from 4.1.12, frozen at 4.1.15)
 
@@ -38,6 +39,9 @@ The reference of every condition and command, generated from the schema, is `doc
   the placeholders `{code:<id>}` and `{hint:<id>}`, the minigame `code-wheel` and its params. No new condition nor
   command: a `{ variant }` condition was refused, the reserved flags express every dimension (D28).
 - Saves: `SaveEnvelopeV4` (`schema: 4`, the `WorldVariant`), `Session.variant`.
+- Speedrun categories (4.1.16, D29): `SpeedrunCategory.world` `{ policy, mode, fixedSeed?, codeWheel? }`, the canonical
+  form of a category's world before the 4.2 freeze; `seed` is the run's generator (`fixed` or `random`). The `.wsrun`
+  envelope is schema 2 (`runSeed`, `variant`, `worldEvidence`); schema 1 stays readable as Story.
 - Objectives (`GameDef.objectives`, ADR 0014): the three fields and `parent`, as 4.1.12 left them.
 - `reality`: the connectors' data (`reality.connectors`, 4.1.9) and the policies of Constellation (4.1.10).
 - The stage: as 4.1.11 left it.

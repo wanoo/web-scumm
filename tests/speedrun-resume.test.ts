@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 import { Engine } from '@engine/core/engine';
 import { CHUNK_SIZE, MemoryChunkStore, readRun } from '@engine/core/journal-chunks';
 import { FakePresenter, MemoryStore } from '@engine/core/ports';
-import { SpeedrunRecorder } from '@engine/tools/speedrun/recorder';
+import { storyWorld } from '@engine/core/remix/story';
+import { RunStartRefused, SpeedrunRecorder } from '@engine/tools/speedrun/recorder';
 import { verifyRun } from '@engine/tools/speedrun/verify';
 import { ROUTE, speedrunGame, speedrunLayouts } from './fixtures/speedrun-game';
 import { ENGINE_VERSION, fixtureFingerprint, verifyContext } from './fixtures/speedrun-run';
@@ -36,6 +37,13 @@ describe('resume after a crash', () => {
     expect(stored.chunks).toHaveLength(1);
     expect(stored.head.sealed).toBeUndefined();
     const second = new Engine(speedrunGame(), speedrunLayouts, new FakePresenter(), new MemoryStore());
+    // 4.1.16: the stored chunk keeps the run's world; resuming in another world is refused, in its own is not.
+    const own = storyWorld(game.remix);
+    expect(stored.head.resume).toMatchObject({ world: { variant: { hash: own.hash } }, runSeed: rec.seed });
+    const elsewhere = { ...own, seed: 'WS-0000-0000', hash: 'f'.repeat(64) };
+    await expect(
+      SpeedrunRecorder.resume({ ...opts(second), runId: 'crash-run', variant: elsewhere }),
+    ).rejects.toBeInstanceOf(RunStartRefused);
     const again = (await SpeedrunRecorder.resume({ ...opts(second), runId: 'crash-run' }))!;
     expect(again).not.toBeNull();
     expect(second.runClock.logicalSteps()).toBe(BigInt(CHUNK_SIZE));

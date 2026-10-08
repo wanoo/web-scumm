@@ -27,7 +27,9 @@ verifier and the Bridge's worker replay the base game (`tools/speedrun/package.t
 3. **Schema 1 stays readable, as Story.** Its `seed` is the `runSeed`, its world the story world of the approved
    manifest. Presented for a Remix category it is `legacy-world-missing`, never requalified from its seed.
 4. **One verifier.** Parse → versions and fingerprints → normalise schema 1 or 2 → compile the approved manifest →
-   `loadVariant` on the stored world → `worldVerdict` with the authenticated evidence → `applyVariant` → recompute
+   `loadVariant` on the stored world (integrity) → the world **made again** from its seed, mode and algorithm version
+   and compared assignment for assignment (authenticity: `world-forged`, `world-algorithm`; the story world compared
+   with the game's) → `worldVerdict` with the authenticated evidence → `applyVariant` → recompute
    `h0` → replay with `runSeed` → compare → verdict and `leaderboardKey`. CLI, JSON, MCP, Studio and the Bridge's worker
    return the same `world { hash, mode, seed, leaderboardKey }` and the same codes (`world-*`, `daily-proof-*`,
    `mystery-*`, `legacy-world-missing`, `leaderboard-key`).
@@ -42,5 +44,7 @@ keep their meaning; the reference `.wsrun` of 4.1.14 and 4.1.15 stays verifiable
 `tests/api-surface.json` record `world` as the canonical form before the 4.2 freeze.
 
 **Alternatives.** Deriving the world from `seed` and `game.remix` (no new field) keeps the DSL as frozen but gives one
-field two meanings, the defect this fixes. Regenerating the world from its seed at verification ties a run to the
-algorithm version and to a generator mode; storing the variant does not.
+field two meanings, the defect this fixes. Storing the variant without regenerating it was the first draft: the second
+reading of the pull request showed that a world's hash is integrity only (anyone can rehash a world relabelled with
+another seed and reseal the run), so the verifier regenerates it; the stored world still says exactly what was played,
+and a run of an algorithm version this engine does not know is refused (`world-algorithm`) rather than trusted.

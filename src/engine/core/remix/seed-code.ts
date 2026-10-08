@@ -12,9 +12,15 @@ export const STORY_SEED = 'story';
 
 /** A seed refused: malformed, a wrong check symbol, an unknown algorithm version. @public */
 export class RemixSeedError extends Error {
-  constructor(message: string) {
+  /**
+   * What was refused, for a verifier's verdict (4.1.16): `world-shape`, `world-hash`, `world-value`, `world-constraint`,
+   * `world-stale`, or `seed` (a malformed seed, an unknown mode or algorithm).
+   */
+  readonly code: string;
+  constructor(message: string, code = 'seed') {
     super(message);
     this.name = 'RemixSeedError';
+    this.code = code;
   }
 }
 

@@ -797,8 +797,10 @@ jobs:
           exit $bad
   pages:
     # 4.1.16: Pages waits for the terminal gate, not a subset (no deployment with Firefox PWA, a proof or mutation red).
+    # `always()` and the gate's own result: the implicit success() also reads pr-gate's ancestors, some of which are
+    # skipped by design (mutation, jobs the plan spares), and would skip Pages forever.
     needs: [pr-gate]
-    if: github.ref == 'refs/heads/main'
+    if: always() && github.ref == 'refs/heads/main' && needs.pr-gate.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:

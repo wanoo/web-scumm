@@ -3,20 +3,27 @@
 // client's declarations (pauses, menus, the background, loads and saves, the inputs used) and seals the `.wsrun`
 // envelope at the finish. It never writes the game's state (D24): the run's own loads are the player's, and a resume
 // after a crash restores what the last stored chunk recorded. The browser gives it the IndexedDB store; Node a memory one.
+// 4.1.16 (ADR 0019): it records the world the run is played in (the engine's, or the one it is given), refuses to start
+// a run its category could not rank, and a resume in another world.
 import { stateDigest } from '../../core/diff';
 import type { Engine } from '../../core/engine';
 import type { GameFingerprint } from '../../core/fingerprint';
 import type { ClockSnapshot } from '../../core/run-clock';
 import { ChunkedJournal, type ChunkStore, readRun } from '../../core/journal-chunks';
+import { canonicalJson } from '../../core/canonical';
 import { newSeed } from '../../core/prng';
+import { categoryWorld, runSeedPolicy, worldVerdict } from '../../core/remix/categories';
+import { storyWorld, type WorldVariant } from '../../core/remix/story';
 import { RunTape, type TapeLink } from '../../core/run-tape';
 import type { ExternalEntry, GameState, SpeedrunCategory, SpeedrunManifest } from '../../core/types';
 import {
   type ExcludedInterval,
+  type HeadWorld,
   headHash,
   type RecordedRealitySignal,
   sealEnvelope,
-  type SpeedrunEnvelope,
+  type SpeedrunEnvelopeV2,
+  type SpeedrunWorldEvidence,
 } from './envelope';
 import { sha256Hex } from '../../core/fingerprint';
 import type { RunLoad } from './replay-run';
@@ -37,6 +44,10 @@ export interface ResumePoint {
   digests: [string, number][];
   /** The signals from outside recorded so far (their JWS: the Reality proof). */
   signals: RecordedRealitySignal[];
+  /** The run's world and what it rests on (4.1.16): a resume rebuilds it, never another. */
+  world?: HeadWorld;
+  /** The run's generator seed (4.1.16): the head seals it, so a resume seals with it whatever the draws say. */
+  runSeed?: string;
 }
 
 export interface RecorderOptions {
@@ -51,6 +62,42 @@ export interface RecorderOptions {
   runId?: string;
   /** A monotonic clock in milliseconds (default: the engine's run clock source). */
   now?: () => number;
+  /** The world the run is played in (default: the engine's game's, else its story world). */
+  variant?: WorldVariant;
+  /** A Daily or Mystery world's tokens from the Bridge, verified before the start. */
+  worldEvidence?: SpeedrunWorldEvidence;
+}
+
+/** Why a run may not start (its world is not the one its category ranks): said before the clock runs. @public */
+export class RunStartRefused extends Error {
+  constructor(readonly reasons: readonly string[]) {
+    super(`this run cannot be ranked in its category: ${reasons.join('; ')}`);
+    this.name = 'RunStartRefused';
+  }
+}
+
+/** What a recorder records the run in: the world given, else the engine's game's, else that game's story world. */
+function worldOf(o: RecorderOptions): WorldVariant {
+  if (o.variant) return o.variant;
+  const game = (o.engine as Engine | null)?.game;
+  if (!game) throw new Error('a recorder without an engine is given the world of its run (`variant`)');
+  return game.variant ?? storyWorld(game.remix);
+}
+
+/**
+ * Whether a run in `variant` can be ranked in its category, before it starts: the world's policy (a Fixed run on its
+ * seed, a Story run in the story world, a Remix run in its mode), and the evidence a Daily or Mystery world needs
+ * (verified by the client before, by the verifier after: here, only that it is there).
+ */
+function startable(world: HeadWorld): string[] {
+  const { policy, variant, evidence } = world;
+  if (policy.policy === 'daily' || policy.policy === 'mystery') {
+    const out =
+      variant.mode === policy.mode ? [] : [`the world's mode is ${variant.mode}, the category's ${policy.mode}`];
+    if (evidence?.kind !== policy.policy) out.push(`a ${policy.policy} run starts with the Bridge's signed tokens`);
+    return out;
+  }
+  return worldVerdict(policy, variant);
 }
 
 /** One attempt: `start()`, play, then `finish` fires and `envelope` is sealed (or `abandon()`). */
@@ -70,11 +117,13 @@ export class SpeedrunRecorder {
   private offJournal: (() => void) | null = null;
   private last: TapeLink | null = null;
   private resuming = false;
+  /** The world the run is played in, sealed into its head. */
+  world: HeadWorld | null = null;
   /** The sealed envelope once the finish fired. */
-  envelope: SpeedrunEnvelope | null = null;
+  envelope: SpeedrunEnvelopeV2 | null = null;
   /** Hears every split signal and the sealed envelope (the HUD, the overlay bridge, LiveSplit). */
-  readonly listeners = new Set<(s: SplitSignal | { kind: 'sealed'; envelope: SpeedrunEnvelope }) => void>();
-  private sealing: Promise<SpeedrunEnvelope> | null = null;
+  readonly listeners = new Set<(s: SplitSignal | { kind: 'sealed'; envelope: SpeedrunEnvelopeV2 }) => void>();
+  private sealing: Promise<SpeedrunEnvelopeV2> | null = null;
   private pendingSignals: Promise<RecordedRealitySignal>[] = [];
   private signals: RecordedRealitySignal[] = [];
   /** Why sealing failed (a store that refused the last chunk), if it did. */
@@ -85,7 +134,7 @@ export class SpeedrunRecorder {
 
   constructor(private o: RecorderOptions) {
     this.runId = o.runId ?? `run-${newSeed().slice(0, 16)}`;
-    this.seed = o.category.seed === 'fixed' ? `fixed:${o.category.id}` : newSeed();
+    this.seed = runSeedPolicy(o.category) === 'fixed' ? `fixed:${o.category.id}` : newSeed();
     this.tracker = new SplitTracker(o.manifest, o.category);
   }
 
@@ -136,7 +185,15 @@ export class SpeedrunRecorder {
   /** The run's head and first chunk's place in the store (before any engine is touched). */
   async prepare(): Promise<void> {
     const { category, manifest, fingerprint } = this.o;
-    this.h0 = await headHash({ fingerprint, category, rulesVersion: manifest.rulesVersion, seed: this.seed });
+    const world: HeadWorld = {
+      variant: worldOf(this.o),
+      policy: categoryWorld(category).world,
+      ...(this.o.worldEvidence ? { evidence: this.o.worldEvidence } : {}),
+    };
+    const refused = startable(world);
+    if (refused.length) throw new RunStartRefused(refused);
+    this.world = world;
+    this.h0 = await headHash({ fingerprint, category, rulesVersion: manifest.rulesVersion, seed: this.seed, world });
     this.journal = new ChunkedJournal<ResumePoint>(this.o.store, this.runId, this.h0, undefined, () =>
       this.resumePoint(),
     );
@@ -166,6 +223,8 @@ export class SpeedrunRecorder {
       inputs: [...this.inputs],
       digests: [...this.digests.entries()],
       signals: structuredClone(this.signals),
+      ...(this.world ? { world: structuredClone(this.world) } : {}),
+      runSeed: this.seed,
     };
   }
 
@@ -233,12 +292,12 @@ export class SpeedrunRecorder {
   }
 
   /** Seals the run at its finish: the last links, the last chunk, the envelope. */
-  seal(): Promise<SpeedrunEnvelope> {
+  seal(): Promise<SpeedrunEnvelopeV2> {
     this.sealing ??= this.doSeal();
     return this.sealing;
   }
 
-  private async doSeal(): Promise<SpeedrunEnvelope> {
+  private async doSeal(): Promise<SpeedrunEnvelopeV2> {
     const { engine: eng, category, manifest } = this.o;
     const fin = this.tracker.finish;
     if (!fin) throw new Error('the run has not reached its finish');
@@ -256,12 +315,13 @@ export class SpeedrunRecorder {
       category,
       rulesVersion: manifest.rulesVersion,
       seed: this.seed,
+      world: this.world!,
       links: links.slice(0, fin.entry + 1),
       finish: { ...fin, logicalSteps: finishLink.logicalSteps },
       splits: this.tracker.splits,
       excluded: this.excluded,
       loads: this.loads,
-      inputsUsed: [...this.inputs] as SpeedrunEnvelope['inputsUsed'],
+      inputsUsed: [...this.inputs] as SpeedrunEnvelopeV2['inputsUsed'],
       realitySignals: await Promise.all(this.pendingSignals),
       finalState: eng.state,
     });
@@ -297,9 +357,19 @@ export class SpeedrunRecorder {
     if (!run || run.head.sealed || !run.chunks.length) return null;
     const point = (run.head.chunks === run.chunks.length ? run.head.resume : undefined) as ResumePoint | undefined;
     if (!point) return null;
+    // The world of a run is its own: a stored chunk of 4.1.15 has none (its run cannot be sealed in schema 2); a world
+    // given now, or the engine's, must be the one the run started in.
+    if (!point.world) throw new RunStartRefused(['this stored run predates the world binding (4.1.16): start again']);
+    // The world now: the one given, else the engine's (its story world when it has none), never left unchecked.
+    const now = worldOf(o);
+    if (now.hash !== point.world.variant.hash)
+      throw new RunStartRefused([`this run was played in world ${point.world.variant.seed}, not ${now.seed}`]);
+    if (canonicalJson(categoryWorld(o.category).world) !== canonicalJson(point.world.policy))
+      throw new RunStartRefused(["this run's category no longer plays the world it was started in"]);
     const r = new SpeedrunRecorder(o);
     const eng = o.engine;
-    r.seed = point.draws?.seed ?? r.seed;
+    r.world = point.world;
+    r.seed = point.runSeed ?? point.draws?.seed ?? r.seed;
     r.h0 = run.head.h0;
     r.excluded = point.excluded;
     r.loads = point.loads;

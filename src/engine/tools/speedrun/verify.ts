@@ -3,6 +3,10 @@
 // the clock, the splits, the final state and the chain, checks the category's rules, and says one verdict with a code
 // and a reason. The checks run in a fixed order; the first that fails names the verdict. `inconclusive` (a budget, a
 // crash, no keyring) is never valid. `npm run speedrun:verify`, the CLI, the MCP tool and the Bridge's worker call it.
+// 4.1.16 (ADR 0019): a schema 2 run carries its world; the verifier checks it against the approved game (`loadVariant`),
+// checks it is a world its category ranks (`worldVerdict`, with the Bridge's signed tokens for Daily and Mystery),
+// seals it into the head, replays the run on the game that world makes, and names its leaderboard (`leaderboardKey`).
+// A schema 1 run is a Story run, replayed as 4.1.14 did; offered to a Remix category it is refused, never requalified.
 import { CHUNK_SIZE } from '../../core/journal-chunks';
 import type { CustomCommands } from '../../core/custom';
 import { canonicalJson } from '../../core/canonical';
@@ -10,9 +14,31 @@ import { type GameFingerprint, sha256Hex } from '../../core/fingerprint';
 import { PRNG_VERSION } from '../../core/prng';
 import type { TapeLink } from '../../core/run-tape';
 import { TIMING_VERSION } from '../../core/timing';
-import type { GameDef, Id, Layout, SessionEntry, SpeedrunCategory } from '../../core/types';
+import { applyVariant, compileGameManifest, remixWorld } from '../../core/remix/apply';
+import {
+  categoryWorld,
+  leaderboardKey,
+  runSeedPolicy,
+  type WorldEvidence,
+  worldVerdict,
+} from '../../core/remix/categories';
+import { compileVariant, loadVariant, storyVariant } from '../../core/remix/compile';
+import { RemixSeedError } from '../../core/remix/seed-code';
+import { storyWorld, type WorldVariant } from '../../core/remix/story';
+import type { GameDef, Id, Layout, SessionEntry, SpeedrunCategory, SpeedrunWorldPolicy } from '../../core/types';
 import type { Keyring, SignalExpectation } from '../../reality/protocol';
-import { chainChunks, envelopeEntries, finalProofOf, headHash, type SpeedrunEnvelope, stateHash } from './envelope';
+import {
+  chainChunks,
+  envelopeEntries,
+  finalProofOf,
+  type HeadWorld,
+  headHash,
+  type SpeedrunEnvelope,
+  type SpeedrunEnvelopeV1,
+  type SpeedrunEnvelopeV2,
+  type SpeedrunWorldEvidence,
+  stateHash,
+} from './envelope';
 import type { TrustLevel } from './records';
 import { replayRun } from './replay-run';
 
@@ -34,6 +60,15 @@ export interface SpeedrunVerifyResult {
   reason: string;
   /** `replay-valid` for a valid run, else `local` (a verifier never grants more). */
   trust: TrustLevel;
+  /** The world the run was played in and the leaderboard it goes to (4.1.16, once the world was checked). */
+  world?: {
+    hash: string;
+    mode: string;
+    seed: string;
+    leaderboardKey: string;
+    /** A Daily world: when its day ends (epoch ms). A run submitted later is practice, not that day's board's. */
+    validUntil?: number;
+  };
   /** What the replay recomputed (when it got that far). */
   recomputed?: {
     logicalSteps: string;
@@ -91,11 +126,16 @@ export function parseEnvelope(input: unknown): SpeedrunEnvelope {
       stop('invalid-replay', 'envelope-shape', 'the file is not JSON');
     }
   }
-  const e = j as Partial<SpeedrunEnvelope>;
+  // Either schema's fields, all optional: what the checks below narrow (a file is data, not the client's word).
+  const e = j as Partial<Omit<SpeedrunEnvelopeV1, 'schema'> & Omit<SpeedrunEnvelopeV2, 'schema'>> & {
+    schema?: unknown;
+  };
   if (!e || typeof e !== 'object' || e.format !== 'web-scumm-speedrun')
     stop('invalid-replay', 'envelope-shape', 'not a web-scumm speedrun envelope');
-  if (e.schema !== 1)
-    stop('unsupported-version', 'schema', `envelope schema ${String(e.schema)}: this verifier reads 1`);
+  if (e.schema !== 1 && e.schema !== 2)
+    stop('unsupported-version', 'schema', `envelope schema ${String(e.schema)}: this verifier reads 1 and 2`);
+  const extra = Object.keys(e).filter((k) => !(e.schema === 1 ? V1_KEYS : V2_KEYS).has(k));
+  if (extra.length) stop('invalid-replay', 'envelope-shape', `unknown field(s) in the envelope: ${extra.join(', ')}`);
   const t = e.timing;
   const ok =
     isStr(e.gameId) &&
@@ -120,10 +160,56 @@ export function parseEnvelope(input: unknown): SpeedrunEnvelope {
     e.chunks.every(
       (c) => c && Number.isInteger(c.index) && isStr(c.prevHash) && isStr(c.hash) && Array.isArray(c.entries),
     ) &&
-    (e.seed === undefined || isStr(e.seed)) &&
+    (e.schema === 1 ? e.seed === undefined || isStr(e.seed) : isStr(e.runSeed)) &&
     (e.loads === undefined || Array.isArray(e.loads));
   if (!ok) stop('invalid-replay', 'envelope-shape', 'a field of the envelope is missing or of the wrong type');
-  return e as SpeedrunEnvelope;
+  if (e.schema === 2) {
+    if (e.variant === undefined)
+      stop('invalid-replay', 'world-missing', 'a schema 2 run names the world it was played in');
+    if (e.worldEvidence !== undefined && !isEvidence(e.worldEvidence))
+      stop('invalid-replay', 'world-shape', 'the world evidence is not a Daily or a Mystery proof');
+  }
+  return e as unknown as SpeedrunEnvelope;
+}
+
+const BODY_KEYS = [
+  'format',
+  'schema',
+  'gameId',
+  'fingerprint',
+  'engineVersion',
+  'prngVersion',
+  'timingVersion',
+  'categoryId',
+  'rulesVersion',
+  'timing',
+  'splits',
+  'chunks',
+  'loads',
+  'inputsUsed',
+  'realitySignals',
+  'h0',
+  'finalStateHash',
+  'finalProof',
+  'trust',
+];
+const V1_KEYS = new Set([...BODY_KEYS, 'seed']);
+const V2_KEYS = new Set([...BODY_KEYS, 'runSeed', 'variant', 'worldEvidence']);
+const TOKEN_MAX = 4096;
+const isToken = (x: unknown): x is string => isStr(x) && x.length <= TOKEN_MAX;
+function isEvidence(x: unknown): x is SpeedrunWorldEvidence {
+  if (!x || typeof x !== 'object') return false;
+  const o = x as Record<string, unknown>;
+  const keys = Object.keys(o).sort().join(',');
+  if (o.kind === 'daily') return keys === 'kind,token' && isToken(o.token);
+  if (o.kind === 'mystery')
+    return (
+      keys === 'commitmentToken,kind,revealToken,startedAt' &&
+      isToken(o.commitmentToken) &&
+      isToken(o.revealToken) &&
+      Number.isSafeInteger(o.startedAt)
+    );
+  return false;
 }
 
 /** Verifies a run (`.wsrun` text or object) against the approved game: never throws, every failure is a verdict. @public */
@@ -182,15 +268,25 @@ async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerify
   for (const k of category.fingerprint)
     if (env.fingerprint[k] !== ctx.fingerprint[k])
       stop('modified-game', 'fingerprint', `the game's ${k} differs from the approved package`);
+  // 3. The world (4.1.16): the approved game's, of a kind the category ranks, before anything is replayed.
+  const world = await runWorld(env, category, ctx);
+  const runSeed = env.schema === 2 ? env.runSeed : env.seed;
   const fixed = `fixed:${category.id}`;
-  if (category.seed === 'fixed' ? env.seed !== fixed : env.seed === undefined)
+  const fixedRun = runSeedPolicy(category) === 'fixed';
+  if (fixedRun ? runSeed !== fixed : runSeed === undefined)
     stop(
       'invalid-category-rule',
       'seed-policy',
-      category.seed === 'fixed' ? `a fixed-seed run draws from "${fixed}"` : 'a run names its seed',
+      fixedRun ? `a fixed-seed run draws from "${fixed}"` : 'a run names its seed',
     );
-  // 3. The chunks: contiguous, linked, full but the last, from the rules' own head.
-  const h0 = await headHash({ fingerprint: env.fingerprint, category, rulesVersion: env.rulesVersion, seed: env.seed });
+  // 4. The chunks: contiguous, linked, full but the last, from the rules' own head (its world sealed in schema 2).
+  const h0 = await headHash({
+    fingerprint: env.fingerprint,
+    category,
+    rulesVersion: env.rulesVersion,
+    seed: runSeed,
+    ...(world.head ? { world: world.head } : {}),
+  });
   if (env.h0 !== h0) stop('invalid-replay', 'chain', "the chain's head is not the hash of these rules");
   let prev = h0;
   env.chunks.forEach((c, i) => {
@@ -225,8 +321,8 @@ async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerify
       );
   }
   // 5. The replay, with the run's seed: the draws drawn again.
-  const r = await replayRun(ctx.game, ctx.layouts, entries, {
-    seed: env.seed,
+  const r = await replayRun(world.game, ctx.layouts, entries, {
+    seed: runSeed,
     loads: env.loads,
     category,
     commands: ctx.commands,
@@ -299,12 +395,31 @@ async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerify
     finalStateHash,
     finalProof,
   };
+  const w = world.variant;
+  const placed = {
+    hash: w.hash,
+    mode: w.mode,
+    seed: w.seed,
+    leaderboardKey: leaderboardKey(category.id, world.policy, w),
+    ...(world.validUntil !== undefined ? { validUntil: world.validUntil } : {}),
+  };
   if (category.timing === 'rta')
     return {
       verdict: 'valid-unranked',
       code: 'rta-unverifiable',
       reason: 'the run replays as recorded, but its RTA is the client’s word (a witness would rank it)',
       trust: 'replay-valid',
+      world: placed,
+      recomputed,
+    };
+  if (world.policy.policy === 'mystery')
+    return {
+      verdict: 'valid-unranked',
+      code: 'mystery-unwitnessed',
+      reason:
+        'the run replays on the revealed seed, but when it started is the client’s word (a server witness would rank it)',
+      trust: 'replay-valid',
+      world: placed,
       recomputed,
     };
   return {
@@ -312,7 +427,146 @@ async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerify
     code: 'ok',
     reason: 'the run replays as recorded and keeps its category’s rules',
     trust: 'replay-valid',
+    world: placed,
     recomputed,
+  };
+}
+
+/** A run's world, checked: the game to replay, what the head seals (schema 2), and the category's policy. */
+interface RunWorld {
+  game: GameDef;
+  variant: WorldVariant;
+  policy: SpeedrunWorldPolicy;
+  head?: HeadWorld;
+  validUntil?: number;
+}
+
+async function runWorld(env: SpeedrunEnvelope, category: SpeedrunCategory, ctx: VerifyContext): Promise<RunWorld> {
+  const { world: policy } = categoryWorld(category);
+  if (env.schema === 1) {
+    // 4.1.14's runs: the story world, the game replayed as it was then. Never a Remix run, whatever its seed.
+    if (policy.policy !== 'story')
+      stop(
+        'invalid-category-rule',
+        'legacy-world-missing',
+        `a schema 1 run names no world: it is not a run of a ${policy.policy} category`,
+      );
+    return { game: ctx.game, variant: storyWorld(ctx.game.remix), policy };
+  }
+  let variant: WorldVariant;
+  const compiled = compileGameManifest(ctx.game);
+  try {
+    const loaded = loadVariant(compiled, env.variant);
+    if (loaded.stale) stop('invalid-replay', 'world-stale', 'the world was made from another version of the game');
+    variant = loaded.variant;
+  } catch (err) {
+    if (err instanceof RemixSeedError)
+      stop('invalid-replay', err.code === 'seed' ? 'world-shape' : err.code, err.message);
+    throw err;
+  }
+  // Integrity is not authenticity (ADR 0019, after the second reading): a world's hash only says it was not altered
+  // after it was hashed, and anyone can hash a world. The world a seed names is regenerated here and must be this one,
+  // assignment for assignment: a world relabelled with another seed, or a combination no seed makes, is refused.
+  variant = authenticWorld(ctx.game, compiled, variant);
+  const evidence = await checkEvidence(env, policy, variant, ctx);
+  const validUntil = evidence.validUntil;
+  const reasons = worldVerdict(policy, variant, evidence);
+  if (reasons.length)
+    stop(
+      'invalid-category-rule',
+      reasons.some((r) => /starts within/.test(r)) ? 'mystery-start-window' : 'world-policy',
+      reasons.join('; '),
+    );
+  return {
+    game: applyVariant(ctx.game, variant),
+    variant,
+    policy,
+    head: { variant, policy, ...(env.worldEvidence ? { evidence: env.worldEvidence } : {}) },
+    ...(validUntil !== undefined ? { validUntil } : {}),
+  };
+}
+
+/** The world `variant` names, made again from its seed, mode and algorithm version: it, or a refusal. */
+function authenticWorld(
+  game: GameDef,
+  compiled: ReturnType<typeof compileGameManifest>,
+  variant: WorldVariant,
+): WorldVariant {
+  if (variant.mode === 'story') {
+    const story = storyVariant(game.remix, remixWorld(game));
+    if (variant.hash !== story.hash) stop('invalid-replay', 'world-forged', 'this is not the story world of the game');
+    return variant;
+  }
+  let made: WorldVariant | undefined;
+  try {
+    made = compileVariant(compiled, game.remix!, variant.seed, variant.algorithmVersion, variant.mode);
+  } catch (err) {
+    if (err instanceof RemixSeedError)
+      stop('invalid-replay', /algorithm version/.test(err.message) ? 'world-algorithm' : 'world-forged', err.message);
+    throw err;
+  }
+  if (made?.hash !== variant.hash)
+    stop(
+      'invalid-replay',
+      'world-forged',
+      `the seed ${variant.seed} does not make this world (its assignments differ)`,
+    );
+  return variant;
+}
+
+/** A Daily or Mystery run's tokens, verified with the game's daily key (`remix.daily`): what `worldVerdict` reads. */
+async function checkEvidence(
+  env: SpeedrunEnvelopeV2,
+  policy: SpeedrunWorldPolicy,
+  variant: WorldVariant,
+  ctx: VerifyContext,
+): Promise<WorldEvidence & { validUntil?: number }> {
+  if (policy.policy !== 'daily' && policy.policy !== 'mystery') {
+    if (env.worldEvidence) stop('invalid-replay', 'world-shape', `a ${policy.policy} run carries no Bridge token`);
+    return {};
+  }
+  const e = env.worldEvidence;
+  const missing = policy.policy === 'daily' ? 'daily-proof-missing' : 'mystery-commitment';
+  if (!e || e.kind !== policy.policy)
+    stop('invalid-category-rule', missing, `a ${policy.policy} run carries the Bridge's signed tokens`);
+  const d = ctx.game.remix?.daily;
+  if (!d) stop('invalid-category-rule', missing, 'this game names no Bridge key for its Daily and Mystery worlds');
+  const [{ importBridgeKey }, daily] = await Promise.all([
+    import('../../reality/protocol'),
+    import('../../reality/daily'),
+  ]);
+  const key = await importBridgeKey(d!.kid, d!.publicKey);
+  if (e!.kind === 'daily') {
+    const t = await daily.verifyDayToken(e!.token, key, ctx.game.id, null);
+    if (!t.ok) stop('invalid-category-rule', 'daily-proof-invalid', `the day's token: ${t.reason}`);
+    const tok = (t as { token: import('../../reality/daily').DayToken }).token;
+    if (tok.mode !== variant.mode || tok.mode !== policy.mode)
+      stop('invalid-category-rule', 'world-policy', `the day's mode is ${tok.mode}`);
+    if (tok.rules.algorithmVersion !== variant.algorithmVersion)
+      stop(
+        'invalid-category-rule',
+        'daily-proof-invalid',
+        `the day's rules name algorithm ${tok.rules.algorithmVersion}`,
+      );
+    return { dailySeed: tok.seed, validUntil: tok.notAfter };
+  }
+  const c = await daily.verifyCommitment(e!.commitmentToken, key, ctx.game.id);
+  if (!c.ok) stop('invalid-category-rule', 'mystery-commitment', `the commitment: ${c.reason}`);
+  const commit = (c as { token: import('../../reality/daily').CommitToken }).token;
+  if (commit.mode !== policy.mode)
+    stop(
+      'invalid-category-rule',
+      'mystery-commitment',
+      `the commitment is for mode ${commit.mode}, not ${policy.mode}`,
+    );
+  const r = await daily.verifyReveal(e!.revealToken, key, commit);
+  if (!r.ok) stop('invalid-category-rule', 'mystery-reveal', `the reveal: ${r.reason}`);
+  const rev = (r as { token: import('../../reality/daily').RevealToken }).token;
+  return {
+    commitment: commit.commitment,
+    reveal: { seed: rev.seed, nonce: rev.nonce },
+    revealedAt: rev.revealedAt,
+    runStartedAt: e!.startedAt,
   };
 }
 

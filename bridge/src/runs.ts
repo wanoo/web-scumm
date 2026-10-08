@@ -148,8 +148,18 @@ const stable = (v: unknown): string =>
           .join(',')}}`
       : JSON.stringify(v);
 
-/** A run's identity: its game, category, seed and inputs, the inputs' RTA stamps (`t`) aside. */
-function runKeyOf(env: { gameId?: unknown; categoryId?: unknown; seed?: unknown; chunks?: unknown }): string {
+/**
+ * A run's identity: its game, category, seed and inputs, the inputs' RTA stamps (`t`) aside (schema 2: `runSeed`). Not
+ * its world (4.1.16, after the second reading): a copy of someone's run re-sealed in another world of the same logic
+ * (another seed of a catalogue, another cosmetic value) is the same run, and the first submitter keeps it.
+ */
+function runKeyOf(env: {
+  gameId?: unknown;
+  categoryId?: unknown;
+  seed?: unknown;
+  runSeed?: unknown;
+  chunks?: unknown;
+}): string {
   const chunks = Array.isArray(env.chunks) ? (env.chunks as { entries?: unknown }[]) : [];
   const entries = chunks
     .flatMap((c) => (Array.isArray(c?.entries) ? c.entries : []))
@@ -158,7 +168,9 @@ function runKeyOf(env: { gameId?: unknown; categoryId?: unknown; seed?: unknown;
       const { t: _t, ...rest } = e as Record<string, unknown>;
       return rest;
     });
-  return sha256(stable({ gameId: env.gameId, categoryId: env.categoryId, seed: env.seed ?? null, entries }));
+  return sha256(
+    stable({ gameId: env.gameId, categoryId: env.categoryId, seed: env.seed ?? env.runSeed ?? null, entries }),
+  );
 }
 
 /** The queue: submissions in, one worker at a time, verdicts stored. */

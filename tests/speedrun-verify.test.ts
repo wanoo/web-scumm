@@ -41,7 +41,7 @@ describe('a run sealed live verifies', () => {
     const rta = await playRun('rta');
     expect((await verifyRun(rta.envelope, verifyContext(rta.fingerprint))).verdict).toBe('valid-unranked');
     const fixed = await playRun('fixed-seed');
-    expect(fixed.envelope.seed).toBe('fixed:fixed-seed');
+    expect(fixed.envelope.runSeed).toBe('fixed:fixed-seed');
     expect((await verifyRun(fixed.envelope, verifyContext(fixed.fingerprint))).verdict).toBe('valid');
   });
 });
@@ -87,7 +87,7 @@ describe('the alteration table: each one rejected with its code', () => {
       'replay-diverged',
     ],
     ['action: one removed', (e) => e.chunks[0]!.entries.splice(1, 1), 'invalid-replay', 'replay-diverged'],
-    ['seed: another one', (e) => (e.seed = 'not-the-seed'), 'invalid-replay', 'chain'],
+    ['seed: another one', (e) => (e.runSeed = 'not-the-seed'), 'invalid-replay', 'chain'],
     ['seed: the draws', (e) => (entry(e, 1).rnd = [0.5]), 'invalid-replay', 'rnd-mismatch'],
     ['rules: the version', (e) => (e.rulesVersion = 2), 'unsupported-version', 'rules-version'],
     [
@@ -145,7 +145,7 @@ describe('the alteration table: each one rejected with its code', () => {
       'reality-forbidden',
     ],
     ['shape: not a speedrun', (e) => (e.format = 'web-scumm-session' as never), 'invalid-replay', 'envelope-shape'],
-    ['shape: a schema from the future', (e) => (e.schema = 2 as never), 'unsupported-version', 'schema'],
+    ['shape: a schema from the future', (e) => (e.schema = 3 as never), 'unsupported-version', 'schema'],
     [
       'shape: a time that is not a decimal',
       (e) => ((e.timing as { logicalTime: unknown }).logicalTime = 12),

@@ -132,17 +132,31 @@ export function dailyRoutes(o: DailyOptions) {
       o.key,
       o.kid,
     );
-    store.put(`commit|${id}`, JSON.stringify({ seed, nonce, gameId }));
+    store.put(`commit|${id}`, JSON.stringify({ seed, nonce, gameId, mode, commitment }));
     return { status: 201, body: { id, commitment, token } };
   }
 
-  function reveal(id: string): DailyResponse {
+  async function reveal(id: string): Promise<DailyResponse> {
     const kept = store.get(`commit|${id}`);
     if (!kept) return { status: 404, body: { error: 'unknown commitment' } };
-    const { seed, nonce } = JSON.parse(kept) as { seed: string; nonce: string };
+    const rec = JSON.parse(kept) as Record<string, string | undefined>;
+    const seed = String(rec.seed);
+    const nonce = String(rec.nonce);
+    const gameId = String(rec.gameId);
+    // A record of 4.1.15 kept neither: the mode is the game's, the commitment is recomputed from what it hid.
+    const game = Object.hasOwn(o.games, gameId) ? o.games[gameId] : undefined;
+    const mode = rec.mode ?? game?.mystery ?? game?.daily ?? '';
+    const commitment = rec.commitment ?? seedCommitment(seed, nonce);
     // The first reveal is recorded (a Mystery run must start within a minute of it: `worldVerdict`).
     if (!store.get(`revealed|${id}`)) store.put(`revealed|${id}`, String(now()));
-    return { status: 200, body: { id, seed, nonce, revealedAt: Number(store.get(`revealed|${id}`)) } };
+    const revealedAt = Number(store.get(`revealed|${id}`));
+    // Signed since 4.1.16: the time of the reveal is the Bridge's word, so a run's world evidence can carry it.
+    const token = await sign(
+      { format: 'web-scumm-reveal', v: 1, id, gameId, mode, commitment, seed, nonce, revealedAt },
+      o.key,
+      o.kid,
+    );
+    return { status: 200, body: { id, seed, nonce, revealedAt, token } };
   }
 
   return {

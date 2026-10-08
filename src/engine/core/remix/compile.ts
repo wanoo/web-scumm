@@ -424,26 +424,30 @@ export { EMPTY_MANIFEST } from './story';
  */
 export function loadVariant(c: CompiledManifest, input: unknown): { variant: WorldVariant; stale: boolean } {
   const parsed = WorldVariantSchema.safeParse(input);
-  if (!parsed.success) throw new RemixSeedError('the stored world is not a world: refused');
+  if (!parsed.success) throw new RemixSeedError('the stored world is not a world: refused', 'world-shape');
   const stored = parsed.data as WorldVariant;
   const { hash, ...body } = stored;
-  if (stored.algorithm !== REMIX_ALGORITHM) throw new RemixSeedError(`unknown Remix algorithm "${stored.algorithm}"`);
+  if (stored.algorithm !== REMIX_ALGORITHM)
+    throw new RemixSeedError(`unknown Remix algorithm "${stored.algorithm}"`, 'world-shape');
   // The hash proves the world was not altered after it was hashed, not who made it (integrity, not authenticity): a
   // forged world can carry its own correct hash, so every value is checked against this game whatever the hash says.
-  if (variantHash(body) !== hash) throw new RemixSeedError('the stored world does not match its hash: refused');
+  if (variantHash(body) !== hash)
+    throw new RemixSeedError('the stored world does not match its hash: refused', 'world-hash');
   const stale = stored.manifestHash !== c.hash;
   if (stored.mode !== 'story' && !c.modes.has(stored.mode))
-    throw new RemixSeedError(`this world's mode "${stored.mode}" does not exist in the game`);
+    throw new RemixSeedError(`this world's mode "${stored.mode}" does not exist in the game`, 'world-value');
   for (const [id, v] of Object.entries(stored.assignments)) {
     const d = c.dims.get(id);
     if (!d || !d.domain.some((x) => key(x) === key(v)))
-      throw new RemixSeedError(`this world's ${id} = ${key(v)} does not exist in the game`);
+      throw new RemixSeedError(`this world's ${id} = ${key(v)} does not exist in the game`, 'world-value');
   }
   // Complete: every dimension has its value (a world stored before a dimension was added plays it at its story value).
   for (const id of c.order)
-    if (!(id in stored.assignments) && !stale) throw new RemixSeedError(`this world has no value for ${id}: refused`);
+    if (!(id in stored.assignments) && !stale)
+      throw new RemixSeedError(`this world has no value for ${id}: refused`, 'world-value');
   const broken = violations(c, stored.assignments);
-  if (broken.length) throw new RemixSeedError(`this world breaks the game's constraints: ${broken.join('; ')}`);
+  if (broken.length)
+    throw new RemixSeedError(`this world breaks the game's constraints: ${broken.join('; ')}`, 'world-constraint');
   return { variant: stored, stale };
 }
 

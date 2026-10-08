@@ -226,10 +226,11 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `SessionEntry` | `type SessionEntry = union of 9` | public | One input of a session (`Engine.session`). The answers given while it ran (`picks`, `maps`, `rnd`) are what makes it replayable; `ran` lists |
 | `SignalDef` | `interface { id, source, availability, replay, once, fallback }` | public | A signal the game may receive from the world outside: its id, source, availability, replay mode and fallback. |
 | `SkinDef` | `interface { icons, sounds, fonts, heights, callPoses, pixelArt }` | public | UI skin: everything the engine shows or plays without the content referencing it. Image ids come from the manifest; sounds are ids from `aud |
-| `SpeedrunCategory` | `interface { id, name, timing, start, finish, allowSaves, … 7 more }` | public | A speedrun category: what counts as a run, how it is timed, what it may do. `timing` names the time it is ranked on: `rta` (the wall clock,  |
+| `SpeedrunCategory` | `interface { id, name, timing, start, finish, allowSaves, … 8 more }` | public | A speedrun category: what counts as a run, how it is timed, what it may do. `timing` names the time it is ranked on: `rta` (the wall clock,  |
 | `SpeedrunManifest` | `interface { categories, splits, rulesVersion }` | public | The game's speedrun manifest (`GameDef.speedrun`): categories, splits, and the version of the rules (a change never silently requalifies an  |
 | `SpeedrunSplit` | `interface { id, name, at, parent }` | public | A split: a semantic trigger, a name, and the split it is a step of. |
 | `SpeedrunTrigger` | `type SpeedrunTrigger = SemanticTrigger` | public | A category's start or finish: a semantic trigger. |
+| `SpeedrunWorldPolicy` | `interface { policy, mode, fixedSeed, codeWheel }` | public | Which world a category's runs are played in (4.1.16, D29, ADR 0019): `story` (no logical variation), `fixed` (the published `fixedSeed`), `r |
 | `SpriteSet` | `type SpriteSet = Record<string, Id[]>` | public | A set of images for a character: pose → list of images (looped). |
 | `StageDef` | `interface { layers, lights, emitters, transition, links }` | public | What a room shows beyond its backdrop: layers, lights, particles, its transition and the logic of its walk links. |
 | `StageLayer` | `interface { id, image, role, visible }` | public | A picture of the room: `backdrop` behind everything, `scenery` among the characters (depth from its layout `z`), `foreground` in front of th |
@@ -293,6 +294,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 
 | Name | Signature | Stability | Doc |
 |---|---|---|---|
+| `categoryWorld` | `(cat: Pick<SpeedrunCategory, "seed" \| "world">): { world: SpeedrunWorldPolicy; deprecated: boolean; }` | public | The world of a category (4.1.16, D29): its `world`, else what a 4.1.15 `seed` meant (`daily`, `mystery`: that mode's worlds), else the story |
 | `Engine` | `class Engine` | public | The engine without a page: it runs a game against a Presenter and a SaveStore, in the browser, in node tests and in the solver. |
 | `FakePresenter` | `class FakePresenter` | public | Silent presenter for node: everything finishes immediately, and everything is logged to `log`. |
 | `fingerprint` | `(ir: GameIR, o: { presentation: unknown; engine: string; }): Promise<GameFingerprint>` | public | The fingerprint of a game from its IR, its presentation (`presentationOf`) and its engine's version. |
@@ -300,15 +302,16 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `GameFingerprint` | `interface { logic, trustedExtensions, presentation, engine }` | public | A game's fingerprint: SHA-256 in hex of its logic, its trusted extensions, its presentation and its engine (an empty `trustedExtensions` whe |
 | `hashSources` | `(files: Readonly<Record<string, string>>): Promise<string>` | public | SHA-256 of a set of source files (path → text) through their canonical text: the trusted extensions' hash. |
 | `isRankable` | `(v: SpeedrunVerdict): boolean` | public | Whether a verdict may be ranked on a leaderboard. |
-| `leaderboardKey` | `(categoryId: string, rules: RemixCategoryRules, v: WorldVariant): string` | public | The leaderboard a run goes to: its category, and for a Fixed or a Daily its seed (a Daily's seed names its day). Random and Mystery rank eve |
+| `leaderboardKey` | `(categoryId: string, rules: RemixCategoryRules \| SpeedrunWorldPolicy, v: WorldVariant): string` | public | The leaderboard a run goes to: its category, and for a Fixed or a Daily its seed (a Daily's seed names its day). Random and Mystery rank eve |
 | `logicalKey` | `(c: CompiledManifest, v: WorldVariant): string` | public | A key for proofs: two variants with the same logical world share a proof certificate. |
 | `MemoryStore` | `class MemoryStore` | public | A save store in memory, for the tests and the solver: nothing survives the process. |
 | `MYSTERY_START_WINDOW_MS` | `number` | public | How long a Mystery run may start after its seed was first revealed (D26, after the second reading): the client must build the world to play  |
 | `parseSave` | `(game: GameDef, input: unknown, opts?: ParseSaveOptions): GameState` | public | Parses an envelope (or a legacy raw state). Structural corruption and references needed to resume (the current room and active player) are r |
 | `presentationOf` | `(game: CompiledGame \| GameDef, manifest?: unknown): unknown` | public | What the fingerprint's `presentation` hashes: the asset manifest, and every field core/ir-fields.ts classes as presentation (whole) or both  |
 | `REMIX_CATEGORIES` | `Readonly<Record<string, RemixCategoryRules>>` | public | The five categories a Remix game offers by default. |
-| `RemixCategoryRules` | `interface { seed, mode, fixedSeed, codeWheel }` | public | What a speedrun category says of the world (merged into 4.1.14's `SpeedrunCategory`). |
+| `RemixCategoryRules` | `interface { seed, mode, fixedSeed, codeWheel }` | public | What a speedrun category says of the world, as 4.1.15 wrote it (`seed` for the policy). Kept for the frozen surface (D28); `SpeedrunWorldPol |
 | `RunClock` | `interface { monotonicNow, logicalSteps, logicalTime }` | public | A run's three clocks: `monotonicNow` the host's monotonic milliseconds (RTA: never reproducible, never an authority), `logicalSteps` one per |
+| `runSeedPolicy` | `(cat: Pick<SpeedrunCategory, "seed">): "fixed" \| "random"` | public | The run's generator (D29): `fixed` only when the category says so; anything else is a fresh seed per run. |
 | `savedWorld` | `(input: unknown): WorldVariant \| undefined` | public | The world a raw save names (a v4 envelope, a slot record holding one), or undefined (v3, a raw state). |
 | `saveEnvelope` | `(game: GameDef, state: GameState, now?: number): SaveEnvelopeV4` | public | Wraps a state in the save envelope a store writes (v4: format, schema, game id and save version, date, and the world the game is played in). |
 | `SaveEnvelopeV3` | `interface { format, schema, gameId, gameSaveVersion, savedAt, state }` | public | A save as written until 4.1.14: the state with the format, the schema, the game's id and save version and the date. |
@@ -322,16 +325,19 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `solve` | `(gameIn: GameDef, layouts: Record<string, Layout>, opts?: SolveOptions): Promise<SolveResult>` | public | Searches the game for a way to its ending (`witness`), or explores every reachable state for softlocks (`prove`). |
 | `SolveOptions` | `interface { reality, maxStates, mode, start, goal, commands, … 21 more }` | public | What a search is told: its mode, where it starts and stops, the custom commands, the world's signals and its budgets. |
 | `SolveResult` | `interface { status, exit, headline, mode, reality, finished, … 20 more }` | public | The verdict of a search: its status, exit code and headline, the path found, the softlocks and the search's statistics. |
-| `SpeedrunEnvelope` | `interface { format, schema, gameId, fingerprint, engineVersion, prngVersion, … 14 more }` | public | A `.wsrun` file: the proof of one speedrun (schema 1). |
-| `SpeedrunSeedPolicy` | `type SpeedrunSeedPolicy = 'story' \| 'fixed' \| 'random' \| 'mystery' \| 'daily'` | public | How a category picks its world. |
+| `SpeedrunEnvelope` | `type SpeedrunEnvelope = SpeedrunEnvelopeV1 \| SpeedrunEnvelopeV2` | public | A `.wsrun` file: the proof of one speedrun (schema 1 read, schema 2 written). |
+| `SpeedrunEnvelopeV1` | `interface { schema, seed, format, gameId, fingerprint, engineVersion, … 14 more }` | public | A `.wsrun` file of 4.1.14 and 4.1.15 (schema 1): its seed is the run's, its world the story world. |
+| `SpeedrunEnvelopeV2` | `interface { schema, runSeed, variant, worldEvidence, format, gameId, … 16 more }` | public | A `.wsrun` file since 4.1.16 (schema 2, ADR 0019): the run's generator seed and the exact world it was played in, with what that world rests |
+| `SpeedrunSeedPolicy` | `type SpeedrunSeedPolicy = SpeedrunWorldPolicy['policy']` | public | How a category picks its world. |
 | `SpeedrunVerdict` | `type SpeedrunVerdict = union of 8` | public | A verifier's verdict (ADR 0017). Only `valid` ranks; `inconclusive` is never valid. |
-| `SpeedrunVerifyResult` | `interface { verdict, code, reason, trust, recomputed }` | public | What a verifier answers: the verdict, a stable code, one sentence, and the trust it grants. |
+| `SpeedrunVerifyResult` | `interface { verdict, code, reason, trust, world, recomputed }` | public | What a verifier answers: the verdict, a stable code, one sentence, and the trust it grants. |
+| `SpeedrunWorldEvidence` | `type SpeedrunWorldEvidence = { kind: 'daily'; token: string; } \| { kind: 'mystery'; commitmentToken: string; revealToken: string; startedAt: number; }` | public | What a Daily or a Mystery world rests on (4.1.16, ADR 0019): the Bridge's signed tokens, as received. A Daily run carries the day's token; a |
 | `TrustLevel` | `type TrustLevel = 'local' \| 'replay-valid' \| 'server-witnessed' \| 'moderator-verified'` | public | How far a run is believed (ADR 0017): raised only by someone other than the player's client. |
 | `upgradeEnvelope` | `(game: GameDef, env: SaveEnvelopeV3 \| SaveEnvelopeV4): SaveEnvelopeV4` | public | A v3 envelope as a v4 one (the save migration of 4.1.15): every save made before Remix was played in the story world, so it receives the gam |
 | `VerifyContext` | `interface { game, layouts, commands, fingerprint, engineVersion, keyring, … 3 more }` | public | The approved game a run is checked against: its content, layouts, fingerprint, engine, the Bridge's keys. |
 | `verifyRun` | `(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerifyResult>` | public | Verifies a run (`.wsrun` text or object) against the approved game: never throws, every failure is a verdict. |
 | `WorldEvidence` | `interface { dailySeed, commitment, reveal, revealedAt, runStartedAt }` | public | What a run's world must match, given the category and what the Bridge published (the day's seed, a commitment). |
-| `worldVerdict` | `(rules: RemixCategoryRules, v: WorldVariant, e?: WorldEvidence): string[]` | public | Whether a run's world is the one its category allows: empty when it is, else the reasons (a verifier refuses the run with them). The world i |
+| `worldVerdict` | `(rules: RemixCategoryRules \| SpeedrunWorldPolicy, v: WorldVariant, e?: WorldEvidence): string[]` | public | Whether a run's world is the one its category allows: empty when it is, else the reasons (a verifier refuses the run with them). The world i |
 
 ### web-scumm/reality
 
@@ -361,7 +367,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `SimulatedDelivery` | `interface { sequence, signal, fault, at }` | public | One delivery the simulator made: its sequence, its signal, its fault and when. |
 | `TokenResult` | `type TokenResult = { ok: true; token: T; } \| { ok: false; reason: string; }` | public | A verified token, or why it is refused. |
 | `verifyCommitment` | `(jws: string, key: BridgeKey, gameId: string): Promise<TokenResult<CommitToken>>` | public | Checks a Mystery commitment's signature and game. |
-| `verifyDayToken` | `(jws: string, key: BridgeKey, gameId: string, now: number): Promise<TokenResult<DayToken>>` | public | Checks a day token offline: the signature (the game's daily key), the game, the window (24 hours), a well-formed seed. `now` in epoch ms. |
+| `verifyDayToken` | `(jws: string, key: BridgeKey, gameId: string, now: number \| null): Promise<TokenResult<DayToken>>` | public | Checks a day token offline: the signature (the game's daily key), the game, the window (24 hours), a well-formed seed. `now` in epoch ms; `n |
 | `VerifyResult` | `type VerifyResult = { ok: true; signal: WorldSignal; } \| { ok: false; code: RefusalCode; reason: string; }` | public | The outcome of `verifySignal`: the signal it accepted, or the refusal's code and reason. |
 | `verifySignal` | `(jws: unknown, keyring: Keyring, expect: SignalExpectation): Promise<VerifyResult>` | public | Checks a signed signal, then what it says. The reason of a refusal is a short sentence (logged, never shown raw). |
 | `WorldSignal` | `type WorldSignal = WorldSignalV1 \| WorldSignalV2` | public | Either version of the signed payload. |

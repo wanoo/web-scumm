@@ -12,7 +12,8 @@ import { CHUNK_SIZE, chainStep } from '../../core/journal-chunks';
 import { PRNG_VERSION } from '../../core/prng';
 import type { TapeLink } from '../../core/run-tape';
 import { TIMING_VERSION } from '../../core/timing';
-import type { GameState, SessionEntry, SpeedrunCategory } from '../../core/types';
+import type { WorldVariant } from '../../core/remix/story';
+import type { GameState, SessionEntry, SpeedrunCategory, SpeedrunWorldPolicy } from '../../core/types';
 import type { TrustLevel } from './records';
 import type { RunLoad } from './replay-run';
 import type { RecordedSplit } from './splits';
@@ -50,10 +51,19 @@ export interface EnvelopeChunk {
   entries: SessionEntry[];
 }
 
-/** A `.wsrun` file: the proof of one speedrun (schema 1). @public */
-export interface SpeedrunEnvelope {
+/**
+ * What a Daily or a Mystery world rests on (4.1.16, ADR 0019): the Bridge's signed tokens, as received. A Daily run
+ * carries the day's token; a Mystery run the commitment signed before its start, the reveal signed after, and when the
+ * client says it started (epoch ms: the client's word, which is why a Mystery run without a witness is not ranked).
+ * @public
+ */
+export type SpeedrunWorldEvidence =
+  | { kind: 'daily'; token: string }
+  | { kind: 'mystery'; commitmentToken: string; revealToken: string; startedAt: number };
+
+/** What every schema of a `.wsrun` file holds. */
+interface SpeedrunEnvelopeBody {
   format: 'web-scumm-speedrun';
-  schema: 1;
   gameId: string;
   fingerprint: GameFingerprint;
   engineVersion: string;
@@ -61,7 +71,6 @@ export interface SpeedrunEnvelope {
   timingVersion: number;
   categoryId: string;
   rulesVersion: number;
-  seed?: string;
   timing: {
     rtaMs: number;
     logicalSteps: string;
@@ -81,25 +90,67 @@ export interface SpeedrunEnvelope {
   trust: TrustLevel;
 }
 
-/** The chain's first hash: the rules the run was played under. */
-export function headHash(o: {
+/** A `.wsrun` file of 4.1.14 and 4.1.15 (schema 1): its seed is the run's, its world the story world. @public */
+export interface SpeedrunEnvelopeV1 extends SpeedrunEnvelopeBody {
+  schema: 1;
+  seed?: string;
+}
+
+/**
+ * A `.wsrun` file since 4.1.16 (schema 2, ADR 0019): the run's generator seed and the exact world it was played in,
+ * with what that world rests on, all sealed into `h0`. @public
+ */
+export interface SpeedrunEnvelopeV2 extends SpeedrunEnvelopeBody {
+  schema: 2;
+  /** The run's generator seed, never the world's. */
+  runSeed: string;
+  /** The world played, assignments included: never regenerated from a seed. */
+  variant: WorldVariant;
+  worldEvidence?: SpeedrunWorldEvidence;
+}
+
+/** A `.wsrun` file: the proof of one speedrun (schema 1 read, schema 2 written). @public */
+export type SpeedrunEnvelope = SpeedrunEnvelopeV1 | SpeedrunEnvelopeV2;
+
+/** What `h0` seals of a run's world (schema 2). */
+export interface HeadWorld {
+  variant: WorldVariant;
+  policy: SpeedrunWorldPolicy;
+  evidence?: SpeedrunWorldEvidence;
+}
+
+/**
+ * The chain's first hash: the rules the run was played under. With `world` (schema 2) it also seals the world's hash,
+ * the category's world policy, the evidence's canonical hash and the Remix algorithm's version; without, the text of
+ * 4.1.14, so a schema 1 run keeps its head.
+ */
+export async function headHash(o: {
   fingerprint: GameFingerprint;
   category: Pick<SpeedrunCategory, 'id' | 'fingerprint'>;
   rulesVersion: number;
   seed?: string;
   prngVersion?: number;
   timingVersion?: number;
+  world?: HeadWorld;
 }): Promise<string> {
   const fp: Record<string, string> = {};
   for (const k of o.category.fingerprint) fp[k] = o.fingerprint[k];
+  const head = {
+    fingerprint: fp,
+    categoryId: o.category.id,
+    rulesVersion: o.rulesVersion,
+    seed: o.seed ?? null,
+    prngVersion: o.prngVersion ?? PRNG_VERSION,
+    timingVersion: o.timingVersion ?? TIMING_VERSION,
+  };
+  if (!o.world) return sha256Hex(canonicalJson(head));
+  const evidence = o.world.evidence ? await sha256Hex(canonicalJson(o.world.evidence)) : null;
   return sha256Hex(
     canonicalJson({
-      fingerprint: fp,
-      categoryId: o.category.id,
-      rulesVersion: o.rulesVersion,
-      seed: o.seed ?? null,
-      prngVersion: o.prngVersion ?? PRNG_VERSION,
-      timingVersion: o.timingVersion ?? TIMING_VERSION,
+      ...head,
+      schema: 2,
+      world: { hash: o.world.variant.hash, policy: o.world.policy, evidence },
+      remixAlgorithmVersion: o.world.variant.algorithmVersion,
     }),
   );
 }
@@ -142,14 +193,15 @@ export function finalProofOf(last: string, e: Parameters<typeof proofSummary>[0]
   return sha256Hex(last + canonicalJson(proofSummary(e)));
 }
 
-/** Seals a run into its envelope (the client's word: `trust` is always `local`). */
+/** Seals a run into its envelope, schema 2 (the client's word: `trust` is always `local`). */
 export async function sealEnvelope(o: {
   gameId: string;
   fingerprint: GameFingerprint;
   engineVersion: string;
   category: SpeedrunCategory;
   rulesVersion: number;
-  seed?: string;
+  seed: string;
+  world: HeadWorld;
   links: readonly TapeLink[];
   finish: { logicalTime: string; activeTime: string; rtaMs: number | null; logicalSteps: string };
   splits: readonly RecordedSplit[];
@@ -158,7 +210,7 @@ export async function sealEnvelope(o: {
   inputsUsed?: SpeedrunEnvelope['inputsUsed'];
   realitySignals?: readonly RecordedRealitySignal[];
   finalState: GameState;
-}): Promise<SpeedrunEnvelope> {
+}): Promise<SpeedrunEnvelopeV2> {
   const h0 = await headHash({ ...o, category: o.category });
   const { chunks, last } = await chainChunks(h0, o.links);
   const body = {
@@ -176,7 +228,7 @@ export async function sealEnvelope(o: {
   };
   return {
     format: 'web-scumm-speedrun',
-    schema: 1,
+    schema: 2,
     gameId: o.gameId,
     fingerprint: o.fingerprint,
     engineVersion: o.engineVersion,
@@ -184,7 +236,9 @@ export async function sealEnvelope(o: {
     timingVersion: TIMING_VERSION,
     categoryId: o.category.id,
     rulesVersion: o.rulesVersion,
-    ...(o.seed !== undefined ? { seed: o.seed } : {}),
+    runSeed: o.seed,
+    variant: o.world.variant,
+    ...(o.world.evidence ? { worldEvidence: o.world.evidence } : {}),
     ...body,
     chunks,
     ...(o.inputsUsed?.length ? { inputsUsed: [...o.inputsUsed] } : {}),

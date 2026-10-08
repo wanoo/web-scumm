@@ -1,5 +1,5 @@
 // npm run e2e:canonical [-- --browsers=chromium,webkit,firefox] [--allow-skip] (4.1.12, ADR 0013): the same
-// `canonicalJson` (src/engine/core/canonical.ts) on the fifty edge values of tests/fixtures/canonical-values.ts, in
+// `canonicalJson` (src/engine/core/canonical.ts) on the fifty-two edge values of tests/fixtures/canonical-values.ts, in
 // Chromium, WebKit and Firefox, against the texts the fixture writes out (which tests/canonical-json.test.ts holds Node
 // to). One module, bundled once with esbuild, evaluated in a blank page of each browser: a browser that writes one text
 // differently fails, with the case named. Exit codes: 0 every browser agrees, 1 a difference, 3 a browser Playwright

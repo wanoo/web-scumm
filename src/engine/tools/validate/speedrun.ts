@@ -1,8 +1,11 @@
 // The validator's checks of a speedrun manifest (4.1.14 "Time Attack", `GameDef.speedrun`): ids a run can carry,
 // triggers whose kinds exist and whose ids name something of the game, rules that hold together (a `recorded` or
 // `live` category needs `reality`, a category needs one input at least), splits whose parents exist without a cycle.
+// 4.1.16 (D29): a category's `world` names a mode the game has, Fixed its seed, Daily its Bridge key; `seed` is then the
+// run's generator only, and 4.1.15's `seed: 'mystery' | 'daily'` without `world` is read as that world, with a warning.
 import { SEMANTIC_KINDS } from '../../core/journal';
-import type { GameDef, SemanticTrigger } from '../../core/types';
+import { normalizeSeed } from '../../core/remix/seed-code';
+import type { GameDef, SemanticTrigger, SpeedrunCategory } from '../../core/types';
 
 const CATEGORY_ID = /^[\w.%+-]{1,64}$/;
 const COMPONENTS = new Set(['logic', 'trustedExtensions', 'presentation', 'engine']);
@@ -52,6 +55,12 @@ export function speedrunChecks(
     if ((c.seed === 'mystery' || c.seed === 'daily') && !game.remix)
       err(w, `seed "${c.seed}" needs a \`remix\` manifest`);
     if (c.seed === 'daily' && !game.remix?.daily) err(w, 'seed "daily" needs `remix.daily` (the Bridge key)');
+    if ((c.seed === 'mystery' || c.seed === 'daily') && !c.world)
+      warn(
+        w,
+        `seed "${c.seed}" is 4.1.15's form: write world: { policy: '${c.seed}', mode } (the run's seed is then random)`,
+      );
+    if (c.world) worldChecks(game, c.world, c.seed, `${w}.world`, err);
     trigger(c.start, `${w}.start`);
     trigger(c.finish, `${w}.finish`);
     if (JSON.stringify(c.start) === JSON.stringify(c.finish)) err(w, 'the start and the finish are the same trigger');
@@ -85,4 +94,35 @@ export function speedrunChecks(
       }
     }
   });
+}
+
+const POLICIES = new Set(['story', 'fixed', 'random', 'daily', 'mystery']);
+
+function worldChecks(
+  game: GameDef,
+  world: NonNullable<SpeedrunCategory['world']>,
+  seed: SpeedrunCategory['seed'],
+  w: string,
+  err: (where: string, msg: string) => void,
+): void {
+  if (seed === 'mystery' || seed === 'daily')
+    err(w, `with \`world\`, \`seed\` is the run's generator: fixed or random, not "${seed}"`);
+  if (!POLICIES.has(world.policy)) return err(w, `policy "${world.policy}": story, fixed, random, daily or mystery`);
+  if (world.policy === 'story') {
+    if (world.mode !== 'story') err(w, `a Story category plays the story world, not mode "${world.mode}"`);
+    return;
+  }
+  if (!game.remix) return err(w, `policy "${world.policy}" needs a \`remix\` manifest`);
+  if (!game.remix.modes.some((m) => m.id === world.mode)) err(w, `unknown Remix mode: "${world.mode}"`);
+  if (world.policy === 'fixed') {
+    if (!world.fixedSeed) err(w, 'a Fixed category publishes its seed (`fixedSeed`)');
+    else
+      try {
+        normalizeSeed(world.fixedSeed);
+      } catch (e) {
+        err(w, `fixedSeed: ${(e as Error).message}`);
+      }
+  } else if (world.fixedSeed !== undefined) err(w, `\`fixedSeed\` is a Fixed category's, not a ${world.policy} one's`);
+  if ((world.policy === 'daily' || world.policy === 'mystery') && !game.remix.daily)
+    err(w, `policy "${world.policy}" needs \`remix.daily\` (the Bridge key its tokens are signed with)`);
 }

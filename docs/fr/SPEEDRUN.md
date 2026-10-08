@@ -52,7 +52,12 @@ Un déclencheur nomme un événement sémantique (`roomEntered`, `itemAcquired`,
 `item`, `flag` avec `value`, `objective`, `ending`, `player`). `reload` dit ce que fait un chargement : il
 `invalidates` le run, ou il est `allowed` (un état que le run a lui-même atteint) ; `segment` (un chargement qui ouvre
 un segment chronométré) est réservé, pas implémenté en 4.1.14 : le validateur le refuse.
-`seed: 'fixed'` fait tirer chaque run de `fixed:<id>`. Les règles portent leur version : un changement ne requalifie
+`seed: 'fixed'` fait tirer chaque run de `fixed:<id>` ; `seed` ne dit que le générateur du run. Depuis 4.1.16 (D29,
+ADR 0019), le monde où un run se joue est `world` : `{ policy: 'story' }` (par défaut), `'fixed'` avec sa `fixedSeed`
+publiée, `'random'` (n'importe quel monde de `mode`, classés ensemble), `'daily'` (la graine du jour signée par le
+Bridge) ou `'mystery'` (une graine à laquelle le Bridge s'engage avant le départ), chacun avec le `mode` Remix d'où
+viennent ses mondes. Le `seed: 'daily' | 'mystery'` de 4.1.15 sans `world` est lu comme ce monde (un run aléatoire
+dedans), avec un avertissement. Les règles portent leur version : un changement ne requalifie
 jamais un ancien run (`rulesVersion` différente : `unsupported-version`). Le validateur refuse un événement inconnu, un
 id qui ne nomme rien, un départ égal à l'arrivée, une catégorie sans entrée, une politique Reality sans `reality`, un
 split qui est son propre ancêtre ; il avertit pour un drapeau jamais posé et une catégorie qui n'exige pas `logic`. Le
@@ -86,11 +91,16 @@ référence pour le routage, jamais un record.
 
 ## La preuve : `.wsrun`
 
-Schéma 1 (`SpeedrunEnvelope`) : le jeu, son empreinte, les versions du moteur, du générateur et des durées, la
-catégorie et la version de ses règles, la graine, le temps (RTA, pas, IGT, IGT actif, les pauses, menus, arrière-plans
+Schéma 2 depuis 4.1.16 (`SpeedrunEnvelopeV2`, ADR 0019) : le jeu, son empreinte (le jeu tel qu'écrit, avant tout
+monde), les versions du moteur, du générateur et des durées, la catégorie et la version de ses règles, la graine du
+générateur du run (`runSeed`), le monde exact joué (`variant`, affectations comprises, jamais régénéré depuis une
+graine) et, pour un monde Daily ou Mystery, les jetons signés du Bridge (`worldEvidence`), le temps (RTA, pas, IGT, IGT actif, les pauses, menus, arrière-plans
 et chargements déclarés), les splits, les entrées en chunks de 500 chaînés par SHA-256 de `H0` (les règles) à `Hn`,
-les chargements, les entrées utilisées, les signaux Reality, le hash de l'état final et la preuve finale. Chaque hash
-porte sur `canonicalJson`. La confiance exportée est toujours `local`.
+les chargements, les entrées utilisées, les signaux Reality, le hash de l'état final et la preuve finale. `H0` scelle
+aussi le monde (son hash, la politique de monde de la catégorie, le hash des preuves, la version de l'algorithme Remix) :
+les mêmes entrées dans deux mondes font deux runs. Chaque hash porte sur `canonicalJson`. La confiance exportée est
+toujours `local`. Un fichier de schéma 1 (4.1.14, 4.1.15) se lit toujours, comme un run Story ; présenté à une
+catégorie Remix il est refusé (`legacy-world-missing`), jamais requalifié d'après sa graine.
 
 ## Vérifier un run
 
@@ -100,24 +110,28 @@ web-scumm speedrun verify run.wsrun
 ```
 
 L'outil MCP `speedrun_verify` fait de même pour un assistant. Le vérificateur recharge la catégorie depuis le jeu,
-rejoue les entrées avec la graine du run (les tirages aléatoires sont refaits, jamais pris dans le fichier), recalcule
-l'horloge, les splits, l'état final et la chaîne, puis vérifie les règles. Code de sortie 0 pour `valid` et
+vérifie le monde du run contre le jeu (`loadVariant`) et contre sa catégorie (`worldVerdict`, le jeton du jour ou
+l'engagement et la révélation Mystery vérifiés avec la clé que nomme `remix.daily`), reconstruit ce monde, rejoue les
+entrées avec la graine du run (les tirages aléatoires sont refaits, jamais pris dans le fichier), recalcule
+l'horloge, les splits, l'état final et la chaîne, puis vérifie les règles, et nomme le classement où va le run
+(`world.leaderboardKey` : la catégorie, et pour Fixed et Daily la graine). Code de sortie 0 pour `valid` et
 `valid-unranked`.
 
 | Verdict | Codes |
 |---|---|
 | `valid` | `ok` |
-| `valid-unranked` | `rta-unverifiable` |
-| `invalid-category-rule` | `unknown-category`, `hints-forbidden`, `saves-forbidden`, `pauses-forbidden`, `reload-forbidden`, `foreign-load`, `input-forbidden`, `reality-forbidden`, `seed-policy`, `start-trigger` |
-| `invalid-replay` | `envelope-shape`, `chunk-order`, `chunk-hash`, `chain`, `replay-diverged`, `rnd-mismatch`, `time-mismatch`, `splits-mismatch`, `final-state`, `not-finished` |
+| `valid-unranked` | `rta-unverifiable`, `mystery-unwitnessed` (un run Mystery : son heure de départ est la parole du client) |
+| `invalid-category-rule` | `unknown-category`, `hints-forbidden`, `saves-forbidden`, `pauses-forbidden`, `reload-forbidden`, `foreign-load`, `input-forbidden`, `reality-forbidden`, `seed-policy`, `start-trigger`, `world-policy`, `legacy-world-missing`, `daily-proof-missing`, `daily-proof-invalid`, `mystery-commitment`, `mystery-reveal`, `mystery-start-window` |
+| `invalid-replay` | `envelope-shape`, `chunk-order`, `chunk-hash`, `chain`, `replay-diverged`, `rnd-mismatch`, `time-mismatch`, `splits-mismatch`, `final-state`, `not-finished`, `world-missing`, `world-shape`, `world-hash`, `world-value`, `world-constraint`, `world-stale` |
 | `modified-game` | `fingerprint` |
 | `missing-reality-proof` | `signal-missing`, `signal-signature`, `signal-mismatch` |
 | `unsupported-version` | `schema`, `engine-version`, `prng-version`, `timing-version`, `rules-version` |
 | `inconclusive` | `timeout`, `crash`, `no-keyring`, `package-not-approved` (le worker du Bridge) |
 
 `inconclusive` n'est jamais valide. Un run Any% complet du chapitre de référence est versionné
-(`tests/fixtures/speedrun/reference-any.wsrun`, fait par `tools/speedrun/reference-run.ts`), vérifié par un test et par
-le workflow de release, qui l'attache à chaque release.
+(`tests/fixtures/speedrun/reference-any.wsrun`, schéma 2, fait par `tools/speedrun/reference-run.ts`), vérifié par un
+test et par le workflow de release, qui l'attache à chaque release ; le fichier de schéma 1 de 4.1.15 est gardé comme
+fixture de référence (`reference-any.v1.wsrun`).
 
 ## Niveaux de confiance
 

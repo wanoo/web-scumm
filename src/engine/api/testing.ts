@@ -4,11 +4,14 @@ export { Engine } from '../core/engine';
 export { FakePresenter, MemoryStore } from '../core/ports';
 export { parseSave, saveEnvelope, SaveWorldMismatch, savedWorld, upgradeEnvelope } from '../core/save';
 export type { SaveEnvelopeV3, SaveEnvelopeV4 } from '../core/save';
-// 4.1.15 (ADR 0018, D26): what a verifier checks of a run's world, and the leaderboard it goes to.
+// 4.1.15 (ADR 0018, D26): what a verifier checks of a run's world, and the leaderboard it goes to; 4.1.16 (ADR 0019):
+// a category's world and its run's generator.
 export {
+  categoryWorld,
   leaderboardKey,
   MYSTERY_START_WINDOW_MS,
   REMIX_CATEGORIES,
+  runSeedPolicy,
   seedCommitment,
   worldVerdict,
 } from '../core/remix/categories';
@@ -31,6 +34,11 @@ export type { GameFingerprint } from '../core/fingerprint';
 // 4.1.14 (ADR 0016, ADR 0017): speedruns: the run clock, a run's proof (`.wsrun`), the verifier and its verdicts.
 export { isRankable, verifyRun } from '../tools/speedrun/verify';
 export type { SpeedrunVerdict, SpeedrunVerifyResult, VerifyContext } from '../tools/speedrun/verify';
-export type { SpeedrunEnvelope } from '../tools/speedrun/envelope';
+export type {
+  SpeedrunEnvelope,
+  SpeedrunEnvelopeV1,
+  SpeedrunEnvelopeV2,
+  SpeedrunWorldEvidence,
+} from '../tools/speedrun/envelope';
 export type { TrustLevel } from '../tools/speedrun/records';
 export type { RunClock } from '../core/run-clock';

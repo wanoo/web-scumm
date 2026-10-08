@@ -2,26 +2,47 @@
 // seed, trainable), Random (a seed drawn at the start and shown at once), Mystery (a seed committed by the Bridge
 // before the start, revealed after: D26), Daily (the Bridge's signed seed of the day, the same for everyone). Each
 // has its own leaderboards: a time on one seed never meets a time on another unless the category says so (Random).
-// Written against 4.1.14's `SpeedrunCategory` (docs/dev/plans/4.1.14-time-attack.md §3), whose `seed` field gains
-// 'mystery' | 'daily' here; the Time Attack branch merges these fields into its manifest.
+// 4.1.16 (D29, ADR 0019): a category says its world in `SpeedrunCategory.world` (`SpeedrunWorldPolicy`, the one type);
+// `categoryWorld` reads a 4.1.15 category (`seed: 'mystery' | 'daily'`) as that world, and the verifier calls
+// `worldVerdict` and `leaderboardKey` on every run.
 import { canonicalJson } from '../canonical';
+import type { SpeedrunCategory, SpeedrunWorldPolicy } from '../types/speedrun';
 import type { WorldVariant } from './compile';
 import { normalizeSeed, STORY_SEED } from './seed-code';
 import { sha256HexSync } from './sha256';
 
 /** How a category picks its world. @public */
-export type SpeedrunSeedPolicy = 'story' | 'fixed' | 'random' | 'mystery' | 'daily';
+export type SpeedrunSeedPolicy = SpeedrunWorldPolicy['policy'];
 
-/** What a speedrun category says of the world (merged into 4.1.14's `SpeedrunCategory`). @public */
-export interface RemixCategoryRules {
+/**
+ * What a speedrun category says of the world, as 4.1.15 wrote it (`seed` for the policy). Kept for the frozen surface
+ * (D28); `SpeedrunWorldPolicy` (`policy`) is the canonical form since 4.1.16, and both are accepted below.
+ * @public
+ */
+export interface RemixCategoryRules extends Omit<SpeedrunWorldPolicy, 'policy'> {
   seed: SpeedrunSeedPolicy;
-  /** The Remix mode its worlds come from (`story` for Story). */
-  mode: string;
-  /** Fixed: the published seed. */
-  fixedSeed?: string;
-  /** The code wheel (§11.13): played, skippable, or off; physical or on-screen. */
-  codeWheel?: { enabled: boolean; skip: boolean; medium: 'digital' | 'physical' | 'either' };
 }
+
+const policyOf = (r: RemixCategoryRules | SpeedrunWorldPolicy): SpeedrunSeedPolicy =>
+  'policy' in r ? r.policy : r.seed;
+
+/**
+ * The world of a category (4.1.16, D29): its `world`, else what a 4.1.15 `seed` meant (`daily`, `mystery`: that mode's
+ * worlds), else the story world. `deprecated` says a 4.1.15 form was read. @public
+ */
+export function categoryWorld(cat: Pick<SpeedrunCategory, 'seed' | 'world'>): {
+  world: SpeedrunWorldPolicy;
+  deprecated: boolean;
+} {
+  if (cat.world) return { world: cat.world, deprecated: false };
+  if (cat.seed === 'daily' || cat.seed === 'mystery')
+    return { world: { policy: cat.seed, mode: cat.seed }, deprecated: true };
+  return { world: { policy: 'story', mode: 'story' }, deprecated: false };
+}
+
+/** The run's generator (D29): `fixed` only when the category says so; anything else is a fresh seed per run. @public */
+export const runSeedPolicy = (cat: Pick<SpeedrunCategory, 'seed'>): 'fixed' | 'random' =>
+  cat.seed === 'fixed' ? 'fixed' : 'random';
 
 /** The five categories a Remix game offers by default. @public */
 export const REMIX_CATEGORIES: Readonly<Record<string, RemixCategoryRules>> = {
@@ -62,18 +83,23 @@ export const MYSTERY_START_WINDOW_MS = 60_000;
  * run with them). The world itself is checked by `loadVariant` (its hash) before this.
  * @public
  */
-export function worldVerdict(rules: RemixCategoryRules, v: WorldVariant, e: WorldEvidence = {}): string[] {
+export function worldVerdict(
+  rules: RemixCategoryRules | SpeedrunWorldPolicy,
+  v: WorldVariant,
+  e: WorldEvidence = {},
+): string[] {
   const out: string[] = [];
-  if (rules.seed === 'story') {
+  const policy = policyOf(rules);
+  if (policy === 'story') {
     if (v.mode !== 'story' || v.seed !== STORY_SEED) out.push('a Story run is played in the story world');
     return out;
   }
   if (v.mode !== rules.mode) out.push(`the world's mode is ${v.mode}, the category's ${rules.mode}`);
-  if (rules.seed === 'fixed' && (!rules.fixedSeed || normalizeSeed(rules.fixedSeed) !== v.seed))
+  if (policy === 'fixed' && (!rules.fixedSeed || normalizeSeed(rules.fixedSeed) !== v.seed))
     out.push(`a Fixed run is played on ${rules.fixedSeed ?? '(no seed published)'}, not ${v.seed}`);
-  if (rules.seed === 'daily' && (!e.dailySeed || normalizeSeed(e.dailySeed) !== v.seed))
+  if (policy === 'daily' && (!e.dailySeed || normalizeSeed(e.dailySeed) !== v.seed))
     out.push('a Daily run is played on the seed the Bridge signed for that day');
-  if (rules.seed === 'mystery') {
+  if (policy === 'mystery') {
     if (!e.commitment || !e.reveal) out.push('a Mystery run needs the commitment and its reveal');
     else if (seedCommitment(e.reveal.seed, e.reveal.nonce) !== e.commitment)
       out.push('the revealed seed does not match the commitment');
@@ -93,7 +119,12 @@ export function worldVerdict(rules: RemixCategoryRules, v: WorldVariant, e: Worl
  * and Mystery rank every seed together: the category says those times are comparable.
  * @public
  */
-export function leaderboardKey(categoryId: string, rules: RemixCategoryRules, v: WorldVariant): string {
-  if (rules.seed === 'fixed' || rules.seed === 'daily') return `${categoryId}:${v.seed}`;
+export function leaderboardKey(
+  categoryId: string,
+  rules: RemixCategoryRules | SpeedrunWorldPolicy,
+  v: WorldVariant,
+): string {
+  const policy = policyOf(rules);
+  if (policy === 'fixed' || policy === 'daily') return `${categoryId}:${v.seed}`;
   return categoryId;
 }
