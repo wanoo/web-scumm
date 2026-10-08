@@ -77,7 +77,7 @@ describe("a speedrun category's code wheel rule", () => {
     };
     return g;
   };
-  async function run(game: GameDef, result: MinigameResult) {
+  async function run(game: GameDef, result: MinigameResult | undefined) {
     const fingerprint = await fixtureFingerprint(game);
     const engine = new Engine(game, speedrunLayouts, ending(result), new MemoryStore());
     const rec = new SpeedrunRecorder({
@@ -99,10 +99,29 @@ describe("a speedrun category's code wheel rule", () => {
     const strict = withWheel({ enabled: true, skip: false, medium: 'either' });
     expect(await run(strict, 'won')).toMatchObject({ verdict: 'valid' });
     expect(await run(strict, 'passed')).toMatchObject({ verdict: 'invalid-category-rule', code: 'code-wheel-rule' });
+    // A wheel played without a result (a client that dropped it) is no win where the category wants one.
+    expect(await run(strict, undefined)).toMatchObject({
+      code: 'code-wheel-rule',
+      reason: expect.stringMatching(/no result/),
+    });
     const lenient = withWheel({ enabled: true, skip: true, medium: 'either' });
     expect(await run(lenient, 'passed')).toMatchObject({ verdict: 'valid' });
+    expect(await run(lenient, undefined)).toMatchObject({ verdict: 'valid' });
     const off = withWheel({ enabled: false, skip: true, medium: 'digital' });
     expect(await run(off, 'skipped')).toMatchObject({ verdict: 'valid' });
     expect(await run(off, 'won')).toMatchObject({ code: 'code-wheel-rule' });
+  });
+});
+
+describe('the validator knows the minigame flags', () => {
+  it('a story reading minigame.<id> where the game plays that minigame is not "never set"', async () => {
+    const { validate } = await import('@engine/tools/validate');
+    const g = speedrunGame();
+    (g.rooms[0]!.on ??= []).push(
+      { verb: 'look', a: 'door', do: [{ minigame: 'code-wheel' }] },
+      { verb: 'use', a: 'phone', if: { flag: 'minigame.code-wheel', eq: 'failed' }, do: ['The wheel stays silent.'] },
+    );
+    const warnings = validate(g, speedrunLayouts).warnings.filter((w) => w.includes('minigame.code-wheel'));
+    expect(warnings).toEqual([]);
   });
 });

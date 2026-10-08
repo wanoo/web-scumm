@@ -173,6 +173,7 @@ describe('the wheel by keyboard and gamepad, and its story outcome (4.1.16)', ()
   afterEach(() => {
     document.body.innerHTML = '';
     vi.restoreAllMocks();
+    delete (navigator as { getGamepads?: unknown }).getGamepads;
   });
   it('Escape skips (recorded skipped); a strict wheel starts with the focus on a turn button', async () => {
     const { ctx, root } = ctxOf({ ...P });
@@ -218,7 +219,6 @@ describe('the wheel by keyboard and gamepad, and its story outcome (4.1.16)', ()
     press(0);
     await done;
     expect(records).toMatchObject([{ result: 'won', answers: [w.answer] }]);
-    delete (navigator as { getGamepads?: unknown }).getGamepads;
   });
   it('a story wheel lost after its tries ends failed, recorded for the story to read', async () => {
     const w = generateWheel(P, 'story');
@@ -229,8 +229,13 @@ describe('the wheel by keyboard and gamepad, and its story outcome (4.1.16)', ()
     await Promise.resolve();
     const wrong = buttons(root, 'mg-answer').find((b) => b.textContent !== w.answer)!;
     for (let k = 0; k < 3; k++) wrong.click();
+    // The pause before it closes: the right answer, Escape, nothing changes the result once given.
+    buttons(root, 'mg-answer')
+      .find((b) => b.textContent === w.answer)!
+      .click();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     await done;
-    expect(records[0]!.result).toBe('failed');
+    expect(records.map((r) => r.result)).toEqual(['failed']);
   });
 });
 

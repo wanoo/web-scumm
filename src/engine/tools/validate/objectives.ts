@@ -30,6 +30,8 @@ function reachable(game: GameDef, commands: Record<string, { effects?: unknown[]
     eachCmd(list, (c) => {
       if (typeof c === 'string') return;
       if ('set' in c) flags.add(Array.isArray(c.set) ? c.set[0] : c.set);
+      // 4.1.16: a minigame writes its result in its reserved flag.
+      if ('minigame' in c) flags.add(`minigame.${c.minigame}`);
       else if ('inc' in c) flags.add(c.inc);
       else if ('gain' in c) items.add(c.gain);
       else if ('prop' in c && Array.isArray(c.prop))

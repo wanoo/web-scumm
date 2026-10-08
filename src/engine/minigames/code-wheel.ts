@@ -71,10 +71,14 @@ export const codeWheel: Minigame = {
       gap: `${8 * ctx.u}px`,
       padding: `${8 * ctx.u}px`,
     });
+    // Once a verdict is given (or the wheel skipped) nothing else is recorded, even in the pause before it closes: a
+    // second answer, Escape or B there would replace the result the story and a speedrun read.
+    let decided = false;
     const skip =
       mode !== 'strict'
         ? () => {
-            if (f.finished) return;
+            if (f.finished || decided) return;
+            decided = true;
             record({ wheel: w, rotations, answers, tries: answers.length, result: 'skipped' });
             f.finish();
           }
@@ -221,8 +225,10 @@ export const codeWheel: Minigame = {
       answerButtons[chosen]!.focus?.({ preventScroll: true });
     };
     const held = new Set<string>();
+    // The buttons already down at the first poll (the press that opened the wheel) count as held, not as new presses.
+    let first = true;
     const press = (k: string, on: boolean, f: () => void) => {
-      if (on && !held.has(k)) f();
+      if (on && !held.has(k) && !first) f();
       if (on) held.add(k);
       else held.delete(k);
     };
@@ -237,6 +243,7 @@ export const codeWheel: Minigame = {
       press('down', b(13) || ax(1) > 0.6, () => choose(1));
       press('a', b(0), () => (chosen >= 0 ? answerButtons[chosen]?.click() : choose(1)));
       press('b', b(1), () => skip?.());
+      first = false;
       if (!f.finished) raf = globalThis.requestAnimationFrame?.(poll) ?? 0;
     };
     raf = globalThis.requestAnimationFrame?.(poll) ?? 0;
@@ -256,13 +263,14 @@ export const codeWheel: Minigame = {
         'background:#ffd640;color:#000;border:2px solid #fff;padding:6px 10px;font-weight:700;min-width:44px;min-height:44px';
       answerButtons.push(b);
       b.addEventListener('click', async () => {
-        if (f.finished) return;
+        if (f.finished || decided) return;
         const verdict = judge(w, mode, a, answers.length, typeof p.tries === 'number' ? p.tries : 3);
         answers.push(a);
         if (verdict === 'wrong') {
           live.textContent = wrong[(answers.length - 1) % wrong.length]!;
           return;
         }
+        decided = true;
         live.textContent =
           verdict === 'won'
             ? str(p.win, 'Legitimate! Welcome aboard.')
