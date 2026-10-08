@@ -1,6 +1,105 @@
 # Changelog
 
-## Unreleased
+## 4.1.16 — 2026-10-08
+
+"Convergence" (LOG #147): no new mechanic; the capabilities 4.1.14 and 4.1.15 published made to work together, end
+to end. A speedrun is bound to the world it was played in: `.wsrun` schema 2 carries the exact world and the Bridge's
+signed tokens, sealed into its proof; the verifier makes the world again from its seed, checks it against its
+category (`worldVerdict`), replays the run in it and names its leaderboard (`leaderboardKey`); a schema 1 run stays a
+Story run (breaking, with its reading rule: D29, ADR 0019). The Bridge's leaderboards and daily challenge are durable
+(SQLite, Postgres), shared by instances under leases, and mounted by `bridge serve`; a minigame's result is in the
+session, the replay and the story; the code wheel plays by keyboard and gamepad; Remix and Time Attack are checked
+together in Node, Chromium, WebKit and Firefox on every pull request (`e2e:remix-speedrun`); `canonicalJson` writes the
+same text in Firefox; Pages deploys only behind `pr-gate`; the docs are checked against the code (`docs:truth`).
+Measured against 4.1.15 in `docs/dev/baselines/4.1.16.md`; what this release does not do is in the LOG and the passes
+sheet (`docs/dev/passes/4.1.16.md`).
+
+### Breaking
+
+- **A `.wsrun` is schema 2** (4.1.16, ADR 0019): it carries the run's generator seed (`runSeed`, was `seed`), the exact
+  world it was played in (`variant`) and, for a Daily or Mystery world, the Bridge's signed tokens (`worldEvidence`),
+  all sealed into `h0`. A schema 1 file (4.1.14, 4.1.15) is still read and verified, as a Story run; offered to a Remix
+  category it is refused (`legacy-world-missing`). A tool that read `envelope.seed` reads `runSeed` on schema 2.
+
+- **`RunStore` is the durable queue's** (4.1.16): `create` (false on a duplicate key), `claimNext` (a lease),
+  `complete` (only by the lease's holder), `setTrust`, `queued`; `put` and `byKey` are gone. A host that wrote its own
+  store implements these (`MemoryRunStore` and `SqlRunStore` ship).
+
+### Fixed
+
+- **The release line is a line again** (4.1.16): `v4.1.14` was tagged on a side branch whose only extra commit
+  lowered the coverage floors for that tag; it is merged into `main` (the stricter floors kept), so `v4.1.14` and
+  `v4.1.15` are both ancestors of what comes next. `ship tag` and `release.yml` now refuse a tag whose previous stable
+  tag is not its ancestor (`tools/release/ancestry.mjs`).
+- **Pages deploys after `pr-gate`**, the terminal gate, instead of four of its jobs: no deployment while Firefox PWA,
+  a proof, a mutation set or the reference game is red.
+
+- **A speedrun in a Remix world verifies in that world** (4.1.16): 4.1.15's verifier and the Bridge's worker replayed
+  the base game, so a run where the key lay under the oranges could not verify. The verifier now checks the stored
+  world against the game (`loadVariant`) and the category (`worldVerdict`), rebuilds it (`applyVariant`), replays the
+  run there and names its leaderboard (`world.leaderboardKey`); the same inputs in two worlds are two runs. A world is
+  made again from its seed and must be the one stored: a world relabelled with another seed and rehashed is refused
+  (`world-forged`), as is an unknown algorithm version (`world-algorithm`). The
+  recorder no longer turns a Daily or Mystery category into a random seed, refuses to start a run its category could
+  not rank (`RunStartRefused`), and keeps the world, the evidence and the run's seed in its checkpoint (a resume in
+  another world is refused).
+- **`canonicalJson` writes the same text in Firefox** (4.1.16): Firefox's `normalize('NFC')` turns a lone surrogate
+  half into U+FFFD; such a half is now kept and the text around it normalized alone, as Node, Chromium and WebKit do
+  (`e2e:canonical`, never run before, failed on it).
+- **A Mystery reveal is signed** by the Bridge (its `token`), so the time of the reveal is the Bridge's word.
+
+- **Two tied runs share a rank** on a Bridge leaderboard; the order after the time is the submission, then the id.
+- **The daily challenge refuses what is not a day**: `date=`, `1999-99-99`, `2026-02-30` (400), a day older than
+  `retentionDays` (410), a game id that is an object's property (`__proto__`, 404); its commit counters forget
+  clients whose hour is over.
+
+### Changes
+
+- **A new logo** at the head of both READMEs.
+
+- **`SpeedrunCategory.world`** (D29): `{ policy: 'story' | 'fixed' | 'random' | 'daily' | 'mystery', mode, fixedSeed?,
+  codeWheel? }`; the validator refuses what it cannot give a meaning to and warns about 4.1.15's `seed: 'daily' |
+  'mystery'` without `world`. API: `SpeedrunWorldPolicy` (content); `categoryWorld`, `runSeedPolicy`,
+  `SpeedrunEnvelopeV1`, `SpeedrunEnvelopeV2`, `SpeedrunWorldEvidence` (testing); `SpeedrunVerifyResult.world`.
+
+- **Durable, shared speedrun leaderboards** (4.1.16, plan §8): runs in the Bridge's SQLite or Postgres (migration
+  0002), created once per key across instances, claimed by one worker under a lease and claimed again when the worker
+  died, kept across restarts; `workers` per instance; a leaderboard per verifier key (`&key=`, a Fixed or Daily
+  world's board apart); a Daily run sent after its day is practice; audit lines for submissions, verdicts,
+  moderations and deletions.
+- **`bridge serve` mounts `/v1/runs` and the daily challenge** from a configuration's `runs` and `daily` sections, on
+  the SQL store, behind the same tenant, CORS and rate limits as the other routes; `bridgeServer` takes `runs` and
+  `daily`. REALITY-OPS gives the worker's isolation profile (a container without network, read-only, no secret).
+- **The player keeps a Daily world's signed token** and a speedrun in that world carries it.
+
+- **A minigame's result counts** (4.1.16, plan §9): a minigame that says how it ended (the code wheel's `mg-record`)
+  has its result recorded in the session (`SessionEntry.mg`, fed back on a replay like a choice) and written in the
+  reserved flag `minigame.<id>` (`won`, `passed`, `skipped`, `failed`, `disabled`), which the story reads with
+  `{ flag, eq }` and the journal reports as `flagChanged`. In the player every minigame reports (skipped, else won);
+  the solver and the sessions of 4.1.15 record nothing new and replay as they were. A behaviour change for existing
+  games: a save made in the player now carries a `minigame.<id>` flag for each minigame played (the solver does not
+  explore branches hung on one). `Presenter.minigame` may resolve
+  with the result; a command never sets a `minigame.*` flag (validator).
+- **The code wheel, end to end**: a `story` wheel lost after its tries ends `failed` (no longer like a parody); the
+  whole wheel by keyboard (Escape skips, a strict wheel starts focused on a turn button) and by gamepad (up and down
+  choose an answer, A confirms, B skips); the focus returns to the game when any minigame closes; a speedrun
+  category's `world.codeWheel` is enforced by the verifier (`code-wheel-rule`: `skip: false` wants it won,
+  `enabled: false` wants it not played). `e2e:a11y` wins the wheel at the keyboard, checks the record, the flag, the
+  focus and reduced motion, and runs axe on it.
+
+- **Remix and Time Attack are tested together, end to end, in four runtimes** (4.1.16, plan §10): `npm run
+  e2e:remix-speedrun` takes each world policy of the reference (Story, Remix Fixed, Remix Random, Daily, Mystery),
+  records the solver's route with the real recorder in Node, Chromium, WebKit and Firefox (the four `.wsrun` the same,
+  byte for byte), verifies it in a new process and by a Bridge queue's isolated worker, and checks its verdict, its
+  leaderboard key and its trust. A `cross-runtime` CI job runs it with `e2e:canonical`, `e2e:remix` and
+  `e2e:speedrun` on every pull request (in `pr-gate`), and the nightly at 500 seeds.
+- **The reference chapter races in Remix worlds**: categories Remix Fixed (`WS-0000-02DZ`, its own board), Remix
+  Random, Daily and Mystery, beside Any%, No Hints and Real Time.
+- **`npm run docs:truth`**: what the documentation states against the code (the save and `.wsrun` schemas, every
+  script and tool file it cites, the capabilities it calls mounted, no release link newer than the version), in
+  CI's `check` job. ARCHITECTURE and SUPPORT (en, fr) say saves schema 4 and `.wsrun` schema 2.
+- **Mutation sets `remix` and `speedrun`** (`npm run test:mutation:remix`, `test:mutation:speedrun`, and
+  `test:mutation:reality` named): measured, not gated yet; their first runs left survivors to read before 4.2.
 
 ## 4.1.15 — 2026-10-07
 

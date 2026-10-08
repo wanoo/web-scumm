@@ -63,7 +63,8 @@ et le MCP (`tests/diagnostics-parity.test.ts`).
 
 ## Stockage, sessions et replay
 
-Une sauvegarde est une enveloppe `{ format, schema: 3, gameId, gameSaveVersion, state }` ; une ancienne est migrée
+Une sauvegarde est une enveloppe `{ format, schema: 4, gameId, gameSaveVersion, variant, state }` (4.1.15 : `variant`
+est le monde où la partie s'est jouée ; une enveloppe de schéma 3 se lit comme le monde de l'histoire) ; une ancienne est migrée
 par les `migrations` du jeu (`core/migrate.ts`) et une sauvegarde par version depuis la 3.0 est chargée par
 `tests/save-v3.test.ts`. Chaque entrée est aussi une entrée de la **session** du moteur, avec les réponses données
 pendant qu'elle tournait (choix, tirages aléatoires) et l'empreinte de l'état après elle : `replay`

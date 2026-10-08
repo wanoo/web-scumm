@@ -70,6 +70,7 @@ jobs:
         run: npm run changes -- --check --base=origin/main
       # Formatting, code lint, knip, both TypeScript configurations, content lint (4.1.0 "Clarity").
       - run: npm run quality
+      - run: npm run docs:truth
       # validate --release measures the stems with ffprobe (3.6).
       - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
@@ -630,6 +631,28 @@ jobs:
         run: npm run e2e:pwa -- --serve=dist --update --interrupted --reinstall
         env:
           E2E_BROWSER: firefox
+  # The same results in Node, Chromium, WebKit and Firefox (4.1.16, plan §10): the canonical text, the speedrun
+  # generator and proof (with a resume after a chunk), the Remix worlds and wheels, and Remix and Time Attack together
+  # (each world policy recorded in four runtimes, verified in a new process and by the Bridge's isolated worker).
+  # Every pull request: four bundles evaluated in blank pages, a few minutes.
+  cross-runtime:
+    needs: [plan]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - run: for i in 1 2 3; do (npx playwright install --with-deps chromium webkit firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - run: npm run e2e:canonical
+      - run: npm run e2e:remix
+      - run: npm run e2e:speedrun
+      - run: npm run e2e:remix-speedrun
   # The engine as another project uses it (3.9): packed, a game created from the template outside the repository,
   # installed from the tarball, verified, built and played to its ending (scripts/fresh-install.mjs). Its own build
   # (the created game's). Gate: `freshInstall` (the packages, the template, the Bridge, the authoring tools).
@@ -776,7 +799,7 @@ jobs:
   # may be `skipped` where it does not run (an ordinary pull request). The candidate single required check: the
   # ruleset still requires the seventeen names until a few runs of this job have been green (the maintainer's move).
   pr-gate:
-    needs: [plan, check, coverage, mutation, reality-xcheck, connectors, bridge-postgres, reality, node-24, windows, second-game, e2e, pwa-firefox, fresh-install, upgrade, reference]
+    needs: [plan, check, coverage, mutation, reality-xcheck, connectors, bridge-postgres, reality, node-24, windows, second-game, e2e, pwa-firefox, fresh-install, upgrade, reference, cross-runtime]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5

@@ -67,9 +67,10 @@ section. It keeps working for the rest of that major, and is removed in the next
 
 ## Saves
 
-A save written by any release of the 3.x or 4.x line loads in every later 4.x: the envelope is versioned (schema 3),
-the game's own `migrations` carry its ids, and `tests/save-v3.test.ts` loads one frozen save of each release. A save
-newer than the game it is loaded into is refused, never half read.
+A save written by any release of the 3.x or 4.x line loads in every later 4.x: the envelope is versioned (schema 4 since
+4.1.15, schema 3 still read), the game's own `migrations` carry its ids, and `tests/save-v3.test.ts` loads one frozen save of each release. A save
+newer than the game it is loaded into is refused, never half read. A speedrun's `.wsrun` is schema 2 since 4.1.16
+(the run's world sealed into its proof); a schema 1 file of 4.1.14 or 4.1.15 is still verified, as a Story run.
 
 ## Releases
 

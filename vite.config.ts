@@ -204,7 +204,7 @@ export default defineConfig({
         lines: 73,
         statements: 72,
         functions: 69,
-        branches: 67,
+        branches: 68,
         // What a save, a session, a condition and a migration rest on: every branch.
         'src/engine/core/cond.ts': { branches: 100 },
         'src/engine/core/diff.ts': { branches: 100 },
@@ -228,7 +228,7 @@ export default defineConfig({
         'bridge/src/server.ts': { lines: 94, branches: 85 },
         'bridge/src/policy.ts': { lines: 100, branches: 98 },
         'bridge/src/lock.ts': { lines: 100, branches: 100 },
-        'bridge/src/cli.ts': { lines: 83, branches: 66 },
+        'bridge/src/cli.ts': { lines: 83, branches: 69 },
       },
     },
   },

@@ -611,6 +611,22 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.1.16 "Convergence" (shipped 8 October 2026): the published capabilities made to work together
+
+The release after the programme (`docs/dev/PLAN-4.1.16-CONVERGENCE.md`, five pull requests, one release candidate
+then the final tag on the same commit). No new mechanic: a speedrun carries the exact world it was played in (`.wsrun`
+schema 2, D29, ADR 0019), the verifier makes that world again from its seed, checks it against its category and the
+Bridge's signed tokens, replays the run in it and names its leaderboard; the recorder no longer turns a Daily or
+Mystery category into a random seed. The Bridge's leaderboards and daily challenge are durable (SQLite, Postgres),
+created once across instances, claimed by one worker under a lease, mounted by `bridge serve`, ranked by the
+verifier's key with shared ranks. A minigame's result is in the session, fed back on a replay and readable by the
+story (`minigame.<id>`); the code wheel plays by keyboard and gamepad. `e2e:remix-speedrun` records each world policy
+in four runtimes and verifies it through the real worker, on every pull request with `e2e:canonical`, `e2e:remix`
+and `e2e:speedrun` (which found `canonicalJson` writing another text in Firefox, fixed). The release line is a line
+again (v4.1.14 merged, an ancestry check on every tag), Pages deploys only behind `pr-gate`, `docs:truth` checks the
+docs against the code. Not done: the `remix` and `speedrun` mutation sets measured, not gated; the player's Mystery
+flow; every human pass (D18: blocking for 4.2).
+
 ## v4.1.15 "Remix" (shipped 7 October 2026): one game, several worlds; the release candidate of 4.2
 
 The programme's eighth and last release, the fourth with a release candidate (`v4.1.15-rc.1`, then `v4.1.15` on the
@@ -768,6 +784,7 @@ release (D12); the next version opens only when the current one's blockers are c
 | 4.1.13 | **Solver Research** (shipped 7 October 2026; "Proof at Scale" not reached) | a documented class of open three-character games proved within published budgets, or named "Solver Research" |
 | 4.1.14 | **Time Attack** (shipped 7 October 2026) | speedrun categories, RTA and logical time, semantic splits, a verifiable proof package, ghosts, LiveSplit and OBS as local tools |
 | 4.1.15 | **Remix** (shipped 7 October 2026) | controlled variance of a game, deterministic by seed, with provable solvability; the DSL frozen after it |
+| 4.1.16 | **Convergence** (shipped 8 October 2026) | the published capabilities made to work together: a run bound to its world, durable leaderboards, a minigame's result in the story, Remix and Time Attack checked in four runtimes |
 | 4.2.0 | **Stable World** | the contracts frozen, the compiled package on npm, the human passes done, a first real reference game |
 
 The order is meant: dependencies and integrity before connectors; connectors prove the Bridge before it is distributed;

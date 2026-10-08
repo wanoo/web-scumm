@@ -406,3 +406,27 @@ new optional fields; `ir.world.remix` and `ir.rooms[].anchors` appear when a gam
 
 **The DSL and the IR are frozen** (D28, `docs/dev/DSL-STABILITY.md`): 4.1.15 is the release candidate of 4.2. From
 here a change to a name or a meaning of the DSL or the IR waits for 4.2.0's strict SemVer, with its migration.
+
+## 28. From 4.1.15 to 4.1.16 "Convergence"
+
+**A break of the 4.1 line: the `.wsrun` envelope schema 2.** A run is now written with `schema: 2`: the run's
+generator seed is `runSeed` (it was `seed`), the exact world it was played in is `variant`, and a Daily or Mystery run
+carries the Bridge's signed tokens in `worldEvidence`; all of it is sealed into `h0`. A schema 1 file (4.1.14, 4.1.15)
+is still read and verified, as a Story run; offered to a Remix category it is refused (`legacy-world-missing`). What
+breaks: a tool that read `envelope.seed` reads `runSeed` on schema 2; an envelope with a field it does not define is
+refused (`envelope-shape`). A recorder resumed from a 4.1.15 checkpoint refuses to go on (its world is not stored):
+start the run again.
+
+**A break for hosts that wrote their own `RunStore`** (Bridge library): the store is the durable queue's now
+(`create`, `claimNext`, `complete`, `setTrust`, `queued`, `board`, `summary`); `MemoryRunStore` and `SqlRunStore` ship.
+`DailyStore` is asynchronous (`get`, `putIfAbsent`); `SqlDailyStore` takes the tenant. A Bridge database migrates to
+schema 2 (`runs`, `daily_kv`) on its next start; `bridge migrate --schema=1` goes back.
+
+**Additive.** A speedrun category may name its world (`world: { policy, mode, fixedSeed?, codeWheel? }`, D29); 4.1.15's
+`seed: 'daily' | 'mystery'` without `world` is read as that world, with a validator warning. A minigame's result is
+recorded (`SessionEntry.mg`) and written in the reserved flag `minigame.<id>` (a command never sets one: the
+validator refuses it); in the player every minigame played leaves that flag in the save. A Mystery reveal from the
+Bridge carries a signed `token`. `bridge serve` mounts `/v1/runs` and the daily challenge when the configuration has
+`runs` and `daily` sections (SQL store). New commands: `npm run e2e:remix-speedrun`, `npm run docs:truth`,
+`npm run test:mutation:reality`, `test:mutation:remix`, `test:mutation:speedrun`. The golden save of 4.1.16 joins
+`tests/save-v3.test.ts`; every older one still loads.

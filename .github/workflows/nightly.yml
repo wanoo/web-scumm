@@ -204,3 +204,22 @@ jobs:
             matrix-${{ matrix.instance }}.*
             profile-${{ matrix.instance }}.md
           if-no-files-found: ignore
+  # The cross-runtime checks at more seeds than a pull request runs (4.1.16, plan §10): 500 seeds of every Remix mode
+  # and wheel, the speedrun's checks, and Remix and Time Attack together, in Node, Chromium, WebKit and Firefox.
+  cross-runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - run: for i in 1 2 3; do (npx playwright install --with-deps chromium webkit firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - run: npm run e2e:canonical
+      - run: npm run e2e:remix -- --seeds=500
+      - run: npm run e2e:speedrun
+      - run: npm run e2e:remix-speedrun
