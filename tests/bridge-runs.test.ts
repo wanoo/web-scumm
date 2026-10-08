@@ -196,10 +196,11 @@ describe('the queue survives', () => {
   }, 30000);
 
   it('a verification that throws marks the run inconclusive, logs it, and the queue goes on', async () => {
+    // The verdict cannot be written (4.1.16: `complete`); the run is marked inconclusive in its place.
     class Failing extends MemoryRunStore {
-      override async put(r: Parameters<MemoryRunStore['put']>[0]) {
-        if (r.status === 'verifying') throw new Error('disk full');
-        return super.put(r);
+      override async complete(...a: Parameters<MemoryRunStore['complete']>) {
+        if (a[3].verdict !== 'inconclusive') throw new Error('disk full');
+        return super.complete(...a);
       }
     }
     const logs: string[] = [];

@@ -8,24 +8,50 @@
 // The Bridge never chooses a seed after seeing a player's actions: a day's seed is a function of the day alone (an
 // HMAC under the Bridge's secret, stored on first issue and never changed), a Mystery seed is fixed when its commitment
 // is signed, and no route of this module reads an action, a journal or a player. Written against a small `DailyStore`
-// (memory here; the Bridge's own store backs it when the server mounts it).
+// (memory for tests; `SqlDailyStore` over the Bridge's own SQLite or Postgres when the server mounts it, 4.1.16: every
+// write is "insert if absent", so two instances issue one token per day and one record per commitment).
+// 4.1.16: a date is a real UTC day (`YYYY-MM-DD`), today or within `retentionDays`; a game id is one of `games`' own;
+// a reveal is signed; the commits counted per client are forgotten after their hour.
 import { createHmac, randomBytes } from 'node:crypto';
+import type { SqlDb } from './store-sql';
 import { b64url } from '../../src/engine/reality/protocol';
 import { encodeSeedCode, REMIX_ALGORITHM_VERSION, seedCommitment } from '../../src/engine/reality/daily';
 
-/** What the daily routes keep: the day tokens issued, the Mystery seeds behind their commitments. */
-interface DailyStore {
-  get(key: string): string | undefined;
-  put(key: string, value: string): void;
+/** What the daily routes keep: the day tokens issued, the Mystery seeds behind their commitments, written once. */
+export interface DailyStore {
+  get(key: string): Promise<string | undefined>;
+  /** Writes `value` unless the key has one; returns the value the key holds afterwards (the first writer's). */
+  putIfAbsent(key: string, value: string): Promise<string>;
 }
 
-class MemoryDailyStore implements DailyStore {
+export class MemoryDailyStore implements DailyStore {
   private m = new Map<string, string>();
-  get(key: string) {
+  async get(key: string) {
     return this.m.get(key);
   }
-  put(key: string, value: string) {
+  async putIfAbsent(key: string, value: string) {
     if (!this.m.has(key)) this.m.set(key, value);
+    return this.m.get(key)!;
+  }
+}
+
+/** The daily records in SQL (bridge/migrations/0002, `daily_kv`), over the Reality store's database. */
+export class SqlDailyStore implements DailyStore {
+  constructor(
+    readonly db: SqlDb,
+    private now: () => number = Date.now,
+  ) {}
+  async get(key: string) {
+    const [r] = await this.db.all('SELECT v FROM daily_kv WHERE k = $1', [key]);
+    return r ? String(r.v) : undefined;
+  }
+  async putIfAbsent(key: string, value: string) {
+    await this.db.run('INSERT INTO daily_kv (k, v, created_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [
+      key,
+      value,
+      this.now(),
+    ]);
+    return (await this.get(key)) ?? value;
   }
 }
 
@@ -41,6 +67,8 @@ export interface DailyOptions {
   now?: () => number;
   /** Mystery commits one client may ask per game and per hour (default 3): shopping for a seed costs that much. */
   commitsPerHour?: number;
+  /** How many past days a challenge can be asked for (default 30): older ones are refused, the store stays bounded. */
+  retentionDays?: number;
 }
 
 export interface DailyRequest {
@@ -58,6 +86,12 @@ export interface DailyResponse {
 
 const DAY = 24 * 60 * 60 * 1000;
 const isoDay = (t: number) => new Date(t).toISOString().slice(0, 10);
+/** A real UTC day written `YYYY-MM-DD` (not `2026-02-30`, not an empty string): its midnight, or null. */
+function dayStart(date: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const t = Date.parse(`${date}T00:00:00Z`);
+  return Number.isFinite(t) && isoDay(t) === date ? t : null;
+}
 
 async function sign(payload: unknown, key: CryptoKey, kid: string): Promise<string> {
   const enc = (o: unknown) => b64url.encode(new TextEncoder().encode(JSON.stringify(o)));
@@ -77,17 +111,22 @@ export function dailyRoutes(o: DailyOptions) {
   const store = o.store ?? new MemoryDailyStore();
   const now = o.now ?? Date.now;
 
+  const gameOf = (id: string) => (Object.hasOwn(o.games, id) ? o.games[id] : undefined);
+
   async function daily(gameId: string, date: string): Promise<DailyResponse> {
-    const game = o.games[gameId];
+    const game = gameOf(gameId);
     if (!game) return { status: 404, body: { error: 'unknown game' } };
+    const start = dayStart(date);
+    if (start === null) return { status: 400, body: { error: 'a date is YYYY-MM-DD, a real day' } };
     const t = now();
     const today = isoDay(t);
-    // Today, or a past day (a replay of an old challenge); never a day not yet open.
+    // Today, or a past day within the retention (a replay of an old challenge); never a day not yet open.
     if (date > today) return { status: 403, body: { error: 'that day is not open yet' } };
+    if (start < Date.parse(`${today}T00:00:00Z`) - (o.retentionDays ?? 30) * DAY)
+      return { status: 410, body: { error: 'that day is older than this Bridge keeps' } };
     const k = `daily|${gameId}|${date}`;
-    const kept = store.get(k);
+    const kept = await store.get(k);
     if (kept) return { status: 200, body: { token: kept } };
-    const start = Date.parse(`${date}T00:00:00Z`);
     const token = await sign(
       {
         format: 'web-scumm-daily',
@@ -103,20 +142,23 @@ export function dailyRoutes(o: DailyOptions) {
       o.key,
       o.kid,
     );
-    store.put(k, token);
-    return { status: 200, body: { token: store.get(k) } };
+    // Two instances signing the same day at once: the first token stored is the day's, for both.
+    return { status: 200, body: { token: await store.putIfAbsent(k, token) } };
   }
 
   const commits = new Map<string, number[]>();
   async function commit(body: unknown, client = 'anonymous'): Promise<DailyResponse> {
     const b = body && typeof body === 'object' ? (body as Record<string, unknown>) : {};
     const gameId = typeof b.game === 'string' ? b.game : '';
-    const game = o.games[gameId];
+    const game = gameOf(gameId);
     if (!game) return { status: 404, body: { error: 'unknown game' } };
     // Shopping for a Mystery seed (commit, reveal, look, commit again) is bounded: so many commits per client and hour.
     const t = now();
     const k = `${client}|${gameId}`;
     const recent = (commits.get(k) ?? []).filter((x) => t - x < 3_600_000);
+    // The table forgets clients whose hour is over once it grows (a flood of addresses does not keep it).
+    if (commits.size > 10_000)
+      for (const [c, xs] of commits) if (xs.every((x) => t - x >= 3_600_000)) commits.delete(c);
     if (recent.length >= (o.commitsPerHour ?? 3))
       return { status: 429, body: { error: 'too many Mystery seeds this hour' } };
     commits.set(k, [...recent, t]);
@@ -132,17 +174,17 @@ export function dailyRoutes(o: DailyOptions) {
       o.key,
       o.kid,
     );
-    store.put(`commit|${id}`, JSON.stringify({ seed, nonce, gameId, mode, commitment }));
+    await store.putIfAbsent(`commit|${id}`, JSON.stringify({ seed, nonce, gameId, mode, commitment }));
     return { status: 201, body: { id, commitment, token } };
   }
 
   async function reveal(id: string): Promise<DailyResponse> {
-    const kept = store.get(`commit|${id}`);
+    const kept = await store.get(`commit|${id}`);
     if (!kept) return { status: 404, body: { error: 'unknown commitment' } };
     const { seed, nonce, gameId, mode, commitment } = JSON.parse(kept) as Record<string, string>;
-    // The first reveal is recorded (a Mystery run must start within a minute of it: `worldVerdict`).
-    if (!store.get(`revealed|${id}`)) store.put(`revealed|${id}`, String(now()));
-    const revealedAt = Number(store.get(`revealed|${id}`));
+    // The first reveal is recorded (a Mystery run must start within a minute of it: `worldVerdict`), once for every
+    // instance: the first time stored is the reveal's.
+    const revealedAt = Number(await store.putIfAbsent(`revealed|${id}`, String(now())));
     // Signed since 4.1.16: the time of the reveal is the Bridge's word, so a run's world evidence can carry it.
     const token = await sign(
       { format: 'web-scumm-reveal', v: 1, id, gameId, mode, commitment, seed, nonce, revealedAt },

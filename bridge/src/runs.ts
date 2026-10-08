@@ -7,88 +7,18 @@
 // valid runs only, shown with a pseudonym (never an email) and the trust level. Runs are kept 90 days by default and
 // deleted on request with the token given at submission.
 //
-// A new module beside the 4.1.10 Bridge: it reads its own `RunStore` (memory here; SQL with the RealityStore's
-// backends is the next step) and is mounted by its host with `runsRoute(...)`; server.ts is not changed by 4.1.14.
+// 4.1.16 (ADR 0019): the runs are durable (`SqlRunStore` over the Reality store's SQLite or Postgres, runs-store.ts);
+// any number of instances share one queue: a run is created once (its key is unique), claimed by one worker under a
+// lease, and claimed again when its worker died; the leaderboard is the verifier's (`leaderboardKey`: a Fixed or Daily
+// world has its own board), ties share a rank. `bridgeServer` mounts the routes when its options name a queue.
 import { spawn } from 'node:child_process';
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-/** How far a run is believed (ADR 0017). */
-type RunTrust = 'local' | 'replay-valid' | 'server-witnessed' | 'moderator-verified';
+import type { RunOutcome, RunRecord, RunStore } from './runs-store';
 
-/** A submitted run as the Bridge keeps it. */
-export interface RunRecord {
-  id: string;
-  tenantId: string;
-  gameId: string;
-  categoryId: string;
-  /** A pseudonym the player chose (never an email). */
-  player: string;
-  submittedAt: number;
-  status: 'queued' | 'verifying' | 'done';
-  verdict?: string;
-  code?: string;
-  reason?: string;
-  trust: RunTrust;
-  /** The time the category ranks on, in microticks (decimal), when the worker recomputed it. */
-  ranked?: string | null;
-  seedKind?: 'fixed' | 'random';
-  /**
-   * The run's identity: SHA-256 of its game, category, seed and inputs (their RTA stamps aside). The same run
-   * re-spaced or re-stamped is the same key: the first submitter keeps it, a second is refused.
-   */
-  runKey: string;
-  /** SHA-256 of the deletion token (the token itself is given once, at submission). */
-  deleteTokenHash: string;
-  /** The `.wsrun` text until the worker's verdict is stored, then empty (the summary above stays). */
-  envelope: string;
-}
-
-/** Where runs are kept, per tenant. */
-interface RunStore {
-  put(r: RunRecord): Promise<void>;
-  get(tenantId: string, id: string): Promise<RunRecord | undefined>;
-  list(tenantId: string, f?: { gameId?: string; categoryId?: string }): Promise<RunRecord[]>;
-  byKey(tenantId: string, runKey: string): Promise<RunRecord | undefined>;
-  delete(tenantId: string, id: string): Promise<void>;
-  /** Deletes the runs submitted before `before` (epoch ms); returns how many. */
-  purge(before: number): Promise<number>;
-}
-
-export class MemoryRunStore implements RunStore {
-  private rows = new Map<string, RunRecord>();
-  private k = (t: string, id: string) => `${t}\u0000${id}`;
-  async put(r: RunRecord) {
-    this.rows.set(this.k(r.tenantId, r.id), structuredClone(r));
-  }
-  async get(t: string, id: string) {
-    const r = this.rows.get(this.k(t, id));
-    return r ? structuredClone(r) : undefined;
-  }
-  async list(t: string, f: { gameId?: string; categoryId?: string } = {}) {
-    return [...this.rows.values()]
-      .filter(
-        (r) =>
-          r.tenantId === t && (!f.gameId || r.gameId === f.gameId) && (!f.categoryId || r.categoryId === f.categoryId),
-      )
-      .map((r) => structuredClone(r));
-  }
-  async byKey(t: string, runKey: string) {
-    return [...this.rows.values()].find((r) => r.tenantId === t && r.runKey === runKey);
-  }
-  async delete(t: string, id: string) {
-    this.rows.delete(this.k(t, id));
-  }
-  async purge(before: number) {
-    let n = 0;
-    for (const [k, r] of this.rows)
-      if (r.submittedAt < before) {
-        this.rows.delete(k);
-        n++;
-      }
-    return n;
-  }
-}
+export { MemoryRunStore, SqlRunStore } from './runs-store';
+export type { RunRecord, RunStore, RunTrust } from './runs-store';
 
 /** A game the worker may verify against: its package's folder and the fingerprint approved for it. */
 export interface ApprovedGame {
@@ -105,8 +35,14 @@ export interface RunsOptions {
   /** Wall time a worker gets before it is killed (default 60 s), and its heap (default 256 MB). */
   timeoutMs?: number;
   maxOldSpaceMb?: number;
-  /** Runs waiting at most (beyond: 429). */
+  /** Runs waiting at most, every instance together (beyond: 429). */
   maxQueued?: number;
+  /** Workers this instance runs at once (default 1): each claims a run, verifies it, claims the next. */
+  workers?: number;
+  /** How long a claimed run is a worker's (default the worker's budget + 30 s): beyond, another worker takes it over. */
+  leaseMs?: number;
+  /** How often this instance looks for runs other instances queued or whose worker died (ms, default 2 s; 0: never). */
+  pollMs?: number;
   /** A run's envelope at most (bytes, default 2 MB). */
   maxBytes?: number;
   /** Days a run is kept (default 90). */
@@ -117,6 +53,8 @@ export interface RunsOptions {
   purgeEveryMs?: number;
   /** Logs a failure the queue survives (default `console.error`). */
   log?: (message: string) => void;
+  /** The audit line of each submission, verdict, moderation and deletion (default: JSON on stdout, the Bridge's log). */
+  audit?: (line: { event: string; [k: string]: string | number | boolean | undefined }) => void;
   /** The admin token that moderates (`Authorization: Bearer …`); none: no moderation route. */
   adminToken?: string;
   now?: () => number;
@@ -134,6 +72,7 @@ class RunsError extends Error {
 
 const PSEUDONYM = /^[\p{L}\p{N} _.-]{2,32}$/u;
 const ID = /^[\w.%+-]{1,64}$/;
+const BOARD_KEY = /^[\w.%+-]{1,64}(:[\w.:-]{1,80})?$/;
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 
 /** JSON with sorted keys (the Bridge does not import the engine's `canonicalJson`: it reaches only `reality/`). */
@@ -172,30 +111,40 @@ function runKeyOf(env: {
   return sha256(stable(env.variant ? { ...base, world: env.variant.hash ?? null } : base));
 }
 
-/** The queue: submissions in, one worker at a time, verdicts stored. */
+/** The queue: submissions in, the store's queue claimed by this instance's workers, verdicts stored. */
 export class RunQueue {
-  private queue: { tenantId: string; id: string }[] = [];
-  private running: Promise<void> | null = null;
+  private loops = new Set<Promise<void>>();
   private buckets = new Map<string, { tokens: number; at: number }>();
-  private purger: ReturnType<typeof setInterval> | null = null;
+  private timers: ReturnType<typeof setInterval>[] = [];
+  /** This instance's name in a lease (a worker is `<instance>:<n>`). */
+  readonly instance = randomBytes(6).toString('hex');
+  private next = 0;
   constructor(readonly o: RunsOptions) {
     const every = o.purgeEveryMs ?? 3_600_000;
-    if (every > 0) {
-      this.purger = setInterval(() => {
-        this.purge().catch((e) => this.log(`runs: the purge failed: ${(e as Error).message}`));
-      }, every);
-      this.purger.unref?.();
-    }
+    if (every > 0) this.every(every, () => this.purge().then(() => undefined), 'the purge');
+    const poll = o.pollMs ?? 2000;
+    if (poll > 0) this.every(poll, async () => this.pump(), 'a poll of the queue');
+  }
+
+  private every(ms: number, f: () => Promise<void>, what: string) {
+    const t = setInterval(() => {
+      f().catch((e) => this.log(`runs: ${what} failed: ${(e as Error).message}`));
+    }, ms);
+    t.unref?.();
+    this.timers.push(t);
   }
 
   private log(m: string) {
     (this.o.log ?? console.error)(m);
   }
+  private audit(event: string, r: Pick<RunRecord, 'tenantId' | 'id'>, more: Record<string, string> = {}) {
+    (this.o.audit ?? ((l) => console.log(JSON.stringify(l))))({ event, tenant: r.tenantId, run: r.id, ...more });
+  }
 
-  /** Stops the scheduled purge (a host shutting down, a test). */
+  /** Stops the scheduled purge and poll (a host shutting down, a test). */
   close(): void {
-    if (this.purger) clearInterval(this.purger);
-    this.purger = null;
+    for (const t of this.timers) clearInterval(t);
+    this.timers = [];
   }
 
   /** Takes a submission token for this client; false when it has none left this minute. */
@@ -230,25 +179,29 @@ export class RunQueue {
     if (typeof b.envelope !== 'string') throw new RunsError(400, 'envelope', 'the .wsrun text');
     if (Buffer.byteLength(b.envelope) > (this.o.maxBytes ?? 2_000_000))
       throw new RunsError(413, 'size', 'the run is too large');
-    let head: { format?: unknown; gameId?: unknown; categoryId?: unknown; seed?: unknown; chunks?: unknown };
+    let head: Parameters<typeof runKeyOf>[0] & { format?: unknown };
     try {
       head = JSON.parse(b.envelope);
     } catch {
       throw new RunsError(400, 'envelope', 'the .wsrun is not JSON');
     }
-    if (head.format !== 'web-scumm-speedrun' || typeof head.gameId !== 'string' || typeof head.categoryId !== 'string')
+    if (
+      !head ||
+      typeof head !== 'object' ||
+      head.format !== 'web-scumm-speedrun' ||
+      typeof head.gameId !== 'string' ||
+      typeof head.categoryId !== 'string'
+    )
       throw new RunsError(400, 'envelope', 'not a web-scumm speedrun envelope');
     if (!ID.test(head.categoryId)) throw new RunsError(400, 'envelope', 'a category id');
     if (!ID.test(head.gameId) || !Object.hasOwn(this.o.approved, head.gameId))
       throw new RunsError(404, 'game', 'this Bridge has no leaderboard for that game');
-    if (this.queue.length >= (this.o.maxQueued ?? 100))
+    if ((await this.o.store.queued()) >= (this.o.maxQueued ?? 100))
       throw new RunsError(429, 'busy', 'the queue is full, retry later');
-    const runKey = runKeyOf(head);
-    if (await this.o.store.byKey(tenantId, runKey))
-      throw new RunsError(409, 'duplicate', 'this run was submitted already (the first submitter keeps it)');
     const id = `run_${randomBytes(9).toString('base64url')}`;
     const deleteToken = randomBytes(18).toString('base64url');
-    await this.o.store.put({
+    // One statement: two instances receiving the same run at once create one row (a unique key, not a read first).
+    const created = await this.o.store.create({
       id,
       tenantId,
       gameId: head.gameId,
@@ -257,70 +210,97 @@ export class RunQueue {
       submittedAt: this.now(),
       status: 'queued',
       trust: 'local',
-      runKey,
+      runKey: runKeyOf(head),
       deleteTokenHash: sha256(deleteToken),
       envelope: b.envelope,
     });
-    this.queue.push({ tenantId, id });
+    if (!created)
+      throw new RunsError(409, 'duplicate', 'this run was submitted already (the first submitter keeps it)');
+    this.audit('run.submitted', { tenantId, id }, { game: head.gameId, category: head.categoryId });
     this.pump();
     return { id, deleteToken, status: 'queued' };
   }
 
+  /** Starts this instance's idle workers: each claims runs from the store until none is waiting. */
   private pump() {
-    if (this.running) return;
-    const next = this.queue.shift();
-    if (!next) return;
-    this.running = this.verify(next.tenantId, next.id)
-      .catch((e) => this.failed(next.tenantId, next.id, e))
-      .finally(() => {
-        this.running = null;
-        this.pump();
-      });
+    const n = Math.max(1, this.o.workers ?? 1);
+    while (this.loops.size < n) {
+      const worker = `${this.instance}:${this.next++ % n}`;
+      const loop: Promise<void> = this.work(worker)
+        .catch((e) => this.log(`runs: worker ${worker} stopped: ${(e as Error).message}`))
+        .finally(() => this.loops.delete(loop));
+      this.loops.add(loop);
+    }
   }
 
-  /** Waits until the queue is empty (tests, shutdown). */
-  async idle(): Promise<void> {
+  private async work(worker: string) {
+    const lease = this.o.leaseMs ?? (this.o.timeoutMs ?? 60_000) + 30_000;
     for (;;) {
-      if (!this.running && this.queue.length) this.pump();
-      if (!this.running) return;
-      await this.running;
+      const r = await this.o.store.claimNext(worker, lease, this.now());
+      if (!r) return;
+      try {
+        await this.verify(r, worker);
+      } catch (e) {
+        await this.failed(r, worker, e);
+      }
+    }
+  }
+
+  /**
+   * Waits until no run is waiting and this instance's workers are done (tests, shutdown). It claims once first: a run
+   * whose lease expired is not `queued`, and only a claim finds it (the poll does the same on its own).
+   */
+  async idle(): Promise<void> {
+    this.pump();
+    for (;;) {
+      if (!this.loops.size && (await this.o.store.queued()) > 0) this.pump();
+      if (!this.loops.size) return;
+      await Promise.all([...this.loops]);
     }
   }
 
   /** A verification that threw (a store, a spawn): the run is `inconclusive`, the queue goes on, it is logged. */
-  private async failed(tenantId: string, id: string, e: unknown) {
-    this.log(`runs: the verification of ${id} failed: ${(e as Error)?.message ?? String(e)}`);
+  private async failed(r: RunRecord, worker: string, e: unknown) {
+    this.log(`runs: the verification of ${r.id} failed: ${(e as Error)?.message ?? String(e)}`);
     try {
-      const r = await this.o.store.get(tenantId, id);
-      if (!r) return;
-      Object.assign(r, {
-        status: 'done',
+      await this.o.store.complete(r.tenantId, r.id, worker, {
         verdict: 'inconclusive',
         code: 'crash',
         reason: 'the verification failed',
         trust: 'local',
-        envelope: '',
+        ranked: null,
       });
-      await this.o.store.put(r);
     } catch {
-      /* the store itself is failing: the run stays as it was */
+      /* the store itself is failing: the lease expires and another worker takes the run over */
     }
   }
 
-  private async verify(tenantId: string, id: string) {
-    const r = await this.o.store.get(tenantId, id);
-    if (!r) return;
-    r.status = 'verifying';
-    await this.o.store.put(r);
-    const game = this.o.approved[r.gameId]!;
+  private async verify(r: RunRecord, worker: string) {
+    const game = this.o.approved[r.gameId];
+    if (!game) throw new Error(`no approved package for "${r.gameId}"`);
     const out = await runWorker(this.o, game, r.envelope);
-    Object.assign(r, out, { status: 'done' as const });
-    // A worker grants at most `replay-valid`; anything else it might say is ignored.
-    r.trust = out.verdict === 'valid' || out.verdict === 'valid-unranked' ? 'replay-valid' : 'local';
-    // A ranked time is only a valid run's; the envelope is not kept once its verdict is (the summary is).
-    if (out.verdict !== 'valid') r.ranked = null;
-    r.envelope = '';
-    await this.o.store.put(r);
+    const valid = out.verdict === 'valid' || out.verdict === 'valid-unranked';
+    const outcome: RunOutcome = {
+      verdict: out.verdict,
+      code: out.code,
+      reason: out.reason,
+      // A worker grants at most `replay-valid`; anything else it might say is ignored.
+      trust: valid ? 'replay-valid' : 'local',
+      // A ranked time is only a valid run's; the envelope is not kept once its verdict is (the summary is).
+      ranked: out.verdict === 'valid' ? (out.ranked ?? null) : null,
+      ...(out.seedKind ? { seedKind: out.seedKind } : {}),
+      ...(out.world
+        ? {
+            worldHash: out.world.hash,
+            worldMode: out.world.mode,
+            worldSeed: out.world.seed,
+            leaderboardKey: out.world.leaderboardKey,
+          }
+        : {}),
+    };
+    if (!(await this.o.store.complete(r.tenantId, r.id, worker, outcome)))
+      this.log(`runs: ${r.id}: the lease was taken over before the verdict (another worker stores its own)`);
+    else this.audit('run.verified', r, { verdict: out.verdict, code: out.code, worker });
   }
 
   /** Raises a verified run to `moderator-verified` (a human looked at it). */
@@ -329,9 +309,9 @@ export class RunQueue {
     if (!r) throw new RunsError(404, 'run', 'no such run');
     if (r.trust !== 'replay-valid' && r.trust !== 'server-witnessed')
       throw new RunsError(409, 'trust', 'only a run the worker found valid can be moderated');
-    r.trust = 'moderator-verified';
-    await this.o.store.put(r);
-    return r;
+    await this.o.store.setTrust(tenantId, id, 'moderator-verified');
+    this.audit('run.moderated', r);
+    return { ...r, trust: 'moderator-verified' };
   }
 
   /** Deletes a run on its player's request (the token given at submission). */
@@ -342,6 +322,7 @@ export class RunQueue {
     const b = Buffer.from(r.deleteTokenHash, 'hex');
     if (a.length !== b.length || !timingSafeEqual(a, b)) throw new RunsError(403, 'token', 'not this run’s token');
     await this.o.store.delete(tenantId, id);
+    this.audit('run.deleted', r);
   }
 
   /** Deletes the runs older than the retention (90 days by default). */
@@ -349,19 +330,44 @@ export class RunQueue {
     return this.o.store.purge(this.now() - (this.o.retentionDays ?? 90) * 86_400_000);
   }
 
-  /** A category's leaderboard: valid runs only, each player's best, separated by seed kind. */
-  async leaderboard(tenantId: string, gameId: string, categoryId: string, seed?: 'fixed' | 'random') {
+  /**
+   * A leaderboard: valid runs only, each player's best, on one key (the verifier's: the category, and for a Fixed or
+   * Daily world its seed; default the category's own board). Sorted by time, then submission, then id; equal times
+   * share a rank. `seed` (4.1.14) still filters schema 1 runs by seed kind.
+   */
+  async leaderboard(
+    tenantId: string,
+    gameId: string,
+    categoryId: string,
+    o: { key?: string; seed?: 'fixed' | 'random' } = {},
+  ) {
+    const key = o.key ?? categoryId;
     const rows = (await this.o.store.list(tenantId, { gameId, categoryId })).filter(
-      (r) => r.status === 'done' && r.verdict === 'valid' && r.ranked && (!seed || r.seedKind === seed),
+      (r) =>
+        r.status === 'done' &&
+        r.verdict === 'valid' &&
+        r.ranked &&
+        (r.leaderboardKey ?? categoryId) === key &&
+        (!o.seed || r.seedKind === o.seed),
     );
     const best = new Map<string, RunRecord>();
+    const before = (a: RunRecord, b: RunRecord) => {
+      const ta = BigInt(a.ranked!);
+      const tb = BigInt(b.ranked!);
+      if (ta !== tb) return ta < tb ? -1 : 1;
+      if (a.submittedAt !== b.submittedAt) return a.submittedAt - b.submittedAt;
+      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+    };
     for (const r of rows) {
       const b = best.get(r.player);
-      if (!b || BigInt(r.ranked!) < BigInt(b.ranked!)) best.set(r.player, r);
+      if (!b || before(r, b) < 0) best.set(r.player, r);
     }
-    return [...best.values()]
-      .sort((a, b) => (BigInt(a.ranked!) < BigInt(b.ranked!) ? -1 : 1))
-      .map((r, i) => ({ rank: i + 1, ...publicView(r) }));
+    const sorted = [...best.values()].sort(before);
+    let rank = 0;
+    return sorted.map((r, i) => {
+      if (i === 0 || sorted[i - 1]!.ranked !== r.ranked) rank = i + 1;
+      return { rank, ...publicView(r) };
+    });
   }
 }
 
@@ -378,6 +384,9 @@ function publicView(r: RunRecord) {
     trust: r.trust,
     ...(r.ranked !== undefined ? { ranked: r.ranked } : {}),
     ...(r.seedKind ? { seedKind: r.seedKind } : {}),
+    ...(r.leaderboardKey
+      ? { world: { hash: r.worldHash, mode: r.worldMode, seed: r.worldSeed }, leaderboardKey: r.leaderboardKey }
+      : {}),
   };
 }
 
@@ -390,12 +399,29 @@ export function workerEnv(game: ApprovedGame, o: Pick<RunsOptions, 'maxOldSpaceM
   };
 }
 
+/** What a worker answers: the verdict, the time it ranks on, and the world it checked (4.1.16). */
+export interface WorkerAnswer {
+  verdict: string;
+  code: string;
+  reason: string;
+  ranked?: string | null;
+  seedKind?: 'fixed' | 'random';
+  world?: { hash: string; mode: string; seed: string; leaderboardKey: string };
+}
+
+const isWorld = (w: unknown): w is NonNullable<WorkerAnswer['world']> =>
+  !!w &&
+  typeof w === 'object' &&
+  ['hash', 'mode', 'seed', 'leaderboardKey'].every(
+    (k) => typeof (w as Record<string, unknown>)[k] === 'string' && (w as Record<string, string>)[k]!.length <= 200,
+  );
+
 /** One job in an isolated process: the verdict, or `inconclusive` when the worker died, ran out or answered wrong. */
 export async function runWorker(
   o: Pick<RunsOptions, 'worker' | 'timeoutMs' | 'maxOldSpaceMb'>,
   game: ApprovedGame,
   envelope: string,
-): Promise<{ verdict: string; code: string; reason: string; ranked?: string | null; seedKind?: 'fixed' | 'random' }> {
+): Promise<WorkerAnswer> {
   const jobId = randomBytes(8).toString('hex');
   const key = randomBytes(32).toString('hex');
   const timeout = o.timeoutMs ?? 60_000;
@@ -478,6 +504,7 @@ export async function runWorker(
           reason: string;
           ranked?: string | null;
           seedKind?: 'fixed' | 'random';
+          world?: unknown;
         };
         if (r.jobId !== jobId) return done(inconclusive('signature', 'an answer to another job'));
         done({
@@ -486,6 +513,7 @@ export async function runWorker(
           reason: r.reason,
           ranked: r.ranked ?? null,
           ...(r.seedKind ? { seedKind: r.seedKind } : {}),
+          ...(isWorld(r.world) ? { world: r.world } : {}),
         });
       } catch {
         done(inconclusive('crash', `the worker gave no verdict (exit ${status})`));
@@ -516,7 +544,7 @@ async function readBody(req: IncomingMessage, limit: number): Promise<unknown> {
 
 /**
  * The routes of `/v1/runs` for a host's HTTP server: returns true when it answered. `POST /v1/runs` submits,
- * `GET /v1/runs/<id>` reads one, `GET /v1/runs?game=&category=&seed=` is a leaderboard, `DELETE /v1/runs/<id>` (header
+ * `GET /v1/runs/<id>` reads one, `GET /v1/runs?game=&category=[&key=]` is a leaderboard (4.1.14's `&seed=` kept), `DELETE /v1/runs/<id>` (header
  * `x-delete-token`) deletes on request, `POST /v1/runs/<id>/moderate` (admin bearer) raises a valid run's trust.
  */
 export function runsRoute(
@@ -538,9 +566,14 @@ export function runsRoute(
         const game = url.searchParams.get('game') ?? '';
         const category = url.searchParams.get('category') ?? '';
         const seed = url.searchParams.get('seed');
+        const key = url.searchParams.get('key') ?? undefined;
         if (!ID.test(game) || !ID.test(category)) throw new RunsError(400, 'query', '?game=<id>&category=<id>');
+        if (key !== undefined && !BOARD_KEY.test(key)) throw new RunsError(400, 'query', '&key=<category>[:<seed>]');
         json(res, 200, {
-          runs: await q.leaderboard(tenant, game, category, seed === 'fixed' || seed === 'random' ? seed : undefined),
+          runs: await q.leaderboard(tenant, game, category, {
+            ...(key ? { key } : {}),
+            ...(seed === 'fixed' || seed === 'random' ? { seed } : {}),
+          }),
         });
       } else if (m && !m[2] && req.method === 'GET') {
         const r = await q.o.store.get(tenant, m[1]!);

@@ -21,7 +21,10 @@ import { Bridge, type BridgeConfig, type Limits } from './bridge';
 import { biscuitLib } from './biscuit';
 import { grantToken } from './policy';
 import { opt, openStore, storeCommand, storeSpec } from './cli-store';
-import { bridgeServer, type WebhookConfig } from './server';
+import { dailyRoutes, SqlDailyStore } from './daily';
+import { type ApprovedGame, RunQueue, SqlRunStore } from './runs';
+import { bridgeServer, type ServeOptions, type WebhookConfig } from './server';
+import type { SqlDb } from './store-sql';
 import { JsonlBridgeStore } from './store';
 import { DEFAULT_TENANT, type RealityStore } from './store-async';
 import { loadTelemetry, type Telemetry } from './telemetry';
@@ -52,6 +55,29 @@ export interface BridgeFile {
   hosts?: string[];
   /** Limits other than the defaults (4.1.10: a load test, a busy tenant). */
   limits?: Partial<Limits>;
+  /**
+   * Speedrun leaderboards (4.1.16; the first directory's, one queue per server): the games and their approved packages,
+   * the worker's command (it runs `tools/speedrun/worker.ts` against a package), how many workers. Needs a SQL store.
+   */
+  runs?: {
+    games: Record<string, ApprovedGame>;
+    worker: string[];
+    workers?: number;
+    timeoutMs?: number;
+    maxQueued?: number;
+    retentionDays?: number;
+  };
+  /**
+   * The daily challenge and Mystery seeds (4.1.16): the games and their modes, the signing key's id, the files of its
+   * private half (a JWK) and of the days' secret, both 0600 beside this file. Needs a SQL store.
+   */
+  daily?: {
+    games: Record<string, { daily: string; mystery?: string }>;
+    kid: string;
+    keyFile: string;
+    secretFile: string;
+    retentionDays?: number;
+  };
 }
 
 const arg = opt;
@@ -229,6 +255,38 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     };
     const bridges: Bridge[] = [];
     for (const [i, f] of files.entries()) bridges.push(await loadBridge(f, tenants[i]!, hold));
+    // The leaderboards and the daily challenge (4.1.16): only when a configuration names them, on the SQL store.
+    const extra: Pick<ServeOptions, 'runs' | 'daily'> = {};
+    const sql = (hold.store as { db?: SqlDb } | undefined)?.db;
+    if ((first.runs || files.some((f) => f.daily)) && !sql) {
+      console.error(
+        '✖  the leaderboards and the daily challenge keep their records in SQL: --store=sqlite:<file> or postgres',
+      );
+      return 1;
+    }
+    if (first.runs && sql)
+      extra.runs = new RunQueue({
+        store: new SqlRunStore(sql),
+        approved: first.runs.games,
+        worker: first.runs.worker,
+        ...(first.runs.workers ? { workers: first.runs.workers } : {}),
+        ...(first.runs.timeoutMs ? { timeoutMs: first.runs.timeoutMs } : {}),
+        ...(first.runs.maxQueued ? { maxQueued: first.runs.maxQueued } : {}),
+        ...(first.runs.retentionDays ? { retentionDays: first.runs.retentionDays } : {}),
+      });
+    for (const [i, f] of files.entries())
+      if (f.daily && sql) {
+        const d = f.daily;
+        const jwk = JSON.parse(readFileSync(resolve(tenants[i]!, d.keyFile), 'utf8')) as JsonWebKey;
+        (extra.daily ??= {})[ids[i]!] = dailyRoutes({
+          games: d.games,
+          kid: d.kid,
+          key: await webcrypto.subtle.importKey('jwk', jwk, { name: 'Ed25519' }, false, ['sign']),
+          secret: readFileSync(resolve(tenants[i]!, d.secretFile), 'utf8').trim(),
+          store: new SqlDailyStore(sql),
+          ...(d.retentionDays ? { retentionDays: d.retentionDays } : {}),
+        });
+      }
     const port = Number(arg(args, 'port') ?? 8787);
     const host = arg(args, 'host') ?? '127.0.0.1';
     // `--trust-proxy` alone: the loopback; `--trust-proxy=10.0.0.0/8,192.168.1.2`: those proxies (D20).
@@ -238,6 +296,7 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
       webhooks: Object.assign({}, ...files.map((f) => f.webhooks)),
       trustProxy: proxies ? proxies.split(',') : args.includes('--trust-proxy'),
       tenantHeader: args.includes('--tenant-header'),
+      ...extra,
     });
     server.listen(port, host, () => {
       const a = server.address();
