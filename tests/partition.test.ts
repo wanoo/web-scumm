@@ -62,43 +62,66 @@ describe('the pieces', () => {
 });
 
 describe('partitioned workers', () => {
-  it('1, 2 and 4 workers with the shared table: the same proof, softlocks included; states come back without their engine state', async () => {
-    for (const g of [
-      matrixGame(12, { characters: 3, rooms: [20, 40] }),
-      makeStressGame({
-        rooms: 10,
-        players: 2,
-        items: 8,
-        flags: 8,
-        npcs: 1,
-        scripts: 2,
-        topics: 4,
-        schemaVersion: 3,
-        eras: true,
-        softlock: true,
-      }),
-    ]) {
-      const runs: SolveResult[] = [];
-      for (const workers of [1, 2, 4])
-        runs.push(
-          await solve(structuredClone(g.game), g.layouts, { mode: 'prove', maxStates: 60000, workers, batch: 16 }),
-        );
-      for (const r of runs.slice(1)) expect(sig(r)).toEqual(sig(runs[0]!));
-      expect(runs[0]!.status).toBe('softlocks');
-      expect(runs[2]!.profile.shared).toMatchObject({ applied: true, collisions: 0 });
-      expect(runs[2]!.profile.shared!.known).toBeGreaterThan(0);
-      // Without the table: the same again.
-      const off = await solve(structuredClone(g.game), g.layouts, {
-        mode: 'prove',
-        maxStates: 60000,
-        workers: 2,
-        batch: 16,
-        sharedVisited: false,
-      });
-      expect(sig(off)).toEqual(sig(runs[0]!));
-      expect(off.profile.shared?.applied).toBe(false);
-    }
-  }, 600_000);
+  // One test per game and configuration (4.1.17, plan §5.3): a budget overrun names its configuration instead of one
+  // 600 s timeout for eight searches, and each search's time is in the report (`npm run test:heavy` writes it). The
+  // budget is BUDGET_S per search: ten times the slowest measured on a laptop (46 s), kept under the runner's
+  // measures with 25 % of margin (docs/dev/LOG.md, 4.1.17).
+  const BUDGET_S = 480;
+  const games = [
+    ['matrix 12', () => matrixGame(12, { characters: 3, rooms: [20, 40] })],
+    [
+      'stress',
+      () =>
+        makeStressGame({
+          rooms: 10,
+          players: 2,
+          items: 8,
+          flags: 8,
+          npcs: 1,
+          scripts: 2,
+          topics: 4,
+          schemaVersion: 3,
+          eras: true,
+          softlock: true,
+        }),
+    ],
+  ] as const;
+  for (const [name, make] of games) {
+    const g = make();
+    const runs = new Map<string, SolveResult>();
+    const one = (workers: number, sharedVisited: boolean) =>
+      solve(structuredClone(g.game), g.layouts, { mode: 'prove', maxStates: 60000, workers, batch: 16, sharedVisited });
+    it(
+      `${name}, 1 worker: the reference proof, softlocks included`,
+      async () => {
+        runs.set('1', await one(1, true));
+        expect(runs.get('1')!.status).toBe('softlocks');
+      },
+      BUDGET_S * 1000,
+    );
+    for (const workers of [2, 4])
+      it(
+        `${name}, ${workers} workers with the shared table: the same proof; states come back without their engine state`,
+        async () => {
+          const r = await one(workers, true);
+          expect(sig(r)).toEqual(sig(runs.get('1')!));
+          if (workers === 4) {
+            expect(r.profile.shared).toMatchObject({ applied: true, collisions: 0 });
+            expect(r.profile.shared!.known).toBeGreaterThan(0);
+          }
+        },
+        BUDGET_S * 1000,
+      );
+    it(
+      `${name}, 2 workers without the table: the same again`,
+      async () => {
+        const off = await one(2, false);
+        expect(sig(off)).toEqual(sig(runs.get('1')!));
+        expect(off.profile.shared?.applied).toBe(false);
+      },
+      BUDGET_S * 1000,
+    );
+  }
 
   // Last in the file: it replaces the worker pool with one that says "already stored" of every state.
   it('a worker\'s "already stored" the search does not confirm is expanded again here: the same proof', async () => {
