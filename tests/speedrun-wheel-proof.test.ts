@@ -30,7 +30,7 @@ const right = PARAMS.answers.indexOf(wheel.answer);
 const wrong = [0, 1, 2, 3, 4].filter((i) => i !== right);
 const transcript = (answers: number[], end: 'decided' | 'skipped' = 'decided', p = PARAMS) => ({
   v: 1 as const,
-  wheel: wheelHash(generateWheel(p, p.seed ?? 'story'), p.answers),
+  wheel: wheelHash(p, p.seed ?? 'story'),
   answers,
   end,
 });
@@ -68,6 +68,10 @@ describe('a transcript, judged again', () => {
     const fr = { ...PARAMS, answers: ['RUE', 'MARCHÉ', 'RUELLE', 'COUR', 'CAVE'] };
     expect(transcript([right], 'decided', fr)).toEqual(transcript([right]));
     expect(verifyWheelTranscript(fr, transcript([right]))).toEqual({ result: 'won' });
+    // Two answers translated alike stay two places: the proof does not read the text.
+    const twin = { ...PARAMS, answers: ['X', 'X', 'Y', 'Z', 'W'] };
+    expect(verifyWheelTranscript(twin, transcript([right]))).toEqual({ result: 'won' });
+    expect(verifyWheelTranscript(twin, transcript([wrong[0]!, wrong[1]!, wrong[2]!]))).toEqual({ result: 'passed' });
   });
 });
 
@@ -89,7 +93,12 @@ describe('a run with the wheel', () => {
     return g;
   };
   /** Records the route after the wheel, whose presenter says `out`; returns the sealed text and its verdict. */
-  async function run(g: GameDef, out: MinigameResult | MinigameOutcome | undefined, edit?: (env: string) => string) {
+  async function run(
+    g: GameDef,
+    out: MinigameResult | MinigameOutcome | undefined,
+    edit?: (env: string) => string,
+    params: CodeWheelParams = PARAMS,
+  ) {
     const fingerprint = await fixtureFingerprint(g);
     const p = new FakePresenter();
     p.minigame = async () => out;
@@ -105,7 +114,7 @@ describe('a run with the wheel', () => {
       now: () => 0,
     });
     await rec.start();
-    await engine.script([{ minigame: 'code-wheel', params: PARAMS as never }]);
+    await engine.script([{ minigame: 'code-wheel', params: params as never }]);
     for (const a of ROUTE) await engine.act({ ...a });
     const sealed = await rec.seal();
     return verifyRun(edit ? edit(exportEnvelope(sealed)) : sealed, verifyContext(fingerprint, g));
@@ -154,6 +163,22 @@ describe('a run with the wheel', () => {
     });
   });
 
+  it('a wheel whose result was removed is still a played wheel: no escape from the proof or the printed wheel', async () => {
+    const lenient = { enabled: true, skip: true, medium: 'digital', proof: 'transcript' } as const;
+    expect(await run(game(lenient), undefined)).toMatchObject({
+      verdict: 'invalid-category-rule',
+      code: 'code-wheel-proof',
+    });
+    expect(await run(game(lenient), 'disabled')).toMatchObject({
+      verdict: 'invalid-category-rule',
+      code: 'code-wheel-proof',
+    });
+    expect(await run(game({ enabled: true, skip: true, medium: 'physical' }), undefined)).toMatchObject({
+      verdict: 'valid-unranked',
+      code: 'physical-wheel-unwitnessed',
+    });
+  });
+
   it('a printed wheel without a moderator is not ranked', async () => {
     expect(
       await run(game({ enabled: true, skip: true, medium: 'physical' }), {
@@ -161,8 +186,12 @@ describe('a run with the wheel', () => {
         transcript: transcript([right]),
       }),
     ).toMatchObject({ verdict: 'valid-unranked', code: 'physical-wheel-unwitnessed', trust: 'replay-valid' });
-    // Switched off, nothing was played: the run is ranked.
-    expect(await run(game({ enabled: false, skip: true, medium: 'physical' }), 'disabled')).toMatchObject({
+    // Switched off, and proved so: nothing was played, the run is ranked.
+    const off = { result: 'disabled' as const, transcript: transcript([], 'skipped', { ...PARAMS, mode: 'disabled' }) };
+    const offParams = { ...PARAMS, mode: 'disabled' as const };
+    expect(
+      await run(game({ enabled: false, skip: true, medium: 'physical' }), off, undefined, offParams),
+    ).toMatchObject({
       verdict: 'valid',
     });
   });

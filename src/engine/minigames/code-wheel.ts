@@ -43,14 +43,16 @@ export const codeWheel: Minigame = {
     const p = ctx.params as unknown as CodeWheelParams & Record<string, unknown>;
     const mode: CodeWheelMode = (p.mode as CodeWheelMode | undefined) ?? 'parody';
     const seed = str(p.seed, 'story');
+    // 4.1.17: each answer's place in the author's list, as the transcript keeps it (never found again by its text).
+    const places: number[] = [];
     const record = (r: Omit<WheelRecord, 'seed' | 'version' | 'mode'>) => {
       const E = (globalThis as { CustomEvent?: typeof CustomEvent }).CustomEvent;
       // 4.1.17: the transcript a replay judges again: each answer by its place in the list (a translation keeps the
       // places), the wheel's hash.
       const transcript = {
         v: 1 as const,
-        wheel: wheelHash(r.wheel, p.answers),
-        answers: r.answers.map((a) => p.answers.indexOf(a)),
+        wheel: wheelHash(p, seed),
+        answers: [...places],
         end: r.result === 'skipped' || r.result === 'disabled' ? ('skipped' as const) : ('decided' as const),
       };
       const detail: WheelRecord & { transcript: typeof transcript } = {
@@ -270,7 +272,9 @@ export const codeWheel: Minigame = {
       Array.isArray(p.wrong) && p.wrong.length
         ? (p.wrong as string[])
         : ['Arr. That is not what the wheel says.', 'Nope. Did you turn the small disc?', 'A pirate would never.'];
-    for (const a of [...p.answers].sort()) {
+    for (const [a, place] of p.answers
+      .map((x, i) => [x, i] as const)
+      .sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0))) {
       const b = el('button', 'mg-answer', '') as HTMLButtonElement;
       b.type = 'button';
       b.textContent = a;
@@ -281,6 +285,7 @@ export const codeWheel: Minigame = {
         if (f.finished || decided) return;
         const verdict = judge(w, mode, a, answers.length, typeof p.tries === 'number' ? p.tries : 3);
         answers.push(a);
+        places.push(place);
         if (verdict === 'wrong') {
           live.textContent = wrong[(answers.length - 1) % wrong.length]!;
           return;

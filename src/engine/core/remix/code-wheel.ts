@@ -201,14 +201,19 @@ export function judge(
 }
 
 /**
- * A wheel's identity in a transcript (4.1.17): FNV-1a, twice, over its canonical JSON with each answer replaced by its
- * place in the author's list (16 hex digits) — the same wheel in every language. @public
+ * The wheel of `p` with each answer replaced by its place in the author's list (4.1.17): the same in every language
+ * (a translation changes the texts, never their places, and two answers translated alike stay two places). The shuffles
+ * draw by count, never by value, so it is the live wheel position for position.
  */
-export function wheelHash(w: CodeWheel, answers: readonly string[]): string {
-  const at = (a: string) => answers.indexOf(a);
-  const s = canonicalJson({ ...w, track: w.track.map(at), answer: at(w.answer) });
-  const fnv = (seed: number) => {
-    let h = seed;
+export function placeWheel(p: CodeWheelParams, seed: string): CodeWheel {
+  return generateWheel({ ...p, answers: p.answers.map((_, i) => String(i)) }, seed);
+}
+
+/** A wheel's identity in a transcript (4.1.17): FNV-1a, twice, over its places wheel's canonical JSON (16 hex digits). */
+export function wheelHash(p: CodeWheelParams, seed: string): string {
+  const s = canonicalJson(placeWheel(p, seed));
+  const fnv = (h0: number) => {
+    let h = h0;
     for (let i = 0; i < s.length; i++) {
       h ^= s.charCodeAt(i);
       // × 16777619 (the FNV prime) in shifts: exact in 32 bits, and no `Math` on this path (tests/remix-compile).
@@ -219,8 +224,8 @@ export function wheelHash(w: CodeWheel, answers: readonly string[]): string {
   return fnv(0x811c9dc5) + fnv(0x050c5d1f);
 }
 
-/** The most answers a transcript may hold (data from a client: bounded). */
-const MAX_ANSWERS = 64;
+/** The most answers a transcript may hold (data from a client: bounded, far past any wheel's tries or patience). */
+const MAX_ANSWERS = 1024;
 
 /**
  * The result a code wheel's transcript gives (4.1.17, ADR 0020), or why it is not a transcript of this wheel. The
@@ -235,14 +240,16 @@ export function verifyWheelTranscript(p: CodeWheelParams, t: unknown): { result:
     return { error: 'a transcript has a wheel, its answers and how it ended' };
   if (x.answers.length > MAX_ANSWERS || x.answers.some((a) => !Number.isInteger(a) || a < 0 || a >= p.answers.length))
     return { error: `at most ${MAX_ANSWERS} answers, each the place of one of the wheel's ${p.answers.length}` };
-  const w = generateWheel(p, typeof p.seed === 'string' ? p.seed : 'story');
-  if (x.wheel !== wheelHash(w, p.answers)) return { error: 'the answers were given to another wheel' };
+  const seed = typeof p.seed === 'string' ? p.seed : 'story';
+  // Judged on places: language and duplicate translations play no part.
+  const w = placeWheel(p, seed);
+  if (x.wheel !== wheelHash(p, seed)) return { error: 'the answers were given to another wheel' };
   const mode: CodeWheelMode = p.mode ?? 'parody';
   if (mode === 'disabled')
     return x.answers.length ? { error: 'a disabled wheel takes no answer' } : { result: 'disabled' };
   const tries = typeof p.tries === 'number' ? p.tries : 3;
   for (const [i, a] of x.answers.entries()) {
-    const verdict = judge(w, mode, p.answers[a]!, i, tries);
+    const verdict = judge(w, mode, String(a), i, tries);
     if (verdict === 'wrong') continue;
     if (i !== x.answers.length - 1) return { error: 'an answer after the one that decided' };
     if (x.end !== 'decided') return { error: `the answers decided it (${verdict}), it was not skipped` };

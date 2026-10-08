@@ -150,7 +150,8 @@ lecteur : c'est `server-witnessed` ou `moderator-verified`, jamais « anti-trich
 `codeWheel.proof: 'transcript'` refuse un résultat de roue sans ses réponses (`code-wheel-proof`) ; un transcript
 falsifié est `invalid-replay` (`minigame-transcript`) ; une catégorie avec `medium: 'physical'` dont le run a joué la
 roue est `valid-unranked` (`physical-wheel-unwitnessed`) tant qu'un modérateur ne l'a pas classé. La catégorie
-`wheel-proved` du chapitre de référence veut la roue gagnée et prouvée ; ses autres catégories gardent la règle de
+`wheel-proved` du chapitre de référence veut la roue gagnée et prouvée chaque fois qu'elle est jouée (la roue reste
+facultative : une route qui n'ouvre jamais la carte ne la joue pas) ; ses autres catégories gardent la règle de
 4.1.16.
 
 ## Politiques Reality

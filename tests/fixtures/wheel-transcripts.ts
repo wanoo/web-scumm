@@ -17,7 +17,7 @@ const P: CodeWheelParams = {
 };
 const at = (seed: string) => {
   const w = generateWheel(P, seed);
-  return { w, hash: wheelHash(w, P.answers), right: P.answers.indexOf(w.answer) };
+  return { w, hash: wheelHash({ ...P, seed }, seed), right: P.answers.indexOf(w.answer) };
 };
 const verdict = (seed: string, answers: (r: number) => number[], end: 'decided' | 'skipped') => {
   const { hash, right } = at(seed);
@@ -27,8 +27,8 @@ const verdict = (seed: string, answers: (r: number) => number[], end: 'decided' 
 const other = (r: number) => (r + 1) % 5;
 
 export const WHEEL_CASES: { name: string; make: () => string; expected: string }[] = [
-  { name: 'wheel hash, story', make: () => at('story').hash, expected: '3a4f080ad36f560c' },
-  { name: 'wheel hash, WS-0000-02DZ', make: () => at('WS-0000-02DZ').hash, expected: '867fd8bab0824424' },
+  { name: 'wheel hash, story', make: () => at('story').hash, expected: '49717b22169e9dbc' },
+  { name: 'wheel hash, WS-0000-02DZ', make: () => at('WS-0000-02DZ').hash, expected: '4b2b995a5daff09c' },
   { name: 'won', make: () => verdict('WS-0000-02DZ', (r) => [other(r), r], 'decided'), expected: 'won' },
   {
     name: 'passed',

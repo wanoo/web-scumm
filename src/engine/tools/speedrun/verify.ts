@@ -229,12 +229,15 @@ export async function verifyRun(input: unknown, ctx: VerifyContext): Promise<Spe
 }
 
 const entriesOf = (env: SpeedrunEnvelope) => envelopeEntries(env);
-/** Whether a run played the code wheel (answered or skipped it, not a wheel switched off). */
+/**
+ * Whether a run played the code wheel (4.1.17): a wheel the replay ran counts, whatever result it carries or lacks
+ * (a result removed before the seal is no escape), unless it is a switched-off wheel that proves it.
+ */
 const playedWheel = (links: { entry: SessionEntry }[]) =>
   links.some((l) =>
     (l.entry.ran ?? [])
       .filter((r) => r.startsWith('minigame:'))
-      .some((r, k) => r === 'minigame:code-wheel' && l.entry.mg?.[k] !== undefined && l.entry.mg[k] !== 'disabled'),
+      .some((r, k) => r === 'minigame:code-wheel' && !(l.entry.mg?.[k] === 'disabled' && !!l.entry.mgt?.[k])),
   );
 const hasHint = (en: SessionEntry) => (en.ran ?? []).some((r) => r.startsWith('hint:') && !r.endsWith('/none'));
 
@@ -422,13 +425,14 @@ async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerify
     }
     // A category that wants proof (4.1.17, D31): every wheel played with the answers that give its result. The word
     // `won` alone is the client's; the replay computed each transcript's result again above.
+    // Every wheel the replay ran (4.1.17, second reading): a result removed, or `disabled`, needs its answers too.
     if (wheel.proof === 'transcript') {
-      const k = results.findIndex((res, i) => res !== undefined && res !== 'disabled' && !proved[i]);
+      const k = proved.findIndex((p) => !p);
       if (k >= 0)
         stop(
           'invalid-category-rule',
           'code-wheel-proof',
-          `this category wants the code wheel's answers, and its result ${results[k]} came without them`,
+          `this category wants the code wheel's answers, and its result ${results[k] ?? '(none)'} came without them`,
         );
     }
   }
