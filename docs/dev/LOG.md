@@ -3528,4 +3528,8 @@ Platform"; human gates reported, not blocking (D12).
   130 KB target of the reference's first visit (137 KB, budget 140); the Vite 8 warnings removed; the per-policy resume
   in `e2e:remix-speedrun`; every human pass (D18: blocking for 4.2.0).
 
+- After `v4.1.16-rc.1` (f67392e): the maintainer's new logo (landscape, 1536×1024 reduced to 768×512) replaces the
+  READMEs' one; the archive carries the README, so the candidate is tagged again, `v4.1.16-rc.2`, on that commit, and
+  the final tag goes on the same commit once its assets are verified.
+
 → next: Claude · 4.2.0 "Stable World": the human passes first (D18), the `remix` and `speedrun` mutation survivors read
