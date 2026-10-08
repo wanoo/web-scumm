@@ -214,6 +214,11 @@ try {
       // The banner's button saves, waits for the save, then activates and reloads: the new worker is in charge after.
       await Promise.all([page.waitForEvent('load', { timeout: 30000 }), page.locator('.update-banner button').click()]);
       await page.locator('#app').waitFor({ state: 'attached' });
+      // The page is there before the game is: wait for the engine (4.1.16: CI's Firefox read it too early), and say
+      // what the page reported if it never comes.
+      await page.waitForFunction(() => !!window.__game?.engine, null, { timeout: 30000 }).catch(() => {
+        throw new Error(`update: the game did not start after the reload (${errors.slice(-3).join(' | ') || 'no error'})`);
+      });
       const taken = await states();
       if (taken.waiting || taken.installing || !taken.controller)
         throw new Error(`update: the new worker is not in charge after the reload: ${JSON.stringify(taken)}`);
