@@ -380,7 +380,8 @@ export class RunQueue {
     categoryId: string,
     o: { key?: string; seed?: 'fixed' | 'random'; limit?: number } = {},
   ) {
-    const limit = Math.min(Math.max(1, Math.floor(o.limit ?? BOARD_LIMIT.default)), BOARD_LIMIT.max);
+    const asked = Number.isFinite(o.limit) ? Math.floor(o.limit!) : BOARD_LIMIT.default;
+    const limit = Math.min(Math.max(1, asked), BOARD_LIMIT.max);
     const rows = await this.o.store.board({
       tenantId,
       gameId,
@@ -595,7 +596,7 @@ export function runsRoute(
         if (!ID.test(game) || !ID.test(category)) throw new RunsError(400, 'query', '?game=<id>&category=<id>');
         if (key !== undefined && !BOARD_KEY.test(key)) throw new RunsError(400, 'query', '&key=<category>[:<seed>]');
         const limit = url.searchParams.get('limit');
-        if (limit !== null && !/^[1-9]\d{0,3}$/.test(limit))
+        if (limit !== null && (!/^[1-9]\d{0,3}$/.test(limit) || Number(limit) > BOARD_LIMIT.max))
           throw new RunsError(400, 'query', `&limit=<1 to ${BOARD_LIMIT.max}>`);
         json(res, 200, {
           runs: await q.leaderboard(tenant, game, category, {

@@ -352,7 +352,7 @@ export class SqlRunStore implements RunStore {
          SELECT ${SUMMARY}, ROW_NUMBER() OVER (PARTITION BY player ORDER BY ${order}, submitted_at, id${c}) AS pick
            FROM runs
           WHERE tenant_id = $1 AND game_id = $2 AND category_id = $3 AND status = 'done' AND verdict = 'valid'
-            AND ranked IS NOT NULL AND COALESCE(leaderboard_key, category_id) = $4${q.seedKind ? ' AND seed_kind = $5' : ''}
+            AND ranked IS NOT NULL AND ranked <> '' AND COALESCE(leaderboard_key, category_id) = $4${q.seedKind ? ' AND seed_kind = $5' : ''}
        )
        SELECT *, RANK() OVER (ORDER BY ${order}) AS board_rank FROM candidates WHERE pick = 1
         ORDER BY ${order}, submitted_at, id${c} LIMIT ${Math.max(0, Math.floor(q.limit))}`;

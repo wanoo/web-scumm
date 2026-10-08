@@ -93,6 +93,7 @@ try {
     reads: READS,
     fillSeconds: Math.round(fillSeconds * 10) / 10,
     latencyMs: { p50: p(0.5), p95: p(0.95), max: p(1) },
+    // The whole process's resident memory (the filled store's pages included), before and after the reads.
     rssMb: { before: Math.round(rssBefore / 2 ** 20), after: Math.round(rssAfter / 2 ** 20) },
     bounds: { p95Ms: MAX_P95, rssMb: MAX_RSS },
     board: {
@@ -120,6 +121,9 @@ try {
   for (const b of bad) console.error(`✖  ${b}`);
   if (bad.length) code = 1;
 } finally {
+  // A shared database keeps nothing of this measure (a CI service is thrown away anyway).
+  if (store.db.dialect === 'postgres')
+    await store.db.run('DELETE FROM runs WHERE tenant_id = $1', [tenantId]).catch(() => 0);
   await store.close().catch(() => {});
   rmSync(dir, { recursive: true, force: true });
 }

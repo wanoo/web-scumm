@@ -11,7 +11,8 @@
 
 - **Bridge schema 3** (4.1.17, `bridge/migrations/0003`): the ranked times of 4.1.16's rows brought to the canonical
   form, a value that is not a decimal set aside (its time removed, its trust untouched, said in its reason), and the
-  index the ranking reads. `bridge migrate --schema=2` undoes the index only.
+  index the ranking reads. `bridge migrate --schema=2` undoes the index only. Upgrade every instance of a tenant
+  together: a 4.1.16 instance still running beside a migrated store would write times as they came.
 - **`npm run runs:load`** (4.1.17): the leaderboard at 100 000 runs on SQLite or Postgres: p50/p95 latency, resident
   memory, the SQL plan; a bound passed fails it. The candidate and the nightly run it on both stores.
 - The leaderboard says what it ranks: each **pseudonym**'s best (the Bridge knows no player identity).

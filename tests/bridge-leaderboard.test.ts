@@ -16,7 +16,7 @@ import {
   type RunStore,
   SqlRunStore,
 } from '../bridge/src/runs-store';
-import { BOARD_LIMIT, RunQueue } from '../bridge/src/runs';
+import { BOARD_LIMIT, RunQueue, runsRoute } from '../bridge/src/runs';
 import { SqliteRealityStore } from '../bridge/src/store-sqlite';
 import { type PgModule, PostgresRealityStore } from '../bridge/src/store-postgres';
 import type { SqlDb } from '../bridge/src/store-sql';
@@ -154,6 +154,21 @@ for (const kind of STORES)
       ]);
     });
 
+    it('orders equal times by submission, then by id; an empty time is no time', async () => {
+      const store = await kind.make();
+      await fill(store, [
+        done({ player: 'Zed', ranked: '600', id: 'run_z', submittedAt: 5 }),
+        done({ player: 'Amy', ranked: '600', id: 'run_a', submittedAt: 5 }),
+        done({ player: 'Bo', ranked: '600', id: 'run_b', submittedAt: 4 }),
+        done({ player: 'Empty', ranked: '' }),
+      ]);
+      expect((await store.board(q())).map((r) => [r.rank, r.run.player])).toEqual([
+        [1, 'Bo'],
+        [1, 'Amy'],
+        [1, 'Zed'],
+      ]);
+    });
+
     it('orders times past Number.MAX_SAFE_INTEGER as decimals, and never reads an envelope', async () => {
       const store = await kind.make();
       await fill(store, [
@@ -228,6 +243,23 @@ describe('the queue', () => {
       expect((await queue.leaderboard('t1', 'reference', 'any%', { limit: 5000 })).length).toBe(BOARD_LIMIT.max);
       expect((await queue.leaderboard('t1', 'reference', 'any%', { limit: 0 })).length).toBe(1);
       expect((await queue.leaderboard('t1', 'reference', 'any%', { limit: 3 })).map((r) => r.rank)).toEqual([1, 2, 3]);
+      expect((await queue.leaderboard('t1', 'reference', 'any%', { limit: Number.NaN })).length).toBe(100);
+      // Over HTTP: `&limit=` from 1 to 1 000, anything else is a 400.
+      const route = runsRoute(queue, () => 't1');
+      const get = async (qs: string) => {
+        let status = 0;
+        let body = '';
+        const res = {
+          writeHead: (s: number) => ((status = s), res),
+          setHeader: () => res,
+          end: (b?: string) => ((body = b ?? ''), res),
+        } as never;
+        await route({ method: 'GET', url: `/v1/runs?${qs}`, headers: {} } as never, res, '/v1/runs');
+        return { status, body: body ? JSON.parse(body) : null };
+      };
+      expect((await get('game=reference&category=any%25&limit=7')).body.runs.length).toBe(7);
+      for (const bad of ['0', '1001', '9999', 'x', '-1'])
+        expect((await get(`game=reference&category=any%25&limit=${bad}`)).status, bad).toBe(400);
     } finally {
       queue.close();
     }
@@ -256,7 +288,10 @@ describe('schema 3', () => {
     const word = (await v2.list('t1')).find((r) => r.player === 'Word')!;
     expect(word).toMatchObject({ ranked: null, trust: 'replay-valid' });
     expect(word.reason).toContain('the ranked time "abc" is not a decimal of at most 30 digits; set aside');
-    expect((await v2.list('t1')).find((r) => r.player === 'Long')!.ranked).toBeNull();
+    const long = (await v2.list('t1')).find((r) => r.player === 'Long')!;
+    expect(long.ranked).toBeNull();
+    // A run without a reason gets one: the concatenation never turns it into NULL.
+    expect(long.reason).toContain(`the ranked time "${'1'.repeat(31)}" is not a decimal`);
     await old.close();
   });
 });
