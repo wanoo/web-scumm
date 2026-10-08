@@ -1,0 +1,279 @@
+name: candidate
+# The candidate gate (4.1.17, docs/dev/PLAN-4.1.17-STABILIZATION.md §4.2): every heavy family on one exact SHA, each in
+# a job of its own with its own timeout, then `candidate-gate`, which judges them all and writes
+# `candidate-manifest.json` (the SHA tested, this run's id, the SHA-256 of each file the release publishes). A stable
+# or pre-release tag names one green run of this workflow (`ship tag <v> <sha> --candidate=<run id>`); release.yml
+# publishes that run's files after checking every sum. 4.1.16 was tagged before its first heavy run, which went red.
+#
+# Started by hand on a SHA (`gh workflow run candidate -f sha=<full sha>`): the normal path, needed before any tag. A
+# pull request labelled `full-ci` runs it too, as information. Never on a tag: a tag stands on a candidate already run.
+# "Cold": a new runner, a fresh checkout; the solver keeps nothing between runs and no cache but npm's is restored.
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'The full SHA to test (empty: the head of the branch it is started on)'
+        required: false
+        default: ''
+  pull_request:
+    types: [labeled, synchronize]
+permissions:
+  contents: read
+concurrency:
+  group: candidate-${{ github.event.inputs.sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+jobs:
+  # The SHA every job checks out: the input, the pull request's head, or the branch's head; always written in full.
+  target:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'full-ci')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.sha.outputs.sha }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.inputs.sha || github.event.pull_request.head.sha || github.sha }}
+      - id: sha
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+  # release-check as release.yml runs it (doctor --release, quality, build, coverage and its strict ratchet, the
+  # release gates, the proofs, the Rust cross-check, the packages' dry run, the audits), without the mutation sets.
+  release-core:
+    needs: target
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - run: bash scripts/ci-ffmpeg.sh
+        timeout-minutes: 20
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - run: for i in 1 2 3; do (npx playwright install --with-deps chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - run: npm run release-check:ci
+  # The heavy solver suite three times, each on a new runner (plan §5): the counters and the oracle are deterministic,
+  # the durations are what three runs measure. One red attempt is a red candidate.
+  heavy:
+    needs: target
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        attempt: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: npm run test:heavy -- --reporter=default --reporter=json --outputFile.json=heavy-${{ matrix.attempt }}.json
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: heavy-${{ matrix.attempt }}
+          path: heavy-${{ matrix.attempt }}.json
+          if-no-files-found: error
+  # The Bridge under load on each store, in a job of its own (plan §4.1): the report names the backend the store object
+  # is, and tools/load-report.ts refuses a report that is missing, incomplete, of another backend or another commit.
+  bridge-load-sqlite:
+    needs: target
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: npm run bridge:load -- --store=sqlite --out=bridge-load-sqlite.json
+      - if: always()
+        run: npx tsx tools/load-report.ts bridge-load-sqlite.json --store=sqlite --commit=${{ needs.target.outputs.sha }}
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: bridge-load-sqlite
+          path: bridge-load-sqlite.json
+          if-no-files-found: error
+  bridge-load-postgres:
+    needs: target
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+        env:
+          POSTGRES_USER: bridge
+          POSTGRES_PASSWORD: bridge
+          POSTGRES_DB: bridge
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bridge" --health-interval 2s --health-timeout 5s --health-retries 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: npm run bridge:load -- --store=postgres://bridge:bridge@127.0.0.1:5432/bridge --out=bridge-load-postgres.json
+      - if: always()
+        run: npx tsx tools/load-report.ts bridge-load-postgres.json --store=postgres --commit=${{ needs.target.outputs.sha }}
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: bridge-load-postgres
+          path: bridge-load-postgres.json
+          if-no-files-found: error
+  # The four runtimes (4.1.16) at the nightly's 500 seeds; the Remix × Time Attack check writes the release's runs
+  # (`--out`): five worlds and 4.1.15's schema 1 file, with their manifest. Those very files are published.
+  cross-runtime:
+    needs: target
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - run: for i in 1 2 3; do (npx playwright install --with-deps chromium webkit firefox) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - run: npm run e2e:canonical
+      - run: npm run e2e:remix -- --seeds=500
+      - run: npm run e2e:speedrun
+      - shell: bash
+        run: |
+          mkdir -p candidate-release
+          npm run -s e2e:remix-speedrun -- --out=candidate-release/wsrun | tee candidate-release/e2e-remix-speedrun.txt
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: candidate-release
+          path: candidate-release
+          if-no-files-found: error
+  # One job per gated mutation set (plan §9): a set's timeout never hides another's result, as reality-store's hid the
+  # gated sets' in the 4.1.16 nightly. A report of these exact inputs (tools/mutate.ts --hash) is reused, no other.
+  mutation:
+    needs: target
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        set: [core, reality]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - id: inputs
+        run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/mutation
+          key: mutation-${{ matrix.set }}-${{ steps.inputs.outputs.hash }}
+      - run: npm run test:mutation:core -- --set=${{ matrix.set }} | tee mutation-${{ matrix.set }}.txt
+        shell: bash
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: mutation-${{ matrix.set }}
+          path: |
+            mutation-${{ matrix.set }}.txt
+            .cache/mutation/report-${{ matrix.set }}.json
+          include-hidden-files: true
+          if-no-files-found: error
+  # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
+  candidate-gate:
+    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, mutation]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.target.outputs.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: artifacts
+      - name: Every job succeeded
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: node tools/release/candidate.mjs gate | tee gate.txt
+      - name: The manifest of this candidate
+        run: |
+          node tools/release/candidate.mjs manifest --sha=${{ needs.target.outputs.sha }} --run=${{ github.run_id }} --dir=artifacts/candidate-release --out=candidate-manifest.json
+          node tools/release/candidate.mjs check candidate-manifest.json --sha=${{ needs.target.outputs.sha }} --run=${{ github.run_id }} --dir=artifacts/candidate-release
+      - if: always()
+        name: Summary
+        shell: bash
+        run: |
+          {
+            echo "## Candidate ${{ github.run_id }}"
+            echo
+            echo "- SHA tested: \`${{ needs.target.outputs.sha }}\`"
+            echo "- Tag with: \`npm run ship -- tag <version> ${{ needs.target.outputs.sha }} --candidate=${{ github.run_id }}\`"
+            echo
+            echo '### Jobs'
+            echo '```'
+            cat gate.txt 2>/dev/null || echo 'not judged'
+            echo '```'
+            echo '### Load (backend actually opened)'
+            for f in artifacts/bridge-load-*/bridge-load-*.json; do
+              [ -f "$f" ] && node -e "const r=require('./$f'); console.log('- ' + r.store + ': ' + r.proposals + ' proposals, ' + r.perSecond + '/s, p95 ' + r.latencyMs.p95 + ' ms, gaps ' + r.gaps + ', commit ' + String(r.commit).slice(0, 12))"
+            done
+            echo '### Solver (heavy, per attempt)'
+            for f in artifacts/heavy-*/heavy-*.json; do
+              [ -f "$f" ] && node -e "const r=require('./$f'); const t=r.testResults.flatMap(x=>x.assertionResults); console.log('- ' + '$f'.split('/').pop() + ': ' + r.numPassedTests + '/' + r.numTotalTests + ' passed, ' + Math.round(t.reduce((s,x)=>s+(x.duration||0),0)/1000) + ' s of tests')"
+            done
+            echo '### Mutation (input hash, score)'
+            for f in artifacts/mutation-*/.cache/mutation/report-*.json; do
+              [ -f "$f" ] && node -e "const r=require('./$f'); console.log('- ' + r.set + ': ' + r.status + ', ' + r.killed + '/' + r.total + ' killed or named, input hash ' + r.inputHash + ', commit ' + String(r.commitSha).slice(0, 12))"
+            done
+            echo '### Files for the release'
+            [ -f candidate-manifest.json ] && node -e "for (const a of require('./candidate-manifest.json').artifacts) console.log('- ' + a.name + ' ' + a.sha256.slice(0, 16))" || echo '- none (the gate is red)'
+            echo '### Human passes still open'
+            echo "- $(ls docs/dev/passes/*.md | sort -V | tail -1): every row is a human's to record (D18); none is marked here"
+            echo '### Artifacts missing'
+            for a in candidate-release heavy-1 heavy-2 heavy-3 bridge-load-sqlite bridge-load-postgres; do [ -d "artifacts/$a" ] || echo "- $a"; done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: candidate-manifest
+          path: candidate-manifest.json
+          if-no-files-found: error
