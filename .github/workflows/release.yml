@@ -20,6 +20,8 @@ permissions:
   contents: write
   id-token: write
   attestations: write
+  # 4.1.17: the files of the candidate run the tag names are downloaded from that run.
+  actions: read
 jobs:
   # The two mutation sets beside release-check instead of inside it (4.1.10): each set is a job of its own, about half
   # an hour, and the release waits for both; the hour they took in sequence, after release-check's twenty minutes, was
@@ -72,6 +74,7 @@ jobs:
           path: |
             mutation-${{ matrix.set }}.txt
             .cache/mutation/report-${{ matrix.set }}.json
+          include-hidden-files: true
           if-no-files-found: ignore
   release:
     needs: mutation
@@ -97,6 +100,29 @@ jobs:
         # 4.1.16: guarded on the file, as every step a tag's commit may predate (release.yml runs from main).
         run: |
           if [ -f tools/release/ancestry.mjs ]; then node tools/release/ancestry.mjs "$TAG" "$SHA"; else echo "::notice::$TAG predates the ancestry check"; fi
+      # 4.1.17 (plan §4.2, tools/release/candidate.mjs): from 4.1.17 on a tag names the `candidate` run that tested
+      # its commit (`candidate-run: <id>` in its annotation). That run must be green, its manifest this SHA's and that
+      # run's, and every file it produced for the release must match its SHA-256: those files are published, never
+      # made again. A tag older than 4.1.17 has neither the tool nor the line, and says so.
+      - name: The candidate this tag stands on
+        run: |
+          if [ ! -f tools/release/candidate.mjs ]; then echo "::notice::$TAG predates the candidate gate"; exit 0; fi
+          run=$(node tools/release/candidate.mjs run-of "$TAG")
+          if [ -z "$run" ]; then
+            if node --input-type=module -e "import { requiresCandidate } from './tools/release/candidate.mjs'; process.exit(requiresCandidate(process.argv[1]) ? 1 : 0)" "$TAG"; then
+              echo "::notice::$TAG predates the candidate gate"; exit 0
+            fi
+            echo "::error::$TAG names no candidate run: tag with ship tag … --candidate=<run id>"; exit 1
+          fi
+          # Started by hand on main: a pull request's run or another branch's judges another copy of candidate.yml.
+          got=$(gh run view "$run" --json workflowName,status,conclusion,event,headBranch --jq '[.workflowName, .status, .conclusion, .event, .headBranch] | join(" ")')
+          test "$got" = "candidate completed success workflow_dispatch main" || { echo "::error::run $run is \"$got\", not a green candidate started on main"; exit 1; }
+          gh run download "$run" -n candidate-manifest -D .candidate-manifest
+          gh run download "$run" -n candidate-release -D .candidate
+          node tools/release/candidate.mjs check .candidate-manifest/candidate-manifest.json --sha="$SHA" --run="$run" --dir=.candidate
+          echo "CANDIDATE=$run" >> "$GITHUB_ENV"
+        env:
+          GH_TOKEN: ${{ github.token }}
       - name: Not published yet
         run: |
           n=$(gh release view "$TAG" --json assets --jq '.assets | length' 2>/dev/null || echo 0)
@@ -170,6 +196,15 @@ jobs:
             cp tests/fixtures/speedrun/reference-any.wsrun "web-scumm-$TAG-reference-any.wsrun"
             extra="web-scumm-$TAG-reference-any.wsrun"
           fi
+          # The candidate's runs (4.1.17): the five worlds and 4.1.15's schema 1 file, their manifest, the report of the
+          # check that made them, and the candidate's manifest itself; checked against their sums above, copied as they are.
+          if [ -n "${CANDIDATE:-}" ]; then
+            for f in .candidate/wsrun/*.wsrun; do cp "$f" "web-scumm-$TAG-$(basename "$f")"; extra="$extra web-scumm-$TAG-$(basename "$f")"; done
+            cp .candidate/wsrun/wsrun-manifest.json "web-scumm-$TAG-wsrun-manifest.json"
+            cp .candidate/e2e-remix-speedrun.txt "web-scumm-$TAG-e2e-remix-speedrun.txt"
+            cp .candidate-manifest/candidate-manifest.json "web-scumm-$TAG-candidate.json"
+            extra="$extra web-scumm-$TAG-wsrun-manifest.json web-scumm-$TAG-e2e-remix-speedrun.txt web-scumm-$TAG-candidate.json"
+          fi
           sha256sum "web-scumm-$TAG-dist.tar.gz" "web-scumm-$TAG-assets-manifest.json" "web-scumm-$TAG-sbom.cdx.json" "web-scumm-bridge-$TAG-sbom.cdx.json" $extra ${REMIX_ASSETS:-} web-scumm-[0-9]*.tgz create-web-scumm-*.tgz web-scumm-bridge-*.tgz > "web-scumm-$TAG-SHA256SUMS"
           echo "EXTRA_ASSETS=$extra" >> "$GITHUB_ENV"
       - uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
@@ -182,6 +217,10 @@ jobs:
             web-scumm-bridge-${{ env.TAG }}-sbom.cdx.json
             web-scumm-*-reference-any.wsrun
             web-scumm-*-remix-*.json
+            web-scumm-*-run-*.wsrun
+            web-scumm-*-wsrun-manifest.json
+            web-scumm-*-e2e-remix-speedrun.txt
+            web-scumm-*-candidate.json
             web-scumm-${{ env.TAG }}-SHA256SUMS
             web-scumm-[0-9]*.tgz
             create-web-scumm-*.tgz

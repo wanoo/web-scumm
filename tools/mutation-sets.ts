@@ -87,6 +87,6 @@ export const TESTS: Record<MutationSet, string[]> = {
 /** The sets `all` runs and the gate judges; `connectors` and `reality-store` run on their own until they are gated. */
 // `remix` and `speedrun` (4.1.16) are measured, not gated yet: their first runs left survivors to read one by one
 // (docs/dev/passes/4.1.16.md); each is killed or named in docs/dev/mutants.json before the two join here, for 4.2.
-const GATED: MutationSet[] = ['core', 'reality'];
+export const GATED: MutationSet[] = ['core', 'reality'];
 
 export const setsOf = (set: MutationSet | 'all'): MutationSet[] => (set === 'all' ? GATED : [set]);

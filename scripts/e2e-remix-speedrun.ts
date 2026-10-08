@@ -8,9 +8,12 @@
 // 3. that file verified in a new process (`npm run speedrun:verify -- --json`);
 // 4. submitted to a Bridge queue whose isolated worker is the real one (`tools/speedrun/worker.ts`): its verdict, its
 //    leaderboard key and its trust are the category's.
+// `--out=<dir>` (4.1.17, the release's runs): the five files, 4.1.15's schema 1 run and `wsrun-manifest.json` (each
+// file's schema, world policy, rules version, test key, commit and the verdict this engine gives it) are written there;
+// candidate.yml keeps them and the release publishes those very files.
 // Exit codes: 0 every check holds, 1 one does not, 3 a browser Playwright cannot launch (`--allow-skip`: 0, said).
-import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -23,6 +26,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const names = (args.find((a) => a.startsWith('--browsers='))?.slice(11) ?? 'chromium,webkit,firefox').split(',');
 const allowSkip = args.includes('--allow-skip');
+const outDir = args.find((a) => a.startsWith('--out='))?.slice(6);
 
 const { game } = await import('../games/reference/game');
 const { applyVariant, compileGameManifest, remixWorld } = await import('../src/engine/core/remix/apply');
@@ -205,11 +209,19 @@ if (!failed && Object.keys(texts).length > 1)
 
 // ---------------------------------------------------------------- 3. a new process; 4. the Bridge's isolated worker
 const dir = mkdtempSync(join(tmpdir(), 'remix-speedrun-'));
-const tsx = createRequire(import.meta.url).resolve('tsx/cli');
+const verifyFile = (file: string) => {
+  const cli = spawnSync(process.execPath, [tsx(), resolve(ROOT, 'tools/speedrun/verify.ts'), file, '--json'], {
+    encoding: 'utf8',
+    env: { ...process.env, GAME: 'reference' },
+  });
+  return JSON.parse(cli.stdout.trim().split('\n').at(-1) ?? '{}');
+};
+const released: Record<string, unknown>[] = [];
+const tsx = () => createRequire(import.meta.url).resolve('tsx/cli');
 const queue = new RunQueue({
   store: new MemoryRunStore(),
   approved: { reference: { dir: resolve(ROOT, 'games/reference'), fingerprint: ctx.fingerprint } },
-  worker: [process.execPath, tsx, resolve(ROOT, 'tools/speedrun/worker.ts')],
+  worker: [process.execPath, tsx(), resolve(ROOT, 'tools/speedrun/worker.ts')],
   timeoutMs: 60_000,
   perMinute: 100,
   purgeEveryMs: 0,
@@ -221,11 +233,24 @@ try {
   for (const [i, k] of CASES.entries()) {
     const file = join(dir, `${k.category.replace(/%/g, '')}.wsrun`);
     writeFileSync(file, texts.node![i]!);
-    const cli = spawnSync(process.execPath, [tsx, resolve(ROOT, 'tools/speedrun/verify.ts'), file, '--json'], {
-      encoding: 'utf8',
-      env: { ...process.env, GAME: 'reference' },
+    const out = verifyFile(file);
+    const env = JSON.parse(texts.node![i]!) as { schema: number; rulesVersion: number };
+    released.push({
+      file: `run-${k.world.mode === 'story' ? 'story' : k.category}.wsrun`,
+      source: file,
+      schema: env.schema,
+      world: k.world.mode === 'story' ? 'story' : k.category.replace(/^remix-/, ''),
+      seed: k.world.seed,
+      rulesVersion: env.rulesVersion,
+      verdict: out.verdict,
+      leaderboardKey: out.world?.leaderboardKey ?? null,
+      ...(k.evidence
+        ? {
+            testKey: fixture.kid,
+            evidence: 'demonstration fixture signed with the published test key, not an attestation',
+          }
+        : {}),
     });
-    const out = JSON.parse(cli.stdout.trim().split('\n').at(-1) ?? '{}');
     if (out.verdict !== k.want.verdict || out.world?.leaderboardKey !== k.want.key)
       fail(
         'verify',
@@ -246,6 +271,35 @@ try {
       console.log(
         `✔  ${k.category}: world ${k.world.mode} ${k.world.seed}; verified in a new process and by the Bridge's worker: ${r.verdict} on "${r.leaderboardKey}", ${r.trust}${ranked ? `, ranked ${r.ranked} µt` : ', not ranked'}`,
       );
+  }
+  // 4.1.15's schema 1 run: kept as it was, said for what it is — this engine sends it to that version's archive.
+  const v1 = resolve(ROOT, 'tests/fixtures/speedrun/reference-any.v1.wsrun');
+  const old = verifyFile(v1);
+  if (old.verdict !== 'unsupported-version') fail('verify', `the 4.1.15 run: ${old.verdict}, not unsupported-version`);
+  const oldEnv = JSON.parse(readFileSync(v1, 'utf8')) as {
+    schema?: number;
+    rulesVersion: number;
+    engineVersion?: string;
+  };
+  released.push({
+    file: 'run-story-v1.wsrun',
+    source: v1,
+    schema: oldEnv.schema ?? 1,
+    world: 'story',
+    rulesVersion: oldEnv.rulesVersion,
+    verdict: old.verdict,
+    note: 'recorded on 4.1.15: verified as Story by the 4.1.15 archive; this engine refuses to judge it',
+  });
+  if (outDir && !failed) {
+    mkdirSync(outDir, { recursive: true });
+    const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim();
+    for (const r of released) copyFileSync(r.source as string, join(outDir, r.file as string));
+    const files = released.map(({ source: _, ...r }) => ({ ...r, commit }));
+    writeFileSync(
+      join(outDir, 'wsrun-manifest.json'),
+      `${JSON.stringify({ engine: ctx.engineVersion, commit, files }, null, 1)}\n`,
+    );
+    console.log(`✔  ${files.length} .wsrun files and their manifest written to ${outDir}`);
   }
 } finally {
   queue.close();

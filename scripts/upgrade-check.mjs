@@ -8,11 +8,14 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { upgradeSource } from './upgrade-source.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
-let from = process.argv.find((a) => a.startsWith('--from='))?.slice(7);
-if (!from) {
-  console.error('usage: npm run upgrade-check -- --from=<version | web-scumm-x.y.z.tgz>');
+let source;
+try {
+  source = upgradeSource(process.argv.find((a) => a.startsWith('--from='))?.slice(7), (f) => existsSync(resolve(f)));
+} catch (e) {
+  console.error(`usage: npm run upgrade-check -- --from=<version | previous | web-scumm-x.y.z.tgz> (${e.message})`);
   process.exit(2);
 }
 const base = mkdtempSync(join(tmpdir(), 'web-scumm-upgrade-'));
@@ -39,7 +42,7 @@ const cmp = (a, b) => {
   for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] - y[i];
   return 0;
 };
-if (from === 'previous') {
+if (source.kind === 'previous') {
   const here = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
   const tags = JSON.parse(
     execFileSync(
@@ -55,19 +58,17 @@ if (from === 'previous') {
     console.error('no published release with a package tarball before', here);
     process.exit(1);
   }
-  from = tags.at(-1);
-  console.log(`upgrade from the previous release: ${from}`);
+  source = upgradeSource(tags.at(-1), () => false);
+  console.log(`upgrade from the previous release: ${source.version}`);
 }
-let oldTgz = resolve(from);
-if (!existsSync(oldTgz)) {
+const oldTgz = source.kind === 'tgz' ? resolve(source.path) : join(base, source.asset);
+if (source.kind === 'release')
   show(
-    `download web-scumm ${from}`,
+    `download web-scumm ${source.version}`,
     'gh',
-    ['release', 'download', `v${from}`, '-R', 'wanoo/web-scumm', '-p', `web-scumm-${from}.tgz`, '-D', base],
+    ['release', 'download', source.tag, '-R', 'wanoo/web-scumm', '-p', source.asset, '-D', base],
     base,
   );
-  oldTgz = join(base, `web-scumm-${from}.tgz`);
-}
 show('create the game with the older engine', 'tar', ['-xzf', oldTgz, '-C', base], base);
 const oldVersion = JSON.parse(readFileSync(join(base, 'package', 'package.json'), 'utf8')).version;
 show(

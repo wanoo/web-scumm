@@ -1,11 +1,14 @@
-// npm run bridge:load [-- --instances=3 --players=1000 --proposals=50000 --concurrency=64 --streams=50 --out=<file>]
-// (4.1.10, docs/dev/BENCH-BRIDGE.md): the Bridge under load, as deployed. Three `serve` processes on one store (a
-// SQLite file; Postgres when BRIDGE_STORE names one), players seeded in the store with known capabilities (pairing
+// npm run bridge:load [-- --store=sqlite|postgres://… --instances=3 --players=1000 --proposals=50000 --concurrency=64
+// --streams=50 --out=<file>] (4.1.10, docs/dev/BENCH-BRIDGE.md): the Bridge under load, as deployed. Three `serve`
+// processes on one store (a SQLite file; Postgres when --store, or BRIDGE_STORE, names one), players seeded in the store with known capabilities (pairing
 // is not what is measured, and its anonymous route is rate-limited by design), connector proposals sent over HTTP to
 // the instances in turn, a share of the players followed by event streams on the last instance. Measured: the
 // throughput, the latency of an accepted proposal (p50, p95, p99), the refusals and errors (the limits reached), the
 // journal checked afterwards (one row per proposal, every sequence contiguous) and every stream complete. Prints one
 // JSON line and writes it to --out; the machine is named in it. Nothing is published that this did not measure.
+// 4.1.17: the report names the backend the store object says it is (`store.kind`), never the one asked for, and the
+// commit; `tools/load-report.ts` refuses a report that is missing, incomplete or of another backend. An empty
+// BRIDGE_STORE is no store at all (the nightly's SQLite row set it to "" and measured nothing in 4.1.16).
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { arch, cpus, platform, release, tmpdir, totalmem } from 'node:os';
@@ -16,7 +19,9 @@ import { initCluster, type Instance, proposeOver, startInstance, streamOver } fr
 import { pathToFileURL } from 'node:url';
 import type { GameDef } from '../src/engine/core/types';
 import { flushExit } from './flush';
+import { loadSpec } from './load-report';
 import { ROOT } from './game';
+import { execFileSync } from 'node:child_process';
 
 const arg = (k: string, d: number) => Number(process.argv.find((a) => a.startsWith(`--${k}=`))?.split('=')[1] ?? d);
 const INSTANCES = arg('instances', 3);
@@ -33,7 +38,13 @@ if (!manifest) throw new Error('games/signals declares no reality.signals');
 const signal = manifest.signals.find((s) => s.source === 'mail')?.id ?? manifest.signals[0]!.id;
 
 const dir = mkdtempSync(join(tmpdir(), 'bridge-load-'));
-const external = process.env.BRIDGE_STORE;
+const spec = loadSpec(process.argv, process.env);
+// The instances read a Postgres URL from BRIDGE_STORE (it stays out of config.json); for SQLite they read the file
+// their configuration names, and no BRIDGE_STORE reaches them.
+const external = spec === 'sqlite' ? undefined : spec;
+const childEnv = { ...process.env };
+delete childEnv.BRIDGE_STORE;
+if (external) childEnv.BRIDGE_STORE = external;
 const tenantId = `load-${randomBytes(3).toString('hex')}`;
 const instances: Instance[] = [];
 let code = 0;
@@ -63,7 +74,7 @@ try {
     });
     players.push({ playerId, capability });
   }
-  for (let i = 0; i < INSTANCES; i++) instances.push(await startInstance(dir));
+  for (let i = 0; i < INSTANCES; i++) instances.push(await startInstance(dir, childEnv));
   const last = instances[instances.length - 1]!;
   const streams = players.slice(0, STREAMS).map((p) => streamOver(last.url, p.capability));
   await new Promise((ok) => setTimeout(ok, 300));
@@ -104,6 +115,7 @@ try {
   const byPlayer = new Map<string, number[]>();
   for (const s of x.signals) byPlayer.set(s.playerId, [...(byPlayer.get(s.playerId) ?? []), s.sequence]);
   const gaps = [...byPlayer.values()].filter((seqs) => seqs.some((n, k) => n !== k + 1)).length;
+  const kind = store.kind;
   if (external) await store.deleteTenant(tenantId);
   await store.close();
 
@@ -112,7 +124,9 @@ try {
     Math.round((latencies[Math.min(latencies.length - 1, Math.floor(p * latencies.length))] ?? 0) * 10) / 10;
   const report = {
     at: new Date().toISOString(),
-    store: external ? 'postgres' : 'sqlite',
+    // The checkout's commit, not GITHUB_SHA: a candidate started by hand on a SHA runs on the branch's head.
+    commit: execFileSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).trim(),
+    store: kind,
     instances: INSTANCES,
     players: PLAYERS,
     proposals: PROPOSALS,

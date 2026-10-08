@@ -103,11 +103,17 @@ jobs:
             corpus.json
             corpus.txt
           if-no-files-found: ignore
-  # Mutation testing of both sets (4.1.0, tools/mutate.ts; the Reality set gated since 4.1.8): every mutant killed by
-  # a test, or one of the equivalent mutants docs/dev/mutants.json names. The report is kept.
+  # Mutation testing (4.1.0, tools/mutate.ts), one job per gated set since 4.1.17: in 4.1.16 the gated sets ran in one
+  # process, then reality-store in the same job, which reached the job's 90 minutes and was killed (exit 143) after
+  # core and reality had passed. `--fresh`: the nightly measures again whatever ci cached, so a flaky kill does not
+  # hide behind a reused report. The reports are kept (hidden files: `.cache/` was silently left out before 4.1.17).
   mutation:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        set: [core, reality]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -116,34 +122,70 @@ jobs:
           cache: npm
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
-      # Both sets, gated (4.1.8): a survivor not named in docs/dev/mutants.json is red here too. `--fresh`: the
-      # nightly measures again whatever ci cached, so a flaky kill does not hide behind a reused report.
-      - run: npm run test:mutation:core -- --set=all --fresh | tee mutation.txt
-        shell: bash
-      # The Bridge's stores and fan-out (4.1.10): measured every night, not gated yet (tools/mutation-sets.ts, GATED).
-      - if: always()
-        continue-on-error: true
-        run: npm run test:mutation:core -- --set=reality-store --fresh | tee mutation-reality-store.txt
+      - run: npm run test:mutation:core -- --set=${{ matrix.set }} --fresh | tee mutation-${{ matrix.set }}.txt
         shell: bash
       - if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: mutation
+          name: mutation-${{ matrix.set }}
           path: |
-            mutation.txt
+            mutation-${{ matrix.set }}.txt
+            .cache/mutation/report-${{ matrix.set }}.json
+          include-hidden-files: true
+          if-no-files-found: ignore
+  # The Bridge's stores and fan-out (4.1.10): measured every night, not gated yet (tools/mutation-sets.ts, GATED). A job
+  # of its own with its own budget: its length never cuts a gated set short again.
+  mutation-reality-store:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: npm run test:mutation:core -- --set=reality-store --fresh | tee mutation-reality-store.txt
+        shell: bash
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: mutation-reality-store
+          path: |
             mutation-reality-store.txt
-            .cache/mutation/report-*.json
+            .cache/mutation/report-reality-store.json
+          include-hidden-files: true
           if-no-files-found: ignore
   # The Bridge under load (4.1.10, tools/bridge-load.ts, docs/dev/BENCH-BRIDGE.md): three instances, 1 000 players,
-  # 50 000 proposals, on SQLite and on Postgres 16 (a service container pinned by digest). The report is kept; a lost
-  # or doubled signal, a gap in a sequence or an incomplete stream fails the run.
-  bridge-load:
+  # 50 000 proposals, on SQLite and on Postgres 16 (a service container pinned by digest), each a job of its own since
+  # 4.1.17. In 4.1.16 the SQLite row was given BRIDGE_STORE="" and never opened SQLite, and its missing report failed
+  # nothing. Now each names its store; tools/load-report.ts refuses a report that is missing, incomplete, or of another
+  # backend or commit. A lost or doubled signal, a gap in a sequence or an incomplete stream fails the run.
+  bridge-load-sqlite:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        store: [sqlite, postgres]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: npm run bridge:load -- --store=sqlite --out=bridge-load-sqlite.json
+      - if: always()
+        run: npx tsx tools/load-report.ts bridge-load-sqlite.json --store=sqlite --commit=${{ github.sha }}
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: bridge-load-sqlite
+          path: bridge-load-sqlite.json
+          if-no-files-found: error
+  bridge-load-postgres:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     services:
       postgres:
         image: postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
@@ -163,15 +205,15 @@ jobs:
           cache: npm
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
-      - run: npm run bridge:load -- --out=bridge-load-${{ matrix.store }}.json
-        env:
-          BRIDGE_STORE: ${{ matrix.store == 'postgres' && 'postgres://bridge:bridge@127.0.0.1:5432/bridge' || '' }}
+      - run: npm run bridge:load -- --store=postgres://bridge:bridge@127.0.0.1:5432/bridge --out=bridge-load-postgres.json
+      - if: always()
+        run: npx tsx tools/load-report.ts bridge-load-postgres.json --store=postgres --commit=${{ github.sha }}
       - if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: bridge-load-${{ matrix.store }}
-          path: bridge-load-${{ matrix.store }}.json
-          if-no-files-found: ignore
+          name: bridge-load-postgres
+          path: bridge-load-postgres.json
+          if-no-files-found: error
   # The proof matrix of 4.1.13 "Solver Research" (docs/dev/PROOF-MATRIX.md, tools/prove-matrix.ts): each of the twelve instances proved
   # in its own job under the runner's budget (20 min, 10 000 000 states, 4 GB of heap). A false verdict fails the job;
   # an instance out of budget is `unknown`, the gap report, not a failure. Never on a pull request.

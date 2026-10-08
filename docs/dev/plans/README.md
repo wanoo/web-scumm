@@ -41,10 +41,15 @@ LOG, les ADR et la doc utilisateur restent en anglais (+ français pour `docs/fr
 6. **Release** : branche `release/x.y.z` ; version (`npm version x.y.z --no-git-tag-version`), golden save
    (`npx tsx tools/golden-save.ts x.y.z` + la liste de `tests/save-v3.test.ts`), CHANGELOG `## x.y.z — date`,
    ROADMAP en/fr (section « shipped »), UPGRADING §n, `docs/dev/passes/x.y.z.md`, `docs/dev/baselines/x.y.z.md`
-   (mesures vs précédente, sources nommées), LOG ; PR, seconde lecture, merge ; puis
-   `node tools/release/ship.mjs tag x.y.z-rc.1 <sha>` (pré-release), observation (archives installées hors dépôt,
-   `fresh-install`, `upgrade-check --from=<précédente>`, golden saves), puis `ship tag x.y.z <sha>` sur le même SHA,
-   `ship verify x.y.z`. Un tag publié ne bouge jamais ; un tag non publié peut être supprimé.
+   (mesures vs précédente, sources nommées), LOG ; PR, seconde lecture, merge ; puis **le candidat** (4.1.17) :
+   `gh workflow run candidate --ref main -f sha=<sha complet>`, attendre que `candidate-gate` soit vert et noter l'id du run
+   (son résumé donne la commande) ; puis `node tools/release/ship.mjs tag x.y.z-rc.1 <sha> --candidate=<run>`
+   (pré-release), observation (archives installées hors dépôt, `fresh-install`, `upgrade-check --from=<précédente>`,
+   golden saves, les `.wsrun` du candidat), puis `ship tag x.y.z <sha> --candidate=<run>` sur le même SHA,
+   `ship verify x.y.z`. Une nouvelle RC sur un autre SHA demande un nouveau candidat. `ship tag` refuse sans candidat
+   vert de ce SHA ; release.yml publie les fichiers de ce run après vérification de leurs sommes. Le nightly qui suit
+   le tag est un audit, pas une condition : s'il rougit, alerte et, au besoin, une version corrective. Un tag publié ne
+   bouge jamais ; un tag non publié peut être supprimé.
 7. **Honnêteté** : jamais `proved`, `verified`, `delivered` quand un budget a été coupé ; les passes humaines
    consignées « not done » (D12) ; chaque mesure nomme sa source (run CI, commande locale, date).
 

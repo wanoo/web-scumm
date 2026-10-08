@@ -40,6 +40,7 @@
     "e2e:remix-speedrun": "tsx scripts/e2e-remix-speedrun.ts",
     "release-check": "npm run doctor -- --release && npm run quality && npm run build && npm run test:coverage && npx tsx tools/coverage-ratchet.ts --strict && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && npm run test:mutation:core -- --set=all && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high",
     "release-check:ci": "npm run doctor -- --release && npm run quality && npm run build && npm run test:coverage && npx tsx tools/coverage-ratchet.ts --strict && npm run verify:release && npm run prove:game && npm run solve -- --audit-abstractions && npm run reality:xcheck -- --require-rust && node scripts/pack.mjs --out=.cache/pack --publish-dry-run && npm run audit:deps && npm audit --audit-level=high",
+    "release-check:local": "npm run quality && npm run docs:truth && npm run test:node && npm run build:game && npm run quality:baseline -- --check --dist",
     "ship": "node tools/release/ship.mjs",
     "e2e": "node scripts/e2e.mjs",
     "validate": "tsx tools/validate.ts",
