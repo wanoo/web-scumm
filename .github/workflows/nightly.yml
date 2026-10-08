@@ -267,3 +267,19 @@ jobs:
       - run: npm run e2e:remix -- --seeds=500
       - run: npm run e2e:speedrun
       - run: npm run e2e:remix-speedrun
+  # The speedrun worker in its container profile (4.1.17, plan §10.3): the reference run verified inside, a hostile
+  # script refused the network and the host's files and secrets and killed by its own timeout, then a run again.
+  worker-container:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: for i in 1 2 3; do (docker pull node:22-bookworm-slim) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: npm run e2e:worker-container

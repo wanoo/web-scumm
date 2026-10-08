@@ -189,6 +189,25 @@ jobs:
           path: candidate-release
           if-no-files-found: error
           overwrite: true
+  # The speedrun worker in its container profile (4.1.17, plan §10.3): the reference run verified inside, a hostile
+  # script refused the network and the host's files and secrets and killed by its own timeout, then a run again.
+  worker-container:
+    needs: target
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: for i in 1 2 3; do (docker pull node:22-bookworm-slim) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 8
+      - run: npm run e2e:worker-container
   # One job per gated mutation set (plan §9): a set's timeout never hides another's result, as reality-store's hid the
   # gated sets' in the 4.1.16 nightly. A report of these exact inputs (tools/mutate.ts --hash) is reused, no other.
   mutation:
@@ -229,7 +248,7 @@ jobs:
           overwrite: true
   # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   candidate-gate:
-    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, mutation]
+    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation]
     # A pull request without `full-ci` skips `target`: then there is no candidate to judge, and no red check either.
     if: always() && needs.target.result != 'skipped'
     runs-on: ubuntu-24.04

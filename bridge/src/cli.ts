@@ -14,7 +14,7 @@
 // Every secret `init` makes is written under --dir (not committed: .cache/ is ignored), never printed but the paths.
 // The Biscuit root's private half goes to `root.key`, read by `grant` only: `serve` never loads it (4.1.2).
 import { createHash, randomBytes, webcrypto } from 'node:crypto';
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { manifestHash, type RealityManifest } from '../../src/engine/reality/manifest';
 import { Bridge, type BridgeConfig, type Limits } from './bridge';
@@ -66,6 +66,11 @@ export interface BridgeFile {
     timeoutMs?: number;
     maxQueued?: number;
     retentionDays?: number;
+    /**
+     * The file of the token that moderates this tenant's runs (4.1.17), beside config.json, mode 0600: `serve`
+     * refuses to start when it is missing or readable by others. Absent: no moderation route.
+     */
+    adminTokenFile?: string;
   };
   /**
    * The daily challenge and Mystery seeds (4.1.16): the games and their modes, the signing key's id, the files of its
@@ -126,6 +131,21 @@ export async function loadBridge(
     onRepair: (what) => console.log(JSON.stringify({ event: 'journal.repaired', what })),
   });
   return Bridge.start(config, hold.store, hold.telemetry ? { telemetry: hold.telemetry } : {});
+}
+
+/**
+ * The moderation token of a tenant's leaderboards (4.1.17): read from its file, which must exist and be readable by
+ * its owner only (0600), else `serve` stops with why. The token itself is never printed.
+ */
+function moderationToken(dir: string, file: string): string {
+  const path = resolve(dir, file);
+  if (!existsSync(path)) throw new Error(`runs.adminTokenFile: ${file} does not exist`);
+  const mode = statSync(path).mode & 0o777;
+  if (mode & 0o077)
+    throw new Error(`runs.adminTokenFile: ${file} is readable by others (${mode.toString(8)}): chmod 600`);
+  const token = readFileSync(path, 'utf8').trim();
+  if (token.length < 32) throw new Error(`runs.adminTokenFile: ${file} holds a token of fewer than 32 characters`);
+  return token;
 }
 
 export async function main(args: string[], game?: { manifest: RealityManifest | null }): Promise<number> {
@@ -266,6 +286,14 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     }
     // One queue per tenant that configures one: its games, its workers, its queue limit; a tenant without a `runs`
     // section has no `/v1/runs`.
+    // A moderation token that cannot be trusted stops the start, said (4.1.17), before anything listens.
+    try {
+      for (const f of files)
+        if (f.runs?.adminTokenFile) moderationToken(tenants[files.indexOf(f)]!, f.runs.adminTokenFile);
+    } catch (e) {
+      console.error(`✖  ${(e as Error).message}`);
+      return 1;
+    }
     for (const [i, f] of files.entries())
       if (f.runs && sql)
         (extra.runs ??= {})[ids[i]!] = new RunQueue({
@@ -277,6 +305,7 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
           ...(f.runs.timeoutMs ? { timeoutMs: f.runs.timeoutMs } : {}),
           ...(f.runs.maxQueued ? { maxQueued: f.runs.maxQueued } : {}),
           ...(f.runs.retentionDays ? { retentionDays: f.runs.retentionDays } : {}),
+          ...(f.runs.adminTokenFile ? { adminToken: moderationToken(tenants[i]!, f.runs.adminTokenFile) } : {}),
         });
     for (const [i, f] of files.entries())
       if (f.daily && sql) {

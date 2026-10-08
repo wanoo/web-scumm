@@ -43,6 +43,8 @@ import {
 const [command, ...rest] = process.argv.slice(2).filter((a) => !a.startsWith('--')); // flags are read from argv
 
 const RERUN_ONCE = new Set();
+/** The check that judges every job of ci.yml (4.1.9 lot 0): a pull request is green when it is. */
+const GATE = 'pr-gate';
 /** Re-runs the failed jobs of a run once; false when it was already re-run (the second failure is final). */
 function rerunOnce(runId, why) {
   if (RERUN_ONCE.has(runId)) return false;
@@ -97,6 +99,12 @@ async function checks(pr) {
       }
       if (pending.length) {
         say(`${list.length - pending.length}/${list.length} done, pending: ${pending.map((c) => c.name).join(', ')}`);
+        return undefined;
+      }
+      // 4.1.17: the jobs of the second tier are created only once `check` is done, so a list where every check passed
+      // can still be partial (seen on #67: 8 of 32). The terminal gate is the one the ruleset requires: wait for it.
+      if (!list.some((c) => c.name === GATE)) {
+        say(`${list.length} checks pass, ${GATE} not listed yet`);
         return undefined;
       }
       say(`all ${list.length} checks pass on #${pr}`);
