@@ -262,13 +262,15 @@ ouvrir un socket autrement. Lancez la commande du worker dans l'isolation du dé
 ```sh
 docker run --rm -i --network none --read-only --tmpfs /tmp:rw,size=64m --cap-drop ALL --security-opt no-new-privileges \
   --pids-limit 64 --memory 512m --cpus 1 --user 65534:65534 -v /srv/games:/srv/games:ro web-scumm-worker \
-  node tools/speedrun/worker.ts
+  timeout -s KILL 70 node tools/speedrun/worker.ts
 ```
 
 comme commande `worker` : pas d'espace réseau, une racine en lecture seule, un répertoire temporaire borné, aucune
 capacité, aucun secret du Bridge dans son environnement (le Bridge ne passe que `PATH`, `GAME_DIR` et `NODE_OPTIONS`),
 des limites de CPU, de mémoire, de processus et de temps (le Bridge tue le groupe de processus à `timeoutMs` + 5 s). Sa
 sortie standard est plafonnée à 1 Mo et sa sortie d'erreur n'est pas gardée.
+Tuer le client `docker` n'arrête pas son conteneur : c'est le `timeout -s KILL` à l'intérieur (un peu plus que le
+`timeoutMs` du Bridge) qui met fin à un rejeu trop long, si bien que les conteneurs expirés ne s'accumulent jamais.
 
 ## Ce qui n'est pas là (4.1.10)
 

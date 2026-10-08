@@ -123,8 +123,21 @@ for (const kind of KINDS)
       const opened = await kind.open();
       const [da, db] = opened;
       const t = tenant();
-      const A = queue(new SqlRunStore(da), { workers: 2 });
-      const B = queue(new SqlRunStore(db), { workers: 1 });
+      // Every claim counted: a run claimed twice while its lease runs would show here, whatever the audit says. (On
+      // SQLite the two handles of one process share the file's statement chain, so they are serial here; the
+      // Postgres variant, CI's bridge-postgres job, claims truly concurrently.)
+      const claims: string[] = [];
+      const counted = (s: SqlRunStore) => {
+        const claim = s.claimNext.bind(s);
+        s.claimNext = async (...a) => {
+          const r = await claim(...a);
+          if (r) claims.push(r.id);
+          return r;
+        };
+        return s;
+      };
+      const A = queue(counted(new SqlRunStore(da)), { workers: 2 });
+      const B = queue(counted(new SqlRunStore(db)), { workers: 1 });
       const ids: string[] = [];
       for (let i = 0; i < 6; i++)
         ids.push(
@@ -133,6 +146,7 @@ for (const kind of KINDS)
       await Promise.all([A.q.idle(), B.q.idle()]);
       const verified = [...A.audit, ...B.audit].filter((l) => l.event === 'run.verified').map((l) => l.run);
       expect(verified.sort()).toEqual([...ids].sort());
+      expect(claims.filter((id) => ids.includes(id)).sort()).toEqual([...ids].sort());
       // Every worker that took part was this run's alone (no run twice), and both instances worked.
       expect(
         new Set([...A.audit, ...B.audit].filter((l) => l.event === 'run.verified').map((l) => l.worker?.split(':')[0]))
@@ -148,7 +162,7 @@ for (const kind of KINDS)
       const t = tenant();
       let now = 1_000_000;
       const store = new SqlRunStore(da);
-      const { q } = queue(store, { now: () => now, leaseMs: 5_000 });
+      const { q } = queue(store, { now: () => now, timeoutMs: 1_000, leaseMs: 11_000 });
       // Queued by another instance, claimed by its worker, which then dies (it never completes).
       await store.create({
         id: 'run_dead',
@@ -167,7 +181,7 @@ for (const kind of KINDS)
       expect(await store.claimNext('other:0', 5_000, now + 1_000)).toBeUndefined();
       await q.idle();
       expect((await store.get(t, 'run_dead'))?.status).toBe('verifying');
-      now += 6_000;
+      now += 6_000; // the dead worker's 5 s lease is over
       await q.idle();
       expect(await store.get(t, 'run_dead')).toMatchObject({ status: 'done', verdict: 'valid' });
       expect(
@@ -247,12 +261,21 @@ for (const kind of KINDS)
 
     it("the daily challenge's records are written once for every instance", async () => {
       const [da, db] = await kind.open();
-      const a = new SqlDailyStore(da);
-      const b = new SqlDailyStore(db);
-      const k = `daily|${tenant()}|2026-10-08`;
+      const t = tenant();
+      const a = new SqlDailyStore(da, t);
+      const b = new SqlDailyStore(db, t);
+      const k = 'daily|reference|2026-10-08';
       const [x, y] = await Promise.all([a.putIfAbsent(k, 'first'), b.putIfAbsent(k, 'second')]);
       expect(x).toBe(y);
       expect(await b.get(k)).toBe(x);
+      // Another tenant on the same database reads nothing of this one's, and writes its own.
+      const other = new SqlDailyStore(db, `${t}_x`);
+      expect(await other.get(k)).toBeUndefined();
+      expect(await other.putIfAbsent(k, 'theirs')).toBe('theirs');
+      expect(await a.get(k)).toBe(x);
+      // The purge is the tenant's own (an `_` in an id is not a wildcard).
+      expect(await other.purge(Date.now() + 1000)).toBe(1);
+      expect(await a.get(k)).toBe(x);
     });
   });
 
@@ -291,7 +314,11 @@ describe('bridgeServer mounts the leaderboards and the daily challenge when its 
     const key = (await crypto.subtle.generateKey({ name: 'Ed25519' }, true, ['sign', 'verify'])) as CryptoKeyPair;
     const runs = queue(new MemoryRunStore()).q;
     const daily = dailyRoutes({ games: { reference: { daily: 'daily' } }, key: key.privateKey, kid: 'k', secret: 's' });
-    const server = bridgeServer(bridge, { runs, daily: { [bridge.tenantId]: daily }, perMinutePerIp: 1000 });
+    const server = bridgeServer(bridge, {
+      runs: { [bridge.tenantId]: runs },
+      daily: { [bridge.tenantId]: daily },
+      perMinutePerIp: 1000,
+    });
     await new Promise<void>((ok) => server.listen(0, '127.0.0.1', () => ok()));
     closers.push(() => new Promise((ok) => server.close(ok)));
     const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;

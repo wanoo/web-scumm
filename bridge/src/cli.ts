@@ -56,7 +56,7 @@ export interface BridgeFile {
   /** Limits other than the defaults (4.1.10: a load test, a busy tenant). */
   limits?: Partial<Limits>;
   /**
-   * Speedrun leaderboards (4.1.16; the first directory's, one queue per server): the games and their approved packages,
+   * Speedrun leaderboards (4.1.16; this tenant's own queue): the games and their approved packages,
    * the worker's command (it runs `tools/speedrun/worker.ts` against a package), how many workers. Needs a SQL store.
    */
   runs?: {
@@ -258,22 +258,26 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     // The leaderboards and the daily challenge (4.1.16): only when a configuration names them, on the SQL store.
     const extra: Pick<ServeOptions, 'runs' | 'daily'> = {};
     const sql = (hold.store as { db?: SqlDb } | undefined)?.db;
-    if ((first.runs || files.some((f) => f.daily)) && !sql) {
+    if (files.some((f) => f.runs || f.daily) && !sql) {
       console.error(
         '✖  the leaderboards and the daily challenge keep their records in SQL: --store=sqlite:<file> or postgres',
       );
       return 1;
     }
-    if (first.runs && sql)
-      extra.runs = new RunQueue({
-        store: new SqlRunStore(sql),
-        approved: first.runs.games,
-        worker: first.runs.worker,
-        ...(first.runs.workers ? { workers: first.runs.workers } : {}),
-        ...(first.runs.timeoutMs ? { timeoutMs: first.runs.timeoutMs } : {}),
-        ...(first.runs.maxQueued ? { maxQueued: first.runs.maxQueued } : {}),
-        ...(first.runs.retentionDays ? { retentionDays: first.runs.retentionDays } : {}),
-      });
+    // One queue per tenant that configures one: its games, its workers, its queue limit; a tenant without a `runs`
+    // section has no `/v1/runs`.
+    for (const [i, f] of files.entries())
+      if (f.runs && sql)
+        (extra.runs ??= {})[ids[i]!] = new RunQueue({
+          store: new SqlRunStore(sql),
+          tenant: ids[i]!,
+          approved: f.runs.games,
+          worker: f.runs.worker,
+          ...(f.runs.workers ? { workers: f.runs.workers } : {}),
+          ...(f.runs.timeoutMs ? { timeoutMs: f.runs.timeoutMs } : {}),
+          ...(f.runs.maxQueued ? { maxQueued: f.runs.maxQueued } : {}),
+          ...(f.runs.retentionDays ? { retentionDays: f.runs.retentionDays } : {}),
+        });
     for (const [i, f] of files.entries())
       if (f.daily && sql) {
         const d = f.daily;
@@ -283,9 +287,17 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
           kid: d.kid,
           key: await webcrypto.subtle.importKey('jwk', jwk, { name: 'Ed25519' }, false, ['sign']),
           secret: readFileSync(resolve(tenants[i]!, d.secretFile), 'utf8').trim(),
-          store: new SqlDailyStore(sql),
+          store: new SqlDailyStore(sql, ids[i]!),
           ...(d.retentionDays ? { retentionDays: d.retentionDays } : {}),
         });
+        // The daily records older than their retention go hourly (the runs' queues purge their own).
+        if (extra.daily) {
+          const routes = Object.values(extra.daily) as { purge?: () => Promise<number> }[];
+          setInterval(() => {
+            for (const r of routes)
+              r.purge?.().catch((e) => console.log(JSON.stringify({ event: 'daily.purge.failed', error: String(e) })));
+          }, 3_600_000).unref();
+        }
       }
     const port = Number(arg(args, 'port') ?? 8787);
     const host = arg(args, 'host') ?? '127.0.0.1';

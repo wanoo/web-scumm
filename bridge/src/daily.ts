@@ -22,6 +22,8 @@ interface DailyStore {
   get(key: string): Promise<string | undefined>;
   /** Writes `value` unless the key has one; returns the value the key holds afterwards (the first writer's). */
   putIfAbsent(key: string, value: string): Promise<string>;
+  /** Deletes the records written before `before` (the routes' `purge`; a store without it keeps everything). */
+  purge?(before: number): Promise<number>;
 }
 
 export class MemoryDailyStore implements DailyStore {
@@ -35,23 +37,41 @@ export class MemoryDailyStore implements DailyStore {
   }
 }
 
-/** The daily records in SQL (bridge/migrations/0002, `daily_kv`), over the Reality store's database. */
+/**
+ * The daily records in SQL (bridge/migrations/0002, `daily_kv`), over the Reality store's database, one tenant's: every
+ * key carries the tenant (two tenants on one database never read each other's tokens or commitments).
+ */
 export class SqlDailyStore implements DailyStore {
   constructor(
     readonly db: SqlDb,
+    readonly tenantId: string,
     private now: () => number = Date.now,
   ) {}
+  /** A tenant id is an identifier (no `|`): the prefix is unambiguous. */
+  private k(key: string) {
+    return `${this.tenantId}|${key}`;
+  }
   async get(key: string) {
-    const [r] = await this.db.all('SELECT v FROM daily_kv WHERE k = $1', [key]);
+    const [r] = await this.db.all('SELECT v FROM daily_kv WHERE k = $1', [this.k(key)]);
     return r ? String(r.v) : undefined;
   }
   async putIfAbsent(key: string, value: string) {
     await this.db.run('INSERT INTO daily_kv (k, v, created_at) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING', [
-      key,
+      this.k(key),
       value,
       this.now(),
     ]);
     return (await this.get(key)) ?? value;
+  }
+  /** Deletes this tenant's records written before `before` (epoch ms); returns how many. */
+  purge(before: number) {
+    const prefix = `${this.tenantId}|`;
+    // An exact prefix, not LIKE (`_` in a tenant id would be a wildcard there).
+    return this.db.run('DELETE FROM daily_kv WHERE substr(k, 1, $1) = $2 AND created_at < $3', [
+      prefix.length,
+      prefix,
+      before,
+    ]);
   }
 }
 
@@ -108,7 +128,7 @@ export function daySeed(secret: string, gameId: string, date: string): string {
 }
 
 export function dailyRoutes(o: DailyOptions) {
-  const store = o.store ?? new MemoryDailyStore();
+  const store: DailyStore = o.store ?? new MemoryDailyStore();
   const now = o.now ?? Date.now;
 
   const gameOf = (id: string) => (Object.hasOwn(o.games, id) ? o.games[id] : undefined);
@@ -181,7 +201,12 @@ export function dailyRoutes(o: DailyOptions) {
   async function reveal(id: string): Promise<DailyResponse> {
     const kept = await store.get(`commit|${id}`);
     if (!kept) return { status: 404, body: { error: 'unknown commitment' } };
-    const rec = JSON.parse(kept) as Record<string, string | undefined>;
+    let rec: Record<string, string | undefined>;
+    try {
+      rec = JSON.parse(kept) as Record<string, string | undefined>;
+    } catch {
+      return { status: 500, body: { error: 'this commitment cannot be read' } };
+    }
     const seed = String(rec.seed);
     const nonce = String(rec.nonce);
     const gameId = String(rec.gameId);
@@ -202,6 +227,13 @@ export function dailyRoutes(o: DailyOptions) {
   }
 
   return {
+    /**
+     * Deletes what is older than the retention and a day (the day tokens a request may still ask for are kept: a token
+     * is written when first asked, never before its day); `serve` calls it hourly.
+     */
+    purge(): Promise<number> {
+      return store.purge?.(now() - ((o.retentionDays ?? 30) + 2) * DAY) ?? Promise.resolve(0);
+    },
     async handle(req: DailyRequest): Promise<DailyResponse | null> {
       const u = new URL(req.url, 'http://bridge.local');
       if (req.method === 'GET' && u.pathname === '/v1/daily')

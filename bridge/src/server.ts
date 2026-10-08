@@ -45,8 +45,8 @@ export interface ServeOptions {
   trustProxy?: boolean | string[];
   /** Several tenants (4.1.10): a request without a `Host` one of them names may say its tenant in this header. */
   tenantHeader?: boolean;
-  /** Speedrun leaderboards (4.1.16): the queue `/v1/runs` hands runs to; each request's tenant is its Bridge's. */
-  runs?: RunQueue;
+  /** Speedrun leaderboards (4.1.16), per tenant id: the queue `/v1/runs` hands that tenant's runs to. */
+  runs?: Record<string, RunQueue>;
   /** The daily challenge and Mystery seeds (4.1.16), per tenant id (`default` for one tenant). */
   daily?: Record<string, { handle(req: DailyRequest): Promise<DailyResponse | null> }>;
 }
@@ -174,6 +174,7 @@ export function bridgeServer(bridges: Bridge | Bridge[], o: ServeOptions = {}): 
       res.setHeader('Vary', 'Origin');
       res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Web-Scumm-Tenant, X-Delete-Token');
       res.setHeader('Access-Control-Allow-Methods', o.runs ? 'GET, POST, DELETE' : 'GET, POST');
+      // (The leaderboards' routes take from the anonymous budget below, as the daily challenge's do.)
     }
     res.setHeader('Cache-Control', 'no-store');
     const send = (status: number, data?: unknown) => {
@@ -191,7 +192,10 @@ export function bridgeServer(bridges: Bridge | Bridge[], o: ServeOptions = {}): 
       // while, before any token is parsed or any store read (docs/dev/THREAT-MODEL.md, flooding).
       if (
         failures.empty(ip) ||
-        ((ANONYMOUS(req.method, path) || (o.daily && DAILY(req.method, path))) && !anonymous.take(ip))
+        ((ANONYMOUS(req.method, path) ||
+          (o.daily && DAILY(req.method, path)) ||
+          (o.runs && (path === '/v1/runs' || path.startsWith('/v1/runs/')))) &&
+          !anonymous.take(ip))
       ) {
         res.setHeader('Retry-After', '60');
         throw new BridgeError(429, 'rate', 'too many requests from this address: try again in a minute');
@@ -212,9 +216,10 @@ export function bridgeServer(bridges: Bridge | Bridge[], o: ServeOptions = {}): 
         }
       }
       const bridge = tenantOf(req);
-      if (o.runs && (path === '/v1/runs' || path.startsWith('/v1/runs/'))) {
+      const runs = o.runs && Object.hasOwn(o.runs, bridge.tenantId) ? o.runs[bridge.tenantId] : undefined;
+      if (runs && (path === '/v1/runs' || path.startsWith('/v1/runs/'))) {
         await runsRoute(
-          o.runs,
+          runs,
           () => bridge.tenantId,
           () => ip,
         )(req, res, path);

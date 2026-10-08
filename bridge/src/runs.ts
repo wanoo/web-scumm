@@ -16,6 +16,7 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypt
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
 import type { RunOutcome, RunRecord, RunStore } from './runs-store';
+import { StoreBusyError } from './store-async';
 
 export { MemoryRunStore, SqlRunStore } from './runs-store';
 export type { RunRecord } from './runs-store';
@@ -37,6 +38,11 @@ export interface RunsOptions {
   maxOldSpaceMb?: number;
   /** Runs waiting at most, every instance together (beyond: 429). */
   maxQueued?: number;
+  /**
+   * The tenant this queue serves (4.1.16): its workers claim that tenant's runs only, against its approved games.
+   * Absent: every tenant's (one tenant per server, or tests).
+   */
+  tenant?: string;
   /** Workers this instance runs at once (default 1): each claims a run, verifies it, claims the next. */
   workers?: number;
   /** How long a claimed run is a worker's (default the worker's budget + 30 s): beyond, another worker takes it over. */
@@ -59,6 +65,12 @@ export interface RunsOptions {
   adminToken?: string;
   now?: () => number;
 }
+
+/** The store refused a verdict that was computed (the queue lets the lease expire rather than lose it). */
+class VerdictNotStored extends Error {}
+
+/** A leaderboard reads at most this many runs of one board. */
+const BOARD_ROWS = 10_000;
 
 class RunsError extends Error {
   constructor(
@@ -121,6 +133,11 @@ export class RunQueue {
   readonly instance = randomBytes(6).toString('hex');
   private next = 0;
   constructor(readonly o: RunsOptions) {
+    // A lease shorter than the worker's budget (killed at `timeoutMs` + 5 s) would let a second worker take a run
+    // still being verified.
+    const timeout = o.timeoutMs ?? 60_000;
+    if (o.leaseMs !== undefined && o.leaseMs < timeout + 10_000)
+      throw new Error(`runs: leaseMs (${o.leaseMs}) is at least timeoutMs + 10 s (${timeout + 10_000})`);
     const every = o.purgeEveryMs ?? 3_600_000;
     if (every > 0) this.every(every, () => this.purge().then(() => undefined), 'the purge');
     const poll = o.pollMs ?? 2000;
@@ -172,6 +189,8 @@ export class RunQueue {
     input: unknown,
     client = 'anonymous',
   ): Promise<{ id: string; deleteToken: string; status: string }> {
+    if (this.o.tenant && tenantId !== this.o.tenant)
+      throw new RunsError(404, 'tenant', 'no leaderboard for this tenant');
     if (!this.take(`${tenantId}\u0000${client}`))
       throw new RunsError(429, 'rate', 'too many runs from this client, retry in a minute');
     const b = input as { player?: unknown; envelope?: unknown };
@@ -197,7 +216,7 @@ export class RunQueue {
     if (!ID.test(head.categoryId)) throw new RunsError(400, 'envelope', 'a category id');
     if (!ID.test(head.gameId) || !Object.hasOwn(this.o.approved, head.gameId))
       throw new RunsError(404, 'game', 'this Bridge has no leaderboard for that game');
-    if ((await this.o.store.queued()) >= (this.o.maxQueued ?? 100))
+    if ((await this.o.store.queued(tenantId)) >= (this.o.maxQueued ?? 100))
       throw new RunsError(429, 'busy', 'the queue is full, retry later');
     const id = `run_${randomBytes(9).toString('base64url')}`;
     const deleteToken = randomBytes(18).toString('base64url');
@@ -226,7 +245,8 @@ export class RunQueue {
   private pump() {
     const n = Math.max(1, this.o.workers ?? 1);
     while (this.loops.size < n) {
-      const worker = `${this.instance}:${this.next++ % n}`;
+      // Unique per loop: a lease names the loop holding it, never one that ended.
+      const worker = `${this.instance}:${this.next++}:${randomBytes(3).toString('hex')}`;
       const loop: Promise<void> = this.work(worker)
         .catch((e) => this.log(`runs: worker ${worker} stopped: ${(e as Error).message}`))
         .finally(() => this.loops.delete(loop));
@@ -237,12 +257,15 @@ export class RunQueue {
   private async work(worker: string) {
     const lease = this.o.leaseMs ?? (this.o.timeoutMs ?? 60_000) + 30_000;
     for (;;) {
-      const r = await this.o.store.claimNext(worker, lease, this.now());
+      const r = await this.o.store.claimNext(worker, lease, this.now(), this.o.tenant);
       if (!r) return;
       try {
         await this.verify(r, worker);
       } catch (e) {
-        await this.failed(r, worker, e);
+        // The store failed while the verdict was written: the lease expires and another worker verifies the run
+        // again, rather than a computed verdict being replaced by `inconclusive`.
+        if (e instanceof VerdictNotStored) this.log(`runs: ${r.id}: ${e.message}; its lease will expire`);
+        else await this.failed(r, worker, e);
       }
     }
   }
@@ -254,7 +277,7 @@ export class RunQueue {
   async idle(): Promise<void> {
     this.pump();
     for (;;) {
-      if (!this.loops.size && (await this.o.store.queued()) > 0) this.pump();
+      if (!this.loops.size && (await this.o.store.queued(this.o.tenant)) > 0) this.pump();
       if (!this.loops.size) return;
       await Promise.all([...this.loops]);
     }
@@ -281,6 +304,8 @@ export class RunQueue {
     if (!game) throw new Error(`no approved package for "${r.gameId}"`);
     const out = await runWorker(this.o, game, r.envelope);
     const valid = out.verdict === 'valid' || out.verdict === 'valid-unranked';
+    // A ranked time is a decimal integer; a valid verdict without the world it was checked in is not ranked.
+    const time = typeof out.ranked === 'string' && /^\d{1,30}$/.test(out.ranked) ? out.ranked : null;
     // A Daily run sent after its day is practice: its verdict stands, it is not that day's board's (plan §7).
     const late = out.world?.validUntil !== undefined && r.submittedAt > out.world.validUntil;
     const outcome: RunOutcome = {
@@ -290,7 +315,7 @@ export class RunQueue {
       // A worker grants at most `replay-valid`; anything else it might say is ignored.
       trust: valid ? 'replay-valid' : 'local',
       // A ranked time is only a valid run's; the envelope is not kept once its verdict is (the summary is).
-      ranked: out.verdict === 'valid' && !late ? (out.ranked ?? null) : null,
+      ranked: out.verdict === 'valid' && !late && out.world ? time : null,
       ...(late ? { reason: `${out.reason} (sent after its day: practice, not ranked)` } : {}),
       ...(out.seedKind ? { seedKind: out.seedKind } : {}),
       ...(out.world
@@ -302,8 +327,13 @@ export class RunQueue {
           }
         : {}),
     };
-    if (!(await this.o.store.complete(r.tenantId, r.id, worker, outcome)))
-      this.log(`runs: ${r.id}: the lease was taken over before the verdict (another worker stores its own)`);
+    let stored: boolean;
+    try {
+      stored = await this.o.store.complete(r.tenantId, r.id, worker, outcome);
+    } catch (e) {
+      throw new VerdictNotStored((e as Error)?.message ?? String(e));
+    }
+    if (!stored) this.log(`runs: ${r.id}: the lease was taken over before the verdict (another worker stores its own)`);
     else this.audit('run.verified', r, { verdict: out.verdict, code: out.code, worker });
   }
 
@@ -346,13 +376,8 @@ export class RunQueue {
     o: { key?: string; seed?: 'fixed' | 'random' } = {},
   ) {
     const key = o.key ?? categoryId;
-    const rows = (await this.o.store.list(tenantId, { gameId, categoryId })).filter(
-      (r) =>
-        r.status === 'done' &&
-        r.verdict === 'valid' &&
-        r.ranked &&
-        (r.leaderboardKey ?? categoryId) === key &&
-        (!o.seed || r.seedKind === o.seed),
+    const rows = (await this.o.store.board(tenantId, gameId, categoryId, key, BOARD_ROWS)).filter(
+      (r) => /^\d{1,30}$/.test(r.ranked ?? '') && (!o.seed || r.seedKind === o.seed),
     );
     const best = new Map<string, RunRecord>();
     const before = (a: RunRecord, b: RunRecord) => {
@@ -369,7 +394,7 @@ export class RunQueue {
     const sorted = [...best.values()].sort(before);
     let rank = 0;
     return sorted.map((r, i) => {
-      if (i === 0 || sorted[i - 1]!.ranked !== r.ranked) rank = i + 1;
+      if (i === 0 || BigInt(sorted[i - 1]!.ranked!) !== BigInt(r.ranked!)) rank = i + 1;
       return { rank, ...publicView(r) };
     });
   }
@@ -566,7 +591,8 @@ export function runsRoute(
       const url = new URL(req.url ?? path, 'http://bridge');
       const m = /^\/v1\/runs\/([\w-]{1,40})(\/moderate)?$/.exec(path);
       if (req.method === 'POST' && path === '/v1/runs') {
-        const body = await readBody(req, (q.o.maxBytes ?? 2_000_000) + 4096);
+        // The envelope travels JSON-escaped inside the body (each quote doubles): twice its limit, and the wrapper.
+        const body = await readBody(req, 2 * (q.o.maxBytes ?? 2_000_000) + 4096);
         json(res, 202, await q.submit(tenant, body, clientOf(req)));
       } else if (req.method === 'GET' && path === '/v1/runs') {
         const game = url.searchParams.get('game') ?? '';
@@ -582,7 +608,7 @@ export function runsRoute(
           }),
         });
       } else if (m && !m[2] && req.method === 'GET') {
-        const r = await q.o.store.get(tenant, m[1]!);
+        const r = await q.o.store.summary(tenant, m[1]!);
         if (!r) throw new RunsError(404, 'run', 'no such run');
         json(res, 200, publicView(r));
       } else if (m && !m[2] && req.method === 'DELETE') {
@@ -597,7 +623,13 @@ export function runsRoute(
         json(res, 200, publicView(await q.moderate(tenant, m[1]!)));
       } else throw new RunsError(405, 'method', 'not a route of /v1/runs');
     } catch (e) {
-      const err = e instanceof RunsError ? e : new RunsError(500, 'internal', 'the run could not be handled');
+      const err =
+        e instanceof RunsError
+          ? e
+          : e instanceof StoreBusyError
+            ? new RunsError(503, 'busy', 'the store is busy: try again in a second')
+            : new RunsError(500, 'internal', 'the run could not be handled');
+      if (err.status === 503) res.setHeader('retry-after', '1');
       // A body refused half-read: the rest is not read, and the connection is not reused for another request.
       if (err.status === 413) {
         res.setHeader('connection', 'close');

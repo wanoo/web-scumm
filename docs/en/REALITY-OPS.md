@@ -245,13 +245,15 @@ worker command inside the deployment's isolation, for instance:
 ```sh
 docker run --rm -i --network none --read-only --tmpfs /tmp:rw,size=64m --cap-drop ALL --security-opt no-new-privileges \
   --pids-limit 64 --memory 512m --cpus 1 --user 65534:65534 -v /srv/games:/srv/games:ro web-scumm-worker \
-  node tools/speedrun/worker.ts
+  timeout -s KILL 70 node tools/speedrun/worker.ts
 ```
 
 as the `worker` command: no network namespace, a read-only root, a bounded temporary directory, no capability, no
 secret of the Bridge in its environment (the Bridge passes `PATH`, `GAME_DIR` and `NODE_OPTIONS` only), limits on CPU,
 memory, processes and time (the Bridge kills the process group at `timeoutMs` + 5 s). Its stdout is capped at 1 MB and
 its stderr is not kept.
+Killing the `docker` client does not stop its container: `timeout -s KILL` inside it (a little over the Bridge's
+`timeoutMs`) is what ends a replay that runs too long, so timed-out containers never pile up.
 
 ## What is not here (4.1.10)
 

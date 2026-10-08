@@ -73,13 +73,20 @@ export interface RunStore {
   create(r: RunRecord): Promise<boolean>;
   get(tenantId: string, id: string): Promise<RunRecord | undefined>;
   list(tenantId: string, f?: RunFilter): Promise<RunRecord[]>;
-  /** Runs waiting for a worker (every tenant): the queue's length a submission is refused beyond. */
-  queued(): Promise<number>;
+  /** Runs waiting for a worker (a tenant's, or every tenant's): the queue's length a submission is refused beyond. */
+  queued(tenantId?: string): Promise<number>;
+  /**
+   * A leaderboard's candidates, without their envelopes: valid runs with a ranked time on one key (a run of 4.1.14
+   * without a key is on its category's board), at most `limit`.
+   */
+  board(tenantId: string, gameId: string, categoryId: string, key: string, limit: number): Promise<RunRecord[]>;
+  /** One run without its envelope (what anyone may read of it). */
+  summary(tenantId: string, id: string): Promise<RunRecord | undefined>;
   /**
    * Claims the oldest run waiting, or one whose lease expired before `now`, for `workerId` until `now + leaseMs`.
    * Two workers never claim the same run while its lease runs.
    */
-  claimNext(workerId: string, leaseMs: number, now: number): Promise<RunRecord | undefined>;
+  claimNext(workerId: string, leaseMs: number, now: number, tenantId?: string): Promise<RunRecord | undefined>;
   /** Stores a verdict; false when `workerId` no longer holds the run's lease (another worker took it over). */
   complete(tenantId: string, id: string, workerId: string, out: RunOutcome): Promise<boolean>;
   setTrust(tenantId: string, id: string, trust: RunTrust): Promise<void>;
@@ -112,14 +119,33 @@ export class MemoryRunStore implements RunStore {
   async list(t: string, f: RunFilter = {}) {
     return [...this.rows.values()].filter((r) => matches(r, t, f)).map((r) => structuredClone(r));
   }
-  async queued() {
+  async queued(t?: string) {
     let n = 0;
-    for (const r of this.rows.values()) if (r.status === 'queued') n++;
+    for (const r of this.rows.values()) if (r.status === 'queued' && (!t || r.tenantId === t)) n++;
     return n;
   }
-  async claimNext(workerId: string, leaseMs: number, now: number) {
+  async board(t: string, gameId: string, categoryId: string, key: string, limit: number) {
+    return [...this.rows.values()]
+      .filter(
+        (r) =>
+          r.tenantId === t &&
+          r.gameId === gameId &&
+          r.categoryId === categoryId &&
+          r.status === 'done' &&
+          r.verdict === 'valid' &&
+          !!r.ranked &&
+          (r.leaderboardKey ?? r.categoryId) === key,
+      )
+      .slice(0, limit)
+      .map((r) => ({ ...structuredClone(r), envelope: '' }));
+  }
+  async summary(t: string, id: string) {
+    const r = this.rows.get(this.k(t, id));
+    return r ? { ...structuredClone(r), envelope: '' } : undefined;
+  }
+  async claimNext(workerId: string, leaseMs: number, now: number, tenantId?: string) {
     const next = [...this.rows.values()]
-      .filter((r) => claimable(r, now))
+      .filter((r) => claimable(r, now) && (!tenantId || r.tenantId === tenantId))
       .sort((a, b) => a.submittedAt - b.submittedAt || (a.id < b.id ? -1 : 1))[0];
     if (!next) return undefined;
     Object.assign(next, { status: 'verifying', leaseOwner: workerId, leaseUntil: now + leaseMs });
@@ -188,6 +214,9 @@ function toRun(r: Row): RunRecord {
 const COLUMNS =
   'tenant_id, id, game_id, category_id, player, submitted_at, status, verdict, code, reason, trust, ranked, seed_kind, world_hash, world_mode, world_seed, leaderboard_key, run_key, delete_token_hash, envelope, lease_owner, lease_until';
 
+/** Every column but the envelope. */
+const SUMMARY = COLUMNS.replace(', envelope', '');
+
 /**
  * The runs in SQL, over the Reality store's database (`SqliteRealityStore.db`, `PostgresRealityStore.db`): the same
  * file or server, the same migrations. A claim is one transaction under the lock `runs:claim`, so instances claim in
@@ -246,17 +275,35 @@ export class SqlRunStore implements RunStore {
     const rows = await this.db.all(`SELECT * FROM runs WHERE ${where.join(' AND ')} ORDER BY submitted_at, id`, params);
     return rows.map(toRun);
   }
-  async queued() {
-    const [r] = await this.db.all(`SELECT COUNT(*) AS n FROM runs WHERE status = 'queued'`);
+  async queued(t?: string) {
+    const [r] = t
+      ? await this.db.all(`SELECT COUNT(*) AS n FROM runs WHERE status = 'queued' AND tenant_id = $1`, [t])
+      : await this.db.all(`SELECT COUNT(*) AS n FROM runs WHERE status = 'queued'`);
     return Number(r?.n ?? 0);
   }
-  claimNext(workerId: string, leaseMs: number, now: number) {
+  async board(t: string, gameId: string, categoryId: string, key: string, limit: number) {
+    // Filtered and bounded in SQL, the envelopes never read (an envelope is up to 2 MB).
+    const rows = await this.db.all(
+      `SELECT ${SUMMARY} FROM runs WHERE tenant_id = $1 AND game_id = $2 AND category_id = $3 AND status = 'done'
+         AND verdict = 'valid' AND ranked IS NOT NULL AND COALESCE(leaderboard_key, category_id) = $4
+         ORDER BY submitted_at, id LIMIT ${Math.max(1, Math.floor(limit))}`,
+      [t, gameId, categoryId, key],
+    );
+    return rows.map(toRun);
+  }
+  async summary(t: string, id: string) {
+    const [r] = await this.db.all(`SELECT ${SUMMARY} FROM runs WHERE tenant_id = $1 AND id = $2`, [t, id]);
+    return r ? toRun(r) : undefined;
+  }
+  claimNext(workerId: string, leaseMs: number, now: number, tenantId?: string) {
     return this.db.tx('runs:claim', async (q: SqlQuery) => {
-      const [next] = await q.all(
-        `SELECT tenant_id, id FROM runs WHERE status = 'queued' OR (status = 'verifying' AND lease_until < $1)
-           ORDER BY submitted_at, id LIMIT 1`,
-        [now],
-      );
+      const waiting = `(status = 'queued' OR (status = 'verifying' AND lease_until < $1))`;
+      const [next] = tenantId
+        ? await q.all(
+            `SELECT tenant_id, id FROM runs WHERE ${waiting} AND tenant_id = $2 ORDER BY submitted_at, id LIMIT 1`,
+            [now, tenantId],
+          )
+        : await q.all(`SELECT tenant_id, id FROM runs WHERE ${waiting} ORDER BY submitted_at, id LIMIT 1`, [now]);
       if (!next) return undefined;
       const n = await q.run(
         `UPDATE runs SET status = 'verifying', lease_owner = $3, lease_until = $4
