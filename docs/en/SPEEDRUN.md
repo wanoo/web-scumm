@@ -180,9 +180,13 @@ one-time key. The HTTP process never replays. A run is identified by its game, c
 RTA stamps aside), never by its world: the first submitter keeps it, a copy re-stamped or re-sealed in another world
 is refused. A client may submit ten runs a minute (`perMinute`); the queue holds at most `maxQueued` runs, every
 instance together; the envelope is dropped once the verdict is stored; old runs are purged hourly.
-`GET /v1/runs?game=&category=[&key=]` is a leaderboard: valid runs only, each player's best, on the **verifier's key**
+`GET /v1/runs?game=&category=[&key=][&limit=]` is a leaderboard: valid runs only, each **pseudonym's** best (the
+Bridge knows no player identity: two people who choose the same pseudonym are one line), on the **verifier's key**
 (`world.leaderboardKey`: the category, and for a Fixed or Daily world `<category>:<seed>`); equal times share a rank,
-then the earlier submission comes first. A Daily run sent after its day is practice (valid, not ranked); a Mystery run
+then the earlier submission comes first. The store ranks every run before the answer is cut (4.1.17: until then a
+faster run submitted after the first 10 000 was missing); the answer has 100 lines, `&limit=` up to 1 000. A time is
+kept canonical (decimal, no leading zero, at most 30 digits) and ordered as a decimal, past `Number.MAX_SAFE_INTEGER`
+too. A Daily run sent after its day is practice (valid, not ranked); a Mystery run
 is `valid-unranked` without a server witness. `&seed=fixed|random` still filters 4.1.14's runs.
 `GET /v1/runs/<id>` is one run, `DELETE /v1/runs/<id>` with `x-delete-token` deletes it, `POST /v1/runs/<id>/moderate`
 with the admin token raises it to `moderator-verified`. Submissions, verdicts, moderations and deletions are audit lines

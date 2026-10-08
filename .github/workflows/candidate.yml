@@ -73,7 +73,8 @@ jobs:
   heavy:
     needs: target
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    # One file after the other since 4.1.17 (about 13 minutes on a laptop; the runner is several times slower).
+    timeout-minutes: 150
     strategy:
       fail-fast: false
       matrix:
@@ -113,13 +114,17 @@ jobs:
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
       - run: npm run bridge:load -- --store=sqlite --out=bridge-load-sqlite.json
+      # The speedrun leaderboard at 100 000 runs (4.1.17, plan §6.3): latency, memory and SQL plan, bounded.
+      - run: npm run runs:load -- --store=sqlite --runs=100000 --max-p95-ms=2000 --max-rss-mb=512 --out=runs-load-sqlite.json
       - if: always()
         run: npx tsx tools/load-report.ts bridge-load-sqlite.json --store=sqlite --commit=${{ needs.target.outputs.sha }}
       - if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: bridge-load-sqlite
-          path: bridge-load-sqlite.json
+          path: |
+            bridge-load-sqlite.json
+            runs-load-sqlite.json
           if-no-files-found: error
           overwrite: true
   bridge-load-postgres:
@@ -148,13 +153,17 @@ jobs:
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
       - run: npm run bridge:load -- --store=postgres://bridge:bridge@127.0.0.1:5432/bridge --out=bridge-load-postgres.json
+      # The speedrun leaderboard at 100 000 runs (4.1.17, plan §6.3): latency, memory and SQL plan, bounded.
+      - run: npm run runs:load -- --store=postgres://bridge:bridge@127.0.0.1:5432/bridge --runs=100000 --max-p95-ms=2000 --max-rss-mb=512 --out=runs-load-postgres.json
       - if: always()
         run: npx tsx tools/load-report.ts bridge-load-postgres.json --store=postgres --commit=${{ needs.target.outputs.sha }}
       - if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: bridge-load-postgres
-          path: bridge-load-postgres.json
+          path: |
+            bridge-load-postgres.json
+            runs-load-postgres.json
           if-no-files-found: error
           overwrite: true
   # The four runtimes (4.1.16) at the nightly's 500 seeds; the Remix × Time Attack check writes the release's runs
@@ -266,6 +275,9 @@ jobs:
             cat gate.txt 2>/dev/null || echo 'not judged'
             echo '```'
             echo '### Load (backend actually opened)'
+            for f in artifacts/bridge-load-*/runs-load-*.json; do
+              [ -f "$f" ] && node -e "const r=require('./$f'); console.log('- leaderboard on ' + r.store + ': ' + r.runs + ' runs, p95 ' + r.latencyMs.p95 + ' ms (bound ' + r.bounds.p95Ms + '), ' + r.rssMb.after + ' MB')"
+            done
             for f in artifacts/bridge-load-*/bridge-load-*.json; do
               [ -f "$f" ] && node -e "const r=require('./$f'); console.log('- ' + r.store + ': ' + r.proposals + ' proposals, ' + r.perSecond + '/s, p95 ' + r.latencyMs.p95 + ' ms, gaps ' + r.gaps + ', commit ' + String(r.commit).slice(0, 12))"
             done

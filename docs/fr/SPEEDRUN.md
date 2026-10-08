@@ -193,10 +193,14 @@ clé à usage unique. Le processus HTTP ne rejoue jamais. Un run est identifié 
 run et ses entrées (hors leurs horodatages RTA), jamais par son monde : le premier qui le soumet le garde, une copie
 réhorodatée ou rescellée dans un autre monde est refusée. Un client peut soumettre dix runs par minute
 (`perMinute`) ; la file tient au plus `maxQueued` runs, toutes instances confondues ; l'enveloppe est jetée une fois le
-verdict enregistré ; les vieux runs sont purgés chaque heure. `GET /v1/runs?game=&category=[&key=]` est un classement :
-runs valides seulement, le meilleur de chaque joueur, sur la **clé du vérificateur** (`world.leaderboardKey` : la
-catégorie, et pour un monde Fixed ou Daily `<catégorie>:<graine>`) ; des temps égaux partagent un rang, puis la
-soumission la plus ancienne passe devant. Un run Daily envoyé après son jour est un entraînement (valide, non classé) ;
+verdict enregistré ; les vieux runs sont purgés chaque heure. `GET /v1/runs?game=&category=[&key=][&limit=]` est un
+classement : runs valides seulement, le meilleur de chaque **pseudonyme** (le Bridge ne connaît aucune identité de
+joueur : deux personnes qui choisissent le même pseudonyme font une seule ligne), sur la **clé du vérificateur**
+(`world.leaderboardKey` : la catégorie, et pour un monde Fixed ou Daily `<catégorie>:<graine>`) ; des temps égaux
+partagent un rang, puis la soumission la plus ancienne passe devant. Le store classe tous les runs avant de couper la
+réponse (4.1.17 : jusque-là, un run plus rapide soumis après les 10 000 premiers manquait) ; la réponse a 100 lignes,
+`&limit=` jusqu'à 1 000. Un temps est gardé canonique (décimal, sans zéro de tête, 30 chiffres au plus) et ordonné
+comme un décimal, au-delà de `Number.MAX_SAFE_INTEGER` aussi. Un run Daily envoyé après son jour est un entraînement (valide, non classé) ;
 un run Mystery est `valid-unranked` sans témoin serveur. `&seed=fixed|random` filtre toujours les runs de 4.1.14.
 `GET /v1/runs/<id>` est un run, `DELETE /v1/runs/<id>` avec `x-delete-token` le supprime,
 `POST /v1/runs/<id>/moderate` avec le jeton d'administration l'élève à `moderator-verified`. Soumissions, verdicts,

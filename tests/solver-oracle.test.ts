@@ -3,6 +3,9 @@
 // verdict, the same path and session entries, the same softlocks and causes, and the same reachable set, state for
 // state. `ORACLE_WRITE=1` writes the fixture again: only for a change that means to alter what the solver finds, said
 // in the LOG.
+// 4.1.17: `reference proof` written again, alone (`tools/oracle-case.ts --diff`): the reference chapter gained a topic
+// (`hall.neighbor.i-know-the-password`, 4.1.15 Remix) and the code wheel's flag, so one dialogue pick moved by one and
+// two flags appeared; the verdict, the 288 states, the path and the reachable set are those of 4.1.8.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { solve, type SolveOptions } from '@engine/tools/solve';
