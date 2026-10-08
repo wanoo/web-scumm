@@ -195,11 +195,12 @@ describe('the queue survives', () => {
     expect(Date.now() - t0).toBeLessThan(15_000);
   }, 30000);
 
-  it('a verification that throws marks the run inconclusive, logs it, and the queue goes on', async () => {
+  it('a verdict the store cannot write is not lost: the lease expires; another failure marks the run inconclusive', async () => {
+    // The verdict cannot be written (4.1.16): the run stays claimed until its lease expires, then is verified again.
     class Failing extends MemoryRunStore {
-      override async put(r: Parameters<MemoryRunStore['put']>[0]) {
-        if (r.status === 'verifying') throw new Error('disk full');
-        return super.put(r);
+      override async complete(...a: Parameters<MemoryRunStore['complete']>) {
+        if (a[3].verdict !== 'inconclusive') throw new Error('disk full');
+        return super.complete(...a);
       }
     }
     const logs: string[] = [];
@@ -208,16 +209,32 @@ describe('the queue survives', () => {
       approved: { reference: approved },
       worker: WORKER,
       purgeEveryMs: 0,
+      pollMs: 0,
       log: (m) => logs.push(m),
+      audit: () => {},
     });
     const { id } = await fq.submit('default', { player: 'Lou', envelope: RUN });
     await fq.idle();
-    expect(await fq.o.store.get('default', id)).toMatchObject({
+    expect(await fq.o.store.get('default', id)).toMatchObject({ status: 'verifying' });
+    expect(logs.join()).toContain('disk full');
+    expect(logs.join()).toContain('lease will expire');
+    // A worker that dies without a verdict: inconclusive, the queue goes on.
+    const gone = new RunQueue({
+      store: new MemoryRunStore(),
+      approved: { reference: approved },
+      worker: [process.execPath, '-e', 'process.exit(0)'],
+      purgeEveryMs: 0,
+      pollMs: 0,
+      log: (m) => logs.push(m),
+      audit: () => {},
+    });
+    const { id: id2 } = await gone.submit('default', { player: 'Lou', envelope: RUN });
+    await gone.idle();
+    expect(await gone.o.store.get('default', id2)).toMatchObject({
       verdict: 'inconclusive',
       code: 'crash',
       status: 'done',
     });
-    expect(logs.join()).toContain('disk full');
   });
 
   it('a client is rate-limited per minute; the purge runs on its own', async () => {

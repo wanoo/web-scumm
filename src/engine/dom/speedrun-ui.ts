@@ -56,6 +56,11 @@ export class SpeedrunSession {
     } catch {
       store = new (await import('../core/journal-chunks')).MemoryChunkStore();
     }
+    // The world the page plays in is the engine's; a Daily world's signed token comes from where the menu kept it.
+    const evidence =
+      app.game.variant?.mode === 'story'
+        ? undefined
+        : (await import('./remix-menu')).storedEvidence(app.game.id, app.game.variant?.hash);
     const recorder = new SpeedrunRecorder({
       engine: app.engine,
       gameId: app.game.id,
@@ -64,6 +69,7 @@ export class SpeedrunSession {
       store,
       fingerprint,
       engineVersion: app.buildEngine ?? 'unknown',
+      ...(evidence ? { worldEvidence: evidence } : {}),
     });
     const s = new SpeedrunSession(app, category, recorder, store);
     const key = `${app.game.id}:${category.id}`;

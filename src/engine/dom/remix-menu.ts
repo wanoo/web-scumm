@@ -22,6 +22,7 @@ export interface RemixHost {
 
 const KEY = (id: string) => `${id}.world`;
 const PENDING = (id: string) => `${id}.world-start`;
+const EVIDENCE = (id: string) => `${id}.world-evidence`;
 const storage = () => {
   try {
     return globalThis.localStorage;
@@ -37,6 +38,30 @@ export function storedWorld(gameId: string): WorldVariant | undefined {
     return raw ? (JSON.parse(raw) as WorldVariant) : undefined;
   } catch {
     return undefined;
+  }
+}
+
+/**
+ * What a world rests on (4.1.16): the day's signed token of a Daily world, kept beside it so a speedrun in that world
+ * carries it (`SpeedrunWorldEvidence`). Only for the world whose hash it names: another world has none.
+ */
+export function storedEvidence(
+  gameId: string,
+  worldHash: string | undefined,
+): { kind: 'daily'; token: string } | undefined {
+  try {
+    const raw = storage()?.getItem(EVIDENCE(gameId));
+    const e = raw ? (JSON.parse(raw) as { hash?: unknown; token?: unknown }) : undefined;
+    return e && e.hash === worldHash && typeof e.token === 'string' ? { kind: 'daily', token: e.token } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+function keepEvidence(gameId: string, hash: string, token: string): void {
+  try {
+    storage()?.setItem(EVIDENCE(gameId), JSON.stringify({ hash, token }));
+  } catch {
+    /* no storage: a Daily speedrun cannot start on this page (the recorder says why) */
   }
 }
 
@@ -181,7 +206,9 @@ export async function dailyWorldOf(game: GameDef, token: string, now = Date.now(
   ]);
   const r = await verifyDayToken(token, await importBridgeKey(d.kid, d.publicKey), game.id, now);
   if (!r.ok) throw new RemixSeedError(r.reason);
-  return worldOf(game, r.token.seed, d.mode);
+  const v = worldOf(game, r.token.seed, d.mode);
+  keepEvidence(game.id, v.hash, token);
+  return v;
 }
 
 /** The daily challenge from the game's Bridge (`reality.bridge`), or undefined when the game names none. */

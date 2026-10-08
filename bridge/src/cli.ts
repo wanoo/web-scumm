@@ -21,7 +21,10 @@ import { Bridge, type BridgeConfig, type Limits } from './bridge';
 import { biscuitLib } from './biscuit';
 import { grantToken } from './policy';
 import { opt, openStore, storeCommand, storeSpec } from './cli-store';
-import { bridgeServer, type WebhookConfig } from './server';
+import { dailyRoutes, SqlDailyStore } from './daily';
+import { type ApprovedGame, RunQueue, SqlRunStore } from './runs';
+import { bridgeServer, type ServeOptions, type WebhookConfig } from './server';
+import type { SqlDb } from './store-sql';
 import { JsonlBridgeStore } from './store';
 import { DEFAULT_TENANT, type RealityStore } from './store-async';
 import { loadTelemetry, type Telemetry } from './telemetry';
@@ -52,6 +55,29 @@ export interface BridgeFile {
   hosts?: string[];
   /** Limits other than the defaults (4.1.10: a load test, a busy tenant). */
   limits?: Partial<Limits>;
+  /**
+   * Speedrun leaderboards (4.1.16; this tenant's own queue): the games and their approved packages,
+   * the worker's command (it runs `tools/speedrun/worker.ts` against a package), how many workers. Needs a SQL store.
+   */
+  runs?: {
+    games: Record<string, ApprovedGame>;
+    worker: string[];
+    workers?: number;
+    timeoutMs?: number;
+    maxQueued?: number;
+    retentionDays?: number;
+  };
+  /**
+   * The daily challenge and Mystery seeds (4.1.16): the games and their modes, the signing key's id, the files of its
+   * private half (a JWK) and of the days' secret, both 0600 beside this file. Needs a SQL store.
+   */
+  daily?: {
+    games: Record<string, { daily: string; mystery?: string }>;
+    kid: string;
+    keyFile: string;
+    secretFile: string;
+    retentionDays?: number;
+  };
 }
 
 const arg = opt;
@@ -229,6 +255,50 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     };
     const bridges: Bridge[] = [];
     for (const [i, f] of files.entries()) bridges.push(await loadBridge(f, tenants[i]!, hold));
+    // The leaderboards and the daily challenge (4.1.16): only when a configuration names them, on the SQL store.
+    const extra: Pick<ServeOptions, 'runs' | 'daily'> = {};
+    const sql = (hold.store as { db?: SqlDb } | undefined)?.db;
+    if (files.some((f) => f.runs || f.daily) && !sql) {
+      console.error(
+        '✖  the leaderboards and the daily challenge keep their records in SQL: --store=sqlite:<file> or postgres',
+      );
+      return 1;
+    }
+    // One queue per tenant that configures one: its games, its workers, its queue limit; a tenant without a `runs`
+    // section has no `/v1/runs`.
+    for (const [i, f] of files.entries())
+      if (f.runs && sql)
+        (extra.runs ??= {})[ids[i]!] = new RunQueue({
+          store: new SqlRunStore(sql),
+          tenant: ids[i]!,
+          approved: f.runs.games,
+          worker: f.runs.worker,
+          ...(f.runs.workers ? { workers: f.runs.workers } : {}),
+          ...(f.runs.timeoutMs ? { timeoutMs: f.runs.timeoutMs } : {}),
+          ...(f.runs.maxQueued ? { maxQueued: f.runs.maxQueued } : {}),
+          ...(f.runs.retentionDays ? { retentionDays: f.runs.retentionDays } : {}),
+        });
+    for (const [i, f] of files.entries())
+      if (f.daily && sql) {
+        const d = f.daily;
+        const jwk = JSON.parse(readFileSync(resolve(tenants[i]!, d.keyFile), 'utf8')) as JsonWebKey;
+        (extra.daily ??= {})[ids[i]!] = dailyRoutes({
+          games: d.games,
+          kid: d.kid,
+          key: await webcrypto.subtle.importKey('jwk', jwk, { name: 'Ed25519' }, false, ['sign']),
+          secret: readFileSync(resolve(tenants[i]!, d.secretFile), 'utf8').trim(),
+          store: new SqlDailyStore(sql, ids[i]!),
+          ...(d.retentionDays ? { retentionDays: d.retentionDays } : {}),
+        });
+        // The daily records older than their retention go hourly (the runs' queues purge their own).
+        if (extra.daily) {
+          const routes = Object.values(extra.daily) as { purge?: () => Promise<number> }[];
+          setInterval(() => {
+            for (const r of routes)
+              r.purge?.().catch((e) => console.log(JSON.stringify({ event: 'daily.purge.failed', error: String(e) })));
+          }, 3_600_000).unref();
+        }
+      }
     const port = Number(arg(args, 'port') ?? 8787);
     const host = arg(args, 'host') ?? '127.0.0.1';
     // `--trust-proxy` alone: the loopback; `--trust-proxy=10.0.0.0/8,192.168.1.2`: those proxies (D20).
@@ -238,6 +308,7 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
       webhooks: Object.assign({}, ...files.map((f) => f.webhooks)),
       trustProxy: proxies ? proxies.split(',') : args.includes('--trust-proxy'),
       tenantHeader: args.includes('--tenant-header'),
+      ...extra,
     });
     server.listen(port, host, () => {
       const a = server.address();

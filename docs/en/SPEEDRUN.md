@@ -155,18 +155,33 @@ Local tools on the player's machine (D23), never on the Bridge, never in the PWA
 
 ## Leaderboards on the Bridge
 
-`bridge/src/runs.ts` (a new module beside the 4.1.10 Bridge, mounted by its host with `runsRoute`): `POST /v1/runs`
-with `{ player, envelope }` returns the run's id and a deletion token. A queue hands each run to an **isolated worker**
-(`tools/speedrun/worker.ts`): a separate process with a bounded heap, killed at its time budget, an environment holding
-only `PATH`, the game package's folder and the heap size (no secret of the Bridge), fetch, WebSocket, TCP, UDP and DNS
-refused in-process (not an isolation: the real one is the deployment's, a container without a network namespace), the
-package checked against its approved fingerprint; its answer is signed with a one-time key, and a hung worker is killed
-with its process group. The HTTP process never replays. A run is identified by its game, category, seed and inputs
-(their RTA stamps aside): the first submitter keeps it, a copy re-spaced or re-stamped is refused. A client may submit
-ten runs a minute (`perMinute`); the envelope is dropped once the verdict is stored, and old runs are purged hourly.
-`GET /v1/runs?game=&category=&seed=fixed|random` is the leaderboard (valid runs only, each player's best, separated by
-seed), `GET /v1/runs/<id>` one run, `DELETE /v1/runs/<id>` with `x-delete-token` deletes it,
-`POST /v1/runs/<id>/moderate` with the admin token raises it to `moderator-verified`.
+`bridge/src/runs.ts`, mounted by `npm run bridge -- serve` when the configuration has a `runs` section (4.1.16;
+`bridgeServer`'s `runs` option for a host of its own): `POST /v1/runs` with `{ player, envelope }` returns the run's id
+and a deletion token. Runs are kept in the Bridge's SQL store (`sqlite:` for one machine, Postgres for several
+instances; `bridge/migrations/0002`) and survive a restart. Every instance's workers share one queue: a run is
+**created once** (its key is unique: two instances receiving the same run create one), **claimed by one worker** under
+a lease, and **claimed again** when its worker died and the lease expired; a worker that lost its lease cannot store a
+verdict. Each worker is an **isolated process** (`tools/speedrun/worker.ts`): a bounded heap, killed with its process
+group at its time budget, an environment holding only `PATH`, the game package's folder and the heap size (no secret
+of the Bridge), fetch, WebSocket, TCP, UDP and DNS refused in-process (defence in depth, not a sandbox: see
+REALITY-OPS, "The speedrun worker"), the package checked against its approved fingerprint, its answer signed with a
+one-time key. The HTTP process never replays. A run is identified by its game, category, run seed and inputs (their
+RTA stamps aside), never by its world: the first submitter keeps it, a copy re-stamped or re-sealed in another world
+is refused. A client may submit ten runs a minute (`perMinute`); the queue holds at most `maxQueued` runs, every
+instance together; the envelope is dropped once the verdict is stored; old runs are purged hourly.
+`GET /v1/runs?game=&category=[&key=]` is a leaderboard: valid runs only, each player's best, on the **verifier's key**
+(`world.leaderboardKey`: the category, and for a Fixed or Daily world `<category>:<seed>`); equal times share a rank,
+then the earlier submission comes first. A Daily run sent after its day is practice (valid, not ranked); a Mystery run
+is `valid-unranked` without a server witness. `&seed=fixed|random` still filters 4.1.14's runs.
+`GET /v1/runs/<id>` is one run, `DELETE /v1/runs/<id>` with `x-delete-token` deletes it, `POST /v1/runs/<id>/moderate`
+with the admin token raises it to `moderator-verified`. Submissions, verdicts, moderations and deletions are audit lines
+on the Bridge's log.
+
+The daily challenge (`bridge/src/daily.ts`, a configuration's `daily` section): `GET /v1/daily?game=[&date=]` signs the
+day's seed (a real UTC day, today or within `retentionDays`, 30 by default); `POST /v1/commit` and
+`GET /v1/reveal/<id>` commit to a Mystery seed and reveal it, both signed. Tokens and commitments are written once
+in the same SQL store, so every instance answers the same. The player keeps a Daily world's token beside the world and
+a speedrun in it carries the token; the player has no Mystery flow yet (a Mystery category refuses to start there).
 
 ## Policies
 

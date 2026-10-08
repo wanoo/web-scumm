@@ -3,10 +3,15 @@
 // its connector's own Biscuit). node:http only. 4.1.10: several tenants on one server (each request resolved to its
 // tenant's Bridge before anything is read), `/livez`, `/readyz`, `/healthz`, and `trust-proxy` by allowlist (D20).
 // The routes `/v1/*` keep their names: a second version of one would be `/v2/*` beside it.
+// 4.1.16: the speedrun leaderboards (`/v1/runs`, runs.ts) and the daily challenge (`/v1/daily`, `/v1/commit`,
+// `/v1/reveal/<id>`, daily.ts) are mounted when the options name them, behind the same tenant resolution, CORS, rate
+// limits and body limit as every other route.
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import { isIP } from 'node:net';
 import { type Bridge, BridgeError } from './bridge';
+import type { DailyRequest, DailyResponse } from './daily';
+import { type RunQueue, runsRoute } from './runs';
 import { StoreBusyError } from './store-async';
 
 /** An origin as a browser sends it: a scheme, a host, a port. */
@@ -40,7 +45,17 @@ export interface ServeOptions {
   trustProxy?: boolean | string[];
   /** Several tenants (4.1.10): a request without a `Host` one of them names may say its tenant in this header. */
   tenantHeader?: boolean;
+  /** Speedrun leaderboards (4.1.16), per tenant id: the queue `/v1/runs` hands that tenant's runs to. */
+  runs?: Record<string, RunQueue>;
+  /** The daily challenge and Mystery seeds (4.1.16), per tenant id (`default` for one tenant). */
+  daily?: Record<string, { handle(req: DailyRequest): Promise<DailyResponse | null> }>;
 }
+
+/** The daily challenge's routes: anyone may call them, so they take from the anonymous budget. */
+const DAILY = (method: string | undefined, path: string) =>
+  (method === 'GET' && path === '/v1/daily') ||
+  (method === 'POST' && path === '/v1/commit') ||
+  (method === 'GET' && /^\/v1\/reveal\/[\w-]{1,64}$/.test(path));
 
 /** Whether an address is in an allowlist of addresses and IPv4 networks (`a.b.c.d/n`). */
 export function inAllowlist(address: string, list: readonly string[]): boolean {
@@ -157,8 +172,9 @@ export function bridgeServer(bridges: Bridge | Bridge[], o: ServeOptions = {}): 
     if (origin && origins.has(origin)) {
       res.setHeader('Access-Control-Allow-Origin', origin);
       res.setHeader('Vary', 'Origin');
-      res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Web-Scumm-Tenant');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+      res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type, X-Web-Scumm-Tenant, X-Delete-Token');
+      res.setHeader('Access-Control-Allow-Methods', o.runs ? 'GET, POST, DELETE' : 'GET, POST');
+      // (The leaderboards' routes take from the anonymous budget below, as the daily challenge's do.)
     }
     res.setHeader('Cache-Control', 'no-store');
     const send = (status: number, data?: unknown) => {
@@ -174,7 +190,13 @@ export function bridgeServer(bridges: Bridge | Bridge[], o: ServeOptions = {}): 
       let m: RegExpExecArray | null;
       // An address over its minute on the routes anyone may call, or out of failed authentications: refused for a
       // while, before any token is parsed or any store read (docs/dev/THREAT-MODEL.md, flooding).
-      if (failures.empty(ip) || (ANONYMOUS(req.method, path) && !anonymous.take(ip))) {
+      if (
+        failures.empty(ip) ||
+        ((ANONYMOUS(req.method, path) ||
+          (o.daily && DAILY(req.method, path)) ||
+          (o.runs && (path === '/v1/runs' || path.startsWith('/v1/runs/')))) &&
+          !anonymous.take(ip))
+      ) {
         res.setHeader('Retry-After', '60');
         throw new BridgeError(429, 'rate', 'too many requests from this address: try again in a minute');
       }
@@ -194,6 +216,25 @@ export function bridgeServer(bridges: Bridge | Bridge[], o: ServeOptions = {}): 
         }
       }
       const bridge = tenantOf(req);
+      const runs = o.runs && Object.hasOwn(o.runs, bridge.tenantId) ? o.runs[bridge.tenantId] : undefined;
+      if (runs && (path === '/v1/runs' || path.startsWith('/v1/runs/'))) {
+        await runsRoute(
+          runs,
+          () => bridge.tenantId,
+          () => ip,
+        )(req, res, path);
+        return;
+      }
+      const daily = o.daily && Object.hasOwn(o.daily, bridge.tenantId) ? o.daily[bridge.tenantId] : undefined;
+      if (daily && DAILY(req.method, path)) {
+        const r = await daily.handle({
+          method: req.method ?? 'GET',
+          url: req.url ?? path,
+          ...(req.method === 'POST' ? { body: json(await body(req, bridge.limits.bodyBytes)) } : {}),
+          client: ip,
+        });
+        if (r) return send(r.status, r.body);
+      }
       if (req.method === 'GET' && path === '/v1/keys') return send(200, { keys: bridge.keys() });
       if (req.method === 'GET' && path === '/v1/manifest')
         return send(200, { manifest: bridge.config.manifest, hash: bridge.config.manifestHash });

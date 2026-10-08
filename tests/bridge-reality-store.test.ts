@@ -356,13 +356,16 @@ describe('the schema', () => {
     const s = await SqliteRealityStore.open(file, { migrate: false });
     opened.push(s);
     expect(await s.schemaVersion()).toBe(0);
-    expect(await s.migrate()).toEqual([1]);
+    expect(await s.migrate()).toEqual([1, 2]);
     expect(await s.migrate()).toEqual([]);
+    // 4.1.16: version 2 (the leaderboards, the daily challenge) goes down alone, version 1's data untouched.
+    expect(await s.migrate({ to: 1 })).toEqual([-2]);
+    expect(await s.migrate()).toEqual([2]);
     await s.putPlayer('t-1', player('p-1'));
-    expect(await s.migrate({ to: 0 })).toEqual([-1]);
+    expect(await s.migrate({ to: 0 })).toEqual([-2, -1]);
     expect(await s.schemaVersion()).toBe(0);
     await expect(s.player('t-1', 'p-1')).rejects.toThrow(/no such table/);
-    expect(await s.migrate()).toEqual([1]);
+    expect(await s.migrate()).toEqual([1, 2]);
     expect(await s.player('t-1', 'p-1')).toBeUndefined();
     await s.db.all('INSERT INTO schema_migrations (version, applied_at) VALUES ($1, $2)', [99, 0]);
     await expect(s.migrate()).rejects.toThrow(/newer than this Bridge/);
@@ -378,10 +381,10 @@ describe('the schema', () => {
     const s = await PostgresRealityStore.open(url.toString(), { pg, migrate: false });
     try {
       expect(await s.schemaVersion()).toBe(0);
-      expect(await s.migrate()).toEqual([1]);
+      expect(await s.migrate()).toEqual([1, 2]);
       await s.putPlayer('t-1', player('p-1'));
-      expect(await s.migrate({ to: 0 })).toEqual([-1]);
-      expect(await s.migrate()).toEqual([1]);
+      expect(await s.migrate({ to: 0 })).toEqual([-2, -1]);
+      expect(await s.migrate()).toEqual([1, 2]);
       expect(await s.player('t-1', 'p-1')).toBeUndefined();
     } finally {
       await s.close();

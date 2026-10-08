@@ -166,19 +166,36 @@ envoyer de faux splits.
 
 ## Classements sur le Bridge
 
-`bridge/src/runs.ts` (un nouveau module à côté du Bridge 4.1.10, monté par son hôte avec `runsRoute`) :
-`POST /v1/runs` avec `{ player, envelope }` rend l'id du run et un jeton de suppression. Une file confie chaque run à
-un **worker isolé** (`tools/speedrun/worker.ts`) : un processus séparé au tas borné, tué à son budget de temps, avec un
+`bridge/src/runs.ts`, monté par `npm run bridge -- serve` quand la configuration a une section `runs` (4.1.16 ;
+l'option `runs` de `bridgeServer` pour un hôte à soi) : `POST /v1/runs` avec `{ player, envelope }` rend l'id du run et
+un jeton de suppression. Les runs sont gardés dans le store SQL du Bridge (`sqlite:` pour une machine, Postgres pour
+plusieurs instances ; `bridge/migrations/0002`) et survivent à un redémarrage. Les workers de toutes les instances
+partagent une seule file : un run est **créé une fois** (sa clé est unique : deux instances qui reçoivent le même run
+en créent un), **réclamé par un seul worker** sous un bail, et **réclamé de nouveau** quand son worker est mort et que
+le bail a expiré ; un worker qui a perdu son bail ne peut pas enregistrer de verdict. Chaque worker est un **processus
+isolé** (`tools/speedrun/worker.ts`) : un tas borné, tué avec son groupe de processus à son budget de temps, un
 environnement qui ne contient que `PATH`, le dossier du paquet du jeu et la taille du tas (aucun secret du Bridge),
-fetch, WebSocket, TCP, UDP et DNS refusés dans le processus (ce n'est pas une isolation : la vraie revient au
-déploiement, un conteneur sans espace réseau), le paquet vérifié contre son empreinte approuvée ; sa réponse est signée
-par une clé à usage unique, et un worker bloqué est tué avec son groupe de processus. Le processus HTTP ne rejoue
-jamais. Un run est identifié par son jeu, sa catégorie, sa graine et ses entrées (hors leurs horodatages RTA) : le
-premier qui le soumet le garde, une copie réespacée ou réhorodatée est refusée. Un client peut soumettre dix runs par
-minute (`perMinute`) ; l'enveloppe est jetée une fois le verdict enregistré, et les vieux runs sont purgés chaque heure. `GET /v1/runs?game=&category=&seed=fixed|random` est le classement (runs valides
-seulement, le meilleur de chaque joueur, séparé par graine), `GET /v1/runs/<id>` un run, `DELETE /v1/runs/<id>` avec
-`x-delete-token` le supprime, `POST /v1/runs/<id>/moderate` avec le jeton d'administration l'élève à
-`moderator-verified`.
+fetch, WebSocket, TCP, UDP et DNS refusés dans le processus (une défense en profondeur, pas un bac à sable : voir
+REALITY-OPS, « Le worker des speedruns »), le paquet vérifié contre son empreinte approuvée, sa réponse signée par une
+clé à usage unique. Le processus HTTP ne rejoue jamais. Un run est identifié par son jeu, sa catégorie, la graine du
+run et ses entrées (hors leurs horodatages RTA), jamais par son monde : le premier qui le soumet le garde, une copie
+réhorodatée ou rescellée dans un autre monde est refusée. Un client peut soumettre dix runs par minute
+(`perMinute`) ; la file tient au plus `maxQueued` runs, toutes instances confondues ; l'enveloppe est jetée une fois le
+verdict enregistré ; les vieux runs sont purgés chaque heure. `GET /v1/runs?game=&category=[&key=]` est un classement :
+runs valides seulement, le meilleur de chaque joueur, sur la **clé du vérificateur** (`world.leaderboardKey` : la
+catégorie, et pour un monde Fixed ou Daily `<catégorie>:<graine>`) ; des temps égaux partagent un rang, puis la
+soumission la plus ancienne passe devant. Un run Daily envoyé après son jour est un entraînement (valide, non classé) ;
+un run Mystery est `valid-unranked` sans témoin serveur. `&seed=fixed|random` filtre toujours les runs de 4.1.14.
+`GET /v1/runs/<id>` est un run, `DELETE /v1/runs/<id>` avec `x-delete-token` le supprime,
+`POST /v1/runs/<id>/moderate` avec le jeton d'administration l'élève à `moderator-verified`. Soumissions, verdicts,
+modérations et suppressions sont des lignes d'audit du journal du Bridge.
+
+Le défi du jour (`bridge/src/daily.ts`, la section `daily` d'une configuration) : `GET /v1/daily?game=[&date=]` signe
+la graine du jour (un vrai jour UTC, aujourd'hui ou dans `retentionDays`, 30 par défaut) ; `POST /v1/commit` et
+`GET /v1/reveal/<id>` s'engagent sur une graine Mystery et la révèlent, signés tous les deux. Jetons et engagements sont
+écrits une seule fois dans le même store SQL : toutes les instances répondent la même chose. Le joueur garde le jeton
+d'un monde Daily à côté du monde, et un speedrun dans ce monde le porte ; le joueur n'a pas encore de parcours Mystery
+(une catégorie Mystery y refuse de démarrer).
 
 ## Politiques
 
