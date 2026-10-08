@@ -58,7 +58,8 @@ the same diagnostic in the command line, the Studio and the MCP (`tests/diagnost
 
 ## Storage, sessions and replay
 
-Saves are envelopes `{ format, schema: 3, gameId, gameSaveVersion, state }`; an old save is migrated by the game's
+Saves are envelopes `{ format, schema: 4, gameId, gameSaveVersion, variant, state }` (4.1.15: `variant` is the world
+the game was played in; a schema 3 envelope is read as the story world); an old save is migrated by the game's
 `migrations` (`core/migrate.ts`) and one save per release since 3.0 is loaded by `tests/save-v3.test.ts`. Every input
 is also an entry of the engine's **session**, with the answers given while it ran (choices, random draws) and the
 digest of the state after it: `replay` (`src/engine/tools/replay.ts`) plays a session again and names the first entry

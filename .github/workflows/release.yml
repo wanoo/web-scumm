@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        set: [core, reality]
+        set: [core, reality, remix, speedrun]
     env:
       TAG: ${{ github.event.workflow_run.head_branch }}
     steps:
@@ -50,13 +50,19 @@ jobs:
           cache: npm
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
+      # 4.1.16: a set the tag's commit does not define yet (remix, speedrun) is not this tag's gate.
+      - id: has
+        run: grep -Eq "^  '?${{ matrix.set }}'?: \[" tools/mutation-sets.ts && echo "set=yes" >> "$GITHUB_OUTPUT" || echo "::notice::the set ${{ matrix.set }} predates this tag"
       - id: inputs
+        if: steps.has.outputs.set == 'yes'
         run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - if: steps.has.outputs.set == 'yes'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache/mutation
           key: mutation-${{ matrix.set }}-${{ steps.inputs.outputs.hash }}
-      - run: npm run test:mutation:core -- --set=${{ matrix.set }} | tee mutation-${{ matrix.set }}.txt
+      - if: steps.has.outputs.set == 'yes'
+        run: npm run test:mutation:core -- --set=${{ matrix.set }} | tee mutation-${{ matrix.set }}.txt
         shell: bash
       - if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

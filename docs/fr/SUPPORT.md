@@ -72,9 +72,10 @@ CHANGELOG. Il continue de marcher pour le reste de cette majeure, et disparaît 
 ## Sauvegardes
 
 Une sauvegarde écrite par n'importe quelle release des lignées 3.x ou 4.x se charge dans toute 4.x suivante :
-l'enveloppe est versionnée (schéma 3), les `migrations` du jeu portent ses ids, et `tests/save-v3.test.ts` charge une
+l'enveloppe est versionnée (schéma 4 depuis 4.1.15, le schéma 3 toujours lu), les `migrations` du jeu portent ses ids, et `tests/save-v3.test.ts` charge une
 sauvegarde figée de chaque release. Une sauvegarde plus récente que le jeu où on la charge est refusée, jamais lue à
-moitié.
+moitié. Le `.wsrun` d'un speedrun est de schéma 2 depuis 4.1.16 (le monde du run scellé dans sa preuve) ; un fichier de
+schéma 1 de 4.1.14 ou 4.1.15 est toujours vérifié, comme un run Story.
 
 ## Releases
 

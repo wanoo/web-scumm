@@ -28,6 +28,21 @@ export const SETS = {
     'connectors/src/badges/crypto.ts',
     'connectors/src/badges/fetch.ts',
   ],
+  // Remix and Time Attack's contracts (4.1.16, plan §10): a world's seed and its normalisation, its hash, compilation
+  // and application, its constraints, a category's world and its leaderboard key, the Daily and Mystery tokens.
+  remix: [
+    'src/engine/core/remix/seed-code.ts',
+    'src/engine/core/remix/compile.ts',
+    'src/engine/core/remix/apply.ts',
+    'src/engine/core/remix/categories.ts',
+    'src/engine/reality/daily.ts',
+  ],
+  // A run's envelope and `h0`, the recorder and its resume, the verifier (4.1.16).
+  speedrun: [
+    'src/engine/tools/speedrun/envelope.ts',
+    'src/engine/tools/speedrun/recorder.ts',
+    'src/engine/tools/speedrun/verify.ts',
+  ],
   // The Bridge's stores and its fan-out (4.1.10, ADR 0009): measured, not gated yet. The `reality` set would double
   // with them (docs/dev/plans/4.1.10-constellation.md §6); its survivors are read and named or killed before the set
   // joins `GATED`.
@@ -60,9 +75,16 @@ export const TESTS: Record<MutationSet, string[]> = {
   reality: ['tests/reality-*.test.ts', 'tests/bridge*.test.ts'],
   connectors: ['tests/connectors-*.test.ts'],
   'reality-store': ['tests/bridge-reality-store.test.ts', 'tests/bridge-fanout.test.ts', 'tests/bridge.test.ts'],
+  remix: [
+    'tests/remix-*.test.ts',
+    'tests/speedrun-remix.test.ts',
+    'tests/speedrun-daily.test.ts',
+    'tests/code-wheel.test.ts',
+  ],
+  speedrun: ['tests/speedrun-*.test.ts', 'tests/critical-minigame-outcome.test.ts'],
 };
 
 /** The sets `all` runs and the gate judges; `connectors` and `reality-store` run on their own until they are gated. */
-const GATED: MutationSet[] = ['core', 'reality'];
+const GATED: MutationSet[] = ['core', 'reality', 'remix', 'speedrun'];
 
 export const setsOf = (set: MutationSet | 'all'): MutationSet[] => (set === 'all' ? GATED : [set]);
