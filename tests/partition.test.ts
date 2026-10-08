@@ -89,6 +89,12 @@ describe('partitioned workers', () => {
   for (const [name, make] of games) {
     const g = make();
     const runs = new Map<string, SolveResult>();
+    /** The 1-worker proof the others are compared with; a clear error when it did not complete. */
+    const ref = () => {
+      const r = runs.get('1');
+      if (!r) throw new Error(`${name}: the 1-worker reference run did not complete`);
+      return r;
+    };
     const one = (workers: number, sharedVisited: boolean) =>
       solve(structuredClone(g.game), g.layouts, { mode: 'prove', maxStates: 60000, workers, batch: 16, sharedVisited });
     it(
@@ -104,7 +110,7 @@ describe('partitioned workers', () => {
         `${name}, ${workers} workers with the shared table: the same proof; states come back without their engine state`,
         async () => {
           const r = await one(workers, true);
-          expect(sig(r)).toEqual(sig(runs.get('1')!));
+          expect(sig(r)).toEqual(sig(ref()));
           if (workers === 4) {
             expect(r.profile.shared).toMatchObject({ applied: true, collisions: 0 });
             expect(r.profile.shared!.known).toBeGreaterThan(0);
@@ -116,7 +122,7 @@ describe('partitioned workers', () => {
       `${name}, 2 workers without the table: the same again`,
       async () => {
         const off = await one(2, false);
-        expect(sig(off)).toEqual(sig(runs.get('1')!));
+        expect(sig(off)).toEqual(sig(ref()));
         expect(off.profile.shared?.applied).toBe(false);
       },
       BUDGET_S * 1000,

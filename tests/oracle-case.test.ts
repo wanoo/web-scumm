@@ -39,5 +39,9 @@ describe('oracle-case --diff', () => {
     const moved = diffCases(base, { ...after, flagsReached: ['b', 'a'], reachable: ['s1', 's3'], steps: base.steps });
     expect(moved).toContain('flags reordered');
     expect(moved).toContain('reachable: 2 → 2 states; first that differs: s2 → s3');
+    expect(diffCases(base, { ...after, reachable: ['s1', 's2', 's4'] })).toContain(
+      'reachable: 2 → 3 states; first that differs: — → s4',
+    );
+    expect(diffCases(base, { ...base, opts: { mode: 'witness' } })[2]).toMatch(/^options: /);
   });
 });

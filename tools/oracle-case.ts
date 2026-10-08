@@ -26,12 +26,13 @@ export function diffCases(a: CaseFile, b: CaseFile): string[] {
   const out: string[] = [];
   out.push(`before: ${a.case} on ${a.commit.slice(0, 12)} (engine ${a.engine}, Node ${a.node})`);
   out.push(`after:  ${b.case} on ${b.commit.slice(0, 12)} (engine ${b.engine}, Node ${b.node})`);
-  if (JSON.stringify(a.opts) !== JSON.stringify(b.opts))
-    out.push(`options: ${JSON.stringify(a.opts)} → ${JSON.stringify(b.opts)}`);
+  const opts = JSON.stringify(a.opts) !== JSON.stringify(b.opts);
+  if (opts) out.push(`options: ${JSON.stringify(a.opts)} → ${JSON.stringify(b.opts)}`);
   const fields = Object.keys({ ...a.signature, ...b.signature }).filter(
     (k) => JSON.stringify(a.signature[k]) !== JSON.stringify(b.signature[k]),
   );
-  if (!fields.length) return [];
+  // Two runs with other options are not the same case, whatever their digests say.
+  if (!fields.length) return opts ? out : [];
   out.push(`fields that differ: ${fields.join(', ')}`);
   const n = Math.max(a.steps.length, b.steps.length);
   for (let i = 0; i < n; i++)
@@ -56,8 +57,10 @@ export function diffCases(a: CaseFile, b: CaseFile): string[] {
     out.push('flags reordered');
   const ra = [...a.reachable].sort();
   const rb = [...b.reachable].sort();
-  const k = ra.findIndex((x, i) => x !== rb[i]);
-  if (k >= 0 || ra.length !== rb.length)
+  const found = ra.findIndex((x, i) => x !== rb[i]);
+  // One list a prefix of the other: the first state only the longer has.
+  const k = found >= 0 ? found : Math.min(ra.length, rb.length);
+  if (found >= 0 || ra.length !== rb.length)
     out.push(`reachable: ${ra.length} → ${rb.length} states; first that differs: ${ra[k] ?? '—'} → ${rb[k] ?? '—'}`);
   else out.push(`reachable: the same ${ra.length} states`);
   return out;
@@ -66,6 +69,10 @@ export function diffCases(a: CaseFile, b: CaseFile): string[] {
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const args = process.argv.slice(2);
   if (args[0] === '--diff') {
+    if (args.length < 3) {
+      console.error('usage: npx tsx tools/oracle-case.ts --diff <before.json> <after.json>');
+      process.exit(2);
+    }
     const [a, b] = args.slice(1).map((f) => JSON.parse(readFileSync(f, 'utf8')) as CaseFile);
     const lines = diffCases(a!, b!);
     console.log(lines.length ? lines.join('\n') : '✔  the two runs agree on every field the oracle compares');
