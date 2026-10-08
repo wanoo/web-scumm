@@ -1,7 +1,7 @@
 // npm run e2e:canonical [-- --browsers=chromium,webkit,firefox] [--allow-skip] (4.1.12, ADR 0013): the same
 // `canonicalJson` (src/engine/core/canonical.ts) on the fifty-two edge values of tests/fixtures/canonical-values.ts, in
 // Chromium, WebKit and Firefox, against the texts the fixture writes out (which tests/canonical-json.test.ts holds Node
-// to). One module, bundled once with esbuild, evaluated in a blank page of each browser: a browser that writes one text
+// to), and since 4.1.17 the code wheel's hash and transcript verdicts of tests/fixtures/wheel-transcripts.ts. One module, bundled once with esbuild, evaluated in a blank page of each browser: a browser that writes one text
 // differently fails, with the case named. Exit codes: 0 every browser agrees, 1 a difference, 3 a browser Playwright
 // cannot launch here (`--allow-skip` makes that 0, said on the output), never a silent pass.
 import { build } from 'esbuild';
@@ -18,10 +18,15 @@ const allowSkip = args.includes('--allow-skip');
 const entry = `
 import { canonicalJson } from './src/engine/core/canonical.ts';
 import { CANONICAL_CASES } from './tests/fixtures/canonical-values.ts';
-globalThis.__canonical = () => CANONICAL_CASES.map((c) => {
-  try { return { name: c.name, got: canonicalJson(c.make()), expected: c.expected }; }
-  catch { return { name: c.name, got: null, expected: c.expected }; }
-});`;
+import { WHEEL_CASES } from './tests/fixtures/wheel-transcripts.ts';
+globalThis.__canonical = () => [
+  ...CANONICAL_CASES.map((c) => {
+    try { return { name: c.name, got: canonicalJson(c.make()), expected: c.expected }; }
+    catch { return { name: c.name, got: null, expected: c.expected }; }
+  }),
+  // 4.1.17: the code wheel's hash and the verifier's verdicts on its transcripts.
+  ...WHEEL_CASES.map((c) => ({ name: c.name, got: c.make(), expected: c.expected })),
+];`;
 const bundle = await build({
   stdin: { contents: entry, resolveDir: ROOT, loader: 'ts', sourcefile: 'e2e-canonical-entry.ts' },
   bundle: true,

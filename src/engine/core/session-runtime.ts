@@ -4,7 +4,8 @@
 // (ADR 0016) it also owns the run's seed and its `logic` stream (what `engine.random` draws), and the run clock it
 // tells of every entry; a listener (a speedrun's recorder, the verifier) hears each entry begin and end.
 import { stateDigest } from './diff';
-import type { GameDef, GameState, Id, MinigameResult, Session, SessionEntry } from './types';
+import { proveMinigame, TRANSCRIPT_REFUSED } from './minigame-proofs';
+import type { GameDef, GameState, Id, MinigameResult, MinigameTranscript, Session, SessionEntry } from './types';
 import type { Presenter } from './ports';
 import { SESSION_MAX } from './engine-shared';
 import { derive, newSeed, type Prng } from './prng';
@@ -171,9 +172,38 @@ export class SessionLog {
    */
   async minigame(id: Id, params: Record<string, unknown>): Promise<MinigameResult | undefined> {
     const o = this.cur;
-    const fed = o?.src?.mg?.[o.gi];
-    const r = fed !== undefined ? (o!.gi++, fed) : ((await this.host.ui.minigame(id, params)) ?? undefined);
-    if (o && r !== undefined) (o.entry.mg ??= []).push(r);
+    const k = o?.gi ?? 0;
+    const fed = o?.src?.mg?.[k];
+    let r: MinigameResult | undefined;
+    let t: MinigameTranscript | undefined;
+    if (fed !== undefined) {
+      o!.gi++;
+      r = fed;
+      // 4.1.17: a recorded transcript is computed again here; a result it does not give stops the replay.
+      const fedT = o!.src!.mgt?.[k];
+      if (fedT !== undefined && fedT !== null) {
+        const proved = proveMinigame(id, params, fedT);
+        if ('error' in proved)
+          throw new Error(`${TRANSCRIPT_REFUSED} ${id}: its transcript is not one of this run (${proved.error})`);
+        if (proved.result !== r)
+          throw new Error(`${TRANSCRIPT_REFUSED} ${id}: its transcript gives ${proved.result}, not ${r}`);
+        t = fedT;
+      }
+    } else {
+      const out = (await this.host.ui.minigame(id, params)) ?? undefined;
+      r = typeof out === 'object' ? out.result : out;
+      t = typeof out === 'object' ? out.transcript : undefined;
+    }
+    if (o && r !== undefined) {
+      const mg = (o.entry.mg ??= []);
+      mg.push(r);
+      if (t) {
+        // Aligned with `mg`: a result without a transcript before this one is a null.
+        const mgt = (o.entry.mgt ??= []);
+        while (mgt.length < mg.length - 1) mgt.push(null);
+        mgt.push(t);
+      }
+    }
     return r;
   }
 

@@ -15,6 +15,7 @@ import {
   type CodeWheelParams,
   generateWheel,
   judge,
+  wheelHash,
   type WheelRecord,
   wheelTable,
   windowAt,
@@ -44,7 +45,21 @@ export const codeWheel: Minigame = {
     const seed = str(p.seed, 'story');
     const record = (r: Omit<WheelRecord, 'seed' | 'version' | 'mode'>) => {
       const E = (globalThis as { CustomEvent?: typeof CustomEvent }).CustomEvent;
-      const detail: WheelRecord = { seed, version: r.wheel.version, mode, ...r };
+      // 4.1.17: the transcript a replay judges again: each answer by its place in the list (a translation keeps the
+      // places), the wheel's hash.
+      const transcript = {
+        v: 1 as const,
+        wheel: wheelHash(r.wheel, p.answers),
+        answers: r.answers.map((a) => p.answers.indexOf(a)),
+        end: r.result === 'skipped' || r.result === 'disabled' ? ('skipped' as const) : ('decided' as const),
+      };
+      const detail: WheelRecord & { transcript: typeof transcript } = {
+        seed,
+        version: r.wheel.version,
+        mode,
+        ...r,
+        transcript,
+      };
       ctx.root.dispatchEvent?.(
         E
           ? new E('mg-record', { bubbles: true, detail })

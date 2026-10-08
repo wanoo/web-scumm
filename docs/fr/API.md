@@ -141,6 +141,7 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `CodeWheel` | `interface { version, seed, n, outer, track, inner, … 3 more }` | public | A wheel as a seed makes it: the order of each disc, the windows' offsets, the question and its answer. |
 | `CodeWheelMode` | `type CodeWheelMode = 'parody' \| 'story' \| 'strict' \| 'cosmetic' \| 'disabled' \| 'daily'` | public | How the check behaves (§11.13): `parody` (the default) lets the player through after a few funny refusals. |
 | `CodeWheelParams` | `interface { actors, symbols, answers, mode, tries, seed }` | public | What an author writes in `{ minigame: 'code-wheel', params }`. |
+| `CodeWheelTranscript` | `interface { v, wheel, answers, end }` | public | What a minigame records so its result can be computed again (4.1.17, D31, ADR 0020): the code wheel's answers, by their place in the list it |
 | `CompiledGame` | `type CompiledGame = Readonly<GameDef>` | public | A game as `compileGame` returns it: normalised and, for schema 3, frozen. |
 | `CompiledManifest` | `interface { manifest, hash, dims, order, anchors, modes }` | public | A manifest compiled once: its hash, its dimensions with their domains, its modes. |
 | `compileGame` | `(source: GameSource): CompiledGame` | public | Compiles authoring data once into the single normalised representation consumed by the engine and tools. The source is never mutated; genera |
@@ -196,7 +197,9 @@ Un jeu ajoute les siens dans `minigames` de son module (même contrat) : c'est l
 | `MapDef` | `interface { regions, start, places, music, vehicles }` | public | The travel map: its regions, its places and the region shown first. |
 | `MapRegion` | `interface { name, image, parent, frame }` | public | A region of the travel map: its image, its parent region and its frame on it. |
 | `Migration` | `interface { from, renameFlag, renameItem, renameRoom, renameProp, renameActor, … 12 more }` | public | One step of save migration: from version `from` to `from + 1`. Keys are old ids, values new ones. |
+| `MinigameOutcome` | `interface { result, transcript }` | public | A minigame's result and, when it can prove it, its transcript (4.1.17). |
 | `MinigameResult` | `type MinigameResult = 'won' \| 'passed' \| 'skipped' \| 'failed' \| 'disabled'` | public | How a minigame that says so ended (4.1.16): won, let through (`passed`, a parody's mercy), skipped, lost (`failed`, the story goes on with i |
+| `MinigameTranscript` | `type MinigameTranscript = CodeWheelTranscript` | public | A minigame's transcript (4.1.17: the code wheel's only). |
 | `MouthSet` | `interface { closed, open, blink, smile }` | public | Mouth images for a pose: the body doesn't move while speaking, only the mouth changes. `closed` replaces the idle pose's image (t1), `open`  |
 | `NEAR` | `number` | public | Distance (logical units) beyond which a saved approach point is considered stale and recomputed. |
 | `newSeedCode` | `(): string` | public | A fresh code from WebCrypto (the Remix button). No WebCrypto: an error, never a guessable draw. |

@@ -7,6 +7,7 @@
 // checks it is a world its category ranks (`worldVerdict`, with the Bridge's signed tokens for Daily and Mystery),
 // seals it into the head, replays the run on the game that world makes, and names its leaderboard (`leaderboardKey`).
 // A schema 1 run is a Story run, replayed as 4.1.14 did; offered to a Remix category it is refused, never requalified.
+import { TRANSCRIPT_REFUSED } from '../../core/minigame-proofs';
 import { CHUNK_SIZE } from '../../core/journal-chunks';
 import type { CustomCommands } from '../../core/custom';
 import { canonicalJson } from '../../core/canonical';
@@ -228,6 +229,13 @@ export async function verifyRun(input: unknown, ctx: VerifyContext): Promise<Spe
 }
 
 const entriesOf = (env: SpeedrunEnvelope) => envelopeEntries(env);
+/** Whether a run played the code wheel (answered or skipped it, not a wheel switched off). */
+const playedWheel = (links: { entry: SessionEntry }[]) =>
+  links.some((l) =>
+    (l.entry.ran ?? [])
+      .filter((r) => r.startsWith('minigame:'))
+      .some((r, k) => r === 'minigame:code-wheel' && l.entry.mg?.[k] !== undefined && l.entry.mg[k] !== 'disabled'),
+  );
 const hasHint = (en: SessionEntry) => (en.ran ?? []).some((r) => r.startsWith('hint:') && !r.endsWith('/none'));
 
 async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerifyResult> {
@@ -328,6 +336,9 @@ async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerify
     commands: ctx.commands,
     timeoutMs: ctx.timeoutMs ?? 60_000,
   });
+  // A minigame's transcript that does not give its recorded result (4.1.17): the run is not what it says, not a crash.
+  const refused = r.replay.errors.find((e) => String(e).includes(TRANSCRIPT_REFUSED));
+  if (refused) stop('invalid-replay', 'minigame-transcript', String(refused));
   if (r.replay.errors.length) stop('inconclusive', 'crash', `the engine threw while replaying: ${r.replay.errors[0]}`);
   if (r.badLoads.length) stop('invalid-replay', 'replay-diverged', `a load restores a state the run had not reached`);
   if (r.replay.divergedAt !== undefined)
@@ -386,10 +397,14 @@ async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerify
     // wheel played without a result (a client that dropped it) counts as none. A result is the client's word, like
     // `medium`: the replay checks it was recorded and replays it, not that it was earned.
     const results: (string | undefined)[] = [];
+    // 4.1.17: with each result, whether it came with a transcript (already judged again by the replay).
+    const proved: boolean[] = [];
     for (const l of links) {
       const ids = (l.entry.ran ?? []).filter((r) => r.startsWith('minigame:')).map((r) => r.slice(9));
       ids.forEach((id, k) => {
-        if (id === 'code-wheel') results.push(l.entry.mg?.[k]);
+        if (id !== 'code-wheel') return;
+        results.push(l.entry.mg?.[k]);
+        proved.push(!!l.entry.mgt?.[k]);
       });
     }
     const breaks = (r: string | undefined) =>
@@ -404,6 +419,17 @@ async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerify
           ? `the code wheel is off in this category, and it was played (${said})`
           : `this category wants the code wheel won, not ${said}`,
       );
+    }
+    // A category that wants proof (4.1.17, D31): every wheel played with the answers that give its result. The word
+    // `won` alone is the client's; the replay computed each transcript's result again above.
+    if (wheel.proof === 'transcript') {
+      const k = results.findIndex((res, i) => res !== undefined && res !== 'disabled' && !proved[i]);
+      if (k >= 0)
+        stop(
+          'invalid-category-rule',
+          'code-wheel-proof',
+          `this category wants the code wheel's answers, and its result ${results[k]} came without them`,
+        );
     }
   }
   if (!category.allowHints && links.some((l) => hasHint(l.entry)))
@@ -436,6 +462,16 @@ async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerify
       verdict: 'valid-unranked',
       code: 'rta-unverifiable',
       reason: 'the run replays as recorded, but its RTA is the client’s word (a witness would rank it)',
+      trust: 'replay-valid',
+      world: placed,
+      recomputed,
+    };
+  // A printed wheel (4.1.17): no browser sees a paper disc turn; without a moderator the run is not ranked.
+  if (world.policy.codeWheel?.medium === 'physical' && playedWheel(links))
+    return {
+      verdict: 'valid-unranked',
+      code: 'physical-wheel-unwitnessed',
+      reason: 'the run replays as recorded, but a printed wheel is the player’s word (a moderator would rank it)',
       trust: 'replay-valid',
       world: placed,
       recomputed,
