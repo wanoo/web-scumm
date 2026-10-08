@@ -217,6 +217,42 @@ one by one (the others keep serving; the store is the same).
 into a new one, then `doctor`; connectors repeat what they sent since (their `dedupeKey` makes it idempotent), and
 players keep their cursors. A journal that will not start: `doctor` names the line.
 
+## Leaderboards and the daily challenge (4.1.16)
+
+A configuration's `runs` section mounts `/v1/runs`, its `daily` section `/v1/daily`, `/v1/commit` and `/v1/reveal/<id>`
+(docs/en/SPEEDRUN.md, "Leaderboards on the Bridge"). Both keep their records in the SQL store (`--store=sqlite:<file>`
+or `BRIDGE_STORE=postgres://…`; `serve` refuses them on the JSON-lines journal), migration 0002.
+
+```json
+"runs": {
+  "games": { "reference": { "dir": "/srv/games/reference", "fingerprint": { "logic": "…", "trustedExtensions": "…", "presentation": "…", "engine": "…" } } },
+  "worker": ["/usr/bin/node", "/srv/web-scumm/node_modules/tsx/dist/cli.mjs", "/srv/web-scumm/tools/speedrun/worker.ts"],
+  "workers": 2
+},
+"daily": { "games": { "reference": { "daily": "daily", "mystery": "mystery" } }, "kid": "daily-2026", "keyFile": "daily.jwk", "secretFile": "daily.secret" }
+```
+
+`keyFile` (the Ed25519 private JWK whose public half the game's manifest names in `remix.daily`) and `secretFile` (the
+days' secret) sit beside `config.json`, mode 0600. Rotating the daily key is a release of the game with the new public
+key: the player and the verifier accept the key the manifest names only, so a token of another `kid` is refused.
+
+### The speedrun worker
+
+The worker's in-process refusal of the network is defence in depth, not a sandbox: a replay runs the game's code, and
+a hostile package or run could still reach the filesystem, spawn a process or open a socket another way. Run the
+worker command inside the deployment's isolation, for instance:
+
+```sh
+docker run --rm -i --network none --read-only --tmpfs /tmp:rw,size=64m --cap-drop ALL --security-opt no-new-privileges \
+  --pids-limit 64 --memory 512m --cpus 1 --user 65534:65534 -v /srv/games:/srv/games:ro web-scumm-worker \
+  node tools/speedrun/worker.ts
+```
+
+as the `worker` command: no network namespace, a read-only root, a bounded temporary directory, no capability, no
+secret of the Bridge in its environment (the Bridge passes `PATH`, `GAME_DIR` and `NODE_OPTIONS` only), limits on CPU,
+memory, processes and time (the Bridge kills the process group at `timeoutMs` + 5 s). Its stdout is capped at 1 MB and
+its stderr is not kept.
+
 ## What is not here (4.1.10)
 
 A real email or SSH connector, a deployment of the `distributed` profile (it stays `experimental` until one), row-level

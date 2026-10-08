@@ -18,7 +18,7 @@ import { b64url } from '../../src/engine/reality/protocol';
 import { encodeSeedCode, REMIX_ALGORITHM_VERSION, seedCommitment } from '../../src/engine/reality/daily';
 
 /** What the daily routes keep: the day tokens issued, the Mystery seeds behind their commitments, written once. */
-export interface DailyStore {
+interface DailyStore {
   get(key: string): Promise<string | undefined>;
   /** Writes `value` unless the key has one; returns the value the key holds afterwards (the first writer's). */
   putIfAbsent(key: string, value: string): Promise<string>;

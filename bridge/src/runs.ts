@@ -18,7 +18,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { RunOutcome, RunRecord, RunStore } from './runs-store';
 
 export { MemoryRunStore, SqlRunStore } from './runs-store';
-export type { RunRecord, RunStore, RunTrust } from './runs-store';
+export type { RunRecord } from './runs-store';
 
 /** A game the worker may verify against: its package's folder and the fingerprint approved for it. */
 export interface ApprovedGame {
@@ -281,6 +281,8 @@ export class RunQueue {
     if (!game) throw new Error(`no approved package for "${r.gameId}"`);
     const out = await runWorker(this.o, game, r.envelope);
     const valid = out.verdict === 'valid' || out.verdict === 'valid-unranked';
+    // A Daily run sent after its day is practice: its verdict stands, it is not that day's board's (plan §7).
+    const late = out.world?.validUntil !== undefined && r.submittedAt > out.world.validUntil;
     const outcome: RunOutcome = {
       verdict: out.verdict,
       code: out.code,
@@ -288,7 +290,8 @@ export class RunQueue {
       // A worker grants at most `replay-valid`; anything else it might say is ignored.
       trust: valid ? 'replay-valid' : 'local',
       // A ranked time is only a valid run's; the envelope is not kept once its verdict is (the summary is).
-      ranked: out.verdict === 'valid' ? (out.ranked ?? null) : null,
+      ranked: out.verdict === 'valid' && !late ? (out.ranked ?? null) : null,
+      ...(late ? { reason: `${out.reason} (sent after its day: practice, not ranked)` } : {}),
       ...(out.seedKind ? { seedKind: out.seedKind } : {}),
       ...(out.world
         ? {
@@ -407,7 +410,7 @@ export interface WorkerAnswer {
   reason: string;
   ranked?: string | null;
   seedKind?: 'fixed' | 'random';
-  world?: { hash: string; mode: string; seed: string; leaderboardKey: string };
+  world?: { hash: string; mode: string; seed: string; leaderboardKey: string; validUntil?: number };
 }
 
 const isWorld = (w: unknown): w is NonNullable<WorkerAnswer['world']> =>
@@ -415,7 +418,9 @@ const isWorld = (w: unknown): w is NonNullable<WorkerAnswer['world']> =>
   typeof w === 'object' &&
   ['hash', 'mode', 'seed', 'leaderboardKey'].every(
     (k) => typeof (w as Record<string, unknown>)[k] === 'string' && (w as Record<string, string>)[k]!.length <= 200,
-  );
+  ) &&
+  ((w as { validUntil?: unknown }).validUntil === undefined ||
+    Number.isSafeInteger((w as { validUntil?: unknown }).validUntil));
 
 /** One job in an isolated process: the verdict, or `inconclusive` when the worker died, ran out or answered wrong. */
 export async function runWorker(

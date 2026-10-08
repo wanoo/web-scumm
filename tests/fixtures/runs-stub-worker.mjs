@@ -19,7 +19,7 @@ const result = JSON.stringify({
   reason: 'stub',
   trust: 'replay-valid',
   ranked: env.timing?.logicalTime ?? null,
-  world: { hash: v.hash, mode: v.mode, seed: v.seed, leaderboardKey: board },
+  world: { hash: v.hash, mode: v.mode, seed: v.seed, leaderboardKey: board, ...(stub.validUntil ? { validUntil: stub.validUntil } : {}) },
 });
 const sig = createHmac('sha256', Buffer.from(job.key, 'hex')).update(result).digest('hex');
 process.stdout.write(`${JSON.stringify({ result, sig })}\n`, () => process.exit(0));

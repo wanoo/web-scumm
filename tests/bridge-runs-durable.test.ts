@@ -225,6 +225,26 @@ for (const kind of KINDS)
       await q.idle();
     }, 60_000);
 
+    it("a Daily run sent after its day is practice: its verdict stands, it is not on that day's board", async () => {
+      const [da] = await kind.open();
+      const t = tenant();
+      const now = Date.parse('2026-10-09T08:00:00Z');
+      const { q } = queue(new SqlRunStore(da), { now: () => now });
+      const board = 'daily:WS-AAAA-AAAA';
+      const day = { category: 'daily', seed: 'WS-AAAA-AAAA' };
+      const { id: late } = await q.submit(t, {
+        player: 'Late',
+        envelope: run('late', { ...day, stub: { board, validUntil: Date.parse('2026-10-09T00:00:00Z') } }),
+      });
+      await q.submit(t, {
+        player: 'OnTime',
+        envelope: run('ok', { ...day, stub: { board, validUntil: Date.parse('2026-10-10T00:00:00Z') } }),
+      });
+      await q.idle();
+      expect(await q.o.store.get(t, late)).toMatchObject({ verdict: 'valid', ranked: null });
+      expect((await q.leaderboard(t, 'reference', 'daily', { key: board })).map((r) => r.player)).toEqual(['OnTime']);
+    }, 60_000);
+
     it("the daily challenge's records are written once for every instance", async () => {
       const [da, db] = await kind.open();
       const a = new SqlDailyStore(da);
