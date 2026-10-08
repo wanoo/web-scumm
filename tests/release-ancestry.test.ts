@@ -91,6 +91,8 @@ describe('Pages', () => {
     const pages = ci.slice(ci.indexOf('\n  pages:\n'));
     expect(pages).toMatch(/^\n {2}pages:\n(?: {4}#.*\n)* {4}needs: \[pr-gate\]\n/);
     // Deployed only when the gate itself succeeded, read as such (the implicit success() would skip it for good).
-    expect(pages).toMatch(/\n {4}if: always\(\) && github\.ref == 'refs\/heads\/main' && needs\.pr-gate\.result == 'success'\n/);
+    expect(pages).toMatch(
+      /\n {4}if: always\(\) && github\.ref == 'refs\/heads\/main' && needs\.pr-gate\.result == 'success'\n/,
+    );
   });
 });
