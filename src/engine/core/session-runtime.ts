@@ -4,7 +4,6 @@
 // (ADR 0016) it also owns the run's seed and its `logic` stream (what `engine.random` draws), and the run clock it
 // tells of every entry; a listener (a speedrun's recorder, the verifier) hears each entry begin and end.
 import { stateDigest } from './diff';
-import { proveMinigame, TRANSCRIPT_REFUSED } from './minigame-proofs';
 import type { GameDef, GameState, Id, MinigameResult, MinigameTranscript, Session, SessionEntry } from './types';
 import type { Presenter } from './ports';
 import { SESSION_MAX } from './engine-shared';
@@ -182,6 +181,8 @@ export class SessionLog {
       // 4.1.17: a recorded transcript is computed again here; a result it does not give stops the replay.
       const fedT = o!.src!.mgt?.[k];
       if (fedT !== undefined && fedT !== null) {
+        // Only a replay with a transcript needs the prover (and the wheel): out of the player's first visit.
+        const { proveMinigame, TRANSCRIPT_REFUSED } = await import('./minigame-proofs');
         const proved = proveMinigame(id, params, fedT);
         if ('error' in proved)
           throw new Error(`${TRANSCRIPT_REFUSED} ${id}: its transcript is not one of this run (${proved.error})`);
