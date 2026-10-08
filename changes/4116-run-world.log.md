@@ -29,6 +29,12 @@
   HUD; (S6) the Bridge's run key without the world again (a copy re-sealed in another world of the same logic would
   have passed "the first submitter keeps it"); a 4.1.15 commitment record is revealed with its mode and commitment
   recomputed.
+- After PR 1's first run on `main` (37721832410): `pages` was skipped although `pr-gate` succeeded (before PR 1,
+  run 37698131483, it had deployed with `pr-gate` red): the implicit `success()` also reads the gate's skipped
+  ancestors. Now `if: always() && … && needs.pr-gate.result == 'success'`, tested. And `pwa-firefox` failed twice on
+  this branch's run 37722582935 (main's passed): after the update's reload the test read `window.__game` before the
+  game had started; it now waits for the engine (30 s) and names what the page reported if it never starts (passed
+  locally in Firefox, all five scenarios).
 - Measured (local): `e2e:canonical` 52 values the same in Node, Chromium, WebKit, Firefox.
 - Not done here: the player's Daily and Mystery flows handing their tokens to the recorder, the Bridge's leaderboard
   by key (PR 3); docs beyond SPEEDRUN, DSL-STABILITY and API (PR 5).
