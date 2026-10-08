@@ -327,8 +327,13 @@ export function atomValue(s: GameState, key: string): string | null {
       return s.where?.[id] ?? '';
     case 'player':
       return s.active ?? '';
-    case 'players':
-      return JSON.stringify(s.players?.[id] ?? null);
+    case 'players': {
+      // A parked character's room, bag and used items (4.1.17): not where it stands. The search's own dimensions
+      // (`player:<id>`) leave the position out, so a no-op cannot depend on it here either; valued with it, the memo
+      // kept one entry per pixel spot (`guests()` reads every parked player), and the demo's gain fell under two.
+      const p = s.players?.[id];
+      return p ? JSON.stringify([p.room, p.inventory, p.used ?? null]) : 'null';
+    }
     case 'visible': {
       const v = s.actors[id]?.visible;
       return v === undefined ? '' : v ? '1' : '0';

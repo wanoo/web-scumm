@@ -132,5 +132,11 @@ describe('the no-op memo changes nothing but the engine runs', () => {
       ].map((k) => atomValue(s, k)),
     ).toEqual(['1', '11', '2', 'null', 'open', '1', '1', '4', '0', 'hall', '{"pc":1}', 'hall', 'ann']);
     expect(atomValue(s, 'mystery:x')).toBeNull();
+    // A parked character is valued by its room, bag and used items, never by where it stands (4.1.17).
+    const parked = (at: [number, number]) =>
+      ({ players: { bob: { room: 'hall', inventory: ['key'], hero: { hall: at } } } }) as never;
+    expect(atomValue(parked([320, 360]), 'players:bob')).toBe(atomValue(parked([130, 350]), 'players:bob'));
+    expect(atomValue(parked([320, 360]), 'players:bob')).toBe('["hall",["key"],null]');
+    expect(atomValue(s, 'players:bob')).toBe('null');
   });
 });
