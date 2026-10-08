@@ -8,6 +8,7 @@ import { fingerprintGame } from '@engine/core/fingerprint';
 import { MemoryChunkStore } from '@engine/core/journal-chunks';
 import { applyVariant, compileGameManifest, remixWorld } from '@engine/core/remix/apply';
 import { compileVariant, storyVariant, type WorldVariant } from '@engine/core/remix/compile';
+import { variantHash } from '@engine/core/remix/story';
 import { encodeSeedCode } from '@engine/core/remix/seed-code';
 import type { GameDef, Layout, SpeedrunCategory } from '@engine/core/types';
 import { replay } from '@engine/tools/replay';
@@ -161,6 +162,25 @@ describe('a run in a Remix world', () => {
     });
     await expect(rec.prepare()).rejects.toThrow(/Fixed run is played on/);
   });
+});
+
+describe('a world is authenticated, not only checked for integrity (second reading of PR #60)', () => {
+  // The attacker the hash does not stop: one who rehashes a world and reseals the whole run with the public tools.
+  const rehash = (v: WorldVariant, o: Partial<WorldVariant>): WorldVariant => {
+    const { hash: _, ...body } = { ...v, ...o };
+    return { ...body, hash: variantHash(body) };
+  };
+  it('the lantern world relabelled with the oranges seed, rehashed and resealed, is refused: the seed does not make it', async () => {
+    const forged = rehash(lantern, { seed: oranges.seed });
+    const env = await record('fixed-oranges', forged);
+    expect(await verifyRun(env, ctx())).toMatchObject({ verdict: 'invalid-replay', code: 'world-forged' });
+  }, 60_000);
+  it('a Remix world labelled as the story world, and a world of an unknown algorithm version, are refused', async () => {
+    const fakeStory = rehash(oranges, { seed: 'story', mode: 'story' });
+    expect(await verifyRun(await record('story', fakeStory), ctx())).toMatchObject({ code: 'world-forged' });
+    const future = rehash(oranges, { algorithmVersion: 99 });
+    expect(await verifyRun(await record('random', future), ctx())).toMatchObject({ code: 'world-algorithm' });
+  }, 120_000);
 });
 
 describe("the validator reads a category's world", () => {

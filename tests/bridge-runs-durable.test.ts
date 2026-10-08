@@ -211,16 +211,17 @@ for (const kind of KINDS)
       expect(await q.o.store.get(other, board[0]!.id)).toBeUndefined();
     }, 60_000);
 
-    it('the same inputs in two worlds are two runs', async () => {
+    it('a copy re-sealed in another world is the same run: the first submitter keeps it', async () => {
       const [da] = await kind.open();
       const t = tenant();
       const { q } = queue(new SqlRunStore(da));
       await q.submit(t, { player: 'Lou', envelope: run('w', { seed: 'WS-AAAA-AAAA' }) });
-      await expect(q.submit(t, { player: 'Lou', envelope: run('w', { seed: 'WS-BBBB-BBBB' }) })).resolves.toMatchObject(
-        {
-          status: 'queued',
-        },
-      );
+      await expect(
+        q.submit(t, { player: 'Thief', envelope: run('w', { seed: 'WS-BBBB-BBBB' }) }),
+      ).rejects.toMatchObject({
+        status: 409,
+        code: 'duplicate',
+      });
       await q.idle();
     }, 60_000);
 

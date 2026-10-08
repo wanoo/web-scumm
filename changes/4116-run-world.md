@@ -10,14 +10,15 @@
 - **A speedrun in a Remix world verifies in that world** (4.1.16): 4.1.15's verifier and the Bridge's worker replayed
   the base game, so a run where the key lay under the oranges could not verify. The verifier now checks the stored
   world against the game (`loadVariant`) and the category (`worldVerdict`), rebuilds it (`applyVariant`), replays the
-  run there and names its leaderboard (`world.leaderboardKey`); the same inputs in two worlds are two runs. The
+  run there and names its leaderboard (`world.leaderboardKey`); the same inputs in two worlds are two runs. A world is
+  made again from its seed and must be the one stored: a world relabelled with another seed and rehashed is refused
+  (`world-forged`), as is an unknown algorithm version (`world-algorithm`). The
   recorder no longer turns a Daily or Mystery category into a random seed, refuses to start a run its category could
   not rank (`RunStartRefused`), and keeps the world, the evidence and the run's seed in its checkpoint (a resume in
   another world is refused).
 - **`canonicalJson` writes the same text in Firefox** (4.1.16): Firefox's `normalize('NFC')` turns a lone surrogate
   half into U+FFFD; such a half is now kept and the text around it normalized alone, as Node, Chromium and WebKit do
   (`e2e:canonical`, never run before, failed on it).
-- **The Bridge keeps two runs in two worlds apart**: a run's key includes its world.
 - **A Mystery reveal is signed** by the Bridge (its `token`), so the time of the reveal is the Bridge's word.
 
 ### Changes

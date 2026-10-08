@@ -85,7 +85,13 @@ export class SpeedrunSession {
     s.watchVisibility();
     app.scene.append(s.hud);
     s.tick();
-    await recorder.start();
+    try {
+      await recorder.start();
+    } catch (e) {
+      // A start the category refuses (its world, a Daily token missing): nothing of the run stays on screen.
+      s.destroy();
+      throw e;
+    }
     return s;
   }
 
