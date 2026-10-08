@@ -4,7 +4,7 @@
 // (ADR 0016) it also owns the run's seed and its `logic` stream (what `engine.random` draws), and the run clock it
 // tells of every entry; a listener (a speedrun's recorder, the verifier) hears each entry begin and end.
 import { stateDigest } from './diff';
-import type { GameDef, GameState, Id, Session, SessionEntry } from './types';
+import type { GameDef, GameState, Id, MinigameResult, Session, SessionEntry } from './types';
 import type { Presenter } from './ports';
 import { SESSION_MAX } from './engine-shared';
 import { derive, newSeed, type Prng } from './prng';
@@ -16,7 +16,7 @@ export interface SessionHost extends ClockHost {
   readonly state: GameState;
   clock: (() => number) | null;
   random: () => number;
-  readonly ui: Pick<Presenter, 'choose' | 'openMap'>;
+  readonly ui: Pick<Presenter, 'choose' | 'openMap' | 'minigame'>;
 }
 
 /** Hears the session's entries: `begin` when one opens (in the log's order), `end` when it closes. */
@@ -32,6 +32,8 @@ export interface OpenEntry {
   pi: number;
   mi: number;
   ri: number;
+  /** How far into its minigames' results (4.1.16). */
+  gi: number;
   steps: number;
 }
 
@@ -100,7 +102,7 @@ export class SessionLog {
     this.session ??= this.newSession({ kind: 'load' });
     if (this.host.clock) entry.t = Math.round(this.host.clock() - this.t0);
     this.session.log.push(entry);
-    this.open.push({ entry, src: this.feed?.shift(), pi: 0, mi: 0, ri: 0, steps: 0 });
+    this.open.push({ entry, src: this.feed?.shift(), pi: 0, mi: 0, ri: 0, gi: 0, steps: 0 });
     // Listeners first: what they read of the run clock is the state before this entry.
     for (const l of this.listeners) l.begin?.(entry);
     this.runClock.entry();
@@ -161,6 +163,18 @@ export class SessionLog {
     const p = fed !== undefined ? (o!.mi++, fed) : await this.host.ui.openMap(this.host.state);
     if (o) (o.entry.maps ??= []).push(p);
     return p;
+  }
+
+  /**
+   * A minigame's result, recorded when it says one (4.1.16) and fed back when replaying: a replay never plays it again.
+   * A minigame that says nothing records nothing (the sessions of 4.1.15 replay as they were).
+   */
+  async minigame(id: Id, params: Record<string, unknown>): Promise<MinigameResult | undefined> {
+    const o = this.cur;
+    const fed = o?.src?.mg?.[o.gi];
+    const r = fed !== undefined ? (o!.gi++, fed) : ((await this.host.ui.minigame(id, params)) ?? undefined);
+    if (o && r !== undefined) (o.entry.mg ??= []).push(r);
+    return r;
   }
 
   /** A random draw, recorded. */

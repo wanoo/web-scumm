@@ -88,6 +88,21 @@ const PARAMS = {
   },
   scratch: { ticket: 'items/r4c1', text: 'You won!', threshold: 0.55, hold: 600, intro: 'Scratch it.' },
   stroke: { target: 'cat/r2c1', hand: 'ui/r1c5', sfx: 'success', intro: 'Gently.', win: 'Purr.' },
+  // 4.1.16: the code wheel, played as a player at the keyboard plays it (the question, the wheel as a list, the arrows).
+  'code-wheel': {
+    seed: 'WS-0000-0000',
+    actors: [
+      { id: 'pixel', label: 'Pixel' },
+      { id: 'grandma', label: 'Grandma' },
+      { id: 'neighbor', label: 'The neighbour' },
+    ],
+    symbols: [
+      { id: 'fish', label: 'Fish' },
+      { id: 'key', label: 'Key' },
+      { id: 'moon', label: 'Moon' },
+    ],
+    answers: ['ANCHOR', 'BARREL', 'COMPASS'],
+  },
 };
 
 // ------------------------------------------------------------------ helpers
@@ -135,6 +150,47 @@ async function resultOf(page, id, before) {
 // ------------------------------------------------------------------ keyboard strategies, one per minigame
 
 const KEYS = {
+  async 'code-wheel'(page) {
+    // The question names a symbol and an actor; the wheel as a list says what that window shows.
+    const answer = await page.evaluate(() => {
+      const q = document.querySelector('.mg-wheel .mg-q')?.textContent ?? '';
+      const rows = [...document.querySelectorAll('.mg-wheel details tr')].map((tr) =>
+        [...tr.querySelectorAll('td')].map((td) => td.textContent),
+      );
+      const m = /until (.+) sits under (.+?)\. /.exec(q);
+      return m ? rows.find((r) => r[1] === m[1] && r[0] === m[2])?.[2] : undefined;
+    });
+    if (!answer) throw new Error('code-wheel: the question and the list do not give an answer');
+    // Less motion asked of the system: the disc turns without an animation.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('ArrowLeft');
+    const still = await page.evaluate(() => document.querySelector('.mg-wheel svg g')?.style.transition === 'none');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    if (!still) throw new Error('code-wheel: the disc animates although less motion is asked for');
+    // Turn the disc at the keyboard until its window shows it (the announcement says so), then answer.
+    let shown = false;
+    for (let k = 0; k < 4 && !shown; k++) {
+      shown = await page.evaluate(
+        (a) => document.querySelector('.mg-wheel [aria-live]')?.textContent?.includes(`its window shows ${a}`),
+        answer,
+      );
+      if (!shown) await page.keyboard.press('ArrowRight');
+    }
+    if (!shown) throw new Error('code-wheel: the arrows never brought the answer under the window');
+    await page.locator('.mg-wheel button.mg-answer', { hasText: answer }).focus();
+    await page.keyboard.press('Enter');
+    await overlayGone(page);
+    const after = await page.evaluate(() => ({
+      result: window.__game.minigameLog.at(-1)?.result,
+      flag: window.__game.engine.state.flags['minigame.code-wheel'],
+      focus: document.activeElement && document.activeElement !== document.body,
+    }));
+    if (after.result !== 'won' || after.flag !== 'won')
+      throw new Error(`code-wheel: recorded ${after.result}, flag ${after.flag}, not won`);
+    if (!after.focus) throw new Error('code-wheel: the focus did not come back to the game');
+    return 'recorded won, the focus back, no animation under reduced motion';
+  },
   async pick(page) {
     for (let round = 0; round < PARAMS.pick.rounds.length; round++) {
       const r = PARAMS.pick.rounds[round];

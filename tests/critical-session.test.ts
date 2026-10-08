@@ -50,7 +50,7 @@ describe('begin and end', () => {
     expect(e.session?.start).toEqual({ kind: 'load' });
     expect(e.session?.log).toEqual([entry]);
     expect(e.session?.log[0]).toBe(entry);
-    expect(e.sessions.open).toEqual([{ entry, src: undefined, pi: 0, mi: 0, ri: 0, steps: 0 }]);
+    expect(e.sessions.open).toEqual([{ entry, src: undefined, pi: 0, mi: 0, ri: 0, gi: 0, steps: 0 }]);
     expect('t' in entry).toBe(false);
   });
   it('keeps the current session below its cap', async () => {
@@ -80,7 +80,7 @@ describe('begin and end', () => {
     const { e } = await engine();
     const s = e.sessions.newSession({ kind: 'new' });
     s.log = Array.from({ length: SESSION_MAX }, () => ({ enter: 'a' }));
-    e.sessions.open.push({ entry: { enter: 'a' }, pi: 0, mi: 0, ri: 0, steps: 0 });
+    e.sessions.open.push({ entry: { enter: 'a' }, pi: 0, mi: 0, ri: 0, gi: 0, steps: 0 });
     e.sessions.begin({ enter: 'b' });
     expect(e.session).toBe(s);
     expect(s.log).toHaveLength(SESSION_MAX + 1);

@@ -4,9 +4,12 @@
 // The wheel itself is core/remix/code-wheel.ts (the same wheel for a seed on every runtime); this is its view.
 // Accessible: turn with the two buttons, the arrow keys or a gamepad's d-pad; every turn is announced; the whole wheel
 // is also a plain table (the "wheel as a list"); high contrast; no animated turn under prefers-reduced-motion.
+// 4.1.16: the whole wheel by keyboard (Tab, Enter, Escape to skip) and by gamepad (left/right turn, up/down choose an
+// answer, A confirms, B skips); its record (`mg-record`) is the result the engine keeps in the session; a `story` wheel
+// lost after its tries ends `failed`.
 // Params: actors [{ id, label, img? }], symbols [{ id, label, img? }], answers [string] (as many of each), mode?
 // (parody | story | strict | cosmetic | disabled | daily), tries?, seed? (the world's, filled by applyVariant), and the
-// texts question?, wrong? [string], pass?, win?, list?, turnLeft?, turnRight?.
+// texts question?, wrong? [string], pass?, win?, fail? (4.1.16), list?, turnLeft?, turnRight?.
 import {
   type CodeWheelMode,
   type CodeWheelParams,
@@ -42,7 +45,11 @@ export const codeWheel: Minigame = {
     const record = (r: Omit<WheelRecord, 'seed' | 'version' | 'mode'>) => {
       const E = (globalThis as { CustomEvent?: typeof CustomEvent }).CustomEvent;
       const detail: WheelRecord = { seed, version: r.wheel.version, mode, ...r };
-      ctx.root.dispatchEvent?.(E ? new E('mg-record', { bubbles: true, detail }) : new Event('mg-record'));
+      ctx.root.dispatchEvent?.(
+        E
+          ? new E('mg-record', { bubbles: true, detail })
+          : Object.assign(new Event('mg-record', { bubbles: true }), { detail }),
+      );
       return detail;
     };
     const w = generateWheel(p, seed);
@@ -64,11 +71,19 @@ export const codeWheel: Minigame = {
       gap: `${8 * ctx.u}px`,
       padding: `${8 * ctx.u}px`,
     });
-    if (mode !== 'strict')
-      skipButton(ctx, box, () => {
-        record({ wheel: w, rotations, answers, tries: answers.length, result: 'skipped' });
-        f.finish();
-      });
+    // Once a verdict is given (or the wheel skipped) nothing else is recorded, even in the pause before it closes: a
+    // second answer, Escape or B there would replace the result the story and a speedrun read.
+    let decided = false;
+    const skip =
+      mode !== 'strict'
+        ? () => {
+            if (f.finished || decided) return;
+            decided = true;
+            record({ wheel: w, rotations, answers, tries: answers.length, result: 'skipped' });
+            f.finish();
+          }
+        : undefined;
+    const skipBtn = skip ? skipButton(ctx, box, skip) : undefined;
 
     const question = fill(
       str(
@@ -186,26 +201,49 @@ export const codeWheel: Minigame = {
     }
     side.append(row);
     announce();
-    const offKeys = keys(ctx, { ArrowLeft: () => turn(-1), ArrowRight: () => turn(1) });
+    const offKeys = keys(ctx, {
+      ArrowLeft: () => turn(-1),
+      ArrowRight: () => turn(1),
+      ...(skip ? { Escape: () => (skipBtn?.click ? skipBtn.click() : skip()) } : {}),
+    });
+    // A strict wheel has no Skip to take the focus: it starts on the first turn button.
+    if (!skip) queueMicrotask(() => (row.firstChild as HTMLButtonElement | null)?.focus?.({ preventScroll: true }));
 
-    // A gamepad: the d-pad (or the left stick) turns, once per press.
-    let held = 0;
+    // A gamepad (4.1.16, the whole wheel): left/right (d-pad or stick) turn, up/down choose an answer, A confirms it,
+    // B skips; each once per press.
+    const answerButtons: HTMLButtonElement[] = [];
+    let chosen = -1;
+    const choose = (d: number) => {
+      if (!answerButtons.length) return;
+      chosen =
+        ((((chosen < 0 ? (d > 0 ? -1 : 0) : chosen) + d) % answerButtons.length) + answerButtons.length) %
+        answerButtons.length;
+      answerButtons.forEach((b, i) => {
+        b.style.outline = i === chosen ? '4px solid #fff' : '';
+        b.setAttribute('aria-current', String(i === chosen));
+      });
+      answerButtons[chosen]!.focus?.({ preventScroll: true });
+    };
+    const held = new Set<string>();
+    // The buttons already down at the first poll (the press that opened the wheel) count as held, not as new presses.
+    let first = true;
+    const press = (k: string, on: boolean, f: () => void) => {
+      if (on && !held.has(k) && !first) f();
+      if (on) held.add(k);
+      else held.delete(k);
+    };
     let raf = 0;
     const poll = () => {
       const pad = globalThis.navigator?.getGamepads?.().find((g) => g);
-      const x = pad
-        ? pad.buttons[14]?.pressed
-          ? -1
-          : pad.buttons[15]?.pressed
-            ? 1
-            : pad.axes[0]! < -0.6
-              ? -1
-              : pad.axes[0]! > 0.6
-                ? 1
-                : 0
-        : 0;
-      if (x && x !== held) turn(x);
-      held = x;
+      const b = (i: number) => !!pad?.buttons[i]?.pressed;
+      const ax = (i: number) => pad?.axes[i] ?? 0;
+      press('left', b(14) || ax(0) < -0.6, () => turn(-1));
+      press('right', b(15) || ax(0) > 0.6, () => turn(1));
+      press('up', b(12) || ax(1) < -0.6, () => choose(-1));
+      press('down', b(13) || ax(1) > 0.6, () => choose(1));
+      press('a', b(0), () => (chosen >= 0 ? answerButtons[chosen]?.click() : choose(1)));
+      press('b', b(1), () => skip?.());
+      first = false;
       if (!f.finished) raf = globalThis.requestAnimationFrame?.(poll) ?? 0;
     };
     raf = globalThis.requestAnimationFrame?.(poll) ?? 0;
@@ -223,19 +261,23 @@ export const codeWheel: Minigame = {
       b.textContent = a;
       b.style.cssText =
         'background:#ffd640;color:#000;border:2px solid #fff;padding:6px 10px;font-weight:700;min-width:44px;min-height:44px';
+      answerButtons.push(b);
       b.addEventListener('click', async () => {
-        if (f.finished) return;
+        if (f.finished || decided) return;
         const verdict = judge(w, mode, a, answers.length, typeof p.tries === 'number' ? p.tries : 3);
         answers.push(a);
         if (verdict === 'wrong') {
           live.textContent = wrong[(answers.length - 1) % wrong.length]!;
           return;
         }
+        decided = true;
         live.textContent =
           verdict === 'won'
             ? str(p.win, 'Legitimate! Welcome aboard.')
-            : str(p.pass, 'Fine. You look legitimate enough. Go on.');
-        record({ wheel: w, rotations, answers, tries: answers.length, result: verdict === 'won' ? 'won' : 'passed' });
+            : verdict === 'failed'
+              ? str(p.fail, 'The wheel stays silent. The story will remember that.')
+              : str(p.pass, 'Fine. You look legitimate enough. Go on.');
+        record({ wheel: w, rotations, answers, tries: answers.length, result: verdict });
         await sleep(900, ctx.signal);
         f.finish();
       });

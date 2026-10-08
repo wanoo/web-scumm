@@ -15,6 +15,13 @@ export interface Action {
 }
 
 /**
+ * How a minigame that says so ended (4.1.16): won, let through (`passed`, a parody's mercy), skipped, lost
+ * (`failed`, the story goes on with it), or not played (`disabled`). A minigame that says nothing records nothing.
+ * @public
+ */
+export type MinigameResult = 'won' | 'passed' | 'skipped' | 'failed' | 'disabled';
+
+/**
  * One input of a session (`Engine.session`). The answers given while it ran (`picks`, `maps`, `rnd`) are what makes it
  * replayable; `ran` lists the rules, topics, listeners and scripts that answered (the ids of the puzzle graph).
  * @public
@@ -34,6 +41,8 @@ export type SessionEntry = (
   picks?: number[];
   maps?: (Id | null)[];
   rnd?: number[];
+  /** The results the entry's minigames reported, in order (4.1.16): fed back when replaying, like `picks`. */
+  mg?: MinigameResult[];
   /** `skip()` was called after that many commands. */
   skipAt?: number;
   ran?: string[];

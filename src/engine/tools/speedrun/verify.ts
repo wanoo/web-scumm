@@ -377,7 +377,35 @@ async function check(input: unknown, ctx: VerifyContext): Promise<SpeedrunVerify
   });
   const finalProof = await finalProofOf(chain.last, env);
   if (finalProof !== env.finalProof) stop('invalid-replay', 'chain', 'the final proof does not seal this run');
-  // 11. The category's rules on what the run did and declared.
+  // 11. The category's rules on what the run did and declared. The code wheel (4.1.16): its results are the reserved
+  // flag the replay wrote (`minigame.code-wheel`); a category that does not let the wheel be skipped wants it won, and
+  // one that switches it off wants it not played. Its `medium` (on screen, printed) is the player's word: not checked.
+  const wheel = world.policy.codeWheel;
+  if (wheel) {
+    // Each minigame an entry ran (`ran`, in order) paired with the result it recorded (`mg`, in the same order): a
+    // wheel played without a result (a client that dropped it) counts as none. A result is the client's word, like
+    // `medium`: the replay checks it was recorded and replays it, not that it was earned.
+    const results: (string | undefined)[] = [];
+    for (const l of links) {
+      const ids = (l.entry.ran ?? []).filter((r) => r.startsWith('minigame:')).map((r) => r.slice(9));
+      ids.forEach((id, k) => {
+        if (id === 'code-wheel') results.push(l.entry.mg?.[k]);
+      });
+    }
+    const breaks = (r: string | undefined) =>
+      !wheel.enabled ? r !== 'skipped' && r !== 'disabled' : !wheel.skip ? r !== 'won' : false;
+    const at = results.findIndex(breaks);
+    if (at >= 0) {
+      const said = results[at] ?? 'no result';
+      stop(
+        'invalid-category-rule',
+        'code-wheel-rule',
+        !wheel.enabled
+          ? `the code wheel is off in this category, and it was played (${said})`
+          : `this category wants the code wheel won, not ${said}`,
+      );
+    }
+  }
   if (!category.allowHints && links.some((l) => hasHint(l.entry)))
     stop('invalid-category-rule', 'hints-forbidden', 'a hint was asked for in a category without hints');
   const ex = env.timing.excluded;
