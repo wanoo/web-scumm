@@ -52,7 +52,8 @@ jobs:
         timeout-minutes: 20
       # 4.1.16: a set the tag's commit does not define yet (remix, speedrun) is not this tag's gate.
       - id: has
-        run: grep -Eq "^  '?${{ matrix.set }}'?: \[" tools/mutation-sets.ts && echo "set=yes" >> "$GITHUB_OUTPUT" || echo "::notice::the set ${{ matrix.set }} predates this tag"
+        run: |
+          if grep -Eq "^  '?${{ matrix.set }}'?: \[" tools/mutation-sets.ts; then echo "set=yes" >> "$GITHUB_OUTPUT"; else echo "::notice::the set ${{ matrix.set }} predates this tag"; fi
       - id: inputs
         if: steps.has.outputs.set == 'yes'
         run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"

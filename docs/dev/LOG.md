@@ -3353,3 +3353,178 @@ Platform"; human gates reported, not blocking (D12).
   fixture; the attestation glob and the upload follow. Lesson: a step added to `release.yml` must hold for every tag
   still to be published, not only for the commit that adds it.
 → next: Claude · the release runs of 4.1.10 and 4.1.13 again (a new `ci` run of each tag)
+
+## #142 · 2026-10-08 · Claude · proposal · `chore/4116-ancestry-ci`: the release line restored, Pages behind `pr-gate`, the 4.1.16 plan checked against the code (4.1.16 PR 1)
+
+- Delivered: `git merge v4.1.14` (its one commit `ed8fbf6` lowered the floors; `main`'s stricter floors kept);
+  `tools/release/ancestry.mjs` (the highest stable tag below the version must be an ancestor of the SHA), called by
+  `ship tag` before tagging and by `release.yml` before publishing (guarded on the file, as every step a tag may
+  predate); `pages.needs: [pr-gate]`; `tests/release-ancestry.test.ts` (a scratch repository rebuilds the side-branch
+  tag); the new logo (the maintainer's file reduced to 640 px) in both READMEs.
+- Decided by the maintainer on 8 October 2026: the whole of `docs/dev/PLAN-4.1.16-CONVERGENCE.md` (revision 2 commits
+  it, checked against `v4.1.15`, its §21 lists what the reading confirmed and what it added), D29 and ADR 0019 for
+  `SpeedrunCategory.world`, five pull requests (`docs/dev/plans/4.1.16-convergence.md`).
+- Measured (`docs/dev/baselines/4.1.16-start.md`): `e2e:remix` and `e2e:speedrun`, never run before, pass in the four
+  runtimes; `e2e:canonical` fails in Firefox, whose `normalize('NFC')` turns a lone surrogate into U+FFFD.
+- Not done: the Firefox fix (PR 2), the E2E in CI (PR 5); `pr-gate` as the single required check stays the
+  maintainer's move in the ruleset.
+→ next: Claude · `feature/4116-run-world` (4.1.16 PR 2)
+
+
+## #143 · 2026-10-08 · Claude · proposal · `feature/4116-run-world`: a run bound to its world, `.wsrun` schema 2, one verifier for every world, `canonicalJson` in Firefox (4.1.16 PR 2)
+
+- Delivered, red test first (`tests/speedrun-remix.test.ts`: a run in the demo's oranges world, refused by 4.1.15's
+  verifier, valid now): `SpeedrunWorldPolicy` and `SpeedrunCategory.world`, `categoryWorld` and `runSeedPolicy`
+  (`core/remix/categories.ts`, `RemixCategoryRules` kept as 4.1.15's form, `worldVerdict` and `leaderboardKey` take
+  both); `RemixSeedError.code` (`world-shape`, `world-hash`, `world-value`, `world-constraint`); `SpeedrunEnvelopeV2`
+  and `headHash` sealing the world; the recorder's world (`variant`, `worldEvidence`, `RunStartRefused`, checkpoint
+  with the world and `runSeed`, resume refused in another world); the verifier's world step before `h0` and the replay
+  on `applyVariant(approved, variant)`, the Daily token checked without its window (a run verified the next day), the
+  Mystery commitment and the signed reveal (`verifyReveal`, `bridge/src/daily.ts` signs it); `SpeedrunVerifyResult.world`
+  in the CLI's output, the JSON, the MCP tool and the worker; the validator's world checks;
+  `canonicalJson`'s `nfc` (lone halves kept). The reference run re-recorded in its story world (schema 2,
+  proof `75d97ffd…`, same IGT 2:35.234); 4.1.15's schema 1 file kept as `reference-any.v1.wsrun`, verified as Story and
+  refused for a Remix category. Tests: `speedrun-remix` (8), `speedrun-daily` (4, the reference game, the published
+  test key, the real Bridge module), the resume, the reference, two canonical values. The Bridge's run key is
+  unchanged for both schemas (inputs, not world: see the second reading below).
+- Decided: the envelope's fingerprint is the game as written (the player's `source`), the world travels beside it;
+  a schema 2 Story run replays `applyVariant(game, storyWorld)`, a schema 1 run the game as 4.1.14 did (its proof
+  unchanged); a Mystery run without a server witness is `valid-unranked` (`mystery-unwitnessed`); `seedKind` stays on
+  the worker's answer until PR 3 moves the Bridge to `leaderboardKey`.
+- After the second reading (Opus, security; 1 blocking, 6 should-fix, all applied): (B1) a world was checked for
+  integrity only: the lantern world relabelled with the oranges seed, rehashed and resealed, verified `valid` on the
+  oranges board; the verifier now makes the world again from its seed, mode and algorithm version (`world-forged`,
+  `world-algorithm`, the story world compared with the game's), tested with that forgery, a fake story world and
+  algorithm 99; (S1) `canonicalJson`'s lookbehind (Safari before 16.4 cannot parse it, and the file is in the
+  player's chunks) replaced by a scan by code unit; (S2) the day token's algorithm version compared, the day's end in
+  `world.validUntil` for the Bridge; (S3) the Mystery commitment's mode compared with the category's; (S4) a resume
+  compares the world with the engine's story world too, and the category's policy; (S5) a refused start removes the
+  HUD; (S6) the Bridge's run key without the world again (a copy re-sealed in another world of the same logic would
+  have passed "the first submitter keeps it"); a 4.1.15 commitment record is revealed with its mode and commitment
+  recomputed.
+- After PR 1's first run on `main` (37721832410): `pages` was skipped although `pr-gate` succeeded (before PR 1,
+  run 37698131483, it had deployed with `pr-gate` red): the implicit `success()` also reads the gate's skipped
+  ancestors. Now `if: always() && … && needs.pr-gate.result == 'success'`, tested. And `pwa-firefox` failed twice on
+  this branch's run 37722582935 (main's passed): after the update's reload the test read `window.__game` before the
+  game had started; it now waits for the engine (30 s) and names what the page reported if it never starts (passed
+  locally in Firefox, all five scenarios).
+- Measured (local): `e2e:canonical` 52 values the same in Node, Chromium, WebKit, Firefox.
+- Not done here: the player's Daily and Mystery flows handing their tokens to the recorder, the Bridge's leaderboard
+  by key (PR 3); docs beyond SPEEDRUN, DSL-STABILITY and API (PR 5).
+→ next: Claude · `feature/4116-bridge-runs` (4.1.16 PR 3)
+
+
+## #144 · 2026-10-08 · Claude · proposal · `feature/4116-bridge-runs`: durable leaderboards and daily challenge, leases across instances, mounted routes (4.1.16 PR 3)
+
+- Delivered: `bridge/src/runs-store.ts` (`RunStore` with `create`/`claimNext`/`complete`, `MemoryRunStore`,
+  `SqlRunStore` over the Reality store's `SqlDb`: `INSERT … ON CONFLICT DO NOTHING` on `UNIQUE (tenant_id, run_key)`,
+  a claim in one transaction under the lock `runs:claim`, a verdict stored only by the lease's holder); migration
+  0002 (`runs`, `daily_kv`); the queue's workers claim from the store (`workers`, `leaseMs`, `pollMs`), `idle()` claims
+  once first; the leaderboard by `leaderboardKey`, ties sharing a rank; a late Daily run is practice; audit lines;
+  `DailyStore` asynchronous (`putIfAbsent`), `SqlDailyStore`; dates validated as real UTC days, a retention,
+  `Object.hasOwn` on games, the commit counters pruned; `bridgeServer({ runs, daily })` behind tenants, CORS (DELETE,
+  `X-Delete-Token`) and the anonymous budget; `bridge serve` from `runs` and `daily` sections (SQL store required);
+  the player's `storedEvidence` (a Daily world's token kept beside it) handed to the recorder. Tests:
+  `tests/bridge-runs-durable.test.ts` (SQLite here and Postgres in CI's `bridge-postgres` job: two instances and the
+  same run at once, three workers over two instances, a dead worker's lease, a restart, ties, keys, tenants, a re-sealed
+  copy, late Daily runs, the daily store across instances, the mounted routes; the stub worker
+  `tests/fixtures/runs-stub-worker.mjs` speaks the real protocol), date refusals.
+- Decided: one queue per server (the first directory's `runs`), the daily challenge per tenant; the commit counters
+  stay per instance (bounded, pruned), the commitments themselves are shared; the daily key rotates with a release of
+  the game (the manifest names one key; the DSL is frozen, D28).
+- After the second reading (Opus, concurrency and security; the claim, the holder-only verdict, the dedup and the
+  migration confirmed; 1 high for several tenants and 12 others, applied): the daily records namespaced by tenant
+  (`SqlDailyStore(db, tenant)`, `|`-separated, purged by exact prefix; two tenants tested); a leaderboard read in SQL
+  without the envelopes (`board`, `summary`, at most 10 000 rows) and the `/v1/runs` routes charged to the anonymous
+  budget; one queue per tenant that configures `runs` (`RunsOptions.tenant`, claims and the queue limit per tenant);
+  `timeout -s KILL` inside the documented container (killing the `docker` client does not stop it); every claim counted
+  in the test (the SQLite variant is serial in one process, said; Postgres is the concurrent one); a verdict the store
+  could not write leaves the run to its lease instead of `inconclusive`; `StoreBusyError` → 503; `ranked` accepted only
+  as a decimal integer, ties compared as integers; a valid verdict without its world is not ranked; `leaseMs` at least
+  `timeoutMs` + 10 s; a lease holder unique per loop; the body limit twice the envelope's; `daily_kv` purged hourly past
+  the retention; a corrupt commitment record answered 500. Left: the admin bearer's failures are not counted (the
+  library's `adminToken`; `serve` does not set it); the commit counters stay per instance.
+- Not done: the player's Mystery flow (a Mystery category refuses to start in the player); the worker's container
+  profile is documented (REALITY-OPS), not run in CI; Postgres figures for many workers (4.1.10's load job is the place).
+→ next: Claude · `feature/4116-code-wheel` (4.1.16 PR 4)
+
+
+## #145 · 2026-10-08 · Claude · proposal · `feature/4116-code-wheel`: a minigame's result in the session, the replay and the story; the code wheel by keyboard and gamepad (4.1.16 PR 4)
+
+- Delivered: `MinigameResult` and `SessionEntry.mg`; `SessionLog.minigame` (fed back like `picks` and `maps`); the
+  `minigame` command writes `minigame.<id>` through `set` (so the journal says `flagChanged`); the presenter listens
+  to `mg-record`, returns the result (every minigame: skipped, else won) and restores the focus (the scene becomes
+  focusable out of the Tab order when the focus was nowhere); `judge` gives `failed` for a lost `story` wheel; the
+  wheel's Escape, strict focus, gamepad selection and confirmation, `fail` text; the verifier's `code-wheel-rule`
+  over the replayed flag; the validator refuses a command setting `minigame.*`. Tests:
+  `tests/critical-minigame-outcome.test.ts` (in the `core` mutation set: recorded, flagged, journaled, fed back; a
+  silent minigame records nothing; the category rule four ways), `tests/code-wheel.test.ts` (Escape, strict focus, a
+  gamepad's whole game, `failed`), `scripts/e2e-a11y.mjs` (the wheel won at the keyboard, its record, its flag, the
+  focus back, no animation under reduced motion; axe on it).
+- Decided: the narrative channel is a reserved flag (`minigame.<id>`, like `remix.*`, D28: no new condition or
+  command, no new journal kind), and only a reported result writes it, so every session and run of 4.1.15 (the
+  reference run goes through `cables`) replays to the same state and proof.
+- After the second reading (Sonnet; nothing blocking, the determinism of every replay path confirmed; applied): a
+  wheel's verdict is final (a second answer, Escape or B in the pause before it closes changed a `failed` into a
+  `won`; tested); the validator and the objectives' reachability know `minigame.<id>` is set by the minigame (a story
+  reading it is not "never set"); the code wheel rule pairs each `minigame:<id>` in `ran` with its `mg` (a wheel played
+  without a result is refused where the category restricts it; a lenient one is untouched), and the docs say a result
+  is the player's word and the solver does not explore `minigame.*` branches; the gamepad ignores a button already down
+  at the first poll; the Gamepad stub cleaned in `afterEach`; the result set moved below the imports.
+- Measured (local, 8 Oct 2026): `e2e:a11y --only=keys,axe` on the demo in Chromium and WebKit: the code wheel won at
+  the keyboard in 1.0 s, axe clean on 8 minigames; mutation `core/session-runtime.ts` 62/64 killed (the 2 survivors
+  named before this lot).
+- Not done: the gamepad in a real browser (Playwright emulates none; the unit test drives the Gamepad API); a printed
+  wheel used at a table and a screen reader user on the list (human passes, §18).
+→ next: Claude · `chore/4116-gates-docs` (4.1.16 PR 5)
+
+
+## #146 · 2026-10-08 · Claude · proposal · `chore/4116-gates-docs`: Remix and Time Attack gated together in four runtimes, docs checked against the code, the remix and speedrun mutation sets (4.1.16 PR 5)
+
+- Delivered: `scripts/e2e-remix-speedrun.ts` (each world policy of the reference: the world made, Daily and Mystery
+  through the Bridge's own module and the published test key; the route recorded by the real recorder in Node,
+  Chromium, WebKit and Firefox, the same `.wsrun` byte for byte; verified by `speedrun:verify` in a new process and by
+  a `RunQueue` whose worker is the real `tools/speedrun/worker.ts`); the reference's four world categories; the
+  `cross-runtime` job (ci.yml, in `pr-gate`) and its nightly twin; `tools/docs-truth.ts` and its test; ARCHITECTURE
+  and SUPPORT schemas; the `remix` and `speedrun` mutation sets, their scripts, and `tests/remix-tokens.test.ts`
+  (every refusal of a day token, a commitment and a reveal, with real signatures) and
+  `tests/speedrun-world-refusals.test.ts` (each alteration of a recorded Daily, Mystery and Fixed run's world and
+  evidence).
+- Measured (local, 8 Oct 2026): `e2e:remix-speedrun`: the five policies the same in four runtimes; any% valid on
+  `any%` (ranked 155 234 000 µt), Remix Fixed valid on `remix-fixed:WS-0000-02DZ` (155 720 000 µt), Remix Random
+  valid on `remix-random`, Daily valid on its day's board, Mystery `valid-unranked`. Mutation, first runs: `remix`
+  424/590 killed, `speedrun` 397/513; after the two new test files, `reality/daily.ts` 76/78 then the last real one
+  killed and one named (`TextDecoder`'s `fatal`, equivalent), `tools/speedrun/verify.ts` 329/379.
+- Decided: the `remix` and `speedrun` sets are measured, not gated, in 4.1.16 (as `reality-store` was in 4.1.10):
+  about 230 survivors in `compile.ts`, `apply.ts`, `categories.ts`, `seed-code.ts`, `recorder.ts`, `envelope.ts` and
+  `verify.ts` are to be read one by one, killed or named, before the two join `GATED` for 4.2; naming them unread
+  would make the gate say nothing. Vite 8's warnings about extensionless imports in the config's import graph (the
+  future native config loader) are kept and explained: the default bundling loader is the one used (no
+  `configLoader` setting, `vite.config.ts` and `tools/` import the engine's sources by their extensionless paths, as
+  `tsc`'s bundler resolution does); a codemod adding `.ts` to some 300 imports would need `allowImportingTsExtensions`
+  across the project, a mechanical change of its own for 4.2. The first-visit budget stays 140 KB (demo 133 KB,
+  reference 137 KB); the 130 KB target for the reference is not reached.
+- Not done: the per-policy resume after a chunk in `e2e:remix-speedrun` (the resume is `e2e:speedrun`'s, the world
+  binding of a resume is a unit test); a code wheel by gamepad in a real browser.
+→ next: Claude · the release commit of 4.1.16
+
+## #147 · 2026-10-08 · Claude · release · 4.1.16 "Convergence"
+
+- The release after the programme (`docs/dev/PLAN-4.1.16-CONVERGENCE.md` revision 2, sheet
+  `docs/dev/plans/4.1.16-convergence.md`): five pull requests, #59 (the release line, Pages, the plan checked against
+  the code), #60 (a run bound to its world), #61 (durable leaderboards and daily challenge), #62 (a minigame's result,
+  the code wheel by keyboard and gamepad), and this one (the cross-runtime gates, `docs:truth`, the mutation sets, the
+  release commit); each read a second time by a sub-agent before its merge (#60 and #61 by Opus, for security: a world
+  authenticated by regeneration, the daily records namespaced by tenant, the leaderboards read without envelopes, came
+  out of those readings). `v4.1.16-rc.1` on the merge commit, then `v4.1.16` on the same commit once the candidate's
+  assets are verified.
+- The release commit: the fragments assembled (#142 → #146), the version, the golden save `demo-4.1.16.json` (30), the
+  reference run re-recorded under 4.1.16 (schema 2, story world, proof `7bc95064…`, IGT 2:35.234), the READMEs,
+  ROADMAP en/fr, PROGRAM, UPGRADING §28, the pass sheet (the plan's 16 exit criteria answered, the mutation line of
+  §16 not met: `remix` and `speedrun` measured, not gated), the baseline sheet, the coverage floors read on this pull
+  request's last coverage job.
+- Not done, said as such: the two mutation sets gated; the player's Mystery flow; the gamepad in a real browser; the
+  130 KB target of the reference's first visit (137 KB, budget 140); the Vite 8 warnings removed; the per-policy resume
+  in `e2e:remix-speedrun`; every human pass (D18: blocking for 4.2.0).
+
+→ next: Claude · 4.2.0 "Stable World": the human passes first (D18), the `remix` and `speedrun` mutation survivors read

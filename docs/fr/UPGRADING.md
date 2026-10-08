@@ -429,3 +429,28 @@ verify:variants` (dans `verify:game`), `npm run code-wheel`, `npm run e2e:remix`
 
 **Le DSL et l'IR sont gelés** (D28, `docs/dev/DSL-STABILITY.md`) : 4.1.15 est la release candidate de 4.2. Désormais
 un changement de nom ou de sens du DSL ou de l'IR attend le SemVer strict de 4.2.0, avec sa migration.
+
+## 28. De la 4.1.15 à la 4.1.16 « Convergence »
+
+**Une rupture de la lignée 4.1 : l'enveloppe `.wsrun` de schéma 2.** Un run s'écrit maintenant avec `schema: 2` : la
+graine du générateur du run est `runSeed` (c'était `seed`), le monde exact où il s'est joué est `variant`, et un run
+Daily ou Mystery porte les jetons signés du Bridge dans `worldEvidence` ; le tout est scellé dans `h0`. Un fichier de
+schéma 1 (4.1.14, 4.1.15) se lit et se vérifie toujours, comme un run Story ; présenté à une catégorie Remix il est
+refusé (`legacy-world-missing`). Ce qui casse : un outil qui lisait `envelope.seed` lit `runSeed` en schéma 2 ; une
+enveloppe avec un champ qu'elle ne définit pas est refusée (`envelope-shape`). Un recorder repris depuis un point de
+reprise de la 4.1.15 refuse de continuer (son monde n'y est pas) : recommencer le run.
+
+**Une rupture pour les hôtes qui écrivaient leur propre `RunStore`** (bibliothèque du Bridge) : le store est celui de
+la file durable (`create`, `claimNext`, `complete`, `setTrust`, `queued`, `board`, `summary`) ; `MemoryRunStore` et
+`SqlRunStore` sont fournis. `DailyStore` est asynchrone (`get`, `putIfAbsent`) ; `SqlDailyStore` prend le tenant. Une
+base du Bridge migre au schéma 2 (`runs`, `daily_kv`) à son prochain démarrage ; `bridge migrate --schema=1` revient.
+
+**Additif.** Une catégorie de speedrun peut nommer son monde (`world: { policy, mode, fixedSeed?, codeWheel? }`, D29) ;
+le `seed: 'daily' | 'mystery'` de la 4.1.15 sans `world` se lit comme ce monde, avec un avertissement du validateur.
+Le résultat d'un minijeu est enregistré (`SessionEntry.mg`) et écrit dans le drapeau réservé `minigame.<id>` (une
+commande n'en pose jamais : le validateur la refuse) ; dans le joueur, chaque minijeu joué laisse ce drapeau dans la
+sauvegarde. Une révélation Mystery du Bridge porte un `token` signé. `bridge serve` monte `/v1/runs` et le défi du
+jour quand la configuration a des sections `runs` et `daily` (store SQL). Nouvelles commandes : `npm run
+e2e:remix-speedrun`, `npm run docs:truth`, `npm run test:mutation:reality`, `test:mutation:remix`,
+`test:mutation:speedrun`. La sauvegarde de référence de la 4.1.16 rejoint `tests/save-v3.test.ts` ; toutes les plus
+anciennes se chargent encore.
