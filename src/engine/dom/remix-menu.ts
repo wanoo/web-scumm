@@ -41,27 +41,43 @@ export function storedWorld(gameId: string): WorldVariant | undefined {
   }
 }
 
+/** What a speedrun in a Daily or Mystery world carries (`SpeedrunWorldEvidence`). */
+type StoredEvidence =
+  | { kind: 'daily'; token: string }
+  | { kind: 'mystery'; commitmentToken: string; revealToken: string; startedAt: number };
+
 /**
- * What a world rests on (4.1.16): the day's signed token of a Daily world, kept beside it so a speedrun in that world
- * carries it (`SpeedrunWorldEvidence`). Only for the world whose hash it names: another world has none.
+ * What a world rests on (4.1.16): the day's signed token of a Daily world, or (4.1.17) the Bridge's signed
+ * commitment and reveal of a Mystery world, kept beside it so a speedrun in that world carries them. Only for the
+ * world whose hash they name: another world has none. A Mystery run starts now (`startedAt`), within the minute the
+ * reveal allows.
  */
 export function storedEvidence(
   gameId: string,
   worldHash: string | undefined,
-): { kind: 'daily'; token: string } | undefined {
+  now = Date.now(),
+): StoredEvidence | undefined {
   try {
     const raw = storage()?.getItem(EVIDENCE(gameId));
-    const e = raw ? (JSON.parse(raw) as { hash?: unknown; token?: unknown }) : undefined;
-    return e && e.hash === worldHash && typeof e.token === 'string' ? { kind: 'daily', token: e.token } : undefined;
+    const e = raw ? (JSON.parse(raw) as Record<string, unknown>) : undefined;
+    if (!e || e.hash !== worldHash) return undefined;
+    if (typeof e.token === 'string') return { kind: 'daily', token: e.token };
+    if (typeof e.commitmentToken === 'string' && typeof e.revealToken === 'string')
+      return { kind: 'mystery', commitmentToken: e.commitmentToken, revealToken: e.revealToken, startedAt: now };
+    return undefined;
   } catch {
     return undefined;
   }
 }
-function keepEvidence(gameId: string, hash: string, token: string): void {
+function keepEvidence(
+  gameId: string,
+  hash: string,
+  e: { token: string } | { commitmentToken: string; revealToken: string },
+): void {
   try {
-    storage()?.setItem(EVIDENCE(gameId), JSON.stringify({ hash, token }));
+    storage()?.setItem(EVIDENCE(gameId), JSON.stringify({ hash, ...e }));
   } catch {
-    /* no storage: a Daily speedrun cannot start on this page (the recorder says why) */
+    /* no storage: a Daily or Mystery speedrun cannot start on this page (the recorder says why) */
   }
 }
 
@@ -114,6 +130,7 @@ export function chooseWorld(
   host: RemixHost,
   parent: HTMLElement,
   daily?: () => Promise<WorldVariant>,
+  mystery?: () => Promise<WorldVariant>,
 ): Promise<WorldVariant | null> {
   const t = (k: UiKey) => host.t(k);
   return new Promise((done) => {
@@ -168,6 +185,13 @@ export function chooseWorld(
       b.onclick = () =>
         void daily!().then(finish, (e: unknown) => host.presenter.toast(e instanceof Error ? e.message : String(e)));
     }
+    // 4.1.17: a Mystery world, its seed committed by the Bridge before it is revealed.
+    if (host.game.remix?.daily && host.game.remix.modes.some((x) => x.mask)) {
+      const b = button(t('remixMystery'), mystery ? '?' : t('remixNoBridge'));
+      b.disabled = !mystery;
+      b.onclick = () =>
+        void mystery!().then(finish, (e: unknown) => host.presenter.toast(e instanceof Error ? e.message : String(e)));
+    }
     d.append(m);
     parent.append(d);
     queueMicrotask(() => (m.querySelector('button') as HTMLButtonElement | null)?.focus({ preventScroll: true }));
@@ -207,8 +231,59 @@ export async function dailyWorldOf(game: GameDef, token: string, now = Date.now(
   const r = await verifyDayToken(token, await importBridgeKey(d.kid, d.publicKey), game.id, now);
   if (!r.ok) throw new RemixSeedError(r.reason);
   const v = worldOf(game, r.token.seed, d.mode);
-  keepEvidence(game.id, v.hash, token);
+  keepEvidence(game.id, v.hash, { token });
   return v;
+}
+
+/**
+ * A Mystery world from its Bridge's signed commitment and reveal (4.1.17), both verified offline with the game's
+ * daily key: the reveal must be of that commitment, its seed the one the commitment hid. The tokens are kept beside
+ * the world; a speedrun in it must start within the minute the reveal allows. Without a server witness the run is
+ * `valid-unranked` (docs/en/SPEEDRUN.md).
+ */
+export async function mysteryWorldOf(
+  game: GameDef,
+  commitmentToken: string,
+  revealToken: string,
+): Promise<WorldVariant> {
+  const d = game.remix?.daily;
+  if (!d) throw new RemixSeedError('this game has no Bridge key for a Mystery world');
+  const [{ importBridgeKey }, { verifyCommitment, verifyReveal }] = await Promise.all([
+    import('../reality/protocol'),
+    import('../reality/daily'),
+  ]);
+  const key = await importBridgeKey(d.kid, d.publicKey);
+  const c = await verifyCommitment(commitmentToken, key, game.id);
+  if (!c.ok) throw new RemixSeedError(c.reason);
+  const r = await verifyReveal(revealToken, key, c.token);
+  if (!r.ok) throw new RemixSeedError(r.reason);
+  if (!has(game, r.token.mode)) throw new RemixSeedError(`this game has no mode "${r.token.mode}"`);
+  const v = worldOf(game, r.token.seed, r.token.mode);
+  keepEvidence(game.id, v.hash, { commitmentToken, revealToken });
+  return v;
+}
+
+/**
+ * A Mystery world from the game's Bridge (4.1.17): `POST /v1/commit`, then `GET /v1/reveal/<id>`; undefined when the
+ * game names no Bridge, no daily key or no masked mode.
+ */
+export function mysteryFetcher(game: GameDef): (() => Promise<WorldVariant>) | undefined {
+  const bridge = game.reality?.bridge;
+  if (!game.remix?.daily || !bridge || !game.remix.modes.some((m) => m.mask)) return undefined;
+  const base = bridge.replace(/\/$/, '');
+  return async () => {
+    const c = await fetch(`${base}/v1/commit`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ game: game.id }),
+    });
+    if (!c.ok) throw new RemixSeedError(`the Bridge answered ${c.status}`);
+    const commit = (await c.json()) as { id: string; token: string };
+    if (!/^[\w-]{1,64}$/.test(commit.id ?? '')) throw new RemixSeedError('the Bridge sent no commitment');
+    const r = await fetch(`${base}/v1/reveal/${commit.id}`);
+    if (!r.ok) throw new RemixSeedError(`the Bridge answered ${r.status}`);
+    return mysteryWorldOf(game, commit.token, ((await r.json()) as { token: string }).token);
+  };
 }
 
 /** The daily challenge from the game's Bridge (`reality.bridge`), or undefined when the game names none. */

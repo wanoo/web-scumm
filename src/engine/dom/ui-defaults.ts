@@ -48,6 +48,7 @@ export const DEFAULT_UI = {
   remixRandom: 'A new world',
   remixSeed: 'Type a seed',
   remixDaily: 'Daily challenge',
+  remixMystery: 'Mystery world',
   remixPlay: 'Play',
   remixInvalid: 'Not a seed code',
   remixWorld: 'World',
