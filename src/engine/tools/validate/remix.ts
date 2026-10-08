@@ -80,6 +80,17 @@ function wheelChecks(game: GameDef, err: Sink['err']): void {
 }
 
 /** Every flag a command sets (`set`, at any depth), with where. */
+/** Every minigame the content plays (a `{ minigame }` command), with where. */
+function minigamesPlayed(x: unknown, where: string, out = new Map<string, string>()): Map<string, string> {
+  if (Array.isArray(x)) x.forEach((y, i) => minigamesPlayed(y, `${where}[${i}]`, out));
+  else if (x && typeof x === 'object') {
+    const o = x as Record<string, unknown>;
+    if (typeof o.minigame === 'string' && !out.has(o.minigame)) out.set(o.minigame, where);
+    for (const [k, v] of Object.entries(o)) minigamesPlayed(v, `${where}.${k}`, out);
+  }
+  return out;
+}
+
 function setFlags(x: unknown, where: string, out: [string, string][] = []): [string, string][] {
   if (Array.isArray(x)) x.forEach((y, i) => setFlags(y, `${where}[${i}]`, out));
   else if (x && typeof x === 'object') {
@@ -95,6 +106,15 @@ function setFlags(x: unknown, where: string, out: [string, string][] = []): [str
 export function remixChecks(game: GameDef, s: Sink): void {
   const { err, warn } = s;
   wheelChecks(game, err);
+  // 4.1.16: a minigame the content plays writes its result in `minigame.<id>`: a read of it is a read of a set flag
+  // (registered only when something reads it, so a minigame nobody asks about warns of nothing).
+  const played = minigamesPlayed(
+    { rooms: game.rooms, rules: game.rules, scripts: game.scripts, events: game.events, start: game.start.intro },
+    'game',
+  );
+  for (const f of s.flagsRead.keys())
+    if (f.startsWith('minigame.') && played.has(f.slice(9)) && !s.flagsSet.has(f))
+      s.flagsSet.set(f, played.get(f.slice(9))!);
   // The reserved flags are the world's: a command never sets one (nor does a checkpoint pretend to).
   for (const [f, where] of setFlags(
     { rooms: game.rooms, rules: game.rules, scripts: game.scripts, events: game.events, start: game.start.intro },
