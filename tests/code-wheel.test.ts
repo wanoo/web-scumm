@@ -211,6 +211,7 @@ describe('the wheel by keyboard and gamepad, and its story outcome (4.1.16)', ()
     root.addEventListener('mg-record', (e) => records.push((e as CustomEvent).detail));
     const done = codeWheel.run(ctx);
     await Promise.resolve();
+    tick(); // the first poll: what is held then (the press that opened the wheel) is not a new press
     for (let k = 0; k < rotationFor(w, w.challenge.actor, w.challenge.symbol); k++) press(15);
     expect(root.querySelector('[aria-live]')!.textContent).toContain(`its window shows ${w.answer}`);
     const sorted = [...P.answers].sort();
