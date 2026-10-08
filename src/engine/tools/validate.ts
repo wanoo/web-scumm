@@ -517,6 +517,8 @@ export function validate(gameIn: GameDef, layouts: Record<string, Layout>, opts:
       if (opts.minigameIds && !opts.minigameIds.includes(c.minigame))
         err(where, `unknown minigame: "${c.minigame}" (known: ${opts.minigameIds.join(', ')})`);
       minigameParams(c.minigame, c.params, where);
+      // 4.1.16: a minigame writes its result in `minigame.<id>` (the story may read it).
+      setF(`minigame.${c.minigame}`, where);
       return;
     }
     if ('phone' in c) {

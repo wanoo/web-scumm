@@ -7,8 +7,6 @@ import { derive } from '../core/prng';
 import type { MotionSpec } from '../core/motion';
 import type { Presenter } from '../core/ports';
 import type { GameState, Id, MinigameResult, Point, RoomDef, VerbId } from '../core/types';
-
-const MINIGAME_RESULTS = new Set(['won', 'passed', 'skipped', 'failed', 'disabled']);
 import { FONT_PIXEL, FONT_UI } from './fonts';
 import { el, esc, sleep } from './app-shared';
 import { choose as chooseImpl, phone as phoneImpl, say as sayImpl } from './speech';
@@ -16,6 +14,9 @@ import { openMap as openMapImpl } from './map-view';
 import { applyIntent } from '../scene/intent';
 import type { Intent } from '../scene/frame';
 import type { App } from './app';
+
+/** The results a minigame may report (4.1.16, `MinigameResult`). */
+const MINIGAME_RESULTS = new Set(['won', 'passed', 'skipped', 'failed', 'disabled']);
 
 export class DomPresenter implements Presenter {
   private sparkEl: HTMLImageElement | null = null;

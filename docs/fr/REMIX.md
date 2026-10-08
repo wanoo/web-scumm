@@ -143,10 +143,12 @@ la session (le `mg` de l'entrée, réinjecté au rejeu comme un choix) et l'écr
 `flagChanged`. Une commande ne pose jamais un drapeau `minigame.*` (le validateur le refuse). Chaque minijeu dit
 comment il a fini dans le joueur (passé, sinon gagné) ; celui qui ne dit rien (le solveur, le rejeu d'une session
 4.1.15) n'enregistre rien. Une catégorie de speedrun dit ce qu'elle permet de la roue dans `world.codeWheel` :
-`skip: false` la veut gagnée, `enabled: false` la veut non jouée (passée), et `medium` (à l'écran, imprimée, l'un ou
+`skip: false` la veut gagnée, `enabled: false` la veut non jouée (passée ou désactivée), et `medium` (à l'écran, imprimée, l'un ou
 l'autre) est la parole du joueur, non vérifiée. La roue entière se joue au clavier (les flèches la tournent, Tab et
 Entrée répondent, Échap passe) et à la manette (gauche et droite tournent, haut et bas choisissent une réponse, A
-confirme, B passe), et le focus revient au jeu à sa fermeture.
+confirme, B passe), et le focus revient au jeu à sa fermeture. Un résultat enregistré est la parole du joueur, comme le
+support : le rejeu vérifie qu'il a été enregistré et le rejoue, pas qu'il a été mérité ; et le solveur, dont les
+minijeux ne disent rien, n'explore pas les branches qu'une histoire accroche à `minigame.*` (elles ne sont pas cherchées).
 
 ## Le joueur et le Studio
 

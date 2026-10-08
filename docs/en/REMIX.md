@@ -136,9 +136,11 @@ the story reads with `{ flag: 'minigame.code-wheel', eq: 'failed' }` and the jou
 command never sets a `minigame.*` flag (the validator refuses it). Every minigame reports how it ended in the player
 (skipped, else won); one that reports nothing (the solver, a replay of a 4.1.15 session) records nothing. A speedrun
 category says what it allows of the wheel in `world.codeWheel`: `skip: false` wants it won, `enabled: false` wants it
-not played (skipped), and `medium` (on screen, printed, either) is the player's word, not checked. The whole wheel
+not played (skipped or disabled), and `medium` (on screen, printed, either) is the player's word, not checked. The whole wheel
 plays by keyboard (the arrows turn it, Tab and Enter answer, Escape skips) and by gamepad (left and right turn, up and
-down choose an answer, A confirms, B skips), and the focus returns to the game when it closes.
+down choose an answer, A confirms, B skips), and the focus returns to the game when it closes. A recorded result is the player's word, as the
+medium is: the replay checks it was recorded and replays it, not that it was earned; and the solver, whose minigames
+report nothing, does not explore the branches a story hangs on `minigame.*` (they are not searched).
 
 ## The player and the Studio
 

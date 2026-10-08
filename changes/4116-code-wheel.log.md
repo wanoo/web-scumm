@@ -13,6 +13,13 @@
 - Decided: the narrative channel is a reserved flag (`minigame.<id>`, like `remix.*`, D28: no new condition or
   command, no new journal kind), and only a reported result writes it, so every session and run of 4.1.15 (the
   reference run goes through `cables`) replays to the same state and proof.
+- After the second reading (Sonnet; nothing blocking, the determinism of every replay path confirmed; applied): a
+  wheel's verdict is final (a second answer, Escape or B in the pause before it closes changed a `failed` into a
+  `won`; tested); the validator and the objectives' reachability know `minigame.<id>` is set by the minigame (a story
+  reading it is not "never set"); the code wheel rule pairs each `minigame:<id>` in `ran` with its `mg` (a wheel played
+  without a result is refused where the category restricts it; a lenient one is untouched), and the docs say a result
+  is the player's word and the solver does not explore `minigame.*` branches; the gamepad ignores a button already down
+  at the first poll; the Gamepad stub cleaned in `afterEach`; the result set moved below the imports.
 - Measured (local, 8 Oct 2026): `e2e:a11y --only=keys,axe` on the demo in Chromium and WebKit: the code wheel won at
   the keyboard in 1.0 s, axe clean on 8 minigames; mutation `core/session-runtime.ts` 62/64 killed (the 2 survivors
   named before this lot).
