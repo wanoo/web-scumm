@@ -234,5 +234,12 @@
   "from": "r.success",
   "to": "true",
   "why": "`savedWorld`: a failed `safeParse` of zod/mini carries `data: undefined`, so returning `r.data` gives the same `undefined` the condition returned (4.1.15)"
+ },
+ {
+  "file": "src/engine/reality/daily.ts",
+  "operator": "boolean",
+  "from": "true",
+  "to": "false",
+  "why": "`TextDecoder`'s `fatal`: a token whose header or payload is not UTF-8 decodes to replacement characters, which `JSON.parse` refuses the same way (`unreadable token`); the two decoders differ only on text no compact JWS of ours holds (4.1.16)"
  }
 ]

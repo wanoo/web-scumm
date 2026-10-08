@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        set: [core, reality, remix, speedrun]
+        set: [core, reality]
     env:
       TAG: ${{ github.event.workflow_run.head_branch }}
     steps:

@@ -125,5 +125,10 @@ describe('a Mystery commitment and its reveal', () => {
     ] as const)
       await refused(verifyReveal(await sign({ ...REVEAL, [field]: value }), k, c.token), /another commitment/);
     await refused(verifyReveal(await sign({ ...REVEAL, nonce: 'other' }), k, c.token), /does not match the commitment/);
+    // A seed that is not a seed hides nothing: refused, never taken for a match.
+    await refused(
+      verifyReveal(await sign({ ...REVEAL, seed: 'not a seed' }), k, c.token),
+      /does not match the commitment/,
+    );
   });
 });
