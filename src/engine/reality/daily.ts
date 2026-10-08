@@ -39,6 +39,23 @@ const CommitSchema = z.strictObject({
 /** What a Mystery commitment says. @public */
 export type CommitToken = z.infer<typeof CommitSchema>;
 
+const RevealSchema = z.strictObject({
+  format: z.literal('web-scumm-reveal'),
+  v: z.literal(1),
+  id: z.string().check(z.minLength(1)),
+  gameId: z.string().check(z.minLength(1)),
+  mode: z.string(),
+  commitment: z.string().check(z.regex(/^[0-9a-f]{64}$/)),
+  seed: z.string(),
+  nonce: z.string().check(z.minLength(1), z.maxLength(128)),
+  revealedAt: z.number(),
+});
+/**
+ * What a Mystery reveal says (4.1.16): signed by the Bridge like the commitment, so the time it was first revealed is
+ * the Bridge's word, not the client's. @public
+ */
+export type RevealToken = z.infer<typeof RevealSchema>;
+
 /** A verified token, or why it is refused. @public */
 export type TokenResult<T> = { ok: true; token: T } | { ok: false; reason: string };
 
@@ -70,13 +87,13 @@ async function verifyJws(
 
 /**
  * Checks a day token offline: the signature (the game's daily key), the game, the window (24 hours), a well-formed
- * seed. `now` in epoch ms. @public
+ * seed. `now` in epoch ms; `null` checks everything but the window (a verifier reading a run after its day). @public
  */
 export async function verifyDayToken(
   jws: string,
   key: BridgeKey,
   gameId: string,
-  now: number,
+  now: number | null,
 ): Promise<TokenResult<DayToken>> {
   const v = await verifyJws(jws, key);
   if (!v.ok) return v;
@@ -84,7 +101,8 @@ export async function verifyDayToken(
   if (!r.success) return { ok: false, reason: 'not a day token' };
   const t = r.data;
   if (t.gameId !== gameId) return { ok: false, reason: `a day token of "${t.gameId}"` };
-  if (now < t.notBefore || now > t.notAfter) return { ok: false, reason: `the challenge of ${t.date} is not open now` };
+  if (now !== null && (now < t.notBefore || now > t.notAfter))
+    return { ok: false, reason: `the challenge of ${t.date} is not open now` };
   try {
     normalizeSeed(t.seed);
   } catch (e) {
@@ -110,4 +128,20 @@ export function revealMatches(c: CommitToken, reveal: { seed: string; nonce: str
   } catch {
     return false;
   }
+}
+
+/**
+ * Checks a Mystery reveal (4.1.16): the signature, the game, and that it reveals the commitment `c` (its id, its hash,
+ * and the seed and nonce that hash hides). @public
+ */
+export async function verifyReveal(jws: string, key: BridgeKey, c: CommitToken): Promise<TokenResult<RevealToken>> {
+  const v = await verifyJws(jws, key);
+  if (!v.ok) return v;
+  const r = RevealSchema.safeParse(v.payload);
+  if (!r.success) return { ok: false, reason: 'not a reveal' };
+  const t = r.data;
+  if (t.gameId !== c.gameId || t.id !== c.id || t.commitment !== c.commitment || t.mode !== c.mode)
+    return { ok: false, reason: 'a reveal of another commitment' };
+  if (!revealMatches(c, t)) return { ok: false, reason: 'the revealed seed does not match the commitment' };
+  return { ok: true, token: t };
 }

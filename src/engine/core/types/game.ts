@@ -281,7 +281,7 @@ export interface GameDef {
   remix?: VariationManifest;
   /**
    * The world instance this game is (set by `applyVariant`, never written by an author): what a save, a session and a
-   * speedrun envelope record so that a load, a replay and a verifier rebuild the same world.
+   * speedrun envelope (schema 2, since 4.1.16) record so that a load, a replay and a verifier rebuild the same world.
    */
   variant?: WorldVariant;
   /** Speedrun categories, splits and the rules' version (4.1.14, `docs/en/SPEEDRUN.md`). */

@@ -4,6 +4,8 @@
 // committed under tests/fixtures/speedrun/ is this tool's output; tests/speedrun-reference.test.ts verifies it, and
 // release.yml attaches it to the release (its ninth asset) after `npm run speedrun:verify` accepted it. Regenerate it
 // after `npm version` or any change of the reference game's logic: a run is bound to its engine and its fingerprint.
+// 4.1.16 (ADR 0019): the run is played in the game's story world, as the player plays it (`applyStory`), and its
+// `.wsrun` (schema 2) carries that world. `tests/fixtures/speedrun/reference-any.v1.wsrun` keeps 4.1.15's schema 1.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 
@@ -16,6 +18,7 @@ const { exportEnvelope } = await import('../../src/engine/tools/speedrun/envelop
 const { SpeedrunRecorder } = await import('../../src/engine/tools/speedrun/recorder');
 const { formatTime } = await import('../../src/engine/tools/speedrun/splits');
 const { approvedContext } = await import('./package');
+const { applyStory } = await import('../../src/engine/core/remix/apply');
 const { ROOT } = await import('../game');
 
 const ctx = await approvedContext();
@@ -23,7 +26,8 @@ const manifest = ctx.game.speedrun;
 const categoryId = arg('category') ?? 'any%';
 const category = manifest?.categories.find((c) => c.id === categoryId);
 if (!manifest || !category) throw new Error(`${ctx.game.id} has no speedrun category "${categoryId}"`);
-const witness = await solve(structuredClone(ctx.game), ctx.layouts, { maxStates: 200000, commands: ctx.commands });
+const played = applyStory(ctx.game);
+const witness = await solve(structuredClone(played), ctx.layouts, { maxStates: 200000, commands: ctx.commands });
 if (!witness.finished) throw new Error(`the solver found no route to the end of ${ctx.game.id}`);
 const rec = new SpeedrunRecorder({
   engine: null as never,
@@ -34,11 +38,12 @@ const rec = new SpeedrunRecorder({
   fingerprint: ctx.fingerprint,
   engineVersion: ctx.engineVersion,
   runId: `reference-${categoryId}`,
+  variant: played.variant!,
   now: () => 0,
 });
 await rec.prepare();
 const r = await replay(
-  ctx.game,
+  played,
   ctx.layouts,
   { start: { kind: 'new' }, log: witness.steps.map(({ rnd: _, ...s }) => s) },
   { commands: ctx.commands, seed: rec.seed, attach: (e) => rec.bind(e) },

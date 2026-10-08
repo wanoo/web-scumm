@@ -59,11 +59,28 @@ export interface SpeedrunCategory {
   /** The inputs allowed (an accessibility option is never an implicit cheat: a category says what it allows). */
   inputs: { mouse: boolean; touch: boolean; keyboard: boolean; gamepad: boolean; macros: 'forbidden' | 'allowed' };
   /**
-   * `fixed`: every run draws from the same seed (`fixed:<category id>`); `random` (default): a fresh seed per run.
-   * 4.1.15 (Remix, D26): `mystery`, the world's seed committed by the Bridge before the run and revealed after;
-   * `daily`, the day's seed signed by the Bridge (`core/remix/categories.ts`, `worldVerdict`, separate leaderboards).
+   * The run's generator: `fixed`, every run draws from the same seed (`fixed:<category id>`); `random` (default), a
+   * fresh seed per run. 4.1.15 also accepted `mystery` and `daily` here for the world; since 4.1.16 (D29, ADR 0019)
+   * the world is `world`, and `seed: 'mystery' | 'daily'` without `world` is read as `random` in that world, with a
+   * deprecation warning from the validator.
    */
   seed?: 'fixed' | 'random' | 'mystery' | 'daily';
+  /** The world a run is played in (4.1.16, D29): absent, the story world. */
+  world?: SpeedrunWorldPolicy;
+}
+
+/**
+ * Which world a category's runs are played in (4.1.16, D29, ADR 0019): `story` (no logical variation), `fixed` (the
+ * published `fixedSeed`), `random` (any world of `mode`, ranked together), `daily` (the Bridge's signed seed of the
+ * day) or `mystery` (a seed the Bridge committed to before the start). `mode` is the Remix mode the worlds come from.
+ * @public
+ */
+export interface SpeedrunWorldPolicy {
+  policy: 'story' | 'fixed' | 'random' | 'daily' | 'mystery';
+  mode: string;
+  fixedSeed?: string;
+  /** The code wheel (4.1.15): played, skippable, or off; physical or on-screen. */
+  codeWheel?: { enabled: boolean; skip: boolean; medium: 'digital' | 'physical' | 'either' };
 }
 
 /** A split: a semantic trigger, a name, and the split it is a step of. @public */

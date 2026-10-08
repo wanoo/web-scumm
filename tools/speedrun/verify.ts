@@ -36,6 +36,10 @@ if (process.argv.includes('--json')) {
   const ok = r.verdict === 'valid' || r.verdict === 'valid-unranked';
   console.log(`${ok ? '✔' : '✖'}  ${r.verdict} (${r.code}): ${r.reason}`);
   console.log(`   trust: ${r.trust} · game ${ctx.game.id} · engine ${ctx.engineVersion} · ${Date.now() - t0} ms`);
+  if (r.world)
+    console.log(
+      `   world: ${r.world.mode} ${r.world.seed} · leaderboard ${r.world.leaderboardKey} · ${r.world.hash.slice(0, 12)}…`,
+    );
   if (r.recomputed)
     console.log(
       `   IGT ${formatTime(BigInt(r.recomputed.logicalTime))} · active ${formatTime(BigInt(r.recomputed.activeTime))} · ${r.recomputed.logicalSteps} steps · proof ${r.recomputed.finalProof.slice(0, 16)}…`,

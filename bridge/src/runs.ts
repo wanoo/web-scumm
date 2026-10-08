@@ -148,8 +148,18 @@ const stable = (v: unknown): string =>
           .join(',')}}`
       : JSON.stringify(v);
 
-/** A run's identity: its game, category, seed and inputs, the inputs' RTA stamps (`t`) aside. */
-function runKeyOf(env: { gameId?: unknown; categoryId?: unknown; seed?: unknown; chunks?: unknown }): string {
+/**
+ * A run's identity: its game, category, seed and inputs, the inputs' RTA stamps (`t`) aside; since 4.1.16 (schema 2)
+ * also its world, so the same inputs in two worlds are two runs. A schema 1 run keeps the key it had.
+ */
+function runKeyOf(env: {
+  gameId?: unknown;
+  categoryId?: unknown;
+  seed?: unknown;
+  runSeed?: unknown;
+  variant?: { hash?: unknown };
+  chunks?: unknown;
+}): string {
   const chunks = Array.isArray(env.chunks) ? (env.chunks as { entries?: unknown }[]) : [];
   const entries = chunks
     .flatMap((c) => (Array.isArray(c?.entries) ? c.entries : []))
@@ -158,7 +168,8 @@ function runKeyOf(env: { gameId?: unknown; categoryId?: unknown; seed?: unknown;
       const { t: _t, ...rest } = e as Record<string, unknown>;
       return rest;
     });
-  return sha256(stable({ gameId: env.gameId, categoryId: env.categoryId, seed: env.seed ?? null, entries }));
+  const base = { gameId: env.gameId, categoryId: env.categoryId, seed: env.seed ?? env.runSeed ?? null, entries };
+  return sha256(stable(env.variant ? { ...base, world: env.variant.hash ?? null } : base));
 }
 
 /** The queue: submissions in, one worker at a time, verdicts stored. */

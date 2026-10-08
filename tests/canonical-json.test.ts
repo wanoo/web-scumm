@@ -1,5 +1,5 @@
 // `canonicalJson` (core/canonical.ts, 4.1.12, ADR 0013): one text per value, whatever the runtime. Node here, on the
-// fifty edge values of tests/fixtures/canonical-values.ts; scripts/e2e-canonical.mjs compares the same fifty in
+// fifty-two edge values of tests/fixtures/canonical-values.ts; scripts/e2e-canonical.mjs compares the same fifty-two in
 // Chromium, WebKit and Firefox. The proof cache keys on it (tools/proof-cache.ts).
 import { describe, expect, it } from 'vitest';
 import { canonicalJson } from '@engine/core/canonical';
@@ -7,9 +7,9 @@ import { stableJson } from '../tools/proof-cache';
 import { CANONICAL_CASES } from './fixtures/canonical-values';
 
 describe('canonicalJson', () => {
-  it('has fifty edge values, each named once', () => {
-    expect(CANONICAL_CASES).toHaveLength(50);
-    expect(new Set(CANONICAL_CASES.map((c) => c.name)).size).toBe(50);
+  it('has fifty-two edge values, each named once (two lone-surrogate cases added in 4.1.16)', () => {
+    expect(CANONICAL_CASES).toHaveLength(52);
+    expect(new Set(CANONICAL_CASES.map((c) => c.name)).size).toBe(52);
   });
 
   for (const c of CANONICAL_CASES)

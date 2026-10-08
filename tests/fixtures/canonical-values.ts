@@ -60,6 +60,13 @@ export const CANONICAL_CASES: CanonicalCase[] = [
   { name: 'control characters escaped', make: () => '\u0000\n\t\u001f', expected: '"\\u0000\\n\\t\\u001f"' },
   { name: 'line and paragraph separators kept', make: () => '  ', expected: '"  "' },
   { name: 'a lone surrogate escaped', make: () => '\ud800', expected: '"\\ud800"' },
+  // 4.1.16: Firefox's normalize turned a lone half into U+FFFD (e2e:canonical's first run); NFC still composes around it.
+  {
+    name: 'a lone surrogate between letters to compose',
+    make: () => 'e\u0301\udc00e\u0301',
+    expected: '"\u00e9\\udc00\u00e9"',
+  },
+  { name: 'a lone surrogate as a key', make: () => ({ '\ud83d': 1 }), expected: '{"\\ud83d":1}' },
   { name: 'an emoji kept', make: () => '😀', expected: '"😀"' },
   { name: 'quote and backslash', make: () => '"\\', expected: '"\\"\\\\"' },
   { name: 'the empty object', make: () => ({}), expected: '{}' },

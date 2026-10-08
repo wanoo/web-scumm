@@ -48,7 +48,11 @@ A trigger names a semantic event (`roomEntered`, `itemAcquired`, `itemLost`, `fl
 `endingReached`, `sessionStarted`, `playerSwitched`…) and the fields it must match (`room`, `item`, `flag` with
 `value`, `objective`, `ending`, `player`). `reload` says what a load does: `invalidates` the run, or is `allowed` (a
 state the run itself reached); `segment` (a load starting a timed segment) is reserved, not implemented in 4.1.14: the
-validator refuses it. `seed: 'fixed'` makes every run draw from `fixed:<id>`. The
+validator refuses it. `seed: 'fixed'` makes every run draw from `fixed:<id>`; `seed` is the run's generator only.
+Since 4.1.16 (D29, ADR 0019) the world a run is played in is `world`: `{ policy: 'story' }` (the default), `'fixed'`
+with its published `fixedSeed`, `'random'` (any world of `mode`, ranked together), `'daily'` (the Bridge's signed seed
+of the day) or `'mystery'` (a seed the Bridge commits to before the start), each with the Remix `mode` its worlds come
+from. 4.1.15's `seed: 'daily' | 'mystery'` without `world` is read as that world (a random run in it) with a warning. The
 rules carry their version: a change never requalifies an old run (`rulesVersion` differs: `unsupported-version`). The
 validator refuses unknown events, ids that name nothing, a start equal to the finish, a category without an input, a
 Reality policy without `reality`, a split that is its own ancestor; it warns about a flag never set and a category that
@@ -79,11 +83,16 @@ The solver's witness becomes a **logical route** (`kind: 'logical'`): a referenc
 
 ## The proof: `.wsrun`
 
-Schema 1 (`SpeedrunEnvelope`): the game, its fingerprint, the engine's, generator's and durations' versions, the
-category and its rules' version, the seed, the timing (RTA, steps, IGT, active IGT, the declared pauses, menus,
+Schema 2 since 4.1.16 (`SpeedrunEnvelopeV2`, ADR 0019): the game, its fingerprint (the game as written, before any
+world), the engine's, generator's and durations' versions, the category and its rules' version, the run's generator
+seed (`runSeed`), the exact world played (`variant`, assignments included, never regenerated from a seed) and, for a
+Daily or Mystery world, the Bridge's signed tokens (`worldEvidence`), the timing (RTA, steps, IGT, active IGT, the declared pauses, menus,
 background and loads), the splits, the entries in chunks of 500 chained by SHA-256 from `H0` (the rules) to `Hn`, the
-loads, the inputs used, the Reality signals, the final state's hash and the final proof. Every hash is over
-`canonicalJson`. The exported trust is always `local`.
+loads, the inputs used, the Reality signals, the final state's hash and the final proof. `H0` seals the world too (its
+hash, the category's world policy, the evidence's hash, the Remix algorithm's version): the same inputs in two worlds
+are two runs. Every hash is over `canonicalJson`. The exported trust is always `local`. A schema 1 file (4.1.14,
+4.1.15) is still read, as a Story run; offered to a Remix category it is refused (`legacy-world-missing`), never
+requalified from its seed.
 
 ## Verifying a run
 
@@ -93,23 +102,27 @@ web-scumm speedrun verify run.wsrun
 ```
 
 The MCP tool `speedrun_verify` does the same for an assistant. The verifier reloads the category from the game,
-replays the entries with the run's seed (the random draws are drawn again, never taken from the file), recomputes the
-clock, the splits, the final state and the chain, then checks the rules. Exit 0 for `valid` and `valid-unranked`.
+checks the run's world against the game (`loadVariant`) and its category (`worldVerdict`, the day's token or the
+Mystery commitment and reveal checked with the key `remix.daily` names), rebuilds that world, replays the entries with
+the run's seed (the random draws are drawn again, never taken from the file), recomputes the
+clock, the splits, the final state and the chain, then checks the rules, and names the leaderboard the run goes to
+(`world.leaderboardKey`: the category, and for Fixed and Daily the seed). Exit 0 for `valid` and `valid-unranked`.
 
 | Verdict | Codes |
 |---|---|
 | `valid` | `ok` |
-| `valid-unranked` | `rta-unverifiable` |
-| `invalid-category-rule` | `unknown-category`, `hints-forbidden`, `saves-forbidden`, `pauses-forbidden`, `reload-forbidden`, `foreign-load`, `input-forbidden`, `reality-forbidden`, `seed-policy`, `start-trigger` |
-| `invalid-replay` | `envelope-shape`, `chunk-order`, `chunk-hash`, `chain`, `replay-diverged`, `rnd-mismatch`, `time-mismatch`, `splits-mismatch`, `final-state`, `not-finished` |
+| `valid-unranked` | `rta-unverifiable`, `mystery-unwitnessed` (a Mystery run: when it started is the client's word) |
+| `invalid-category-rule` | `unknown-category`, `hints-forbidden`, `saves-forbidden`, `pauses-forbidden`, `reload-forbidden`, `foreign-load`, `input-forbidden`, `reality-forbidden`, `seed-policy`, `start-trigger`, `world-policy`, `legacy-world-missing`, `daily-proof-missing`, `daily-proof-invalid`, `mystery-commitment`, `mystery-reveal`, `mystery-start-window` |
+| `invalid-replay` | `envelope-shape`, `chunk-order`, `chunk-hash`, `chain`, `replay-diverged`, `rnd-mismatch`, `time-mismatch`, `splits-mismatch`, `final-state`, `not-finished`, `world-missing`, `world-shape`, `world-hash`, `world-value`, `world-constraint`, `world-stale` |
 | `modified-game` | `fingerprint` |
 | `missing-reality-proof` | `signal-missing`, `signal-signature`, `signal-mismatch` |
 | `unsupported-version` | `schema`, `engine-version`, `prng-version`, `timing-version`, `rules-version` |
 | `inconclusive` | `timeout`, `crash`, `no-keyring`, `package-not-approved` (the Bridge's worker) |
 
 `inconclusive` is never valid. A complete Any% run of the reference chapter is committed
-(`tests/fixtures/speedrun/reference-any.wsrun`, made by `tools/speedrun/reference-run.ts`), verified by a test and by
-the release workflow, which attaches it to every release.
+(`tests/fixtures/speedrun/reference-any.wsrun`, schema 2, made by `tools/speedrun/reference-run.ts`), verified by a test
+and by the release workflow, which attaches it to every release; 4.1.15's schema 1 file is kept as a golden fixture
+(`reference-any.v1.wsrun`).
 
 ## Trust levels
 
