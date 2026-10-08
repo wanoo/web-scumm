@@ -15,7 +15,7 @@ import { spawn } from 'node:child_process';
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
-import type { RunOutcome, RunRecord, RunStore } from './runs-store';
+import { canonicalTime, type RunOutcome, type RunRecord, type RunStore } from './runs-store';
 import { StoreBusyError } from './store-async';
 
 export { MemoryRunStore, SqlRunStore } from './runs-store';
@@ -70,7 +70,8 @@ export interface RunsOptions {
 class VerdictNotStored extends Error {}
 
 /** A leaderboard reads at most this many runs of one board. */
-const BOARD_ROWS = 10_000;
+/** A leaderboard answers 100 rows unless asked for fewer or more, never more than 1 000 (4.1.17). */
+export const BOARD_LIMIT = { default: 100, max: 1000 } as const;
 
 class RunsError extends Error {
   constructor(
@@ -305,7 +306,8 @@ export class RunQueue {
     const out = await runWorker(this.o, game, r.envelope);
     const valid = out.verdict === 'valid' || out.verdict === 'valid-unranked';
     // A ranked time is a decimal integer; a valid verdict without the world it was checked in is not ranked.
-    const time = typeof out.ranked === 'string' && /^\d{1,30}$/.test(out.ranked) ? out.ranked : null;
+    // Canonical (4.1.17): `"00042"` and `"42"` are one time, so the store can order times without a number type.
+    const time = canonicalTime(out.ranked);
     // A Daily run sent after its day is practice: its verdict stands, it is not that day's board's (plan §7).
     const late = out.world?.validUntil !== undefined && r.submittedAt > out.world.validUntil;
     const outcome: RunOutcome = {
@@ -365,38 +367,29 @@ export class RunQueue {
   }
 
   /**
-   * A leaderboard: valid runs only, each player's best, on one key (the verifier's: the category, and for a Fixed or
+   * A leaderboard: valid runs only, each pseudonym's best (two people who chose the same pseudonym are one line: the
+   * Bridge has no player identity), on one key (the verifier's: the category, and for a Fixed or
    * Daily world its seed; default the category's own board). Sorted by time, then submission, then id; equal times
-   * share a rank. `seed` (4.1.14) still filters schema 1 runs by seed kind.
+   * share a rank. `seed` (4.1.14) still filters schema 1 runs by seed kind. Ranked by the store before any limit
+   * (4.1.17: until then the store returned the first 10 000 runs submitted, and a faster one after them was lost);
+   * `limit` bounds the answer (BOARD_LIMIT).
    */
   async leaderboard(
     tenantId: string,
     gameId: string,
     categoryId: string,
-    o: { key?: string; seed?: 'fixed' | 'random' } = {},
+    o: { key?: string; seed?: 'fixed' | 'random'; limit?: number } = {},
   ) {
-    const key = o.key ?? categoryId;
-    const rows = (await this.o.store.board(tenantId, gameId, categoryId, key, BOARD_ROWS)).filter(
-      (r) => /^\d{1,30}$/.test(r.ranked ?? '') && (!o.seed || r.seedKind === o.seed),
-    );
-    const best = new Map<string, RunRecord>();
-    const before = (a: RunRecord, b: RunRecord) => {
-      const ta = BigInt(a.ranked!);
-      const tb = BigInt(b.ranked!);
-      if (ta !== tb) return ta < tb ? -1 : 1;
-      if (a.submittedAt !== b.submittedAt) return a.submittedAt - b.submittedAt;
-      return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
-    };
-    for (const r of rows) {
-      const b = best.get(r.player);
-      if (!b || before(r, b) < 0) best.set(r.player, r);
-    }
-    const sorted = [...best.values()].sort(before);
-    let rank = 0;
-    return sorted.map((r, i) => {
-      if (i === 0 || BigInt(sorted[i - 1]!.ranked!) !== BigInt(r.ranked!)) rank = i + 1;
-      return { rank, ...publicView(r) };
+    const limit = Math.min(Math.max(1, Math.floor(o.limit ?? BOARD_LIMIT.default)), BOARD_LIMIT.max);
+    const rows = await this.o.store.board({
+      tenantId,
+      gameId,
+      categoryId,
+      leaderboardKey: o.key ?? categoryId,
+      ...(o.seed ? { seedKind: o.seed } : {}),
+      limit,
     });
+    return rows.map(({ rank, run }) => ({ rank, ...publicView(run) }));
   }
 }
 
@@ -601,10 +594,14 @@ export function runsRoute(
         const key = url.searchParams.get('key') ?? undefined;
         if (!ID.test(game) || !ID.test(category)) throw new RunsError(400, 'query', '?game=<id>&category=<id>');
         if (key !== undefined && !BOARD_KEY.test(key)) throw new RunsError(400, 'query', '&key=<category>[:<seed>]');
+        const limit = url.searchParams.get('limit');
+        if (limit !== null && !/^[1-9]\d{0,3}$/.test(limit))
+          throw new RunsError(400, 'query', `&limit=<1 to ${BOARD_LIMIT.max}>`);
         json(res, 200, {
           runs: await q.leaderboard(tenant, game, category, {
             ...(key ? { key } : {}),
             ...(seed === 'fixed' || seed === 'random' ? { seed } : {}),
+            ...(limit !== null ? { limit: Number(limit) } : {}),
           }),
         });
       } else if (m && !m[2] && req.method === 'GET') {
