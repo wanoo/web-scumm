@@ -796,7 +796,8 @@ jobs:
           done
           exit $bad
   pages:
-    needs: [check, e2e, second-game, reference]
+    # 4.1.16: Pages waits for the terminal gate, not a subset (no deployment with Firefox PWA, a proof or mutation red).
+    needs: [pr-gate]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 15

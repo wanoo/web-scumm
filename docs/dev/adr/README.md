@@ -23,3 +23,4 @@ what it costs, what would change it. The maintainer's decisions themselves are d
 | [0016](0016-run-clock-and-envelope.md) | A run clock that observes, a seeded generator, a chained proof of a run (4.1.14) |
 | [0017](0017-speedrun-verdicts-and-trust.md) | Speedrun verdicts and trust levels (4.1.14) |
 | [0018](0018-variation-manifest-and-world-variant.md) | A variation manifest compiles to an immutable world (4.1.15) |
+| [0019](0019-run-world-binding.md) | A run is bound to the world it was played in (4.1.16) |

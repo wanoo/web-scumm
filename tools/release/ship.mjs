@@ -5,7 +5,7 @@
 //   ship checks <pr>             wait for the pull request's checks; re-run a failed job once; exit 1 if it fails again
 //   ship merge <pr>              `checks`, then merge (merge commit, the only method the ruleset allows); prints the SHA
 //   ship main <sha>              wait for the `ci` run of main on that SHA to be green (re-run once)
-//   ship tag <version> <sha>     `main`, then an annotated tag v<version> on the SHA, pushed; then `watch`
+//   ship tag <version> <sha>     the previous stable tag an ancestor of the SHA (4.1.16), `main`, then an annotated tag v<version> on the SHA, pushed; then `watch`
 //                                (`--now`, 4.1.10: without waiting for main's run; the tag's own `ci` run, the same
 //                                suite on the same commit, is what release.yml checks)
 //   ship watch <version>         wait for the tag's `ci` run, then for the `release` run; exit by its conclusion
@@ -17,6 +17,7 @@
 // PID, not a pattern.
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { checkAncestry } from './ancestry.mjs';
 import {
   gh,
   ghJson,
@@ -209,6 +210,11 @@ async function tag(versionArg, sha) {
       );
     say(`${name} already on origin at ${full.slice(0, 7)}`);
   } else {
+    git(['fetch', '--quiet', '--tags', 'origin']);
+    const line = checkAncestry(version, full);
+    if (!line.ok)
+      throw new Error(`${name} on ${full.slice(0, 7)}: ${line.reason} (merge that tag into the branch first, 4.1.16)`);
+    say(`${name}: ${line.reason}`);
     if (process.argv.includes('--now'))
       say(`tagging without waiting for main's run (--now): the tag's run is the gate`);
     else await main(full);

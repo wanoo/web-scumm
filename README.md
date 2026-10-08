@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/img/logo.png" width="128" height="128" alt="The web-scumm logo: a pixel-art adventurer"></p>
+<p align="center"><img src="docs/img/logo.png" width="320" height="320" alt="The web-scumm logo: a pixel-art editor window with a room, a dialogue graph and a pointer, under the words Web-SCUMM, Open point &amp; click engine"></p>
 
 # web-scumm
 
@@ -129,7 +129,7 @@ the three figures from `tests/quality-baseline.json`):
 
 | What | Result |
 |---|---|
-| Unit tests | <!-- metric:tests -->1418<!-- /metric --> declarations, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
+| Unit tests | <!-- metric:tests -->1422<!-- /metric --> declarations, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
 | Browser tests | the sample game played to its ending by touch and by keyboard in Chromium and WebKit at a phone's size, in English and French, with the DOM and the Canvas painter; a second game and the reference game too; every minigame won at the keyboard; axe-core on every screen |
 | Saves | one frozen save per release from 3.0.0 to 4.1.15 loads and reaches the ending |
 | Proof | the sample game's every reachable state in seconds; a 40-room reference game in <!-- metric:referenceStates -->288<!-- /metric --> states; 500 random games of each of three kinds compared to an explicit search every night, 0 divergences ([BENCH](docs/en/BENCH.md)) |
