@@ -177,13 +177,17 @@ jobs:
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
       - run: npm run bridge:load -- --store=sqlite --out=bridge-load-sqlite.json
+      # The speedrun leaderboard at 100 000 runs (4.1.17, plan §6.3): latency, memory and SQL plan, bounded.
+      - run: npm run runs:load -- --store=sqlite --runs=100000 --max-p95-ms=2000 --max-rss-mb=512 --out=runs-load-sqlite.json
       - if: always()
         run: npx tsx tools/load-report.ts bridge-load-sqlite.json --store=sqlite --commit=${{ github.sha }}
       - if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: bridge-load-sqlite
-          path: bridge-load-sqlite.json
+          path: |
+            bridge-load-sqlite.json
+            runs-load-sqlite.json
           if-no-files-found: error
   bridge-load-postgres:
     runs-on: ubuntu-24.04
@@ -208,13 +212,17 @@ jobs:
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 8
       - run: npm run bridge:load -- --store=postgres://bridge:bridge@127.0.0.1:5432/bridge --out=bridge-load-postgres.json
+      # The speedrun leaderboard at 100 000 runs (4.1.17, plan §6.3): latency, memory and SQL plan, bounded.
+      - run: npm run runs:load -- --store=postgres://bridge:bridge@127.0.0.1:5432/bridge --runs=100000 --max-p95-ms=2000 --max-rss-mb=512 --out=runs-load-postgres.json
       - if: always()
         run: npx tsx tools/load-report.ts bridge-load-postgres.json --store=postgres --commit=${{ github.sha }}
       - if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: bridge-load-postgres
-          path: bridge-load-postgres.json
+          path: |
+            bridge-load-postgres.json
+            runs-load-postgres.json
           if-no-files-found: error
   # The proof matrix of 4.1.13 "Solver Research" (docs/dev/PROOF-MATRIX.md, tools/prove-matrix.ts): each of the twelve instances proved
   # in its own job under the runner's budget (20 min, 10 000 000 states, 4 GB of heap). A false verdict fails the job;

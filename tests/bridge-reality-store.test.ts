@@ -3,6 +3,7 @@
 // locally a throwaway server: docs/en/REALITY-OPS.md). Properties with fast-check: n proposals at once for one player
 // give contiguous sequences and one row per dedupe key; every read and write with the wrong tenant sees nothing of the
 // other tenant. The schema goes up, down and up again.
+import { readdirSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -351,21 +352,31 @@ describe('a 4.1.9 store wrapped', () => {
 });
 
 describe('the schema', () => {
+  // Every step on disk (4.1.17: 0003 the leaderboard's ranking, 0004 the shared quota), up in order, down in reverse.
+  const UP = readdirSync('bridge/migrations')
+    .map((f) => /^(\d{4})\.up\.sql$/.exec(f)?.[1])
+    .filter((v): v is string => !!v)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const DOWN = (to: number) =>
+    UP.filter((v) => v > to)
+      .reverse()
+      .map((v) => -v);
   it('SQLite: goes up, down to empty, and up again; a database newer than the Bridge is refused', async () => {
     const file = join(dir, 'migrate.sqlite');
     const s = await SqliteRealityStore.open(file, { migrate: false });
     opened.push(s);
     expect(await s.schemaVersion()).toBe(0);
-    expect(await s.migrate()).toEqual([1, 2]);
+    expect(await s.migrate()).toEqual(UP);
     expect(await s.migrate()).toEqual([]);
-    // 4.1.16: version 2 (the leaderboards, the daily challenge) goes down alone, version 1's data untouched.
-    expect(await s.migrate({ to: 1 })).toEqual([-2]);
-    expect(await s.migrate()).toEqual([2]);
+    // 4.1.16: version 2 and later (the leaderboards, the daily challenge) go down alone, version 1's data untouched.
+    expect(await s.migrate({ to: 1 })).toEqual(DOWN(1));
+    expect(await s.migrate()).toEqual(UP.slice(1));
     await s.putPlayer('t-1', player('p-1'));
-    expect(await s.migrate({ to: 0 })).toEqual([-2, -1]);
+    expect(await s.migrate({ to: 0 })).toEqual(DOWN(0));
     expect(await s.schemaVersion()).toBe(0);
     await expect(s.player('t-1', 'p-1')).rejects.toThrow(/no such table/);
-    expect(await s.migrate()).toEqual([1, 2]);
+    expect(await s.migrate()).toEqual(UP);
     expect(await s.player('t-1', 'p-1')).toBeUndefined();
     await s.db.all('INSERT INTO schema_migrations (version, applied_at) VALUES ($1, $2)', [99, 0]);
     await expect(s.migrate()).rejects.toThrow(/newer than this Bridge/);
@@ -381,10 +392,10 @@ describe('the schema', () => {
     const s = await PostgresRealityStore.open(url.toString(), { pg, migrate: false });
     try {
       expect(await s.schemaVersion()).toBe(0);
-      expect(await s.migrate()).toEqual([1, 2]);
+      expect(await s.migrate()).toEqual(UP);
       await s.putPlayer('t-1', player('p-1'));
-      expect(await s.migrate({ to: 0 })).toEqual([-2, -1]);
-      expect(await s.migrate()).toEqual([1, 2]);
+      expect(await s.migrate({ to: 0 })).toEqual(DOWN(0));
+      expect(await s.migrate()).toEqual(UP);
       expect(await s.player('t-1', 'p-1')).toBeUndefined();
     } finally {
       await s.close();

@@ -61,6 +61,64 @@ export type RunOutcome = Pick<
   | 'leaderboardKey'
 >;
 
+/**
+ * What a leaderboard asks of the store (4.1.17, plan §6.1): the valid runs of one tenant, game, category and board key
+ * (a run of 4.1.14 without a key is on its category's board), optionally one seed kind; each pseudonym's best; ordered
+ * by time, then submission, then id; equal times share a rank; then at most `limit` rows. The limit is the answer's,
+ * never the candidates': a faster run submitted late is never cut before the ranking.
+ */
+export interface LeaderboardQuery {
+  tenantId: string;
+  gameId: string;
+  categoryId: string;
+  leaderboardKey: string;
+  seedKind?: 'fixed' | 'random';
+  limit: number;
+}
+
+/** One line of a leaderboard: the run (without its envelope) and its rank. */
+interface LeaderboardRow {
+  run: RunRecord;
+  rank: number;
+}
+
+/** The most digits a ranked time may have (microticks: about 3 × 10^16 years). */
+const RANKED_DIGITS = 30;
+
+/**
+ * A ranked time as the stores keep it (4.1.17): decimal digits only, no sign, no leading zero (`"00042"` → `"42"`,
+ * `"0"` kept), at most RANKED_DIGITS; null for anything else. Canonical, its order is its length then its text.
+ */
+export function canonicalTime(v: unknown): string | null {
+  if (typeof v !== 'string' || !/^\d+$/.test(v)) return null;
+  const t = BigInt(v).toString();
+  return t.length <= RANKED_DIGITS ? t : null;
+}
+
+/** Time, then submission, then id: the order of a board. */
+const byTime = (a: RunRecord, b: RunRecord) =>
+  a.ranked!.length - b.ranked!.length ||
+  (a.ranked! < b.ranked! ? -1 : a.ranked! > b.ranked! ? 1 : 0) ||
+  a.submittedAt - b.submittedAt ||
+  (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+
+/** Each pseudonym's best, ordered, ranked (equal times share the rank of the first), then limited. */
+function rankBoard(candidates: RunRecord[], limit: number): LeaderboardRow[] {
+  const best = new Map<string, RunRecord>();
+  for (const r of candidates) {
+    const b = best.get(r.player);
+    if (!b || byTime(r, b) < 0) best.set(r.player, r);
+  }
+  const sorted = [...best.values()].sort(byTime);
+  let rank = 0;
+  return sorted
+    .map((run, i) => {
+      if (i === 0 || sorted[i - 1]!.ranked !== run.ranked) rank = i + 1;
+      return { run, rank };
+    })
+    .slice(0, Math.max(0, limit));
+}
+
 export interface RunFilter {
   gameId?: string;
   categoryId?: string;
@@ -75,11 +133,8 @@ export interface RunStore {
   list(tenantId: string, f?: RunFilter): Promise<RunRecord[]>;
   /** Runs waiting for a worker (a tenant's, or every tenant's): the queue's length a submission is refused beyond. */
   queued(tenantId?: string): Promise<number>;
-  /**
-   * A leaderboard's candidates, without their envelopes: valid runs with a ranked time on one key (a run of 4.1.14
-   * without a key is on its category's board), at most `limit`.
-   */
-  board(tenantId: string, gameId: string, categoryId: string, key: string, limit: number): Promise<RunRecord[]>;
+  /** A leaderboard, ranked by the store, without the envelopes (LeaderboardQuery says in which order). */
+  board(q: LeaderboardQuery): Promise<LeaderboardRow[]>;
   /** One run without its envelope (what anyone may read of it). */
   summary(tenantId: string, id: string): Promise<RunRecord | undefined>;
   /**
@@ -124,20 +179,21 @@ export class MemoryRunStore implements RunStore {
     for (const r of this.rows.values()) if (r.status === 'queued' && (!t || r.tenantId === t)) n++;
     return n;
   }
-  async board(t: string, gameId: string, categoryId: string, key: string, limit: number) {
-    return [...this.rows.values()]
+  async board(q: LeaderboardQuery) {
+    const candidates = [...this.rows.values()]
       .filter(
         (r) =>
-          r.tenantId === t &&
-          r.gameId === gameId &&
-          r.categoryId === categoryId &&
+          r.tenantId === q.tenantId &&
+          r.gameId === q.gameId &&
+          r.categoryId === q.categoryId &&
           r.status === 'done' &&
           r.verdict === 'valid' &&
           !!r.ranked &&
-          (r.leaderboardKey ?? r.categoryId) === key,
+          (r.leaderboardKey ?? r.categoryId) === q.leaderboardKey &&
+          (!q.seedKind || r.seedKind === q.seedKind),
       )
-      .slice(0, limit)
       .map((r) => ({ ...structuredClone(r), envelope: '' }));
+    return rankBoard(candidates, q.limit);
   }
   async summary(t: string, id: string) {
     const r = this.rows.get(this.k(t, id));
@@ -281,15 +337,31 @@ export class SqlRunStore implements RunStore {
       : await this.db.all(`SELECT COUNT(*) AS n FROM runs WHERE status = 'queued'`);
     return Number(r?.n ?? 0);
   }
-  async board(t: string, gameId: string, categoryId: string, key: string, limit: number) {
-    // Filtered and bounded in SQL, the envelopes never read (an envelope is up to 2 MB).
-    const rows = await this.db.all(
-      `SELECT ${SUMMARY} FROM runs WHERE tenant_id = $1 AND game_id = $2 AND category_id = $3 AND status = 'done'
-         AND verdict = 'valid' AND ranked IS NOT NULL AND COALESCE(leaderboard_key, category_id) = $4
-         ORDER BY submitted_at, id LIMIT ${Math.max(1, Math.floor(limit))}`,
-      [t, gameId, categoryId, key],
-    );
-    return rows.map(toRun);
+  /**
+   * The statement a board is (4.1.17): each pseudonym's best, then the rank, then the limit, so a faster run submitted
+   * after ten thousand others is still on the board; the envelopes (up to 2 MB each) are never read. A canonical
+   * time orders by its length then its text, compared byte by byte (`COLLATE "C"` on Postgres, SQLite's BINARY).
+   * Public for `tools/runs-load.ts`, which prints its plan.
+   */
+  boardSql(q: LeaderboardQuery): { sql: string; params: unknown[] } {
+    const c = this.db.dialect === 'postgres' ? ' COLLATE "C"' : '';
+    const order = `LENGTH(ranked), ranked${c}`;
+    const params: unknown[] = [q.tenantId, q.gameId, q.categoryId, q.leaderboardKey];
+    if (q.seedKind) params.push(q.seedKind);
+    const sql = `WITH candidates AS (
+         SELECT ${SUMMARY}, ROW_NUMBER() OVER (PARTITION BY player ORDER BY ${order}, submitted_at, id${c}) AS pick
+           FROM runs
+          WHERE tenant_id = $1 AND game_id = $2 AND category_id = $3 AND status = 'done' AND verdict = 'valid'
+            AND ranked IS NOT NULL AND ranked <> '' AND COALESCE(leaderboard_key, category_id) = $4${q.seedKind ? ' AND seed_kind = $5' : ''}
+       )
+       SELECT *, RANK() OVER (ORDER BY ${order}) AS board_rank FROM candidates WHERE pick = 1
+        ORDER BY ${order}, submitted_at, id${c} LIMIT ${Math.max(0, Math.floor(q.limit))}`;
+    return { sql, params };
+  }
+  async board(q: LeaderboardQuery) {
+    const { sql, params } = this.boardSql(q);
+    const rows = await this.db.all(sql, params);
+    return rows.map((r) => ({ run: toRun(r), rank: Number(r.board_rank) }));
   }
   async summary(t: string, id: string) {
     const [r] = await this.db.all(`SELECT ${SUMMARY} FROM runs WHERE tenant_id = $1 AND id = $2`, [t, id]);
