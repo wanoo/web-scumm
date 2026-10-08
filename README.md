@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/img/logo.png" width="128" height="128" alt="The web-scumm logo: a pixel-art adventurer"></p>
+<p align="center"><img src="docs/img/logo.png" width="320" height="320" alt="The web-scumm logo: a pixel-art editor window with a room, a dialogue graph and a pointer, under the words Web-SCUMM, Open point &amp; click engine"></p>
 
 # web-scumm
 

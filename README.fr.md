@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/img/logo.png" width="128" height="128" alt="Le logo de web-scumm : un aventurier en pixel art"></p>
+<p align="center"><img src="docs/img/logo.png" width="320" height="320" alt="Le logo de web-scumm : une fenêtre d’éditeur en pixel art avec une pièce, un graphe de dialogue et un curseur, sous les mots Web-SCUMM, Open point &amp; click engine"></p>
 
 # web-scumm
 
