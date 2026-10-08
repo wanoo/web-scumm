@@ -86,6 +86,10 @@ jobs:
         run: |
           git fetch --force origin "refs/tags/$TAG:refs/tags/$TAG"
           test "$(git rev-parse "refs/tags/$TAG^{commit}")" = "$SHA" || { echo "::error::$TAG points to $(git rev-parse "refs/tags/$TAG^{commit}"), ci tested $SHA"; exit 1; }
+      - name: The previous stable tag is an ancestor
+        # 4.1.16: guarded on the file, as every step a tag's commit may predate (release.yml runs from main).
+        run: |
+          if [ -f tools/release/ancestry.mjs ]; then node tools/release/ancestry.mjs "$TAG" "$SHA"; else echo "::notice::$TAG predates the ancestry check"; fi
       - name: Not published yet
         run: |
           n=$(gh release view "$TAG" --json assets --jq '.assets | length' 2>/dev/null || echo 0)
