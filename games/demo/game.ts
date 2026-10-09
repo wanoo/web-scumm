@@ -224,7 +224,7 @@ export const game = defineGame({
     updateAvailable: 'A new version is ready.', updateNow: 'Save and update',
     offlineStatus: 'Offline', offlineComplete: 'whole game cached', offlineRetry: 'tap to retry',
     verbs: 'Verbs', jump: '▲', duck: '▼', exportSession: 'Export session',
-    remix: 'Remix', remixTitle: 'Which world?', remixStory: 'Story', remixRandom: 'A new world', remixSeed: 'Type a seed', remixDaily: 'Daily challenge',
+    remix: 'Remix', remixTitle: 'Which world?', remixStory: 'Story', remixRandom: 'A new world', remixSeed: 'Type a seed', remixDaily: 'Daily challenge', remixMystery: 'Mystery world',
     remixPlay: 'Play', remixInvalid: 'Not a seed code', remixWorld: 'World', remixHidden: 'hidden until the end', remixCopied: 'Copied', remixNoBridge: 'needs the Bridge',
     remixConflict: 'Your saved game lives in another world', remixKeepSaved: 'Continue the saved game', remixStartLinked: 'Start the link\'s world (replaces it)',
     settings: 'Settings', textSpeed: 'Text speed', textSize: 'Text size', reduceMotion: 'Reduce motion', readableFont: 'Readable font', captions: 'Sound captions',

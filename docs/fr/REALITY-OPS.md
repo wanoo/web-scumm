@@ -269,16 +269,34 @@ ouvrir un socket autrement. Lancez la commande du worker dans l'isolation du dé
 
 ```sh
 docker run --rm -i --network none --read-only --tmpfs /tmp:rw,size=64m --cap-drop ALL --security-opt no-new-privileges \
-  --pids-limit 64 --memory 512m --cpus 1 --user 65534:65534 -v /srv/games:/srv/games:ro web-scumm-worker \
+  --pids-limit 64 --memory 512m --memory-swap 512m --cpus 1 --user 65534:65534 -v /srv/games:/srv/games:ro web-scumm-worker \
   timeout -s KILL 70 node tools/speedrun/worker.ts
 ```
 
 comme commande `worker` : pas d'espace réseau, une racine en lecture seule, un répertoire temporaire borné, aucune
 capacité, aucun secret du Bridge dans son environnement (le Bridge ne passe que `PATH`, `GAME_DIR` et `NODE_OPTIONS`),
-des limites de CPU, de mémoire, de processus et de temps (le Bridge tue le groupe de processus à `timeoutMs` + 5 s). Sa
-sortie standard est plafonnée à 1 Mo et sa sortie d'erreur n'est pas gardée.
+des limites de CPU, de mémoire (sans swap au-delà), de processus et de temps (le Bridge tue le groupe de processus à
+`timeoutMs` + 5 s). Sa sortie standard est plafonnée à 1 Mo et sa sortie d'erreur n'est pas gardée. Tout dossier monté
+est lisible à l'intérieur : le dossier du Bridge (`config.json`, ses clés et ses fichiers de jeton) reste hors du dossier
+du moteur monté en `/app`.
 Tuer le client `docker` n'arrête pas son conteneur : c'est le `timeout -s KILL` à l'intérieur (un peu plus que le
 `timeoutMs` du Bridge) qui met fin à un rejeu trop long, si bien que les conteneurs expirés ne s'accumulent jamais.
+
+Depuis 4.1.17 ce profil est une fonction (`tools/speedrun/container.mjs`, `workerContainerArgs`) : `node
+tools/speedrun/container.mjs --image=<image> --app=<dossier du moteur> [--games=<dossier>]` écrit la commande `worker`,
+**sans réseau sauf `--allow-network`** (qui le dit sur stderr). Le job `worker-container` de la CI (`npm run
+e2e:worker-container`, Linux et Docker) y lance le run de référence, puis un script hostile : HTTP, DNS et TCP refusés,
+rien écrit hors de `/tmp`, les secrets de l'hôte invisibles, un processus enfant permis mais sans réseau, le conteneur
+tué par son propre timeout sans rien laisser tourner ; puis un run de nouveau.
+
+### Modération
+
+`runs.adminTokenFile` nomme le fichier du jeton qui modère les classements d'un tenant (`POST
+/v1/runs/<id>/moderate`, `Authorization: Bearer …`) : à côté de `config.json`, mode 0600, 32 caractères au moins ;
+`serve` refuse de démarrer s'il manque, s'il est plus court ou ouvert à d'autres (sur un système POSIX ; sous Windows,
+l'ACL du dossier décide). Sans lui, pas de route de modération (404, rien n'est compté). Le jeton est comparé par empreintes de même longueur (sa longueur ne se devine pas non plus) ; chaque refus
+est une ligne d'audit (`run.moderation-refused`, jamais le jeton), et `/healthz` compte les modérations acceptées et
+refusées.
 
 ## Ce qui n'est pas là (4.1.10)
 

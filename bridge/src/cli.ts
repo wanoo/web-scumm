@@ -14,7 +14,7 @@
 // Every secret `init` makes is written under --dir (not committed: .cache/ is ignored), never printed but the paths.
 // The Biscuit root's private half goes to `root.key`, read by `grant` only: `serve` never loads it (4.1.2).
 import { createHash, createHmac, randomBytes, webcrypto } from 'node:crypto';
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { chmodSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { manifestHash, type RealityManifest } from '../../src/engine/reality/manifest';
 import { Bridge, type BridgeConfig, type Limits } from './bridge';
@@ -69,6 +69,11 @@ export interface BridgeFile {
     retentionDays?: number;
     /** Submissions a minute per client, every instance together (4.1.17; default 10). */
     perMinute?: number;
+    /**
+     * The file of the token that moderates this tenant's runs (4.1.17), beside config.json, mode 0600: `serve`
+     * refuses to start when it is missing or readable by others. Absent: no moderation route.
+     */
+    adminTokenFile?: string;
   };
   /**
    * The daily challenge and Mystery seeds (4.1.16): the games and their modes, the signing key's id, the files of its
@@ -129,6 +134,28 @@ export async function loadBridge(
     onRepair: (what) => console.log(JSON.stringify({ event: 'journal.repaired', what })),
   });
   return Bridge.start(config, hold.store, hold.telemetry ? { telemetry: hold.telemetry } : {});
+}
+
+/**
+ * The moderation token of a tenant's leaderboards (4.1.17): read from its file, which must exist and be readable by
+ * its owner only (0600), else `serve` stops with why. The token itself is never printed.
+ */
+function moderationToken(dir: string, file: string): string {
+  const path = resolve(dir, file);
+  if (!existsSync(path)) throw new Error(`runs.adminTokenFile: ${file} does not exist`);
+  // One open file, checked then read. Windows has no POSIX mode bits (Node says 0o666): there the folder's ACL decides.
+  const fd = openSync(path, 'r');
+  let token: string;
+  try {
+    const mode = fstatSync(fd).mode & 0o777;
+    if (process.platform !== 'win32' && mode & 0o077)
+      throw new Error(`runs.adminTokenFile: ${file} is open to others (${mode.toString(8)}): chmod 600`);
+    token = readFileSync(fd, 'utf8').trim();
+  } finally {
+    closeSync(fd);
+  }
+  if (token.length < 32) throw new Error(`runs.adminTokenFile: ${file} holds a token of fewer than 32 characters`);
+  return token;
 }
 
 export async function main(args: string[], game?: { manifest: RealityManifest | null }): Promise<number> {
@@ -269,6 +296,14 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     }
     // One queue per tenant that configures one: its games, its workers, its queue limit; a tenant without a `runs`
     // section has no `/v1/runs`.
+    // A moderation token that cannot be trusted stops the start, said (4.1.17), before anything listens.
+    try {
+      for (const f of files)
+        if (f.runs?.adminTokenFile) moderationToken(tenants[files.indexOf(f)]!, f.runs.adminTokenFile);
+    } catch (e) {
+      console.error(`✖  ${(e as Error).message}`);
+      return 1;
+    }
     for (const [i, f] of files.entries())
       if (f.runs && sql)
         (extra.runs ??= {})[ids[i]!] = new RunQueue({
@@ -280,6 +315,7 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
           ...(f.runs.timeoutMs ? { timeoutMs: f.runs.timeoutMs } : {}),
           ...(f.runs.maxQueued ? { maxQueued: f.runs.maxQueued } : {}),
           ...(f.runs.retentionDays ? { retentionDays: f.runs.retentionDays } : {}),
+          ...(f.runs.adminTokenFile ? { adminToken: moderationToken(tenants[i]!, f.runs.adminTokenFile) } : {}),
           // One quota for every instance (4.1.17): the buckets in the store's database, the client keyed by an HMAC
           // whose secret every instance of the tenant derives from its event key (its id is the key's version: a
           // rotated key resets the quota, said in REALITY-OPS).
@@ -351,12 +387,15 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
         // once nothing of this process can still write the journal. A second signal, or five seconds, ends anyway.
         server.closeAllConnections();
         for (const b of bridges) b.close();
-        server.close(() => {
-          void hold.store?.close().finally(() => done(0));
-        });
-        setTimeout(() => {
-          void hold.store?.close().finally(() => done(0));
-        }, 5000).unref();
+        // The store closes once, whichever comes first: the server closed, or five seconds.
+        let closing = false;
+        const closeStore = () => {
+          if (closing) return;
+          closing = true;
+          void (hold.store?.close() ?? Promise.resolve()).catch(() => {}).finally(() => done(0));
+        };
+        server.close(closeStore);
+        setTimeout(closeStore, 5000).unref();
       };
       process.on('SIGINT', onInt);
       process.on('SIGTERM', onTerm);

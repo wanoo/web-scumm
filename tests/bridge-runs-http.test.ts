@@ -41,8 +41,9 @@ const q = new RunQueue({
   purgeEveryMs: 0,
   pollMs: 0,
   log: () => {},
-  audit: () => {},
+  audit: (l) => void audits.push(l as never),
 });
+const audits: { event: string; run?: string; why?: string }[] = [];
 let server: Server;
 let base = '';
 const handled: boolean[] = [];
@@ -70,6 +71,33 @@ const board = async (qs: string) => {
   const r = await fetch(`${base}/v1/runs?game=reference&category=any%25${qs}`);
   return { status: r.status, body: (await r.json()) as { runs?: { player: string; seedKind?: string }[] } };
 };
+
+describe('/v1/runs without an admin token', () => {
+  it('refuses every moderation, said as no token', async () => {
+    const audit: { event: string; why?: string }[] = [];
+    const bare = new RunQueue({
+      store,
+      approved: {},
+      worker: ['true'],
+      purgeEveryMs: 0,
+      pollMs: 0,
+      log: () => {},
+      audit: (l) => void audit.push(l as never),
+    });
+    const route = runsRoute(bare);
+    let status = 0;
+    const res = { writeHead: (s: number) => ((status = s), res), setHeader: () => res, end: () => res } as never;
+    await route(
+      { method: 'POST', url: '/v1/runs/run_1/moderate', headers: { authorization: 'Bearer x' } } as never,
+      res,
+      '/v1/runs/run_1/moderate',
+    );
+    expect(status).toBe(404);
+    expect(bare.moderation).toEqual({ accepted: 0, refused: 0 });
+    expect(audit).toEqual([]);
+    bare.close();
+  });
+});
 
 describe('/v1/runs', () => {
   it('a board: its key checked and used, its seed kind filtered, its limit used', async () => {
@@ -104,11 +132,26 @@ describe('/v1/runs', () => {
       (await fetch(`${base}/v1/runs/${id}`, { method: 'DELETE', headers: { 'x-delete-token': deleteToken } })).status,
     ).toBe(204);
     expect((await fetch(`${base}/v1/runs/run_1/moderate`, { method: 'POST' })).status).toBe(401);
+    // 4.1.17: refusals counted and audited (the run asked for and why, never the bearer); a wrong bearer of the same
+    // length is refused like any other.
+    const wrong = await fetch(`${base}/v1/runs/run_1/moderate`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${'b'.repeat(40)}` },
+    });
+    expect(wrong.status).toBe(401);
+    expect(q.moderation).toEqual({ accepted: 0, refused: 2 });
+    const refusals = audits.filter((a) => a.event === 'run.moderation-refused');
+    expect(refusals.map((a) => [a.run, a.why])).toEqual([
+      ['run_1', 'bearer'],
+      ['run_1', 'bearer'],
+    ]);
+    expect(JSON.stringify(audits)).not.toContain('a'.repeat(40));
     const mod = await fetch(`${base}/v1/runs/run_1/moderate`, {
       method: 'POST',
       headers: { authorization: `Bearer ${'a'.repeat(40)}` },
     });
     expect(mod.status).toBe(200);
+    expect(q.moderation).toEqual({ accepted: 1, refused: 2 });
     expect((await fetch(`${base}/v1/runs/run_1/moderate`, { method: 'GET' })).status).toBe(405);
     expect((await fetch(`${base}/v1/runs/run_1`, { method: 'PUT' })).status).toBe(405);
   });

@@ -208,7 +208,23 @@ export function bridgeServer(bridges: Bridge | Bridge[], o: ServeOptions = {}): 
           return send(200, {
             status: 'ok',
             ...(path === '/healthz'
-              ? { tenants: all.length, store: states[0]?.store, streams: states.reduce((n, x) => n + x.streams, 0) }
+              ? {
+                  tenants: all.length,
+                  store: states[0]?.store,
+                  streams: states.reduce((n, x) => n + x.streams, 0),
+                  // 4.1.17: the leaderboards' moderations, accepted and refused, every tenant together.
+                  ...(o.runs
+                    ? {
+                        moderation: Object.values(o.runs).reduce(
+                          (m, q) => ({
+                            accepted: m.accepted + q.moderation.accepted,
+                            refused: m.refused + q.moderation.refused,
+                          }),
+                          { accepted: 0, refused: 0 },
+                        ),
+                      }
+                    : {}),
+                }
               : {}),
           });
         } catch {

@@ -121,8 +121,8 @@ Le module quotidien du Bridge (`bridge/src/daily.ts`) signe la seed et les règl
 `POST /v1/commit` publie le hash signé d'une seed et d'un nonce avant la course, `GET /v1/reveal/:id` la seed après.
 La seed du jour ne dépend que du jour et une seed Mystery est fixée avant que son engagement soit signé : le Bridge ne
 choisit jamais une seed après avoir vu des actions (D26). La clé quotidienne de la référence est une clé de test
-publiée, ses défis montrent le mécanisme, pas la confiance ; le module n'est pas monté sur le serveur HTTP du Bridge
-dans cette release.
+publiée, ses défis montrent le mécanisme, pas la confiance ; `bridge serve` le monte depuis la section `daily` d'une configuration (4.1.16), et le menu Remix du lecteur a une
+entrée Défi du jour et (4.1.17) Monde mystère quand le jeu nomme son Bridge.
 
 ## La roue de code
 

@@ -473,8 +473,8 @@ export async function showTitle(app: App) {
   if (rb)
     rb.onclick = async () => {
       startMusic();
-      const { chooseWorld, dailyFetcher, keepWorld } = await import('./remix-menu');
-      const v = await chooseWorld(app, ov, dailyFetcher(app.game));
+      const { chooseWorld, dailyFetcher, keepWorld, mysteryFetcher } = await import('./remix-menu');
+      const v = await chooseWorld(app, ov, dailyFetcher(app.game), mysteryFetcher(app.game));
       if (!v) return;
       // The world is built when the page starts: keep it, start again, and begin a new game in it at once; a saved game
       // is replaced only once the player says so.

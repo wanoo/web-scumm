@@ -200,7 +200,13 @@ The daily challenge (`bridge/src/daily.ts`, a configuration's `daily` section): 
 day's seed (a real UTC day, today or within `retentionDays`, 30 by default); `POST /v1/commit` and
 `GET /v1/reveal/<id>` commit to a Mystery seed and reveal it, both signed. Tokens and commitments are written once
 in the same SQL store, so every instance answers the same. The player keeps a Daily world's token beside the world and
-a speedrun in it carries the token; the player has no Mystery flow yet (a Mystery category refuses to start there).
+a speedrun in it carries the token. Since 4.1.17 the Remix menu has a **Mystery world** entry: it asks the game's
+Bridge for a commitment, then its reveal, verifies both offline with the game's daily key, builds the world and keeps
+both tokens beside it; a speedrun started in it (within the minute the reveal allows: after it the page says so and
+does not start the run) carries them and its start time.
+Without a server witness such a run is `valid-unranked` (`mystery-unwitnessed`). A run interrupted and resumed keeps
+its world and its proof: resuming it in another world, or with another proof, is refused (`e2e:remix-speedrun` does
+it in each world).
 
 ## Policies
 

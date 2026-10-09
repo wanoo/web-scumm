@@ -116,7 +116,8 @@ player verifies the token offline with the public key in `remix.daily`. Mystery 
 publishes the signed hash of a seed and a nonce before the run, `GET /v1/reveal/:id` the seed afterwards. The day's
 seed depends on the day alone and a Mystery seed is fixed before its commitment is signed: the Bridge never picks a
 seed after seeing actions (D26). The reference's daily key is a published test key, so its challenges show the
-mechanism, not trust; the module is not mounted on the Bridge's HTTP server in this release.
+mechanism, not trust. `bridge serve` mounts it from a configuration's `daily` section (4.1.16), and the player's Remix
+menu has a Daily and (4.1.17) a Mystery entry when the game names its Bridge.
 
 ## The code wheel
 

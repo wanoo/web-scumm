@@ -7,7 +7,9 @@
 //    `.wsrun` texts must be the same, byte for byte;
 // 3. that file verified in a new process (`npm run speedrun:verify -- --json`);
 // 4. submitted to a Bridge queue whose isolated worker is the real one (`tools/speedrun/worker.ts`): its verdict, its
-//    leaderboard key and its trust are the category's.
+//    leaderboard key and its trust are the category's;
+// 5. (4.1.17) interrupted after a stored chunk and resumed on a fresh engine, in each world: the same head, world and
+//    proof, the same verdict and board; another world or another proof refused at the resume.
 // `--out=<dir>` (4.1.17, the release's runs): the five files, 4.1.15's schema 1 run and `wsrun-manifest.json` (each
 // file's schema, world policy, rules version, test key, commit and the verdict this engine gives it) are written there;
 // candidate.yml keeps them and the release publishes those very files.
@@ -304,6 +306,131 @@ try {
 } finally {
   queue.close();
   rmSync(dir, { recursive: true, force: true });
+}
+// ---------------------------------------------------------------- 5. interrupted, then resumed (4.1.17, plan §10.1)
+// In each world: a first chunk stored (499 looks after the start), ten steps of the route lost with the page, the run
+// resumed on a fresh engine from its stored chunk, the route played again, the run sealed and verified in a new
+// process. Its head (h0), world and proof are the ones it started with; resuming in another world, or with another
+// proof than the one sealed, is refused before any input.
+{
+  const { Engine } = await import('../src/engine/core/engine');
+  const { FakePresenter, MemoryStore } = await import('../src/engine/core/ports');
+  const { CHUNK_SIZE, MemoryChunkStore, readRun } = await import('../src/engine/core/journal-chunks');
+  const { RunStartRefused, SpeedrunRecorder } = await import('../src/engine/tools/speedrun/recorder');
+  const { exportEnvelope } = await import('../src/engine/tools/speedrun/envelope');
+  const { replay } = await import('../src/engine/tools/replay');
+  type Entry = Record<string, unknown> & { picks?: number[] };
+  const tick = () => new Promise<void>((ok) => setTimeout(ok, 0));
+  /** One recorded entry played on a live engine, its choices given as the recording gave them. */
+  const drive = async (e: InstanceType<typeof Engine>, ui: InstanceType<typeof FakePresenter>, en: Entry) => {
+    ui.picks = [...(en.picks ?? [])];
+    const run =
+      'act' in en
+        ? e.act(en.act as never)
+        : 'travel' in en
+          ? e.travel(en.travel as string)
+          : 'switch' in en
+            ? e.switchTo(en.switch as string)
+            : 'map' in en
+              ? e.openMap()
+              : 'step' in en
+                ? e.advance(en.step as string)
+                : 'script' in en
+                  ? e.script(en.script as never)
+                  : 'enter' in en
+                    ? e.teleport(en.enter as string)
+                    : Promise.resolve();
+    await run;
+    for (let g = 0; g < 100 && e.busy; g++) await tick();
+  };
+  const dir2 = mkdtempSync(join(tmpdir(), 'remix-resume-'));
+  try {
+    for (const [i, k] of CASES.entries()) {
+      // The route without its new game: the replay starts one, the looks come first.
+      const route = (k as typeof k & { route: Entry[] }).route.filter((en) => !('start' in en));
+      const category = k.played.speedrun!.categories.find((c) => c.id === k.category)!;
+      const store = new MemoryChunkStore();
+      const runId = `resume-${i}`;
+      const opts = (engine: unknown, o: { variant?: unknown; worldEvidence?: unknown } = {}) =>
+        ({
+          engine,
+          gameId: k.played.id,
+          manifest: k.played.speedrun!,
+          category,
+          variant: o.variant ?? k.world,
+          ...((o.worldEvidence ?? k.evidence) ? { worldEvidence: o.worldEvidence ?? k.evidence } : {}),
+          store,
+          fingerprint: ctx.fingerprint,
+          engineVersion: ctx.engineVersion,
+          runId,
+          now: () => 0,
+        }) as never;
+      const rec = new SpeedrunRecorder(opts(null));
+      rec.seed = 'e2e-resume-seed';
+      await rec.prepare();
+      const target = (route.find((en) => 'act' in en)!.act as { a: string }).a;
+      const pad = Array.from({ length: CHUNK_SIZE - 1 }, () => ({ act: { verb: 'look', a: target } }));
+      const played1 = await replay(
+        k.played,
+        layouts,
+        // The route's state digests are the solver's, from a game without the looks: not compared here.
+        { start: { kind: 'new' }, log: [...pad, ...route.slice(0, 10).map(({ digest: _, ...en }) => en)] as never },
+        { seed: rec.seed, attach: (e) => rec.bind(e) },
+      );
+      await rec.flushed();
+      if (played1.divergedAt !== undefined || played1.errors.length)
+        fail(
+          'resume',
+          `${k.category}: the first part diverged at ${played1.divergedAt}: ${played1.divergence ?? played1.errors[0]}`,
+        );
+      const stored = (await readRun(store, runId))!;
+      if (stored.chunks.length !== 1 || stored.head.sealed)
+        fail('resume', `${k.category}: one unsealed chunk, not ${stored.chunks.length}`);
+      // Another world, another proof: refused before any input.
+      const other = CASES[(i + 1) % CASES.length]!;
+      for (const [what, o] of [
+        ['another world', { variant: other.world }],
+        ['another proof', { worldEvidence: { kind: 'daily', token: 'x.y.z' } }],
+      ] as const) {
+        const e = new Engine(structuredClone(k.played), layouts, new FakePresenter(), new MemoryStore());
+        const refused = await SpeedrunRecorder.resume(opts(e, o)).then(
+          () => false,
+          (x: unknown) => x instanceof RunStartRefused,
+        );
+        if (!refused) fail('resume', `${k.category}: resumed with ${what}`);
+      }
+      const ui = new FakePresenter();
+      const e2 = new Engine(structuredClone(k.played), layouts, ui, new MemoryStore());
+      // A Mystery resumed later is dated anew by the page (`storedEvidence`): its proof is the same, the sealed one stays.
+      const later =
+        k.evidence?.kind === 'mystery'
+          ? { worldEvidence: { ...k.evidence, startedAt: (k.evidence.startedAt ?? 0) + 5000 } }
+          : {};
+      const again = await SpeedrunRecorder.resume(opts(e2, later));
+      if (!again) {
+        fail('resume', `${k.category}: nothing to resume`);
+        continue;
+      }
+      for (const en of route) await drive(e2, ui, en);
+      const sealed = await again.seal();
+      const env = sealed as unknown as { h0: string; variant?: { hash: string }; worldEvidence?: unknown };
+      if (env.h0 !== stored.head.h0) fail('resume', `${k.category}: the head changed on resume`);
+      if (env.variant?.hash !== k.world.hash) fail('resume', `${k.category}: the world changed on resume`);
+      if (JSON.stringify(env.worldEvidence ?? null) !== JSON.stringify(k.evidence ?? null))
+        fail('resume', `${k.category}: the proof changed on resume`);
+      const file = join(dir2, `${runId}.wsrun`);
+      writeFileSync(file, exportEnvelope(sealed));
+      const out = verifyFile(file);
+      if (out.verdict !== k.want.verdict || out.world?.leaderboardKey !== k.want.key)
+        fail('resume', `${k.category}: ${out.verdict} (${out.code}: ${out.reason}) on ${out.world?.leaderboardKey}`);
+      else
+        console.log(
+          `✔  ${k.category}: interrupted, resumed in its world with its proof, ${out.verdict} on "${out.world?.leaderboardKey}"`,
+        );
+    }
+  } finally {
+    rmSync(dir2, { recursive: true, force: true });
+  }
 }
 if (skipped && !allowSkip) process.exit(3);
 if (skipped) console.log(`⚠  ${skipped} browser(s) skipped (--allow-skip)`);

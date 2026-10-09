@@ -3533,3 +3533,194 @@ Platform"; human gates reported, not blocking (D12).
   the final tag goes on the same commit once its assets are verified.
 
 → next: Claude · 4.2.0 "Stable World": the human passes first (D18), the `remix` and `speedrun` mutation survivors read
+
+## #148 · 2026-10-08 · Claude · proposal · 4.1.17 PR 1 — release truth: the candidate a tag stands on, the load that measures its store, one job per mutation set
+
+Step 0 (plan): the 4.1.16 nightly (run 37765270588, on the tag's commit 969929c) read again. `heavy`: memo
+`expected 139916 to be less than 136176` (69 958 tries ×2 against 136 176: a deterministic counter, not CI noise),
+partition 1/2/4 workers past 600 000 ms, the oracle `[ 'reference proof' ]` instead of `[]`. `bridge-load (sqlite)`:
+`unknown store ""` — `tools/bridge-load.ts:36` did `BRIDGE_STORE ?? 'sqlite:…'` and `??` keeps `""`; `storeSpec()` in
+`bridge/src/cli-store.ts` reads `""` as absent on purpose and is left as it is. `mutation`: `core` + `reality` green
+(1 098 of 1 128 killed, 30 named, 0 unexplained), then `reality-store` in the same job hit the 90-minute budget (143).
+
+Done: `tools/release/candidate.mjs` (gate, manifest, check, run-of) and `candidate.yml`; `ship tag --candidate=`
+(required from 4.1.17, pre-releases included; the run id goes into the tag's annotation); release.yml checks the run
+the tag names (workflow, green, manifest of this SHA and run, every SHA-256) and publishes its files; `bridge-load
+--store=` with the backend read from `store.kind` and the checkout's commit; `tools/load-report.ts`; each gated
+mutation set its own job in nightly, ci and candidate, `reality-store` alone with 180 minutes; the mutation reports
+uploaded with `include-hidden-files` (they never were: `.cache/` is hidden); `scripts/upgrade-source.mjs`.
+Found on the way: GITHUB_SHA is the branch head on a dispatched run, not the SHA it was asked to test, so the reports
+read the checkout's commit. The oracle's diagnostic moves to PR 2, where it is used.
+
+→ next: PR 2, the heavy solver suite (oracle diff, memo profile, partition budget).
+
+
+## #149 · 2026-10-08 · Claude · proposal · 4.1.17 PR 2 — the heavy solver suite green again, each red explained before anything was rewritten
+
+**Oracle** (`reference proof`, `steps` 77d8e4f8… → a3ff31b3…, `flags` c9d2337e… → 22445e17…). `tools/oracle-case.ts`
+ran the case on 570b57d (the fixture's commit, engine 4.1.8) and on 4.1.16: the first different session entry is
+#57 of 62, `talk neighbor` with `picks [1,2]` → `[2,3]`; flags added `password_ok`, `pirate_checked`; reachable: the
+same 288 states; verdict and path the same. Both come from the reference chapter's content, not the solver:
+`hall.neighbor.i-know-the-password` (7bca122, 4.1.15 Remix) is a topic before the one the route picks, and
+`pirate_checked` is the code wheel's map (1bc8164). Decision: the reference case written again, alone; the 202 other
+cases unchanged, compared without `ORACLE_WRITE` (203 searches, 94 s on a laptop).
+
+**Memo** (`expected 139916 to be less than 136176`). The counter is deterministic per environment: under vitest the
+demo's proof took 64 170 tries with the memo on 4.1.14 (129 840 without: a gain of 2.02, passing by 1 %), 69 958 on
+4.1.15 (136 176 without: 1.95). Under tsx the same search gives 59 754 — `import.meta.glob` loads no layout there, so
+a parked character stands at the default spot. Traced to the memo key: `guests()` reads `players:<id>` for every
+parked player and `atomValue` valued it with the whole entry, pixel positions included, which the search's
+dimensions (`player:<id>`: room, live bag, live used) leave out. Valued by room, bag and used items: 56 588 tries,
+a gain of 2.41; the 26 memo tests green, every skip verified (`memoVerify: 1`). The threshold stays at two.
+
+**Partition** (600 s for eight searches). On a laptop: matrix 12 with 1, 2, 4 workers and 2 without the table takes
+46, 25, 16 and 28 s, the stress game under 1 s each; the runner is about six times slower (memo's test: 16 s here,
+102 s there) and shared the cores with eight other files. Each search is now its own test with a budget of 480 s, and
+the heavy suite runs one file at a time (758 s on a laptop, 150 minutes allowed in the nightly). The budget is checked
+against the candidate's three runner measures before the tag (25 % margin, plan §5.3).
+
+→ next: PR 3, the leaderboard at any size.
+
+
+## #150 · 2026-10-08 · Claude · proposal · 4.1.17 PR 3 — the leaderboard at any size: ranked by the store, before the limit
+
+Reproduced first: 10 000 runs then a faster 10 001st on `MemoryRunStore` — absent from the board (`hasFastest ===
+false`), and the same on SQLite (`ORDER BY submitted_at, id LIMIT 10000`, then the best per player in JS).
+`RunStore.board(LeaderboardQuery)` now returns ranked rows: SQL with `ROW_NUMBER() OVER (PARTITION BY player …)` then
+`RANK()` then `LIMIT` (SQLite and Postgres, ids and times compared `COLLATE "C"` on Postgres); the memory store the
+same in `rankBoard`. A time is canonical at write (`canonicalTime`), so its order is its length then its text — no
+number type, no collation. Migration 0003 (dialect-neutral: `LTRIM`, ten `REPLACE`s to recognise a decimal) canonicalises
+4.1.16's rows and sets aside what is not a time (`ranked = NULL`, trust untouched, the reason says it); tested on a
+schema 2 database with `00042`, `000`, `abc` and 31 digits. Index `runs_rank (tenant, game, category, status,
+verdict, player)`: at 100 000 runs on one board (200 000 rows) SQLite reads it in 207 ms p50, 210 ms p95 on a laptop,
+136 MB resident (`npm run runs:load`); bounds in CI: 2 000 ms p95, 512 MB.
+
+Said in SPEEDRUN en/fr: each **pseudonym**'s best (no player identity in the Bridge); 100 lines, `&limit=` ≤ 1 000.
+
+→ next: PR 4, admission and quota across instances.
+
+
+## #151 · 2026-10-09 · Claude · proposal · 4.1.17 PR 5 — the code wheel's result computed again from its answers; what each trust level proves
+
+`SessionEntry.mg` was the client's word (4.1.16): the replay checked a result was recorded and fed it back. Now the
+code wheel also records a `CodeWheelTranscript` (`v`, `wheel`, `answers`, `end`) in `SessionEntry.mgt`, aligned with
+`mg`. Found while writing it: the reference wheel's answers are translated (`STREET` / `RUE`), so a transcript of
+texts would not replay across languages; answers are kept by their **place** in the author's list and `wheelHash`
+hashes the wheel with places — the same in every language (tested with a French list). `SessionRuntime.minigame`
+asks `core/minigame-proofs.ts` (a pure prover per minigame, engine-side: a game's data stays declarative) for the
+result the transcript gives from the command's params; another result, another wheel (another seed) or a malformed
+transcript throws a marked error the verifier turns into `invalid-replay` / `minigame-transcript` (not `inconclusive`
+/ `crash`). A transcript edited after the seal breaks the chain (entries are hashed). `codeWheel.proof:
+'transcript'` makes a category refuse a result without one (`code-wheel-proof`); `medium: 'physical'` with a played
+wheel is `valid-unranked` (`physical-wheel-unwitnessed`).
+
+`rulesVersion` (global to the manifest) does not move: no published category wanted the wheel won (all four Remix
+categories let it be skipped, `medium: 'either'`), and the speedrun manifest is `meta`, outside `fingerprint.logic`,
+so adding `wheel-proved` changes no run's hash; a 4.1.16 run is judged by its own engine version's archive anyway.
+`wheelHash` uses FNV's prime as shifts (`tests/remix-compile.test.ts` forbids `Math` on the variant path). Node and
+Chromium agree on the six new cases of `e2e:canonical` (58 values); WebKit and Firefox run in `cross-runtime`.
+D30 (the tags' signature put off to 4.2) written beside D31.
+
+→ next: PR 6, the Remix and Speedrun survivors (the transcript code under mutation first).
+
+
+## #152 · 2026-10-09 · Claude · proposal · 4.1.17 PR 4 — admission and quota across instances, and the speedrun queue under mutation
+
+The race was read in the code (`runs.ts`: `queued()` then `create()`, two statements; `RunQueue.buckets` a `Map` per
+process) and is now closed by construction. `RunStore.admit(run, maxQueued)` is one transaction under the lock
+`runs:admit:<tenant>` (SQLite `BEGIN IMMEDIATE`, Postgres advisory lock): a duplicate first (a duplicate is said as
+such even when the queue is full), then the count of `queued` + `verifying`, then the insert. The memory store does
+the same without an await between read and write. `SubmissionLimiter`: `MemoryLimiter` (per process, least recently
+used past `maxBuckets`) and `SqlLimiter` (`run_quota`, one row per tenant and HMAC client key, under
+`runs:quota:<tenant>`); the key version is stored beside the bucket, a rotated key resets the quota once, its buckets
+purged. `bridge serve` derives the secret from the tenant's event key (`kid` as version), so every instance of a
+tenant has it without new configuration.
+
+Tested: three processes on one SQLite file admitting 10 runs each against a room of 7 (7 created, 2 duplicates of the
+shared run, 21 full) and taking 4 tokens each of a 6-a-minute quota at the same instant (6 granted); the stored row
+holds the HMAC, not the address; on Postgres (CI's `BRIDGE_PG_URL`) ten connections race. A 429 carries
+`Retry-After`; an invalid run costs a token.
+
+The set `runs` joins `GATED` from the start, its tests the four short Bridge run files (12 s a pass): the load tools and
+the Postgres races stay out of the loop.
+
+→ next: PR 5, the code wheel's transcript and the trust levels.
+
+
+## #153 · 2026-10-09 · Claude · proposal · 4.1.17 PR 7 — the production paths: Mystery in the player, resume in every world, the worker's container, moderation
+
+The player's Mystery flow (`mysteryFetcher`, `mysteryWorldOf` in `dom/remix-menu.ts`): commit, reveal, both tokens
+verified offline (`reality/daily.ts`), the world built and the tokens kept beside it; `storedEvidence` returns them
+with the start time when a speedrun starts. Tested through the Bridge's own routes with the published test key: a
+reveal of another commitment, another game's tokens and a forged signature refused.
+
+Resume: `SpeedrunRecorder.resume` refuses a proof other than the one sealed in the run's head (4.1.16 refused another
+world only). `e2e:remix-speedrun` now records 499 looks and ten steps of the route, loses the page, resumes on a fresh
+engine and plays the route again in each of the five worlds; the sealed run is verified in a new process.
+
+The worker's container: `tools/speedrun/container.mjs` (the profile REALITY-OPS documented, now one function and a
+command), `scripts/e2e-worker-container.ts` through `runWorker` itself, the hostile probe
+`tests/fixtures/worker-hostile.mjs`. Docker is not running on the maintainer's Mac: the job is proved on the runner.
+
+Moderation: `runs.adminTokenFile` read by `serve` (0600, 32 characters, refused otherwise); the bearer compared as
+SHA-256 digests (`timingSafeEqual` of equal lengths: the token's length leaked before); refusals counted and audited.
+
+`ship checks` waited for "every check listed" — 8 of 32 on #67 before the second tier existed; it waits for `pr-gate`.
+The partition budget from candidate 37852879588 (matrix 12 with one worker: 85, 129, 146 s): 240 s.
+
+The second reading (an automated second context) found: a Mystery speedrun started after the reveal's minute was
+recorded then refused (the page now says so and does not start it; a page clock behind the Bridge's no longer dates the
+start before the reveal); a Mystery resume always refused, its `startedAt` compared as proof; the container's canary
+file never looked for (its path went in the docker client's environment, not the container's); a moderation route
+without a token that counted and audited every anonymous POST (now 404, as the docs said); the token file's mode check
+on Windows, where Node has no POSIX bits; swap beyond the memory limit. A test forged a signature in its last base64url
+characters, whose padding bits a decoder may ignore: it failed when the signed time made them so.
+
+→ next: the release commit (4.1.17).
+
+
+## #154 · 2026-10-09 · Claude · proposal · 4.1.17 PR 6 — the Remix and Speedrun mutation sets read and gated
+
+Measured on this branch (PR 5's code in): `speedrun` 444/533 (envelope 16 mutants, recorder 116, verify 401),
+`remix` 454/590 (seed-code 38, compile 262, apply 142, categories 70, `reality/daily.ts` 78, none left there). The
+survivors were read file by file, each file's in a copy of the branch by a second context (Claude sub-agents) that
+applied each mutant alone, ran only its own new test file, and restored the source: recorder 38 killed / 2 equivalent,
+verify 36 / 7, compile + seed-code 65 / 7, apply 43 / 7, categories and envelope here. Tests:
+`speedrun-recorder`, `speedrun-verify-guards` (dishonest runs recorded with the real recorder: a save, a menu, a forger's
+copy of a category, signals with a missing or decoy proof), `speedrun-envelope-seal`, `speedrun-envelope-shape`,
+`remix-compile-rules` (each manifest problem alone; the logic and cosmetic streams pinned), `remix-apply-rules`,
+`remix-categories-rules`. 23 equivalents named with their reason; the verifier's `'seed' → 'world-shape'` mapping,
+dead (every `loadVariant` refusal has its code), removed rather than named. Found on the way: no defect in the
+sources; the recorder's live RTA counts from a resume before the run's start (its sealed times are right).
+
+→ next: PR 7, the production paths and the release.
+
+## #155 · 2026-10-09 · Claude · release · 4.1.17 "Stabilization"
+
+- The hardening release after 4.1.16's first nightly (red after the tag: `heavy`, the SQLite load, `mutation` killed
+  at 90 minutes), from `docs/dev/PLAN-4.1.17-STABILIZATION.md` and the handout's leftovers, plan revision 3 approved
+  by the maintainer: seven pull requests, #65 (the candidate's protocol first: its run id, its artefact manifest,
+  `ship tag --candidate`, the load that measures its store, one job per mutation set, `upgrade-check --from`), #66 (the
+  heavy suite: the memo keyed by room and bag, the oracle's reference proof, the partition's budget), #67 (the
+  leaderboard ranked by the store, migration 0003), #69 (the code wheel's transcript, D31, ADR 0020), #68 (atomic
+  admission, the shared quota, migration 0004, the `runs` mutation set), #70 (`remix` and `speedrun` read and gated),
+  and this one (the production paths and the release commit). Each read a second time by a sub-agent before its merge:
+  the forged run that dropped `mg` to escape the wheel's rules (#69), the quota purge that crossed tenants (#68), the
+  late Mystery start, the Mystery resume and the canary that could not fail (#71) came out of those readings.
+- The candidate run 37852879588 on #67's merge proved the protocol end to end and gave the runner's measures written
+  in `docs/dev/baselines/4.1.17.md`. `v4.1.17-rc.1` on the merge commit with its candidate run, then `v4.1.17` on the
+  same commit and the same run once the release's assets are verified.
+- Not done, said as such: the tag's signature (D30, 4.2); an authenticated `playerId` (the board is per pseudonym);
+  every human pass (D18). The post-tag nightly is an audit, not a criterion.
+- On the release commit's CI: `e2e:worker-container` had never passed (`package-not-approved`): the host computed the
+  approved fingerprint with the module of its own `GAME_DIR` (the demo), the container with the reference's; it sets
+  `GAME_DIR` before loading. The coverage ratchet raised `bridge/src/server.ts` and `cli.ts`; the moderation test's
+  cleanup retries on Windows (EBUSY), where the token file is now accepted and `serve` really runs.
+  That run then showed `serve` closing its store twice on a stop (the server's close, then the five-second fallback
+  timer): `database is not open`, unhandled, once a process outlives the five seconds. The store closes once, and the
+  SQLite store's close is idempotent.
+  The speedrun mutation set then found the resume's proof comparison tested by the e2e only (which mutation does not
+  run): it is one expression now, `tests/speedrun-recorder.test.ts` resumes with the same Mystery dated anew, another
+  reveal, a Daily token and a proof on a run sealed without one; the one survivor left is named (82 in all).
+
+→ next: Claude · 4.2.0 "Stable World": the human passes first (D18), the signed tag (D30)

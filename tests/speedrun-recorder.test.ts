@@ -389,6 +389,32 @@ describe('resume', () => {
     ]);
   });
 
+  it('keeps the proof sealed in its head: another is refused, a Mystery dated anew by the page is the same', async () => {
+    const mystery = { kind: 'mystery', commitmentToken: 'c', revealToken: 'r', startedAt: 1000 } as const;
+    const sealed = await store((h) => (h.resume.world = { ...h.resume.world!, evidence: mystery }));
+    const later = await resume(sealed, { worldEvidence: { ...mystery, startedAt: 9000 } });
+    expect(later.again!.world!.evidence).toEqual(mystery);
+    // Nothing given: the sealed proof, unchecked against nothing.
+    expect(
+      (await resume(await store((h) => (h.resume.world = { ...h.resume.world!, evidence: mystery })))).again,
+    ).not.toBeNull();
+    const another = ['this run rests on another proof of its world than the one given now'];
+    for (const given of [
+      { ...mystery, revealToken: 'other' },
+      { kind: 'daily', token: 'c' },
+    ] as const) {
+      const r = recorder({
+        store: await store((h) => (h.resume.world = { ...h.resume.world!, evidence: mystery })),
+        runId: 'r',
+        worldEvidence: given,
+      });
+      expect(await refusal(SpeedrunRecorder.resume({ ...r.opts, runId: 'r' }))).toEqual(another);
+    }
+    // A run sealed without a proof, given one: refused too.
+    const bare = recorder({ store: await store(), runId: 'r', worldEvidence: { kind: 'daily', token: 't' } });
+    expect(await refusal(SpeedrunRecorder.resume({ ...bare.opts, runId: 'r' }))).toEqual(another);
+  });
+
   it('ignores the start trigger while resuming: a finish trigger before the real start hands nothing out early', async () => {
     const cat = category({ start: { event: 'flagChanged', flag: 'found' }, finish: { event: 'itemAcquired' } });
     const run = await storedRun(cat);

@@ -500,6 +500,8 @@ export interface UiTexts {
   remixRandom?: string;
   remixSeed?: string;
   remixDaily?: string;
+  /** The Remix menu's Mystery entry (4.1.17). */
+  remixMystery?: string;
   remixPlay?: string;
   remixInvalid?: string;
   remixWorld?: string;

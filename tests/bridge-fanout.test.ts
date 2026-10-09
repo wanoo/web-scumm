@@ -32,7 +32,8 @@ const children: Instance[] = [];
 afterAll(async () => {
   for (const c of children) if (c.child.exitCode === null) c.child.kill('SIGKILL');
   for (const s of opened) await s.close().catch(() => {});
-  rmSync(dir, { recursive: true, force: true });
+  // Windows keeps a killed process's files busy for a moment (EBUSY on bridge.sqlite): tried again for two seconds.
+  rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
 });
 
 /** Two handles on one store: the same object, two SQLite connections, two Postgres pools. */

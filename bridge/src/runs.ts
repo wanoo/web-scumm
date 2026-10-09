@@ -348,6 +348,13 @@ export class RunQueue {
     else this.audit('run.verified', r, { verdict: out.verdict, code: out.code, worker });
   }
 
+  /** Moderations accepted and refused since this instance started (4.1.17): what `bridge serve` reports. */
+  readonly moderation = { accepted: 0, refused: 0 };
+  /** The audit line of a refused moderation: the run asked for and why, never the bearer given. */
+  auditRefusal(tenantId: string, id: string, why: string) {
+    this.audit('run.moderation-refused', { tenantId, id }, { why });
+  }
+
   /** Raises a verified run to `moderator-verified` (a human looked at it). */
   async moderate(tenantId: string, id: string): Promise<RunRecord> {
     const r = await this.o.store.get(tenantId, id);
@@ -626,13 +633,23 @@ export function runsRoute(
       } else if (m && !m[2] && req.method === 'DELETE') {
         await q.remove(tenant, m[1]!, String(req.headers['x-delete-token'] ?? ''));
         res.writeHead(204).end();
+      } else if (m?.[2] && req.method === 'POST' && !q.o.adminToken) {
+        // No admin token configured: no moderation route (nothing to refuse, count or audit).
+        throw new RunsError(404, 'route', 'this Bridge does not moderate runs');
       } else if (m?.[2] && req.method === 'POST') {
         const admin = q.o.adminToken;
         const bearer = /^Bearer (.+)$/.exec(req.headers.authorization ?? '')?.[1] ?? '';
-        const ok =
-          !!admin && bearer.length === admin.length && timingSafeEqual(Buffer.from(bearer), Buffer.from(admin));
-        if (!ok) throw new RunsError(401, 'admin', 'the admin token is needed to moderate');
-        json(res, 200, publicView(await q.moderate(tenant, m[1]!)));
+        // Compared as hashes of equal length (4.1.17): the time it takes says nothing of the token, not even its length.
+        const digest = (s: string) => createHash('sha256').update(s).digest();
+        const ok = !!admin && timingSafeEqual(digest(bearer), digest(admin));
+        if (!ok) {
+          q.moderation.refused++;
+          q.auditRefusal(tenant, m[1]!, 'bearer');
+          throw new RunsError(401, 'admin', 'the admin token is needed to moderate');
+        }
+        const moderated = await q.moderate(tenant, m[1]!);
+        q.moderation.accepted++;
+        json(res, 200, publicView(moderated));
       } else throw new RunsError(405, 'method', 'not a route of /v1/runs');
     } catch (e) {
       const err =

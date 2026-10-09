@@ -633,5 +633,13 @@
   "to": "||",
   "context": "if (c && typeof c === 'object' && 'set' in c) {",
   "why": "the first `&&`: a truthy string command then enters, its `.set` is undefined and neither branch below adds it (the second `&&` made `||` throws on `'set' in` a string, and is killed)"
+ },
+ {
+  "file": "src/engine/tools/speedrun/recorder.ts",
+  "operator": "condition true",
+  "from": "e?.kind === 'mystery'",
+  "to": "true",
+  "context": "canonicalJson(e?.kind === 'mystery' ? { ...e, startedAt: 0 } : (e ?? null));",
+  "why": "`startedAt: 0` added to every proof on both sides: a Daily token has no `startedAt`, so two Daily proofs (or none and none) are equal or not exactly as before; only a Mystery differs by `startedAt`, and it is set to 0 either way"
  }
 ]
