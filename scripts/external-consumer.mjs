@@ -20,7 +20,6 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { createHmac, randomBytes } from 'node:crypto';
 import {
-  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -43,7 +42,14 @@ const base = resolve(flag('dir') ?? mkdtempSync(join(tmpdir(), 'web-scumm-consum
 mkdirSync(base, { recursive: true });
 const version = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).version;
 // The consumer's environment: nothing that points a tool at this repository's game.
-const ENV = { ...process.env, GAME: '', GAME_DIR: '', WEB_SCUMM_PROJECT: '', npm_config_audit: 'false', npm_config_fund: 'false' };
+const ENV = {
+  ...process.env,
+  GAME: '',
+  GAME_DIR: '',
+  WEB_SCUMM_PROJECT: '',
+  npm_config_audit: 'false',
+  npm_config_fund: 'false',
+};
 let failed = 0;
 const fail = (what) => {
   console.error(`✖  ${what}`);
@@ -122,7 +128,11 @@ const NAMES = ['web-scumm', 'create-web-scumm', 'web-scumm-bridge', 'web-scumm-c
 let tarballs = flag('tarballs');
 if (!tarballs) {
   tarballs = join(base, 'pack');
-  node('pack this checkout (no --tarballs: a local try, not a candidate)', [join(ROOT, 'scripts', 'pack.mjs'), `--out=${tarballs}`], ROOT);
+  node(
+    'pack this checkout (no --tarballs: a local try, not a candidate)',
+    [join(ROOT, 'scripts', 'pack.mjs'), `--out=${tarballs}`],
+    ROOT,
+  );
 }
 tarballs = resolve(tarballs);
 const tgz = Object.fromEntries(NAMES.map((n) => [n, join(tarballs, `${n}-${version}.tgz`)]));
@@ -138,19 +148,21 @@ for (const [n, f] of Object.entries(tgz)) {
   for (const [bin, target] of Object.entries(typeof pkg.bin === 'string' ? { [n]: pkg.bin } : (pkg.bin ?? {})))
     if (!existsSync(join(dir, target))) fail(`${n}: its binary ${bin} (${target}) is not in the archive`);
   for (const [k, target] of Object.entries(pkg.exports ?? {}))
-    if (typeof target === 'string' && !target.includes('*') && !existsSync(join(dir, target))) fail(`${n}: its export ${k} (${target}) is not in the archive`);
+    if (typeof target === 'string' && !target.includes('*') && !existsSync(join(dir, target)))
+      fail(`${n}: its export ${k} (${target}) is not in the archive`);
   for (const [d, spec] of Object.entries({ ...pkg.dependencies, ...pkg.peerDependencies, ...pkg.optionalDependencies }))
     if (/^(file|link|portal|workspace):/.test(String(spec))) fail(`${n}: depends on ${d} through ${spec}`);
   for (const leak of leaksIn(dir)) if (leak.includes('names the checkout')) fail(`${n}: ${leak}`);
 }
-if (!failed) console.log(`✔  ${NAMES.length} archives of ${version}: names, version, licence, binaries, exports, dependencies`);
+if (!failed)
+  console.log(`✔  ${NAMES.length} archives of ${version}: names, version, licence, binaries, exports, dependencies`);
 
 // ---------------------------------------------------------------- a game of the older release, moved to this one
 const src = upgradeSource(flag('from') ?? '4.1.17', existsSync);
 let oldTgz;
 if (src.kind === 'tgz') oldTgz = resolve(src.path);
 else {
-  if (src.kind === 'previous') throw new Error('--from=previous is upgrade-check\'s; name a version here');
+  if (src.kind === 'previous') throw new Error("--from=previous is upgrade-check's; name a version here");
   oldTgz = join(base, src.asset);
   const url = `https://github.com/wanoo/web-scumm/releases/download/${src.tag}/${src.asset}`;
   console.log(`\n▶ the older engine: ${url}`);
@@ -160,7 +172,11 @@ else {
 }
 const oldPkg = unpack(oldTgz, join(base, 'old-engine'));
 const oldVersion = json(join(oldPkg, 'package.json')).version;
-node(`create on ${oldVersion}`, [join(oldPkg, 'cli', 'create.mjs'), 'keeper', 'The Keeper', `--engine=file:${oldTgz}`], base);
+node(
+  `create on ${oldVersion}`,
+  [join(oldPkg, 'cli', 'create.mjs'), 'keeper', 'The Keeper', `--engine=file:${oldTgz}`],
+  base,
+);
 const game = join(base, 'keeper');
 run('install', 'npm', ['install'], game);
 run(`assets on ${oldVersion}`, 'npx', ['web-scumm', 'assets'], game);
@@ -186,7 +202,8 @@ run(`a save made by ${oldVersion}`, 'npx', ['tsx', '--tsconfig', 'tsconfig.json'
 
 run(`the candidate over it (${version})`, 'npm', ['install', tgz['web-scumm']], game);
 const dep = json(join(game, 'package.json')).dependencies?.['web-scumm'] ?? '';
-if (!dep.includes(`web-scumm-${version}.tgz`)) fail(`the project depends on web-scumm through ${dep}, not the candidate's archive`);
+if (!dep.includes(`web-scumm-${version}.tgz`))
+  fail(`the project depends on web-scumm through ${dep}, not the candidate's archive`);
 run('migrate', 'npx', ['web-scumm', 'migrate'], game);
 run('migrate --check', 'npx', ['web-scumm', 'migrate', '--check'], game);
 run(`assets on ${version}`, 'npx', ['web-scumm', 'assets'], game);
@@ -214,7 +231,12 @@ if (end.status !== 'solved' || end.steps.length !== 0) { console.error('the rout
 console.log('the old save reaches the ending in', fromOld.steps.length, 'steps; a new game played to its end in', route.steps.length);
 `,
 );
-run(`the ${oldVersion} save and a new game, played to the end on ${version}`, 'npx', ['tsx', '--tsconfig', 'tsconfig.json', 'play.ts'], game);
+run(
+  `the ${oldVersion} save and a new game, played to the end on ${version}`,
+  'npx',
+  ['tsx', '--tsconfig', 'tsconfig.json', 'play.ts'],
+  game,
+);
 for (const leak of leaksIn(game)) fail(leak);
 
 // ---------------------------------------------------------------- create-web-scumm
@@ -222,7 +244,12 @@ const creator = join(base, 'creator');
 mkdirSync(creator, { recursive: true });
 writeFileSync(join(creator, 'package.json'), '{ "name": "creator", "private": true }\n');
 run('create-web-scumm: install', 'npm', ['install', tgz['create-web-scumm'], tgz['web-scumm']], creator);
-run('create-web-scumm: run', 'npx', ['create-web-scumm', 'beacon', 'The Beacon', `--engine=file:${tgz['web-scumm']}`], creator);
+run(
+  'create-web-scumm: run',
+  'npx',
+  ['create-web-scumm', 'beacon', 'The Beacon', `--engine=file:${tgz['web-scumm']}`],
+  creator,
+);
 if (!existsSync(join(creator, 'beacon', 'game', 'game.ts'))) fail('create-web-scumm made no game');
 for (const leak of leaksIn(join(creator, 'beacon'))) fail(leak);
 
@@ -271,16 +298,35 @@ try {
   const operator = join(base, 'operator');
   mkdirSync(operator, { recursive: true });
   writeFileSync(join(operator, 'package.json'), '{ "name": "operator", "private": true }\n');
-  run('connectors: install', 'npm', ['install', '--omit=optional', '--ignore-scripts', tgz['web-scumm-connectors']], operator);
+  run(
+    'connectors: install',
+    'npm',
+    ['install', '--omit=optional', '--ignore-scripts', tgz['web-scumm-connectors']],
+    operator,
+  );
   const help = run('web-scumm-connector --help', 'npx', ['web-scumm-connector', '--help'], operator, { capture: true });
   if (!help.includes('usage: web-scumm-connector')) fail('web-scumm-connector --help says no usage');
   for (const id of ['email', 'telnet', 'ssh', 'open-badge']) {
-    const r = spawnSync(WIN ? 'npx.cmd' : 'npx', ['web-scumm-connector', id], { cwd: operator, env: ENV, shell: WIN, encoding: 'utf8' });
-    if (r.status !== 2 || !`${r.stdout}${r.stderr}`.includes('--config')) fail(`web-scumm-connector ${id} without --config: exit ${r.status}`);
+    const r = spawnSync(WIN ? 'npx.cmd' : 'npx', ['web-scumm-connector', id], {
+      cwd: operator,
+      env: ENV,
+      shell: WIN,
+      encoding: 'utf8',
+    });
+    if (r.status !== 2 || !`${r.stdout}${r.stderr}`.includes('--config'))
+      fail(`web-scumm-connector ${id} without --config: exit ${r.status}`);
   }
   const token = node(
     'bridge: grant the email connector',
-    [BIN, 'grant', `--dir=${data}`, '--connector=keeper-mail', '--source=email', '--signals=letter.door,letter.unclear', '--pair'],
+    [
+      BIN,
+      'grant',
+      `--dir=${data}`,
+      '--connector=keeper-mail',
+      '--source=email',
+      '--signals=letter.door,letter.unclear',
+      '--pair',
+    ],
     bridgeDir,
     { capture: true },
   ).trim();
@@ -301,7 +347,10 @@ try {
   try {
     // What a player does: the game asks the Bridge for a pairing code, the player mails it, then answers the letter.
     const pairing = await (
-      await fetch(`http://127.0.0.1:${PORT}/v1/pairings`, { method: 'POST', body: JSON.stringify({ gameId: 'keeper' }) })
+      await fetch(`http://127.0.0.1:${PORT}/v1/pairings`, {
+        method: 'POST',
+        body: JSON.stringify({ gameId: 'keeper' }),
+      })
     ).json();
     const mail = (subject, text) =>
       Buffer.from(
@@ -318,7 +367,10 @@ try {
       );
     const post = (eml, sig = true) => {
       const ts = String(Math.floor(Date.now() / 1000));
-      const mac = createHmac('sha256', sig ? secret : 'not-the-secret').update(`${ts}.`).update(eml).digest('hex');
+      const mac = createHmac('sha256', sig ? secret : 'not-the-secret')
+        .update(`${ts}.`)
+        .update(eml)
+        .digest('hex');
       return fetch(`http://127.0.0.1:${HOOK}/v1/inbound`, {
         method: 'POST',
         headers: { 'x-web-scumm-timestamp': ts, 'x-web-scumm-signature': `sha256=${mac}` },
@@ -326,7 +378,10 @@ try {
       });
     };
     const said = async (r) => `${r.status} ${JSON.stringify(await r.json().catch(() => null))}`;
-    await waitFor(`http://127.0.0.1:${HOOK}/v1/inbound`, (r) => r.status === 404 || r.status === 405 || r.status === 401);
+    await waitFor(
+      `http://127.0.0.1:${HOOK}/v1/inbound`,
+      (r) => r.status === 404 || r.status === 405 || r.status === 401,
+    );
     const letter = mail('the gate', 'Please open the door.');
     const steps = [
       ['the pairing code mailed', await said(await post(mail(pairing.code ?? 'none', 'my code'))), /^202 .*paired/],
@@ -336,7 +391,9 @@ try {
     ];
     for (const [what, got, want] of steps) if (!want.test(got)) fail(`${what}: ${got}`);
     if (steps.every(([, got, want]) => want.test(got)))
-      console.log('✔  paired by a code from the Bridge, a letter accepted, the same one a duplicate, a forged one refused');
+      console.log(
+        '✔  paired by a code from the Bridge, a letter accepted, the same one a duplicate, a forged one refused',
+      );
   } finally {
     connector.stop();
   }
