@@ -58,6 +58,7 @@ describe('a worker', () => {
   });
 
   it('refuses an answer to another job, a world of the wrong shape, and says a signal or silence', async () => {
+    expect(await runWorker(fake('bad-sig'), game, '{}')).toMatchObject({ verdict: 'inconclusive', code: 'signature' });
     expect(await runWorker(fake('other-job'), game, '{}')).toMatchObject({
       verdict: 'inconclusive',
       code: 'signature',

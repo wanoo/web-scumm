@@ -15,6 +15,11 @@ const sign = (o) => {
 const valid = { jobId: job.jobId, verdict: 'valid', code: 'ok', reason: 'fake', trust: 'replay-valid', ranked: '100' };
 const say = (text) => process.stdout.write(text, () => process.exit(0));
 if (mode === 'other-job') say(sign({ ...valid, jobId: 'another' }));
+else if (mode === 'bad-sig') {
+  // The answer of this job, signed with another key (a run's text cannot sign as the queue).
+  const result = JSON.stringify(valid);
+  say(`${JSON.stringify({ result, sig: createHmac('sha256', 'not the job key').update(result).digest('hex') })}\n`);
+}
 else if (mode === 'world') say(sign({ ...valid, seedKind: 'fixed', world: JSON.parse(arg) }));
 else if (mode === 'pad') {
   // `arg` bytes in all: blank lines first, the signed answer last.
