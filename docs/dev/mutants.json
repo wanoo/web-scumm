@@ -441,5 +441,197 @@
   "to": "true",
   "context": "if (edge)",
   "why": "when `over` is positive the table holds more than `over` rows of the tenant, so the row at OFFSET over - 1 exists"
+ },
+ {
+  "file": "src/engine/tools/speedrun/recorder.ts",
+  "operator": "condition true",
+  "from": "this.world",
+  "to": "true",
+  "context": "...(this.world ? { world: structuredClone(this.world) } : {}),",
+  "why": "resumePoint() is only called by a ChunkedJournal, created in prepare() after this.world is set or in resume() after r.world = point.world: this.world is never null there"
+ },
+ {
+  "file": "src/engine/tools/speedrun/recorder.ts",
+  "operator": "condition true",
+  "from": "l.entry.digest",
+  "to": "true",
+  "context": "if (l.entry.digest) this.digests.set(l.entry.digest, l.index);",
+  "why": "attach() sets digestOn before the tape sees an entry, so every entry sessions.end() closes has a digest; only entries force-closed by tape.seal() lack one, and after them the digests are never read (a sealed head keeps no resume point)"
+ },
+ {
+  "file": "src/engine/tools/speedrun/envelope.ts",
+  "operator": "condition true",
+  "from": "o.world.evidence",
+  "to": "true",
+  "context": "...(o.world.evidence ? { worldEvidence: o.world.evidence } : {}),",
+  "why": "canonicalJson drops an undefined property: `worldEvidence: undefined` writes the same envelope as no key"
+ },
+ {
+  "file": "src/engine/tools/speedrun/verify.ts",
+  "operator": "condition true",
+  "from": "world.head",
+  "to": "true",
+  "context": "...(world.head ? { world: world.head } : {}),",
+  "why": "headHash tests `!o.world`; spreading `{ world: undefined }` gives the same head"
+ },
+ {
+  "file": "src/engine/tools/speedrun/verify.ts",
+  "operator": "condition true",
+  "from": "env.worldEvidence",
+  "to": "true",
+  "context": "head: { variant, policy, ...(env.worldEvidence ? { evidence: env.worldEvidence } : {}) },",
+  "why": "head.evidence is read only by headHash as `o.world.evidence ? … : null`: undefined and absent both give null"
+ },
+ {
+  "file": "src/engine/tools/speedrun/verify.ts",
+  "operator": "condition true",
+  "from": "validUntil !== undefined",
+  "to": "true",
+  "context": "...(validUntil !== undefined ? { validUntil } : {}),",
+  "why": "RunWorld.validUntil is internal, read only where the result is built, through `!== undefined`"
+ },
+ {
+  "file": "src/engine/tools/speedrun/verify.ts",
+  "operator": "condition true",
+  "from": "category.realityPolicy !== 'forbidden'",
+  "to": "true",
+  "context": "if (category.realityPolicy !== 'forbidden') await checkSignals(env, externals, ctx);",
+  "why": "in a category whose Reality policy is forbidden, a run with external signals was already stopped above, and checkSignals with no externals does nothing"
+ },
+ {
+  "file": "src/engine/tools/speedrun/verify.ts",
+  "operator": "condition false",
+  "from": "links.length !== entries.length",
+  "to": "false",
+  "context": "if (links.length !== entries.length)",
+  "why": "defence in depth: replay() marks the first entry that begins no session entry as diverged, and the tape hands out one link per entry begun; no path leaves the counts apart without a divergence caught above"
+ },
+ {
+  "file": "src/engine/core/remix/apply.ts",
+  "operator": "condition false",
+  "from": "Array.isArray(x)",
+  "to": "false",
+  "context": "if (Array.isArray(x)) {",
+  "why": "an array then takes the plain-object branch: Object.keys gives its indexes and rewriteStrings rewrites every element in place, the same result"
+ },
+ {
+  "file": "src/engine/core/remix/apply.ts",
+  "operator": "condition false",
+  "from": "Array.isArray(x)",
+  "to": "false",
+  "context": "if (Array.isArray(x)) for (const y of x) n += setLine(y, lineId, text);",
+  "why": "an array then takes the object branch: it has no own `id`, nothing is set, and recursing over its indexes counts the same lines"
+ },
+ {
+  "file": "src/engine/core/remix/apply.ts",
+  "operator": "condition true",
+  "from": "c && typeof c === 'object'",
+  "to": "true",
+  "context": "if (c && typeof c === 'object')",
+  "why": "top-level items are Cmds (objects or strings, never null) and nested lists are filtered to objects at the call below; Object.values of a string gives characters, never arrays"
+ },
+ {
+  "file": "src/engine/core/remix/apply.ts",
+  "operator": "operator",
+  "from": "&&",
+  "to": "||",
+  "context": "if (c && typeof c === 'object')",
+  "why": "differs only for a falsy object (null), which never reaches this line: top-level Cmds have no null and nested lists are filtered"
+ },
+ {
+  "file": "src/engine/core/remix/apply.ts",
+  "operator": "operator",
+  "from": "&&",
+  "to": "||",
+  "context": "const hit = findMinigame(v.filter((x) => x && typeof x === 'object') as Cmd[]);",
+  "why": "lets strings, numbers or null into the recursive call, where the guards above skip any non-object: the search result is the same"
+ },
+ {
+  "file": "src/engine/core/remix/apply.ts",
+  "operator": "condition true",
+  "from": "s.includes('{code:') || s.includes('{hint:')",
+  "to": "true",
+  "context": "rewriteStrings(g, (s) => (s.includes('{code:') || s.includes('{hint:') ? fillCodes(s, c, variant, lang) : s));",
+  "why": "the guard only saves time: fillCodes' pattern matches only a literal `{code:` or `{hint:`, any other string comes back unchanged"
+ },
+ {
+  "file": "src/engine/core/remix/apply.ts",
+  "operator": "condition false",
+  "from": "Array.isArray(x)",
+  "to": "false",
+  "context": "if (Array.isArray(x)) for (const y of x) seedWheels(y, seed);",
+  "why": "an array then takes the object branch: `minigame` is undefined on an array and Object.values recurses into every element, the same traversal"
+ },
+ {
+  "file": "src/engine/core/remix/compile.ts",
+  "operator": "condition true",
+  "from": "c && typeof c === 'object' && 'set' in c",
+  "to": "true",
+  "context": "if (c && typeof c === 'object' && 'set' in c) {",
+  "why": "for a string command or an object without `set`, `.set` is undefined and neither branch below adds undefined"
+ },
+ {
+  "file": "src/engine/core/remix/compile.ts",
+  "operator": "condition true",
+  "from": "Array.isArray(s) && typeof s[0] === 'string'",
+  "to": "true",
+  "context": "else if (Array.isArray(s) && typeof s[0] === 'string') out.add(s[0]);",
+  "why": "`set` is typed `Id | [Id, Value]`; a string is taken just above, so only well-formed pairs reach here"
+ },
+ {
+  "file": "src/engine/core/remix/compile.ts",
+  "operator": "operator",
+  "from": "&&",
+  "to": "||",
+  "context": "else if (Array.isArray(s) && typeof s[0] === 'string') out.add(s[0]);",
+  "why": "only differs for an array whose first element is not a string, which the type forbids; such a value could never equal a flag anyway"
+ },
+ {
+  "file": "src/engine/core/remix/compile.ts",
+  "operator": "condition false",
+  "from": "'not' in c",
+  "to": "false",
+  "context": "if ('not' in c) return false;",
+  "why": "`not` holds a single Cond, never an array, so the line below finds no array to recurse into and returns false the same"
+ },
+ {
+  "file": "src/engine/core/remix/compile.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "return i < 0 ? [t, undefined] : [t.slice(0, i), t.slice(i + 1)];",
+  "why": "only differs for a term starting with `=`: both refuse the manifest, the message differs only if a dimension id itself starts with `=`"
+ },
+ {
+  "file": "src/engine/core/remix/compile.ts",
+  "operator": "condition false",
+  "from": "!ok.length",
+  "to": "false",
+  "context": "if (!ok.length) return false;",
+  "why": "with `ok` empty the loop never runs, uniform(_, 0) returns 0 without drawing and a[id] is unset on entry: false either way"
+ },
+ {
+  "file": "src/engine/core/remix/compile.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "for (let k = 0; k < ok.length; k++) {",
+  "why": "the extra pass retries ok[first], which already failed: placing is deterministic and the deeper assignments were removed when they failed"
+ },
+ {
+  "file": "src/engine/tools/speedrun/verify.ts",
+  "operator": "condition true",
+  "from": "err instanceof RemixSeedError",
+  "to": "true",
+  "context": "if (err instanceof RemixSeedError) stop('invalid-replay', err.code, err.message);",
+  "why": "loadVariant throws only RemixSeedError (each with its code): every error that reaches this catch is one"
+ },
+ {
+  "file": "src/engine/core/remix/compile.ts",
+  "operator": "operator",
+  "from": "&&",
+  "to": "||",
+  "context": "if (c && typeof c === 'object' && 'set' in c) {",
+  "why": "the first `&&`: a truthy string command then enters, its `.set` is undefined and neither branch below adds it (the second `&&` made `||` throws on `'set' in` a string, and is killed)"
  }
 ]

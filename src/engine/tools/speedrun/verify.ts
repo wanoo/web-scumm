@@ -521,17 +521,17 @@ async function runWorld(env: SpeedrunEnvelope, category: SpeedrunCategory, ctx: 
       );
     return { game: ctx.game, variant: storyWorld(ctx.game.remix), policy };
   }
-  let variant: WorldVariant;
   const compiled = compileGameManifest(ctx.game);
+  let loaded: ReturnType<typeof loadVariant>;
   try {
-    const loaded = loadVariant(compiled, env.variant);
-    if (loaded.stale) stop('invalid-replay', 'world-stale', 'the world was made from another version of the game');
-    variant = loaded.variant;
+    loaded = loadVariant(compiled, env.variant);
   } catch (err) {
-    if (err instanceof RemixSeedError)
-      stop('invalid-replay', err.code === 'seed' ? 'world-shape' : err.code, err.message);
+    // `loadVariant` names each refusal (world-shape, world-hash, world-value, world-constraint): said as it is.
+    if (err instanceof RemixSeedError) stop('invalid-replay', err.code, err.message);
     throw err;
   }
+  if (loaded.stale) stop('invalid-replay', 'world-stale', 'the world was made from another version of the game');
+  let variant: WorldVariant = loaded.variant;
   // Integrity is not authenticity (ADR 0019, after the second reading): a world's hash only says it was not altered
   // after it was hashed, and anyone can hash a world. The world a seed names is regenerated here and must be this one,
   // assignment for assignment: a world relabelled with another seed, or a combination no seed makes, is refused.
