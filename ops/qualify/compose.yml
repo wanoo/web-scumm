@@ -42,7 +42,7 @@ x-bridge: &bridge
 
 services:
   postgres:
-    image: postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+    image: mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
     environment:
       POSTGRES_USER: bridge
       POSTGRES_DB: bridge
@@ -59,7 +59,7 @@ services:
   bridge-2: *bridge
   bridge-3: *bridge
   proxy:
-    image: caddy:2.10-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+    image: mirror.gcr.io/library/caddy:2.10-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy:/data

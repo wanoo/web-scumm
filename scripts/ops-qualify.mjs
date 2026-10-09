@@ -103,7 +103,16 @@ const env = {
   QUALIFY_PORT_3: String(PORT + 3),
 };
 const dc = (a, o = {}) => sh('docker', ['compose', '-f', join(PROFILE, 'compose.yml'), ...a], { env, ...o });
-const up = () => dc(['up', '-d', '--build', '--wait', '--wait-timeout', '180'], { stdio: 'inherit' });
+/** The images pulled first, again on a registry's rate limit (a shared runner's address meets it): five tries. */
+function pull() {
+  for (let i = 1; ; i++) {
+    const r = dc(['pull', '--ignore-buildable', '--quiet'], { allowFail: true });
+    if (r.status === 0) return;
+    if (i >= 5) throw new Error(`the images could not be pulled: ${r.stderr.slice(0, 300)}`);
+    sh('sleep', [String(15 * i)]);
+  }
+}
+const up = () => (pull(), dc(['up', '-d', '--build', '--wait', '--wait-timeout', '180'], { stdio: 'inherit' }));
 
 let ca = '';
 const https = (port, method, path, { tenant, bearer, body } = {}) =>
