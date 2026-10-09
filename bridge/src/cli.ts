@@ -387,12 +387,15 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
         // once nothing of this process can still write the journal. A second signal, or five seconds, ends anyway.
         server.closeAllConnections();
         for (const b of bridges) b.close();
-        server.close(() => {
-          void hold.store?.close().finally(() => done(0));
-        });
-        setTimeout(() => {
-          void hold.store?.close().finally(() => done(0));
-        }, 5000).unref();
+        // The store closes once, whichever comes first: the server closed, or five seconds.
+        let closing = false;
+        const closeStore = () => {
+          if (closing) return;
+          closing = true;
+          void (hold.store?.close() ?? Promise.resolve()).catch(() => {}).finally(() => done(0));
+        };
+        server.close(closeStore);
+        setTimeout(closeStore, 5000).unref();
       };
       process.on('SIGINT', onInt);
       process.on('SIGTERM', onTerm);

@@ -3716,5 +3716,8 @@ sources; the recorder's live RTA counts from a resume before the run's start (it
   approved fingerprint with the module of its own `GAME_DIR` (the demo), the container with the reference's; it sets
   `GAME_DIR` before loading. The coverage ratchet raised `bridge/src/server.ts` and `cli.ts`; the moderation test's
   cleanup retries on Windows (EBUSY), where the token file is now accepted and `serve` really runs.
+  That run then showed `serve` closing its store twice on a stop (the server's close, then the five-second fallback
+  timer): `database is not open`, unhandled, once a process outlives the five seconds. The store closes once, and the
+  SQLite store's close is idempotent.
 
 → next: Claude · 4.2.0 "Stable World": the human passes first (D18), the signed tag (D30)

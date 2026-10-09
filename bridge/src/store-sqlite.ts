@@ -135,8 +135,14 @@ class SqliteDb implements SqlDb {
       }
     });
   }
+  private closed = false;
   async close() {
-    await this.serial(async () => this.db.close());
+    // Once: a second close (a shutdown's fallback timer) finds nothing left to do, not a closed database.
+    await this.serial(async () => {
+      if (this.closed) return;
+      this.closed = true;
+      this.db.close();
+    });
   }
   /** How long `BEGIN IMMEDIATE` waits for another process (ms). */
   get busy(): number {
