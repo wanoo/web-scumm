@@ -641,5 +641,45 @@
   "to": ">=",
   "context": "if (s.version > at && s.version <= to) {",
   "why": "`at` is `MAX(version)` of schema_migrations, so the step at `at` is always recorded (or `at` is 0 and there is no step 0): with `>=` its transaction finds it counted and returns false, applying and listing nothing; one extra empty transaction"
+ },
+ {
+  "file": "connectors/src/email/mime.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "while (i < html.length) {",
+  "why": "htmlToText: one more turn with `i === html.length` finds no `<` from the end (indexOf returns -1), appends the empty slice and breaks: the same text"
+ },
+ {
+  "file": "connectors/src/email/mime.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "i = end < 0 ? html.length : end + 3;",
+  "why": "htmlToText: a comment's `-->` is searched from `lt + 4`, so when found its index is at least 4, never 0: `end <= 0` and `end < 0` agree on every input"
+ },
+ {
+  "file": "connectors/src/email/mime.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "if (gt < 0) break;",
+  "why": "htmlToText: `>` is searched from `lt + 1`, so when found its index is at least 1, never 0: `gt <= 0` and `gt < 0` agree on every input"
+ },
+ {
+  "file": "connectors/src/email/mime.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "const close = end < 0 ? -1 : html.indexOf('>', end);",
+  "why": "htmlToText: the closing `</script` or `</style` is searched from `i = gt + 1`, so when found its index is at least 1, never 0: `end <= 0` and `end < 0` agree on every input"
+ },
+ {
+  "file": "connectors/src/email/mime.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "i = close < 0 ? html.length : close + 1;",
+  "why": "htmlToText: the `>` closing `</script` is searched from that tag's index (at least 1), so when found it is never 0: `close <= 0` and `close < 0` agree on every input"
  }
 ]
