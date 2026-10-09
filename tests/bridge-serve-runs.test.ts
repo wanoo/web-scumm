@@ -13,7 +13,14 @@ import { SqliteRealityStore } from '../bridge/src/store-sqlite';
 
 const temps: string[] = [];
 afterAll(() => {
-  for (const d of temps) rmSync(d, { recursive: true, force: true });
+  // Windows keeps a stopped server's SQLite file busy for a moment (EBUSY): tried again for two seconds, and there a
+  // temporary folder left behind is not this suite's failure.
+  for (const d of temps)
+    try {
+      rmSync(d, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    } catch (e) {
+      if (process.platform !== 'win32') throw e;
+    }
 });
 const fixture = JSON.parse(readFileSync('tests/fixtures/reference-daily-key.json', 'utf8'));
 

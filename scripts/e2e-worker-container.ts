@@ -13,7 +13,6 @@ import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { runWorker } from '../bridge/src/runs';
-import { approvedContext } from '../tools/speedrun/package';
 // @ts-expect-error: a plain .mjs tool without declarations
 import { PIDS_LIMIT, workerContainerArgs } from '../tools/speedrun/container.mjs';
 
@@ -25,7 +24,11 @@ const check = (ok: boolean, what: string) => {
   if (!ok) failed++;
 };
 
-const ctx = await approvedContext(resolve(ROOT, 'games/reference'));
+// The approved fingerprint of the reference, the game the container verifies: `approvedContext` loads the module of
+// `GAME_DIR` (read when tools/game.ts is imported), so it is set before.
+process.env.GAME_DIR = resolve(ROOT, 'games/reference');
+const { approvedContext } = await import('../tools/speedrun/package');
+const ctx = await approvedContext(process.env.GAME_DIR);
 const game = { dir: '/app/games/reference', fingerprint: ctx.fingerprint };
 const envelope = readFileSync(resolve(ROOT, 'tests/fixtures/speedrun/reference-any.wsrun'), 'utf8');
 const worker = workerContainerArgs({ image, app: ROOT, timeoutS: 70 });

@@ -3712,5 +3712,9 @@ sources; the recorder's live RTA counts from a resume before the run's start (it
   same commit and the same run once the release's assets are verified.
 - Not done, said as such: the tag's signature (D30, 4.2); an authenticated `playerId` (the board is per pseudonym);
   every human pass (D18). The post-tag nightly is an audit, not a criterion.
+- On the release commit's CI: `e2e:worker-container` had never passed (`package-not-approved`): the host computed the
+  approved fingerprint with the module of its own `GAME_DIR` (the demo), the container with the reference's; it sets
+  `GAME_DIR` before loading. The coverage ratchet raised `bridge/src/server.ts` and `cli.ts`; the moderation test's
+  cleanup retries on Windows (EBUSY), where the token file is now accepted and `serve` really runs.
 
 → next: Claude · 4.2.0 "Stable World": the human passes first (D18), the signed tag (D30)
