@@ -14,5 +14,8 @@
   without its failure, a blocked one without its reason, a pass not run with a time; an unknown field, two reports of
   one pass, a missing pass; an address, a bearer or a key in a report or its evidence; `--require`; the sheet's
   thirteen rows and counts; 4.1.17's sheet still read; the bundle's redaction, refusal and `tar`.
+- The Postgres service of ci, the candidate and the nightly (and the development compose) is pulled from
+  `mirror.gcr.io`, the same digest: a shared runner meets Docker Hub's anonymous pull limit (`toomanyrequests`, seen on
+  two jobs on 9 October), and a red `bridge-postgres` for a registry's quota is a red gate for nothing.
 
 → next: Claude · 4.1.18 PR 2, `connectors` and `reality-store` read and gated
