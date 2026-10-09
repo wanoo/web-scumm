@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/img/logo.png" width="480" height="320" alt="Le logo de web-scumm : une fenêtre d’éditeur en pixel art avec une scène de port, un graphe de dialogue et un curseur, sous les mots Web-SCUMM, Open source point &amp; click engine"></p>
+<p align="center"><img src="docs/img/logo.png" width="480" height="320" alt="Le logo de web-scumm : une fenêtre d’éditeur en pixel art avec une scène de port, un graphe de dialogue et un curseur, entourée de cartes illustrées, d’une carte au trésor, d’un panneau IA, d’un carnet de schémas d’énigmes et d’une tasse de café, sous les mots Web-SCUMM, Open source point &amp; click engine"></p>
 
 # web-scumm
 
