@@ -73,11 +73,13 @@ describe('a worker', () => {
     expect((await at({ mode: 1 })).world).toBeUndefined();
     expect((await at({ validUntil: 1.5 })).world).toBeUndefined();
     expect((await at({ validUntil: 5 })).world).toMatchObject({ validUntil: 5 });
-    expect(await runWorker(fake('signal'), game, '{}')).toMatchObject({
-      verdict: 'inconclusive',
-      code: 'timeout',
-      reason: expect.stringContaining('SIGTERM'),
-    });
+    // A worker ended by a signal (POSIX only: Windows ends a process without one).
+    if (process.platform !== 'win32')
+      expect(await runWorker(fake('signal'), game, '{}')).toMatchObject({
+        verdict: 'inconclusive',
+        code: 'timeout',
+        reason: expect.stringContaining('SIGTERM'),
+      });
     expect(await runWorker(fake('silent'), game, '{}')).toMatchObject({
       verdict: 'inconclusive',
       code: 'crash',
