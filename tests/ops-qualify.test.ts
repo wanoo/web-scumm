@@ -13,7 +13,9 @@ const dockerfile = readFileSync('ops/qualify/Dockerfile.bridge', 'utf8');
 
 describe('the qualification profile', () => {
   it('pins every image by digest, the Bridge built from the tarball', () => {
-    const images = [...compose.matchAll(/^\s+image:\s*(\S+)/gm)].map((m) => m[1]!).filter((i) => !i.endsWith(':qualify'));
+    const images = [...compose.matchAll(/^\s+image:\s*(\S+)/gm)]
+      .map((m) => m[1]!)
+      .filter((i) => !i.endsWith(':qualify'));
     expect(images).toHaveLength(2);
     for (const i of [...images, ...[...dockerfile.matchAll(/^FROM\s+(\S+)/gm)].map((m) => m[1]!)])
       expect(i).toMatch(/@sha256:[0-9a-f]{64}$/);
@@ -22,7 +24,9 @@ describe('the qualification profile', () => {
   });
 
   it('publishes only the proxy, on 127.0.0.1, and keeps the store and the Bridges on internal networks', () => {
-    const published = [...compose.matchAll(/^\s+- '([^']*:\d+)'$/gm)].map((m) => m[1]!).filter((p) => p.split(':').length > 2);
+    const published = [...compose.matchAll(/^\s+- '([^']*:\d+)'$/gm)]
+      .map((m) => m[1]!)
+      .filter((p) => p.split(':').length > 2);
     expect(published.length).toBe(4);
     for (const p of published) expect(p.startsWith('127.0.0.1:')).toBe(true);
     expect(compose.slice(compose.indexOf('  postgres:'), compose.indexOf('  bridge-1:'))).not.toContain('ports:');
@@ -32,7 +36,16 @@ describe('the qualification profile', () => {
 
   it('runs the Bridges read-only, unprivileged, with their tenants read-only and their secrets as files', () => {
     const bridge = compose.slice(compose.indexOf('x-bridge:'), compose.indexOf('services:'));
-    for (const want of ['read_only: true', 'cap_drop: [ALL]', 'no-new-privileges:true', 'pids_limit:', 'mem_limit:', '/srv/bridge/a:ro', '/srv/bridge/b:ro', 'BRIDGE_STORE_FILE: /run/secrets/store_url'])
+    for (const want of [
+      'read_only: true',
+      'cap_drop: [ALL]',
+      'no-new-privileges:true',
+      'pids_limit:',
+      'mem_limit:',
+      '/srv/bridge/a:ro',
+      '/srv/bridge/b:ro',
+      'BRIDGE_STORE_FILE: /run/secrets/store_url',
+    ])
       expect(bridge).toContain(want);
     expect(bridge).not.toMatch(/BRIDGE_STORE:|postgres:\/\//);
     expect(compose).toContain('POSTGRES_PASSWORD_FILE: /run/secrets/pg_password');

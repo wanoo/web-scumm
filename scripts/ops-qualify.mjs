@@ -17,7 +17,16 @@
 // 24-48 h (`bridge-postgres-https`) uses the same profile (ops/qualify/README.md).
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { request } from 'node:https';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -38,7 +47,11 @@ const step = (name, ok, detail = {}) => {
   return ok;
 };
 const sh = (cmd, a, o = {}) => {
-  const r = spawnSync(cmd, a, { encoding: 'utf8', stdio: o.input !== undefined ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe'], ...o });
+  const r = spawnSync(cmd, a, {
+    encoding: 'utf8',
+    stdio: o.input !== undefined ? ['pipe', 'pipe', 'pipe'] : ['ignore', 'pipe', 'pipe'],
+    ...o,
+  });
   if (r.status !== 0 && !o.allowFail) throw new Error(`${cmd} ${a.join(' ')}: exit ${r.status}\n${r.stderr}`);
   return r;
 };
@@ -47,9 +60,13 @@ const sh = (cmd, a, o = {}) => {
 const compose = readFileSync(join(PROFILE, 'compose.yml'), 'utf8');
 const images = [...compose.matchAll(/^\s+image:\s*(\S+)/gm)].map((m) => m[1]).filter((i) => !i.endsWith(':qualify'));
 const from = [...readFileSync(join(PROFILE, 'Dockerfile.bridge'), 'utf8').matchAll(/^FROM\s+(\S+)/gm)].map((m) => m[1]);
-step('every image pinned by digest', [...images, ...from].every((i) => /@sha256:[0-9a-f]{64}$/.test(i)), {
-  images: [...images, ...from],
-});
+step(
+  'every image pinned by digest',
+  [...images, ...from].every((i) => /@sha256:[0-9a-f]{64}$/.test(i)),
+  {
+    images: [...images, ...from],
+  },
+);
 let tarballs = flag('tarballs');
 if (!tarballs) {
   tarballs = join(base, 'pack');
@@ -79,8 +96,24 @@ writeFileSync(join(base, 'manifest.json'), JSON.stringify(manifest));
 const data = join(base, 'data');
 const tokens = {};
 for (const t of ['a', 'b']) {
-  sh(process.execPath, [BIN, 'init', `--dir=${join(data, t)}`, `--tenant=${t}`, '--environment=dev', `--manifest=${join(base, 'manifest.json')}`, '--no-demo-webhooks']);
-  tokens[t] = sh(process.execPath, [BIN, 'grant', `--dir=${join(data, t)}`, '--connector=qualify', '--source=email', '--signals=letter.unclear', '--pair']).stdout.trim();
+  sh(process.execPath, [
+    BIN,
+    'init',
+    `--dir=${join(data, t)}`,
+    `--tenant=${t}`,
+    '--environment=dev',
+    `--manifest=${join(base, 'manifest.json')}`,
+    '--no-demo-webhooks',
+  ]);
+  tokens[t] = sh(process.execPath, [
+    BIN,
+    'grant',
+    `--dir=${join(data, t)}`,
+    '--connector=qualify',
+    '--source=email',
+    '--signals=letter.unclear',
+    '--pair',
+  ]).stdout.trim();
 }
 const secrets = join(base, 'secrets');
 mkdirSync(secrets, { mode: 0o700 });
@@ -202,7 +235,12 @@ try {
       const claim = await insist(PORT, 'GET', `/v1/pairings/${code}`, { tenant: t });
       players[t].push({ id: conf.json?.playerId, cap: claim.json?.capability });
     }
-  step('six players paired over HTTPS, three per tenant', Object.values(players).flat().every((p) => p.id && p.cap));
+  step(
+    'six players paired over HTTPS, three per tenant',
+    Object.values(players)
+      .flat()
+      .every((p) => p.id && p.cap),
+  );
 
   // A stream held on bridge-1 for the first player of tenant a.
   const streamed = [];
@@ -257,54 +295,99 @@ try {
   const before = {};
   for (const t of ['a', 'b']) for (const p of players[t]) before[`${t}/${p.id}`] = await sequences(t, p.cap);
   // A proposal whose answer was lost when its instance died, sent again, is a duplicate; none is applied twice.
-  step('every proposal applied once across a killed instance', answers.other.length === 0 && answers.accepted <= total, {
-    accepted: answers.accepted,
-    duplicates: answers.duplicate,
-    refused: answers.other.slice(0, 5),
-  });
-  step('every player sequence contiguous, 1 to N, nothing doubled', Object.values(before).every((s) => JSON.stringify(s) === JSON.stringify(expected)), {
-    players: Object.keys(before).length,
-    perPlayer: N,
-  });
+  step(
+    'every proposal applied once across a killed instance',
+    answers.other.length === 0 && answers.accepted <= total,
+    {
+      accepted: answers.accepted,
+      duplicates: answers.duplicate,
+      refused: answers.other.slice(0, 5),
+    },
+  );
+  step(
+    'every player sequence contiguous, 1 to N, nothing doubled',
+    Object.values(before).every((s) => JSON.stringify(s) === JSON.stringify(expected)),
+    {
+      players: Object.keys(before).length,
+      perPlayer: N,
+    },
+  );
   for (let w = 0; w < 20 && streamed.length < N; w++) await sleep(500);
   stream.destroy();
-  step('a stream held on bridge-1 received what the other instances accepted, in order, once', JSON.stringify(streamed) === JSON.stringify(expected), {
-    received: streamed.length,
-  });
+  step(
+    'a stream held on bridge-1 received what the other instances accepted, in order, once',
+    JSON.stringify(streamed) === JSON.stringify(expected),
+    {
+      received: streamed.length,
+    },
+  );
 
   // Tenants: neither's capability nor token works on the other.
   const crossRead = await https(PORT, 'GET', '/v1/signals', { tenant: 'b', bearer: players.a[0].cap });
   const code = (await https(PORT, 'POST', '/v1/pairings', { tenant: 'b', body: { gameId: 'qualify' } })).json?.code;
   const crossToken = await https(PORT, 'POST', `/v1/pairings/${code}/confirm`, { tenant: 'b', bearer: tokens.a });
-  step("a tenant's capability and connector token refused by the other tenant", crossRead.status >= 400 && crossToken.status >= 400, {
-    read: crossRead.status,
-    confirm: crossToken.status,
-  });
+  step(
+    "a tenant's capability and connector token refused by the other tenant",
+    crossRead.status >= 400 && crossToken.status >= 400,
+    {
+      read: crossRead.status,
+      confirm: crossToken.status,
+    },
+  );
 
   // Backup, the topology destroyed with its database, brought up empty, restore, compared.
-  const backup = dc(['exec', '-T', 'bridge-1', 'sh', '-c', 'node /opt/bridge/bin.mjs backup --dir=/srv/bridge/a --out=/tmp/backup.json >&2 && cat /tmp/backup.json']).stdout;
+  const backup = dc([
+    'exec',
+    '-T',
+    'bridge-1',
+    'sh',
+    '-c',
+    'node /opt/bridge/bin.mjs backup --dir=/srv/bridge/a --out=/tmp/backup.json >&2 && cat /tmp/backup.json',
+  ]).stdout;
   writeFileSync(join(out, 'backup.json'), backup, { mode: 0o600 });
   dc(['down', '-v'], { stdio: 'inherit' });
   // The documented recovery (REALITY-OPS): a new, empty database first, the backup restored into it by a one-off
   // container of the same image, then the instances (started first, they would register their tenants: not empty).
   dc(['up', '-d', '--wait', 'postgres'], { stdio: 'inherit' });
-  dc(['run', '--rm', '--no-deps', '-T', '-v', `${out}:/backup:ro`, 'bridge-1', 'restore', '--dir=/srv/bridge/a', '--from=/backup/backup.json'], { stdio: 'inherit' });
+  dc(
+    [
+      'run',
+      '--rm',
+      '--no-deps',
+      '-T',
+      '-v',
+      `${out}:/backup:ro`,
+      'bridge-1',
+      'restore',
+      '--dir=/srv/bridge/a',
+      '--from=/backup/backup.json',
+    ],
+    { stdio: 'inherit' },
+  );
   up();
   await readyCa();
   const after = {};
   for (const t of ['a', 'b']) for (const p of players[t]) after[`${t}/${p.id}`] = await sequences(t, p.cap);
-  step('backup, the topology and its database destroyed, restore: every player as before', JSON.stringify(after) === JSON.stringify(before), {
-    players: Object.keys(after).length,
-  });
+  step(
+    'backup, the topology and its database destroyed, restore: every player as before',
+    JSON.stringify(after) === JSON.stringify(before),
+    {
+      players: Object.keys(after).length,
+    },
+  );
   const next = await insist(PORT, 'POST', '/v1/signals', {
     tenant: 'a',
     bearer: tokens.a,
     body: { playerId: players.a[0].id, signal: 'letter.unclear', source: 'email', dedupeKey: 'after-restore' },
   });
-  step('after the restore a new proposal continues the sequence', next.status === 202 && next.json?.sequence === N + 1, {
-    status: next.status,
-    sequence: next.json?.sequence,
-  });
+  step(
+    'after the restore a new proposal continues the sequence',
+    next.status === 202 && next.json?.sequence === N + 1,
+    {
+      status: next.status,
+      sequence: next.json?.sequence,
+    },
+  );
 } catch (e) {
   failedHard = e;
   step('the qualification ran to its end', false, { error: String(e.message ?? e).slice(0, 400) });
@@ -320,5 +403,7 @@ try {
   if (!args.includes('--keep')) rmSync(base, { recursive: true, force: true });
 }
 const bad = steps.filter((s) => !s.ok);
-console.log(`\n${bad.length ? '✖' : '✔'}  ops:qualify: ${steps.length - bad.length}/${steps.length} steps; report ${join(out, 'ops-qualify.json')}`);
+console.log(
+  `\n${bad.length ? '✖' : '✔'}  ops:qualify: ${steps.length - bad.length}/${steps.length} steps; report ${join(out, 'ops-qualify.json')}`,
+);
 process.exit(bad.length || failedHard ? 1 : 0);
