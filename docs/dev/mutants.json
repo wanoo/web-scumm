@@ -641,5 +641,45 @@
   "to": ">=",
   "context": "if (s.version > at && s.version <= to) {",
   "why": "`at` is `MAX(version)` of schema_migrations, so the step at `at` is always recorded (or `at` is 0 and there is no step 0): with `>=` its transaction finds it counted and returns false, applying and listing nothing; one extra empty transaction"
+ },
+ {
+  "file": "connectors/src/badges/crypto.ts",
+  "operator": "condition false",
+  "from": "raw.length !== 32",
+  "to": "false",
+  "context": "if (raw.length !== 32) return null;",
+  "why": "ed25519Key: its one caller, multikey, passes `b.subarray(2)` of a `b` it has just checked is 34 bytes long, so `raw` is always 32 bytes; a key of another length would also fail createPublicKey's DER parse, caught as null"
+ },
+ {
+  "file": "connectors/src/badges/crypto.ts",
+  "operator": "boolean",
+  "from": "false",
+  "to": "true",
+  "context": "return false;",
+  "why": "verifyJws's catch: each branch calls node:crypto `verify` only with the key type it was checked to be (ed25519 with null, ec with ieee-p1363, rsa with sha256), and for those `verify` answers false for any signature buffer (empty, short, odd, oversized: tried, 4.1.18) and never throws, so the catch is never reached; it stays as a guard (the same context in verifyEddsaJcs is killed by tests/connectors-badges-mutants.test.ts, an x25519 key)"
+ },
+ {
+  "file": "connectors/src/badges/crypto.ts",
+  "operator": "condition false",
+  "from": "!sig || sig.length !== 64",
+  "to": "false",
+  "context": "if (!sig || sig.length !== 64) return false;",
+  "why": "verifyEddsaJcs: without the check, a null `sig` makes `verify` throw inside the try (false), and OpenSSL's Ed25519 verification refuses any signature that is not exactly 64 bytes (false): the same answer, only later"
+ },
+ {
+  "file": "connectors/src/badges/fetch.ts",
+  "operator": "condition true",
+  "from": "isIP(host)",
+  "to": "true",
+  "context": "servername: isIP(host) ? undefined : host,",
+  "why": "SafeFetcher.once: with `servername` undefined, Node's https agent derives it from the request's host and leaves it empty for an IP (calculateServerName), so a name is sent as SNI just the same; tests/connectors-badges-mutants.test.ts reads the ClientHello for both cases"
+ },
+ {
+  "file": "connectors/src/badges/fetch.ts",
+  "operator": "boolean",
+  "from": "false",
+  "to": "true",
+  "context": "done({ ok: false, reason: 'timed out' });",
+  "why": "SafeFetcher.once, the request's `timeout` handler: the whole-exchange timer is armed first, with the same delay, before the socket's idle timer (which activity only pushes back), so it always settles the promise first and this `done` is never the one that counts (the same context on the overall timer is killed by tests/connectors-badges.test.ts, /slow)"
  }
 ]
