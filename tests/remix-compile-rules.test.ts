@@ -398,3 +398,25 @@ describe('seed codes: range, prefix, isSeed, WebCrypto', () => {
     expect(isSeed(newSeedCode())).toBe(true);
   });
 });
+
+describe('a stored world of another algorithm', () => {
+  it('is refused for its algorithm, even with a correct hash of its own', async () => {
+    const { game: demo } = await import('../games/demo/game');
+    const { compileGameManifest } = await import('@engine/core/remix/apply');
+    const { loadVariant } = await import('@engine/core/remix/compile');
+    const { variantHash } = await import('@engine/core/remix/story');
+    const c = compileGameManifest(demo);
+    const v = compileVariant(c, demo.remix!, encodeSeedCode(5), 1, 'remix');
+    const { hash: _, ...body } = { ...v, algorithm: 'web-scumm-remix/other' };
+    const forged = { ...body, hash: variantHash(body as never) };
+    let err: unknown;
+    try {
+      loadVariant(c, forged);
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(RemixSeedError);
+    expect(err).toMatchObject({ code: 'world-shape', message: 'unknown Remix algorithm "web-scumm-remix/other"' });
+    expect(loadVariant(c, v).variant).toEqual(v);
+  });
+});

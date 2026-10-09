@@ -625,5 +625,13 @@
   "to": "true",
   "context": "if (err instanceof RemixSeedError) stop('invalid-replay', err.code, err.message);",
   "why": "loadVariant throws only RemixSeedError (each with its code): every error that reaches this catch is one"
+ },
+ {
+  "file": "src/engine/core/remix/compile.ts",
+  "operator": "operator",
+  "from": "&&",
+  "to": "||",
+  "context": "if (c && typeof c === 'object' && 'set' in c) {",
+  "why": "the first `&&`: a truthy string command then enters, its `.set` is undefined and neither branch below adds it (the second `&&` made `||` throws on `'set' in` a string, and is killed)"
  }
 ]
