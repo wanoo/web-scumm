@@ -3,13 +3,15 @@
 // (where this runs) holds game/ (the game's sources), public/ (the built assets), dist/ (the build) and .cache/; the
 // engine, its pages and its tools stay in the package, never written. `web-scumm help` lists the commands.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, openSync, closeSync } from 'node:fs';
+import { existsSync, mkdirSync, openSync, closeSync, realpathSync } from 'node:fs';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const PKG = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const project = process.cwd();
+// Real paths (4.1.18): on Windows a temporary folder may come in its 8.3 short form (`C:\Users\RUNNER~1\…`) while
+// Vite resolves the long one; the bundler then names the package's page by a path between the two and refuses it.
+const PKG = realpathSync.native(resolve(dirname(fileURLToPath(import.meta.url)), '..'));
+const project = realpathSync.native(process.cwd());
 const [cmd = 'help', ...rest] = process.argv.slice(2);
 
 const env = { ...process.env, WEB_SCUMM_PROJECT: project };
