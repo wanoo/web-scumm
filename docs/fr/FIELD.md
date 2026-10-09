@@ -65,6 +65,9 @@ npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # ce que 
   expurgés (adresses, bearers, valeurs de mot de passe, IP), une clé ou un token refuse le bundle, et son
   `bundle-manifest.json` donne le SHA-256 de chaque fichier. Les rapports et les petites preuves expurgées peuvent être
   committés sous `docs/dev/field/<version>/` (`npm run audit` les lit) ; les bundles restent des artefacts de run.
+- **Une issue par passe** : chaque passe humaine est une issue GitHub ouverte, avec le label `field-pass` (4.1.18 :
+  #75 à #87), qui dit quoi essayer, avec quoi et quelles preuves rendre ; le maintainer la ferme une fois le test fait
+  et son rapport vérifié. Une issue ouverte est une passe non faite.
 - **Autre commit, autre passe** : un rapport d'un autre candidate run, ou dont les empreintes ne sont pas celles du
   candidat, ne passe pas la vérification. Un correctif qui change le package rend caducs les rapports qu'il touche
   jusqu'à ce qu'ils soient refaits.

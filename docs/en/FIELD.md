@@ -64,5 +64,8 @@ npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # what a 
   password values, IPs), a key or a token refuses the bundle, and its `bundle-manifest.json` gives every file's
   SHA-256. Reports and small redacted evidence may be committed under `docs/dev/field/<version>/` (`npm run audit`
   reads them); bundles stay run artefacts.
+- **One issue per pass**: every pass a person makes is an open GitHub issue labelled `field-pass` (4.1.18: #75 to
+  #87), saying what to try, what it needs and the evidence expected; the maintainer closes it once the test is made and
+  its report checks. An open issue is a pass not made.
 - **Another commit, another pass**: a report of another candidate run, or whose file digests are not the candidate's,
   does not check. A fix that changes the package makes the reports it touches void until they are made again.
