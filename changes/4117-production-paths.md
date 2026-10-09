@@ -16,5 +16,7 @@
   the token; `/healthz` counts moderations accepted and refused.
 - **`ship checks` waits for `pr-gate`** (4.1.17): the second tier's jobs appear once `check` is done, so a list where
   every check passed could be partial (8 of 32 on #67).
+- The connectors' ssh tests draw their host key through `sshKeyPair()` everywhere (4.1.17): two fixtures still called
+  ssh2's generator, which now and then writes a key its own parser refuses (the "Malformed OpenSSH private key" flake).
 - The heavy suite's partition budget is 240 s per search: the slowest of the candidate's three cold runs on the runner
   (146 s) and 60 % more.

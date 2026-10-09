@@ -13,7 +13,7 @@ import type { ConnectorContext, RealityConnector } from '../../../connectors/src
 import { SshConnector } from '../../../connectors/src/ssh/connector';
 import { TelnetConnector } from '../../../connectors/src/telnet/connector';
 import type { badgeFixtures } from './badges';
-import type { TestBridge } from './harness';
+import { sshKeyPair, type TestBridge } from './harness';
 
 export interface Driver {
   id: 'email' | 'telnet' | 'ssh' | 'open-badge';
@@ -136,7 +136,7 @@ export function drivers(fixtures: ReturnType<typeof badgeFixtures>): Driver[] {
     {
       id: 'ssh',
       async start(ctx) {
-        const c = new SshConnector({ port: 0, hostKey: ssh2.utils.generateKeyPairSync('ed25519').private });
+        const c = new SshConnector({ port: 0, hostKey: sshKeyPair().private });
         await c.start(ctx);
         return c;
       },

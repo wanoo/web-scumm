@@ -10,7 +10,7 @@ import type { ConnectorContext } from '../../../connectors/src/sdk';
 import { SshConnector } from '../../../connectors/src/ssh/connector';
 import { TelnetConnector } from '../../../connectors/src/telnet/connector';
 import { fuzz, FUZZ_TARGETS } from '../../../tools/fuzz-connectors';
-import { MANIFEST } from './harness';
+import { MANIFEST, sshKeyPair } from './harness';
 
 const ctx: ConnectorContext = {
   bridge: { url: 'http://127.0.0.1:9/', token: '' },
@@ -44,7 +44,7 @@ await wait(200);
 t.destroy();
 await telnet.stop();
 
-const ssh = new SshConnector({ port: 0, hostKey: ssh2.utils.generateKeyPairSync('ed25519').private });
+const ssh = new SshConnector({ port: 0, hostKey: sshKeyPair().private });
 await ssh.start(ctx);
 const client = new ssh2.Client();
 await new Promise<void>((ok) => {
