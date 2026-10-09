@@ -611,6 +611,21 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.1.17 "Stabilization" (shipped 9 October 2026): the truth made green before the tag
+
+The release after 4.1.16's first nightly went red after its tag (`docs/dev/PLAN-4.1.17-STABILIZATION.md`, seven pull
+requests). No new mechanic. A tag stands on a **candidate run**: `candidate.yml`, started by hand on one SHA, runs
+release-check, the heavy solver suite three times on new runners, the Bridge's load on SQLite and on Postgres, four
+runtimes, the worker in its container and one job per gated mutation set; `candidate-gate` writes the manifest of its
+files, `ship tag --candidate=` names the run, and the release publishes those very files after checking their sums.
+The heavy suite is green again, each red explained first (a reference chapter's new topic in the oracle, a memo key
+that valued a pixel position, a partition budget shared with eight files). A leaderboard is ranked by the store before
+its limit, so a faster run is never lost; the queue's room and quota hold for every instance; the code wheel's result
+is computed again from its answers (ADR 0020) and each trust level says what it proves. Remix, Speedrun and the
+Bridge's runs are gated by mutation, their survivors read one by one. The player has a Mystery flow; a run resumed
+keeps its world and its proof; `bridge serve` moderates. Not done: the tags' signature (D30, 4.2) and every human pass
+(D18: blocking for 4.2).
+
 ## v4.1.16 "Convergence" (shipped 8 October 2026): the published capabilities made to work together
 
 The release after the programme (`docs/dev/PLAN-4.1.16-CONVERGENCE.md`, five pull requests, one release candidate
@@ -785,6 +800,7 @@ release (D12); the next version opens only when the current one's blockers are c
 | 4.1.14 | **Time Attack** (shipped 7 October 2026) | speedrun categories, RTA and logical time, semantic splits, a verifiable proof package, ghosts, LiveSplit and OBS as local tools |
 | 4.1.15 | **Remix** (shipped 7 October 2026) | controlled variance of a game, deterministic by seed, with provable solvability; the DSL frozen after it |
 | 4.1.16 | **Convergence** (shipped 8 October 2026) | the published capabilities made to work together: a run bound to its world, durable leaderboards, a minigame's result in the story, Remix and Time Attack checked in four runtimes |
+| 4.1.17 | **Stabilization** (shipped 9 October 2026) | the truth made green before the tag: a tag stands on a candidate run, leaderboards and admission right at any size and across instances, a minigame's result proved, Remix and Speedrun gated by mutation |
 | 4.2.0 | **Stable World** | the contracts frozen, the compiled package on npm, the human passes done, a first real reference game |
 
 The order is meant: dependencies and integrity before connectors; connectors prove the Bridge before it is distributed;

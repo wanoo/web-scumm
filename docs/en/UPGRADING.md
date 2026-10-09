@@ -430,3 +430,26 @@ Bridge carries a signed `token`. `bridge serve` mounts `/v1/runs` and the daily 
 `runs` and `daily` sections (SQL store). New commands: `npm run e2e:remix-speedrun`, `npm run docs:truth`,
 `npm run test:mutation:reality`, `test:mutation:remix`, `test:mutation:speedrun`. The golden save of 4.1.16 joins
 `tests/save-v3.test.ts`; every older one still loads.
+
+## 29. From 4.1.16 to 4.1.17 "Stabilization"
+
+**A break for hosts that wrote their own `RunStore`** (Bridge library): `board(tenantId, gameId, categoryId, key,
+limit)` is `board(query: LeaderboardQuery)` and returns ranked rows `{ run, rank }` (each pseudonym's best, ties
+sharing a rank, then the limit); `admit(run, maxQueued)` (`created | duplicate | full`, one step under the tenant's
+lock) is new and is what `RunQueue.submit` calls. `MemoryRunStore` and `SqlRunStore` implement both. A Bridge
+database migrates to schema 3 (the ranked times made canonical, an index) and 4 (`run_quota`) on its next start;
+`bridge migrate --schema=2` goes back.
+
+**Behaviour.** `GET /v1/runs` answers 100 lines by default, `&limit=` up to 1 000 (it answered up to 10 000 runs
+read in submission order, and could miss a faster one). A ranked time is stored canonical (`"00042"` is `"42"`).
+`perMinute` holds for every instance of a tenant under `bridge serve` on a SQL store (a library host keeps the
+per-instance `MemoryLimiter` unless it passes a `SqlLimiter`); a 429 says `Retry-After`. `runs.adminTokenFile` is
+needed for the moderation route, and `serve` refuses a missing, short or world-readable file.
+
+**Additive.** A minigame may return `{ result, transcript }` from `Presenter.minigame`; the code wheel does, and the
+session keeps `SessionEntry.mgt` beside `mg` (ADR 0020); a speedrun category may ask `codeWheel.proof: 'transcript'`;
+`medium: 'physical'` makes a run that played the wheel `valid-unranked` without a moderator. The Remix menu has a
+Mystery entry. New commands: `npm run runs:load`, `npm run e2e:worker-container`, `npm run release-check:local`,
+`npm run test:mutation:runs`, `npx tsx tools/oracle-case.ts`, `node tools/speedrun/container.mjs`. For maintainers:
+`ship tag` needs `--candidate=<run id>` of a green `candidate` run started on main for that SHA. The golden save of
+4.1.17 joins `tests/save-v3.test.ts`; every older one still loads.

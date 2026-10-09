@@ -599,6 +599,22 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.1.17 « Stabilization » (livrée le 9 octobre 2026) : la vérité remise au vert avant le tag
+
+La release qui suit le premier nightly de la 4.1.16, rouge après son tag (`docs/dev/PLAN-4.1.17-STABILIZATION.md`,
+sept pull requests). Aucune mécanique nouvelle. Un tag repose sur un **run candidat** : `candidate.yml`, lancé à la main
+sur un SHA, exécute release-check, la suite lourde du solveur trois fois sur des runners neufs, la charge du Bridge sur
+SQLite et sur Postgres, quatre runtimes, le worker dans son conteneur et un job par ensemble de mutation bloquant ;
+`candidate-gate` écrit le manifeste de ses fichiers, `ship tag --candidate=` nomme le run, et la release publie ces
+fichiers-là après vérification de leurs sommes. La suite lourde est de nouveau verte, chaque rouge expliqué d'abord
+(un sujet ajouté au chapitre de référence dans l'oracle, une clé du memo qui valait une position en pixels, un budget de
+partition partagé avec huit fichiers). Un classement est trié par le store avant sa limite, un temps plus rapide n'est
+plus perdu ; la place et le quota de la file valent pour toutes les instances ; le résultat de la roue est recalculé
+depuis ses réponses (ADR 0020) et chaque niveau de confiance dit ce qu'il prouve. Remix, Speedrun et les runs du Bridge
+sont bloqués par la mutation, leurs survivants lus un par un. Le joueur a un parcours Mystery ; un run repris garde son
+monde et sa preuve ; `bridge serve` modère. Pas fait : la signature des tags (D30, 4.2) et toutes les passes humaines
+(D18 : bloquantes pour la 4.2).
+
 ## v4.1.16 « Convergence » (livrée le 8 octobre 2026) : les capacités publiées faites pour marcher ensemble
 
 La release qui suit le programme (`docs/dev/PLAN-4.1.16-CONVERGENCE.md`, cinq pull requests, une release candidate
@@ -788,6 +804,7 @@ qu'une fois les bloqueurs de la courante fermés.
 | 4.1.14 | **Time Attack** (livrée le 7 octobre 2026) | catégories de speedrun, RTA et temps logique, splits sémantiques, un paquet de preuve vérifiable, ghosts, LiveSplit et OBS en outils locaux |
 | 4.1.15 | **Remix** (livrée le 7 octobre 2026) | une variance contrôlée du jeu, déterministe par seed, à solvabilité prouvable ; le DSL gelé après elle |
 | 4.1.16 | **Convergence** (livrée le 8 octobre 2026) | les capacités publiées faites pour marcher ensemble : un run lié à son monde, des classements durables, le résultat d'un minijeu dans l'histoire, Remix et Time Attack vérifiés dans quatre runtimes |
+| 4.1.17 | **Stabilization** (livrée le 9 octobre 2026) | la vérité remise au vert avant le tag : un tag repose sur un run candidat, classements et admission justes à toute taille et entre instances, le résultat d'un minijeu prouvé, Remix et Speedrun bloqués par la mutation |
 | 4.2.0 | **Stable World** | les contrats gelés, le paquet compilé sur npm, les passes humaines faites, un premier vrai jeu de référence |
 
 L'ordre est voulu : les dépendances et l'intégrité avant les connecteurs ; les connecteurs éprouvent le Bridge avant sa

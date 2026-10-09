@@ -454,3 +454,28 @@ jour quand la configuration a des sections `runs` et `daily` (store SQL). Nouvel
 e2e:remix-speedrun`, `npm run docs:truth`, `npm run test:mutation:reality`, `test:mutation:remix`,
 `test:mutation:speedrun`. La sauvegarde de référence de la 4.1.16 rejoint `tests/save-v3.test.ts` ; toutes les plus
 anciennes se chargent encore.
+
+## 29. De la 4.1.16 à la 4.1.17 « Stabilization »
+
+**Une rupture pour les hôtes qui ont écrit leur propre `RunStore`** (bibliothèque du Bridge) : `board(tenantId, gameId,
+categoryId, key, limit)` devient `board(query: LeaderboardQuery)` et rend des lignes classées `{ run, rank }` (le
+meilleur de chaque pseudonyme, les ex aequo au même rang, puis la limite) ; `admit(run, maxQueued)` (`created |
+duplicate | full`, une seule étape sous le verrou du tenant) est nouveau et c'est lui qu'appelle `RunQueue.submit`.
+`MemoryRunStore` et `SqlRunStore` implémentent les deux. Une base du Bridge migre vers le schéma 3 (les temps classés
+rendus canoniques, un index) et 4 (`run_quota`) au démarrage suivant ; `bridge migrate --schema=2` revient en arrière.
+
+**Comportement.** `GET /v1/runs` répond 100 lignes par défaut, `&limit=` jusqu'à 1 000 (il lisait jusqu'à 10 000 runs
+dans l'ordre de soumission, et pouvait manquer un temps plus rapide). Un temps classé est gardé canonique (`"00042"`
+est `"42"`). `perMinute` vaut pour toutes les instances d'un tenant avec `bridge serve` sur un store SQL (un hôte qui
+embarque la bibliothèque garde le `MemoryLimiter` par instance sauf s'il passe un `SqlLimiter`) ; un 429 dit
+`Retry-After`. `runs.adminTokenFile` est nécessaire à la route de modération, et `serve` refuse un fichier absent, trop
+court ou lisible par d'autres.
+
+**Ajouts.** Un minijeu peut rendre `{ result, transcript }` depuis `Presenter.minigame` ; la roue de code le fait, et
+la session garde `SessionEntry.mgt` à côté de `mg` (ADR 0020) ; une catégorie de speedrun peut demander
+`codeWheel.proof: 'transcript'` ; `medium: 'physical'` rend `valid-unranked` sans modérateur un run qui a joué la
+roue. Le menu Remix a une entrée Monde mystère. Nouvelles commandes : `npm run runs:load`, `npm run
+e2e:worker-container`, `npm run release-check:local`, `npm run test:mutation:runs`, `npx tsx tools/oracle-case.ts`,
+`node tools/speedrun/container.mjs`. Pour les mainteneurs : `ship tag` demande `--candidate=<id du run>` d'un run
+`candidate` vert lancé sur main pour ce SHA. La sauvegarde figée de la 4.1.17 rejoint `tests/save-v3.test.ts` ; toutes
+les plus anciennes se chargent toujours.
