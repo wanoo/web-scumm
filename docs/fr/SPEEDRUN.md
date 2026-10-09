@@ -141,6 +141,19 @@ fixture de référence (`reference-any.v1.wsrun`).
 le client élève un niveau ; une enveloppe qui en réclame davantage est lue comme `local`. Le niveau s'affiche dans les
 records, le Studio et le classement.
 
+Ce que prouve `replay-valid` (4.1.17) : le run se rejoue sur le jeu, la catégorie et le monde qu'il nomme ; sa chaîne,
+ses tirages, son état final et son temps logique concordent ; chaque résultat de minijeu venu avec un **transcript**
+est celui que ses réponses donnent (les réponses de la roue, par leur place dans la liste de l'auteur, jugées à nouveau
+sur la roue que fait le monde — ADR 0020). Il ne prouve pas qu'une personne a donné ces réponses, que `inputsUsed`, les
+pauses ou le RTA sont complets, qu'une roue imprimée a servi, ni que l'enveloppe n'a pas été fabriquée hors du
+lecteur : c'est `server-witnessed` ou `moderator-verified`, jamais « anti-triche ». Une catégorie avec
+`codeWheel.proof: 'transcript'` refuse un résultat de roue sans ses réponses (`code-wheel-proof`) ; un transcript
+falsifié est `invalid-replay` (`minigame-transcript`) ; une catégorie avec `medium: 'physical'` dont le run a joué la
+roue est `valid-unranked` (`physical-wheel-unwitnessed`) tant qu'un modérateur ne l'a pas classé. La catégorie
+`wheel-proved` du chapitre de référence veut la roue gagnée et prouvée chaque fois qu'elle est jouée (la roue reste
+facultative : une route qui n'ouvre jamais la carte ne la joue pas) ; ses autres catégories gardent la règle de
+4.1.16.
+
 ## Politiques Reality
 
 - `forbidden` : aucun signal extérieur ; un signal dans le run est `reality-forbidden`.

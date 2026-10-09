@@ -132,6 +132,18 @@ and by the release workflow, which attaches it to every release; 4.1.15's schema
 raises a level; an envelope that claims more is read as `local`. The level shows in the records, the Studio and the
 leaderboard.
 
+What `replay-valid` proves (4.1.17): the run replays on the game, category and world it names; its chain, draws,
+final state and logical time agree; each minigame result that came with a **transcript** is the result its answers
+give (the code wheel's answers, by their place in the author's list, judged again on the wheel the world makes —
+ADR 0020). It does not prove that a person produced those answers, that `inputsUsed`, the pauses or the RTA are
+complete, that a printed wheel was used, or that the envelope was not made outside the player: that is
+`server-witnessed` or `moderator-verified`, never "anti-cheat". A category with `codeWheel.proof: 'transcript'` refuses
+a wheel result without its answers (`code-wheel-proof`); a forged transcript is `invalid-replay`
+(`minigame-transcript`); a category with `medium: 'physical'` whose run played the wheel is `valid-unranked`
+(`physical-wheel-unwitnessed`) until a moderator ranks it. The reference chapter's `wheel-proved` category wants the
+wheel won and proved whenever it is played (the wheel stays optional: a route that never opens the map does not play
+it); its other categories keep 4.1.16's rule.
+
 ## Reality policies
 
 - `forbidden`: no signal from outside; a signal in the run is `reality-forbidden`.

@@ -7,7 +7,9 @@
 // `copy-protection` stream (ADR 0016), independent of every other stream: the same seed makes the same wheel (Node-tested; the
 // cross-runtime check is written, not run) on every
 // runtime, and adding a portrait moves no other puzzle. Pure and integer-only (no Math, ADR 0018).
+import { canonicalJson } from '../canonical';
 import { derive } from '../prng';
+import type { CodeWheelTranscript, MinigameResult } from '../types';
 import { uniform } from './compile';
 
 /** The wheel's layout version: a stored record of another version is replayed as it is, never regenerated. @public */
@@ -196,4 +198,64 @@ export function judge(
   if (mode === 'story' && wrongSoFar + 1 >= tries) return 'failed';
   if ((mode === 'parody' || mode === 'daily') && wrongSoFar + 1 >= tries) return 'passed';
   return 'wrong';
+}
+
+/**
+ * The wheel of `p` with each answer replaced by its place in the author's list (4.1.17): the same in every language
+ * (a translation changes the texts, never their places, and two answers translated alike stay two places). The shuffles
+ * draw by count, never by value, so it is the live wheel position for position.
+ */
+function placeWheel(p: CodeWheelParams, seed: string): CodeWheel {
+  return generateWheel({ ...p, answers: p.answers.map((_, i) => String(i)) }, seed);
+}
+
+/** A wheel's identity in a transcript (4.1.17): FNV-1a, twice, over its places wheel's canonical JSON (16 hex digits). */
+export function wheelHash(p: CodeWheelParams, seed: string): string {
+  const s = canonicalJson(placeWheel(p, seed));
+  const fnv = (h0: number) => {
+    let h = h0;
+    for (let i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      // × 16777619 (the FNV prime) in shifts: exact in 32 bits, and no `Math` on this path (tests/remix-compile).
+      h = (h + (h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24)) >>> 0;
+    }
+    return h.toString(16).padStart(8, '0');
+  };
+  return fnv(0x811c9dc5) + fnv(0x050c5d1f);
+}
+
+/** The most answers a transcript may hold (data from a client: bounded, far past any wheel's tries or patience). */
+const MAX_ANSWERS = 1024;
+
+/**
+ * The result a code wheel's transcript gives (4.1.17, ADR 0020), or why it is not a transcript of this wheel. The
+ * wheel is generated again from the params the world gave the command (its seed, mode and tries); each answer must be
+ * one the author wrote, judged in order; a decision ends it (nothing after), and a wheel left undecided was skipped
+ * (never possible in `strict`). Pure, and the same in Node and every browser.
+ */
+export function verifyWheelTranscript(p: CodeWheelParams, t: unknown): { result: MinigameResult } | { error: string } {
+  const x = t as Partial<CodeWheelTranscript> | null;
+  if (!x || typeof x !== 'object' || x.v !== 1) return { error: 'not a code wheel transcript of version 1' };
+  if (typeof x.wheel !== 'string' || !Array.isArray(x.answers) || (x.end !== 'decided' && x.end !== 'skipped'))
+    return { error: 'a transcript has a wheel, its answers and how it ended' };
+  if (x.answers.length > MAX_ANSWERS || x.answers.some((a) => !Number.isInteger(a) || a < 0 || a >= p.answers.length))
+    return { error: `at most ${MAX_ANSWERS} answers, each the place of one of the wheel's ${p.answers.length}` };
+  const seed = typeof p.seed === 'string' ? p.seed : 'story';
+  // Judged on places: language and duplicate translations play no part.
+  const w = placeWheel(p, seed);
+  if (x.wheel !== wheelHash(p, seed)) return { error: 'the answers were given to another wheel' };
+  const mode: CodeWheelMode = p.mode ?? 'parody';
+  if (mode === 'disabled')
+    return x.answers.length ? { error: 'a disabled wheel takes no answer' } : { result: 'disabled' };
+  const tries = typeof p.tries === 'number' ? p.tries : 3;
+  for (const [i, a] of x.answers.entries()) {
+    const verdict = judge(w, mode, String(a), i, tries);
+    if (verdict === 'wrong') continue;
+    if (i !== x.answers.length - 1) return { error: 'an answer after the one that decided' };
+    if (x.end !== 'decided') return { error: `the answers decided it (${verdict}), it was not skipped` };
+    return { result: verdict };
+  }
+  if (x.end !== 'skipped') return { error: 'no answer decided it' };
+  if (mode === 'strict') return { error: 'a strict wheel cannot be skipped' };
+  return { result: 'skipped' };
 }

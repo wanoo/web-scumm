@@ -1,5 +1,5 @@
 import type { MotionSpec } from './motion';
-import type { GameState, Id, MinigameResult, Point, RoomDef, VerbId } from './types';
+import type { GameState, Id, MinigameOutcome, MinigameResult, Point, RoomDef, VerbId } from './types';
 
 /**
  * What the core asks the display for. The DOM renderer implements it for the browser,
@@ -37,8 +37,11 @@ export interface Presenter {
   shake(ms: number): void;
   /** Opens the map. Returns the chosen room (after the travel animation), or null if closed. */
   openMap(state: GameState): Promise<Id | null>;
-  /** Plays a minigame; resolves with its result when it says one (4.1.16: the code wheel), else nothing. */
-  minigame(id: Id, params: Record<string, unknown>): Promise<void | MinigameResult>;
+  /**
+   * Plays a minigame; resolves with its result when it says one (4.1.16: the code wheel), else nothing; with its
+   * transcript too when it can prove it (4.1.17: `{ result, transcript }`).
+   */
+  minigame(id: Id, params: Record<string, unknown>): Promise<void | MinigameResult | MinigameOutcome>;
   /** Choice of responses (dialogue tree or topic menu). Returns the chosen index. */
   choose(options: { text: string; seen?: boolean; global?: boolean }[], who?: Id): Promise<number>;
   /** Call: `who` is a caller or a list (shown side by side). ringing=true: rings then Pick up; false: end of call. */
@@ -165,7 +168,7 @@ export class FakePresenter implements Presenter {
   async openMap() {
     return this.mapPicks.length ? this.mapPicks.shift()! : null;
   }
-  async minigame(id: Id): Promise<void | MinigameResult> {
+  async minigame(id: Id): Promise<void | MinigameResult | MinigameOutcome> {
     this.log.push(`minigame ${id}`);
   }
   /** Every choice asked so far: how many options, and whether it was a topic list (the solver enumerates the others). */

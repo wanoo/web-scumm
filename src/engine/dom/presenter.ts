@@ -6,7 +6,16 @@
 import { derive } from '../core/prng';
 import type { MotionSpec } from '../core/motion';
 import type { Presenter } from '../core/ports';
-import type { GameState, Id, MinigameResult, Point, RoomDef, VerbId } from '../core/types';
+import type {
+  GameState,
+  Id,
+  MinigameOutcome,
+  MinigameResult,
+  MinigameTranscript,
+  Point,
+  RoomDef,
+  VerbId,
+} from '../core/types';
 import { FONT_PIXEL, FONT_UI } from './fonts';
 import { el, esc, sleep } from './app-shared';
 import { choose as chooseImpl, phone as phoneImpl, say as sayImpl } from './speech';
@@ -213,7 +222,7 @@ export class DomPresenter implements Presenter {
 
   // ---------------------------------------------------------------- minigames and the ending
 
-  async minigame(id: Id, params: Record<string, unknown>): Promise<MinigameResult | undefined> {
+  async minigame(id: Id, params: Record<string, unknown>): Promise<MinigameResult | MinigameOutcome | undefined> {
     const app = this.app;
     const game = app.mg[id];
     // The validator refuses a minigame the game does not register; a run that gets here is a bug, said as one.
@@ -234,9 +243,14 @@ export class DomPresenter implements Presenter {
     });
     // A minigame that says how it ended (4.1.16: the code wheel's record): the engine records it in the session.
     let result: MinigameResult | undefined;
+    // 4.1.17: and the transcript that proves it, when the minigame gives one (checked when the run is replayed).
+    let transcript: MinigameTranscript | undefined;
     host.addEventListener('mg-record', (e) => {
-      const r = (e as CustomEvent<{ result?: unknown }>).detail?.result;
-      if (typeof r === 'string' && MINIGAME_RESULTS.has(r)) result = r as MinigameResult;
+      const d = (e as CustomEvent<{ result?: unknown; transcript?: MinigameTranscript }>).detail;
+      if (typeof d?.result === 'string' && MINIGAME_RESULTS.has(d.result)) {
+        result = d.result as MinigameResult;
+        transcript = d.transcript && typeof d.transcript === 'object' ? d.transcript : undefined;
+      }
     });
     try {
       await game.run({
@@ -277,7 +291,8 @@ export class DomPresenter implements Presenter {
       if (back === app.scene && !app.scene.hasAttribute?.('tabindex')) app.scene.setAttribute?.('tabindex', '-1');
       back?.focus?.({ preventScroll: true });
     }
-    // Every minigame ends somehow: what it said, else skipped or finished (won).
+    // Every minigame ends somehow: what it said (with its transcript), else skipped or finished (won).
+    if (result && transcript) return { result, transcript };
     return result ?? (entry.skipped ? 'skipped' : 'won');
   }
   async ending(phase: 'open' | 'card') {

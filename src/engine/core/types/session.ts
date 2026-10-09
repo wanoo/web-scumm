@@ -22,6 +22,30 @@ export interface Action {
 export type MinigameResult = 'won' | 'passed' | 'skipped' | 'failed' | 'disabled';
 
 /**
+ * What a minigame records so its result can be computed again (4.1.17, D31, ADR 0020): the code wheel's answers, by
+ * their place in the list its author wrote (never their text, which a translation changes), and the hash of the wheel
+ * they were given to (the same in every language). A replay generates
+ * the wheel again from the world, judges the answers and must find the recorded result. It proves a run is logically
+ * consistent, not that a person played it (`replay-valid`, never `server-witnessed`). @public
+ */
+export interface CodeWheelTranscript {
+  v: 1;
+  /** `wheelHash` of the wheel the answers were given to. */
+  wheel: string;
+  /** The answers, in order, as indexes in the author's `answers`: every wrong one, then the one that decided. */
+  answers: number[];
+  /** `decided` (the last answer ended it) or `skipped` (left without a deciding answer). */
+  end: 'decided' | 'skipped';
+}
+/** A minigame's transcript (4.1.17: the code wheel's only). @public */
+export type MinigameTranscript = CodeWheelTranscript;
+/** A minigame's result and, when it can prove it, its transcript (4.1.17). @public */
+export interface MinigameOutcome {
+  result: MinigameResult;
+  transcript?: MinigameTranscript;
+}
+
+/**
  * One input of a session (`Engine.session`). The answers given while it ran (`picks`, `maps`, `rnd`) are what makes it
  * replayable; `ran` lists the rules, topics, listeners and scripts that answered (the ids of the puzzle graph).
  * @public
@@ -43,6 +67,11 @@ export type SessionEntry = (
   rnd?: number[];
   /** The results the entry's minigames reported, in order (4.1.16): fed back when replaying, like `picks`. */
   mg?: MinigameResult[];
+  /**
+   * Their transcripts (4.1.17), aligned with `mg` (null for a result without one): checked when replaying — a result
+   * its transcript does not give stops the replay. Absent from 4.1.16 sessions, which replay as they were.
+   */
+  mgt?: (MinigameTranscript | null)[];
   /** `skip()` was called after that many commands. */
   skipAt?: number;
   ran?: string[];

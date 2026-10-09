@@ -79,8 +79,18 @@ export interface SpeedrunWorldPolicy {
   policy: 'story' | 'fixed' | 'random' | 'daily' | 'mystery';
   mode: string;
   fixedSeed?: string;
-  /** The code wheel (4.1.15): played, skippable, or off; physical or on-screen. */
-  codeWheel?: { enabled: boolean; skip: boolean; medium: 'digital' | 'physical' | 'either' };
+  /**
+   * The code wheel (4.1.15): played, skippable, or off; physical or on-screen. `proof: 'transcript'` (4.1.17, D31):
+   * each wheel's result must come with the answers that give it, computed again by the verifier — the word `won`
+   * alone is refused. `medium: 'physical'`: a printed wheel no browser can see; a run that played it is
+   * `valid-unranked` without a moderator.
+   */
+  codeWheel?: {
+    enabled: boolean;
+    skip: boolean;
+    medium: 'digital' | 'physical' | 'either';
+    proof?: 'transcript';
+  };
 }
 
 /** A split: a semantic trigger, a name, and the split it is a step of. @public */
