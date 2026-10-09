@@ -198,8 +198,12 @@ Le défi du jour (`bridge/src/daily.ts`, la section `daily` d'une configuration)
 la graine du jour (un vrai jour UTC, aujourd'hui ou dans `retentionDays`, 30 par défaut) ; `POST /v1/commit` et
 `GET /v1/reveal/<id>` s'engagent sur une graine Mystery et la révèlent, signés tous les deux. Jetons et engagements sont
 écrits une seule fois dans le même store SQL : toutes les instances répondent la même chose. Le joueur garde le jeton
-d'un monde Daily à côté du monde, et un speedrun dans ce monde le porte ; le joueur n'a pas encore de parcours Mystery
-(une catégorie Mystery y refuse de démarrer).
+d'un monde Daily à côté du monde, et un speedrun dans ce monde le porte ; depuis 4.1.17, le menu Remix a une entrée **Monde mystère** : elle demande au Bridge du jeu un engagement puis sa
+révélation, vérifie les deux hors ligne avec la clé du défi du jour, construit le monde et garde les deux jetons à côté ;
+un speedrun lancé dans ce monde (dans la minute que la révélation permet) les porte avec son heure de départ. Sans témoin
+serveur, un tel run est `valid-unranked` (`mystery-unwitnessed`). Un run interrompu puis repris garde son monde et sa
+preuve : le reprendre dans un autre monde, ou avec une autre preuve, est refusé (`e2e:remix-speedrun` le fait dans
+chaque monde).
 
 ## Politiques
 

@@ -255,6 +255,21 @@ its stderr is not kept.
 Killing the `docker` client does not stop its container: `timeout -s KILL` inside it (a little over the Bridge's
 `timeoutMs`) is what ends a replay that runs too long, so timed-out containers never pile up.
 
+Since 4.1.17 this profile is one function (`tools/speedrun/container.mjs`, `workerContainerArgs`): `node
+tools/speedrun/container.mjs --image=<image> --app=<engine folder> [--games=<folder>]` prints the `worker` command, with
+**no network unless `--allow-network`** (which says so on stderr). CI's `worker-container` job (`npm run
+e2e:worker-container`, Linux and Docker) runs the reference run inside it, then a hostile script: HTTP, DNS and TCP
+refused, nothing written outside `/tmp`, the host's secrets unseen, a child process allowed but without a network,
+the container killed by its own timeout with nothing left running; then a run again.
+
+### Moderation
+
+`runs.adminTokenFile` names the file of the token that moderates a tenant's leaderboards (`POST
+/v1/runs/<id>/moderate`, `Authorization: Bearer …`): beside `config.json`, mode 0600, at least 32 characters; `serve`
+refuses to start when it is missing, shorter or readable by others. Without it there is no moderation route. The token
+is compared as hashes of equal length (its length says nothing either); every refusal is an audit line
+(`run.moderation-refused`, never the bearer), and `/healthz` counts moderations accepted and refused.
+
 ## What is not here (4.1.10)
 
 A real email or SSH connector, a deployment of the `distributed` profile (it stays `experimental` until one), row-level

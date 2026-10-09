@@ -272,6 +272,22 @@ sortie standard est plafonnée à 1 Mo et sa sortie d'erreur n'est pas gardée.
 Tuer le client `docker` n'arrête pas son conteneur : c'est le `timeout -s KILL` à l'intérieur (un peu plus que le
 `timeoutMs` du Bridge) qui met fin à un rejeu trop long, si bien que les conteneurs expirés ne s'accumulent jamais.
 
+Depuis 4.1.17 ce profil est une fonction (`tools/speedrun/container.mjs`, `workerContainerArgs`) : `node
+tools/speedrun/container.mjs --image=<image> --app=<dossier du moteur> [--games=<dossier>]` écrit la commande `worker`,
+**sans réseau sauf `--allow-network`** (qui le dit sur stderr). Le job `worker-container` de la CI (`npm run
+e2e:worker-container`, Linux et Docker) y lance le run de référence, puis un script hostile : HTTP, DNS et TCP refusés,
+rien écrit hors de `/tmp`, les secrets de l'hôte invisibles, un processus enfant permis mais sans réseau, le conteneur
+tué par son propre timeout sans rien laisser tourner ; puis un run de nouveau.
+
+### Modération
+
+`runs.adminTokenFile` nomme le fichier du jeton qui modère les classements d'un tenant (`POST
+/v1/runs/<id>/moderate`, `Authorization: Bearer …`) : à côté de `config.json`, mode 0600, 32 caractères au moins ;
+`serve` refuse de démarrer s'il manque, s'il est plus court ou lisible par d'autres. Sans lui, pas de route de
+modération. Le jeton est comparé par empreintes de même longueur (sa longueur ne se devine pas non plus) ; chaque refus
+est une ligne d'audit (`run.moderation-refused`, jamais le jeton), et `/healthz` compte les modérations acceptées et
+refusées.
+
 ## Ce qui n'est pas là (4.1.10)
 
 Un vrai connecteur email ou SSH, un déploiement du profil `distributed` (il reste `experimental` jusque-là), une

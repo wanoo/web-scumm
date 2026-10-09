@@ -63,10 +63,9 @@ describe('the pieces', () => {
 
 describe('partitioned workers', () => {
   // One test per game and configuration (4.1.17, plan §5.3): a budget overrun names its configuration instead of one
-  // 600 s timeout for eight searches, and each search's time is in the report (`npm run test:heavy` writes it). The
-  // budget is BUDGET_S per search: ten times the slowest measured on a laptop (46 s), kept under the runner's
-  // measures with 25 % of margin (docs/dev/LOG.md, 4.1.17).
-  const BUDGET_S = 480;
+  // 600 s timeout for eight searches. The budget per search: the slowest of the candidate's three cold runs on the
+  // runner (candidate 37852879588: matrix 12 with one worker, 85, 129 and 146 s) and 60 % more (docs/dev/LOG.md).
+  const BUDGET_S = 240;
   const games = [
     ['matrix 12', () => matrixGame(12, { characters: 3, rooms: [20, 40] })],
     [
