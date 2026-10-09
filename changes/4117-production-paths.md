@@ -18,5 +18,7 @@
   every check passed could be partial (8 of 32 on #67).
 - The connectors' ssh tests draw their host key through `sshKeyPair()` everywhere (4.1.17): two fixtures still called
   ssh2's generator, which now and then writes a key its own parser refuses (the "Malformed OpenSSH private key" flake).
+- `tests/bridge-fanout.test.ts` removes its folder with retries (4.1.17): Windows keeps a killed instance's SQLite file
+  busy for a moment (EBUSY in the Windows job).
 - The heavy suite's partition budget is 240 s per search: the slowest of the candidate's three cold runs on the runner
   (146 s) and 60 % more.
