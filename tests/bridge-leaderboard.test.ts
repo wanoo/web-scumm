@@ -277,7 +277,7 @@ describe('schema 3', () => {
     await v2.create(done({ player: 'Plain', ranked: '43' }));
     await v2.create(done({ player: 'Word', ranked: 'abc', reason: 'replayed' }));
     await v2.create(done({ player: 'Long', ranked: '1'.repeat(31) }));
-    await old.migrate();
+    await old.migrate({ to: 3 });
     expect(await old.schemaVersion()).toBe(3);
     const board = await v2.board(q());
     expect(board.map((r) => [r.rank, r.run.player, r.run.ranked])).toEqual([

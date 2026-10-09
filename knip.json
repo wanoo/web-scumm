@@ -18,6 +18,8 @@
     "tools/speedrun/*.ts",
     "tests/**/*.test.ts",
     "tests/fixtures/connectors/no-eval-run.ts",
+    "tests/fixtures/admit-child.ts",
+    "tests/fixtures/runs-fake-worker.mjs",
     "tests/fixtures/**/index.ts",
     "games/*/index.ts",
     "games/*/e2e.mjs",
