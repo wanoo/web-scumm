@@ -77,14 +77,6 @@
   "why": "forgetting an idle key is bookkeeping (the map would only grow): with the entry kept, the next section still waits on a settled promise"
  },
  {
-  "file": "bridge/src/streams.ts",
-  "operator": "condition true",
-  "from": "this.open.delete(s)",
-  "to": "true",
-  "why": "ending a stream already ended calls `res.end()` a second time, which Node ignores",
-  "context": "if (this.open.delete(s)) s.close(why);"
- },
- {
   "file": "bridge/src/store.ts",
   "operator": "condition false",
   "from": "e.t === 'revoke-token'",
