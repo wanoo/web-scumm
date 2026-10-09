@@ -93,6 +93,7 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/bridge-fanout.test.ts',
     'tests/bridge.test.ts',
     'tests/reality-store-sql-mutants.test.ts',
+    'tests/reality-store-sqlite-mutants.test.ts',
   ],
   remix: [
     'tests/remix-*.test.ts',
