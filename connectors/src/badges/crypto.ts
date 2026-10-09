@@ -15,7 +15,8 @@ export function base58Decode(s: string): Uint8Array | null {
     n = n * 58n + BigInt(i);
   }
   const bytes: number[] = [];
-  while (n > 0n) {
+  // `n` is never negative (a sum of products of digits): `while (n)` is `while (n > 0n)`, with no bound to get wrong.
+  while (n) {
     bytes.unshift(Number(n & 0xffn));
     n >>= 8n;
   }
@@ -30,7 +31,7 @@ export function base58Encode(b: Uint8Array): string {
   let n = 0n;
   for (const x of b) n = (n << 8n) | BigInt(x);
   let s = '';
-  while (n > 0n) {
+  while (n) {
     s = B58[Number(n % 58n)] + s;
     n /= 58n;
   }
