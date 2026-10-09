@@ -37,3 +37,34 @@ bloquantes (D12) : une release dit combien ont été faites (`docs/dev/passes/<v
 Copier `docs/dev/passes/TEMPLATE.md` en `docs/dev/passes/<version>.md` avant le tag, remplir ce qui a été fait,
 laisser « not done » là où rien ne l'a été. `scripts/release-notes.mjs` met le tableau dans les notes de release avec
 « n of 7 done ».
+
+## Le Field Kit (4.1.18)
+
+Depuis la 4.1.18, une passe est un rapport JSON, plus une ligne éditée à la main : un fichier par passe, lié au
+**candidate run** qu'il a essayé (son commit, son id de run et le SHA-256 de chaque fichier jugé), dans un dossier qui
+garde aussi le `candidate-manifest.json` de ce run. Treize passes, chacune par un id stable : `bridge-postgres-https`,
+`runs-real-players`, `run-resume-power-cycle`, `code-wheel-human`, `mystery-deployed`, `safari-ios-offline-update`,
+`firefox-real-offline`, `phone-both-renderers`, `livesplit-obs`, `connectors-real-security`, `blind-playtesters`,
+`voices-listening`, `archive-human-install`.
+
+```sh
+npm run field:init -- --release=4.1.18 --candidate=<run id>     # les treize rapports à not-run, dans .cache/field/4.1.18
+npm run field:check -- --dir=.cache/field/4.1.18                # schéma, candidat, SHA-256 des preuves, recherche de fuites
+npm run field:report -- --dir=.cache/field/4.1.18 --out=docs/dev/passes/4.1.18.md
+npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # ce que porte un ticket de reproduction
+```
+
+- **Quatre mots, jamais confondus** : `not-run`, `blocked`, `failed`, `passed`. Seul `passed` compte comme fait dans
+  les notes de release, et seul `passed` peut lever le statut `experimental` d'une surface (D18). Une passe reste
+  rapportée sans bloquer un tag 4.1.x (D12) ; `field:check --require=<id,…>` sert à la gate de la 4.2.
+- **Ce que dit une passe essayée** : un opérateur (pseudonyme ou rôle, jamais une identité), son début et sa fin, sur
+  quoi (OS, navigateur, appareil ou versions) et le scénario. `passed` liste ses preuves (le SHA-256 de chaque fichier
+  est vérifié) et aucun échec ; `failed` dit ce qui a échoué ; `blocked` dit pourquoi dans `notes`.
+- **Rien de privé** : le schéma refuse un champ qu'il ne nomme pas ; un rapport qui contient une clé, un token, une
+  adresse email ou un bearer est refusé. Un bundle ne porte que les preuves listées par son rapport : les logs sont
+  expurgés (adresses, bearers, valeurs de mot de passe, IP), une clé ou un token refuse le bundle, et son
+  `bundle-manifest.json` donne le SHA-256 de chaque fichier. Les rapports et les petites preuves expurgées peuvent être
+  committés sous `docs/dev/field/<version>/` (`npm run audit` les lit) ; les bundles restent des artefacts de run.
+- **Autre commit, autre passe** : un rapport d'un autre candidate run, ou dont les empreintes ne sont pas celles du
+  candidat, ne passe pas la vérification. Un correctif qui change le package rend caducs les rapports qu'il touche
+  jusqu'à ce qu'ils soient refaits.
