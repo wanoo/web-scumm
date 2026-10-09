@@ -367,12 +367,9 @@ export class SpeedrunRecorder {
     if (canonicalJson(categoryWorld(o.category).world) !== canonicalJson(point.world.policy))
       throw new RunStartRefused(["this run's category no longer plays the world it was started in"]);
     // 4.1.17: its proof too (a Daily token, a Mystery commitment and reveal): the one sealed in its head, never another.
-    // A Mystery's `startedAt` is when it started, not its proof: the sealed one stays.
-    const proof = (e: unknown) => {
-      if (!e || typeof e !== 'object' || !('startedAt' in e)) return canonicalJson(e ?? null);
-      const { startedAt: _, ...rest } = e as Record<string, unknown>;
-      return canonicalJson(rest);
-    };
+    // A Mystery's `startedAt` is when the page started it, not its proof: compared without it, the sealed one stays.
+    const proof = (e: SpeedrunWorldEvidence | undefined) =>
+      canonicalJson(e?.kind === 'mystery' ? { ...e, startedAt: 0 } : (e ?? null));
     if (o.worldEvidence && proof(o.worldEvidence) !== proof(point.world.evidence))
       throw new RunStartRefused(['this run rests on another proof of its world than the one given now']);
     const r = new SpeedrunRecorder(o);

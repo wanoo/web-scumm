@@ -3719,5 +3719,8 @@ sources; the recorder's live RTA counts from a resume before the run's start (it
   That run then showed `serve` closing its store twice on a stop (the server's close, then the five-second fallback
   timer): `database is not open`, unhandled, once a process outlives the five seconds. The store closes once, and the
   SQLite store's close is idempotent.
+  The speedrun mutation set then found the resume's proof comparison tested by the e2e only (which mutation does not
+  run): it is one expression now, `tests/speedrun-recorder.test.ts` resumes with the same Mystery dated anew, another
+  reveal, a Daily token and a proof on a run sealed without one; the one survivor left is named (82 in all).
 
 → next: Claude · 4.2.0 "Stable World": the human passes first (D18), the signed tag (D30)
