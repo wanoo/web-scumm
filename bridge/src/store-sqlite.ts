@@ -47,7 +47,8 @@ class SqliteDb implements SqlDb {
     private busyMs: number,
     file: string,
   ) {
-    let c = file === ':memory:' ? undefined : CHAINS.get(file);
+    // `:memory:` is never a key (each in-memory database is its own): it always gets a chain of its own.
+    let c = CHAINS.get(file);
     if (!c) {
       c = { tail: Promise.resolve() };
       if (file !== ':memory:') CHAINS.set(file, c);
