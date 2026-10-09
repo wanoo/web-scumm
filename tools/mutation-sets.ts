@@ -18,8 +18,8 @@ export const SETS = {
     'bridge/src/lock.ts',
     'bridge/src/policy.ts',
   ],
-  // The connectors' pure parts (4.1.9): a set of its own, so the Reality set does not double in time; run with
-  // `--set=connectors`, not in `all` (not gated) until its survivors are measured and named (plan 4.1.9 §7).
+  // The connectors' pure parts (4.1.9): a set of its own, so the Reality set does not double in time. Gated since
+  // 4.1.18 (D32): its 204 survivors read one by one (tests/connectors-*-mutants.test.ts, or named).
   connectors: [
     'connectors/src/sdk.ts',
     'connectors/src/email/mime.ts',
@@ -46,9 +46,8 @@ export const SETS = {
   // The speedrun queue (4.1.17, plan §7): admission, quota, leaderboard ranking. Gated from the start: the bugs 4.1.17
   // fixed there (a board cut before ranking, a count then a write, a quota per process) were in no set.
   runs: ['bridge/src/runs.ts', 'bridge/src/runs-store.ts', 'bridge/src/runs-limiter.ts'],
-  // The Bridge's stores and its fan-out (4.1.10, ADR 0009): measured, not gated yet. The `reality` set would double
-  // with them (docs/dev/plans/4.1.10-constellation.md §6); its survivors are read and named or killed before the set
-  // joins `GATED`.
+  // The Bridge's stores and its fan-out (4.1.10, ADR 0009): measured until 4.1.18, gated since (D32): its 118
+  // survivors read one by one, each killed by a short test (tests/reality-store-*-mutants.test.ts) or named.
   'reality-store': [
     'bridge/src/store-memory.ts',
     'bridge/src/store-sql.ts',
@@ -105,9 +104,9 @@ export const TESTS: Record<MutationSet, string[]> = {
   speedrun: ['tests/speedrun-*.test.ts', 'tests/critical-minigame-outcome.test.ts'],
 };
 
-/** The sets `all` runs and the gate judges; `connectors` and `reality-store` run on their own until they are gated. */
-// `remix` and `speedrun` (4.1.16, measured) joined in 4.1.17: their survivors read one by one, each killed by a test or
-// named in docs/dev/mutants.json (docs/dev/passes/4.1.17.md).
-export const GATED: MutationSet[] = ['core', 'reality', 'runs', 'remix', 'speedrun'];
+/** The sets `all` runs and the gate judges: every set, each a job of its own in ci, the nightly, the candidate and the release. */
+// `remix` and `speedrun` (4.1.16, measured) joined in 4.1.17; `connectors` and `reality-store` in 4.1.18 (D32, plan
+// §6): their survivors read one by one, each killed by a test or named in docs/dev/mutants.json.
+export const GATED: MutationSet[] = ['core', 'reality', 'runs', 'remix', 'speedrun', 'connectors', 'reality-store'];
 
 export const setsOf = (set: MutationSet | 'all'): MutationSet[] => (set === 'all' ? GATED : [set]);

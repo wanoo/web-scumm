@@ -214,7 +214,7 @@ describe('the network policy, at its edges', () => {
   });
 
   it('sends no SNI for an IP literal (RFC 6066), the name for a name', async () => {
-    let hello = Buffer.alloc(0);
+    let hello: Buffer = Buffer.alloc(0);
     const port = await listen(
       createTcpServer((s) =>
         s.once('data', (d: Buffer) => {
