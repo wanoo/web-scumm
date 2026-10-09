@@ -83,6 +83,7 @@
     "new-game": "node scripts/new-game.mjs",
     "pack": "node scripts/pack.mjs",
     "fresh-install": "node scripts/fresh-install.mjs",
+    "ops:qualify": "node scripts/ops-qualify.mjs",
     "upgrade-check": "node scripts/upgrade-check.mjs",
     "page:storyboard": "tsx --tsconfig tsconfig.json tools/pages/storyboard.ts",
     "page:review": "tsx --tsconfig tsconfig.json tools/pages/review.ts",

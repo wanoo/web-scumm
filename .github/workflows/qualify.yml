@@ -1,0 +1,37 @@
+name: qualify
+# The Bridge's qualification profile (4.1.18, ops/qualify): `npm run ops:qualify` on a runner with Docker, whenever the
+# profile, the tool or the Bridge changes on a pull request, or by hand. The candidate runs the same smoke on its own
+# packages (candidate.yml `deployment-smoke`); this is the loop that keeps the profile working between candidates.
+on:
+  pull_request:
+    paths:
+      - 'ops/**'
+      - 'scripts/ops-qualify.mjs'
+      - 'bridge/**'
+      - '.github/workflows/qualify.yml'
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: qualify-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - run: npm run ops:qualify -- --out=qualify
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ops-qualify
+          path: qualify
+          if-no-files-found: ignore
+          overwrite: true
