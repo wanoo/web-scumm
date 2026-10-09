@@ -254,9 +254,75 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           overwrite: true
+  # The four packages, packed once (4.1.18, plan §7): what the release publishes and what `external-consumer` installs
+  # on three systems. Never packed again downstream: the manifest gives each its SHA-256 and release.yml checks it.
+  pack:
+    needs: target
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 15
+      - run: |
+          node scripts/pack.mjs --out=pack --publish-dry-run
+          mkdir -p candidate-pack && cp pack/*.tgz candidate-pack/ && ls -l candidate-pack
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: candidate-pack
+          path: candidate-pack
+          if-no-files-found: error
+          overwrite: true
+  # Those very archives installed outside the repository (scripts/external-consumer.mjs): Ubuntu, macOS and Windows on
+  # Node 22, Ubuntu on Node 24 too; a 4.1.17 game moved to them, the Bridge (SQLite, and Postgres on Ubuntu) and a
+  # connector scenario from their own archives.
+  external-consumer:
+    needs: [target, pack]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-24.04, node: 22, pg: true }
+          - { os: ubuntu-24.04, node: 24, pg: false }
+          - { os: macos-15, node: 22, pg: false }
+          - { os: windows-2025, node: 22, pg: false }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 15
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: candidate-pack
+          path: candidate-pack
+      - if: matrix.pg
+        name: A Postgres for the Bridge's line
+        run: |
+          docker run -d --name consumer-pg -e POSTGRES_USER=bridge -e POSTGRES_PASSWORD=bridge -e POSTGRES_DB=bridge -p 127.0.0.1:55432:5432 mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+          for i in $(seq 1 30); do docker exec consumer-pg pg_isready -U bridge && break; sleep 2; done
+          echo "CONSUMER_PG_URL=postgres://bridge:bridge@127.0.0.1:55432/bridge" >> "$GITHUB_ENV"
+      - run: node scripts/external-consumer.mjs --tarballs=candidate-pack --from=4.1.17
   # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   candidate-gate:
-    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation]
+    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation, pack, external-consumer]
     # A pull request without `full-ci` skips `target`: then there is no candidate to judge, and no red check either.
     if: always() && needs.target.result != 'skipped'
     runs-on: ubuntu-24.04
@@ -277,6 +343,8 @@ jobs:
         run: node tools/release/candidate.mjs gate | tee gate.txt
       - name: The manifest of this candidate
         run: |
+          # The packages beside the runs (4.1.18): one manifest, one SHA-256 per file the release publishes.
+          if [ -d artifacts/candidate-pack ]; then mkdir -p artifacts/candidate-release/pack && cp artifacts/candidate-pack/*.tgz artifacts/candidate-release/pack/; fi
           node tools/release/candidate.mjs manifest --sha=${{ needs.target.outputs.sha }} --run=${{ github.run_id }} --dir=artifacts/candidate-release --out=candidate-manifest.json
           node tools/release/candidate.mjs check candidate-manifest.json --sha=${{ needs.target.outputs.sha }} --run=${{ github.run_id }} --dir=artifacts/candidate-release
       - if: always()
@@ -313,7 +381,7 @@ jobs:
             echo '### Human passes still open'
             echo "- $(ls docs/dev/passes/*.md | sort -V | tail -1): every row is a human's to record (D18); none is marked here"
             echo '### Artifacts missing'
-            for a in candidate-release heavy-1 heavy-2 heavy-3 bridge-load-sqlite bridge-load-postgres; do [ -d "artifacts/$a" ] || echo "- $a"; done
+            for a in candidate-release candidate-pack heavy-1 heavy-2 heavy-3 bridge-load-sqlite bridge-load-postgres; do [ -d "artifacts/$a" ] || echo "- $a"; done
           } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:

@@ -107,7 +107,7 @@ export const RULES: readonly Rule[] = [
   { re: /^games\/demo\//, gates: ['e2e', ...UNIT], why: 'the sample game' },
   { re: /^games\/reference\//, gates: ['reference', 'node24'], why: 'the reference chapter' },
   {
-    re: /^(games\/_template\/|cli\/|scripts\/(pack|fresh-install|new-game)\.mjs$)/,
+    re: /^(games\/_template\/|cli\/|scripts\/(pack|fresh-install|external-consumer|new-game)\.mjs$)/,
     gates: ['secondGame', 'freshInstall', 'upgrade', ...UNIT],
     why: 'the packages and the template',
   },
