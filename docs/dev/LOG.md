@@ -3728,5 +3728,8 @@ sources; the recorder's live RTA counts from a resume before the run's start (it
   tests had met one by one since 7 October. Not re-run a third time: on Windows a test has 30 s (`vite.config.ts`),
   elsewhere the default stays. The fix is merged, a new candidate runs on its merge commit, `v4.1.17-rc.2` on it, then
   `v4.1.17` on the same commit and run.
+- In the same pull request, the maintainer's new logo (`docs/img/web-scumm-logo-v1.png`, 1536×1024, an AI panel, a
+  notebook and a mug around the editor) reduced to 768×512 and 256 colours (121 KB) replaces the READMEs' one; the
+  archive carries the README, so it is in `rc.2` and the final tag.
 
 → next: Claude · 4.2.0 "Stable World": the human passes first (D18), the signed tag (D30)

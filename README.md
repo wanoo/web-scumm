@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/img/logo.png" width="480" height="320" alt="The web-scumm logo: a pixel-art editor window with a harbour scene, a dialogue graph and a pointer, under the words Web-SCUMM, Open source point &amp; click engine"></p>
+<p align="center"><img src="docs/img/logo.png" width="480" height="320" alt="The web-scumm logo: a pixel-art editor window with a harbour scene, a dialogue graph and a pointer, among picture cards, a treasure map, an AI panel, a notebook of puzzle diagrams and a coffee mug, under the words Web-SCUMM, Open source point &amp; click engine"></p>
 
 # web-scumm
 
