@@ -17,6 +17,7 @@
     "test:mutation:reality": "tsx tools/mutate.ts --set=reality",
     "test:mutation:remix": "tsx tools/mutate.ts --set=remix",
     "test:mutation:speedrun": "tsx tools/mutate.ts --set=speedrun",
+    "test:mutation:runs": "tsx tools/mutate.ts --set=runs",
     "test:node": "vitest run --exclude tests/pixel.test.ts --exclude tests/studio-assets.test.ts --exclude tests/ownership.test.ts --exclude tests/audit.test.ts --exclude tests/canonical.test.ts --exclude tests/memo.test.ts --exclude tests/reference-proof.test.ts --exclude tests/solver-oracle.test.ts --exclude tests/dominance.test.ts --exclude tests/partition.test.ts --exclude tests/checkpoint-matrix.test.ts",
     "test:assets": "vitest run tests/pixel.test.ts tests/studio-assets.test.ts",
     "doctor": "tsx tools/doctor.ts",

@@ -1,0 +1,48 @@
+name: mutation
+# One mutation set on one ref, started by hand (4.1.17): `gh workflow run mutation --ref main -f set=remix -f ref=<branch
+# or SHA> [-f file=<path>]`. The survivors of a set being read (plan §9) are measured on a runner, not on a laptop for
+# hours; the report is kept as the run's artifact. It gates nothing: the gated sets run in ci, the nightly, the
+# candidate and the release.
+on:
+  workflow_dispatch:
+    inputs:
+      set:
+        description: 'The set (core, reality, runs, remix, speedrun, connectors, reality-store)'
+        required: true
+      ref:
+        description: 'The branch or SHA to measure'
+        required: true
+      file:
+        description: 'One file of the set only (optional)'
+        required: false
+        default: ''
+permissions:
+  contents: read
+jobs:
+  mutation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.inputs.ref }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - shell: bash
+        env:
+          SET: ${{ github.event.inputs.set }}
+          FILE: ${{ github.event.inputs.file }}
+        run: npx tsx tools/mutate.ts --set="$SET" --fresh ${FILE:+--file="$FILE"} | tee mutation.txt
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: mutation-${{ github.event.inputs.set }}
+          path: |
+            mutation.txt
+            .cache/mutation/report-*.json
+          include-hidden-files: true
+          if-no-files-found: ignore

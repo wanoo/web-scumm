@@ -15,6 +15,7 @@ import { spawn } from 'node:child_process';
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 
+import { MemoryLimiter, type SubmissionLimiter } from './runs-limiter';
 import { canonicalTime, type RunOutcome, type RunRecord, type RunStore } from './runs-store';
 import { StoreBusyError } from './store-async';
 
@@ -36,7 +37,10 @@ export interface RunsOptions {
   /** Wall time a worker gets before it is killed (default 60 s), and its heap (default 256 MB). */
   timeoutMs?: number;
   maxOldSpaceMb?: number;
-  /** Runs waiting at most, every instance together (beyond: 429). */
+  /**
+   * Runs waiting or being verified at most, every instance together (beyond: 429). Counted and written in one step
+   * by the store (`admit`, 4.1.17): two instances never go past it together.
+   */
   maxQueued?: number;
   /**
    * The tenant this queue serves (4.1.16): its workers claim that tenant's runs only, against its approved games.
@@ -53,8 +57,13 @@ export interface RunsOptions {
   maxBytes?: number;
   /** Days a run is kept (default 90). */
   retentionDays?: number;
-  /** Submissions one client (per tenant) may make per minute (default 10; beyond: 429). */
+  /** Submissions one client (per tenant) may make per minute (default 10; beyond: 429 with `Retry-After`). */
   perMinute?: number;
+  /**
+   * Where the quota is counted (4.1.17): default, this process only (a MemoryLimiter: per instance). Several
+   * instances share one with a SqlLimiter over the store's database; `bridge serve` does so on a SQL store.
+   */
+  limiter?: SubmissionLimiter;
   /** How often old runs are purged (ms, default an hour; 0: never on its own, call `purge()`). */
   purgeEveryMs?: number;
   /** Logs a failure the queue survives (default `console.error`). */
@@ -78,6 +87,8 @@ class RunsError extends Error {
     readonly status: number,
     readonly code: string,
     message: string,
+    /** Seconds before the client may try again (a 429's `Retry-After`). */
+    readonly retryAfterS?: number,
   ) {
     super(message);
   }
@@ -128,7 +139,8 @@ function runKeyOf(env: {
 /** The queue: submissions in, the store's queue claimed by this instance's workers, verdicts stored. */
 export class RunQueue {
   private loops = new Set<Promise<void>>();
-  private buckets = new Map<string, { tokens: number; at: number }>();
+  /** The quota: the host's, or this process's own (keyed by an HMAC of a secret only this process knows). */
+  readonly limiter: SubmissionLimiter;
   private timers: ReturnType<typeof setInterval>[] = [];
   /** This instance's name in a lease (a worker is `<instance>:<n>`). */
   readonly instance = randomBytes(6).toString('hex');
@@ -136,6 +148,8 @@ export class RunQueue {
   constructor(readonly o: RunsOptions) {
     // A lease shorter than the worker's budget (killed at `timeoutMs` + 5 s) would let a second worker take a run
     // still being verified.
+    this.limiter =
+      o.limiter ?? new MemoryLimiter({ perMinute: o.perMinute ?? 10, secret: randomBytes(32).toString('hex') });
     const timeout = o.timeoutMs ?? 60_000;
     if (o.leaseMs !== undefined && o.leaseMs < timeout + 10_000)
       throw new Error(`runs: leaseMs (${o.leaseMs}) is at least timeoutMs + 10 s (${timeout + 10_000})`);
@@ -166,20 +180,6 @@ export class RunQueue {
     this.timers = [];
   }
 
-  /** Takes a submission token for this client; false when it has none left this minute. */
-  private take(key: string): boolean {
-    const per = this.o.perMinute ?? 10;
-    const now = this.now();
-    const b = this.buckets.get(key) ?? { tokens: per, at: now };
-    b.tokens = Math.min(per, b.tokens + ((now - b.at) / 60_000) * per);
-    b.at = now;
-    this.buckets.set(key, b);
-    if (this.buckets.size > 10_000) for (const [k, x] of this.buckets) if (now - x.at > 120_000) this.buckets.delete(k);
-    if (b.tokens < 1) return false;
-    b.tokens -= 1;
-    return true;
-  }
-
   private now() {
     return this.o.now?.() ?? Date.now();
   }
@@ -192,8 +192,15 @@ export class RunQueue {
   ): Promise<{ id: string; deleteToken: string; status: string }> {
     if (this.o.tenant && tenantId !== this.o.tenant)
       throw new RunsError(404, 'tenant', 'no leaderboard for this tenant');
-    if (!this.take(`${tenantId}\u0000${client}`))
-      throw new RunsError(429, 'rate', 'too many runs from this client, retry in a minute');
+    // A token first: a duplicate or an invalid run costs one too (a client cannot probe for free).
+    const took = await this.limiter.take(tenantId, client, this.now());
+    if (!took.ok)
+      throw new RunsError(
+        429,
+        'rate',
+        `too many runs from this client, retry in ${took.retryAfterS} s`,
+        took.retryAfterS,
+      );
     const b = input as { player?: unknown; envelope?: unknown };
     if (typeof b?.player !== 'string' || !PSEUDONYM.test(b.player))
       throw new RunsError(400, 'player', 'a pseudonym of 2 to 32 letters, digits, spaces, _ . - (never an email)');
@@ -217,26 +224,28 @@ export class RunQueue {
     if (!ID.test(head.categoryId)) throw new RunsError(400, 'envelope', 'a category id');
     if (!ID.test(head.gameId) || !Object.hasOwn(this.o.approved, head.gameId))
       throw new RunsError(404, 'game', 'this Bridge has no leaderboard for that game');
-    if ((await this.o.store.queued(tenantId)) >= (this.o.maxQueued ?? 100))
-      throw new RunsError(429, 'busy', 'the queue is full, retry later');
     const id = `run_${randomBytes(9).toString('base64url')}`;
     const deleteToken = randomBytes(18).toString('base64url');
-    // One statement: two instances receiving the same run at once create one row (a unique key, not a read first).
-    const created = await this.o.store.create({
-      id,
-      tenantId,
-      gameId: head.gameId,
-      categoryId: head.categoryId,
-      player: b.player.trim(),
-      submittedAt: this.now(),
-      status: 'queued',
-      trust: 'local',
-      runKey: runKeyOf(head),
-      deleteTokenHash: sha256(deleteToken),
-      envelope: b.envelope,
-    });
-    if (!created)
+    // One step of the store (4.1.17): the duplicate, the room left and the write, for every instance together.
+    const admitted = await this.o.store.admit(
+      {
+        id,
+        tenantId,
+        gameId: head.gameId,
+        categoryId: head.categoryId,
+        player: b.player.trim(),
+        submittedAt: this.now(),
+        status: 'queued',
+        trust: 'local',
+        runKey: runKeyOf(head),
+        deleteTokenHash: sha256(deleteToken),
+        envelope: b.envelope,
+      },
+      this.o.maxQueued ?? 100,
+    );
+    if (admitted === 'duplicate')
       throw new RunsError(409, 'duplicate', 'this run was submitted already (the first submitter keeps it)');
+    if (admitted === 'full') throw new RunsError(429, 'busy', 'the queue is full, retry in a minute', 60);
     this.audit('run.submitted', { tenantId, id }, { game: head.gameId, category: head.categoryId });
     this.pump();
     return { id, deleteToken, status: 'queued' };
@@ -368,8 +377,12 @@ export class RunQueue {
     this.audit('run.deleted', r);
   }
 
-  /** Deletes the runs older than the retention (90 days by default). */
-  purge(): Promise<number> {
+  /** Deletes the runs older than the retention (90 days by default), and the quota buckets idle for two minutes. */
+  async purge(): Promise<number> {
+    // The quota's purge failing never holds back the runs' retention.
+    await this.limiter
+      .purge(this.now() - 120_000, this.o.tenant)
+      .catch((e) => this.log(`runs: the quota's purge failed: ${(e as Error).message}`));
     return this.o.store.purge(this.now() - (this.o.retentionDays ?? 90) * 86_400_000);
   }
 
@@ -519,9 +532,10 @@ export async function runWorker(
       child.stdout.destroy();
       child.stderr.destroy();
       child.stdin.destroy();
+      // An answer too long is said as such (4.1.17: its SIGKILL was read as a timeout before), then a stop.
+      if (killed === 'output') return done(inconclusive('crash', 'the worker wrote too much'));
       if (killed === 'timeout' || signal)
         return done(inconclusive('timeout', `the worker was stopped (${signal ?? killed})`));
-      if (killed) return done(inconclusive('crash', 'the worker wrote too much'));
       try {
         const line = out.trim().split('\n').at(-1) ?? '';
         const { result, sig } = JSON.parse(line) as { result: string; sig: string };
@@ -642,6 +656,7 @@ export function runsRoute(
             ? new RunsError(503, 'busy', 'the store is busy: try again in a second')
             : new RunsError(500, 'internal', 'the run could not be handled');
       if (err.status === 503) res.setHeader('retry-after', '1');
+      if (err.status === 429 && err.retryAfterS) res.setHeader('retry-after', String(err.retryAfterS));
       // A body refused half-read: the rest is not read, and the connection is not reused for another request.
       if (err.status === 413) {
         res.setHeader('connection', 'close');

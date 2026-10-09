@@ -132,6 +132,18 @@ and by the release workflow, which attaches it to every release; 4.1.15's schema
 raises a level; an envelope that claims more is read as `local`. The level shows in the records, the Studio and the
 leaderboard.
 
+What `replay-valid` proves (4.1.17): the run replays on the game, category and world it names; its chain, draws,
+final state and logical time agree; each minigame result that came with a **transcript** is the result its answers
+give (the code wheel's answers, by their place in the author's list, judged again on the wheel the world makes —
+ADR 0020). It does not prove that a person produced those answers, that `inputsUsed`, the pauses or the RTA are
+complete, that a printed wheel was used, or that the envelope was not made outside the player: that is
+`server-witnessed` or `moderator-verified`, never "anti-cheat". A category with `codeWheel.proof: 'transcript'` refuses
+a wheel result without its answers (`code-wheel-proof`); a forged transcript is `invalid-replay`
+(`minigame-transcript`); a category with `medium: 'physical'` whose run played the wheel is `valid-unranked`
+(`physical-wheel-unwitnessed`) until a moderator ranks it. The reference chapter's `wheel-proved` category wants the
+wheel won and proved whenever it is played (the wheel stays optional: a route that never opens the map does not play
+it); its other categories keep 4.1.16's rule.
+
 ## Reality policies
 
 - `forbidden`: no signal from outside; a signal in the run is `reality-forbidden`.
@@ -167,8 +179,11 @@ of the Bridge), fetch, WebSocket, TCP, UDP and DNS refused in-process (defence i
 REALITY-OPS, "The speedrun worker"), the package checked against its approved fingerprint, its answer signed with a
 one-time key. The HTTP process never replays. A run is identified by its game, category, run seed and inputs (their
 RTA stamps aside), never by its world: the first submitter keeps it, a copy re-stamped or re-sealed in another world
-is refused. A client may submit ten runs a minute (`perMinute`); the queue holds at most `maxQueued` runs, every
-instance together; the envelope is dropped once the verdict is stored; old runs are purged hourly.
+is refused. A client may submit ten runs a minute (`perMinute`), every instance together under `bridge serve` on
+a SQL store (one bucket per client in the database, keyed by an HMAC of the address, never the address; a library host
+without a SQL limiter counts per instance); a duplicate or an invalid run costs a token, a refusal says `Retry-After`.
+The queue holds at most `maxQueued` runs waiting or being verified, counted and written in one step for every instance
+(4.1.17: two instances seeing 99 of 100 no longer both write); the envelope is dropped once the verdict is stored; old runs are purged hourly.
 `GET /v1/runs?game=&category=[&key=][&limit=]` is a leaderboard: valid runs only, each **pseudonym's** best (the
 Bridge knows no player identity: two people who choose the same pseudonym are one line), on the **verifier's key**
 (`world.leaderboardKey`: the category, and for a Fixed or Daily world `<category>:<seed>`); equal times share a rank,

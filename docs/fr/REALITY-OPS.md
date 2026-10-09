@@ -237,7 +237,15 @@ la ligne.
 La section `runs` d'une configuration monte `/v1/runs`, sa section `daily` `/v1/daily`, `/v1/commit` et
 `/v1/reveal/<id>` (docs/fr/SPEEDRUN.md, « Classements sur le Bridge »). Les deux gardent leurs enregistrements dans le
 store SQL (`--store=sqlite:<fichier>` ou `BRIDGE_STORE=postgres://…` ; `serve` les refuse sur le journal JSON-lines),
-migration 0002.
+migrations 0002 à 0004.
+
+Les limites de la file valent pour toutes les instances ensemble (4.1.17) : `maxQueued` (100 par défaut, runs en
+attente ou en vérification) est compté et écrit dans une seule transaction sous le verrou du tenant ; `perMinute` (10
+par défaut et par client) est un compteur par client dans la table `run_quota`. Le client est l'adresse du socket, ou
+celle que nomme un proxy de confiance (`--trust-proxy`) : seul un HMAC en est gardé, avec un secret que chaque instance
+du tenant dérive de sa clé d'événements. Faire tourner la clé d'événements (`kid`) fait tourner ce secret : chaque
+client repart d'un compteur neuf (au plus une minute de quota en plus), et les anciens compteurs sont purgés avec les
+inactifs. Une limite globale au proxy reste utile devant le tout.
 
 ```json
 "runs": {

@@ -13,7 +13,7 @@
 //   several tenants on one store; init --store=sqlite --tenant=<id> --environment=prod|staging|dev --signal-version=2.
 // Every secret `init` makes is written under --dir (not committed: .cache/ is ignored), never printed but the paths.
 // The Biscuit root's private half goes to `root.key`, read by `grant` only: `serve` never loads it (4.1.2).
-import { createHash, randomBytes, webcrypto } from 'node:crypto';
+import { createHash, createHmac, randomBytes, webcrypto } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { manifestHash, type RealityManifest } from '../../src/engine/reality/manifest';
@@ -23,6 +23,7 @@ import { grantToken } from './policy';
 import { opt, openStore, storeCommand, storeSpec } from './cli-store';
 import { dailyRoutes, SqlDailyStore } from './daily';
 import { type ApprovedGame, RunQueue, SqlRunStore } from './runs';
+import { SqlLimiter } from './runs-limiter';
 import { bridgeServer, type ServeOptions, type WebhookConfig } from './server';
 import type { SqlDb } from './store-sql';
 import { JsonlBridgeStore } from './store';
@@ -66,6 +67,8 @@ export interface BridgeFile {
     timeoutMs?: number;
     maxQueued?: number;
     retentionDays?: number;
+    /** Submissions a minute per client, every instance together (4.1.17; default 10). */
+    perMinute?: number;
     /**
      * The file of the token that moderates this tenant's runs (4.1.17), beside config.json, mode 0600: `serve`
      * refuses to start when it is missing or readable by others. Absent: no moderation route.
@@ -306,6 +309,14 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
           ...(f.runs.maxQueued ? { maxQueued: f.runs.maxQueued } : {}),
           ...(f.runs.retentionDays ? { retentionDays: f.runs.retentionDays } : {}),
           ...(f.runs.adminTokenFile ? { adminToken: moderationToken(tenants[i]!, f.runs.adminTokenFile) } : {}),
+          // One quota for every instance (4.1.17): the buckets in the store's database, the client keyed by an HMAC
+          // whose secret every instance of the tenant derives from its event key (its id is the key's version: a
+          // rotated key resets the quota, said in REALITY-OPS).
+          limiter: new SqlLimiter(sql, {
+            perMinute: f.runs.perMinute ?? 10,
+            secret: createHmac('sha256', f.eventKey.pkcs8).update('web-scumm runs quota').digest('hex'),
+            keyVersion: f.eventKey.kid,
+          }),
         });
     for (const [i, f] of files.entries())
       if (f.daily && sql) {

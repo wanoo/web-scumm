@@ -221,7 +221,15 @@ players keep their cursors. A journal that will not start: `doctor` names the li
 
 A configuration's `runs` section mounts `/v1/runs`, its `daily` section `/v1/daily`, `/v1/commit` and `/v1/reveal/<id>`
 (docs/en/SPEEDRUN.md, "Leaderboards on the Bridge"). Both keep their records in the SQL store (`--store=sqlite:<file>`
-or `BRIDGE_STORE=postgres://…`; `serve` refuses them on the JSON-lines journal), migration 0002.
+or `BRIDGE_STORE=postgres://…`; `serve` refuses them on the JSON-lines journal), migrations 0002 to 0004.
+
+The queue's limits hold for every instance together (4.1.17): `maxQueued` (default 100, runs waiting or being
+verified) is counted and written in one transaction under the tenant's lock; `perMinute` (default 10 per client) is a
+bucket per client in the table `run_quota`. The client is the socket's address, or the one a trusted proxy names
+(`--trust-proxy`): only an HMAC of it is stored, with a secret every instance of the tenant derives from its event key.
+Rotating the event key (`kid`) rotates that secret too: every client starts a new bucket (at most one more minute's
+quota), and the old buckets are purged with the idle ones. A global rate limit at the proxy stays a good idea in front
+of it all.
 
 ```json
 "runs": {
