@@ -3723,4 +3723,10 @@ sources; the recorder's live RTA counts from a resume before the run's start (it
   run): it is one expression now, `tests/speedrun-recorder.test.ts` resumes with the same Mystery dated anew, another
   reveal, a Daily token and a proof on a run sealed without one; the one survivor left is named (82 in all).
 
+- After `v4.1.17-rc.1` (0f5854f, candidate 37970936760 green): the tag's own `ci` run failed on Windows, twice, on two
+  SQLite tests over the 5 s default (`bridge-reality-store`'s property, `bridge-fanout`'s quarantine) — the class three
+  tests had met one by one since 7 October. Not re-run a third time: on Windows a test has 30 s (`vite.config.ts`),
+  elsewhere the default stays. The fix is merged, a new candidate runs on its merge commit, `v4.1.17-rc.2` on it, then
+  `v4.1.17` on the same commit and run.
+
 → next: Claude · 4.2.0 "Stable World": the human passes first (D18), the signed tag (D30)
