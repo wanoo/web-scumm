@@ -641,5 +641,13 @@
   "to": "true",
   "context": "canonicalJson(e?.kind === 'mystery' ? { ...e, startedAt: 0 } : (e ?? null));",
   "why": "`startedAt: 0` added to every proof on both sides: a Daily token has no `startedAt`, so two Daily proofs (or none and none) are equal or not exactly as before; only a Mystery differs by `startedAt`, and it is set to 0 either way"
+ },
+ {
+  "file": "bridge/src/migrations.ts",
+  "operator": "operator",
+  "from": ">",
+  "to": ">=",
+  "context": "if (s.version > at && s.version <= to) {",
+  "why": "`at` is `MAX(version)` of schema_migrations, so the step at `at` is always recorded (or `at` is 0 and there is no step 0): with `>=` its transaction finds it counted and returns false, applying and listing nothing; one extra empty transaction"
  }
 ]
