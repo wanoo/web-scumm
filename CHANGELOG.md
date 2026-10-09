@@ -1,5 +1,142 @@
 # Changelog
 
+## 4.1.17 — 2026-10-09
+
+"Stabilization" (LOG #155): no new mechanic; the release truth green again and every gate it rests on closed. A tag
+stands on one candidate run: `candidate.yml`, started by hand on the exact commit, runs its jobs in parallel (the heavy
+suite three times from cold, the load on SQLite and on Postgres, the five gated mutation sets, the worker's container)
+and its last job judges them all and writes a manifest of its artefacts with their SHA-256; `ship tag --candidate=<run>`
+checks it and `release.yml` publishes those artefacts after checking each digest. The leaderboard is ranked by the store
+before its limit (each pseudonym's best, canonical times), admission and quota hold for every instance together, a
+code wheel's result is computed again from its answers (D31, ADR 0020), `remix`, `speedrun` and `runs` are gated
+mutation sets, the player has a Mystery world, a run resumes in every world, the worker runs in a documented container
+and `bridge serve` moderates with a token file. The tag is not signed: deferred to 4.2 (D30).
+
+### Fixed
+
+- **The nightly's SQLite load measures SQLite** (4.1.17): its row set `BRIDGE_STORE=""` and `bridge:load` kept the
+  empty string (`??`), so SQLite was never opened and the missing report failed nothing. Each store is now a job of its
+  own with `--store=`; the report names the backend the store object is and the commit, and
+  `tools/load-report.ts` fails a report that is missing, incomplete or of another backend.
+- **One job per mutation set** (4.1.17): the 4.1.16 nightly ran the gated sets, then `reality-store` in the same job,
+  which reached the job's 90 minutes and was killed after `core` and `reality` had passed. The nightly, ci (`full-ci`)
+  and the candidate run each gated set in its own job; `reality-store` has its own budget. The mutation reports are
+  kept with the run (`.cache/` was left out of every upload until now: hidden files).
+- **`upgrade-check --from=v4.1.15`** downloads `v4.1.15` and `web-scumm-4.1.15.tgz`, not `vv4.1.15` and
+  `web-scumm-v4.1.15.tgz`; a pre-release takes its tarball's name without the suffix (4.1.17).
+
+- **The no-op memo keys a parked character by its room and bag, not its pixel spot** (4.1.17): `guests()` reads every
+  parked player, and `players:<id>` was valued with its position, which the search's own dimensions leave out; the
+  memo kept one entry per spot and missed. The demo's proof runs 56 588 engine tries instead of 69 958 (136 176
+  without the memo: a gain of 2.41, where 4.1.15's content had brought it to 1.95 and the nightly's `memo` test red).
+  Every result is the same; `memoVerify: 1` checks every skip.
+
+- **A leaderboard never loses a faster run** (4.1.17): the store returned the first 10 000 runs by submission and the
+  queue ranked those, so a faster run submitted after them was missing (reproduced with 10 001 rows). The store now
+  ranks: each pseudonym's best, ordered by time then submission then id, equal times sharing a rank, then the limit
+  (100 lines, `&limit=` up to 1 000). The memory store, SQLite and Postgres answer the same.
+- **A ranked time is canonical** (4.1.17): `"00042"` and `"42"` were two times; the worker's time is kept as decimal
+  digits without leading zeros (at most 30), ordered as a decimal past `Number.MAX_SAFE_INTEGER`.
+
+- **The speedrun queue's room holds for every instance together** (4.1.17): an instance counted the waiting runs,
+  then wrote; two instances seeing 99 of 100 both wrote. `RunStore.admit` says `created`, `duplicate` or `full` in
+  one step (a transaction under the tenant's lock), and counts runs waiting **or being verified**.
+- **The submission quota holds for every instance together** (4.1.17): each process kept its own buckets, so three
+  instances gave a client three quotas. `bridge serve` on a SQL store keeps one bucket per client in `run_quota`
+  (migration 0004), keyed by an HMAC of the address (never the address), its secret derived from the tenant's event
+  key; a refusal says `Retry-After`. A library host keeps the per-instance `MemoryLimiter` unless it passes a
+  `SqlLimiter`.
+
+- **A worker that writes too much is said so** (4.1.17): its answer over 1 MB is killed, and the queue read the kill's
+  signal as a timeout (`inconclusive`, `timeout`); it is `inconclusive`, `crash`, "the worker wrote too much". Found by
+  the mutation run of the new `runs` set.
+
+### Changes
+
+- **A tag stands on a candidate run** (4.1.17, plan §4.2): `gh workflow run candidate --ref main -f sha=<sha>` runs
+  release-check, the heavy solver suite three times on new runners, the load on SQLite and on Postgres, the four
+  runtimes and each gated mutation set, side by side; `candidate-gate` judges them all (a skipped job is red) and
+  writes `candidate-manifest.json` (the SHA, the run, the SHA-256 of each file for the release). `ship tag … 
+  --candidate=<run id>` refuses a run that is not a green candidate of that SHA and writes the run into the tag;
+  release.yml checks that run's files against their sums and publishes them. `npm run release-check:local` is the part
+  a machine can run.
+- **The release carries the runs it was tested with** (4.1.17, the 4.1.16 plan's §11.3): Story, Remix Fixed, Remix
+  Random, Daily and Mystery `.wsrun` files from `e2e:remix-speedrun --out`, 4.1.15's schema 1 run, their manifest
+  (schema, world policy, rules version, test key, commit, the verdict this engine gives), the check's report and the
+  candidate's manifest. The Daily and Mystery tokens in them are signed with the published test key: demonstration
+  fixtures, not attestations.
+
+- **`npm run test:heavy` runs one file after the other** (4.1.17): the partition test's four workers had to share the
+  runner with eight other files, and its one 600 s budget for eight searches ran out. Each game and configuration is
+  now a test of its own with its own budget, so an overrun names its configuration.
+- **`npx tsx tools/oracle-case.ts --case="<id>" --out=<file>` and `--diff <before> <after>`** (4.1.17): one case of the
+  solver's oracle in full, and the difference of two runs by meaning (fields, first session entry, flags added,
+  removed or reordered, reachable states, engine, Node and options). The oracle's fixture keeps digests only.
+
+- **Bridge schema 3** (4.1.17, `bridge/migrations/0003`): the ranked times of 4.1.16's rows brought to the canonical
+  form, a value that is not a decimal set aside (its time removed, its trust untouched, said in its reason), and the
+  index the ranking reads. `bridge migrate --schema=2` undoes the index only. Upgrade every instance of a tenant
+  together: a 4.1.16 instance still running beside a migrated store would write times as they came.
+- **`npm run runs:load`** (4.1.17): the leaderboard at 100 000 runs on SQLite or Postgres: p50/p95 latency, resident
+  memory, the SQL plan; a bound passed fails it. The candidate and the nightly run it on both stores.
+- The leaderboard says what it ranks: each **pseudonym**'s best (the Bridge knows no player identity).
+
+- **A minigame's result can be proved** (4.1.17, D31, ADR 0020): the code wheel records its answers (by their place
+  in the author's list, so a translation keeps them) and the wheel's hash beside its result (`SessionEntry.mgt`); a
+  replay generates the wheel again from the world, judges the answers and stops on another result — the verifier
+  says `invalid-replay`, `minigame-transcript`. A speedrun category asks for it with `codeWheel.proof: 'transcript'`
+  (`code-wheel-proof`: the word `won` alone is refused). The reference chapter's new category `wheel-proved` wants the
+  wheel won and proved; its other categories, and every 4.1.16 run, keep their meaning.
+- **A printed wheel is not seen** (4.1.17): a category with `codeWheel.medium: 'physical'` whose run played the wheel
+  is `valid-unranked` (`physical-wheel-unwitnessed`) until a moderator ranks it.
+- **API** (4.1.17): `CodeWheelTranscript`, `MinigameTranscript`, `MinigameOutcome`; `Presenter.minigame` may resolve
+  with `{ result, transcript }` (widened, an implementation returning a result alone is unchanged).
+- SPEEDRUN en/fr says what `replay-valid` proves and what it does not (a person, a printed wheel, the RTA).
+
+- **Bridge schema 4** (4.1.17): the table `run_quota`. `runs.perMinute` in a configuration's `runs` section.
+- **The mutation set `runs`** (`bridge/src/runs.ts`, `runs-store.ts`, `runs-limiter.ts`) is gated from 4.1.17:
+  `npm run test:mutation:runs`, a job of its own in ci (`full-ci`), the nightly, the candidate and the release. Its
+  survivors read one by one: tests of the queue, the worker, the routes and the stores (`tests/bridge-runs-*.test.ts`).
+- **`gh workflow run mutation -f set=<set> -f ref=<ref>`** (4.1.17): one mutation set measured on a runner, its report
+  kept with the run; it gates nothing.
+
+- **The player's Mystery world** (4.1.17): the Remix menu's **Mystery world** entry asks the game's Bridge for a
+  commitment and its reveal, verifies both offline with the game's daily key, builds the world and keeps both tokens
+  beside it; a speedrun started in it carries them and its start time (`valid-unranked` without a server witness).
+- **A run resumed keeps its world and its proof** (4.1.17): `e2e:remix-speedrun` interrupts and resumes a run in each
+  world (Story, Remix Fixed, Remix Random, Daily, Mystery): the same head, world, proof, verdict and board; resuming
+  in another world or with another proof than the one sealed is refused (`RunStartRefused`).
+- **The speedrun worker's container profile is run in CI** (4.1.17): `tools/speedrun/container.mjs` makes its
+  `docker run` arguments (no network unless `--allow-network`, read-only, a bounded `/tmp`, no capability, no new
+  privilege, an unprivileged user, limits on processes, memory and CPU, the packages read-only, its own `timeout -s
+  KILL`); `npm run e2e:worker-container` (CI's `worker-container` job, in the candidate and the nightly) runs the
+  reference run inside it, then a hostile script refused the network, the host's files and secrets, and killed.
+- **Moderation from `bridge serve`** (4.1.17): `runs.adminTokenFile` (0600, 32 characters at least; `serve` refuses a
+  missing, short or world-readable file); the bearer compared as hashes of equal length; every refusal audited, never
+  the token; `/healthz` counts moderations accepted and refused.
+- **`ship checks` waits for `pr-gate`** (4.1.17): the second tier's jobs appear once `check` is done, so a list where
+  every check passed could be partial (8 of 32 on #67).
+- The connectors' ssh tests draw their host key through `sshKeyPair()` everywhere (4.1.17): two fixtures still called
+  ssh2's generator, which now and then writes a key its own parser refuses (the "Malformed OpenSSH private key" flake).
+- `tests/bridge-fanout.test.ts` removes its folder with retries (4.1.17): Windows keeps a killed instance's SQLite file
+  busy for a moment (EBUSY in the Windows job).
+- The heavy suite's partition budget is 240 s per search: the slowest of the candidate's three cold runs on the runner
+  (146 s) and 60 % more.
+- A Mystery speedrun starts within the minute of its reveal (4.1.17): after it the page says so instead of recording a
+  run the verifier refuses, and a page clock behind the Bridge's never dates the start before the reveal. Resuming a
+  Mystery run keeps its sealed proof, whatever its new start time.
+- `bridge serve` without `runs.adminTokenFile` has no moderation route (404, nothing counted or audited); the file's
+  mode is checked on POSIX systems; the worker container has no swap beyond its memory limit.
+
+- **The Remix and Speedrun mutation sets are gated** (4.1.17, plan §9): their survivors read one by one, by file —
+  the seed codes, the manifest's compilation and every one of its problems alone, the application of a world, the
+  categories' worlds, the envelope's sealing, the recorder (RTA, pauses, the finish, resume refusals), the
+  verifier's guards (each reached by a run recorded dishonestly, not a hand-edited file) — and killed by a test, or
+  named equivalent in `docs/dev/mutants.json` with why. `remix` and `speedrun` join `core`, `reality` and `runs` in
+  the gate: their own jobs in ci (`full-ci`), the nightly, the candidate and the release.
+- The verifier says a stored world's refusal by the code `loadVariant` gives it (the mapping of a code nothing threw
+  is gone).
+
 ## 4.1.16 — 2026-10-08
 
 "Convergence" (LOG #147): no new mechanic; the capabilities 4.1.14 and 4.1.15 published made to work together, end
