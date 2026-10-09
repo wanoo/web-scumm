@@ -50,12 +50,12 @@ const hostile = workerContainerArgs({
   app: ROOT,
   timeoutS: 10,
   name,
-  command: ['node', 'tests/fixtures/worker-hostile.mjs'],
+  command: ['node', 'tests/fixtures/worker-hostile.mjs', canary],
 });
 const t0 = Date.now();
 const r = spawnSync(hostile[0]!, hostile.slice(1), {
   encoding: 'utf8',
-  env: { PATH: process.env.PATH ?? '', WORKER_CANARY: 'the Bridge secret', CANARY_PATH: canary, GAME_DIR: game.dir },
+  env: { PATH: process.env.PATH ?? '', WORKER_CANARY: 'the Bridge secret', GAME_DIR: game.dir },
   timeout: 120_000,
 });
 rmSync(canary, { force: true });

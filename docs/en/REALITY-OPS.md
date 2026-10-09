@@ -252,14 +252,15 @@ worker command inside the deployment's isolation, for instance:
 
 ```sh
 docker run --rm -i --network none --read-only --tmpfs /tmp:rw,size=64m --cap-drop ALL --security-opt no-new-privileges \
-  --pids-limit 64 --memory 512m --cpus 1 --user 65534:65534 -v /srv/games:/srv/games:ro web-scumm-worker \
+  --pids-limit 64 --memory 512m --memory-swap 512m --cpus 1 --user 65534:65534 -v /srv/games:/srv/games:ro web-scumm-worker \
   timeout -s KILL 70 node tools/speedrun/worker.ts
 ```
 
 as the `worker` command: no network namespace, a read-only root, a bounded temporary directory, no capability, no
 secret of the Bridge in its environment (the Bridge passes `PATH`, `GAME_DIR` and `NODE_OPTIONS` only), limits on CPU,
-memory, processes and time (the Bridge kills the process group at `timeoutMs` + 5 s). Its stdout is capped at 1 MB and
-its stderr is not kept.
+memory (no swap beyond it), processes and time (the Bridge kills the process group at `timeoutMs` + 5 s). Its stdout is
+capped at 1 MB and its stderr is not kept. Whatever folder is mounted is readable inside: keep the Bridge's own
+directory (`config.json`, its keys and token files) outside the engine folder mounted at `/app`.
 Killing the `docker` client does not stop its container: `timeout -s KILL` inside it (a little over the Bridge's
 `timeoutMs`) is what ends a replay that runs too long, so timed-out containers never pile up.
 
@@ -274,7 +275,8 @@ the container killed by its own timeout with nothing left running; then a run ag
 
 `runs.adminTokenFile` names the file of the token that moderates a tenant's leaderboards (`POST
 /v1/runs/<id>/moderate`, `Authorization: Bearer …`): beside `config.json`, mode 0600, at least 32 characters; `serve`
-refuses to start when it is missing, shorter or readable by others. Without it there is no moderation route. The token
+refuses to start when it is missing, shorter or open to others (on POSIX systems; on Windows the folder's ACL decides).
+Without it there is no moderation route (404, nothing counted). The token
 is compared as hashes of equal length (its length says nothing either); every refusal is an audit line
 (`run.moderation-refused`, never the bearer), and `/healthz` counts moderations accepted and refused.
 

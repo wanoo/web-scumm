@@ -14,7 +14,7 @@
 // Every secret `init` makes is written under --dir (not committed: .cache/ is ignored), never printed but the paths.
 // The Biscuit root's private half goes to `root.key`, read by `grant` only: `serve` never loads it (4.1.2).
 import { createHash, createHmac, randomBytes, webcrypto } from 'node:crypto';
-import { chmodSync, existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { manifestHash, type RealityManifest } from '../../src/engine/reality/manifest';
 import { Bridge, type BridgeConfig, type Limits } from './bridge';
@@ -143,10 +143,17 @@ export async function loadBridge(
 function moderationToken(dir: string, file: string): string {
   const path = resolve(dir, file);
   if (!existsSync(path)) throw new Error(`runs.adminTokenFile: ${file} does not exist`);
-  const mode = statSync(path).mode & 0o777;
-  if (mode & 0o077)
-    throw new Error(`runs.adminTokenFile: ${file} is readable by others (${mode.toString(8)}): chmod 600`);
-  const token = readFileSync(path, 'utf8').trim();
+  // One open file, checked then read. Windows has no POSIX mode bits (Node says 0o666): there the folder's ACL decides.
+  const fd = openSync(path, 'r');
+  let token: string;
+  try {
+    const mode = fstatSync(fd).mode & 0o777;
+    if (process.platform !== 'win32' && mode & 0o077)
+      throw new Error(`runs.adminTokenFile: ${file} is open to others (${mode.toString(8)}): chmod 600`);
+    token = readFileSync(fd, 'utf8').trim();
+  } finally {
+    closeSync(fd);
+  }
   if (token.length < 32) throw new Error(`runs.adminTokenFile: ${file} holds a token of fewer than 32 characters`);
   return token;
 }

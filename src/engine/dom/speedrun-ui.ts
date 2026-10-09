@@ -57,10 +57,11 @@ export class SpeedrunSession {
       store = new (await import('../core/journal-chunks')).MemoryChunkStore();
     }
     // The world the page plays in is the engine's; a Daily world's signed token comes from where the menu kept it.
-    const evidence =
-      app.game.variant?.mode === 'story'
-        ? undefined
-        : (await import('./remix-menu')).storedEvidence(app.game.id, app.game.variant?.hash);
+    const menu = app.game.variant?.mode === 'story' ? undefined : await import('./remix-menu');
+    const evidence = menu?.storedEvidence(app.game.id, app.game.variant?.hash);
+    // A Mystery run starts within the minute of its reveal: later, the verifier would refuse it, so it does not start.
+    if (evidence?.kind === 'mystery' && menu?.mysteryLate(app.game.id, app.game.variant?.hash))
+      throw new Error('the minute of this Mystery world has passed: choose a new Mystery world to run it ranked');
     const recorder = new SpeedrunRecorder({
       engine: app.engine,
       gameId: app.game.id,

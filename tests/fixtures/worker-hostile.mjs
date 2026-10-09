@@ -39,7 +39,9 @@ for (const [k, f] of [
   }
 }
 out.canaryEnv = process.env.WORKER_CANARY ? 'seen' : 'absent';
-out.canaryFile = process.env.CANARY_PATH && existsSync(process.env.CANARY_PATH) ? 'seen' : 'absent';
+// The host's file is named on the command line (the environment does not reach the container): it must not be there.
+const canaryPath = process.argv[2];
+out.canaryFile = !canaryPath ? 'not named' : existsSync(canaryPath) ? 'seen' : 'absent';
 out.threads = readdirSync('/proc/self/task').length;
 out.uid = process.getuid?.();
 // A child may start (the pids limit bounds how many); it has no network either, and dies with the container.

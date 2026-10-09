@@ -22,3 +22,8 @@
   busy for a moment (EBUSY in the Windows job).
 - The heavy suite's partition budget is 240 s per search: the slowest of the candidate's three cold runs on the runner
   (146 s) and 60 % more.
+- A Mystery speedrun starts within the minute of its reveal (4.1.17): after it the page says so instead of recording a
+  run the verifier refuses, and a page clock behind the Bridge's never dates the start before the reveal. Resuming a
+  Mystery run keeps its sealed proof, whatever its new start time.
+- `bridge serve` without `runs.adminTokenFile` has no moderation route (404, nothing counted or audited); the file's
+  mode is checked on POSIX systems; the worker container has no swap beyond its memory limit.

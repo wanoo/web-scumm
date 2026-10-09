@@ -633,6 +633,9 @@ export function runsRoute(
       } else if (m && !m[2] && req.method === 'DELETE') {
         await q.remove(tenant, m[1]!, String(req.headers['x-delete-token'] ?? ''));
         res.writeHead(204).end();
+      } else if (m?.[2] && req.method === 'POST' && !q.o.adminToken) {
+        // No admin token configured: no moderation route (nothing to refuse, count or audit).
+        throw new RunsError(404, 'route', 'this Bridge does not moderate runs');
       } else if (m?.[2] && req.method === 'POST') {
         const admin = q.o.adminToken;
         const bearer = /^Bearer (.+)$/.exec(req.headers.authorization ?? '')?.[1] ?? '';
@@ -641,7 +644,7 @@ export function runsRoute(
         const ok = !!admin && timingSafeEqual(digest(bearer), digest(admin));
         if (!ok) {
           q.moderation.refused++;
-          q.auditRefusal(tenant, m[1]!, admin ? 'bearer' : 'no-admin-token');
+          q.auditRefusal(tenant, m[1]!, 'bearer');
           throw new RunsError(401, 'admin', 'the admin token is needed to moderate');
         }
         const moderated = await q.moderate(tenant, m[1]!);

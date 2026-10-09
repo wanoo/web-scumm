@@ -92,9 +92,9 @@ describe('/v1/runs without an admin token', () => {
       res,
       '/v1/runs/run_1/moderate',
     );
-    expect(status).toBe(401);
-    expect(bare.moderation).toEqual({ accepted: 0, refused: 1 });
-    expect(audit.map((a) => [a.event, a.why])).toEqual([['run.moderation-refused', 'no-admin-token']]);
+    expect(status).toBe(404);
+    expect(bare.moderation).toEqual({ accepted: 0, refused: 0 });
+    expect(audit).toEqual([]);
     bare.close();
   });
 });

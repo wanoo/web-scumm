@@ -18,6 +18,7 @@ describe('the worker container', () => {
     expect(value(a, '--user')).toBe('65534:65534');
     expect(value(a, '--pids-limit')).toBe(String(PIDS_LIMIT));
     expect(value(a, '--memory')).toBe('512m');
+    expect(value(a, '--memory-swap')).toBe('512m');
     expect(a.filter((x) => x.endsWith(':ro'))).toEqual(['/srv/web-scumm:/app:ro', '/srv/games:/srv/games:ro']);
     // Only the names the Bridge passes reach the container (never `-e` with a value, never --env-file).
     expect(a.filter((_, i) => a[i - 1] === '-e')).toEqual(['GAME_DIR', 'NODE_OPTIONS']);

@@ -6,6 +6,7 @@
 // (Mystery). Accessibility settings never touch the seed: nothing here reads them, and they never write the world.
 import { compileVariant, loadVariant, type WorldVariant, WorldVariantSchema } from '../core/remix/compile';
 import { compileGameManifest } from '../core/remix/apply';
+import { MYSTERY_START_WINDOW_MS } from '../core/remix/categories';
 import { REMIX_ALGORITHM_VERSION } from '../core/remix/manifest';
 import { newSeedCode, normalizeSeed, RemixSeedError } from '../core/remix/seed-code';
 import type { GameDef } from '../core/types';
@@ -49,8 +50,9 @@ type StoredEvidence =
 /**
  * What a world rests on (4.1.16): the day's signed token of a Daily world, or (4.1.17) the Bridge's signed
  * commitment and reveal of a Mystery world, kept beside it so a speedrun in that world carries them. Only for the
- * world whose hash they name: another world has none. A Mystery run starts now (`startedAt`), within the minute the
- * reveal allows.
+ * world whose hash they name: another world has none. A Mystery run starts now (`startedAt`), never before the
+ * reveal's own time (a clock a little behind the Bridge's would otherwise date it before), within the minute the reveal
+ * allows (`mysteryLate`).
  */
 export function storedEvidence(
   gameId: string,
@@ -62,17 +64,34 @@ export function storedEvidence(
     const e = raw ? (JSON.parse(raw) as Record<string, unknown>) : undefined;
     if (!e || e.hash !== worldHash) return undefined;
     if (typeof e.token === 'string') return { kind: 'daily', token: e.token };
-    if (typeof e.commitmentToken === 'string' && typeof e.revealToken === 'string')
-      return { kind: 'mystery', commitmentToken: e.commitmentToken, revealToken: e.revealToken, startedAt: now };
+    if (typeof e.commitmentToken === 'string' && typeof e.revealToken === 'string') {
+      const startedAt = typeof e.revealedAt === 'number' ? Math.max(now, e.revealedAt) : now;
+      return { kind: 'mystery', commitmentToken: e.commitmentToken, revealToken: e.revealToken, startedAt };
+    }
     return undefined;
   } catch {
     return undefined;
   }
 }
+
+/**
+ * Whether the minute a Mystery world's reveal allows has passed (4.1.17): a speedrun started now would be refused by
+ * the verifier (`mystery-start-window`), so it is not started; a new Mystery world gives a new minute.
+ */
+export function mysteryLate(gameId: string, worldHash: string | undefined, now = Date.now()): boolean {
+  try {
+    const raw = storage()?.getItem(EVIDENCE(gameId));
+    const e = raw ? (JSON.parse(raw) as Record<string, unknown>) : undefined;
+    return e?.hash === worldHash && typeof e?.revealedAt === 'number' && now - e.revealedAt > MYSTERY_START_WINDOW_MS;
+  } catch {
+    return false;
+  }
+}
+
 function keepEvidence(
   gameId: string,
   hash: string,
-  e: { token: string } | { commitmentToken: string; revealToken: string },
+  e: { token: string } | { commitmentToken: string; revealToken: string; revealedAt: number },
 ): void {
   try {
     storage()?.setItem(EVIDENCE(gameId), JSON.stringify({ hash, ...e }));
@@ -259,7 +278,7 @@ export async function mysteryWorldOf(
   if (!r.ok) throw new RemixSeedError(r.reason);
   if (!has(game, r.token.mode)) throw new RemixSeedError(`this game has no mode "${r.token.mode}"`);
   const v = worldOf(game, r.token.seed, r.token.mode);
-  keepEvidence(game.id, v.hash, { commitmentToken, revealToken });
+  keepEvidence(game.id, v.hash, { commitmentToken, revealToken, revealedAt: r.token.revealedAt });
   return v;
 }
 

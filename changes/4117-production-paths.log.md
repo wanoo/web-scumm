@@ -19,4 +19,12 @@ SHA-256 digests (`timingSafeEqual` of equal lengths: the token's length leaked b
 `ship checks` waited for "every check listed" — 8 of 32 on #67 before the second tier existed; it waits for `pr-gate`.
 The partition budget from candidate 37852879588 (matrix 12 with one worker: 85, 129, 146 s): 240 s.
 
+The second reading (an automated second context) found: a Mystery speedrun started after the reveal's minute was
+recorded then refused (the page now says so and does not start it; a page clock behind the Bridge's no longer dates the
+start before the reveal); a Mystery resume always refused, its `startedAt` compared as proof; the container's canary
+file never looked for (its path went in the docker client's environment, not the container's); a moderation route
+without a token that counted and audited every anonymous POST (now 404, as the docs said); the token file's mode check
+on Windows, where Node has no POSIX bits; swap beyond the memory limit. A test forged a signature in its last base64url
+characters, whose padding bits a decoder may ignore: it failed when the signed time made them so.
+
 → next: the release commit (4.1.17).

@@ -217,7 +217,8 @@ la graine du jour (un vrai jour UTC, aujourd'hui ou dans `retentionDays`, 30 par
 écrits une seule fois dans le même store SQL : toutes les instances répondent la même chose. Le joueur garde le jeton
 d'un monde Daily à côté du monde, et un speedrun dans ce monde le porte ; depuis 4.1.17, le menu Remix a une entrée **Monde mystère** : elle demande au Bridge du jeu un engagement puis sa
 révélation, vérifie les deux hors ligne avec la clé du défi du jour, construit le monde et garde les deux jetons à côté ;
-un speedrun lancé dans ce monde (dans la minute que la révélation permet) les porte avec son heure de départ. Sans témoin
+un speedrun lancé dans ce monde (dans la minute que la révélation permet : passé ce délai, la page le dit et ne lance
+pas le run) les porte avec son heure de départ. Sans témoin
 serveur, un tel run est `valid-unranked` (`mystery-unwitnessed`). Un run interrompu puis repris garde son monde et sa
 preuve : le reprendre dans un autre monde, ou avec une autre preuve, est refusé (`e2e:remix-speedrun` le fait dans
 chaque monde).

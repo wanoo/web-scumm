@@ -169,11 +169,15 @@ describe('bridge serve moderates with the token of runs.adminTokenFile (4.1.17)'
     const { main } = await import('../bridge/src/cli');
     for (const [what, write, why] of [
       ['missing', () => {}, /does not exist/],
-      [
-        'readable by others',
-        (f: string) => (writeFileSync(f, 'x'.repeat(40)), chmodSync(f, 0o644)),
-        /readable by others/,
-      ],
+      ...(process.platform === 'win32'
+        ? []
+        : ([
+            [
+              'open to others',
+              (f: string) => (writeFileSync(f, 'x'.repeat(40)), chmodSync(f, 0o620)),
+              /open to others/,
+            ],
+          ] as const)),
       ['short', (f: string) => writeFileSync(f, 'short', { mode: 0o600 }), /fewer than 32/],
     ] as const) {
       const dir = await initDir({ ...SECTIONS, runs: { ...SECTIONS.runs, adminTokenFile: 'runs-admin' } });

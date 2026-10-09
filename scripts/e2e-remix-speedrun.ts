@@ -401,7 +401,12 @@ try {
       }
       const ui = new FakePresenter();
       const e2 = new Engine(structuredClone(k.played), layouts, ui, new MemoryStore());
-      const again = await SpeedrunRecorder.resume(opts(e2));
+      // A Mystery resumed later is dated anew by the page (`storedEvidence`): its proof is the same, the sealed one stays.
+      const later =
+        k.evidence?.kind === 'mystery'
+          ? { worldEvidence: { ...k.evidence, startedAt: (k.evidence.startedAt ?? 0) + 5000 } }
+          : {};
+      const again = await SpeedrunRecorder.resume(opts(e2, later));
       if (!again) {
         fail('resume', `${k.category}: nothing to resume`);
         continue;

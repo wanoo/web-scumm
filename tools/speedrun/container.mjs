@@ -52,6 +52,8 @@ export function workerContainerArgs({
     String(PIDS_LIMIT),
     '--memory',
     memory,
+    '--memory-swap',
+    memory,
     '--cpus',
     cpus,
     '-v',
