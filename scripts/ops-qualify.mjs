@@ -285,10 +285,12 @@ try {
   const backup = dc(['exec', '-T', 'bridge-1', 'sh', '-c', 'node /opt/bridge/bin.mjs backup --dir=/srv/bridge/a --out=/tmp/backup.json >&2 && cat /tmp/backup.json']).stdout;
   writeFileSync(join(out, 'backup.json'), backup, { mode: 0o600 });
   dc(['down', '-v'], { stdio: 'inherit' });
+  // The documented recovery (REALITY-OPS): a new, empty database first, the backup restored into it by a one-off
+  // container of the same image, then the instances (started first, they would register their tenants: not empty).
+  dc(['up', '-d', '--wait', 'postgres'], { stdio: 'inherit' });
+  dc(['run', '--rm', '--no-deps', '-T', '-v', `${out}:/backup:ro`, 'bridge-1', 'restore', '--dir=/srv/bridge/a', '--from=/backup/backup.json'], { stdio: 'inherit' });
   up();
   await readyCa();
-  dc(['exec', '-T', 'bridge-1', 'sh', '-c', 'cat > /tmp/backup.json'], { input: backup });
-  dc(['exec', '-T', 'bridge-1', 'node', '/opt/bridge/bin.mjs', 'restore', '--dir=/srv/bridge/a', '--from=/tmp/backup.json'], { stdio: 'inherit' });
   const after = {};
   for (const t of ['a', 'b']) for (const p of players[t]) after[`${t}/${p.id}`] = await sequences(t, p.cap);
   step('backup, the topology and its database destroyed, restore: every player as before', JSON.stringify(after) === JSON.stringify(before), {
