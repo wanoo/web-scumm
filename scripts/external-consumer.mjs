@@ -36,6 +36,8 @@ import { upgradeSource } from './upgrade-source.mjs';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const WIN = process.platform === 'win32';
+// Windows' own tar (bsdtar): Git's GNU tar, first on a bash PATH, reads `D:\…` as a remote host.
+const TAR = WIN ? join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
 const args = process.argv.slice(2);
 const flag = (k) => args.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const base = resolve(flag('dir') ?? mkdtempSync(join(tmpdir(), 'web-scumm-consumer-')));
@@ -75,7 +77,7 @@ const json = (f) => JSON.parse(readFileSync(f, 'utf8'));
 /** A tarball unpacked into `into` (its `package/` folder renamed): `tar` is on Linux, macOS and Windows 10+. */
 function unpack(tgz, into) {
   const tmp = mkdtempSync(join(base, 'unpack-'));
-  run(`unpack ${tgz.split(/[\\/]/).pop()}`, 'tar', ['-xzf', tgz, '-C', tmp], base);
+  run(`unpack ${tgz.split(/[\\/]/).pop()}`, TAR, ['-xzf', tgz, '-C', tmp], base);
   renameSync(join(tmp, 'package'), into);
   rmSync(tmp, { recursive: true, force: true });
   return into;
