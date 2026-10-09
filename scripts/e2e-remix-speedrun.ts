@@ -346,7 +346,8 @@ try {
   const dir2 = mkdtempSync(join(tmpdir(), 'remix-resume-'));
   try {
     for (const [i, k] of CASES.entries()) {
-      const route = (k as typeof k & { route: Entry[] }).route;
+      // The route without its new game: the replay starts one, the looks come first.
+      const route = (k as typeof k & { route: Entry[] }).route.filter((en) => !('start' in en));
       const category = k.played.speedrun!.categories.find((c) => c.id === k.category)!;
       const store = new MemoryChunkStore();
       const runId = `resume-${i}`;
@@ -369,13 +370,19 @@ try {
       await rec.prepare();
       const target = (route.find((en) => 'act' in en)!.act as { a: string }).a;
       const pad = Array.from({ length: CHUNK_SIZE - 1 }, () => ({ act: { verb: 'look', a: target } }));
-      await replay(
+      const played1 = await replay(
         k.played,
         layouts,
-        { start: { kind: 'new' }, log: [...pad, ...route.slice(0, 10)] as never },
+        // The route's state digests are the solver's, from a game without the looks: not compared here.
+        { start: { kind: 'new' }, log: [...pad, ...route.slice(0, 10).map(({ digest: _, ...en }) => en)] as never },
         { seed: rec.seed, attach: (e) => rec.bind(e) },
       );
       await rec.flushed();
+      if (played1.divergedAt !== undefined || played1.errors.length)
+        fail(
+          'resume',
+          `${k.category}: the first part diverged at ${played1.divergedAt}: ${played1.divergence ?? played1.errors[0]}`,
+        );
       const stored = (await readRun(store, runId))!;
       if (stored.chunks.length !== 1 || stored.head.sealed)
         fail('resume', `${k.category}: one unsealed chunk, not ${stored.chunks.length}`);
