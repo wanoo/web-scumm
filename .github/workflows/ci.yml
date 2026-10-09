@@ -730,7 +730,7 @@ jobs:
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: npm run external-consumer
+        run: npm run external-consumer -- --from=4.1.16
 
   # A game made on the previous release moved to this engine (4.0): created with that release's tarball, a save made by
   # it, then this engine installed, migrate --check, verify, build, and the old save played to the end. Its own build.
