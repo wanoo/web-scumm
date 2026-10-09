@@ -241,5 +241,109 @@
   "from": "true",
   "to": "false",
   "why": "`TextDecoder`'s `fatal`: a token whose header or payload is not UTF-8 decodes to replacement characters, which `JSON.parse` refuses the same way (`unreadable token`); the two decoders differ only on text no compact JWS of ours holds (4.1.16)"
+ },
+ {
+  "file": "bridge/src/runs.ts",
+  "operator": "condition true",
+  "from": "out.seedKind",
+  "to": "true",
+  "context": "...(out.seedKind ? { seedKind: out.seedKind } : {}),",
+  "why": "the outcome's `seedKind: undefined` is what the absent key was: the memory store assigns undefined, SQL writes NULL, both read back as no seed kind"
+ },
+ {
+  "file": "bridge/src/runs.ts",
+  "operator": "condition true",
+  "from": "r.seedKind",
+  "to": "true",
+  "context": "...(r.seedKind ? { seedKind: r.seedKind } : {}),",
+  "why": "`{ seedKind: undefined }` in the public view: JSON.stringify drops an undefined property, the answer's bytes are the same"
+ },
+ {
+  "file": "bridge/src/runs.ts",
+  "operator": "condition true",
+  "from": "child.pid",
+  "to": "true",
+  "context": "if (child.pid) process.kill(-child.pid, 'SIGKILL');",
+  "why": "`child.pid` is undefined only when spawn failed; then 'error' has answered and cleared the timer, so `kill` is never called without a pid"
+ },
+ {
+  "file": "bridge/src/runs.ts",
+  "operator": "boolean",
+  "from": "false",
+  "to": "true",
+  "context": "let ended = false;",
+  "why": "a guard against a race the tests cannot provoke: the pipe's last bytes read after 'exit'. On Linux and macOS every run measured had read them before; kept so a slow reader never loses an answer"
+ },
+ {
+  "file": "bridge/src/runs.ts",
+  "operator": "condition true",
+  "from": "!killed && child.pid",
+  "to": "true",
+  "context": "if (!killed && child.pid) {",
+  "why": "killing the worker's process group a second time after a kill: the group is gone, `process.kill` throws ESRCH, which is caught"
+ },
+ {
+  "file": "bridge/src/runs.ts",
+  "operator": "operator",
+  "from": "&&",
+  "to": "||",
+  "context": "if (!killed && child.pid) {",
+  "why": "killing the worker's process group a second time after a kill: the group is gone, `process.kill` throws ESRCH, which is caught"
+ },
+ {
+  "file": "bridge/src/runs.ts",
+  "operator": "condition true",
+  "from": "ended || killed",
+  "to": "true",
+  "context": "if (ended || killed) settle();",
+  "why": "the same race as `let ended`: settling at 'exit' without waiting for the pipe's end; the answer was always read already"
+ },
+ {
+  "file": "bridge/src/runs.ts",
+  "operator": "condition false",
+  "from": "answered",
+  "to": "false",
+  "context": "if (answered) return;",
+  "why": "`answer` runs once per path (the grace timer is cleared when 'end' wins); a second call would resolve a settled promise, which does nothing"
+ },
+ {
+  "file": "bridge/src/runs.ts",
+  "operator": "operator",
+  "from": "&&",
+  "to": "||",
+  "context": "if (err.status === 429 && err.retryAfterS) res.setHeader('retry-after', String(err.retryAfterS));",
+  "why": "only a 429 carries `retryAfterS` (the rate and the room): `status === 429 || retryAfterS` and `&&` agree on every error the queue throws"
+ },
+ {
+  "file": "bridge/src/runs-store.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "if (!b || byTime(r, b) < 0) best.set(r.player, r);",
+  "why": "`byTime` is 0 only for one run compared with itself (ids are unique in a tenant): `<` and `<=` keep the same best"
+ },
+ {
+  "file": "bridge/src/runs-store.ts",
+  "operator": "condition true",
+  "from": "r",
+  "to": "true",
+  "context": "return r ? structuredClone(r) : undefined;",
+  "why": "`structuredClone(undefined)` is undefined: the ternary returned what the clone returns"
+ },
+ {
+  "file": "bridge/src/runs-store.ts",
+  "operator": "condition true",
+  "from": "v !== undefined",
+  "to": "true",
+  "context": "for (const [k, v] of opt) if (v !== undefined) (run as unknown as Record<string, unknown>)[k] = v;",
+  "why": "a key set to undefined reads like an absent key (JSON, `toEqual`, every `?.` and `??` on a run): the record is the same run"
+ },
+ {
+  "file": "bridge/src/runs-store.ts",
+  "operator": "condition false",
+  "from": "n !== 1",
+  "to": "false",
+  "context": "if (n !== 1) return undefined;",
+  "why": "defence in depth: the claim's transaction holds the lock `runs:claim` (SQLite's write lock, Postgres's advisory lock), so no claim runs between its SELECT and its UPDATE and n is always 1"
  }
 ]

@@ -43,6 +43,9 @@ export const SETS = {
     'src/engine/tools/speedrun/recorder.ts',
     'src/engine/tools/speedrun/verify.ts',
   ],
+  // The speedrun queue (4.1.17, plan §7): admission, quota, leaderboard ranking. Gated from the start: the bugs 4.1.17
+  // fixed there (a board cut before ranking, a count then a write, a quota per process) were in no set.
+  runs: ['bridge/src/runs.ts', 'bridge/src/runs-store.ts', 'bridge/src/runs-limiter.ts'],
   // The Bridge's stores and its fan-out (4.1.10, ADR 0009): measured, not gated yet. The `reality` set would double
   // with them (docs/dev/plans/4.1.10-constellation.md §6); its survivors are read and named or killed before the set
   // joins `GATED`.
@@ -73,6 +76,17 @@ export const TESTS: Record<MutationSet, string[]> = {
     'tests/scheduler.test.ts',
   ],
   reality: ['tests/reality-*.test.ts', 'tests/bridge*.test.ts'],
+  // Short unit tests only: the load tools and the Postgres races are integration tests, never under each mutant.
+  runs: [
+    'tests/bridge-runs.test.ts',
+    'tests/bridge-runs-queue.test.ts',
+    'tests/bridge-runs-worker.test.ts',
+    'tests/bridge-runs-http.test.ts',
+    'tests/bridge-runs-store.test.ts',
+    'tests/bridge-runs-durable.test.ts',
+    'tests/bridge-leaderboard.test.ts',
+    'tests/bridge-admission.test.ts',
+  ],
   connectors: ['tests/connectors-*.test.ts'],
   'reality-store': ['tests/bridge-reality-store.test.ts', 'tests/bridge-fanout.test.ts', 'tests/bridge.test.ts'],
   remix: [
@@ -87,6 +101,6 @@ export const TESTS: Record<MutationSet, string[]> = {
 /** The sets `all` runs and the gate judges; `connectors` and `reality-store` run on their own until they are gated. */
 // `remix` and `speedrun` (4.1.16) are measured, not gated yet: their first runs left survivors to read one by one
 // (docs/dev/passes/4.1.16.md); each is killed or named in docs/dev/mutants.json before the two join here, for 4.2.
-export const GATED: MutationSet[] = ['core', 'reality'];
+export const GATED: MutationSet[] = ['core', 'reality', 'runs'];
 
 export const setsOf = (set: MutationSet | 'all'): MutationSet[] => (set === 'all' ? GATED : [set]);

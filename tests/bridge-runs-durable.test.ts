@@ -209,11 +209,15 @@ for (const kind of KINDS)
       });
       await q.idle();
       const board = await q.leaderboard(t, 'reference', 'any%');
-      expect(board.map((r) => [r.rank, r.player])).toEqual([
-        [1, 'Ann'],
-        [1, 'Bob'],
-        [3, 'Cat'],
-      ]);
+      // Ann and Bob tie: both first, in the order of their submission then their (random) ids; Cat third.
+      expect(board.map((r) => r.rank)).toEqual([1, 1, 3]);
+      expect(
+        board
+          .slice(0, 2)
+          .map((r) => r.player)
+          .sort(),
+      ).toEqual(['Ann', 'Bob']);
+      expect(board[2]!.player).toBe('Cat');
       const fixed = await q.leaderboard(t, 'reference', 'fixed', { key: 'fixed:WS-AAAA-AAAA' });
       expect(fixed.map((r) => r.player)).toEqual(['Eve']);
       expect(await q.leaderboard(t, 'reference', 'fixed')).toEqual([]);

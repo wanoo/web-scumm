@@ -193,7 +193,11 @@ REALITY-OPS, « Le worker des speedruns »), le paquet vérifié contre son empr
 clé à usage unique. Le processus HTTP ne rejoue jamais. Un run est identifié par son jeu, sa catégorie, la graine du
 run et ses entrées (hors leurs horodatages RTA), jamais par son monde : le premier qui le soumet le garde, une copie
 réhorodatée ou rescellée dans un autre monde est refusée. Un client peut soumettre dix runs par minute
-(`perMinute`) ; la file tient au plus `maxQueued` runs, toutes instances confondues ; l'enveloppe est jetée une fois le
+(`perMinute`), toutes instances confondues avec `bridge serve` sur un store SQL (un compteur par client dans la base,
+indexé par un HMAC de l'adresse, jamais l'adresse ; un hôte qui embarque la bibliothèque sans limiteur SQL compte par
+instance) ; un doublon ou un run invalide coûte un jeton, un refus dit `Retry-After`. La file tient au plus
+`maxQueued` runs en attente ou en vérification, comptés et écrits en une seule étape pour toutes les instances
+(4.1.17 : deux instances qui voyaient 99 sur 100 n'écrivent plus toutes les deux) ; l'enveloppe est jetée une fois le
 verdict enregistré ; les vieux runs sont purgés chaque heure. `GET /v1/runs?game=&category=[&key=][&limit=]` est un
 classement : runs valides seulement, le meilleur de chaque **pseudonyme** (le Bridge ne connaît aucune identité de
 joueur : deux personnes qui choisissent le même pseudonyme font une seule ligne), sur la **clé du vérificateur**

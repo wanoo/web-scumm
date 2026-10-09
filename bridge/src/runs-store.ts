@@ -125,10 +125,19 @@ export interface RunFilter {
   leaderboardKey?: string;
 }
 
+/** What a submission became (4.1.17): written, the same run already there, or no room left. */
+export type Admission = 'created' | 'duplicate' | 'full';
+
 /** Where runs are kept, per tenant. Every method is atomic against another instance using the same store. */
 export interface RunStore {
   /** Creates a run; false when a run of the same tenant has its key already (nothing is written then). */
   create(r: RunRecord): Promise<boolean>;
+  /**
+   * Admits a submission (4.1.17, plan §7.1): `duplicate` when the tenant has a run of that key, `full` when it has
+   * `maxQueued` runs waiting or being verified, else the run is written. One step for every instance together: two
+   * instances that both see 99 of 100 never write 101.
+   */
+  admit(r: RunRecord, maxQueued: number): Promise<Admission>;
   get(tenantId: string, id: string): Promise<RunRecord | undefined>;
   list(tenantId: string, f?: RunFilter): Promise<RunRecord[]>;
   /** Runs waiting for a worker (a tenant's, or every tenant's): the queue's length a submission is refused beyond. */
@@ -166,6 +175,18 @@ export class MemoryRunStore implements RunStore {
     for (const x of this.rows.values()) if (x.tenantId === r.tenantId && x.runKey === r.runKey) return false;
     this.rows.set(this.k(r.tenantId, r.id), structuredClone(r));
     return true;
+  }
+  // No await between the reads and the write: one turn of the event loop, atomic in this process.
+  async admit(r: RunRecord, maxQueued: number): Promise<Admission> {
+    let waiting = 0;
+    for (const x of this.rows.values()) {
+      if (x.tenantId !== r.tenantId) continue;
+      if (x.runKey === r.runKey) return 'duplicate';
+      if (x.status === 'queued' || x.status === 'verifying') waiting++;
+    }
+    if (waiting >= maxQueued) return 'full';
+    this.rows.set(this.k(r.tenantId, r.id), structuredClone(r));
+    return 'created';
   }
   async get(t: string, id: string) {
     const r = this.rows.get(this.k(t, id));
@@ -310,6 +331,23 @@ export class SqlRunStore implements RunStore {
       ],
     );
     return n === 1;
+  }
+  admit(r: RunRecord, maxQueued: number): Promise<Admission> {
+    // Under the tenant's lock (SQLite: the write lock; Postgres: an advisory lock), so the count and the insert are
+    // one step for every instance; the unique key still refuses a duplicate written by any other path.
+    return this.db.tx(`runs:admit:${r.tenantId}`, async (q) => {
+      const [dup] = await q.all('SELECT 1 AS x FROM runs WHERE tenant_id = $1 AND run_key = $2', [
+        r.tenantId,
+        r.runKey,
+      ]);
+      if (dup) return 'duplicate';
+      const [c] = await q.all(
+        `SELECT COUNT(*) AS n FROM runs WHERE tenant_id = $1 AND status IN ('queued', 'verifying')`,
+        [r.tenantId],
+      );
+      if (Number(c?.n ?? 0) >= maxQueued) return 'full';
+      return (await new SqlRunStore(q as SqlDb).create(r)) ? 'created' : 'duplicate';
+    });
   }
   async get(t: string, id: string) {
     const [r] = await this.db.all('SELECT * FROM runs WHERE tenant_id = $1 AND id = $2', [t, id]);
