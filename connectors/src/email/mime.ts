@@ -29,11 +29,7 @@ export type MimeResult = { ok: true; mail: ParsedMail } | { ok: false; reason: s
 
 class Refused extends Error {}
 
-const latin1 = (b: Uint8Array) => {
-  let s = '';
-  for (let i = 0; i < b.length; i += 8192) s += String.fromCharCode(...b.subarray(i, i + 8192));
-  return s;
-};
+const latin1 = (b: Uint8Array) => Buffer.from(b.buffer, b.byteOffset, b.byteLength).toString('latin1');
 
 /** Bytes → text in a charset the platform knows; anything else as Latin-1 (never an exception). */
 function decodeCharset(bytes: Uint8Array, charset = 'utf-8'): string {
@@ -170,9 +166,7 @@ function decodeBody(body: string, h: Headers): Uint8Array {
   const cte = headerValue(h.get('content-transfer-encoding')?.[0]).value;
   if (cte === 'base64') return base64(body);
   if (cte === 'quoted-printable') return quotedPrintable(body);
-  const b = new Uint8Array(body.length);
-  for (let i = 0; i < body.length; i++) b[i] = body.charCodeAt(i) & 0xff;
-  return b;
+  return Buffer.from(body, 'latin1');
 }
 
 function splitHead(raw: string): [string, string] {
