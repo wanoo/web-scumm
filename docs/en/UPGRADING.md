@@ -453,3 +453,21 @@ Mystery entry. New commands: `npm run runs:load`, `npm run e2e:worker-container`
 `npm run test:mutation:runs`, `npx tsx tools/oracle-case.ts`, `node tools/speedrun/container.mjs`. For maintainers:
 `ship tag` needs `--candidate=<run id>` of a green `candidate` run started on main for that SHA. The golden save of
 4.1.17 joins `tests/save-v3.test.ts`; every older one still loads.
+
+## 30. From 4.1.17 to 4.1.18 "Dress Rehearsal"
+
+**Nothing to change in a game.** No public name or format moves; a 4.1.17 save loads and reaches its ending, and a
+4.1.17 project upgrades with `migrate` (the candidate does it on three systems).
+
+**For a Bridge operator.** `BRIDGE_STORE_FILE` reads the store's URL from a file (a secret mounted as a file); named
+and missing or empty, it stops the Bridge with why; `--store=` and `BRIDGE_STORE` still come first. `backup` writes
+schema 2 on a SQL store: the leaderboards (`runs`) and the daily challenge's records too, which a 4.1.17 backup left
+out — take a new backup after upgrading; `restore` reads both schemas and refuses existing runs without `--force`. `ops/qualify/` is a reference deployment (HTTPS, three instances,
+Postgres) to carry elsewhere; `npm run ops:qualify` rehearses it. The release now also attaches
+`web-scumm-connectors-<version>.tgz`.
+
+**For maintainers.** The people's passes are Field Kit reports (`npm run field:init|check|report|bundle`,
+`docs/en/FIELD.md`) and open `field-pass` issues; the release notes count only `passed` as done. Every mutation set is
+gated (`connectors` and `reality-store` too); `release.yml` asks the tag's own `GATED`. `npm run external-consumer`
+installs the four archives outside the repository. The golden save of 4.1.18 joins `tests/save-v3.test.ts`.
+

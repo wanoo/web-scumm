@@ -599,6 +599,19 @@ par la baseline ; un script de liens. Laissé pour plus tard, dit comme tel : le
 (`docs/dev/passes/4.1.8.md`), l'accélération du workflow de release (son propre lot), les 845 lignes de l'onglet
 assistant.
 
+## v4.1.18 « Dress Rehearsal » (livrée le 10 octobre 2026) : la répétition générale de la 4.2
+
+La dernière qualification avant la 4.2 « Stable World » (`docs/dev/PLAN-4.1.18-DRESS-REHEARSAL.md`, D32, quatre pull
+requests et la release). Aucune mécanique nouvelle. Les passes humaines deviennent des rapports liés au candidat
+essayé (le Field Kit : `npm run field:check` et ses voisines), chacune une issue `field-pass` ouverte que le mainteneur ferme une fois
+faite. `connectors` et `reality-store` deviennent des ensembles de mutation bloquants (322 survivants lus ; un bug de
+retour arrière SSH trouvé). Le candidat emballe une fois les quatre archives, les installe hors du dépôt sous Ubuntu,
+macOS et Windows (un jeu 4.1.17 mis à niveau, le Bridge et un scénario de connecteur depuis leurs archives ; deux bugs
+Windows du package trouvés et corrigés) et la release publie ces fichiers mêmes. Le Bridge a un profil de
+qualification reproductible (`ops/qualify/` : HTTPS, trois instances, Postgres, deux tenants) qu'un test de fumée tue avec des
+propositions en vol, détruit et restaure. Le [GO / NO-GO 4.2](../dev/GO-NO-GO-4.2.md) dit, surface par surface, ce
+que la 4.2 peut promettre : NO-GO aujourd'hui, toutes les passes humaines restant à faire.
+
 ## v4.1.17 « Stabilization » (livrée le 9 octobre 2026) : la vérité remise au vert avant le tag
 
 La release qui suit le premier nightly de la 4.1.16, rouge après son tag (`docs/dev/PLAN-4.1.17-STABILIZATION.md`,
@@ -805,6 +818,7 @@ qu'une fois les bloqueurs de la courante fermés.
 | 4.1.15 | **Remix** (livrée le 7 octobre 2026) | une variance contrôlée du jeu, déterministe par seed, à solvabilité prouvable ; le DSL gelé après elle |
 | 4.1.16 | **Convergence** (livrée le 8 octobre 2026) | les capacités publiées faites pour marcher ensemble : un run lié à son monde, des classements durables, le résultat d'un minijeu dans l'histoire, Remix et Time Attack vérifiés dans quatre runtimes |
 | 4.1.17 | **Stabilization** (livrée le 9 octobre 2026) | la vérité remise au vert avant le tag : un tag repose sur un run candidat, classements et admission justes à toute taille et entre instances, le résultat d'un minijeu prouvé, Remix et Speedrun bloqués par la mutation |
+| 4.1.18 | **Dress Rehearsal** (livrée le 10 octobre 2026) | la répétition générale de la 4.2 : le Field Kit, tous les ensembles de mutation bloquants, les archives consommées hors du dépôt sur trois systèmes, le profil de qualification du Bridge, le GO / NO-GO 4.2 |
 | 4.2.0 | **Stable World** | les contrats gelés, le paquet compilé sur npm, les passes humaines faites, un premier vrai jeu de référence |
 
 L'ordre est voulu : les dépendances et l'intégrité avant les connecteurs ; les connecteurs éprouvent le Bridge avant sa

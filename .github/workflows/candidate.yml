@@ -68,6 +68,13 @@ jobs:
       - run: for i in 1 2 3; do (npx playwright install --with-deps chromium) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - run: npm run release-check:ci
+      # The people's passes committed for this version (4.1.18, the Field Kit): every report checked against its
+      # candidate, its evidence and the leak scan; none committed is said, not failed (D12).
+      - name: The Field Kit reports of this version
+        shell: bash
+        run: |
+          v=$(node -p "require('./package.json').version")
+          if [ -d "docs/dev/field/$v" ]; then npm run -s field:check -- --dir="docs/dev/field/$v"; else echo "::notice::no Field Kit report committed for $v"; fi
   # The heavy solver suite three times, each on a new runner (plan §5): the counters and the oracle are deterministic,
   # the durations are what three runs measure. One red attempt is a red candidate.
   heavy:

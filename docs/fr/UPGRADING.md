@@ -479,3 +479,23 @@ e2e:worker-container`, `npm run release-check:local`, `npm run test:mutation:run
 `node tools/speedrun/container.mjs`. Pour les mainteneurs : `ship tag` demande `--candidate=<id du run>` d'un run
 `candidate` vert lancé sur main pour ce SHA. La sauvegarde figée de la 4.1.17 rejoint `tests/save-v3.test.ts` ; toutes
 les plus anciennes se chargent toujours.
+
+## 30. De la 4.1.17 à la 4.1.18 « Dress Rehearsal »
+
+**Rien à changer dans un jeu.** Aucun nom public ni format ne bouge ; une sauvegarde 4.1.17 se charge et atteint sa
+fin, et un projet 4.1.17 se met à niveau avec `migrate` (le candidat le fait sur trois systèmes).
+
+**Pour un opérateur de Bridge.** `BRIDGE_STORE_FILE` lit l'URL du store depuis un fichier (un secret monté en
+fichier) ; nommé mais absent ou vide, il arrête le Bridge en disant pourquoi ; `--store=` et `BRIDGE_STORE` passent
+avant lui. `backup` écrit le schéma 2 sur un store SQL : les classements (`runs`) et les enregistrements du défi du jour
+aussi, qu'une sauvegarde 4.1.17 oubliait — en refaire une après la mise à niveau ; `restore` lit les deux schémas et
+refuse des runs déjà présents sans `--force`. `ops/qualify/` est un déploiement de
+référence (HTTPS, trois instances, Postgres) à porter ailleurs ; `npm run ops:qualify` le répète. La release joint
+aussi `web-scumm-connectors-<version>.tgz`.
+
+**Pour les mainteneurs.** Les passes humaines sont des rapports du Field Kit (`npm run field:init|check|report|bundle`,
+`docs/fr/FIELD.md`) et des issues `field-pass` ouvertes ; les notes de release ne comptent comme fait que `passed`.
+Chaque ensemble de mutation est bloquant (`connectors` et `reality-store` aussi) ; `release.yml` lit le `GATED` du tag.
+`npm run external-consumer` installe les quatre archives hors du dépôt. La sauvegarde de référence de la 4.1.18
+rejoint `tests/save-v3.test.ts`.
+

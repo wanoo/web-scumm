@@ -1,5 +1,66 @@
 # Changelog
 
+## 4.1.18 — 2026-10-10
+
+"Dress Rehearsal" (LOG #160): no new mechanic; the rehearsal of 4.2 "Stable World". The people's passes become
+reports bound to the candidate they tried (the Field Kit, `npm run field:check` and its siblings), each an open `field-pass` issue the
+maintainer closes once made. `connectors` and `reality-store` join the gated mutation sets (322 survivors read; an SSH
+backspace bug found). The candidate packs the four archives once, installs them outside the repository on Ubuntu,
+macOS and Windows, and the release publishes those very files, the connectors' archive included. The Bridge has a
+reproducible qualification profile (`ops/qualify/`) that the candidate kills with proposals in flight, destroys and
+restores. [GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md): NO-GO today, every people's pass still to make. The tag is not
+signed and nothing is published to npm: both are 4.2's (D30, D18).
+
+### Fixed
+
+- **`web-scumm build` on Windows in a folder named in its 8.3 short form** (4.1.18): a project under
+  `C:\Users\RUNNER~1\…` failed (Rolldown refused the page's name, a path between the short and the long form); the
+  CLI and the Vite config take real paths. **`scripts/pack.mjs` on Windows**: esbuild by its API, npm through the
+  shell. Both found by installing the archives on Windows.
+- **A Bridge backup carries the leaderboards and the daily challenge** (4.1.18): `backup` wrote the tenants only, and
+  a restore lost every run and every Daily or Mystery token; it is schema 2 now (`runs` and `daily_kv`, on a SQL store),
+  schema 1 still restores, and a restore over existing runs needs `--force`.
+
+- **Backspace in an SSH terminal erases a whole character** (4.1.18): on a pty, deleting after a multi-byte UTF-8
+  character (`é`) left its lead byte behind (`aé` then backspace gave `a�`): the loop looked at the byte left in the
+  buffer, not the one it had just removed. Found by the connectors' mutation reading.
+
+### Changes
+
+- **The Field Kit** (4.1.18, FIELD): a people's pass is a JSON report bound to the candidate run it tried (commit, run,
+  the SHA-256 of every file it judged), with four statuses never merged (`not-run`, `blocked`, `failed`, `passed`).
+  `npm run field:init` writes the thirteen passes at `not-run`; `field:check` refuses a report of another candidate,
+  evidence whose SHA-256 changed, a `passed` without its time, operator, environment, scenario or evidence, two reports
+  of one pass, a field the schema does not name, and a key, a token, an address or a bearer; `field:report` generates
+  the sheet's people's passes; `field:bundle` packs a report and its listed evidence, logs redacted, refused on a key.
+  The release notes count only `passed` as done.
+
+- **The four archives installed as a third party installs them** (4.1.18, plan §7): `npm run external-consumer` reads
+  the archives (names, versions, licences, binaries, exports, no `file:` dependency, no checkout path), moves a game
+  made on 4.1.17 to them (migrate, verify, build, its 4.1.17 save and a new game played to the end through
+  `web-scumm/testing`), runs `create-web-scumm`, serves the Bridge from its archive (SQLite, and Postgres), and plays a
+  connector scenario through it (a pairing code from the Bridge, a signed letter accepted, the same one a duplicate, a
+  forged signature refused). Portable (Node's own APIs, npm through the shell on Windows); CI runs it on Ubuntu, macOS
+  and Windows.
+- **The candidate packs the packages once, and the release publishes those** (4.1.18): `candidate.yml` packs the four
+  archives, installs them outside the repository on Ubuntu (Node 22 and 24), macOS and Windows, and names each in its
+  manifest; `release.yml` publishes the candidate's archives after checking their SHA-256, never packs again, and
+  attaches `web-scumm-connectors` too (until now it was packed but not published).
+
+- **`connectors` and `reality-store` are gated mutation sets** (4.1.18, D32): their 322 survivors (204 and 118) read
+  one by one, each killed by a short test (`tests/connectors-*-mutants.test.ts`, `tests/reality-store-*-mutants.test.ts`)
+  or named in `docs/dev/mutants.json` with its reason. Every set is now a job of its own in ci, the nightly, the
+  candidate and the release; `release.yml` asks the tag's own `GATED` which sets it gates.
+
+- **The Bridge's qualification profile** (4.1.18, `ops/qualify/`, REALITY-OPS): an HTTPS proxy (Caddy), three Bridge
+  instances built from the `web-scumm-bridge` tarball, one Postgres, two tenants; every image pinned by digest, the
+  Bridges read-only and unprivileged with their tenants mounted read-only, the database password and URL as secret
+  files, Postgres never published. `npm run ops:qualify` brings it up, kills an instance during proposals, holds a
+  stream on another, checks the tenants apart, then backs up, destroys the topology with its database and restores it
+  (`ops-qualify.json`). The `distributed` profile stays experimental until the 24–48 h pass behind a real domain.
+- **`BRIDGE_STORE_FILE`** (4.1.18): the store's URL read from a file, so a database password is a secret file, never an
+  environment value a process listing shows.
+
 ## 4.1.17 — 2026-10-09
 
 "Stabilization" (LOG #155): no new mechanic; the release truth green again and every gate it rests on closed. A tag

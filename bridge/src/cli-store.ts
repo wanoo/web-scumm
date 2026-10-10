@@ -90,10 +90,23 @@ export async function openStore(
 /** A backup: every tenant of a store, one instant each (`bridge backup`). */
 interface Backup {
   format: 'web-scumm-bridge-backup';
-  schema: 1;
+  /** 1: the tenants (players, signals, keys, pairings). 2 (4.1.18): also the runs and the daily challenge's tokens. */
+  schema: 1 | 2;
   at: string;
   tenants: TenantExport[];
+  /** The `runs` rows (every tenant's leaderboards and queue) and the `daily_kv` rows, on a SQL store. */
+  runs?: Record<string, unknown>[];
+  daily?: Record<string, unknown>[];
 }
+
+/**
+ * The SQL tables beside the tenants that a backup carries (4.1.18, second reading of the release: `backup` left out
+ * the leaderboards and the daily challenge). `run_quota` is not one: buckets of a minute, rebuilt by traffic.
+ */
+const BACKED: { table: 'runs' | 'daily_kv'; key: 'runs' | 'daily'; order: string }[] = [
+  { table: 'runs', key: 'runs', order: 'tenant_id, id' },
+  { table: 'daily_kv', key: 'daily', order: 'k' },
+];
 
 const say = (s: string) => console.log(s);
 
@@ -249,15 +262,31 @@ export async function storeCommand(
     }
     const store = await openStore(spec, dir, file, { lock: false });
     try {
-      const b: Backup = {
-        format: 'web-scumm-bridge-backup',
-        schema: 1,
-        at: new Date().toISOString(),
-        tenants: await Promise.all((await store.tenants()).map((t) => store.exportTenant(t))),
-      };
+      const tenants = await Promise.all((await store.tenants()).map((t) => store.exportTenant(t)));
+      const b: Backup =
+        store instanceof SqlRealityStore
+          ? {
+              format: 'web-scumm-bridge-backup',
+              schema: 2,
+              at: new Date().toISOString(),
+              tenants,
+              ...Object.fromEntries(
+                await store.db.tx(
+                  undefined,
+                  async (q) =>
+                    Promise.all(
+                      BACKED.map(async (t) => [t.key, await q.all(`SELECT * FROM ${t.table} ORDER BY ${t.order}`)]),
+                    ),
+                  { readOnly: true },
+                ),
+              ),
+            }
+          : { format: 'web-scumm-bridge-backup', schema: 1, at: new Date().toISOString(), tenants };
       writeFileSync(resolve(out), `${JSON.stringify(b)}\n`, { mode: 0o600 });
       chmodSync(resolve(out), 0o600);
-      say(`✔  ${b.tenants.length} tenant(s) backed up to ${resolve(out)}`);
+      say(
+        `✔  ${b.tenants.length} tenant(s)${b.schema === 2 ? `, ${b.runs?.length ?? 0} run(s), ${b.daily?.length ?? 0} daily record(s)` : ''} backed up to ${resolve(out)}`,
+      );
       return 0;
     } finally {
       await store.close();
@@ -270,8 +299,8 @@ export async function storeCommand(
       return 2;
     }
     const b = JSON.parse(readFileSync(resolve(from), 'utf8')) as Backup;
-    if (b.format !== 'web-scumm-bridge-backup' || b.schema !== 1) {
-      console.error('✖  not a Bridge backup of schema 1');
+    if (b.format !== 'web-scumm-bridge-backup' || (b.schema !== 1 && b.schema !== 2)) {
+      console.error('✖  not a Bridge backup of schema 1 or 2');
       return 1;
     }
     const store = await openStore(spec, dir, file);
@@ -282,9 +311,60 @@ export async function storeCommand(
         console.error(`✖  the store already holds ${clash.join(', ')}: restore into an empty store, or --force`);
         return 1;
       }
+      const rows = BACKED.filter((t) => (b[t.key]?.length ?? 0) > 0);
+      if (rows.length && !(store instanceof SqlRealityStore)) {
+        console.error('✖  this backup holds runs or daily records: restore it into a SQL store (--store=…)');
+        return 1;
+      }
       // Each tenant replaced in one transaction: deleted and written back together, or left as it was.
       for (const t of b.tenants) await store.importTenant(t, { replace: clash.includes(t.tenantId) });
-      say(`✔  ${b.tenants.length} tenant(s) restored from ${b.at}`);
+      // Then the runs and the daily records in one transaction: an existing row is refused without --force, replaced
+      // with it (the runs of the backup's tenants deleted first; a daily record is written once, never changed).
+      let counts = '';
+      if (store instanceof SqlRealityStore && rows.length) {
+        const force = args.includes('--force');
+        let refusedWhy = '';
+        const ok = await store.db
+          .tx('backup:restore', async (q) => {
+            const tenantsOf = [...new Set((b.runs ?? []).map((r) => String(r.tenant_id)))];
+            if (tenantsOf.length) {
+              const marks = tenantsOf.map((_, i) => `$${i + 1}`).join(', ');
+              const held = await q.all(`SELECT COUNT(*) AS n FROM runs WHERE tenant_id IN (${marks})`, tenantsOf);
+              if (Number(held[0]?.n ?? 0) > 0 && !force) return false;
+              await q.run(`DELETE FROM runs WHERE tenant_id IN (${marks})`, tenantsOf);
+            }
+            for (const t of rows)
+              for (const r of b[t.key] ?? []) {
+                // A column is named by the file: a plain identifier only, never text spliced into the statement.
+                const cols = Object.keys(r);
+                const bad = cols.find((c) => !/^[a-z_]{1,40}$/.test(c));
+                if (bad) {
+                  refusedWhy = `the backup names a column "${bad.slice(0, 40)}": refused, nothing restored of its runs`;
+                  throw new Error(refusedWhy);
+                }
+                const sql = `INSERT INTO ${t.table} (${cols.join(', ')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(', ')})${t.table === 'daily_kv' ? ' ON CONFLICT (k) DO NOTHING' : ''}`;
+                await q.run(
+                  sql,
+                  cols.map((c) => r[c]),
+                );
+              }
+            return true;
+          })
+          .catch((e: unknown) => {
+            if (refusedWhy) return refusedWhy;
+            throw e;
+          });
+        if (typeof ok === 'string') {
+          console.error(`✖  ${ok}`);
+          return 1;
+        }
+        if (!ok) {
+          console.error('✖  the store already holds runs of these tenants: restore into an empty store, or --force');
+          return 1;
+        }
+        counts = `, ${b.runs?.length ?? 0} run(s), ${b.daily?.length ?? 0} daily record(s)`;
+      }
+      say(`✔  ${b.tenants.length} tenant(s)${counts} restored from ${b.at}`);
       return 0;
     } finally {
       await store.close();

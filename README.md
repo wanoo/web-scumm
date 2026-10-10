@@ -100,7 +100,7 @@ which is why it can prove the game: the same `Engine`, the same `resolve`, no se
 is planned for 4.2, then `npx create-web-scumm my-game`):
 
 ```bash
-T=https://github.com/wanoo/web-scumm/releases/download/v4.1.17/web-scumm-4.1.17.tgz
+T=https://github.com/wanoo/web-scumm/releases/download/v4.1.18/web-scumm-4.1.18.tgz
 npx --package=$T web-scumm create my-game "My Game" --engine=$T
 cd my-game && npm install
 npm run assets && npm run dev        # then npm run verify, npm run build, npm run release
@@ -129,9 +129,9 @@ the three figures from `tests/quality-baseline.json`):
 
 | What | Result |
 |---|---|
-| Unit tests | <!-- metric:tests -->1811<!-- /metric --> declarations, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
+| Unit tests | <!-- metric:tests -->1816<!-- /metric --> declarations, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
 | Browser tests | the sample game played to its ending by touch and by keyboard in Chromium and WebKit at a phone's size, in English and French, with the DOM and the Canvas painter; a second game and the reference game too; every minigame won at the keyboard; axe-core on every screen |
-| Saves | one frozen save per release from 3.0.0 to 4.1.17 loads and reaches the ending |
+| Saves | one frozen save per release from 3.0.0 to 4.1.18 loads and reaches the ending |
 | Proof | the sample game's every reachable state in seconds; a 40-room reference game in <!-- metric:referenceStates -->288<!-- /metric --> states; 500 random games of each of three kinds compared to an explicit search every night, 0 divergences ([BENCH](docs/en/BENCH.md)) |
 | A new game | packed, created from the tarball, installed, verified, built and played to its end by CI; a game made on the previous release upgraded and its save played to the end |
 | The player's first visit | <!-- metric:initialJsKB -->133<!-- /metric --> KB of JavaScript, gzipped, held by a budget; every byte fetched predicted by the asset graph |
@@ -158,12 +158,13 @@ Every page also exists in French under `docs/fr/`, and a test keeps the two in s
 
 ## Releases
 
-Current release: [v4.1.17 "Stabilization"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.17): no new mechanic,
-the truth made green before the tag. A tag stands on a candidate run that passed, on its exact commit, the heavy solver
-suite three times, the Bridge's load on SQLite and Postgres, four runtimes and five gated mutation sets; the release
-publishes that run's files. A leaderboard never loses a faster run, the queue's room and quota hold for every
-instance, the code wheel's result is computed again from its answers, and each trust level says what it proves. On
-4.1.16's convergence (a run bound to its world, durable leaderboards), 4.1.15's worlds,
+Current release: [v4.1.18 "Dress Rehearsal"](https://github.com/wanoo/web-scumm/releases/tag/v4.1.18): no new
+mechanic, the rehearsal of 4.2 "Stable World". The four archives are installed outside the repository on Linux,
+macOS and Windows by the candidate itself; a reference deployment of the Bridge (HTTPS, three instances, Postgres) is
+killed, destroyed and restored without a lost or doubled signal; every mutation set is gated, the connectors and the
+stores included; and the thirteen passes only people can make are reports bound to the candidate they tried (the
+Field Kit), each an open issue until it is made. No surface is promoted without the pass it needs: [GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md)
+says which can enter 4.2. On 4.1.17's candidate gate, 4.1.16's convergence (a run bound to its world, durable leaderboards), 4.1.15's worlds,
 4.1.14's runs and proofs, 4.1.13's solver, 4.1.12's game-as-data, 4.1.11's scene frame, 4.1.10's durable Bridge,
 4.1.9's connectors and 4.1.8's foundation.
 From 4.1.1 to 4.1.7 every release added only what was optional, and a game written against one ran on the next;
