@@ -295,10 +295,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: ubuntu-24.04, node: 22, pg: true }
-          - { os: ubuntu-24.04, node: 24, pg: false }
-          - { os: macos-15, node: 22, pg: false }
-          - { os: windows-2025, node: 22, pg: false }
+          # The older engine a game is created on (4.1.19, plan §7.4): the previous stable, the one before it, and a
+          # pre-release (its tarball named without the suffix), each checked against its release's sums.
+          - { os: ubuntu-24.04, node: 22, pg: true, from: 4.1.17 }
+          - { os: ubuntu-24.04, node: 24, pg: false, from: 4.1.16 }
+          - { os: macos-15, node: 22, pg: false, from: 4.1.18-rc.1 }
+          - { os: windows-2025, node: 22, pg: false, from: 4.1.17 }
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     defaults:
@@ -326,7 +328,7 @@ jobs:
           docker run -d --name consumer-pg -e POSTGRES_USER=bridge -e POSTGRES_PASSWORD=bridge -e POSTGRES_DB=bridge -p 127.0.0.1:55432:5432 mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
           for i in $(seq 1 30); do docker exec consumer-pg pg_isready -U bridge && break; sleep 2; done
           echo "CONSUMER_PG_URL=postgres://bridge:bridge@127.0.0.1:55432/bridge" >> "$GITHUB_ENV"
-      - run: node scripts/external-consumer.mjs --tarballs=candidate-pack --from=4.1.17
+      - run: node scripts/external-consumer.mjs --tarballs=candidate-pack --from=${{ matrix.from }}
   # The Bridge's qualification profile (4.1.18, plan §8) built from this candidate's own `web-scumm-bridge` archive:
   # three instances behind HTTPS on Postgres, an instance killed with proposals in flight, the tenants apart, backup,
   # the topology destroyed and restored (scripts/ops-qualify.mjs; its report kept with the run).

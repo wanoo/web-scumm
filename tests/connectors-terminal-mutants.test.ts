@@ -66,6 +66,30 @@ describe('line assembler', () => {
     expect(run('aé\x7f\r', 16, true)).toMatchObject({ lines: ['a'], echo: 'a·\b \b\r\n' });
   });
 
+  it('with a pty: a stray continuation byte is dropped, so backspace never takes a column of the prompt (4.1.19)', () => {
+    // Alone on an empty line: dropped, and the backspace after it has nothing to remove.
+    expect(run([0x80, 0x7f, 0x0d], 16, true)).toMatchObject({ lines: [''], echo: '\r\n' });
+    // After ASCII, or past a character already whole: dropped too.
+    expect(run([0x61, 0xbf, 0x0d], 16, true)).toMatchObject({ lines: ['a'], echo: 'ar\n'.replace('r', '\r') });
+    expect(run([0xc3, 0xa9, 0xa9, 0x0d], 16, true)).toMatchObject({ lines: ['é'] });
+    // A byte that never leads a character is dropped.
+    expect(run([0xff, 0xc0, 0xf8, 0x61, 0x0d], 16, true)).toMatchObject({ lines: ['a'] });
+  });
+
+  it('a character split between two network chunks stays whole, and backspace removes it once', () => {
+    const lines: string[] = [];
+    const echo: string[] = [];
+    const l = new LineAssembler(16, { line: (t) => lines.push(t), tooLong: () => {}, echo: (s) => echo.push(s) }, true);
+    const euro = Buffer.from('€'); // e2 82 ac
+    l.push(new Uint8Array([0x61, euro[0]!]));
+    l.push(new Uint8Array([euro[1]!]));
+    l.push(new Uint8Array([euro[2]!, 0x62, 0x0d]));
+    expect(lines).toEqual(['a€b']);
+    l.push(new Uint8Array([...euro, 0x7f, 0x7f, 0x7f, 0x0d]));
+    expect(lines.at(-1)).toBe('');
+    expect(echo.join('').split('\b \b')).toHaveLength(2);
+  });
+
   it('with a pty: nothing is echoed past the limit', () => {
     expect(run('abcd\r', 2, true)).toMatchObject({ long: 1, echo: 'ab\r\n' });
   });

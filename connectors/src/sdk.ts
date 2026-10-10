@@ -222,7 +222,10 @@ export function createContext(o: ContextOptions): ConnectorContext & { close(): 
     const text = await r.text();
     let json: Record<string, unknown> = {};
     try {
-      json = JSON.parse(text) as Record<string, unknown>;
+      // Only an object is an answer (4.1.19): a body `null`, a number or an array read as `{}`, never as a value whose
+      // fields throw below and turn a Bridge that answered into one that cannot be reached.
+      const v: unknown = JSON.parse(text);
+      if (v !== null && typeof v === 'object' && !Array.isArray(v)) json = v as Record<string, unknown>;
     } catch {
       /* not JSON (an empty body included): the status says enough */
     }
@@ -257,7 +260,14 @@ export function createContext(o: ContextOptions): ConnectorContext & { close(): 
       try {
         const r = await call('v1/signals', body);
         if (r.status === 200 || r.status === 202) {
-          const sequence = Number(r.json.sequence);
+          const sequence = r.json.sequence;
+          // An acceptance without its sequence (an empty or malformed answer, 4.1.19): sent again with the same key,
+          // which the Bridge answers `duplicate` with the sequence if the first got through; a `bridge` refusal if it
+          // never says it.
+          if (typeof sequence !== 'number' || !Number.isSafeInteger(sequence) || sequence < 1) {
+            log('signal.malformed-answer', { kind: s.kind, status: r.status });
+            continue;
+          }
           const duplicate = r.json.duplicate === true;
           if (duplicate) m.duplicates++;
           else m.accepted++;

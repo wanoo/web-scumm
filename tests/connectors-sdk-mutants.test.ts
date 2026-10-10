@@ -158,6 +158,32 @@ describe('propose', () => {
     expect(await last.ctx.propose(signal())).toEqual({ ok: false, refusal: 'bridge' });
   });
 
+  it('a body `null` or an acceptance without its sequence is not a lost connection (4.1.19)', async () => {
+    // The answer got through: retried with the same key, and the duplicate gives the sequence.
+    const retried = scripted(
+      [
+        { status: 202, body: null },
+        { status: 200, body: { sequence: 4, duplicate: true } },
+      ],
+      {
+        retries: 1,
+      },
+    );
+    expect(await retried.ctx.propose(signal())).toEqual({ ok: true, sequence: 4, duplicate: true });
+    expect(retried.calls).toHaveLength(2);
+    expect(retried.lines.find((l) => l.event === 'signal.malformed-answer')).toMatchObject({ status: 202 });
+    for (const body of [null, [], 7, { sequence: '3' }, { sequence: 0 }, { sequence: 1.5 }, undefined])
+      expect(
+        await scripted([{ status: 202, ...(body === undefined ? {} : { body }) }]).ctx.propose(signal()),
+        JSON.stringify(body),
+      ).toEqual({ ok: false, refusal: 'bridge' });
+    // A refusal whose body is `null` keeps its status's meaning.
+    expect(await scripted([{ status: 403, body: null }]).ctx.propose(signal())).toEqual({
+      ok: false,
+      refusal: 'denied',
+    });
+  });
+
   it('a timeout is told from a lost connection', async () => {
     expect(await scripted([timeoutError()]).ctx.propose(signal())).toEqual({ ok: false, refusal: 'timeout' });
     expect(await scripted([new TypeError('fetch failed')]).ctx.propose(signal())).toEqual({
