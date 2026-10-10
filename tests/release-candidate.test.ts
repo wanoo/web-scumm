@@ -2,7 +2,7 @@
 // manifest naming that SHA, that run and the SHA-256 of every file the release will publish. A tag names the run;
 // release.yml checks the files of that very run. The 4.1.16 tag was published before its first heavy run went red.
 import { afterAll, describe, expect, it } from 'vitest';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { GATED } from '../tools/mutation-sets';
@@ -97,6 +97,22 @@ describe('the workflows that judge a candidate', () => {
         ?.split(',')
         .map((s) => s.trim()),
     ).toEqual(GATED);
+  });
+
+  it('never let a pipe hide a failure: every step piped into tee runs under `shell: bash` (pipefail)', () => {
+    // Candidate 37998053206 (9 October 2026): `gate | tee` under GitHub's default `bash -e`, without pipefail, printed
+    // `✖ mutation: failure` and passed.
+    for (const f of readdirSync('.github/workflows').filter((f) => f.endsWith('.yml'))) {
+      const lines = readFileSync(join('.github/workflows', f), 'utf8').split('\n');
+      lines.forEach((l, i) => {
+        if (!l.includes('| tee')) return;
+        let start = i;
+        while (start > 0 && !/^\s+- /.test(lines[start]!)) start--;
+        let end = i;
+        while (end + 1 < lines.length && !/^\s+- |^ {0,2}\S/.test(lines[end + 1]!)) end++;
+        expect(lines.slice(start, end + 1).join('\n'), `${f}:${i + 1}`).toMatch(/^\s+(- )?shell: bash$/m);
+      });
+    }
   });
 
   it('judge every job in the terminal gate, which then writes the manifest', () => {

@@ -192,6 +192,10 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // The Windows runner is the slowest by far on SQLite (a property test of 25 runs, a quarantine round-trip: over
+    // 5 s on the 4.1.17 RC's tag run, twice, where Linux takes one): there a test has 30 s, as three of them already
+    // did one by one since 7 October 2026. Elsewhere the default stays, so a slow test on Linux is still seen.
+    ...(process.platform === 'win32' ? { testTimeout: 30_000, hookTimeout: 30_000 } : {}),
     include: ['tests/**/*.test.ts', `games/${GAME}/tests/**/*.test.ts`],
     // npm run test:coverage (4.1.0 "Clarity"): what the tests run of src/; the floors below are the level measured at
     // 4.1.0 and may only rise. Lines run are not a proof: tests/properties.test.ts and npm run test:mutation:core say

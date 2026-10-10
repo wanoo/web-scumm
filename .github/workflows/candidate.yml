@@ -133,7 +133,7 @@ jobs:
     timeout-minutes: 30
     services:
       postgres:
-        image: postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+        image: mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
         env:
           POSTGRES_USER: bridge
           POSTGRES_PASSWORD: bridge
@@ -338,6 +338,9 @@ jobs:
         with:
           path: artifacts
       - name: Every job succeeded
+        # `shell: bash` is `bash -eo pipefail`: without it the pipe took tee's exit, and a red job left this gate green
+        # (candidate 37998053206, 9 October 2026: `✖ mutation: failure` printed, the step passed).
+        shell: bash
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: node tools/release/candidate.mjs gate | tee gate.txt
