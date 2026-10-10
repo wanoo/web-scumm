@@ -134,6 +134,9 @@ jobs:
           test "$got" = "candidate completed success workflow_dispatch main" || { echo "::error::run $run is \"$got\", not a green candidate started on main"; exit 1; }
           gh run download "$run" -n candidate-manifest -D .candidate-manifest
           gh run download "$run" -n candidate-release -D .candidate
+          # 4.1.18 (plan §7): the four packages the candidate packed and installed outside the repository on three
+          # systems; a 4.1.17 candidate has none (its manifest names none, the check below says so either way).
+          gh run download "$run" -n candidate-pack -D .candidate/pack 2>/dev/null || echo "::notice::run $run packed no packages"
           node tools/release/candidate.mjs check .candidate-manifest/candidate-manifest.json --sha="$SHA" --run="$run" --dir=.candidate
           echo "CANDIDATE=$run" >> "$GITHUB_ENV"
         env:
@@ -194,9 +197,19 @@ jobs:
           tar -czf "web-scumm-$TAG-dist.tar.gz" -C dist .
           cp dist/licenses/assets-manifest.json "web-scumm-$TAG-assets-manifest.json"
           npm sbom --sbom-format cyclonedx --omit dev > "web-scumm-$TAG-sbom.cdx.json"
-          # The engine as packages (3.9): what `npm install <tarball>` and `npx create-web-scumm` take.
-          node scripts/pack.mjs --out=pack
-          cp pack/web-scumm-*.tgz pack/create-web-scumm-*.tgz .
+          # The engine as packages (3.9): what `npm install <tarball>` and `npx create-web-scumm` take. Since 4.1.18 the
+          # candidate's own archives (checked against its manifest above), the ones installed outside the repository on
+          # three systems, never packed again here; an older tag packs them as it always did.
+          extra=""
+          if [ -d .candidate/pack ]; then
+            cp .candidate/pack/web-scumm-[0-9]*.tgz .candidate/pack/create-web-scumm-*.tgz .candidate/pack/web-scumm-bridge-*.tgz .
+            cp .candidate/pack/web-scumm-connectors-*.tgz .
+            extra="$(ls web-scumm-connectors-*.tgz)"
+            mkdir -p pack/web-scumm-bridge && tar -xzf web-scumm-bridge-*.tgz -C pack/web-scumm-bridge --strip-components=1
+          else
+            node scripts/pack.mjs --out=pack
+            cp pack/web-scumm-*.tgz pack/create-web-scumm-*.tgz .
+          fi
           # The reference Reality Bridge (4.1.1): web-scumm-bridge-<version>.tgz, its own package, with its own SBOM
           # (4.1.2): the root's SBOM lists the engine's runtime dependencies, not the Bridge's.
           # `npm sbom` reads the installed tree, not a lockfile: a real install of the package's two dependencies.
@@ -205,11 +218,10 @@ jobs:
           # leaderboard runs before it is attached; a run the engine of this tag refuses stops the release.
           # This workflow runs from main's copy while it checks out the tag's commit: a tag older than 4.1.14 has no
           # speedrun to verify or attach, and its list of files says so (4.1.15).
-          extra=""
           if [ -f tests/fixtures/speedrun/reference-any.wsrun ]; then
             GAME=reference npm run -s speedrun:verify -- tests/fixtures/speedrun/reference-any.wsrun
             cp tests/fixtures/speedrun/reference-any.wsrun "web-scumm-$TAG-reference-any.wsrun"
-            extra="web-scumm-$TAG-reference-any.wsrun"
+            extra="$extra web-scumm-$TAG-reference-any.wsrun"
           fi
           # The candidate's runs (4.1.17): the five worlds and 4.1.15's schema 1 file, their manifest, the report of the
           # check that made them, and the candidate's manifest itself; checked against their sums above, copied as they are.
@@ -240,6 +252,7 @@ jobs:
             web-scumm-[0-9]*.tgz
             create-web-scumm-*.tgz
             web-scumm-bridge-*.tgz
+            web-scumm-connectors-*.tgz
       - run: |
           # A pre-release tag (`v4.1.8-rc.1`, 4.1.8) is published as a GitHub pre-release: same files, same checks.
           pre=""; case "$TAG" in *-*) pre="--prerelease";; esac

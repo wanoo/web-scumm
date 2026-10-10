@@ -694,6 +694,44 @@ jobs:
       - if: env.RUN == 'true'
         run: npm run fresh-install
 
+  # The four archives installed outside the repository on three systems (4.1.18, plan §7): packed here (the candidate
+  # installs its own), a 4.1.17 game moved to them, the Bridge and a connector scenario from their archives.
+  external-consumer:
+    needs: [plan, check]
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    env:
+      RUN: ${{ fromJSON(needs.plan.outputs.plan).freshInstall }}
+    steps:
+      - if: env.RUN != 'true'
+        run: echo "::notice::external-consumer not needed by the plan (no package, template or authoring path changed)"
+      - if: env.RUN == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - if: env.RUN == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - if: env.RUN == 'true'
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - if: env.RUN == 'true'
+        run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 15
+      - if: env.RUN == 'true'
+        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 20
+      - if: env.RUN == 'true'
+        run: npm run external-consumer
+
   # A game made on the previous release moved to this engine (4.0): created with that release's tarball, a save made by
   # it, then this engine installed, migrate --check, verify, build, and the old save played to the end. Its own build.
   # Gate: `upgrade` (saves, migrations, storage, the packages, the authoring tools).
@@ -805,7 +843,7 @@ jobs:
   # may be `skipped` where it does not run (an ordinary pull request). The candidate single required check: the
   # ruleset still requires the seventeen names until a few runs of this job have been green (the maintainer's move).
   pr-gate:
-    needs: [plan, check, coverage, mutation, reality-xcheck, connectors, bridge-postgres, reality, node-24, windows, second-game, e2e, pwa-firefox, fresh-install, upgrade, reference, cross-runtime]
+    needs: [plan, check, coverage, mutation, reality-xcheck, connectors, bridge-postgres, reality, node-24, windows, second-game, e2e, pwa-firefox, fresh-install, external-consumer, upgrade, reference, cross-runtime]
     if: always()
     runs-on: ubuntu-24.04
     timeout-minutes: 5

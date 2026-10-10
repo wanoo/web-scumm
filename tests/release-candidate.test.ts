@@ -125,7 +125,9 @@ describe('the workflows that judge a candidate', () => {
 
   it('judge every job in the terminal gate, which then writes the manifest', () => {
     const text = wf('candidate');
+    // The gate's own `needs` (a job above may need another: `external-consumer` needs `pack`, 4.1.18).
     const needs = text
+      .slice(text.indexOf('\n  candidate-gate:'))
       .match(/^ {4}needs: \[([^\]]*)\]$/m)?.[1]
       ?.split(',')
       .map((s) => s.trim());
