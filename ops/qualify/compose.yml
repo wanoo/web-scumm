@@ -15,7 +15,17 @@ x-bridge: &bridge
     context: ${QUALIFY_BUILD:?ops:qualify sets QUALIFY_BUILD}
     dockerfile: Dockerfile.bridge
   image: web-scumm-bridge:qualify
-  command: ['serve', '--tenants=/srv/bridge/a,/srv/bridge/b', '--tenant-header', '--host=0.0.0.0', '--port=8787']
+  # The proxy is trusted by its fixed address on `edge` (second reading of 4.1.18 PR 4): without it every client
+  # shares the proxy's address, and one client failing its token would close the per-address limits for everyone.
+  command:
+    [
+      'serve',
+      '--tenants=/srv/bridge/a,/srv/bridge/b',
+      '--tenant-header',
+      '--host=0.0.0.0',
+      '--port=8787',
+      '--trust-proxy=172.30.18.2',
+    ]
   user: '${QUALIFY_UID:-1000}:${QUALIFY_GID:-1000}'
   environment:
     BRIDGE_STORE_FILE: /run/secrets/store_url
@@ -72,13 +82,19 @@ services:
       - '127.0.0.1:${QUALIFY_PORT_1:-8444}:8444'
       - '127.0.0.1:${QUALIFY_PORT_2:-8445}:8445'
       - '127.0.0.1:${QUALIFY_PORT_3:-8446}:8446'
-    networks: [public, edge]
+    networks:
+      public: {}
+      edge:
+        ipv4_address: 172.30.18.2
     depends_on: [bridge-1, bridge-2, bridge-3]
 
 networks:
   public: {}
   edge:
     internal: true
+    ipam:
+      config:
+        - subnet: 172.30.18.0/24
   store:
     internal: true
 

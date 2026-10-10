@@ -7,7 +7,23 @@ on:
     paths:
       - 'ops/**'
       - 'scripts/ops-qualify.mjs'
+      - 'scripts/pack.mjs'
       - 'bridge/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tests/ops-qualify.test.ts'
+      - '.github/workflows/qualify.yml'
+  # On main too: the profile does not rot between candidates.
+  push:
+    branches: [main]
+    paths:
+      - 'ops/**'
+      - 'scripts/ops-qualify.mjs'
+      - 'scripts/pack.mjs'
+      - 'bridge/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tests/ops-qualify.test.ts'
       - '.github/workflows/qualify.yml'
   workflow_dispatch: {}
 permissions:

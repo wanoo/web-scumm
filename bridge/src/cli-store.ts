@@ -30,13 +30,24 @@ export interface StoreFile {
 }
 
 /**
+ * The URL in `BRIDGE_STORE_FILE`: a file named and missing or empty stops the Bridge with why (second reading of
+ * 4.1.18 PR 4: an empty secret fell back to each instance's own journal, a split store without a word).
+ */
+function storeFromFile(file: string): string {
+  if (!existsSync(file)) throw new Error(`BRIDGE_STORE_FILE: ${file} does not exist`);
+  const url = readFileSync(file, 'utf8').trim();
+  if (!url) throw new Error(`BRIDGE_STORE_FILE: ${file} is empty`);
+  return url;
+}
+
+/**
  * The store a configuration names, after `--store=`, `BRIDGE_STORE` and `BRIDGE_STORE_FILE` (4.1.18: the URL read from
  * a file, so a database password is mounted as a secret file, never in an environment a process listing shows).
  */
 export const storeSpec = (file: StoreFile, args: string[], env = process.env): string =>
   opt(args, 'store') ??
   (env.BRIDGE_STORE || undefined) ??
-  (env.BRIDGE_STORE_FILE ? readFileSync(env.BRIDGE_STORE_FILE, 'utf8').trim() || undefined : undefined) ??
+  (env.BRIDGE_STORE_FILE ? storeFromFile(env.BRIDGE_STORE_FILE) : undefined) ??
   file.store ??
   'jsonl';
 

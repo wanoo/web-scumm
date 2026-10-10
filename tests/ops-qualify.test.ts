@@ -34,6 +34,13 @@ describe('the qualification profile', () => {
     expect(compose).toMatch(/store:\n\s+internal: true/);
   });
 
+  it('trusts the proxy alone, by its fixed address, so the per-address limits see each client', () => {
+    const bridge = compose.slice(compose.indexOf('x-bridge:'), compose.indexOf('services:'));
+    expect(bridge).toContain("'--trust-proxy=172.30.18.2'");
+    expect(compose).toMatch(/edge:\n\s+ipv4_address: 172\.30\.18\.2/);
+    expect(compose).toMatch(/subnet: 172\.30\.18\.0\/24/);
+  });
+
   it('runs the Bridges read-only, unprivileged, with their tenants read-only and their secrets as files', () => {
     const bridge = compose.slice(compose.indexOf('x-bridge:'), compose.indexOf('services:'));
     for (const want of [
@@ -63,8 +70,10 @@ describe('BRIDGE_STORE_FILE', () => {
       expect(storeSpec(file, [], { BRIDGE_STORE_FILE: f })).toBe('postgres://bridge:secret@db:5432/bridge');
       expect(storeSpec(file, [], { BRIDGE_STORE: 'sqlite:x.sqlite', BRIDGE_STORE_FILE: f })).toBe('sqlite:x.sqlite');
       expect(storeSpec(file, ['--store=jsonl'], { BRIDGE_STORE_FILE: f })).toBe('jsonl');
+      // Named and empty, or named and missing: stopped with why, never another store in silence.
       writeFileSync(f, '  \n');
-      expect(storeSpec(file, [], { BRIDGE_STORE_FILE: f })).toBe('sqlite');
+      expect(() => storeSpec(file, [], { BRIDGE_STORE_FILE: f })).toThrow(/BRIDGE_STORE_FILE: .* is empty/);
+      expect(() => storeSpec(file, [], { BRIDGE_STORE_FILE: join(dir, 'none') })).toThrow(/does not exist/);
       expect(storeSpec(file, [], {})).toBe('sqlite');
     } finally {
       rmSync(dir, { recursive: true, force: true });

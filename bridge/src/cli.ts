@@ -46,7 +46,7 @@ export interface BridgeFile {
   adminTokenHash: string;
   webhooks: Record<string, WebhookConfig>;
   journal: string;
-  /** The store (4.1.10): `jsonl` (absent: the journal above), `sqlite:<file>`, or a URL given by `BRIDGE_STORE`. */
+  /** The store (4.1.10): `jsonl` (absent: the journal above), `sqlite:<file>`, or a URL given by `BRIDGE_STORE` (or `BRIDGE_STORE_FILE`). */
   store?: string;
   /** The tenant this directory configures (4.1.10); absent: `default`. */
   tenantId?: string;
@@ -268,7 +268,7 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     const first = files[0]!;
     const spec = storeSpec(first, args);
     if (files.length > 1 && /^jsonl$/.test(spec)) {
-      console.error('✖  several tenants share a SQL store: --store=sqlite:<file> or BRIDGE_STORE=postgres://…');
+      console.error('✖  several tenants share a SQL store: --store=sqlite:<file>, BRIDGE_STORE=postgres://… or BRIDGE_STORE_FILE');
       return 1;
     }
     const telemetry = await loadTelemetry(process.env, (line) =>

@@ -39,6 +39,10 @@ const version = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).ver
 const out = resolve(flag('out') ?? '.cache/field/deployment');
 mkdirSync(out, { recursive: true });
 const base = mkdtempSync(join(tmpdir(), 'web-scumm-qualify-'));
+// Whatever ends the run (a setup step that throws included), its folder (tenant keys, the store's URL) goes with it.
+process.on('exit', () => {
+  if (!args.includes('--keep')) rmSync(base, { recursive: true, force: true });
+});
 const PORT = Number(flag('port') ?? 8443);
 const steps = [];
 const step = (name, ok, detail = {}) => {
@@ -214,9 +218,10 @@ async function readyCa() {
   }
   throw new Error('the proxy never answered /readyz over HTTPS');
 }
-/** Every signal of a player, by their capability: the sequences in order. */
-const sequences = async (tenant, cap) =>
-  (await insist(PORT, 'GET', '/v1/signals', { tenant, bearer: cap })).json?.sequences ?? null;
+/** Every signal of a player, by their capability: the signed signals and their sequences, in order. */
+const signalsOf = async (tenant, cap) =>
+  (await insist(PORT, 'GET', '/v1/signals', { tenant, bearer: cap })).json ?? null;
+const sequences = async (tenant, cap) => (await signalsOf(tenant, cap))?.sequences ?? null;
 
 const report = { format: 'web-scumm-ops-qualify', schema: 1, version, commit: '', images: [...images, ...from], steps };
 report.commit = sh('git', ['rev-parse', 'HEAD'], { cwd: ROOT, allowFail: true }).stdout.trim();
@@ -291,9 +296,70 @@ try {
         }
       }
   dc(['up', '-d', '--wait', 'bridge-2']);
+  step('bridge-2 serves again after its restart', (await insist(PORT + 2, 'GET', '/readyz')).status === 200);
+
+  // In flight: proposals sent straight to bridge-2 (its own port, no proxy retry) in bursts while it is killed; then
+  // the connector sends each again through the proxy. A lost answer comes back a duplicate or accepted, never twice.
+  const victim = players.b[2];
+  const bodyOf = (k) => ({
+    playerId: victim.id,
+    signal: 'letter.unclear',
+    source: 'email',
+    dedupeKey: `inflight-${k}`,
+  });
+  let K = 0;
+  let lost = 0;
+  let stop = false;
+  const flight = (async () => {
+    while (!stop && K < 400) {
+      const batch = Array.from({ length: 8 }, () => K++);
+      const got = await Promise.all(
+        batch.map((k) =>
+          https(PORT + 2, 'POST', '/v1/signals', { tenant: 'b', bearer: tokens.b, body: bodyOf(k) }).then(
+            (r) => r.status,
+            () => 'lost',
+          ),
+        ),
+      );
+      lost += got.filter((x) => x === 'lost' || (typeof x === 'number' && x >= 500)).length;
+      if (lost >= 8) stop = true;
+    }
+  })();
+  await sleep(400);
+  dc(['kill', 'bridge-2']);
+  await sleep(1500);
+  stop = true;
+  await flight;
+  const resent = { accepted: 0, duplicate: 0, other: [] };
+  for (let k = 0; k < K; k++) {
+    const r = await insist(PORT, 'POST', '/v1/signals', { tenant: 'b', bearer: tokens.b, body: bodyOf(k) });
+    if (r.status === 202) resent.accepted++;
+    else if (r.status === 200 && r.json?.duplicate) resent.duplicate++;
+    else resent.other.push(`${r.status} ${JSON.stringify(r.json)}`);
+  }
+  dc(['start', 'bridge-2']);
+  dc(['up', '-d', '--wait', 'bridge-2']);
+  step(
+    'proposals in flight on a killed instance, sent again: each applied once',
+    lost > 0 && resent.other.length === 0,
+    {
+      sent: K,
+      lostInFlight: lost,
+      resentAccepted: resent.accepted,
+      resentDuplicate: resent.duplicate,
+      refused: resent.other.slice(0, 3),
+    },
+  );
+
   const expected = Array.from({ length: N }, (_, k) => k + 1);
+  const expectedOf = (key) => (key === `b/${victim.id}` ? Array.from({ length: N + K }, (_, k) => k + 1) : expected);
   const before = {};
-  for (const t of ['a', 'b']) for (const p of players[t]) before[`${t}/${p.id}`] = await sequences(t, p.cap);
+  const full = {};
+  for (const t of ['a', 'b'])
+    for (const p of players[t]) {
+      full[`${t}/${p.id}`] = await signalsOf(t, p.cap);
+      before[`${t}/${p.id}`] = full[`${t}/${p.id}`]?.sequences ?? null;
+    }
   // A proposal whose answer was lost when its instance died, sent again, is a duplicate; none is applied twice.
   step(
     'every proposal applied once across a killed instance',
@@ -306,7 +372,7 @@ try {
   );
   step(
     'every player sequence contiguous, 1 to N, nothing doubled',
-    Object.values(before).every((s) => JSON.stringify(s) === JSON.stringify(expected)),
+    Object.entries(before).every(([key, s]) => JSON.stringify(s) === JSON.stringify(expectedOf(key))),
     {
       players: Object.keys(before).length,
       perPlayer: N,
@@ -344,7 +410,10 @@ try {
     '-c',
     'node /opt/bridge/bin.mjs backup --dir=/srv/bridge/a --out=/tmp/backup.json >&2 && cat /tmp/backup.json',
   ]).stdout;
-  writeFileSync(join(out, 'backup.json'), backup, { mode: 0o600 });
+  // Beside the run's own files, never in the uploaded folder: it holds every tenant's data.
+  const backups = join(base, 'backup');
+  mkdirSync(backups, { mode: 0o700 });
+  writeFileSync(join(backups, 'backup.json'), backup, { mode: 0o600 });
   dc(['down', '-v'], { stdio: 'inherit' });
   // The documented recovery (REALITY-OPS): a new, empty database first, the backup restored into it by a one-off
   // container of the same image, then the instances (started first, they would register their tenants: not empty).
@@ -356,7 +425,7 @@ try {
       '--no-deps',
       '-T',
       '-v',
-      `${out}:/backup:ro`,
+      `${backups}:/backup:ro`,
       'bridge-1',
       'restore',
       '--dir=/srv/bridge/a',
@@ -367,10 +436,10 @@ try {
   up();
   await readyCa();
   const after = {};
-  for (const t of ['a', 'b']) for (const p of players[t]) after[`${t}/${p.id}`] = await sequences(t, p.cap);
+  for (const t of ['a', 'b']) for (const p of players[t]) after[`${t}/${p.id}`] = await signalsOf(t, p.cap);
   step(
-    'backup, the topology and its database destroyed, restore: every player as before',
-    JSON.stringify(after) === JSON.stringify(before),
+    "backup, the topology and its database destroyed, restore: every player's signed signals as before",
+    JSON.stringify(after) === JSON.stringify(full) && Object.values(after).every((x) => x?.signals?.length),
     {
       players: Object.keys(after).length,
     },
@@ -380,6 +449,18 @@ try {
     bearer: tokens.a,
     body: { playerId: players.a[0].id, signal: 'letter.unclear', source: 'email', dedupeKey: 'after-restore' },
   });
+  const old = await insist(PORT, 'POST', '/v1/signals', {
+    tenant: 'a',
+    bearer: tokens.a,
+    body: { playerId: players.a[0].id, signal: 'letter.unclear', source: 'email', dedupeKey: `a-${players.a[0].id}-0` },
+  });
+  step(
+    'after the restore a proposal sent before is still a duplicate',
+    old.status === 200 && old.json?.duplicate === true,
+    {
+      status: old.status,
+    },
+  );
   step(
     'after the restore a new proposal continues the sequence',
     next.status === 202 && next.json?.sequence === N + 1,
@@ -399,7 +480,6 @@ try {
 } finally {
   if (!args.includes('--keep')) dc(['down', '-v'], { allowFail: true });
   writeFileSync(join(out, 'ops-qualify.json'), `${JSON.stringify(report, null, 1)}\n`);
-  rmSync(join(out, 'backup.json'), { force: true });
   if (!args.includes('--keep')) rmSync(base, { recursive: true, force: true });
 }
 const bad = steps.filter((s) => !s.ok);

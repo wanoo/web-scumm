@@ -48,6 +48,13 @@ and the migration of a 4.1.17 store are judged by their own jobs (`bridge-load`,
 `e2e:remix-speedrun`, the Postgres store tests), not inside this topology yet; the 24 to 48 hours behind a real domain
 are a person's pass.
 
+**Rootful Docker.** The Bridges run as the operator's uid so they can read the tenants' files (mode 600): `ops:qualify`
+sets `QUALIFY_UID`/`QUALIFY_GID`; by hand, set them to your own (`id -u`, `id -g`), else 1000 is assumed. Rootless
+Docker and Podman map that uid elsewhere and the files are unreadable: not supported by this profile.
+
+**The client's address.** The proxy has a fixed address on `edge` (172.30.18.2) and the Bridges trust it alone
+(`--trust-proxy=172.30.18.2`): the per-address limits see each client, not the proxy.
+
 ## Behind a real domain
 
 Replace the Caddyfile's site addresses by the domain (`bridge.example.org { reverse_proxy … }`): Caddy then obtains a
