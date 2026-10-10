@@ -272,6 +272,9 @@ jobs:
         with:
           path: artifacts
       - name: Every job succeeded
+        # `shell: bash` is `bash -eo pipefail`: without it the pipe took tee's exit, and a red job left this gate green
+        # (candidate 37998053206, 9 October 2026: `✖ mutation: failure` printed, the step passed).
+        shell: bash
         env:
           NEEDS: ${{ toJSON(needs) }}
         run: node tools/release/candidate.mjs gate | tee gate.txt

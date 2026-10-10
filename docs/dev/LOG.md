@@ -3732,4 +3732,10 @@ sources; the recorder's live RTA counts from a resume before the run's start (it
   notebook and a mug around the editor) reduced to 768×512 and 256 colours (121 KB) replaces the READMEs' one; the
   archive carries the README, so it is in `rc.2` and the final tag.
 
+- After the merge of #72 (5080ebc), candidate 37998053206 was red on `mutation (runs)` (a survivor whose kill depended
+  on timing: the worker exited before its SIGKILL, the cut answer was also a `crash`) and its gate was green anyway:
+  `gate | tee` ran without `pipefail`. The run's own conclusion stayed `failure`, which `ship tag` and `release.yml`
+  check, so nothing could be tagged on it. Both fixed (the test asks the reason; `shell: bash`, and a test over every
+  workflow's `| tee`), then a new candidate, `v4.1.17-rc.2` and `v4.1.17` on its commit.
+
 → next: Claude · 4.2.0 "Stable World": the human passes first (D18), the signed tag (D30)
