@@ -2,7 +2,8 @@
 // npm run external-consumer -- [--tarballs=<dir>] [--from=<version|tgz>] [--dir=<folder>] [--keep] (4.1.18 "Dress
 // Rehearsal", plan §7): the four archives used the way a third party uses them, on Linux, macOS and Windows. The
 // tarballs are the candidate run's (`--tarballs=`: never packed again in the line that judges them; without it, this
-// checkout is packed, for a local try). Nothing runs from the checkout: a module of this repository is never imported,
+// checkout is packed, for a local try). Nothing the consumer runs comes from the checkout: no module of it is imported
+// by the projects (this harness reads only scripts/upgrade-source.mjs, to name the older release),
 // and every file the consumer wrote is searched for the checkout's path.
 //
 //   1. the archives read: name, version, licence, binaries, exports, no `file:`/`link:` dependency, no checkout path;
@@ -20,6 +21,7 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { createHmac, randomBytes } from 'node:crypto';
 import {
+  copyFileSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -59,10 +61,12 @@ const fail = (what) => {
 };
 
 /** One command in `cwd`, its output shown; throws on a non-zero exit. npm and npx are .cmd files on Windows. */
+/** Through the shell (npm and npx on Windows), an argument with a space is quoted, or cmd.exe splits it. */
+const quoted = (shell, a) => (shell ? a.map((x) => (/[\s"]/.test(x) ? `"${x.replaceAll('"', '\\"')}"` : x)) : a);
 function run(title, cmd, a, cwd, o = {}) {
   console.log(`\n▶ ${title}`);
   const shell = WIN && (cmd === 'npm' || cmd === 'npx');
-  const r = spawnSync(shell ? `${cmd}.cmd` : cmd, a, {
+  const r = spawnSync(shell ? `${cmd}.cmd` : cmd, quoted(shell, a), {
     cwd,
     stdio: o.capture ? ['ignore', 'pipe', 'inherit'] : 'inherit',
     encoding: 'utf8',
@@ -83,14 +87,26 @@ function unpack(tgz, into) {
   return into;
 }
 /** A process left running (a server); stopped by its PID, the whole tree on Windows. */
+/**
+ * A process left running (a server). `exited` says when it stopped (one that dies at once, a port taken, is seen);
+ * `stop()` ends it, the whole tree on Windows, and waits for its exit (a SIGKILL after five seconds).
+ */
 function serve(cmd, a, cwd) {
   const shell = WIN && (cmd === 'npm' || cmd === 'npx');
-  const p = spawn(shell ? `${cmd}.cmd` : cmd, a, { cwd, env: ENV, stdio: 'ignore', shell });
+  const p = spawn(shell ? `${cmd}.cmd` : cmd, quoted(shell, a), { cwd, env: ENV, stdio: 'ignore', shell });
+  let exited = null;
+  const gone = new Promise((ok) => p.on('exit', (code, signal) => ok((exited = { code, signal }))));
   return {
-    stop() {
-      if (!p.pid) return;
+    get exited() {
+      return exited;
+    },
+    async stop() {
+      if (!p.pid || exited) return;
       if (WIN) spawnSync('taskkill', ['/pid', String(p.pid), '/T', '/F'], { stdio: 'ignore' });
       else p.kill('SIGTERM');
+      const kill = setTimeout(() => p.kill('SIGKILL'), 5000);
+      await gone;
+      clearTimeout(kill);
     },
   };
 }
@@ -137,7 +153,15 @@ if (!tarballs) {
   );
 }
 tarballs = resolve(tarballs);
-const tgz = Object.fromEntries(NAMES.map((n) => [n, join(tarballs, `${n}-${version}.tgz`)]));
+// The archives copied beside the consumer first: the candidate's lie under the checkout (`candidate-pack/`), and npm
+// writes the path it installed from into package.json, which would name the checkout (second reading of 4.1.18 PR 3).
+const archives = join(base, 'archives');
+mkdirSync(archives, { recursive: true });
+for (const n of NAMES) {
+  const from = join(tarballs, `${n}-${version}.tgz`);
+  if (existsSync(from)) copyFileSync(from, join(archives, `${n}-${version}.tgz`));
+}
+const tgz = Object.fromEntries(NAMES.map((n) => [n, join(archives, `${n}-${version}.tgz`)]));
 for (const [n, f] of Object.entries(tgz)) if (!existsSync(f)) throw new Error(`${f}: no ${n} archive of ${version}`);
 
 console.log('\n▶ the archives, read');
@@ -276,22 +300,26 @@ const data = join(base, 'bridge-data');
 node('bridge: init', [BIN, 'init', `--dir=${data}`, `--manifest=${manifestFile}`, '--no-demo-webhooks'], bridgeDir);
 node('bridge: doctor', [BIN, 'doctor', `--dir=${data}`], bridgeDir);
 const PORT = 5280 + Math.floor(Math.random() * 400);
-async function bridgeUp(store, extra) {
-  const s = serve(process.execPath, [BIN, 'serve', `--dir=${data}`, `--port=${PORT}`, ...extra], bridgeDir);
+async function bridgeUp(store, extra, port = PORT) {
+  const s = serve(process.execPath, [BIN, 'serve', `--dir=${data}`, `--port=${port}`, ...extra], bridgeDir);
   try {
-    await waitFor(`http://127.0.0.1:${PORT}/v1/keys`, async (r) => r.ok && (await r.text()).includes('"keys"'));
+    await waitFor(`http://127.0.0.1:${port}/v1/keys`, async (r) => {
+      if (s.exited) throw new Error(`the Bridge on ${store} stopped at once (${JSON.stringify(s.exited)})`);
+      return r.ok && (await r.text()).includes('"keys"');
+    });
+    if (s.exited) throw new Error(`the Bridge on ${store} stopped (${JSON.stringify(s.exited)})`);
     console.log(`✔  the Bridge serves its keys on ${store} from the installed package`);
   } catch (e) {
-    s.stop();
+    await s.stop();
     throw e;
   }
   return s;
 }
 if (process.env.CONSUMER_PG_URL) {
   run('bridge: the Postgres peer', 'npm', ['install', 'pg'], bridgeDir);
-  const pg = await bridgeUp('Postgres', [`--store=${process.env.CONSUMER_PG_URL}`]);
-  pg.stop();
-  await new Promise((ok) => setTimeout(ok, 1500));
+  // Its own port, and stopped (its exit awaited) before the SQLite one starts: never one answering for the other.
+  const pg = await bridgeUp('Postgres', [`--store=${process.env.CONSUMER_PG_URL}`], PORT + 2);
+  await pg.stop();
 }
 const sqlite = await bridgeUp('SQLite', [`--store=sqlite:${join(data, 'bridge.sqlite')}`]);
 
@@ -345,7 +373,12 @@ try {
       email: { mode: 'webhook', webhook: { port: HOOK, secretFile: 'webhook.secret' } },
     }),
   );
-  const connector = serve('npx', ['web-scumm-connector', 'email', '--config', 'email.json'], operator);
+  // Its bin by node, not through npx: a signal then reaches the connector itself, not npm.
+  const connector = serve(
+    process.execPath,
+    [join(operator, 'node_modules', 'web-scumm-connectors', 'bin.mjs'), 'email', '--config', 'email.json'],
+    operator,
+  );
   try {
     // What a player does: the game asks the Bridge for a pairing code, the player mails it, then answers the letter.
     const pairing = await (
@@ -397,10 +430,10 @@ try {
         '✔  paired by a code from the Bridge, a letter accepted, the same one a duplicate, a forged one refused',
       );
   } finally {
-    connector.stop();
+    await connector.stop();
   }
 } finally {
-  sqlite.stop();
+  await sqlite.stop();
 }
 
 if (failed) {

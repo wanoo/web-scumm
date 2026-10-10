@@ -248,7 +248,8 @@ writeFileSync(
 
 // npm is `npm.cmd` on Windows: run through the shell there (4.1.18), the arguments being this script's own.
 const WIN = process.platform === 'win32';
-const npm = (a, o) => execFileSync(WIN ? 'npm.cmd' : 'npm', a, { ...o, shell: WIN });
+const npm = (a, o) =>
+  execFileSync(WIN ? 'npm.cmd' : 'npm', WIN ? a.map((x) => (/\s/.test(x) ? `"${x}"` : x)) : a, { ...o, shell: WIN });
 for (const d of [engine, create, bridge, connectors])
   npm(['pack', '--pack-destination', out, '--silent'], { cwd: d, stdio: ['ignore', 'inherit', 'inherit'] });
 console.log(
