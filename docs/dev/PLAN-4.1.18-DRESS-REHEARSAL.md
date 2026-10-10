@@ -1,8 +1,10 @@
 # web-scumm 4.1.18 — Dress Rehearsal
 
-> **Statut : proposition à exécuter après la publication de v4.1.17 « Stabilization ».**  
-> **Base exacte :** le tag final `v4.1.17` et son candidate run vert ; ne pas partir de `v4.1.17-rc.1` par
-> supposition. Inscrire le SHA et le run dans ce document dès que le tag existe.  
+> **Statut : en cours depuis la publication de v4.1.17 « Stabilization » (10 octobre 2026), décisions D32.**  
+> **Base exacte :** le tag final `v4.1.17`, commit `dda1ab2e9b64c1779794cc2586aaccaa58b86491`, candidate run
+> `38013477686` (vert, ses 8 fichiers vérifiés par `release.yml`, 20 attestations par `ship verify`). Le `rc.1` sur
+> `0f5854f` n'a jamais été publié.  
+> **Passes humaines :** une issue `field-pass` par passe (#75 à #87), fermée par le maintainer après son test.  
 > **Nature :** qualification terrain, exploitation et distribution ; aucune nouvelle mécanique de jeu.  
 > **Branche de préparation recommandée :** `docs/4118-dress-rehearsal`.  
 > **But :** confronter les contrats prouvés par les machines à de vrais packages, un vrai déploiement, de vrais
