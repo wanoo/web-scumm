@@ -17,5 +17,8 @@
 - The Postgres service of ci, the candidate and the nightly (and the development compose) is pulled from
   `mirror.gcr.io`, the same digest: a shared runner meets Docker Hub's anonymous pull limit (`toomanyrequests`, seen on
   two jobs on 9 October), and a red `bridge-postgres` for a registry's quota is a red gate for nothing.
+- `e2e:remix-speedrun` follows the Daily rule across midnight: a run sent after its UTC day is practice (valid, not
+  ranked). PR #88's cross-runtime job started at 23:58 UTC, signed the day of 9 October and submitted on the 10th: the
+  Bridge said `ranked null`, rightly, and the e2e called it a failure.
 
 → next: Claude · 4.1.18 PR 2, `connectors` and `reality-store` read and gated
