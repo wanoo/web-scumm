@@ -56,6 +56,52 @@ describe('resume after a crash', () => {
     expect([r.verdict, r.code]).toEqual(['valid', 'ok']);
   }, 60000);
 
+  it('the live RTA after a resume: from where the chunk closed once started, 0 before the start (4.1.19)', async () => {
+    const game = speedrunGame();
+    const fingerprint = await fixtureFingerprint(game);
+    const store = new MemoryChunkStore();
+    let clock = 1_000;
+    const opts = (engine: Engine) => ({
+      engine,
+      gameId: game.id,
+      manifest: game.speedrun!,
+      category: game.speedrun!.categories.find((c) => c.id === 'no-hints')!,
+      store,
+      fingerprint,
+      engineVersion: ENGINE_VERSION,
+      runId: 'rta-run',
+      now: () => clock,
+    });
+    const first = new Engine(speedrunGame(), speedrunLayouts, new FakePresenter(), new MemoryStore());
+    const rec = new SpeedrunRecorder(opts(first));
+    await rec.start();
+    for (let i = 0; i < CHUNK_SIZE; i++) {
+      clock += 1;
+      await first.act({ verb: 'look', a: 'desk' });
+    }
+    await rec.flushed();
+    const head = (await readRun(store, 'rta-run'))!.head;
+    const closed = (head.resume as { rtaMs: number }).rtaMs;
+    expect(closed).toBeGreaterThan(0);
+    expect(head.resume).toMatchObject({ started: true });
+    // Started: the RTA goes on from where the chunk closed, the hour the page stayed closed not counted.
+    clock = 3_600_000;
+    const second = new Engine(speedrunGame(), speedrunLayouts, new FakePresenter(), new MemoryStore());
+    const resumed = (await SpeedrunRecorder.resume(opts(second)))!;
+    expect(resumed.rtaMs()).toBe(closed);
+    // Not started when the chunk closed (written by 4.1.19, or before it with rtaMs 0): 0 until the start.
+    for (const resume of [
+      { ...(head.resume as object), rtaMs: 0, started: false },
+      { ...(head.resume as object), rtaMs: 0, started: undefined },
+    ]) {
+      await store.putHead({ ...head, resume });
+      const third = new Engine(speedrunGame(), speedrunLayouts, new FakePresenter(), new MemoryStore());
+      const r = (await SpeedrunRecorder.resume(opts(third)))!;
+      clock += 5_000;
+      expect(r.rtaMs()).toBe(0);
+    }
+  }, 60000);
+
   it('a sealed or unknown run is not resumed', async () => {
     const store = new MemoryChunkStore();
     const game = speedrunGame();
