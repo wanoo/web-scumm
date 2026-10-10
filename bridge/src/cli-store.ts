@@ -2,7 +2,8 @@
 // names, `migrate` (the JSON-lines journal into SQLite or Postgres, or the SQL schema up and down), `doctor`,
 // `compact`, `tenant export|delete`, `backup` and `restore`. A store is named by a string: `jsonl` (the journal of
 // 4.1.9, beside config.json), `sqlite:<file>` (relative to the Bridge's directory) or `postgres://…`; `--store=` or
-// the `BRIDGE_STORE` variable override the configuration's (a database URL with a password stays out of the file).
+// the `BRIDGE_STORE` variable override the configuration's (a database URL with a password stays out of the file;
+// `BRIDGE_STORE_FILE`, 4.1.18, reads it from a secret file).
 import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { inspectJournal, JsonlBridgeStore } from './store';
@@ -28,9 +29,27 @@ export interface StoreFile {
   tenantId?: string;
 }
 
-/** The store a configuration names, after `--store=` and `BRIDGE_STORE`. */
+/**
+ * The URL in `BRIDGE_STORE_FILE`: a file named and missing or empty stops the Bridge with why (second reading of
+ * 4.1.18 PR 4: an empty secret fell back to each instance's own journal, a split store without a word).
+ */
+function storeFromFile(file: string): string {
+  if (!existsSync(file)) throw new Error(`BRIDGE_STORE_FILE: ${file} does not exist`);
+  const url = readFileSync(file, 'utf8').trim();
+  if (!url) throw new Error(`BRIDGE_STORE_FILE: ${file} is empty`);
+  return url;
+}
+
+/**
+ * The store a configuration names, after `--store=`, `BRIDGE_STORE` and `BRIDGE_STORE_FILE` (4.1.18: the URL read from
+ * a file, so a database password is mounted as a secret file, never in an environment a process listing shows).
+ */
 export const storeSpec = (file: StoreFile, args: string[], env = process.env): string =>
-  opt(args, 'store') ?? (env.BRIDGE_STORE || undefined) ?? file.store ?? 'jsonl';
+  opt(args, 'store') ??
+  (env.BRIDGE_STORE || undefined) ??
+  (env.BRIDGE_STORE_FILE ? storeFromFile(env.BRIDGE_STORE_FILE) : undefined) ??
+  file.store ??
+  'jsonl';
 
 /** `sqlite` alone means the file `bridge.sqlite` beside config.json. */
 const normal = (spec: string) => (spec === 'sqlite' ? 'sqlite:bridge.sqlite' : spec);

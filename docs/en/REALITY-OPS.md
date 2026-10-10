@@ -181,6 +181,15 @@ every 5 s should a wake-up be lost). Delivery is at least once and applied once 
 streams (`streamsPerInstance`, 10 000; then 429) and its per-connector minute (with N instances a connector may
 propose N times its quota). A stored row that no longer verifies is quarantined, never delivered, and `doctor` lists it.
 
+## The reference deployment (4.1.18)
+
+`ops/qualify/` is the distributed profile as a reproducible deployment: an HTTPS proxy (Caddy), three Bridges built
+from the `web-scumm-bridge` tarball, one Postgres, two tenants, every image pinned by digest, the Bridges read-only and
+unprivileged, the database password and URL as secret files (`BRIDGE_STORE_FILE`), Postgres never published.
+`npm run ops:qualify` brings it up and kills an instance during proposals, holds a stream on another, checks the
+tenants apart, then backs up, destroys the topology with its database and restores it (`ops/qualify/README.md`). The
+`distributed` profile stays `experimental` until the person's pass behind a real domain (24 to 48 hours) is `passed`.
+
 ## Health, measures, backups
 
 - `GET /livez`: the process answers. `GET /readyz`: the store answers (503 otherwise). `GET /healthz`: both, with

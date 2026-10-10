@@ -320,9 +320,38 @@ jobs:
           for i in $(seq 1 30); do docker exec consumer-pg pg_isready -U bridge && break; sleep 2; done
           echo "CONSUMER_PG_URL=postgres://bridge:bridge@127.0.0.1:55432/bridge" >> "$GITHUB_ENV"
       - run: node scripts/external-consumer.mjs --tarballs=candidate-pack --from=4.1.17
+  # The Bridge's qualification profile (4.1.18, plan §8) built from this candidate's own `web-scumm-bridge` archive:
+  # three instances behind HTTPS on Postgres, an instance killed with proposals in flight, the tenants apart, backup,
+  # the topology destroyed and restored (scripts/ops-qualify.mjs; its report kept with the run).
+  deployment-smoke:
+    needs: [target, pack]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.target.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+        timeout-minutes: 15
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: candidate-pack
+          path: candidate-pack
+      - run: npm run ops:qualify -- --tarballs=candidate-pack --out=deployment-smoke
+      - if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: deployment-smoke
+          path: deployment-smoke
+          if-no-files-found: ignore
+          overwrite: true
   # The terminal gate: every job above `success` (a skipped or cancelled job is red), then the manifest of this run.
   candidate-gate:
-    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation, pack, external-consumer]
+    needs: [target, release-core, heavy, bridge-load-sqlite, bridge-load-postgres, cross-runtime, worker-container, mutation, pack, external-consumer, deployment-smoke]
     # A pull request without `full-ci` skips `target`: then there is no candidate to judge, and no red check either.
     if: always() && needs.target.result != 'skipped'
     runs-on: ubuntu-24.04
