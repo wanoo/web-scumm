@@ -185,23 +185,31 @@ describe('the busy wait', () => {
 });
 
 describe('opening and closing', () => {
-  it('a new file in a new directory is created 0600 before SQLite opens it, then switched to WAL', async () => {
-    const file = join(dir, 'new', 'deep.sqlite');
-    const seen: (number | 'missing')[] = [];
-    hooks.opening = (f) => seen.push(existsSync(f) ? statSync(f).mode & 0o777 : 'missing');
-    const s = await open(file);
-    expect(seen).toEqual([0o600]);
-    expect(await s.db.all('PRAGMA journal_mode')).toEqual([{ journal_mode: 'wal' }]);
-  });
+  // POSIX modes, and a file named `:memory:` (Windows has neither): the mutation sets run on Linux.
+  it.skipIf(process.platform === 'win32')(
+    'a new file in a new directory is created 0600 before SQLite opens it, then switched to WAL',
+    async () => {
+      const file = join(dir, 'new', 'deep.sqlite');
+      const seen: (number | 'missing')[] = [];
+      hooks.opening = (f) => seen.push(existsSync(f) ? statSync(f).mode & 0o777 : 'missing');
+      const s = await open(file);
+      expect(seen).toEqual([0o600]);
+      expect(await s.db.all('PRAGMA journal_mode')).toEqual([{ journal_mode: 'wal' }]);
+    },
+  );
 
-  it('a file someone else left 0644 is the owner’s only once opened, its WAL too', async () => {
-    const file = fresh();
-    writeFileSync(file, '');
-    chmodSync(file, 0o644);
-    await open(file);
-    expect(statSync(file).mode & 0o777).toBe(0o600);
-    expect(statSync(`${file}-wal`).mode & 0o777).toBe(0o600);
-  });
+  // POSIX modes, and a file named `:memory:` (Windows has neither): the mutation sets run on Linux.
+  it.skipIf(process.platform === 'win32')(
+    'a file someone else left 0644 is the owner’s only once opened, its WAL too',
+    async () => {
+      const file = fresh();
+      writeFileSync(file, '');
+      chmodSync(file, 0o644);
+      await open(file);
+      expect(statSync(file).mode & 0o777).toBe(0o600);
+      expect(statSync(`${file}-wal`).mode & 0o777).toBe(0o600);
+    },
+  );
 
   it('a WAL switch answered in another mode is tried again until the journal is WAL', async () => {
     const answers = ['delete'];
@@ -211,21 +219,25 @@ describe('opening and closing', () => {
     expect(await s.db.all('PRAGMA journal_mode')).toEqual([{ journal_mode: 'wal' }]);
   });
 
-  it('":memory:" touches no file of that name, and is not switched to WAL', async () => {
-    const cwd = process.cwd();
-    const here = mkdtempSync(join(dir, 'cwd-'));
-    process.chdir(here);
-    try {
-      await open(':memory:', { busyMs: 50 });
-      expect(existsSync(':memory:')).toBe(false);
-      writeFileSync(':memory:', '');
-      chmodSync(':memory:', 0o644);
-      await open(':memory:', { busyMs: 50 });
-      expect(statSync(':memory:').mode & 0o777).toBe(0o644);
-    } finally {
-      process.chdir(cwd);
-    }
-  });
+  // POSIX modes, and a file named `:memory:` (Windows has neither): the mutation sets run on Linux.
+  it.skipIf(process.platform === 'win32')(
+    '":memory:" touches no file of that name, and is not switched to WAL',
+    async () => {
+      const cwd = process.cwd();
+      const here = mkdtempSync(join(dir, 'cwd-'));
+      process.chdir(here);
+      try {
+        await open(':memory:', { busyMs: 50 });
+        expect(existsSync(':memory:')).toBe(false);
+        writeFileSync(':memory:', '');
+        chmodSync(':memory:', 0o644);
+        await open(':memory:', { busyMs: 50 });
+        expect(statSync(':memory:').mode & 0o777).toBe(0o644);
+      } finally {
+        process.chdir(cwd);
+      }
+    },
+  );
 
   it('closed once: a second close does nothing, and the connection is closed', async () => {
     const s = await SqliteRealityStore.open(':memory:', { migrate: false });
