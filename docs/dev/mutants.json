@@ -652,14 +652,6 @@
  },
  {
   "file": "connectors/src/badges/crypto.ts",
-  "operator": "boolean",
-  "from": "false",
-  "to": "true",
-  "context": "return false;",
-  "why": "verifyJws's catch: each branch calls node:crypto `verify` only with the key type it was checked to be (ed25519 with null, ec with ieee-p1363, rsa with sha256), and for those `verify` answers false for any signature buffer (empty, short, odd, oversized: tried, 4.1.18) and never throws, so the catch is never reached; it stays as a guard (the same context in verifyEddsaJcs is killed by tests/connectors-badges-mutants.test.ts, an x25519 key)"
- },
- {
-  "file": "connectors/src/badges/crypto.ts",
   "operator": "condition false",
   "from": "!sig || sig.length !== 64",
   "to": "false",

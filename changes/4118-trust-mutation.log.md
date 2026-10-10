@@ -16,5 +16,11 @@
 - Then both sets measured whole on the merged branch, and gated: `GATED` lists every set, the four workflows run
   seven jobs, the nightly's separate reality-store job is gone, and `release.yml` reads the tag's own `GATED` (a
   set's presence said nothing: both existed, not gated, since 4.1.9 and 4.1.10).
+- The second reading (an automated second context) confirmed the source changes behave as before, and found
+  `release.yml`'s new step unsafe: any failure to import the tag's `tools/mutation-sets.ts` (every tag before 4.1.17
+  has no `GATED`) was read as "not gated" and skipped every set silently. It now tells 0 gated, 3 not gated, 4 no
+  `GATED` (the old detection, never for the two sets gated from 4.1.18 on) and stops the release on anything else
+  (the four cases tried locally). One equivalence it doubted — verifyJws's catch, "verify never throws" — is a test
+  now (node:crypto mocked to throw: the signature is refused); no real key made OpenSSL throw.
 
 → next: Claude · 4.1.18 PR 3, the archives consumed outside the repository on three systems

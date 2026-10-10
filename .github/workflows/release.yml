@@ -53,11 +53,24 @@ jobs:
       - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       # 4.1.16: a set the tag's commit does not gate is not this tag's gate (a set added to the matrix later). 4.1.18:
-      # read from that commit's `GATED`, not from the set's presence: `connectors` and `reality-store` existed,
-      # measured and not gated, long before 4.1.18 gated them.
+      # read from that commit's `GATED` (`connectors` and `reality-store` existed, measured and not gated, long before
+      # 4.1.18 gated them): 0 gated, 3 not gated, 4 no `GATED` export (a tag before 4.1.17: the sets it defines, as before,
+      # but never the two gated from 4.1.18 on); anything else — an import that fails, tsx that does not start — stops the release rather
+      # than skip a gate (second reading of 4.1.18 PR 2).
       - id: has
+        shell: bash
         run: |
-          if npx tsx -e "import('./tools/mutation-sets.ts').then((m) => process.exit(m.GATED.includes('${{ matrix.set }}') ? 0 : 1))"; then echo "set=yes" >> "$GITHUB_OUTPUT"; else echo "::notice::the set ${{ matrix.set }} is not gated by this tag's commit"; fi
+          code=0
+          npx tsx -e "import('./tools/mutation-sets.ts').then((m) => process.exit(!Array.isArray(m.GATED) ? 4 : m.GATED.includes('${{ matrix.set }}') ? 0 : 3), (e) => { console.error(e); process.exit(2); })" || code=$?
+          case "$code" in
+            0) echo "set=yes" >> "$GITHUB_OUTPUT" ;;
+            3) echo "::notice::the set ${{ matrix.set }} is not gated by this tag's commit" ;;
+            4) case "${{ matrix.set }}" in
+                 connectors|reality-store) echo "::notice::the set ${{ matrix.set }} was gated from 4.1.18 on, after this tag" ;;
+                 *) if grep -Eq "^  '?${{ matrix.set }}'?: \[" tools/mutation-sets.ts; then echo "set=yes" >> "$GITHUB_OUTPUT"; else echo "::notice::the set ${{ matrix.set }} predates this tag"; fi ;;
+               esac ;;
+            *) echo "::error::tools/mutation-sets.ts could not be read (exit $code): no gate is skipped on a failure"; exit 1 ;;
+          esac
       - id: inputs
         if: steps.has.outputs.set == 'yes'
         run: echo "hash=$(npx tsx tools/mutate.ts --set=${{ matrix.set }} --hash)" >> "$GITHUB_OUTPUT"

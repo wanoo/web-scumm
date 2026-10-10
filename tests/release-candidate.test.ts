@@ -99,6 +99,14 @@ describe('the workflows that judge a candidate', () => {
     ).toEqual(GATED);
   });
 
+  it("let release.yml skip a mutation set only when the tag's commit says it is not gated, never on a failure", () => {
+    const step = wf('release').slice(wf('release').indexOf('- id: has'), wf('release').indexOf('- id: inputs'));
+    expect(step).toContain('m.GATED.includes(');
+    expect(step).toMatch(/\*\) echo "::error::[^"]*"; exit 1 ;;/);
+    expect(step).toMatch(/connectors\|reality-store\) echo "::notice::/);
+    expect(step).not.toMatch(/if npx tsx/);
+  });
+
   it('judge every job in the terminal gate, which then writes the manifest', () => {
     const text = wf('candidate');
     const needs = text
