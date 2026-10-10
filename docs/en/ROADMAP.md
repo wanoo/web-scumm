@@ -611,6 +611,19 @@ views with 105 tests; every public export carries `@public` or `@extension` and 
 written by the baseline; a links script. Left for later, said as such: the human passes of the sheet
 (`docs/dev/passes/4.1.8.md`), the release workflow's acceleration (its own lot), the assistant tab's 845 lines.
 
+## v4.1.18 "Dress Rehearsal" (shipped 10 October 2026): the rehearsal of 4.2
+
+The last qualification before 4.2 "Stable World" (`docs/dev/PLAN-4.1.18-DRESS-REHEARSAL.md`, D32, four pull requests
+and the release). No new mechanic. The people's passes become reports bound to the candidate they tried (the Field
+Kit: `npm run field:*`), each an open `field-pass` issue the maintainer closes once made. `connectors` and
+`reality-store` are gated mutation sets (322 survivors read; an SSH backspace bug found). The candidate packs the four
+archives once, installs them outside the repository on Ubuntu, macOS and Windows (a 4.1.17 game moved to them, the
+Bridge and a connector scenario from their archives; two Windows bugs of the package found and fixed) and the release
+publishes those very files. The Bridge has a reproducible qualification profile (`ops/qualify/`: HTTPS, three
+instances, Postgres, two tenants) that a smoke kills with proposals in flight, destroys and restores. The
+[GO / NO-GO 4.2](../dev/GO-NO-GO-4.2.md) says, surface by surface, what 4.2 may promise: NO-GO today, every people's
+pass still to make.
+
 ## v4.1.17 "Stabilization" (shipped 9 October 2026): the truth made green before the tag
 
 The release after 4.1.16's first nightly went red after its tag (`docs/dev/PLAN-4.1.17-STABILIZATION.md`, seven pull
@@ -801,6 +814,7 @@ release (D12); the next version opens only when the current one's blockers are c
 | 4.1.15 | **Remix** (shipped 7 October 2026) | controlled variance of a game, deterministic by seed, with provable solvability; the DSL frozen after it |
 | 4.1.16 | **Convergence** (shipped 8 October 2026) | the published capabilities made to work together: a run bound to its world, durable leaderboards, a minigame's result in the story, Remix and Time Attack checked in four runtimes |
 | 4.1.17 | **Stabilization** (shipped 9 October 2026) | the truth made green before the tag: a tag stands on a candidate run, leaderboards and admission right at any size and across instances, a minigame's result proved, Remix and Speedrun gated by mutation |
+| 4.1.18 | **Dress Rehearsal** (shipped 10 October 2026) | the rehearsal of 4.2: the Field Kit, every mutation set gated, the archives consumed outside the repository on three systems, the Bridge's qualification profile, the GO / NO-GO 4.2 |
 | 4.2.0 | **Stable World** | the contracts frozen, the compiled package on npm, the human passes done, a first real reference game |
 
 The order is meant: dependencies and integrity before connectors; connectors prove the Bridge before it is distributed;
