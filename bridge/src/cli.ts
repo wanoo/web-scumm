@@ -268,7 +268,9 @@ export async function main(args: string[], game?: { manifest: RealityManifest | 
     const first = files[0]!;
     const spec = storeSpec(first, args);
     if (files.length > 1 && /^jsonl$/.test(spec)) {
-      console.error('✖  several tenants share a SQL store: --store=sqlite:<file>, BRIDGE_STORE=postgres://… or BRIDGE_STORE_FILE');
+      console.error(
+        '✖  several tenants share a SQL store: --store=sqlite:<file>, BRIDGE_STORE=postgres://… or BRIDGE_STORE_FILE',
+      );
       return 1;
     }
     const telemetry = await loadTelemetry(process.env, (line) =>
