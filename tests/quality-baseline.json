@@ -312,6 +312,11 @@
    "inputs": 7,
    "last": "23325ca7"
   },
+  "demo-4.1.18.json": {
+   "ended": true,
+   "inputs": 7,
+   "last": "23325ca7"
+  },
   "demo-4.1.2.json": {
    "ended": true,
    "inputs": 7,
@@ -357,8 +362,8 @@
   "api": "a029b70768d9feba"
  },
  "tests": {
-  "files": 237,
-  "declarations": 1811
+  "files": 238,
+  "declarations": 1814
  },
  "bundle": {
   "initialJsKB": 133

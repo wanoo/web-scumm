@@ -3739,3 +3739,136 @@ sources; the recorder's live RTA counts from a resume before the run's start (it
   workflow's `| tee`), then a new candidate, `v4.1.17-rc.2` and `v4.1.17` on its commit.
 
 → next: Claude · 4.2.0 "Stable World": the human passes first (D18), the signed tag (D30)
+
+## #156 · 2026-10-09 · Claude · proposal · 4.1.18 PR 1 — the Field Kit: a people's pass as a report bound to its candidate
+
+- The plan `docs/dev/PLAN-4.1.18-DRESS-REHEARSAL.md` (the maintainer's, committed here; D32 adopts its §17
+  recommendations) starts with what needs nobody: the passes as data. 4.1.17's sheet had thirteen rows "not done",
+  read by `scripts/release-notes.mjs` as text; nothing could tell a pass of another commit, evidence that changed, or a
+  failure from a pass not made.
+- `tools/field/schema.ts` (zod, strict: an unknown field is refused), `tools/field/secrets.ts` (keys and tokens
+  refused, addresses, bearers, password values and IPs redacted in logs), `tools/field/field.ts` (`init`, `check`,
+  `report`, `bundle`). The thirteen ids are stable and untranslated. A candidate of 4.1.17 lists `.wsrun` files and the
+  e2e report, not the tarballs (release.yml packs them): a report is bound to every digest the manifest names; PR 3
+  brings the tarballs into the candidate.
+- Tests first (`tests/field-kit.test.ts`, the plan's §5.5): another commit, run or digest; evidence missing or
+  changed; `passed` without its time, operator, environment, scenario or evidence, or with a failure; a failed pass
+  without its failure, a blocked one without its reason, a pass not run with a time; an unknown field, two reports of
+  one pass, a missing pass; an address, a bearer or a key in a report or its evidence; `--require`; the sheet's
+  thirteen rows and counts; 4.1.17's sheet still read; the bundle's redaction, refusal and `tar`.
+- The Postgres service of ci, the candidate and the nightly (and the development compose) is pulled from
+  `mirror.gcr.io`, the same digest: a shared runner meets Docker Hub's anonymous pull limit (`toomanyrequests`, seen on
+  two jobs on 9 October), and a red `bridge-postgres` for a registry's quota is a red gate for nothing.
+- `e2e:remix-speedrun` follows the Daily rule across midnight: a run sent after its UTC day is practice (valid, not
+  ranked). PR #88's cross-runtime job started at 23:58 UTC, signed the day of 9 October and submitted on the 10th: the
+  Bridge said `ranked null`, rightly, and the e2e called it a failure.
+- The second reading (an automated second context) found the Field Kit too trusting: a token or an address spelt
+  with a JSON escape passed the scan and came back whole in the sheet; `access_token`, `DB_PASSWORD`, `clientSecret`
+  and a URL's credentials were not redacted; a `.har` or `.env` was never read; evidence could be a link out of the
+  folder, an archive, or the manifest itself (a `passed` with no evidence at all); a person's `\r`, `\|` or
+  `<!-- field:end -->` could add a row or hide the table; the release notes counted a `failed` in any cell. Each now
+  has its test, red on the code before: decoded JSON scanned, names inside identifiers, text told by content, evidence
+  only a regular file under `evidence/` inside the folder, cells escaped, the status column alone. The docs say what
+  the binding is: integrity against the manifest beside the reports, not authenticity.
+
+→ next: Claude · 4.1.18 PR 2, `connectors` and `reality-store` read and gated
+
+
+## #157 · 2026-10-09 · Claude · proposal · 4.1.18 PR 3 — the archives consumed outside the repository, on three systems, from the candidate
+
+- `scripts/fresh-install.mjs` (3.9) packed and installed the archives on Linux, but finished the game with the
+  repository's own `scripts/e2e.mjs`, moved folders with `mv`, polled with `curl`, stopped servers by process group,
+  and built the Bridge's manifest with the repository's `tools/game.ts`: nothing of that runs on Windows, and part of
+  it was the checkout, not the package. `scripts/external-consumer.mjs` does it with Node's own APIs and the packages'
+  public faces only (`web-scumm/testing`, the binaries), and adds what the plan asks: the archives read, a game of the
+  older release moved over them with its save, and a connector scenario through the installed Bridge.
+- The connector scenario first failed with `player`: the Bridge knows a player only once paired. It now does what a
+  player does: the game's `POST /v1/pairings`, the code mailed to the connector (`--pair` grant), then the letter.
+- Tried on the maintainer's Mac against 4.1.16 → this checkout before the CI: every step green.
+- The candidate packs once (`pack`), and `external-consumer` installs those archives on Ubuntu (22 with Postgres, 24),
+  macOS and Windows; the manifest names them (`pack/…`), `release.yml` publishes them after checking their sums and
+  attaches the connectors' archive, which it packed but never published until now.
+- Windows found two bugs of the package itself: `scripts/pack.mjs` ran esbuild's `.bin` shim and `npm` without the
+  shell (a `.cmd` there; now esbuild's API and npm through the shell, arguments quoted), and `web-scumm build` failed in
+  a folder named by its 8.3 short form (`RUNNER~1`, Rolldown refused the page's name): the CLI and the Vite config take
+  real paths. And Git's GNU tar, first on a bash PATH, read `D:\…` as a host: Windows' own tar is used.
+- The second reading (an automated second context) found the harness would have failed every candidate job while it
+  passed locally: the candidate's archives lie under the checkout, and npm writes the path it installed from into
+  package.json, which the leak check refuses. The archives are copied beside the consumer first (tried locally with
+  the archives under the checkout). Also: the Postgres and SQLite Bridges shared a port with a 1.5 s pause (now two
+  ports, an early exit seen, every stop awaited), the connector was signalled through npx (now its bin by node).
+
+→ next: Claude · 4.1.18 PR 4, the Bridge's qualification profile built from these archives
+
+
+## #158 · 2026-10-10 · Claude · proposal · 4.1.18 PR 2 — the connectors and the stores under mutation: 322 survivors read, both sets gated
+
+- Measured fresh on 0f5854f on the runner (`mutation.yml`): `reality-store` 170/289 killed, 118 unexplained;
+  `connectors` 459/663, 204 unexplained. The tests of those sets never exercised what the plan's §6.4 lists: no MIME
+  size, depth or part limit, no JWS of another algorithm against a key (`none` with an Ed25519 key), no private JWK
+  turned public, no redirect followed on a 404, no concurrent migration step, no read-only export snapshot.
+- Read in seven slices by seven sub-agents in parallel (each its own branch and file of short tests, the mutants run on
+  the runner per file, never on the maintainer's Mac; each mutant applied by hand against the new file first):
+  store-sqlite 72/72, store-sql 85/85, migrations 20/21 (one named), store-memory 74/74, streams 34/34 (one old
+  equivalence now killed and removed), sdk 153/153, mime 158/163 (five named), badges crypto 85/88 and fetch 93/95
+  (five named), terminal line 101/101 and vfs 45/45.
+- Source changes, each said why: SQLite's statement chain without the `:memory:` special case (never a key); the
+  SDK's refusal map takes the code as `unknown`, a 5xx on the last try ends on the same refusal; base58's loops on
+  `while (n)` (a BigInt never negative; the mutant was an endless loop); MIME's latin1 by Buffer's codec. One real bug:
+  backspace after a multi-byte character in an SSH pty kept the lead byte.
+- Then both sets measured whole on the merged branch, and gated: `GATED` lists every set, the four workflows run
+  seven jobs, the nightly's separate reality-store job is gone, and `release.yml` reads the tag's own `GATED` (a
+  set's presence said nothing: both existed, not gated, since 4.1.9 and 4.1.10).
+- The second reading (an automated second context) confirmed the source changes behave as before, and found
+  `release.yml`'s new step unsafe: any failure to import the tag's `tools/mutation-sets.ts` (every tag before 4.1.17
+  has no `GATED`) was read as "not gated" and skipped every set silently. It now tells 0 gated, 3 not gated, 4 no
+  `GATED` (the old detection, never for the two sets gated from 4.1.18 on) and stops the release on anything else
+  (the four cases tried locally). One equivalence it doubted — verifyJws's catch, "verify never throws" — is a test
+  now (node:crypto mocked to throw: the signature is refused); no real key made OpenSSL throw.
+
+→ next: Claude · 4.1.18 PR 3, the archives consumed outside the repository on three systems
+
+
+## #159 · 2026-10-10 · Claude · proposal · 4.1.18 PR 4 — the Bridge's qualification profile, and a smoke that destroys and restores it
+
+- `bridge/dev/docker-compose.yml` was a Postgres for development; nothing composed the topology REALITY-OPS calls
+  distributed. `ops/qualify/` does (`compose.yml`, `Caddyfile`, `Dockerfile.bridge`, README): a proxy with a local CA
+  and one port per instance for the qualification, three Bridges built from the tarball, Postgres on an internal
+  network, two tenants by `--tenants … --tenant-header`; `BRIDGE_STORE_FILE` so the URL is a secret file.
+- `npm run ops:qualify` (the maintainer's Mac has no Docker: brought up on the runner, `qualify.yml`, draft #73):
+  images pinned (pulled from `mirror.gcr.io`, the same digests: Docker Hub's anonymous limit hit the first try);
+  six players paired over HTTPS; 120 proposals while bridge-2 is killed then started, every fifth sent twice (each
+  applied once, 24 duplicates said); every sequence contiguous; a stream on bridge-1 receiving what the others
+  accepted, in order, once; each tenant's capability and token refused by the other; backup, the topology and its
+  volume destroyed, a new empty database, restore by a one-off container before the instances (started first, they
+  registered their tenants and the restore refused a non-empty store), every player as before, the next proposal at
+  21. Nine steps green.
+- Not inside this topology yet, said as such (README): the speedrun queue and its workers, Daily and Mystery, quotas,
+  moderation, a 4.1.17 store's migration — each judged by its own job; the 24–48 h behind a real domain is the human
+  pass `bridge-postgres-https` (#77).
+
+→ next: Claude · 4.1.18 release: the candidate with the new families, the passes sheet, GO / NO-GO 4.2
+
+## #160 · 2026-10-10 · Claude · release · 4.1.18 "Dress Rehearsal"
+
+- The maintainer's goal of 9 October: "after the release of 4.1.17, do the release of 4.1.18" on
+  `docs/dev/PLAN-4.1.18-DRESS-REHEARSAL.md` (D32 adopts its §17 recommendations). Phase A, done by Claude: #89 (the
+  Field Kit), #90 (`connectors` and `reality-store` gated), #74 (the archives consumed outside the repository on three
+  systems, from the candidate), #73 (the Bridge's qualification profile). Each read a second time by a sub-agent
+  before its merge; every reading found real defects (a pass that could be `passed` with the manifest as evidence, a
+  release gate skipped on an unreadable file, a harness that would have failed every candidate job, a Bridge behind
+  its proxy without `--trust-proxy`), each fixed with its test.
+- Phase B, the people's passes, is the maintainer's: thirteen open `field-pass` issues (#75 to #87), at the
+  maintainer's request ("every test a person must make is an open issue I close after my tests"). D12: they do not
+  block the tag; D18: no surface is promoted without them. Phase C's fixes wait on their reports.
+- The release commit: the fragments assembled (#156 → #159), version 4.1.18, the golden save `demo-4.1.18.json`, the
+  reference run re-recorded, README en/fr, ROADMAP en/fr, PROGRAM, UPGRADING §30 en/fr, the pass sheet (the plan's
+  §18 criteria answered, 0 of 13 passes made), the baseline sheet, `docs/dev/GO-NO-GO-4.2.md` (NO-GO today, surface by
+  surface), a test that keeps SUPPORT and the GO / NO-GO from promoting a surface without its pass, and the candidate
+  checking any committed Field Kit report.
+- Not done, said as such: every people's pass; the qualification profile without the speedrun queue, Daily, Mystery,
+  quotas and moderation inside its topology; the signed tag and npm (4.2).
+
+→ next: the maintainer · the thirteen `field-pass` issues; then Claude · the field fixes (`fix/4118-field-<id>`) and
+  4.2.0 "Stable World" once the GO / NO-GO turns
+
