@@ -170,8 +170,8 @@ class Window {
   }
 }
 
-/** The Bridge's error code (`{ error }`) → the SDK's vocabulary. */
-function refusalOf(status: number, code: string | undefined): RefusalCode {
+/** The Bridge's error code (`{ error }`, whatever its type: it is only compared with strings) → the SDK's vocabulary. */
+function refusalOf(status: number, code: unknown): RefusalCode {
   if (status === 413) return 'too-large';
   if (status === 422) return 'not-declared';
   if (status === 404) return code === 'pairing' ? 'pairing' : 'player';
@@ -222,9 +222,9 @@ export function createContext(o: ContextOptions): ConnectorContext & { close(): 
     const text = await r.text();
     let json: Record<string, unknown> = {};
     try {
-      json = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+      json = JSON.parse(text) as Record<string, unknown>;
     } catch {
-      /* not JSON: the status says enough */
+      /* not JSON (an empty body included): the status says enough */
     }
     return { status: r.status, json };
   };
@@ -264,8 +264,9 @@ export function createContext(o: ContextOptions): ConnectorContext & { close(): 
           log(duplicate ? 'signal.duplicate' : 'signal.accepted', { kind: s.kind, sequence });
           return { ok: true, sequence, duplicate };
         }
-        if (r.status >= 500 && i < tries - 1) continue;
-        return refuse(refusalOf(r.status, typeof r.json.error === 'string' ? r.json.error : undefined), s.kind);
+        // A 5xx on the last try ends the loop: `refuse('bridge')` below, what `refusalOf` gives every 5xx.
+        if (r.status >= 500) continue;
+        return refuse(refusalOf(r.status, r.json.error), s.kind);
       } catch (e) {
         if (i < tries - 1) continue;
         return refuse((e as Error)?.name === 'TimeoutError' ? 'timeout' : 'unreachable', s.kind);
@@ -283,7 +284,7 @@ export function createContext(o: ContextOptions): ConnectorContext & { close(): 
         log('pairing.confirmed', { playerId: r.json.playerId });
         return { ok: true as const, playerId: r.json.playerId };
       }
-      return refuse(refusalOf(r.status, typeof r.json.error === 'string' ? r.json.error : undefined));
+      return refuse(refusalOf(r.status, r.json.error));
     } catch (e) {
       return refuse((e as Error)?.name === 'TimeoutError' ? 'timeout' : 'unreachable');
     }

@@ -110,7 +110,9 @@ async function measure(): Promise<Baseline> {
   b.tests = {
     files: testFiles.length,
     declarations: testFiles.reduce(
-      (n, f) => n + (readFileSync(f, 'utf8').match(/^\s*(it|test)(\.each\([^)]*\))?\(/gm)?.length ?? 0),
+      // A test skipped or run on a condition (`it.skipIf(…)(`, `it.runIf(…)(`, 4.1.18) is a declaration too.
+      (n, f) =>
+        n + (readFileSync(f, 'utf8').match(/^\s*(it|test)(\.each\([^)]*\)|\.(skipIf|runIf)\(.*\))?\(/gm)?.length ?? 0),
       0,
     ),
   };

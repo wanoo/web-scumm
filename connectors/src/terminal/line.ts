@@ -83,9 +83,11 @@ export class LineAssembler {
       if (b === 0x04 && this.bytes.length === 0) return this.on.eof?.();
       if (b === 0x7f || b === 0x08) {
         if (this.bytes.length) {
-          // Back over one UTF-8 character.
-          do this.bytes.pop();
-          while (this.bytes.length && (this.bytes[this.bytes.length - 1]! & 0xc0) === 0x80);
+          // Back over one UTF-8 character: continuation bytes, then the byte that leads them (4.1.18: the lead byte
+          // was left behind). On an empty array `pop` gives undefined, and `undefined & 0xc0` is 0: the loop ends.
+          let gone: number;
+          do gone = this.bytes.pop()!;
+          while ((gone & 0xc0) === 0x80);
           this.on.echo?.('\b \b');
         }
         return;
