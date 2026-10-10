@@ -208,7 +208,8 @@ tenants apart, then backs up, destroys the topology with its database and restor
   records are written in one transaction, read back and compared before it commits. A conflict (a tenant, a run of its
   tenants, a daily key) refuses it without `--force`; with `--force` they are replaced in the same transaction. A
   failure says "nothing restored" and leaves the store as it was; a difference found after the commit is said as a P0
-  (exit code 3). It needs a SQL store: the JSON-lines journal is refused before it is touched (migrate it to SQLite,
+  (exit code 3; stop the Bridge's instances during a restore, so that a difference cannot come from their writes; a
+  lost answer to the commit itself is said as such, also with code 3). It needs a SQL store: the JSON-lines journal is refused before it is touched (migrate it to SQLite,
   then restore). Rehearsed by `tests/bridge-backup.test.ts` and `tests/bridge-ops.test.ts`.
 - The backup is logical, portable and bounded. For a large deployment, `pg_dump` or the provider's snapshots remain
   the backup of the database itself.

@@ -8,6 +8,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import {
   closeSync,
+  constants,
   existsSync,
   fstatSync,
   fsyncSync,
@@ -199,12 +200,12 @@ const RunSchema = z.strictObject({
   category_id: ident,
   player: text(256),
   submitted_at: bigint,
-  status: text(64),
-  verdict: nullable(text(64)),
-  code: nullable(text(256)),
-  reason: nullable(text(8192)),
-  trust: text(64),
-  ranked: nullable(text(64)),
+  status: text(1024),
+  verdict: nullable(text(1 << 16)),
+  code: nullable(text(1 << 16)),
+  reason: nullable(text(1 << 20)),
+  trust: text(1024),
+  ranked: nullable(text(1024)),
   seed_kind: nullable(text(64)),
   world_hash: nullable(text(256)),
   world_mode: nullable(text(64)),
@@ -212,7 +213,8 @@ const RunSchema = z.strictObject({
   leaderboard_key: nullable(text(1024)),
   run_key: text(512),
   delete_token_hash: text(256),
-  envelope: text(8 << 20),
+  // Bounded by the file (`--max-bytes`), not here: the runs service's own limit is the operator's to raise.
+  envelope: z.string(),
   lease_owner: nullable(text(256)),
   lease_until: nullable(bigint),
 });
@@ -379,10 +381,13 @@ export function readBounded(path: string, max: number): string {
   const l = lstatSync(path, { throwIfNoEntry: false });
   if (!l) throw new BackupError(`${path} does not exist`);
   if (l.isSymbolicLink() || !l.isFile()) throw new BackupError(`${path} is not a regular file`);
-  const fd = openSync(path, 'r');
+  // No link followed where the system can refuse one (a link swapped in after the lstat), and the file opened must be
+  // the one looked at.
+  const fd = openSync(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
   try {
     const st = fstatSync(fd);
-    if (!st.isFile()) throw new BackupError(`${path} is not a regular file`);
+    if (!st.isFile() || st.ino !== l.ino || st.dev !== l.dev)
+      throw new BackupError(`${path} is not a regular file (or changed while it was opened)`);
     if (st.size > max) throw new BackupError(`${path} holds ${st.size} bytes, more than ${max} (--max-bytes=)`);
     const buf = Buffer.alloc(st.size + 1);
     let got = 0;
@@ -489,13 +494,15 @@ async function sqlSnapshot(
       const [v] = await q.all('SELECT MAX(version) AS v FROM schema_migrations');
       const ids = (await q.all(TENANTS_SQL)).map((r) => String(r.tenant_id)).sort();
       const tenants: TenantExport[] = [];
-      for (const id of ids) tenants.push(await exportTenantIn(q, id));
-      const runs = (await q.all(`SELECT ${RUN_COLUMNS.join(', ')} FROM runs ORDER BY tenant_id, id`)).map((r) =>
-        normalRow(r, RUN_COLUMNS),
-      );
-      const daily = (await q.all(`SELECT ${DAILY_COLUMNS.join(', ')} FROM daily_kv ORDER BY k`)).map((r) =>
-        normalRow(r, DAILY_COLUMNS),
-      );
+      // Every list in code-unit order, never the database's collation: the same store gives the same file from
+      // SQLite and from Postgres.
+      for (const id of ids) tenants.push(normalTenant(await exportTenantIn(q, id)));
+      const runs = (await q.all(`SELECT ${RUN_COLUMNS.join(', ')} FROM runs`))
+        .map((r) => normalRow(r, RUN_COLUMNS))
+        .sort(byCodeUnit(runKey));
+      const daily = (await q.all(`SELECT ${DAILY_COLUMNS.join(', ')} FROM daily_kv`))
+        .map((r) => normalRow(r, DAILY_COLUMNS))
+        .sort(byCodeUnit((r) => String(r.k)));
       return { payload: { tenants, runs, daily }, schema: Number(v?.v ?? 0) };
     },
     { readOnly: true },
@@ -567,47 +574,48 @@ class RestoreMismatch extends Error {}
 export async function restoreBackup(
   store: SqlRealityStore,
   p: BackupPayload,
-  o: { force: boolean },
+  o: { force: boolean; carriesRuns: boolean },
 ): Promise<RestoreOutcome> {
   const tenantIds = p.tenants.map((t) => t.tenantId);
-  const runTenants = [...new Set([...tenantIds, ...p.runs.map((r) => String(r.tenant_id))])].sort();
+  // The tenants whose runs the file speaks for: every tenant of a file that carries runs (schema 2 and 3: a tenant
+  // without runs there had none), only the runs' own tenants otherwise (a schema 1 file never knew of leaderboards: it
+  // neither refuses over them nor deletes them).
+  const runTenants = [
+    ...new Set([...(o.carriesRuns ? tenantIds : []), ...p.runs.map((r) => String(r.tenant_id))]),
+  ].sort();
   const dailyKeys = p.daily.map((r) => String(r.k));
-  const marks = (xs: unknown[], from = 1) => xs.map((_, i) => `$${i + from}`).join(', ');
+  let committing = false;
   try {
     return await store.db.tx('backup:restore', async (q: SqlQuery): Promise<RestoreOutcome> => {
       const held = new Set((await q.all(TENANTS_SQL)).map((r) => String(r.tenant_id)));
       const clash = tenantIds.filter((t) => held.has(t));
-      const heldRuns = runTenants.length
-        ? Number(
-            (await q.all(`SELECT COUNT(*) AS n FROM runs WHERE tenant_id IN (${marks(runTenants)})`, runTenants))[0]
-              ?.n ?? 0,
-          )
-        : 0;
+      let heldRuns = 0;
+      for (const part of chunks(runTenants))
+        heldRuns += Number(
+          (await q.all(`SELECT COUNT(*) AS n FROM runs WHERE tenant_id IN (${marks(part)})`, part))[0]?.n ?? 0,
+        );
       const heldDaily: string[] = [];
-      for (let i = 0; i < dailyKeys.length; i += 500) {
-        const part = dailyKeys.slice(i, i + 500);
+      for (const part of chunks(dailyKeys))
         for (const r of await q.all(`SELECT k FROM daily_kv WHERE k IN (${marks(part)})`, part))
           heldDaily.push(String(r.k));
-      }
       if (!o.force && (clash.length || heldRuns || heldDaily.length))
         return {
           ok: false,
           why: `the store already holds ${[
-            clash.length ? `tenant(s) ${clash.join(', ')}` : '',
+            clash.length ? `tenant(s) ${clash.slice(0, 20).join(', ')}${clash.length > 20 ? '…' : ''}` : '',
             heldRuns ? `${heldRuns} run(s) of these tenants` : '',
             heldDaily.length ? `${heldDaily.length} daily record(s)` : '',
           ]
             .filter(Boolean)
             .join(', ')}: restore into an empty store, or --force`,
         };
-      for (const t of p.tenants) await importTenantIn(q, t, clash.includes(t.tenantId));
-      if (o.force && runTenants.length)
-        await q.run(`DELETE FROM runs WHERE tenant_id IN (${marks(runTenants)})`, runTenants);
+      const clashing = new Set(clash);
+      for (const t of p.tenants) await importTenantIn(q, t, clashing.has(t.tenantId));
       if (o.force)
-        for (let i = 0; i < heldDaily.length; i += 500) {
-          const part = heldDaily.slice(i, i + 500);
-          await q.run(`DELETE FROM daily_kv WHERE k IN (${marks(part)})`, part);
-        }
+        for (const part of chunks(runTenants))
+          await q.run(`DELETE FROM runs WHERE tenant_id IN (${marks(part)})`, part);
+      if (o.force)
+        for (const part of chunks(heldDaily)) await q.run(`DELETE FROM daily_kv WHERE k IN (${marks(part)})`, part);
       // The columns are this file's list, never the backup's keys: nothing the file says is spliced into a statement.
       const insert = (table: string, cols: readonly string[]) =>
         `INSERT INTO ${table} (${cols.join(', ')}) VALUES (${marks([...cols])})`;
@@ -621,61 +629,71 @@ export async function restoreBackup(
           insert('daily_kv', DAILY_COLUMNS),
           DAILY_COLUMNS.map((c) => normalRow(r, DAILY_COLUMNS)[c]),
         );
-      // Read back before the commit: what decides success is checked while it can still be undone.
-      for (const t of p.tenants)
-        if (stableJson(await exportTenantIn(q, t.tenantId)) !== stableJson(normalTenant(t)))
-          throw new RestoreMismatch(`tenant ${t.tenantId} does not read back as the backup holds it`);
-      if (runTenants.length) {
-        const back = (
-          await q.all(
-            `SELECT ${RUN_COLUMNS.join(', ')} FROM runs WHERE tenant_id IN (${marks(runTenants)}) ORDER BY tenant_id, id`,
-            runTenants,
-          )
-        ).map((r) => normalRow(r, RUN_COLUMNS));
-        const want = p.runs
-          .map((r) => normalRow(r, RUN_COLUMNS))
-          .sort((a, b) => {
-            const x = `${String(a.tenant_id)}\u0000${String(a.id)}`;
-            const y = `${String(b.tenant_id)}\u0000${String(b.id)}`;
-            return x < y ? -1 : x > y ? 1 : 0;
-          });
-        if (back.length !== want.length || stableJson(back) !== stableJson(want))
-          throw new RestoreMismatch('the runs do not read back as the backup holds them');
-      }
-      for (const r of p.daily) {
-        const [b] = await q.all(`SELECT ${DAILY_COLUMNS.join(', ')} FROM daily_kv WHERE k = $1`, [r.k]);
-        if (!b || stableJson(normalRow(b, DAILY_COLUMNS)) !== stableJson(normalRow(r, DAILY_COLUMNS)))
-          throw new RestoreMismatch(`the daily record ${String(r.k)} does not read back as the backup holds it`);
-      }
+      // Read back before the commit: what decides success is checked while it can still be undone. Both sides are put
+      // in the same order here (by code unit), never the database's: a collation may order ids otherwise.
+      const why = await differs(q, p, runTenants);
+      if (why) throw new RestoreMismatch(why);
+      committing = true;
       return { ok: true, tenants: p.tenants.length, runs: p.runs.length, daily: p.daily.length };
     });
   } catch (e) {
     if (e instanceof RestoreMismatch) return { ok: false, why: e.message };
+    // Everything was written and checked: only the commit itself failed. A lost connection there may have committed.
+    if (committing) throw new RestoreUnknown((e as Error).message);
     throw e;
   }
 }
 
+/** The commit's answer was lost: the restore may or may not be in the store. */
+export class RestoreUnknown extends Error {}
+
+const marks = (xs: unknown[], from = 1) => xs.map((_, i) => `$${i + from}`).join(', ');
+/** Lists of at most 500 values: well under SQLite's and Postgres' limits on a statement's parameters. */
+function chunks<T>(xs: T[], size = 500): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < xs.length; i += size) out.push(xs.slice(i, i + size));
+  return out;
+}
+const byCodeUnit = (key: (r: Row) => string) => (a: Row, b: Row) => {
+  const x = key(a);
+  const y = key(b);
+  return x < y ? -1 : x > y ? 1 : 0;
+};
+const runKey = (r: Row) => `${String(r.tenant_id)}\u0000${String(r.id)}`;
+
+/** What the store holds that the file does not say (tenants, runs of `runTenants`, daily records); undefined if none. */
+async function differs(q: SqlQuery, p: BackupPayload, runTenants: string[]): Promise<string | undefined> {
+  for (const t of p.tenants)
+    if (stableJson(normalTenant(await exportTenantIn(q, t.tenantId))) !== stableJson(normalTenant(t)))
+      return `tenant ${t.tenantId} does not read back as the backup holds it`;
+  const back: Row[] = [];
+  for (const part of chunks(runTenants))
+    for (const r of await q.all(`SELECT ${RUN_COLUMNS.join(', ')} FROM runs WHERE tenant_id IN (${marks(part)})`, part))
+      back.push(normalRow(r, RUN_COLUMNS));
+  const want = p.runs.map((r) => normalRow(r, RUN_COLUMNS));
+  back.sort(byCodeUnit(runKey));
+  want.sort(byCodeUnit(runKey));
+  if (stableJson(back) !== stableJson(want)) return 'the runs do not read back as the backup holds them';
+  for (const r of p.daily) {
+    const [b] = await q.all(`SELECT ${DAILY_COLUMNS.join(', ')} FROM daily_kv WHERE k = $1`, [r.k]);
+    if (!b || stableJson(normalRow(b, DAILY_COLUMNS)) !== stableJson(normalRow(r, DAILY_COLUMNS)))
+      return `the daily record ${String(r.k)} does not read back as the backup holds it`;
+  }
+  return undefined;
+}
+
 /**
- * After the commit, a separate health reading (an audit, not the condition of success): each restored tenant's export
- * and the runs and daily records counted again. A difference here is a fault of the backend, a P0.
+ * After the commit, a separate health reading (an audit, not the condition of success): the same comparison, in a new
+ * read-only transaction. With the Bridge stopped during the restore (REALITY-OPS), a difference is a fault of the
+ * backend, a P0; a Bridge left running may have written meanwhile, which the audit cannot tell apart.
  */
-export async function auditRestore(store: SqlRealityStore, p: BackupPayload): Promise<string | undefined> {
-  return store.db.tx(
-    undefined,
-    async (q) => {
-      for (const t of p.tenants)
-        if (stableJson(await exportTenantIn(q, t.tenantId)) !== stableJson(normalTenant(t)))
-          return `tenant ${t.tenantId} differs after the commit`;
-      for (const r of p.daily)
-        if (!(await q.all('SELECT k FROM daily_kv WHERE k = $1', [r.k])).length)
-          return `the daily record ${String(r.k)} is missing after the commit`;
-      const ids = [...new Set(p.runs.map((r) => String(r.tenant_id)))];
-      let n = 0;
-      for (const id of ids)
-        n += Number((await q.all('SELECT COUNT(*) AS n FROM runs WHERE tenant_id = $1', [id]))[0]?.n ?? 0);
-      if (n !== p.runs.length) return `${n} run(s) found after the commit, ${p.runs.length} restored`;
-      return undefined;
-    },
-    { readOnly: true },
-  );
+export async function auditRestore(
+  store: SqlRealityStore,
+  p: BackupPayload,
+  o: { carriesRuns: boolean },
+): Promise<string | undefined> {
+  const runTenants = [
+    ...new Set([...(o.carriesRuns ? p.tenants.map((t) => t.tenantId) : []), ...p.runs.map((r) => String(r.tenant_id))]),
+  ].sort();
+  return store.db.tx(undefined, (q) => differs(q, p, runTenants), { readOnly: true });
 }

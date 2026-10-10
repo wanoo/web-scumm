@@ -72,7 +72,11 @@ if (PG_URL)
       const pg = await pgModule();
       const name = `bridge_backup_${randomBytes(4).toString('hex')}`;
       const admin = new pg.Pool({ connectionString: PG_URL });
-      await admin.query(`CREATE DATABASE ${name}`);
+      // A collation that orders ids otherwise than code units (en_US, the default of most images), when the server
+      // has it: the read-back must not depend on the database's order.
+      await admin
+        .query(`CREATE DATABASE ${name} TEMPLATE template0 LC_COLLATE 'en_US.UTF-8' LC_CTYPE 'en_US.UTF-8'`)
+        .catch(() => admin.query(`CREATE DATABASE ${name}`));
       const url = new URL(PG_URL);
       url.pathname = `/${name}`;
       const a = await PostgresRealityStore.open(url.toString(), { pg });
@@ -118,7 +122,8 @@ function tenant(id: string, n = 2): TenantExport {
     ),
     acks: [{ playerId: 'p-0', through: 2 }],
     revokedTokens: ['tok-1'],
-    keys: [{ tenantId: id, keyId: 'k1', publicKey: 'pub-1' }],
+    // Ids whose order depends on the collation (mixed case, `-` and `_`): a Postgres in en_US orders them otherwise.
+    keys: ['k1', 'Kb', 'ka', 'k_-'].map((keyId) => ({ tenantId: id, keyId, publicKey: `pub-${keyId}` })),
     quarantine: [{ tenantId: id, playerId: 'p-0', sequence: 9, reason: 'unreadable', at: 7 }],
     pairings: [{ code: 'ABCD-1234', gameId: 'g', expiresAt: 3_000, playerId: 'p-0', claimed: true }],
   };
@@ -150,12 +155,12 @@ const runRow = (tenantId: string, id: string): Record<string, unknown> => ({
 const dailyRow = (k: string) => ({ k, v: '{"token":"t"}', created_at: 7 });
 
 async function fill(s: SqlRealityStore, p: BackupPayload): Promise<void> {
-  const r = await restoreBackup(s, p, { force: false });
+  const r = await restoreBackup(s, p, { force: false, carriesRuns: true });
   expect(r.ok, r.ok ? '' : r.why).toBe(true);
 }
 const payload = (): BackupPayload => ({
   tenants: [tenant('t-a'), tenant('t-b', 3)],
-  runs: [runRow('t-a', 'r1'), runRow('t-a', 'r2'), runRow('t-b', 'r1')],
+  runs: [runRow('t-a', 'run_Ab'), runRow('t-a', 'run_aa'), runRow('t-a', 'run_-z'), runRow('t-b', 'r1')],
   daily: [dailyRow('daily|g|2026-10-10'), dailyRow('mystery|g|x')],
 });
 /** The whole store as one canonical text: two equal texts are the same logical store. */
@@ -191,7 +196,7 @@ describe('the backup file', () => {
     const b = await makeBackup(s);
     expect(b.schema).toBe(3);
     expect(b.store).toEqual({ kind: 'sqlite', schema: 4 });
-    expect(b.counts).toMatchObject({ tenants: 2, players: 5, signals: 15, runs: 3, daily: 2, pairings: 2 });
+    expect(b.counts).toMatchObject({ tenants: 2, players: 5, signals: 15, runs: 4, daily: 2, pairings: 2 });
     expect(b.digest.value).toBe(payloadDigest(b.payload));
     const text = JSON.stringify(b);
     expect(readBackup(text).payload).toEqual(b.payload);
@@ -199,7 +204,7 @@ describe('the backup file', () => {
     forged.payload.runs[0].ranked = '1';
     expect(() => readBackup(JSON.stringify(forged))).toThrow(/digest/);
     const recounted = JSON.parse(text);
-    recounted.counts.runs = 4;
+    recounted.counts.runs = 5;
     expect(() => readBackup(JSON.stringify(recounted))).toThrow(/counts/);
     expect(() => readBackup(text.slice(0, -20))).toThrow(BackupError);
   });
@@ -237,7 +242,7 @@ describe('the backup file', () => {
       ['a tenant id that is not one', (p) => void (p.tenants[1]!.tenantId = 'bad tenant!'), /tenant/],
       ['a tenant twice', (p) => void p.tenants.push(tenant('t-a')), /twice/],
       ['a player twice', (p) => void p.tenants[0]!.players.push({ ...p.tenants[0]!.players[0]! }), /twice/],
-      ['a run twice', (p) => void p.runs.push(runRow('t-a', 'r1')), /twice/],
+      ['a run twice', (p) => void p.runs.push(runRow('t-a', 'run_aa')), /twice/],
       ['a daily record twice', (p) => void p.daily.push(dailyRow('mystery|g|x')), /twice/],
       ['a run of a tenant not carried', (p) => void p.runs.push(runRow('t-z', 'r9')), /does not carry/],
       [
@@ -303,8 +308,8 @@ describe.each(KINDS)('restore on $name: all or nothing', (kind) => {
     await fill(source, payload());
     const b = await makeBackup(source);
     const { a: target } = await kind.open();
-    const r = await restoreBackup(target, readBackup(JSON.stringify(b)).payload, { force: false });
-    expect(r).toEqual({ ok: true, tenants: 2, runs: 3, daily: 2 });
+    const r = await restoreBackup(target, readBackup(JSON.stringify(b)).payload, { force: false, carriesRuns: true });
+    expect(r).toEqual({ ok: true, tenants: 2, runs: 4, daily: 2 });
     expect((await makeBackup(target)).digest.value).toBe(b.digest.value);
   });
 
@@ -312,14 +317,15 @@ describe.each(KINDS)('restore on $name: all or nothing', (kind) => {
     const { a: s } = await kind.open();
     await fill(s, { tenants: [tenant('t-a', 1)], runs: [runRow('t-a', 'old')], daily: [dailyRow('mystery|g|x')] });
     const before = await state(s);
-    const r = await restoreBackup(s, payload(), { force: false });
+    const r = await restoreBackup(s, payload(), { force: false, carriesRuns: true });
     expect(r.ok).toBe(false);
     expect(r.ok ? '' : r.why).toMatch(/t-a.*run\(s\).*daily record/);
     expect(await state(s)).toBe(before);
-    const f = await restoreBackup(s, payload(), { force: true });
+    const f = await restoreBackup(s, payload(), { force: true, carriesRuns: true });
     expect(f.ok).toBe(true);
     const after = (await makeBackup(s)).payload;
-    expect(after.runs.map((x) => x.id)).toEqual(['r1', 'r2', 'r1']);
+    // In code-unit order whatever the database's collation: the same file from SQLite and Postgres.
+    expect(after.runs.map((x) => x.id)).toEqual(['run_-z', 'run_Ab', 'run_aa', 'r1']);
     expect(after.tenants.find((t) => t.tenantId === 't-a')!.players).toHaveLength(2);
   });
 
@@ -330,7 +336,7 @@ describe.each(KINDS)('restore on $name: all or nothing', (kind) => {
     const p = payload();
     // Past the file's checks on purpose: the database itself refuses the last statement, after every tenant was written.
     p.daily.push(dailyRow('daily|g|2026-10-10'));
-    await expect(restoreBackup(s, p, { force: false })).rejects.toThrow();
+    await expect(restoreBackup(s, p, { force: false, carriesRuns: true })).rejects.toThrow();
     expect(await state(s)).toBe(before);
   });
 
@@ -344,7 +350,7 @@ describe.each(KINDS)('restore on $name: all or nothing', (kind) => {
       { playerId: 'p-0', through: 2 },
       { playerId: 'p-0', through: 3 },
     ];
-    const r = await restoreBackup(s, p, { force: false });
+    const r = await restoreBackup(s, p, { force: false, carriesRuns: true });
     expect(r.ok).toBe(false);
     expect(await state(s)).toBe(before);
   });
@@ -396,6 +402,10 @@ describe.each(KINDS)('restore on $name: all or nothing', (kind) => {
     const small = join(dir, 'small.json');
     const big = await cli(['backup', `--dir=${dir}`, `--store=${url}`, `--out=${small}`, '--max-bytes=100']);
     expect(big.code).toBe(1);
+    // A bound that is not a positive integer is refused, never read as "no bound".
+    for (const bad of ['--max-bytes=abc', '--max-rows=0', '--max-bytes=-1'])
+      expect((await cli(['backup', `--dir=${dir}`, `--store=${url}`, `--out=${small}`, bad])).code, bad).toBe(2);
+    expect((await cli(['backup', `--dir=${dir}`, `--store=${url}`, `--out=${small}`, '--max-rows=5'])).code).toBe(1);
     expect(existsSync(small)).toBe(false);
     const before = await state(s);
     const forged = JSON.parse(readFileSync(out, 'utf8'));
@@ -419,6 +429,40 @@ describe.each(KINDS)('restore on $name: all or nothing', (kind) => {
     expect(forced.out).toContain('checked before and after the commit');
     expect(await state(s)).toBe(before);
   });
+});
+
+describe.each(KINDS)('restore on $name: what a file does not carry', (kind) => {
+  it('a schema 1 file (no runs) neither refuses over the leaderboards nor deletes them, even with --force', async () => {
+    const { a: s } = await kind.open();
+    await fill(s, payload());
+    const one = { tenants: [tenant('t-a')], runs: [], daily: [] };
+    const r = await restoreBackup(s, one, { force: true, carriesRuns: false });
+    expect(r.ok, r.ok ? '' : r.why).toBe(true);
+    expect((await makeBackup(s)).payload.runs).toHaveLength(4);
+    // A schema 2 or 3 file that carries a tenant without runs says it had none: --force replaces them.
+    expect((await restoreBackup(s, one, { force: true, carriesRuns: true })).ok).toBe(true);
+    expect((await makeBackup(s)).payload.runs.map((x) => x.tenant_id)).toEqual(['t-b']);
+  });
+
+  it('more tenants than one statement’s list holds (chunks of 500)', async () => {
+    const { a: s } = await kind.open();
+    const many = Array.from({ length: 1_203 }, (_, i) => ({
+      tenantId: `t-${String(i).padStart(4, '0')}`,
+      players: [{ playerId: 'p', gameId: 'g', capabilityHash: 'h', capabilityExpiresAt: 1 }],
+      signals: [],
+      acks: [],
+      revokedTokens: [],
+      keys: [],
+      quarantine: [],
+      pairings: [],
+    }));
+    const p = { tenants: many, runs: [runRow('t-1202', 'r')], daily: [] };
+    expect((await restoreBackup(s, p, { force: false, carriesRuns: true })).ok).toBe(true);
+    const again = await restoreBackup(s, p, { force: false, carriesRuns: true });
+    expect(again.ok ? '' : again.why).toMatch(/1 run\(s\)/);
+    expect((await restoreBackup(s, p, { force: true, carriesRuns: true })).ok).toBe(true);
+    expect((await makeBackup(s)).counts).toMatchObject({ tenants: 1_203, runs: 1 });
+  }, 60_000);
 });
 
 describe('the journal', () => {

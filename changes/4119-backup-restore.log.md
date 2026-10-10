@@ -25,4 +25,21 @@
   - the journal refused.
 - It runs on SQLite, and on Postgres in CI's `bridge-postgres` job, one database per case.
 
+- The second reading (an automated second context) found eight defects, all fixed:
+  - **The read-back compared the database's order.** Under a non-C collation (en_US, the default of most Postgres),
+    a real leaderboard would have failed every restore. Both sides are now ordered by code unit, and so is the
+    backup itself: the same store gives the same file from SQLite and from Postgres. The tests now create their
+    Postgres databases in en_US, with mixed-case ids.
+  - **A schema 1 file deleted leaderboards it never knew of under `--force`.** Only files that carry runs now speak
+    for their tenants' runs.
+  - **The `IN` lists were not chunked.** They now go in chunks of 500.
+  - **An audit difference was announced as a P0 whatever its cause.** REALITY-OPS now says to stop the Bridge
+    during a restore, and the audit's own failure is caught.
+  - **A lost answer to the COMMIT was said as "rolled back".** It is now said as unknown, with exit code 3.
+  - **`--max-bytes=abc` disabled the bound.** A bound must now be a positive integer, otherwise the exit code is 2.
+  - **The file read could follow a swapped link.** It is now opened with `O_NOFOLLOW` and its `ino` and `dev` are
+    compared.
+  - **Text caps were narrower than what produces the rows.** They were widened, and `envelope` is now bounded by the
+    file.
+
 → next: Claude · PR 2 (artefacts and Field Kit), PR 4 (leftovers)

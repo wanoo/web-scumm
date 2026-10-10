@@ -14,6 +14,7 @@ import {
   makeBackup,
   readBackup,
   readBounded,
+  RestoreUnknown,
   restoreBackup,
   writeAtomic,
 } from './backup';
@@ -99,6 +100,15 @@ export async function openStore(
 }
 
 const say = (s: string) => console.log(s);
+
+/** A bound given on the command line: a positive integer, its default when absent; undefined (said) otherwise. */
+function bound(args: string[], k: string, fallback: number): number | undefined {
+  const v = opt(args, k);
+  if (v === undefined) return fallback;
+  if (/^[1-9]\d{0,15}$/.test(v)) return Number(v);
+  console.error(`✖  --${k}=${v}: a positive integer`);
+  return undefined;
+}
 
 /** The commands of this file; undefined when `cmd` is not one of them. */
 export async function storeCommand(
@@ -250,8 +260,9 @@ export async function storeCommand(
       console.error('usage: backup --out=<file> [--max-bytes=<n>] [--max-rows=<n>]');
       return 2;
     }
-    const maxBytes = Number(opt(args, 'max-bytes') ?? MAX_BACKUP_BYTES);
-    const maxRows = Number(opt(args, 'max-rows') ?? MAX_BACKUP_ROWS);
+    const maxBytes = bound(args, 'max-bytes', MAX_BACKUP_BYTES);
+    const maxRows = bound(args, 'max-rows', MAX_BACKUP_ROWS);
+    if (maxBytes === undefined || maxRows === undefined) return 2;
     const store = await openStore(spec, dir, file, { lock: false });
     try {
       // Schema 3 (4.1.19, ADR 0021): one snapshot of every family, its counts and digest in the envelope.
@@ -287,9 +298,11 @@ export async function storeCommand(
       return 2;
     }
     // Everything is read and checked before the store is opened: a file refused touches nothing.
+    const maxBytes = bound(args, 'max-bytes', MAX_BACKUP_BYTES);
+    if (maxBytes === undefined) return 2;
     let read: ReturnType<typeof readBackup>;
     try {
-      read = readBackup(readBounded(resolve(from), Number(opt(args, 'max-bytes') ?? MAX_BACKUP_BYTES)));
+      read = readBackup(readBounded(resolve(from), maxBytes));
     } catch (e) {
       if (e instanceof BackupError) {
         console.error(`✖  ${e.message}: nothing restored`);
@@ -309,6 +322,7 @@ export async function storeCommand(
         console.error('✖  restore needs a SQL store (--store=sqlite or postgres://…): nothing restored');
         return 1;
       }
+      const carriesRuns = read.schema >= 2;
       const at = await store.schemaVersion();
       if (read.storeSchema !== null && read.storeSchema > at) {
         console.error(
@@ -318,8 +332,14 @@ export async function storeCommand(
       }
       let outcome: Awaited<ReturnType<typeof restoreBackup>>;
       try {
-        outcome = await restoreBackup(store, read.payload, { force: args.includes('--force') });
+        outcome = await restoreBackup(store, read.payload, { force: args.includes('--force'), carriesRuns });
       } catch (e) {
+        if (e instanceof RestoreUnknown) {
+          console.error(
+            `✖  the commit's answer was lost (${e.message}): the restore may or may not be in the store; run \`doctor\` and take a backup to see which`,
+          );
+          return 3;
+        }
         console.error(`✖  the restore failed and was rolled back, nothing restored: ${(e as Error).message}`);
         return 1;
       }
@@ -328,9 +348,16 @@ export async function storeCommand(
         return 1;
       }
       // An audit after the commit: a difference here is the backend's fault, a P0, said as such.
-      const wrong = await auditRestore(store, read.payload);
+      let wrong: string | undefined;
+      try {
+        wrong = await auditRestore(store, read.payload, { carriesRuns });
+      } catch (e) {
+        wrong = `the audit could not read it back (${(e as Error).message})`;
+      }
       if (wrong) {
-        console.error(`✖  P0: the restore committed but ${wrong}; stop the Bridge and keep this store for inspection`);
+        console.error(
+          `✖  P0: the restore committed but ${wrong}. If a Bridge was serving this store meanwhile, its writes may explain it; otherwise keep this store for inspection`,
+        );
         return 3;
       }
       say(

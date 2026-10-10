@@ -222,7 +222,9 @@ la passe humaine derrière un vrai domaine (24 à 48 heures) n'est pas `passed`.
   store ; tenants, runs et enregistrements quotidiens sont écrits dans une seule transaction, relus et comparés avant
   sa validation. Un conflit (un tenant, une run de ses tenants, une clé quotidienne) le refuse sans `--force` ; avec
   `--force`, ils sont remplacés dans la même transaction. Un échec dit « rien restauré » et laisse le store tel qu'il
-  était ; une différence trouvée après la validation est annoncée comme un P0 (code de sortie 3). Il faut un store
+  était ; une différence trouvée après la validation est annoncée comme un P0 (code de sortie 3 ; arrêter les instances
+  du Bridge pendant une restauration, pour qu'une différence ne puisse pas venir de leurs écritures ; une réponse perdue
+  à la validation elle-même est dite comme telle, avec le code 3 aussi). Il faut un store
   SQL : le journal JSON-lines est refusé avant d'être touché (le migrer vers SQLite, puis restaurer). Répété par
   `tests/bridge-backup.test.ts` et `tests/bridge-ops.test.ts`.
 - La sauvegarde est logique, portable et bornée. Pour un gros déploiement, `pg_dump` ou les instantanés du
