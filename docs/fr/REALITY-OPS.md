@@ -211,10 +211,22 @@ la passe humaine derrière un vrai domaine (24 à 48 heures) n'est pas `passed`.
   d'OpenTelemetry quand `@opentelemetry/api` est installé à côté du Bridge, exportées en OTLP quand
   `OTEL_EXPORTER_OTLP_ENDPOINT` est défini et `@opentelemetry/sdk-node` installé. Attributs : le tenant et un code,
   jamais un joueur ni un contenu.
-- `npm run bridge -- backup --out=<fichier>` écrit chaque tenant (une transaction chacun) dans un fichier en mode 600 :
-  des empreintes de capacités, jamais une capacité ni une clé. `restore --from=<fichier>` l'écrit dans un store vide
-  (`--force` remplace les tenants qu'il contient). Les deux sont répétés par `tests/bridge-ops.test.ts`. Sur
-  Postgres, `pg_dump` reste la sauvegarde de la base elle-même.
+- `npm run bridge -- backup --out=<fichier>` (4.1.19, schéma 3, ADR 0021) écrit tout le store comme **un seul
+  instantané** (tenants, runs et enregistrements quotidiens lus dans une seule transaction en lecture) dans un fichier
+  en mode 600, écrit dans un fichier temporaire puis renommé : des empreintes de capacités, jamais une capacité ni une
+  clé. Son enveloppe donne le backend, les versions du Bridge et du schéma SQL, le début et la fin, les comptes par
+  famille et un SHA-256 du contenu. Borné : un store au-delà de `--max-rows` (2 000 000) ou un fichier au-delà de
+  `--max-bytes` (256 Mio) est refusé, sans fichier écrit.
+- `restore --from=<fichier>` est **tout ou rien** : le fichier est lu de façon bornée et vérifié en entier (schémas 1,
+  2 et 3 ; chaque ligne, les doublons, les relations, les comptes et l'empreinte du schéma 3) avant l'ouverture du
+  store ; tenants, runs et enregistrements quotidiens sont écrits dans une seule transaction, relus et comparés avant
+  sa validation. Un conflit (un tenant, une run de ses tenants, une clé quotidienne) le refuse sans `--force` ; avec
+  `--force`, ils sont remplacés dans la même transaction. Un échec dit « rien restauré » et laisse le store tel qu'il
+  était ; une différence trouvée après la validation est annoncée comme un P0 (code de sortie 3). Il faut un store
+  SQL : le journal JSON-lines est refusé avant d'être touché (le migrer vers SQLite, puis restaurer). Répété par
+  `tests/bridge-backup.test.ts` et `tests/bridge-ops.test.ts`.
+- La sauvegarde est logique, portable et bornée. Pour un gros déploiement, `pg_dump` ou les instantanés du
+  fournisseur restent la sauvegarde de la base elle-même.
 - `tenant export --tenant=<id> [--out=<fichier>]`, `tenant delete --tenant=<id> --yes` : les lignes d'un tenant, dans
   toutes les tables.
 
