@@ -460,7 +460,9 @@ Mystery entry. New commands: `npm run runs:load`, `npm run e2e:worker-container`
 4.1.17 project upgrades with `migrate` (the candidate does it on three systems).
 
 **For a Bridge operator.** `BRIDGE_STORE_FILE` reads the store's URL from a file (a secret mounted as a file); named
-and missing or empty, it stops the Bridge with why. `ops/qualify/` is a reference deployment (HTTPS, three instances,
+and missing or empty, it stops the Bridge with why; `--store=` and `BRIDGE_STORE` still come first. `backup` writes
+schema 2 on a SQL store: the leaderboards (`runs`) and the daily challenge's records too, which a 4.1.17 backup left
+out — take a new backup after upgrading; `restore` reads both schemas and refuses existing runs without `--force`. `ops/qualify/` is a reference deployment (HTTPS, three instances,
 Postgres) to carry elsewhere; `npm run ops:qualify` rehearses it. The release now also attaches
 `web-scumm-connectors-<version>.tgz`.
 

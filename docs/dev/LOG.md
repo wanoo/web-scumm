@@ -3866,6 +3866,14 @@ sources; the recorder's live RTA counts from a resume before the run's start (it
   §18 criteria answered, 0 of 13 passes made), the baseline sheet, `docs/dev/GO-NO-GO-4.2.md` (NO-GO today, surface by
   surface), a test that keeps SUPPORT and the GO / NO-GO from promoting a surface without its pass, and the candidate
   checking any committed Field Kit report.
+- The release's own second reading (an automated second context) found the plan's criterion 7 unmet, not "by other
+  jobs": `bridge backup` wrote the tenants only, and a restore lost every run and every daily token. Fixed before the
+  tag: backup schema 2 (`runs`, `daily_kv`; `run_quota` left out, minute buckets), restored identically, refused over
+  existing runs without `--force`, a column the file names that is not an identifier refused (tested). It also found
+  the GO / NO-GO calling stable two surfaces whose plan pass is optional and one whose pass is not (archives: now
+  limited until #75), the support test too easy to satisfy (now reads both languages, the GO verdicts, and counts a
+  pass only from a folder that checks), the baseline naming the wrong removed equivalent, and two Windows fixes missing
+  from the CHANGELOG.
 - Not done, said as such: every people's pass; the qualification profile without the speedrun queue, Daily, Mystery,
   quotas and moderation inside its topology; the signed tag and npm (4.2).
 

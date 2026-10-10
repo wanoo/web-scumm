@@ -134,7 +134,7 @@ Mesuré sur ce commit de `main`, par les gates automatiques qui tournent à chaq
 
 | Quoi | Résultat |
 |---|---|
-| Tests unitaires | <!-- metric:tests -->1814<!-- /metric --> déclarations, sous Node 22 et 24, avec des planchers de couverture par module et des tests de mutation sur ce dont dépendent une sauvegarde, une session, une condition et un signal |
+| Tests unitaires | <!-- metric:tests -->1816<!-- /metric --> déclarations, sous Node 22 et 24, avec des planchers de couverture par module et des tests de mutation sur ce dont dépendent une sauvegarde, une session, une condition et un signal |
 | Tests navigateur | le jeu d'exemple joué jusqu'à sa fin au tactile et au clavier dans Chromium et WebKit à la taille d'un téléphone, en anglais et en français, avec le peintre DOM et le peintre Canvas ; un second jeu et le jeu de référence aussi ; chaque mini-jeu gagné au clavier ; axe-core sur chaque écran |
 | Sauvegardes | une sauvegarde figée par release de la 3.0.0 à la 4.1.18 se charge et atteint la fin |
 | Preuve | chaque état atteignable du jeu d'exemple en quelques secondes ; un jeu de référence de 40 pièces en <!-- metric:referenceStates -->288<!-- /metric --> états ; 500 jeux aléatoires de chacune de trois sortes comparés à une recherche explicite chaque nuit, 0 divergence ([BENCH](docs/fr/BENCH.md)) |
@@ -170,8 +170,8 @@ dépôt sous Linux, macOS et Windows par le candidat lui-même ; un déploiement
 instances, Postgres) est tué, détruit et restauré sans signal perdu ni doublé ; chaque ensemble de mutation est
 bloquant, connecteurs et stores compris ; et les treize passes que seules des personnes peuvent faire sont des rapports
 liés au candidat essayé (le Field Kit), chacune une issue ouverte tant qu'elle n'est pas faite. Aucune surface n'est
-promue sans sa passe : le [GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md) dit lesquelles peuvent entrer en 4.2. Sur la gate
-candidate de la 4.1.17, la convergence de la 4.1.16 (un run lié à son
+promue sans la passe qu'il lui faut : le [GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md) dit lesquelles peuvent entrer en 4.2. Sur le contrôle
+du candidat de la 4.1.17, la convergence de la 4.1.16 (un run lié à son
 monde, des classements durables), les mondes de la 4.1.15, les runs et les preuves de la 4.1.14, le solveur de la 4.1.13, le jeu en
 données de la 4.1.12, la scène de la 4.1.11, le Bridge durable de la 4.1.10, les connecteurs de la 4.1.9 et la
 fondation de la 4.1.8. De la 4.1.1 à la 4.1.7 chaque

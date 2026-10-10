@@ -13,6 +13,14 @@ signed and nothing is published to npm: both are 4.2's (D30, D18).
 
 ### Fixed
 
+- **`web-scumm build` on Windows in a folder named in its 8.3 short form** (4.1.18): a project under
+  `C:\Users\RUNNER~1\…` failed (Rolldown refused the page's name, a path between the short and the long form); the
+  CLI and the Vite config take real paths. **`scripts/pack.mjs` on Windows**: esbuild by its API, npm through the
+  shell. Both found by installing the archives on Windows.
+- **A Bridge backup carries the leaderboards and the daily challenge** (4.1.18): `backup` wrote the tenants only, and
+  a restore lost every run and every Daily or Mystery token; it is schema 2 now (`runs` and `daily_kv`, on a SQL store),
+  schema 1 still restores, and a restore over existing runs needs `--force`.
+
 - **Backspace in an SSH terminal erases a whole character** (4.1.18): on a pty, deleting after a multi-byte UTF-8
   character (`é`) left its lead byte behind (`aé` then backspace gave `a�`): the loop looked at the byte left in the
   buffer, not the one it had just removed. Found by the connectors' mutation reading.

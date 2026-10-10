@@ -129,7 +129,7 @@ the three figures from `tests/quality-baseline.json`):
 
 | What | Result |
 |---|---|
-| Unit tests | <!-- metric:tests -->1814<!-- /metric --> declarations, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
+| Unit tests | <!-- metric:tests -->1816<!-- /metric --> declarations, in Node 22 and 24, with coverage floors per module and mutation testing on what a save, a session, a condition and a signal rest on |
 | Browser tests | the sample game played to its ending by touch and by keyboard in Chromium and WebKit at a phone's size, in English and French, with the DOM and the Canvas painter; a second game and the reference game too; every minigame won at the keyboard; axe-core on every screen |
 | Saves | one frozen save per release from 3.0.0 to 4.1.18 loads and reaches the ending |
 | Proof | the sample game's every reachable state in seconds; a 40-room reference game in <!-- metric:referenceStates -->288<!-- /metric --> states; 500 random games of each of three kinds compared to an explicit search every night, 0 divergences ([BENCH](docs/en/BENCH.md)) |
@@ -163,7 +163,7 @@ mechanic, the rehearsal of 4.2 "Stable World". The four archives are installed o
 macOS and Windows by the candidate itself; a reference deployment of the Bridge (HTTPS, three instances, Postgres) is
 killed, destroyed and restored without a lost or doubled signal; every mutation set is gated, the connectors and the
 stores included; and the thirteen passes only people can make are reports bound to the candidate they tried (the
-Field Kit), each an open issue until it is made. No surface is promoted without its pass: [GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md)
+Field Kit), each an open issue until it is made. No surface is promoted without the pass it needs: [GO / NO-GO 4.2](docs/dev/GO-NO-GO-4.2.md)
 says which can enter 4.2. On 4.1.17's candidate gate, 4.1.16's convergence (a run bound to its world, durable leaderboards), 4.1.15's worlds,
 4.1.14's runs and proofs, 4.1.13's solver, 4.1.12's game-as-data, 4.1.11's scene frame, 4.1.10's durable Bridge,
 4.1.9's connectors and 4.1.8's foundation.

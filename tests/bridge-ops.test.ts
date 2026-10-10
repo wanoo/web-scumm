@@ -2,7 +2,7 @@
 // taken, the store lost, the backup restored, and the players' journals read back identical; a tenant exported and
 // deleted from the command line; `/livez`, `/readyz`, `/healthz`; the measures in the process and through an
 // OpenTelemetry API when one is given; `trust-proxy` by allowlist.
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -111,6 +111,71 @@ describe('moving a 4.1.9 journal into SQLite', () => {
 });
 
 describe('backup and restore, rehearsed', () => {
+  it('carries the leaderboards and the daily challenge too (schema 2, 4.1.18), and refuses a column it cannot name', async () => {
+    const dir = tmp('backup-runs');
+    await journalWithSignals(dir);
+    expect((await cli(['migrate', `--dir=${dir}`, '--from=jsonl', '--to=sqlite'])).code).toBe(0);
+    const { DatabaseSync } = await import('node:sqlite');
+    const db = new DatabaseSync(join(dir, 'bridge.sqlite'));
+    const run = (id: string, ranked: string | null) =>
+      db
+        .prepare(
+          'INSERT INTO runs (tenant_id, id, game_id, category_id, player, submitted_at, status, verdict, trust, ranked, leaderboard_key, run_key, delete_token_hash, envelope) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        )
+        .run(
+          'default',
+          id,
+          'signals',
+          'any%',
+          `p-${id}`,
+          1_000 + id.length,
+          'verified',
+          'valid',
+          'replay-valid',
+          ranked,
+          'any%',
+          `key-${id}`,
+          'h'.repeat(64),
+          '{"v":2}',
+        );
+    run('r1', '42');
+    run('r22', null);
+    db.prepare('INSERT INTO daily_kv (k, v, created_at) VALUES (?, ?, ?)').run(
+      'daily|signals|2026-10-10',
+      '{"token":"t"}',
+      7,
+    );
+    const before = {
+      runs: db.prepare('SELECT * FROM runs ORDER BY id').all(),
+      daily: db.prepare('SELECT * FROM daily_kv').all(),
+    };
+    db.close();
+    const backup = join(dir, 'backup.json');
+    const b = await cli(['backup', `--dir=${dir}`, `--out=${backup}`]);
+    expect(b.out).toContain('2 run(s), 1 daily record(s)');
+    expect(JSON.parse(readFileSync(backup, 'utf8')).schema).toBe(2);
+    for (const f of ['bridge.sqlite', 'bridge.sqlite-wal', 'bridge.sqlite-shm']) rmSync(join(dir, f), { force: true });
+    const r = await cli(['restore', `--dir=${dir}`, `--from=${backup}`]);
+    expect(r.code, r.out).toBe(0);
+    expect(r.out).toContain('2 run(s), 1 daily record(s) restored');
+    const again = new DatabaseSync(join(dir, 'bridge.sqlite'));
+    expect(again.prepare('SELECT * FROM runs ORDER BY id').all()).toEqual(before.runs);
+    expect(again.prepare('SELECT * FROM daily_kv').all()).toEqual(before.daily);
+    again.close();
+    // Over the runs it holds: refused, then replaced with --force (the daily record written once, kept).
+    expect((await cli(['restore', `--dir=${dir}`, `--from=${backup}`])).code).toBe(1);
+    expect((await cli(['restore', `--dir=${dir}`, `--from=${backup}`, '--force'])).code).toBe(0);
+    // A backup naming a column that is not an identifier: nothing spliced into a statement.
+    const forged = JSON.parse(readFileSync(backup, 'utf8'));
+    forged.runs[0] = { 'id) VALUES (1); DROP TABLE runs; --': 'x' };
+    writeFileSync(backup, JSON.stringify(forged));
+    const refused = await cli(['restore', `--dir=${dir}`, `--from=${backup}`, '--force']);
+    expect(refused.code).not.toBe(0);
+    const still = new DatabaseSync(join(dir, 'bridge.sqlite'));
+    expect(still.prepare('SELECT COUNT(*) AS n FROM runs').get()).toEqual({ n: 2 });
+    still.close();
+  });
+
   it('a backup taken, the store lost, the backup restored: the same journals, the same acknowledgements', async () => {
     const dir = tmp('backup');
     const { links, journals } = await journalWithSignals(dir);

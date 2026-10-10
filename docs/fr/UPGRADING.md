@@ -486,7 +486,10 @@ les plus anciennes se chargent toujours.
 fin, et un projet 4.1.17 se met à niveau avec `migrate` (le candidat le fait sur trois systèmes).
 
 **Pour un opérateur de Bridge.** `BRIDGE_STORE_FILE` lit l'URL du store depuis un fichier (un secret monté en
-fichier) ; nommé mais absent ou vide, il arrête le Bridge en disant pourquoi. `ops/qualify/` est un déploiement de
+fichier) ; nommé mais absent ou vide, il arrête le Bridge en disant pourquoi ; `--store=` et `BRIDGE_STORE` passent
+avant lui. `backup` écrit le schéma 2 sur un store SQL : les classements (`runs`) et les enregistrements du défi du jour
+aussi, qu'une sauvegarde 4.1.17 oubliait — en refaire une après la mise à niveau ; `restore` lit les deux schémas et
+refuse des runs déjà présents sans `--force`. `ops/qualify/` est un déploiement de
 référence (HTTPS, trois instances, Postgres) à porter ailleurs ; `npm run ops:qualify` le répète. La release joint
 aussi `web-scumm-connectors-<version>.tgz`.
 
