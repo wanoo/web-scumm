@@ -1,15 +1,22 @@
 /// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
 import { fileURLToPath } from 'node:url';
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
+import { join, resolve, sep } from 'node:path';
 import { VitePWA } from 'vite-plugin-pwa';
 import { GAME, GAME_DIR, PROJECT } from './tools/game';
 import { studioPlugin } from './tools/studio/plugin';
 import { assetsVersion, BASE, layoutWriter, sealBuild, sitePlugin, studioDemo } from './tools/vite/plugins';
 import { engineVersion, trustedExtensionsHash } from './tools/extensions';
 
-const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
+// The engine's own files by their real path (4.1.18): Windows' 8.3 short names would leave the page and its root apart.
+const r = (p: string) => {
+  const f = fileURLToPath(new URL(p, import.meta.url));
+  if (!existsSync(f)) return f;
+  const real = realpathSync.native(f);
+  // A folder named with its trailing separator keeps it (`TOOLS_DIR` is compared as a prefix).
+  return /[\\/]$/.test(f) && !/[\\/]$/.test(real) ? real + sep : real;
+};
 
 /**
  * A module only the Studio (src/studio, the repository's tools/) or the dev tools (src/engine/dev, tweakpane) load:

@@ -7,6 +7,7 @@
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { buildSync } from 'esbuild';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const out = resolve(ROOT, process.argv.find((a) => a.startsWith('--out='))?.slice(6) ?? '.cache/pack');
@@ -138,25 +139,27 @@ cpSync(join(ROOT, 'LICENSE'), join(create, 'LICENSE'));
 // WebAssembly and zod stay dependencies.
 const bridge = join(out, 'web-scumm-bridge');
 mkdirSync(join(bridge, 'src'), { recursive: true });
-execFileSync(
-  join(ROOT, 'node_modules', '.bin', 'esbuild'),
-  [
-    'bridge/src/cli.ts',
-    '--bundle',
-    '--platform=node',
-    '--format=esm',
-    '--target=node22',
-    '--log-level=warning',
-    `--outfile=${join(bridge, 'src', 'cli.mjs')}`,
-    '--external:@biscuit-auth/biscuit-wasm',
-    '--external:zod',
-    '--external:zod/*',
-    // Optional (4.1.10): loaded by name only when the distributed profile or OpenTelemetry is used.
-    '--external:pg',
-    '--external:@opentelemetry/*',
-  ],
-  { cwd: ROOT, stdio: 'inherit' },
-);
+// esbuild's API, not its binary under node_modules/.bin (4.1.18: a `.cmd` on Windows, which execFileSync cannot run).
+const bundle = (entry, outfile, external) =>
+  buildSync({
+    absWorkingDir: ROOT,
+    entryPoints: [entry],
+    bundle: true,
+    platform: 'node',
+    format: 'esm',
+    target: 'node22',
+    logLevel: 'warning',
+    outfile,
+    external,
+  });
+bundle('bridge/src/cli.ts', join(bridge, 'src', 'cli.mjs'), [
+  '@biscuit-auth/biscuit-wasm',
+  'zod',
+  'zod/*',
+  // Optional (4.1.10): loaded by name only when the distributed profile or OpenTelemetry is used.
+  'pg',
+  '@opentelemetry/*',
+]);
 for (const f of readdirSync(join(ROOT, 'bridge', 'policy')).filter((f) => f.endsWith('.datalog'))) {
   mkdirSync(join(bridge, 'policy'), { recursive: true });
   cpSync(join(ROOT, 'bridge', 'policy', f), join(bridge, 'policy', f));
@@ -212,20 +215,7 @@ for (const [entry, outfile] of [
   ['connectors/src/run.ts', 'run.mjs'],
   ['connectors/src/email/mime-worker.ts', 'mime-worker.mjs'],
 ])
-  execFileSync(
-    join(ROOT, 'node_modules', '.bin', 'esbuild'),
-    [
-      entry,
-      '--bundle',
-      '--platform=node',
-      '--format=esm',
-      '--target=node22',
-      '--log-level=warning',
-      `--outfile=${join(connectors, 'src', outfile)}`,
-      '--external:ssh2',
-    ],
-    { cwd: ROOT, stdio: 'inherit' },
-  );
+  bundle(entry, join(connectors, 'src', outfile), ['ssh2']);
 writeFileSync(
   join(connectors, 'bin.mjs'),
   `#!/usr/bin/env node\n// web-scumm-connector <email|telnet|ssh|open-badge> --config <file.json>: one connector of the world outside, as its own\n// process, beside a web-scumm-bridge. docs/en/CONNECTORS.md.\nconst { main } = await import('./src/run.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
@@ -256,19 +246,17 @@ writeFileSync(
   `# web-scumm-connectors\n\nConnectors of the world outside for a web-scumm game: email, Telnet, SSH and Open Badges, each its own process, each proposing the signals its game declares to a \`web-scumm-bridge\` under its own Biscuit. Experimental (4.1.9). Install without native code: \`npm install --omit=optional --ignore-scripts web-scumm-connectors\`. Then \`npx web-scumm-connector <email|telnet|ssh|open-badge> --config connector.json\`. Documentation: https://github.com/wanoo/web-scumm (docs/en/CONNECTORS.md).\n`,
 );
 
+// npm is `npm.cmd` on Windows: run through the shell there (4.1.18), the arguments being this script's own.
+const WIN = process.platform === 'win32';
+const npm = (a, o) =>
+  execFileSync(WIN ? 'npm.cmd' : 'npm', WIN ? a.map((x) => (/\s/.test(x) ? `"${x}"` : x)) : a, { ...o, shell: WIN });
 for (const d of [engine, create, bridge, connectors])
-  execFileSync('npm', ['pack', '--pack-destination', out, '--silent'], {
-    cwd: d,
-    stdio: ['ignore', 'inherit', 'inherit'],
-  });
+  npm(['pack', '--pack-destination', out, '--silent'], { cwd: d, stdio: ['ignore', 'inherit', 'inherit'] });
 console.log(
   `packed into ${out}: web-scumm ${root.version} (${files.length} files), create-web-scumm, web-scumm-bridge (one module, its policies), web-scumm-connectors (one module, its MIME worker)`,
 );
 // --publish-dry-run (4.1.8): what `npm publish` would send, for each package, without sending it (release-check).
 if (process.argv.includes('--publish-dry-run'))
   for (const dir of [engine, create, bridge, connectors]) {
-    execFileSync('npm', ['publish', '--dry-run', '--ignore-scripts'], {
-      cwd: dir,
-      stdio: 'inherit',
-    });
+    npm(['publish', '--dry-run', '--ignore-scripts'], { cwd: dir, stdio: 'inherit' });
   }
