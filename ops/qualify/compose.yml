@@ -95,6 +95,8 @@ networks:
     ipam:
       config:
         - subnet: 172.30.18.0/24
+          # Others take their address from the upper half: the proxy's own (172.30.18.2) is never given to a Bridge.
+          ip_range: 172.30.18.128/25
   store:
     internal: true
 
