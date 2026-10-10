@@ -357,8 +357,8 @@
   "api": "a029b70768d9feba"
  },
  "tests": {
-  "files": 227,
-  "declarations": 1674
+  "files": 228,
+  "declarations": 1696
  },
  "bundle": {
   "initialJsKB": 133
