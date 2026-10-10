@@ -280,7 +280,7 @@ jobs:
         run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       - if: env.RUN == 'true'
-        run: npx vitest run tests/bridge-reality-store.test.ts tests/bridge-fanout.test.ts tests/bridge-tenancy.test.ts tests/bridge-runs-durable.test.ts --maxWorkers=1
+        run: npx vitest run tests/bridge-reality-store.test.ts tests/bridge-fanout.test.ts tests/bridge-tenancy.test.ts tests/bridge-runs-durable.test.ts tests/bridge-backup.test.ts --maxWorkers=1
   # Reality Bridge end to end (4.1.1, scripts/e2e-reality.mjs): the sample game games/signals built for production, a
   # reference Bridge, pairing from the pause menu, the same webhook twice, offline then online, applied once, the
   # session replayed with the Bridge stopped. WebKit cannot reopen offline under automation (as e2e:pwa). Its own build

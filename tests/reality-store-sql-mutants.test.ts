@@ -194,6 +194,24 @@ describe('migrations', () => {
     await s.close();
   });
 
+  it('open no transaction for a step already recorded (4.1.19: the `>` that was an equivalent mutant)', async () => {
+    const s = await SqliteRealityStore.open(':memory:', { migrate: false, pollMs: 0 });
+    await migrate(s.db);
+    let txs = 0;
+    const counting = {
+      exec: (sql: string) => s.db.exec(sql),
+      all: (sql: string, params?: unknown[]): Promise<Row[]> => s.db.all(sql, params),
+      tx: <R>(key: string | undefined, fn: (q: SqlQuery) => Promise<R>) => {
+        txs++;
+        return s.db.tx(key, fn);
+      },
+    };
+    expect(await migrate(counting)).toEqual([]);
+    // schemaVersion's own transaction only: the step at the current version is not opened again.
+    expect(txs).toBe(1);
+    await s.close();
+  });
+
   it('skip a step another instance applied after this one read the version', async () => {
     const s = await SqliteRealityStore.open(':memory:', { migrate: false, pollMs: 0 });
     await migrate(s.db, { to: 1 });

@@ -4,10 +4,22 @@
 // 4.1.9, beside config.json), `sqlite:<file>` (relative to the Bridge's directory) or `postgres://…`; `--store=` or
 // the `BRIDGE_STORE` variable override the configuration's (a database URL with a password stays out of the file;
 // `BRIDGE_STORE_FILE`, 4.1.18, reads it from a secret file).
-import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import {
+  auditRestore,
+  BackupError,
+  MAX_BACKUP_BYTES,
+  MAX_BACKUP_ROWS,
+  makeBackup,
+  readBackup,
+  readBounded,
+  RestoreUnknown,
+  restoreBackup,
+  writeAtomic,
+} from './backup';
 import { inspectJournal, JsonlBridgeStore } from './store';
-import { DEFAULT_TENANT, type RealityStore, type TenantExport } from './store-async';
+import { DEFAULT_TENANT, type RealityStore } from './store-async';
 import { fromBridgeStore } from './store-memory';
 import { PostgresRealityStore } from './store-postgres';
 import { SqlRealityStore } from './store-sql';
@@ -87,28 +99,16 @@ export async function openStore(
   throw new Error(`unknown store "${spec}": jsonl, sqlite[:file] or postgres://…`);
 }
 
-/** A backup: every tenant of a store, one instant each (`bridge backup`). */
-interface Backup {
-  format: 'web-scumm-bridge-backup';
-  /** 1: the tenants (players, signals, keys, pairings). 2 (4.1.18): also the runs and the daily challenge's tokens. */
-  schema: 1 | 2;
-  at: string;
-  tenants: TenantExport[];
-  /** The `runs` rows (every tenant's leaderboards and queue) and the `daily_kv` rows, on a SQL store. */
-  runs?: Record<string, unknown>[];
-  daily?: Record<string, unknown>[];
-}
-
-/**
- * The SQL tables beside the tenants that a backup carries (4.1.18, second reading of the release: `backup` left out
- * the leaderboards and the daily challenge). `run_quota` is not one: buckets of a minute, rebuilt by traffic.
- */
-const BACKED: { table: 'runs' | 'daily_kv'; key: 'runs' | 'daily'; order: string }[] = [
-  { table: 'runs', key: 'runs', order: 'tenant_id, id' },
-  { table: 'daily_kv', key: 'daily', order: 'k' },
-];
-
 const say = (s: string) => console.log(s);
+
+/** A bound given on the command line: a positive integer, its default when absent; undefined (said) otherwise. */
+function bound(args: string[], k: string, fallback: number): number | undefined {
+  const v = opt(args, k);
+  if (v === undefined) return fallback;
+  if (/^[1-9]\d{0,15}$/.test(v)) return Number(v);
+  console.error(`✖  --${k}=${v}: a positive integer`);
+  return undefined;
+}
 
 /** The commands of this file; undefined when `cmd` is not one of them. */
 export async function storeCommand(
@@ -257,114 +257,112 @@ export async function storeCommand(
   if (cmd === 'backup') {
     const out = opt(args, 'out');
     if (!out) {
-      console.error('usage: backup --out=<file>');
+      console.error('usage: backup --out=<file> [--max-bytes=<n>] [--max-rows=<n>]');
       return 2;
     }
+    const maxBytes = bound(args, 'max-bytes', MAX_BACKUP_BYTES);
+    const maxRows = bound(args, 'max-rows', MAX_BACKUP_ROWS);
+    if (maxBytes === undefined || maxRows === undefined) return 2;
     const store = await openStore(spec, dir, file, { lock: false });
     try {
-      const tenants = await Promise.all((await store.tenants()).map((t) => store.exportTenant(t)));
-      const b: Backup =
-        store instanceof SqlRealityStore
-          ? {
-              format: 'web-scumm-bridge-backup',
-              schema: 2,
-              at: new Date().toISOString(),
-              tenants,
-              ...Object.fromEntries(
-                await store.db.tx(
-                  undefined,
-                  async (q) =>
-                    Promise.all(
-                      BACKED.map(async (t) => [t.key, await q.all(`SELECT * FROM ${t.table} ORDER BY ${t.order}`)]),
-                    ),
-                  { readOnly: true },
-                ),
-              ),
-            }
-          : { format: 'web-scumm-bridge-backup', schema: 1, at: new Date().toISOString(), tenants };
-      writeFileSync(resolve(out), `${JSON.stringify(b)}\n`, { mode: 0o600 });
-      chmodSync(resolve(out), 0o600);
+      // Schema 3 (4.1.19, ADR 0021): one snapshot of every family, its counts and digest in the envelope.
+      const b = await makeBackup(store, { maxRows });
+      const content = `${JSON.stringify(b)}\n`;
+      const bytes = Buffer.byteLength(content);
+      if (bytes > maxBytes) {
+        console.error(
+          `✖  the backup would be ${bytes} bytes, more than ${maxBytes} (--max-bytes=): no file written; use pg_dump or the provider's snapshots`,
+        );
+        return 1;
+      }
+      writeAtomic(resolve(out), content);
+      const c = b.counts;
       say(
-        `✔  ${b.tenants.length} tenant(s)${b.schema === 2 ? `, ${b.runs?.length ?? 0} run(s), ${b.daily?.length ?? 0} daily record(s)` : ''} backed up to ${resolve(out)}`,
+        `✔  ${c.tenants} tenant(s), ${c.signals} signal(s), ${c.runs} run(s), ${c.daily} daily record(s) backed up to ${resolve(out)} (schema 3, one snapshot, sha256 ${b.digest.value.slice(0, 12)}…)`,
       );
       return 0;
+    } catch (e) {
+      if (e instanceof BackupError) {
+        console.error(`✖  ${e.message}: no file written`);
+        return 1;
+      }
+      throw e;
     } finally {
       await store.close();
     }
   }
   if (cmd === 'restore') {
     const from = opt(args, 'from');
-    if (!from || !existsSync(resolve(from))) {
-      console.error('usage: restore --from=<backup file> [--force]');
+    if (!from) {
+      console.error('usage: restore --from=<backup file> [--force] [--max-bytes=<n>]');
       return 2;
     }
-    const b = JSON.parse(readFileSync(resolve(from), 'utf8')) as Backup;
-    if (b.format !== 'web-scumm-bridge-backup' || (b.schema !== 1 && b.schema !== 2)) {
-      console.error('✖  not a Bridge backup of schema 1 or 2');
+    // Everything is read and checked before the store is opened: a file refused touches nothing.
+    const maxBytes = bound(args, 'max-bytes', MAX_BACKUP_BYTES);
+    if (maxBytes === undefined) return 2;
+    let read: ReturnType<typeof readBackup>;
+    try {
+      read = readBackup(readBounded(resolve(from), maxBytes));
+    } catch (e) {
+      if (e instanceof BackupError) {
+        console.error(`✖  ${e.message}: nothing restored`);
+        return 1;
+      }
+      throw e;
+    }
+    if (normal(spec) === 'jsonl') {
+      console.error(
+        '✖  the JSON-lines journal cannot be restored all or nothing: migrate it to SQLite first (migrate --from=jsonl --to=sqlite), then restore with --store=sqlite; nothing restored',
+      );
       return 1;
     }
     const store = await openStore(spec, dir, file);
     try {
-      const present = await store.tenants();
-      const clash = b.tenants.filter((t) => present.includes(t.tenantId)).map((t) => t.tenantId);
-      if (clash.length && !args.includes('--force')) {
-        console.error(`✖  the store already holds ${clash.join(', ')}: restore into an empty store, or --force`);
+      if (!(store instanceof SqlRealityStore)) {
+        console.error('✖  restore needs a SQL store (--store=sqlite or postgres://…): nothing restored');
         return 1;
       }
-      const rows = BACKED.filter((t) => (b[t.key]?.length ?? 0) > 0);
-      if (rows.length && !(store instanceof SqlRealityStore)) {
-        console.error('✖  this backup holds runs or daily records: restore it into a SQL store (--store=…)');
+      const carriesRuns = read.schema >= 2;
+      const at = await store.schemaVersion();
+      if (read.storeSchema !== null && read.storeSchema > at) {
+        console.error(
+          `✖  the backup comes from a store at schema ${read.storeSchema}, newer than this one (${at}): upgrade the Bridge; nothing restored`,
+        );
         return 1;
       }
-      // Each tenant replaced in one transaction: deleted and written back together, or left as it was.
-      for (const t of b.tenants) await store.importTenant(t, { replace: clash.includes(t.tenantId) });
-      // Then the runs and the daily records in one transaction: an existing row is refused without --force, replaced
-      // with it (the runs of the backup's tenants deleted first; a daily record is written once, never changed).
-      let counts = '';
-      if (store instanceof SqlRealityStore && rows.length) {
-        const force = args.includes('--force');
-        let refusedWhy = '';
-        const ok = await store.db
-          .tx('backup:restore', async (q) => {
-            const tenantsOf = [...new Set((b.runs ?? []).map((r) => String(r.tenant_id)))];
-            if (tenantsOf.length) {
-              const marks = tenantsOf.map((_, i) => `$${i + 1}`).join(', ');
-              const held = await q.all(`SELECT COUNT(*) AS n FROM runs WHERE tenant_id IN (${marks})`, tenantsOf);
-              if (Number(held[0]?.n ?? 0) > 0 && !force) return false;
-              await q.run(`DELETE FROM runs WHERE tenant_id IN (${marks})`, tenantsOf);
-            }
-            for (const t of rows)
-              for (const r of b[t.key] ?? []) {
-                // A column is named by the file: a plain identifier only, never text spliced into the statement.
-                const cols = Object.keys(r);
-                const bad = cols.find((c) => !/^[a-z_]{1,40}$/.test(c));
-                if (bad) {
-                  refusedWhy = `the backup names a column "${bad.slice(0, 40)}": refused, nothing restored of its runs`;
-                  throw new Error(refusedWhy);
-                }
-                const sql = `INSERT INTO ${t.table} (${cols.join(', ')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(', ')})${t.table === 'daily_kv' ? ' ON CONFLICT (k) DO NOTHING' : ''}`;
-                await q.run(
-                  sql,
-                  cols.map((c) => r[c]),
-                );
-              }
-            return true;
-          })
-          .catch((e: unknown) => {
-            if (refusedWhy) return refusedWhy;
-            throw e;
-          });
-        if (typeof ok === 'string') {
-          console.error(`✖  ${ok}`);
-          return 1;
+      let outcome: Awaited<ReturnType<typeof restoreBackup>>;
+      try {
+        outcome = await restoreBackup(store, read.payload, { force: args.includes('--force'), carriesRuns });
+      } catch (e) {
+        if (e instanceof RestoreUnknown) {
+          console.error(
+            `✖  the commit's answer was lost (${e.message}): the restore may or may not be in the store; run \`doctor\` and take a backup to see which`,
+          );
+          return 3;
         }
-        if (!ok) {
-          console.error('✖  the store already holds runs of these tenants: restore into an empty store, or --force');
-          return 1;
-        }
-        counts = `, ${b.runs?.length ?? 0} run(s), ${b.daily?.length ?? 0} daily record(s)`;
+        console.error(`✖  the restore failed and was rolled back, nothing restored: ${(e as Error).message}`);
+        return 1;
       }
-      say(`✔  ${b.tenants.length} tenant(s)${counts} restored from ${b.at}`);
+      if (!outcome.ok) {
+        console.error(`✖  ${outcome.why}; nothing restored`);
+        return 1;
+      }
+      // An audit after the commit: a difference here is the backend's fault, a P0, said as such.
+      let wrong: string | undefined;
+      try {
+        wrong = await auditRestore(store, read.payload, { carriesRuns });
+      } catch (e) {
+        wrong = `the audit could not read it back (${(e as Error).message})`;
+      }
+      if (wrong) {
+        console.error(
+          `✖  P0: the restore committed but ${wrong}. If a Bridge was serving this store meanwhile, its writes may explain it; otherwise keep this store for inspection`,
+        );
+        return 3;
+      }
+      say(
+        `✔  ${outcome.tenants} tenant(s), ${outcome.runs} run(s), ${outcome.daily} daily record(s) restored from ${read.at} (schema ${read.schema}), checked before and after the commit`,
+      );
       return 0;
     } finally {
       await store.close();
