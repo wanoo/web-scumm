@@ -192,6 +192,16 @@ sur SQLite, et un passage toutes les 5 s si un réveil se perd). La livraison es
 (avec N instances, un connecteur peut proposer N fois son quota). Une ligne stockée qui ne se vérifie plus est mise
 en quarantaine, jamais livrée, et `doctor` la liste.
 
+## Le déploiement de référence (4.1.18)
+
+`ops/qualify/` est le profil distribué sous forme de déploiement reproductible : un proxy HTTPS (Caddy), trois Bridge
+construits depuis le tarball `web-scumm-bridge`, un Postgres, deux tenants, chaque image épinglée par digest, les
+Bridge en lecture seule et sans privilège, le mot de passe et l'URL de la base en fichiers secrets
+(`BRIDGE_STORE_FILE`), Postgres jamais publié. `npm run ops:qualify` le démarre, tue une instance pendant des
+propositions, tient un flux sur une autre, vérifie que les tenants restent séparés, puis sauvegarde, détruit la
+topologie avec sa base et la restaure (`ops/qualify/README.md`). Le profil `distributed` reste `experimental` tant que
+la passe humaine derrière un vrai domaine (24 à 48 heures) n'est pas `passed`.
+
 ## Santé, mesures, sauvegardes
 
 - `GET /livez` : le processus répond. `GET /readyz` : le store répond (503 sinon). `GET /healthz` : les deux, avec les

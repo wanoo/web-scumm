@@ -106,6 +106,9 @@ export const RULES: readonly Rule[] = [
   // The games.
   { re: /^games\/demo\//, gates: ['e2e', ...UNIT], why: 'the sample game' },
   { re: /^games\/reference\//, gates: ['reference', 'node24'], why: 'the reference chapter' },
+  // The Bridge's qualification profile (4.1.18): brought up by its own workflow (qualify.yml) and the candidate's
+  // `deployment-smoke`; here its static test only.
+  { re: /^(ops\/|scripts\/ops-qualify\.mjs$)/, gates: [...UNIT], why: 'the qualification profile' },
   {
     re: /^(games\/_template\/|cli\/|scripts\/(pack|fresh-install|external-consumer|new-game)\.mjs$)/,
     gates: ['secondGame', 'freshInstall', 'upgrade', ...UNIT],
