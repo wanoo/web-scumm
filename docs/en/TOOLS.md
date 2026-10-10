@@ -211,6 +211,10 @@ npm run provenance [-- --lock]     # the shipped assets by licence, what changed
 npm run weight [-- --release --json --stems]   # what a phone downloads before the first room, per room and per chapter, against assetBudgets (the single mixes; the scores' stems on their own line, --stems counts them)
 npm run playtests [-- --strict --out=.cache/playtests]  # the sessions players shared (games/<id>/playtests) replayed and summed up: time per room, stalls, hints, heat map
 npm run playtests -- --strict --require=5 --require-completed=3 --require-devices=2   # field quotas (3.7.1): --strict alone asks for no number of sessions
+npm run field:init -- --release=<x.y.z> --candidate=<run id>   # the Field Kit (4.1.18, FIELD): the thirteen passes as JSON reports at not-run, bound to that candidate run
+npm run field:check -- --dir=<folder> [--require=<id,…>]   # each report against its candidate (commit, run, digests), its evidence's SHA-256 and the leak scan
+npm run field:report -- --dir=<folder> --out=docs/dev/passes/<x.y.z>.md   # the people's passes table generated from the reports
+npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # the report and its listed evidence, logs redacted, refused on a key or a token
 npm run verify:field               # verify:commercial, then those quotas: what a release tested by players needs (not a step of release-check, D12)
 npm run e2e:perf -- <url> [--renderer=canvas|dom --cpu=4 --min=30 --room=<id>]   # frames per second while the hero walks, CPU slowed (the phone stand-in)
 npm run e2e:music -- <url> [--only=offline|live|game --live=chromium|webkit]   # the music director: 30 min offline without drift, 100 changes without a click, real-time jitter, the theme's stems in the game

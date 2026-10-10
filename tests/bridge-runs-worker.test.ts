@@ -51,9 +51,11 @@ describe('a worker', () => {
 
   it('may write a million bytes, not one more; an answer that long is read to its end', async () => {
     expect(await runWorker(fake('pad', '1000000'), game, '{}')).toMatchObject({ verdict: 'valid' });
+    // Said by its reason: a worker that exits before its SIGKILL lands leaves a cut answer, also a `crash`.
     expect(await runWorker(fake('pad', '1000001'), game, '{}')).toMatchObject({
       verdict: 'inconclusive',
       code: 'crash',
+      reason: 'the worker wrote too much',
     });
   });
 

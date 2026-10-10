@@ -205,6 +205,10 @@ npm run provenance [-- --lock]     # les assets livrés par licence, ce qui a ch
 npm run weight [-- --release --json --stems]   # ce qu'un téléphone télécharge avant le premier lieu, par lieu et par chapitre, face à assetBudgets (les mix uniques ; les stems des partitions sur leur ligne, --stems les compte)
 npm run playtests [-- --strict --out=.cache/playtests]  # les sessions partagées par les joueurs (games/<id>/playtests) rejouées et cumulées : temps par lieu, blocages, indices, heatmap
 npm run playtests -- --strict --require=5 --require-completed=3 --require-devices=2   # quotas terrain (3.7.1) : --strict seul ne demande aucun nombre de sessions
+npm run field:init -- --release=<x.y.z> --candidate=<run id>   # le Field Kit (4.1.18, FIELD) : les treize passes en rapports JSON à not-run, liés à ce candidate run
+npm run field:check -- --dir=<dossier> [--require=<id,…>]   # chaque rapport face à son candidat (commit, run, empreintes), le SHA-256 de ses preuves et la recherche de fuites
+npm run field:report -- --dir=<dossier> --out=docs/dev/passes/<x.y.z>.md   # le tableau des passes humaines généré depuis les rapports
+npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # le rapport et ses preuves listées, logs expurgés, refusé sur une clé ou un token
 npm run verify:field               # verify:commercial, puis ces quotas : ce qu'il faut à une release testée par des joueurs (pas une étape de release-check, D12)
 npm run e2e:perf -- <url> [--renderer=canvas|dom --cpu=4 --min=30 --room=<id>]   # images par seconde pendant que le héros marche, CPU ralenti (le substitut du téléphone)
 npm run e2e:music -- <url> [--only=offline|live|game --live=chromium|webkit]   # le directeur musical : 30 min hors ligne sans dérive, 100 changements sans clic, gigue en temps réel, les stems du thème dans le jeu

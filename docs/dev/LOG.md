@@ -3723,4 +3723,19 @@ sources; the recorder's live RTA counts from a resume before the run's start (it
   run): it is one expression now, `tests/speedrun-recorder.test.ts` resumes with the same Mystery dated anew, another
   reveal, a Daily token and a proof on a run sealed without one; the one survivor left is named (82 in all).
 
+- After `v4.1.17-rc.1` (0f5854f, candidate 37970936760 green): the tag's own `ci` run failed on Windows, twice, on two
+  SQLite tests over the 5 s default (`bridge-reality-store`'s property, `bridge-fanout`'s quarantine) — the class three
+  tests had met one by one since 7 October. Not re-run a third time: on Windows a test has 30 s (`vite.config.ts`),
+  elsewhere the default stays. The fix is merged, a new candidate runs on its merge commit, `v4.1.17-rc.2` on it, then
+  `v4.1.17` on the same commit and run.
+- In the same pull request, the maintainer's new logo (`docs/img/web-scumm-logo-v1.png`, 1536×1024, an AI panel, a
+  notebook and a mug around the editor) reduced to 768×512 and 256 colours (121 KB) replaces the READMEs' one; the
+  archive carries the README, so it is in `rc.2` and the final tag.
+
+- After the merge of #72 (5080ebc), candidate 37998053206 was red on `mutation (runs)` (a survivor whose kill depended
+  on timing: the worker exited before its SIGKILL, the cut answer was also a `crash`) and its gate was green anyway:
+  `gate | tee` ran without `pipefail`. The run's own conclusion stayed `failure`, which `ship tag` and `release.yml`
+  check, so nothing could be tagged on it. Both fixed (the test asks the reason; `shell: bash`, and a test over every
+  workflow's `| tee`), then a new candidate, `v4.1.17-rc.2` and `v4.1.17` on its commit.
+
 → next: Claude · 4.2.0 "Stable World": the human passes first (D18), the signed tag (D30)
