@@ -57,6 +57,11 @@ Cette décision ne change pas la règle de support :
 - un P0/P1 découvert après le tag ouvre une 4.1.20 ou retire la surface de 4.2 ; la release 4.1.19 reste immuable ;
 - les passes ne « ferment » pas 4.1.19 après coup : elles ferment le dossier d'entrée en 4.2.
 
+Par construction, la feuille de passes de la PR 6 et l'état Field des artefacts du candidat final disent `not-run`
+pour les treize passes : elles commencent quand ce candidat est vert, et les tags suivent sans les attendre. Leur état
+réel est publié après le tag (feuille et issues, D12, D32), jamais réécrit dans le commit tagué. Un P0/P1 « avant le
+tag » ne peut venir que d'une passe faite dans l'intervalle entre la gate et le tag.
+
 ### 2.2 Le noyau du DSL est stable, son vocabulaire reste extensible
 
 D28 ne doit pas être interprétée comme une interdiction dogmatique de faire évoluer le moteur. La règle de 4.1.19
@@ -130,7 +135,8 @@ Le dossier d'admission contient :
 9. le plan de retrait ou de dépréciation si l'expérimentation échoue avant 4.2.
 
 La propagation minimale est bloquante : types et schéma, `compileGame`, IR et fingerprint, runtime, validateur,
-solveur, replay/session, Studio, MCP, docs générées, template et tests de propriété. Une surface réellement non
+solveur, replay/session, Studio, MCP, docs générées, template, tests de propriété, `docs/dev/DSL-STABILITY.md` (la
+liste de ce qui est figé, D28) et `tests/api-surface.json` (qui ne fait que grandir). Une surface réellement non
 concernée est marquée `N/A` avec justification ; elle n'est pas simplement oubliée.
 
 Trois classes permettent de garder la release proportionnée :
@@ -206,7 +212,7 @@ La release ne reconstruit pas l'image.
 
 ### 3.5 SBOM : conserver le format réellement promis
 
-La 4.1.18 publie des SBOM **CycloneDX** (`*.cdx.json`) et le CHANGELOG promet ce format depuis 4.0. La 4.1.19 produit
+La 4.1.18 publie des SBOM **CycloneDX** (`*.cdx.json`) et le CHANGELOG promet ce format depuis 3.3.1. La 4.1.19 produit
 donc cinq SBOM CycloneDX cohérents — moteur, créateur, Bridge, connecteurs, image — sans introduire un second format
 sans consommateur démontré.
 
@@ -281,14 +287,14 @@ runners.
 | 2 | `ops/4119-artifacts-field` | locks, image OCI, SBOM, Caddy, Field Kit | — |
 | 4 | `fix/4119-leftovers` | défauts mineurs, RTA et compatibilité upgrade | — |
 | 3 | `test/4119-coverage-truth` | mutation, archive e2e, Vite, flakes | 0 éventuelle, 1, 2 et 4 |
-| 5 | `ops/4119-qualify-full` | topologie complète PostgreSQL | 1, 2 ; après 4 conseillé |
+| 5 | `ops/4119-qualify-full` | topologie complète PostgreSQL, découpage de `ops-qualify` | 1, 2 ; après 4 conseillé |
 | — | pré-candidat technique | chaîne complète, facultatif, **sans Field** | 1 à 5 |
 | 6 | `release/4.1.19` | README, captures, docs, seuils et préparation du tag | 1 à 5 |
 | — | candidat final de qualification | `field:init` sur #75–#87, baseline exacte, rc puis stable | PR 6 |
 
 La PR C met ce plan dans Git avant tout worktree : les PR suivantes partent du `origin/main` qui la contient. Les PR 1,
-2 et 4 avancent en parallèle. Une éventuelle PR DSL suit son propre dossier d'admission et doit fusionner
-avant la PR 3. La PR 3 vient après elles afin de mesurer et nommer le code final, plutôt que de renommer les ensembles
+2 et 4 avancent en parallèle. Une éventuelle PR DSL suit son propre dossier d'admission et fusionne avant que la PR 3 mesure
+sa première baseline (§2.3). La PR 3 vient après elles afin de mesurer et nommer le code final, plutôt que de renommer les ensembles
 avant les derniers correctifs. La PR 5 peut commencer après 1 et 2 mais utilise, si possible, les corrections de 4 et
 de toute extension DSL qui affecte ses scénarios.
 
@@ -303,7 +309,7 @@ Ordre interne obligatoire :
 3. IR, fingerprint et ids ;
 4. runtime et sauvegarde/replay ;
 5. validateur, solveur et propriétés ;
-6. Studio, MCP, i18n et documentation générée ;
+6. Studio, MCP, i18n, documentation générée, `DSL-STABILITY.md` et `tests/api-surface.json` ;
 7. template ou exemple minimal ;
 8. matrice de propagation et seconde lecture.
 
@@ -440,7 +446,7 @@ résolution.
 - Ajouter budgets par fichier, total, nombre d'entrées et durée ; lire en flux ou de façon bornée.
 - Dire dans FIELD anglais et français que le scanner de secrets est heuristique.
 - Ajouter une version de bundle et conserver la lecture du schema 1 lorsqu'elle est sûre.
-- Extraire `tools/release/provenance.ts`, partagé par `ship` et `field:verify-bundle`, en quatre fonctions
+- Extraire `tools/release/provenance.mjs`, partagé par `ship` et `field:verify-bundle`, en quatre fonctions
   composables : lire et vérifier le manifeste local ; vérifier les digests ; vérifier une attestation téléchargée ;
   interroger le run GitHub. Seule la dernière dépend de GitHub. `ship` compose les quatre ;
   `field:verify-bundle --offline` utilise les trois premières.
@@ -525,7 +531,8 @@ properties TypeScript que si le problème est reproduit avec la version ciblée.
 
 ### 8.4 Scripts
 
-Découper uniquement `external-consumer` et `ops-qualify`, déjà touchés : processus portables, artefacts,
+Découper uniquement `external-consumer`, déjà touché (le découpage d'`ops-qualify` revient à la PR 5, qui
+étend ce script ; les deux PR ne se disputent pas le même fichier) : processus portables, artefacts,
 environnements, scénarios, assertions et rapports. Chaque étape porte un id et une durée ; une erreur nomme la première
 étape fautive et la commande de reproduction.
 
@@ -646,12 +653,13 @@ encore lisible, aucune capture d'un mode `?dev` non livrable.
 
 ### 11.4 Autres documents
 
-- D33 et ADR 0021 ; D34 seulement si un second contrat public l'exige ;
-- LOG #161 et suivants ;
+- D33, ADR 0021 (PR 1) et ADR 0022 si utilisé (PR 0) sont déjà écrits ; D34 seulement si un second contrat public
+  l'exige ;
+- les fragments de LOG assemblés (#161, écrit par la PR C, et les suivants) ;
 - UPGRADING : backup schema 3, lecture 1/2, refus JSONL ;
 - REALITY-OPS, FIELD, MUTANTS, TOOLS, ROADMAP ;
 - SUPPORT anglais et français ;
-- `docs/dev/passes/4.1.19.md` avec l'état réel au moment de la PR ;
+- `docs/dev/passes/4.1.19.md`, où chaque passe est `not-run` par construction (§2.1) ;
 - GO / NO-GO 4.2 surface par surface ;
 - fragments assemblés sous `## Unreleased`.
 
@@ -676,7 +684,7 @@ cache chaud/froid et mesures. Ils entrent dans `candidate-manifest.json`, sont a
 assets.
 
 Mesures minimales : tests/skips, preuves démo et référence, installations externes, scénarios connecteurs, charges
-SQLite/PostgreSQL, leaderboard, qualification, mutation et liste de sources, poids joueur, statuts Field, durée et
+SQLite/PostgreSQL, leaderboard, qualification, mutation et liste de sources, poids joueur, statuts Field (`not-run` par construction), durée et
 chemin critique du candidat.
 
 ## 13. Candidat final et publication
@@ -694,7 +702,7 @@ Le candidat final, lancé après fusion de PR 6, doit :
 9. exécuter chaque set bloquant dans son propre job ;
 10. si une extension DSL a été admise, vérifier sa matrice de propagation, ses fixtures, ses propriétés et la
     compatibilité des jeux antérieurs ;
-11. produire les baselines exactes et l'état Field disponible ;
+11. produire les baselines exactes et l'état Field (`not-run` par construction, §2.1) ;
 12. échouer sur un job absent, skipped, rouge ou issu d'un autre SHA.
 
 Publication :
@@ -770,7 +778,8 @@ Vérifications spécifiques :
 - PR 4 : verdicts, formats et temps scellés inchangés ;
 - PR 3 : alias ancien testé, nouveaux sets mesurés, logs complets des flakes ;
 - PR 5 : workflow `qualify` complet vert sur runner Docker ;
-- PR C : copie committée identique (SHA-256) au document relu, `docs:truth` vert ;
+- PR C : copie importée identique (SHA-256) au document relu avant d'y écrire les amendements de la relecture, ces
+  amendements visibles dans le diff de la PR, `docs:truth` vert ;
 - PR 6 : README bilingue, captures inspectées, quick start joué depuis l'archive candidate ;
 - release : candidate gate et conclusion vertes, `ship verify` sur RC et stable, baseline attachée du même run.
 
@@ -791,7 +800,8 @@ Vérifications spécifiques :
 ## 18. Résumé exécutable pour l'agent
 
 Fusionner d'abord la PR C, qui met ce plan dans Git. Ouvrir ensuite le guichet DSL : si une fonctionnalité réelle est
-proposée, écrire sa fixture et son ADR et la faire passer par PR 0 avant la création de la branche de la PR 3 ; en
+proposée, écrire sa fixture et son ADR et la faire fusionner par PR 0 avant que la PR 3 mesure sa première baseline (admission close avant la création de sa
+branche) ; en
 l'absence de besoin démontré, ne rien ajouter. En parallèle, commencer PR 1, PR 2 et PR 4 dans des worktrees séparés. Reproduire avant de corriger. Pour le backup, valider et
 borner avant toute écriture, partager une transaction SQL unique, refuser JSONL. Pour les artefacts, verrouiller les
 packages, construire l'image une fois et publier ses vraies empreintes, cinq SBOM CycloneDX et l'attestation. Pour le
