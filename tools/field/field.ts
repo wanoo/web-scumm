@@ -66,6 +66,10 @@ export function readEvidence(dir: string, path: string): { bytes: Buffer } | { w
   return { bytes: readFileSync(p) };
 }
 
+/** Windows' own tar (bsdtar): Git's GNU tar, first on a bash PATH, reads `C:\\…` as a remote host. */
+export const TAR =
+  process.platform === 'win32' ? join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
+
 export const sha256 = (b: Buffer | string) => createHash('sha256').update(b).digest('hex');
 
 export function readManifest(file: string): CandidateManifest {
@@ -360,10 +364,7 @@ export function main(args: string[]): number {
     const stage = mkdtempSync(join(tmpdir(), 'field-bundle-'));
     try {
       const { files, redacted } = stageBundle(resolve(report), stage);
-      // Windows' own tar (bsdtar): Git's GNU tar, first on a bash PATH, reads `C:\…` as a remote host.
-      const tar =
-        process.platform === 'win32' ? join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
-      const r = spawnSync(tar, ['-czf', resolve(out), '-C', stage, '.'], { stdio: 'inherit' });
+      const r = spawnSync(TAR, ['-czf', resolve(out), '-C', stage, '.'], { stdio: 'inherit' });
       if (r.status !== 0) throw new Error('tar failed');
       console.log(`✔  ${out}: ${files.length} files${redacted.length ? `, redacted: ${redacted.join(', ')}` : ''}`);
     } finally {

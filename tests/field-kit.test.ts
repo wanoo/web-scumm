@@ -17,6 +17,7 @@ import {
   renderPasses,
   sha256,
   stageBundle,
+  TAR,
   writePasses,
 } from '../tools/field/field';
 import { type FieldReport, PASS_IDS } from '../tools/field/schema';
@@ -274,7 +275,7 @@ describe('field:bundle', () => {
     const dir = folder({ 'livesplit-obs': passed });
     const out = join(tmp(), 'b.tar.gz');
     expect(main(['bundle', `--report=${join(dir, 'livesplit-obs.json')}`, `--out=${out}`])).toBe(0);
-    const list = spawnSync('tar', ['-tzf', out], { encoding: 'utf8' }).stdout;
+    const list = spawnSync(TAR, ['-tzf', out], { encoding: 'utf8' }).stdout;
     expect(list).toContain('bundle-manifest.json');
     expect(list).toContain('evidence/evidence/run.log');
   });
