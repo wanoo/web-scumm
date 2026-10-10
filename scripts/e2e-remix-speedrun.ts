@@ -261,12 +261,17 @@ try {
     const { id } = await queue.submit('e2e', { player: 'E2E', envelope: texts.node![i]! });
     await queue.idle();
     const r = (await queue.o.store.get('e2e', id))!;
-    const ranked = k.want.verdict === 'valid';
+    // A Daily run sent after its UTC day is practice, valid and not ranked (SPEEDRUN): the day this e2e signed may end
+    // while it runs (candidate 37998053206 crossed midnight), and then that rule is what is checked.
+    const dayOver =
+      k.category === 'daily' && new Date().toISOString().slice(0, 10) !== new Date(now).toISOString().slice(0, 10);
+    // Crossed between the signature and now, either answer is the rule's (verified before or after midnight).
+    const ranked = k.want.verdict === 'valid' && !dayOver;
     if (
       r.verdict !== k.want.verdict ||
       r.leaderboardKey !== k.want.key ||
       r.trust !== 'replay-valid' ||
-      !!r.ranked !== ranked
+      (!dayOver && !!r.ranked !== ranked)
     )
       fail('bridge', `${k.category}: ${r.verdict} on ${r.leaderboardKey}, trust ${r.trust}, ranked ${r.ranked}`);
     else

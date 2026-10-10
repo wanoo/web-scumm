@@ -3,7 +3,7 @@
 # BRIDGE_PG_URL=postgres://bridge:bridge@127.0.0.1:55432/bridge npx vitest run tests/bridge-reality-store.test.ts
 services:
   postgres:
-    image: postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+    image: mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
     environment:
       POSTGRES_USER: bridge
       POSTGRES_PASSWORD: bridge

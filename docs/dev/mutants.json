@@ -77,14 +77,6 @@
   "why": "forgetting an idle key is bookkeeping (the map would only grow): with the entry kept, the next section still waits on a settled promise"
  },
  {
-  "file": "bridge/src/streams.ts",
-  "operator": "condition true",
-  "from": "this.open.delete(s)",
-  "to": "true",
-  "why": "ending a stream already ended calls `res.end()` a second time, which Node ignores",
-  "context": "if (this.open.delete(s)) s.close(why);"
- },
- {
   "file": "bridge/src/store.ts",
   "operator": "condition false",
   "from": "e.t === 'revoke-token'",
@@ -641,5 +633,85 @@
   "to": "true",
   "context": "canonicalJson(e?.kind === 'mystery' ? { ...e, startedAt: 0 } : (e ?? null));",
   "why": "`startedAt: 0` added to every proof on both sides: a Daily token has no `startedAt`, so two Daily proofs (or none and none) are equal or not exactly as before; only a Mystery differs by `startedAt`, and it is set to 0 either way"
+ },
+ {
+  "file": "bridge/src/migrations.ts",
+  "operator": "operator",
+  "from": ">",
+  "to": ">=",
+  "context": "if (s.version > at && s.version <= to) {",
+  "why": "`at` is `MAX(version)` of schema_migrations, so the step at `at` is always recorded (or `at` is 0 and there is no step 0): with `>=` its transaction finds it counted and returns false, applying and listing nothing; one extra empty transaction"
+ },
+ {
+  "file": "connectors/src/badges/crypto.ts",
+  "operator": "condition false",
+  "from": "raw.length !== 32",
+  "to": "false",
+  "context": "if (raw.length !== 32) return null;",
+  "why": "ed25519Key: its one caller, multikey, passes `b.subarray(2)` of a `b` it has just checked is 34 bytes long, so `raw` is always 32 bytes; a key of another length would also fail createPublicKey's DER parse, caught as null"
+ },
+ {
+  "file": "connectors/src/badges/crypto.ts",
+  "operator": "condition false",
+  "from": "!sig || sig.length !== 64",
+  "to": "false",
+  "context": "if (!sig || sig.length !== 64) return false;",
+  "why": "verifyEddsaJcs: without the check, a null `sig` makes `verify` throw inside the try (false), and OpenSSL's Ed25519 verification refuses any signature that is not exactly 64 bytes (false): the same answer, only later"
+ },
+ {
+  "file": "connectors/src/badges/fetch.ts",
+  "operator": "condition true",
+  "from": "isIP(host)",
+  "to": "true",
+  "context": "servername: isIP(host) ? undefined : host,",
+  "why": "SafeFetcher.once: with `servername` undefined, Node's https agent derives it from the request's host and leaves it empty for an IP (calculateServerName), so a name is sent as SNI just the same; tests/connectors-badges-mutants.test.ts reads the ClientHello for both cases"
+ },
+ {
+  "file": "connectors/src/badges/fetch.ts",
+  "operator": "boolean",
+  "from": "false",
+  "to": "true",
+  "context": "done({ ok: false, reason: 'timed out' });",
+  "why": "SafeFetcher.once, the request's `timeout` handler: the whole-exchange timer is armed first, with the same delay, before the socket's idle timer (which activity only pushes back), so it always settles the promise first and this `done` is never the one that counts (the same context on the overall timer is killed by tests/connectors-badges.test.ts, /slow)"
+ },
+ {
+  "file": "connectors/src/email/mime.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "while (i < html.length) {",
+  "why": "htmlToText: one more turn with `i === html.length` finds no `<` from the end (indexOf returns -1), appends the empty slice and breaks: the same text"
+ },
+ {
+  "file": "connectors/src/email/mime.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "i = end < 0 ? html.length : end + 3;",
+  "why": "htmlToText: a comment's `-->` is searched from `lt + 4`, so when found its index is at least 4, never 0: `end <= 0` and `end < 0` agree on every input"
+ },
+ {
+  "file": "connectors/src/email/mime.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "if (gt < 0) break;",
+  "why": "htmlToText: `>` is searched from `lt + 1`, so when found its index is at least 1, never 0: `gt <= 0` and `gt < 0` agree on every input"
+ },
+ {
+  "file": "connectors/src/email/mime.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "const close = end < 0 ? -1 : html.indexOf('>', end);",
+  "why": "htmlToText: the closing `</script` or `</style` is searched from `i = gt + 1`, so when found its index is at least 1, never 0: `end <= 0` and `end < 0` agree on every input"
+ },
+ {
+  "file": "connectors/src/email/mime.ts",
+  "operator": "operator",
+  "from": "<",
+  "to": "<=",
+  "context": "i = close < 0 ? html.length : close + 1;",
+  "why": "htmlToText: the `>` closing `</script` is searched from that tag's index (at least 1), so when found it is never 0: `close <= 0` and `close < 0` agree on every input"
  }
 ]

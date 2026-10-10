@@ -159,7 +159,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        set: [core, reality, runs, remix, speedrun]
+        set: [core, reality, runs, remix, speedrun, connectors, reality-store]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -257,7 +257,7 @@ jobs:
       BRIDGE_PG_URL: postgres://bridge:bridge@127.0.0.1:5432/bridge
     services:
       postgres:
-        image: postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+        image: mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
         env:
           POSTGRES_USER: bridge
           POSTGRES_PASSWORD: bridge

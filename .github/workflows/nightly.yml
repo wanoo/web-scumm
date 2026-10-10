@@ -115,7 +115,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        set: [core, reality, runs, remix, speedrun]
+        set: [core, reality, runs, remix, speedrun, connectors, reality-store]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -133,31 +133,6 @@ jobs:
           path: |
             mutation-${{ matrix.set }}.txt
             .cache/mutation/report-${{ matrix.set }}.json
-          include-hidden-files: true
-          if-no-files-found: ignore
-  # The Bridge's stores and fan-out (4.1.10): measured every night, not gated yet (tools/mutation-sets.ts, GATED). A job
-  # of its own with its own budget: its length never cuts a gated set short again.
-  mutation-reality-store:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 180
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: 22
-          cache: npm
-      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
-        timeout-minutes: 8
-      - run: npm run test:mutation:core -- --set=reality-store --fresh | tee mutation-reality-store.txt
-        shell: bash
-      - if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: mutation-reality-store
-          path: |
-            mutation-reality-store.txt
-            .cache/mutation/report-reality-store.json
           include-hidden-files: true
           if-no-files-found: ignore
   # The Bridge under load (4.1.10, tools/bridge-load.ts, docs/dev/BENCH-BRIDGE.md): three instances, 1 000 players,
@@ -194,7 +169,7 @@ jobs:
     timeout-minutes: 30
     services:
       postgres:
-        image: postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
+        image: mirror.gcr.io/library/postgres:16@sha256:65b16a8b326e0cfbdf33fa7e783f2a0cb352a61448616ccccfd616ef42aa0f65
         env:
           POSTGRES_USER: bridge
           POSTGRES_PASSWORD: bridge
