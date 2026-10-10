@@ -16,9 +16,19 @@
 //                SHA-256 manifest: what a reproduction ticket carries
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, extname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { FIELD_STATUSES, type FieldReport, FieldReportSchema, PASS_IDS, PASS_LABELS, type PassId } from './schema';
 import { hardSecrets, redact, reportLeaks } from './secrets';
@@ -33,7 +43,28 @@ export interface CandidateManifest {
   artifacts: { name: string; sha256: string }[];
 }
 export const MANIFEST = 'candidate-manifest.json';
-const TEXT = new Set(['.log', '.txt', '.json', '.ndjson', '.md', '.wsrun', '.csv', '.yml', '.yaml', '.html']);
+/** Archives are refused as evidence: what is inside cannot be read for a leak. Text is told from binary by content. */
+const ARCHIVE = /\.(gz|tgz|zip|tar|7z|br|zst|xz|bz2|rar)$/i;
+const isText = (b: Buffer) => !b.subarray(0, 8192).includes(0);
+
+/**
+ * One piece of evidence read safely (4.1.18, second reading): under the folder's `evidence/`, a regular file and not
+ * a link, inside the folder once resolved, not an archive. Else why not.
+ */
+export function readEvidence(dir: string, path: string): { bytes: Buffer } | { why: string } {
+  if (!path.startsWith('evidence/'))
+    return { why: 'lies outside evidence/ (a report or the manifest is not evidence)' };
+  if (ARCHIVE.test(path)) return { why: 'is an archive, which cannot be read for a leak' };
+  const p = join(dir, path);
+  if (!existsSync(p)) return { why: 'is missing' };
+  const st = lstatSync(p);
+  if (st.isSymbolicLink()) return { why: 'is a link' };
+  if (!st.isFile()) return { why: 'is not a file' };
+  const root = realpathSync(dir);
+  const real = realpathSync(p);
+  if (real !== root && !real.startsWith(root + sep)) return { why: 'resolves outside the folder' };
+  return { bytes: readFileSync(p) };
+}
 
 export const sha256 = (b: Buffer | string) => createHash('sha256').update(b).digest('hex');
 
@@ -123,18 +154,27 @@ export function checkDir(dir: string, require: readonly string[] = []): { proble
       problems.push(`${f}: tried run ${r.candidateRun}, the candidate is run ${m.candidateRunId}`);
     if (!sameDigests(r.packageDigests, want)) problems.push(`${f}: its file digests are not the candidate's`);
     for (const e of r.evidence) {
-      const p = join(dir, e.path);
-      if (!existsSync(p)) {
-        problems.push(`${f}: evidence ${e.path} is missing`);
+      const read = readEvidence(dir, e.path);
+      if ('why' in read) {
+        problems.push(`${f}: evidence ${e.path} ${read.why}`);
         continue;
       }
-      const b = readFileSync(p);
+      const b = read.bytes;
       if (sha256(b) !== e.sha256) problems.push(`${f}: evidence ${e.path} is not the file it names (SHA-256 differs)`);
-      if (TEXT.has(extname(p).toLowerCase()))
-        for (const leak of reportLeaks(b.toString('utf8'))) problems.push(`${f}: evidence ${e.path} holds ${leak}`);
+      const leaks = isText(b) ? reportLeaks(b.toString('utf8')) : hardSecrets(b.toString('latin1'));
+      for (const leak of leaks) problems.push(`${f}: evidence ${e.path} holds ${leak}`);
     }
     reports.push(r);
   }
+  // One release per folder, and the one its packages name when the candidate packed them (`pack/web-scumm-x.y.z.tgz`).
+  const releases = new Set(reports.map((r) => r.release));
+  if (releases.size > 1) problems.push(`the reports name several releases: ${[...releases].join(', ')}`);
+  const packed = Object.keys(want)
+    .map((n) => /(?:^|\/)web-scumm-(\d+\.\d+\.\d+)\.tgz$/.exec(n)?.[1])
+    .find(Boolean);
+  for (const rel of releases)
+    if (packed && rel.replace(/-rc\.\d+$/, '') !== packed)
+      problems.push(`release ${rel}: the candidate packed ${packed}`);
   for (const id of PASS_IDS) if (!seen.has(id)) problems.push(`${id}: no report`);
   for (const id of require) {
     if (!(PASS_IDS as readonly string[]).includes(id)) problems.push(`--require=${id}: not a pass`);
@@ -143,7 +183,14 @@ export function checkDir(dir: string, require: readonly string[] = []): { proble
   return { problems, reports };
 }
 
-const cell = (s: string | undefined) => (s ?? '').replace(/\|/g, '\\|').replace(/\s*\n\s*/g, ' ');
+/** A table cell from a person's text: one line, its backslashes, pipes and markup escaped (no row, comment or tag). */
+const cell = (s: string | undefined) =>
+  (s ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\|/g, '\\|')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\s*(\r\n|\r|\n)\s*/g, ' ');
 
 /** The people's passes table of a sheet, from the reports, in the order of PASS_IDS. */
 export function renderPasses(reports: readonly FieldReport[], m: CandidateManifest): string {
@@ -187,7 +234,7 @@ export function writePasses(sheet: string | null, section: string, release: stri
   if (sheet === null) return `# Passes, ${release}\n\n${block}`;
   const b = sheet.indexOf(BEGIN);
   const e = sheet.indexOf(END);
-  if (b >= 0 && e > b) return sheet.slice(0, b) + block + sheet.slice(e + END.length + 1);
+  if (b >= 0 && e > b) return sheet.slice(0, b) + block + sheet.slice(e + END.length).replace(/^\r?\n/, '');
   const h = sheet.indexOf("## People's passes");
   if (h < 0) return `${sheet.trimEnd()}\n\n${block}`;
   const next = sheet.indexOf('\n## ', h + 1);
@@ -207,11 +254,13 @@ export function stageBundle(reportFile: string, into: string): { files: string[]
   const files: { path: string; sha256: string; source: string; redacted: string[] }[] = [];
   const redacted = new Set<string>();
   for (const e of r.evidence) {
-    const src = readFileSync(join(dir, e.path));
+    const read = readEvidence(dir, e.path);
+    if ('why' in read) throw new Error(`evidence ${e.path} ${read.why}: refused`);
+    const src = read.bytes;
     if (sha256(src) !== e.sha256) throw new Error(`evidence ${e.path} is not the file the report names`);
     let out: Buffer = src;
     let cut: string[] = [];
-    if (TEXT.has(extname(e.path).toLowerCase())) {
+    if (isText(src)) {
       const text = src.toString('utf8');
       const hard = hardSecrets(text);
       if (hard.length) throw new Error(`evidence ${e.path} holds ${hard.join(', ')}: refused, never bundled`);

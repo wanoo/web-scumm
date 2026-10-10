@@ -20,5 +20,13 @@
 - `e2e:remix-speedrun` follows the Daily rule across midnight: a run sent after its UTC day is practice (valid, not
   ranked). PR #88's cross-runtime job started at 23:58 UTC, signed the day of 9 October and submitted on the 10th: the
   Bridge said `ranked null`, rightly, and the e2e called it a failure.
+- The second reading (an automated second context) found the Field Kit too trusting: a token or an address spelt
+  with a JSON escape passed the scan and came back whole in the sheet; `access_token`, `DB_PASSWORD`, `clientSecret`
+  and a URL's credentials were not redacted; a `.har` or `.env` was never read; evidence could be a link out of the
+  folder, an archive, or the manifest itself (a `passed` with no evidence at all); a person's `\r`, `\|` or
+  `<!-- field:end -->` could add a row or hide the table; the release notes counted a `failed` in any cell. Each now
+  has its test, red on the code before: decoded JSON scanned, names inside identifiers, text told by content, evidence
+  only a regular file under `evidence/` inside the folder, cells escaped, the status column alone. The docs say what
+  the binding is: integrity against the manifest beside the reports, not authenticity.
 
 → next: Claude · 4.1.18 PR 2, `connectors` and `reality-store` read and gated

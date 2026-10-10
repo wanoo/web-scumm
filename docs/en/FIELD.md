@@ -67,5 +67,10 @@ npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # what a 
 - **One issue per pass**: every pass a person makes is an open GitHub issue labelled `field-pass` (4.1.18: #75 to
   #87), saying what to try, what it needs and the evidence expected; the maintainer closes it once the test is made and
   its report checks. An open issue is a pass not made.
+- **Integrity, not authenticity**: a report is checked against the `candidate-manifest.json` beside it, as given;
+  `field:init` downloads it from the run itself (`gh run download`), and a folder whose manifest was edited checks
+  against that edit. The release's own gate reads the run's manifest, never the folder's.
+- **Evidence is a file under `evidence/`**, read where it is: not a link, not outside the folder once resolved, not an
+  archive (what is inside cannot be read for a leak), never a report or the manifest.
 - **Another commit, another pass**: a report of another candidate run, or whose file digests are not the candidate's,
   does not check. A fix that changes the package makes the reports it touches void until they are made again.

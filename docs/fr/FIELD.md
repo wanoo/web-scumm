@@ -68,6 +68,11 @@ npm run field:bundle -- --report=<report.json> --out=<bundle.tar.gz>   # ce que 
 - **Une issue par passe** : chaque passe humaine est une issue GitHub ouverte, avec le label `field-pass` (4.1.18 :
   #75 à #87), qui dit quoi essayer, avec quoi et quelles preuves rendre ; le maintainer la ferme une fois le test fait
   et son rapport vérifié. Une issue ouverte est une passe non faite.
+- **Intégrité, pas authenticité** : un rapport est vérifié contre le `candidate-manifest.json` posé à côté, tel quel ;
+  `field:init` le télécharge depuis le run lui-même (`gh run download`), et un dossier dont le manifeste a été modifié se
+  vérifie contre cette modification. La gate de la release lit le manifeste du run, jamais celui du dossier.
+- **Une preuve est un fichier sous `evidence/`**, lu là où il est : pas un lien, pas hors du dossier une fois résolu,
+  pas une archive (son contenu ne peut pas être fouillé), jamais un rapport ni le manifeste.
 - **Autre commit, autre passe** : un rapport d'un autre candidate run, ou dont les empreintes ne sont pas celles du
   candidat, ne passe pas la vérification. Un correctif qui change le package rend caducs les rapports qu'il touche
   jusqu'à ce qu'ils soient refaits.

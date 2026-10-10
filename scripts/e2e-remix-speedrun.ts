@@ -265,12 +265,13 @@ try {
     // while it runs (candidate 37998053206 crossed midnight), and then that rule is what is checked.
     const dayOver =
       k.category === 'daily' && new Date().toISOString().slice(0, 10) !== new Date(now).toISOString().slice(0, 10);
+    // Crossed between the signature and now, either answer is the rule's (verified before or after midnight).
     const ranked = k.want.verdict === 'valid' && !dayOver;
     if (
       r.verdict !== k.want.verdict ||
       r.leaderboardKey !== k.want.key ||
       r.trust !== 'replay-valid' ||
-      !!r.ranked !== ranked
+      (!dayOver && !!r.ranked !== ranked)
     )
       fail('bridge', `${k.category}: ${r.verdict} on ${r.leaderboardKey}, trust ${r.trust}, ranked ${r.ranked}`);
     else

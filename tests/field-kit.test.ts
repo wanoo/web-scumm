@@ -3,7 +3,7 @@
 // rendered as done; the sheet has its thirteen rows and its counts; a bundle carries only the listed evidence,
 // redacted, and refuses a key.
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -287,5 +287,124 @@ describe('the leak scan', () => {
     expect(hardSecrets(`${'1'.repeat(64)} ${'a'.repeat(40)}`)).toEqual([]);
     expect(reportLeaks('Basic dXNlcjpwYXNzd29yZA==')).toEqual(['a bearer']);
     expect(redact('nothing here').redacted).toEqual([]);
+  });
+});
+
+describe('the second reading (4.1.18): what could pass for a pass, or leak', () => {
+  it('reads a JSON escape decoded: a token or an address spelt \\u… is found', () => {
+    const dir = folder({ 'archive-human-install': (r) => (r.notes = 'x') });
+    const f = join(dir, 'archive-human-install.json');
+    writeFileSync(
+      f,
+      readFileSync(f, 'utf8').replace(
+        '"notes": "x"',
+        '"notes": "\\u0067hp_abcdefghijklmnopqrstuvwxyz0123 ops\\u0040example.org"',
+      ),
+    );
+    expect(checkDir(dir).problems).toEqual([
+      'archive-human-install.json: holds a GitHub token',
+      'archive-human-install.json: holds an email address',
+    ]);
+  });
+
+  it("redacts a secret named inside an identifier, and a URL's credentials", () => {
+    const { text } = redact(
+      'access_token=abcd1234 DB_PASSWORD=hunter22 clientSecret: s3cr3tv4lue postgres://bridge:pw1234@db:5432/bridge',
+    );
+    expect(text).toBe(
+      'access_token=<redacted> DB_PASSWORD=<redacted> clientSecret: <redacted> postgres://bridge:<redacted>@db:5432/bridge',
+    );
+  });
+
+  it('takes evidence only from evidence/: not a report, not the manifest, not a link, not an archive', () => {
+    const own = folder({
+      'firefox-real-offline': (r, d) => {
+        passed(r, d);
+        r.evidence = [
+          { path: 'candidate-manifest.json', sha256: sha256(readFileSync(join(d, MANIFEST))), kind: 'log' },
+        ];
+      },
+    });
+    expect(checkDir(own).problems).toEqual([
+      'firefox-real-offline.json: evidence candidate-manifest.json lies outside evidence/ (a report or the manifest is not evidence)',
+    ]);
+    const outside = tmp();
+    writeFileSync(join(outside, 'secret.txt'), 'aws_secret_access_key=abcdefgh\n');
+    const linked = folder({
+      'firefox-real-offline': (r, d) => {
+        passed(r, d);
+        symlinkSync(join(outside, 'secret.txt'), join(d, 'evidence/link.txt'));
+        r.evidence = [
+          { path: 'evidence/link.txt', sha256: sha256(readFileSync(join(outside, 'secret.txt'))), kind: 'log' },
+        ];
+      },
+    });
+    expect(checkDir(linked).problems).toEqual(['firefox-real-offline.json: evidence evidence/link.txt is a link']);
+    const zipped = folder({
+      'firefox-real-offline': (r, d) => {
+        passed(r, d);
+        writeFileSync(join(d, 'evidence/logs.gz'), 'x');
+        r.evidence = [{ path: 'evidence/logs.gz', sha256: sha256('x'), kind: 'log' }];
+      },
+    });
+    expect(checkDir(zipped).problems).toEqual([
+      'firefox-real-offline.json: evidence evidence/logs.gz is an archive, which cannot be read for a leak',
+    ]);
+  });
+
+  it('reads any text evidence for a leak, whatever its extension (a .har, a .env)', () => {
+    const dir = folder({
+      'connectors-real-security': (r, d) => {
+        passed(r, d);
+        writeFileSync(
+          join(d, 'evidence/session.har'),
+          '{"headers":[{"name":"Authorization","value":"Bearer abcdefghijkl"}]}',
+        );
+        r.evidence = [
+          { path: 'evidence/session.har', sha256: sha256(readFileSync(join(d, 'evidence/session.har'))), kind: 'har' },
+        ];
+      },
+    });
+    expect(checkDir(dir).problems).toEqual([
+      'connectors-real-security.json: evidence evidence/session.har holds a bearer',
+    ]);
+  });
+
+  it('refuses reports of two releases, and a release the candidate did not pack', () => {
+    const two = folder({ 'voices-listening': (r) => (r.release = '4.1.19') });
+    expect(checkDir(two).problems).toContain('the reports name several releases: 4.1.18, 4.1.19');
+    const other = { ...manifest, artifacts: [{ name: 'pack/web-scumm-4.1.17.tgz', sha256: '1'.repeat(64) }] };
+    const dir = tmp();
+    writeFileSync(join(dir, MANIFEST), JSON.stringify(other));
+    for (const id of PASS_IDS) writeFileSync(join(dir, `${id}.json`), JSON.stringify(blankReport(id, '4.1.18', other)));
+    expect(checkDir(dir).problems).toEqual(['release 4.1.18: the candidate packed 4.1.17']);
+  });
+
+  it("keeps a person's text in its cell: no new row, comment, tag or marker", () => {
+    const dir = folder({
+      'mystery-deployed': (r) =>
+        Object.assign(r, {
+          status: 'blocked',
+          operator: 'ops',
+          startedAt: '2026-10-10T09:00:00Z',
+          finishedAt: '2026-10-10T09:05:00Z',
+          scenario: 'deploy',
+          environment: { os: 'Linux', versions: {} },
+          notes: 'a\r| fake | passed | | | |\\| <!-- field:end -->',
+        }),
+    });
+    const section = renderPasses(checkDir(dir).reports, manifest);
+    const row = section.split('\n').find((l) => l.includes('`mystery-deployed`'))!;
+    expect(row).toContain('a \\| fake \\| passed \\| \\| \\| \\|\\\\\\| &lt;!-- field:end --&gt; |');
+    expect(section.split('\n').filter((l) => l.startsWith('| ')).length).toBe(14);
+    const sheet = writePasses(null, section, '4.1.18');
+    expect(writePasses(sheet.replaceAll('\n', '\r\n'), section, '4.1.18')).not.toContain('\r\r');
+    expect(manualPasses(sheet)).toContain('0 of 13 done.');
+  });
+
+  it('counts the status column only, in the first table', () => {
+    const sheet =
+      "## People's passes\n\n| Pass | Status | Who | Env | Failed |\n|---|---|---|---|---|\n| a | passed | | | failed once |\n| b | not-run | | | |\n\n| other | failed |\n";
+    expect(manualPasses(sheet)).toContain('1 of 2 done.');
   });
 });
