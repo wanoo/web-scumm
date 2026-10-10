@@ -14,6 +14,13 @@ and `bridge serve` moderates with a token file. The tag is not signed: deferred 
 
 ### Fixed
 
+- **The candidate's gate fails when a job it judges failed** (4.1.17): its step piped the verdict into `tee` under
+  GitHub's default `bash -e`, without `pipefail`, so `✖ mutation: failure` was printed and the gate passed (candidate
+  37998053206; the run itself stayed red, and `ship tag` and `release.yml` require a green run, so no tag could stand on
+  it). Every step piped into `tee` runs under `shell: bash` now, and a test refuses one that does not.
+- **The test of a worker writing too much asks its reason** (4.1.17): a worker that exits before its SIGKILL lands
+  leaves a cut answer, also `crash`, so the mutant that forgot the cause survived on some runs.
+
 - **The nightly's SQLite load measures SQLite** (4.1.17): its row set `BRIDGE_STORE=""` and `bridge:load` kept the
   empty string (`??`), so SQLite was never opened and the missing report failed nothing. Each store is now a job of its
   own with `--store=`; the report names the backend the store object is and the commit, and
