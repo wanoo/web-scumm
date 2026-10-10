@@ -221,7 +221,6 @@ async function readyCa() {
 /** Every signal of a player, by their capability: the signed signals and their sequences, in order. */
 const signalsOf = async (tenant, cap) =>
   (await insist(PORT, 'GET', '/v1/signals', { tenant, bearer: cap })).json ?? null;
-const sequences = async (tenant, cap) => (await signalsOf(tenant, cap))?.sequences ?? null;
 
 const report = { format: 'web-scumm-ops-qualify', schema: 1, version, commit: '', images: [...images, ...from], steps };
 report.commit = sh('git', ['rev-parse', 'HEAD'], { cwd: ROOT, allowFail: true }).stdout.trim();
