@@ -98,7 +98,7 @@ jobs:
         timeout-minutes: 8
       - run: npm run test:heavy -- --reporter=default --reporter=json --outputFile.json=heavy-${{ matrix.attempt }}.json
       - if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: heavy-${{ matrix.attempt }}
           path: heavy-${{ matrix.attempt }}.json
@@ -126,7 +126,7 @@ jobs:
       - if: always()
         run: npx tsx tools/load-report.ts bridge-load-sqlite.json --store=sqlite --commit=${{ needs.target.outputs.sha }}
       - if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: bridge-load-sqlite
           path: |
@@ -165,7 +165,7 @@ jobs:
       - if: always()
         run: npx tsx tools/load-report.ts bridge-load-postgres.json --store=postgres --commit=${{ needs.target.outputs.sha }}
       - if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: bridge-load-postgres
           path: |
@@ -198,7 +198,7 @@ jobs:
         run: |
           mkdir -p candidate-release
           npm run -s e2e:remix-speedrun -- --out=candidate-release/wsrun | tee candidate-release/e2e-remix-speedrun.txt
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: candidate-release
           path: candidate-release
@@ -252,7 +252,7 @@ jobs:
       - run: npm run test:mutation:core -- --set=${{ matrix.set }} | tee mutation-${{ matrix.set }}.txt
         shell: bash
       - if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: mutation-${{ matrix.set }}
           path: |
@@ -280,7 +280,7 @@ jobs:
       - run: |
           node scripts/pack.mjs --out=pack --publish-dry-run
           mkdir -p candidate-pack && cp pack/*.tgz candidate-pack/ && ls -l candidate-pack
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: candidate-pack
           path: candidate-pack
@@ -350,7 +350,7 @@ jobs:
           path: candidate-pack
       - run: npm run ops:qualify -- --tarballs=candidate-pack --out=deployment-smoke
       - if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: deployment-smoke
           path: deployment-smoke
@@ -422,7 +422,7 @@ jobs:
             echo '### Artifacts missing'
             for a in candidate-release candidate-pack heavy-1 heavy-2 heavy-3 bridge-load-sqlite bridge-load-postgres; do [ -d "artifacts/$a" ] || echo "- $a"; done
           } >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: candidate-manifest
           path: candidate-manifest.json
