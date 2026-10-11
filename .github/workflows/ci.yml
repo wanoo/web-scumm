@@ -92,7 +92,7 @@ jobs:
         env:
           STUDIO: '1'
           VITE_STUDIO_DEMO: '1'
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: dist
           path: dist
@@ -135,7 +135,7 @@ jobs:
         timeout-minutes: 20
       - run: npm run test:coverage
       - run: npx tsx tools/coverage-ratchet.ts ${{ github.event_name != 'pull_request' && '--strict' || '' }}
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: coverage-summary
@@ -177,7 +177,7 @@ jobs:
       - run: npm run test:mutation:core -- --set=${{ matrix.set }} | tee mutation-${{ matrix.set }}.txt
         shell: bash
       - if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: mutation-${{ matrix.set }}
           path: |
@@ -597,7 +597,7 @@ jobs:
         env:
           E2E_BROWSER: ${{ matrix.browser }}
       - if: failure() && env.RUN == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: e2e-screenshots-${{ matrix.browser }}-${{ matrix.mode }}
           path: |
@@ -835,7 +835,7 @@ jobs:
       - if: env.RUN == 'true'
         run: npm run e2e:taps -- http://127.0.0.1:5175/ --browser=${{ matrix.browser }}
       - if: failure() && env.RUN == 'true'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: e2e-reference-${{ matrix.browser }}
           path: /tmp/e2e-reference-*
