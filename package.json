@@ -137,7 +137,7 @@
     "@typescript/typescript6": "^6.0.2",
     "@vitest/coverage-v8": "^5.0.3",
     "cpu-features": "file:connectors/vendor/refused-native",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.1.0",
     "esbuild": "^0.28.2",
     "fake-indexeddb": "^6.2.5",
     "fast-check": "^4.10.2",
