@@ -27,7 +27,7 @@ jobs:
     outputs:
       plan: ${{ steps.plan.outputs.plan }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # A pull request is checked out as its merge commit: HEAD^1 is the base it merges into.
           fetch-depth: 2
@@ -50,7 +50,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # the fragments' check diffs against main's merge base (tools/changes.ts, 4.1.9)
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -116,7 +116,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # the fragments' check diffs against main's merge base (tools/changes.ts, 4.1.9)
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
@@ -161,7 +161,7 @@ jobs:
       matrix:
         set: [core, reality, runs, remix, speedrun, connectors, reality-store]
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
@@ -197,7 +197,7 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::reality-xcheck not needed by the plan (no Reality path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -222,7 +222,7 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::connectors not needed by the plan (no Reality path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -270,7 +270,7 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::bridge-postgres not needed by the plan (no Reality path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -299,7 +299,7 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::reality (${{ matrix.browser }}) not needed by the plan (no Reality path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -350,7 +350,7 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::node-24 not needed by the plan (no code changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -389,7 +389,7 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::windows not needed by the plan (no code changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -435,7 +435,7 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::second-game not needed by the plan (no template, package or authoring path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -524,7 +524,7 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::e2e (${{ matrix.browser }}, ${{ matrix.mode }}) not needed by the plan (nothing the sample game's browser rows play changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -616,7 +616,7 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::pwa-firefox not needed by the plan (no PWA path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -646,7 +646,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
@@ -672,7 +672,7 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::fresh-install not needed by the plan (no package, template or authoring path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -713,7 +713,7 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::external-consumer not needed by the plan (no package, template or authoring path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -746,7 +746,7 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::upgrade not needed by the plan (no save, migration or package path changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -785,7 +785,7 @@ jobs:
       - if: env.RUN != 'true'
         run: echo "::notice::reference (${{ matrix.browser }}) not needed by the plan (nothing the reference chapter plays changed)"
       - if: env.RUN == 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: env.RUN == 'true'
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
