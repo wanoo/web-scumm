@@ -7,7 +7,7 @@ dessous. Les captures sont en anglais, la langue de base du jeu.
 Ces captures ont été prises à la **4.1.19** (11 octobre 2026). Depuis, la police de l’interface a changé (Galmuri11,
 4.3.0), le héros se choisit à la Nouvelle partie (4.3.0), et le Studio a gagné une matrice héros × langue et des
 captures avant/après (4.4.0) : rien de cela n’apparaît encore ici. Pour voir la version actuelle, jouez sur
-[wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/).
+[quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/).
 
 <a name="player"></a>
 

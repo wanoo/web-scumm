@@ -168,8 +168,12 @@ export function repositoryDocs(
   };
 }
 
-/** Where a reader checks whether a bundle's build was promoted to a release (§4.5.1): never inside the bundle. */
-export const PUBLICATION_URL = 'https://wanoo.github.io/quest-n-click/docs/publication.json';
+/**
+ * Where a reader checks whether a bundle's build was promoted to a release (§4.5.1): never inside the bundle. The
+ * record lives in the wiki's repository (docs-publish writes it there); GitHub Pages, which copied it to
+ * `/docs/publication.json`, is abandoned (D52).
+ */
+export const PUBLICATION_URL = 'https://raw.githubusercontent.com/wiki/Quest-n-Click/quest-n-click/publication.json';
 
 /** A JSON text of the bundle, its format and version checked: an unknown major version is refused, plainly. */
 function parseVersioned<T>(text: string, format: string, label: string): T {

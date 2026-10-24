@@ -500,7 +500,7 @@ Lues quand Vite construit le jeu, le Studio ou une prévisualisation. Les script
 Le sous-chemin sous lequel le jeu est servi (`/<dépôt>/` sur GitHub Pages) ; `/` quand elle n’est pas posée.
 
 - Origine : lue à la construction de la page ou du paquet.
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts).
+- Lue par : [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts).
 
 <a name="base-url"></a>
 
@@ -851,10 +851,19 @@ Le point d’accès S3, les identifiants et le bucket du stockage objet de la CI
 
 ### `WEB_SCUMM_REPO`
 
-Le dépôt GitHub sur lequel travaillent les outils de publication ; `wanoo/quest-n-click` quand elle n’est pas posée.
+Le dépôt GitHub sur lequel travaillent les outils de publication ; `Quest-n-Click/quest-n-click` quand elle n’est pas posée.
 
 - Origine : vous la posez ; le code la lit.
 - Lue par : [`tools/release/lib.mjs`](../../tools/release/lib.mjs), [`tools/release/provenance.mjs`](../../tools/release/provenance.mjs).
+
+<a name="web-scumm-repo-id"></a>
+
+### `WEB_SCUMM_REPO_ID`
+
+L’id numérique que doit nommer le certificat de chaque attestation ; `1402166796` (ce dépôt, sous chacun de ses noms) quand elle n’est pas posée. Un fork qui ne pose que `WEB_SCUMM_REPO` n’est pas vérifié par id.
+
+- Origine : vous la posez ; le code la lit.
+- Lue par : [`tools/release/provenance.mjs`](../../tools/release/provenance.mjs).
 
 <a name="wiki-deploy-key"></a>
 
@@ -878,7 +887,7 @@ Personne ne les pose à la main : le système, npm, Vitest ou un runner GitHub s
 `true` sur un runner GitHub : les tests et les cliquets adaptent leur sortie et leurs limites.
 
 - Origine : posée par GitHub Actions.
-- Lue par : [`scripts/e2e-pwa.mjs`](../../scripts/e2e-pwa.mjs), [`scripts/e2e.mjs`](../../scripts/e2e.mjs), [`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts).
+- Lue par : [`scripts/e2e-pwa.mjs`](../../scripts/e2e-pwa.mjs), [`scripts/e2e.mjs`](../../scripts/e2e.mjs), [`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts), et 1 de plus.
 
 <a name="github-api-url"></a>
 
@@ -960,6 +969,15 @@ Le système du runner, noté à côté d’une mesure.
 
 - Origine : posée par GitHub Actions.
 - Lue par : [`tools/backup-memory.ts`](../../tools/backup-memory.ts), [`tools/load-median.ts`](../../tools/load-median.ts), [`tools/release/baseline.mjs`](../../tools/release/baseline.mjs).
+
+<a name="runner-temp"></a>
+
+### `RUNNER_TEMP`
+
+Le dossier temporaire du runner : la release y garde la réponse de la revalidation du site web.
+
+- Origine : posée par GitHub Actions.
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
 <a name="systemroot"></a>
 
@@ -1075,15 +1093,6 @@ mutation : un seul fichier à muter, choisi à la main.
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml).
 
-<a name="full"></a>
-
-### `FULL`
-
-ci : `false` dans un lancement Pages seulement, qui saute alors ses autres étapes.
-
-- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
-
 <a name="in-candidate"></a>
 
 ### `IN_CANDIDATE`
@@ -1174,15 +1183,6 @@ release : le préfixe des noms de fichiers de la version (`quest-n-click`).
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
-<a name="pages-only"></a>
-
-### `PAGES_ONLY`
-
-ci : `true` pour un lancement Pages seulement, qui reconstruit le site et `/docs/` et rien d’autre.
-
-- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
-
 <a name="postgres-db"></a>
 
 ### `POSTGRES_DB`
@@ -1253,7 +1253,7 @@ release : les fichiers de remix ajoutés à la version, quand il y en a.
 Le dépôt où tourne le workflow (`propriétaire/nom`), pour ses appels à `gh`.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
-- Lue par : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+- Lue par : [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
 
 <a name="reused"></a>
 
@@ -1314,6 +1314,24 @@ mutation : l’ensemble de mutation choisi à la main.
 ### `SHA`
 
 release : le commit qu’a testé le lancement candidat.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="site-revalidate-secret"></a>
+
+### `SITE_REVALIDATE_SECRET`
+
+release : le secret du dépôt envoyé en `Authorization: Bearer` à `/api/revalidate` du site web ; vide, l'appel est sauté avec un avis.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="site-url"></a>
+
+### `SITE_URL`
+
+release : le site web du projet que la release fait revalider (`<SITE_URL>/api/revalidate`) ; la variable de dépôt `SITE_URL`, sinon `https://quest-n-click.cleverapps.io`.
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
@@ -1398,5 +1416,14 @@ candidate : le SHA complet qu’un lancement à la main doit tester (son entrée
 
 - Origine : posée par un workflow de `.github/workflows/` (CI et publications).
 - Lue par : [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
+
+<a name="web"></a>
+
+### `WEB`
+
+release : la démo du site web, `<P>-<tag>-web.tar.gz`, quand le candidat en a fait une (depuis la 4.5.2) ; vide avant.
+
+- Origine : posée par un workflow de `.github/workflows/` (CI et publications).
+- Lue par : [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
 <!-- env:end -->

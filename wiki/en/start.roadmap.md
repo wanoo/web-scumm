@@ -3,7 +3,7 @@
 Where quest'n'click comes from, what was decided to stay out, what each release left open and where each of those items
 stands at 4.4.0, and what comes next. The full release-by-release history is the [changelog](reference.changelog.md)
 and the roadmap as it was written, kept at
-[`blob/v4.4.0/docs/en/ROADMAP.md`](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md).
+[`blob/v4.4.0/docs/en/ROADMAP.md`](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md).
 
 <a name="overview"></a>
 
@@ -223,6 +223,6 @@ Today's list for a change: [Before a pull request](contribute.before-a-pr.md).
 - [Changelog](reference.changelog.md), [Stability and support](start.stability.md),
   [Decisions and ADRs](contribute.decisions.md).
 - The roadmap as written up to 4.4.0:
-  [`blob/v4.4.0/docs/en/ROADMAP.md`](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md).
+  [`blob/v4.4.0/docs/en/ROADMAP.md`](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/ROADMAP.md).
 - [Benchmarks](contribute.benchmarks.md) for the solver's measures,
   [`docs/dev/PROOF-MATRIX.md`](../../docs/dev/PROOF-MATRIX.md) for the matrix of three-character games.

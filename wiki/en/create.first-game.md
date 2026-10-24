@@ -62,12 +62,12 @@ found before release ([translations](create.translations.md)).
 <!-- step: create -->
 The packages are not on the npm registry yet, so a game starts from the archive each GitHub release attaches
 ([install from the release archive](install.from-archive.md)). Take the latest version from
-<https://github.com/wanoo/quest-n-click/releases/latest> and, in an empty folder of your choice:
+<https://github.com/Quest-n-Click/quest-n-click/releases/latest> and, in an empty folder of your choice:
 
 ```sh
 # in the folder that will contain the project: makes the folder my-game
 V=4.5.0             # the version of the release you take
-T=https://github.com/wanoo/quest-n-click/releases/download/v$V/quest-n-click-$V.tgz
+T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v$V/quest-n-click-$V.tgz
 npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game
 npm install

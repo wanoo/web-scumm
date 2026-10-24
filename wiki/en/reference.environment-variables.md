@@ -500,7 +500,7 @@ Read when Vite builds the game, the Studio or a preview. The npm scripts set mos
 The sub-path the game is served under (`/<repo>/` on GitHub Pages); `/` when unset.
 
 - Origin: read when the page or the package is built.
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts).
+- Read by: [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts).
 
 <a name="base-url"></a>
 
@@ -851,10 +851,19 @@ The S3 endpoint, credentials and bucket of the CI's object store, as one URL, fo
 
 ### `WEB_SCUMM_REPO`
 
-The GitHub repository the release tools work on; `wanoo/quest-n-click` when unset.
+The GitHub repository the release tools work on; `Quest-n-Click/quest-n-click` when unset.
 
 - Origin: you set it; the code reads it.
 - Read by: [`tools/release/lib.mjs`](../../tools/release/lib.mjs), [`tools/release/provenance.mjs`](../../tools/release/provenance.mjs).
+
+<a name="web-scumm-repo-id"></a>
+
+### `WEB_SCUMM_REPO_ID`
+
+The numeric id every attestation's certificate must name; `1402166796` (this repository, under each of its names) when unset. A fork that sets only `WEB_SCUMM_REPO` is not checked by id.
+
+- Origin: you set it; the code reads it.
+- Read by: [`tools/release/provenance.mjs`](../../tools/release/provenance.mjs).
 
 <a name="wiki-deploy-key"></a>
 
@@ -878,7 +887,7 @@ Nobody sets these by hand: the operating system, npm, Vitest or a GitHub runner 
 `true` on a GitHub runner: the tests and ratchets adapt their output and their limits.
 
 - Origin: set by GitHub Actions.
-- Read by: [`scripts/e2e-pwa.mjs`](../../scripts/e2e-pwa.mjs), [`scripts/e2e.mjs`](../../scripts/e2e.mjs), [`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts).
+- Read by: [`scripts/e2e-pwa.mjs`](../../scripts/e2e-pwa.mjs), [`scripts/e2e.mjs`](../../scripts/e2e.mjs), [`tools/coverage-ratchet.ts`](../../tools/coverage-ratchet.ts), and 1 more.
 
 <a name="github-api-url"></a>
 
@@ -960,6 +969,15 @@ The runner's system, recorded beside a measurement.
 
 - Origin: set by GitHub Actions.
 - Read by: [`tools/backup-memory.ts`](../../tools/backup-memory.ts), [`tools/load-median.ts`](../../tools/load-median.ts), [`tools/release/baseline.mjs`](../../tools/release/baseline.mjs).
+
+<a name="runner-temp"></a>
+
+### `RUNNER_TEMP`
+
+The runner's temporary folder: the release keeps the website's revalidation answer there.
+
+- Origin: set by GitHub Actions.
+- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
 <a name="systemroot"></a>
 
@@ -1075,15 +1093,6 @@ mutation: one file to mutate, chosen by hand.
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/mutation.yml`](../../.github/workflows/mutation.yml).
 
-<a name="full"></a>
-
-### `FULL`
-
-ci: `false` in a Pages-only run, which then skips its other steps.
-
-- Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
-
 <a name="in-candidate"></a>
 
 ### `IN_CANDIDATE`
@@ -1174,15 +1183,6 @@ release: the release's file name prefix (`quest-n-click`).
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
-<a name="pages-only"></a>
-
-### `PAGES_ONLY`
-
-ci: `true` for a dispatched Pages-only run, which rebuilds the site and `/docs/` and nothing else.
-
-- Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
-
 <a name="postgres-db"></a>
 
 ### `POSTGRES_DB`
@@ -1253,7 +1253,7 @@ release: the remix files added to the release, when there are some.
 The repository the workflow runs in (`owner/name`), for its `gh` calls.
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
-- Read by: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
+- Read by: [`.github/workflows/docs-publish.yml`](../../.github/workflows/docs-publish.yml).
 
 <a name="reused"></a>
 
@@ -1314,6 +1314,24 @@ mutation: the mutation set chosen by hand.
 ### `SHA`
 
 release: the commit the candidate run tested.
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="site-revalidate-secret"></a>
+
+### `SITE_REVALIDATE_SECRET`
+
+release: the repository secret sent as `Authorization: Bearer` to the website's `/api/revalidate`; empty, the call is skipped with a notice.
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
+
+<a name="site-url"></a>
+
+### `SITE_URL`
+
+release: the project's website the release asks to revalidate (`<SITE_URL>/api/revalidate`); the repository variable `SITE_URL`, else `https://quest-n-click.cleverapps.io`.
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
@@ -1398,5 +1416,14 @@ candidate: the full SHA a run started by hand must test (its `sha` input).
 
 - Origin: set by a workflow of `.github/workflows/` (CI and releases).
 - Read by: [`.github/workflows/candidate.yml`](../../.github/workflows/candidate.yml).
+
+<a name="web"></a>
+
+### `WEB`
+
+release: the website's demo, `<P>-<tag>-web.tar.gz`, when the candidate made one (from 4.5.2); empty before.
+
+- Origin: set by a workflow of `.github/workflows/` (CI and releases).
+- Read by: [`.github/workflows/release.yml`](../../.github/workflows/release.yml).
 
 <!-- env:end -->

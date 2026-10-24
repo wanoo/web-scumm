@@ -2,30 +2,30 @@
 
 # Review pages: validate from a phone
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PAGES.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PAGES.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PAGES.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PAGES.md).
 
-Now in: [Review pages](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.review-pages.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PAGES.md#review-pages-validate-from-a-phone)
+Now in: [Review pages](https://quest-n-click.cleverapps.io/docs/create.review-pages) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PAGES.md#review-pages-validate-from-a-phone)
 
 ## The three pages
 
-Now in: [Review pages](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.review-pages.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PAGES.md#the-three-pages)
+Now in: [Review pages](https://quest-n-click.cleverapps.io/docs/create.review-pages) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PAGES.md#the-three-pages)
 
 ## The world page
 
-Now in: [Review pages](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.review-pages.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PAGES.md#the-world-page)
+Now in: [Review pages](https://quest-n-click.cleverapps.io/docs/create.review-pages) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PAGES.md#the-world-page)
 
 ## The puzzles page
 
-Now in: [Review pages](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.review-pages.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PAGES.md#the-puzzles-page)
+Now in: [Review pages](https://quest-n-click.cleverapps.io/docs/create.review-pages) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PAGES.md#the-puzzles-page)
 
 ## Where the annotations go
 
-Now in: [Review pages](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.review-pages.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PAGES.md#where-the-annotations-go)
+Now in: [Review pages](https://quest-n-click.cleverapps.io/docs/create.review-pages) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PAGES.md#where-the-annotations-go)
 
 ## Publish and read back \(Claude Code\)
 
-Now in: [Review pages](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.review-pages.html) · [Working with an AI](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.working-with-ai.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PAGES.md#publish-and-read-back-claude-code)
+Now in: [Review pages](https://quest-n-click.cleverapps.io/docs/create.review-pages) · [Working with an AI](https://quest-n-click.cleverapps.io/docs/create.working-with-ai) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PAGES.md#publish-and-read-back-claude-code)
 
 ## Import layouts
 
-Now in: [Review pages](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.review-pages.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PAGES.md#import-layouts)
+Now in: [Review pages](https://quest-n-click.cleverapps.io/docs/create.review-pages) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PAGES.md#import-layouts)

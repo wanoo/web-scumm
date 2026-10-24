@@ -15,7 +15,7 @@ An icon on your home screen or in your applications that opens the game full scr
 ## Context and versions
 
 Any game built with quest'n'click and served over HTTPS (the sample game is at
-[wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/)). What this page says holds from 4.1.8, when
+[quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/)). What this page says holds from 4.1.8, when
 install, update and reinstall were proven in Chromium, WebKit and Firefox in CI; the offline copy of the whole game
 exists since 3.1. A game's author can choose to cache only the rooms near you (`offline: 'nearby'`): the pause menu
 then shows no offline row, and a room never visited may need the network.
@@ -70,7 +70,7 @@ A failed file, a skipped batch or a lack of space leaves it partial, with the re
 
 > [!LIMIT id=safari-not-tried-on-device]
 > Nobody has yet installed a game from Safari on a real iPhone, played it offline and updated it: the pass
-> `safari-ios-offline-update` is open ([#86](https://github.com/wanoo/quest-n-click/issues/86)) as of 4.4.0. CI cannot
+> `safari-ios-offline-update` is open ([#86](https://github.com/Quest-n-Click/quest-n-click/issues/86)) as of 4.4.0. CI cannot
 > navigate WebKit offline, so on Safari the offline game is only checked in its installed and updated parts. Safari's
 > rule that erases a site's storage after seven days of use without a visit applies to a Safari tab, not to a game
 > added to the Home Screen ([WebKit](https://webkit.org/tracking-prevention/)); an iPhone short of space may still evict it. Export the saves you care about.

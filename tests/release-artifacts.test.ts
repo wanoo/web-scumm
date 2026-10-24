@@ -127,6 +127,58 @@ describe('the manifest of a release', () => {
     expect(readFileSync('tools/release/ship.mjs', 'utf8')).toMatch(/quest-n-click-docs-\$\{version\}\.tar\.gz/);
   });
 
+  it("lists the website's demo from 4.5.2 on (D52): built under /demo/ by release-core, never expected of 4.5.1", () => {
+    expect(candidateFiles('4.5.2', [])).toContain('site/web.tar.gz');
+    expect(candidateFiles('4.5.2-rc.1', [])).toContain('site/web.tar.gz');
+    expect(candidateFiles('4.5.1', [])).not.toContain('site/web.tar.gz');
+    expect(releaseFiles('v4.5.2', candidateFiles('4.5.2', []))).toContain('quest-n-click-v4.5.2-web.tar.gz');
+    expect(releaseFiles('v4.5.2-rc.1', candidateFiles('4.5.2-rc.1', []))).toContain(
+      'quest-n-click-v4.5.2-rc.1-web.tar.gz',
+    );
+    // 4.5.1 and every release before keep verifying: their published files never had it.
+    const v451 = releaseFiles('v4.5.1', candidateFiles('4.5.1', []));
+    expect(v451.filter((f: string) => f.endsWith('-web.tar.gz'))).toEqual([]);
+    expect(checkRelease('v4.5.1', candidateFiles('4.5.1', []), v451)).toEqual([]);
+    const v452 = releaseFiles('v4.5.2', candidateFiles('4.5.2', []));
+    expect(
+      checkRelease(
+        'v4.5.2',
+        candidateFiles('4.5.2', []),
+        v452.filter((f: string) => !f.endsWith('-web.tar.gz')),
+      ),
+    ).toEqual(['quest-n-click-v4.5.2-web.tar.gz: missing']);
+    expect(ALL.find((a) => a.id === 'game:web')).toMatchObject({
+      artifact: 'candidate-site',
+      job: 'release-core',
+      since: '4.5.2',
+    });
+    // The candidate builds it under /demo/ with the Studio demo, after the site it publishes as dist.tar.gz.
+    const candidate = readFileSync('.github/workflows/candidate.yml', 'utf8');
+    expect(candidate).toMatch(
+      /BASE_PATH=\/demo\/ STUDIO=1 VITE_STUDIO_DEMO=1 npm run build:web\n\s+tar -czf candidate-site\/web\.tar\.gz -C dist \./,
+    );
+    // The version probe: 0 builds, 10 skips (before 4.5.2), anything else fails the step (never a silent skip).
+    expect(candidate).toMatch(
+      /process\.exit\(m\.atLeast\(require\("\.\/package\.json"\)\.version, "4\.5\.2"\) \? 0 : 10\)\)' \|\| probe=\$\?/,
+    );
+    expect(candidate).toMatch(/case "\$probe" in\n\s+0\)\n/);
+    expect(candidate).toMatch(/\n\s+10\) echo "::notice::no web\.tar\.gz before 4\.5\.2" ;;\n/);
+    expect(candidate).toMatch(/\n\s+\*\) echo "::error::[^"]*"; exit 1 ;;\n/);
+    expect(candidate.indexOf('candidate-site/web.tar.gz')).toBeGreaterThan(
+      candidate.indexOf('candidate-site/dist.tar.gz'),
+    );
+    // release.yml copies it into the release, its sums and its attestation (the `${P}-${TAG}-*` subject).
+    const release = readFileSync('.github/workflows/release.yml', 'utf8');
+    expect(release).toMatch(/cp \.candidate\/site\/web\.tar\.gz "\$P-\$TAG-web\.tar\.gz"/);
+    expect(release).toMatch(/extra="[^"\n]*\$\{WEB:\+ \$WEB\}"/);
+    const surfaces = JSON.parse(readFileSync('docs/dev/surfaces.json', 'utf8')) as { status: { path: string }[] };
+    expect(surfaces.status.map((x) => x.path)).toContain('site/web.tar.gz');
+    // ship verify names it from 4.5.2 only.
+    const ship = readFileSync('tools/release/ship.mjs', 'utf8');
+    expect(ship).toContain("const WEB_SINCE = '4.5.2';");
+    expect(ship).toMatch(/if \(atLeast\(version, WEB_SINCE\) && !existsSync\(join\(dir, web\)\)\)/);
+  });
+
   it('names packages without the pre-release suffix, every other file with the tag', () => {
     const rc = releaseFiles('v4.1.20-rc.1', candidateFiles('4.1.20-rc.1', ['run-daily']));
     expect(rc).toContain('web-scumm-bridge-4.1.20.tgz');

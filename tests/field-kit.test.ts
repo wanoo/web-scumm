@@ -431,6 +431,7 @@ describe('field:verify-bundle', () => {
     const statement = JSON.stringify([
       {
         verificationResult: {
+          signature: { certificate: { sourceRepositoryIdentifier: '1402166796' } },
           statement: {
             predicate: {
               runDetails: {

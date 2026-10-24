@@ -7,7 +7,7 @@ answers hold for the release this documentation belongs to, named at the foot of
 
 ## Players
 
-- **Where can I play?** The sample game is at [wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/),
+- **Where can I play?** The sample game is at [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/),
   on a phone in landscape or a computer ([Play online](start.play-online.md)).
 - **How do I play?** Tap a verb, then a thing; a double tap acts without a verb; the whole game plays at the keyboard
   too ([Controls](play.controls.md)).
@@ -82,7 +82,7 @@ answers hold for the release this documentation belongs to, named at the foot of
 - **I have an old link to `docs/en/CONTENT_GUIDE.md` (or another `docs/` page).** Since the switch-over to this wiki
   (4.5.0), each old page is a transition page that keeps every old anchor and links to its new pages, with a fallback
   to the 4.4.0 text:
-  [`blob/v4.4.0/docs/en/CONTENT_GUIDE.md`](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md).
+  [`blob/v4.4.0/docs/en/CONTENT_GUIDE.md`](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md).
   The MCP call `read_doc {name: "CONTENT_GUIDE"}` keeps working.
 - **What was web-scumm?** This project's former name, until 4.2.5 ([What quest'n'click is](start.what-it-is.md#history),
   [Coming from web-scumm](install.from-web-scumm.md)).
@@ -104,7 +104,7 @@ each release's passes) stays in [`docs/dev`](../../docs/dev/DECISIONS.md), in En
 ## What is in the current release
 
 The current release is the one at the foot of this page, and the newest on
-<https://github.com/wanoo/quest-n-click/releases/latest>; [Stability and support](start.stability.md#releases) lists
+<https://github.com/Quest-n-Click/quest-n-click/releases/latest>; [Stability and support](start.stability.md#releases) lists
 the lines and how long each is supported. This answer does not name it, so it does not go stale at the next release.
 The recent ones, newest first:
 

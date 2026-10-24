@@ -101,7 +101,7 @@ turn it, up and down choose an answer, A confirms. See [What quest'n'click does 
 > [!LIMIT id=controls-not-tried-by-people]
 > The touch and keyboard controls are checked by machines (Chromium and WebKit at a phone's size, touch and keyboard,
 > in CI). On a real phone they have not been tried by a person yet: the pass `phone-both-renderers` is open
-> ([#83](https://github.com/wanoo/quest-n-click/issues/83)) as of 4.4.0.
+> ([#83](https://github.com/Quest-n-Click/quest-n-click/issues/83)) as of 4.4.0.
 
 <a name="see-also"></a>
 

@@ -2,66 +2,66 @@
 
 # Studio Server: one game, several people, online
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md).
 
-Now in: [What runs where › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.what-runs-where.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#studio-server-one-game-several-people-online)
+Now in: [What runs where › overview](https://quest-n-click.cleverapps.io/docs/team.what-runs-where#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#studio-server-one-game-several-people-online)
 
 ## What runs where
 
-Now in: [What runs where](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.what-runs-where.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#what-runs-where)
+Now in: [What runs where](https://quest-n-click.cleverapps.io/docs/team.what-runs-where) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#what-runs-where)
 
 ## Deploying on Clever Cloud
 
-Now in: [Clever Cloud: overview, cost and prerequisites](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/clever.overview.html) · [Apps and add-ons](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/clever.apps-addons.html) · [Domains and TLS](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/clever.domains-tls.html) · [Configuration](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/clever.configuration.html) · [First deployment](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/clever.first-deployment.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#deploying-on-clever-cloud)
+Now in: [Clever Cloud: overview, cost and prerequisites](https://quest-n-click.cleverapps.io/docs/clever.overview) · [Apps and add-ons](https://quest-n-click.cleverapps.io/docs/clever.apps-addons) · [Domains and TLS](https://quest-n-click.cleverapps.io/docs/clever.domains-tls) · [Configuration](https://quest-n-click.cleverapps.io/docs/clever.configuration) · [First deployment](https://quest-n-click.cleverapps.io/docs/clever.first-deployment) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#deploying-on-clever-cloud)
 
 ## From the release archives
 
-Now in: [First deployment › from-release-archives](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/clever.first-deployment.html#from-release-archives) · [Install from the release archive](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/install.from-archive.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#from-the-release-archives)
+Now in: [First deployment › from-release-archives](https://quest-n-click.cleverapps.io/docs/clever.first-deployment#from-release-archives) · [Install from the release archive](https://quest-n-click.cleverapps.io/docs/install.from-archive) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#from-the-release-archives)
 
 ## The OpenID provider
 
-Now in: [Keycloak](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/clever.keycloak.html) · [Generic OIDC and GitLab](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/clever.generic-oidc.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#the-openid-provider)
+Now in: [Keycloak](https://quest-n-click.cleverapps.io/docs/clever.keycloak) · [Generic OIDC and GitLab](https://quest-n-click.cleverapps.io/docs/clever.generic-oidc) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#the-openid-provider)
 
 ## People and roles
 
-Now in: [Roles and actions: the full matrix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.roles.html) · [Managing members](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.members.html) · [Invitations](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.invitations.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#people-and-roles)
+Now in: [Roles and actions: the full matrix](https://quest-n-click.cleverapps.io/docs/team.roles) · [Managing members](https://quest-n-click.cleverapps.io/docs/team.members) · [Invitations](https://quest-n-click.cleverapps.io/docs/team.invitations) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#people-and-roles)
 
 ## Publishing builds
 
-Now in: [Publishing builds](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.builds.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#publishing-builds)
+Now in: [Publishing builds](https://quest-n-click.cleverapps.io/docs/team.builds) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#publishing-builds)
 
 ## Comments \(4.2.3\)
 
-Now in: [Comments](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.comments.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#comments-423)
+Now in: [Comments](https://quest-n-click.cleverapps.io/docs/team.comments) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#comments-423)
 
 ## The game in Git \(4.2.3\)
 
-Now in: [The game in Git](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.game-in-git.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#the-game-in-git-423)
+Now in: [The game in Git](https://quest-n-click.cleverapps.io/docs/team.game-in-git) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#the-game-in-git-423)
 
 ## Upgrading the engine of a hosted game
 
-Now in: [Upgrading the engine of a hosted game](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.upgrade-engine.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#upgrading-the-engine-of-a-hosted-game)
+Now in: [Upgrading the engine of a hosted game](https://quest-n-click.cleverapps.io/docs/team.upgrade-engine) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#upgrading-the-engine-of-a-hosted-game)
 
 ## Backup and restore
 
-Now in: [Backups](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/clever.backups.html) · [Restore the Studio on a fresh installation](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/clever.restore-drill.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#backup-and-restore)
+Now in: [Backups](https://quest-n-click.cleverapps.io/docs/clever.backups) · [Restore the Studio on a fresh installation](https://quest-n-click.cleverapps.io/docs/clever.restore-drill) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#backup-and-restore)
 
 ## Running it: the reference deployment
 
-Now in: [Redeploys](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/clever.redeploys.html) · [Monitoring](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/clever.monitoring.html) · [Security](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/clever.security.html) · [RPO and RTO](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/clever.rpo-rto.html) · [Health and metrics routes](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.health-metrics.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#running-it-the-reference-deployment)
+Now in: [Redeploys](https://quest-n-click.cleverapps.io/docs/clever.redeploys) · [Monitoring](https://quest-n-click.cleverapps.io/docs/clever.monitoring) · [Security](https://quest-n-click.cleverapps.io/docs/clever.security) · [RPO and RTO](https://quest-n-click.cleverapps.io/docs/clever.rpo-rto) · [Health and metrics routes](https://quest-n-click.cleverapps.io/docs/team.health-metrics) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#running-it-the-reference-deployment)
 
 ## Working together
 
-Now in: [Working together day to day](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.day-to-day.html) · [Write refused on the hosted Studio: stale base revision (409)](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.write-refused-409.html) · [Write refused on the hosted Studio: span locked (423)](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.write-refused-423.html) · [Recovering after a lost lease, a disconnection or a stale preview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.recovery.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#working-together)
+Now in: [Working together day to day](https://quest-n-click.cleverapps.io/docs/team.day-to-day) · [Write refused on the hosted Studio: stale base revision (409)](https://quest-n-click.cleverapps.io/docs/team.write-refused-409) · [Write refused on the hosted Studio: span locked (423)](https://quest-n-click.cleverapps.io/docs/team.write-refused-423) · [Recovering after a lost lease, a disconnection or a stale preview](https://quest-n-click.cleverapps.io/docs/team.recovery) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#working-together)
 
 ## The command line
 
-Now in: [The server's command line](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.server-cli.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#the-command-line)
+Now in: [The server's command line](https://quest-n-click.cleverapps.io/docs/team.server-cli) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#the-command-line)
 
 ## Trying it locally
 
-Now in: [Trying it locally with compose.yml](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.try-locally.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#trying-it-locally)
+Now in: [Trying it locally with compose.yml](https://quest-n-click.cleverapps.io/docs/team.try-locally) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#trying-it-locally)
 
 ## Known limits
 
-Now in: [Known limits](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/team.limits.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#known-limits)
+Now in: [Known limits](https://quest-n-click.cleverapps.io/docs/team.limits) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO-SERVER.md#known-limits)

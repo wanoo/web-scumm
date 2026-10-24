@@ -72,9 +72,9 @@ vérifiés ». **Ce n’est pas une conformité WCAG.**
 > l’écran titre, une salle, une action, un objet, une conversation, la carte, le menu de pause, un mini-jeu, la fin),
 > et la matrice de support range une passe VoiceOver ou NVDA parmi « vérifié par des personnes (pas encore fait) ».
 > À la 4.4.0, les passes humaines qui lisent cette surface, `phone-both-renderers`
-> ([#83](https://github.com/wanoo/quest-n-click/issues/83)), `code-wheel-human`
-> ([#78](https://github.com/wanoo/quest-n-click/issues/78), l’alternative textuelle de la roue à code par une personne
-> qui utilise un lecteur d’écran) et `blind-playtesters` ([#76](https://github.com/wanoo/quest-n-click/issues/76)),
+> ([#83](https://github.com/Quest-n-Click/quest-n-click/issues/83)), `code-wheel-human`
+> ([#78](https://github.com/Quest-n-Click/quest-n-click/issues/78), l’alternative textuelle de la roue à code par une personne
+> qui utilise un lecteur d’écran) et `blind-playtesters` ([#76](https://github.com/Quest-n-Click/quest-n-click/issues/76)),
 > ne sont pas faites.
 
 <a name="fairness"></a>
@@ -93,7 +93,7 @@ Voir [Speedrun pour les joueurs](play.speedrun.md) et, pour les auteurs,
 
 ## Signaler un obstacle
 
-Un obstacle est un bug. Ouvrez un ticket sur [le suivi du projet](https://github.com/wanoo/quest-n-click/issues) avec
+Un obstacle est un bug. Ouvrez un ticket sur [le suivi du projet](https://github.com/Quest-n-Click/quest-n-click/issues) avec
 l’écran, votre appareil, votre navigateur et votre aide technique, et ce que vous avez entendu ou n’avez pas pu
 atteindre. Un fichier de session (menu de pause › Sauver › Exporter la session) aide l’auteur à rejouer ce que vous
 avez fait.

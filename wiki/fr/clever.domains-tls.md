@@ -83,7 +83,7 @@ qu’il est partitionné (CHIPS) :
 > - version: 4.2.1
 > - volume: une page `/iframe-test`, trois authentifications par navigateur
 > - conditions: spike S, organisation Clever Cloud de test, région par ; navigateurs pilotés par Playwright ; vrai Safari sous macOS et iOS non mesuré
-> - source: [SPIKE-4.2.1-CLEVER.md §7](https://github.com/wanoo/quest-n-click/blob/e7132fe6cdc4b5c0d9d9b9496aa2fda7965fa405/docs/dev/SPIKE-4.2.1-CLEVER.md)
+> - source: [SPIKE-4.2.1-CLEVER.md §7](https://github.com/Quest-n-Click/quest-n-click/blob/e7132fe6cdc4b5c0d9d9b9496aa2fda7965fa405/docs/dev/SPIKE-4.2.1-CLEVER.md)
 
 > [!LIMIT id=never-cleverapps]
 > N’utilisez jamais deux noms en `*.cleverapps.io` pour `publicUrl` et `playUrl` dans un déploiement dont on se sert.

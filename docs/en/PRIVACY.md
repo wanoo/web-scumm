@@ -2,34 +2,34 @@
 
 # Personal data: what is kept, where, for how long
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md).
 
-Now in: [Privacy › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/play.privacy.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#personal-data-what-is-kept-where-for-how-long)
+Now in: [Privacy › overview](https://quest-n-click.cleverapps.io/docs/play.privacy#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#personal-data-what-is-kept-where-for-how-long)
 
 ## On the player's device
 
-Now in: [Privacy › device](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/play.privacy.html#device) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#on-the-players-device)
+Now in: [Privacy › device](https://quest-n-click.cleverapps.io/docs/play.privacy#device) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#on-the-players-device)
 
 ## On the Bridge
 
-Now in: [Privacy › bridge](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/play.privacy.html#bridge) · [Guarantees](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.guarantees.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#on-the-bridge)
+Now in: [Privacy › bridge](https://quest-n-click.cleverapps.io/docs/play.privacy#bridge) · [Guarantees](https://quest-n-click.cleverapps.io/docs/bridge.guarantees) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#on-the-bridge)
 
 ## Email connector
 
-Now in: [Privacy › connectors](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/play.privacy.html#connectors) · [Email connector](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.connector-email.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#email-connector)
+Now in: [Privacy › connectors](https://quest-n-click.cleverapps.io/docs/play.privacy#connectors) · [Email connector](https://quest-n-click.cleverapps.io/docs/bridge.connector-email) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#email-connector)
 
 ## Telnet and SSH connectors
 
-Now in: [Privacy › connectors](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/play.privacy.html#connectors) · [Telnet connector](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.connector-telnet.html) · [SSH connector](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.connector-ssh.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#telnet-and-ssh-connectors)
+Now in: [Privacy › connectors](https://quest-n-click.cleverapps.io/docs/play.privacy#connectors) · [Telnet connector](https://quest-n-click.cleverapps.io/docs/bridge.connector-telnet) · [SSH connector](https://quest-n-click.cleverapps.io/docs/bridge.connector-ssh) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#telnet-and-ssh-connectors)
 
 ## Open Badges connector
 
-Now in: [Privacy › connectors](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/play.privacy.html#connectors) · [Open Badges connector](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.connector-open-badges.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#open-badges-connector)
+Now in: [Privacy › connectors](https://quest-n-click.cleverapps.io/docs/play.privacy#connectors) · [Open Badges connector](https://quest-n-click.cleverapps.io/docs/bridge.connector-open-badges) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#open-badges-connector)
 
 ## Logs and metrics
 
-Now in: [Privacy › logs](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/play.privacy.html#logs) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#logs-and-metrics)
+Now in: [Privacy › logs](https://quest-n-click.cleverapps.io/docs/play.privacy#logs) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#logs-and-metrics)
 
 ## Deleting a player's data, everywhere
 
-Now in: [Privacy › deleting](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/play.privacy.html#deleting) · [The Bridge's command line](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.cli.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#deleting-a-players-data-everywhere)
+Now in: [Privacy › deleting](https://quest-n-click.cleverapps.io/docs/play.privacy#deleting) · [The Bridge's command line](https://quest-n-click.cleverapps.io/docs/bridge.cli) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/PRIVACY.md#deleting-a-players-data-everywhere)

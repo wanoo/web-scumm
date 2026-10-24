@@ -2,7 +2,7 @@
 
 What a machine needs to make a game with quest'n'click, or to work on the engine. Two contexts recur on this page: a
 **created project** (a game made with `quest-n-click create`, the engine installed under `node_modules/quest-n-click`)
-and the **engine repository** (a clone of `wanoo/quest-n-click`). Only Node.js is needed for everything; the rest
+and the **engine repository** (a clone of `Quest-n-Click/quest-n-click`). Only Node.js is needed for everything; the rest
 depends on what you do.
 
 | Tool | Needed for | Created project | Engine repository |

@@ -104,7 +104,7 @@ until npm publishing (D34, D38).
 
    ```sh
    # anywhere, signed in to npm as the maintainer
-   npm trust github <name> --repo wanoo/quest-n-click --file release.yml --allow-stage-publish
+   npm trust github <name> --repo Quest-n-Click/quest-n-click --file release.yml --allow-stage-publish
    ```
 
    - CI may then stage, never publish.

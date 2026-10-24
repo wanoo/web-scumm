@@ -256,7 +256,7 @@ Des citations avec un id, appariées par id entre les langues, et rendues par le
 > - version: 4.2.3
 > - volume: 508 lignes de journal
 > - conditions: les plus petits plans
-> - source: https://github.com/wanoo/quest-n-click/blob/<40-hex sha>/docs/dev/QUALIF-4.2.3-REFERENCE.md
+> - source: https://github.com/Quest-n-Click/quest-n-click/blob/<40-hex sha>/docs/dev/QUALIF-4.2.3-REFERENCE.md
 ```
 
 - **`[!LIMIT]`** : ce que la page ne couvre pas, ou là où une fonction s'arrête, dit simplement.

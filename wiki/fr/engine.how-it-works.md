@@ -112,7 +112,7 @@ restent dans le DOM, au-dessus du canvas.
 > - version: 3.4.0
 > - volume: la démo (`games/demo`), chaque lieu
 > - conditions: Chromium sous Playwright en CI, CPU ralenti 4× pour la cadence d'images
-> - source: [docs/en/ENGINE.md au commit qui a ajouté le peintre Canvas](https://github.com/wanoo/quest-n-click/blob/4610320b931384abb50341a54ff1450176d8fb24/docs/en/ENGINE.md)
+> - source: [docs/en/ENGINE.md au commit qui a ajouté le peintre Canvas](https://github.com/Quest-n-Click/quest-n-click/blob/4610320b931384abb50341a54ff1450176d8fb24/docs/en/ENGINE.md)
 
 <a name="scene-frame"></a>
 
@@ -282,7 +282,7 @@ baissent la partition comme le mix.
 > - version: 3.5.0
 > - volume: trente minutes d'audio rendu, 100 changements de mix
 > - conditions: Chromium et WebKit sous Playwright en CI
-> - source: [docs/en/ENGINE.md au commit qui a ajouté le directeur](https://github.com/wanoo/quest-n-click/blob/af2baa85a132266e87e75f0139f764cb6df492ca/docs/en/ENGINE.md)
+> - source: [docs/en/ENGINE.md au commit qui a ajouté le directeur](https://github.com/Quest-n-Click/quest-n-click/blob/af2baa85a132266e87e75f0139f764cb6df492ca/docs/en/ENGINE.md)
 
 Comment écrire une partition : [Musique en stems](create.music.md).
 

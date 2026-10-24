@@ -99,7 +99,7 @@ of 4, so a redeploy exceeds it.
 > - version: 4.2.2
 > - volume: three redeploys of the studio app, a probe writing a note every 3 s
 > - conditions: Clever Cloud test organisation, region par; studio app XS, one instance; PostgreSQL plan DEV (5 connections); engine at commits c66fbf56 then dd66b38d on main before the 4.2.3 tag (package.json said 4.2.2)
-> - source: [QUALIF-4.2.3-REFERENCE.md §5 and §5 bis](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §5 and §5 bis](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 For a deployment people use, take a PostgreSQL plan with more connections than DEV. This project has not measured
 which plan is enough: count about 4 connections per instance, two instances during a redeploy, plus the ones you open

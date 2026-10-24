@@ -2,58 +2,58 @@
 
 # Support and stability
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md).
 
-Now in: [Stability and support › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/start.stability.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#support-and-stability)
+Now in: [Stability and support › overview](https://quest-n-click.cleverapps.io/docs/start.stability#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#support-and-stability)
 
 ## What is stable
 
-Now in: [Stability and support › what-is-stable](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/start.stability.html#what-is-stable) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#what-is-stable)
+Now in: [Stability and support › what-is-stable](https://quest-n-click.cleverapps.io/docs/start.stability#what-is-stable) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#what-is-stable)
 
 ## Versions
 
-Now in: [Stability and support › versions](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/start.stability.html#versions) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#versions)
+Now in: [Stability and support › versions](https://quest-n-click.cleverapps.io/docs/start.stability#versions) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#versions)
 
 ## Support matrix
 
-Now in: [Support matrix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/reference.support-matrix.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#support-matrix)
+Now in: [Support matrix](https://quest-n-click.cleverapps.io/docs/reference.support-matrix) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#support-matrix)
 
 ## 4.3.0 "Hero Choice": the 4.3 line \(D48\)
 
-Now in: [Stability and support › versions](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/start.stability.html#versions) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#430-hero-choice-the-43-line-d48)
+Now in: [Stability and support › versions](https://quest-n-click.cleverapps.io/docs/start.stability#versions) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#430-hero-choice-the-43-line-d48)
 
 ## 4.2.5: the new name \(D47\)
 
-Now in: [Stability and support › versions](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/start.stability.html#versions) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#425-the-new-name-d47)
+Now in: [Stability and support › versions](https://quest-n-click.cleverapps.io/docs/start.stability#versions) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#425-the-new-name-d47)
 
 ## 4.2.4: optional presentation fields \(D46\)
 
-Now in: [Stability and support › versions](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/start.stability.html#versions) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#424-optional-presentation-fields-d46)
+Now in: [Stability and support › versions](https://quest-n-click.cleverapps.io/docs/start.stability#versions) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#424-optional-presentation-fields-d46)
 
 ## 4.2.3: the end of the 4.2.x line
 
-Now in: [Stability and support › versions](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/start.stability.html#versions) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#423-the-end-of-the-42x-line)
+Now in: [Stability and support › versions](https://quest-n-click.cleverapps.io/docs/start.stability#versions) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#423-the-end-of-the-42x-line)
 
 ## 4.2.2: the playable workshop
 
-Now in: [Stability and support › versions](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/start.stability.html#versions) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#422-the-playable-workshop)
+Now in: [Stability and support › versions](https://quest-n-click.cleverapps.io/docs/start.stability#versions) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#422-the-playable-workshop)
 
 ## 4.2.1: the Studio Server, and the 4.2.x exception \(D40\)
 
-Now in: [Stability and support › versions](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/start.stability.html#versions) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#421-the-studio-server-and-the-42x-exception-d40)
+Now in: [Stability and support › versions](https://quest-n-click.cleverapps.io/docs/start.stability#versions) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#421-the-studio-server-and-the-42x-exception-d40)
 
 ## 4.2.0: what is promised \(D38\)
 
-Now in: [Stability and support › versions](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/start.stability.html#versions) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#420-what-is-promised-d38)
+Now in: [Stability and support › versions](https://quest-n-click.cleverapps.io/docs/start.stability#versions) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#420-what-is-promised-d38)
 
 ## Deprecation
 
-Now in: [Stability and support › deprecation](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/start.stability.html#deprecation) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#deprecation)
+Now in: [Stability and support › deprecation](https://quest-n-click.cleverapps.io/docs/start.stability#deprecation) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#deprecation)
 
 ## Saves
 
-Now in: [Stability and support › saves](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/start.stability.html#saves) · [State and saves: persistent or temporary, renaming an id, migrations](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.state-saves.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#saves)
+Now in: [Stability and support › saves](https://quest-n-click.cleverapps.io/docs/start.stability#saves) · [State and saves: persistent or temporary, renaming an id, migrations](https://quest-n-click.cleverapps.io/docs/create.state-saves) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#saves)
 
 ## Releases
 
-Now in: [Stability and support › releases](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/start.stability.html#releases) · [Releasing](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.releasing.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#releases)
+Now in: [Stability and support › releases](https://quest-n-click.cleverapps.io/docs/start.stability#releases) · [Releasing](https://quest-n-click.cleverapps.io/docs/contribute.releasing) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SUPPORT.md#releases)

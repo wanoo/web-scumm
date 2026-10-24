@@ -68,7 +68,7 @@ de `docs/dev/passes/4.4.0.md`, où **aucune des 21 passes n’a été faite**.
 
 Les lignes de la matrice de support derrière la colonne « Vérifiée par la CI », avec ce que des personnes vérifient
 pour chacune : [Matrice de support](reference.support-matrix.md). Chaque passe est un ticket ouvert avec l’étiquette
-[`field-pass`](https://github.com/wanoo/quest-n-click/issues?q=label%3Afield-pass), fermé par le mainteneur une fois
+[`field-pass`](https://github.com/Quest-n-Click/quest-n-click/issues?q=label%3Afield-pass), fermé par le mainteneur une fois
 testée ; seule une passe faite sur le candidat même que nomme une release qualifie une surface
 ([Passes humaines](contribute.field-passes.md)).
 

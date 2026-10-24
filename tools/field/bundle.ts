@@ -240,7 +240,8 @@ export function verifyBundle(
         signerWorkflow: P.CANDIDATE_WORKFLOW,
         // Started on main: a candidate a tag (or a pass) may stand on, said by the attestation itself offline.
         sourceRef: 'refs/heads/main',
-        // A candidate made before 4.2.5 was attested under the repository's former name, wanoo/web-scumm (D47).
+        // A candidate made before the transfer (4.5.2, D51) was attested by wanoo/quest-n-click, one before 4.2.5 by
+        // wanoo/web-scumm (D47): both looked up under the user wanoo, the workflow pinned.
         former: true,
         ...(o.gh ? { gh: o.gh } : {}),
         timeoutMs: left(),

@@ -2,42 +2,42 @@
 
 # Les connecteurs du monde extérieur
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md).
 
-Désormais dans : [Vue d'ensemble des connecteurs › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.connectors.html#overview) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#les-connecteurs-du-monde-extérieur)
+Désormais dans : [Vue d'ensemble des connecteurs › overview](https://quest-n-click.cleverapps.io/fr/docs/bridge.connectors#overview) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#les-connecteurs-du-monde-extérieur)
 
 ## En lancer un
 
-Désormais dans : [Vue d'ensemble des connecteurs › run-one](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.connectors.html#run-one) · [Outils en ligne de commande](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/reference.cli.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#en-lancer-un)
+Désormais dans : [Vue d'ensemble des connecteurs › run-one](https://quest-n-click.cleverapps.io/fr/docs/bridge.connectors#run-one) · [Outils en ligne de commande](https://quest-n-click.cleverapps.io/fr/docs/reference.cli) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#en-lancer-un)
 
 ## Déclarer ce que les connecteurs peuvent faire
 
-Désormais dans : [Vue d'ensemble des connecteurs › permissions](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.connectors.html#permissions) · [Sécurité : Biscuit et signatures](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.security.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#déclarer-ce-que-les-connecteurs-peuvent-faire)
+Désormais dans : [Vue d'ensemble des connecteurs › permissions](https://quest-n-click.cleverapps.io/fr/docs/bridge.connectors#permissions) · [Sécurité : Biscuit et signatures](https://quest-n-click.cleverapps.io/fr/docs/bridge.security) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#déclarer-ce-que-les-connecteurs-peuvent-faire)
 
 ## Email
 
-Désormais dans : [Connecteur email](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.connector-email.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#email)
+Désormais dans : [Connecteur email](https://quest-n-click.cleverapps.io/fr/docs/bridge.connector-email) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#email)
 
 ## Telnet
 
-Désormais dans : [Connecteur Telnet](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.connector-telnet.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#telnet)
+Désormais dans : [Connecteur Telnet](https://quest-n-click.cleverapps.io/fr/docs/bridge.connector-telnet) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#telnet)
 
 ## SSH
 
-Désormais dans : [Connecteur SSH](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.connector-ssh.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#ssh)
+Désormais dans : [Connecteur SSH](https://quest-n-click.cleverapps.io/fr/docs/bridge.connector-ssh) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#ssh)
 
 ## Open Badges
 
-Désormais dans : [Connecteur Open Badges](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.connector-open-badges.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#open-badges)
+Désormais dans : [Connecteur Open Badges](https://quest-n-click.cleverapps.io/fr/docs/bridge.connector-open-badges) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#open-badges)
 
 ## Ce qui sort d'un connecteur
 
-Désormais dans : [Vue d'ensemble des connecteurs › what-leaves](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.connectors.html#what-leaves) · [Confidentialité](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/play.privacy.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#ce-qui-sort-dun-connecteur)
+Désormais dans : [Vue d'ensemble des connecteurs › what-leaves](https://quest-n-click.cleverapps.io/fr/docs/bridge.connectors#what-leaves) · [Confidentialité](https://quest-n-click.cleverapps.io/fr/docs/play.privacy) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#ce-qui-sort-dun-connecteur)
 
 ## Tester sans réseau
 
-Désormais dans : [Le SDK des connecteurs › testing](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.connector-sdk.html#testing) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#tester-sans-réseau)
+Désormais dans : [Le SDK des connecteurs › testing](https://quest-n-click.cleverapps.io/fr/docs/bridge.connector-sdk#testing) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#tester-sans-réseau)
 
 ## Jouer le chapitre d'exemple
 
-Désormais dans : [Démarrage rapide › sample-chapter](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.quick-start.html#sample-chapter) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#jouer-le-chapitre-dexemple)
+Désormais dans : [Démarrage rapide › sample-chapter](https://quest-n-click.cleverapps.io/fr/docs/bridge.quick-start#sample-chapter) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/CONNECTORS.md#jouer-le-chapitre-dexemple)

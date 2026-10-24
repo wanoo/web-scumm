@@ -2,38 +2,38 @@
 
 # Le DSL, généré depuis ses schémas
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/DSL.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/DSL.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/DSL.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/DSL.md).
 
-Désormais dans : [Référence du DSL › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.dsl.html#overview) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#le-dsl-généré-depuis-ses-schémas)
+Désormais dans : [Référence du DSL › overview](https://quest-n-click.cleverapps.io/fr/docs/create.dsl#overview) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#le-dsl-généré-depuis-ses-schémas)
 
 ## Stabilité
 
-Désormais dans : [Référence du DSL › stability](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.dsl.html#stability) · [Stabilité et support](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/start.stability.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#stabilité)
+Désormais dans : [Référence du DSL › stability](https://quest-n-click.cleverapps.io/fr/docs/create.dsl#stability) · [Stabilité et support](https://quest-n-click.cleverapps.io/fr/docs/start.stability) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#stabilité)
 
 ## Le jeu tel que le voient les outils
 
-Désormais dans : [Référence du DSL › game-as-data](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.dsl.html#game-as-data) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#le-jeu-tel-que-le-voient-les-outils)
+Désormais dans : [Référence du DSL › game-as-data](https://quest-n-click.cleverapps.io/fr/docs/create.dsl#game-as-data) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#le-jeu-tel-que-le-voient-les-outils)
 
 ## Référence
 
-Désormais dans : [Référence du DSL › reference](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.dsl.html#reference) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#référence)
+Désormais dans : [Référence du DSL › reference](https://quest-n-click.cleverapps.io/fr/docs/create.dsl#reference) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#référence)
 
 ### Conditions
 
-Désormais dans : [Référence du DSL › conditions](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.dsl.html#conditions) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#conditions)
+Désormais dans : [Référence du DSL › conditions](https://quest-n-click.cleverapps.io/fr/docs/create.dsl#conditions) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#conditions)
 
 ### Commandes
 
-Désormais dans : [Référence du DSL › commands](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.dsl.html#commands) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#commandes)
+Désormais dans : [Référence du DSL › commands](https://quest-n-click.cleverapps.io/fr/docs/create.dsl#commands) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#commandes)
 
 ### Objectifs \(GameDef.objectives\[id\]\)
 
-Désormais dans : [Référence du DSL › objectives](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.dsl.html#objectives) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#objectifs-gamedefobjectivesid)
+Désormais dans : [Référence du DSL › objectives](https://quest-n-click.cleverapps.io/fr/docs/create.dsl#objectives) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#objectifs-gamedefobjectivesid)
 
 ### Marqueurs dans les textes
 
-Désormais dans : [Référence du DSL › placeholders](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.dsl.html#placeholders) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#marqueurs-dans-les-textes)
+Désormais dans : [Référence du DSL › placeholders](https://quest-n-click.cleverapps.io/fr/docs/create.dsl#placeholders) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#marqueurs-dans-les-textes)
 
 ### Ce que compte chaque champ \(IR et empreinte\)
 
-Désormais dans : [Référence du DSL › field-counts](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.dsl.html#field-counts) · [Formats de fichiers](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.file-formats.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#ce-que-compte-chaque-champ-ir-et-empreinte)
+Désormais dans : [Référence du DSL › field-counts](https://quest-n-click.cleverapps.io/fr/docs/create.dsl#field-counts) · [Formats de fichiers](https://quest-n-click.cleverapps.io/fr/docs/engine.file-formats) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/DSL.md#ce-que-compte-chaque-champ-ir-et-empreinte)

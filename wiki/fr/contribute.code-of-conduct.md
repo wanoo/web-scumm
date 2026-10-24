@@ -23,7 +23,7 @@ Le désaccord est bienvenu quand il porte sur le code, le contenu ou la décisio
 ## Signaler un manquement
 
 Un seul canal, privé : le formulaire de signalement du dépôt, onglet **Security**, **Report a vulnerability**
-(<https://github.com/wanoo/quest-n-click/security/advisories/new>). Il est prévu pour les vulnérabilités, mais seul le
+(<https://github.com/Quest-n-Click/quest-n-click/security/advisories/new>). Il est prévu pour les vulnérabilités, mais seul le
 mainteneur voit ce que vous y écrivez : il reçoit donc aussi un signalement de conduite, dites-le dans son titre.
 N'importe quel compte GitHub peut s'en servir, collaborateur ou non. Les signalements sont lus, reçoivent une réponse, et
 restent privés.

@@ -2,66 +2,66 @@
 
 # Faire tourner un Reality Bridge
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md).
 
-Désormais dans : [Installer et lancer le Bridge › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.install-run.html#overview) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#faire-tourner-un-reality-bridge)
+Désormais dans : [Installer et lancer le Bridge › overview](https://quest-n-click.cleverapps.io/fr/docs/bridge.install-run#overview) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#faire-tourner-un-reality-bridge)
 
 ## En lancer un
 
-Désormais dans : [Installer et lancer le Bridge › start](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.install-run.html#start) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#en-lancer-un)
+Désormais dans : [Installer et lancer le Bridge › start](https://quest-n-click.cleverapps.io/fr/docs/bridge.install-run#start) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#en-lancer-un)
 
 ## Les connecteurs
 
-Désormais dans : [Vue d'ensemble des connecteurs › run-one](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.connectors.html#run-one) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#les-connecteurs)
+Désormais dans : [Vue d'ensemble des connecteurs › run-one](https://quest-n-click.cleverapps.io/fr/docs/bridge.connectors#run-one) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#les-connecteurs)
 
 ## Côté joueur
 
-Désormais dans : [Installer et lancer le Bridge › players-side](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.install-run.html#players-side) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#côté-joueur)
+Désormais dans : [Installer et lancer le Bridge › players-side](https://quest-n-click.cleverapps.io/fr/docs/bridge.install-run#players-side) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#côté-joueur)
 
 ## Clés et rotation
 
-Désormais dans : [Sécurité : Biscuit et signatures › keys](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.security.html#keys) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#clés-et-rotation)
+Désormais dans : [Sécurité : Biscuit et signatures › keys](https://quest-n-click.cleverapps.io/fr/docs/bridge.security#keys) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#clés-et-rotation)
 
 ## Révocation, quotas, limites
 
-Désormais dans : [Sécurité : Biscuit et signatures › revocation](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.security.html#revocation) · [Garanties](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.guarantees.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#révocation-quotas-limites)
+Désormais dans : [Sécurité : Biscuit et signatures › revocation](https://quest-n-click.cleverapps.io/fr/docs/bridge.security#revocation) · [Garanties](https://quest-n-click.cleverapps.io/fr/docs/bridge.guarantees) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#révocation-quotas-limites)
 
 ## Conservation, export, suppression
 
-Désormais dans : [Installer et lancer le Bridge › retention](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.install-run.html#retention) · [Confidentialité](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/play.privacy.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#conservation-export-suppression)
+Désormais dans : [Installer et lancer le Bridge › retention](https://quest-n-click.cleverapps.io/fr/docs/bridge.install-run#retention) · [Confidentialité](https://quest-n-click.cleverapps.io/fr/docs/play.privacy) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#conservation-export-suppression)
 
 ## Stores et profils
 
-Désormais dans : [Installer et lancer le Bridge › stores](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.install-run.html#stores) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#stores-et-profils)
+Désormais dans : [Installer et lancer le Bridge › stores](https://quest-n-click.cleverapps.io/fr/docs/bridge.install-run#stores) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#stores-et-profils)
 
 ## Plusieurs tenants, plusieurs instances
 
-Désormais dans : [Plusieurs tenants](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.multi-tenant.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#plusieurs-tenants-plusieurs-instances)
+Désormais dans : [Plusieurs tenants](https://quest-n-click.cleverapps.io/fr/docs/bridge.multi-tenant) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#plusieurs-tenants-plusieurs-instances)
 
 ## Le déploiement de référence \(4.1.18\)
 
-Désormais dans : [Installer et lancer le Bridge › reference-deployment](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.install-run.html#reference-deployment) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#le-déploiement-de-référence-4118)
+Désormais dans : [Installer et lancer le Bridge › reference-deployment](https://quest-n-click.cleverapps.io/fr/docs/bridge.install-run#reference-deployment) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#le-déploiement-de-référence-4118)
 
 ## Santé, mesures, sauvegardes
 
-Désormais dans : [Sauvegarde et restauration](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.backup-restore.html) · [Dépannage du Bridge et des connecteurs](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.troubleshooting.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#santé-mesures-sauvegardes)
+Désormais dans : [Sauvegarde et restauration](https://quest-n-click.cleverapps.io/fr/docs/bridge.backup-restore) · [Dépannage du Bridge et des connecteurs](https://quest-n-click.cleverapps.io/fr/docs/bridge.troubleshooting) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#santé-mesures-sauvegardes)
 
 ## Procédures
 
-Désormais dans : [Sauvegarde et restauration](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.backup-restore.html) · [Dépannage du Bridge et des connecteurs](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.troubleshooting.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#procédures)
+Désormais dans : [Sauvegarde et restauration](https://quest-n-click.cleverapps.io/fr/docs/bridge.backup-restore) · [Dépannage du Bridge et des connecteurs](https://quest-n-click.cleverapps.io/fr/docs/bridge.troubleshooting) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#procédures)
 
 ## Classements et défi du jour \(4.1.16\)
 
-Désormais dans : [Installer et lancer le Bridge › leaderboards](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.install-run.html#leaderboards) · [Speedrun pour les auteurs](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.speedrun.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#classements-et-défi-du-jour-4116)
+Désormais dans : [Installer et lancer le Bridge › leaderboards](https://quest-n-click.cleverapps.io/fr/docs/bridge.install-run#leaderboards) · [Speedrun pour les auteurs](https://quest-n-click.cleverapps.io/fr/docs/create.speedrun) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#classements-et-défi-du-jour-4116)
 
 ### Le worker des speedruns
 
-Désormais dans : [Installer et lancer le Bridge › speedrun-worker](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.install-run.html#speedrun-worker) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#le-worker-des-speedruns)
+Désormais dans : [Installer et lancer le Bridge › speedrun-worker](https://quest-n-click.cleverapps.io/fr/docs/bridge.install-run#speedrun-worker) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#le-worker-des-speedruns)
 
 ### Modération
 
-Désormais dans : [Installer et lancer le Bridge › moderation](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.install-run.html#moderation) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#modération)
+Désormais dans : [Installer et lancer le Bridge › moderation](https://quest-n-click.cleverapps.io/fr/docs/bridge.install-run#moderation) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#modération)
 
 ## Ce qui n'est pas là \(4.1.10\)
 
-Désormais dans : [Garanties › limits](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.guarantees.html#limits) · [Ce que quest'n'click ne fait pas](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/index.not-supported.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#ce-qui-nest-pas-là-4110)
+Désormais dans : [Garanties › limits](https://quest-n-click.cleverapps.io/fr/docs/bridge.guarantees#limits) · [Ce que quest'n'click ne fait pas](https://quest-n-click.cleverapps.io/fr/docs/index.not-supported) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/REALITY-OPS.md#ce-qui-nest-pas-là-4110)

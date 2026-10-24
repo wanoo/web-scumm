@@ -2,30 +2,30 @@
 
 # Une première pièce en quinze minutes
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md).
 
-Désormais dans : [Votre premier jeu › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.first-game.html#overview) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md#une-première-pièce-en-quinze-minutes)
+Désormais dans : [Votre premier jeu › overview](https://quest-n-click.cleverapps.io/fr/docs/create.first-game#overview) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md#une-première-pièce-en-quinze-minutes)
 
 ## 1. Un jeu depuis le modèle \(une minute\)
 
-Désormais dans : [Votre premier jeu › from-the-template](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.first-game.html#from-the-template) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md#1-un-jeu-depuis-le-modèle-une-minute)
+Désormais dans : [Votre premier jeu › from-the-template](https://quest-n-click.cleverapps.io/fr/docs/create.first-game#from-the-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md#1-un-jeu-depuis-le-modèle-une-minute)
 
 ## 2. Lire la pièce que vous allez changer \(deux minutes\)
 
-Désormais dans : [Votre premier jeu › read-the-room](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.first-game.html#read-the-room) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md#2-lire-la-pièce-que-vous-allez-changer-deux-minutes)
+Désormais dans : [Votre premier jeu › read-the-room](https://quest-n-click.cleverapps.io/fr/docs/create.first-game#read-the-room) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md#2-lire-la-pièce-que-vous-allez-changer-deux-minutes)
 
 ## 3. Ajouter un accessoire et sa règle \(cinq minutes\)
 
-Désormais dans : [Votre premier jeu › add-a-prop](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.first-game.html#add-a-prop) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md#3-ajouter-un-accessoire-et-sa-règle-cinq-minutes)
+Désormais dans : [Votre premier jeu › add-a-prop](https://quest-n-click.cleverapps.io/fr/docs/create.first-game#add-a-prop) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md#3-ajouter-un-accessoire-et-sa-règle-cinq-minutes)
 
 ## 4. La placer \(deux minutes\)
 
-Désormais dans : [Votre premier jeu › place-it](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.first-game.html#place-it) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md#4-la-placer-deux-minutes)
+Désormais dans : [Votre premier jeu › place-it](https://quest-n-click.cleverapps.io/fr/docs/create.first-game#place-it) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md#4-la-placer-deux-minutes)
 
 ## 5. Raconter d'abord, puis vérifier \(trois minutes\)
 
-Désormais dans : [Votre premier jeu › story-then-check](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.first-game.html#story-then-check) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md#5-raconter-dabord-puis-vérifier-trois-minutes)
+Désormais dans : [Votre premier jeu › story-then-check](https://quest-n-click.cleverapps.io/fr/docs/create.first-game#story-then-check) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md#5-raconter-dabord-puis-vérifier-trois-minutes)
 
 ## 6. Y jouer sur votre téléphone \(deux minutes\)
 
-Désormais dans : [Votre premier jeu › play-on-your-phone](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.first-game.html#play-on-your-phone) · [Tester sur un téléphone en réseau local](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.lan-testing.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md#6-y-jouer-sur-votre-téléphone-deux-minutes)
+Désormais dans : [Votre premier jeu › play-on-your-phone](https://quest-n-click.cleverapps.io/fr/docs/create.first-game#play-on-your-phone) · [Tester sur un téléphone en réseau local](https://quest-n-click.cleverapps.io/fr/docs/create.lan-testing) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/TUTORIAL.md#6-y-jouer-sur-votre-téléphone-deux-minutes)

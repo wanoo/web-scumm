@@ -115,7 +115,8 @@ un SBOM CycloneDX par paquet et un pour l'image du Bridge (cinq SBOM en 4.1.19, 
 en 4.2.1), l'image du Bridge, les preuves des catalogues Remix, un speedrun complet du chapitre de référence vérifié par
 `speedrun:verify`, les runs du candidat, sa baseline, les fichiers de son site, ses surfaces et sa répétition de
 signature, le manifeste du candidat, des sommes SHA-256 et une attestation de provenance de build
-(`gh attestation verify <file> -R wanoo/quest-n-click`) ; à partir de la 4.5.0, l'archive de la documentation. Elle
+(`gh attestation verify <file> -R Quest-n-Click/quest-n-click` depuis la 4.5.2, voir plus bas pour les releases d'avant) ;
+à partir de la 4.5.0, l'archive de la documentation. Elle
 n'est jamais remplacée une fois publiée. Ce que seuls des gens et de vrais appareils vérifient est rapporté dans ses
 notes ([Passes de terrain](contribute.field-passes.md)).
 
@@ -215,7 +216,12 @@ Chaque commande est idempotente et dit ce qu'elle attend.
 
 `ship watch` sort en 0 avec le succès du run de release ; `ship verify <version>` affiche chaque fichier vérifié et
 sort en 0 ; la page de la release montre les fichiers et « Immutable » ;
-`gh attestation verify <file> -R wanoo/quest-n-click` passe pour n'importe lequel de ses fichiers.
+`gh attestation verify <file> -R Quest-n-Click/quest-n-click` passe pour n'importe lequel de ses fichiers, depuis la 4.5.2.
+Une release faite avant le passage dans l'organisation (D51) garde ses attestations sous l'utilisateur wanoo :
+`gh attestation verify <file> --owner wanoo --signer-workflow wanoo/quest-n-click/.github/workflows/release.yml` de la
+4.2.5 à la 4.5.1, `gh attestation verify <file> --owner wanoo --signer-repo wanoo/web-scumm` jusqu'à la 4.2.4 (`ship
+verify` demande chaque release ainsi, et dit que l'attestation de release propre à GitHub de ces releases n'est pas
+vérifiée).
 
 <a name="common-errors"></a>
 

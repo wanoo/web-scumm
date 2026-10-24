@@ -16,7 +16,7 @@ import {
 } from './generated';
 
 const SUPPORT_PAGE = 'reference.support-matrix';
-const ISSUES = 'https://github.com/wanoo/quest-n-click/issues/';
+const ISSUES = 'https://github.com/Quest-n-Click/quest-n-click/issues/';
 
 const W = {
   en: {

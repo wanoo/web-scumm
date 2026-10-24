@@ -6,7 +6,7 @@ le dépôt du moteur », c'est de cette différence qu'il s'agit.
 
 | | Un projet créé | Le dépôt du moteur |
 |---|---|---|
-| Fait par | `npx create-quest-n-click my-game "My Game"` ou `npx quest-n-click create …` | `git clone` de `wanoo/quest-n-click` |
+| Fait par | `npx create-quest-n-click my-game "My Game"` ou `npx quest-n-click create …` | `git clone` de `Quest-n-Click/quest-n-click` |
 | Dossier du jeu | `game/` | `games/<id>/` (plusieurs jeux côte à côte) |
 | Le moteur | `node_modules/quest-n-click/` (installé, jamais modifié) | `src/engine/` (vous pouvez le modifier) |
 | Quel jeu | toujours `game/` | `GAME`, sinon `.cache/game`, sinon `config.game` dans `package.json`, sinon `demo` ([choisir le jeu](create.working-loop.md#choosing-the-game)) |

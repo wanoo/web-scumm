@@ -28,7 +28,7 @@ const { game } = await loadGameModule();
 const prov = readJson<Provenance>(PROVENANCE);
 if (!prov) {
   console.log(
-    `✖  [${GAME}] no provenance.json: say where every asset comes from first (https://github.com/wanoo/quest-n-click/wiki/EN-Create-Asset-Provenance#provenance)`,
+    `✖  [${GAME}] no provenance.json: say where every asset comes from first (https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-Asset-Provenance#provenance)`,
   );
   process.exit(1);
 }

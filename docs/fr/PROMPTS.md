@@ -2,50 +2,50 @@
 
 # Prompts pour générer les assets
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md).
 
-Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.images.html#prompts) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#prompts-pour-générer-les-assets)
+Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://quest-n-click.cleverapps.io/fr/docs/create.images#prompts) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#prompts-pour-générer-les-assets)
 
 ## Les générer pour son jeu : npm run prompts
 
-Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.images.html#prompts) · [Scripts npm](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/reference.npm-scripts.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#les-générer-pour-son-jeu--npm-run-prompts)
+Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://quest-n-click.cleverapps.io/fr/docs/create.images#prompts) · [Scripts npm](https://quest-n-click.cleverapps.io/fr/docs/reference.npm-scripts) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#les-générer-pour-son-jeu--npm-run-prompts)
 
 ## Règles communes
 
-Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.images.html#prompts) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#règles-communes)
+Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://quest-n-click.cleverapps.io/fr/docs/create.images#prompts) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#règles-communes)
 
 ### Style graphique : cel ou pixel \(artStyle dans games/\<id\>/site.json\)
 
-Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.images.html#prompts) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#style-graphique--cel-ou-pixel-artstyle-dans-gamesidsitejson)
+Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://quest-n-click.cleverapps.io/fr/docs/create.images#prompts) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#style-graphique--cel-ou-pixel-artstyle-dans-gamesidsitejson)
 
 ### Choisir le fond des planches \(sheetBackground dans games/\<id\>/site.json\)
 
-Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.images.html#prompts) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#choisir-le-fond-des-planches-sheetbackground-dans-gamesidsitejson)
+Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://quest-n-click.cleverapps.io/fr/docs/create.images#prompts) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#choisir-le-fond-des-planches-sheetbackground-dans-gamesidsitejson)
 
 ### Décor \(1536 × 960, 16:10\)
 
-Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.images.html#prompts) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#décor-1536--960-1610)
+Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://quest-n-click.cleverapps.io/fr/docs/create.images#prompts) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#décor-1536--960-1610)
 
 ### Objets \(planche 6 × 4\)
 
-Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.images.html#prompts) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#objets-planche-6--4)
+Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://quest-n-click.cleverapps.io/fr/docs/create.images#prompts) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#objets-planche-6--4)
 
 ### Personnage : planche de base \(positions SCUMM\)
 
-Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.images.html#prompts) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#personnage--planche-de-base-positions-scumm)
+Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://quest-n-click.cleverapps.io/fr/docs/create.images#prompts) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#personnage--planche-de-base-positions-scumm)
 
 ### Personnage : course, saut, poses spéciales
 
-Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.images.html#prompts) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#personnage--course-saut-poses-spéciales)
+Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://quest-n-click.cleverapps.io/fr/docs/create.images#prompts) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#personnage--course-saut-poses-spéciales)
 
 ### Personnage : parole \(animation calme\)
 
-Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.images.html#prompts) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#personnage--parole-animation-calme)
+Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://quest-n-click.cleverapps.io/fr/docs/create.images#prompts) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#personnage--parole-animation-calme)
 
 ### Animation d'un objet \(images en boucle\)
 
-Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.images.html#prompts) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#animation-dun-objet-images-en-boucle)
+Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › prompts](https://quest-n-click.cleverapps.io/fr/docs/create.images#prompts) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#animation-dun-objet-images-en-boucle)
 
 ### Taille et couleurs qui ne collent pas à la planche de référence
 
-Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › troubleshooting](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.images.html#troubleshooting) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#taille-et-couleurs-qui-ne-collent-pas-à-la-planche-de-référence)
+Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › troubleshooting](https://quest-n-click.cleverapps.io/fr/docs/create.images#troubleshooting) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PROMPTS.md#taille-et-couleurs-qui-ne-collent-pas-à-la-planche-de-référence)

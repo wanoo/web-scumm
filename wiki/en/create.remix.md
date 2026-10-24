@@ -266,7 +266,7 @@ The bundled games use catalogues only.
 > - version: 4.1.15
 > - volume: 1 + 3 worlds (`demo`), 1 + 3 × 24 worlds (`reference`)
 > - conditions: `npm run verify:variants -- --prove --max=200000`, exhaustive proof per logical world
-> - source: [docs/en/REMIX.md, "Strategies per mode"](https://github.com/wanoo/quest-n-click/blob/d7ed9c01022306fe34b2da5af666eaff4bd056a5/docs/en/REMIX.md)
+> - source: [docs/en/REMIX.md, "Strategies per mode"](https://github.com/Quest-n-Click/quest-n-click/blob/d7ed9c01022306fe34b2da5af666eaff4bd056a5/docs/en/REMIX.md)
 
 The generator path is exercised by a test fixture
 ([`tests/fixtures/remix-extension.ts`](../../tests/fixtures/remix-extension.ts), 527 280 logical worlds): 10 000 seeds

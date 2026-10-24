@@ -2,58 +2,58 @@
 
 # Speedrun \(4.1.14 « Time Attack »\)
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md).
 
-Désormais dans : [Speedrun pour les auteurs › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.speedrun.html#overview) · [Speedrun pour les joueurs : LiveSplit et OBS](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/play.speedrun.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#speedrun-4114--time-attack-)
+Désormais dans : [Speedrun pour les auteurs › overview](https://quest-n-click.cleverapps.io/fr/docs/create.speedrun#overview) · [Speedrun pour les joueurs : LiveSplit et OBS](https://quest-n-click.cleverapps.io/fr/docs/play.speedrun) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#speedrun-4114--time-attack-)
 
 ## Pour les joueurs
 
-Désormais dans : [Speedrun pour les joueurs : LiveSplit et OBS](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/play.speedrun.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#pour-les-joueurs)
+Désormais dans : [Speedrun pour les joueurs : LiveSplit et OBS](https://quest-n-click.cleverapps.io/fr/docs/play.speedrun) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#pour-les-joueurs)
 
 ## Définir des catégories
 
-Désormais dans : [Speedrun pour les auteurs](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.speedrun.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#définir-des-catégories)
+Désormais dans : [Speedrun pour les auteurs](https://quest-n-click.cleverapps.io/fr/docs/create.speedrun) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#définir-des-catégories)
 
 ## Le temps : RTA, IGT, IGT actif
 
-Désormais dans : [Speedrun pour les auteurs](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.speedrun.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#le-temps--rta-igt-igt-actif)
+Désormais dans : [Speedrun pour les auteurs](https://quest-n-click.cleverapps.io/fr/docs/create.speedrun) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#le-temps--rta-igt-igt-actif)
 
 ## Splits, routes, records et fantôme
 
-Désormais dans : [Speedrun pour les auteurs](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.speedrun.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#splits-routes-records-et-fantôme)
+Désormais dans : [Speedrun pour les auteurs](https://quest-n-click.cleverapps.io/fr/docs/create.speedrun) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#splits-routes-records-et-fantôme)
 
 ## La preuve : .wsrun
 
-Désormais dans : [Speedrun pour les auteurs › proof](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.speedrun.html#proof) · [Formats de fichiers](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.file-formats.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#la-preuve--wsrun)
+Désormais dans : [Speedrun pour les auteurs › proof](https://quest-n-click.cleverapps.io/fr/docs/create.speedrun#proof) · [Formats de fichiers](https://quest-n-click.cleverapps.io/fr/docs/engine.file-formats) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#la-preuve--wsrun)
 
 ## Vérifier un run
 
-Désormais dans : [Speedrun pour les auteurs](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.speedrun.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#vérifier-un-run)
+Désormais dans : [Speedrun pour les auteurs](https://quest-n-click.cleverapps.io/fr/docs/create.speedrun) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#vérifier-un-run)
 
 ## Niveaux de confiance
 
-Désormais dans : [Speedrun pour les auteurs](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.speedrun.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#niveaux-de-confiance)
+Désormais dans : [Speedrun pour les auteurs](https://quest-n-click.cleverapps.io/fr/docs/create.speedrun) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#niveaux-de-confiance)
 
 ## Politiques Reality
 
-Désormais dans : [Speedrun pour les auteurs › reality-policies](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.speedrun.html#reality-policies) · [Garanties](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.guarantees.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#politiques-reality)
+Désormais dans : [Speedrun pour les auteurs › reality-policies](https://quest-n-click.cleverapps.io/fr/docs/create.speedrun#reality-policies) · [Garanties](https://quest-n-click.cleverapps.io/fr/docs/bridge.guarantees) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#politiques-reality)
 
 ## Streaming : OBS et LiveSplit
 
-Désormais dans : [Speedrun pour les joueurs : LiveSplit et OBS › streaming](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/play.speedrun.html#streaming) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#streaming--obs-et-livesplit)
+Désormais dans : [Speedrun pour les joueurs : LiveSplit et OBS › streaming](https://quest-n-click.cleverapps.io/fr/docs/play.speedrun#streaming) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#streaming--obs-et-livesplit)
 
 ## Classements sur le Bridge
 
-Désormais dans : [Speedrun pour les auteurs › leaderboards](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.speedrun.html#leaderboards) · [Installer et lancer le Bridge](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.install-run.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#classements-sur-le-bridge)
+Désormais dans : [Speedrun pour les auteurs › leaderboards](https://quest-n-click.cleverapps.io/fr/docs/create.speedrun#leaderboards) · [Installer et lancer le Bridge](https://quest-n-click.cleverapps.io/fr/docs/bridge.install-run) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#classements-sur-le-bridge)
 
 ## Politiques
 
-Désormais dans : [Speedrun pour les auteurs](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.speedrun.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#politiques)
+Désormais dans : [Speedrun pour les auteurs](https://quest-n-click.cleverapps.io/fr/docs/create.speedrun) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#politiques)
 
 ## Accessibilité et équité
 
-Désormais dans : [Speedrun pour les auteurs › fairness](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.speedrun.html#fairness) · [Accessibilité](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/play.accessibility.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#accessibilité-et-équité)
+Désormais dans : [Speedrun pour les auteurs › fairness](https://quest-n-click.cleverapps.io/fr/docs/create.speedrun#fairness) · [Accessibilité](https://quest-n-click.cleverapps.io/fr/docs/play.accessibility) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#accessibilité-et-équité)
 
 ## Limites
 
-Désormais dans : [Speedrun pour les auteurs › limits](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.speedrun.html#limits) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#limites)
+Désormais dans : [Speedrun pour les auteurs › limits](https://quest-n-click.cleverapps.io/fr/docs/create.speedrun#limits) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SPEEDRUN.md#limites)

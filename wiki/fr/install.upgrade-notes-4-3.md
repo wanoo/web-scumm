@@ -49,7 +49,7 @@ anciens imports ne se résolvent plus. Un jeu passé aux nouveaux noms (§38) n'
 
 ```bash
 npm uninstall web-scumm
-npm install https://github.com/wanoo/quest-n-click/releases/download/v4.3.0/quest-n-click-4.3.0.tgz
+npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.3.0/quest-n-click-4.3.0.tgz
 npx quest-n-click migrate
 ```
 

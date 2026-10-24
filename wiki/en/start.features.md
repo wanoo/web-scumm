@@ -85,7 +85,7 @@ Measured on the release commit by the automated gates (`npm run quality:baseline
 > - version: 4.4.0
 > - volume: the engine repository's unit suite; the reference game (`games/reference`); the sample game's built first visit
 > - conditions: `npm run quality:baseline` on the release commit, figures written into the README
-> - source: [README.md, "In numbers"](https://github.com/wanoo/quest-n-click/blob/c00b44fcffe56ffa99f9d2228297414ebe3145ac/README.md)
+> - source: [README.md, "In numbers"](https://github.com/Quest-n-Click/quest-n-click/blob/c00b44fcffe56ffa99f9d2228297414ebe3145ac/README.md)
 
 > [!MEASURE id=hosted-preview-time]
 > On the hosted Studio, from a write to a ready preview: median 17.8 s before 4.4.0's changes, 5.6 s after; maximum
@@ -94,7 +94,7 @@ Measured on the release commit by the automated gates (`npm run quality:baseline
 > - version: 4.4.0
 > - volume: ten revisions per series (revisions 436 to 445, then 446 to 455), one note every 40 s
 > - conditions: the reference deployment on Clever Cloud's test organisation, the smallest plans
-> - source: [QUALIF-4.2.3-REFERENCE.md §6](https://github.com/wanoo/quest-n-click/blob/c00b44fcffe56ffa99f9d2228297414ebe3145ac/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §6](https://github.com/Quest-n-Click/quest-n-click/blob/c00b44fcffe56ffa99f9d2228297414ebe3145ac/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 Each release is built from the commit its candidate tested. The candidate makes the four package archives, the Bridge's
 image, the SBOMs, the runs and the baseline, and the release publishes those very files; the release itself makes only

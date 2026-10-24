@@ -2,38 +2,38 @@
 
 # Architecture
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md).
 
-Désormais dans : [Architecture › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.architecture.html#overview) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#architecture)
+Désormais dans : [Architecture › overview](https://quest-n-click.cleverapps.io/fr/docs/contribute.architecture#overview) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#architecture)
 
 ## Les couches
 
-Désormais dans : [Architecture › layers](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.architecture.html#layers) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#les-couches)
+Désormais dans : [Architecture › layers](https://quest-n-click.cleverapps.io/fr/docs/contribute.architecture#layers) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#les-couches)
 
 ## Un jeu est une donnée
 
-Désormais dans : [Architecture › a-game-is-data](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.architecture.html#a-game-is-data) · [Comment fonctionne le moteur](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.how-it-works.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#un-jeu-est-une-donnée)
+Désormais dans : [Architecture › a-game-is-data](https://quest-n-click.cleverapps.io/fr/docs/contribute.architecture#a-game-is-data) · [Comment fonctionne le moteur](https://quest-n-click.cleverapps.io/fr/docs/engine.how-it-works) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#un-jeu-est-une-donnée)
 
 ## La vie d'une action
 
-Désormais dans : [Architecture › life-of-an-action](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.architecture.html#life-of-an-action) · [Modèle d'exécution](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.execution-model.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#la-vie-dune-action)
+Désormais dans : [Architecture › life-of-an-action](https://quest-n-click.cleverapps.io/fr/docs/contribute.architecture#life-of-an-action) · [Modèle d'exécution](https://quest-n-click.cleverapps.io/fr/docs/engine.execution-model) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#la-vie-dune-action)
 
 ## Contenu de confiance, entrées non fiables
 
-Désormais dans : [Architecture › trust](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.architecture.html#trust) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#contenu-de-confiance-entrées-non-fiables)
+Désormais dans : [Architecture › trust](https://quest-n-click.cleverapps.io/fr/docs/contribute.architecture#trust) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#contenu-de-confiance-entrées-non-fiables)
 
 ## Stockage, sessions et replay
 
-Désormais dans : [Architecture › storage](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.architecture.html#storage) · [Formats de fichiers](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.file-formats.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#stockage-sessions-et-replay)
+Désormais dans : [Architecture › storage](https://quest-n-click.cleverapps.io/fr/docs/contribute.architecture#storage) · [Formats de fichiers](https://quest-n-click.cleverapps.io/fr/docs/engine.file-formats) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#stockage-sessions-et-replay)
 
 ## Le solveur fait tourner le vrai moteur
 
-Désormais dans : [Architecture › solver](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.architecture.html#solver) · [Ce que prouve le solveur](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.solver-proofs.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#le-solveur-fait-tourner-le-vrai-moteur)
+Désormais dans : [Architecture › solver](https://quest-n-click.cleverapps.io/fr/docs/contribute.architecture#solver) · [Ce que prouve le solveur](https://quest-n-click.cleverapps.io/fr/docs/create.solver-proofs) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#le-solveur-fait-tourner-le-vrai-moteur)
 
 ## Les signaux de l'extérieur \(4.1.1\)
 
-Désormais dans : [Architecture › signals](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.architecture.html#signals) · [Le Reality Bridge : ce que c'est](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.what-it-is.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#les-signaux-de-lextérieur-411)
+Désormais dans : [Architecture › signals](https://quest-n-click.cleverapps.io/fr/docs/contribute.architecture#signals) · [Le Reality Bridge : ce que c'est](https://quest-n-click.cleverapps.io/fr/docs/bridge.what-it-is) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#les-signaux-de-lextérieur-411)
 
 ## Public et interne
 
-Désormais dans : [Architecture › public-and-internal](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.architecture.html#public-and-internal) · [Frontières d'import](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.boundaries.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#public-et-interne)
+Désormais dans : [Architecture › public-and-internal](https://quest-n-click.cleverapps.io/fr/docs/contribute.architecture#public-and-internal) · [Frontières d'import](https://quest-n-click.cleverapps.io/fr/docs/contribute.boundaries) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/ARCHITECTURE.md#public-et-interne)

@@ -37,7 +37,7 @@ The target is one minute (D42): watched, with an alert past 60 s for 5 min, neve
 > - version: 4.2.2
 > - volume: a backup at revision 63, 2 operations written after it, head 65
 > - conditions: reference deployment phase B, engine at commit c66fbf56 before the 4.2.3 tag (package.json said 4.2.2); one member writing; Clever Cloud test organisation, region par; PostgreSQL DEV, Cellar S
-> - source: [QUALIF-4.2.3-REFERENCE.md §3 and §4](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §3 and §4](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 > [!LIMIT id=bucket-loss]
 > The RPO above holds for the loss of the database. If the bucket is lost too, the blobs, the journal and the backups
@@ -68,7 +68,7 @@ Only step 3 is measured:
 > - version: 4.2.2
 > - volume: 508 rows; then 593 rows and 2 operations replayed
 > - conditions: Clever Cloud test organisation, region par; PostgreSQL plan DEV, Cellar plan S; run from a machine in Paris, `tsx` start-up included; engine at commits 52e68932 then c66fbf56 before the 4.2.3 tag (package.json said 4.2.2); one sample each
-> - source: [QUALIF-4.2.3-REFERENCE.md §4](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §4](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 > [!LIMIT id=rto-not-measured]
 > No full RTO was measured: the drills restored into a side database and never switched production over to it. Time

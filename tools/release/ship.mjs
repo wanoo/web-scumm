@@ -39,6 +39,7 @@ import {
   queryRun,
   readCandidateManifest,
   repoOfRelease,
+  TRANSFERRED,
   verifyAttestation,
 } from './provenance.mjs';
 import {
@@ -55,6 +56,7 @@ import {
   spawn,
   until,
   versionOf,
+  warn,
   writePid,
 } from './lib.mjs';
 
@@ -284,7 +286,7 @@ async function tag(versionArg, sha) {
       }
       if (imm.enabled !== true)
         throw new Error(
-          `immutable releases are off on ${REPO} (Settings → General → Releases): ${name} is not tagged (https://github.com/wanoo/quest-n-click/wiki/EN-Contribute-Releasing)`,
+          `immutable releases are off on ${REPO} (Settings → General → Releases): ${name} is not tagged (https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Contribute-Releasing)`,
         );
       say(`${REPO}: immutable releases on`);
     }
@@ -355,6 +357,8 @@ async function watch(versionArg) {
 
 /** The first release that carries its documentation archive. */
 const DOCS_SINCE = '4.5.0';
+/** The first release that carries the website's demo, `<proj>-<tag>-web.tar.gz` (D52); 4.5.1 and before verify without it. */
+const WEB_SINCE = '4.5.2';
 
 async function verify(versionArg) {
   const version = versionOf(versionArg);
@@ -389,12 +393,20 @@ async function verify(versionArg) {
   if (/FAILED/.test(check)) throw new Error(`${name}: a checksum failed`);
   let attested = 0;
   for (const f of files) {
-    // A release up to 4.2.4 was attested under the repository's former name (D47), and is verified as such.
+    // A release is verified under the identity that attested it: wanoo/web-scumm up to 4.2.4 (D47), wanoo/quest-n-click
+    // up to 4.5.1, looked up under the user wanoo, the organization's repository from 4.5.2 (D51).
     verifyAttestation(join(dir, f), { repo: repoOfRelease(version) });
     attested++;
   }
-  // GitHub's own release attestation (4.1.20 PR 3b, immutable releases): the release, then each of its files.
-  if (atLeast(version, FIRST_LISTED)) {
+  // GitHub's own release attestation (4.1.20 PR 3b, immutable releases): the release, then each of its files. One made
+  // before the transfer (up to 4.5.1, D51) is kept under the user wanoo, and `gh release verify` looks only under the
+  // repository, which has none: said and skipped, the files' provenance attestations above being verified under wanoo.
+  const preTransfer = atLeast(version, FIRST_LISTED) && !atLeast(version, TRANSFERRED);
+  if (preTransfer)
+    warn(
+      `${name}: GitHub's release attestation was made before the transfer (kept under wanoo, out of gh release verify's reach): not checked`,
+    );
+  else if (atLeast(version, FIRST_LISTED)) {
     gh(['release', 'verify', name]);
     for (const f of files) gh(['release', 'verify-asset', name, join(dir, f)]);
     say(`${name}: gh release verify and verify-asset passed for ${files.length} files`);
@@ -403,7 +415,9 @@ async function verify(versionArg) {
   const listed = publishedProblems(name, files, dir);
   if (listed.length)
     throw new Error(`${name}: not the files tools/release/artifacts.mjs lists:\n  ${listed.join('\n  ')}`);
-  say(`${name}: ${files.length} files, sums ok, ${attested} attestations verified, as the manifest lists them`);
+  say(
+    `${name}: ${files.length} files, sums ok, ${attested} attestations verified, as the manifest lists them${preTransfer ? "; GitHub's release attestation not checked (pre-transfer)" : ''}`,
+  );
   // The tarballs carry package.json's version, never a tag's pre-release suffix (v4.1.8-rc.1 ships web-scumm-4.1.8.tgz;
   // from 4.2.5, quest-n-click-4.2.5.tgz).
   const packed = version.replace(/-.*$/, '');
@@ -413,6 +427,10 @@ async function verify(versionArg) {
   // file; named here because docs-publish promotes it once this verification passed.
   const docs = `quest-n-click-docs-${version}.tar.gz`;
   if (atLeast(version, DOCS_SINCE) && !existsSync(join(dir, docs))) throw new Error(`${name}: ${docs} missing`);
+  // The website's demo (4.5.2, D52): the game and the Studio demo under /demo/, summed and attested above; the website
+  // downloads it from the latest release.
+  const web = `${projectOf(version)}-${name}-web.tar.gz`;
+  if (atLeast(version, WEB_SINCE) && !existsSync(join(dir, web))) throw new Error(`${name}: ${web} missing`);
   return { files, attested };
 }
 

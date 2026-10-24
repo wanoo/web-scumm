@@ -10,7 +10,7 @@ dépôt du moteur et pour un jeu sur un Studio hébergé.
 
 ```bash
 # dans le projet créé
-npm install https://github.com/wanoo/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz
+npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz
 npx quest-n-click migrate
 npm run verify
 ```
@@ -73,7 +73,7 @@ Dans le dossier du projet créé, sur votre machine.
 
    ```bash
    # dans le projet créé
-   npm install https://github.com/wanoo/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
+   npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
    ```
 
    Une fois le moteur sur npm, cette étape devient `npm install quest-n-click@<version>`.

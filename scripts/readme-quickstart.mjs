@@ -31,16 +31,16 @@ export function quickStart(readme) {
 
 /** The URL the README names for `version`: under its own release, or under a release candidate of it (`tag`,
  * `v<version>-rc.N`: the 4.2.0-rc campaign installs from the rc's release until the stable one exists). The repository
- * is wanoo/quest-n-click since 4.2.5 (D47; GitHub redirects the former name's downloads), the archive the version's
+ * is Quest-n-Click/quest-n-click since 4.5.2 (D51; GitHub redirects the former names' downloads), the archive the version's
  * engine: `quest-n-click-<v>.tgz` from 4.2.5, `web-scumm-<v>.tgz` before. */
 export const archiveUrl = (version, tag = `v${version}`) =>
-  `https://github.com/wanoo/quest-n-click/releases/download/${tag}/${projectOf(version)}-${version}.tgz`;
+  `https://github.com/Quest-n-Click/quest-n-click/releases/download/${tag}/${projectOf(version)}-${version}.tgz`;
 
-/** The release tag a README's archive URL names, when it is `v<version>` or `v<version>-rc.N`; null otherwise. Either
- * name of the repository (the former one redirects), the archive name of that version. */
+/** The release tag a README's archive URL names, when it is `v<version>` or `v<version>-rc.N`; null otherwise. Any
+ * name of the repository (the former ones redirect), the archive name of that version. */
 export function installTag(url, version) {
   const m =
-    /^https:\/\/github\.com\/wanoo\/(?:quest-n-click|web-scumm)\/releases\/download\/(v[^/]+)\/(quest-n-click|web-scumm)-([^/]+)\.tgz$/.exec(
+    /^https:\/\/github\.com\/(?:Quest-n-Click\/quest-n-click|wanoo\/(?:quest-n-click|web-scumm))\/releases\/download\/(v[^/]+)\/(quest-n-click|web-scumm)-([^/]+)\.tgz$/.exec(
       url,
     );
   if (!m || m[3] !== version || m[2] !== projectOf(version)) return null;
@@ -76,7 +76,7 @@ export function script(lines, archive, port) {
 
 async function published(version, tag = `v${version}`) {
   const url = archiveUrl(version, tag);
-  const sumsUrl = `https://github.com/wanoo/quest-n-click/releases/download/${tag}/${projectOf(version)}-${tag}-SHA256SUMS`;
+  const sumsUrl = `https://github.com/Quest-n-Click/quest-n-click/releases/download/${tag}/${projectOf(version)}-${tag}-SHA256SUMS`;
   const [tgz, sums] = await Promise.all([fetchRetry(url), fetchRetry(sumsUrl)]);
   if (!tgz.ok || !sums.ok) throw new Error(`${url}: ${tgz.status}; ${sumsUrl}: ${sums.status}`);
   const got = createHash('sha256')

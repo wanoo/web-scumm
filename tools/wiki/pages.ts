@@ -12,7 +12,7 @@
 //   - `/docs/preview/` only in the bootstrap (§4.5.3): no release ≥ 4.5.0 yet, and a preview recorded;
 //   - with no release ≥ 4.5.0 at all, a placeholder page pointing to the 4.4.0 documentation (`blob/v4.4.0/docs/`).
 // What is served is authenticated, not only consistent: each archive's build provenance is verified with `gh
-// attestation verify` and the workflow that must have signed it (`attestationArgs`: release.yml for a product release,
+// attestation verify` and the workflow that must have signed it (`attestationTries`: release.yml for a product release,
 // docs-publish.yml from `refs/heads/docs/<v>` for a doc revision, from `refs/heads/main` for the preview); a doc
 // revision is served only when `publication.json` records it with the same sha256 and the same release tag, a preview
 // only when it is the one recorded. Anything else is refused, the release named: the job fails closed, and Pages is
@@ -32,12 +32,22 @@ import { aliasPage, STYLE_CSS } from './html';
 import { formatJson } from './json';
 import { SEMVER } from './page';
 import type { Publication } from './publication';
+// @ts-expect-error: a plain .mjs module
+import * as provenance from '../release/provenance.mjs';
 
 /** The first release whose documentation is an archive (§4.5.4); the older ones keep `blob/v<v>/docs/`. */
 const FIRST_ARCHIVED = '4.5.0';
-const REPO_URL = 'https://github.com/wanoo/quest-n-click';
+const REPO_URL = 'https://github.com/Quest-n-Click/quest-n-click';
 /** The archive's folder in the candidate's manifest (tools/release/artifacts.mjs, `docs:archive`). */
 const IN_CANDIDATE = 'docs/';
+const P = provenance as {
+  REPO: string;
+  PRE_TRANSFER_REPO: string;
+  TRANSFERRED: string;
+  repoOfRelease(version: string): string;
+  lookupArgs(identity: string, signerWorkflow?: string): string[];
+  repoIdProblem(json: string): string | null;
+};
 const sha256 = (b: Buffer) => createHash('sha256').update(b).digest('hex');
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -81,39 +91,60 @@ export function ghRetry(args: string[]): string {
 }
 
 /**
- * The `gh attestation verify` arguments that bind an archive to the workflow that must have signed it: a product
- * release's files are attested by release.yml (started by `workflow_run` on main); a doc revision's and the preview's
- * by docs-publish.yml, dispatched from `docs/<v>` and from main.
+ * The identities that may have attested a tag's archive, in the order they are tried. For the repository itself (a
+ * fork names its own, and only it): a product release's identity is its version's (`repoOfRelease`: 4.5.0 and 4.5.1
+ * were attested by wanoo/quest-n-click, before the transfer, D51); a doc revision or a preview of a version before
+ * 4.5.2 may have been published on either side of the transfer, so the repository is tried, then wanoo/quest-n-click.
  */
-export function attestationArgs(repo: string, tag: string, file: string): string[] {
+export function identitiesOf(repo: string, tag: string): string[] {
   const t = docsTag(tag);
   if (!t) throw new Error(`${tag}: not a release with documentation`);
-  const base = ['attestation', 'verify', file, '--repo', repo];
-  if (t.kind === 'release') return [...base, '--signer-workflow', `${repo}/.github/workflows/release.yml`];
-  return [
-    ...base,
-    '--signer-workflow',
-    `${repo}/.github/workflows/docs-publish.yml`,
-    '--source-ref',
-    t.kind === 'revision' ? `refs/heads/docs/${t.version}` : 'refs/heads/main',
-  ];
+  if (repo.toLowerCase() !== P.REPO.toLowerCase()) return [repo];
+  if (t.kind === 'release') return [P.repoOfRelease(t.version)];
+  return compareVersions(t.version.replace(/-.*$/, ''), P.TRANSFERRED) >= 0 ? [P.REPO] : [P.REPO, P.PRE_TRANSFER_REPO];
 }
 
-/** The verifier `pages` uses: GitHub's attestation of the archive, by its signer workflow and ref. */
+/**
+ * The `gh attestation verify` arguments, one list per identity `identitiesOf` gives, that bind an archive to the
+ * workflow that must have signed it: a product release's files are attested by release.yml (started by
+ * `workflow_run` on main); a doc revision's and the preview's by docs-publish.yml, dispatched from `docs/<v>` and from
+ * main. A pre-transfer identity is looked up under its owner, its workflow pinned (provenance.mjs `lookupArgs`).
+ */
+export function attestationTries(repo: string, tag: string, file: string): string[][] {
+  const t = docsTag(tag)!;
+  return identitiesOf(repo, tag).map((identity) => {
+    const workflow = `${identity}/.github/workflows/${t.kind === 'release' ? 'release' : 'docs-publish'}.yml`;
+    const base = ['attestation', 'verify', file, ...P.lookupArgs(identity, workflow)];
+    const ref =
+      t.kind === 'release'
+        ? []
+        : ['--source-ref', t.kind === 'revision' ? `refs/heads/docs/${t.version}` : 'refs/heads/main'];
+    // JSON: the certificates' repository id is read from it (ghAttestation).
+    return [...base, ...ref, '--format', 'json'];
+  });
+}
+
+/**
+ * The verifier `pages` uses: GitHub's attestation of the archive, by its signer workflow and ref, and the repository's
+ * numeric id every certificate must name (provenance.mjs `repoIdProblem`, D51). `run` is `ghRetry`; the tests give
+ * their own.
+ */
 export const ghAttestation =
-  (repo: string): Verify =>
+  (repo: string, run: (args: string[]) => string = ghRetry): Verify =>
   (file, tag) => {
-    try {
-      ghRetry(attestationArgs(repo, tag, file));
-    } catch (e) {
-      throw new Error(
-        `${tag}: its archive's attestation does not verify (${
-          String((e as { stderr?: unknown }).stderr ?? (e as Error).message)
-            .trim()
-            .split('\n')[0]
-        })`,
-      );
+    let why = '';
+    for (const args of attestationTries(repo, tag, file)) {
+      try {
+        const wrong = P.repoIdProblem(run(args));
+        if (!wrong) return;
+        why = wrong;
+      } catch (e) {
+        why = String((e as { stderr?: unknown }).stderr ?? (e as Error).message)
+          .trim()
+          .split('\n')[0]!;
+      }
     }
+    throw new Error(`${tag}: its archive's attestation does not verify (${why})`);
   };
 
 /** Throws, naming the release, when an archive is not attested by the workflow that must have made it. */

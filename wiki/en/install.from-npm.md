@@ -48,7 +48,7 @@ On your machine, from the folder that will contain the project; then inside the 
 
 <!-- step: check-owner -->
 1. Check that the package exists and is the project's. Its maintainer must be `wanoo` and its repository
-   `github.com/wanoo/quest-n-click`:
+   `github.com/Quest-n-Click/quest-n-click`:
 
    ```bash
    # anywhere

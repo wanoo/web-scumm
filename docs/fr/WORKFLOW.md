@@ -2,42 +2,42 @@
 
 # Fabriquer un jeu avec un assistant IA : la méthode
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md).
 
-Désormais dans : [Travailler avec une IA › workflow](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.working-with-ai.html#workflow) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#fabriquer-un-jeu-avec-un-assistant-ia--la-méthode)
+Désormais dans : [Travailler avec une IA › workflow](https://quest-n-click.cleverapps.io/fr/docs/create.working-with-ai#workflow) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#fabriquer-un-jeu-avec-un-assistant-ia--la-méthode)
 
 ## 1. L'histoire d'abord, sous forme de données
 
-Désormais dans : [Le storyboard, source de vérité › story-first](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.storyboard.html#story-first) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#1-lhistoire-dabord-sous-forme-de-données)
+Désormais dans : [Le storyboard, source de vérité › story-first](https://quest-n-click.cleverapps.io/fr/docs/create.storyboard#story-first) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#1-lhistoire-dabord-sous-forme-de-données)
 
 ## 2. Valider le storyboard sur une page
 
-Désormais dans : [Pages de relecture › validate-the-storyboard](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.review-pages.html#validate-the-storyboard) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#2-valider-le-storyboard-sur-une-page)
+Désormais dans : [Pages de relecture › validate-the-storyboard](https://quest-n-click.cleverapps.io/fr/docs/create.review-pages#validate-the-storyboard) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#2-valider-le-storyboard-sur-une-page)
 
 ## 3. Générer les assets
 
-Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › generate-the-art](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.images.html#generate-the-art) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#3-générer-les-assets)
+Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › generate-the-art](https://quest-n-click.cleverapps.io/fr/docs/create.images#generate-the-art) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#3-générer-les-assets)
 
 ## 4. Découper, détourer et relire
 
-Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › cut-and-key](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.images.html#cut-and-key) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#4-découper-détourer-et-relire)
+Désormais dans : [Images : prompts, découpe des planches, transparence, échelle › cut-and-key](https://quest-n-click.cleverapps.io/fr/docs/create.images#cut-and-key) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#4-découper-détourer-et-relire)
 
 ## 5. Écrire les lieux
 
-Désormais dans : [Salles › write-the-rooms](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.rooms.html#write-the-rooms) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#5-écrire-les-lieux)
+Désormais dans : [Salles › write-the-rooms](https://quest-n-click.cleverapps.io/fr/docs/create.rooms#write-the-rooms) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#5-écrire-les-lieux)
 
 ## 6. Placer les éléments
 
-Désormais dans : [Placement et scène › place-everything](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.placement.html#place-everything) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#6-placer-les-éléments)
+Désormais dans : [Placement et scène › place-everything](https://quest-n-click.cleverapps.io/fr/docs/studio.placement#place-everything) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#6-placer-les-éléments)
 
 ## 7. Prouver que ça se joue
 
-Désormais dans : [Vérifier son jeu › prove-it-plays](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.checking.html#prove-it-plays) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#7-prouver-que-ça-se-joue)
+Désormais dans : [Vérifier son jeu › prove-it-plays](https://quest-n-click.cleverapps.io/fr/docs/create.checking#prove-it-plays) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#7-prouver-que-ça-se-joue)
 
 ## 8. Livrer
 
-Désormais dans : [Construire et publier un jeu › ship](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.build-release.html#ship) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#8-livrer)
+Désormais dans : [Construire et publier un jeu › ship](https://quest-n-click.cleverapps.io/fr/docs/create.build-release#ship) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#8-livrer)
 
 ## Travailler avec des sous-agents
 
-Désormais dans : [Travailler avec une IA › sub-agents](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.working-with-ai.html#sub-agents) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#travailler-avec-des-sous-agents)
+Désormais dans : [Travailler avec une IA › sub-agents](https://quest-n-click.cleverapps.io/fr/docs/create.working-with-ai#sub-agents) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/WORKFLOW.md#travailler-avec-des-sous-agents)

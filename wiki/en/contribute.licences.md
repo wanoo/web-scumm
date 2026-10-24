@@ -17,7 +17,7 @@ of the repository are the legal texts: [`LICENSE`](../../LICENSE) (the code), [`
 | The fonts under `public/fonts` and `src/engine/dom/fonts` | SIL Open Font License 1.1 | `src/engine/dom/fonts/OFL.txt`; `licenses/THIRD_PARTY_NOTICES.txt` in a build |
 
 The attribution the CC BY 4.0 assets ask for is: "Artwork by Wano, from the quest'n'click project, formerly web-scumm
-(https://github.com/wanoo/quest-n-click)". In short, as the README says: code MIT; sample artwork, sound effects and
+(https://github.com/Quest-n-Click/quest-n-click)". In short, as the README says: code MIT; sample artwork, sound effects and
 theme CC BY 4.0 (attribution "Wano"); the theme is Tchaikovsky's *Swan Lake* (public domain), written out and
 arranged for the project; fonts SIL OFL.
 

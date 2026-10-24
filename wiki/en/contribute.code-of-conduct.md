@@ -22,7 +22,7 @@ Disagreement is welcome when it is about the code, the content or the decision, 
 ## Reporting a breach
 
 One channel, private: the repository's report form, the **Security** tab, **Report a vulnerability**
-(<https://github.com/wanoo/quest-n-click/security/advisories/new>). It is meant for vulnerabilities, but only the
+(<https://github.com/Quest-n-Click/quest-n-click/security/advisories/new>). It is meant for vulnerabilities, but only the
 maintainer sees what you write there, so it takes a conduct report too: say in its title that it is one. Any GitHub
 account can use it, a collaborator or not. Reports are read, answered, and kept private.
 

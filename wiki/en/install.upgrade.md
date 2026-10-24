@@ -10,7 +10,7 @@ hosted Studio.
 
 ```bash
 # in the created project
-npm install https://github.com/wanoo/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz
+npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz
 npx quest-n-click migrate
 npm run verify
 ```
@@ -74,7 +74,7 @@ In the created project's folder, on your machine.
 
    ```bash
    # in the created project
-   npm install https://github.com/wanoo/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
+   npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
    ```
 
    Once the engine is on npm, this step is `npm install quest-n-click@<version>`.

@@ -29,7 +29,7 @@ GAME=reference npm run game           # en faire le jeu courant pour toutes les 
 
 Un projet créé contient un seul jeu, dans `game/`, fait à partir de `_template`. Le paquet npm ne livre que
 `games/_template/` : lisez les quatre autres dans le dépôt du moteur
-([github.com/wanoo/quest-n-click](https://github.com/wanoo/quest-n-click), dossier `games/`).
+([github.com/Quest-n-Click/quest-n-click](https://github.com/Quest-n-Click/quest-n-click), dossier `games/`).
 
 <a name="template"></a>
 

@@ -107,7 +107,7 @@ DOM, above the canvas.
 > - version: 3.4.0
 > - volume: the sample game (`games/demo`), every room
 > - conditions: Chromium under Playwright in CI, CPU throttled 4× for the frame rate
-> - source: [docs/en/ENGINE.md at the commit that added the Canvas painter](https://github.com/wanoo/quest-n-click/blob/4610320b931384abb50341a54ff1450176d8fb24/docs/en/ENGINE.md)
+> - source: [docs/en/ENGINE.md at the commit that added the Canvas painter](https://github.com/Quest-n-Click/quest-n-click/blob/4610320b931384abb50341a54ff1450176d8fb24/docs/en/ENGINE.md)
 
 <a name="scene-frame"></a>
 
@@ -269,7 +269,7 @@ Howler. The URL parameter `?music=mix|stems` forces one. Voices and one-off trac
 > - version: 3.5.0
 > - volume: thirty minutes of rendered audio, 100 mix changes
 > - conditions: Chromium and WebKit under Playwright in CI
-> - source: [docs/en/ENGINE.md at the commit that added the director](https://github.com/wanoo/quest-n-click/blob/af2baa85a132266e87e75f0139f764cb6df492ca/docs/en/ENGINE.md)
+> - source: [docs/en/ENGINE.md at the commit that added the director](https://github.com/Quest-n-Click/quest-n-click/blob/af2baa85a132266e87e75f0139f764cb6df492ca/docs/en/ENGINE.md)
 
 How to write a score: [Music in stems](create.music.md).
 

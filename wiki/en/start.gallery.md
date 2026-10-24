@@ -6,7 +6,7 @@ real Studio by `npm run docs:screenshots`, never mock-ups. Each picture has its 
 These captures were taken at **4.1.19** (11 October 2026). Since then the interface font changed (Galmuri11, 4.3.0),
 the hero can be chosen at New Game (4.3.0), and the Studio gained a hero × language matrix and before/after captures
 (4.4.0): none of those shows here yet. To see the current version, play it at
-[wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/).
+[quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/).
 
 <a name="player"></a>
 

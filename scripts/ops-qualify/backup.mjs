@@ -217,7 +217,7 @@ export async function oldStore(c) {
     for (let i = 1; !oldBytes && i <= 5; i++) {
       try {
         const got = await fetch(
-          'https://github.com/wanoo/quest-n-click/releases/download/v4.1.17/web-scumm-bridge-4.1.17.tgz',
+          'https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.1.17/web-scumm-bridge-4.1.17.tgz',
           { signal: AbortSignal.timeout(60_000) },
         );
         if (got.ok) oldBytes = Buffer.from(await got.arrayBuffer());

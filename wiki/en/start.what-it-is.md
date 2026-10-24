@@ -14,7 +14,7 @@ engine, its tools, a local Studio, a hosted Studio for a team, and a Reality Bri
 
 | | |
 |---|---|
-| **Play** | *The Pantry Key*, the sample game, on a phone in landscape or on a desktop: [wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/) |
+| **Play** | *The Pantry Key*, the sample game, on a phone in landscape or on a desktop: [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/) |
 | **Try the Studio** | The Studio in demo mode: edit the sample game, your edits stay in your browser ([Play online and try the demo Studio](start.play-online.md)) |
 | **Make your own game** | In its own folder, from a release's archive ([Install from the release archive](install.from-archive.md)), then a first room in fifteen minutes ([Your first game](create.first-game.md)) |
 
@@ -45,8 +45,10 @@ The project was called **WebSCUMM**, then **web-scumm**, in homage to SCUMM, the
 follows. It was renamed **quest'n'click** in 4.2.5 (20 October 2026, decision D47) so its name would spark no needless
 debate. What that means today:
 
-- The repository is `wanoo/quest-n-click`; links to the old repository redirect there. The old demo address,
-  `wanoo.github.io/web-scumm`, redirects to [wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/).
+- The repository is `Quest-n-Click/quest-n-click` since 4.5.2, in the Quest-n-Click organization; links to the older
+  ones (`wanoo/quest-n-click`, `wanoo/web-scumm`) redirect there. The old demo addresses, `wanoo.github.io/web-scumm`
+  and `wanoo.github.io/quest-n-click`, were GitHub Pages, abandoned in 4.5.2: the demo is on the project's website,
+  [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/).
 - From 4.2.5 the packages and commands are named `quest-n-click`. The old `web-scumm` names kept working through 4.2.x
   and are gone in 4.3.0, where `npx quest-n-click migrate` renames a game's imports and commands
   ([Coming from web-scumm](install.from-web-scumm.md)).

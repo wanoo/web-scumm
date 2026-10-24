@@ -2,46 +2,46 @@
 
 # Studio : édition WYSIWYG locale, porte ouverte à n'importe quelle IA
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md).
 
-Désormais dans : [Le Studio local : présentation et lancement › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.overview.html#overview) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#studio--édition-wysiwyg-locale-porte-ouverte-à-nimporte-quelle-ia)
+Désormais dans : [Le Studio local : présentation et lancement › overview](https://quest-n-click.cleverapps.io/fr/docs/studio.overview#overview) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#studio--édition-wysiwyg-locale-porte-ouverte-à-nimporte-quelle-ia)
 
 ## Sécurité locale et réseau
 
-Désormais dans : [Sécurité en local et en réseau local › local-and-lan](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.security.html#local-and-lan) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#sécurité-locale-et-réseau)
+Désormais dans : [Sécurité en local et en réseau local › local-and-lan](https://quest-n-click.cleverapps.io/fr/docs/studio.security#local-and-lan) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#sécurité-locale-et-réseau)
 
 ## Organisation du Studio
 
-Désormais dans : [Le Studio local : présentation et lancement › layout](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.overview.html#layout) · [Modifier une salle](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.edit-room.html) · [Storyboard](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.storyboard.html) · [Vérifier : validateur, solveur, chemin critique, chaleur, santé, couverture](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.check.html) · [Jouer et rejouer une session](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.sessions.html) · [Carte](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.map.html) · [Notes](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.notes.html) · [Langue et objectifs](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.language-objectives.html) · [Voix et matrice héros × langues](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.voices-matrix.html) · [Captures avant et après](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.captures.html) · [Diff sémantique](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.semantic-diff.html) · [Explication des règles](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.rule-explainer.html) · [Musique](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.music.html) · [Aperçu, application, annulation](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.preview-apply.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#organisation-du-studio)
+Désormais dans : [Le Studio local : présentation et lancement › layout](https://quest-n-click.cleverapps.io/fr/docs/studio.overview#layout) · [Modifier une salle](https://quest-n-click.cleverapps.io/fr/docs/studio.edit-room) · [Storyboard](https://quest-n-click.cleverapps.io/fr/docs/studio.storyboard) · [Vérifier : validateur, solveur, chemin critique, chaleur, santé, couverture](https://quest-n-click.cleverapps.io/fr/docs/studio.check) · [Jouer et rejouer une session](https://quest-n-click.cleverapps.io/fr/docs/studio.sessions) · [Carte](https://quest-n-click.cleverapps.io/fr/docs/studio.map) · [Notes](https://quest-n-click.cleverapps.io/fr/docs/studio.notes) · [Langue et objectifs](https://quest-n-click.cleverapps.io/fr/docs/studio.language-objectives) · [Voix et matrice héros × langues](https://quest-n-click.cleverapps.io/fr/docs/studio.voices-matrix) · [Captures avant et après](https://quest-n-click.cleverapps.io/fr/docs/studio.captures) · [Diff sémantique](https://quest-n-click.cleverapps.io/fr/docs/studio.semantic-diff) · [Explication des règles](https://quest-n-click.cleverapps.io/fr/docs/studio.rule-explainer) · [Musique](https://quest-n-click.cleverapps.io/fr/docs/studio.music) · [Aperçu, application, annulation](https://quest-n-click.cleverapps.io/fr/docs/studio.preview-apply) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#organisation-du-studio)
 
 ### Édition structurée \(3.4\)
 
-Désormais dans : [Modifier une salle › structured-editing](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.edit-room.html#structured-editing) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#édition-structurée-34)
+Désormais dans : [Modifier une salle › structured-editing](https://quest-n-click.cleverapps.io/fr/docs/studio.edit-room#structured-editing) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#édition-structurée-34)
 
 ## L'API \(/\_\_studio/api/\*, JSON, serveur de dev uniquement\)
 
-Désormais dans : [API du Studio › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.api.html#overview) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#lapi-__studioapi-json-serveur-de-dev-uniquement)
+Désormais dans : [API du Studio › overview](https://quest-n-click.cleverapps.io/fr/docs/studio.api#overview) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#lapi-__studioapi-json-serveur-de-dev-uniquement)
 
 ### Textes
 
-Désormais dans : [API du Studio › texts](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.api.html#texts) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#textes)
+Désormais dans : [API du Studio › texts](https://quest-n-click.cleverapps.io/fr/docs/studio.api#texts) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#textes)
 
 ### Diffusion
 
-Désormais dans : [API du Studio › serving](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.api.html#serving) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#diffusion)
+Désormais dans : [API du Studio › serving](https://quest-n-click.cleverapps.io/fr/docs/studio.api#serving) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#diffusion)
 
 ## Onglet Assets
 
-Désormais dans : [Assets et découpe › assets-tab](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.assets.html#assets-tab) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#onglet-assets)
+Désormais dans : [Assets et découpe › assets-tab](https://quest-n-click.cleverapps.io/fr/docs/studio.assets#assets-tab) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#onglet-assets)
 
 ## Mode démo
 
-Désormais dans : [Mode démo et studio-apply › demo-mode](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.demo-mode.html#demo-mode) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#mode-démo)
+Désormais dans : [Mode démo et studio-apply › demo-mode](https://quest-n-click.cleverapps.io/fr/docs/studio.demo-mode#demo-mode) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#mode-démo)
 
 ## Assistant
 
-Désormais dans : [L'Assistant : votre propre clé › assistant](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.assistant.html#assistant) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#assistant)
+Désormais dans : [L'Assistant : votre propre clé › assistant](https://quest-n-click.cleverapps.io/fr/docs/studio.assistant#assistant) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#assistant)
 
 ## N'importe quelle IA, pas une seule IA
 
-Désormais dans : [MCP local : configurer chaque client › any-ai](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/studio.mcp-setup.html#any-ai) · [Travailler avec une IA](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.working-with-ai.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#nimporte-quelle-ia-pas-une-seule-ia)
+Désormais dans : [MCP local : configurer chaque client › any-ai](https://quest-n-click.cleverapps.io/fr/docs/studio.mcp-setup#any-ai) · [Travailler avec une IA](https://quest-n-click.cleverapps.io/fr/docs/create.working-with-ai) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/STUDIO.md#nimporte-quelle-ia-pas-une-seule-ia)

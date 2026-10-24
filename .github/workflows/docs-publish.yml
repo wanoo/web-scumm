@@ -22,7 +22,8 @@ name: docs-publish
 #                 cancelled job works too while its run can be re-run;
 #       preview   from main: the bootstrap's preview (§4.5.3), refused once a release ≥ 4.5.0 exists; a rerun on the
 #                 same commit reuses its release when the bytes are the same.
-# Every run ends by starting ci on main with `pages-only`, whose Pages job assembles `/docs/` again from the releases.
+# No GitHub Pages any more (4.5.2, D52): the project's website, https://quest-n-click.cleverapps.io, shows the latest
+# documentation; release.yml's site-revalidate job calls its POST /api/revalidate after this workflow (hourly otherwise).
 on:
   workflow_call:
     inputs:
@@ -70,8 +71,8 @@ on:
         default: ''
 permissions:
   contents: write
-  # The candidate's test report is an artifact of its run; ci is started on main at the end.
-  actions: write
+  # The candidate's test report is an artifact of its run.
+  actions: read
   # A doc revision's archive is attested as a release's files are.
   id-token: write
   attestations: write
@@ -151,7 +152,7 @@ jobs:
           test "$got" = "$IN_SHA256" || { echo "::error::$a is $got, release.yml verified $IN_SHA256"; exit 1; }
           grep -Eq "^$got  $a\$" ".release/quest-n-click-$TAG-SHA256SUMS" || { echo "::error::$a is not in the release's SHA256SUMS"; exit 1; }
           node -e 'const m=require("./.release/quest-n-click-"+process.argv[1]+"-candidate.json"); const e=m.artifacts.find(a=>a.name==="docs/quest-n-click-docs-"+process.argv[2]+".tar.gz"); if(!e||e.sha256!==process.argv[3]){console.error("::error::the candidate manifest does not name this archive");process.exit(1)}' "$TAG" "${VERSION%%-*}" "$got"
-          # Signed by release.yml, as Pages requires (tools/wiki/pages.ts attestationArgs).
+          # Signed by release.yml, as the site's /docs/ requires (tools/wiki/pages.ts attestationTries).
           npm run -s wiki -- attest --repo "$REPO" --tag "$TAG" --file ".release/$a"
           { echo "ARCHIVE=.release/$a"; echo "ARCHIVE_SHA=$got"; echo "PRODUCT_TAG=$TAG"; echo "CANDIDATE=$IN_CANDIDATE"; echo "REVISION=$IN_REVISION"; echo "RELEASE_TAG=$TAG"; } >> "$GITHUB_ENV"
 
@@ -279,8 +280,8 @@ jobs:
         if: contains(inputs.version, '-')
         run: |
           echo "::notice::$VERSION is a pre-release: /docs/$VERSION/ only; the wiki and latest are unchanged (§4.5.2)"
-      # Pages assembles /docs/ from the releases in ci's `check` job and deploys on main: started again now, Pages only.
-      - name: Pages, assembled again
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run ci.yml -R "$REPO" --ref main -f pages-only=true
+      # The website takes the publication (4.5.2, D52): release.yml calls its `POST /api/revalidate` once this workflow
+      # ends (its site-revalidate job); a run started by hand here is taken at the website's hourly revalidation.
+      - name: The website, revalidated by the release
+        run: |
+          echo "::notice::https://quest-n-click.cleverapps.io takes this publication: release.yml's site-revalidate calls its /api/revalidate after this run (a run by hand: within the hour)"

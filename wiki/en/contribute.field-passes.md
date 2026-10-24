@@ -262,7 +262,7 @@ npm run field:carry -- --from=.cache/field/4.1.20 --to=.cache/field/4.1.21 --pas
 `field:check` ends without an error for the folder; `docs/dev/passes/<version>.md` shows the table with
 "x passed, y failed, z blocked, n not run, of N"; the release notes of that version say "n of N done". On GitHub, the
 open `field-pass` issues are the passes still to make:
-<https://github.com/wanoo/quest-n-click/issues?q=label%3Afield-pass>.
+<https://github.com/Quest-n-Click/quest-n-click/issues?q=label%3Afield-pass>.
 
 <a name="common-errors"></a>
 

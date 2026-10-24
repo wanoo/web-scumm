@@ -41,7 +41,7 @@ and it logs no `stopping` line.
 > - version: 4.2.2
 > - volume: two redeploys, a probe reading `/readyz` every second and writing a note every 3 s
 > - conditions: reference deployment, studio app XS, one instance, PostgreSQL DEV, region par; engine at commit dd66b38d on main before the 4.2.3 tag (package.json said 4.2.2); one sample per deploy
-> - source: [QUALIF-4.2.3-REFERENCE.md §5 bis](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §5 bis](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 In all, about a minute of slow or refused writes per deploy, none lost.
 
@@ -53,7 +53,7 @@ In all, about a minute of slow or refused writes per deploy, none lost.
 > - version: 4.2.2
 > - volume: two deploys (52e68932 → c66fbf56, then c66fbf56 → dd66b38d), the same probe
 > - conditions: reference deployment, studio app XS, PostgreSQL DEV, region par; engine commits on main before the 4.2.3 tag (package.json said 4.2.2)
-> - source: [QUALIF-4.2.3-REFERENCE.md §5 and §5 bis](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §5 and §5 bis](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 While both instances run they hold twice the connections: on the PostgreSQL DEV plan (5) background work fails with
 "too many connections" during each deploy, and an older version's write could fail with it (a 500). Take a larger plan

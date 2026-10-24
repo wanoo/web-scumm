@@ -24,7 +24,7 @@ import { formatJson } from './json';
 import { readManifest } from './manifest';
 import { classifyTarget, type Link, mapPage, renderLink } from './page';
 
-const REPO_URL = 'https://github.com/wanoo/quest-n-click';
+const REPO_URL = 'https://github.com/Quest-n-Click/quest-n-click';
 
 export interface BundleOptions {
   /** The repository (its git, for the tree of `wiki/`). */

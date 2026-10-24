@@ -120,6 +120,6 @@ and sounds carry a new address (`?v=<hash>`), so they never come from the old ca
 
 ## Reporting a bug
 
-Open an issue on the game's tracker (for the sample game, [the project's](https://github.com/wanoo/quest-n-click/issues))
+Open an issue on the game's tracker (for the sample game, [the project's](https://github.com/Quest-n-Click/quest-n-click/issues))
 with your device, system and browser, what you did, what you saw, the **Build** row of the pause menu, and if you can a
 session file: pause menu › Save › **Export session** (it replays exactly what you did, on the author's machine).

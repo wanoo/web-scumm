@@ -50,7 +50,7 @@ installation réelle : le texte exact de cette page, un domaine à soi, et la va
 > - version: 4.2.2
 > - volume: un déploiement de chaque application, depuis le dépôt
 > - conditions: phase A du déploiement de référence, moteur au commit 52e68932 avant le tag 4.2.3 (package.json disait 4.2.2) ; organisation Clever Cloud de test, région par ; deux applications XS, PostgreSQL DEV, Cellar S ; un échantillon chacun
-> - source: [QUALIF-4.2.3-REFERENCE.md §1](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §1](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 <!-- step: watch-start -->
 2. Regardez le studio démarrer. `clever logs` suit les journaux jusqu’à ce qu’on l’arrête, même avec `--until` :
@@ -91,7 +91,7 @@ installation réelle : le texte exact de cette page, un domaine à soi, et la va
 > - version: 4.2.2
 > - volume: `games/demo`, 500 fichiers envoyés à Cellar
 > - conditions: phase A du déploiement de référence, moteur au commit 52e68932 avant le tag 4.2.3 (package.json disait 4.2.2) ; application studio XS, Cellar S, région par ; un échantillon
-> - source: [QUALIF-4.2.3-REFERENCE.md §1](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §1](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 <!-- step: invite-owner -->
 4. Dans le même shell, invitez le premier owner :

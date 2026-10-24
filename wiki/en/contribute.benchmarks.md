@@ -681,7 +681,7 @@ tool added); "after" is 4.1.13, compact representation, no workers.
 > - version: 4.1.13
 > - volume: the twelve instances of the proof matrix, 20 to 40 rooms, three playable characters
 > - conditions: the maintainer's Mac (Apple M5, Node 22.14), --time=590, 4 GB of heap, no workers, one instance per process
-> - source: [docs/en/BENCH.md, 4.1.13](https://github.com/wanoo/quest-n-click/blob/570b57d891d42266e6af46e285d85e26e09777e9/docs/en/BENCH.md)
+> - source: [docs/en/BENCH.md, 4.1.13](https://github.com/Quest-n-Click/quest-n-click/blob/570b57d891d42266e6af46e285d85e26e09777e9/docs/en/BENCH.md)
 
 **Memory: ÷9 in heap, ÷4.5 in RSS over the matrix** (the RSS holds about 160 MB of Node and the engine whatever the
 search). On the large open proofs the heap falls by 16 to 20 times: o21 held 31.6 KB per state, it holds 1.6 KB.

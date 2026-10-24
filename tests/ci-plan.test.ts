@@ -5,17 +5,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import {
-  type CiPlan,
-  classify,
-  docsFor,
-  explain,
-  fullPlan,
-  GATES,
-  type Gate,
-  pagesOnlyPlan,
-  planFor,
-} from '../tools/ci-plan';
+import { type CiPlan, classify, docsFor, explain, fullPlan, GATES, type Gate, planFor } from '../tools/ci-plan';
 
 /** The gates a plan opens, sorted, `all` first when set. */
 const on = (p: CiPlan) => [...(p.all ? ['all'] : []), ...GATES.filter((g) => p[g])].sort();
@@ -179,36 +169,19 @@ describe('ci.yml and the plan', () => {
 
   it('reads every gate, and no gate the plan does not give', () => {
     const read = new Set([...yml.matchAll(/fromJSON\(needs\.plan\.outputs\.plan\)\.(\w+)/g)].map((m) => m[1]));
-    // Every gate, and `pagesOnly` (4.5.0 A5b), which the jobs that run whatever the gates read to skip their work.
-    expect([...read].sort()).toEqual([...GATES, 'pagesOnly'].sort());
+    expect([...read].sort()).toEqual([...GATES].sort());
   });
 
-  it('a pages-only run (docs-publish) opens no gate, and its jobs build the Pages artifact only', () => {
-    const p = pagesOnlyPlan();
-    expect(on(p)).toEqual([]);
-    expect(p.pagesOnly).toBe(true);
-    expect(fullPlan().pagesOnly).toBe(false);
-    expect(planFor(['src/engine/core/engine.ts']).pagesOnly).toBe(false);
-    const plan = job('plan');
-    expect(plan).toMatch(/PAGES_ONLY: \$\{\{ github\.event_name == 'workflow_dispatch' && inputs\.pages-only \}\}/);
-    expect(plan).toMatch(/if \[ "\$PAGES_ONLY" = true \]; then flag=--pages-only/);
+  it('deploys no Pages (4.5.2, D51): no pages job, no Pages artifact, no pages-only run; the dist the e2e rows play stays', () => {
+    expect(yml).not.toMatch(/^ {2}pages:\n/m);
+    expect(yml).not.toMatch(
+      /deploy-pages|upload-pages-artifact|github-pages|pages-only|PAGES_ONLY|pagesOnly|env\.FULL/,
+    );
+    expect(yml).not.toMatch(/wiki -- pages/);
+    expect(job('plan')).toMatch(/if \[ "\$ALL" = true \]; then flag=--all; else flag=--base=HEAD\^1; fi/);
     const check = job('check');
-    expect(check).toMatch(/FULL: \$\{\{ !fromJSON\(needs\.plan\.outputs\.plan\)\.pagesOnly \}\}/);
-    // Skipped: the gates, the game's build and proofs; kept: the Pages build, /docs/ and the upload.
-    for (const run of ['npm run quality', 'npm run build:game', 'npm run prove:game', 'npm run quality:baseline'])
-      expect(check.slice(check.indexOf(run) - 60, check.indexOf(run)), run).toMatch(/if: env\.FULL == 'true'/);
-    const pages = check.slice(check.indexOf('BASE_PATH:') - 200);
-    expect(pages).not.toMatch(/env\.FULL/);
-    for (const id of ['coverage', 'cross-runtime']) {
-      expect(job(id)).toMatch(/FULL: \$\{\{ !fromJSON\(needs\.plan\.outputs\.plan\)\.pagesOnly \}\}/);
-      const steps = job(id)
-        .split(/\n {6}- /)
-        .slice(1);
-      expect(
-        steps.every((st) => /env\.FULL/.test(st)),
-        id,
-      ).toBe(true);
-    }
+    expect(check).toMatch(/- uses: actions\/upload-artifact@\S+ # v[\d.]+\n {8}with:\n {10}name: dist\n/);
+    expect(check).not.toMatch(/BASE_PATH:/);
   });
 
   it('keeps every check the ruleset of main requires, under its name', () => {
@@ -295,9 +268,7 @@ describe('ci.yml and the plan', () => {
   it('the gate job needs every other job and asks each for success', () => {
     const gate = job('pr-gate');
     expect(gate).toMatch(/^ {4}if: always\(\)/m);
-    const ids = [...yml.matchAll(/^ {2}([\w-]+):\n/gm)]
-      .map((m) => m[1]!)
-      .filter((id) => !['pr-gate', 'pages'].includes(id));
+    const ids = [...yml.matchAll(/^ {2}([\w-]+):\n/gm)].map((m) => m[1]!).filter((id) => id !== 'pr-gate');
     const needs = gate
       .match(/needs: \[([^\]]+)\]/)?.[1]
       ?.split(',')

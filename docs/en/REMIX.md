@@ -2,54 +2,54 @@
 
 # Remix: several worlds of one game \(4.1.15\)
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md).
 
-Now in: [Remix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.remix.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#remix-several-worlds-of-one-game-4115)
+Now in: [Remix](https://quest-n-click.cleverapps.io/docs/create.remix) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#remix-several-worlds-of-one-game-4115)
 
 ## What varies, and what never does
 
-Now in: [Remix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.remix.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#what-varies-and-what-never-does)
+Now in: [Remix](https://quest-n-click.cleverapps.io/docs/create.remix) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#what-varies-and-what-never-does)
 
 ## Declaring a manifest
 
-Now in: [Remix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.remix.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#declaring-a-manifest)
+Now in: [Remix](https://quest-n-click.cleverapps.io/docs/create.remix) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#declaring-a-manifest)
 
 ## Anchors and item placement
 
-Now in: [Remix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.remix.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#anchors-and-item-placement)
+Now in: [Remix](https://quest-n-click.cleverapps.io/docs/create.remix) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#anchors-and-item-placement)
 
 ## Characters, codes and orders
 
-Now in: [Remix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.remix.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#characters-codes-and-orders)
+Now in: [Remix](https://quest-n-click.cleverapps.io/docs/create.remix) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#characters-codes-and-orders)
 
 ## Presentation variance
 
-Now in: [Remix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.remix.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#presentation-variance)
+Now in: [Remix](https://quest-n-click.cleverapps.io/docs/create.remix) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#presentation-variance)
 
 ## Seeds and worlds
 
-Now in: [Remix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.remix.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#seeds-and-worlds)
+Now in: [Remix](https://quest-n-click.cleverapps.io/docs/create.remix) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#seeds-and-worlds)
 
 ## Strategies per mode
 
-Now in: [Remix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.remix.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#strategies-per-mode)
+Now in: [Remix](https://quest-n-click.cleverapps.io/docs/create.remix) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#strategies-per-mode)
 
 ## Tools
 
-Now in: [Remix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.remix.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#tools)
+Now in: [Remix](https://quest-n-click.cleverapps.io/docs/create.remix) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#tools)
 
 ## Saves, replays and speedruns
 
-Now in: [Remix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.remix.html) · [Speedrun for authors](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.speedrun.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#saves-replays-and-speedruns)
+Now in: [Remix](https://quest-n-click.cleverapps.io/docs/create.remix) · [Speedrun for authors](https://quest-n-click.cleverapps.io/docs/create.speedrun) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#saves-replays-and-speedruns)
 
 ## The daily challenge and Mystery
 
-Now in: [Remix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.remix.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#the-daily-challenge-and-mystery)
+Now in: [Remix](https://quest-n-click.cleverapps.io/docs/create.remix) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#the-daily-challenge-and-mystery)
 
 ## The code wheel
 
-Now in: [Remix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.remix.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#the-code-wheel)
+Now in: [Remix](https://quest-n-click.cleverapps.io/docs/create.remix) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#the-code-wheel)
 
 ## The player and the Studio
 
-Now in: [Remix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.remix.html) · [Remix in the Studio](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.remix.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#the-player-and-the-studio)
+Now in: [Remix](https://quest-n-click.cleverapps.io/docs/create.remix) · [Remix in the Studio](https://quest-n-click.cleverapps.io/docs/studio.remix) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REMIX.md#the-player-and-the-studio)

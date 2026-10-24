@@ -134,10 +134,10 @@ que soit le héros ; X se tourne maintenant vers le héros. Si une scène compta
 
 **web-scumm devient quest'n'click** (D47). Rien à changer : un jeu fait pour la 4.2.4 s'installe, se construit, se joue
 et se sauvegarde comme avant, sous ses anciens noms. Le moteur s'installe depuis `releases/download/v4.2.5/…`, où le
-dépôt est maintenant `github.com/wanoo/quest-n-click` (les anciens liens `github.com/wanoo/web-scumm` sont redirigés,
-téléchargements des releases compris). Le jeu d'exemple et la démo du Studio sont passés à
-`https://wanoo.github.io/quest-n-click/` : l'ancienne adresse y redirige, mais mettez à jour un favori ou un lien
-vers `wanoo.github.io/quest-n-click`.
+dépôt est maintenant `github.com/Quest-n-Click/quest-n-click` (les anciens liens `github.com/wanoo/web-scumm` sont redirigés,
+téléchargements des releases compris). Le jeu d'exemple et la démo du Studio sont
+maintenant sur `https://quest-n-click.cleverapps.io/demo/` (depuis la 4.5.2, D52 ; les adresses GitHub Pages qu'ils
+avaient avant sont abandonnées) : mettez à jour un favori ou un lien.
 
 **Les nouveaux noms**, à partir de la 4.2.5 :
 
@@ -179,7 +179,8 @@ Remix `web-scumm-remix-1` ; un signal reste `web-scumm-world-signal`, un manifes
 clés de stockage `web-scumm.…`, si bien que les sauvegardes et les runs d'un joueur se retrouvent là où ils étaient ;
 les en-têtes `X-Web-Scumm-*` du Bridge, les contextes des signatures, les variables d'environnement `WEB_SCUMM_*` et les
 tables du Studio Server ne changent pas. Les releases jusqu'à la v4.2.4 gardent le nom de leurs fichiers et leurs
-attestations, qui nomment le dépôt `wanoo/web-scumm` ; à partir de la v4.2.5, les attestations nomment
-`wanoo/quest-n-click` (`ship verify` demande celui sous lequel chaque release a été signée). Les crédits du jeu
+attestations, qui nomment le dépôt `wanoo/web-scumm` ; de la v4.2.5 à la v4.5.1, les attestations nomment
+`wanoo/quest-n-click` (depuis la v4.5.2, `Quest-n-Click/quest-n-click` ; `ship verify` demande celui sous lequel chaque
+release a été signée). Les crédits du jeu
 d'exemple et du chapitre de référence disent maintenant quest'n'click : leur empreinte de présentation a bougé, leur
 run de référence est donc enregistré à nouveau ; l'empreinte d'un jeu ne bouge que si son propre texte change.

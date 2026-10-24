@@ -11,7 +11,7 @@ pull request runs is [`tools/ci-plan.ts`](../../tools/ci-plan.ts). Which test su
 
 | Workflow | Starts on | Does | Gates |
 |---|---|---|---|
-| `ci` | a pull request; a push to `main`; a `v*` tag; by hand (`pages-only`) | the three tiers below, then Pages on `main` | the pull request (`pr-gate`); a release (the tag's run) |
+| `ci` | a pull request; a push to `main`; a `v*` tag; by hand | the three tiers below | the pull request (`pr-gate`); a release (the tag's run) |
 | `candidate` | by hand on `main` for a SHA (`gh workflow run candidate --ref main -f sha=<full sha>`); a pull request labelled `full-ci` (information only) | every heavy family on one exact SHA, then `candidate-gate`, which writes and attests `candidate-manifest.json` | a tag must name one green run of it ([Releasing](contribute.releasing.md)) |
 | `release` | the completion of `ci` on a `v*` tag | the mutation sets, `release-check:ci`, the release made from the candidate's files, `ship verify`; then `docs-publish` (4.5.0) | publication |
 | `nightly` | every day at 03:17 UTC; by hand | npm names, the heavy suite, the connectors' fuzz (a minute each), the abstraction corpus (500 seeds, four shards), every mutation set from scratch, the Bridge's loads on SQLite and Postgres, the proof matrix, cross-runtime with 500 Remix seeds, the worker in a container | nothing directly; a red night is a bug to fix before the next release |
@@ -32,8 +32,7 @@ pull request runs is [`tools/ci-plan.ts`](../../tools/ci-plan.ts). Which test su
   both TypeScript configurations, content lint), `docs:truth`, ffmpeg, `build:game` (the sample game's gates, the
   bundle, `verify:dist`, the spoiler check, the asset audit), `weight -- --release`, `quality:baseline -- --check
   --dist`, `prove:game`, `audit:deps` when `package.json` or the lockfile moved, then the two-entry build (game and
-  Studio demo) that the e2e rows play, kept as the `dist` artifact; on `main` it also assembles Pages' `/docs/` from
-  the released documentation archives.
+  Studio demo) that the e2e rows play, kept as the `dist` artifact.
 - `coverage`: the unit suite once, under V8 coverage (`test:coverage`), then the coverage ratchet: a warning on a pull
   request, a failure on `main` and on a tag ([The coverage ratchet](contribute.coverage-ratchet.md)).
 
@@ -61,7 +60,7 @@ the candidate and the release.
 **`pr-gate`** reads every job's result: each must be `success`; the mutation jobs may be `skipped` where they do not
 run. It is the one check that sums a pull request up.
 
-**`pages`**, on `main` only, after a green `pr-gate`: deploys the game, the Studio demo and `/docs/` to GitHub Pages.
+No job deploys GitHub Pages any more (4.5.2, see [the site](#pages-only)).
 
 <a name="the-plan"></a>
 <!-- applies: .. since 4.1.9 -->
@@ -76,7 +75,7 @@ npm run ci:plan -- --files=src/engine/dom/room.ts,games/demo/rooms/garden.ts
 ```
 
 It prints, on stderr, one line per changed file with the rule that matched and the gates it opened, then the plan;
-on stdout, one line of JSON (`{"auditDeps":…,"node24":…,…,"all":…,"docs":…,"docsPages":[…],"pagesOnly":…}`), which
+on stdout, one line of JSON (`{"auditDeps":…,"node24":…,…,"all":…,"docs":…,"docsPages":[…]}`), which
 the `plan` job writes to its output. The first rule that matches a path wins, and a change runs the union of what its
 files ask:
 
@@ -112,20 +111,21 @@ starts the mutation jobs of `ci` and a `candidate` run for information. Add the 
 the next run).
 
 <a name="pages-only"></a>
-<!-- applies: 4.5.0.. since 4.5.0 -->
+<!-- applies: 4.5.2.. since 4.5.2 -->
 
-## `pages-only` runs
+## The site, outside `ci`
 
-`docs-publish` ends by `gh workflow run ci.yml --ref main -f pages-only=true`. The plan is then `--pages-only`: no
-gate opens, and `check`, `coverage` and `cross-runtime` skip everything but the Pages build, `/docs/` and the upload.
-A dispatched run cancels no running run: it waits. GitHub keeps one pending run per concurrency group whatever
-`cancel-in-progress` says, so a dispatch queued while a push's run on `main` is pending replaces it (that commit is
-then deployed by the dispatch without its own checks), and a later push replaces a pending dispatch.
+Since 4.5.2 the engine's `ci` deploys no GitHub Pages (D52). The project's website, `https://quest-n-click.cleverapps.io` (the repository
+`Quest-n-Click/quest-n-click-site`), serves the demo at `/demo/` from the latest release's
+`quest-n-click-v<version>-web.tar.gz` (built by the candidate under `BASE_PATH=/demo/`, summed and attested by the
+release) and the latest documentation at `/docs/<page id>` (`/fr/docs/<page id>` in French); there is no versioned documentation online, a
+version's documentation is its release's `quest-n-click-docs-<version>.tar.gz`. The website picks a release up by
+itself (its `POST /api/revalidate`, hourly otherwise). The `pages` job and the `pages-only` runs that `docs-publish`
+started (4.5.0 to 4.5.1) are gone.
 
 > [!LIMIT id=pages-fail-closed]
-> If `/docs/` cannot be assembled from the released archives (a network failure, an archive refused), the `check` job
-> fails on `main` and Pages is not deployed: never a site without `/docs/` nor with an unchecked one. A rerun of the
-> job is the recovery.
+> `npm run wiki -- pages`, which assembled the versioned `/docs/` for GitHub Pages up to 4.5.1, still takes the
+> released archives only and fails when one cannot be downloaded or verified; no site deploys its output since 4.5.2.
 
 <a name="job-failed"></a>
 
@@ -175,6 +175,6 @@ then deployed by the dispatch without its own checks), and a later push replaces
 
 ## Related identifiers
 
-- `npm run ci:plan`, the `full-ci` label, `pr-gate`, the `pages-only` input.
+- `npm run ci:plan`, the `full-ci` label, `pr-gate`; the `pages-only` input, gone in 4.5.2.
 - [Which tests run when](contribute.which-tests.md), [Before a pull request](contribute.before-a-pr.md),
   [Releasing](contribute.releasing.md), [Mutation testing](contribute.mutation-testing.md).

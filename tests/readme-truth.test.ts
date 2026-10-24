@@ -56,7 +56,7 @@ describe('the README', () => {
     const old = 'https://github.com/wanoo/web-scumm/releases/download/v1.0.0/web-scumm-1.0.0.tgz';
     const page = `T=x/v1.0.0/web-scumm-1.0.0.tgz\n<!-- install:begin -->\nT=${old}\n<!-- install:end -->`;
     const at = (tag: string, file: string) =>
-      page.replace(old, `https://github.com/wanoo/quest-n-click/releases/download/${tag}/${file}`);
+      page.replace(old, `https://github.com/Quest-n-Click/quest-n-click/releases/download/${tag}/${file}`);
     expect(withInstall(page, '4.2.0')).toBe(at('v4.2.0', 'web-scumm-4.2.0.tgz'));
     expect(withInstall(page, '4.2.5')).toBe(at('v4.2.5', 'quest-n-click-4.2.5.tgz'));
     // A release candidate of this version keeps its tag; another version's candidate does not.
@@ -70,7 +70,7 @@ describe('the README', () => {
     expect(installTag(at('v4.2.4', 'web-scumm-4.2.4.tgz').split('T=')[2]!.split('\n')[0]!, '4.2.4')).toBe('v4.2.4');
     expect(installTag(archiveUrl('4.2.5'), '4.2.5')).toBe('v4.2.5');
     expect(archiveUrl('4.2.5')).toBe(
-      'https://github.com/wanoo/quest-n-click/releases/download/v4.2.5/quest-n-click-4.2.5.tgz',
+      'https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.2.5/quest-n-click-4.2.5.tgz',
     );
     expect(installTag(archiveUrl('4.2.5').replace('quest-n-click-4.2.5', 'web-scumm-4.2.5'), '4.2.5')).toBeNull();
   });

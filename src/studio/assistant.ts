@@ -322,7 +322,7 @@ export class AssistantPanel {
         h('code', null, 'task: true'),
         '). An AI agent connected to this game through MCP (',
         h('code', null, 'npm run -s mcp'),
-        ': Claude Code, Cursor, Codex, Gemini CLI… see https://github.com/wanoo/quest-n-click/wiki/EN-Studio-MCP-Setup) reads it with ',
+        ': Claude Code, Cursor, Codex, Gemini CLI… see https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Studio-MCP-Setup) reads it with ',
         h('code', null, 'get_notes'),
         ' and does it; you see its edits here live.',
       ),

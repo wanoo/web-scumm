@@ -2,58 +2,58 @@
 
 # Plan de production — «  »
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md).
 
-Désormais dans : [Modèle de production](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.production-template.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#plan-de-production----)
+Désormais dans : [Modèle de production](https://quest-n-click.cleverapps.io/fr/docs/create.production-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#plan-de-production----)
 
 ## 0. Comment l'orchestrateur fait tourner ça
 
-Désormais dans : [Modèle de production](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.production-template.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#0-comment-lorchestrateur-fait-tourner-ça)
+Désormais dans : [Modèle de production](https://quest-n-click.cleverapps.io/fr/docs/create.production-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#0-comment-lorchestrateur-fait-tourner-ça)
 
 ## 1. Sources de vérité \(à lire dans cet ordre\)
 
-Désormais dans : [Modèle de production](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.production-template.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#1-sources-de-vérité-à-lire-dans-cet-ordre)
+Désormais dans : [Modèle de production](https://quest-n-click.cleverapps.io/fr/docs/create.production-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#1-sources-de-vérité-à-lire-dans-cet-ordre)
 
 ## 2. Contraintes non négociables
 
-Désormais dans : [Modèle de production](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.production-template.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#2-contraintes-non-négociables)
+Désormais dans : [Modèle de production](https://quest-n-click.cleverapps.io/fr/docs/create.production-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#2-contraintes-non-négociables)
 
 ## 3. État du projet au <!-- -->
 
-Désormais dans : [Modèle de production](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.production-template.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#3-état-du-projet-au-)
+Désormais dans : [Modèle de production](https://quest-n-click.cleverapps.io/fr/docs/create.production-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#3-état-du-projet-au-)
 
 ## 4. Lots de travail
 
-Désormais dans : [Modèle de production](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.production-template.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#4-lots-de-travail)
+Désormais dans : [Modèle de production](https://quest-n-click.cleverapps.io/fr/docs/create.production-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#4-lots-de-travail)
 
 ### WP-A · Moteur \(src/engine/\*\*\)
 
-Désormais dans : [Modèle de production](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.production-template.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#wp-a--moteur-srcengine)
+Désormais dans : [Modèle de production](https://quest-n-click.cleverapps.io/fr/docs/create.production-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#wp-a--moteur-srcengine)
 
 ### WP-B · Contenu \(games/\<id\>/rooms/\*\*, game.ts, items.ts, cast.ts\)
 
-Désormais dans : [Modèle de production](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.production-template.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#wp-b--contenu-gamesidrooms-gamets-itemsts-castts)
+Désormais dans : [Modèle de production](https://quest-n-click.cleverapps.io/fr/docs/create.production-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#wp-b--contenu-gamesidrooms-gamets-itemsts-castts)
 
 ### WP-C · Assets \(games/\<id\>/art/\*\*, npm run assets\)
 
-Désormais dans : [Modèle de production](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.production-template.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#wp-c--assets-gamesidart-npm-run-assets)
+Désormais dans : [Modèle de production](https://quest-n-click.cleverapps.io/fr/docs/create.production-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#wp-c--assets-gamesidart-npm-run-assets)
 
 ### WP-D · Mini-jeux \(src/engine/minigames/\*\* ou games/\<id\>/minigames/\*\*\)
 
-Désormais dans : [Modèle de production](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.production-template.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#wp-d--mini-jeux-srcengineminigames-ou-gamesidminigames)
+Désormais dans : [Modèle de production](https://quest-n-click.cleverapps.io/fr/docs/create.production-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#wp-d--mini-jeux-srcengineminigames-ou-gamesidminigames)
 
 ### WP-E · QA, pré-production, déploiement \(vague 2, un seul agent\)
 
-Désormais dans : [Modèle de production](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.production-template.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#wp-e--qa-pré-production-déploiement-vague-2-un-seul-agent)
+Désormais dans : [Modèle de production](https://quest-n-click.cleverapps.io/fr/docs/create.production-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#wp-e--qa-pré-production-déploiement-vague-2-un-seul-agent)
 
 ## 5. Ordre et règles de fusion
 
-Désormais dans : [Modèle de production](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.production-template.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#5-ordre-et-règles-de-fusion)
+Désormais dans : [Modèle de production](https://quest-n-click.cleverapps.io/fr/docs/create.production-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#5-ordre-et-règles-de-fusion)
 
 ## 6. Checklist finale avant d'envoyer le lien
 
-Désormais dans : [Modèle de production](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.production-template.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#6-checklist-finale-avant-denvoyer-le-lien)
+Désormais dans : [Modèle de production](https://quest-n-click.cleverapps.io/fr/docs/create.production-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#6-checklist-finale-avant-denvoyer-le-lien)
 
 ## 7. Gabarit de prompt pour un sous-agent
 
-Désormais dans : [Modèle de production](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.production-template.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#7-gabarit-de-prompt-pour-un-sous-agent)
+Désormais dans : [Modèle de production](https://quest-n-click.cleverapps.io/fr/docs/create.production-template) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRODUCTION.template.md#7-gabarit-de-prompt-pour-un-sous-agent)

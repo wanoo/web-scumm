@@ -1,30 +1,22 @@
 name: ci
 on:
   push:
-    # main deploys to Pages; a tag releases. A topic branch runs through its pull request (4.1.4; the ruleset on main
-    # requires these checks on the pull request's head), so a push runs once, not twice.
+    # main runs everything; a tag releases. A topic branch runs through its pull request (4.1.4; the ruleset on main
+    # requires these checks on the pull request's head), so a push runs once, not twice. The engine deploys no Pages
+    # (4.5.2, D52): the project's website, quest-n-click.cleverapps.io, serves the release's web.tar.gz at /demo/ and
+    # the latest documentation.
     branches: [main]
     tags: ['v*']
   pull_request:
-  # docs-publish starts ci on main after a publication (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.5.5), `pages-only`: the
-  # plan opens no gate and `check` builds the Pages artifact only, /docs/ assembled again from the releases.
+  # By hand: everything, on the branch it is started from.
   workflow_dispatch:
-    inputs:
-      pages-only:
-        description: 'Rebuild and deploy Pages only (docs-publish)'
-        type: boolean
-        required: false
-        default: false
-# The token does nothing but read (4.1.3); the Pages job asks for what it needs. One run per ref at a time: a push
-# that supersedes another cancels it (the runners are the bottleneck).
+# The token does nothing but read (4.1.3). One run per ref at a time: a push that supersedes another cancels it (the
+# runners are the bottleneck).
 permissions:
   contents: read
 concurrency:
   group: ci-${{ github.ref }}
-  # A dispatched run (docs-publish, 4.5.0) cancels no running run: it waits for the push's run on main, then assembles
-  # Pages again; a later push cancels it, and assembles everything released by then. GitHub keeps one PENDING run per
-  # group whatever this says: a dispatch queued while a push's run is pending replaces that run (its commit is then
-  # deployed by the dispatch, but not checked by it), and a push queued behind a pending dispatch replaces the dispatch.
+  # A run started by hand cancels no running run: it waits for it.
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 # Three tiers (4.1.9, lot 0). The fast tier, on every change: `plan`, `check` (format, lint, knip, types, the game's
 # gates, the build, the baseline) and `coverage` (the unit suite, once). The second tier needs `check` and runs only
@@ -51,21 +43,17 @@ jobs:
       - id: plan
         env:
           ALL: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'full-ci') }}
-          PAGES_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.pages-only }}
         run: |
-          if [ "$PAGES_ONLY" = true ]; then flag=--pages-only; elif [ "$ALL" = true ]; then flag=--all; else flag=--base=HEAD^1; fi
+          if [ "$ALL" = true ]; then flag=--all; else flag=--base=HEAD^1; fi
           plan=$(node --experimental-strip-types --no-warnings tools/ci-plan.ts "$flag")
           echo "plan=$plan" >> "$GITHUB_OUTPUT"
   # The fast tier: what every change must pass, in one job. `build:game` and not `build`, which would run the unit
-  # suite a second time (`coverage` runs it). The dist it builds in the shape Pages deploys (game + Studio demo) is
+  # suite a second time (`coverage` runs it). The dist it builds in the shape the site serves (game + Studio demo) is
   # kept as an artifact: the e2e rows and pwa-firefox play it instead of building it again.
   check:
     needs: plan
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    env:
-      # A pages-only run (docs-publish) builds the Pages artifact and nothing else; every other run, all of it.
-      FULL: ${{ !fromJSON(needs.plan.outputs.plan).pagesOnly }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -89,83 +77,36 @@ jobs:
       - if: github.event_name == 'pull_request'
         run: npm run -s field:carry -- --check-range=origin/main...HEAD
       # Formatting, code lint, knip, both TypeScript configurations, content lint (4.1.0 "Clarity").
-      - if: env.FULL == 'true'
-        run: npm run quality
-      - if: env.FULL == 'true'
-        run: npm run docs:truth
+      - run: npm run quality
+      - run: npm run docs:truth
       # validate --release measures the stems with ffprobe (3.6).
-      - if: env.FULL == 'true'
-        run: bash scripts/ci-ffmpeg.sh
+      - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
       # The game's gates (validate, solve, i18n, content lint, playtests), the bundle, verify:dist, spoilers, assets.
-      - if: env.FULL == 'true'
-        run: npm run build:game
+      - run: npm run build:game
       # The weight budget with the app shell of this fresh build (the Node test weighs the game's assets only).
-      - if: env.FULL == 'true'
-        run: npm run weight -- --release
+      - run: npm run weight -- --release
       # The behaviour of 4.0.0 frozen (4.1.0 "Clarity"): the same witnesses, proofs, golden saves, public surface, and a
       # first visit no bigger, whatever a refactoring moved (tools/quality-baseline.ts).
-      - if: env.FULL == 'true'
-        run: npm run quality:baseline -- --check --dist
+      - run: npm run quality:baseline -- --check --dist
       # The exhaustive proof of the sample game (seconds); a big game proves on the weekly prove workflow instead.
-      - if: env.FULL == 'true'
-        run: npm run prove:game
+      - run: npm run prove:game
       # The shipped dependencies' advisories: when the lockfile or package.json moved, and always on main and tags.
       - if: fromJSON(needs.plan.outputs.plan).auditDeps
         run: npm run audit:deps
       # The two-entry build the e2e rows play (game + Studio demo): a chunk the game needs but the worker does not
       # precache only shows up in that shape.
-      - if: env.FULL == 'true'
-        run: npm run build:web
+      - run: npm run build:web
         env:
           STUDIO: '1'
           VITE_STUDIO_DEMO: '1'
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: env.FULL == 'true'
         with:
           name: dist
           path: dist
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 3
-      # The same shape under the repository's base path, for Pages.
-      - run: npm run build:web
-        env:
-          BASE_PATH: /${{ github.event.repository.name }}/
-          STUDIO: '1'
-          VITE_STUDIO_DEMO: '1'
-      # The documentation (4.5.0, docs/dev/PLAN-4.5-WIKI.md §4.5.5): /docs/ is never built from this branch. It is
-      # assembled from the released archives only (every v* ≥ 4.5.0 and docs-v* release, each checked against its
-      # sums and its candidate's manifest, its html/ copied as it is), with the aliases publication.json approves; a
-      # placeholder pointing to the 4.4.0 documentation while none is released.
-      # The archives are kept between runs by the release list (a release is immutable: one already downloaded is not
-      # downloaded again, and its bytes and attestation are checked all the same); every gh call is tried three times.
-      # If /docs/ still cannot be assembled (a network failure, an archive refused), this step fails and Pages is not
-      # deployed: never a site without /docs/ nor with an unchecked one. A rerun of the job is the recovery.
-      - name: The documentation releases, listed
-        if: github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-        run: |
-          mkdir -p .cache
-          for i in 1 2 3; do gh release list -R "$REPO" --limit 1000 --json tagName,isDraft --jq '[.[] | select(.isDraft | not) | .tagName] | sort | .[]' > .cache/docs-releases.txt && break; [ "$i" = 3 ] && exit 1; sleep 15; done
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: github.ref == 'refs/heads/main'
-        with:
-          path: .cache/docs-releases
-          key: docs-releases-${{ hashFiles('.cache/docs-releases.txt') }}
-          restore-keys: docs-releases-
-      - name: The documentation of the released versions
-        if: github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-        run: npm run -s wiki -- pages --repo "$REPO" --cache .cache/docs-releases --out dist/docs
-      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
-        if: github.ref == 'refs/heads/main'
-        with:
-          path: dist
   # The unit suite under V8 coverage, once (4.1.9: `node-24` no longer runs `quality`, `check` no longer runs the suite).
   # The floors of vite.config.ts fail here; the ratchet (a floor three points or more under what is measured) warns on
   # a pull request and fails on main and on a tag (`--strict`, as the nightly and release-check).
@@ -173,40 +114,28 @@ jobs:
     needs: plan
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    env:
-      FULL: ${{ !fromJSON(needs.plan.outputs.plan).pagesOnly }}
     steps:
-      - if: env.FULL != 'true'
-        run: echo "::notice::coverage not needed by the plan (a pages-only run)"
-      - if: env.FULL == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # the fragments' check diffs against main's merge base (tools/changes.ts, 4.1.9)
-      - if: env.FULL == 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
-      - if: env.FULL == 'true'
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.12'
-      - if: env.FULL == 'true'
-        run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (pip install -r requirements.txt) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.FULL == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
       # validate --release measures the stems with ffprobe (tests/tooling.test.ts).
-      - if: env.FULL == 'true'
-        run: bash scripts/ci-ffmpeg.sh
+      - run: bash scripts/ci-ffmpeg.sh
         timeout-minutes: 20
-      - if: env.FULL == 'true'
-        run: npm run test:coverage
-      - if: env.FULL == 'true'
-        run: npx tsx tools/coverage-ratchet.ts ${{ github.event_name != 'pull_request' && '--strict' || '' }}
+      - run: npm run test:coverage
+      - run: npx tsx tools/coverage-ratchet.ts ${{ github.event_name != 'pull_request' && '--strict' || '' }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always() && env.FULL == 'true'
+        if: always()
         with:
           name: coverage-summary
           path: .cache/coverage/coverage-summary.json
@@ -924,39 +853,28 @@ jobs:
     runs-on: ubuntu-24.04
     # Playwright's image (#261): the browsers and their system libraries are in it, so no apt mirror on the way
     # (`--with-deps` fetched 52 MB of fonts and libraries, at 50 kB/s on a bad day). Its version is the lockfile's
-    # (tests/ci-plan.test.ts). Root in it: Firefox wants HOME to be root's. A spared job runs on the runner.
+    # (tests/ci-plan.test.ts). Root in it: Firefox wants HOME to be root's.
     container:
-      image: ${{ !fromJSON(needs.plan.outputs.plan).pagesOnly && 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea' || '' }}
+      image: 'mcr.microsoft.com/playwright:v1.64.1-noble@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea'
       options: --init --ipc=host
     timeout-minutes: 30
     env:
       HOME: /root
-      FULL: ${{ !fromJSON(needs.plan.outputs.plan).pagesOnly }}
     steps:
-      - if: env.FULL != 'true'
-        run: echo "::notice::cross-runtime not needed by the plan (a pages-only run)"
-      - if: env.FULL == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: env.FULL == 'true'
-        # In the container the checkout belongs to the runner's user, not root: git is told it is safe. `$(pwd)`, the
-        # step's directory, is the workspace as the container mounts it (`/__w/…`); `github.workspace` is the host's path.
-        run: git config --global --add safe.directory "$(pwd)"
-      - if: env.FULL == 'true'
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # In the container the checkout belongs to the runner's user, not root: git is told it is safe. `$(pwd)`, the
+      # step's directory, is the workspace as the container mounts it (`/__w/…`); `github.workspace` is the host's path.
+      - run: git config --global --add safe.directory "$(pwd)"
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
-      - if: env.FULL == 'true'
-        run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
+      - run: for i in 1 2 3; do (npm ci) && break; [ "$i" = 3 ] && exit 1; echo "retry $i"; sleep 15; done
         timeout-minutes: 20
-      - if: env.FULL == 'true'
-        run: npm run e2e:canonical
-      - if: env.FULL == 'true'
-        run: npm run e2e:remix
-      - if: env.FULL == 'true'
-        run: npm run e2e:speedrun
-      - if: env.FULL == 'true'
-        run: npm run e2e:remix-speedrun
+      - run: npm run e2e:canonical
+      - run: npm run e2e:remix
+      - run: npm run e2e:speedrun
+      - run: npm run e2e:remix-speedrun
   # The engine as another project uses it (3.9): packed, a game created from the template outside the repository,
   # installed from the tarball, verified, built and played to its ending (scripts/fresh-install.mjs). Its own build
   # (the created game's). Gate: `freshInstall` (the packages, the template, the Bridge, the authoring tools).
@@ -1295,20 +1213,3 @@ jobs:
             if [ "$result" = success ]; then echo "✔ $job"; else echo "::error::$job: $result"; bad=1; fi
           done
           exit $bad
-  pages:
-    # 4.1.16: Pages waits for the terminal gate, not a subset (no deployment with Firefox PWA, a proof or mutation red).
-    # `always()` and the gate's own result: the implicit success() also reads pr-gate's ancestors, some of which are
-    # skipped by design (mutation, jobs the plan spares), and would skip Pages forever.
-    needs: [pr-gate]
-    if: always() && github.ref == 'refs/heads/main' && needs.pr-gate.result == 'success'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5

@@ -132,7 +132,7 @@ nouvelle adresse (`?v=<empreinte>`) : une fois la nouvelle version lancée, ils 
 
 ## Signaler un bug
 
-Ouvrez un ticket sur le suivi du jeu (pour le jeu d’exemple, [celui du projet](https://github.com/wanoo/quest-n-click/issues))
+Ouvrez un ticket sur le suivi du jeu (pour le jeu d’exemple, [celui du projet](https://github.com/Quest-n-Click/quest-n-click/issues))
 avec votre appareil, votre système et votre navigateur, ce que vous avez fait, ce que vous avez vu, la ligne
 **Version** du menu de pause, et si possible un fichier de session : menu de pause › Sauver › **Exporter la session**
 (il rejoue exactement ce que vous avez fait, sur la machine de l’auteur).

@@ -52,7 +52,7 @@ Sur votre machine, depuis le dossier qui contiendra le projet ; puis dans le pro
 
 <!-- step: check-owner -->
 1. Vérifiez que le paquet existe et qu'il est celui du projet. Son mainteneur doit être `wanoo` et son dépôt
-   `github.com/wanoo/quest-n-click` :
+   `github.com/Quest-n-Click/quest-n-click` :
 
    ```bash
    # n'importe où

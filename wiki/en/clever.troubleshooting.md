@@ -99,7 +99,7 @@ Each section below says which line or answer tells its case apart.
 > - version: 4.3.1
 > - volume: ten revisions per series (436 to 445, then 446 to 455)
 > - conditions: reference deployment, studio and worker XS, region par; engine at commits a3294282 then b9336a4d, the 4.4.0 work before its tag (package.json said 4.3.1); the 4.2.3 figures measured on 2026-10-19 on the same deployment, revisions 66 to 75
-> - source: [QUALIF-4.2.3-REFERENCE.md §6 and its 4.4.0 note](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §6 and its 4.4.0 note](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
    The worker's job itself stays the main part: it builds the engine cold at each revision.
 

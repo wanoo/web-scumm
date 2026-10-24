@@ -332,6 +332,10 @@
    "reason": "the site's archive: its files are judged one by one (site:…), the archive's own bytes carry its times"
   },
   {
+   "path": "site/web.tar.gz",
+   "reason": "the same game and the Studio's demo built for /demo/ (4.5.2), served by the project's website: its files are those of site: under another base path, not yet a pass surface of its own"
+  },
+  {
    "path": "site/site-files.json",
    "reason": "the list the site: entries are read from"
   },

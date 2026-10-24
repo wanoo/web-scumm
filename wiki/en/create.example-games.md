@@ -27,7 +27,7 @@ GAME=reference npm run game           # make it the current game for every later
 ```
 
 A created project holds one game, in `game/`, made from `_template`. The npm package ships `games/_template/` only:
-read the other four in the engine repository ([github.com/wanoo/quest-n-click](https://github.com/wanoo/quest-n-click),
+read the other four in the engine repository ([github.com/Quest-n-Click/quest-n-click](https://github.com/Quest-n-Click/quest-n-click),
 folder `games/`).
 
 <a name="template"></a>

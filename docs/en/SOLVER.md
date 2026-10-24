@@ -2,34 +2,34 @@
 
 # The solver
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md).
 
-Now in: [What the solver proves › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.solver-proofs.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#the-solver)
+Now in: [What the solver proves › overview](https://quest-n-click.cleverapps.io/docs/create.solver-proofs#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#the-solver)
 
 ## What it proves
 
-Now in: [What the solver proves › what-it-proves](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.solver-proofs.html#what-it-proves) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#what-it-proves)
+Now in: [What the solver proves › what-it-proves](https://quest-n-click.cleverapps.io/docs/create.solver-proofs#what-it-proves) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#what-it-proves)
 
 ## How a state is stored
 
-Now in: [What the solver proves › states](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.solver-proofs.html#states) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#how-a-state-is-stored)
+Now in: [What the solver proves › states](https://quest-n-click.cleverapps.io/docs/create.solver-proofs#states) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#how-a-state-is-stored)
 
 ## What folds states: the abstractions
 
-Now in: [What the solver proves › abstractions](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.solver-proofs.html#abstractions) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#what-folds-states-the-abstractions)
+Now in: [What the solver proves › abstractions](https://quest-n-click.cleverapps.io/docs/create.solver-proofs#abstractions) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#what-folds-states-the-abstractions)
 
 ## Reading the profile
 
-Now in: [Solver options › profile](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.solver-options.html#profile) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#reading-the-profile)
+Now in: [Solver options › profile](https://quest-n-click.cleverapps.io/docs/create.solver-options#profile) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#reading-the-profile)
 
 ## Long proofs: budgets, checkpoints, memory
 
-Now in: [Solver options › budgets](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.solver-options.html#budgets) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#long-proofs-budgets-checkpoints-memory)
+Now in: [Solver options › budgets](https://quest-n-click.cleverapps.io/docs/create.solver-options#budgets) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#long-proofs-budgets-checkpoints-memory)
 
 ## Workers
 
-Now in: [Solver options › workers](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.solver-options.html#workers) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#workers)
+Now in: [Solver options › workers](https://quest-n-click.cleverapps.io/docs/create.solver-options#workers) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#workers)
 
 ## The proof matrix
 
-Now in: [What the solver proves › proof-matrix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.solver-proofs.html#proof-matrix) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#the-proof-matrix)
+Now in: [What the solver proves › proof-matrix](https://quest-n-click.cleverapps.io/docs/create.solver-proofs#proof-matrix) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/SOLVER.md#the-proof-matrix)

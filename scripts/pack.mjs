@@ -115,7 +115,7 @@ writeFileSync(
       license: 'MIT',
       type: 'module',
       engines: root.engines,
-      repository: { type: 'git', url: 'git+https://github.com/wanoo/quest-n-click.git' },
+      repository: { type: 'git', url: 'git+https://github.com/Quest-n-Click/quest-n-click.git' },
       bin: { 'quest-n-click': 'cli/quest-n-click.mjs' },
       // The public API (4.0, wiki/en/engine.api.md): four entry modules, the command line. Anything else is internal.
       exports: {
@@ -138,7 +138,7 @@ writeFileSync(
 );
 writeFileSync(
   join(engine, 'README.md'),
-  `# quest'n'click\n\nAn engine for point-and-click adventure games in the browser (formerly web-scumm). Start a game:\n\n\`\`\`bash\nnpx create-quest-n-click my-game\ncd my-game && npm install\nnpm run assets && npm run dev\n\`\`\`\n\nThen \`npx quest-n-click help\`. Documentation: https://github.com/wanoo/quest-n-click/wiki, starting from https://github.com/wanoo/quest-n-click/wiki/EN-Install-Package.\n`,
+  `# quest'n'click\n\nAn engine for point-and-click adventure games in the browser (formerly web-scumm). Start a game:\n\n\`\`\`bash\nnpx create-quest-n-click my-game\ncd my-game && npm install\nnpm run assets && npm run dev\n\`\`\`\n\nThen \`npx quest-n-click help\`. Documentation: https://github.com/Quest-n-Click/quest-n-click/wiki, starting from https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Install-Package.\n`,
 );
 
 // npm is `npm.cmd` on Windows: run through the shell there (4.1.18), the arguments being this script's own.
@@ -234,13 +234,13 @@ for (const f of readdirSync(join(ROOT, 'bridge', 'migrations')).filter((f) => f.
 }
 writeFileSync(
   join(bridge, 'bin.mjs'),
-  `#!/usr/bin/env node\n// quest-n-click-bridge <init|serve|grant|rotate|revoke|doctor|compact|migrate|tenant|backup|restore>: the reference Reality Bridge on its own, for a\n// game that is already built: \`init --manifest=<game>/dist/reality-manifest.json\`, then \`serve\`. https://github.com/wanoo/quest-n-click/wiki/EN-Bridge-Install-And-Run.\nconst { main } = await import('./src/cli.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
+  `#!/usr/bin/env node\n// quest-n-click-bridge <init|serve|grant|rotate|revoke|doctor|compact|migrate|tenant|backup|restore>: the reference Reality Bridge on its own, for a\n// game that is already built: \`init --manifest=<game>/dist/reality-manifest.json\`, then \`serve\`. https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Bridge-Install-And-Run.\nconst { main } = await import('./src/cli.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
 );
 writeLocked(bridge, bridgeManifest(root), 'scripts/locks/quest-n-click-bridge.json');
 cpSync(join(ROOT, 'LICENSE'), join(bridge, 'LICENSE'));
 writeFileSync(
   join(bridge, 'README.md'),
-  `# quest-n-click-bridge\n\nThe reference Reality Bridge for a quest'n'click game (formerly web-scumm-bridge). \`npx quest-n-click-bridge init --manifest=dist/reality-manifest.json\`, then \`npx quest-n-click-bridge serve\`; \`doctor\` and \`compact\` for the journal. Documentation: https://github.com/wanoo/quest-n-click/wiki, starting from https://github.com/wanoo/quest-n-click/wiki/EN-Bridge-Install-And-Run.\n`,
+  `# quest-n-click-bridge\n\nThe reference Reality Bridge for a quest'n'click game (formerly web-scumm-bridge). \`npx quest-n-click-bridge init --manifest=dist/reality-manifest.json\`, then \`npx quest-n-click-bridge serve\`; \`doctor\` and \`compact\` for the journal. Documentation: https://github.com/Quest-n-Click/quest-n-click/wiki, starting from https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Bridge-Install-And-Run.\n`,
 );
 
 // The connectors (4.1.9, wiki/en/bridge.connectors.md): the SDK, `quest-n-click-connector` and the four connectors bundled into
@@ -255,13 +255,13 @@ for (const [entry, outfile] of [
   bundle(entry, join(connectors, 'src', outfile), ['ssh2']);
 writeFileSync(
   join(connectors, 'bin.mjs'),
-  `#!/usr/bin/env node\n// quest-n-click-connector <email|telnet|ssh|open-badge> --config <file.json>: one connector of the world outside, as its own\n// process, beside a quest-n-click-bridge. https://github.com/wanoo/quest-n-click/wiki/EN-Bridge-Connectors.\nconst { main } = await import('./src/run.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
+  `#!/usr/bin/env node\n// quest-n-click-connector <email|telnet|ssh|open-badge> --config <file.json>: one connector of the world outside, as its own\n// process, beside a quest-n-click-bridge. https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Bridge-Connectors.\nconst { main } = await import('./src/run.mjs');\nprocess.exitCode = await main(process.argv.slice(2));\n`,
 );
 writeLocked(connectors, connectorsManifest(root), 'scripts/locks/quest-n-click-connectors.json');
 cpSync(join(ROOT, 'LICENSE'), join(connectors, 'LICENSE'));
 writeFileSync(
   join(connectors, 'README.md'),
-  `# quest-n-click-connectors\n\nConnectors of the world outside for a quest'n'click game (formerly web-scumm-connectors): email, Telnet, SSH and Open Badges, each its own process, each proposing the signals its game declares to a \`quest-n-click-bridge\` under its own Biscuit. Experimental (4.1.9). Install without native code: \`npm install --omit=optional --ignore-scripts quest-n-click-connectors\`. Then \`npx quest-n-click-connector <email|telnet|ssh|open-badge> --config connector.json\`. Documentation: https://github.com/wanoo/quest-n-click/wiki, starting from https://github.com/wanoo/quest-n-click/wiki/EN-Bridge-Connectors.\n`,
+  `# quest-n-click-connectors\n\nConnectors of the world outside for a quest'n'click game (formerly web-scumm-connectors): email, Telnet, SSH and Open Badges, each its own process, each proposing the signals its game declares to a \`quest-n-click-bridge\` under its own Biscuit. Experimental (4.1.9). Install without native code: \`npm install --omit=optional --ignore-scripts quest-n-click-connectors\`. Then \`npx quest-n-click-connector <email|telnet|ssh|open-badge> --config connector.json\`. Documentation: https://github.com/Quest-n-Click/quest-n-click/wiki, starting from https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Bridge-Connectors.\n`,
 );
 
 // The Studio Server (4.2.1, wiki/en/team.what-runs-where.md): two commands that run the server and the processing worker of
@@ -348,7 +348,7 @@ export function resolve(specifier, context, next) {
 );
 writeFileSync(
   join(studio, 'bin', 'server.mjs'),
-  `#!/usr/bin/env node\n// quest-n-click-studio-server <serve|import|export|invite|worker-keys|login|token|backup|restore|replay|gc> …: the Studio Server (https://github.com/wanoo/quest-n-click/wiki/EN-Team-What-Runs-Where).\nimport { launch } from './launch.mjs';\nlaunch('studio-server/src/server/main.ts');\n`,
+  `#!/usr/bin/env node\n// quest-n-click-studio-server <serve|import|export|invite|worker-keys|login|token|backup|restore|replay|gc> …: the Studio Server (https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Team-What-Runs-Where).\nimport { launch } from './launch.mjs';\nlaunch('studio-server/src/server/main.ts');\n`,
 );
 writeFileSync(
   join(studio, 'bin', 'worker.mjs'),
@@ -358,7 +358,7 @@ writeLocked(studio, studioServerManifest(root), 'scripts/locks/quest-n-click-stu
 cpSync(join(ROOT, 'LICENSE'), join(studio, 'LICENSE'));
 writeFileSync(
   join(studio, 'README.md'),
-  `# quest-n-click-studio-server\n\nThe quest'n'click Studio Server (formerly web-scumm-studio-server): one game, several people, online, with OpenID Connect, PostgreSQL and S3; and its processing worker. Install it beside the engine of the same version: \`npm install quest-n-click-${root.version}.tgz quest-n-click-studio-server-${root.version}.tgz\`. Then \`npx quest-n-click-studio-server serve --config studio.config.json\` and \`npx quest-n-click-studio-worker\`. Documentation: https://github.com/wanoo/quest-n-click/wiki, starting from https://github.com/wanoo/quest-n-click/wiki/EN-Team-What-Runs-Where.\n`,
+  `# quest-n-click-studio-server\n\nThe quest'n'click Studio Server (formerly web-scumm-studio-server): one game, several people, online, with OpenID Connect, PostgreSQL and S3; and its processing worker. Install it beside the engine of the same version: \`npm install quest-n-click-${root.version}.tgz quest-n-click-studio-server-${root.version}.tgz\`. Then \`npx quest-n-click-studio-server serve --config studio.config.json\` and \`npx quest-n-click-studio-worker\`. Documentation: https://github.com/Quest-n-Click/quest-n-click/wiki, starting from https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Team-What-Runs-Where.\n`,
 );
 
 const ALL = [engine, create, bridge, connectors, studio];

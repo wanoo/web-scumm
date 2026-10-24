@@ -2,126 +2,126 @@
 
 # The classics: famous adventure mechanics, written with this engine
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md).
 
-Now in: [Classic mechanics › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-classics-famous-adventure-mechanics-written-with-this-engine)
+Now in: [Classic mechanics › overview](https://quest-n-click.cleverapps.io/docs/create.classics#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-classics-famous-adventure-mechanics-written-with-this-engine)
 
 ## Monkey Island
 
-Now in: [Classic mechanics › monkey-island](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#monkey-island) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#monkey-island)
+Now in: [Classic mechanics › monkey-island](https://quest-n-click.cleverapps.io/docs/create.classics#monkey-island) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#monkey-island)
 
 ### Insult sword fighting — native \(tested\)
 
-Now in: [Classic mechanics › insult-sword-fighting](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#insult-sword-fighting) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#insult-sword-fighting--native-tested)
+Now in: [Classic mechanics › insult-sword-fighting](https://quest-n-click.cleverapps.io/docs/create.classics#insult-sword-fighting) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#insult-sword-fighting--native-tested)
 
 ### The three trials, in any order — native
 
-Now in: [Classic mechanics › three-trials](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#three-trials) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-three-trials-in-any-order--native)
+Now in: [Classic mechanics › three-trials](https://quest-n-click.cleverapps.io/docs/create.classics#three-trials) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-three-trials-in-any-order--native)
 
 ### Haggling with the used-ship salesman — native \(tested\)
 
-Now in: [Classic mechanics › haggling](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#haggling) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#haggling-with-the-used-ship-salesman--native-tested)
+Now in: [Classic mechanics › haggling](https://quest-n-click.cleverapps.io/docs/create.classics#haggling) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#haggling-with-the-used-ship-salesman--native-tested)
 
 ### The mug of grog that melts — native \(tested\)
 
-Now in: [Classic mechanics › grog-mug](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#grog-mug) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-mug-of-grog-that-melts--native-tested)
+Now in: [Classic mechanics › grog-mug](https://quest-n-click.cleverapps.io/docs/create.classics#grog-mug) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-mug-of-grog-that-melts--native-tested)
 
 ### Following the storekeeper to the Sword Master — native
 
-Now in: [Classic mechanics › following-the-storekeeper](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#following-the-storekeeper) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#following-the-storekeeper-to-the-sword-master--native)
+Now in: [Classic mechanics › following-the-storekeeper](https://quest-n-click.cleverapps.io/docs/create.classics#following-the-storekeeper) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#following-the-storekeeper-to-the-sword-master--native)
 
 ### The rubber chicken with a pulley in the middle — native
 
-Now in: [Classic mechanics › rubber-chicken](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#rubber-chicken) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-rubber-chicken-with-a-pulley-in-the-middle--native)
+Now in: [Classic mechanics › rubber-chicken](https://quest-n-click.cleverapps.io/docs/create.classics#rubber-chicken) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-rubber-chicken-with-a-pulley-in-the-middle--native)
 
 ### The forest maze and the navigator's head — feasible
 
-Now in: [Classic mechanics › forest-maze](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#forest-maze) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-forest-maze-and-the-navigators-head--feasible)
+Now in: [Classic mechanics › forest-maze](https://quest-n-click.cleverapps.io/docs/create.classics#forest-maze) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-forest-maze-and-the-navigators-head--feasible)
 
 ### Ten minutes under water with the idol — feasible
 
-Now in: [Classic mechanics › under-water](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#under-water) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#ten-minutes-under-water-with-the-idol--feasible)
+Now in: [Classic mechanics › under-water](https://quest-n-click.cleverapps.io/docs/create.classics#under-water) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#ten-minutes-under-water-with-the-idol--feasible)
 
 ### The spitting contest and the wind — native
 
-Now in: [Classic mechanics › spitting-contest](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#spitting-contest) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-spitting-contest-and-the-wind--native)
+Now in: [Classic mechanics › spitting-contest](https://quest-n-click.cleverapps.io/docs/create.classics#spitting-contest) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-spitting-contest-and-the-wind--native)
 
 ### The four map pieces — native
 
-Now in: [Classic mechanics › map-pieces](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#map-pieces) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-four-map-pieces--native)
+Now in: [Classic mechanics › map-pieces](https://quest-n-click.cleverapps.io/docs/create.classics#map-pieces) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-four-map-pieces--native)
 
 ### The library catalogue — native
 
-Now in: [Classic mechanics › library-catalogue](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#library-catalogue) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-library-catalogue--native)
+Now in: [Classic mechanics › library-catalogue](https://quest-n-click.cleverapps.io/docs/create.classics#library-catalogue) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-library-catalogue--native)
 
 ### Largo's voodoo doll, four ingredients — native
 
-Now in: [Classic mechanics › voodoo-doll](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#voodoo-doll) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#largos-voodoo-doll-four-ingredients--native)
+Now in: [Classic mechanics › voodoo-doll](https://quest-n-click.cleverapps.io/docs/create.classics#voodoo-doll) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#largos-voodoo-doll-four-ingredients--native)
 
 ### Stan locked in the coffin — native
 
-Now in: [Classic mechanics › stan-in-the-coffin](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#stan-in-the-coffin) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#stan-locked-in-the-coffin--native)
+Now in: [Classic mechanics › stan-in-the-coffin](https://quest-n-click.cleverapps.io/docs/create.classics#stan-in-the-coffin) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#stan-locked-in-the-coffin--native)
 
 ## Day of the Tentacle
 
-Now in: [Classic mechanics › day-of-the-tentacle](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#day-of-the-tentacle) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#day-of-the-tentacle)
+Now in: [Classic mechanics › day-of-the-tentacle](https://quest-n-click.cleverapps.io/docs/create.classics#day-of-the-tentacle) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#day-of-the-tentacle)
 
 ### The tree planted in the past, seen in the future — native \(tested\)
 
-Now in: [Classic mechanics › tree-in-the-past](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#tree-in-the-past) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-tree-planted-in-the-past-seen-in-the-future--native-tested)
+Now in: [Classic mechanics › tree-in-the-past](https://quest-n-click.cleverapps.io/docs/create.classics#tree-in-the-past) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-tree-planted-in-the-past-seen-in-the-future--native-tested)
 
 ### The Chron-O-John: an item sent to another time — native \(tested\)
 
-Now in: [Classic mechanics › chron-o-john](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#chron-o-john) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-chron-o-john-an-item-sent-to-another-time--native-tested)
+Now in: [Classic mechanics › chron-o-john](https://quest-n-click.cleverapps.io/docs/create.classics#chron-o-john) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-chron-o-john-an-item-sent-to-another-time--native-tested)
 
 ### The frozen hamster — native
 
-Now in: [Classic mechanics › frozen-hamster](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#frozen-hamster) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-frozen-hamster--native)
+Now in: [Classic mechanics › frozen-hamster](https://quest-n-click.cleverapps.io/docs/create.classics#frozen-hamster) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-frozen-hamster--native)
 
 ### The storm, the lightning, the cutscene — native
 
-Now in: [Classic mechanics › storm-cutscene](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#storm-cutscene) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-storm-the-lightning-the-cutscene--native)
+Now in: [Classic mechanics › storm-cutscene](https://quest-n-click.cleverapps.io/docs/create.classics#storm-cutscene) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-storm-the-lightning-the-cutscene--native)
 
 ## Maniac Mansion
 
-Now in: [Classic mechanics › maniac-mansion](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#maniac-mansion) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#maniac-mansion)
+Now in: [Classic mechanics › maniac-mansion](https://quest-n-click.cleverapps.io/docs/create.classics#maniac-mansion) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#maniac-mansion)
 
 ### The nurse on patrol, and the dungeon — feasible, with a different clock \(tested\)
 
-Now in: [Classic mechanics › nurse-on-patrol](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#nurse-on-patrol) · [Moving characters: patrols and walks › patrols](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.moving-characters.html#patrols) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-nurse-on-patrol-and-the-dungeon--feasible-with-a-different-clock-tested)
+Now in: [Classic mechanics › nurse-on-patrol](https://quest-n-click.cleverapps.io/docs/create.classics#nurse-on-patrol) · [Moving characters: patrols and walks › patrols](https://quest-n-click.cleverapps.io/docs/create.moving-characters#patrols) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-nurse-on-patrol-and-the-dungeon--feasible-with-a-different-clock-tested)
 
 ### Choose your hero at the start — native \(4.3.0, tested\)
 
-Now in: [Classic mechanics › choose-your-hero](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#choose-your-hero) · [Heroes: several characters and hero choice › hero-choice](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.heroes.html#hero-choice) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#choose-your-hero-at-the-start--native-430-tested)
+Now in: [Classic mechanics › choose-your-hero](https://quest-n-click.cleverapps.io/docs/create.classics#choose-your-hero) · [Heroes: several characters and hero choice › hero-choice](https://quest-n-click.cleverapps.io/docs/create.heroes#hero-choice) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#choose-your-hero-at-the-start--native-430-tested)
 
 ### The doorbell — native
 
-Now in: [Classic mechanics › doorbell](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#doorbell) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-doorbell--native)
+Now in: [Classic mechanics › doorbell](https://quest-n-click.cleverapps.io/docs/create.classics#doorbell) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-doorbell--native)
 
 ## Sam \& Max
 
-Now in: [Classic mechanics › sam-and-max](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#sam-and-max) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#sam--max)
+Now in: [Classic mechanics › sam-and-max](https://quest-n-click.cleverapps.io/docs/create.classics#sam-and-max) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#sam--max)
 
 ### "Use Max on…" — feasible
 
-Now in: [Classic mechanics › use-max-on](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#use-max-on) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#use-max-on--feasible)
+Now in: [Classic mechanics › use-max-on](https://quest-n-click.cleverapps.io/docs/create.classics#use-max-on) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#use-max-on--feasible)
 
 ### The running gag when nothing works — native
 
-Now in: [Classic mechanics › running-gag](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#running-gag) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-running-gag-when-nothing-works--native)
+Now in: [Classic mechanics › running-gag](https://quest-n-click.cleverapps.io/docs/create.classics#running-gag) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-running-gag-when-nothing-works--native)
 
 ## Indiana Jones, Loom
 
-Now in: [Classic mechanics › indiana-jones-loom](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#indiana-jones-loom) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#indiana-jones-loom)
+Now in: [Classic mechanics › indiana-jones-loom](https://quest-n-click.cleverapps.io/docs/create.classics#indiana-jones-loom) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#indiana-jones-loom)
 
 ### The three paths \(team, wits, fists\) — native
 
-Now in: [Classic mechanics › three-paths](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#three-paths) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-three-paths-team-wits-fists--native)
+Now in: [Classic mechanics › three-paths](https://quest-n-click.cleverapps.io/docs/create.classics#three-paths) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#the-three-paths-team-wits-fists--native)
 
 ### Fist fights, the drafts of Loom — custom
 
-Now in: [Classic mechanics › fist-fights](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#fist-fights) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#fist-fights-the-drafts-of-loom--custom)
+Now in: [Classic mechanics › fist-fights](https://quest-n-click.cleverapps.io/docs/create.classics#fist-fights) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#fist-fights-the-drafts-of-loom--custom)
 
 ## What stays out of scope
 
-Now in: [Classic mechanics › out-of-scope](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.classics.html#out-of-scope) · [What quest'n'click does not do](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/index.not-supported.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#what-stays-out-of-scope)
+Now in: [Classic mechanics › out-of-scope](https://quest-n-click.cleverapps.io/docs/create.classics#out-of-scope) · [What quest'n'click does not do](https://quest-n-click.cleverapps.io/docs/index.not-supported) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CLASSICS.md#what-stays-out-of-scope)

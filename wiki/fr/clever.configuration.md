@@ -144,7 +144,7 @@ Sur votre machine, dans le dépôt du moteur où les deux applications sont lié
 > - version: 4.2.1
 > - volume: Pillow 12.3.0, NumPy 2.4.6, SciPy 1.18.1 (une exécution, cache de pip vide)
 > - conditions: application worker du spike S, organisation Clever Cloud de test, région par, taille XS ; installé dans un dossier tmpfs par SSH
-> - source: [QUALIF-4.2.2-ASSETS.md §2](https://github.com/wanoo/quest-n-click/blob/de8d5b897b1d32c6230c64ab8962d5698952c439/docs/dev/QUALIF-4.2.2-ASSETS.md)
+> - source: [QUALIF-4.2.2-ASSETS.md §2](https://github.com/Quest-n-Click/quest-n-click/blob/de8d5b897b1d32c6230c64ab8962d5698952c439/docs/dev/QUALIF-4.2.2-ASSETS.md)
 
 <a name="expected-result"></a>
 

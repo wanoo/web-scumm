@@ -66,9 +66,9 @@ checked". **It is not a WCAG conformance claim.**
 > ([`docs/dev/SCREEN-READER.md`](../../docs/dev/SCREEN-READER.md): VoiceOver on iOS or TalkBack on Android, the
 > title, a room, an action, an item, a conversation, the map, the pause menu, a minigame, the ending), and the support
 > matrix lists a VoiceOver or NVDA pass under "checked by people (not yet done)". As of 4.4.0, the people's passes
-> that read this surface, `phone-both-renderers` ([#83](https://github.com/wanoo/quest-n-click/issues/83)),
-> `code-wheel-human` ([#78](https://github.com/wanoo/quest-n-click/issues/78), the code wheel's text alternative by a
-> screen-reader user) and `blind-playtesters` ([#76](https://github.com/wanoo/quest-n-click/issues/76)), are not run.
+> that read this surface, `phone-both-renderers` ([#83](https://github.com/Quest-n-Click/quest-n-click/issues/83)),
+> `code-wheel-human` ([#78](https://github.com/Quest-n-Click/quest-n-click/issues/78), the code wheel's text alternative by a
+> screen-reader user) and `blind-playtesters` ([#76](https://github.com/Quest-n-Click/quest-n-click/issues/76)), are not run.
 
 <a name="fairness"></a>
 
@@ -85,7 +85,7 @@ authors, [Speedrun for authors](create.speedrun.md#fairness).
 
 ## Report a barrier
 
-A barrier is a bug. Open an issue on [the project's tracker](https://github.com/wanoo/quest-n-click/issues) with the
+A barrier is a bug. Open an issue on [the project's tracker](https://github.com/Quest-n-Click/quest-n-click/issues) with the
 screen, your device, browser and assistive technology, and what you heard or could not reach. A session file
 (pause menu › Save › Export session) helps the author replay what you did.
 

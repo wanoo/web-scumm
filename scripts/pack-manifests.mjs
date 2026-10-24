@@ -14,7 +14,7 @@ export const bridgeManifest = (root) => ({
   license: 'MIT',
   type: 'module',
   engines: root.engines,
-  repository: { type: 'git', url: 'git+https://github.com/wanoo/quest-n-click.git' },
+  repository: { type: 'git', url: 'git+https://github.com/Quest-n-Click/quest-n-click.git' },
   bin: { 'quest-n-click-bridge': 'bin.mjs' },
   exports: { './cli': './src/cli.mjs', './package.json': './package.json' },
   dependencies: {
@@ -36,7 +36,7 @@ export const connectorsManifest = (root) => ({
   license: 'MIT',
   type: 'module',
   engines: root.engines,
-  repository: { type: 'git', url: 'git+https://github.com/wanoo/quest-n-click.git' },
+  repository: { type: 'git', url: 'git+https://github.com/Quest-n-Click/quest-n-click.git' },
   bin: { 'quest-n-click-connector': 'bin.mjs' },
   exports: { './run': './src/run.mjs', './package.json': './package.json' },
   dependencies: { ssh2: root.devDependencies.ssh2 },
@@ -57,7 +57,7 @@ export const studioServerManifest = (root) => ({
   license: 'MIT',
   type: 'module',
   engines: root.engines,
-  repository: { type: 'git', url: 'git+https://github.com/wanoo/quest-n-click.git' },
+  repository: { type: 'git', url: 'git+https://github.com/Quest-n-Click/quest-n-click.git' },
   bin: {
     'quest-n-click-studio-server': 'bin/server.mjs',
     'quest-n-click-studio-worker': 'bin/worker.mjs',

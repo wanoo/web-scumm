@@ -371,9 +371,11 @@ describe('wiki -- build --target wiki', () => {
     const { read, files } = build(false);
     const en = read('en/EN-Create-Rooms.md');
     expect(en).toContain('[a door](EN-Create-Exits#doors)');
-    expect(en).toContain('[save.ts](https://github.com/wanoo/quest-n-click/blob/c0ffee/src/engine/core/save.ts#L1)');
     expect(en).toContain(
-      '[the code](https://github.com/wanoo/quest-n-click/blob/c0ffee/src/engine/core/save.ts "save")',
+      '[save.ts](https://github.com/Quest-n-Click/quest-n-click/blob/c0ffee/src/engine/core/save.ts#L1)',
+    );
+    expect(en).toContain(
+      '[the code](https://github.com/Quest-n-Click/quest-n-click/blob/c0ffee/src/engine/core/save.ts "save")',
     );
     expect(en).toContain('[the exits](EN-Create-Exits)');
     expect(en).toContain('every command is in the DSL (coming)');
@@ -397,7 +399,7 @@ describe('wiki -- build --target wiki', () => {
     const out = tmp('wiki-build-');
     buildWiki(options(out, false, dir));
     expect(readFileSync(join(out, 'fr', 'FR-Creer-Sorties.md'), 'utf8')).toContain(
-      '![le logo](https://raw.githubusercontent.com/wanoo/quest-n-click/c0ffee/public/og.png)',
+      '![le logo](https://raw.githubusercontent.com/Quest-n-Click/quest-n-click/c0ffee/public/og.png)',
     );
   });
 
@@ -413,7 +415,7 @@ describe('wiki -- build --target wiki', () => {
     expect(fr).toContain(
       "> [English](EN-Create-Rooms) · Procédure · Publiée, aucune relecture enregistrée · S'applique depuis : 4.5.0",
     );
-    expect(fr).toContain('(https://github.com/wanoo/quest-n-click/edit/main/wiki/fr/create.rooms.md)');
+    expect(fr).toContain('(https://github.com/Quest-n-Click/quest-n-click/edit/main/wiki/fr/create.rooms.md)');
   });
 
   it('folds the audience, the context and the statuses after the lead, before the first section', () => {
@@ -506,7 +508,7 @@ describe('wiki -- build --target wiki', () => {
     const { read } = build(false);
     const footer = read('_Footer.md');
     expect(footer).toContain("current documentation · documentation courante: quest'n'click 4.5.0 r1");
-    expect(footer).toContain('https://wanoo.github.io/quest-n-click/docs/');
+    expect(footer).toContain('https://quest-n-click.cleverapps.io/docs');
     expect(footer).toContain('`d0c`');
     expect(footer).toContain('overwritten at the next publication');
     expect(read('Home.md')).toMatch(/## Français[\s\S]*## English/);
@@ -522,7 +524,9 @@ describe('wiki -- build --target wiki', () => {
     expect(home).not.toMatch(/dans la recherche du wiki|in the wiki search/);
     expect(home).toContain('filters page and section titles only, not their text');
     expect(home).toContain('ne filtre que les titres des pages et des sections, pas leur texte');
-    expect(home).toContain('https://github.com/search?q=repo%3Awanoo%2Fquest-n-click%20path%3Awiki%2Fen%2F&type=code');
+    expect(home).toContain(
+      'https://github.com/search?q=repo%3AQuest-n-Click%2Fquest-n-click%20path%3Awiki%2Fen%2F&type=code',
+    );
   });
 
   it('empties its own previous build on a rebuild, keeping .git and removing a withdrawn page', () => {

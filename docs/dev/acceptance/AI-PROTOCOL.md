@@ -37,7 +37,7 @@ says the feature does not exist, and does not describe a neighbouring feature in
 
    ```sh
    npm run wiki -- acceptance --export-prompts .cache/acceptance-prompts --channel mcp
-   # or: --channel web --url https://wanoo.github.io/quest-n-click/docs/preview/
+   # or: --channel web --url https://quest-n-click.cleverapps.io/docs
    # --lang en or --lang fr limits the run to one language
    ```
 

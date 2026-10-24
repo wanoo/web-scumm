@@ -2,34 +2,34 @@
 
 # Données personnelles : ce qui est gardé, où, combien de temps
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md).
 
-Désormais dans : [Confidentialité › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/play.privacy.html#overview) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#données-personnelles--ce-qui-est-gardé-où-combien-de-temps)
+Désormais dans : [Confidentialité › overview](https://quest-n-click.cleverapps.io/fr/docs/play.privacy#overview) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#données-personnelles--ce-qui-est-gardé-où-combien-de-temps)
 
 ## Sur l'appareil du joueur
 
-Désormais dans : [Confidentialité › device](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/play.privacy.html#device) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#sur-lappareil-du-joueur)
+Désormais dans : [Confidentialité › device](https://quest-n-click.cleverapps.io/fr/docs/play.privacy#device) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#sur-lappareil-du-joueur)
 
 ## Sur le Bridge
 
-Désormais dans : [Confidentialité › bridge](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/play.privacy.html#bridge) · [Garanties](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.guarantees.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#sur-le-bridge)
+Désormais dans : [Confidentialité › bridge](https://quest-n-click.cleverapps.io/fr/docs/play.privacy#bridge) · [Garanties](https://quest-n-click.cleverapps.io/fr/docs/bridge.guarantees) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#sur-le-bridge)
 
 ## Connecteur email
 
-Désormais dans : [Confidentialité › connectors](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/play.privacy.html#connectors) · [Connecteur email](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.connector-email.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#connecteur-email)
+Désormais dans : [Confidentialité › connectors](https://quest-n-click.cleverapps.io/fr/docs/play.privacy#connectors) · [Connecteur email](https://quest-n-click.cleverapps.io/fr/docs/bridge.connector-email) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#connecteur-email)
 
 ## Connecteurs Telnet et SSH
 
-Désormais dans : [Confidentialité › connectors](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/play.privacy.html#connectors) · [Connecteur Telnet](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.connector-telnet.html) · [Connecteur SSH](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.connector-ssh.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#connecteurs-telnet-et-ssh)
+Désormais dans : [Confidentialité › connectors](https://quest-n-click.cleverapps.io/fr/docs/play.privacy#connectors) · [Connecteur Telnet](https://quest-n-click.cleverapps.io/fr/docs/bridge.connector-telnet) · [Connecteur SSH](https://quest-n-click.cleverapps.io/fr/docs/bridge.connector-ssh) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#connecteurs-telnet-et-ssh)
 
 ## Connecteur Open Badges
 
-Désormais dans : [Confidentialité › connectors](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/play.privacy.html#connectors) · [Connecteur Open Badges](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.connector-open-badges.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#connecteur-open-badges)
+Désormais dans : [Confidentialité › connectors](https://quest-n-click.cleverapps.io/fr/docs/play.privacy#connectors) · [Connecteur Open Badges](https://quest-n-click.cleverapps.io/fr/docs/bridge.connector-open-badges) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#connecteur-open-badges)
 
 ## Journaux et métriques
 
-Désormais dans : [Confidentialité › logs](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/play.privacy.html#logs) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#journaux-et-métriques)
+Désormais dans : [Confidentialité › logs](https://quest-n-click.cleverapps.io/fr/docs/play.privacy#logs) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#journaux-et-métriques)
 
 ## Supprimer les données d'un joueur, partout
 
-Désormais dans : [Confidentialité › deleting](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/play.privacy.html#deleting) · [La ligne de commande du Bridge](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.cli.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#supprimer-les-données-dun-joueur-partout)
+Désormais dans : [Confidentialité › deleting](https://quest-n-click.cleverapps.io/fr/docs/play.privacy#deleting) · [La ligne de commande du Bridge](https://quest-n-click.cleverapps.io/fr/docs/bridge.cli) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PRIVACY.md#supprimer-les-données-dun-joueur-partout)

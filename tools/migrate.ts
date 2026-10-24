@@ -69,7 +69,7 @@ if (process.argv.includes('--check')) {
   process.exit(1);
 }
 console.log(
-  `[${GAME}] authoring schema ${at} → ${CURRENT_SCHEMA}: writing stable ids (https://github.com/wanoo/quest-n-click/wiki/EN-Install-Upgrade)`,
+  `[${GAME}] authoring schema ${at} → ${CURRENT_SCHEMA}: writing stable ids (https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Install-Upgrade)`,
 );
 const r = spawnSync(
   process.execPath,

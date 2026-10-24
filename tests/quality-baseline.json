@@ -440,8 +440,8 @@
   "api": "166ef6f6dfabb00c"
  },
  "tests": {
-  "files": 371,
-  "declarations": 3350
+  "files": 372,
+  "declarations": 3360
  },
  "bundle": {
   "initialJsKB": 136

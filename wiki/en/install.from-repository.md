@@ -7,7 +7,7 @@ the engine repository. To make a game of your own, you do not need it: [Install 
 
 ## What you get
 
-A clone of `wanoo/quest-n-click` with its development dependencies, the Python modules and Chromium installed,
+A clone of `Quest-n-Click/quest-n-click` with its development dependencies, the Python modules and Chromium installed,
 checked by `npm run doctor`, and the sample game running with `npm run dev`.
 
 <a name="context-and-versions"></a>
@@ -16,8 +16,8 @@ checked by `npm run doctor`, and the sample game running with `npm run dev`.
 
 - The **engine repository**, on your machine. Every command runs at the root of the clone.
 - `main` holds work not released yet. To work on a released version, check out its tag (`git checkout v4.4.0`).
-- The repository is `github.com/wanoo/quest-n-click` since 4.2.5; the old `github.com/wanoo/web-scumm` address
-  redirects to it.
+- The repository is `github.com/Quest-n-Click/quest-n-click` since 4.5.2; the older addresses,
+  `github.com/wanoo/quest-n-click` (4.2.5 to 4.5.1) and `github.com/wanoo/web-scumm`, redirect to it.
 - The whole contributor setup, with the conventions and the checks before a pull request, is
   [Developer setup](contribute.setup.md); this page is the installation only.
 
@@ -45,7 +45,7 @@ On your machine, in the folder that will hold the clone, then at the clone's roo
 
    ```bash
    # in the folder that will hold the clone
-   git clone https://github.com/wanoo/quest-n-click.git
+   git clone https://github.com/Quest-n-Click/quest-n-click.git
    cd quest-n-click
    ```
 

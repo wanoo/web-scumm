@@ -254,7 +254,7 @@ Blockquotes with an id, paired by id between the languages, and rendered by the 
 > - version: 4.2.3
 > - volume: 508 journal lines
 > - conditions: the smallest plans
-> - source: https://github.com/wanoo/quest-n-click/blob/<40-hex sha>/docs/dev/QUALIF-4.2.3-REFERENCE.md
+> - source: https://github.com/Quest-n-Click/quest-n-click/blob/<40-hex sha>/docs/dev/QUALIF-4.2.3-REFERENCE.md
 ```
 
 - **`[!LIMIT]`**: what the page does not cover, or where a feature stops, said plainly.

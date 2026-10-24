@@ -99,7 +99,7 @@ habituel. Le plan DEV permet 5 connexions et le serveur garde un pool de 4 : un 
 > - version: 4.2.2
 > - volume: trois redéploiements de l’application studio, une sonde qui écrit une note toutes les 3 s
 > - conditions: organisation Clever Cloud de test, région par ; application studio XS, une instance ; PostgreSQL plan DEV (5 connexions) ; moteur aux commits c66fbf56 puis dd66b38d sur main avant le tag 4.2.3 (package.json disait 4.2.2)
-> - source: [QUALIF-4.2.3-REFERENCE.md §5 et §5 bis](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §5 et §5 bis](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 Pour un déploiement dont on se sert, prenez un plan PostgreSQL avec plus de connexions que DEV. Ce projet n’a pas
 mesuré quel plan suffit : comptez environ 4 connexions par instance, deux instances pendant un redéploiement, plus

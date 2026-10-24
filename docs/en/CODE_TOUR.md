@@ -2,38 +2,38 @@
 
 # Code tour
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md).
 
-Now in: [Code tour › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.code-tour.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#code-tour)
+Now in: [Code tour › overview](https://quest-n-click.cleverapps.io/docs/contribute.code-tour#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#code-tour)
 
 ## 1. Declare a small game
 
-Now in: [Code tour › declare](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.code-tour.html#declare) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#1-declare-a-small-game)
+Now in: [Code tour › declare](https://quest-n-click.cleverapps.io/docs/contribute.code-tour#declare) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#1-declare-a-small-game)
 
 ## 2. Compile and freeze it
 
-Now in: [Code tour › compile](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.code-tour.html#compile) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#2-compile-and-freeze-it)
+Now in: [Code tour › compile](https://quest-n-click.cleverapps.io/docs/contribute.code-tour#compile) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#2-compile-and-freeze-it)
 
 ## 3. Start a game
 
-Now in: [Code tour › start](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.code-tour.html#start) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#3-start-a-game)
+Now in: [Code tour › start](https://quest-n-click.cleverapps.io/docs/contribute.code-tour#start) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#3-start-a-game)
 
 ## 4. Run an action
 
-Now in: [Code tour › run-an-action](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.code-tour.html#run-an-action) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#4-run-an-action)
+Now in: [Code tour › run-an-action](https://quest-n-click.cleverapps.io/docs/contribute.code-tour#run-an-action) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#4-run-an-action)
 
 ## 5. Save, load and replay
 
-Now in: [Code tour › save-load-replay](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.code-tour.html#save-load-replay) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#5-save-load-and-replay)
+Now in: [Code tour › save-load-replay](https://quest-n-click.cleverapps.io/docs/contribute.code-tour#save-load-replay) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#5-save-load-and-replay)
 
 ## 6. The same action in the solver
 
-Now in: [Code tour › solver](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.code-tour.html#solver) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#6-the-same-action-in-the-solver)
+Now in: [Code tour › solver](https://quest-n-click.cleverapps.io/docs/contribute.code-tour#solver) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#6-the-same-action-in-the-solver)
 
 ## 8. A signal from the world outside \(4.1.1\)
 
-Now in: [Code tour › signal](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.code-tour.html#signal) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#8-a-signal-from-the-world-outside-411)
+Now in: [Code tour › signal](https://quest-n-click.cleverapps.io/docs/contribute.code-tour#signal) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#8-a-signal-from-the-world-outside-411)
 
 ## 7. Find the test of a thing
 
-Now in: [Code tour › find-the-test](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.code-tour.html#find-the-test) · [Which tests run when](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.which-tests.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#7-find-the-test-of-a-thing)
+Now in: [Code tour › find-the-test](https://quest-n-click.cleverapps.io/docs/contribute.code-tour#find-the-test) · [Which tests run when](https://quest-n-click.cleverapps.io/docs/contribute.which-tests) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CODE_TOUR.md#7-find-the-test-of-a-thing)

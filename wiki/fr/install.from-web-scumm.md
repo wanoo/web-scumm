@@ -21,9 +21,10 @@ se construit et se joue comme avant, les sauvegardes de ses joueurs retrouvées 
   4.2.x livrait aussi les archives sous les anciens noms, dont les commandes tournaient après une ligne d'avertissement
   (« web-scumm is now quest-n-click; the old name works until 4.3 »). Depuis la 4.3.0, il n'y a plus d'archive, de
   commande ni d'import `web-scumm`.
-- Le dépôt est `github.com/wanoo/quest-n-click` ; les anciens liens `github.com/wanoo/web-scumm` redirigent, y compris
-  les téléchargements de release. Le jeu d'exemple et la démo du Studio sont passés à
-  `https://wanoo.github.io/quest-n-click/` ; l'ancienne adresse y redirige, mais mettez à jour vos favoris et vos liens.
+- Le dépôt est `github.com/Quest-n-Click/quest-n-click` ; les anciens liens `github.com/wanoo/web-scumm` redirigent, y compris
+  les téléchargements de release. Le jeu d'exemple et la démo du Studio sont maintenant sur
+  `https://quest-n-click.cleverapps.io/demo/` (depuis la 4.5.2 ; les adresses GitHub Pages d'avant sont abandonnées) :
+  mettez à jour vos favoris et vos liens.
 
 <a name="names"></a>
 
@@ -53,8 +54,9 @@ de stockage `web-scumm.…` : les sauvegardes et les runs d'un joueur sont retro
 Studio Server ne changent pas.
 
 Les releases jusqu'à la v4.2.4 gardent les noms de leurs fichiers et leurs attestations, qui nomment le dépôt
-`wanoo/web-scumm` ; depuis la v4.2.5, les attestations nomment `wanoo/quest-n-click` (`ship verify` demande celui sous
-lequel chaque release a été signée). Les crédits du jeu d'exemple et du chapitre de référence disent quest'n'click :
+`wanoo/web-scumm` ; de la v4.2.5 à la v4.5.1, elles nomment `wanoo/quest-n-click`, et depuis la v4.5.2, après le passage
+dans l'organisation Quest-n-Click, `Quest-n-Click/quest-n-click` (`ship verify` demande celui sous lequel chaque release
+a été signée ; les attestations d'avant le passage sont cherchées sous l'utilisateur `wanoo`). Les crédits du jeu d'exemple et du chapitre de référence disent quest'n'click :
 leur empreinte de présentation a bougé et leur run de référence a été réenregistré. L'empreinte d'un jeu ne bouge que
 si son propre texte change.
 
@@ -88,7 +90,7 @@ Dans le dossier du projet créé, sur votre machine.
 
    ```bash
    # dans le projet créé
-   npm install https://github.com/wanoo/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
+   npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
    ```
 
 <!-- step: migrate -->

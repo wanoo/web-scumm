@@ -2,7 +2,7 @@
 
 Ce qu'il faut sur une machine pour faire un jeu avec quest'n'click, ou pour travailler sur le moteur. Deux contextes
 reviennent sur cette page : un **projet créé** (un jeu fait avec `quest-n-click create`, le moteur installé sous
-`node_modules/quest-n-click`) et le **dépôt du moteur** (un clone de `wanoo/quest-n-click`). Seul Node.js sert à tout ;
+`node_modules/quest-n-click`) et le **dépôt du moteur** (un clone de `Quest-n-Click/quest-n-click`). Seul Node.js sert à tout ;
 le reste dépend de ce que vous faites.
 
 | Outil | Sert à | Projet créé | Dépôt du moteur |

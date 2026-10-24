@@ -9,7 +9,7 @@ Ce qui a changé dans chaque version de quest-n-click tient dans un seul fichier
 
 - Dans le dépôt : [`CHANGELOG.md`](../../CHANGELOG.md), la version la plus récente en premier, une section
   `## <version> — <date>` par version.
-- Sur GitHub : les notes de chaque version, sur <https://github.com/wanoo/quest-n-click/releases>.
+- Sur GitHub : les notes de chaque version, sur <https://github.com/Quest-n-Click/quest-n-click/releases>.
 - Pas dans le paquet npm : un moteur installé (`node_modules/quest-n-click/`) ne contient pas `CHANGELOG.md`.
 
 <a name="how-to-read"></a>

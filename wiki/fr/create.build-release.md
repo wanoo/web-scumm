@@ -49,7 +49,7 @@ ses commandes `build` et `release` existent depuis la 3.9.0 ; `npm start` est un
 ## Où lancer les commandes
 
 - « Dans le projet créé » : le dossier fait par `quest-n-click create`, celui qui contient `game/` et `package.json`.
-- « Dans le dépôt du moteur » : le clone de `wanoo/quest-n-click`. Le jeu construit est celui que nomme `GAME`, sinon
+- « Dans le dépôt du moteur » : le clone de `Quest-n-Click/quest-n-click`. Le jeu construit est celui que nomme `GAME`, sinon
   celui choisi par `npm run game`, sinon `package.json` → `config.game`, sinon `demo`.
 
 <a name="steps"></a>

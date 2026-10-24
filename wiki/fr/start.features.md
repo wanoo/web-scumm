@@ -92,7 +92,7 @@ README) :
 > - version: 4.4.0
 > - volume: la suite unitaire du dépôt du moteur ; le jeu de référence (`games/reference`) ; la première visite construite du jeu d’exemple
 > - conditions: `npm run quality:baseline` sur le commit de la release, chiffres écrits dans le README
-> - source: [README.md, « In numbers »](https://github.com/wanoo/quest-n-click/blob/c00b44fcffe56ffa99f9d2228297414ebe3145ac/README.md)
+> - source: [README.md, « In numbers »](https://github.com/Quest-n-Click/quest-n-click/blob/c00b44fcffe56ffa99f9d2228297414ebe3145ac/README.md)
 
 > [!MEASURE id=hosted-preview-time]
 > Sur le Studio hébergé, de l’écriture à la prévisualisation prête : médiane 17,8 s avant les changements de la 4.4.0,
@@ -101,7 +101,7 @@ README) :
 > - version: 4.4.0
 > - volume: dix révisions par série (révisions 436 à 445, puis 446 à 455), une note toutes les 40 s
 > - conditions: le déploiement de référence sur l’organisation de test de Clever Cloud, les plus petits plans
-> - source: [QUALIF-4.2.3-REFERENCE.md §6](https://github.com/wanoo/quest-n-click/blob/c00b44fcffe56ffa99f9d2228297414ebe3145ac/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §6](https://github.com/Quest-n-Click/quest-n-click/blob/c00b44fcffe56ffa99f9d2228297414ebe3145ac/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 Chaque release est construite depuis le commit que son candidat a testé. Le candidat produit les quatre archives de
 packages, l’image du Bridge, les SBOM, les parties enregistrées et la baseline, et la release publie ces fichiers

@@ -9,7 +9,7 @@ name: release
 # (dist, its licences inside), its assets manifest, the engine's npm packages (quest-n-click, create-quest-n-click, 3.9;
 # quest-n-click-bridge, 4.1.1; from 4.2.5 to 4.2.x their web-scumm names too, D47), a complete speedrun of the reference chapter verified by `speedrun:verify` (4.1.14),
 # SHA-256 sums, an SBOM of the shipped dependencies (CycloneDX) and
-# a build provenance attestation (`gh attestation verify <file> -R wanoo/quest-n-click`), and reads it all back once published
+# a build provenance attestation (`gh attestation verify <file> -R Quest-n-Click/quest-n-click`), and reads it all back once published
 # (`ship verify`, 4.1.8). A release that already has
 # files is never overwritten (3.7.1): a new version is a new tag.
 on:
@@ -312,10 +312,13 @@ jobs:
           cp .candidate/site/dist.tar.gz "$P-$TAG-dist.tar.gz"
           cp .candidate/site/assets-manifest.json "$P-$TAG-assets-manifest.json"
           cp .candidate/site/site-files.json "$P-$TAG-site-files.json"
+          # The website's demo (4.5.2, D52), from the candidates that made it; check-release below says whether the tag
+          # must have it (tools/release/artifacts.mjs `game:web`, since 4.5.2).
+          if [ -f .candidate/site/web.tar.gz ]; then cp .candidate/site/web.tar.gz "$P-$TAG-web.tar.gz"; WEB="$P-$TAG-web.tar.gz"; else WEB=""; fi
           cp .candidate/surfaces/qualification-surfaces.json "$P-$TAG-surfaces.json"
           # The signing rehearsal's report (4.1.20 PR 3b), as the candidate's manifest lists it.
           cp .candidate/signing/signing-rehearsal.json "$P-$TAG-signing-rehearsal.json"
-          extra="$P-$TAG-site-files.json $P-$TAG-surfaces.json $P-$TAG-signing-rehearsal.json"
+          extra="$P-$TAG-site-files.json $P-$TAG-surfaces.json $P-$TAG-signing-rehearsal.json${WEB:+ $WEB}"
           # Since 4.1.20 (plan §8.4) this job makes nothing the candidate made: the archives (packed once, installed
           # outside the repository on three systems), their SBOMs, the Bridge's image (its archive, identities and SBOM)
           # are the candidate's, checked against its manifest above, copied under the names tools/release/artifacts.mjs
@@ -411,7 +414,7 @@ jobs:
     uses: ./.github/workflows/docs-publish.yml
     permissions:
       contents: write
-      actions: write
+      actions: read
       id-token: write
       attestations: write
     # Only the wiki's deploy key, never every secret of the repository; it may also live in the `docs-publish`
@@ -425,3 +428,58 @@ jobs:
       candidate: ${{ needs.release.outputs.candidate }}
       archive-sha256: ${{ needs.release.outputs.docs-sha256 }}
       revision: r1
+  # The project's website takes the release (4.5.2, D52): its `POST /api/revalidate` (Bearer SITE_REVALIDATE_SECRET)
+  # reloads the latest release's docs archive and demo (web.tar.gz) and answers `{ok, changed, source, demo}`. After
+  # `ship verify` (the release job) and after docs-publish, whatever docs-publish did (a release without an archive
+  # skips it). Never a failure of the release: the website revalidates by itself hourly otherwise. SITE_URL (a
+  # repository variable) points a fork elsewhere.
+  site-revalidate:
+    needs: [release, docs-publish]
+    if: always() && needs.release.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    continue-on-error: true
+    permissions: {}
+    env:
+      SITE_URL: ${{ vars.SITE_URL || 'https://quest-n-click.cleverapps.io' }}
+      SITE_REVALIDATE_SECRET: ${{ secrets.SITE_REVALIDATE_SECRET }}
+    steps:
+      - name: The website, revalidated
+        # The website's answer is not trusted as runner output: it is printed between a fresh ::stop-commands:: token
+        # and its end (a body holding `::add-mask::` or `::error::` is shown, never acted on), and the warning carries
+        # only `.ok` and `.changed`, stripped of newlines and `::`. The token is sent to an https:// address only.
+        # Only a network failure or a 5xx is tried again; a 401, 403 or 404 will not change by retrying.
+        run: |
+          if [ -z "$SITE_REVALIDATE_SECRET" ]; then
+            echo "::notice::no SITE_REVALIDATE_SECRET: the website takes the release at its next hourly revalidation"
+            exit 0
+          fi
+          case "$SITE_URL" in
+            https://*) ;;
+            *) echo "::warning::SITE_URL is not an https:// address: the revalidation token is not sent"; exit 0 ;;
+          esac
+          url="${SITE_URL%/}/api/revalidate"
+          out="$RUNNER_TEMP/revalidate.json"
+          field() { { jq -r ".$1" "$out" 2>/dev/null || true; } | tr -d '\r\n:' | head -c 40 || true; }
+          for i in 1 2 3; do
+            code=$(curl -sS -o "$out" -w '%{http_code}' --max-time 60 -X POST -H "Authorization: Bearer $SITE_REVALIDATE_SECRET" "$url") || code=000
+            if [ "$code" = 000 ] || [ "$code" -ge 500 ]; then
+              echo "try $i: HTTP $code"
+              if [ "$i" = 3 ]; then
+                echo "::warning::the website's revalidation failed after 3 tries (HTTP $code): it takes the release at its next hourly revalidation"
+                exit 0
+              fi
+              sleep 20
+              continue
+            fi
+            token=$(openssl rand -hex 16)
+            echo "::stop-commands::$token"
+            jq -c . "$out" 2>/dev/null || cat "$out"
+            echo
+            echo "::$token::"
+            ok=$(field ok)
+            if [ "$code" = 200 ] && [ "$ok" = true ]; then exit 0; fi
+            changed=$(field changed)
+            echo "::warning::the website's revalidation answered HTTP $code, ok=${ok:-none}, changed=${changed:-none}"
+            exit 0
+          done

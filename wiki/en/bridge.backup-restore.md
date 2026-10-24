@@ -203,7 +203,7 @@ completeness), written in one transaction, read back and compared before the com
 > - version: 4.1.20
 > - volume: backups of 64, 128 and 256 MiB, on SQLite and on Postgres
 > - conditions: the candidate's `backup-memory` job (`tools/backup-memory.ts`), a GitHub Linux runner, the Bridge from the candidate's archive; one measure per size and store
-> - source: [REALITY-OPS.md, "Health, measures, backups"](https://github.com/wanoo/quest-n-click/blob/b55bd9bbf42145d44e1eaa5c1041fff74a2e905e/docs/en/REALITY-OPS.md)
+> - source: [REALITY-OPS.md, "Health, measures, backups"](https://github.com/Quest-n-Click/quest-n-click/blob/b55bd9bbf42145d44e1eaa5c1041fff74a2e905e/docs/en/REALITY-OPS.md)
 
 In a 512 MiB container, a restore holds up to about 20 MiB of backup. Run a larger one from a machine that has the
 memory, or lower `--max-bytes` and `--max-rows` to what the machine holds, so that a file too large is refused before

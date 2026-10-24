@@ -15,7 +15,7 @@ action pins).
 
 ## Context and versions
 
-The engine repository on GitHub, `wanoo/quest-n-click`. `.github/dependabot.yml` as of 4.4.0: npm every week (minor
+The engine repository on GitHub, `Quest-n-Click/quest-n-click`. `.github/dependabot.yml` as of 4.4.0: npm every week (minor
 and patch updates grouped as `minor-and-patch`), GitHub Actions every week, pip (`requirements.txt`) every month.
 `@types/node` majors are ignored: the types follow the oldest Node the project supports (22.12, `engines`), and Node
 26's types reject code that is right on 22 (#101, 4.1.19); they are raised by hand when `engines` moves.
@@ -48,8 +48,8 @@ and patch updates grouped as `minor-and-patch`), GitHub Actions every week, pip 
 
    ```sh
    # anywhere, with gh logged in
-   gh pr list -R wanoo/quest-n-click --author app/dependabot
-   gh pr checks <number> -R wanoo/quest-n-click
+   gh pr list -R Quest-n-Click/quest-n-click --author app/dependabot
+   gh pr checks <number> -R Quest-n-Click/quest-n-click
    ```
 
 <!-- step: merge-green -->
@@ -87,7 +87,7 @@ and patch updates grouped as `minor-and-patch`), GitHub Actions every week, pip 
 
 ## Expected result, and how to check it
 
-`gh pr list -R wanoo/quest-n-click --author app/dependabot` lists nothing, or only pull requests opened since the last
+`gh pr list -R Quest-n-Click/quest-n-click --author app/dependabot` lists nothing, or only pull requests opened since the last
 release. `main` is green after the merges.
 
 <a name="common-errors"></a>

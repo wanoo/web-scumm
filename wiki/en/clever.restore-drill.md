@@ -134,7 +134,7 @@ is refused, and leaves it as it was. Still, never put production's URI in that s
 > - version: 4.2.2
 > - volume: 508 rows (backup at revision 1); then 593 rows and 2 operations replayed (backup at revision 63, head 65)
 > - conditions: Clever Cloud test organisation, region par; PostgreSQL add-on plan DEV, Cellar plan S; restore run from a machine in Paris, `tsx` start-up included; engine at commit 52e68932, then c66fbf56 on main before the 4.2.3 tag (package.json said 4.2.2); one sample each
-> - source: [QUALIF-4.2.3-REFERENCE.md §4](https://github.com/wanoo/quest-n-click/blob/edb8d39a03a3ad6ba9aa8f33e1ab5473d3d7a34e/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §4](https://github.com/Quest-n-Click/quest-n-click/blob/edb8d39a03a3ad6ba9aa8f33e1ab5473d3d7a34e/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 > [!LIMIT id=rpo]
 > What a restore can lose is the operations confirmed but not yet shipped to the bucket when the database was lost:

@@ -54,7 +54,7 @@ surface shows the same five statuses in its header.
 - Environments CI verifies (support matrix of 4.4.0, 2026-10-23): Node 22 and 24 on Ubuntu; Windows (windows-latest): the unit suite but six POSIX files.
 - Automated checks: ci:plan gates `node24`, `windows`, `secondGame`, `freshInstall`, `upgrade`, `reference`; CI and candidate jobs `check`, `coverage`, `second-game`, `upgrade`; test files [`tests/validate-stage.test.ts`](../../tests/validate-stage.test.ts), [`tests/solver-contract.test.ts`](../../tests/solver-contract.test.ts), [`tests/save-v3.test.ts`](../../tests/save-v3.test.ts), [`tests/hero-choice.test.ts`](../../tests/hero-choice.test.ts).
 - Checks by people (states from [`docs/dev/passes/4.4.0.md`](../../docs/dev/passes/4.4.0.md)):
-  - `heroes-two-languages`: not run yet, [#237](https://github.com/wanoo/quest-n-click/issues/237).
+  - `heroes-two-languages`: not run yet, [#237](https://github.com/Quest-n-Click/quest-n-click/issues/237).
 - Known limits: the `[!LIMIT]` blocks of the pages that name this surface in the manifest (`surfaces`).
 
 <a name="public-api"></a>
@@ -75,9 +75,9 @@ surface shows the same five statuses in its header.
 - Environments CI verifies (support matrix of 4.4.0, 2026-10-23): Chromium on the desktop, mouse and keyboard; Chromium and WebKit at a phone's size, touch and keyboard (emulated); axe-core on every screen (not a WCAG claim).
 - Automated checks: ci:plan gates `e2e`; CI and candidate jobs `e2e`; test files [`tests/dom/a11y.test.ts`](../../tests/dom/a11y.test.ts), [`tests/dom/presenter.test.ts`](../../tests/dom/presenter.test.ts).
 - Checks by people (states from [`docs/dev/passes/4.4.0.md`](../../docs/dev/passes/4.4.0.md)):
-  - `phone-both-renderers`: not run yet, [#83](https://github.com/wanoo/quest-n-click/issues/83).
-  - `code-wheel-human`: not run yet, [#78](https://github.com/wanoo/quest-n-click/issues/78).
-  - `blind-playtesters`: not run yet, [#76](https://github.com/wanoo/quest-n-click/issues/76).
+  - `phone-both-renderers`: not run yet, [#83](https://github.com/Quest-n-Click/quest-n-click/issues/83).
+  - `code-wheel-human`: not run yet, [#78](https://github.com/Quest-n-Click/quest-n-click/issues/78).
+  - `blind-playtesters`: not run yet, [#76](https://github.com/Quest-n-Click/quest-n-click/issues/76).
 - Known limits: the `[!LIMIT]` blocks of the pages that name this surface in the manifest (`surfaces`).
 
 <a name="player-canvas"></a>
@@ -88,7 +88,7 @@ surface shows the same five statuses in its header.
 - Environments CI verifies (support matrix of 4.4.0, 2026-10-23): Chromium in CI, the same game drawn and played.
 - Automated checks: ci:plan gates `e2e`; CI and candidate jobs `e2e`; test files [`tests/dom/render-canvas.test.ts`](../../tests/dom/render-canvas.test.ts), [`tests/dom/renderer-contract.test.ts`](../../tests/dom/renderer-contract.test.ts).
 - Checks by people (states from [`docs/dev/passes/4.4.0.md`](../../docs/dev/passes/4.4.0.md)):
-  - `phone-both-renderers`: not run yet, [#83](https://github.com/wanoo/quest-n-click/issues/83).
+  - `phone-both-renderers`: not run yet, [#83](https://github.com/Quest-n-Click/quest-n-click/issues/83).
 - Known limits: the `[!LIMIT]` blocks of the pages that name this surface in the manifest (`surfaces`).
 
 <a name="pwa"></a>
@@ -99,8 +99,8 @@ surface shows the same five statuses in its header.
 - Environments CI verifies (support matrix of 4.4.0, 2026-10-23): Chromium, WebKit and Firefox: installed, updated after a durable save, reinstalled; Offline in Chromium and Firefox.
 - Automated checks: ci:plan gates `e2e`, `pwaFirefox`; CI and candidate jobs `e2e`, `pwa-firefox`; test files [`tests/offline.test.ts`](../../tests/offline.test.ts).
 - Checks by people (states from [`docs/dev/passes/4.4.0.md`](../../docs/dev/passes/4.4.0.md)):
-  - `safari-ios-offline-update`: not run yet, [#86](https://github.com/wanoo/quest-n-click/issues/86).
-  - `firefox-real-offline`: not run yet, [#80](https://github.com/wanoo/quest-n-click/issues/80).
+  - `safari-ios-offline-update`: not run yet, [#86](https://github.com/Quest-n-Click/quest-n-click/issues/86).
+  - `firefox-real-offline`: not run yet, [#80](https://github.com/Quest-n-Click/quest-n-click/issues/80).
 - Known limits: the `[!LIMIT]` blocks of the pages that name this surface in the manifest (`surfaces`).
 
 <a name="bridge-local"></a>
@@ -121,7 +121,7 @@ surface shows the same five statuses in its header.
 - Environments CI verifies (support matrix of 4.4.0, 2026-10-23): Postgres 16 in CI; The qualification profile: HTTPS, three instances (ops/qualify/).
 - Automated checks: ci:plan gates `reality`; CI and candidate jobs `bridge-postgres`, `deployment-smoke`; test files [`tests/bridge-postgres-isolation.test.ts`](../../tests/bridge-postgres-isolation.test.ts).
 - Checks by people (states from [`docs/dev/passes/4.4.0.md`](../../docs/dev/passes/4.4.0.md)):
-  - `bridge-postgres-https`: not run yet, [#77](https://github.com/wanoo/quest-n-click/issues/77).
+  - `bridge-postgres-https`: not run yet, [#77](https://github.com/Quest-n-Click/quest-n-click/issues/77).
 - Known limits: the `[!LIMIT]` blocks of the pages that name this surface in the manifest (`surfaces`).
 
 <a name="connectors"></a>
@@ -132,7 +132,7 @@ surface shows the same five statuses in its header.
 - Environments CI verifies (support matrix of 4.4.0, 2026-10-23): Node 22 on Ubuntu (Telnet and SSH not on Windows).
 - Automated checks: ci:plan gates `reality`; CI and candidate jobs `connectors`, `connector-archive-e2e`; test files [`tests/connectors-sdk.test.ts`](../../tests/connectors-sdk.test.ts), [`tests/connectors-email.test.ts`](../../tests/connectors-email.test.ts), [`tests/connectors-ssh.test.ts`](../../tests/connectors-ssh.test.ts).
 - Checks by people (states from [`docs/dev/passes/4.4.0.md`](../../docs/dev/passes/4.4.0.md)):
-  - `connectors-real-security`: not run yet, [#79](https://github.com/wanoo/quest-n-click/issues/79).
+  - `connectors-real-security`: not run yet, [#79](https://github.com/Quest-n-Click/quest-n-click/issues/79).
 - Known limits: the `[!LIMIT]` blocks of the pages that name this surface in the manifest (`surfaces`).
 
 <a name="speedrun-remix"></a>
@@ -143,11 +143,11 @@ surface shows the same five statuses in its header.
 - Environments CI verifies (support matrix of 4.4.0, 2026-10-23): Replays in four runtimes (cross-runtime).
 - Automated checks: ci:plan gates `e2e`; CI and candidate jobs `cross-runtime`, `e2e`; test files [`tests/speedrun-verify.test.ts`](../../tests/speedrun-verify.test.ts), [`tests/remix-worlds.test.ts`](../../tests/remix-worlds.test.ts).
 - Checks by people (states from [`docs/dev/passes/4.4.0.md`](../../docs/dev/passes/4.4.0.md)):
-  - `runs-real-players`: not run yet, [#85](https://github.com/wanoo/quest-n-click/issues/85).
-  - `run-resume-power-cycle`: not run yet, [#84](https://github.com/wanoo/quest-n-click/issues/84).
-  - `mystery-deployed`: not run yet, [#82](https://github.com/wanoo/quest-n-click/issues/82).
-  - `livesplit-obs`: not run yet, [#81](https://github.com/wanoo/quest-n-click/issues/81).
-  - `code-wheel-human`: not run yet, [#78](https://github.com/wanoo/quest-n-click/issues/78).
+  - `runs-real-players`: not run yet, [#85](https://github.com/Quest-n-Click/quest-n-click/issues/85).
+  - `run-resume-power-cycle`: not run yet, [#84](https://github.com/Quest-n-Click/quest-n-click/issues/84).
+  - `mystery-deployed`: not run yet, [#82](https://github.com/Quest-n-Click/quest-n-click/issues/82).
+  - `livesplit-obs`: not run yet, [#81](https://github.com/Quest-n-Click/quest-n-click/issues/81).
+  - `code-wheel-human`: not run yet, [#78](https://github.com/Quest-n-Click/quest-n-click/issues/78).
 - Known limits: the `[!LIMIT]` blocks of the pages that name this surface in the manifest (`surfaces`).
 
 <a name="voices-music"></a>
@@ -158,7 +158,7 @@ surface shows the same five statuses in its header.
 - Environments CI verifies (support matrix of 4.4.0, 2026-10-23): The music director in Chromium and WebKit.
 - Automated checks: ci:plan gates `e2e`; CI and candidate jobs `e2e`; test files [`tests/voices.test.ts`](../../tests/voices.test.ts), [`tests/voice-locale.test.ts`](../../tests/voice-locale.test.ts).
 - Checks by people (states from [`docs/dev/passes/4.4.0.md`](../../docs/dev/passes/4.4.0.md)):
-  - `voices-listening`: not run yet, [#87](https://github.com/wanoo/quest-n-click/issues/87).
+  - `voices-listening`: not run yet, [#87](https://github.com/Quest-n-Click/quest-n-click/issues/87).
 - Known limits: the `[!LIMIT]` blocks of the pages that name this surface in the manifest (`surfaces`).
 
 <a name="archives-install"></a>
@@ -169,7 +169,7 @@ surface shows the same five statuses in its header.
 - Environments CI verifies (support matrix of 4.4.0, 2026-10-23): Installed outside the repository on Ubuntu (Node 22 and 24), macOS and Windows.
 - Automated checks: ci:plan gates `freshInstall`; CI and candidate jobs `external-consumer`, `fresh-install`; test files [`tests/pack-locks.test.ts`](../../tests/pack-locks.test.ts).
 - Checks by people (states from [`docs/dev/passes/4.4.0.md`](../../docs/dev/passes/4.4.0.md)):
-  - `archive-human-install`: not run yet, [#75](https://github.com/wanoo/quest-n-click/issues/75).
+  - `archive-human-install`: not run yet, [#75](https://github.com/Quest-n-Click/quest-n-click/issues/75).
 - Known limits: the `[!LIMIT]` blocks of the pages that name this surface in the manifest (`surfaces`).
 
 <a name="studio-local"></a>
@@ -180,7 +180,7 @@ surface shows the same five statuses in its header.
 - Environments CI verifies (support matrix of 4.4.0, 2026-10-23): Chromium end to end (the Studio's checks); Windows: the unit suite only.
 - Automated checks: ci:plan gates `e2e`, `windows`; CI and candidate jobs `e2e`, `windows`; test files [`tests/hero-matrix.test.ts`](../../tests/hero-matrix.test.ts), [`tests/studio-assistant.test.ts`](../../tests/studio-assistant.test.ts).
 - Checks by people (states from [`docs/dev/passes/4.4.0.md`](../../docs/dev/passes/4.4.0.md)):
-  - `studio-hero-matrix`: not run yet, [#238](https://github.com/wanoo/quest-n-click/issues/238).
+  - `studio-hero-matrix`: not run yet, [#238](https://github.com/Quest-n-Click/quest-n-click/issues/238).
 - Known limits: the `[!LIMIT]` blocks of the pages that name this surface in the manifest (`surfaces`).
 
 <a name="studio-server"></a>
@@ -191,12 +191,12 @@ surface shows the same five statuses in its header.
 - Environments CI verifies (support matrix of 4.4.0, 2026-10-23): Postgres, S3 and Keycloak in CI; Chromium and Firefox (job studio-hosted); WebKit on macOS, by hand only.
 - Automated checks: ci:plan gates `studioHosted`; CI and candidate jobs `studio-hosted`, `studio-install-smoke`; test files [`tests/studio-server.test.ts`](../../tests/studio-server.test.ts), [`tests/studio-backup.test.ts`](../../tests/studio-backup.test.ts), [`tests/studio-collab.test.ts`](../../tests/studio-collab.test.ts).
 - Checks by people (states from [`docs/dev/passes/4.4.0.md`](../../docs/dev/passes/4.4.0.md)):
-  - `studio-hosted`: not run yet, [#149](https://github.com/wanoo/quest-n-click/issues/149).
-  - `studio-collab`: not run yet, [#150](https://github.com/wanoo/quest-n-click/issues/150).
-  - `studio-preview`: not run yet, [#166](https://github.com/wanoo/quest-n-click/issues/166).
-  - `studio-assets-hosted`: not run yet, [#167](https://github.com/wanoo/quest-n-click/issues/167).
-  - `studio-mcp-remote`: not run yet, [#196](https://github.com/wanoo/quest-n-click/issues/196).
-  - `studio-oidc-generic`: not run yet, [#197](https://github.com/wanoo/quest-n-click/issues/197).
+  - `studio-hosted`: not run yet, [#149](https://github.com/Quest-n-Click/quest-n-click/issues/149).
+  - `studio-collab`: not run yet, [#150](https://github.com/Quest-n-Click/quest-n-click/issues/150).
+  - `studio-preview`: not run yet, [#166](https://github.com/Quest-n-Click/quest-n-click/issues/166).
+  - `studio-assets-hosted`: not run yet, [#167](https://github.com/Quest-n-Click/quest-n-click/issues/167).
+  - `studio-mcp-remote`: not run yet, [#196](https://github.com/Quest-n-Click/quest-n-click/issues/196).
+  - `studio-oidc-generic`: not run yet, [#197](https://github.com/Quest-n-Click/quest-n-click/issues/197).
 - Known limits: the `[!LIMIT]` blocks of the pages that name this surface in the manifest (`surfaces`).
 
 <a name="documentation"></a>

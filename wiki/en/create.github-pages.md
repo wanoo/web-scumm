@@ -14,13 +14,15 @@ and build, and deploys the result to Pages only when they pass.
 
 ## Context and versions
 
-- A created project (`quest-n-click create`), pushed to a GitHub repository. The engine repository has its own Pages
-  job in `.github/workflows/ci.yml`; this workflow is its game part, without what the engine adds there (the Studio
-  demo and the documentation under `/docs/`).
+- A created project (`quest-n-click create`), pushed to a GitHub repository. The engine repository had its own Pages
+  job in `.github/workflows/ci.yml` up to 4.5.1; this workflow is its game part, without what the engine added there
+  (the Studio demo and the documentation under `/docs/`). Since 4.5.2 the engine deploys no Pages: its demo is on the
+  project's website, `https://quest-n-click.cleverapps.io/demo/`, served from each release's `quest-n-click-v<version>-web.tar.gz` (the same build
+  under `BASE_PATH=/demo/`).
 - From 4.2.5 (the `quest-n-click` command). `BASE_PATH` is read by the engine's Vite configuration
   ([`tools/vite/plugins.ts`](../../tools/vite/plugins.ts)).
-- **Verified on: not run as written on a created project.** The steps are the engine repository's Pages job (run on
-  every push to `main`) with the created project's commands in place of the repository's. Check the first run's log.
+- **Verified on: not run as written on a created project.** The steps are the engine repository's Pages job of 4.5.1
+  (run on every push to `main`) with the created project's commands in place of the repository's. Check the first run's log.
 
 <a name="prerequisites"></a>
 
@@ -131,7 +133,7 @@ runs in the created project, on your machine.
 5. Commit and push to `main`. The run appears under **Actions**; the deploy job's summary gives the site's address.
 
 > [!LIMIT id=no-studio-no-docs]
-> This workflow publishes the game only. The engine repository's Pages also builds the Studio demo (`STUDIO=1`,
+> This workflow publishes the game only. The project's own site also builds the Studio demo (`STUDIO=1`,
 > `VITE_STUDIO_DEMO=1`) and assembles `/docs/`; neither is part of a created project's site.
 
 <a name="expected-result"></a>
@@ -177,8 +179,8 @@ get the older one through the update banner, and saves follow the rules in
 
 ## References
 
-- The engine repository's Pages job: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) (`check`, the build
-  with `BASE_PATH`, and `pages`).
+- The engine repository's Pages job, up to 4.5.1: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), which has
+  none since 4.5.2; [its version of 4.5.1](https://github.com/Quest-n-Click/quest-n-click/blob/v4.5.1/.github/workflows/ci.yml) (`check`, the build with `BASE_PATH`, and `pages`).
 - `BASE_PATH` and the manifest: [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts);
   [`BASE_PATH`](reference.environment-variables.md#base-path).
 - What `npm run build` and `release` run in a created project: [`cli/quest-n-click.mjs`](../../cli/quest-n-click.mjs);

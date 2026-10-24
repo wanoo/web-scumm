@@ -275,7 +275,7 @@ Les jeux livrés n'utilisent que des catalogues.
 > - version: 4.1.15
 > - volume: 1 + 3 mondes (`demo`), 1 + 3 × 24 mondes (`reference`)
 > - conditions: `npm run verify:variants -- --prove --max=200000`, preuve exhaustive par monde logique
-> - source: [docs/en/REMIX.md, « Strategies per mode »](https://github.com/wanoo/quest-n-click/blob/d7ed9c01022306fe34b2da5af666eaff4bd056a5/docs/en/REMIX.md)
+> - source: [docs/en/REMIX.md, « Strategies per mode »](https://github.com/Quest-n-Click/quest-n-click/blob/d7ed9c01022306fe34b2da5af666eaff4bd056a5/docs/en/REMIX.md)
 
 Le chemin générateur est exercé par une fixture de test
 ([`tests/fixtures/remix-extension.ts`](../../tests/fixtures/remix-extension.ts), 527 280 mondes logiques) : 10 000

@@ -78,7 +78,7 @@ before an upgrade. With the journal shipped since, a backup restores the game to
 > - version: 4.2.2
 > - volume: the demo game at revision 63 (500 files); backups of 170,746 bytes (r1) to 253,958 bytes (r63)
 > - conditions: reference deployment phase B, engine at commit c66fbf56 before the 4.2.3 tag (package.json said 4.2.2); studio app XS, PostgreSQL DEV, Cellar S, region par; one sample each
-> - source: [QUALIF-4.2.3-REFERENCE.md §3](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §3](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 <!-- step: by-hand -->
 3. Before an upgrade, or any risky operation, take one by hand and note its revision. Without `--keep`, nothing is

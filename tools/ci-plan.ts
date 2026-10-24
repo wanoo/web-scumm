@@ -1,4 +1,4 @@
-// node --experimental-strip-types tools/ci-plan.ts [--base=<ref>] [--all] [--pages-only] [--files=a,b,…] (4.1.9, lot 0 "CI in three
+// node --experimental-strip-types tools/ci-plan.ts [--base=<ref>] [--all] [--files=a,b,…] (4.1.9, lot 0 "CI in three
 // tiers"; `npx tsx tools/ci-plan.ts` works the same): which of CI's heavier jobs a change needs. It reads the files the
 // branch changes (`git diff --name-only <base>...HEAD`), classifies each by the first rule of RULES that matches, and
 // prints one line of JSON: a boolean per gate, the union of what every file asks. The `plan` job of ci.yml writes it to
@@ -31,11 +31,9 @@ export type Gate = (typeof GATES)[number];
  * something to read (4.5.0, docs/dev/PLAN-4.5-WIKI.md §5): the docs, `wiki/`, its generators, or a file a wiki page
  * rests on (a `sources` glob of `wiki/manifest.json`), whose pages `docsPages` names for review. `docs` is not a gate:
  * the fast tier runs the doc tests on every change; it tells the job and the reader what a change asks to reread.
- * `pagesOnly` (4.5.0, A5b): a run docs-publish dispatches on main after a publication (`--pages-only`) rebuilds and
- * deploys Pages and nothing else: no gate, and `check` and `coverage` skip what the Pages artifact does not need. The
- * commit was gated by its own run on main; this run only assembles `/docs/` again from the releases.
+ * (4.5.0's `pagesOnly`, a run that only deployed Pages again, went with the engine's Pages in 4.5.2, D51.)
  */
-export type CiPlan = Record<Gate, boolean> & { all: boolean; docs: boolean; docsPages: string[]; pagesOnly: boolean };
+export type CiPlan = Record<Gate, boolean> & { all: boolean; docs: boolean; docsPages: string[] };
 
 /** The job (or matrix) each gate opens, as ci.yml names it. */
 export const JOB_OF: Record<Gate, string> = {
@@ -272,7 +270,6 @@ const none = (): CiPlan => ({
   all: false,
   docs: false,
   docsPages: [],
-  pagesOnly: false,
   ...(Object.fromEntries(GATES.map((g) => [g, false])) as Record<Gate, boolean>),
 });
 
@@ -281,12 +278,8 @@ export const fullPlan = (): CiPlan => ({
   all: true,
   docs: true,
   docsPages: [],
-  pagesOnly: false,
   ...(Object.fromEntries(GATES.map((g) => [g, true])) as Record<Gate, boolean>),
 });
-
-/** A dispatched run that only deploys Pages again (docs-publish): no gate, not even the dependency audit. */
-export const pagesOnlyPlan = (): CiPlan => ({ ...none(), pagesOnly: true });
 
 /** The union of what each changed file asks. `audit:deps` follows the lockfile (and package.json) only. */
 export function planFor(changed: readonly string[], pages?: readonly WikiPage[]): CiPlan {
@@ -318,10 +311,7 @@ if (process.argv[1]?.endsWith('ci-plan.ts')) {
   const opt = (k: string) => args.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
   let plan: CiPlan;
   let lines: string[];
-  if (args.includes('--pages-only')) {
-    plan = pagesOnlyPlan();
-    lines = ['--pages-only: a run docs-publish started, Pages assembled and deployed again'];
-  } else if (args.includes('--all')) {
+  if (args.includes('--all')) {
     plan = fullPlan();
     lines = ['--all: main, a tag or a pull request labelled full-ci'];
   } else {

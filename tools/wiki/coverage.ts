@@ -374,7 +374,7 @@ export interface IncomingLink {
 const ANCHORED_PATH = /(?<![\w./-])((?:\.{1,2}\/)*(?:[\w.-]+\/)*[\w.-]+\.md)#([^\s)"'`<>\]|,;*]*[^\s)"'`<>\]|,;*.:])/g;
 /** The same on GitHub, on the branch: what a reader of `main` lands on. */
 const BLOB_MAIN =
-  /github\.com\/wanoo\/(?:quest-n-click|web-scumm)\/blob\/main\/([\w./-]+\.md)#([^\s)"'`<>\]|,;*]*[^\s)"'`<>\]|,;*.:])/g;
+  /github\.com\/(?:Quest-n-Click\/quest-n-click|wanoo\/(?:quest-n-click|web-scumm))\/blob\/main\/([\w./-]+\.md)#([^\s)"'`<>\]|,;*]*[^\s)"'`<>\]|,;*.:])/g;
 const SCANNED = /\.(md|ts|mjs|json|ya?ml)$/;
 /**
  * Never scanned: the matrix and what it generates (the legacy order, the manifest's `replaces`), which hold every

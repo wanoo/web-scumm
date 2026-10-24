@@ -8,7 +8,7 @@ travaille dans un clone du dépôt du moteur. Pour faire votre propre jeu, vous 
 
 ## Ce que vous obtenez
 
-Un clone de `wanoo/quest-n-click` avec ses dépendances de développement, les modules Python et Chromium installés,
+Un clone de `Quest-n-Click/quest-n-click` avec ses dépendances de développement, les modules Python et Chromium installés,
 vérifié par `npm run doctor`, et le jeu d'exemple qui tourne avec `npm run dev`.
 
 <a name="context-and-versions"></a>
@@ -18,8 +18,8 @@ vérifié par `npm run doctor`, et le jeu d'exemple qui tourne avec `npm run dev
 - Le **dépôt du moteur**, sur votre machine. Chaque commande se lance à la racine du clone.
 - `main` contient du travail pas encore publié. Pour travailler sur une version publiée, prenez son tag
   (`git checkout v4.4.0`).
-- Le dépôt est `github.com/wanoo/quest-n-click` depuis la 4.2.5 ; l'ancienne adresse `github.com/wanoo/web-scumm`
-  redirige vers lui.
+- Le dépôt est `github.com/Quest-n-Click/quest-n-click` depuis la 4.5.2 ; les adresses précédentes,
+  `github.com/wanoo/quest-n-click` (de la 4.2.5 à la 4.5.1) et `github.com/wanoo/web-scumm`, redirigent vers lui.
 - L'installation complète d'un contributeur, avec les conventions et les vérifications avant une pull request, est
   [Préparer sa machine de développement](contribute.setup.md) ; cette page ne couvre que l'installation.
 
@@ -47,7 +47,7 @@ Sur votre machine, dans le dossier qui accueillera le clone, puis à la racine d
 
    ```bash
    # dans le dossier qui accueillera le clone
-   git clone https://github.com/wanoo/quest-n-click.git
+   git clone https://github.com/Quest-n-Click/quest-n-click.git
    cd quest-n-click
    ```
 

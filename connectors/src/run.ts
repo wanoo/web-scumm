@@ -11,7 +11,7 @@ import { createContext, type ConnectorLimits, DRAIN_MS, within } from './sdk';
 
 export const USAGE = `usage: quest-n-click-connector <${CONNECTOR_IDS.join('|')}> --config <file.json>
 
-  One connector of the world outside, as its own process (https://github.com/wanoo/quest-n-click/wiki/EN-Bridge-Connectors). The configuration names the Bridge
+  One connector of the world outside, as its own process (https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Bridge-Connectors). The configuration names the Bridge
   ({ "bridge": { "url", "tokenFile" } }), the game ("gameId"), optionally "manifestFile" (else the Bridge's manifest),
   "limits" ({ maxBytes, maxPerMinute, timeoutMs }), "health" ({ "port" }, on 127.0.0.1: /health and /metrics), and a
   section named after the connector. Secrets are read from files, never from the command line.

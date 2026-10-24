@@ -111,7 +111,7 @@ if (existsSync(provFile) && assets) {
   if (commercial) errors.push(...commercialVerdict(keys, prov, (p) => existsSync(resolve(WORK, p))));
 } else if (release)
   errors.push(
-    'provenance.json › missing: a release says where every asset comes from (https://github.com/wanoo/quest-n-click/wiki/EN-Create-Asset-Provenance#provenance)',
+    'provenance.json › missing: a release says where every asset comes from (https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-Asset-Provenance#provenance)',
   );
 // The scores' stem files (3.6): the same rate, channels and samples, the loop inside them, pcmBytes as decoded. The
 // built files (npm run assets), measured with ffprobe.

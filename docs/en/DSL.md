@@ -2,38 +2,38 @@
 
 # The DSL, generated from its schemas
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DSL.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DSL.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DSL.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DSL.md).
 
-Now in: [DSL reference › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.dsl.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DSL.md#the-dsl-generated-from-its-schemas)
+Now in: [DSL reference › overview](https://quest-n-click.cleverapps.io/docs/create.dsl#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DSL.md#the-dsl-generated-from-its-schemas)
 
 ## Stability
 
-Now in: [DSL reference › stability](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.dsl.html#stability) · [Stability and support](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/start.stability.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DSL.md#stability)
+Now in: [DSL reference › stability](https://quest-n-click.cleverapps.io/docs/create.dsl#stability) · [Stability and support](https://quest-n-click.cleverapps.io/docs/start.stability) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DSL.md#stability)
 
 ## The game as the tools see it
 
-Now in: [DSL reference › game-as-data](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.dsl.html#game-as-data) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DSL.md#the-game-as-the-tools-see-it)
+Now in: [DSL reference › game-as-data](https://quest-n-click.cleverapps.io/docs/create.dsl#game-as-data) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DSL.md#the-game-as-the-tools-see-it)
 
 ## Reference
 
-Now in: [DSL reference › reference](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.dsl.html#reference) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DSL.md#reference)
+Now in: [DSL reference › reference](https://quest-n-click.cleverapps.io/docs/create.dsl#reference) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DSL.md#reference)
 
 ### Conditions
 
-Now in: [DSL reference › conditions](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.dsl.html#conditions) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DSL.md#conditions)
+Now in: [DSL reference › conditions](https://quest-n-click.cleverapps.io/docs/create.dsl#conditions) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DSL.md#conditions)
 
 ### Commands
 
-Now in: [DSL reference › commands](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.dsl.html#commands) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DSL.md#commands)
+Now in: [DSL reference › commands](https://quest-n-click.cleverapps.io/docs/create.dsl#commands) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DSL.md#commands)
 
 ### Objectives \(GameDef.objectives\[id\]\)
 
-Now in: [DSL reference › objectives](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.dsl.html#objectives) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DSL.md#objectives-gamedefobjectivesid)
+Now in: [DSL reference › objectives](https://quest-n-click.cleverapps.io/docs/create.dsl#objectives) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DSL.md#objectives-gamedefobjectivesid)
 
 ### Placeholders in texts
 
-Now in: [DSL reference › placeholders](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.dsl.html#placeholders) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DSL.md#placeholders-in-texts)
+Now in: [DSL reference › placeholders](https://quest-n-click.cleverapps.io/docs/create.dsl#placeholders) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DSL.md#placeholders-in-texts)
 
 ### How each field counts \(IR and fingerprint\)
 
-Now in: [DSL reference › field-counts](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.dsl.html#field-counts) · [File formats](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/engine.file-formats.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DSL.md#how-each-field-counts-ir-and-fingerprint)
+Now in: [DSL reference › field-counts](https://quest-n-click.cleverapps.io/docs/create.dsl#field-counts) · [File formats](https://quest-n-click.cleverapps.io/docs/engine.file-formats) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DSL.md#how-each-field-counts-ir-and-fingerprint)

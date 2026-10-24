@@ -13,7 +13,14 @@ import { afterAll, describe, expect, it, vi } from 'vitest';
 import { main } from '../tools/wiki';
 import { type ArchiveOptions, buildArchive, readArchive } from '../tools/wiki/archive';
 import { readManifest } from '../tools/wiki/manifest';
-import { type AssembleOptions, assemblePages, attestationArgs, docsTag } from '../tools/wiki/pages';
+import {
+  type AssembleOptions,
+  assemblePages,
+  attestationTries,
+  docsTag,
+  ghAttestation,
+  identitiesOf,
+} from '../tools/wiki/pages';
 import { decide, emptyPublication, type Promotion, type Publication } from '../tools/wiki/publication';
 
 const BASE = resolve('tests/fixtures/wiki/base');
@@ -212,26 +219,123 @@ describe('what /docs/ refuses', () => {
 
 describe('what /docs/ serves is authenticated', () => {
   it('binds each archive to the workflow and ref that must have signed it', () => {
-    const repo = 'wanoo/quest-n-click';
-    expect(attestationArgs(repo, 'v4.5.0', 'a.tgz')).toEqual([
-      'attestation',
-      'verify',
-      'a.tgz',
-      '--repo',
-      repo,
-      '--signer-workflow',
-      `${repo}/.github/workflows/release.yml`,
+    const repo = 'Quest-n-Click/quest-n-click';
+    expect(attestationTries(repo, 'v4.6.0', 'a.tgz')).toEqual([
+      [
+        'attestation',
+        'verify',
+        'a.tgz',
+        '--repo',
+        repo,
+        '--signer-workflow',
+        `${repo}/.github/workflows/release.yml`,
+        '--format',
+        'json',
+      ],
     ]);
-    expect(attestationArgs(repo, 'docs-v4.5.0-r2', 'a.tgz').slice(-4)).toEqual([
+    const [revision] = attestationTries(repo, 'docs-v4.6.0-r2', 'a.tgz');
+    expect(revision!.slice(-6, -2)).toEqual([
       '--signer-workflow',
       `${repo}/.github/workflows/docs-publish.yml`,
       '--source-ref',
-      'refs/heads/docs/4.5.0',
+      'refs/heads/docs/4.6.0',
     ]);
-    expect(attestationArgs(repo, 'docs-v4.5.0-preview-0123456789ab', 'a.tgz').slice(-2)).toEqual([
+    expect(attestationTries(repo, 'docs-v4.6.0-preview-0123456789ab', 'a.tgz')[0]!.slice(-4, -2)).toEqual([
       '--source-ref',
       'refs/heads/main',
     ]);
+    // A fork names its own repository, and only it.
+    expect(attestationTries('someone/quest-n-click', 'v4.5.0', 'a.tgz')).toEqual([
+      [
+        'attestation',
+        'verify',
+        'a.tgz',
+        '--repo',
+        'someone/quest-n-click',
+        '--signer-workflow',
+        'someone/quest-n-click/.github/workflows/release.yml',
+        '--format',
+        'json',
+      ],
+    ]);
+  });
+
+  it('asks for an archive made before the transfer (4.5.2, D51) under wanoo, its workflow pinned', () => {
+    const repo = 'Quest-n-Click/quest-n-click';
+    const old = 'wanoo/quest-n-click';
+    expect(identitiesOf(repo, 'v4.5.1')).toEqual([old]);
+    expect(identitiesOf(repo, 'v4.5.2')).toEqual([repo]);
+    expect(attestationTries(repo, 'v4.5.0', 'a.tgz')).toEqual([
+      [
+        'attestation',
+        'verify',
+        'a.tgz',
+        '--owner',
+        'wanoo',
+        '--signer-workflow',
+        `${old}/.github/workflows/release.yml`,
+        '--format',
+        'json',
+      ],
+    ]);
+    // A doc revision or a preview of a version before 4.5.2 may come from either side of the transfer: both, in order.
+    expect(identitiesOf(repo, 'docs-v4.5.1-r2')).toEqual([repo, old]);
+    expect(attestationTries(repo, 'docs-v4.5.1-r2', 'a.tgz')).toEqual([
+      [
+        'attestation',
+        'verify',
+        'a.tgz',
+        '--repo',
+        repo,
+        '--signer-workflow',
+        `${repo}/.github/workflows/docs-publish.yml`,
+        '--source-ref',
+        'refs/heads/docs/4.5.1',
+        '--format',
+        'json',
+      ],
+      [
+        'attestation',
+        'verify',
+        'a.tgz',
+        '--owner',
+        'wanoo',
+        '--signer-workflow',
+        `${old}/.github/workflows/docs-publish.yml`,
+        '--source-ref',
+        'refs/heads/docs/4.5.1',
+        '--format',
+        'json',
+      ],
+    ]);
+    expect(identitiesOf(repo, 'docs-v4.5.2-preview-0123456789ab')).toEqual([repo]);
+    // The repository's name in any case is the repository.
+    expect(identitiesOf('quest-n-click/QUEST-N-CLICK', 'v4.5.0')).toEqual([old]);
+  });
+
+  it("accepts an archive only when every certificate names the repository's id (D51)", () => {
+    const out = (id?: string) =>
+      JSON.stringify([
+        { verificationResult: { signature: { certificate: id ? { sourceRepositoryIdentifier: id } : {} } } },
+      ]);
+    const calls: string[][] = [];
+    const answer = (o: string) => (args: string[]) => {
+      calls.push(args);
+      return o;
+    };
+    expect(() =>
+      ghAttestation('Quest-n-Click/quest-n-click', answer(out('1402166796')))('a.tgz', 'v4.6.0'),
+    ).not.toThrow();
+    expect(calls[0]).toContain('--format');
+    expect(() => ghAttestation('Quest-n-Click/quest-n-click', answer(out('999')))('a.tgz', 'v4.6.0')).toThrow(
+      /v4\.6\.0: its archive's attestation does not verify \(an attestation names repository id 999, not 1402166796\)/,
+    );
+    expect(() => ghAttestation('Quest-n-Click/quest-n-click', answer(out()))('a.tgz', 'v4.6.0')).toThrow(
+      /names no repository id/,
+    );
+    expect(() => ghAttestation('Quest-n-Click/quest-n-click', answer('[]'))('a.tgz', 'v4.6.0')).toThrow(
+      /no attestation/,
+    );
   });
 
   it('refuses an archive whose attestation does not verify, naming the release', () => {
@@ -307,7 +411,7 @@ describe('the bootstrap', () => {
   it('nothing released: a placeholder pointing to the 4.4.0 documentation, and nothing else', () => {
     const files = assemble({ releasesDir: join(tmp('pages-none-'), 'absent'), publication: null });
     expect([...files.keys()]).toEqual(['index.html', 'style.css']);
-    expect(html(files, 'index.html')).toContain('https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/');
+    expect(html(files, 'index.html')).toContain('https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/');
   });
 
   it('a preview is served under /docs/preview/ while no release ≥ 4.5.0 exists, and only then', () => {

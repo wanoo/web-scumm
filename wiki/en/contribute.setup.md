@@ -7,7 +7,7 @@ downloads.
 
 ## What you will build
 
-A clone of `wanoo/quest-n-click` with its dependencies, the Python image modules, a Playwright Chromium, and a report
+A clone of `Quest-n-Click/quest-n-click` with its dependencies, the Python image modules, a Playwright Chromium, and a report
 from `npm run doctor` with no required item missing. At the end the sample game runs in your browser and the unit suite
 passes.
 
@@ -41,7 +41,7 @@ Every command below runs in a terminal, in the engine repository once it is clon
 
    ```sh
    # in the folder that will hold the clone
-   git clone https://github.com/wanoo/quest-n-click.git
+   git clone https://github.com/Quest-n-Click/quest-n-click.git
    cd quest-n-click
    ```
 

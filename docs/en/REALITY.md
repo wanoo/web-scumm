@@ -2,30 +2,30 @@
 
 # Reality Bridge: a game that reacts to the world outside
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REALITY.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REALITY.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REALITY.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REALITY.md).
 
-Now in: [The Reality Bridge: what it is › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.what-it-is.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REALITY.md#reality-bridge-a-game-that-reacts-to-the-world-outside)
+Now in: [The Reality Bridge: what it is › overview](https://quest-n-click.cleverapps.io/docs/bridge.what-it-is#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REALITY.md#reality-bridge-a-game-that-reacts-to-the-world-outside)
 
 ## Declare the signals
 
-Now in: [Signals and the manifest](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.signals-manifest.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REALITY.md#declare-the-signals)
+Now in: [Signals and the manifest](https://quest-n-click.cleverapps.io/docs/bridge.signals-manifest) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REALITY.md#declare-the-signals)
 
 ## Prove it in every world
 
-Now in: [Guarantees › proof](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.guarantees.html#proof) · [What the solver proves](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.solver-proofs.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REALITY.md#prove-it-in-every-world)
+Now in: [Guarantees › proof](https://quest-n-click.cleverapps.io/docs/bridge.guarantees#proof) · [What the solver proves](https://quest-n-click.cleverapps.io/docs/create.solver-proofs) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REALITY.md#prove-it-in-every-world)
 
 ## Try it in the Studio
 
-Now in: [Quick start › studio](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.quick-start.html#studio) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REALITY.md#try-it-in-the-studio)
+Now in: [Quick start › studio](https://quest-n-click.cleverapps.io/docs/bridge.quick-start#studio) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REALITY.md#try-it-in-the-studio)
 
 ## In the player's hands
 
-Now in: [Quick start › player](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.quick-start.html#player) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REALITY.md#in-the-players-hands)
+Now in: [Quick start › player](https://quest-n-click.cleverapps.io/docs/bridge.quick-start#player) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REALITY.md#in-the-players-hands)
 
 ## What the session and the save hold
 
-Now in: [Guarantees › session-and-save](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/bridge.guarantees.html#session-and-save) · [File formats](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/engine.file-formats.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REALITY.md#what-the-session-and-the-save-hold)
+Now in: [Guarantees › session-and-save](https://quest-n-click.cleverapps.io/docs/bridge.guarantees#session-and-save) · [File formats](https://quest-n-click.cleverapps.io/docs/engine.file-formats) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REALITY.md#what-the-session-and-the-save-hold)
 
 ## The API
 
-Now in: [Public API › reality](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/engine.api.html#reality) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/REALITY.md#the-api)
+Now in: [Public API › reality](https://quest-n-click.cleverapps.io/docs/engine.api#reality) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/REALITY.md#the-api)

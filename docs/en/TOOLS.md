@@ -2,46 +2,46 @@
 
 # Engine tools
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md).
 
-Now in: [npm scripts › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/reference.npm-scripts.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#engine-tools)
+Now in: [npm scripts › overview](https://quest-n-click.cleverapps.io/docs/reference.npm-scripts#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#engine-tools)
 
 ## Choosing the game \(GAME\)
 
-Now in: [The working loop › choosing-the-game](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.working-loop.html#choosing-the-game) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#choosing-the-game-game)
+Now in: [The working loop › choosing-the-game](https://quest-n-click.cleverapps.io/docs/create.working-loop#choosing-the-game) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#choosing-the-game-game)
 
 ## Playing and debugging
 
-Now in: [The working loop › playing](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.working-loop.html#playing) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#playing-and-debugging)
+Now in: [The working loop › playing](https://quest-n-click.cleverapps.io/docs/create.working-loop#playing) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#playing-and-debugging)
 
 ### The layer and the DEV panel \(?dev\)
 
-Now in: [Dev URL parameters › dev](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/reference.dev-url-parameters.html#dev) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#the-layer-and-the-dev-panel-dev)
+Now in: [Dev URL parameters › dev](https://quest-n-click.cleverapps.io/docs/reference.dev-url-parameters#dev) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#the-layer-and-the-dev-panel-dev)
 
 ### The placement editor \(?edit=\<room\>\)
 
-Now in: [Placement and stage › placement-editor](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.placement.html#placement-editor) · [Dev URL parameters › edit](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/reference.dev-url-parameters.html#edit) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#the-placement-editor-editroom)
+Now in: [Placement and stage › placement-editor](https://quest-n-click.cleverapps.io/docs/studio.placement#placement-editor) · [Dev URL parameters › edit](https://quest-n-click.cleverapps.io/docs/reference.dev-url-parameters#edit) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#the-placement-editor-editroom)
 
 ## Preparing images and sounds
 
-Now in: [Images: prompts, cutting sheets, transparency, scale › pipeline](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.images.html#pipeline) · [Image toolchain](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/install.image-toolchain.html) · [Sound effects](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.sound-effects.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#preparing-images-and-sounds)
+Now in: [Images: prompts, cutting sheets, transparency, scale › pipeline](https://quest-n-click.cleverapps.io/docs/create.images#pipeline) · [Image toolchain](https://quest-n-click.cleverapps.io/docs/install.image-toolchain) · [Sound effects](https://quest-n-click.cleverapps.io/docs/create.sound-effects) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#preparing-images-and-sounds)
 
 ## Checking the content
 
-Now in: [Checking your game › commands](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.checking.html#commands) · [Solver options](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.solver-options.html) · [Playtests](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.playtests.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#checking-the-content)
+Now in: [Checking your game › commands](https://quest-n-click.cleverapps.io/docs/create.checking#commands) · [Solver options](https://quest-n-click.cleverapps.io/docs/create.solver-options) · [Playtests](https://quest-n-click.cleverapps.io/docs/create.playtests) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#checking-the-content)
 
 ## Asset provenance
 
-Now in: [Asset provenance › provenance](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.asset-provenance.html#provenance) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#asset-provenance)
+Now in: [Asset provenance › provenance](https://quest-n-click.cleverapps.io/docs/create.asset-provenance#provenance) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#asset-provenance)
 
 ## The sealed ending
 
-Now in: [The sealed ending › tools](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.sealed-ending.html#tools) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#the-sealed-ending)
+Now in: [The sealed ending › tools](https://quest-n-click.cleverapps.io/docs/create.sealed-ending#tools) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#the-sealed-ending)
 
 ## Deploying
 
-Now in: [Build and release a game › deploying](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.build-release.html#deploying) · [Publish on GitHub Pages](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.github-pages.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#deploying)
+Now in: [Build and release a game › deploying](https://quest-n-click.cleverapps.io/docs/create.build-release#deploying) · [Publish on GitHub Pages](https://quest-n-click.cleverapps.io/docs/create.github-pages) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#deploying)
 
 ## Every other script
 
-Now in: [npm scripts › other-scripts](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/reference.npm-scripts.html#other-scripts) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#every-other-script)
+Now in: [npm scripts › other-scripts](https://quest-n-click.cleverapps.io/docs/reference.npm-scripts#other-scripts) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/TOOLS.md#every-other-script)

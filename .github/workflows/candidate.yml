@@ -92,6 +92,23 @@ jobs:
           tar -czf candidate-site/dist.tar.gz -C dist .
           cp dist/licenses/assets-manifest.json candidate-site/assets-manifest.json
           node tools/release/site-files.mjs --dir=dist --out=candidate-site/site-files.json
+      # The game and the Studio's demo for the project's website (4.5.2, D52): built again under /demo/, the shape the
+      # engine's Pages job built up to 4.5.1; the website downloads it from the latest release and serves it at /demo/.
+      # From 4.5.2 only (tools/release/artifacts.mjs `game:web`); after the site above, which it rebuilds dist over.
+      - name: The website's demo of this candidate
+        run: |
+          # 0: from 4.5.2, built; 10: before 4.5.2, skipped; anything else (the probe itself broke): the step fails, never
+          # a green candidate without the build it should have made.
+          probe=0
+          node -e 'import("./tools/release/candidate.mjs").then((m) => process.exit(m.atLeast(require("./package.json").version, "4.5.2") ? 0 : 10))' || probe=$?
+          case "$probe" in
+            0)
+              BASE_PATH=/demo/ STUDIO=1 VITE_STUDIO_DEMO=1 npm run build:web
+              tar -czf candidate-site/web.tar.gz -C dist .
+              ;;
+            10) echo "::notice::no web.tar.gz before 4.5.2" ;;
+            *) echo "::error::the version probe failed (exit $probe): no way to tell whether web.tar.gz is due"; exit 1 ;;
+          esac
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: candidate-site

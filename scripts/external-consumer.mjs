@@ -171,14 +171,14 @@ if (src.kind === 'tgz') oldTgz = resolve(src.path);
 else {
   if (src.kind === 'previous') throw new Error("--from=previous is upgrade-check's; name a version here");
   oldTgz = join(base, src.asset);
-  const url = `https://github.com/wanoo/quest-n-click/releases/download/${src.tag}/${src.asset}`;
+  const url = `https://github.com/Quest-n-Click/quest-n-click/releases/download/${src.tag}/${src.asset}`;
   console.log(`\n▶ the older engine: ${url}`);
   // Tried again on a 5xx (4.1.20 PR 3): a 504 from GitHub's releases failed candidate 38236552662 on two runners.
   const r = await fetchRetry(url);
   if (!r.ok) throw new Error(`${url}: ${r.status}`);
   const bytes = Buffer.from(await r.arrayBuffer());
   // Checked against the release's own sums (4.1.19): a stable tag and a pre-release alike.
-  const sumsUrl = `https://github.com/wanoo/quest-n-click/releases/download/${src.tag}/${sumsAsset(src.tag)}`;
+  const sumsUrl = `https://github.com/Quest-n-Click/quest-n-click/releases/download/${src.tag}/${sumsAsset(src.tag)}`;
   const s = await fetchRetry(sumsUrl);
   if (!s.ok) throw new Error(`${sumsUrl}: ${s.status}`);
   const want = sumFor(await s.text(), src.asset);

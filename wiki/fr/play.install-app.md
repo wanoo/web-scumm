@@ -16,7 +16,7 @@ restent sur l’appareil.
 ## Contexte et versions
 
 Tout jeu construit avec quest'n'click et servi en HTTPS (le jeu d’exemple est sur
-[wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/)). Ce que dit cette page vaut depuis la 4.1.8,
+[quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/)). Ce que dit cette page vaut depuis la 4.1.8,
 quand l’installation, la mise à jour et la réinstallation ont été prouvées dans Chromium, WebKit et Firefox en CI ; la
 copie hors ligne du jeu entier existe depuis la 3.1. L’auteur d’un jeu peut choisir de ne garder en cache que les
 salles proches (`offline: 'nearby'`) : le menu de pause n’a alors pas de ligne hors ligne, et une salle jamais visitée
@@ -75,7 +75,7 @@ Un fichier en échec, un lot sauté ou un manque de place le laisse partiel, ave
 
 > [!LIMIT id=safari-not-tried-on-device]
 > Personne n’a encore installé un jeu depuis Safari sur un vrai iPhone, joué hors ligne et fait sa mise à jour : la
-> passe `safari-ios-offline-update` est ouverte ([#86](https://github.com/wanoo/quest-n-click/issues/86)) à la 4.4.0.
+> passe `safari-ios-offline-update` est ouverte ([#86](https://github.com/Quest-n-Click/quest-n-click/issues/86)) à la 4.4.0.
 > La CI ne sait pas naviguer hors ligne dans WebKit : sous Safari, le jeu n’est vérifié que pour l’installation et la
 > mise à jour. La règle de Safari qui efface les données d’un site après sept jours d’utilisation sans visite vaut
 > pour un onglet Safari, pas pour un jeu ajouté à l’écran d’accueil ([WebKit](https://webkit.org/tracking-prevention/)) ; un iPhone à court de place peut quand même

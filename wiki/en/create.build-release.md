@@ -49,7 +49,7 @@ its `build` and `release` commands exist since 3.9.0; `npm start` is a Node laun
 ## Where to run the commands
 
 - "In the created project": the folder `quest-n-click create` made, the one with `game/` and `package.json`.
-- "In the engine repository": the clone of `wanoo/quest-n-click`. The game built is the one `GAME` names, else the one
+- "In the engine repository": the clone of `Quest-n-Click/quest-n-click`. The game built is the one `GAME` names, else the one
   `npm run game` selected, else `package.json` → `config.game`, else `demo`.
 
 <a name="steps"></a>

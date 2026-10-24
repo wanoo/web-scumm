@@ -2,82 +2,82 @@
 
 # Designing a good SCUMM-style game with this engine
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md).
 
-Now in: [Puzzle design › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#designing-a-good-scumm-style-game-with-this-engine)
+Now in: [Puzzle design › overview](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#designing-a-good-scumm-style-game-with-this-engine)
 
 ## 1. What makes these games work
 
-Now in: [Puzzle design › what-works](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#what-works) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#1-what-makes-these-games-work)
+Now in: [Puzzle design › what-works](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#what-works) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#1-what-makes-these-games-work)
 
 ## 2. Story first
 
-Now in: [Puzzle design › story-first](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#story-first) · [The storyboard, source of truth](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.storyboard.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#2-story-first)
+Now in: [Puzzle design › story-first](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#story-first) · [The storyboard, source of truth](https://quest-n-click.cleverapps.io/docs/create.storyboard) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#2-story-first)
 
 ### Write it as the storyboard
 
-Now in: [The storyboard, source of truth › write-it](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.storyboard.html#write-it) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#write-it-as-the-storyboard)
+Now in: [The storyboard, source of truth › write-it](https://quest-n-click.cleverapps.io/docs/create.storyboard#write-it) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#write-it-as-the-storyboard)
 
 ### The rhythm of repeated looks
 
-Now in: [Puzzle design › repeated-looks](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#repeated-looks) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#the-rhythm-of-repeated-looks)
+Now in: [Puzzle design › repeated-looks](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#repeated-looks) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#the-rhythm-of-repeated-looks)
 
 ## 3. Puzzle design with this engine
 
-Now in: [Puzzle design › puzzles](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#puzzles) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#3-puzzle-design-with-this-engine)
+Now in: [Puzzle design › puzzles](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#puzzles) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#3-puzzle-design-with-this-engine)
 
 ### The five shapes the DSL handles well
 
-Now in: [Puzzle design › five-shapes](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#five-shapes) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#the-five-shapes-the-dsl-handles-well)
+Now in: [Puzzle design › five-shapes](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#five-shapes) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#the-five-shapes-the-dsl-handles-well)
 
 ### Chains and the "aha"
 
-Now in: [Puzzle design › chains](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#chains) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#chains-and-the-aha)
+Now in: [Puzzle design › chains](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#chains) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#chains-and-the-aha)
 
 ### Hints in puzzle order
 
-Now in: [Puzzle design › hints](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#hints) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#hints-in-puzzle-order)
+Now in: [Puzzle design › hints](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#hints) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#hints-in-puzzle-order)
 
 ### What the solver proves
 
-Now in: [What the solver proves › what-it-proves](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.solver-proofs.html#what-it-proves) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#what-the-solver-proves)
+Now in: [What the solver proves › what-it-proves](https://quest-n-click.cleverapps.io/docs/create.solver-proofs#what-it-proves) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#what-the-solver-proves)
 
 ### Reading the puzzle graph
 
-Now in: [Puzzle design › puzzle-graph](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#puzzle-graph) · [Check: validator, solver, critical path, heat, health, coverage](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.check.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#reading-the-puzzle-graph)
+Now in: [Puzzle design › puzzle-graph](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#puzzle-graph) · [Check: validator, solver, critical path, heat, health, coverage](https://quest-n-click.cleverapps.io/docs/studio.check) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#reading-the-puzzle-graph)
 
 ## 4. Rooms
 
-Now in: [Puzzle design › rooms](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#rooms) · [Rooms](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.rooms.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#4-rooms)
+Now in: [Puzzle design › rooms](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#rooms) · [Rooms](https://quest-n-click.cleverapps.io/docs/create.rooms) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#4-rooms)
 
 ## 5. Dialogue
 
-Now in: [Puzzle design › dialogue](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#dialogue) · [Dialogues](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.dialogues.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#5-dialogue)
+Now in: [Puzzle design › dialogue](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#dialogue) · [Dialogues](https://quest-n-click.cleverapps.io/docs/create.dialogues) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#5-dialogue)
 
 ## 6. The fallback layer
 
-Now in: [Puzzle design › fallbacks](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#fallbacks) · [Reactions › fallbacks](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.reactions.html#fallbacks) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#6-the-fallback-layer)
+Now in: [Puzzle design › fallbacks](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#fallbacks) · [Reactions › fallbacks](https://quest-n-click.cleverapps.io/docs/create.reactions#fallbacks) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#6-the-fallback-layer)
 
 ## 7. Minigames
 
-Now in: [Puzzle design › minigames](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#minigames) · [Built-in minigames](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.minigames.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#7-minigames)
+Now in: [Puzzle design › minigames](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#minigames) · [Built-in minigames](https://quest-n-click.cleverapps.io/docs/create.minigames) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#7-minigames)
 
 ## 8. The map
 
-Now in: [Puzzle design › map](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#map) · [World map](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.world-map.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#8-the-map)
+Now in: [Puzzle design › map](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#map) · [World map](https://quest-n-click.cleverapps.io/docs/create.world-map) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#8-the-map)
 
 ## 9. Art consistency
 
-Now in: [Images: prompts, cutting sheets, transparency, scale › art-consistency](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.images.html#art-consistency) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#9-art-consistency)
+Now in: [Images: prompts, cutting sheets, transparency, scale › art-consistency](https://quest-n-click.cleverapps.io/docs/create.images#art-consistency) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#9-art-consistency)
 
 ## 10. Sound
 
-Now in: [Puzzle design › sound](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.puzzle-design.html#sound) · [Music in stems](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.music.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#10-sound)
+Now in: [Puzzle design › sound](https://quest-n-click.cleverapps.io/docs/create.puzzle-design#sound) · [Music in stems](https://quest-n-click.cleverapps.io/docs/create.music) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#10-sound)
 
 ## 11. Testing like a player
 
-Now in: [Playtests › like-a-player](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.playtests.html#like-a-player) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#11-testing-like-a-player)
+Now in: [Playtests › like-a-player](https://quest-n-click.cleverapps.io/docs/create.playtests#like-a-player) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#11-testing-like-a-player)
 
 ## 12. Before you share the link
 
-Now in: [Checking your game › before-you-share](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.checking.html#before-you-share) · [Build and release a game](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.build-release.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#12-before-you-share-the-link)
+Now in: [Checking your game › before-you-share](https://quest-n-click.cleverapps.io/docs/create.checking#before-you-share) · [Build and release a game](https://quest-n-click.cleverapps.io/docs/create.build-release) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/DESIGN.md#12-before-you-share-the-link)

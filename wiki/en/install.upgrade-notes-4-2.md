@@ -127,9 +127,9 @@ toward the hero. If a scene relied on the old facing, write `{ face: 'right', wh
 
 **web-scumm becomes quest'n'click** (D47). Nothing to change: a game made for 4.2.4 installs, builds, plays and saves
 as before, under its old names. The engine installs from `releases/download/v4.2.5/…`, where the repository is now
-`github.com/wanoo/quest-n-click` (the old `github.com/wanoo/web-scumm` links redirect, release downloads included).
-The sample game and the Studio's demo moved to `https://wanoo.github.io/quest-n-click/`: the old address redirects
-there, but update a bookmark or a link to `wanoo.github.io/quest-n-click`.
+`github.com/Quest-n-Click/quest-n-click` (the old `github.com/wanoo/web-scumm` links redirect, release downloads included).
+The sample game and the Studio's demo are now at `https://quest-n-click.cleverapps.io/demo/` (since 4.5.2, D52; the
+GitHub Pages addresses they had before are abandoned): update a bookmark or a link to it.
 
 **The new names**, from 4.2.5:
 
@@ -169,7 +169,8 @@ signal is still `web-scumm-world-signal`, a reality manifest `web-scumm-reality-
 IndexedDB databases (`web-scumm-saves`, `web-scumm-runs`) and its `web-scumm.…` storage keys, so a player's saves and
 runs are found where they were; the Bridge's `X-Web-Scumm-*` headers, the signatures' contexts, the environment
 variables `WEB_SCUMM_*` and the Studio Server's tables are unchanged. Releases up to v4.2.4 keep their files' names and
-their attestations, which name the repository `wanoo/web-scumm`; from v4.2.5 the attestations name
-`wanoo/quest-n-click` (`ship verify` asks for the one each release was signed under). The sample game's and the
+their attestations, which name the repository `wanoo/web-scumm`; from v4.2.5 to v4.5.1 the attestations name
+`wanoo/quest-n-click` (from v4.5.2, `Quest-n-Click/quest-n-click`; `ship verify` asks for the one each release was
+signed under). The sample game's and the
 reference chapter's credits now say quest'n'click: their presentation fingerprint moved, so their reference run is
 recorded again; a game's own fingerprint moves only if its own text changes.

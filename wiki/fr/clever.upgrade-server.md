@@ -87,7 +87,7 @@ studio (`clever ssh --alias my-game-studio`).
 > - version: 4.2.2
 > - volume: le jeu de démo, révision 52 ; une nouvelle migration
 > - conditions: phase B du déploiement de référence, 52e68932 → c66fbf56 sur main avant le tag 4.2.3 (package.json disait 4.2.2) ; worker puis studio, applications XS, PostgreSQL DEV, région par
-> - source: [QUALIF-4.2.3-REFERENCE.md §1 et §5](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §1 et §5](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 <a name="expected-result"></a>
 

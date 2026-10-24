@@ -14,13 +14,15 @@ vérifications et la construction du jeu, et ne déploie le résultat sur Pages 
 
 ## Contexte et versions
 
-- Un projet créé (`quest-n-click create`), poussé sur un dépôt GitHub. Le dépôt du moteur a son propre job Pages dans
-  `.github/workflows/ci.yml` ; ce workflow en reprend la partie jeu, sans ce que le moteur y ajoute (la démo du Studio
-  et la documentation sous `/docs/`).
+- Un projet créé (`quest-n-click create`), poussé sur un dépôt GitHub. Le dépôt du moteur avait son propre job Pages
+  dans `.github/workflows/ci.yml` jusqu'à la 4.5.1 ; ce workflow en reprend la partie jeu, sans ce que le moteur y
+  ajoutait (la démo du Studio et la documentation sous `/docs/`). Depuis la 4.5.2, le moteur ne déploie plus Pages : sa
+  démo est sur le site web du projet, `https://quest-n-click.cleverapps.io/demo/`, servie depuis le `quest-n-click-v<version>-web.tar.gz` de chaque
+  release (le même build sous `BASE_PATH=/demo/`).
 - À partir de la 4.2.5 (la commande `quest-n-click`). `BASE_PATH` est lu par la configuration Vite du moteur
   ([`tools/vite/plugins.ts`](../../tools/vite/plugins.ts)).
 - **Vérifié sur : pas exécuté tel quel sur un projet créé.** Les étapes sont celles du job Pages du dépôt du moteur
-  (lancé à chaque push sur `main`), avec les commandes du projet créé à la place de celles du dépôt. Lisez le journal
+  en 4.5.1 (lancé à chaque push sur `main`), avec les commandes du projet créé à la place de celles du dépôt. Lisez le journal
   du premier lancement.
 
 <a name="prerequisites"></a>
@@ -134,7 +136,7 @@ même construction se lance dans le projet créé, sur votre machine.
    l'adresse du site.
 
 > [!LIMIT id=no-studio-no-docs]
-> Ce workflow ne publie que le jeu. Le Pages du dépôt du moteur construit aussi la démo du Studio (`STUDIO=1`,
+> Ce workflow ne publie que le jeu. Le site du projet construit aussi la démo du Studio (`STUDIO=1`,
 > `VITE_STUDIO_DEMO=1`) et assemble `/docs/` ; ni l'une ni l'autre ne font partie du site d'un projet créé.
 
 <a name="expected-result"></a>
@@ -181,8 +183,8 @@ règles de [Retour arrière](create.deploy-issues.md#going-back). Désactiver Pa
 
 ## Références
 
-- Le job Pages du dépôt du moteur : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) (`check`, la
-  construction avec `BASE_PATH`, et `pages`).
+- Le job Pages du dépôt du moteur, jusqu'à la 4.5.1 : [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), qui
+  n'en a plus depuis la 4.5.2 ; [sa version de la 4.5.1](https://github.com/Quest-n-Click/quest-n-click/blob/v4.5.1/.github/workflows/ci.yml) (`check`, la construction avec `BASE_PATH`, et `pages`).
 - `BASE_PATH` et le manifeste : [`tools/vite/plugins.ts`](../../tools/vite/plugins.ts) ;
   [`BASE_PATH`](reference.environment-variables.md#base-path).
 - Ce que lancent `npm run build` et `release` dans un projet créé : [`cli/quest-n-click.mjs`](../../cli/quest-n-click.mjs) ;

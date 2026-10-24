@@ -18759,7 +18759,7 @@
       "migrated": true,
       "limits": [
         {
-          "text": "Tant que les paquets ne sont pas sur npm, prendre l'archive jointe à une release (`T=https://github.com/wanoo/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz`) : `npx --package=$T quest-n-click create mon-jeu \"Mon jeu\" --engine=$T`.",
+          "text": "Tant que les paquets ne sont pas sur npm, prendre l'archive jointe à une release (`T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz`) : `npx --package=$T quest-n-click create mon-jeu \"Mon jeu\" --engine=$T`.",
           "status": "reported"
         },
         {

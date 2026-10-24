@@ -14,6 +14,7 @@
 // With a `context` filter, a section headed by that context's name answers for a page that spans several, and a status
 // code typed is a symptom of that context's service: a reference register ranks below its troubleshooting pages.
 import { appliesMarker, mapLines, type SectionVersions } from './page';
+import { siteDocs } from './site';
 
 export const INDEX_FORMAT = 'quest-n-click-docs-index';
 export const BUNDLE_FORMAT = 'quest-n-click-docs-bundle';
@@ -77,16 +78,14 @@ export interface Provenance {
   label: string;
 }
 
-/** Pages' documentation (§4.5.4) and the GitHub wiki: where a page of a bundle is published (§4.5.6). */
-const PAGES_DOCS = 'https://wanoo.github.io/quest-n-click/docs';
-const WIKI_URL = 'https://github.com/wanoo/quest-n-click/wiki';
+/** Where a version's documentation is kept (D52): its release's archive, `quest-n-click-docs-<v>.tar.gz`. */
+const RELEASES_URL = 'https://github.com/Quest-n-Click/quest-n-click/releases';
 
 /**
- * Where a page read from a bundle lives online (§4.5.4). `versioned` is the Pages permalink of this version and doc
- * revision, given only for a release build: not dirty, with a candidate run's numeric build id. Even then it is the
- * permalink this build has once it is the one published; whether it was is read at `publication.json`, never here.
- * Any other build (local, dirty, no build id) gets `versioned: null` and the reason. `current` is the wiki's page,
- * labelled as the current documentation (the latest release), not this version's. A repository preview has neither.
+ * Where a page read from a bundle lives online (§4.5.4, D52). There is no versioned page online any more: `versioned`
+ * is always null, and `versionedNote` says where this version's documentation is (its release's archive). `current` is
+ * the page on the project's website, labelled as the latest documentation, not necessarily this version's. A
+ * repository preview has neither.
  */
 function onlineUrls(
   p: Provenance,
@@ -95,22 +94,11 @@ function onlineUrls(
   section?: string,
 ): { versioned: string | null; versionedNote: string; current: string; currentLabel: string } | undefined {
   if (p.source !== 'bundle') return undefined;
-  const at = section ? `#${section}` : '';
-  const why = p.docRevision.endsWith('-dirty')
-    ? 'a dirty build (sources not committed): it has no published permalink'
-    : !p.buildId
-      ? 'a build without a build id (not a candidate run): it has no published permalink'
-      : !/^\d+$/.test(p.buildId)
-        ? `a local build (build id "${p.buildId}", not a candidate run): it has no published permalink`
-        : undefined;
-  const revision = p.docRevisionNumber ?? 'r1';
   return {
-    versioned: why ? null : `${PAGES_DOCS}/${p.productVersion}/${revision}/${lang}/${page.id}.html${at}`,
-    versionedNote:
-      why ??
-      `the permalink of ${p.productVersion} ${revision} if this build is the one published; check ${PAGES_DOCS}/publication.json`,
-    current: `${WIKI_URL}/${page.url[lang]}${at}`,
-    currentLabel: 'current documentation (the latest release), not necessarily this version',
+    versioned: null,
+    versionedNote: `no versioned page online: the documentation of ${p.productVersion} is its release's archive, quest-n-click-docs-${p.productVersion}.tar.gz (${RELEASES_URL}/tag/v${p.productVersion})`,
+    current: siteDocs(lang, page.id, section),
+    currentLabel: 'latest documentation on the project website, not necessarily this version',
   };
 }
 

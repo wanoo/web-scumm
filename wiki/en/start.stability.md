@@ -65,7 +65,7 @@ Contract status and checks from `docs/dev/contracts.json` (as of 4.4.0, 23 Octob
 
 The rows of the support matrix behind the "Verified by CI" column, with what people check on each:
 [Support matrix](reference.support-matrix.md). Each pass is an open issue labelled
-[`field-pass`](https://github.com/wanoo/quest-n-click/issues?q=label%3Afield-pass), closed by the maintainer once
+[`field-pass`](https://github.com/Quest-n-Click/quest-n-click/issues?q=label%3Afield-pass), closed by the maintainer once
 tested; only a pass made on the very candidate a release names qualifies a surface ([Field passes](contribute.field-passes.md)).
 
 > [!LIMIT id=no-pass-run-at-440]

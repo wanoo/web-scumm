@@ -11,7 +11,7 @@ tourne dans quel job, c'est [Quels tests tournent quand](contribute.which-tests.
 
 | Workflow | Démarre sur | Fait | Barrière de |
 |---|---|---|---|
-| `ci` | une pull request ; un push sur `main` ; un tag `v*` ; à la main (`pages-only`) | les trois paliers ci-dessous, puis Pages sur `main` | la pull request (`pr-gate`) ; une release (le run du tag) |
+| `ci` | une pull request ; un push sur `main` ; un tag `v*` ; à la main | les trois paliers ci-dessous | la pull request (`pr-gate`) ; une release (le run du tag) |
 | `candidate` | à la main sur `main` pour un SHA (`gh workflow run candidate --ref main -f sha=<sha complet>`) ; une pull request étiquetée `full-ci` (pour information) | toutes les familles lourdes sur un SHA exact, puis `candidate-gate`, qui écrit et atteste `candidate-manifest.json` | un tag doit nommer un run vert de ce workflow ([Publier une release](contribute.releasing.md)) |
 | `release` | la fin de `ci` sur un tag `v*` | les ensembles de mutation, `release-check:ci`, la release faite avec les fichiers du candidat, `ship verify` ; puis `docs-publish` (4.5.0) | la publication |
 | `nightly` | chaque jour à 03:17 UTC ; à la main | noms npm, suite lourde, fuzz des connecteurs (une minute chacun), corpus des abstractions (500 graines, quatre morceaux), chaque ensemble de mutation repris de zéro, charges du Bridge sur SQLite et Postgres, matrice de preuve, cross-runtime avec 500 graines Remix, le worker dans un conteneur | rien directement ; une nuit rouge est un bug à corriger avant la prochaine release |
@@ -33,8 +33,7 @@ tourne dans quel job, c'est [Quels tests tournent quand](contribute.which-tests.
   barrières du jeu d'exemple, le bundle, `verify:dist`, la vérification des spoilers, l'audit des assets),
   `weight -- --release`, `quality:baseline -- --check --dist`, `prove:game`, `audit:deps` quand `package.json` ou le
   fichier de verrouillage a bougé, puis le build à deux entrées (jeu et démo du Studio) que jouent les lignes e2e,
-  gardé comme artefact `dist` ; sur `main`, il assemble aussi le `/docs/` de Pages à partir des archives de
-  documentation publiées.
+  gardé comme artefact `dist`.
 - `coverage` : la suite unitaire une fois, sous couverture V8 (`test:coverage`), puis le cliquet de couverture : un
   avertissement sur une pull request, un échec sur `main` et sur un tag ([Le cliquet de couverture](contribute.coverage-ratchet.md)).
 
@@ -63,8 +62,7 @@ réussit.
 **`pr-gate`** lit le résultat de chaque job : chacun doit être `success` ; les jobs de mutation peuvent être `skipped`
 là où ils ne tournent pas. C'est la seule vérification qui résume une pull request.
 
-**`pages`**, sur `main` seulement, après un `pr-gate` vert : déploie le jeu, la démo du Studio et `/docs/` sur GitHub
-Pages.
+Plus aucun job ne déploie GitHub Pages (4.5.2, voir [le site](#pages-only)).
 
 <a name="the-plan"></a>
 <!-- applies: .. since 4.1.9 -->
@@ -79,7 +77,7 @@ npm run ci:plan -- --files=src/engine/dom/room.ts,games/demo/rooms/garden.ts
 ```
 
 Il affiche, sur la sortie d'erreur, une ligne par fichier changé avec la règle qui l'a pris et les barrières qu'il
-ouvre, puis le plan ; sur la sortie standard, une ligne de JSON (`{"auditDeps":…,"node24":…,…,"all":…,"docs":…,"docsPages":[…],"pagesOnly":…}`),
+ouvre, puis le plan ; sur la sortie standard, une ligne de JSON (`{"auditDeps":…,"node24":…,…,"all":…,"docs":…,"docsPages":[…]}`),
 que le job `plan` écrit dans sa sortie. La première règle qui correspond à un chemin l'emporte, et un changement lance
 l'union de ce que demandent ses fichiers :
 
@@ -115,21 +113,22 @@ s'ouvrent. L'étiquette lance aussi les jobs de mutation de `ci` et un run de `c
 l'étiquette, puis poussez (elle s'applique au run suivant).
 
 <a name="pages-only"></a>
-<!-- applies: 4.5.0.. since 4.5.0 -->
+<!-- applies: 4.5.2.. since 4.5.2 -->
 
-## Les runs `pages-only`
+## Le site, hors de `ci`
 
-`docs-publish` se termine par `gh workflow run ci.yml --ref main -f pages-only=true`. Le plan est alors
-`--pages-only` : aucune barrière ne s'ouvre, et `check`, `coverage` et `cross-runtime` sautent tout sauf le build de
-Pages, `/docs/` et le téléversement. Un run déclenché à la main n'annule aucun run en cours : il attend. GitHub garde un
-seul run en attente par groupe de concurrence quoi que dise `cancel-in-progress` : un déclenchement mis en file pendant
-qu'un run de push sur `main` attend le remplace (ce commit est alors déployé par le déclenchement sans ses propres
-vérifications), et un push ultérieur remplace un déclenchement en attente.
+Depuis la 4.5.2, la `ci` du moteur ne déploie plus GitHub Pages (D52). Le site web du projet, `https://quest-n-click.cleverapps.io` (le dépôt
+`Quest-n-Click/quest-n-click-site`), sert la démo sous `/demo/` depuis le `quest-n-click-v<version>-web.tar.gz` de la
+dernière release (construit par le candidat sous `BASE_PATH=/demo/`, sommé et attesté par la release) et la dernière
+documentation sous `/docs/<id de page>` (`/fr/docs/<id de page>` en français) ; il n'y a plus de documentation versionnée en ligne, la documentation
+d'une version est le `quest-n-click-docs-<version>.tar.gz` de sa release. Le site prend une release de lui-même (son
+`POST /api/revalidate`, sinon toutes les heures). Le job `pages` et les runs `pages-only` que lançait `docs-publish`
+(de la 4.5.0 à la 4.5.1) ont disparu.
 
 > [!LIMIT id=pages-fail-closed]
-> Si `/docs/` ne peut pas être assemblé depuis les archives publiées (une panne réseau, une archive refusée), le job
-> `check` échoue sur `main` et Pages n'est pas déployé : jamais un site sans `/docs/` ni avec un `/docs/` non vérifié.
-> Relancer le job est la reprise.
+> `npm run wiki -- pages`, qui assemblait le `/docs/` versionné pour GitHub Pages jusqu'à la 4.5.1, ne prend toujours
+> que les archives publiées et échoue quand l'une ne peut pas être téléchargée ou vérifiée ; aucun site ne déploie
+> plus sa sortie depuis la 4.5.2.
 
 <a name="job-failed"></a>
 
@@ -181,6 +180,6 @@ vérifications), et un push ultérieur remplace un déclenchement en attente.
 
 ## Identifiants liés
 
-- `npm run ci:plan`, l'étiquette `full-ci`, `pr-gate`, l'entrée `pages-only`.
+- `npm run ci:plan`, l'étiquette `full-ci`, `pr-gate` ; l'entrée `pages-only`, disparue en 4.5.2.
 - [Quels tests tournent quand](contribute.which-tests.md), [Avant une pull request](contribute.before-a-pr.md),
   [Publier une release](contribute.releasing.md), [Tests de mutation](contribute.mutation-testing.md).

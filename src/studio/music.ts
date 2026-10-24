@@ -30,7 +30,7 @@ export class MusicTab {
         h(
           'p',
           { class: 'muted pad' },
-          'No score in this game. A track in stems: npm run audio -- stems <project>/spec.json, then audio.scores in game.ts (https://github.com/wanoo/quest-n-click/wiki/EN-Create-Music).',
+          'No score in this game. A track in stems: npm run audio -- stems <project>/spec.json, then audio.scores in game.ts (https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-Music).',
         ),
       );
       return;

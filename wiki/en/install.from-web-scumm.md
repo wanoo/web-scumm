@@ -19,9 +19,9 @@ builds and plays as before, with its players' saves found where they were.
 - Up to 4.2.4 every name was `web-scumm…`. From 4.2.5 the new names exist, and each 4.2.x release also shipped the
   archives under the old names, whose commands ran after a one-line notice ("web-scumm is now quest-n-click; the old
   name works until 4.3"). From 4.3.0 there is no `web-scumm` archive, command or import any more.
-- The repository is `github.com/wanoo/quest-n-click`; the old `github.com/wanoo/web-scumm` links redirect, release
-  downloads included. The sample game and the Studio's demo moved to `https://wanoo.github.io/quest-n-click/`; the old
-  address redirects there, but update your bookmarks and links.
+- The repository is `github.com/Quest-n-Click/quest-n-click`; the old `github.com/wanoo/web-scumm` links redirect, release
+  downloads included. The sample game and the Studio's demo are now at `https://quest-n-click.cleverapps.io/demo/`
+  (since 4.5.2; the GitHub Pages addresses before are abandoned): update your bookmarks and links.
 
 <a name="names"></a>
 
@@ -50,7 +50,9 @@ Bridge's `X-Web-Scumm-*` headers, the signatures' contexts, the environment vari
 Server's tables are unchanged.
 
 Releases up to v4.2.4 keep their files' names and their attestations, which name the repository `wanoo/web-scumm`; from
-v4.2.5 the attestations name `wanoo/quest-n-click` (`ship verify` asks for the one each release was signed under). The
+v4.2.5 to v4.5.1 they name `wanoo/quest-n-click`, and from v4.5.2, after the move to the Quest-n-Click organization,
+`Quest-n-Click/quest-n-click` (`ship verify` asks for the one each release was signed under; the attestations made
+before the move are looked up under the user `wanoo`). The
 sample game's and the reference chapter's credits say quest'n'click: their presentation fingerprint moved and their
 reference run was recorded again. A game's own fingerprint moves only if its own text changes.
 
@@ -84,7 +86,7 @@ In the created project's folder, on your machine.
 
    ```bash
    # in the created project
-   npm install https://github.com/wanoo/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
+   npm install https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
    ```
 
 <!-- step: migrate -->

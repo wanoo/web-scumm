@@ -20,7 +20,8 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readTarGz, writeTarGz } from '../field/tar';
-import { type BuildOptions, composePages, htmlStyle, type LinkStyle, PAGES_DOCS_URL, wikiFiles } from './build';
+import { type BuildOptions, composePages, htmlStyle, type LinkStyle, wikiFiles } from './build';
+import { siteDocs } from './site';
 import { bundleContents } from './bundle';
 import type { DocsSet } from './docs';
 import { type BundleManifest, indexWiki, PUBLICATION_URL, sha256 } from './docs-load';
@@ -83,8 +84,12 @@ function searchJs(): Buffer {
 
 const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-/** The site of the archive, `html/…`, by path. */
-function htmlFiles(o: ArchiveOptions, base: string): Map<string, Buffer> {
+/**
+ * The site of the archive, `html/…`, by path. Its canonical links, sitemap and llms.txt name the website's latest
+ * documentation (`siteDocs`, D52): the archive is a version kept offline, the website the one place online.
+ */
+function htmlFiles(o: ArchiveOptions): Map<string, Buffer> {
+  const online = (lang: string, id?: string) => siteDocs(lang, id);
   const opts = { ...o, preview: o.preview ?? false, docRevisionNumber: o.revision };
   const files = new Map<string, Buffer>();
   const { pages, sidebars, images } = composePages(opts, htmlStyle);
@@ -108,7 +113,7 @@ function htmlFiles(o: ArchiveOptions, base: string): Map<string, Buffer> {
           body: renderMarkdown(c.markdown),
           nav: renderMarkdown(sidebars[c.lang]),
           root: '../',
-          ...(o.preview ? {} : { canonical: `${base}${c.lang}/${c.page.id}.html` }),
+          ...(o.preview ? {} : { canonical: online(c.lang, c.page.id) }),
           ...(written.has(`${twin(c.lang)}/${c.page.id}`) ? { twin: `../${twin(c.lang)}/${c.page.id}.html` } : {}),
           identity,
         }),
@@ -135,7 +140,7 @@ function htmlFiles(o: ArchiveOptions, base: string): Map<string, Buffer> {
         ).join('\n')}`,
         nav: '',
         root: '',
-        ...(o.preview ? {} : { canonical: `${base}index.html` }),
+        ...(o.preview ? {} : { canonical: online('en') }),
         identity,
       }),
     ),
@@ -157,12 +162,13 @@ function htmlFiles(o: ArchiveOptions, base: string): Map<string, Buffer> {
     pages: texts,
   };
   files.set('html/search-index.json', Buffer.from(formatJson(set)));
-  const urls = pages.map((c) => `${base}${c.lang}/${c.page.id}.html`);
+  const urls = pages.map((c) => online(c.lang, c.page.id));
   files.set(
     'html/sitemap.xml',
     Buffer.from(
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[
-        `${base}index.html`,
+        online('en'),
+        online('fr'),
         ...urls,
       ]
         .map((u) => `<url><loc>${xml(u)}</loc></url>`)
@@ -173,12 +179,12 @@ function htmlFiles(o: ArchiveOptions, base: string): Map<string, Buffer> {
   files.set(
     'html/llms.txt',
     Buffer.from(
-      `# quest'n'click ${o.productVersion} documentation (${identity.revision})\n\n> Generated from wiki/ at ${identity.docRevision}. Search index: ${base}search-index.json\n${audiences
+      `# quest'n'click ${o.productVersion} documentation (${identity.revision})\n\n> Generated from wiki/ at ${identity.docRevision}. Search index: search-index.json (in this archive)\n${audiences
         .map(
           (a) =>
             `\n## ${a}\n\n${pages
               .filter((c) => c.page.audience.includes(a as never))
-              .map((c) => `- [${c.page.title[c.lang]}](${base}${c.lang}/${c.page.id}.html): ${c.lang}, ${c.page.type}`)
+              .map((c) => `- [${c.page.title[c.lang]}](${online(c.lang, c.page.id)}): ${c.lang}, ${c.page.type}`)
               .join('\n')}\n`,
         )
         .join('')}`,
@@ -191,9 +197,8 @@ function htmlFiles(o: ArchiveOptions, base: string): Map<string, Buffer> {
 export function buildArchive(o: ArchiveOptions): { name: string; bytes: Buffer; manifest: BundleManifest } {
   if (!REVISION.test(o.revision)) throw new Error(`--revision is r1, r2…: "${o.revision}"`);
   const bundle = bundleContents(o);
-  const base = `${PAGES_DOCS_URL}/${o.preview ? 'preview' : `${o.productVersion}/${o.revision}`}/`;
   const files = new Map(bundle.files);
-  for (const [k, v] of htmlFiles(o, base)) files.set(k, v);
+  for (const [k, v] of htmlFiles(o)) files.set(k, v);
   const wiki = wikiFiles({
     wikiDir: o.wikiDir,
     manifest: o.manifest,

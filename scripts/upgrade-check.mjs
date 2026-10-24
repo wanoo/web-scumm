@@ -47,7 +47,17 @@ if (source.kind === 'previous') {
   const tags = JSON.parse(
     execFileSync(
       'gh',
-      ['release', 'list', '-R', 'wanoo/quest-n-click', '--exclude-drafts', '--limit', '50', '--json', 'tagName'],
+      [
+        'release',
+        'list',
+        '-R',
+        'Quest-n-Click/quest-n-click',
+        '--exclude-drafts',
+        '--limit',
+        '50',
+        '--json',
+        'tagName',
+      ],
       { encoding: 'utf8' },
     ),
   )
@@ -66,7 +76,7 @@ if (source.kind === 'release')
   show(
     `download ${source.asset}`,
     'gh',
-    ['release', 'download', source.tag, '-R', 'wanoo/quest-n-click', '-p', source.asset, '-D', base],
+    ['release', 'download', source.tag, '-R', 'Quest-n-Click/quest-n-click', '-p', source.asset, '-D', base],
     base,
   );
 show('create the game with the older engine', 'tar', ['-xzf', oldTgz, '-C', base], base);

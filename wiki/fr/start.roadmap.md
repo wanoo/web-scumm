@@ -3,7 +3,7 @@
 D’où vient quest'n'click, ce qu’on a décidé de laisser dehors, ce que chaque release a laissé ouvert et où en est
 chacun de ces points à la 4.4.0, et ce qui vient ensuite. L’histoire complète, release par release, est le
 [changelog](reference.changelog.md) et la feuille de route telle qu’elle a été écrite, conservée à
-[`blob/v4.4.0/docs/fr/ROADMAP.md`](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/ROADMAP.md).
+[`blob/v4.4.0/docs/fr/ROADMAP.md`](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/ROADMAP.md).
 
 <a name="overview"></a>
 
@@ -239,6 +239,6 @@ La liste d’aujourd’hui pour un changement : [Avant une pull request](contrib
 - [Changelog](reference.changelog.md), [Stabilité et support](start.stability.md),
   [Décisions et ADR](contribute.decisions.md).
 - La feuille de route telle qu’écrite jusqu’à la 4.4.0 :
-  [`blob/v4.4.0/docs/fr/ROADMAP.md`](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/ROADMAP.md).
+  [`blob/v4.4.0/docs/fr/ROADMAP.md`](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/ROADMAP.md).
 - [Mesures de performance](contribute.benchmarks.md) pour les mesures du solveur,
   [`docs/dev/PROOF-MATRIX.md`](../../docs/dev/PROOF-MATRIX.md) pour la matrice des jeux à trois personnages.

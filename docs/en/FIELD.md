@@ -2,22 +2,22 @@
 
 # Field proof: what only people and real devices can check
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/FIELD.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/FIELD.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/FIELD.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/FIELD.md).
 
-Now in: [Field passes › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.field-passes.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/FIELD.md#field-proof-what-only-people-and-real-devices-can-check)
+Now in: [Field passes › overview](https://quest-n-click.cleverapps.io/docs/contribute.field-passes#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/FIELD.md#field-proof-what-only-people-and-real-devices-can-check)
 
 ## Playtesters \(pass 4\)
 
-Now in: [Field passes › playtesters](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.field-passes.html#playtesters) · [Playtests](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.playtests.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/FIELD.md#playtesters-pass-4)
+Now in: [Field passes › playtesters](https://quest-n-click.cleverapps.io/docs/contribute.field-passes#playtesters) · [Playtests](https://quest-n-click.cleverapps.io/docs/create.playtests) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/FIELD.md#playtesters-pass-4)
 
 ## The sheet
 
-Now in: [Field passes › sheet](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.field-passes.html#sheet) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/FIELD.md#the-sheet)
+Now in: [Field passes › sheet](https://quest-n-click.cleverapps.io/docs/contribute.field-passes#sheet) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/FIELD.md#the-sheet)
 
 ## The Field Kit \(4.1.18\)
 
-Now in: [Field passes › field-kit](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.field-passes.html#field-kit) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/FIELD.md#the-field-kit-4118)
+Now in: [Field passes › field-kit](https://quest-n-click.cleverapps.io/docs/contribute.field-passes#field-kit) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/FIELD.md#the-field-kit-4118)
 
 ## Carrying a pass to a new candidate \(4.1.20\)
 
-Now in: [Field passes › carrying-a-pass](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.field-passes.html#carrying-a-pass) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/FIELD.md#carrying-a-pass-to-a-new-candidate-4120)
+Now in: [Field passes › carrying-a-pass](https://quest-n-click.cleverapps.io/docs/contribute.field-passes#carrying-a-pass) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/FIELD.md#carrying-a-pass-to-a-new-candidate-4120)

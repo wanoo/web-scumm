@@ -73,7 +73,7 @@ l'application Clever Cloud, par `clever ssh` ».
 > - version: 4.2.3
 > - volume: 508 lignes de journal
 > - conditions: les plus petits plans, l'organisation de test du mainteneur
-> - source: [QUALIF-4.2.3-REFERENCE.md §4](https://github.com/wanoo/quest-n-click/blob/c00b44fcffe56ffa99f9d2228297414ebe3145ac/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §4](https://github.com/Quest-n-Click/quest-n-click/blob/c00b44fcffe56ffa99f9d2228297414ebe3145ac/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 <a name="expected-result"></a>
 

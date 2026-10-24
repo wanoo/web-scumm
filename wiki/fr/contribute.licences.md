@@ -18,7 +18,7 @@ cette page les résume dans les deux langues.
 | Les polices sous `public/fonts` et `src/engine/dom/fonts` | SIL Open Font License 1.1 | `src/engine/dom/fonts/OFL.txt` ; `licenses/THIRD_PARTY_NOTICES.txt` dans un build |
 
 L'attribution que demandent les assets sous CC BY 4.0 est : « Artwork by Wano, from the quest'n'click project, formerly
-web-scumm (https://github.com/wanoo/quest-n-click) ». En bref, comme le dit le README : code MIT ; images, bruitages et
+web-scumm (https://github.com/Quest-n-Click/quest-n-click) ». En bref, comme le dit le README : code MIT ; images, bruitages et
 thème du jeu d'exemple CC BY 4.0 (attribution « Wano ») ; le thème est le *Lac des cygnes* de Tchaïkovski (domaine
 public), transcrit et arrangé pour le projet ; polices SIL OFL.
 

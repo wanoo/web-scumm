@@ -761,10 +761,9 @@
     },
     "sw-skips-docs": {
       "claimTextHash": "734e3bbcf4074da50de740cabf8529998df9ae5544d64726fdac336c95e26ef2",
-      "testFileHash": "3713c41116f66f0ded8a40a78089c3e82f74ae7342da3ae486ca6628f1c2bdc7",
+      "testFileHash": "ce829e53a4795050aa0d28e91f63f470d9c31b28800521a6bb4767d0b42de1be",
       "reviewers": [
-        { "name": "claude-4.5-writers", "kind": "ai", "relation": "author", "date": "2026-10-23" },
-        { "name": "wanoo", "kind": "human", "relation": "independent", "date": "2026-10-24" }
+        { "name": "claude-452-org", "kind": "ai", "relation": "author", "date": "2026-10-24" }
       ]
     },
     "truncated-never-solved": {

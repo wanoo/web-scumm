@@ -106,7 +106,7 @@ mainteneur agisse. Le squatting est un risque accepté jusqu'à la publication n
 
    ```sh
    # n'importe où, connecté à npm en tant que mainteneur
-   npm trust github <name> --repo wanoo/quest-n-click --file release.yml --allow-stage-publish
+   npm trust github <name> --repo Quest-n-Click/quest-n-click --file release.yml --allow-stage-publish
    ```
 
    - La CI peut alors mettre en scène, jamais publier.

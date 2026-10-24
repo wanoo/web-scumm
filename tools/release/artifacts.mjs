@@ -153,6 +153,19 @@ export const ARTIFACTS = [
     published: '{proj}-{tag}-dist.tar.gz',
     sbom: '{proj}-{tag}-sbom.cdx.json',
   },
+  // The game and the Studio's demo built for the base path /demo/ (4.5.2, D52): what the project's website,
+  // quest-n-click.cleverapps.io, downloads from the latest release, checks against the sums (and the attestation) and
+  // serves at /demo/, its service worker scoped there. The shape the engine's Pages job built up to 4.5.1.
+  {
+    id: 'game:web',
+    kind: 'game',
+    candidate: 'site/web.tar.gz',
+    artifact: 'candidate-site',
+    job: 'release-core',
+    published: '{proj}-{tag}-web.tar.gz',
+    sbom: '{proj}-{tag}-sbom.cdx.json',
+    since: '4.5.2',
+  },
   {
     id: 'game:assets',
     kind: 'game',

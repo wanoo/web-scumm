@@ -139,7 +139,7 @@ l’étape 4 est refusé, et la laisse telle qu’elle était. N’ayez quand m�
 > - version: 4.2.2
 > - volume: 508 lignes (sauvegarde à la révision 1) ; puis 593 lignes et 2 opérations rejouées (sauvegarde à la révision 63, tête à 65)
 > - conditions: organisation Clever Cloud de test, région par ; add-on PostgreSQL plan DEV, Cellar plan S ; restauration lancée depuis une machine à Paris, démarrage de `tsx` compris ; moteur au commit 52e68932, puis c66fbf56 sur main avant le tag 4.2.3 (package.json indiquait 4.2.2) ; un seul échantillon chacun
-> - source: [QUALIF-4.2.3-REFERENCE.md §4](https://github.com/wanoo/quest-n-click/blob/edb8d39a03a3ad6ba9aa8f33e1ab5473d3d7a34e/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §4](https://github.com/Quest-n-Click/quest-n-click/blob/edb8d39a03a3ad6ba9aa8f33e1ab5473d3d7a34e/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 > [!LIMIT id=rpo]
 > Ce qu’une restauration peut perdre, ce sont les opérations confirmées mais pas encore expédiées vers le bucket au

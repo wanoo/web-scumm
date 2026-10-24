@@ -61,4 +61,4 @@ Next:
   npm run validate && npm run solve
   (provenance.json lists the borrowed placeholder art: add an entry for each asset you make)
   npm run dev         # then open the URL on your phone, landscape; ?edit=start to place things
-Write the story in games/${id}/storyboard.json, rooms in games/${id}/rooms/, characters in cast.ts. See https://github.com/wanoo/quest-n-click/wiki/EN-Create-Principles.`);
+Write the story in games/${id}/storyboard.json, rooms in games/${id}/rooms/, characters in cast.ts. See https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Create-Principles.`);

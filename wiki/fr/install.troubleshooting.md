@@ -72,7 +72,7 @@ dans un projet créé, ou à `npx create-quest-n-click`.
 dépend de `^<version>`, que npm cherche dans le registre.
 
 **Correction.** Dans le projet créé, installez l'archive : `npm install
-https://github.com/wanoo/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz`. Pour un nouveau
+https://github.com/Quest-n-Click/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz`. Pour un nouveau
 projet, passez `--engine=$T` : [Installer depuis l'archive de la release](install.from-archive.md).
 
 <a name="node-version"></a>

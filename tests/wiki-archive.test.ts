@@ -97,7 +97,7 @@ describe('the archive', () => {
     expect(Object.keys(m)).not.toContain('published');
     expect(Object.keys(m)).not.toContain('state');
     expect(text(files, 'html/en/create.rooms.html')).toContain(
-      'Whether it is published, and which one is current, is recorded at <a href="https://wanoo.github.io/quest-n-click/docs/publication.json">',
+      'Whether it is published, and which one is current, is recorded at <a href="https://raw.githubusercontent.com/wiki/Quest-n-Click/quest-n-click/publication.json">',
     );
   });
 
@@ -115,32 +115,31 @@ describe('the archive', () => {
     expect(html).toContain('<a href="create.exits.html#doors">a door</a>');
     expect(html).toContain('<a href="../fr/create.rooms.html">Français</a>');
     expect(html).toContain(
-      `href="https://github.com/wanoo/quest-n-click/blob/${'c'.repeat(40)}/src/engine/core/save.ts#L1"`,
+      `href="https://github.com/Quest-n-Click/quest-n-click/blob/${'c'.repeat(40)}/src/engine/core/save.ts#L1"`,
     );
     expect(html).toContain('<img src="../assets/room.png" alt="A room" title="The hall" loading="lazy">');
-    expect(html).toContain(
-      '<link rel="canonical" href="https://wanoo.github.io/quest-n-click/docs/4.5.0/r1/en/create.rooms.html">',
-    );
+    expect(html).toContain('<link rel="canonical" href="https://quest-n-click.cleverapps.io/docs/create.rooms">');
     // A page not published keeps its text and says it is coming.
     expect(html).toContain('the DSL (coming)');
     // The anchors are the source's ids, in every output.
     expect(html).toContain('<h2 id="walkable-zones">Walkable zones</h2>');
     expect(text(files, 'html/fr/create.rooms.html')).toContain('id="walkable-zones"');
     expect(text(files, 'html/sitemap.xml')).toContain(
-      '<loc>https://wanoo.github.io/quest-n-click/docs/4.5.0/r1/fr/create.exits.html</loc>',
+      '<loc>https://quest-n-click.cleverapps.io/fr/docs/create.exits</loc>',
     );
-    expect(text(files, 'html/llms.txt')).toContain(
-      'https://wanoo.github.io/quest-n-click/docs/4.5.0/r1/en/create.rooms.html',
-    );
+    expect(text(files, 'html/llms.txt')).toContain('https://quest-n-click.cleverapps.io/docs/create.rooms');
     // The wiki's own links: public URLs, the footer says current and where the permalinks are.
     expect(text(files, 'wiki/en/EN-Create-Rooms.md')).toContain('[a door](EN-Create-Exits#doors)');
     expect(text(files, 'wiki/_Footer.md')).toContain("quest'n'click 4.5.0 r1");
   });
 
-  it('a revision says its number, and its permalinks hold it', () => {
+  it("a revision says its number; its links online name the website's latest page, no versioned one (D52)", () => {
     const r2 = readArchive(buildArchive(options({ revision: 'r2' })).bytes);
     expect(r2.manifest.docRevisionNumber).toBe('r2');
-    expect(text(r2.files, 'html/sitemap.xml')).toContain('/docs/4.5.0/r2/en/create.rooms.html');
+    expect(text(r2.files, 'html/sitemap.xml')).toContain(
+      '<loc>https://quest-n-click.cleverapps.io/docs/create.rooms</loc>',
+    );
+    expect(text(r2.files, 'html/sitemap.xml')).not.toMatch(/\/docs\/4\.5\.0\//);
     expect(text(r2.files, 'html/en/create.rooms.html')).toContain("quest'n'click 4.5.0 · r2");
   });
 
@@ -149,7 +148,7 @@ describe('the archive', () => {
     expect(p.manifest.preview).toBe(true);
     const notes = text(p.files, 'html/fr/studio.notes.html');
     expect(notes).toContain('Aperçu de la documentation de la 4.5.0');
-    expect(notes).toContain('href="https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/"');
+    expect(notes).toContain('href="https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/"');
     expect(notes).not.toContain('rel="canonical"');
   });
 

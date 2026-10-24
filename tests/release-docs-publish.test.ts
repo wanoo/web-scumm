@@ -168,8 +168,10 @@ describe('docs-publish.yml', () => {
     expect(step(/A pre-release leaves the wiki alone/)).toMatch(/if: contains\(inputs\.version, '-'\)/);
   });
 
-  it('ends by starting a pages-only ci run on main, whose Pages job assembles /docs/ again', () => {
-    expect(all.at(-1)).toMatch(/gh workflow run ci\.yml -R "\$REPO" --ref main -f pages-only=true/);
+  it('ends by saying the website takes the publication by itself: the engine starts no Pages run (4.5.2, D52)', () => {
+    expect(all.at(-1)).toMatch(/::notice::https:\/\/quest-n-click\.cleverapps\.io takes this publication/);
+    expect(read('docs-publish')).not.toMatch(/gh workflow run|pages-only/);
+    expect(read('docs-publish')).toMatch(/^ {2}actions: read$/m);
   });
 });
 
@@ -187,6 +189,48 @@ describe('release.yml', () => {
     // The deploy key only, never every secret.
     expect(docs).not.toMatch(/secrets: inherit/);
     expect(docs).toMatch(/secrets:\n {6}WIKI_DEPLOY_KEY: \$\{\{ secrets\.WIKI_DEPLOY_KEY \}\}/);
+  });
+
+  it('ends by asking the website to revalidate, after the release and docs-publish, never failing the release (D52)', () => {
+    const site = job(yml, 'site-revalidate');
+    expect(site).toMatch(/^ {4}needs: \[release, docs-publish\]$/m);
+    // After docs-publish whatever it did (a release without an archive skips it), only once the release (ship verify
+    // its last check) succeeded.
+    expect(site).toMatch(/^ {4}if: always\(\) && needs\.release\.result == 'success'$/m);
+    expect(site).toMatch(/^ {4}continue-on-error: true$/m);
+    expect(site).toMatch(/^ {4}timeout-minutes: \d+$/m);
+    expect(site).toMatch(/^ {4}permissions: \{\}$/m);
+    expect(site).toMatch(/SITE_URL: \$\{\{ vars\.SITE_URL \|\| 'https:\/\/quest-n-click\.cleverapps\.io' \}\}/);
+    expect(site).toMatch(/SITE_REVALIDATE_SECRET: \$\{\{ secrets\.SITE_REVALIDATE_SECRET \}\}/);
+    const [run] = steps(site);
+    // No secret: a notice, nothing called. An address that is not https://: a warning, the token not sent.
+    expect(run).toMatch(/if \[ -z "\$SITE_REVALIDATE_SECRET" \]; then\n\s+echo "::notice::[^"$]*"\n\s+exit 0/);
+    expect(run).toMatch(/case "\$SITE_URL" in\n\s+https:\/\/\*\) ;;\n\s+\*\) echo "::warning::[^"$]*"; exit 0 ;;/);
+    expect(run.indexOf('case "$SITE_URL" in')).toBeLessThan(run.indexOf('curl '));
+    // The call: POST, the Bearer secret, a timeout; tried again on a network failure or a 5xx only, three times.
+    expect(run).toMatch(/for i in 1 2 3; do/);
+    expect(run).toMatch(
+      /code=\$\(curl -sS -o "\$out" -w '%\{http_code\}' --max-time \d+ -X POST -H "Authorization: Bearer \$SITE_REVALIDATE_SECRET" "\$url"\) \|\| code=000/,
+    );
+    expect(run).toMatch(/if \[ "\$code" = 000 \] \|\| \[ "\$code" -ge 500 \]; then/);
+    expect(run).toMatch(/url="\$\{SITE_URL%\/\}\/api\/revalidate"/);
+    // The answer is shown between a fresh stop-commands token and its end, compacted by jq when it is JSON.
+    expect(run).toMatch(
+      /token=\$\(openssl rand -hex \d+\)\n\s+echo "::stop-commands::\$token"\n\s+jq -c \. "\$out" 2>\/dev\/null \|\| cat "\$out"\n\s+echo\n\s+echo "::\$token::"/,
+    );
+    // Nothing of the body in a workflow command: the warnings name the HTTP code and `.ok` / `.changed` only, read by
+    // jq and stripped of newlines and `::`; no other line prints the answer.
+    expect(run).toMatch(
+      /field\(\) \{ \{ jq -r "\.\$1" "\$out" 2>\/dev\/null \|\| true; \} \| tr -d '\\r\\n:' \| head -c \d+ \|\| true; \}/,
+    );
+    const commands = run.split('\n').filter((l) => /echo "::(warning|error|notice)/.test(l));
+    expect(commands.length).toBe(4);
+    for (const l of commands) expect(l, l).not.toMatch(/\$out|\$body|cat |jq /);
+    expect(run).toMatch(/ok=\$\(field ok\)/);
+    expect(run).toMatch(/changed=\$\(field changed\)/);
+    expect(run.match(/cat "\$out"/g)?.length).toBe(1);
+    // The secret is named once in the workflow: this job's environment.
+    expect(yml.match(/secrets\.SITE_REVALIDATE_SECRET/g)?.length).toBe(1);
   });
 
   it('hands the archive on from its last step, after ship verify: an output is read only from a job that succeeded', () => {
@@ -241,20 +285,11 @@ describe('candidate.yml and ci.yml', () => {
     );
   });
 
-  it("Pages' /docs/ is assembled from the releases on main, before the artifact is uploaded, never built from the branch", () => {
+  it("ci builds no /docs/ and deploys no Pages: the organization's site assembles it from the releases (4.5.2, D51)", () => {
     const yml = read('ci');
-    const check = job(yml, 'check');
-    const pages = check.indexOf('npm run -s wiki -- pages --repo');
-    expect(pages).toBeGreaterThan(0);
-    expect(pages).toBeLessThan(check.indexOf('upload-pages-artifact'));
-    expect(check.slice(pages - 300, pages)).toMatch(/if: github\.ref == 'refs\/heads\/main'/);
-    expect(yml).not.toMatch(/wiki -- (build|archive|bundle)/);
-    // The archives kept by the release list, downloads retried; a failure fails the job: no Pages without /docs/.
-    expect(check).toMatch(/key: docs-releases-\$\{\{ hashFiles\('\.cache\/docs-releases\.txt'\) \}\}/);
-    expect(check).toMatch(/--cache \.cache\/docs-releases --out dist\/docs/);
-    expect(check).toMatch(/this step fails and Pages is not\n\s+# deployed/);
-    expect(check.slice(pages)).not.toMatch(/continue-on-error/);
-    // docs-publish starts it by hand; a dispatched run cancels no push's run.
+    expect(yml).not.toMatch(/wiki -- (build|archive|bundle|pages)/);
+    expect(yml).not.toMatch(/upload-pages-artifact|deploy-pages/);
+    // A run started by hand still runs everything, and cancels no push's run.
     expect(keys(top(yml, 'on'), 2)).toContain('workflow_dispatch');
     expect(top(yml, 'concurrency')).toMatch(
       /cancel-in-progress: \$\{\{ github\.event_name != 'workflow_dispatch' \}\}/,

@@ -85,7 +85,7 @@ served again, and a backup taken just before, to go back to if needed.
 > - version: 4.2.2
 > - volume: the demo game, revision 52; one new migration
 > - conditions: reference deployment phase B, 52e68932 → c66fbf56 on main before the 4.2.3 tag (package.json said 4.2.2); worker then studio, XS apps, PostgreSQL DEV, region par
-> - source: [QUALIF-4.2.3-REFERENCE.md §1 and §5](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §1 and §5](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 <a name="expected-result"></a>
 

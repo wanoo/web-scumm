@@ -2,46 +2,46 @@
 
 # Studio: local WYSIWYG authoring, and the open door for any AI
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md).
 
-Now in: [The local Studio: overview and launch › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.overview.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#studio-local-wysiwyg-authoring-and-the-open-door-for-any-ai)
+Now in: [The local Studio: overview and launch › overview](https://quest-n-click.cleverapps.io/docs/studio.overview#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#studio-local-wysiwyg-authoring-and-the-open-door-for-any-ai)
 
 ## Local and LAN security
 
-Now in: [Local and LAN security › local-and-lan](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.security.html#local-and-lan) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#local-and-lan-security)
+Now in: [Local and LAN security › local-and-lan](https://quest-n-click.cleverapps.io/docs/studio.security#local-and-lan) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#local-and-lan-security)
 
 ## Layout of the Studio
 
-Now in: [The local Studio: overview and launch › layout](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.overview.html#layout) · [Edit a room](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.edit-room.html) · [Storyboard](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.storyboard.html) · [Check: validator, solver, critical path, heat, health, coverage](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.check.html) · [Play and replay a session](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.sessions.html) · [Map](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.map.html) · [Notes](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.notes.html) · [Language and objectives](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.language-objectives.html) · [Voices and the heroes × languages matrix](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.voices-matrix.html) · [Before and after captures](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.captures.html) · [Semantic diff](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.semantic-diff.html) · [Rule explainer](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.rule-explainer.html) · [Music](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.music.html) · [Preview, apply, undo](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.preview-apply.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#layout-of-the-studio)
+Now in: [The local Studio: overview and launch › layout](https://quest-n-click.cleverapps.io/docs/studio.overview#layout) · [Edit a room](https://quest-n-click.cleverapps.io/docs/studio.edit-room) · [Storyboard](https://quest-n-click.cleverapps.io/docs/studio.storyboard) · [Check: validator, solver, critical path, heat, health, coverage](https://quest-n-click.cleverapps.io/docs/studio.check) · [Play and replay a session](https://quest-n-click.cleverapps.io/docs/studio.sessions) · [Map](https://quest-n-click.cleverapps.io/docs/studio.map) · [Notes](https://quest-n-click.cleverapps.io/docs/studio.notes) · [Language and objectives](https://quest-n-click.cleverapps.io/docs/studio.language-objectives) · [Voices and the heroes × languages matrix](https://quest-n-click.cleverapps.io/docs/studio.voices-matrix) · [Before and after captures](https://quest-n-click.cleverapps.io/docs/studio.captures) · [Semantic diff](https://quest-n-click.cleverapps.io/docs/studio.semantic-diff) · [Rule explainer](https://quest-n-click.cleverapps.io/docs/studio.rule-explainer) · [Music](https://quest-n-click.cleverapps.io/docs/studio.music) · [Preview, apply, undo](https://quest-n-click.cleverapps.io/docs/studio.preview-apply) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#layout-of-the-studio)
 
 ### Structured editing \(3.4\)
 
-Now in: [Edit a room › structured-editing](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.edit-room.html#structured-editing) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#structured-editing-34)
+Now in: [Edit a room › structured-editing](https://quest-n-click.cleverapps.io/docs/studio.edit-room#structured-editing) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#structured-editing-34)
 
 ## The API \(/\_\_studio/api/\*, JSON, dev server only\)
 
-Now in: [Studio API › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.api.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#the-api-__studioapi-json-dev-server-only)
+Now in: [Studio API › overview](https://quest-n-click.cleverapps.io/docs/studio.api#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#the-api-__studioapi-json-dev-server-only)
 
 ### Texts
 
-Now in: [Studio API › texts](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.api.html#texts) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#texts)
+Now in: [Studio API › texts](https://quest-n-click.cleverapps.io/docs/studio.api#texts) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#texts)
 
 ### Serving
 
-Now in: [Studio API › serving](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.api.html#serving) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#serving)
+Now in: [Studio API › serving](https://quest-n-click.cleverapps.io/docs/studio.api#serving) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#serving)
 
 ## Assets tab
 
-Now in: [Assets and cutting › assets-tab](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.assets.html#assets-tab) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#assets-tab)
+Now in: [Assets and cutting › assets-tab](https://quest-n-click.cleverapps.io/docs/studio.assets#assets-tab) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#assets-tab)
 
 ## Demo mode
 
-Now in: [Demo mode and studio-apply › demo-mode](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.demo-mode.html#demo-mode) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#demo-mode)
+Now in: [Demo mode and studio-apply › demo-mode](https://quest-n-click.cleverapps.io/docs/studio.demo-mode#demo-mode) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#demo-mode)
 
 ## Assistant
 
-Now in: [The Assistant: bring your own key › assistant](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.assistant.html#assistant) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#assistant)
+Now in: [The Assistant: bring your own key › assistant](https://quest-n-click.cleverapps.io/docs/studio.assistant#assistant) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#assistant)
 
 ## Any AI, not one AI
 
-Now in: [Local MCP: setting up each client › any-ai](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.mcp-setup.html#any-ai) · [Working with an AI](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.working-with-ai.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#any-ai-not-one-ai)
+Now in: [Local MCP: setting up each client › any-ai](https://quest-n-click.cleverapps.io/docs/studio.mcp-setup#any-ai) · [Working with an AI](https://quest-n-click.cleverapps.io/docs/create.working-with-ai) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/STUDIO.md#any-ai-not-one-ai)

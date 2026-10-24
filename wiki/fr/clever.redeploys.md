@@ -43,7 +43,7 @@ du déploiement, et elle ne consigne aucune ligne `stopping`.
 > - version: 4.2.2
 > - volume: deux redéploiements, une sonde qui lit `/readyz` chaque seconde et écrit une note toutes les 3 s
 > - conditions: déploiement de référence, application studio XS, une instance, PostgreSQL DEV, région par ; moteur au commit dd66b38d sur main avant le tag 4.2.3 (package.json disait 4.2.2) ; un échantillon par déploiement
-> - source: [QUALIF-4.2.3-REFERENCE.md §5 bis](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §5 bis](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 En tout, environ une minute d’écritures lentes ou refusées par déploiement, aucune perdue.
 
@@ -55,7 +55,7 @@ En tout, environ une minute d’écritures lentes ou refusées par déploiement,
 > - version: 4.2.2
 > - volume: deux déploiements (52e68932 → c66fbf56, puis c66fbf56 → dd66b38d), la même sonde
 > - conditions: déploiement de référence, application studio XS, PostgreSQL DEV, région par ; commits du moteur sur main avant le tag 4.2.3 (package.json disait 4.2.2)
-> - source: [QUALIF-4.2.3-REFERENCE.md §5 et §5 bis](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §5 et §5 bis](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 Pendant que les deux instances tournent, elles tiennent deux fois plus de connexions : sur le plan PostgreSQL DEV (5),
 le travail de fond échoue sur « too many connections » à chaque déploiement, et une écriture d’une version plus

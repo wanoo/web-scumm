@@ -28,7 +28,7 @@ from the release archive under `node_modules/quest-n-click`, playing in your bro
 - Node.js 22.12 or newer; 22.13 if you will use the local Studio ([Requirements](install.requirements.md#node)).
 - Python 3, to prepare the art with `npm run assets` ([Requirements](install.requirements.md#python)).
 - ffmpeg is optional: it converts sounds and videos ([Requirements](install.requirements.md#ffmpeg)).
-- A release version: take the latest, on <https://github.com/wanoo/quest-n-click/releases/latest>. This page's commands
+- A release version: take the latest, on <https://github.com/Quest-n-Click/quest-n-click/releases/latest>. This page's commands
   and outputs were run with 4.4.0, a past release: put the latest version in their place.
 
 <a name="where-to-run"></a>
@@ -44,11 +44,11 @@ folder itself). Every command after `cd my-game` runs inside the created project
 
 <!-- step: set-archive-url -->
 1. Name the archive of the release you want. The URL pattern is
-   `https://github.com/wanoo/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz`:
+   `https://github.com/Quest-n-Click/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz`:
 
    ```bash
    # in the folder that will contain the project
-   T=https://github.com/wanoo/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
+   T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
    ```
 
 <!-- step: create-project -->
@@ -106,7 +106,7 @@ To check the archive before you run it, download it with the release's sums and 
 
 ```bash
 # in the folder that will contain the project
-gh release download v4.4.0 --repo wanoo/quest-n-click -p 'quest-n-click-4.4.0.tgz' -p 'quest-n-click-v4.4.0-SHA256SUMS'
+gh release download v4.4.0 --repo Quest-n-Click/quest-n-click -p 'quest-n-click-4.4.0.tgz' -p 'quest-n-click-v4.4.0-SHA256SUMS'
 shasum -a 256 -c --ignore-missing quest-n-click-v4.4.0-SHA256SUMS
 npx --package=./quest-n-click-4.4.0.tgz quest-n-click create my-game "My Game" --engine=file:../quest-n-click-4.4.0.tgz
 ```
@@ -125,7 +125,7 @@ The `file:` path is read from the project's folder, hence the `../`. `shasum` pr
 `create` ends with:
 
 ```text
-my-game: "My Game" created (quest-n-click https://github.com/wanoo/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz).
+my-game: "My Game" created (quest-n-click https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz).
 Next:
   cd my-game
   npm install

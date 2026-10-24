@@ -22,7 +22,7 @@ seule l’observation d’un serveur ou d’une personne élève la confiance au
 
 Le joueur d’un jeu qui déclare des catégories de speedrun (`speedrun` dans son contenu). Le moteur a le speedrun depuis
 la 4.1.14 « Time Attack » ; cette page vaut depuis cette version. Le jeu d’exemple sur
-[wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/) ne déclare aucune catégorie : son menu de pause
+[quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/) ne déclare aucune catégorie : son menu de pause
 n’a pas de ligne Speedrun ; le jeu de référence du dépôt du moteur (`games/reference`) en déclare plusieurs.
 
 <a name="prerequisites"></a>
@@ -90,12 +90,12 @@ peut pas envoyer de faux temps.
 
    ```sh
    # dans le dépôt du moteur, sur votre machine
-   npm run speedrun:overlay -- --port=7777 --origin=https://wanoo.github.io
+   npm run speedrun:overlay -- --port=7777 --origin=https://quest-n-click.cleverapps.io
    ```
 
    ```sh
    # dans un projet créé, sur votre machine
-   node node_modules/quest-n-click/tools/speedrun/overlay.mjs --port=7777 --origin=https://wanoo.github.io
+   node node_modules/quest-n-click/tools/speedrun/overlay.mjs --port=7777 --origin=https://quest-n-click.cleverapps.io
    ```
 
    Puis ouvrez le jeu à `https://…/?speedrunTool=7777`. Mettez l’adresse de votre jeu dans `--origin`.
@@ -107,7 +107,7 @@ peut pas envoyer de faux temps.
 
    ```sh
    # dans le dépôt du moteur, sur votre machine
-   npm run speedrun:livesplit -- serve --port=7778 --origin=https://wanoo.github.io
+   npm run speedrun:livesplit -- serve --port=7778 --origin=https://quest-n-click.cleverapps.io
    ```
 
    `--livesplit=ws://…` désigne une autre adresse de LiveSplit.
@@ -172,7 +172,7 @@ classement sur un Bridge se supprime avec le jeton donné par le Bridge à l’e
 
 > [!LIMIT id=livesplit-obs-not-tried]
 > OBS et LiveSplit ne sont testés que par des machines. Une vraie session par une personne, c’est la passe
-> `livesplit-obs`, ouverte ([#81](https://github.com/wanoo/quest-n-click/issues/81)) à la 4.4.0.
+> `livesplit-obs`, ouverte ([#81](https://github.com/Quest-n-Click/quest-n-click/issues/81)) à la 4.4.0.
 
 <a name="references"></a>
 

@@ -2,42 +2,42 @@
 
 # Making a game with an AI assistant: the workflow
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md).
 
-Now in: [Working with an AI › workflow](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.working-with-ai.html#workflow) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#making-a-game-with-an-ai-assistant-the-workflow)
+Now in: [Working with an AI › workflow](https://quest-n-click.cleverapps.io/docs/create.working-with-ai#workflow) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#making-a-game-with-an-ai-assistant-the-workflow)
 
 ## 1. Story first, as data
 
-Now in: [The storyboard, source of truth › story-first](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.storyboard.html#story-first) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#1-story-first-as-data)
+Now in: [The storyboard, source of truth › story-first](https://quest-n-click.cleverapps.io/docs/create.storyboard#story-first) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#1-story-first-as-data)
 
 ## 2. Validate the storyboard on a page
 
-Now in: [Review pages › validate-the-storyboard](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.review-pages.html#validate-the-storyboard) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#2-validate-the-storyboard-on-a-page)
+Now in: [Review pages › validate-the-storyboard](https://quest-n-click.cleverapps.io/docs/create.review-pages#validate-the-storyboard) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#2-validate-the-storyboard-on-a-page)
 
 ## 3. Generate the art
 
-Now in: [Images: prompts, cutting sheets, transparency, scale › generate-the-art](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.images.html#generate-the-art) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#3-generate-the-art)
+Now in: [Images: prompts, cutting sheets, transparency, scale › generate-the-art](https://quest-n-click.cleverapps.io/docs/create.images#generate-the-art) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#3-generate-the-art)
 
 ## 4. Cut, key and review
 
-Now in: [Images: prompts, cutting sheets, transparency, scale › cut-and-key](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.images.html#cut-and-key) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#4-cut-key-and-review)
+Now in: [Images: prompts, cutting sheets, transparency, scale › cut-and-key](https://quest-n-click.cleverapps.io/docs/create.images#cut-and-key) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#4-cut-key-and-review)
 
 ## 5. Write the rooms
 
-Now in: [Rooms › write-the-rooms](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.rooms.html#write-the-rooms) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#5-write-the-rooms)
+Now in: [Rooms › write-the-rooms](https://quest-n-click.cleverapps.io/docs/create.rooms#write-the-rooms) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#5-write-the-rooms)
 
 ## 6. Place everything
 
-Now in: [Placement and stage › place-everything](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.placement.html#place-everything) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#6-place-everything)
+Now in: [Placement and stage › place-everything](https://quest-n-click.cleverapps.io/docs/studio.placement#place-everything) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#6-place-everything)
 
 ## 7. Prove it plays
 
-Now in: [Checking your game › prove-it-plays](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.checking.html#prove-it-plays) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#7-prove-it-plays)
+Now in: [Checking your game › prove-it-plays](https://quest-n-click.cleverapps.io/docs/create.checking#prove-it-plays) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#7-prove-it-plays)
 
 ## 8. Ship
 
-Now in: [Build and release a game › ship](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.build-release.html#ship) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#8-ship)
+Now in: [Build and release a game › ship](https://quest-n-click.cleverapps.io/docs/create.build-release#ship) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#8-ship)
 
 ## Working with sub-agents
 
-Now in: [Working with an AI › sub-agents](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.working-with-ai.html#sub-agents) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#working-with-sub-agents)
+Now in: [Working with an AI › sub-agents](https://quest-n-click.cleverapps.io/docs/create.working-with-ai#sub-agents) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/WORKFLOW.md#working-with-sub-agents)

@@ -2,34 +2,34 @@
 
 # Le solveur
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md).
 
-Désormais dans : [Ce que prouve le solveur › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.solver-proofs.html#overview) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#le-solveur)
+Désormais dans : [Ce que prouve le solveur › overview](https://quest-n-click.cleverapps.io/fr/docs/create.solver-proofs#overview) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#le-solveur)
 
 ## Ce qu'il prouve
 
-Désormais dans : [Ce que prouve le solveur › what-it-proves](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.solver-proofs.html#what-it-proves) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#ce-quil-prouve)
+Désormais dans : [Ce que prouve le solveur › what-it-proves](https://quest-n-click.cleverapps.io/fr/docs/create.solver-proofs#what-it-proves) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#ce-quil-prouve)
 
 ## Comment un état est gardé
 
-Désormais dans : [Ce que prouve le solveur › states](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.solver-proofs.html#states) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#comment-un-état-est-gardé)
+Désormais dans : [Ce que prouve le solveur › states](https://quest-n-click.cleverapps.io/fr/docs/create.solver-proofs#states) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#comment-un-état-est-gardé)
 
 ## Ce qui replie les états : les abstractions
 
-Désormais dans : [Ce que prouve le solveur › abstractions](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.solver-proofs.html#abstractions) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#ce-qui-replie-les-états--les-abstractions)
+Désormais dans : [Ce que prouve le solveur › abstractions](https://quest-n-click.cleverapps.io/fr/docs/create.solver-proofs#abstractions) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#ce-qui-replie-les-états--les-abstractions)
 
 ## Lire le profil
 
-Désormais dans : [Options du solveur › profile](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.solver-options.html#profile) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#lire-le-profil)
+Désormais dans : [Options du solveur › profile](https://quest-n-click.cleverapps.io/fr/docs/create.solver-options#profile) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#lire-le-profil)
 
 ## Les longues preuves : budgets, points de reprise, mémoire
 
-Désormais dans : [Options du solveur › budgets](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.solver-options.html#budgets) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#les-longues-preuves--budgets-points-de-reprise-mémoire)
+Désormais dans : [Options du solveur › budgets](https://quest-n-click.cleverapps.io/fr/docs/create.solver-options#budgets) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#les-longues-preuves--budgets-points-de-reprise-mémoire)
 
 ## Les workers
 
-Désormais dans : [Options du solveur › workers](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.solver-options.html#workers) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#les-workers)
+Désormais dans : [Options du solveur › workers](https://quest-n-click.cleverapps.io/fr/docs/create.solver-options#workers) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#les-workers)
 
 ## La matrice de preuve
 
-Désormais dans : [Ce que prouve le solveur › proof-matrix](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.solver-proofs.html#proof-matrix) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#la-matrice-de-preuve)
+Désormais dans : [Ce que prouve le solveur › proof-matrix](https://quest-n-click.cleverapps.io/fr/docs/create.solver-proofs#proof-matrix) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/SOLVER.md#la-matrice-de-preuve)

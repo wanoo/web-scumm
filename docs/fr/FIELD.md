@@ -2,22 +2,22 @@
 
 # Preuve terrain : ce que seuls des gens et de vrais appareils vérifient
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/FIELD.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/FIELD.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/FIELD.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/FIELD.md).
 
-Désormais dans : [Passes de terrain › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.field-passes.html#overview) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/FIELD.md#preuve-terrain--ce-que-seuls-des-gens-et-de-vrais-appareils-vérifient)
+Désormais dans : [Passes de terrain › overview](https://quest-n-click.cleverapps.io/fr/docs/contribute.field-passes#overview) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/FIELD.md#preuve-terrain--ce-que-seuls-des-gens-et-de-vrais-appareils-vérifient)
 
 ## Testeurs \(passe 4\)
 
-Désormais dans : [Passes de terrain › playtesters](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.field-passes.html#playtesters) · [Playtests](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.playtests.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/FIELD.md#testeurs-passe-4)
+Désormais dans : [Passes de terrain › playtesters](https://quest-n-click.cleverapps.io/fr/docs/contribute.field-passes#playtesters) · [Playtests](https://quest-n-click.cleverapps.io/fr/docs/create.playtests) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/FIELD.md#testeurs-passe-4)
 
 ## La fiche
 
-Désormais dans : [Passes de terrain › sheet](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.field-passes.html#sheet) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/FIELD.md#la-fiche)
+Désormais dans : [Passes de terrain › sheet](https://quest-n-click.cleverapps.io/fr/docs/contribute.field-passes#sheet) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/FIELD.md#la-fiche)
 
 ## Le Field Kit \(4.1.18\)
 
-Désormais dans : [Passes de terrain › field-kit](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.field-passes.html#field-kit) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/FIELD.md#le-field-kit-4118)
+Désormais dans : [Passes de terrain › field-kit](https://quest-n-click.cleverapps.io/fr/docs/contribute.field-passes#field-kit) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/FIELD.md#le-field-kit-4118)
 
 ## Reporter une passe sur un nouveau candidat \(4.1.20\)
 
-Désormais dans : [Passes de terrain › carrying-a-pass](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.field-passes.html#carrying-a-pass) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/FIELD.md#reporter-une-passe-sur-un-nouveau-candidat-4120)
+Désormais dans : [Passes de terrain › carrying-a-pass](https://quest-n-click.cleverapps.io/fr/docs/contribute.field-passes#carrying-a-pass) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/FIELD.md#reporter-une-passe-sur-un-nouveau-candidat-4120)

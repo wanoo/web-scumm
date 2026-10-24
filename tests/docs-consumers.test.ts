@@ -37,6 +37,10 @@ const CONSUMERS: Record<string, { phase: Reads; reads: string }> = {
   'tools/audit-assets.ts': { phase: 'wiki', reads: "docs/ and wiki/'s text, for the private origin's words" },
   'scripts/check-links.mjs': { phase: 'wiki', reads: 'the external links of wiki/en, wiki/fr and docs/' },
   'scripts/docs-screenshots.mjs': { phase: 'wiki', reads: "writes docs/img/readme, the READMEs' captures" },
+  'tools/rename-org.mjs': {
+    phase: 'wiki',
+    reads: 'every tracked file, wiki/ included, for the addresses before the transfer',
+  },
   // The tests.
   'tests/api-doc.test.ts': { phase: 'wiki', reads: 'wiki/en|fr/engine.api.md and its identifiers' },
   'tests/api-surface.test.ts': { phase: 'wiki', reads: 'wiki/en|fr/engine.api.md' },

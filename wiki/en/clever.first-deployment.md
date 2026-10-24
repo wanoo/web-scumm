@@ -49,7 +49,7 @@ from 4.3.0, the version whose packages carry the `quest-n-click` names used belo
 > - version: 4.2.2
 > - volume: one deploy of each app, from the repository
 > - conditions: reference deployment phase A, engine at commit 52e68932 before the 4.2.3 tag (package.json said 4.2.2); Clever Cloud test organisation, region par; two XS apps, PostgreSQL DEV, Cellar S; one sample each
-> - source: [QUALIF-4.2.3-REFERENCE.md §1](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §1](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 <!-- step: watch-start -->
 2. Watch the studio start. `clever logs` follows the logs until it is stopped, even with `--until`: run it in the
@@ -89,7 +89,7 @@ from 4.3.0, the version whose packages carry the `quest-n-click` names used belo
 > - version: 4.2.2
 > - volume: `games/demo`, 500 files sent to Cellar
 > - conditions: reference deployment phase A, engine at commit 52e68932 before the 4.2.3 tag (package.json said 4.2.2); studio app XS, Cellar S, region par; one sample
-> - source: [QUALIF-4.2.3-REFERENCE.md §1](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §1](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
 <!-- step: invite-owner -->
 4. In the same shell, invite the first owner:

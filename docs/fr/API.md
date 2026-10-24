@@ -2,50 +2,50 @@
 
 # API publique
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/API.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/API.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/API.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/API.md).
 
-Désormais dans : [API publique › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.api.html#overview) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/API.md#api-publique)
+Désormais dans : [API publique › overview](https://quest-n-click.cleverapps.io/fr/docs/engine.api#overview) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/API.md#api-publique)
 
 ## quest-n-click/content : écrire un jeu
 
-Désormais dans : [API publique › content](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.api.html#content) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickcontent--écrire-un-jeu)
+Désormais dans : [API publique › content](https://quest-n-click.cleverapps.io/fr/docs/engine.api#content) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickcontent--écrire-un-jeu)
 
 ## quest-n-click/player : lancer le jeu dans une page
 
-Désormais dans : [API publique › player](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.api.html#player) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickplayer--lancer-le-jeu-dans-une-page)
+Désormais dans : [API publique › player](https://quest-n-click.cleverapps.io/fr/docs/engine.api#player) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickplayer--lancer-le-jeu-dans-une-page)
 
 ## quest-n-click/minigames : les mini-jeux comme greffons
 
-Désormais dans : [API publique › minigames](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.api.html#minigames) · [Un mini-jeu sur mesure](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.custom-minigame.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickminigames--les-mini-jeux-comme-greffons)
+Désormais dans : [API publique › minigames](https://quest-n-click.cleverapps.io/fr/docs/engine.api#minigames) · [Un mini-jeu sur mesure](https://quest-n-click.cleverapps.io/fr/docs/create.custom-minigame) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickminigames--les-mini-jeux-comme-greffons)
 
 ## quest-n-click/testing : les tests d'un jeu
 
-Désormais dans : [API publique › testing](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.api.html#testing) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clicktesting--les-tests-dun-jeu)
+Désormais dans : [API publique › testing](https://quest-n-click.cleverapps.io/fr/docs/engine.api#testing) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clicktesting--les-tests-dun-jeu)
 
 ## quest-n-click/reality : les signaux du monde extérieur \(4.1.1\)
 
-Désormais dans : [API publique › reality](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.api.html#reality) · [Signaux et manifeste](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/bridge.signals-manifest.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickreality--les-signaux-du-monde-extérieur-411)
+Désormais dans : [API publique › reality](https://quest-n-click.cleverapps.io/fr/docs/engine.api#reality) · [Signaux et manifeste](https://quest-n-click.cleverapps.io/fr/docs/bridge.signals-manifest) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickreality--les-signaux-du-monde-extérieur-411)
 
 ## À côté des modules
 
-Désormais dans : [API publique › beside-the-modules](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.api.html#beside-the-modules) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/API.md#à-côté-des-modules)
+Désormais dans : [API publique › beside-the-modules](https://quest-n-click.cleverapps.io/fr/docs/engine.api#beside-the-modules) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/API.md#à-côté-des-modules)
 
 ### quest-n-click/content
 
-Désormais dans : [API publique › content-reference](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.api.html#content-reference) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickcontent)
+Désormais dans : [API publique › content-reference](https://quest-n-click.cleverapps.io/fr/docs/engine.api#content-reference) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickcontent)
 
 ### quest-n-click/player
 
-Désormais dans : [API publique › player-reference](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.api.html#player-reference) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickplayer)
+Désormais dans : [API publique › player-reference](https://quest-n-click.cleverapps.io/fr/docs/engine.api#player-reference) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickplayer)
 
 ### quest-n-click/minigames
 
-Désormais dans : [API publique › minigames-reference](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.api.html#minigames-reference) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickminigames)
+Désormais dans : [API publique › minigames-reference](https://quest-n-click.cleverapps.io/fr/docs/engine.api#minigames-reference) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickminigames)
 
 ### quest-n-click/testing
 
-Désormais dans : [API publique › testing-reference](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.api.html#testing-reference) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clicktesting)
+Désormais dans : [API publique › testing-reference](https://quest-n-click.cleverapps.io/fr/docs/engine.api#testing-reference) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clicktesting)
 
 ### quest-n-click/reality
 
-Désormais dans : [API publique › reality-reference](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/engine.api.html#reality-reference) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickreality)
+Désormais dans : [API publique › reality-reference](https://quest-n-click.cleverapps.io/fr/docs/engine.api#reality-reference) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/API.md#quest-n-clickreality)

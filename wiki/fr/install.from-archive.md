@@ -29,7 +29,7 @@ depuis l'archive de la release sous `node_modules/quest-n-click`, jouable dans v
 - Node.js 22.12 ou plus récent ; 22.13 si vous utiliserez le Studio local ([Prérequis](install.requirements.md#node)).
 - Python 3, pour préparer les images avec `npm run assets` ([Prérequis](install.requirements.md#python)).
 - ffmpeg est optionnel : il convertit les sons et les vidéos ([Prérequis](install.requirements.md#ffmpeg)).
-- Une version de release : prenez la dernière, sur <https://github.com/wanoo/quest-n-click/releases/latest>. Les
+- Une version de release : prenez la dernière, sur <https://github.com/Quest-n-Click/quest-n-click/releases/latest>. Les
   commandes et les sorties de cette page ont été jouées avec la 4.4.0, une release passée : mettez la dernière version
   à sa place.
 
@@ -47,11 +47,11 @@ Bash.
 
 <!-- step: set-archive-url -->
 1. Nommez l'archive de la release voulue. Le modèle d'URL est
-   `https://github.com/wanoo/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz` :
+   `https://github.com/Quest-n-Click/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz` :
 
    ```bash
    # dans le dossier qui contiendra le projet
-   T=https://github.com/wanoo/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
+   T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz
    ```
 
 <!-- step: create-project -->
@@ -111,7 +111,7 @@ fichier :
 
 ```bash
 # dans le dossier qui contiendra le projet
-gh release download v4.4.0 --repo wanoo/quest-n-click -p 'quest-n-click-4.4.0.tgz' -p 'quest-n-click-v4.4.0-SHA256SUMS'
+gh release download v4.4.0 --repo Quest-n-Click/quest-n-click -p 'quest-n-click-4.4.0.tgz' -p 'quest-n-click-v4.4.0-SHA256SUMS'
 shasum -a 256 -c --ignore-missing quest-n-click-v4.4.0-SHA256SUMS
 npx --package=./quest-n-click-4.4.0.tgz quest-n-click create my-game "Mon jeu" --engine=file:../quest-n-click-4.4.0.tgz
 ```
@@ -131,7 +131,7 @@ quand les octets sont ceux que liste la release (vérifié le 23 octobre 2026 av
 `create` se termine par :
 
 ```text
-my-game: "Mon jeu" created (quest-n-click https://github.com/wanoo/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz).
+my-game: "Mon jeu" created (quest-n-click https://github.com/Quest-n-Click/quest-n-click/releases/download/v4.4.0/quest-n-click-4.4.0.tgz).
 Next:
   cd my-game
   npm install

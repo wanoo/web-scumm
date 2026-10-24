@@ -11,7 +11,7 @@ import { buildArchive, readArchive } from '../tools/wiki/archive';
 import { readManifest } from '../tools/wiki/manifest';
 import { mapPage, parsePage } from '../tools/wiki/page';
 
-const REPO = 'https://github.com/wanoo/quest-n-click';
+const REPO = 'https://github.com/Quest-n-Click/quest-n-click';
 const COMMIT = 'c'.repeat(40);
 
 /** What the build's scanner hands `replace`: the targets of the links of a text, in order. */

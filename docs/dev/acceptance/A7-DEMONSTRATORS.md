@@ -131,7 +131,7 @@ read_doc {id:"reference.environment-variables", section:"studio-session-key", la
   structuredContent.provenance: {source: bundle, productVersion: 4.4.0, productCommit: 35e88c12…, docRevision: 35e88c12…, buildId: local-a7}
   structuredContent.url: {versioned: null,
                           versionedNote: "a local build (build id \"local-a7\", not a candidate run): it has no published permalink",
-                          current: https://github.com/wanoo/quest-n-click/wiki/FR-Reference-Variables-D-Environnement#studio-session-key,
+                          current: https://github.com/Quest-n-Click/quest-n-click/wiki/FR-Reference-Variables-D-Environnement#studio-session-key,
                           currentLabel: "current documentation (the latest release), not necessarily this version"}
 
 read_doc {name:"TOOLS"} (the legacy call)
@@ -275,13 +275,13 @@ expected pages exist.
    restore-empty-db-only --by <you> --kind human --relation independent`. `check --publish` refuses the pages until
    then.
 2. **The real wiki push.** Run `docs-publish` in `preview` mode, or a test page as the A1 spike planned. Check that
-   `WIKI_DEPLOY_KEY` (or `GITHUB_TOKEN`) can push to `wanoo/quest-n-click.wiki.git`, that `en/` and `fr/` and the
+   `WIKI_DEPLOY_KEY` (or `GITHUB_TOKEN`) can push to `Quest-n-Click/quest-n-click.wiki.git`, that `en/` and `fr/` and the
    anchors survive, and that the section links click through.
 3. **`docs-publish` after `ship verify`, in a sandbox.** Use a test tag, or `act`. Check that the job starts only after
    `ship verify`, downloads `candidate-test-report`, and that the new `docs-archive` job renders "executed on <sha>"
    from the candidate's own report.
 4. **The `docs-publish` environment.** Create and protect it, with `WIKI_DEPLOY_KEY`, and add the `docs-v*` tag ruleset.
-5. **Pages from real releases.** Run `npm run wiki -- pages --repo wanoo/quest-n-click` with attestations, once a
+5. **Pages from real releases.** Run `npm run wiki -- pages --repo Quest-n-Click/quest-n-click` with attestations, once a
    release ≥ 4.5.0 (or a preview) exists.
 6. **A live restore drill** on the Clever apps of the 4.2.1 spike, if you agree to one. It is the only way D1 can say
    "verified on".

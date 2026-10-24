@@ -11,7 +11,7 @@ the Reality Bridge's too ([Bridge security](bridge.security.md)).
 
 ### Form
 
-Report it privately through GitHub's **Security Advisory** feature of `wanoo/quest-n-click` (the repository's
+Report it privately through GitHub's **Security Advisory** feature of `Quest-n-Click/quest-n-click` (the repository's
 Security tab, "Report a vulnerability"), never in a public issue.
 
 ### What to include

@@ -2,202 +2,202 @@
 
 # Writing the game content
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md).
 
-Now in: [Content principles and the identity contract › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.principles.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#writing-the-game-content)
+Now in: [Content principles and the identity contract › overview](https://quest-n-click.cleverapps.io/docs/create.principles#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#writing-the-game-content)
 
 ## The principles
 
-Now in: [Content principles and the identity contract › principles](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.principles.html#principles) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-principles)
+Now in: [Content principles and the identity contract › principles](https://quest-n-click.cleverapps.io/docs/create.principles#principles) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-principles)
 
 ## The v3 identity contract
 
-Now in: [Content principles and the identity contract › identity-contract](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.principles.html#identity-contract) · [State and saves: persistent or temporary, renaming an id, migrations › renaming-an-id](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.state-saves.html#renaming-an-id) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-v3-identity-contract)
+Now in: [Content principles and the identity contract › identity-contract](https://quest-n-click.cleverapps.io/docs/create.principles#identity-contract) · [State and saves: persistent or temporary, renaming an id, migrations › renaming-an-id](https://quest-n-click.cleverapps.io/docs/create.state-saves#renaming-an-id) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-v3-identity-contract)
 
 ## The files
 
-Now in: [Layout of a created project and of the engine repository › game-files](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.project-layout.html#game-files) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-files)
+Now in: [Layout of a created project and of the engine repository › game-files](https://quest-n-click.cleverapps.io/docs/create.project-layout#game-files) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-files)
 
 ## A room, step by step
 
-Now in: [Rooms › step-by-step](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.rooms.html#step-by-step) · [Geometry: placement, walk zones, masks, layers, camera › placement](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.geometry.html#placement) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#a-room-step-by-step)
+Now in: [Rooms › step-by-step](https://quest-n-click.cleverapps.io/docs/create.rooms#step-by-step) · [Geometry: placement, walk zones, masks, layers, camera › placement](https://quest-n-click.cleverapps.io/docs/create.geometry#placement) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#a-room-step-by-step)
 
 ## The reactions
 
-Now in: [Reactions › reactions](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.reactions.html#reactions) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-reactions)
+Now in: [Reactions › reactions](https://quest-n-click.cleverapps.io/docs/create.reactions#reactions) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-reactions)
 
 ### When nothing is written
 
-Now in: [Reactions › fallbacks](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.reactions.html#fallbacks) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#when-nothing-is-written)
+Now in: [Reactions › fallbacks](https://quest-n-click.cleverapps.io/docs/create.reactions#fallbacks) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#when-nothing-is-written)
 
 ### A double tap: the verb a player means \(4.0\)
 
-Now in: [Reactions › double-tap](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.reactions.html#double-tap) · [Controls on phone and desktop](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/play.controls.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#a-double-tap-the-verb-a-player-means-40)
+Now in: [Reactions › double-tap](https://quest-n-click.cleverapps.io/docs/create.reactions#double-tap) · [Controls on phone and desktop](https://quest-n-click.cleverapps.io/docs/play.controls) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#a-double-tap-the-verb-a-player-means-40)
 
 ## The commands
 
-Now in: [Game commands › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.commands.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-commands)
+Now in: [Game commands › overview](https://quest-n-click.cleverapps.io/docs/create.commands#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-commands)
 
 ### Speech
 
-Now in: [Game commands › speech](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.commands.html#speech) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#speech)
+Now in: [Game commands › speech](https://quest-n-click.cleverapps.io/docs/create.commands#speech) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#speech)
 
 ### Movement and poses
 
-Now in: [Game commands › movement](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.commands.html#movement) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#movement-and-poses)
+Now in: [Game commands › movement](https://quest-n-click.cleverapps.io/docs/create.commands#movement) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#movement-and-poses)
 
 ### The world
 
-Now in: [Game commands › world](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.commands.html#world) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-world)
+Now in: [Game commands › world](https://quest-n-click.cleverapps.io/docs/create.commands#world) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-world)
 
 ### Audio and effects
 
-Now in: [Game commands › audio](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.commands.html#audio) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#audio-and-effects)
+Now in: [Game commands › audio](https://quest-n-click.cleverapps.io/docs/create.commands#audio) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#audio-and-effects)
 
 ### Logic
 
-Now in: [Game commands › logic](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.commands.html#logic) · [Flags, variables and events: which to use](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.flags-variables-events.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#logic)
+Now in: [Game commands › logic](https://quest-n-click.cleverapps.io/docs/create.commands#logic) · [Flags, variables and events: which to use](https://quest-n-click.cleverapps.io/docs/create.flags-variables-events) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#logic)
 
 ### Sequences and screens
 
-Now in: [Game commands › sequences](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.commands.html#sequences) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#sequences-and-screens)
+Now in: [Game commands › sequences](https://quest-n-click.cleverapps.io/docs/create.commands#sequences) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#sequences-and-screens)
 
 ## The conditions
 
-Now in: [Conditions › conditions](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.conditions.html#conditions) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-conditions)
+Now in: [Conditions › conditions](https://quest-n-click.cleverapps.io/docs/create.conditions#conditions) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-conditions)
 
 ## When the DSL is not enough
 
-Now in: [Custom code › custom-commands](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.custom-code.html#custom-commands) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#when-the-dsl-is-not-enough)
+Now in: [Custom code › custom-commands](https://quest-n-click.cleverapps.io/docs/create.custom-code#custom-commands) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#when-the-dsl-is-not-enough)
 
 ## Translations
 
-Now in: [Translations › translations](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.translations.html#translations) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#translations)
+Now in: [Translations › translations](https://quest-n-click.cleverapps.io/docs/create.translations#translations) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#translations)
 
 ## Your own minigames
 
-Now in: [A custom minigame › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.custom-minigame.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#your-own-minigames)
+Now in: [A custom minigame › overview](https://quest-n-click.cleverapps.io/docs/create.custom-minigame#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#your-own-minigames)
 
 ## Several playable characters
 
-Now in: [Heroes: several characters and hero choice › several-characters](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.heroes.html#several-characters) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#several-playable-characters)
+Now in: [Heroes: several characters and hero choice › several-characters](https://quest-n-click.cleverapps.io/docs/create.heroes#several-characters) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#several-playable-characters)
 
 ## Choosing the hero \(4.3.0\)
 
-Now in: [Heroes: several characters and hero choice › hero-choice](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.heroes.html#hero-choice) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#choosing-the-hero-430)
+Now in: [Heroes: several characters and hero choice › hero-choice](https://quest-n-click.cleverapps.io/docs/create.heroes#hero-choice) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#choosing-the-hero-430)
 
 ## Staging: wide rooms, animations, voice, settings
 
-Now in: [Staging: wide rooms and animations › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.staging.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#staging-wide-rooms-animations-voice-settings)
+Now in: [Staging: wide rooms and animations › overview](https://quest-n-click.cleverapps.io/docs/create.staging#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#staging-wide-rooms-animations-voice-settings)
 
 ### Wide rooms and the camera
 
-Now in: [Staging: wide rooms and animations › wide-rooms](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.staging.html#wide-rooms) · [Geometry: placement, walk zones, masks, layers, camera › camera](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.geometry.html#camera) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#wide-rooms-and-the-camera)
+Now in: [Staging: wide rooms and animations › wide-rooms](https://quest-n-click.cleverapps.io/docs/create.staging#wide-rooms) · [Geometry: placement, walk zones, masks, layers, camera › camera](https://quest-n-click.cleverapps.io/docs/create.geometry#camera) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#wide-rooms-and-the-camera)
 
 ### Prop animations and frame events
 
-Now in: [Staging: wide rooms and animations › animations](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.staging.html#animations) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#prop-animations-and-frame-events)
+Now in: [Staging: wide rooms and animations › animations](https://quest-n-click.cleverapps.io/docs/create.staging#animations) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#prop-animations-and-frame-events)
 
 ### Voice
 
-Now in: [Voices: per language and per hero › voice-lines](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.voices.html#voice-lines) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#voice)
+Now in: [Voices: per language and per hero › voice-lines](https://quest-n-click.cleverapps.io/docs/create.voices#voice-lines) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#voice)
 
 ### Settings
 
-Now in: [Staging: wide rooms and animations › settings](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.staging.html#settings) · [Settings](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/play.settings.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#settings)
+Now in: [Staging: wide rooms and animations › settings](https://quest-n-click.cleverapps.io/docs/create.staging#settings) · [Settings](https://quest-n-click.cleverapps.io/docs/play.settings) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#settings)
 
 ## The stage \(3.4\): layers, masks, lights, particles, floors
 
-Now in: [The stage: lights, particles, floors › stage](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.stage.html#stage) · [Geometry: placement, walk zones, masks, layers, camera › layers-and-masks](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.geometry.html#layers-and-masks) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-stage-34-layers-masks-lights-particles-floors)
+Now in: [The stage: lights, particles, floors › stage](https://quest-n-click.cleverapps.io/docs/create.stage#stage) · [Geometry: placement, walk zones, masks, layers, camera › layers-and-masks](https://quest-n-click.cleverapps.io/docs/create.geometry#layers-and-masks) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-stage-34-layers-masks-lights-particles-floors)
 
 ## Exits, chapters, saves
 
-Now in: [Exits › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.exits.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#exits-chapters-saves)
+Now in: [Exits › overview](https://quest-n-click.cleverapps.io/docs/create.exits#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#exits-chapters-saves)
 
 ### Declared exits
 
-Now in: [Exits › declared-exits](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.exits.html#declared-exits) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#declared-exits)
+Now in: [Exits › declared-exits](https://quest-n-click.cleverapps.io/docs/create.exits#declared-exits) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#declared-exits)
 
 ### Chapters and invariants
 
-Now in: [Chapters and objectives › invariants](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.chapters.html#invariants) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#chapters-and-invariants)
+Now in: [Chapters and objectives › invariants](https://quest-n-click.cleverapps.io/docs/create.chapters#invariants) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#chapters-and-invariants)
 
 ### Objectives and the quest journal \(4.1.12\)
 
-Now in: [Chapters and objectives › objectives](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.chapters.html#objectives) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#objectives-and-the-quest-journal-4112)
+Now in: [Chapters and objectives › objectives](https://quest-n-click.cleverapps.io/docs/create.chapters#objectives) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#objectives-and-the-quest-journal-4112)
 
 ### Save slots and migrations
 
-Now in: [State and saves: persistent or temporary, renaming an id, migrations › migrations](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.state-saves.html#migrations) · [Saves: slots, export and import](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/play.saves.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#save-slots-and-migrations)
+Now in: [State and saves: persistent or temporary, renaming an id, migrations › migrations](https://quest-n-click.cleverapps.io/docs/create.state-saves#migrations) · [Saves: slots, export and import](https://quest-n-click.cleverapps.io/docs/play.saves) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#save-slots-and-migrations)
 
 ## The world lives: scripts, events, moving characters
 
-Now in: [Scripts and events › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.scripts-events.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-world-lives-scripts-events-moving-characters)
+Now in: [Scripts and events › overview](https://quest-n-click.cleverapps.io/docs/create.scripts-events#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-world-lives-scripts-events-moving-characters)
 
 ### Scripts: things that happen without a tap
 
-Now in: [Scripts and events › scripts](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.scripts-events.html#scripts) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#scripts-things-that-happen-without-a-tap)
+Now in: [Scripts and events › scripts](https://quest-n-click.cleverapps.io/docs/create.scripts-events#scripts) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#scripts-things-that-happen-without-a-tap)
 
 ### Events: "something just happened"
 
-Now in: [Scripts and events › events](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.scripts-events.html#events) · [Flags, variables and events: which to use](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.flags-variables-events.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#events-something-just-happened)
+Now in: [Scripts and events › events](https://quest-n-click.cleverapps.io/docs/create.scripts-events#events) · [Flags, variables and events: which to use](https://quest-n-click.cleverapps.io/docs/create.flags-variables-events) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#events-something-just-happened)
 
 ### Moving characters
 
-Now in: [Moving characters: patrols and walks › patrols](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.moving-characters.html#patrols) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#moving-characters)
+Now in: [Moving characters: patrols and walks › patrols](https://quest-n-click.cleverapps.io/docs/create.moving-characters#patrols) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#moving-characters)
 
 ## Characters, items, map
 
-Now in: [Characters › characters](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.characters.html#characters) · [Items and inventory](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.items.html) · [World map](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.world-map.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#characters-items-map)
+Now in: [Characters › characters](https://quest-n-click.cleverapps.io/docs/create.characters#characters) · [Items and inventory](https://quest-n-click.cleverapps.io/docs/create.items) · [World map](https://quest-n-click.cleverapps.io/docs/create.world-map) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#characters-items-map)
 
 ### Speech: only the mouth moves
 
-Now in: [Characters › speech-animation](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.characters.html#speech-animation) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#speech-only-the-mouth-moves)
+Now in: [Characters › speech-animation](https://quest-n-click.cleverapps.io/docs/create.characters#speech-animation) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#speech-only-the-mouth-moves)
 
 ### Variants depending on state
 
-Now in: [Characters › variants](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.characters.html#variants) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#variants-depending-on-state)
+Now in: [Characters › variants](https://quest-n-click.cleverapps.io/docs/create.characters#variants) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#variants-depending-on-state)
 
 ### Palette swap \(palette, also on variants\)
 
-Now in: [Characters › palette-swap](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.characters.html#palette-swap) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#palette-swap-palette-also-on-variants)
+Now in: [Characters › palette-swap](https://quest-n-click.cleverapps.io/docs/create.characters#palette-swap) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#palette-swap-palette-also-on-variants)
 
 ### Things with multiple states \(a seagull that watches / snaps, an old dog that sleeps / sulks / yawns, a cat's eye glowing on a screen\)
 
-Now in: [Characters › multiple-states](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.characters.html#multiple-states) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#things-with-multiple-states-a-seagull-that-watches--snaps-an-old-dog-that-sleeps--sulks--yawns-a-cats-eye-glowing-on-a-screen)
+Now in: [Characters › multiple-states](https://quest-n-click.cleverapps.io/docs/create.characters#multiple-states) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#things-with-multiple-states-a-seagull-that-watches--snaps-an-old-dog-that-sleeps--sulks--yawns-a-cats-eye-glowing-on-a-screen)
 
 ### Presence without interaction
 
-Now in: [Characters › presence](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.characters.html#presence) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#presence-without-interaction)
+Now in: [Characters › presence](https://quest-n-click.cleverapps.io/docs/create.characters#presence) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#presence-without-interaction)
 
 ## The skin \(skin\)
 
-Now in: [Skin and fonts › skin](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.skin-fonts.html#skin) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-skin-skin)
+Now in: [Skin and fonts › skin](https://quest-n-click.cleverapps.io/docs/create.skin-fonts#skin) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-skin-skin)
 
 ## The layout \(written by the editor, never typed by hand\)
 
-Now in: [Geometry: placement, walk zones, masks, layers, camera › layout-file](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.geometry.html#layout-file) · [Placement and stage](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.placement.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-layout-written-by-the-editor-never-typed-by-hand)
+Now in: [Geometry: placement, walk zones, masks, layers, camera › layout-file](https://quest-n-click.cleverapps.io/docs/create.geometry#layout-file) · [Placement and stage](https://quest-n-click.cleverapps.io/docs/studio.placement) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-layout-written-by-the-editor-never-typed-by-hand)
 
 ## Title screen and credits
 
-Now in: [Title and credits › title-and-credits](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.title-credits.html#title-and-credits) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#title-screen-and-credits)
+Now in: [Title and credits › title-and-credits](https://quest-n-click.cleverapps.io/docs/create.title-credits#title-and-credits) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#title-screen-and-credits)
 
 ## The images
 
-Now in: [Images: prompts, cutting sheets, transparency, scale › images](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.images.html#images) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-images)
+Now in: [Images: prompts, cutting sheets, transparency, scale › images](https://quest-n-click.cleverapps.io/docs/create.images#images) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-images)
 
 ## Available minigames
 
-Now in: [Built-in minigames › available](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.minigames.html#available) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#available-minigames)
+Now in: [Built-in minigames › available](https://quest-n-click.cleverapps.io/docs/create.minigames#available) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#available-minigames)
 
 ## The sealed ending \(ending\)
 
-Now in: [The sealed ending › ending](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.sealed-ending.html#ending) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-sealed-ending-ending)
+Now in: [The sealed ending › ending](https://quest-n-click.cleverapps.io/docs/create.sealed-ending#ending) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#the-sealed-ending-ending)
 
 ## Checking your work
 
-Now in: [Checking your game › checking](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.checking.html#checking) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#checking-your-work)
+Now in: [Checking your game › checking](https://quest-n-click.cleverapps.io/docs/create.checking#checking) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#checking-your-work)
 
 ## Music in stems \(3.5\)
 
-Now in: [Music in stems › stems](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.music.html#stems) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#music-in-stems-35)
+Now in: [Music in stems › stems](https://quest-n-click.cleverapps.io/docs/create.music#stems) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/CONTENT_GUIDE.md#music-in-stems-35)

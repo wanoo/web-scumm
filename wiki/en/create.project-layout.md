@@ -6,7 +6,7 @@ repository", this is the difference it means.
 
 | | A created project | The engine repository |
 |---|---|---|
-| Made by | `npx create-quest-n-click my-game "My Game"` or `npx quest-n-click create …` | `git clone` of `wanoo/quest-n-click` |
+| Made by | `npx create-quest-n-click my-game "My Game"` or `npx quest-n-click create …` | `git clone` of `Quest-n-Click/quest-n-click` |
 | The game's folder | `game/` | `games/<id>/` (several games side by side) |
 | The engine | `node_modules/quest-n-click/` (installed, never written) | `src/engine/` (you may change it) |
 | Which game | always `game/` | `GAME`, else `.cache/game`, else `config.game` in `package.json`, else `demo` ([choosing the game](create.working-loop.md#choosing-the-game)) |

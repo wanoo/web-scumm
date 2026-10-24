@@ -53,7 +53,7 @@ const measure = (lang: 'en' | 'fr', o: { source?: string; date?: string; drop?: 
     '> - version: 4.2.3',
     lang === 'en' ? '> - volume: 508 journal lines' : '> - volume: 508 lignes de journal',
     lang === 'en' ? '> - conditions: the smallest plans' : '> - conditions: les plus petits plans',
-    `> - source: [QUALIF-4.2.3 §4](${o.source ?? `https://github.com/wanoo/quest-n-click/blob/${SHA}/docs/dev/QUALIF-4.2.3-REFERENCE.md`})`,
+    `> - source: [QUALIF-4.2.3 §4](${o.source ?? `https://github.com/Quest-n-Click/quest-n-click/blob/${SHA}/docs/dev/QUALIF-4.2.3-REFERENCE.md`})`,
   ]
     .filter((l) => !o.drop || !l.startsWith(`> - ${o.drop}:`))
     .join('\n');
@@ -293,14 +293,17 @@ describe('structured blocks (§4.4.3)', { timeout: 30_000 }, () => {
       errors(
         'en',
         measure('en', {
-          source: 'https://github.com/wanoo/quest-n-click/blob/main/docs/dev/QUALIF-4.2.3-REFERENCE.md',
+          source: 'https://github.com/Quest-n-Click/quest-n-click/blob/main/docs/dev/QUALIF-4.2.3-REFERENCE.md',
         }),
       ),
     ).toEqual([
-      'en/clever.restore-drill.md line 13: [!MEASURE id=restore-time] its source "https://github.com/wanoo/quest-n-click/blob/main/docs/dev/QUALIF-4.2.3-REFERENCE.md" is not pinned: https://github.com/<owner>/<repo>/blob/<40-hex commit>/<path>',
+      'en/clever.restore-drill.md line 13: [!MEASURE id=restore-time] its source "https://github.com/Quest-n-Click/quest-n-click/blob/main/docs/dev/QUALIF-4.2.3-REFERENCE.md" is not pinned: https://github.com/<owner>/<repo>/blob/<40-hex commit>/<path>',
     ]);
     expect(
-      errors('en', measure('en', { source: `https://github.com/wanoo/quest-n-click/blob/${SHA.slice(0, 12)}/x.md` })),
+      errors(
+        'en',
+        measure('en', { source: `https://github.com/Quest-n-Click/quest-n-click/blob/${SHA.slice(0, 12)}/x.md` }),
+      ),
     ).toHaveLength(1);
   });
 
@@ -584,7 +587,7 @@ describe('statuses in the header, and the claim on its block (§4.4.2, §4.4.3)'
       '· automated checks: jobs `studio-hosted`, `studio-install-smoke`; CI plan `studioHosted`; 3 test files ·',
     );
     expect(en).toContain(
-      "people's passes: `studio-hosted` not run ([#149](https://github.com/wanoo/quest-n-click/issues/149))",
+      "people's passes: `studio-hosted` not run ([#149](https://github.com/Quest-n-Click/quest-n-click/issues/149))",
     );
     expect(en).toContain('· known limits: `no-way-back`');
     expect(en).toContain(

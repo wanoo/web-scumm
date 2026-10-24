@@ -2,42 +2,42 @@
 
 # Audio: music and sound effects that sound like one game
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md).
 
-Now in: [Music in stems › one-palette](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.music.html#one-palette) · [Audio toolchain: ffmpeg, fluidsynth, Furnace, uv](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/install.audio-toolchain.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#audio-music-and-sound-effects-that-sound-like-one-game)
+Now in: [Music in stems › one-palette](https://quest-n-click.cleverapps.io/docs/create.music#one-palette) · [Audio toolchain: ffmpeg, fluidsynth, Furnace, uv](https://quest-n-click.cleverapps.io/docs/install.audio-toolchain) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#audio-music-and-sound-effects-that-sound-like-one-game)
 
 ## The rules
 
-Now in: [Music in stems › rules](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.music.html#rules) · [Sound effects › rules](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.sound-effects.html#rules) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#the-rules)
+Now in: [Music in stems › rules](https://quest-n-click.cleverapps.io/docs/create.music#rules) · [Sound effects › rules](https://quest-n-click.cleverapps.io/docs/create.sound-effects#rules) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#the-rules)
 
 ## Music: the workflow
 
-Now in: [Music in stems › workflow](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.music.html#workflow) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#music-the-workflow)
+Now in: [Music in stems › workflow](https://quest-n-click.cleverapps.io/docs/create.music#workflow) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#music-the-workflow)
 
 ### Audio sources
 
-Now in: [Music in stems › audio-sources](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.music.html#audio-sources) · [Licences and credits](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.licences.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#audio-sources)
+Now in: [Music in stems › audio-sources](https://quest-n-click.cleverapps.io/docs/create.music#audio-sources) · [Licences and credits](https://quest-n-click.cleverapps.io/docs/contribute.licences) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#audio-sources)
 
 ### Hardware and Furnace facts \(handled in code\)
 
-Now in: [Audio toolchain: ffmpeg, fluidsynth, Furnace, uv › furnace](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/install.audio-toolchain.html#furnace) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#hardware-and-furnace-facts-handled-in-code)
+Now in: [Audio toolchain: ffmpeg, fluidsynth, Furnace, uv › furnace](https://quest-n-click.cleverapps.io/docs/install.audio-toolchain#furnace) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#hardware-and-furnace-facts-handled-in-code)
 
 ## Stems for the music director \(3.5\)
 
-Now in: [Music in stems › stems](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.music.html#stems) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#stems-for-the-music-director-35)
+Now in: [Music in stems › stems](https://quest-n-click.cleverapps.io/docs/create.music#stems) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#stems-for-the-music-director-35)
 
 ## Sound effects
 
-Now in: [Sound effects › recipes](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.sound-effects.html#recipes) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#sound-effects)
+Now in: [Sound effects › recipes](https://quest-n-click.cleverapps.io/docs/create.sound-effects#recipes) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#sound-effects)
 
 ## Voices
 
-Now in: [Voices: per language and per hero › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.voices.html#overview) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#voices)
+Now in: [Voices: per language and per hero › overview](https://quest-n-click.cleverapps.io/docs/create.voices#overview) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#voices)
 
 ### Lines with text switches \(4.3.0\)
 
-Now in: [Voices: per language and per hero › text-switches](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.voices.html#text-switches) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#lines-with-text-switches-430)
+Now in: [Voices: per language and per hero › text-switches](https://quest-n-click.cleverapps.io/docs/create.voices#text-switches) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#lines-with-text-switches-430)
 
 ## In the Studio and the tools
 
-Now in: [Music › audio-tools](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/studio.music.html#audio-tools) · [Music in stems › tools](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/create.music.html#tools) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#in-the-studio-and-the-tools)
+Now in: [Music › audio-tools](https://quest-n-click.cleverapps.io/docs/studio.music#audio-tools) · [Music in stems › tools](https://quest-n-click.cleverapps.io/docs/create.music#tools) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/AUDIO.md#in-the-studio-and-the-tools)

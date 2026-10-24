@@ -9,7 +9,7 @@ the repository. This page does not copy it: it says where to read it and how to 
 
 - In the repository: [`CHANGELOG.md`](../../CHANGELOG.md), newest release first, one `## <version> — <date>` section
   per release.
-- On GitHub: each release's notes, at <https://github.com/wanoo/quest-n-click/releases>.
+- On GitHub: each release's notes, at <https://github.com/Quest-n-Click/quest-n-click/releases>.
 - Not in the npm package: an installed engine (`node_modules/quest-n-click/`) does not carry `CHANGELOG.md`.
 
 <a name="how-to-read"></a>

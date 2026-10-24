@@ -13,9 +13,11 @@ modifications gardées dans votre navigateur seulement.
 
 ## Contexte et versions
 
-Le site public du projet, construit par la CI depuis la branche `main` du dépôt du moteur et servi par GitHub Pages.
-Son adresse depuis la 4.2.5 est `wanoo.github.io/quest-n-click` ; l’ancienne `wanoo.github.io/web-scumm` y redirige. Le
-site montre le moteur tel qu’il est sur `main`, qui peut être en avance sur la dernière release.
+Le site web du projet, `https://quest-n-click.cleverapps.io` (le dépôt `Quest-n-Click/quest-n-click-site`, hébergé chez Clever Cloud) : le
+jeu sous `/demo/`, la démo du Studio sous `/demo/studio.html`, la dernière documentation sous `/fr/docs` (`/docs` en anglais). La démo
+est le `quest-n-click-v<version>-web.tar.gz` de la dernière release, vérifié contre les sommes de la release : une
+version publiée, pas `main`. Depuis la 4.5.2 ; avant, la démo était sur GitHub Pages, à `wanoo.github.io/quest-n-click`
+(de la 4.2.5 à la 4.5.1) et `wanoo.github.io/web-scumm`, abandonné.
 
 <a name="prerequisites"></a>
 
@@ -36,7 +38,7 @@ Dans votre navigateur. Aucune commande.
 ## Étapes
 
 <!-- step: play -->
-1. **Jouer** : ouvrez [wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/). Sur un téléphone,
+1. **Jouer** : ouvrez [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/). Sur un téléphone,
    tournez-le en paysage. Touchez **New game**. Le jeu est en anglais ; `?lang=fr` dans l’adresse, ou les réglages, le
    passent en français ([Langues](play.languages.md)). Comment jouer : [Commandes](play.controls.md).
 
@@ -45,7 +47,7 @@ Dans votre navigateur. Aucune commande.
    ([Installer le jeu comme une application](play.install-app.md)).
 
 <!-- step: studio -->
-3. **Ouvrir le Studio** : [wanoo.github.io/quest-n-click/studio.html](https://wanoo.github.io/quest-n-click/studio.html).
+3. **Ouvrir le Studio** : [quest-n-click.cleverapps.io/demo/studio.html](https://quest-n-click.cleverapps.io/demo/studio.html).
    C’est le mode démo : le même Studio, la même vue du moteur et le même éditeur de placement que sur votre machine,
    sans aucun serveur. Un bandeau dit « Demo: your edits stay in this browser ».
 

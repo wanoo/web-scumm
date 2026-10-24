@@ -211,7 +211,7 @@ tient deux fois (le fichier, puis le stockage relu pour comparer).
 > - version: 4.1.20
 > - volume: sauvegardes de 64, 128 et 256 Mio, sur SQLite et sur Postgres
 > - conditions: le job `backup-memory` du candidat (`tools/backup-memory.ts`), un runner Linux de GitHub, le Bridge de l’archive du candidat ; une mesure par taille et par stockage
-> - source: [REALITY-OPS.md, "Health, measures, backups"](https://github.com/wanoo/quest-n-click/blob/b55bd9bbf42145d44e1eaa5c1041fff74a2e905e/docs/en/REALITY-OPS.md)
+> - source: [REALITY-OPS.md, "Health, measures, backups"](https://github.com/Quest-n-Click/quest-n-click/blob/b55bd9bbf42145d44e1eaa5c1041fff74a2e905e/docs/en/REALITY-OPS.md)
 
 Dans un conteneur de 512 Mio, une restauration tient jusqu’à environ 20 Mio de sauvegarde. Lancez une plus grosse
 depuis une machine qui a la mémoire, ou abaissez `--max-bytes` et `--max-rows` à ce que la machine tient, pour qu’un

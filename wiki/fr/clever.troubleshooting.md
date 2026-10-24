@@ -105,7 +105,7 @@ Chaque section ci-dessous dit quelle ligne ou quelle réponse distingue son cas.
 > - version: 4.3.1
 > - volume: dix révisions par série (436 à 445, puis 446 à 455)
 > - conditions: déploiement de référence, studio et worker XS, région par ; moteur aux commits a3294282 puis b9336a4d, le travail de la 4.4.0 avant son tag (package.json disait 4.3.1) ; les chiffres de la 4.2.3 mesurés le 2026-10-19 sur le même déploiement, révisions 66 à 75
-> - source: [QUALIF-4.2.3-REFERENCE.md §6 et sa note 4.4.0](https://github.com/wanoo/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
+> - source: [QUALIF-4.2.3-REFERENCE.md §6 et sa note 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/78d77ff617f7db215f0c556a1768a90265e8ad74/docs/dev/QUALIF-4.2.3-REFERENCE.md)
 
    Le job du worker reste la part principale : il reconstruit le moteur à froid à chaque révision.
 

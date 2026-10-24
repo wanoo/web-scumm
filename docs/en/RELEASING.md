@@ -2,26 +2,26 @@
 
 # Releasing
 
-> This page moved to the quest'n'click documentation. Each section below links to its new place in the documentation of version 4.5.1; the complete 4.4.0 page stays readable at [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md).
+> This page moved to the quest'n'click documentation. Each section below links to its new place in the latest documentation, on the project's website (written for version 4.5.1); the complete 4.4.0 page stays readable at [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md).
 
-Now in: [Releasing](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.releasing.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md#releasing)
+Now in: [Releasing](https://quest-n-click.cleverapps.io/docs/contribute.releasing) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md#releasing)
 
 ## The chain
 
-Now in: [Releasing](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.releasing.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md#the-chain)
+Now in: [Releasing](https://quest-n-click.cleverapps.io/docs/contribute.releasing) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md#the-chain)
 
 ## What the maintainer turns on \(once, after 4.1.20 PR 3b\)
 
-Now in: [Releasing](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.releasing.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md#what-the-maintainer-turns-on-once-after-4120-pr-3b)
+Now in: [Releasing](https://quest-n-click.cleverapps.io/docs/contribute.releasing) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md#what-the-maintainer-turns-on-once-after-4120-pr-3b)
 
 ## Signing 4.2's tags
 
-Now in: [Releasing](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.releasing.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md#signing-42s-tags)
+Now in: [Releasing](https://quest-n-click.cleverapps.io/docs/contribute.releasing) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md#signing-42s-tags)
 
 ## The 4.2 preflight
 
-Now in: [Releasing](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.releasing.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md#the-42-preflight)
+Now in: [Releasing](https://quest-n-click.cleverapps.io/docs/contribute.releasing) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md#the-42-preflight)
 
 ## npm \(written in 4.1.20, played in a later 4.2.x\)
 
-Now in: [npm packages](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/contribute.npm-packages.html) · [Install from npm, once published](https://wanoo.github.io/quest-n-click/docs/4.5.1/en/install.from-npm.html) · [The 4.4.0 text](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md#npm-written-in-4120-played-in-a-later-42x)
+Now in: [npm packages](https://quest-n-click.cleverapps.io/docs/contribute.npm-packages) · [Install from npm, once published](https://quest-n-click.cleverapps.io/docs/install.from-npm) · [The 4.4.0 text](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/en/RELEASING.md#npm-written-in-4120-played-in-a-later-42x)

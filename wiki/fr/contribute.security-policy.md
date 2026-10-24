@@ -11,7 +11,7 @@ anglais ; cette page en est la référence, dans les deux langues. La sécurité
 
 ### Forme
 
-Signalez-la en privé par la fonction **Security Advisory** de GitHub sur `wanoo/quest-n-click` (l'onglet Security du
+Signalez-la en privé par la fonction **Security Advisory** de GitHub sur `Quest-n-Click/quest-n-click` (l'onglet Security du
 dépôt, « Report a vulnerability »), jamais dans une issue publique.
 
 ### Ce qu'il faut joindre

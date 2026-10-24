@@ -2,22 +2,22 @@
 
 # Le moteur en paquet
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PACKAGE.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PACKAGE.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PACKAGE.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PACKAGE.md).
 
-Désormais dans : [Référence du paquet › overview](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/install.package.html#overview) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PACKAGE.md#le-moteur-en-paquet)
+Désormais dans : [Référence du paquet › overview](https://quest-n-click.cleverapps.io/fr/docs/install.package#overview) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PACKAGE.md#le-moteur-en-paquet)
 
 ## Un nouveau jeu
 
-Désormais dans : [Installer depuis l'archive de la release](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/install.from-archive.html) · [Votre premier jeu](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.first-game.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PACKAGE.md#un-nouveau-jeu)
+Désormais dans : [Installer depuis l'archive de la release](https://quest-n-click.cleverapps.io/fr/docs/install.from-archive) · [Votre premier jeu](https://quest-n-click.cleverapps.io/fr/docs/create.first-game) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PACKAGE.md#un-nouveau-jeu)
 
 ## Commandes
 
-Désormais dans : [Référence du paquet › commands](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/install.package.html#commands) · [Outils en ligne de commande](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/reference.cli.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PACKAGE.md#commandes)
+Désormais dans : [Référence du paquet › commands](https://quest-n-click.cleverapps.io/fr/docs/install.package#commands) · [Outils en ligne de commande](https://quest-n-click.cleverapps.io/fr/docs/reference.cli) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PACKAGE.md#commandes)
 
 ## Mettre à jour
 
-Désormais dans : [Mettre à jour](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/install.upgrade.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PACKAGE.md#mettre-à-jour)
+Désormais dans : [Mettre à jour](https://quest-n-click.cleverapps.io/fr/docs/install.upgrade) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PACKAGE.md#mettre-à-jour)
 
 ## Comment c'est vérifié
 
-Désormais dans : [Référence du paquet › how-it-is-checked](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/install.package.html#how-it-is-checked) · [Paquets npm](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/contribute.npm-packages.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PACKAGE.md#comment-cest-vérifié)
+Désormais dans : [Référence du paquet › how-it-is-checked](https://quest-n-click.cleverapps.io/fr/docs/install.package#how-it-is-checked) · [Paquets npm](https://quest-n-click.cleverapps.io/fr/docs/contribute.npm-packages) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PACKAGE.md#comment-cest-vérifié)

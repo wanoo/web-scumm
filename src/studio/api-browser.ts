@@ -129,7 +129,7 @@ export class BrowserApi implements Api {
         const d = this.doc(name);
         if (d === undefined)
           throw new Error(
-            `${name} is not in the demo (only ${this.docNames().join(', ') || 'no document'}); read the documentation at https://github.com/wanoo/quest-n-click/wiki`,
+            `${name} is not in the demo (only ${this.docNames().join(', ') || 'no document'}); read the documentation at https://github.com/Quest-n-Click/quest-n-click/wiki`,
           );
         return d;
       },

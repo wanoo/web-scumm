@@ -66,12 +66,12 @@ réplique traduisible, une traduction manquante repérée avant la release ([tra
 <!-- step: create -->
 Les paquets ne sont pas encore sur le registre npm : un jeu part donc de l'archive que chaque release GitHub joint
 ([installer depuis l'archive de release](install.from-archive.md)). Prenez la dernière version sur
-<https://github.com/wanoo/quest-n-click/releases/latest> puis, dans un dossier vide de votre choix :
+<https://github.com/Quest-n-Click/quest-n-click/releases/latest> puis, dans un dossier vide de votre choix :
 
 ```sh
 # dans le dossier qui contiendra le projet : crée le dossier my-game
 V=4.5.0             # la version de la release que vous prenez
-T=https://github.com/wanoo/quest-n-click/releases/download/v$V/quest-n-click-$V.tgz
+T=https://github.com/Quest-n-Click/quest-n-click/releases/download/v$V/quest-n-click-$V.tgz
 npx --package=$T quest-n-click create my-game "My Game" --engine=$T
 cd my-game
 npm install

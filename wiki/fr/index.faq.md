@@ -9,7 +9,7 @@ chaque page. Vous ne trouvez pas la vôtre ? Cherchez dans ce wiki, ou voyez
 
 ## Joueurs
 
-- **Où jouer ?** Le jeu d’exemple est sur [wanoo.github.io/quest-n-click](https://wanoo.github.io/quest-n-click/), sur
+- **Où jouer ?** Le jeu d’exemple est sur [quest-n-click.cleverapps.io/demo](https://quest-n-click.cleverapps.io/demo/), sur
   un téléphone en paysage ou un ordinateur ([Jouer en ligne](start.play-online.md)).
 - **Comment on joue ?** Touchez un verbe, puis une chose ; un double tap agit sans verbe ; tout le jeu se joue aussi au
   clavier ([Commandes](play.controls.md)).
@@ -88,7 +88,7 @@ chaque page. Vous ne trouvez pas la vôtre ? Cherchez dans ce wiki, ou voyez
 - **J’ai un ancien lien vers `docs/fr/CONTENT_GUIDE.md` (ou une autre page de `docs/`).** Depuis la bascule vers ce
   wiki (4.5.0), chaque ancienne page est une page de transition qui garde toutes ses anciennes ancres et renvoie vers
   ses nouvelles pages, avec un repli vers le texte de la 4.4.0 :
-  [`blob/v4.4.0/docs/fr/CONTENT_GUIDE.md`](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/CONTENT_GUIDE.md).
+  [`blob/v4.4.0/docs/fr/CONTENT_GUIDE.md`](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/CONTENT_GUIDE.md).
   L’appel MCP `read_doc {name: "CONTENT_GUIDE"}` continue de marcher.
 - **Qu’était web-scumm ?** L’ancien nom de ce projet, jusqu’à la 4.2.5
   ([Ce qu’est quest'n'click](start.what-it-is.md#history), [Venir de web-scumm](install.from-web-scumm.md)).
@@ -111,7 +111,7 @@ La documentation de développement (décisions, ADR, plans, passes de chaque rel
 ## Ce que contient la release actuelle
 
 La release actuelle est celle qu'indique le pied de cette page, et la plus récente sur
-<https://github.com/wanoo/quest-n-click/releases/latest> ; [Stabilité et support](start.stability.md#releases) donne
+<https://github.com/Quest-n-Click/quest-n-click/releases/latest> ; [Stabilité et support](start.stability.md#releases) donne
 les lignes et la durée de support de chacune. Cette réponse ne la nomme pas, pour ne pas vieillir à la release
 suivante. Les plus récentes, de la plus neuve à la plus ancienne :
 

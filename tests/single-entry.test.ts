@@ -95,7 +95,7 @@ const WRITERS: Record<string, string> = {
   'tools/wiki/generators.ts':
     "elsewhere: the generated reference pages' region in wiki/en|fr/<page>.md and their identifiers in wiki/manifest.json (`wiki -- generate`, of the folder --wiki names)",
   'tools/wiki/pages.ts':
-    "elsewhere: Pages' /docs/, into the empty folder named by `wiki -- pages --out` (dist/docs in ci)",
+    "elsewhere: the site's /docs/, into the empty folder named by `wiki -- pages --out` (the organization's site builds it)",
   'tools/wiki/publication.ts':
     "elsewhere: a clone of the wiki's repository in a temporary folder (its pages and publication.json, pushed), and the deploy key (0600) beside it",
   'tools/wiki/transition.ts':
@@ -125,6 +125,7 @@ const WRITERS: Record<string, string> = {
   'tools/release/site-files.mjs': 'elsewhere: release outputs',
   'tools/runs-load.ts': 'elsewhere: .cache/ (load reports)',
   'tools/select-game.ts': 'elsewhere: the link to the selected game',
+  'tools/rename-org.mjs': "elsewhere: the repository's own tracked files, their addresses after the transfer (D51)",
   'tools/speedrun/livesplit.mjs': 'elsewhere: LiveSplit files',
   'tools/speedrun/reference-run.ts': 'elsewhere: reference runs',
   'tools/studio/snapshot.ts': "elsewhere: the demo Studio's public/studio-demo/",

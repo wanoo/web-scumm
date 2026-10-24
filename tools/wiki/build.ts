@@ -18,6 +18,7 @@ import { type Glossary, readGlossary } from './glossary';
 import { humanReviewed, type Reviewer, reviewWords } from './reviewer';
 import { readTranslations } from './translations';
 import { generatedIdentifiers, type Identifier } from './identifiers';
+import { siteDocs } from './site';
 import {
   type Audience,
   type Context,
@@ -43,8 +44,8 @@ import {
   type SectionVersions,
 } from './page';
 
-const REPO_URL = 'https://github.com/wanoo/quest-n-click';
-const RAW_URL = 'https://raw.githubusercontent.com/wanoo/quest-n-click';
+const REPO_URL = 'https://github.com/Quest-n-Click/quest-n-click';
+const RAW_URL = 'https://raw.githubusercontent.com/Quest-n-Click/quest-n-click';
 /** Written into every output folder: a folder without it is not a build, and is never emptied. */
 const BUILD_MARKER = '.quest-n-click-wiki-build';
 
@@ -311,16 +312,13 @@ const BLOCK_NAMES = {
   fr: { LIMIT: 'Limite', GUARANTEE: 'Garantie', MEASURE: 'Mesure' },
 } as const;
 
-/** The versioned site on GitHub Pages: `/docs/<v>/r<n>/` permalinks, `/docs/<v>/` and `/docs/latest/` aliases. */
-export const PAGES_DOCS_URL = 'https://wanoo.github.io/quest-n-click/docs';
-
 /**
  * The footer of every page: what the publication is (the wiki shows the current version only, §4.5.4: a preview says
  * it is one), where the earlier versions are, and that an edit made in the wiki does not last.
  */
 const footer = (productVersion: string, docRevision: string, revision: string, preview: boolean) =>
   `Generated publication · publication générée — ${preview ? `preview of the ${productVersion} documentation · aperçu de la documentation de la ${productVersion}` : `current documentation · documentation courante: quest'n'click ${productVersion} ${revision}`}, documentation revision · révision de la documentation \`${docRevision}\`.
-Earlier versions and permalinks · versions précédentes et liens permanents: ${PAGES_DOCS_URL}/
+Latest documentation · dernière documentation: ${siteDocs('en')} · ${siteDocs('fr')}; earlier versions · versions précédentes: each release's \`quest-n-click-docs-<version>.tar.gz\` · l'archive \`quest-n-click-docs-<version>.tar.gz\` de chaque release, ${REPO_URL}/releases
 An edit made in this wiki is overwritten at the next publication · une modification faite dans ce wiki est écrasée à la publication suivante.
 [Edit the source · Modifier la source](${REPO_URL}/tree/main/wiki) · [Report an error · Signaler une erreur](${REPO_URL}/issues/new?title=${encodeURIComponent('[bug] docs: ')})
 `;
@@ -660,7 +658,7 @@ const HELP: readonly string[] = [
 
 /** GitHub's code search over one language's page sources: a search of the pages' text, which the wiki's box is not. */
 const textSearch = (lang: Lang) =>
-  `https://github.com/search?q=${encodeURIComponent(`repo:wanoo/quest-n-click path:wiki/${lang}/`)}&type=code`;
+  `https://github.com/search?q=${encodeURIComponent(`repo:Quest-n-Click/quest-n-click path:wiki/${lang}/`)}&type=code`;
 
 /**
  * What Home says about searching (the 4.5.1 audit, F09): the box at the top right of a GitHub wiki, "Find a page or

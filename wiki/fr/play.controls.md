@@ -105,7 +105,7 @@ droite la tournent, haut et bas choisissent une réponse, A valide. Voir
 > [!LIMIT id=controls-not-tried-by-people]
 > Les commandes au toucher et au clavier sont vérifiées par des machines (Chromium et WebKit à la taille d’un
 > téléphone, au toucher et au clavier, en CI). Sur un vrai téléphone, personne ne les a encore essayées : la passe
-> `phone-both-renderers` est ouverte ([#83](https://github.com/wanoo/quest-n-click/issues/83)) à la 4.4.0.
+> `phone-both-renderers` est ouverte ([#83](https://github.com/Quest-n-Click/quest-n-click/issues/83)) à la 4.4.0.
 
 <a name="see-also"></a>
 

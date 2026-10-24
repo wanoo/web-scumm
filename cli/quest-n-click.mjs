@@ -101,7 +101,7 @@ const COMMANDS = {
   validate: ['the content checked: references, rules, dialogues, budgets', () => tool('validate', rest)],
   solve: ['the solver: a way to the end, softlocks (--prove), chapters', () => tool('solve', rest)],
   bridge: [
-    'a reference Reality Bridge for the game: init, serve, grant, revoke (https://github.com/wanoo/quest-n-click/wiki/EN-Bridge-Install-And-Run)',
+    'a reference Reality Bridge for the game: init, serve, grant, revoke (https://github.com/Quest-n-Click/quest-n-click/wiki/EN-Bridge-Install-And-Run)',
     () => tool('bridge', rest),
   ],
   'solve-reality': [

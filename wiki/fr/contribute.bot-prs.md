@@ -15,7 +15,7 @@ Python du worker, épinglage des actions).
 
 ## Contexte et versions
 
-Le dépôt du moteur sur GitHub, `wanoo/quest-n-click`. `.github/dependabot.yml` en 4.4.0 : npm chaque semaine (mises à
+Le dépôt du moteur sur GitHub, `Quest-n-Click/quest-n-click`. `.github/dependabot.yml` en 4.4.0 : npm chaque semaine (mises à
 jour mineures et correctives regroupées sous `minor-and-patch`), GitHub Actions chaque semaine, pip
 (`requirements.txt`) chaque mois. Les versions majeures de `@types/node` sont ignorées : les types suivent la plus
 ancienne Node que le projet prend en charge (22.12, `engines`), et les types de Node 26 refusent du code juste sur la
@@ -51,8 +51,8 @@ des bots.
 
    ```sh
    # n'importe où, avec gh connecté
-   gh pr list -R wanoo/quest-n-click --author app/dependabot
-   gh pr checks <number> -R wanoo/quest-n-click
+   gh pr list -R Quest-n-Click/quest-n-click --author app/dependabot
+   gh pr checks <number> -R Quest-n-Click/quest-n-click
    ```
 
 <!-- step: merge-green -->
@@ -92,7 +92,7 @@ des bots.
 
 ## Résultat attendu, et comment le vérifier
 
-`gh pr list -R wanoo/quest-n-click --author app/dependabot` ne liste rien, ou seulement des pull requests ouvertes
+`gh pr list -R Quest-n-Click/quest-n-click --author app/dependabot` ne liste rien, ou seulement des pull requests ouvertes
 depuis la dernière release. `main` est vert après les fusions.
 
 <a name="common-errors"></a>

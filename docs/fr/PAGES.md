@@ -2,30 +2,30 @@
 
 # Pages de relecture : valider depuis un téléphone
 
-> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la documentation de la version 4.5.1 ; la page complète de la 4.4.0 reste lisible sur [https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md).
+> Cette page a déménagé dans la documentation de quest'n'click. Chaque section ci-dessous mène à sa nouvelle place dans la dernière documentation, sur le site du projet (écrite pour la version 4.5.1) ; la page complète de la 4.4.0 reste lisible sur [https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md).
 
-Désormais dans : [Pages de relecture](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.review-pages.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md#pages-de-relecture--valider-depuis-un-téléphone)
+Désormais dans : [Pages de relecture](https://quest-n-click.cleverapps.io/fr/docs/create.review-pages) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md#pages-de-relecture--valider-depuis-un-téléphone)
 
 ## Les trois pages
 
-Désormais dans : [Pages de relecture](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.review-pages.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md#les-trois-pages)
+Désormais dans : [Pages de relecture](https://quest-n-click.cleverapps.io/fr/docs/create.review-pages) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md#les-trois-pages)
 
 ## La page du monde
 
-Désormais dans : [Pages de relecture](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.review-pages.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md#la-page-du-monde)
+Désormais dans : [Pages de relecture](https://quest-n-click.cleverapps.io/fr/docs/create.review-pages) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md#la-page-du-monde)
 
 ## La page des puzzles
 
-Désormais dans : [Pages de relecture](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.review-pages.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md#la-page-des-puzzles)
+Désormais dans : [Pages de relecture](https://quest-n-click.cleverapps.io/fr/docs/create.review-pages) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md#la-page-des-puzzles)
 
 ## Où vont les annotations
 
-Désormais dans : [Pages de relecture](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.review-pages.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md#où-vont-les-annotations)
+Désormais dans : [Pages de relecture](https://quest-n-click.cleverapps.io/fr/docs/create.review-pages) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md#où-vont-les-annotations)
 
 ## Publier et relire \(Claude Code\)
 
-Désormais dans : [Pages de relecture](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.review-pages.html) · [Travailler avec une IA](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.working-with-ai.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md#publier-et-relire-claude-code)
+Désormais dans : [Pages de relecture](https://quest-n-click.cleverapps.io/fr/docs/create.review-pages) · [Travailler avec une IA](https://quest-n-click.cleverapps.io/fr/docs/create.working-with-ai) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md#publier-et-relire-claude-code)
 
 ## Importer des layouts
 
-Désormais dans : [Pages de relecture](https://wanoo.github.io/quest-n-click/docs/4.5.1/fr/create.review-pages.html) · [Le texte de la 4.4.0](https://github.com/wanoo/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md#importer-des-layouts)
+Désormais dans : [Pages de relecture](https://quest-n-click.cleverapps.io/fr/docs/create.review-pages) · [Le texte de la 4.4.0](https://github.com/Quest-n-Click/quest-n-click/blob/v4.4.0/docs/fr/PAGES.md#importer-des-layouts)

@@ -7,7 +7,7 @@ surtout des téléchargements.
 
 ## Ce que vous allez obtenir
 
-Un clone de `wanoo/quest-n-click` avec ses dépendances, les modules Python d'image, un Chromium de Playwright, et un
+Un clone de `Quest-n-Click/quest-n-click` avec ses dépendances, les modules Python d'image, un Chromium de Playwright, et un
 rapport de `npm run doctor` sans élément obligatoire manquant. À la fin, le jeu d'exemple tourne dans votre navigateur
 et la suite unitaire passe.
 
@@ -41,7 +41,7 @@ Chaque commande ci-dessous se lance dans un terminal, dans le dépôt du moteur 
 
    ```sh
    # dans le dossier qui contiendra le clone
-   git clone https://github.com/wanoo/quest-n-click.git
+   git clone https://github.com/Quest-n-Click/quest-n-click.git
    cd quest-n-click
    ```
 

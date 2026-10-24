@@ -72,7 +72,7 @@ a created project, or at `npx create-quest-n-click`.
 depends on `^<version>`, which npm looks up in the registry.
 
 **Fix.** In the created project, install the archive: `npm install
-https://github.com/wanoo/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz`. For a new project,
+https://github.com/Quest-n-Click/quest-n-click/releases/download/v<version>/quest-n-click-<version>.tgz`. For a new project,
 pass `--engine=$T`: [Install from the release archive](install.from-archive.md).
 
 <a name="node-version"></a>
